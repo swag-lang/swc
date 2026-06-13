@@ -42,7 +42,10 @@ public impl MessageDlg
             options.sigCreate(dlg)
 
         dlg.setIcon(options.icon)
-        dlg.setIconColor(options.iconColor)
+        // setIcon only creates the icon label when an icon is provided; setting a
+        // color without an icon is a no-op (and would otherwise assert).
+        if options.icon.isValid() do
+            dlg.setIconColor(options.iconColor)
         dlg.sendResizeEvent()
         return dlg
     }

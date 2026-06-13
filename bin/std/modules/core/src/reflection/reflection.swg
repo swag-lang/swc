@@ -221,7 +221,7 @@ func registerCrcToTypeAlias(crc: u32, type: typeinfo)
     addCrcToTypeAlias(crc, type)
 }
 
-moduleprivate func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
+func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
 {
     var bestType:  typeinfo
     var bestScore: u64

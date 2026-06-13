@@ -955,7 +955,15 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
             memberNames.push_back(IdentifierRef::invalid());
 
         SemaNodeView view = sema.viewTypeConstant(child);
-        SWC_ASSERT(view.typeRef().isValid());
+
+        // A child can still be untyped here when it is an auto-member (`.value`)
+        // nested inside an aggregate literal that is itself a call argument: the
+        // direct-argument deferral that would resolve it from the selected
+        // overload's parameter type does not reach nested literal children. Emit
+        // a clear diagnostic instead of asserting (the compiler must never assert).
+        if (!view.typeRef().isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_cannot_infer_aggregate_field_type, child);
+
         memberTypes.push_back(view.typeRef());
         allConstant = allConstant && view.cstRef().isValid();
         values.push_back(view.cstRef());

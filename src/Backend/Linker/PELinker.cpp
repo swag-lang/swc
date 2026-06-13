@@ -807,6 +807,14 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
             block.lines.push_back(line);
         }
 
+        // The prologue is emitted as non-step-visible code, so the first step-visible
+        // range (and hence the first line record) starts past the function entry. That
+        // leaves the entry point and prologue without any source mapping, so a breakpoint
+        // at the function start or a sample landing in the prologue resolves to nothing.
+        // Mirror MSVC by extending the function's first line down to code offset 0.
+        if (!fn.lineBlocks.empty() && !fn.lineBlocks.front().codeOffsets.empty())
+            fn.lineBlocks.front().codeOffsets.front() = 0;
+
         dbg.functions.push_back(std::move(fn));
     }
 

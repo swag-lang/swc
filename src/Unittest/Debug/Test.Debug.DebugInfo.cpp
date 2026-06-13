@@ -402,6 +402,41 @@ namespace
         return false;
     }
 
+    bool tryReadFirstLineBlockFirstCodeOffset(const ByteSpan bytes, uint32_t& outCodeOffset)
+    {
+        outCodeOffset = 0;
+        if (bytes.size() < sizeof(uint32_t) || readU32(bytes, 0) != K_CV_SIGNATURE_C13)
+            return false;
+
+        uint32_t cursor = sizeof(uint32_t);
+        while (cursor + 8 <= bytes.size())
+        {
+            const uint32_t subsectionType = readU32(bytes, cursor + 0);
+            const uint32_t subsectionSize = readU32(bytes, cursor + 4);
+            cursor += 8;
+
+            if (cursor + subsectionSize > bytes.size())
+                return false;
+
+            if (subsectionType == K_DEBUG_S_LINES)
+            {
+                if (subsectionSize < 24)
+                    return false;
+                const uint32_t blockOffset   = cursor + 12;
+                const uint32_t lineCount     = readU32(bytes, blockOffset + 4);
+                const uint32_t entriesOffset = blockOffset + 12;
+                if (lineCount == 0 || entriesOffset + 8 > cursor + subsectionSize)
+                    return false;
+                outCodeOffset = readU32(bytes, entriesOffset + 0);
+                return true;
+            }
+
+            cursor = alignUp4(cursor + subsectionSize);
+        }
+
+        return false;
+    }
+
     DebugInfoLocalRecord makeDebugLocalRecord(const Utf8& name, const TypeRef typeRef, const uint32_t offset, const MicroReg baseReg)
     {
         DebugInfoLocalRecord record;
@@ -870,6 +905,89 @@ SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
     if (lines.size() != 2)
         return Result::Error;
     if (lines[0] != 1 || lines[1] != 3)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// The prologue is non-step-visible, so its source range is dropped from the line table. The first
+// emitted line record must still cover code offset 0, otherwise the function entry and prologue have
+// no source mapping (breakpoints at entry / samples in the prologue resolve to nothing).
+SWC_TEST_BEGIN(DebugInfo_FirstLineCoversEntry)
+{
+    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "FirstLineCoversEntry", "alpha\n"
+                                                                                              "beta\n");
+    SWC_RESULT(sourceFile.loadContent(ctx));
+
+    Lexer lexer;
+    lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+
+    const SourceView& srcView = sourceFile.ast().srcView();
+    TokenRef          line1Tok;
+    TokenRef          line2Tok;
+    for (uint32_t i = 0; i < srcView.tokens().size(); ++i)
+    {
+        const TokenRef        tokRef(i);
+        const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, tokRef);
+        if (!codeRange.line)
+            continue;
+        if (codeRange.line == 1 && !line1Tok.isValid())
+            line1Tok = tokRef;
+        else if (codeRange.line == 2 && !line2Tok.isValid())
+            line2Tok = tokRef;
+    }
+
+    if (!line1Tok.isValid() || !line2Tok.isValid())
+        return Result::Error;
+
+    MachineCode code;
+    code.bytes = {std::byte{0x90}, std::byte{0x90}, std::byte{0xC3}};
+    // Prologue range at offset 0 is non-step-visible (dropped from the line table)...
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 0,
+        .codeEndOffset   = 1,
+        .debugSourceInfo = {.sourceCodeRef = {.srcViewRef = srcView.ref(), .tokRef = line1Tok}, .debugNoStep = true},
+    });
+    // ...the first step-visible range starts past the entry, at offset 1.
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 1,
+        .codeEndOffset   = 3,
+        .debugSourceInfo = {.sourceCodeRef = {.srcViewRef = srcView.ref(), .tokRef = line2Tok}},
+    });
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName  = "__swc_debug_info_entry_proc",
+        .debugName   = "debug::entry",
+        .machineCode = &code,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-entry.obj"),
+        .functions    = functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    // Only the step-visible body line (2) is emitted, but its record must start at offset 0.
+    std::vector<uint32_t> lines;
+    if (!tryReadFirstLineBlockLines(asByteSpan(debugSection->bytes), lines))
+        return Result::Error;
+    if (lines.size() != 1 || lines[0] != 2)
+        return Result::Error;
+
+    uint32_t firstCodeOffset = 0xFFFFFFFF;
+    if (!tryReadFirstLineBlockFirstCodeOffset(asByteSpan(debugSection->bytes), firstCodeOffset))
+        return Result::Error;
+    if (firstCodeOffset != 0)
         return Result::Error;
 }
 SWC_TEST_END()

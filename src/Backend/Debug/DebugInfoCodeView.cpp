@@ -572,6 +572,13 @@ namespace
             entries.push_back(entry);
         }
 
+        // The prologue is emitted as non-step-visible code, so the first step-visible
+        // range (and hence the first line record) starts past the function entry. That
+        // leaves the entry point and prologue without any source mapping. Mirror MSVC by
+        // extending the function's first line down to code offset 0.
+        if (!result.blocks.empty() && !result.blocks.front().entries.empty())
+            result.blocks.front().entries.front().codeOffset = 0;
+
         return result;
     }
 

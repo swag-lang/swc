@@ -260,12 +260,9 @@ func(T) encodeTagBin(value: T)->String
     return buffer.toString()
 }
 
-func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
 {
-    var result: retval
-    result.add(bytes.toSlice())
-
-    var stream = ByteStream.openRead(result.toSlice())
+    var stream = ByteStream.openRead(bytes)
     @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Root)
     @assert(@err == null)
     discard catch stream.readNative'u32()
@@ -291,16 +288,35 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
         let crc  = catch stream.readNative'u32()
         let seek = catch stream.readNative'u64()
         @assert(@err == null)
-        if crc == fieldCrc
-        {
-            var writer = ByteStream.openWrite(&result)
-            writer.setSeek(seek + #sizeof(u32))
-            writer.writeNative(typeCrc)
-            return result
-        }
+        if crc == fieldCrc do
+            return seek
     }
 
     @assert(false)
+    return 0
+}
+
+func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+{
+    var result: retval
+    result.add(bytes.toSlice())
+
+    let seek = findTagBinFieldSeek(result.toSlice(), fieldName)
+    var writer = ByteStream.openWrite(&result)
+    writer.setSeek(seek + #sizeof(u32))
+    writer.writeNative(typeCrc)
+    return result
+}
+
+func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+{
+    var result: retval
+    result.add(bytes.toSlice())
+
+    let seek = findTagBinFieldSeek(result.toSlice(), fieldName)
+    var writer = ByteStream.openWrite(&result)
+    writer.setSeek(seek + #sizeof(u32) + #sizeof(u32) + #sizeof(Serialization.Write.TagBinValueFlags))
+    writer.writeNative(typeCrc)
     return result
 }
 
@@ -561,6 +577,31 @@ func releaseTagBinInterface(value: *ITagBinScore)
     @assert(decoded.other == -11)
     @assert(decoded.score.score() == 37)
     @assert(decoded.score.labelText() == "iface")
+
+    releaseTagBinInterface(&decoded.score)
+    Memory.delete(decoded)
+}
+
+#test
+{
+    var concrete = TagBinInterfaceProbe{value: 41}
+    concrete.label = "inferred"
+
+    let payload = TagBinInterfacePayload{
+        score: cast(ITagBinScore) concrete,
+        other: 12,
+    }
+
+    let bytes   = encodeTagBin(payload)
+    let patched = corruptTagBinInterfaceObjectType(bytes, "score", 0xDEADBEEF)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinInterfacePayload(patched.toSlice())
+    @assert(@err == null)
+    @assert(decoded != null)
+    @assert(decoded.other == 12)
+    @assert(decoded.score.score() == 46)
+    @assert(decoded.score.labelText() == "inferred")
 
     releaseTagBinInterface(&decoded.score)
     Memory.delete(decoded)

@@ -133,6 +133,13 @@ fileprivate var g_HashCrcToType: HashTable'(u32, typeinfo)
 fileprivate var g_HashNameToType: HashTable'(string, typeinfo)
 fileprivate var g_HashLock: Sync.RWLock
 
+fileprivate func typeValueCrc(val: Swag.TypeValue)->u32
+{
+    if val.crc do
+        return val.crc
+    return Hash.Crc32.compute(val.name)
+}
+
 fileprivate func addCrcToTypeAlias(crc: u32, type: typeinfo)
 {
     if !crc or g_HashCrcToType.contains(crc) do
@@ -212,6 +219,50 @@ func registerCrcToTypeAlias(crc: u32, type: typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
     addCrcToTypeAlias(crc, type)
+}
+
+moduleprivate func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
+{
+    var bestType:  typeinfo
+    var bestScore: u64
+    var ambiguous: bool
+
+    Sync.sharedLock(&g_HashLock)
+    foreach ignoredCrc, t in g_HashCrcToType
+    {
+        if !hasInterface(t, itf) do
+            continue
+
+        let typeStruct = cast(const *TypeInfoStruct) t
+        var score = 0'u64
+        foreach streamCrc in fieldCrcs
+        {
+            foreach &field in typeStruct.fields
+            {
+                if typeValueCrc(field) == streamCrc
+                {
+                    score += 1
+                    break
+                }
+            }
+        }
+
+        if score == 0 do
+            continue
+
+        if score > bestScore
+        {
+            bestType  = t
+            bestScore = score
+            ambiguous = false
+        }
+        elif score == bestScore and t != bestType do
+            ambiguous = true
+    }
+
+    if ambiguous do
+        return null
+    return bestType
 }
 
 // #premain can be called more than once if we compile/run more than one

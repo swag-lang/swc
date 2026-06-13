@@ -59,48 +59,7 @@ impl Decoder
 {
     mtd inferStructTypeForInterface(itfType: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
     {
-        var bestType:  typeinfo
-        var bestScore: u64
-        var ambiguous: bool
-
-        foreach m in @pinfos.modules
-        {
-            foreach t in m.types
-            {
-                if !Reflection.hasInterface(t, itfType) do
-                    continue
-
-                let typeStruct = cast(const *TypeInfoStruct) t
-                var score = 0'u64
-                foreach streamCrc in fieldCrcs
-                {
-                    foreach &field in typeStruct.fields
-                    {
-                        if Hash.Crc32.compute(field.name) == streamCrc
-                        {
-                            score += 1
-                            break
-                        }
-                    }
-                }
-
-                if score == 0 do
-                    continue
-
-                if score > bestScore
-                {
-                    bestType  = t
-                    bestScore = score
-                    ambiguous = false
-                }
-                elif score == bestScore do
-                    ambiguous = true
-            }
-        }
-
-        if ambiguous do
-            return null
-        return bestType
+        return Reflection.inferTypeWithInterfaceFields(itfType, fieldCrcs)
     }
 
     mtd readTypeValue(typedVal: TypeValue, data: [*] void) throw

@@ -6,6 +6,7 @@ struct GuiHeadlessHost
 {
     app:             Application
     surface:         Surface
+    surfaceWnd:      SurfaceWnd
     root:            Wnd
     theme:           *Theme
     mousePos:        Math.Point
@@ -41,6 +42,13 @@ impl GuiHeadlessHost
         root.backgroundStyle = .Dialog
         root.sendCreateEvent()
         root.sendResizeEvent()
+
+        // Wire the surface root window so getTopView()/getTopWnd() resolve to the
+        // root view. This enables popup-based widgets (combobox, menus, tabs)
+        // which anchor their popups to the top view.
+        .surfaceWnd.surface = &.surface
+        .surfaceWnd.view    = root
+        .surface.wnd        = &.surfaceWnd
     }
 
     mtd shutdown()

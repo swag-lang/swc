@@ -10,6 +10,7 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Math/Hash.h"
@@ -27,6 +28,25 @@ namespace
         Utf8 result = path.extension().string();
         result.make_lower();
         return result;
+    }
+
+    bool isPublishDependencyExtension(const Utf8& extension)
+    {
+        return extension == ".dll" || extension == ".pdb";
+    }
+
+    bool publishDependencyFilesHaveSameContent(const fs::path& lhsPath, const fs::path& rhsPath)
+    {
+        FileSystem::IoErrorInfo ioError;
+        std::vector<std::byte>  lhsData;
+        if (FileSystem::readBinaryFile(lhsPath, lhsData, ioError) != Result::Continue)
+            return false;
+
+        std::vector<std::byte> rhsData;
+        if (FileSystem::readBinaryFile(rhsPath, rhsData, ioError) != Result::Continue)
+            return false;
+
+        return lhsData == rhsData;
     }
 
     bool isCompilerFunction(const SymbolFunction& symbol)
@@ -67,7 +87,13 @@ namespace
 
         ec.clear();
         const auto dstTime = fs::last_write_time(dstPath, ec);
-        return ec || srcTime != dstTime;
+        if (ec)
+            return true;
+
+        if (srcTime != dstTime)
+            return true;
+
+        return !publishDependencyFilesHaveSameContent(srcPath, dstPath);
     }
 
     Utf8 buildLocalFunctionSymbolName(const NativeBackendBuilder& builder, const NativeFunctionInfo& info, const uint32_t ordinal)
@@ -883,7 +909,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
             ec.clear();
             if (!it->is_regular_file(ec) || ec)
                 continue;
-            if (lowerPathExtension(it->path()) != ".dll")
+            if (!isPublishDependencyExtension(lowerPathExtension(it->path())))
                 continue;
 
             const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();

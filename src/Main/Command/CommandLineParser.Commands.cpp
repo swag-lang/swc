@@ -139,7 +139,7 @@ void CommandLineParser::registerCommands()
         "Clear native work and artifact folders before building native outputs.");
     add(HelpOptionGroup::Compiler, "test build run", "--publish", nullptr,
         &cmdLine_->publish,
-        "Copy executable runtime dependency DLLs into the artifact output directory after a successful native link.");
+        "Copy executable dependency DLLs and PDBs into the artifact output directory after a successful native link.");
     add(HelpOptionGroup::Compiler, "sema test build run", "--rebuild", nullptr,
         &cmdLine_->rebuild,
         "When --workspace is present, force recompilation of every selected workspace module even if all generated outputs are already up to date.");

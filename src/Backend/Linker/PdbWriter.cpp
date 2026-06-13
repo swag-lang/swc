@@ -29,6 +29,7 @@ namespace
     constexpr uint16_t K_S_GDATA32    = 0x110D;
     constexpr uint16_t K_S_UDT        = 0x1108;
     constexpr uint16_t K_S_REGREL32   = 0x1111;
+    constexpr uint16_t K_S_PROCREF    = 0x1125;
     constexpr uint16_t K_S_BUILDINFO  = 0x114C;
 
     constexpr uint32_t K_DEBUG_S_SYMBOLS    = 0xF1;
@@ -226,7 +227,7 @@ namespace
             fpm[byteIdx] &= static_cast<std::byte>(~(1u << bitIdx));
         }
         writeAt(1, fpm.data(), fpm.size());
-        Bytes fpm2(K_BLOCK_SIZE, std::byte{0xFF});
+        const Bytes fpm2(K_BLOCK_SIZE, std::byte{0xFF});
         writeAt(2, fpm2.data(), fpm2.size());
     }
 
@@ -285,6 +286,12 @@ namespace
     {
         uint32_t recordOffset = 0;
         Utf8     name;
+    };
+
+    struct ProcRefSym
+    {
+        Utf8     name;
+        uint32_t moduleSymOffset = 0;
     };
 
     int gsiRecordCmp(std::string_view a, std::string_view b)
@@ -544,12 +551,15 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
     // The scope End pointers are offsets within the module stream, which begins with the 4-byte signature.
     constexpr uint32_t symBase = sizeof(uint32_t);
+    std::vector<ProcRefSym> procRefs;
 
     for (const LinkDebugFunction& fn : debugInfo.functions)
     {
         const PdbSymbolAddress addr = resolver.resolve(fn.symbolName);
         if (!addr.found)
             continue;
+
+        const std::string_view functionName = fn.displayName.empty() ? fn.symbolName.view() : fn.displayName.view();
 
         Bytes payload;
         appendLe32(payload, 0); // parent
@@ -563,8 +573,9 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendLe32(payload, addr.offset);
         appendLe16(payload, addr.segment);
         payload.push_back(std::byte{0}); // flags
-        appendCString(payload, fn.displayName.empty() ? fn.symbolName.view() : fn.displayName.view());
+        appendCString(payload, functionName);
         const uint32_t procOffset = appendSymbol(moduleSymbols, K_S_GPROC32, payload);
+        procRefs.push_back({Utf8(functionName), symBase + procOffset});
         // endPatchPos points at the 'end' field: that is procOffset + 2(len) + 2(kind) + 4(parent).
         const uint32_t endFieldOffset = procOffset + 2 + 2 + 4;
 
@@ -599,6 +610,17 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         Bytes payload;
         appendLe32(payload, debugInfo.buildInfoIndex);
         appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
+    }
+
+    for (const ProcRefSym& procRef : procRefs)
+    {
+        Bytes payload;
+        appendLe32(payload, 0); // checksum of the procedure name; 0 is accepted by MSVC-produced PDBs
+        appendLe32(payload, procRef.moduleSymOffset);
+        appendLe16(payload, 1); // one-based module index
+        appendCString(payload, procRef.name.view());
+        const uint32_t recordOffset = appendSymbol(symRecords, K_S_PROCREF, payload);
+        globalSyms.push_back({recordOffset, procRef.name});
     }
 
     // C13 line information: per-function DEBUG_S_LINES plus one DEBUG_S_FILECHKSMS.

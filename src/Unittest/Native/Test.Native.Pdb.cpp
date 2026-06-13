@@ -14,6 +14,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint16_t K_S_PROCREF = 0x1125;
+
     void emit(std::vector<std::byte>& out, std::initializer_list<int> bytes)
     {
         for (const int b : bytes)
@@ -27,6 +29,36 @@ namespace
             return false;
         file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
         return file.good();
+    }
+
+    uint16_t readU16(const std::vector<std::byte>& bytes, const size_t offset)
+    {
+        uint16_t value = 0;
+        std::memcpy(&value, bytes.data() + offset, sizeof(value));
+        return value;
+    }
+
+    bool pdbContainsSymbolRecord(const std::vector<std::byte>& bytes, const uint16_t kind, const std::string_view name)
+    {
+        const ByteSpan needle = asByteSpan(name);
+        for (size_t offset = 0; offset + sizeof(uint16_t) * 2 <= bytes.size(); ++offset)
+        {
+            const uint16_t recordSize = readU16(bytes, offset);
+            if (recordSize < sizeof(uint16_t))
+                continue;
+
+            const size_t recordEnd = offset + sizeof(uint16_t) + recordSize;
+            if (recordEnd > bytes.size())
+                continue;
+            if (readU16(bytes, offset + sizeof(uint16_t)) != kind)
+                continue;
+
+            const ByteSpan recordBytes{bytes.data() + offset, recordEnd - offset};
+            if (std::ranges::search(recordBytes, needle).begin() != recordBytes.end())
+                return true;
+        }
+
+        return false;
     }
 }
 
@@ -118,6 +150,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     if (pdbBytes.empty())
     {
         std::println(stderr, "Pdb test: no PDB bytes produced");
+        return Result::Error;
+    }
+    if (!pdbContainsSymbolRecord(pdbBytes, K_S_PROCREF, "myFunc"))
+    {
+        std::println(stderr, "Pdb test: function procedure reference is missing from globals");
         return Result::Error;
     }
 

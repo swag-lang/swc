@@ -154,6 +154,9 @@ impl LibraryWnd
 
     mtd fill()
     {
+        if !g_Library.loaded do
+            g_Library.fill()
+
         if .listCtrl.getLineCount() do
             return
         let libWnd = me

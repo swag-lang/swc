@@ -210,7 +210,11 @@ struct RecentWnd
     main:                *MainWnd
     recentView:          *RecentView
     timer:               *Gui.Timer
+    loadTimer:           *Gui.Timer
+    pendingRecentFiles:  Array'String
+    pendingRecentIndex:  u64
     loadDone:            bool
+    prepareLoadRecent:   bool
 }
 
 impl IWnd for RecentWnd
@@ -219,10 +223,26 @@ impl IWnd for RecentWnd
     {
         if .timer do
             .getApp().deleteTimer(.timer)
+        if .loadTimer do
+            .getApp().deleteTimer(.loadTimer)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .loadTimer
+        {
+            .getApp().deleteTimer(evt.timer)
+            .loadTimer = null
+            if .prepareLoadRecent
+            {
+                .prepareLoadRecent = false
+                .loadRecent()
+            }
+            else do
+                .loadNextRecent()
+            return
+        }
+
         let maybeCapture = .main.getCapture()
         if maybeCapture
         {
@@ -267,6 +287,14 @@ impl RecentWnd
         return recent
     }
 
+    mtd scheduleLoadRecent()
+    {
+        if .loadDone or .loadTimer do
+            return
+        .prepareLoadRecent = true
+        .loadTimer         = .getApp().addTimer(100'ms, me)
+    }
+
     mtd loadRecent()
     {
         if .loadDone do
@@ -274,7 +302,8 @@ impl RecentWnd
         .loadDone = true
         let self = me
 
-        g_Library.fill()
+        if !g_Library.loaded do
+            g_Library.fill()
         g_Library.onDeleteFile += func|self|(file)
         {
             foreach it, i in self.recentView.items
@@ -303,26 +332,45 @@ impl RecentWnd
             return b.lastWriteTime <=> a.lastWriteTime
         })
 
-        var cptRecent = 0
-        foreach r, idx in res
+        foreach r in res
         {
-            let capture = catch .addRecent(r.fullname, front: false)
-            defer #err Memory.delete(capture)
-            if @err != null do
-                continue
+            .pendingRecentFiles.add(r.fullname)
+            if .pendingRecentFiles.count >= MaxRecent do
+                break
+        }
 
-            if idx == 0
+        .scheduleLoadNextRecent()
+    }
+
+    mtd scheduleLoadNextRecent()
+    {
+        if .loadTimer or .pendingRecentIndex >= .pendingRecentFiles.count do
+            return
+        .prepareLoadRecent = false
+        .loadTimer = .getApp().addTimer(1'ms, me)
+    }
+
+    mtd loadNextRecent()
+    {
+        if .pendingRecentIndex >= .pendingRecentFiles.count do
+            return
+
+        let idx     = .pendingRecentIndex
+        let capture = catch .addRecent(.pendingRecentFiles[idx], front: false)
+        defer #err Memory.delete(capture)
+        if @err == null
+        {
+            if idx == 0 and !.main.editWnd.editView.capture
             {
                 .recentView.selected = 0
                 .main.editWnd.editView.setCapture(capture)
             }
             else do
                 Memory.delete(capture)
-
-            cptRecent += 1
-            if cptRecent > MaxRecent do
-                break
         }
+
+        .pendingRecentIndex += 1
+        .scheduleLoadNextRecent()
     }
 
     mtd updateRecent()

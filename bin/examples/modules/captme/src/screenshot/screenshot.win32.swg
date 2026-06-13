@@ -47,6 +47,9 @@ moduleprivate
 
 func getWndRectAtPos(srf: *Surface, x, y: f32)->Math.Rectangle
 {
+    let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+    defer discard SetThreadDpiAwarenessContext(awareness)
+
     g_HitTest.x = cast() x
     g_HitTest.y = cast() y
 
@@ -97,7 +100,10 @@ func getDesktopImage()->Image throw
 
     let hDesktopWnd = GetDesktopWindow()
     let hDesktopDC  = GetDC(hDesktopWnd)
+    defer discard ReleaseDC(hDesktopWnd, hDesktopDC)
 
+    let x = Env.getMetric(.DesktopX)
+    let y = Env.getMetric(.DesktopY)
     let w = Env.getMetric(.DesktopWidth)
     let h = Env.getMetric(.DesktopHeight)
 
@@ -107,6 +113,6 @@ func getDesktopImage()->Image throw
     defer catch DeleteObject(cast() memBMP)
 
     SelectObject(memDC, cast() memBMP)
-    BitBlt(memDC, 0, 0, w, h, hDesktopDC, 0, 0, SRCCOPY | CAPTUREBLT)
+    BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)
     return Image.from(memBMP)
 }

@@ -1,5 +1,7 @@
 var g_App: Application
 
+const NotifyIconVersion4 = 4
+
 #premain
 {
     Reflection.registerType(#typeof(FormArrow))
@@ -8,6 +10,7 @@ var g_App: Application
     Reflection.registerType(#typeof(FormLine))
     Reflection.registerType(#typeof(FormPolygon))
     Reflection.registerType(#typeof(FormShape))
+    Reflection.registerType(#typeof(FormStep))
     Reflection.registerType(#typeof(FormText))
 
     Reflection.registerCrcToTypeAlias(0x0A77C1A5, #typeof(FormPolygon))
@@ -55,17 +58,23 @@ var g_App: Application
     // Icon task bar
     with Win32
     {
+        let hIcon = catch img.toHICON()
+        defer catch DestroyIcon(hIcon)
+
         with var tnid: NOTIFYICONDATAA
         {
             .cbSize           = #sizeof(NOTIFYICONDATAA)
             .hWnd             = surface.hWnd
             .uID              = 1
-            .uFlags           = NIF_ICON | NIF_MESSAGE
+            .uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP
             .uCallbackMessage = WM_USER
-            .hIcon            = catch img.toHICON()
+            .hIcon            = hIcon
+            Memory.copy(&.szTip[0], @dataof("Captme"), @countof("Captme"))
         }
 
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
+        tnid.uVersion = NotifyIconVersion4
+        catch Shell_NotifyIconA(NIM_SETVERSION, &tnid)
         defer catch Shell_NotifyIconA(NIM_DELETE, &tnid)
     }
 

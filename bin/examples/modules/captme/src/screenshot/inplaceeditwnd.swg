@@ -205,7 +205,7 @@ impl InPlaceEditWnd
     func crop(capture: *Capture)
     {
         let grabRect = calculateGrabRect(capture)
-        capture.applyScaling(grabRect)
+        capture.applyGrabRect(grabRect)
         capture.updateCaptureState()
     }
 
@@ -214,21 +214,13 @@ impl InPlaceEditWnd
         return Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
     }
 
-    func applyScaling(capture: *Capture, rect: Math.Rectangle)
+    func applyGrabRect(capture: *Capture, rect: Math.Rectangle)
     {
         var grabRect = rect
-        let scale    = Env.getDPIScale()
-        grabRect.x *= scale
-        grabRect.y *= scale
-        grabRect.width *= scale
-        grabRect.height *= scale
 
         capture.backImg.crop(grabRect)
         if capture.backImgOriginal.isValid() do
             capture.backImgOriginal = capture.backImg
-
-        foreach f in capture.forms do
-            f.scaleBaseForm(scale)
     }
 
     func updateCaptureState(capture: *Capture)

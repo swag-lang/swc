@@ -67,11 +67,13 @@ impl IActionUI for ActionGlobal
             main.swapLibraryMode()
 
         case Exit:
+            main.saveAppState()
             if main.libWnd do
                 main.libWnd.requestClose()
             main.postQuitEvent()
 
         case Minimize:
+            main.saveAppState()
             main.surface.hide()
         }
 

@@ -16,6 +16,8 @@ var g_StartGrabX:         f32
 var g_StartGrabY:         f32
 var g_EndGrabX:           f32
 var g_EndGrabY:           f32
+var g_DesktopX:           s32
+var g_DesktopY:           s32
 var g_ScreenWidth:        s32
 var g_ScreenHeight:       s32
 var g_Exit:               bool
@@ -30,6 +32,14 @@ func getGrabRect()->Math.Rectangle
     result.y      = Math.min(g_StartGrabY, g_EndGrabY)
     result.width  = Math.max(g_StartGrabX, g_EndGrabX) - result.x
     result.height = Math.max(g_StartGrabY, g_EndGrabY) - result.y
+    return result
+}
+
+func screenToDesktopRect(rect: Math.Rectangle)->Math.Rectangle
+{
+    var result = rect
+    result.x -= g_DesktopX
+    result.y -= g_DesktopY
     return result
 }
 
@@ -52,10 +62,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface } throw
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
-    let sx = Env.getMetric(.DesktopX)
-    let sy = Env.getMetric(.DesktopY)
-
-    result.sf = catch g_App.createSurface(sx, sy, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
+    result.sf = catch g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
     let captureWnd = Wnd.create'CaptureRectWnd(result.sf.wnd)
     captureWnd.main   = main
     captureWnd.cursor = Cursor.from(CursorShape.Cross)
@@ -128,11 +135,11 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
     {
     case .FullScreen:
         g_StartGrabX, g_StartGrabY = 0
-        g_EndGrabX = g_ScreenWidth * Env.getDPIScale()
-        g_EndGrabY = g_ScreenHeight * Env.getDPIScale()
+        g_EndGrabX = g_ScreenWidth
+        g_EndGrabY = g_ScreenHeight
 
     case .ActiveWindow:
-        let r = getBackgroundWndRect()
+        let r = screenToDesktopRect(getBackgroundWndRect())
         if r.isEmpty() do
             return false
         g_StartGrabX = r.x
@@ -142,7 +149,9 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
 
     case .Screen0, .Screen1, .Screen2, .Screen3:
         let idx  = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
-        let rect = main.monitors[idx].rectReal
+        if cast(u64) idx >= main.monitors.count do
+            return false
+        let rect = screenToDesktopRect(main.monitors[idx].rectReal)
         g_StartGrabX = rect.x
         g_StartGrabY = rect.y
         g_EndGrabX   = rect.x + rect.width
@@ -161,6 +170,9 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
 
 func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
 {
+    let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+    defer discard SetThreadDpiAwarenessContext(awareness)
+
     // Hide editor before capture
     let surface   = main.surface
     let wasHidden = surface.isHidden
@@ -171,6 +183,8 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
     if main.captureOptions.delay do
         Threading.Thread.sleep(main.captureOptions.delay * 1000)
 
+    g_DesktopX     = Env.getMetric(.DesktopX)
+    g_DesktopY     = Env.getMetric(.DesktopY)
     g_ScreenWidth  = Env.getMetric(.DesktopWidth)
     g_ScreenHeight = Env.getMetric(.DesktopHeight)
 

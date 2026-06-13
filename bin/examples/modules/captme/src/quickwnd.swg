@@ -10,9 +10,38 @@ impl QuickStyle
         .clear()
     }
 
+    func isKnownForm(itf: IForm)->bool
+    {
+        let type = @kindof(itf)
+        return type == FormArrow or
+               type == FormDraw or
+               type == FormImage or
+               type == FormLine or
+               type == FormPolygon or
+               type == FormShape or
+               type == FormStep or
+               type == FormText
+    }
+
     func deleteOne(itf: IForm)
     {
         Memory.delete(@dataof(itf), @kindof(itf))
+    }
+
+    mtd sanitize()
+    {
+        var idx = 0'u64
+        while idx < .forms.count
+        {
+            if isKnownForm(.forms[idx])
+            {
+                idx += 1
+                continue
+            }
+
+            // Stale serialized interface values can point to an unresolved type.
+            .forms.removeAtOrdered(idx)
+        }
     }
 
     mtd remove(itf: IForm)
@@ -98,6 +127,18 @@ impl QuickWnd
 {
     mtd setDefault()
     {
+        .qsArrow.sanitize()
+        .qsShape.sanitize()
+        .qsImage.sanitize()
+        .qsStep.sanitize()
+        .qsLine.sanitize()
+        .qsPolygon.sanitize()
+        .qsText.sanitize()
+        .qsFavorites.sanitize()
+        .qsDraw.sanitize()
+        .qsHighlight.sanitize()
+        .qsPixSel.sanitize()
+
         if .qsArrow.forms.isEmpty() do
             .defaultQuickStyleArrow()
         if .qsShape.forms.isEmpty() do
@@ -519,8 +560,8 @@ impl QuickWnd
         foreach it, i in .currentStyle.forms
         {
             let btn = cast(*IconButton) .layout.childs[i + firstVisible]
+            btn.isChecked = false
 
-            #[Swag.Complete]
             switch it
             {
             case FormArrow:

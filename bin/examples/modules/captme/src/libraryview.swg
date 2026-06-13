@@ -98,8 +98,14 @@ impl IWnd for LibraryView
         if evt.kind == .MouseDoubleClick and .focusItem < .items.count and evt.button == .Left
         {
             let item = .items[.focusItem]
+            .mutexLoaded.lock()
+            let capture = item.capture
+            .mutexLoaded.unlock()
+            if !capture do
+                return
+
             catch File.touch(item.fi.fullname)
-            .mainWnd.recentWnd.addRecent(item.fi.fullname, item.capture.preview, front: true, sel: true, linked: item.capture.linkedImage)
+            .mainWnd.recentWnd.addRecent(item.fi.fullname, capture.preview, front: true, sel: true, linked: capture.linkedImage)
             .mainWnd.recentWnd.setScrollPos(0, 0)
             .mainWnd.swapLibraryMode()
             .mainWnd.updateState()
@@ -253,8 +259,12 @@ impl LibraryView
             let capture = it.capture
             .mutexLoaded.unlock()
 
-            if !capture do
+            if !capture
+            {
+                it.filtered = false
+                .items.add(it)
                 continue
+            }
             if !capture.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
                 continue
             if capture.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do
@@ -277,7 +287,7 @@ impl LibraryView
         if !capture do
             return
 
-        capture.haar = ImageStatistics.extractHaarFeatures(capture.preview, 64)
+        capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
         g_DirtyList  = true
 
         .mutexLoaded.lock()
@@ -292,38 +302,27 @@ impl LibraryView
         foreach it in .allItems do
             copy.add(it)
 
-        for
+        foreach it in copy
         {
-            var visItem, notVisItem: *LibraryItem
-
-            foreach it in copy
-            {
-                if th.requestEnd do
-                    break
-                if it.capture do
-                    continue
-
-                if it.visible
-                {
-                    visItem = it
-                    break
-                }
-
-                if !notVisItem do
-                    notVisItem = it
-            }
-
-            if visItem
-            {
-                .loadOne(visItem)
-                .postInvalidateEvent()
-            }
-            elif notVisItem
-            {
-                .loadOne(notVisItem)
-            }
-            else do
+            if th.requestEnd do
                 break
+            if it.capture or !it.visible do
+                continue
+
+            .loadOne(it)
+            .postInvalidateEvent()
+        }
+
+        foreach it in copy
+        {
+            if th.requestEnd do
+                break
+            if it.capture do
+                continue
+
+            .loadOne(it)
+            if (@index & 15) == 0 do
+                .postInvalidateEvent()
         }
 
         .postInvalidateEvent()
@@ -376,6 +375,12 @@ impl LibraryView
                 toCompare = remaining[bestI]
                 nitems.add(toCompare)
                 remaining.removeAt(bestI)
+            }
+            else
+            {
+                toCompare = remaining.front()
+                remaining.removeAt(0)
+                nitems.add(toCompare)
             }
         }
 

@@ -143,6 +143,7 @@ impl IWnd for MainWnd
         if evt.kind == .Close
         {
             evt.accepted = true
+            .saveAppState()
             if .editorOptions.hideOnClose do
                 .surface.hide()
             else do
@@ -152,8 +153,7 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        if !.firstShow do
-            catch g_App.saveState()
+        .saveAppState()
     }
 
     mtd impl onStateEvent(evt: *StateEvent)
@@ -165,10 +165,12 @@ impl IWnd for MainWnd
                 .firstShow = false
                 catch g_App.loadState()
                 .surface.constaintPositionToScreen(topLeft: true, margin: 10)
-                .recentWnd.loadRecent()
+                .recentWnd.scheduleLoadRecent()
             }
             evt.accepted = true
         }
+        elif evt.kind == .Hide do
+            .saveAppState()
     }
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
@@ -212,6 +214,12 @@ impl IWnd for MainWnd
 // Main implementation
 impl MainWnd
 {
+    mtd saveAppState()
+    {
+        if !.firstShow do
+            catch g_App.saveState()
+    }
+
     mtd loadExternalImage(arg: string)
     {
         let imgToLoad = catch Image.load(arg)

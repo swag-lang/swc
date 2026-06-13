@@ -4,6 +4,7 @@ struct Library
 {
     files:            Array'File.FileInfo
     onDeleteFile:     SigArray'func||(string)
+    loaded:           bool
 }
 
 impl Library
@@ -32,6 +33,7 @@ impl Library
     mtd fill()
     {
         .files = catch Directory.enumerateFiles(getFolder(), ".captme")
+        .loaded = true
     }
 
     mtd removeFile(name: string)

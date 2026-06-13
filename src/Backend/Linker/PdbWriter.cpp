@@ -29,6 +29,7 @@ namespace
     constexpr uint16_t K_S_GDATA32    = 0x110D;
     constexpr uint16_t K_S_UDT        = 0x1108;
     constexpr uint16_t K_S_REGREL32   = 0x1111;
+    constexpr uint16_t K_S_BUILDINFO  = 0x114C;
 
     constexpr uint32_t K_DEBUG_S_SYMBOLS    = 0xF1;
     constexpr uint32_t K_DEBUG_S_LINES      = 0xF2;
@@ -62,7 +63,8 @@ namespace
         STREAM_SYM_RECORDS   = 9,
         STREAM_SECTION_HDR   = 10,
         STREAM_TPI_HASH      = 11,
-        STREAM_COUNT         = 12,
+        STREAM_IPI_HASH      = 12,
+        STREAM_COUNT         = 13,
     };
 
     constexpr uint32_t K_TPI_HASH_BUCKETS = 0x3ffff;
@@ -592,6 +594,12 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         const uint32_t endOffset = appendSymbol(moduleSymbols, K_S_END, {});
         ByteUtils::writeLe32(moduleSymbols, endFieldOffset, symBase + endOffset);
     }
+    if (debugInfo.buildInfoIndex != 0)
+    {
+        Bytes payload;
+        appendLe32(payload, debugInfo.buildInfoIndex);
+        appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
+    }
 
     // C13 line information: per-function DEBUG_S_LINES plus one DEBUG_S_FILECHKSMS.
     Bytes c13;
@@ -905,13 +913,13 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
     // ---- Assemble all streams -------------------------------------------------------------------
     Bytes tpiHash;
-    Bytes ipiHash; // IPI is empty, so this stays empty (no hash stream referenced)
+    Bytes ipiHash;
     std::vector<Bytes> streams(STREAM_COUNT);
     streams[STREAM_OLD_DIRECTORY] = {};
     streams[STREAM_PDB_INFO]      = std::move(pdbInfo);
     streams[STREAM_TPI]           = buildTpiStream(debugInfo.tpiRecords, debugInfo.tpiIndexEnd, STREAM_TPI_HASH, tpiHash);
     streams[STREAM_DBI]           = std::move(dbi);
-    streams[STREAM_IPI]           = buildTpiStream(debugInfo.ipiRecords, debugInfo.ipiIndexEnd, 0xFFFF, ipiHash);
+    streams[STREAM_IPI]           = buildTpiStream(debugInfo.ipiRecords, debugInfo.ipiIndexEnd, STREAM_IPI_HASH, ipiHash);
     streams[STREAM_NAMES]         = names.serialize();
     streams[STREAM_MODULE]        = std::move(moduleStream);
     streams[STREAM_GLOBALS]       = globalsStream;
@@ -919,6 +927,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     streams[STREAM_SYM_RECORDS]   = std::move(symRecords);
     streams[STREAM_SECTION_HDR]   = std::move(sectionHdrStream);
     streams[STREAM_TPI_HASH]      = std::move(tpiHash);
+    streams[STREAM_IPI_HASH]      = std::move(ipiHash);
 
     (void)pdbPath;
     buildMsf(outBytes, streams);

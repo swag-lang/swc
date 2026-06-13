@@ -103,7 +103,10 @@ struct DebugInfoPdbUdt
 struct DebugInfoPdbResult
 {
     std::vector<std::byte>            tpiRecords;
+    std::vector<std::byte>            ipiRecords;
     uint32_t                          tpiIndexEnd = 0x1000;
+    uint32_t                          ipiIndexEnd = 0x1000;
+    uint32_t                          buildInfoIndex = 0;
     std::vector<DebugInfoPdbFunction> functions;
     std::vector<uint32_t>             globalTypes;
     std::vector<DebugInfoPdbUdt>      udts;

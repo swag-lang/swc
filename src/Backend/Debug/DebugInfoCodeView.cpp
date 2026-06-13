@@ -3,6 +3,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Runtime.h"
 #include "Backend/RuntimeName.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -467,6 +468,37 @@ namespace
         }
 
         return {};
+    }
+
+    Utf8 primarySourcePath(const DebugInfoObjectRequest& request)
+    {
+        Utf8 firstSource;
+        for (const DebugInfoFunctionRecord& function : request.functions)
+        {
+            if (!function.machineCode)
+                continue;
+
+            for (const auto& range : function.machineCode->debugSourceRanges)
+            {
+                if (!range.debugSourceInfo.isStepVisible())
+                    continue;
+
+                MachineCode::ResolvedDebugSourceRange resolvedRange;
+                if (!MachineCode::tryResolveDebugSourceRange(*request.ctx, resolvedRange, range))
+                    continue;
+                if (!resolvedRange.source.sourceFile)
+                    continue;
+
+                const SourceFile* sourceFile = resolvedRange.source.sourceFile;
+                const Utf8        path       = codeViewPathString(sourceFile->path());
+                if (!sourceFile->isRuntime())
+                    return path;
+                if (firstSource.empty())
+                    firstSource = path;
+            }
+        }
+
+        return firstSource;
     }
 
     Utf8 buildInfoCurrentDirectory(const DebugInfoObjectRequest& request, const Utf8& primarySource)
@@ -1482,6 +1514,28 @@ void DebugInfoCodeView::buildPdbInfo(DebugInfoPdbResult& outResult, const DebugI
     SWC_ASSERT(types.bytes.size() >= sizeof(uint32_t));
     outResult.tpiRecords.assign(types.bytes.begin() + sizeof(uint32_t), types.bytes.end());
     outResult.tpiIndexEnd = types.nextTypeIndex;
+
+    TypeTableBuilder ids(request.ctx);
+    ids.begin();
+
+    const Utf8 primarySource       = primarySourcePath(request);
+    const Utf8 buildCurrentDir     = buildInfoCurrentDirectory(request, primarySource);
+    const Utf8 buildTool           = codeViewPathString(Os::getExeFullName());
+    const Utf8 buildSourceFileName = buildInfoSourceFileName(primarySource);
+    fs::path   buildPdbPath        = request.objectPath;
+    buildPdbPath.replace_extension(".pdb");
+    const Utf8     buildPdbPathString = request.objectPath.empty() ? Utf8{} : codeViewPathString(buildPdbPath);
+    const Utf8     buildCommandLine   = buildInfoCommandLine(*request.ctx);
+    const uint32_t currentDirId       = ids.appendStringId(buildCurrentDir);
+    const uint32_t buildToolId        = ids.appendStringId(buildTool);
+    const uint32_t sourceFileId       = ids.appendStringId(buildSourceFileName);
+    const uint32_t pdbFileId          = ids.appendStringId(buildPdbPathString);
+    const uint32_t commandLineId      = ids.appendStringId(buildCommandLine);
+    outResult.buildInfoIndex          = ids.appendBuildInfo({currentDirId, buildToolId, sourceFileId, pdbFileId, commandLineId});
+
+    SWC_ASSERT(ids.bytes.size() >= sizeof(uint32_t));
+    outResult.ipiRecords.assign(ids.bytes.begin() + sizeof(uint32_t), ids.bytes.end());
+    outResult.ipiIndexEnd = ids.nextTypeIndex;
 }
 
 SWC_END_NAMESPACE();

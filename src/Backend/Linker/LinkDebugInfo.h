@@ -79,6 +79,7 @@ struct LinkDebugInfo
     std::vector<std::byte> ipiRecords;
     uint32_t               tpiIndexEnd = 0x1000;
     uint32_t               ipiIndexEnd = 0x1000;
+    uint32_t               buildInfoIndex = 0;
 
     std::vector<LinkDebugFile>     files; // source files, referenced by LinkDebugLineBlock::fileIndex
     std::vector<LinkDebugFunction> functions;

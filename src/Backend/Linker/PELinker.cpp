@@ -714,16 +714,20 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
     collectDebugRecords(*builder_, functionPtrs, builder_->startup.get(), true, collected);
 
     const DebugInfoObjectRequest request = {
-        .ctx       = &builder_->ctx(),
-        .targetOs  = builder_->ctx().cmdLine().targetOs,
-        .functions = collected.functions,
-        .globals   = collected.globals,
-        .constants = collected.constants,
+        .ctx        = &builder_->ctx(),
+        .targetOs   = builder_->ctx().cmdLine().targetOs,
+        .objectPath = builder_->artifactPath,
+        .functions  = collected.functions,
+        .globals    = collected.globals,
+        .constants  = collected.constants,
     };
     DebugInfoPdbResult pdbTypes;
     DebugInfo::buildPdbInfo(request, pdbTypes);
-    dbg.tpiRecords  = std::move(pdbTypes.tpiRecords);
-    dbg.tpiIndexEnd = pdbTypes.tpiIndexEnd;
+    dbg.tpiRecords     = std::move(pdbTypes.tpiRecords);
+    dbg.ipiRecords     = std::move(pdbTypes.ipiRecords);
+    dbg.tpiIndexEnd    = pdbTypes.tpiIndexEnd;
+    dbg.ipiIndexEnd    = pdbTypes.ipiIndexEnd;
+    dbg.buildInfoIndex = pdbTypes.buildInfoIndex;
 
     std::unordered_map<Utf8, uint32_t> fileIndices;
     const auto fileIndexFor = [&](const Utf8& path, const SourceFile* sourceFile) {

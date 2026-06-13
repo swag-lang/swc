@@ -66,6 +66,12 @@ namespace
         return value;
     }
 
+    void appendU32(std::vector<std::byte>& bytes, const uint32_t value)
+    {
+        const auto* src = reinterpret_cast<const std::byte*>(&value);
+        bytes.insert(bytes.end(), src, src + sizeof(value));
+    }
+
     const NativeSectionData* findSection(const DebugInfoObjectResult& result, const Utf8& sectionName)
     {
         for (const NativeSectionData& section : result.sections)
@@ -509,6 +515,53 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
         K_LF_BUILDINFO,
     };
     if (!typeSectionContainsLeafs(typeBytes, EXPECTED_LEAFS))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_PdbInfoEmitsWindowsBuildInfo)
+{
+    MachineCode code;
+    code.bytes.push_back(std::byte{0xC3});
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName  = "__swc_debug_info_pdb_proc",
+        .debugName   = "debug::pdb",
+        .machineCode = &code,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoPdbResult          pdbInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx        = &ctx,
+        .targetOs   = Runtime::TargetOs::Windows,
+        .objectPath = fs::path("C:\\swc\\debug-info-pdb.obj"),
+        .functions  = functions,
+    };
+
+    DebugInfo::buildPdbInfo(request, pdbInfo);
+
+    if (pdbInfo.buildInfoIndex != K_CV_FIRST_NONPRIM + 5)
+        return Result::Error;
+    if (pdbInfo.ipiIndexEnd != K_CV_FIRST_NONPRIM + 6)
+        return Result::Error;
+
+    std::vector<std::byte> idBytes;
+    appendU32(idBytes, K_CV_TYPE_SIGNATURE);
+    idBytes.insert(idBytes.end(), pdbInfo.ipiRecords.begin(), pdbInfo.ipiRecords.end());
+
+    static constexpr std::array EXPECTED_ID_LEAFS = {
+        K_LF_STRING_ID,
+        K_LF_STRING_ID,
+        K_LF_STRING_ID,
+        K_LF_STRING_ID,
+        K_LF_STRING_ID,
+        K_LF_BUILDINFO,
+    };
+    if (!typeSectionContainsLeafs(asByteSpan(idBytes), EXPECTED_ID_LEAFS))
+        return Result::Error;
+    if (!bytesContainString(asByteSpan(idBytes), Utf8("debug-info-pdb.pdb")))
         return Result::Error;
 }
 SWC_TEST_END()

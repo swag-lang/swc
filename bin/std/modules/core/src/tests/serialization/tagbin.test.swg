@@ -15,6 +15,19 @@ struct TagBinPair
     y: s32
 }
 
+struct TagBinFieldWisePoint
+{
+    x: s16
+    y: s16
+}
+
+#[Serialization.Final]
+struct TagBinFinalMigrationPoint
+{
+    x: s16
+    y: s16
+}
+
 struct TagBinPayload
 {
     id:         u32
@@ -103,6 +116,13 @@ struct TagBinConversionTarget
     singleToArray:  Array'u32
     arrayToSingle:  s64
     nested:         TagBinCurrentNested
+}
+
+struct TagBinTypeInfoPayload
+{
+    primitive:   typeinfo
+    staticArray: typeinfo
+    payload:     typeinfo
 }
 
 func makeTagBinPayload()->TagBinPayload
@@ -244,6 +264,28 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
 
 #test
 {
+    let oldPoint = TagBinFieldWisePoint{x: -9, y: 12}
+    let oldBytes = encodeTagBin(oldPoint)
+
+    var finalDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    let finalPoint = catch finalDecoder.readAll'TagBinFinalMigrationPoint(oldBytes.toSlice())
+    @assert(@err == null)
+    @assert(finalPoint != null)
+    @assert(finalPoint.x == -9)
+    @assert(finalPoint.y == 12)
+
+    let rawBytes = encodeTagBin(TagBinFinalMigrationPoint{x: 3, y: 4})
+
+    var fieldWiseDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    let fieldWisePoint = catch fieldWiseDecoder.readAll'TagBinFieldWisePoint(rawBytes.toSlice())
+    @assert(fieldWisePoint == null)
+    @assert(@err != null)
+
+    Memory.delete(finalPoint)
+}
+
+#test
+{
     let payload = makeTagBinPayload()
     @assert(payload.finalPoint.x == -2)
     @assert(payload.finalPoint.y == 5)
@@ -356,6 +398,29 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
     @assert(forwardValue.value == 44)
 
     Memory.delete(forwardValue)
+}
+
+#test
+{
+    Reflection.registerType(#typeof(TagBinPayload))
+    Reflection.registerType(#typeof(#type [3] u8))
+
+    let payload = TagBinTypeInfoPayload{
+        primitive:   #typeof(s32),
+        staticArray: #typeof(#type [3] u8),
+        payload:     #typeof(TagBinPayload),
+    }
+    let bytes = encodeTagBin(payload)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinTypeInfoPayload(bytes.toSlice())
+    @assert(@err == null)
+    @assert(decoded != null)
+    @assert(decoded.primitive == s32)
+    @assert(decoded.staticArray == #typeof(#type [3] u8))
+    @assert(decoded.payload == TagBinPayload)
+
+    Memory.delete(decoded)
 }
 
 #test

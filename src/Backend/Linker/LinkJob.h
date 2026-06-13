@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Linker/LinkDebugInfo.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Backend/Runtime.h"
 #include "Support/Report/Diagnostic.h"
@@ -24,9 +25,11 @@ struct LinkJob
     Output                         output   = Output::Executable;
     Runtime::TargetOs              targetOs = Runtime::TargetOs::Windows; // selects the artifact writer
     fs::path                       outputPath;
+    fs::path                       pdbPath; // debug-info sidecar; empty when debug info is disabled
     fs::path                       buildDir;
     LinkImage                      image;          // Executable / SharedLibrary
     std::vector<LinkArchiveMember> archiveMembers; // StaticLibrary: prepared object members
+    LinkDebugInfo                  debugInfo;      // self-contained debug records lowered by prepareLink
 
     // Outputs (filled by executeLink). On failure, error carries a ready-to-report diagnostic built
     // off the foreground thread (Diagnostic::get/addArgument touch no compiler/logger state); finishLink

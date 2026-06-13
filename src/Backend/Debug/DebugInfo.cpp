@@ -21,4 +21,10 @@ Result DebugInfo::buildObject(const DebugInfoObjectRequest& request, DebugInfoOb
     return debugInfo->buildObject(outResult, request);
 }
 
+void DebugInfo::buildPdbInfo(const DebugInfoObjectRequest& request, DebugInfoPdbResult& outResult)
+{
+    const auto debugInfo = create(request.targetOs);
+    debugInfo->buildPdbInfo(outResult, request);
+}
+
 SWC_END_NAMESPACE();

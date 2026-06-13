@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Linker/LinkDebugInfo.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Backend/Runtime.h"
 
@@ -19,8 +20,10 @@ public:
     static std::unique_ptr<ImageWriter> create(Runtime::TargetOs targetOs);
 
     // Executable or shared-library image. Returns false and fills outDiag on an unresolved symbol or a
-    // structural problem.
-    virtual bool writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const LinkImage& image) = 0;
+    // structural problem. When debugInfo is enabled, also produces the matching debug-info sidecar bytes
+    // (a PDB on Windows) into outPdbBytes and embeds the reference to it in the image; outPdbBytes is left
+    // empty when debug info is disabled.
+    virtual bool writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) = 0;
 
     // Static library archive built from prepared object members. Returns false and fills outDiag on a
     // malformed member.

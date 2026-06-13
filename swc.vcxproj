@@ -180,6 +180,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StrengthReduction.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.NativeArtifact.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.PeWriter.cpp"/>
+        <ClCompile Include="src\Unittest\Native\Test.Native.Pdb.cpp"/>
         <ClCompile Include="src\Unittest\Sema\Test.Sema.Purity.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp"/>
@@ -195,6 +196,7 @@
         <ClCompile Include="src\Backend\JIT\JITPatchJob.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
+        <ClCompile Include="src\Backend\Debug\DebugRecordCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
@@ -204,6 +206,7 @@
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
         <ClCompile Include="src\Backend\Linker\PEWriter.cpp" />
+        <ClCompile Include="src\Backend\Linker\PdbWriter.cpp" />
         <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
@@ -539,6 +542,7 @@
         <ClInclude Include="src\Backend\JIT\JITPatchJob.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
         <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Unwind.h"/>
@@ -648,6 +652,8 @@
         <ClInclude Include="src\Backend\Linker\PELinker.h" />
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>
         <ClInclude Include="src\Backend\Linker\LinkImage.h"/>
+        <ClInclude Include="src\Backend\Linker\LinkDebugInfo.h"/>
+        <ClInclude Include="src\Backend\Linker\PdbWriter.h"/>
         <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>

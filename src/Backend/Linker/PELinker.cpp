@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Debug/DebugInfo.h"
+#include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Micro/MachineCode.h"
@@ -675,6 +676,144 @@ Result PELinker::buildImage(LinkImage& image) const
     return Result::Continue;
 }
 
+namespace
+{
+    // Normalises a source path the way debuggers expect it in CodeView line tables.
+    Utf8 debugSourcePath(const fs::path& path)
+    {
+        fs::path normalized = path.lexically_normal();
+        normalized.make_preferred();
+        return {normalized.string()};
+    }
+}
+
+// Lowers the backend's per-function debug state (names, source line tables, types, locals and global
+// data) into the self-contained LinkDebugInfo the image writer turns into a PDB. Runs on the foreground
+// thread, so it can read compiler state; the result holds nothing but plain data. No-op unless debug
+// info is enabled for the build.
+void PELinker::collectDebugInfo(LinkJob& outJob) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+    if (!builder_->compiler().buildCfg().backend.debugInfo)
+        return;
+    if (builder_->pdbPath.empty())
+        return;
+
+    LinkDebugInfo& dbg = outJob.debugInfo;
+    dbg.enabled        = true;
+    outJob.pdbPath     = builder_->pdbPath;
+
+    // Gather the backend debug records (shared with the COFF object writer), then lower their types.
+    std::vector<const NativeFunctionInfo*> functionPtrs;
+    functionPtrs.reserve(builder_->functionInfos.size());
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+        functionPtrs.push_back(&info);
+
+    CollectedDebugRecords collected;
+    collectDebugRecords(*builder_, functionPtrs, builder_->startup.get(), true, collected);
+
+    const DebugInfoObjectRequest request = {
+        .ctx       = &builder_->ctx(),
+        .targetOs  = builder_->ctx().cmdLine().targetOs,
+        .functions = collected.functions,
+        .globals   = collected.globals,
+        .constants = collected.constants,
+    };
+    DebugInfoPdbResult pdbTypes;
+    DebugInfo::buildPdbInfo(request, pdbTypes);
+    dbg.tpiRecords  = std::move(pdbTypes.tpiRecords);
+    dbg.tpiIndexEnd = pdbTypes.tpiIndexEnd;
+
+    std::unordered_map<Utf8, uint32_t> fileIndices;
+    const auto fileIndexFor = [&](const Utf8& path) {
+        if (const auto it = fileIndices.find(path); it != fileIndices.end())
+            return it->second;
+        const auto index = static_cast<uint32_t>(dbg.files.size());
+        dbg.files.push_back(path);
+        fileIndices.emplace(path, index);
+        return index;
+    };
+
+    dbg.functions.reserve(collected.functions.size());
+    for (size_t i = 0; i < collected.functions.size(); ++i)
+    {
+        const DebugInfoFunctionRecord& record = collected.functions[i];
+        if (!record.machineCode)
+            continue;
+
+        LinkDebugFunction fn;
+        fn.symbolName  = record.symbolName;
+        fn.displayName = record.debugName.empty() ? record.symbolName : record.debugName;
+        fn.codeSize    = static_cast<uint32_t>(record.machineCode->bytes.size());
+        fn.frameSize   = record.frameSize;
+
+        if (i < pdbTypes.functions.size())
+        {
+            const DebugInfoPdbFunction& fnTypes = pdbTypes.functions[i];
+            fn.procTypeIndex   = fnTypes.procTypeIndex;
+            fn.frameProcFlags  = fnTypes.frameFlags;
+            fn.frameToCodeReg  = fnTypes.frameReg;
+            for (const DebugInfoPdbLocal& local : fnTypes.locals)
+                fn.locals.push_back({.name = local.name, .typeIndex = local.typeIndex, .frameOffset = local.frameOffset, .cvRegister = local.cvRegister, .isParam = local.isParam});
+        }
+
+        // Build the per-file line blocks (one block per source file, dropping consecutive duplicate lines).
+        std::unordered_map<Utf8, size_t> blockOf;
+        for (const auto& range : record.machineCode->debugSourceRanges)
+        {
+            if (!range.debugSourceInfo.isStepVisible())
+                continue;
+
+            MachineCode::ResolvedDebugSourceRange resolved;
+            if (!MachineCode::tryResolveDebugSourceRange(builder_->ctx(), resolved, range) || !resolved.source.codeRange.line)
+                continue;
+            if (!resolved.source.sourceFile)
+                continue;
+
+            const Utf8     path = debugSourcePath(resolved.source.sourceFile->path());
+            const uint32_t file = fileIndexFor(path);
+
+            size_t blockIndex;
+            if (const auto it = blockOf.find(path); it != blockOf.end())
+            {
+                blockIndex = it->second;
+            }
+            else
+            {
+                blockIndex = fn.lineBlocks.size();
+                fn.lineBlocks.emplace_back();
+                fn.lineBlocks.back().fileIndex = file;
+                blockOf.emplace(path, blockIndex);
+            }
+
+            LinkDebugLineBlock& block = fn.lineBlocks[blockIndex];
+            const uint32_t      line  = std::min<uint32_t>(resolved.source.codeRange.line, 0x00FFFFFFu);
+            if (!block.lines.empty() && block.lines.back() == line)
+                continue;
+            block.codeOffsets.push_back(resolved.debugRange->codeStartOffset);
+            block.lines.push_back(line);
+        }
+
+        dbg.functions.push_back(std::move(fn));
+    }
+
+    dbg.globals.reserve(collected.globals.size());
+    for (size_t i = 0; i < collected.globals.size(); ++i)
+    {
+        const DebugInfoDataRecord& data = collected.globals[i];
+        LinkDebugGlobal            g;
+        g.sectionName   = data.sectionName;
+        g.sectionOffset = data.symbolOffset;
+        g.displayName   = data.name.empty() ? data.symbolName : data.name;
+        g.typeIndex     = i < pdbTypes.globalTypes.size() ? pdbTypes.globalTypes[i] : 0;
+        g.isPublic      = data.isGlobal;
+        dbg.globals.push_back(std::move(g));
+    }
+
+    for (const DebugInfoPdbUdt& udt : pdbTypes.udts)
+        dbg.udts.push_back({.name = udt.name, .typeIndex = udt.typeIndex});
+}
+
 Result PELinker::prepareLink(LinkJob& outJob)
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -686,10 +825,14 @@ Result PELinker::prepareLink(LinkJob& outJob)
     {
         case Runtime::BuildCfgBackendKind::Executable:
             outJob.output = LinkJob::Output::Executable;
-            return buildImage(outJob.image);
+            SWC_RESULT(buildImage(outJob.image));
+            collectDebugInfo(outJob);
+            return Result::Continue;
         case Runtime::BuildCfgBackendKind::SharedLibrary:
             outJob.output = LinkJob::Output::SharedLibrary;
-            return buildImage(outJob.image);
+            SWC_RESULT(buildImage(outJob.image));
+            collectDebugInfo(outJob);
+            return Result::Continue;
         case Runtime::BuildCfgBackendKind::StaticLibrary:
             outJob.output = LinkJob::Output::StaticLibrary;
             outJob.archiveMembers.reserve(builder_->objectDescriptions.size());

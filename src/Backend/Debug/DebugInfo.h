@@ -72,6 +72,43 @@ struct DebugInfoObjectResult
     std::vector<DebugInfoDefinedSymbol> symbols;
 };
 
+// A lowered local variable or parameter, ready for an S_REGREL32 record in a PDB module stream.
+struct DebugInfoPdbLocal
+{
+    Utf8     name;
+    uint32_t typeIndex   = 0;
+    int32_t  frameOffset = 0;
+    uint16_t cvRegister  = 0; // CodeView register that addresses the frame
+    bool     isParam     = false;
+};
+
+// Per-function lowered type/frame data, parallel to DebugInfoObjectRequest::functions.
+struct DebugInfoPdbFunction
+{
+    uint32_t                       procTypeIndex = 0; // TPI LF_PROCEDURE index (0 = T_NOTYPE)
+    uint16_t                       frameReg      = 0;
+    uint32_t                       frameFlags    = 0;
+    std::vector<DebugInfoPdbLocal> locals;
+};
+
+struct DebugInfoPdbUdt
+{
+    Utf8     name;
+    uint32_t typeIndex = 0;
+};
+
+// CodeView types and per-symbol type indices lowered for a PDB. tpiRecords holds the TPI stream body (no
+// stream signature); indices run from 0x1000 to tpiIndexEnd. The function/global vectors run parallel to
+// the request's functions/globals.
+struct DebugInfoPdbResult
+{
+    std::vector<std::byte>            tpiRecords;
+    uint32_t                          tpiIndexEnd = 0x1000;
+    std::vector<DebugInfoPdbFunction> functions;
+    std::vector<uint32_t>             globalTypes;
+    std::vector<DebugInfoPdbUdt>      udts;
+};
+
 class DebugInfo
 {
 public:
@@ -80,8 +117,10 @@ public:
     static std::unique_ptr<DebugInfo> create(Runtime::TargetOs targetOs);
 
     static Result buildObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult);
+    static void   buildPdbInfo(const DebugInfoObjectRequest& request, DebugInfoPdbResult& outResult);
 
     virtual Result buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request) = 0;
+    virtual void   buildPdbInfo(DebugInfoPdbResult& outResult, const DebugInfoObjectRequest& request)    = 0;
 };
 
 SWC_END_NAMESPACE();

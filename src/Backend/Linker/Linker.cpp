@@ -30,11 +30,12 @@ namespace
     bool runInternalLink(LinkJob& job, ImageWriter& writer)
     {
         std::vector<std::byte> bytes;
+        std::vector<std::byte> pdbBytes;
         switch (job.output)
         {
             case LinkJob::Output::Executable:
             case LinkJob::Output::SharedLibrary:
-                if (!writer.writeImage(bytes, job.error, job.image))
+                if (!writer.writeImage(bytes, pdbBytes, job.error, job.image, job.debugInfo, job.pdbPath))
                     return false;
                 break;
             case LinkJob::Output::StaticLibrary:
@@ -44,6 +45,10 @@ namespace
         }
 
         if (!writeJobArtifact(job, job.outputPath, bytes))
+            return false;
+
+        // Debug-info sidecar (PDB), written next to the image when debug info is enabled.
+        if (!pdbBytes.empty() && !writeJobArtifact(job, job.pdbPath, pdbBytes))
             return false;
 
         // A shared library also produces an import library next to it so dependents can link by name.

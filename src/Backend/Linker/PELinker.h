@@ -26,6 +26,7 @@ private:
     Result resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const;
     void   collectExports(LinkImage& image) const;
     void   buildDebugTable(LinkImage& image) const;
+    void   collectDebugInfo(LinkJob& outJob) const;
 };
 
 SWC_END_NAMESPACE();

@@ -1427,4 +1427,61 @@ Result DebugInfoCodeView::buildObject(DebugInfoObjectResult& outResult, const De
     return Result::Continue;
 }
 
+void DebugInfoCodeView::buildPdbInfo(DebugInfoPdbResult& outResult, const DebugInfoObjectRequest& request)
+{
+    outResult = {};
+    if (!request.ctx)
+        return;
+
+    TypeTableBuilder types(request.ctx);
+    types.begin(); // writes the 4-byte type-stream signature, stripped below for the PDB TPI stream
+
+    outResult.globalTypes.reserve(request.globals.size());
+    for (const DebugInfoDataRecord& data : request.globals)
+        outResult.globalTypes.push_back(types.typeIndexFor(data.typeRef, data.isConst));
+
+    outResult.functions.resize(request.functions.size());
+    for (size_t i = 0; i < request.functions.size(); ++i)
+    {
+        const DebugInfoFunctionRecord& function = request.functions[i];
+        DebugInfoPdbFunction&          out      = outResult.functions[i];
+
+        std::vector<uint32_t> parameterTypeIndices;
+        parameterTypeIndices.reserve(function.parameters.size());
+
+        const auto addLocal = [&](const DebugInfoLocalRecord& local, const uint32_t typeIndex, const bool isParam) {
+            const uint16_t cvReg = codeViewRegister(local.baseReg);
+            if (!cvReg)
+                return;
+            out.locals.push_back({.name        = local.name,
+                                  .typeIndex   = typeIndex,
+                                  .frameOffset = static_cast<int32_t>(local.offset),
+                                  .cvRegister  = cvReg,
+                                  .isParam     = isParam});
+        };
+
+        for (const DebugInfoLocalRecord& parameter : function.parameters)
+        {
+            const uint32_t typeIndex = types.typeIndexFor(parameter.typeRef, parameter.isConst);
+            parameterTypeIndices.push_back(typeIndex);
+            addLocal(parameter, typeIndex, true);
+        }
+        for (const DebugInfoLocalRecord& local : function.locals)
+            addLocal(local, types.typeIndexFor(local.typeRef, local.isConst), false);
+
+        const uint32_t returnTypeIndex = function.returnTypeRef.isValid() ? types.typeIndexFor(function.returnTypeRef) : K_T_VOID;
+        out.procTypeIndex              = types.appendProcedureType(returnTypeIndex, parameterTypeIndices);
+        out.frameReg                   = frameProcBaseRegEncoding(function.frameBaseReg);
+        out.frameFlags                 = K_CV_FRAMEPROC_FLAGS;
+    }
+
+    for (const auto& [typeIndex, typeName] : types.udtNames)
+        outResult.udts.push_back({.name = typeName, .typeIndex = typeIndex});
+
+    // The TPI stream stores records only; drop the 4-byte signature begin() wrote.
+    SWC_ASSERT(types.bytes.size() >= sizeof(uint32_t));
+    outResult.tpiRecords.assign(types.bytes.begin() + sizeof(uint32_t), types.bytes.end());
+    outResult.tpiIndexEnd = types.nextTypeIndex;
+}
+
 SWC_END_NAMESPACE();

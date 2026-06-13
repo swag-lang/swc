@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Linker/ImageWriter.h"
+#include "Backend/Linker/PdbWriter.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -12,7 +13,7 @@ class Diagnostic;
 class PEWriter final : public ImageWriter
 {
 public:
-    bool writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const LinkImage& image) override;
+    bool writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) override;
     bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) override;
     void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
 
@@ -49,9 +50,15 @@ private:
     void     assignLayout();
     bool     applyRelocations(Diagnostic& outDiag);
     void     buildBaseRelocations();
+    void     reserveDebugDirectorySection();
+    void     emitDebugInfo(); // builds the PDB and fills the debug-directory section; no-op if disabled
     bool     emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag);
+    bool     debugInfoEnabled() const;
 
-    const LinkImage*                       image_ = nullptr;
+    const LinkImage*                       image_       = nullptr;
+    const LinkDebugInfo*                   debugInfo_   = nullptr;
+    std::vector<std::byte>*                outPdbBytes_ = nullptr;
+    fs::path                               pdbPath_;
     std::vector<OutSection>                sections_;
     std::vector<uint32_t>                  imageToOut_; // image.sections index -> sections_ index
     std::unordered_map<Utf8, SymbolLoc>    symbols_;    // name -> defining section + offset
@@ -69,6 +76,9 @@ private:
     uint32_t                               importDirSize_ = 0;
     uint32_t                               iatRva_        = 0;
     uint32_t                               iatSize_       = 0;
+    int32_t                                debugDirIndex_ = -1; // section holding the debug directory + RSDS
+    uint32_t                               debugDirRva_   = 0;
+    uint32_t                               debugDirSize_  = 0;
 };
 
 SWC_END_NAMESPACE();

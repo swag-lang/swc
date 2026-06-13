@@ -8,6 +8,7 @@ class DebugInfoCodeView final : public DebugInfo
 {
 public:
     Result buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request) override;
+    void   buildPdbInfo(DebugInfoPdbResult& outResult, const DebugInfoObjectRequest& request) override;
 };
 
 SWC_END_NAMESPACE();

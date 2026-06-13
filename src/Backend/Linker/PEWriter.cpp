@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Linker/Archive.h"
+#include "Backend/Linker/PdbWriter.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -525,6 +526,9 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
         relocSection.rawSize     = Math::alignUpU32(static_cast<uint32_t>(relocSection.bytes.size()), FILE_ALIGNMENT);
     }
 
+    // Every section now has a final RVA/file offset: build the PDB and fill the debug-directory section.
+    emitDebugInfo();
+
     // Compute SizeOfImage and the entry point.
     uint32_t sizeOfImage = headersSize;
     for (const OutSection& section : sections_)
@@ -633,6 +637,11 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = sections_[relocIndex_].rva;
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size           = sections_[relocIndex_].virtualSize;
     }
+    if (debugDirSize_ > 0)
+    {
+        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = debugDirRva_;
+        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size           = debugDirSize_;
+    }
 
     std::memcpy(file.data() + cursor, &opt, sizeof(opt));
     cursor += sizeof(opt);
@@ -678,9 +687,165 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     return true;
 }
 
-bool PEWriter::writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const LinkImage& image)
+bool PEWriter::debugInfoEnabled() const
 {
-    image_ = &image;
+    return debugInfo_ != nullptr && debugInfo_->enabled && !debugInfo_->empty() && !pdbPath_.empty();
+}
+
+// Reserves a section large enough to hold the debug directory entry plus its RSDS CodeView record. The
+// bytes are filled in by emitDebugInfo() once the image layout (and therefore the record's own RVA) is
+// known, but the section must exist before layout so it is assigned an address.
+void PEWriter::reserveDebugDirectorySection()
+{
+    if (!debugInfoEnabled())
+        return;
+
+    const Utf8     pdbPathStr = Utf8(pdbPath_);
+    const uint32_t rsdsSize   = 4 + 16 + 4 + static_cast<uint32_t>(pdbPathStr.size()) + 1;
+    constexpr uint32_t debugDirEntrySize = 28; // sizeof(IMAGE_DEBUG_DIRECTORY)
+
+    OutSection section;
+    section.name        = ".debug";
+    section.bytes.assign(debugDirEntrySize + rsdsSize, std::byte{0});
+    section.virtualSize = static_cast<uint32_t>(section.bytes.size());
+    section.align       = 4;
+    debugDirIndex_      = static_cast<int32_t>(sections_.size());
+    sections_.push_back(std::move(section));
+}
+
+namespace
+{
+    // Looks up each symbol's final placement in a flat, pre-resolved address map; resolves global data by
+    // its section name + offset.
+    struct PeSymbolResolver final : PdbWriter::SymbolResolver
+    {
+        const std::unordered_map<Utf8, PdbSymbolAddress>* addresses = nullptr;
+        const std::unordered_map<Utf8, PdbSymbolAddress>* sections  = nullptr;
+
+        PdbSymbolAddress resolve(const Utf8& name) const override
+        {
+            const auto it = addresses->find(name);
+            return it == addresses->end() ? PdbSymbolAddress{} : it->second;
+        }
+
+        PdbSymbolAddress resolveSection(const Utf8& sectionName, const uint32_t offset) const override
+        {
+            const auto it = sections->find(sectionName);
+            if (it == sections->end())
+                return {};
+            PdbSymbolAddress addr = it->second;
+            addr.offset += offset;
+            addr.rva += offset;
+            return addr;
+        }
+    };
+}
+
+void PEWriter::emitDebugInfo()
+{
+    if (!debugInfoEnabled() || debugDirIndex_ < 0)
+        return;
+
+    // Build the section -> 1-based segment map in the same RVA-sorted order the PE section table uses, and
+    // the matching PdbSectionInfo list so the PDB's section headers match the image exactly.
+    std::vector<uint32_t> order(sections_.size());
+    std::ranges::iota(order, 0u);
+    std::ranges::sort(order, [this](uint32_t left, uint32_t right) { return sections_[left].rva < sections_[right].rva; });
+
+    std::vector<uint32_t>       segmentOf(sections_.size(), 0);
+    std::vector<uint32_t>       sectionRva(sections_.size(), 0);
+    std::vector<PdbSectionInfo> pdbSections;
+    pdbSections.reserve(sections_.size());
+    for (size_t pos = 0; pos < order.size(); ++pos)
+    {
+        const uint32_t    idx = order[pos];
+        const OutSection& s   = sections_[idx];
+        segmentOf[idx]        = static_cast<uint32_t>(pos + 1);
+        sectionRva[idx]       = s.rva;
+
+        PdbSectionInfo info;
+        info.name            = s.name;
+        info.rva             = s.rva;
+        info.virtualSize     = s.virtualSize;
+        info.rawSize         = s.rawSize;
+        info.fileOffset      = s.isBss ? 0 : s.fileOffset;
+        info.characteristics = sectionCharacteristics(s.name.view());
+        pdbSections.push_back(std::move(info));
+    }
+
+    std::unordered_map<Utf8, PdbSymbolAddress> addresses;
+    addresses.reserve(symbols_.size());
+    for (const auto& [name, loc] : symbols_)
+    {
+        PdbSymbolAddress addr;
+        addr.found   = true;
+        addr.segment = static_cast<uint16_t>(segmentOf[loc.sectionIndex]);
+        addr.offset  = loc.value;
+        addr.rva     = sectionRva[loc.sectionIndex] + loc.value;
+        addresses.emplace(name, addr);
+    }
+
+    std::unordered_map<Utf8, PdbSymbolAddress> sectionAddresses;
+    for (size_t idx = 0; idx < sections_.size(); ++idx)
+    {
+        PdbSymbolAddress addr;
+        addr.found   = true;
+        addr.segment = static_cast<uint16_t>(segmentOf[idx]);
+        addr.offset  = 0;
+        addr.rva     = sectionRva[idx];
+        sectionAddresses.emplace(sections_[idx].name, addr);
+    }
+
+    PeSymbolResolver resolver;
+    resolver.addresses = &addresses;
+    resolver.sections  = &sectionAddresses;
+
+    std::array<uint8_t, 16> guid{};
+    uint32_t                age       = 0;
+    uint32_t                signature = 0;
+    const Utf8              pdbPathStr = Utf8(pdbPath_);
+    PdbWriter::build(*outPdbBytes_, guid, age, signature, *debugInfo_, pdbSections, resolver, image_->moduleName, pdbPathStr);
+
+    // Fill the reserved debug-directory section: a single CodeView debug directory entry pointing at the
+    // RSDS record that follows it in the same section.
+    OutSection&        section   = sections_[debugDirIndex_];
+    constexpr uint32_t entrySize = 28;
+    const uint32_t     rsdsRva   = section.rva + entrySize;
+    const uint32_t     rsdsFile  = section.fileOffset + entrySize;
+
+    std::vector<std::byte> rsds;
+    ByteUtils::appendLe32(rsds, 0x53445352u); // "RSDS"
+    for (const uint8_t b : guid)
+        rsds.push_back(static_cast<std::byte>(b));
+    ByteUtils::appendLe32(rsds, age);
+    for (const char ch : pdbPathStr.view())
+        rsds.push_back(static_cast<std::byte>(ch));
+    rsds.push_back(std::byte{0});
+
+    std::vector<std::byte> entry;
+    ByteUtils::appendLe32(entry, 0);                 // Characteristics
+    ByteUtils::appendLe32(entry, 0);                 // TimeDateStamp
+    ByteUtils::appendLe16(entry, 0);                 // MajorVersion
+    ByteUtils::appendLe16(entry, 0);                 // MinorVersion
+    ByteUtils::appendLe32(entry, IMAGE_DEBUG_TYPE_CODEVIEW);
+    ByteUtils::appendLe32(entry, static_cast<uint32_t>(rsds.size())); // SizeOfData
+    ByteUtils::appendLe32(entry, rsdsRva);           // AddressOfRawData
+    ByteUtils::appendLe32(entry, rsdsFile);          // PointerToRawData
+
+    SWC_ASSERT(section.bytes.size() >= entry.size() + rsds.size());
+    std::memcpy(section.bytes.data(), entry.data(), entry.size());
+    std::memcpy(section.bytes.data() + entrySize, rsds.data(), rsds.size());
+
+    debugDirRva_  = section.rva;
+    debugDirSize_ = entrySize;
+}
+
+bool PEWriter::writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath)
+{
+    image_       = &image;
+    debugInfo_   = &debugInfo;
+    pdbPath_     = pdbPath;
+    outPdbBytes_ = &outPdbBytes;
 
     // Copy image sections into the working set, recording the index map and special sections.
     sections_.reserve(image_->sections.size() + 4);
@@ -711,6 +876,7 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag,
 
     buildImports();
     buildExports();
+    reserveDebugDirectorySection();
     assignLayout();
 
     if (!applyRelocations(outDiag))

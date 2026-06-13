@@ -1910,6 +1910,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         TaskContext                 moduleCtx(*moduleCompiler);
         TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
         moduleCompiler->processCommand();
+        if (moduleCompiler->flushGeneratedSourceDumps(moduleCtx) != Result::Continue)
+            return Result::Error;
         moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, *moduleCompiler, moduleStage.delta()));
         if (Stats::getNumErrors() != errorsBefore)
             return Result::Error;

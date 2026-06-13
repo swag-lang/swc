@@ -10,6 +10,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/ByteUtils.h"
+#include "Support/Crypto/Md5.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -725,11 +726,18 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
     dbg.tpiIndexEnd = pdbTypes.tpiIndexEnd;
 
     std::unordered_map<Utf8, uint32_t> fileIndices;
-    const auto fileIndexFor = [&](const Utf8& path) {
+    const auto fileIndexFor = [&](const Utf8& path, const SourceFile* sourceFile) {
         if (const auto it = fileIndices.find(path); it != fileIndices.end())
             return it->second;
-        const auto index = static_cast<uint32_t>(dbg.files.size());
-        dbg.files.push_back(path);
+        const auto    index = static_cast<uint32_t>(dbg.files.size());
+        LinkDebugFile entry;
+        entry.path = path;
+        if (sourceFile)
+        {
+            entry.md5         = Crypto::md5(asByteSpan(sourceFile->sourceView()));
+            entry.hasChecksum = true;
+        }
+        dbg.files.push_back(std::move(entry));
         fileIndices.emplace(path, index);
         return index;
     };
@@ -771,7 +779,7 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
                 continue;
 
             const Utf8     path = debugSourcePath(resolved.source.sourceFile->path());
-            const uint32_t file = fileIndexFor(path);
+            const uint32_t file = fileIndexFor(path, resolved.source.sourceFile);
 
             size_t blockIndex;
             if (const auto it = blockOf.find(path); it != blockOf.end())

@@ -60,6 +60,15 @@ struct LinkDebugUdt
     uint32_t typeIndex = 0;
 };
 
+// A source file referenced by line tables, with an optional MD5 of its contents so debuggers/profilers
+// can locate and verify the matching source.
+struct LinkDebugFile
+{
+    Utf8                    path;
+    std::array<uint8_t, 16> md5{};
+    bool                    hasChecksum = false;
+};
+
 struct LinkDebugInfo
 {
     bool enabled = false;
@@ -71,7 +80,7 @@ struct LinkDebugInfo
     uint32_t               tpiIndexEnd = 0x1000;
     uint32_t               ipiIndexEnd = 0x1000;
 
-    std::vector<Utf8>              files; // source file paths, referenced by LinkDebugLineBlock::fileIndex
+    std::vector<LinkDebugFile>     files; // source files, referenced by LinkDebugLineBlock::fileIndex
     std::vector<LinkDebugFunction> functions;
     std::vector<LinkDebugGlobal>   globals;
     std::vector<LinkDebugUdt>      udts;

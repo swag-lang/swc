@@ -467,7 +467,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     NamesTable names;
     std::vector<uint32_t> fileNameOffsets(debugInfo.files.size());
     for (size_t i = 0; i < debugInfo.files.size(); ++i)
-        fileNameOffsets[i] = names.insert(debugInfo.files[i]);
+        fileNameOffsets[i] = names.insert(debugInfo.files[i].path);
 
     // ---- Symbol record stream (publics + globals referenced by GSI/PSI) -------------------------
     Bytes                    symRecords;
@@ -601,10 +601,14 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         std::vector<uint32_t> chksmEntryOffset(debugInfo.files.size());
         for (size_t i = 0; i < debugInfo.files.size(); ++i)
         {
-            chksmEntryOffset[i] = static_cast<uint32_t>(chksmContent.size());
-            appendLe32(chksmContent, fileNameOffsets[i]); // offset into /names
-            chksmContent.push_back(std::byte{0});         // checksum size
-            chksmContent.push_back(std::byte{0});         // checksum kind = none
+            const LinkDebugFile& file = debugInfo.files[i];
+            chksmEntryOffset[i]       = static_cast<uint32_t>(chksmContent.size());
+            appendLe32(chksmContent, fileNameOffsets[i]);                                   // offset into /names
+            chksmContent.push_back(static_cast<std::byte>(file.hasChecksum ? 16 : 0));      // checksum byte count
+            chksmContent.push_back(static_cast<std::byte>(file.hasChecksum ? 1 : 0));       // checksum kind (1 = MD5)
+            if (file.hasChecksum)
+                for (const uint8_t b : file.md5)
+                    chksmContent.push_back(static_cast<std::byte>(b));
             alignTo4(chksmContent);
         }
 
@@ -747,7 +751,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         for (size_t i = 0; i < debugInfo.files.size(); ++i)
         {
             offs[i] = static_cast<uint32_t>(namesBuf.size());
-            appendCString(namesBuf, debugInfo.files[i].view());
+            appendCString(namesBuf, debugInfo.files[i].path.view());
         }
         for (const uint32_t o : offs)
             appendLe32(sourceInfo, o);

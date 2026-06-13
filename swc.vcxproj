@@ -197,6 +197,7 @@
         <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugRecordCollector.cpp"/>
+        <ClCompile Include="src\Support\Crypto\Md5.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
@@ -543,6 +544,7 @@
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h"/>
         <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
+        <ClInclude Include="src\Support\Crypto\Md5.h"/>
         <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Unwind.h"/>

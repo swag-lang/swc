@@ -81,7 +81,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
     LinkDebugInfo dbg;
     dbg.enabled = true;
-    dbg.files.push_back(Utf8(srcPath));
+    LinkDebugFile dbgFile;
+    dbgFile.path        = Utf8(srcPath);
+    dbgFile.hasChecksum = true;
+    dbgFile.md5         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    dbg.files.push_back(std::move(dbgFile));
     LinkDebugFunction fn;
     fn.symbolName  = "myFunc";
     fn.displayName = "myFunc";
@@ -187,6 +191,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
             DWORD lineDisp    = 0;
             if (!SymGetLineFromAddr64(symHandle, funcAddr, &lineDisp, &line) || line.LineNumber != 10)
                 fail("SymGetLineFromAddr64 at start did not return line 10");
+            // The source file name must resolve too (regression guard: line numbers can resolve while the
+            // file name comes back empty if the checksum/names wiring is broken, which hides source in
+            // profilers like Superluminal).
+            else if (line.FileName == nullptr || std::string_view{line.FileName} != Utf8(srcPath).view())
+                fail("SymGetLineFromAddr64 returned the wrong/empty source file name");
 
             line              = {};
             line.SizeOfStruct = sizeof(line);

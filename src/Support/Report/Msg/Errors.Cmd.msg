@@ -111,6 +111,7 @@ SWC_DIAG_DEF(cmd_err_native_tool_exit_code_failed, Error, "cannot get exit code 
 SWC_DIAG_DEF(cmd_err_native_tool_rsp_write_failed, Error, "cannot write native tool response file '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_tool_failed, Error, "'{tool}' exited with code {value}")
 SWC_DIAG_DEF(cmd_err_native_artifact_missing, Error, "native backend did not produce '{path}'")
+SWC_DIAG_DEF(cmd_err_native_publish_dependency_failed, Error, "cannot publish native dependency '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_api_dir_clear_failed, Error, "cannot clear module API directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_api_dir_create_failed, Error, "cannot create module API directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_api_file_write_failed, Error, "cannot write module API file '{path}': {because}")

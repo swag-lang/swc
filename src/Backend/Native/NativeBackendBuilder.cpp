@@ -22,6 +22,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Utf8 lowerPathExtension(const fs::path& path)
+    {
+        Utf8 result = path.extension().string();
+        result.make_lower();
+        return result;
+    }
+
     bool isCompilerFunction(const SymbolFunction& symbol)
     {
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
@@ -30,6 +37,37 @@ namespace
     void writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
     {
         std::memcpy(bytes.data() + offset, &value, sizeof(value));
+    }
+
+    bool shouldCopyPublishDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
+    {
+        std::error_code ec;
+        const bool      dstExists = fs::exists(dstPath, ec);
+        if (ec || !dstExists)
+            return true;
+
+        ec.clear();
+        if (!fs::is_regular_file(dstPath, ec) || ec)
+            return true;
+
+        ec.clear();
+        const uintmax_t srcSize = fs::file_size(srcPath, ec);
+        if (ec)
+            return true;
+
+        ec.clear();
+        const uintmax_t dstSize = fs::file_size(dstPath, ec);
+        if (ec || srcSize != dstSize)
+            return true;
+
+        ec.clear();
+        const auto srcTime = fs::last_write_time(srcPath, ec);
+        if (ec)
+            return true;
+
+        ec.clear();
+        const auto dstTime = fs::last_write_time(dstPath, ec);
+        return ec || srcTime != dstTime;
     }
 
     Utf8 buildLocalFunctionSymbolName(const NativeBackendBuilder& builder, const NativeFunctionInfo& info, const uint32_t ordinal)
@@ -792,6 +830,85 @@ Result NativeBackendBuilder::buildObject(const uint32_t objIndex)
     SWC_ASSERT(objectWriter != nullptr);
     NativeObjDescription& description = objectDescriptions[objIndex];
     return objectWriter->buildObjectFile(description.objBytes, description);
+}
+
+Result NativeBackendBuilder::publishExistingArtifact()
+{
+    SWC_ASSERT(compiler_ != nullptr);
+    if (!ctx_.cmdLine().publish || compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+        return Result::Continue;
+
+    SWC_RESULT(validateTarget());
+
+    const NativeArtifactBuilder artifactBuilder(*this);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    buildDir     = paths.buildDir;
+    artifactPath = paths.artifactPath;
+    pdbPath      = paths.pdbPath;
+    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+
+    if (!fs::exists(artifactPath))
+        return reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(artifactPath));
+
+    return publishExecutableDependencies();
+}
+
+Result NativeBackendBuilder::publishExecutableDependencies()
+{
+    if (!ctx_.cmdLine().publish)
+        return Result::Continue;
+    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+        return Result::Continue;
+
+    const fs::path artifactDir = artifactPath.parent_path();
+    if (artifactDir.empty())
+        return Result::Continue;
+
+    std::error_code ec;
+    for (const fs::path& sourceDir : compiler_->importedDependencyLinkDirs())
+    {
+        if (sourceDir.empty())
+            continue;
+
+        const fs::path normalizedSourceDir = FileSystem::normalizePath(sourceDir);
+        if (FileSystem::pathEquals(normalizedSourceDir, FileSystem::normalizePath(artifactDir)))
+            continue;
+
+        for (fs::directory_iterator it(normalizedSourceDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(normalizedSourceDir), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+
+            ec.clear();
+            if (!it->is_regular_file(ec) || ec)
+                continue;
+            if (lowerPathExtension(it->path()) != ".dll")
+                continue;
+
+            const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();
+            if (FileSystem::pathEquals(FileSystem::normalizePath(it->path()), FileSystem::normalizePath(dstPath)))
+                continue;
+            if (!shouldCopyPublishDependencyFile(it->path(), dstPath))
+                continue;
+
+            fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
+            if (ec)
+                return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+
+            ec.clear();
+            const auto srcTime = fs::last_write_time(it->path(), ec);
+            if (!ec)
+            {
+                ec.clear();
+                fs::last_write_time(dstPath, srcTime, ec);
+                if (ec)
+                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+            }
+        }
+    }
+
+    return Result::Continue;
 }
 
 Result NativeBackendBuilder::reportError(DiagnosticId id)

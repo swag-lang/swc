@@ -157,6 +157,8 @@ public:
     Result runExistingArtifact();
     Result prepare();
     Result buildObject(uint32_t objIndex);
+    Result publishExistingArtifact();
+    Result publishExecutableDependencies();
 
     // Deferred (workspace async-link) path. prepareForLink runs the full build up to but not
     // including the link, leaving a prepared LinkJob in deferredToolRun(). The caller then runs

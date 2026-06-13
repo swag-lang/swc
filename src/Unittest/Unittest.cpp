@@ -57,6 +57,7 @@ namespace Unittest
             result.outDirStorage.clear();
             result.workDirStorage.clear();
             result.clear                = false;
+            result.publish              = false;
             result.dryRun               = false;
             result.showConfig           = false;
             result.sourceDrivenTest     = false;

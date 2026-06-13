@@ -1865,11 +1865,21 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
         {
             TimedActionLog::ScopedStage moduleStage(probeCtx, TimedActionLog::Stage::Module);
+            if (moduleCmdLine.publish && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+            {
+                if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
+                    return Result::Error;
+
+                NativeBackendBuilder publishBuilder(probeCompiler, false);
+                if (publishBuilder.publishExistingArtifact() != Result::Continue)
+                    return Result::Error;
+            }
+
             if (moduleCmdLine.command == CommandKind::Run)
             {
                 if (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
                 {
-                    if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
+                    if (!moduleCmdLine.publish && probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
                         return Result::Error;
 
                     NativeBackendBuilder runBuilder(probeCompiler, true);

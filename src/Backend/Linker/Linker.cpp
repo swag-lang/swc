@@ -141,6 +141,7 @@ Result Linker::finishLink(const LinkJob& job) const
         return builder_->reportError(job.error);
     if (!fs::exists(builder_->artifactPath))
         return builder_->reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_->artifactPath));
+    SWC_RESULT(builder_->publishExecutableDependencies());
     return Result::Continue;
 }
 

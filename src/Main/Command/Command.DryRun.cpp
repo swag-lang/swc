@@ -296,6 +296,8 @@ namespace
                         addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
+                    if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
+                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("copy dependency DLLs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
                     if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
@@ -317,6 +319,8 @@ namespace
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
+                    if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
+                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
                     if (nativePreview.mayRunArtifact)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }

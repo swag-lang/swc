@@ -101,6 +101,7 @@ struct CommandLine
     bool stats                   = false;
     bool statsMem                = false;
     bool clear                   = false;
+    bool publish                 = false;
     bool rebuild                 = false;
     bool dryRun                  = false;
     bool showConfig              = false;

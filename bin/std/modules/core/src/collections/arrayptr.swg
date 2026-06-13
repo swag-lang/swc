@@ -46,6 +46,15 @@ impl ArrayPtr
         .count = 0
     }
 
+    // Removes all elements WITHOUT deallocating the pointed-to objects.
+    // Use this when ownership of the objects has been transferred elsewhere
+    // (e.g. the pointers were moved into a free list / pool).
+    // The capacity is not changed.
+    mtd clearNoDelete()
+    {
+        .count = 0
+    }
+
     // Deallocates the memory for a single given pointer.
     // The pointer is expected to have been allocated using this array's allocator.
     mtd deletePtr(item: *T)

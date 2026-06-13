@@ -5,6 +5,11 @@ impl RichEditCtrl
     mtd getTextPrivate(start, end: RichEditCursor)->{ text: Array'rune, styles: Array'u8 }
     {
         var result: retval
+
+        // An empty document (no line) has no text to extract.
+        if .lines.isEmpty() do
+            return result
+
         if !.hasSelRect
         {
             // First line
@@ -394,7 +399,9 @@ public impl RichEditCtrl
         .clearUndo()
         foreach l in .lines do
             .freeLines.add(l)
-        .lines.clear()
+        // Ownership moved to the free list above: detach without freeing,
+        // otherwise the recycled pointers in .freeLines would dangle.
+        .lines.clearNoDelete()
         .countVisibleLines    = 0
         .cursorPos            = {}
         .selBeg               = {}

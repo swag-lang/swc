@@ -426,6 +426,12 @@ impl RichEditCtrl
 
     mtd moveCursorEndFile(cp: *RichEditCursor)
     {
+        if .lines.isEmpty()
+        {
+            cp.lineIndex, cp.charPosInLine = 0
+            return
+        }
+
         cp.lineIndex     = .getLastVisibleLine()
         cp.charPosInLine = .lines[cp.lineIndex].length()
     }

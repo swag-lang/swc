@@ -627,21 +627,32 @@ impl TagBin
         if Reflection.isStructArray(typeElem)
         {
             let valueType = Reflection.getStructArrayType(typeElem)
-            let (raw, sizeof) = isPodFinal(valueType)
 
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Raw and sig != Write.TagBinSignatures.UnRaw do
                 throw SerializationError{"stream is corrupted"}
 
-            // Dynamic array of raw serializable types
-            // Just read them in one batch
-            if raw
+            // The Raw/UnRaw signature records how the writer laid out the elements and is
+            // authoritative. Honor it rather than re-deriving from this build's
+            // isPodFinal(valueType): the two can legitimately disagree if the element type's
+            // 'Serialization.Final' status changed since the data was written (or it resolves
+            // differently across a module boundary). Trusting the local result instead would
+            // read raw bytes as framed values, or the reverse, and desync the whole stream.
+            if sig == Write.TagBinSignatures.Raw
             {
-                let bufArr = cast(*Array'u8) data
+                // Raw bytes can only be loaded in place if the element type is still a plain
+                // POD (same property the writer required to emit Raw). This stays robust to a
+                // 'Serialization.Final' toggle on a POD type, and fails cleanly rather than
+                // corrupting memory if the type became non-POD.
+                if !Reflection.isPod(valueType) do
+                    throw SerializationError{"cannot load a raw array into a non-pod element type"}
+
+                let elemSize = valueType.sizeof
+                let bufArr   = cast(*Array'u8) data
                 bufArr.count = dref countElem
-                bufArr.reserve(bufArr.count * sizeof)
+                bufArr.reserve(bufArr.count * elemSize)
                 bufArr.capacity = bufArr.count
-                .stream.readBytes(bufArr.buffer, bufArr.count * sizeof)
+                .stream.readBytes(bufArr.buffer, bufArr.count * elemSize)
                 return true
             }
         }
@@ -650,16 +661,18 @@ impl TagBin
         else
         {
             dref countElem = Math.min(orgCount, dref countElem)
-            let (raw, sizeof) = isPodFinal(typeElem)
 
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Raw and sig != Write.TagBinSignatures.UnRaw do
                 throw SerializationError{"stream is corrupted"}
 
-            // Static array of raw serializable types
-            if raw
+            // Honor the stream's layout signature (see the dynamic-array case above).
+            if sig == Write.TagBinSignatures.Raw
             {
-                .stream.readBytes(data, dref countElem * sizeof)
+                if !Reflection.isPod(typeElem) do
+                    throw SerializationError{"cannot load a raw array into a non-pod element type"}
+
+                .stream.readBytes(data, dref countElem * typeElem.sizeof)
                 return true
             }
         }

@@ -9,6 +9,5 @@
     cfg.moduleBuildNum = #swcbuildnum
     cfg.backendKind    = .Executable
     cfg.backendSubKind = .Default
-    cfg.debugAllocator = false
     cfg.resAppName     = "Captme"
 }

@@ -421,7 +421,6 @@ func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null
             continue
 
         // Do not print the call until a given location has been reached.
-        // For DebugAllocator leaks
         if !hasStarted and startAfter
         {
             if !info.hasLine do

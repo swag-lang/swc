@@ -194,7 +194,6 @@ namespace
             buildCfg.safetyGuards      = Runtime::SafetyWhat::None;
             buildCfg.sanity            = false;
             buildCfg.errorStackTrace   = false;
-            buildCfg.debugAllocator    = false;
             buildCfg.backend.optimize  = false;
             buildCfg.backend.debugInfo = false;
         }
@@ -203,7 +202,6 @@ namespace
             buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
             buildCfg.sanity            = true;
             buildCfg.errorStackTrace   = true;
-            buildCfg.debugAllocator    = false;
             buildCfg.backend.optimize  = false;
             buildCfg.backend.debugInfo = true;
         }
@@ -212,7 +210,6 @@ namespace
             buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
             buildCfg.sanity            = true;
             buildCfg.errorStackTrace   = true;
-            buildCfg.debugAllocator    = false;
             buildCfg.backend.optimize  = true;
             buildCfg.backend.debugInfo = true;
         }
@@ -221,7 +218,6 @@ namespace
             buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
             buildCfg.sanity                     = false;
             buildCfg.errorStackTrace            = false;
-            buildCfg.debugAllocator             = false;
             buildCfg.backend.optimize           = true;
             buildCfg.backend.debugInfo          = true;
             buildCfg.backend.fpMathFma          = true;

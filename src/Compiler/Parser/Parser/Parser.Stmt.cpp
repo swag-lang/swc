@@ -957,7 +957,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdMoveRef:
         case TokenId::IntrinsicGetContext:
         case TokenId::IntrinsicProcessInfos:
-        case TokenId::IntrinsicDbgAlloc:
         case TokenId::IntrinsicSysAlloc:
         case TokenId::KwdMe:
         case TokenId::CompilerUniq0:

@@ -212,7 +212,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("@mkstring", State.Intrinsic)
         .mapWords.add("@mkany", State.Intrinsic)
         .mapWords.add("@mkinterface", State.Intrinsic)
-        .mapWords.add("@dbgalloc", State.Intrinsic)
         .mapWords.add("@sysalloc", State.Intrinsic)
         .mapWords.add("@stringcmp", State.Intrinsic)
         .mapWords.add("@typecmp", State.Intrinsic)

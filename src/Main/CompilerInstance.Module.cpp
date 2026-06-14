@@ -55,7 +55,6 @@ namespace
     {
         buildCfg.safetyGuards               = explicitBuildCfg.safetyGuards;
         buildCfg.sanity                     = explicitBuildCfg.sanity;
-        buildCfg.debugAllocator             = explicitBuildCfg.debugAllocator;
         buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
         buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
         buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;

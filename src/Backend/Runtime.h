@@ -355,7 +355,6 @@ namespace Runtime
         Interface                 allocator;
         ScratchAllocator          tempAllocator;
         ScratchAllocator          errorAllocator;
-        void*                     debugAllocator;
         RuntimeFlags              runtimeFlags;
         uint64_t                  reserved0;
         uint64_t                  reserved1;
@@ -484,9 +483,6 @@ namespace Runtime
         uint32_t   errorAllocatorCapacity     = 16u * 1024u;
         SafetyWhat safetyGuards               = SafetyWhat::All;
         bool       sanity                     = true;
-        bool       debugAllocator             = false;
-        bool       debugAllocatorCaptureStack = true;
-        bool       debugAllocatorLeaks        = true;
         bool       errorStackTrace            = true;
 
         String warnAsErrors;

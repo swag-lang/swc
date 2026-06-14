@@ -450,7 +450,6 @@ namespace Swag
 
         tempAllocator:       ScratchAllocator                          // A temporary allocator for the user
         errorAllocator:      ScratchAllocator                          // A temporary allocator to store the error values
-        debugAllocator:      *void                                     // If defined, the used debug allocator
         runtimeFlags:        RuntimeFlags                              // As initialized by the runtime
         reserved0:           u64                                       // Reserved for runtime ABI stability
         reserved1:           u64                                       // Reserved for runtime ABI stability
@@ -823,9 +822,6 @@ namespace Swag
         errorAllocatorCapacity         = 16'u32 * 1024                      // Default capacity of the 'error' allocator (in bytes)
         safetyGuards                   = SafetyWhat.All                     // Activate specific safety checks
         sanity                         = true                               // Make a sanity pass
-        debugAllocator                 = false                              // Legacy runtime debug allocator. Prefer Core.Memory.FastAllocator.
-        debugAllocatorCaptureStack     = true                               // Capture the call stack for each allocation
-        debugAllocatorLeaks            = true                               // Detect memory leaks
         errorStackTrace                = true                               // Add stack trace in case a 'throw' is raised
 
         warnAsErrors:                  string                               // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."

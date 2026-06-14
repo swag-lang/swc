@@ -4,7 +4,6 @@
 var c = @countof("foo")
 
 var _01 = @getcontext()
-var _03 = @dbgalloc()
 var _04 = @sysalloc()
 var _05 = @err()
 var _06 = @args()

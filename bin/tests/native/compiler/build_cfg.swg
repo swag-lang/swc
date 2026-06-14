@@ -5,6 +5,11 @@ const Cfg = #run dref @compiler.getBuildCfg()
 #assert(#typeof(Cfg.backend.optimize) == bool)
 #assert(#typeof(Cfg.backend.debugInfo) == bool)
 #assert(#typeof(Cfg.backend.enableExceptions) == bool)
+#assert(#typeof(Cfg.allocatorCaptureStack) == bool)
+#assert(#typeof(Cfg.allocatorLeaks) == bool)
+#assert(#typeof(Cfg.allocatorTrackAllocations) == bool)
+#assert(#typeof(Cfg.allocatorElectricMode) == bool)
+#assert(#typeof(Cfg.allocatorFillMemory) == bool)
 #assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")
 #assert(Cfg.backendKind == Swag.BuildCfgBackendKind.Executable or
         Cfg.backendKind == Swag.BuildCfgBackendKind.SharedLibrary or

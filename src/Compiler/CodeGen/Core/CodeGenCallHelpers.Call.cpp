@@ -941,6 +941,22 @@ namespace
         return nullptr;
     }
 
+    bool calleeTypeIsCallableValue(CodeGen& codeGen, AstNodeRef calleeRef)
+    {
+        if (calleeRef.isInvalid())
+            return false;
+
+        const SemaNodeView calleeTypeView = codeGen.viewType(calleeRef);
+        return calleeTypeView.type() && calleeTypeView.type()->isFunction();
+    }
+
+    bool callRequiresRuntimeTarget(CodeGen& codeGen, AstNodeRef calleeRef, const SymbolFunction& calledFunction)
+    {
+        if (calledFunction.isClosure() || calledFunction.hasInterfaceMethodSlot())
+            return true;
+        return calleeTypeIsCallableValue(codeGen, calleeRef);
+    }
+
     MicroReg materializeCallTargetReg(CodeGen& codeGen, const CodeGenNodePayload& calleePayload, const SymbolFunction& calledFunction, const CallConv& callConv, MicroReg& outClosureContextReg)
     {
         outClosureContextReg = MicroReg::invalid();
@@ -1479,7 +1495,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     // ABI return lowering must follow the callee signature. The expression type can be a
     // transformed view of that result and is not a reliable source for hidden sret decisions.
     const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
-    const CodeGenNodePayload*              calleePayload     = resolveCallPayload(codeGen, calleeRef);
+    const CodeGenNodePayload*              calleePayload     = callRequiresRuntimeTarget(codeGen, calleeRef, *calledFunction) ? resolveCallPayload(codeGen, calleeRef) : nullptr;
     MicroReg                               callTargetReg     = MicroReg::invalid();
     MicroReg                               closureContextReg = MicroReg::invalid();
 

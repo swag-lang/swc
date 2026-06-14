@@ -175,26 +175,26 @@ namespace
         if (!conv.framePointer.isValid())
             return false;
 
-        // Prefer to establish the frame pointer only after the stack frame is fully shaped (all
-        // nonvolatile pushes and the stack subtract), as `lea fp, [sp + frameDelta]`. frameDelta is the
-        // distance from the post-prologue stack pointer up to the saved frame-pointer slot, so the frame
-        // pointer still resolves to `entry_sp - sizeof(void*)` and every frame-pointer-relative argument
-        // and local offset stays unchanged. This is what makes the prologue x64-ABI conformant: the
-        // unwinder reads the push/alloc codes first and a valid UWOP_SET_FPREG whose relation
-        // `sp + 16 * FrameOffset == fp` actually holds. Establishing it at the top (`mov fp, sp` before
-        // the pushes/subtract) instead encodes `FrameOffset == 0` while the real post-prologue stack
-        // pointer is lower; the OS unwinder tolerates that, but Visual Studio and lldb reject the frame
-        // (callers shown as external code / the call stack fails to walk).
+        // Establish the frame pointer only AFTER the stack frame is fully shaped (all nonvolatile pushes
+        // and the stack subtract), as `mov fp, sp`, so the frame register equals the final post-prologue
+        // stack pointer. UWOP_SET_FPREG then encodes FrameOffset 0 -- a relation (`fp == final_sp`) that
+        // actually holds, for ANY frame size (no <= 240 / 16-multiple constraint) -- so the function is
+        // walkable by strict unwinders (Visual Studio, lldb) as well as by the OS unwinder used for
+        // compile-time `#run`/`#test` execution. The legacy form placed `mov fp, sp` at the top, before
+        // the pushes/subtract, leaving fp at `entry_sp - sizeof(void*)` while UWOP_SET_FPREG still claimed
+        // FrameOffset 0: the OS unwinder tolerated the lie, but Visual Studio and lldb rejected the frame
+        // (callers shown as external code / the call stack failed to walk). Anchoring fp at the final
+        // stack pointer is also what makes functions that lower their argument area with a dynamic
+        // `sub sp` in the body unwindable at all: the unwinder recovers `sp = fp` independently of the
+        // current, dynamically lowered stack pointer (a frame register is required; FPO cannot describe
+        // those frames).
         //
-        // A valid UWOP_SET_FPREG offset must be a multiple of 16 and fit in 4 bits (<= 240). When the
-        // frame size cannot satisfy that (the frame pointer at the saved-fp slot is not a 16-byte
-        // multiple above the final stack pointer, or the frame is larger than 240 bytes), there is no
-        // way to anchor the frame register at that slot, so we keep the legacy `mov fp, sp` placed right
-        // after the push. That still produces a working frame register (the unwinder recovers the stack
-        // pointer from it); only the encoded offset is imprecise for those frames.
+        // The body was generated assuming fp sits at the saved-fp slot (entry_sp - sizeof(void*)), i.e.
+        // `frameDelta` bytes ABOVE the final stack pointer, and addresses stack arguments as `[fp + disp]`
+        // under that assumption. Since fp is now `frameDelta` lower, each frame-pointer-relative access is
+        // re-anchored by adding frameDelta to its displacement so it still reaches the same address.
         std::vector<MicroInstrRef> framePointerSetupRefs;
         MicroInstrRef              framePointerPushRef = MicroInstrRef::invalid();
-        MicroInstrRef              afterPushRef        = MicroInstrRef::invalid();
         MicroInstrRef              afterStackShapeRef  = MicroInstrRef::invalid();
         uint64_t                   frameDelta          = 0;
 
@@ -210,14 +210,9 @@ namespace
                 ++nextIt;
 
                 if (ops && ops[0].reg == conv.framePointer && framePointerPushRef.isInvalid())
-                {
                     framePointerPushRef = it.current;
-                    afterPushRef        = nextIt.current;
-                }
                 else
-                {
                     frameDelta += sizeof(uint64_t);
-                }
 
                 afterStackShapeRef = nextIt.current;
                 continue;
@@ -242,35 +237,32 @@ namespace
         if (!hasFramePointerSetup && !context.forceFramePointer)
             return false;
 
-        const bool    canEncodeFrameOffset = (frameDelta % 16 == 0) && (frameDelta <= 240);
-        const bool    useLeaAfterStackShape = canEncodeFrameOffset && afterStackShapeRef.isValid();
-        MicroInstrRef insertBeforeRef       = useLeaAfterStackShape ? afterStackShapeRef : afterPushRef;
-        if (!insertBeforeRef.isValid())
-            insertBeforeRef = afterStackShapeRef;
+        const MicroInstrRef insertBeforeRef = afterStackShapeRef;
         if (!insertBeforeRef.isValid())
             return false;
 
-        const MicroInstrOpcode setupOpcode = useLeaAfterStackShape ? MicroInstrOpcode::LoadAddrRegMem : MicroInstrOpcode::LoadRegReg;
-
-        MicroInstrOperand setFrameOps[4];
-        setFrameOps[0].reg      = conv.framePointer;
-        setFrameOps[1].reg      = conv.stackPointer;
-        setFrameOps[2].opBits   = MicroOpBits::B64;
-        setFrameOps[3].valueU64 = useLeaAfterStackShape ? frameDelta : 0;
-
-        // Already canonical: a single setup of the expected form at the insertion point.
-        if (framePointerSetupRefs.size() == 1 && framePointerSetupRefs.front() == insertBeforeRef)
+        // Re-anchor every frame-pointer-relative memory access from the old fp (saved-fp slot) to the new
+        // fp (final stack pointer), which is frameDelta lower: `[fp + disp]` -> `[fp + disp + frameDelta]`.
+        if (frameDelta != 0)
         {
-            const MicroInstr*        existing    = context.instructions->ptr(insertBeforeRef);
-            const MicroInstrOperand* existingOps = existing ? existing->ops(*context.operands) : nullptr;
-            if (existing && existingOps &&
-                existing->op == setupOpcode &&
-                existingOps[0].reg == conv.framePointer &&
-                existingOps[1].reg == conv.stackPointer &&
-                existingOps[2].opBits == MicroOpBits::B64 &&
-                (!useLeaAfterStackShape || existingOps[3].valueU64 == frameDelta))
-                return false;
+            for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+            {
+                const MicroInstrDef& def = MicroInstr::info(it->op);
+                if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+                    continue;
+                MicroInstrOperand* ops = it->ops(*context.operands);
+                if (!ops || ops[def.memBaseOperandIndex].reg != conv.framePointer)
+                    continue;
+                ops[def.memOffsetOperandIndex].valueU64 += frameDelta;
+            }
         }
+
+        constexpr MicroInstrOpcode setupOpcode = MicroInstrOpcode::LoadRegReg;
+
+        MicroInstrOperand setFrameOps[3];
+        setFrameOps[0].reg    = conv.framePointer;
+        setFrameOps[1].reg    = conv.stackPointer;
+        setFrameOps[2].opBits = MicroOpBits::B64;
 
         context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, setupOpcode, setFrameOps);
 

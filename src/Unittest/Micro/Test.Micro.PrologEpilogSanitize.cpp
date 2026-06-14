@@ -74,13 +74,13 @@ namespace
         }
     }
 
-    // The canonical ABI-conformant setup is `lea fp, [sp + frameDelta]`, emitted after the stack is
-    // fully shaped, so the frame pointer still resolves to the saved-frame-pointer slot.
-    bool isFramePointerLea(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg framePointer, MicroReg stackPointer, uint64_t expectedDelta)
+    // The canonical ABI-conformant setup is `mov fp, sp` (so fp == final stack pointer, encodable as
+    // UWOP_SET_FPREG FrameOffset 0 for any frame size), emitted after the stack is fully shaped.
+    bool isFramePointerMovAfterStackShape(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg framePointer, MicroReg stackPointer)
     {
-        if (!ops || inst.op != MicroInstrOpcode::LoadAddrRegMem || inst.numOperands < 4)
+        if (!ops || inst.op != MicroInstrOpcode::LoadRegReg || inst.numOperands < 3)
             return false;
-        return ops[0].reg == framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == expectedDelta;
+        return ops[0].reg == framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64;
     }
 
     bool isStackProbeLoad(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg probeReg, MicroReg stackPointer, uint64_t expectedOffset)
@@ -122,7 +122,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
         return Result::Error;
 
     // Prologue is shaped first (`sub sp, 48`), then the frame pointer is established
-    // with `lea rbp, [rsp + 48]` so it points at the saved-frame-pointer slot.
+    // with `mov rbp, rsp` so it equals the final stack pointer (UWOP_SET_FPREG FrameOffset 0).
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          subInst  = instructionAt(builder, 1);
     const MicroInstr*          fpInst   = instructionAt(builder, 2);
@@ -132,7 +132,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
 
     if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 48))
         return Result::Error;
-    if (!isFramePointerLea(*fpInst, fpInst->ops(operands), rbp, rsp, 48))
+    if (!isFramePointerMovAfterStackShape(*fpInst, fpInst->ops(operands), rbp, rsp))
         return Result::Error;
     if (!isStackAdjust(*addInst, addInst->ops(operands), rsp, MicroOp::Add, 32))
         return Result::Error;
@@ -170,7 +170,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
 
     if (!isStackAdjust(*firstSubInst, firstSubInst->ops(operands), rsp, MicroOp::Subtract, 16))
         return Result::Error;
-    if (!isFramePointerLea(*fpInst, fpInst->ops(operands), rbp, rsp, 16))
+    if (!isFramePointerMovAfterStackShape(*fpInst, fpInst->ops(operands), rbp, rsp))
         return Result::Error;
     if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
@@ -232,7 +232,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
     if (builder.instructions().count() != 4)
         return Result::Error;
 
-    // Both setups collapse into a single `lea rbp, [rsp + 32]` placed after the `sub sp, 32`.
+    // Both setups collapse into a single `mov rbp, rsp` placed after the `sub sp, 32`.
     const MicroOperandStorage& operands   = builder.operands();
     const MicroInstr*          firstInst  = instructionAt(builder, 0);
     const MicroInstr*          secondInst = instructionAt(builder, 1);
@@ -245,7 +245,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
         return Result::Error;
     if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isFramePointerLea(*thirdInst, thirdInst->ops(operands), rbp, rsp, 32))
+    if (!isFramePointerMovAfterStackShape(*thirdInst, thirdInst->ops(operands), rbp, rsp))
         return Result::Error;
     if (fourthInst->op != MicroInstrOpcode::Ret)
         return Result::Error;
@@ -267,8 +267,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReinsertsForcedFramePointerSetupWhenMis
     if (builder.instructions().count() != 4)
         return Result::Error;
 
-    // A forced frame pointer with no existing setup is synthesized as `lea rbp, [rsp + 32]`
-    // after the `sub sp, 32`, not as a `mov rbp, rsp` at the top.
+    // A forced frame pointer with no existing setup is synthesized as `mov rbp, rsp`
+    // after the `sub sp, 32` (fp == final stack pointer), not as a `mov rbp, rsp` at the top.
     const MicroOperandStorage& operands   = builder.operands();
     const MicroInstr*          firstInst  = instructionAt(builder, 0);
     const MicroInstr*          secondInst = instructionAt(builder, 1);
@@ -281,7 +281,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReinsertsForcedFramePointerSetupWhenMis
         return Result::Error;
     if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isFramePointerLea(*thirdInst, thirdInst->ops(operands), rbp, rsp, 32))
+    if (!isFramePointerMovAfterStackShape(*thirdInst, thirdInst->ops(operands), rbp, rsp))
         return Result::Error;
     if (fourthInst->op != MicroInstrOpcode::Ret)
         return Result::Error;

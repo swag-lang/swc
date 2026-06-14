@@ -30,6 +30,12 @@ struct AllocatorFooter
     magic: u32
 }
 
+struct AllocatorRawBlock
+{
+    address: [*] void
+    size:    u64
+}
+
 struct AllocatorClass
 {
     firstFree:    *AllocatorHeader
@@ -71,8 +77,12 @@ struct Allocator
     sizeAlloc:       u64
     sizeFree:        u64
     sizeCached:      u64
+    sizeOsAlloc:     u64
+    sizeOsFree:      u64
     countAlloc:      u32
     countFree:       u32
+    countOsAlloc:    u32
+    countOsFree:     u32
     nextId:          u32
     installMagic:    u32 = 0
 
@@ -261,19 +271,41 @@ impl Allocator
         return .installMagic == InstalledMagic
     }
 
+    mtd osAlloc(size: u64)->[*] u8
+    {
+        #if #os == Swag.TargetOs.Windows do
+            return cast([*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
+        #else do
+            return cast([*] u8) @alloc(size)
+    }
+
+    mtd osFree(address: *void)
+    {
+        if !address do
+            return
+
+        #if #os == Swag.TargetOs.Windows do
+            discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
+        #else do
+            @free(cast([*] void) address)
+    }
+
     mtd rawAlloc(size: u64, alignment: u32 = 0)->[*] u8
     {
         let align = cast(u64) (alignment orelse cast(u32) #sizeof(*void))
-        let bytes = size + align - 1 + #sizeof(*void)
-        let raw = cast([*] u8) @alloc(bytes)
+        let bytes = size + align - 1 + #sizeof(AllocatorRawBlock)
+        let raw = .osAlloc(bytes)
         if !raw do
             return null
 
-        var user = raw + #sizeof(*void)
+        var user = raw + #sizeof(AllocatorRawBlock)
         user = cast([*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
 
-        let store = cast([*] [*] void) user
-        store[cast #bit (u64) -1's64] = raw
+        let rawBlock = cast(*AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
+        rawBlock.address = cast([*] void) raw
+        rawBlock.size = bytes
+        .statAdd(&.countOsAlloc, 1)
+        .statAdd(&.sizeOsAlloc, bytes)
         return user
     }
 
@@ -282,8 +314,10 @@ impl Allocator
         if !address do
             return
 
-        let store = cast([*] [*] void) address
-        @free(store[cast #bit (u64) -1's64])
+        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) address - #sizeof(AllocatorRawBlock))
+        .statAdd(&.countOsFree, 1)
+        .statAdd(&.sizeOsFree, rawBlock.size)
+        .osFree(rawBlock.address)
     }
 
     mtd allocateThreadHeap()->*AllocatorThreadHeap

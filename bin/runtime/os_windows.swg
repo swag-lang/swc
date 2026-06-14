@@ -26,6 +26,10 @@ namespace __Win32RT
     const FALSE:               BOOL = 0
     const TRUE:                BOOL = 1
     const SRWLOCK_INIT         = cast(SRWLOCK) null
+    const MEM_COMMIT           = 0x0000_1000'u32
+    const MEM_RESERVE          = 0x0000_2000'u32
+    const MEM_RELEASE          = 0x0000_8000'u32
+    const PAGE_READWRITE       = 0x0000_0004'u32
 
 
     #[Swag.Foreign("kernel32")]
@@ -46,6 +50,8 @@ namespace __Win32RT
         func TlsGetValue(dwTlsIndex: u32)->*void;
         func AcquireSRWLockExclusive(SRWLock: *SRWLOCK);
         func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK);
+        func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->*void;
+        func VirtualFree(lpAddress: *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL;
     }
 
     #[Swag.Foreign("user32")]

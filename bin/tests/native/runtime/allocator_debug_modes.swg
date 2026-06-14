@@ -22,8 +22,12 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(alloc.firstRetiredHeap == null)
     @assert(alloc.countAlloc == 0)
     @assert(alloc.countFree == 0)
+    @assert(alloc.countOsAlloc == 0)
+    @assert(alloc.countOsFree == 0)
     @assert(alloc.sizeAlloc == 0)
     @assert(alloc.sizeFree == 0)
+    @assert(alloc.sizeOsAlloc == 0)
+    @assert(alloc.sizeOsFree == 0)
     @assert(alloc.maxCachedSize == 64 * 1024)
     @assert(alloc.maxCachedBytes == 8 * 1024 * 1024)
     @assert(alloc.maxFreeSize == 16 * 1024 * 1024)
@@ -189,4 +193,36 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(alloc.firstAlloc == null)
 
     alloc.freeAll()
+}
+
+#if #os == Swag.TargetOs.Windows
+{
+    #test
+    {
+        var alloc: Allocator
+        let itf = makeDebugModeAllocator(&alloc, trackAllocations: true, fillMemory: false)
+
+        var req: AllocatorRequest
+        req.mode = .Alloc
+        req.size = 512
+        itf.req(&req)
+        @assert(req.address != null)
+        @assert(alloc.countOsAlloc >= 2)
+
+        let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) header.allocAddr - #sizeof(AllocatorRawBlock))
+        @assert(rawBlock.address != null)
+        @assert(rawBlock.size >= header.allocSize + #sizeof(AllocatorRawBlock))
+        @assert(cast(u64) rawBlock.address % 4096 == 0)
+
+        req.mode = .Free
+        itf.req(&req)
+        @assert(req.address == null)
+
+        var freeAll: AllocatorRequest
+        freeAll.mode = .FreeAll
+        itf.req(&freeAll)
+        @assert(alloc.countOsFree == alloc.countOsAlloc)
+        @assert(alloc.sizeOsFree == alloc.sizeOsAlloc)
+    }
 }

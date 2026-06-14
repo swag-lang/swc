@@ -472,7 +472,14 @@ namespace
         if (testFunctions.size() != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));
 
-        if (initFunctions.empty() && preMainFunctions.empty() && testFunctions.empty())
+        // When a module has no #test functions there is nothing to run in the JIT test
+        // phase. Executing its #init / #premain here is pointless (the native build still
+        // runs them in the produced artifact) and, because #premain can recursively touch
+        // typeinfo defined in other modules (e.g. Reflection.registerType walking a type
+        // graph), running it concurrently with those modules' code generation in a parallel
+        // workspace build races on the shared typeinfo data segments and can read a
+        // half-materialized type (null fields buffer) -> JIT access violation. Skip it.
+        if (testFunctions.empty())
             return true;
 
         {

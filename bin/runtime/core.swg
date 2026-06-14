@@ -270,7 +270,7 @@ func __setupRuntime(flags: RuntimeFlags)
     let cxt = @getcontext()
     cxt.runtimeFlags = flags
 
-    discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory)
+    discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: !(flags & .FromCompiler))
 
     let allocator = __runtimeAllocator()
 

@@ -28,6 +28,9 @@ func contextCaptureFree(req: *AllocatorRequest)
 
 #test
 {
+    if @jit() do
+        return
+
     let alloc = defaultAllocator()
     let beforeCount = alloc.countAlloc
     let beforeSize = alloc.sizeAlloc
@@ -56,6 +59,9 @@ func contextCaptureFree(req: *AllocatorRequest)
 
 #test
 {
+    if @jit() do
+        return
+
     let alloc = defaultAllocator()
     let beforeCount = alloc.countAlloc
 

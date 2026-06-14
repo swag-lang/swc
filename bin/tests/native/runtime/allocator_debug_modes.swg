@@ -12,6 +12,29 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 #test
 {
     var alloc: Allocator
+    @memset(cast([*] void) &alloc, 0xCD, #sizeof(Allocator))
+
+    alloc.setup()
+    @assert(alloc.installed())
+    @assert(alloc.firstAlloc == null)
+    @assert(alloc.firstFree == null)
+    @assert(alloc.lastFree == null)
+    @assert(alloc.firstRetiredHeap == null)
+    @assert(alloc.countAlloc == 0)
+    @assert(alloc.countFree == 0)
+    @assert(alloc.sizeAlloc == 0)
+    @assert(alloc.sizeFree == 0)
+    @assert(alloc.maxCachedSize == 64 * 1024)
+    @assert(alloc.maxCachedBytes == 8 * 1024 * 1024)
+    @assert(alloc.maxFreeSize == 16 * 1024 * 1024)
+    @assert(alloc.showMaxLeaks == 100)
+    @assert(alloc.detectLeaks)
+    @assert(!alloc.trackAllocations)
+}
+
+#test
+{
+    var alloc: Allocator
     let itf = makeDebugModeAllocator(&alloc)
 
     var req: AllocatorRequest
@@ -126,5 +149,44 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     req.mode = .Free
     itf.req(&req)
     @assert(req.address == null)
+    alloc.freeAll()
+}
+
+#test
+{
+    var alloc: Allocator
+    let itf = makeDebugModeAllocator(&alloc, trackAllocations: false, fillMemory: true)
+
+    var untracked: AllocatorRequest
+    untracked.mode = .Alloc
+    untracked.size = 80
+    itf.req(&untracked)
+    @assert(untracked.address != null)
+    @assert(alloc.countAlloc == 1)
+    @assert(alloc.firstAlloc == null)
+
+    alloc.configure(false, true, false, true, true)
+
+    var tracked: AllocatorRequest
+    tracked.mode = .Alloc
+    tracked.size = 96
+    itf.req(&tracked)
+    @assert(tracked.address != null)
+
+    let trackedHeader = cast(*AllocatorHeader) (cast([*] u8) tracked.address - #sizeof(AllocatorHeader))
+    @assert(alloc.firstAlloc == trackedHeader)
+    alloc.checkAllMemory()
+
+    untracked.mode = .Free
+    itf.req(&untracked)
+    @assert(untracked.address == null)
+    @assert(alloc.firstAlloc == trackedHeader)
+    alloc.checkAllMemory()
+
+    tracked.mode = .Free
+    itf.req(&tracked)
+    @assert(tracked.address == null)
+    @assert(alloc.firstAlloc == null)
+
     alloc.freeAll()
 }

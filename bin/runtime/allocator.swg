@@ -20,6 +20,7 @@ struct AllocatorHeader
     allocId:       u32
     classIndex:    u32
     alignment:     u32
+    isTracked:     bool
     magic:         u32
     ownerHeap:     *void
 }
@@ -73,19 +74,19 @@ struct Allocator
     countAlloc:      u32
     countFree:       u32
     nextId:          u32
-    isInstalled:     bool
+    installMagic:    u32 = 0
 
-    maxCachedSize:       u64 = 64 * 1024
-    maxCachedBytes:      u64 = 8 * 1024 * 1024
-    maxFreeSize:         u64 = 16 * 1024 * 1024
-    showMaxLeaks:        u32 = 100
+    maxCachedSize:       u64
+    maxCachedBytes:      u64
+    maxFreeSize:         u64
+    showMaxLeaks:        u32
     breakOnAllocId:      u32
-    captureAllocStack        = true
-    detectLeaks              = true
-    trackAllocations         = false
-    fillAlloc                = true
-    fillFree                 = true
-    electricMode             = false
+    captureAllocStack:   bool
+    detectLeaks:         bool
+    trackAllocations:    bool
+    fillAlloc:           bool
+    fillFree:            bool
+    electricMode:        bool
 }
 
 fileprivate var g_DefaultAllocator: Allocator
@@ -122,6 +123,7 @@ impl Allocator
     const MagicFree  = 0xFEE1DEAD
     const AllocByte  = 0xAB
     const FreeByte   = 0xFB
+    const InstalledMagic = 0xA110CA7E
 
     func classSize(index: u32)->u64
     {
@@ -234,7 +236,8 @@ impl Allocator
 
     mtd setup()
     {
-        .isInstalled = true
+        @memset(me, 0, #sizeof(Allocator))
+        .installMagic = InstalledMagic
         .configure(false, true, false, false, false)
     }
 
@@ -255,7 +258,7 @@ impl Allocator
 
     mtd installed()->bool
     {
-        return .isInstalled
+        return .installMagic == InstalledMagic
     }
 
     mtd rawAlloc(size: u64, alignment: u32 = 0)->[*] u8
@@ -777,7 +780,9 @@ impl Allocator
         header.hint       = request.hint
         header.stackCount = .captureAllocStack ? __captureStack(2, @mkslice(&header.stack[0], @countof(header.stack))) : 0
         header.ownerHeap  = heap
+        header.prev, header.next = null
         header.prevFree, header.nextFree = null
+        header.isTracked = .trackAllocations
         discard @atomadd(&heap.activeCount, 1)
 
         let foot = .footer(header)
@@ -792,7 +797,7 @@ impl Allocator
 
         .statAdd(&.countAlloc, 1)
         .statAdd(&.sizeAlloc, request.size)
-        if .trackAllocations do
+        if header.isTracked do
             .linkAllocated(header)
         request.address = .userAddress(header)
     }
@@ -901,7 +906,7 @@ impl Allocator
         let foot = .footer(header)
         let ownerHeap = cast(*AllocatorThreadHeap) header.ownerHeap
 
-        if .trackAllocations do
+        if header.isTracked do
             .unlinkAllocated(header)
 
         .statSub(&.countAlloc, 1)
@@ -1123,7 +1128,7 @@ func releaseAllocatorThreadCache()
         alloc.retireThreadHeap(heap)
 }
 
-func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false)->*Allocator
+func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->*Allocator
 {
     let cxt = @getcontext()
 
@@ -1132,6 +1137,7 @@ func installAllocator(electricMode: bool = false, detectLeaks: bool = true, capt
         alloc.setup()
     alloc.configure(electricMode, detectLeaks, captureStack, trackAllocations, fillMemory)
 
-    cxt.allocator = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    if installInContext do
+        cxt.allocator = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
     return alloc
 }

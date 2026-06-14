@@ -63,6 +63,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 {
     @assert(defaultAllocator().installed())
 
+    if @jit() do
+        return
+
     let allocator = @getcontext().allocator
     let runtimeItf = cast(const *Swag.Interface) &allocator
     @assert(runtimeItf.obj == defaultAllocator())
@@ -70,6 +73,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
 #test
 {
+    if @jit() do
+        return
+
     let alloc = defaultAllocator()
     let beforeCount = alloc.countAlloc
     let beforeSize = alloc.sizeAlloc
@@ -108,6 +114,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
 #test
 {
+    if @jit() do
+        return
+
     let alloc = defaultAllocator()
     let beforeCount = alloc.countAlloc
     let beforeSize = alloc.sizeAlloc

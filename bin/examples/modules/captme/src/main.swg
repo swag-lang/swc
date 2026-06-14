@@ -4,6 +4,8 @@ const NotifyIconVersion4 = 4
 
 #premain
 {
+    discard Memory.installFastAllocator(electricMode: #hastag("CaptMe.ElectricMemory"), detectLeaks: true, captureStack: false, trackAllocations: #hastag("CaptMe.TrackMemory"))
+
     Reflection.registerType(#typeof(FormArrow))
     Reflection.registerType(#typeof(FormDraw))
     Reflection.registerType(#typeof(FormImage))

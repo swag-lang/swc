@@ -9,6 +9,7 @@ fileprivate func threadEntry(param: *void)->DWORD
     @setcontext(th.context)
     th.userLambda(dref th)
     th.context.tempAllocator.release()
+    Memory.releaseFastAllocatorThreadCache()
     return 0
 }
 

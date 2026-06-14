@@ -484,7 +484,7 @@ namespace Runtime
         uint32_t   errorAllocatorCapacity     = 16u * 1024u;
         SafetyWhat safetyGuards               = SafetyWhat::All;
         bool       sanity                     = true;
-        bool       debugAllocator             = true;
+        bool       debugAllocator             = false;
         bool       debugAllocatorCaptureStack = true;
         bool       debugAllocatorLeaks        = true;
         bool       errorStackTrace            = true;

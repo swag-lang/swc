@@ -823,7 +823,7 @@ namespace Swag
         errorAllocatorCapacity         = 16'u32 * 1024                      // Default capacity of the 'error' allocator (in bytes)
         safetyGuards                   = SafetyWhat.All                     // Activate specific safety checks
         sanity                         = true                               // Make a sanity pass
-        debugAllocator                 = true                               // Use Swag.DebugAllocator by default
+        debugAllocator                 = false                              // Legacy runtime debug allocator. Prefer Core.Memory.FastAllocator.
         debugAllocatorCaptureStack     = true                               // Capture the call stack for each allocation
         debugAllocatorLeaks            = true                               // Detect memory leaks
         errorStackTrace                = true                               // Add stack trace in case a 'throw' is raised

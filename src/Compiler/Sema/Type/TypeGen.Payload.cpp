@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -328,6 +329,15 @@ namespace
             {
                 fullName = symFunc.getFullScopedName(ctx);
                 name     = Utf8{symFunc.name(ctx)};
+
+                // Like buildRuntimeFullName: an attribute imported from another module is
+                // regenerated under the importer's module namespace (e.g. the importer would
+                // emit `Captme.Core.Serialization.Final` instead of `Core.Serialization.Final`).
+                // Strip that importing-module prefix so the runtime fullname stays canonical and
+                // cross-module attribute identity (Reflection.hasAttribute, ...) keeps working.
+                const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symFunc);
+                if (sourceFile && sourceFile->isImportedApi())
+                    fullName = TypeInfo::stripModuleQualifiersFromFullName(std::move(fullName), sema.moduleNamespace().name(ctx));
             }
         }
 

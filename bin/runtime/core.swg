@@ -227,25 +227,22 @@ func @args()->const [..] string
 
 ////////////////////////////////////////////////////////////
 
-var __sysAlloc: SystemAllocator
-
 // Make a build configuration copy
 const __buildCfg = #run dref @compiler.getBuildCfg()
 
 func @rtflags()  => @getcontext().runtimeFlags
-func @sysalloc() => &__sysAlloc
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
-
-func __systemAllocator()->IAllocator
-{
-    return @mkinterface(&__sysAlloc, #typeof(__sysAlloc), IAllocator)
-}
 
 func __runtimeAllocator()->IAllocator
 {
     let cxt = @getcontext()
-    if cxt.allocator == null do
-        cxt.allocator = __systemAllocator()
+    if cxt.allocator == null
+    {
+        let allocator = defaultAllocator()
+        if !allocator.installed() do
+            allocator.setup()
+        cxt.allocator = @mkinterface(allocator, #typeof(dref allocator), IAllocator)
+    }
     return cxt.allocator
 }
 
@@ -272,7 +269,10 @@ func __setupRuntime(flags: RuntimeFlags)
 
     let cxt = @getcontext()
     cxt.runtimeFlags = flags
-    let allocator    = __runtimeAllocator()
+
+    discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory)
+
+    let allocator = __runtimeAllocator()
 
     cxt.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, allocator)
     cxt.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, allocator)
@@ -280,7 +280,17 @@ func __setupRuntime(flags: RuntimeFlags)
 
 func __releaseRuntime()
 {
-    __resetRuntimeContext()
+    let cxt = @getcontext()
+
+    cxt.tempAllocator.release()
+    cxt.errorAllocator.release()
+
+    releaseAllocatorThreadCache()
+
+    let allocator = defaultAllocator()
+    allocator.release()
+
+    @memset(cxt, 0, #sizeof(Swag.Context))
 }
 
 func __closeRuntime()

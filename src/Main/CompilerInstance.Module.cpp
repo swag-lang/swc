@@ -55,6 +55,11 @@ namespace
     {
         buildCfg.safetyGuards               = explicitBuildCfg.safetyGuards;
         buildCfg.sanity                     = explicitBuildCfg.sanity;
+        buildCfg.allocatorCaptureStack      = explicitBuildCfg.allocatorCaptureStack;
+        buildCfg.allocatorLeaks             = explicitBuildCfg.allocatorLeaks;
+        buildCfg.allocatorTrackAllocations  = explicitBuildCfg.allocatorTrackAllocations;
+        buildCfg.allocatorElectricMode      = explicitBuildCfg.allocatorElectricMode;
+        buildCfg.allocatorFillMemory        = explicitBuildCfg.allocatorFillMemory;
         buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
         buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
         buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;

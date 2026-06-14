@@ -313,7 +313,6 @@ SWC_TOKEN_DEF(IntrinsicMakeString, "@mkstring",  TokenIdKindE::Intrinsic | Token
 SWC_TOKEN_DEF(IntrinsicMakeAny, "@mkany",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicMakeInterface, "@mkinterface",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicTableOf, "@tableof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicSysAlloc, "@sysalloc",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - RUNTIME
 

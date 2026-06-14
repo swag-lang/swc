@@ -232,7 +232,6 @@ supported by the compiler or hardware. They can be used at both compile time and
 @mkstring
 @mkany
 @mkinterface
-@sysalloc
 @stringcmp
 @typecmp
 @is

@@ -801,7 +801,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicJit:
             return parseIntrinsicCallConstantExpr();
 
-        case TokenId::IntrinsicSysAlloc:
         case TokenId::IntrinsicGetContext:
             return parseIntrinsicCallExpr(0);
 

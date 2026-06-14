@@ -483,6 +483,11 @@ namespace Runtime
         uint32_t   errorAllocatorCapacity     = 16u * 1024u;
         SafetyWhat safetyGuards               = SafetyWhat::All;
         bool       sanity                     = true;
+        bool       allocatorCaptureStack      = false;
+        bool       allocatorLeaks             = true;
+        bool       allocatorTrackAllocations  = false;
+        bool       allocatorElectricMode      = false;
+        bool       allocatorFillMemory        = false;
         bool       errorStackTrace            = true;
 
         String warnAsErrors;

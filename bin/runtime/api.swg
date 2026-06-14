@@ -822,6 +822,11 @@ namespace Swag
         errorAllocatorCapacity         = 16'u32 * 1024                      // Default capacity of the 'error' allocator (in bytes)
         safetyGuards                   = SafetyWhat.All                     // Activate specific safety checks
         sanity                         = true                               // Make a sanity pass
+        allocatorCaptureStack          = false                              // Capture a call stack for each tracked allocation
+        allocatorLeaks                 = true                               // Report memory leaks at runtime shutdown
+        allocatorTrackAllocations      = false                              // Keep an exact allocation list for detailed leak reporting
+        allocatorElectricMode          = false                              // Never reuse freed blocks
+        allocatorFillMemory            = false                              // Fill allocated/freed memory with debug patterns
         errorStackTrace                = true                               // Add stack trace in case a 'throw' is raised
 
         warnAsErrors:                  string                               // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."

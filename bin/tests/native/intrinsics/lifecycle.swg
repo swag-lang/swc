@@ -1317,8 +1317,7 @@ func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
-    var alloc: SystemAllocator
-    var itf = @mkinterface(&alloc, #typeof(alloc), IAllocator)
+    let itf = @getcontext().allocator
     var req: AllocatorRequest
     req.mode = .Alloc
     req.size = 3 * #sizeof(DropOnlyTracked)
@@ -1342,8 +1341,7 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var alloc: SystemAllocator
-    var itf = @mkinterface(&alloc, #typeof(alloc), IAllocator)
+    let itf = @getcontext().allocator
     var req: AllocatorRequest
     req.mode = .Alloc
     req.size = 3 * #sizeof(DropOnlyTracked)
@@ -1403,8 +1401,7 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        var alloc: SystemAllocator
-        var itf = @mkinterface(&alloc, #typeof(alloc), IAllocator)
+        let itf = @getcontext().allocator
         var values = ReallocDropBuffer{itf, null, 0, 0}
         let ptr = values.emplaceAddress(3)
         for i in 3 do
@@ -1419,8 +1416,7 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        var alloc: SystemAllocator
-        var itf = @mkinterface(&alloc, #typeof(alloc), IAllocator)
+        let itf = @getcontext().allocator
         var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
         let ptr = values.emplaceAddress(3)
         for i in 3 do
@@ -1505,8 +1501,7 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var alloc: SystemAllocator
-    var itf = @mkinterface(&alloc, #typeof(alloc), IAllocator)
+    let itf = @getcontext().allocator
     var values = ReallocDropBuffer{itf, null, 0, 0}
     let ptr = values.emplaceAddress(3)
     for i in 3 do

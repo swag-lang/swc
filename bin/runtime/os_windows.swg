@@ -36,6 +36,7 @@ namespace __Win32RT
         func GetStdHandle(nStdHandle: u32)->HANDLE;
         func WriteFile(hFile: HANDLE, lpBuffer: const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
         func GetCurrentProcess()->HANDLE;
+        func GetCurrentThreadId()->DWORD;
         func ExitProcess(uExitCode: u32);
         func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void);
         func DebugBreak();

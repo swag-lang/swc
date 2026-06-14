@@ -11,6 +11,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Crypto/Sha256.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
@@ -44,6 +45,7 @@ namespace
     constexpr uint16_t K_LF_BUILDINFO        = 0x1603;
     constexpr uint16_t K_LF_STRING_ID        = 0x1605;
     constexpr uint8_t  K_CHKSUM_TYPE_NONE    = 0x00;
+    constexpr uint8_t  K_CHKSUM_TYPE_SHA256  = 0x03;
 
     uint32_t alignUp4(const uint32_t value)
     {
@@ -1237,7 +1239,12 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
     if (!bytesContainString(debugBytes, Utf8(sourcePath.string())))
         return Result::Error;
-    if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_NONE, 0))
+    // Modern Visual Studio refuses to show source without a SHA-256 checksum it can verify; the file
+    // checksum must carry the real digest of the source content (kind 3, 32 bytes), not a None placeholder.
+    if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_SHA256, 32))
+        return Result::Error;
+    const std::array<uint8_t, 32> expectedHash = Crypto::sha256(asByteSpan(sourceFile.sourceView()));
+    if (!bytesContainString(debugBytes, Utf8(std::string_view(reinterpret_cast<const char*>(expectedHash.data()), expectedHash.size()))))
         return Result::Error;
     if (!subsectionTypeAppearsBefore(debugBytes, K_DEBUG_S_FILECHKSMS, K_DEBUG_S_STRINGTABLE))
         return Result::Error;

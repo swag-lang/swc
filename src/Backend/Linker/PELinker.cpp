@@ -10,7 +10,6 @@
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/ByteUtils.h"
-#include "Support/Crypto/Sha256.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -738,7 +737,7 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
         entry.path = path;
         if (sourceFile)
         {
-            const std::array<uint8_t, 32> hash = Crypto::sha256(asByteSpan(sourceFile->sourceView()));
+            const std::array<uint8_t, 32> hash = DebugInfo::sourceFileChecksum(builder_->ctx(), *sourceFile);
             entry.checksum.assign(hash.begin(), hash.end());
             entry.checksumKind = 3; // CV_SourceChksum_SHA256
         }

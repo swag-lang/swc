@@ -2,6 +2,7 @@
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/PdbWriter.h"
+#include "Main/Version.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -526,8 +527,22 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
         relocSection.rawSize     = Math::alignUpU32(static_cast<uint32_t>(relocSection.bytes.size()), FILE_ALIGNMENT);
     }
 
+    // Image timestamp = the actual build time (what a debugger shows and uses, with SizeOfImage, as the
+    // module's runtime identity). A real wall-clock value, not 0 and not a content hash. Computed once and
+    // shared by the PE file header and the debug-directory entry so they agree.
+    timeDateStamp_ = static_cast<uint32_t>(std::time(nullptr));
+    if (timeDateStamp_ == 0)
+        timeDateStamp_ = 1;
+
     // Every section now has a final RVA/file offset: build the PDB and fill the debug-directory section.
     emitDebugInfo();
+
+    // Patch the resource data entry's payload RVA now that the .rsrc section has an address.
+    if (rsrcIndex_ >= 0)
+    {
+        OutSection& rs = sections_[rsrcIndex_];
+        ByteUtils::writeLe32(rs.bytes, 72, rs.rva + 88); // IMAGE_RESOURCE_DATA_ENTRY.OffsetToData (RVA)
+    }
 
     // Compute SizeOfImage and the entry point.
     uint32_t sizeOfImage = headersSize;
@@ -565,6 +580,7 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     IMAGE_FILE_HEADER fileHeader{};
     fileHeader.Machine              = IMAGE_FILE_MACHINE_AMD64;
     fileHeader.NumberOfSections     = static_cast<WORD>(sectionCount);
+    fileHeader.TimeDateStamp        = timeDateStamp_;
     fileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
     fileHeader.Characteristics      = IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LARGE_ADDRESS_AWARE;
     if (isDll)
@@ -576,6 +592,8 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
 
     IMAGE_OPTIONAL_HEADER64 opt{};
     opt.Magic                       = IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+    opt.MajorLinkerVersion          = static_cast<uint8_t>(SWC_VERSION);  // the PE "linker version" is the producer/compiler version
+    opt.MinorLinkerVersion          = static_cast<uint8_t>(SWC_REVISION);
     opt.AddressOfEntryPoint         = entryRva;
     opt.ImageBase                   = image_->imageBase;
     opt.SectionAlignment            = SECTION_ALIGNMENT;
@@ -642,6 +660,11 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = debugDirRva_;
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size           = debugDirSize_;
     }
+    if (rsrcIndex_ >= 0)
+    {
+        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = sections_[rsrcIndex_].rva;
+        opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].Size           = sections_[rsrcIndex_].virtualSize;
+    }
 
     std::memcpy(file.data() + cursor, &opt, sizeof(opt));
     cursor += sizeof(opt);
@@ -703,13 +726,63 @@ void PEWriter::reserveDebugDirectorySection()
     const Utf8     pdbPathStr = Utf8(pdbPath_);
     const uint32_t rsdsSize   = 4 + 16 + 4 + static_cast<uint32_t>(pdbPathStr.size()) + 1;
     constexpr uint32_t debugDirEntrySize = 28; // sizeof(IMAGE_DEBUG_DIRECTORY)
+    constexpr uint32_t featDataSize      = 20; // IMAGE_DEBUG_TYPE_VC_FEATURE payload (5 x u32 counts)
 
+    // Two directory entries (CodeView + VC_FEATURE) followed by their data blobs, matching link.exe's layout.
     OutSection section;
     section.name        = ".debug";
-    section.bytes.assign(debugDirEntrySize + rsdsSize, std::byte{0});
+    section.bytes.assign(2 * debugDirEntrySize + rsdsSize + featDataSize, std::byte{0});
     section.virtualSize = static_cast<uint32_t>(section.bytes.size());
     section.align       = 4;
     debugDirIndex_      = static_cast<int32_t>(sections_.size());
+    sections_.push_back(std::move(section));
+}
+
+// Embeds a standard application manifest as an RT_MANIFEST resource in a .rsrc section, matching the
+// resource directory a conventional Windows linker (link.exe) emits. The single IMAGE_RESOURCE_DATA_ENTRY
+// stores its payload by RVA, which is patched in emit() once the section's address is known.
+void PEWriter::reserveResourceSection()
+{
+    static constexpr char manifest[] =
+        "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\r\n"
+        "<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>\r\n"
+        "  <trustInfo xmlns=\"urn:schemas-microsoft-com:asm.v3\">\r\n"
+        "    <security>\r\n"
+        "      <requestedPrivileges>\r\n"
+        "        <requestedExecutionLevel level='asInvoker' uiAccess='false' />\r\n"
+        "      </requestedPrivileges>\r\n"
+        "    </security>\r\n"
+        "  </trustInfo>\r\n"
+        "</assembly>\r\n";
+    const auto manifestLen = static_cast<uint32_t>(sizeof(manifest) - 1); // drop the trailing NUL
+
+    // Three directory levels (type / id / language), each a 16-byte directory + one 8-byte entry, then a
+    // 16-byte data entry, then the manifest bytes. Offsets below are relative to the section start.
+    constexpr uint32_t K_RT_MANIFEST   = 24;
+    constexpr uint32_t K_MANIFEST_ID   = 1;       // CREATEPROCESS_MANIFEST_RESOURCE_ID
+    constexpr uint32_t K_LANG_EN_US    = 0x0409;
+    constexpr uint32_t K_SUBDIR_FLAG   = 0x80000000u;
+    constexpr uint32_t dataEntryOffset = (16 + 8) * 3; // 72
+    constexpr uint32_t dataOffset      = dataEntryOffset + 16; // 88
+
+    std::vector<std::byte> b;
+    const auto u16 = [&](uint16_t v) { ByteUtils::appendLe16(b, v); };
+    const auto u32 = [&](uint32_t v) { ByteUtils::appendLe32(b, v); };
+    const auto dir = [&] { u32(0); u32(0); u16(0); u16(0); u16(0); u16(1); }; // one id entry
+
+    dir(); u32(K_RT_MANIFEST); u32(K_SUBDIR_FLAG | 24);          // root -> type dir at 24
+    dir(); u32(K_MANIFEST_ID); u32(K_SUBDIR_FLAG | 48);          // type -> language dir at 48
+    dir(); u32(K_LANG_EN_US);  u32(dataEntryOffset);             // language -> data entry at 72
+    u32(0 /*OffsetToData RVA, patched later*/); u32(manifestLen); u32(0); u32(0);
+    for (uint32_t i = 0; i < manifestLen; ++i)
+        b.push_back(static_cast<std::byte>(manifest[i]));
+
+    OutSection section;
+    section.name        = ".rsrc";
+    section.bytes       = std::move(b);
+    section.virtualSize = static_cast<uint32_t>(section.bytes.size());
+    section.align       = 4;
+    rsrcIndex_          = static_cast<int32_t>(sections_.size());
     sections_.push_back(std::move(section));
 }
 
@@ -806,12 +879,12 @@ void PEWriter::emitDebugInfo()
     const Utf8              pdbPathStr = Utf8(pdbPath_);
     PdbWriter::build(*outPdbBytes_, guid, age, signature, *debugInfo_, pdbSections, resolver, image_->moduleName, pdbPathStr);
 
-    // Fill the reserved debug-directory section: a single CodeView debug directory entry pointing at the
-    // RSDS record that follows it in the same section.
+    // Fill the reserved debug-directory section. Like link.exe, emit two entries — CodeView (the RSDS record
+    // pointing at the PDB) and VC_FEATURE (feature counts) — followed by their data blobs in the same section.
     OutSection&        section   = sections_[debugDirIndex_];
     constexpr uint32_t entrySize = 28;
-    const uint32_t     rsdsRva   = section.rva + entrySize;
-    const uint32_t     rsdsFile  = section.fileOffset + entrySize;
+    constexpr uint32_t entryCount = 2;
+    constexpr uint32_t dirSize   = entrySize * entryCount;
 
     std::vector<std::byte> rsds;
     ByteUtils::appendLe32(rsds, 0x53445352u); // "RSDS"
@@ -822,22 +895,40 @@ void PEWriter::emitDebugInfo()
         rsds.push_back(static_cast<std::byte>(ch));
     rsds.push_back(std::byte{0});
 
-    std::vector<std::byte> entry;
-    ByteUtils::appendLe32(entry, 0);                 // Characteristics
-    ByteUtils::appendLe32(entry, 0);                 // TimeDateStamp
-    ByteUtils::appendLe16(entry, 0);                 // MajorVersion
-    ByteUtils::appendLe16(entry, 0);                 // MinorVersion
-    ByteUtils::appendLe32(entry, IMAGE_DEBUG_TYPE_CODEVIEW);
-    ByteUtils::appendLe32(entry, static_cast<uint32_t>(rsds.size())); // SizeOfData
-    ByteUtils::appendLe32(entry, rsdsRva);           // AddressOfRawData
-    ByteUtils::appendLe32(entry, rsdsFile);          // PointerToRawData
+    // VC_FEATURE payload: Pre-VC++11 / C-C++ / GS / sdl / guardN counts. swc applies none of these
+    // hardening passes, so the counts are zero — a valid, honest entry.
+    constexpr uint32_t     featDataSize = 20;
+    std::vector<std::byte> feat(featDataSize, std::byte{0});
 
-    SWC_ASSERT(section.bytes.size() >= entry.size() + rsds.size());
-    std::memcpy(section.bytes.data(), entry.data(), entry.size());
-    std::memcpy(section.bytes.data() + entrySize, rsds.data(), rsds.size());
+    const uint32_t rsdsRva  = section.rva + dirSize;
+    const uint32_t rsdsFile = section.fileOffset + dirSize;
+    const uint32_t featRva  = rsdsRva + static_cast<uint32_t>(rsds.size());
+    const uint32_t featFile = rsdsFile + static_cast<uint32_t>(rsds.size());
+
+    constexpr uint32_t K_IMAGE_DEBUG_TYPE_VC_FEATURE = 12;
+
+    const auto appendDirEntry = [&](std::vector<std::byte>& out, uint32_t type, uint32_t size, uint32_t rva, uint32_t fileOff) {
+        ByteUtils::appendLe32(out, 0);              // Characteristics
+        ByteUtils::appendLe32(out, timeDateStamp_); // TimeDateStamp (matches the PE file header)
+        ByteUtils::appendLe16(out, 0);              // MajorVersion
+        ByteUtils::appendLe16(out, 0);              // MinorVersion
+        ByteUtils::appendLe32(out, type);
+        ByteUtils::appendLe32(out, size);
+        ByteUtils::appendLe32(out, rva);
+        ByteUtils::appendLe32(out, fileOff);
+    };
+
+    std::vector<std::byte> dir;
+    appendDirEntry(dir, IMAGE_DEBUG_TYPE_CODEVIEW, static_cast<uint32_t>(rsds.size()), rsdsRva, rsdsFile);
+    appendDirEntry(dir, K_IMAGE_DEBUG_TYPE_VC_FEATURE, featDataSize, featRva, featFile);
+
+    SWC_ASSERT(section.bytes.size() >= dirSize + rsds.size() + feat.size());
+    std::memcpy(section.bytes.data(), dir.data(), dir.size());
+    std::memcpy(section.bytes.data() + dirSize, rsds.data(), rsds.size());
+    std::memcpy(section.bytes.data() + dirSize + rsds.size(), feat.data(), feat.size());
 
     debugDirRva_  = section.rva;
-    debugDirSize_ = entrySize;
+    debugDirSize_ = dirSize;
 }
 
 bool PEWriter::writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath)
@@ -877,6 +968,7 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, std::vector<std::byt
     buildImports();
     buildExports();
     reserveDebugDirectorySection();
+    reserveResourceSection();
     assignLayout();
 
     if (!applyRelocations(outDiag))

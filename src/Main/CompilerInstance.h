@@ -223,6 +223,9 @@ public:
     Result                          executePendingCompilerMessages(TaskContext& ctx);
     bool                            hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
     Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, std::string_view sectionText, uint32_t codeOffsetInSection);
+    // Full in-memory content of the per-thread generated-source dump at the given path (the bytes that are
+    // flushed to the .swgsrc file). Used to checksum generated sources without racing the on-disk flush.
+    bool                            tryGetGeneratedSourceContent(const fs::path& path, std::string_view& outContent) const;
     void                            registerInMemoryFile(fs::path path, std::string_view content);
     static Sema*                    tryGetJobSema(Job* job);
     static const Sema*              tryGetJobSema(const Job* job);

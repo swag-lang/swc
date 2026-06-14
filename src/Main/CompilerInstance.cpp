@@ -1176,6 +1176,20 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     return Result::Continue;
 }
 
+bool CompilerInstance::tryGetGeneratedSourceContent(const fs::path& path, std::string_view& outContent) const
+{
+    const fs::path normalized = path.lexically_normal();
+    for (const PerThreadData& td : perThreadData_)
+    {
+        if (!td.generatedSource.path.empty() && td.generatedSource.path == normalized)
+        {
+            outContent = td.generatedSource.content.view();
+            return true;
+        }
+    }
+    return false;
+}
+
 Result CompilerInstance::flushGeneratedSourceDumps(TaskContext& ctx)
 {
     for (PerThreadData& td : perThreadData_)

@@ -71,6 +71,7 @@ namespace
     constexpr uint32_t K_CV_PTR_ATTR_NEAR64      = 0x0000000C;
     constexpr uint32_t K_CV_FRAMEPROC_FLAGS      = 0x00114200;
     constexpr uint16_t K_CHKSUM_TYPE_NONE        = 0x00;
+    constexpr uint8_t  K_CHKSUM_TYPE_SHA256      = 0x03; // CV_SourceChksum_t::CHKSUM_TYPE_SHA_256
     constexpr uint32_t K_CV_LINE_STATEMENT_BIT   = 0x80000000u;
     constexpr uint16_t K_CV_ENCODED_FRAME_NONE   = 0x0000;
     constexpr uint16_t K_CV_ENCODED_FRAME_RSP    = 0x0001;
@@ -109,6 +110,7 @@ namespace
     struct LineBlock
     {
         Utf8                   fileName;
+        const SourceFile*      sourceFile = nullptr; // source of the file's content checksum
         std::vector<LineEntry> entries;
     };
 
@@ -152,7 +154,7 @@ namespace
 
     struct FileChecksumBuilder
     {
-        uint32_t insert(const Utf8& fileName, const uint32_t stringOffset)
+        uint32_t insert(const TaskContext& ctx, const Utf8& fileName, const uint32_t stringOffset, const SourceFile* sourceFile)
         {
             const auto it = offsets.find(fileName);
             if (it != offsets.end())
@@ -161,6 +163,15 @@ namespace
             const uint32_t entryOffset = size;
             Entry          entry;
             entry.stringOffset = stringOffset;
+            // A SHA-256 content checksum lets debuggers/profilers (and modern Visual Studio, which rejects
+            // MD5 and refuses to show source without a checksum it trusts) verify and load the matching source.
+            if (sourceFile)
+            {
+                const std::array<uint8_t, 32> hash = DebugInfo::sourceFileChecksum(ctx, *sourceFile);
+                entry.checksumKind                 = K_CHKSUM_TYPE_SHA256;
+                entry.checksumSize                 = static_cast<uint8_t>(hash.size());
+                std::memcpy(entry.checksum.data(), hash.data(), hash.size());
+            }
             entries.push_back(entry);
             offsets.emplace(fileName, entryOffset);
             size += Math::alignUpU32(6 + entry.checksumSize, 4);
@@ -553,7 +564,7 @@ namespace
             if (blockIt == blockIndices.end())
             {
                 blockIndex = result.blocks.size();
-                result.blocks.push_back({.fileName = codeViewFileName, .entries = {}});
+                result.blocks.push_back({.fileName = codeViewFileName, .sourceFile = resolvedRange.source.sourceFile, .entries = {}});
                 blockIndices.emplace(codeViewFileName, blockIndex);
             }
             else
@@ -1280,7 +1291,7 @@ namespace
             for (const auto& block : lines.blocks)
             {
                 const uint32_t stringOffset = strings.insert(block.fileName);
-                checksums.insert(block.fileName, stringOffset);
+                checksums.insert(*request.ctx, block.fileName, stringOffset, block.sourceFile);
             }
 
             functionLines.push_back(lines);

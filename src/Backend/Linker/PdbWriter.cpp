@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/PdbWriter.h"
+#include "Main/Version.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 
@@ -537,13 +538,13 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         Bytes payload;
         appendLe32(payload, 0);              // flags
         appendLe16(payload, K_CV_CFL_AMD64); // machine
-        appendLe16(payload, 0);              // frontend major
-        appendLe16(payload, 0);              // frontend minor
-        appendLe16(payload, 0);              // frontend build
+        appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // frontend major (producer/compiler version)
+        appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // frontend minor
+        appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // frontend build
         appendLe16(payload, 0);              // frontend QFE
-        appendLe16(payload, 0);              // backend major
-        appendLe16(payload, 0);              // backend minor
-        appendLe16(payload, 0);              // backend build
+        appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // backend major
+        appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // backend minor
+        appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // backend build
         appendLe16(payload, 0);              // backend QFE
         appendCString(payload, debugInfo.compilerVersion.empty() ? std::string_view{"swc"} : debugInfo.compilerVersion.view());
         appendSymbol(moduleSymbols, K_S_COMPILE3, payload);

@@ -5,6 +5,8 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class SourceFile;
+class TaskContext;
 
 struct DebugInfoDefinedSymbol
 {
@@ -121,6 +123,11 @@ public:
 
     static Result buildObject(const DebugInfoObjectRequest& request, DebugInfoObjectResult& outResult);
     static void   buildPdbInfo(const DebugInfoObjectRequest& request, DebugInfoPdbResult& outResult);
+
+    // SHA-256 of a source file's content for the PDB/CodeView checksum. Returns the bytes Visual Studio
+    // re-hashes from disk: for generated sources (CustomSrc) that is the whole per-thread .swgsrc dump (the
+    // in-memory content, taken at link time to avoid racing the on-disk flush), not a single section view.
+    static std::array<uint8_t, 32> sourceFileChecksum(const TaskContext& ctx, const SourceFile& file);
 
     virtual Result buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request) = 0;
     virtual void   buildPdbInfo(DebugInfoPdbResult& outResult, const DebugInfoObjectRequest& request)    = 0;

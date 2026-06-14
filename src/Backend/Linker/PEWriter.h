@@ -51,6 +51,7 @@ private:
     bool     applyRelocations(Diagnostic& outDiag);
     void     buildBaseRelocations();
     void     reserveDebugDirectorySection();
+    void     reserveResourceSection();
     void     emitDebugInfo(); // builds the PDB and fills the debug-directory section; no-op if disabled
     bool     emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag);
     bool     debugInfoEnabled() const;
@@ -79,6 +80,8 @@ private:
     int32_t                                debugDirIndex_ = -1; // section holding the debug directory + RSDS
     uint32_t                               debugDirRva_   = 0;
     uint32_t                               debugDirSize_  = 0;
+    uint32_t                               timeDateStamp_ = 0;  // deterministic, non-zero image timestamp (module identity)
+    int32_t                                rsrcIndex_     = -1; // section holding the .rsrc resource directory (manifest)
 };
 
 SWC_END_NAMESPACE();

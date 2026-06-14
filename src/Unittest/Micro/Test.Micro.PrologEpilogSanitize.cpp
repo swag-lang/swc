@@ -74,6 +74,15 @@ namespace
         }
     }
 
+    // The canonical ABI-conformant setup is `lea fp, [sp + frameDelta]`, emitted after the stack is
+    // fully shaped, so the frame pointer still resolves to the saved-frame-pointer slot.
+    bool isFramePointerLea(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg framePointer, MicroReg stackPointer, uint64_t expectedDelta)
+    {
+        if (!ops || inst.op != MicroInstrOpcode::LoadAddrRegMem || inst.numOperands < 4)
+            return false;
+        return ops[0].reg == framePointer && ops[1].reg == stackPointer && ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == expectedDelta;
+    }
+
     bool isStackProbeLoad(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg probeReg, MicroReg stackPointer, uint64_t expectedOffset)
     {
         if (!ops)
@@ -112,16 +121,18 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_MergesAdjacentStackAdjustments)
     if (builder.instructions().count() != 6)
         return Result::Error;
 
+    // Prologue is shaped first (`sub sp, 48`), then the frame pointer is established
+    // with `lea rbp, [rsp + 48]` so it points at the saved-frame-pointer slot.
     const MicroOperandStorage& operands = builder.operands();
-    const MicroInstr*          fpInst   = instructionAt(builder, 1);
-    const MicroInstr*          subInst  = instructionAt(builder, 2);
+    const MicroInstr*          subInst  = instructionAt(builder, 1);
+    const MicroInstr*          fpInst   = instructionAt(builder, 2);
     const MicroInstr*          addInst  = instructionAt(builder, 4);
     if (!subInst || !fpInst || !addInst)
         return Result::Error;
 
-    if (!isFramePointerSetup(*fpInst, fpInst->ops(operands), rbp, rsp))
-        return Result::Error;
     if (!isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 48))
+        return Result::Error;
+    if (!isFramePointerLea(*fpInst, fpInst->ops(operands), rbp, rsp, 48))
         return Result::Error;
     if (!isStackAdjust(*addInst, addInst->ops(operands), rsp, MicroOp::Add, 32))
         return Result::Error;
@@ -147,17 +158,19 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
     if (builder.instructions().count() != 7)
         return Result::Error;
 
+    // Only the entry-region `sub sp, 16` is part of the prologue; the frame pointer is established
+    // right after it. The second `sub sp, 32` sits past the body start and is left untouched.
     const MicroOperandStorage& operands       = builder.operands();
-    const MicroInstr*          fpInst         = instructionAt(builder, 1);
-    const MicroInstr*          firstSubInst   = instructionAt(builder, 2);
+    const MicroInstr*          firstSubInst   = instructionAt(builder, 1);
+    const MicroInstr*          fpInst         = instructionAt(builder, 2);
     const MicroInstr*          secondSubInst  = instructionAt(builder, 4);
     const MicroInstr*          epilogueAddIns = instructionAt(builder, 5);
     if (!firstSubInst || !fpInst || !secondSubInst || !epilogueAddIns)
         return Result::Error;
 
-    if (!isFramePointerSetup(*fpInst, fpInst->ops(operands), rbp, rsp))
-        return Result::Error;
     if (!isStackAdjust(*firstSubInst, firstSubInst->ops(operands), rsp, MicroOp::Subtract, 16))
+        return Result::Error;
+    if (!isFramePointerLea(*fpInst, fpInst->ops(operands), rbp, rsp, 16))
         return Result::Error;
     if (!isStackAdjust(*secondSubInst, secondSubInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
@@ -219,6 +232,7 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
     if (builder.instructions().count() != 4)
         return Result::Error;
 
+    // Both setups collapse into a single `lea rbp, [rsp + 32]` placed after the `sub sp, 32`.
     const MicroOperandStorage& operands   = builder.operands();
     const MicroInstr*          firstInst  = instructionAt(builder, 0);
     const MicroInstr*          secondInst = instructionAt(builder, 1);
@@ -229,9 +243,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryPr
 
     if (firstInst->op != MicroInstrOpcode::Push)
         return Result::Error;
-    if (!isFramePointerSetup(*secondInst, secondInst->ops(operands), rbp, rsp))
+    if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isStackAdjust(*thirdInst, thirdInst->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!isFramePointerLea(*thirdInst, thirdInst->ops(operands), rbp, rsp, 32))
         return Result::Error;
     if (fourthInst->op != MicroInstrOpcode::Ret)
         return Result::Error;
@@ -253,6 +267,8 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReinsertsForcedFramePointerSetupWhenMis
     if (builder.instructions().count() != 4)
         return Result::Error;
 
+    // A forced frame pointer with no existing setup is synthesized as `lea rbp, [rsp + 32]`
+    // after the `sub sp, 32`, not as a `mov rbp, rsp` at the top.
     const MicroOperandStorage& operands   = builder.operands();
     const MicroInstr*          firstInst  = instructionAt(builder, 0);
     const MicroInstr*          secondInst = instructionAt(builder, 1);
@@ -263,9 +279,9 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ReinsertsForcedFramePointerSetupWhenMis
 
     if (firstInst->op != MicroInstrOpcode::Push)
         return Result::Error;
-    if (!isFramePointerSetup(*secondInst, secondInst->ops(operands), rbp, rsp))
+    if (!isStackAdjust(*secondInst, secondInst->ops(operands), rsp, MicroOp::Subtract, 32))
         return Result::Error;
-    if (!isStackAdjust(*thirdInst, thirdInst->ops(operands), rsp, MicroOp::Subtract, 32))
+    if (!isFramePointerLea(*thirdInst, thirdInst->ops(operands), rbp, rsp, 32))
         return Result::Error;
     if (fourthInst->op != MicroInstrOpcode::Ret)
         return Result::Error;

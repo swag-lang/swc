@@ -496,6 +496,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnwindFromMicro)
 {
+    // push rbp; mov rbp,rsp; push r12; sub 0x20. The frame pointer (saved-fp slot) sits 0x28 above
+    // the final stack pointer, which is not a multiple of 16, so no valid UWOP_SET_FPREG offset can
+    // be encoded; the legacy `mov rbp, rsp` placement is kept (FrameRegister rbp, offset 0).
     constexpr std::array<uint8_t, 12> expected = {
         0x01,
         0x0A,
@@ -523,6 +526,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnwindFramePointerSetupAfterStackShape)
 {
+    // push rbp; mov rbp,rsp; push r15; sub 0x20. As above, the saved-fp slot is 0x28 above the final
+    // stack pointer (not 16-aligned), so the legacy `mov rbp, rsp` placement is kept.
     constexpr std::array<uint8_t, 12> expected = {
         0x01,
         0x0A,
@@ -549,15 +554,20 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnwindStopsBeforeStackStoreBody)
 {
+    // push rbp; sub 0x20, then the frame pointer is established as `lea rbp, [rsp + 0x20]` before
+    // the body store. 0x20 is 16-aligned, so a valid UWOP_SET_FPREG is emitted (FrameOffset = 2,
+    // i.e. rsp + 16*2 == rbp), and the body `mov [rsp+0x40], r12` ends the prologue.
+    //   ver/flags=01, prologSize=0A, codeCount=03, frameReg=rbp|offset2=0x25
+    //   SET_FPREG @0xA, ALLOC_SMALL 0x20 @5, PUSH_NONVOL rbp @1, padding
     constexpr std::array<uint8_t, 12> expected = {
         0x01,
-        0x08,
+        0x0A,
+        0x03,
+        0x25,
+        0x0A,
         0x03,
         0x05,
-        0x08,
         0x32,
-        0x04,
-        0x03,
         0x01,
         0x50,
         0x00,
@@ -575,15 +585,19 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnwindUpdatesFramePointerWhenAssignedTwice)
 {
+    // Two `mov rbp, rsp` setups collapse into a single canonical `lea rbp, [rsp + 0x20]` placed
+    // after the `sub 0x20`. 0x20 is 16-aligned, so a valid UWOP_SET_FPREG is emitted.
+    //   ver/flags=01, prologSize=0A, codeCount=03, frameReg=rbp|offset2=0x25
+    //   SET_FPREG @0xA, ALLOC_SMALL 0x20 @5, PUSH_NONVOL rbp @1, padding
     constexpr std::array<uint8_t, 12> expected = {
         0x01,
-        0x08,
+        0x0A,
+        0x03,
+        0x25,
+        0x0A,
         0x03,
         0x05,
-        0x08,
         0x32,
-        0x04,
-        0x03,
         0x01,
         0x50,
         0x00,

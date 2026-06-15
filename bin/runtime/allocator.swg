@@ -945,7 +945,6 @@ impl Allocator
 
         .statSub(&.countAlloc, 1)
         .statSub(&.sizeAlloc, header.userSize)
-        discard .decActive(ownerHeap)
 
         if .fillFree do
             @memset(userAddr, FreeByte, header.userSize)
@@ -980,6 +979,12 @@ impl Allocator
             else do
                 .releaseUncached(header)
         }
+
+        // Decrement activeCount LAST. It pins ownerHeap: a retired heap is only reclaimed
+        // once activeCount hits 0, and the hand-off above (pushThreadRemote in particular)
+        // still dereferences ownerHeap after we no longer own the block. Decrementing earlier
+        // would let the heap be freed out from under that access.
+        discard .decActive(ownerHeap)
     }
 
     mtd freeAll()
@@ -1083,9 +1088,14 @@ impl Allocator
         if !.installed() do
             return
 
+        // Serialize against concurrent retireThreadHeap()/releaseRetiredHeaps() touching the
+        // retired-heap list. Unlock before the memset (which zeroes the mutex itself).
+        .mutex.lock()
         .printLeaks()
         .freeAll()
         .releaseRetiredHeaps()
+        .mutex.unlock()
+
         @memset(me, 0, #sizeof(Allocator))
     }
 

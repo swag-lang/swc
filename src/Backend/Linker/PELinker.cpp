@@ -758,6 +758,11 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
         fn.displayName = record.debugName.empty() ? record.symbolName : record.debugName;
         fn.codeSize    = static_cast<uint32_t>(record.machineCode->bytes.size());
         fn.frameSize   = record.frameSize;
+        if (record.sourceFile)
+        {
+            const Utf8 path = debugSourcePath(record.sourceFile->path());
+            fn.primaryFileIndex = fileIndexFor(path, record.sourceFile);
+        }
 
         if (i < pdbTypes.functions.size())
         {
@@ -809,8 +814,21 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
         // leaves the entry point and prologue without any source mapping, so a breakpoint
         // at the function start or a sample landing in the prologue resolves to nothing.
         // Mirror MSVC by extending the function's first line down to code offset 0.
-        if (!fn.lineBlocks.empty() && !fn.lineBlocks.front().codeOffsets.empty())
-            fn.lineBlocks.front().codeOffsets.front() = 0;
+        size_t prologueBlock = std::numeric_limits<size_t>::max();
+        if (fn.primaryFileIndex != std::numeric_limits<uint32_t>::max())
+        {
+            for (size_t blockIndex = 0; blockIndex < fn.lineBlocks.size(); ++blockIndex)
+            {
+                if (fn.lineBlocks[blockIndex].fileIndex != fn.primaryFileIndex)
+                    continue;
+                prologueBlock = blockIndex;
+                break;
+            }
+        }
+        if (prologueBlock == std::numeric_limits<size_t>::max() && !fn.lineBlocks.empty())
+            prologueBlock = 0;
+        if (prologueBlock != std::numeric_limits<size_t>::max() && !fn.lineBlocks[prologueBlock].codeOffsets.empty())
+            fn.lineBlocks[prologueBlock].codeOffsets.front() = 0;
 
         dbg.functions.push_back(std::move(fn));
     }

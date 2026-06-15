@@ -50,6 +50,7 @@ struct DebugInfoFunctionRecord
     Utf8                                     debugName;
     TypeRef                                  returnTypeRef = TypeRef::invalid();
     const MachineCode*                       machineCode   = nullptr;
+    const SourceFile*                        sourceFile    = nullptr;
     uint32_t                                 frameSize     = 0;
     MicroReg                                 frameBaseReg  = MicroReg::invalid();
     std::span<const DebugInfoLocalRecord>    parameters;

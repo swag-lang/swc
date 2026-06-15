@@ -33,6 +33,9 @@ namespace
     constexpr uint16_t K_S_PROCREF    = 0x1125;
     constexpr uint16_t K_S_BUILDINFO  = 0x114C;
 
+    constexpr uint16_t K_LF_BUILDINFO = 0x1603;
+    constexpr uint16_t K_LF_STRING_ID = 0x1605;
+
     constexpr uint32_t K_DEBUG_S_SYMBOLS    = 0xF1;
     constexpr uint32_t K_DEBUG_S_LINES      = 0xF2;
     constexpr uint32_t K_DEBUG_S_FILECHKSMS = 0xF4;
@@ -103,6 +106,64 @@ namespace
         appendLe16(out, static_cast<uint16_t>(body.size()));
         appendBytes(out, body);
         return offset;
+    }
+
+    uint32_t appendTypeRecord(Bytes& out, const uint16_t kind, const Bytes& payload)
+    {
+        const auto offset = static_cast<uint32_t>(out.size());
+
+        Bytes body;
+        appendLe16(body, kind);
+        appendBytes(body, payload);
+
+        const uint32_t rawRecordSize = static_cast<uint32_t>(body.size() + sizeof(uint16_t));
+        const uint32_t padBytes      = Math::alignUpU32(rawRecordSize, 4) - rawRecordSize;
+        for (uint32_t i = padBytes; i > 0; --i)
+            body.push_back(static_cast<std::byte>(0xF0u + i));
+
+        appendLe16(out, static_cast<uint16_t>(body.size()));
+        appendBytes(out, body);
+        return offset;
+    }
+
+    uint32_t appendStringIdRecord(Bytes& out, uint32_t& nextTypeIndex, const Utf8& value)
+    {
+        Bytes payload;
+        appendLe32(payload, 0);
+        appendCString(payload, value.view());
+        appendTypeRecord(out, K_LF_STRING_ID, payload);
+        return nextTypeIndex++;
+    }
+
+    uint32_t appendBuildInfoRecord(Bytes& out, uint32_t& nextTypeIndex, const std::array<uint32_t, 5>& items)
+    {
+        Bytes payload;
+        appendLe16(payload, static_cast<uint16_t>(items.size()));
+        for (const uint32_t item : items)
+            appendLe32(payload, item);
+        appendTypeRecord(out, K_LF_BUILDINFO, payload);
+        return nextTypeIndex++;
+    }
+
+    Utf8 pdbPathString(const fs::path& path)
+    {
+        fs::path normalized = path.lexically_normal();
+        normalized.make_preferred();
+        return {normalized.string()};
+    }
+
+    Utf8 buildInfoDirectory(const Utf8& sourcePath)
+    {
+        if (sourcePath.empty())
+            return {};
+        return pdbPathString(fs::path(sourcePath.c_str()).parent_path());
+    }
+
+    Utf8 buildInfoFileName(const Utf8& sourcePath)
+    {
+        if (sourcePath.empty())
+            return {};
+        return {fs::path(sourcePath.c_str()).filename().string()};
     }
 
     // ---- Hashing ------------------------------------------------------------------------------------
@@ -293,6 +354,33 @@ namespace
     {
         Utf8     name;
         uint32_t moduleSymOffset = 0;
+        uint16_t moduleIndex     = 0;
+    };
+
+    struct PdbModuleBuild
+    {
+        Utf8                                  name;
+        uint32_t                              primaryFileIndex = std::numeric_limits<uint32_t>::max();
+        std::vector<uint32_t>                 fileIndices;
+        std::vector<const LinkDebugFunction*> functions;
+        Bytes                                 stream;
+        uint32_t                              symByteSize = 0;
+        uint32_t                              c13ByteSize = 0;
+        uint16_t                              streamIndex = 0;
+        uint16_t                              codeSegment = 1;
+        uint32_t                              codeOffset  = 0;
+        uint32_t                              codeSize    = 0;
+        uint32_t                              codeChars   = 0;
+        uint32_t                              buildInfoIndex = 0;
+    };
+
+    struct PdbSectionContribBuild
+    {
+        uint16_t segment         = 0;
+        uint32_t offset          = 0;
+        uint32_t size            = 0;
+        uint32_t characteristics = 0;
+        uint16_t moduleIndex     = 0;
     };
 
     int gsiRecordCmp(std::string_view a, std::string_view b)
@@ -425,14 +513,14 @@ namespace
 
     // ---- Section contribution / section header helpers ----------------------------------------------
 
-    void appendSectionContribEntry(Bytes& out, const uint16_t isect, const uint32_t off, const uint32_t size, const uint32_t characteristics)
+    void appendSectionContribEntry(Bytes& out, const uint16_t isect, const uint32_t off, const uint32_t size, const uint32_t characteristics, const uint16_t moduleIndex = 0)
     {
         appendLe16(out, isect);
         appendLe16(out, 0);            // padding
         appendLe32(out, off);
         appendLe32(out, size);
         appendLe32(out, characteristics);
-        appendLe16(out, 0);            // module index
+        appendLe16(out, moduleIndex);
         appendLe16(out, 0);            // padding
         appendLe32(out, 0);            // data CRC
         appendLe32(out, 0);            // reloc CRC
@@ -526,33 +614,20 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         globalSyms.push_back({recordOffset, udt.name});
     }
 
-    // ---- Module symbol stream -------------------------------------------------------------------
-    Bytes moduleSymbols; // the symbol records (after the 4-byte signature)
-    {
-        Bytes payload;
-        appendLe32(payload, 0); // signature
-        appendCString(payload, moduleName.view());
-        appendSymbol(moduleSymbols, K_S_OBJNAME, payload);
-    }
-    {
-        Bytes payload;
-        appendLe32(payload, 0);              // flags
-        appendLe16(payload, K_CV_CFL_AMD64); // machine
-        appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // frontend major (producer/compiler version)
-        appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // frontend minor
-        appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // frontend build
-        appendLe16(payload, 0);              // frontend QFE
-        appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // backend major
-        appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // backend minor
-        appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // backend build
-        appendLe16(payload, 0);              // backend QFE
-        appendCString(payload, debugInfo.compilerVersion.empty() ? std::string_view{"swc"} : debugInfo.compilerVersion.view());
-        appendSymbol(moduleSymbols, K_S_COMPILE3, payload);
-    }
-
-    // The scope End pointers are offsets within the module stream, which begins with the 4-byte signature.
-    constexpr uint32_t symBase = sizeof(uint32_t);
-    std::vector<ProcRefSym> procRefs;
+    // ---- Module streams -------------------------------------------------------------------------
+    // LLDB/Rider models each PDB compiland as a compile unit. Keep compilands source-sized: every
+    // function belongs to its owning source file, while macro/import ranges remain referenced from that
+    // compiland's line table.
+    std::vector<PdbModuleBuild> modules;
+    std::unordered_map<uint32_t, size_t> moduleOfFile;
+    const auto addFileToModule = [](PdbModuleBuild& module, const uint32_t fileIndex) {
+        if (fileIndex == std::numeric_limits<uint32_t>::max())
+            return;
+        for (const uint32_t existing : module.fileIndices)
+            if (existing == fileIndex)
+                return;
+        module.fileIndices.push_back(fileIndex);
+    };
 
     for (const LinkDebugFunction& fn : debugInfo.functions)
     {
@@ -560,93 +635,202 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         if (!addr.found)
             continue;
 
-        const std::string_view functionName = fn.displayName.empty() ? fn.symbolName.view() : fn.displayName.view();
+        uint32_t primaryFile = fn.primaryFileIndex;
+        if (primaryFile >= debugInfo.files.size() && !fn.lineBlocks.empty() && fn.lineBlocks.front().fileIndex < debugInfo.files.size())
+            primaryFile = fn.lineBlocks.front().fileIndex;
 
-        Bytes payload;
-        appendLe32(payload, 0); // parent
-        const auto endPatchPos = static_cast<uint32_t>(moduleSymbols.size()); // patched after S_END is known
-        appendLe32(payload, 0); // end (placeholder)
-        appendLe32(payload, 0); // next
-        appendLe32(payload, fn.codeSize);
-        appendLe32(payload, 0); // dbg start
-        appendLe32(payload, fn.codeSize); // dbg end
-        appendLe32(payload, fn.procTypeIndex);
-        appendLe32(payload, addr.offset);
-        appendLe16(payload, addr.segment);
-        payload.push_back(std::byte{0}); // flags
-        appendCString(payload, functionName);
-        const uint32_t procOffset = appendSymbol(moduleSymbols, K_S_GPROC32, payload);
-        procRefs.push_back({Utf8(functionName), symBase + procOffset});
-        // endPatchPos points at the 'end' field: that is procOffset + 2(len) + 2(kind) + 4(parent).
-        const uint32_t endFieldOffset = procOffset + 2 + 2 + 4;
-
+        size_t     moduleIndex;
+        const auto it = moduleOfFile.find(primaryFile);
+        if (it != moduleOfFile.end())
         {
-            Bytes fp;
-            appendLe32(fp, fn.frameSize);
-            appendLe32(fp, 0); // pad bytes
-            appendLe32(fp, 0); // offset of pad
-            appendLe32(fp, 0); // bytes of callee-saved registers
-            appendLe32(fp, 0); // exception handler offset
-            appendLe16(fp, 0); // exception handler section
-            appendLe16(fp, 0); // pad
-            appendLe32(fp, fn.frameProcFlags);
-            appendSymbol(moduleSymbols, K_S_FRAMEPROC, fp);
+            moduleIndex = it->second;
+        }
+        else
+        {
+            moduleIndex = modules.size();
+            moduleOfFile.emplace(primaryFile, moduleIndex);
+            PdbModuleBuild module;
+            module.primaryFileIndex = primaryFile;
+            module.name             = primaryFile < debugInfo.files.size() ? debugInfo.files[primaryFile].path : moduleName;
+            addFileToModule(module, primaryFile);
+            modules.push_back(std::move(module));
         }
 
-        for (const LinkDebugLocal& local : fn.locals)
+        PdbModuleBuild& module = modules[moduleIndex];
+        module.functions.push_back(&fn);
+        for (const LinkDebugLineBlock& block : fn.lineBlocks)
+            if (block.fileIndex < debugInfo.files.size())
+                addFileToModule(module, block.fileIndex);
+    }
+
+    uint16_t textSegment = 1;
+    uint32_t textChars   = 0;
+    for (size_t i = 0; i < sections.size(); ++i)
+    {
+        if (sections[i].name == ".text")
         {
-            Bytes lp;
-            appendLe32(lp, local.typeIndex);
-            appendLe32(lp, static_cast<uint32_t>(local.frameOffset));
-            appendLe16(lp, local.cvRegister);
-            appendCString(lp, local.name.view());
-            appendSymbol(moduleSymbols, K_S_REGREL32, lp);
+            textSegment = static_cast<uint16_t>(i + 1);
+            textChars   = sections[i].characteristics;
+            break;
+        }
+    }
+
+    constexpr uint32_t symBase = sizeof(uint32_t);
+    std::vector<ProcRefSym> procRefs;
+    const uint16_t          moduleStreamStart = STREAM_NAMES + 1;
+    for (PdbModuleBuild& module : modules)
+    {
+        module.codeSegment = textSegment;
+        module.codeChars   = textChars;
+
+        uint32_t minCodeOffset = std::numeric_limits<uint32_t>::max();
+        uint32_t maxCodeOffset = 0;
+        for (const LinkDebugFunction* fn : module.functions)
+        {
+            const PdbSymbolAddress addr = resolver.resolve(fn->symbolName);
+            if (!addr.found)
+                continue;
+
+            minCodeOffset = std::min(minCodeOffset, addr.offset);
+            maxCodeOffset = std::max(maxCodeOffset, addr.offset + fn->codeSize);
         }
 
-        const uint32_t endOffset = appendSymbol(moduleSymbols, K_S_END, {});
-        ByteUtils::writeLe32(moduleSymbols, endFieldOffset, symBase + endOffset);
-    }
-    if (debugInfo.buildInfoIndex != 0)
-    {
-        Bytes payload;
-        appendLe32(payload, debugInfo.buildInfoIndex);
-        appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
-    }
-
-    for (const ProcRefSym& procRef : procRefs)
-    {
-        Bytes payload;
-        appendLe32(payload, 0); // checksum of the procedure name; 0 is accepted by MSVC-produced PDBs
-        appendLe32(payload, procRef.moduleSymOffset);
-        appendLe16(payload, 1); // one-based module index
-        appendCString(payload, procRef.name.view());
-        const uint32_t recordOffset = appendSymbol(symRecords, K_S_PROCREF, payload);
-        globalSyms.push_back({recordOffset, procRef.name});
-    }
-
-    // C13 line information: per-function DEBUG_S_LINES plus one DEBUG_S_FILECHKSMS.
-    Bytes c13;
-    {
-        // File checksum subsection: one entry per file, recording each file's offset within the subsection.
-        Bytes              chksmContent;
-        std::vector<uint32_t> chksmEntryOffset(debugInfo.files.size());
-        for (size_t i = 0; i < debugInfo.files.size(); ++i)
+        if (minCodeOffset != std::numeric_limits<uint32_t>::max())
         {
-            const LinkDebugFile& file = debugInfo.files[i];
-            chksmEntryOffset[i]       = static_cast<uint32_t>(chksmContent.size());
-            appendLe32(chksmContent, fileNameOffsets[i]);                                    // offset into /names
-            chksmContent.push_back(static_cast<std::byte>(file.checksum.size()));            // checksum byte count
-            chksmContent.push_back(static_cast<std::byte>(file.checksumKind));               // checksum kind (3 = SHA-256)
+            module.codeOffset = minCodeOffset;
+            module.codeSize   = maxCodeOffset - minCodeOffset;
+        }
+    }
+
+    std::ranges::sort(modules, [](const PdbModuleBuild& a, const PdbModuleBuild& b) {
+        if (a.codeSegment != b.codeSegment)
+            return a.codeSegment < b.codeSegment;
+        if (a.codeOffset != b.codeOffset)
+            return a.codeOffset < b.codeOffset;
+        if (a.codeSize != b.codeSize)
+            return a.codeSize < b.codeSize;
+        return a.name < b.name;
+    });
+
+    Bytes    ipiRecords  = debugInfo.ipiRecords;
+    uint32_t ipiIndexEnd = std::max<uint32_t>(0x1000, debugInfo.ipiIndexEnd);
+    for (PdbModuleBuild& module : modules)
+    {
+        const Utf8 primarySource = module.primaryFileIndex < debugInfo.files.size() ? debugInfo.files[module.primaryFileIndex].path : module.name;
+        const uint32_t currentDirId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, buildInfoDirectory(primarySource));
+        const uint32_t buildToolId   = appendStringIdRecord(ipiRecords, ipiIndexEnd, {});
+        const uint32_t sourceFileId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, buildInfoFileName(primarySource));
+        const uint32_t pdbFileId     = appendStringIdRecord(ipiRecords, ipiIndexEnd, pdbPath);
+        const uint32_t commandLineId = appendStringIdRecord(ipiRecords, ipiIndexEnd, {});
+        module.buildInfoIndex        = appendBuildInfoRecord(ipiRecords, ipiIndexEnd, {currentDirId, buildToolId, sourceFileId, pdbFileId, commandLineId});
+    }
+
+    for (size_t i = 0; i < modules.size(); ++i)
+    {
+        PdbModuleBuild& module = modules[i];
+        module.streamIndex     = static_cast<uint16_t>(moduleStreamStart + i);
+
+        Bytes moduleSymbols;
+        {
+            Bytes payload;
+            appendLe32(payload, 0); // signature
+            appendCString(payload, module.name.view());
+            appendSymbol(moduleSymbols, K_S_OBJNAME, payload);
+        }
+        {
+            Bytes payload;
+            appendLe32(payload, 0);              // flags
+            appendLe16(payload, K_CV_CFL_AMD64); // machine
+            appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // frontend major (producer/compiler version)
+            appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // frontend minor
+            appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // frontend build
+            appendLe16(payload, 0);              // frontend QFE
+            appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // backend major
+            appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // backend minor
+            appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // backend build
+            appendLe16(payload, 0);              // backend QFE
+            appendCString(payload, debugInfo.compilerVersion.empty() ? std::string_view{"swc"} : debugInfo.compilerVersion.view());
+            appendSymbol(moduleSymbols, K_S_COMPILE3, payload);
+        }
+
+        for (const LinkDebugFunction* fn : module.functions)
+        {
+            const PdbSymbolAddress addr = resolver.resolve(fn->symbolName);
+            if (!addr.found)
+                continue;
+
+            const std::string_view functionName = fn->displayName.empty() ? fn->symbolName.view() : fn->displayName.view();
+
+            Bytes payload;
+            appendLe32(payload, 0); // parent
+            appendLe32(payload, 0); // end (placeholder)
+            appendLe32(payload, 0); // next
+            appendLe32(payload, fn->codeSize);
+            appendLe32(payload, 0); // dbg start
+            appendLe32(payload, fn->codeSize); // dbg end
+            appendLe32(payload, fn->procTypeIndex);
+            appendLe32(payload, addr.offset);
+            appendLe16(payload, addr.segment);
+            payload.push_back(std::byte{0}); // flags
+            appendCString(payload, functionName);
+            const uint32_t procOffset = appendSymbol(moduleSymbols, K_S_GPROC32, payload);
+            procRefs.push_back({Utf8(functionName), symBase + procOffset, static_cast<uint16_t>(i)});
+            const uint32_t endFieldOffset = procOffset + 2 + 2 + 4;
+
+            {
+                Bytes fp;
+                appendLe32(fp, fn->frameSize);
+                appendLe32(fp, 0); // pad bytes
+                appendLe32(fp, 0); // offset of pad
+                appendLe32(fp, 0); // bytes of callee-saved registers
+                appendLe32(fp, 0); // exception handler offset
+                appendLe16(fp, 0); // exception handler section
+                appendLe16(fp, 0); // pad
+                appendLe32(fp, fn->frameProcFlags);
+                appendSymbol(moduleSymbols, K_S_FRAMEPROC, fp);
+            }
+
+            for (const LinkDebugLocal& local : fn->locals)
+            {
+                Bytes lp;
+                appendLe32(lp, local.typeIndex);
+                appendLe32(lp, static_cast<uint32_t>(local.frameOffset));
+                appendLe16(lp, local.cvRegister);
+                appendCString(lp, local.name.view());
+                appendSymbol(moduleSymbols, K_S_REGREL32, lp);
+            }
+
+            const uint32_t endOffset = appendSymbol(moduleSymbols, K_S_END, {});
+            ByteUtils::writeLe32(moduleSymbols, endFieldOffset, symBase + endOffset);
+        }
+
+        if (module.buildInfoIndex != 0)
+        {
+            Bytes payload;
+            appendLe32(payload, module.buildInfoIndex);
+            appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
+        }
+
+        Bytes c13;
+        Bytes chksmContent;
+        std::vector<uint32_t> chksmEntryOffset(debugInfo.files.size(), std::numeric_limits<uint32_t>::max());
+        for (const uint32_t fileIndex : module.fileIndices)
+        {
+            const LinkDebugFile& file = debugInfo.files[fileIndex];
+            chksmEntryOffset[fileIndex] = static_cast<uint32_t>(chksmContent.size());
+            appendLe32(chksmContent, fileNameOffsets[fileIndex]);
+            chksmContent.push_back(static_cast<std::byte>(file.checksum.size()));
+            chksmContent.push_back(static_cast<std::byte>(file.checksumKind));
             for (const uint8_t b : file.checksum)
                 chksmContent.push_back(static_cast<std::byte>(b));
             alignTo4(chksmContent);
         }
 
-        for (const LinkDebugFunction& fn : debugInfo.functions)
+        for (const LinkDebugFunction* fn : module.functions)
         {
-            if (fn.lineBlocks.empty())
+            if (fn->lineBlocks.empty())
                 continue;
-            const PdbSymbolAddress addr = resolver.resolve(fn.symbolName);
+            const PdbSymbolAddress addr = resolver.resolve(fn->symbolName);
             if (!addr.found)
                 continue;
 
@@ -654,18 +838,19 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             appendLe32(content, addr.offset);
             appendLe16(content, addr.segment);
             appendLe16(content, 0); // flags (no columns)
-            appendLe32(content, fn.codeSize);
+            appendLe32(content, fn->codeSize);
 
-            for (const LinkDebugLineBlock& block : fn.lineBlocks)
+            for (const LinkDebugLineBlock& block : fn->lineBlocks)
             {
                 const uint32_t numLines = static_cast<uint32_t>(block.lines.size());
-                appendLe32(content, block.fileIndex < chksmEntryOffset.size() ? chksmEntryOffset[block.fileIndex] : 0);
+                const uint32_t chksmOffset = block.fileIndex < chksmEntryOffset.size() && chksmEntryOffset[block.fileIndex] != std::numeric_limits<uint32_t>::max() ? chksmEntryOffset[block.fileIndex] : 0;
+                appendLe32(content, chksmOffset);
                 appendLe32(content, numLines);
                 appendLe32(content, 12 + numLines * 8);
-                for (uint32_t i = 0; i < numLines; ++i)
+                for (uint32_t lineIndex = 0; lineIndex < numLines; ++lineIndex)
                 {
-                    appendLe32(content, block.codeOffsets[i]);
-                    appendLe32(content, K_CV_LINE_STATEMENT | (block.lines[i] & 0xFFFFFF));
+                    appendLe32(content, block.codeOffsets[lineIndex]);
+                    appendLe32(content, K_CV_LINE_STATEMENT | (block.lines[lineIndex] & 0xFFFFFF));
                 }
             }
 
@@ -682,59 +867,78 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             appendBytes(c13, chksmContent);
             alignTo4(c13);
         }
+
+        appendLe32(module.stream, K_CV_SIGNATURE_C13);
+        appendBytes(module.stream, moduleSymbols);
+        module.symByteSize = static_cast<uint32_t>(module.stream.size());
+        appendBytes(module.stream, c13);
+        module.c13ByteSize = static_cast<uint32_t>(c13.size());
+        appendLe32(module.stream, 0); // GlobalRefs byte size
     }
 
-    Bytes moduleStream;
-    appendLe32(moduleStream, K_CV_SIGNATURE_C13);
-    appendBytes(moduleStream, moduleSymbols);
-    const uint32_t symByteSize = static_cast<uint32_t>(moduleStream.size()); // signature + symbols
-    appendBytes(moduleStream, c13);
-    const uint32_t c13ByteSize = static_cast<uint32_t>(c13.size());
-    appendLe32(moduleStream, 0); // GlobalRefs byte size
+    for (const ProcRefSym& procRef : procRefs)
+    {
+        Bytes payload;
+        appendLe32(payload, 0); // checksum of the procedure name; 0 is accepted by MSVC-produced PDBs
+        appendLe32(payload, procRef.moduleSymOffset);
+        appendLe16(payload, static_cast<uint16_t>(procRef.moduleIndex + 1)); // one-based module index
+        appendCString(payload, procRef.name.view());
+        const uint32_t recordOffset = appendSymbol(symRecords, K_S_PROCREF, payload);
+        globalSyms.push_back({recordOffset, procRef.name});
+    }
 
     // ---- DBI stream -----------------------------------------------------------------------------
-    // Pick the primary code section for the module's section contribution.
-    uint16_t textSegment = 1;
-    uint32_t textSize    = 0;
-    uint32_t textChars   = 0;
-    for (size_t i = 0; i < sections.size(); ++i)
-    {
-        if (sections[i].name == ".text")
-        {
-            textSegment = static_cast<uint16_t>(i + 1);
-            textSize    = sections[i].virtualSize;
-            textChars   = sections[i].characteristics;
-            break;
-        }
-    }
-
     Bytes modInfo;
+    uint32_t sourceFileRefCount = 0;
+    for (PdbModuleBuild& module : modules)
     {
         appendLe32(modInfo, 0); // Unused1
-        appendSectionContribEntry(modInfo, textSegment, 0, textSize, textChars);
+        appendSectionContribEntry(modInfo, module.codeSegment, module.codeOffset, module.codeSize, module.codeChars, static_cast<uint16_t>(&module - modules.data()));
         appendLe16(modInfo, 0);                 // Flags
-        appendLe16(modInfo, STREAM_MODULE);     // ModuleSymStream
-        appendLe32(modInfo, symByteSize);       // SymByteSize
+        appendLe16(modInfo, module.streamIndex); // ModuleSymStream
+        appendLe32(modInfo, module.symByteSize); // SymByteSize
         appendLe32(modInfo, 0);                 // C11ByteSize
-        appendLe32(modInfo, c13ByteSize);       // C13ByteSize
-        appendLe16(modInfo, static_cast<uint16_t>(debugInfo.files.size())); // SourceFileCount
+        appendLe32(modInfo, module.c13ByteSize); // C13ByteSize
+        appendLe16(modInfo, static_cast<uint16_t>(module.fileIndices.size())); // SourceFileCount
         appendLe16(modInfo, 0);                 // padding
         appendLe32(modInfo, 0);                 // Unused2
-        appendLe32(modInfo, 0);                 // SourceFileNameIndex
-        appendLe32(modInfo, 0);                 // PdbFilePathNameIndex
-        appendCString(modInfo, moduleName.view());
+        appendLe32(modInfo, 0);                 // SourceFileNameIndex (EC string table index)
+        appendLe32(modInfo, 0);                 // PdbFilePathNameIndex (EC string table index)
+        appendCString(modInfo, module.name.view());
         appendCString(modInfo, moduleName.view());
         alignTo4(modInfo);
+        sourceFileRefCount += static_cast<uint32_t>(module.fileIndices.size());
     }
 
     Bytes secContr;
     {
-        appendLe32(secContr, 0xeffe0000u + 19970605u); // Ver60
-        for (size_t i = 0; i < sections.size(); ++i)
+        std::vector<PdbSectionContribBuild> sectionContribs;
+        sectionContribs.reserve(debugInfo.functions.size());
+        for (size_t i = 0; i < modules.size(); ++i)
         {
-            const PdbSectionInfo& s = sections[i];
-            appendSectionContribEntry(secContr, static_cast<uint16_t>(i + 1), 0, s.virtualSize, s.characteristics);
+            const PdbModuleBuild& module = modules[i];
+            for (const LinkDebugFunction* fn : module.functions)
+            {
+                const PdbSymbolAddress addr = resolver.resolve(fn->symbolName);
+                if (!addr.found || !fn->codeSize)
+                    continue;
+                sectionContribs.push_back({addr.segment, addr.offset, fn->codeSize, module.codeChars, static_cast<uint16_t>(i)});
+            }
         }
+
+        std::ranges::sort(sectionContribs, [](const PdbSectionContribBuild& a, const PdbSectionContribBuild& b) {
+            if (a.segment != b.segment)
+                return a.segment < b.segment;
+            if (a.offset != b.offset)
+                return a.offset < b.offset;
+            if (a.size != b.size)
+                return a.size < b.size;
+            return a.moduleIndex < b.moduleIndex;
+        });
+
+        appendLe32(secContr, 0xeffe0000u + 19970605u); // Ver60
+        for (const PdbSectionContribBuild& sectionContrib : sectionContribs)
+            appendSectionContribEntry(secContr, sectionContrib.segment, sectionContrib.offset, sectionContrib.size, sectionContrib.characteristics, sectionContrib.moduleIndex);
     }
 
     Bytes secMap;
@@ -771,23 +975,40 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
     Bytes sourceInfo;
     {
-        appendLe16(sourceInfo, 1); // NumModules
-        appendLe16(sourceInfo, static_cast<uint16_t>(debugInfo.files.size())); // NumSourceFiles
-        appendLe16(sourceInfo, 0); // ModIndices[0]
-        appendLe16(sourceInfo, static_cast<uint16_t>(debugInfo.files.size())); // ModFileCounts[0]
+        appendLe16(sourceInfo, static_cast<uint16_t>(modules.size())); // NumModules
+        appendLe16(sourceInfo, static_cast<uint16_t>(sourceFileRefCount)); // NumSourceFiles
+        uint16_t sourceFileBase = 0;
+        for (const PdbModuleBuild& module : modules)
+        {
+            appendLe16(sourceInfo, sourceFileBase);
+            sourceFileBase = static_cast<uint16_t>(sourceFileBase + module.fileIndices.size());
+        }
+        for (const PdbModuleBuild& module : modules)
+            appendLe16(sourceInfo, static_cast<uint16_t>(module.fileIndices.size()));
 
         Bytes namesBuf;
-        std::vector<uint32_t> offs(debugInfo.files.size());
-        for (size_t i = 0; i < debugInfo.files.size(); ++i)
+        std::vector<uint32_t> offs;
+        offs.reserve(sourceFileRefCount);
+        for (const PdbModuleBuild& module : modules)
         {
-            offs[i] = static_cast<uint32_t>(namesBuf.size());
-            appendCString(namesBuf, debugInfo.files[i].path.view());
+            for (const uint32_t fileIndex : module.fileIndices)
+            {
+                offs.push_back(static_cast<uint32_t>(namesBuf.size()));
+                appendCString(namesBuf, debugInfo.files[fileIndex].path.view());
+            }
         }
         for (const uint32_t o : offs)
             appendLe32(sourceInfo, o);
         appendBytes(sourceInfo, namesBuf);
         alignTo4(sourceInfo);
     }
+
+    const uint16_t globalsStreamIndex    = static_cast<uint16_t>(moduleStreamStart + modules.size());
+    const uint16_t publicsStreamIndex    = static_cast<uint16_t>(globalsStreamIndex + 1);
+    const uint16_t symRecordsStreamIndex = static_cast<uint16_t>(publicsStreamIndex + 1);
+    const uint16_t sectionHdrStreamIndex = static_cast<uint16_t>(symRecordsStreamIndex + 1);
+    const uint16_t tpiHashStreamIndex    = static_cast<uint16_t>(sectionHdrStreamIndex + 1);
+    const uint16_t ipiHashStreamIndex    = static_cast<uint16_t>(tpiHashStreamIndex + 1);
 
     // Edit-and-continue substream: a minimal but valid empty string table.
     Bytes ecSubstream;
@@ -805,7 +1026,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     Bytes optDbgHeader;
     {
         for (uint16_t i = 0; i < 11; ++i)
-            appendLe16(optDbgHeader, i == 5 ? STREAM_SECTION_HDR : 0xFFFF);
+            appendLe16(optDbgHeader, i == 5 ? sectionHdrStreamIndex : 0xFFFF);
     }
 
     Bytes dbi;
@@ -813,11 +1034,11 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendLe32(dbi, 0xFFFFFFFFu);    // VersionSignature (-1)
         appendLe32(dbi, 19990903);       // VersionHeader (V70)
         appendLe32(dbi, outAge);         // Age
-        appendLe16(dbi, STREAM_GLOBALS); // GlobalStreamIndex
+        appendLe16(dbi, globalsStreamIndex); // GlobalStreamIndex
         appendLe16(dbi, 0x8e1d);         // BuildNumber (new-format flag set)
-        appendLe16(dbi, STREAM_PUBLICS); // PublicStreamIndex
+        appendLe16(dbi, publicsStreamIndex); // PublicStreamIndex
         appendLe16(dbi, 0);              // PdbDllVersion
-        appendLe16(dbi, STREAM_SYM_RECORDS); // SymRecordStreamIndex
+        appendLe16(dbi, symRecordsStreamIndex); // SymRecordStreamIndex
         appendLe16(dbi, 0);              // PdbDllRbld
         appendLe32(dbi, static_cast<uint32_t>(modInfo.size()));
         appendLe32(dbi, static_cast<uint32_t>(secContr.size()));
@@ -937,20 +1158,21 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     // ---- Assemble all streams -------------------------------------------------------------------
     Bytes tpiHash;
     Bytes ipiHash;
-    std::vector<Bytes> streams(STREAM_COUNT);
+    std::vector<Bytes> streams(static_cast<size_t>(ipiHashStreamIndex) + 1);
     streams[STREAM_OLD_DIRECTORY] = {};
     streams[STREAM_PDB_INFO]      = std::move(pdbInfo);
-    streams[STREAM_TPI]           = buildTpiStream(debugInfo.tpiRecords, debugInfo.tpiIndexEnd, STREAM_TPI_HASH, tpiHash);
+    streams[STREAM_TPI]           = buildTpiStream(debugInfo.tpiRecords, debugInfo.tpiIndexEnd, tpiHashStreamIndex, tpiHash);
     streams[STREAM_DBI]           = std::move(dbi);
-    streams[STREAM_IPI]           = buildTpiStream(debugInfo.ipiRecords, debugInfo.ipiIndexEnd, STREAM_IPI_HASH, ipiHash);
+    streams[STREAM_IPI]           = buildTpiStream(ipiRecords, ipiIndexEnd, ipiHashStreamIndex, ipiHash);
     streams[STREAM_NAMES]         = names.serialize();
-    streams[STREAM_MODULE]        = std::move(moduleStream);
-    streams[STREAM_GLOBALS]       = globalsStream;
-    streams[STREAM_PUBLICS]       = std::move(publicsStream);
-    streams[STREAM_SYM_RECORDS]   = std::move(symRecords);
-    streams[STREAM_SECTION_HDR]   = std::move(sectionHdrStream);
-    streams[STREAM_TPI_HASH]      = std::move(tpiHash);
-    streams[STREAM_IPI_HASH]      = std::move(ipiHash);
+    for (PdbModuleBuild& module : modules)
+        streams[module.streamIndex] = std::move(module.stream);
+    streams[globalsStreamIndex]    = globalsStream;
+    streams[publicsStreamIndex]    = std::move(publicsStream);
+    streams[symRecordsStreamIndex] = std::move(symRecords);
+    streams[sectionHdrStreamIndex] = std::move(sectionHdrStream);
+    streams[tpiHashStreamIndex]    = std::move(tpiHash);
+    streams[ipiHashStreamIndex]    = std::move(ipiHash);
 
     (void)pdbPath;
     buildMsf(outBytes, streams);

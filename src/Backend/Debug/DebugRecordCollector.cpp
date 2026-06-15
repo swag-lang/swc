@@ -112,6 +112,18 @@ namespace
         }
     }
 
+    const SourceFile* functionSourceFile(const NativeBackendBuilder& builder, const NativeFunctionInfo& info)
+    {
+        if (!info.symbol || !info.symbol->decl())
+            return nullptr;
+
+        const SourceViewRef srcViewRef = info.symbol->srcViewRef();
+        if (!builder.compiler().hasSourceView(srcViewRef))
+            return nullptr;
+
+        return builder.compiler().srcView(srcViewRef).file();
+    }
+
     void collectFunction(NativeBackendBuilder& builder, const NativeFunctionInfo& info, CollectedDebugRecords& out)
     {
         out.functionStorage.emplace_back();
@@ -164,6 +176,7 @@ namespace
                                  .debugName     = info.debugName,
                                  .returnTypeRef = info.symbol ? info.symbol->returnTypeRef() : TypeRef::invalid(),
                                  .machineCode   = info.machineCode,
+                                 .sourceFile    = functionSourceFile(builder, info),
                                  .frameSize     = info.symbol ? info.symbol->debugStackFrameSize() : 0,
                                  .frameBaseReg  = parameterBaseReg,
                                  .parameters    = storage.parameters,

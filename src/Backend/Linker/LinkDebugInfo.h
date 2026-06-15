@@ -32,6 +32,7 @@ struct LinkDebugFunction
 {
     Utf8                            symbolName; // defined symbol to resolve to section:offset
     Utf8                            displayName;
+    uint32_t                        primaryFileIndex = std::numeric_limits<uint32_t>::max();
     uint32_t                        codeSize     = 0;
     uint32_t                        funcIdIndex  = 0; // CodeView IPI LF_FUNC_ID index (0 = none)
     uint32_t                        procTypeIndex = 0; // CodeView TPI LF_PROCEDURE index (0 = T_NOTYPE)

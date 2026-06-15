@@ -592,33 +592,39 @@ namespace
 
         (void) ensureSymbolEngineInitialized();
 
+        // Walk with RtlVirtualUnwind (x64 table-based unwinding). Unlike StackWalk64 it does not
+        // depend on RBP being a frame pointer, so it can unwind through FPO/leaf routines such as
+        // the CRT memmove/memcpy where RBP holds an arbitrary value.
         CONTEXT      walkContext = *context;
-        STACKFRAME64 frame{};
-        frame.AddrPC.Offset    = walkContext.Rip;
-        frame.AddrPC.Mode      = AddrModeFlat;
-        frame.AddrFrame.Offset = walkContext.Rbp;
-        frame.AddrFrame.Mode   = AddrModeFlat;
-        frame.AddrStack.Offset = walkContext.Rsp;
-        frame.AddrStack.Mode   = AddrModeFlat;
-
-        uint32_t     numFrames = 0;
-        const HANDLE process   = GetCurrentProcess();
-        const HANDLE thread    = GetCurrentThread();
+        uint32_t     numFrames   = 0;
 
         while (numFrames < 64)
         {
-            const DWORD64 address = frame.AddrPC.Offset;
+            const DWORD64 address = walkContext.Rip;
             if (!address)
                 break;
 
             appendWindowsStackFrame(outMsg, ctx, numFrames, address);
             ++numFrames;
 
-            const BOOL hasNext = StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &frame, &walkContext, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr);
-            if (!hasNext)
-                break;
+            DWORD64                imageBase    = 0;
+            PRUNTIME_FUNCTION      functionEntry = RtlLookupFunctionEntry(walkContext.Rip, &imageBase, nullptr);
+            if (functionEntry)
+            {
+                PVOID   handlerData     = nullptr;
+                DWORD64 establisherFrame = 0;
+                RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, walkContext.Rip, functionEntry, &walkContext, &handlerData, &establisherFrame, nullptr);
+            }
+            else
+            {
+                // Leaf function without unwind info: the return address sits at the top of the stack.
+                if (!walkContext.Rsp)
+                    break;
+                walkContext.Rip = *reinterpret_cast<const DWORD64*>(walkContext.Rsp);
+                walkContext.Rsp += sizeof(DWORD64);
+            }
 
-            if (frame.AddrPC.Offset == address)
+            if (walkContext.Rip == address)
                 break;
         }
 

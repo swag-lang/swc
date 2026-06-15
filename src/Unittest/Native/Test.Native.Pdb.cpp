@@ -74,7 +74,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
     std::vector<std::byte> text;
     emit(text, {0x48, 0x83, 0xEC, 0x28}); // sub rsp, 0x28   (line 10)
-    emit(text, {0xB8, 0x2A, 0x00, 0x00}); // mov eax, ...    (line 10)
+    emit(text, {0xB8, 0x2A, 0x00, 0x00}); // mov eax, ...    (macro line 20)
     emit(text, {0x90, 0x90, 0x90, 0x90}); //                 (line 11)
     emit(text, {0x48, 0x83, 0xC4, 0x28}); // add rsp, 0x28   (line 11)
     emit(text, {0xC3});                   // ret             (line 12)
@@ -110,6 +110,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     const fs::path exePath = dir / "pdbtest.exe";
     const fs::path pdbPath = dir / "pdbtest.pdb";
     const fs::path srcPath = dir / "pdbtest.swg";
+    const fs::path macroPath = dir / "pdbmacro.swg";
 
     LinkDebugInfo dbg;
     dbg.enabled = true;
@@ -118,15 +119,30 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     dbgFile.checksumKind = 3; // SHA-256
     dbgFile.checksum.assign(32, static_cast<uint8_t>(0xAB));
     dbg.files.push_back(std::move(dbgFile));
+    LinkDebugFile macroFile;
+    macroFile.path         = Utf8(macroPath);
+    macroFile.checksumKind = 3; // SHA-256
+    macroFile.checksum.assign(32, static_cast<uint8_t>(0xCD));
+    dbg.files.push_back(std::move(macroFile));
     LinkDebugFunction fn;
     fn.symbolName  = "myFunc";
     fn.displayName = "myFunc";
     fn.codeSize    = codeSize;
     LinkDebugLineBlock block;
     block.fileIndex   = 0;
-    block.codeOffsets = {0, 8, 16};
-    block.lines       = {10, 11, 12};
+    block.codeOffsets = {0};
+    block.lines       = {10};
     fn.lineBlocks.push_back(std::move(block));
+    LinkDebugLineBlock macroBlock;
+    macroBlock.fileIndex   = 1;
+    macroBlock.codeOffsets = {4};
+    macroBlock.lines       = {20};
+    fn.lineBlocks.push_back(std::move(macroBlock));
+    LinkDebugLineBlock tailBlock;
+    tailBlock.fileIndex   = 0;
+    tailBlock.codeOffsets = {8, 16};
+    tailBlock.lines       = {11, 12};
+    fn.lineBlocks.push_back(std::move(tailBlock));
     fn.locals.push_back({.name = "myLocal", .typeIndex = T_INT4, .frameOffset = 0x20, .cvRegister = CV_REG_RSP, .isParam = false});
     dbg.functions.push_back(std::move(fn));
 
@@ -220,7 +236,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
                 fail("SymFromAddr returned the wrong name");
         }
 
-        // Address -> source line, at the function start (line 10) and at offset 8 (line 11).
+        // Address -> source line, including a repeated source file block after an interleaved macro file.
         if (result == Result::Continue)
         {
             IMAGEHLP_LINE64 line{};
@@ -236,8 +252,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
             line              = {};
             line.SizeOfStruct = sizeof(line);
+            if (result == Result::Continue && (!SymGetLineFromAddr64(symHandle, funcAddr + 4, &lineDisp, &line) || line.LineNumber != 20))
+                fail("SymGetLineFromAddr64 at +4 did not return macro line 20");
+            else if (result == Result::Continue && (line.FileName == nullptr || std::string_view{line.FileName} != Utf8(macroPath).view()))
+                fail("SymGetLineFromAddr64 at +4 returned the wrong/empty macro source file name");
+
+            line              = {};
+            line.SizeOfStruct = sizeof(line);
             if (result == Result::Continue && (!SymGetLineFromAddr64(symHandle, funcAddr + 8, &lineDisp, &line) || line.LineNumber != 11))
                 fail("SymGetLineFromAddr64 at +8 did not return line 11");
+            else if (result == Result::Continue && (line.FileName == nullptr || std::string_view{line.FileName} != Utf8(srcPath).view()))
+                fail("SymGetLineFromAddr64 at +8 returned the wrong/empty source file name");
         }
 
         // Global data symbol -> resolves by name (exercises the globals stream / GSI hash) with its type.

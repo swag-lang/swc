@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include <mutex>
 #include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
@@ -16,11 +17,21 @@ struct SemaCompilerIf
 {
     std::vector<Symbol*> symbols;
     SemaCompilerIf*      parent = nullptr;
+    std::mutex           symbolsMutex;
 
+    // A SemaCompilerIf lives in the shared AST payload of a `#if` node. The declarations nested
+    // inside that block are semantically analyzed by independent SemaJobs running on different
+    // worker threads, and each registers itself here via registerCompilerIf(). Without the lock
+    // the concurrent push_back() on this shared vector races (relocate/memmove), corrupting the
+    // heap. The matching read happens in AstCompilerIf::semaPostNode, after every child has been
+    // processed, so it needs no lock.
     void addSymbolToChain(Symbol* sym)
     {
         for (auto it = this; it; it = it->parent)
+        {
+            const std::scoped_lock lock(it->symbolsMutex);
             it->symbols.push_back(sym);
+        }
     }
 };
 

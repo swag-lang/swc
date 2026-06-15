@@ -769,8 +769,11 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
                 fn.locals.push_back({.name = local.name, .typeIndex = local.typeIndex, .frameOffset = local.frameOffset, .cvRegister = local.cvRegister, .isParam = local.isParam});
         }
 
-        // Build the per-file line blocks (one block per source file, dropping consecutive duplicate lines).
-        std::unordered_map<Utf8, size_t> blockOf;
+        // Build the line blocks as contiguous source-file runs, dropping consecutive duplicate lines.
+        // CodeView consumers expect offsets inside a block to be ordered; macro-expanded code can switch
+        // source files and later return to the original file, so grouping all lines by file breaks DIA/VS.
+        size_t   currentBlock = std::numeric_limits<size_t>::max();
+        uint32_t currentFile  = std::numeric_limits<uint32_t>::max();
         for (const auto& range : record.machineCode->debugSourceRanges)
         {
             if (!range.debugSourceInfo.isStepVisible())
@@ -785,20 +788,15 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
             const Utf8     path = debugSourcePath(resolved.source.sourceFile->path());
             const uint32_t file = fileIndexFor(path, resolved.source.sourceFile);
 
-            size_t blockIndex;
-            if (const auto it = blockOf.find(path); it != blockOf.end())
+            if (currentBlock == std::numeric_limits<size_t>::max() || currentFile != file)
             {
-                blockIndex = it->second;
-            }
-            else
-            {
-                blockIndex = fn.lineBlocks.size();
+                currentBlock = fn.lineBlocks.size();
                 fn.lineBlocks.emplace_back();
                 fn.lineBlocks.back().fileIndex = file;
-                blockOf.emplace(path, blockIndex);
+                currentFile = file;
             }
 
-            LinkDebugLineBlock& block = fn.lineBlocks[blockIndex];
+            LinkDebugLineBlock& block = fn.lineBlocks[currentBlock];
             const uint32_t      line  = std::min<uint32_t>(resolved.source.codeRange.line, 0x00FFFFFFu);
             if (!block.lines.empty() && block.lines.back() == line)
                 continue;

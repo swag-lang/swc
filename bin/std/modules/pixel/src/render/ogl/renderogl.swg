@@ -259,8 +259,9 @@ impl RenderOgl
     // To be called after rendering
     mtd end()
     {
-        glFlush()
-        glFinish()
+        // SwapBuffers already flushes and orders the command stream; an explicit
+        // glFinish() here would stall the CPU until the GPU fully drains every
+        // frame, killing CPU/GPU overlap. Let the swap handle synchronization.
         .native.swapBuffers(.curRC)
     }
 
@@ -921,7 +922,13 @@ impl RenderOgl
             return
 
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
-        glBufferData(GL_ARRAY_BUFFER, dc.vertexBuffer.count * #sizeof(VertexLayout), dc.vertexBuffer.buffer, GL_STATIC_DRAW)
+        // The vertex buffer is fully rebuilt and re-uploaded every frame, so hint
+        // GL_STREAM_DRAW (write once, draw once) instead of GL_STATIC_DRAW. Orphan
+        // the previous storage first so the driver can hand back fresh memory rather
+        // than blocking until the in-flight draw releases the old buffer.
+        let byteSize = dc.vertexBuffer.count * #sizeof(VertexLayout)
+        glBufferData(GL_ARRAY_BUFFER, byteSize, null, GL_STREAM_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, byteSize, dc.vertexBuffer.buffer, GL_STREAM_DRAW)
 
         // Default shader
         .setShader(&.shaderAA)

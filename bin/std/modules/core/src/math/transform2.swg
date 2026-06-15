@@ -39,6 +39,15 @@ impl Transform2
                .tx == 0 and .ty == 0
     }
 
+    // Checks if the linear part is the identity, i.e. the transform is a pure
+    // translation (no rotation, no scale). An axis-aligned shape stays axis
+    // aligned and pixel-snapped under such a transform.
+    mtd const isTranslationOnly()->bool
+    {
+        return .m11 == 1 and .m12 == 0 and
+               .m21 == 0 and .m22 == 1
+    }
+
     // Creates a rotation matrix, with a given center of rotation
     func createRotation(angle: f32, centerX, centerY: f32)->Transform2
     {

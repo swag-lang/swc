@@ -54,6 +54,23 @@ impl Painter
         .drawRect(rect.x, rect.y, rect.width, rect.height, pen)
     }
 
+    // Emit a pixel-snapped, axis-aligned rectangle as two triangles, with no
+    // antialiasing fringe. The caller must guarantee the rect is already rounded
+    // and the current transform is a pure translation, so the edges land on pixel
+    // boundaries and need no fringe.
+    fileprivate mtd fillRectRaw(l, t, w, h: f32, brush: Brush)
+    {
+        .setTexture0({l, t}, {l + w, t + h}, brush)
+        .resetTextureFont()
+
+        let v0 = Math.Vector2{l, t}
+        let v1 = Math.Vector2{l + w, t}
+        let v2 = Math.Vector2{l + w, t + h}
+        let v3 = Math.Vector2{l, t + h}
+        discard .pushTriangle(v0, v1, v2, brush.color)
+        discard .pushTriangle(v0, v2, v3, brush.color)
+    }
+
     // Draw a filled rectangle
     mtd fillRect(left, top, width, height: f32, brush: Brush)
     {
@@ -64,6 +81,17 @@ impl Painter
         let t = Math.round(top)
         let w = Math.round(width)
         let h = Math.round(height)
+
+        // Fast path: an axis-aligned, pixel-snapped rectangle under a pure-translation
+        // transform already has its edges on pixel boundaries, so the antialiasing
+        // fringe is pure overhead (and can darken seams between adjacent fills). Emit
+        // the two interior triangles directly, skipping path construction, flattening
+        // and tessellation. This is the dominant GUI primitive (widget backgrounds).
+        if .curState.transform.isTranslationOnly()
+        {
+            .fillRectRaw(l, t, w, h, brush)
+            return
+        }
 
         .sharedLinePath.setRectRaw(l, t, w, h)
         .fillPath(&.sharedLinePath, brush)

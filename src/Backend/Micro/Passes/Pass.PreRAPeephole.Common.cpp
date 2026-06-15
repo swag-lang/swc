@@ -32,8 +32,6 @@ namespace PreRaPeephole
                     break;
 
                 case MicroInstrRegSpecial::OpTernaryRegRegReg:
-                    if (ops[info.microOpIndex].microOp == MicroOp::CompareExchange)
-                        modes[1] = MicroInstrRegMode::UseDef;
                     break;
 
                 default:

@@ -104,6 +104,12 @@ namespace
         context.builder->addVirtualRegForbiddenPhysReg(virtualReg, concreteReg);
     }
 
+    void addVirtualForbiddenRegIfNeeded(const MicroPassContext& context, MicroReg reg, MicroReg concreteReg)
+    {
+        if (reg.isVirtual())
+            addVirtualForbiddenReg(context, reg, concreteReg);
+    }
+
     void addLiveConcreteForbiddenRegsAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg virtualReg)
     {
         SWC_ASSERT(virtualReg.isVirtual());
@@ -752,6 +758,9 @@ namespace
         const bool        shouldPreserve = mustPreserve && requiredReg != originalReg0;
         SWC_ASSERT(requiredReg.isValid());
 
+        addVirtualForbiddenRegIfNeeded(context, originalReg1, requiredReg);
+        addVirtualForbiddenRegIfNeeded(context, originalReg2, requiredReg);
+
         MicroReg savedRequiredReg = MicroReg::invalid();
         if (shouldPreserve)
         {
@@ -843,6 +852,46 @@ namespace
         removeInstruction(context, instRef);
     }
 
+    void applyRewriteTernaryOperandAwayFromFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpTernaryRegRegReg);
+        SWC_ASSERT(issue.operandIndex <= 2);
+
+        const MicroReg    originalReg0 = ops[0].reg;
+        const MicroReg    originalReg1 = ops[1].reg;
+        const MicroReg    originalReg2 = ops[2].reg;
+        const MicroOpBits opBits       = ops[3].opBits;
+        const MicroOp     op           = ops[4].microOp;
+        const MicroReg    forbiddenReg = issue.forbiddenReg;
+        const MicroReg    scratchReg   = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+        SWC_ASSERT(forbiddenReg.isValid());
+        SWC_ASSERT(scratchReg.isValid());
+        addVirtualForbiddenReg(context, scratchReg, forbiddenReg);
+        addVirtualForbiddenReg(context, scratchReg, originalReg0);
+        addVirtualForbiddenReg(context, scratchReg, originalReg1);
+        addVirtualForbiddenReg(context, scratchReg, originalReg2);
+
+        const MicroReg movedReg = issue.operandIndex == 0 ? originalReg0 : issue.operandIndex == 1 ? originalReg1 : originalReg2;
+        insertMoveRegReg(context, instRef, scratchReg, movedReg, MicroOpBits::B64);
+
+        MicroReg rewrittenReg0 = originalReg0;
+        MicroReg rewrittenReg1 = originalReg1;
+        MicroReg rewrittenReg2 = originalReg2;
+        if (issue.operandIndex == 0)
+            rewrittenReg0 = scratchReg;
+        else if (issue.operandIndex == 1)
+            rewrittenReg1 = scratchReg;
+        else
+            rewrittenReg2 = scratchReg;
+
+        insertTernaryRegRegReg(context, instRef, rewrittenReg0, rewrittenReg1, rewrittenReg2, op, opBits);
+        if (rewrittenReg0 != originalReg0)
+            insertMoveRegReg(context, instRef, originalReg0, rewrittenReg0, opBits);
+
+        removeInstruction(context, instRef);
+    }
+
     void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, MicroInstrRef instRef, const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset, uint32_t& nextVirtualIntRegIndex, uint32_t& nextVirtualFloatRegIndex)
     {
         // Encoder reports one issue at a time; apply one targeted rewrite/fix.
@@ -883,7 +932,12 @@ namespace
                     SWC_UNREACHABLE();
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg:
-                applyRewriteRegRegOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                    applyRewriteRegRegOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                else if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
+                    applyRewriteTernaryOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                else
+                    SWC_UNREACHABLE();
                 return;
             default:
                 SWC_UNREACHABLE();

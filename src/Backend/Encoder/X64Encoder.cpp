@@ -878,6 +878,22 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
                 outIssue.requiredReg  = raxReg;
                 return true;
             }
+
+            if (ops[1].reg == raxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
+                outIssue.operandIndex = 1;
+                outIssue.forbiddenReg  = raxReg;
+                return true;
+            }
+
+            if (ops[2].reg == raxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
+                outIssue.operandIndex = 2;
+                outIssue.forbiddenReg  = raxReg;
+                return true;
+            }
         }
     }
 

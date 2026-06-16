@@ -28,6 +28,8 @@ namespace
     {
         if (!symbol.idRef().isValid() || symbol.typeRef().isInvalid())
             return false;
+        if (symbol.hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage))
+            return false;
         return !symbol.name(ctx).empty();
     }
 

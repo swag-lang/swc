@@ -1023,6 +1023,9 @@
     <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Struct.cpp">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Variable.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Symbol\SymbolMap.cpp">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClCompile>

@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Debug/DebugInfo.h"
+#include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -94,8 +95,9 @@ namespace
         return std::ranges::search(bytes, needle).begin() != bytes.end();
     }
 
-    bool symbolsSubsectionContainsRecord(const ByteSpan bytes, const uint16_t recordType)
+    bool countSymbolsSubsectionRecords(const ByteSpan bytes, const uint16_t recordType, uint32_t& outCount)
     {
+        outCount = 0;
         if (bytes.size() < sizeof(uint32_t))
             return false;
         if (readU32(bytes, 0) != K_CV_SIGNATURE_C13)
@@ -123,7 +125,7 @@ namespace
                         return false;
 
                     if (readU16(bytes, recordCursor + sizeof(uint16_t)) == recordType)
-                        return true;
+                        outCount++;
 
                     recordCursor = nextRecordCursor;
                 }
@@ -132,7 +134,7 @@ namespace
             cursor = alignUp4(cursor + subsectionSize);
         }
 
-        return false;
+        return true;
     }
 
     bool tryFindRegRelativeSymbol(const ByteSpan bytes, const Utf8& expectedName, uint16_t& outRegister, uint32_t& outOffset)
@@ -436,7 +438,13 @@ namespace
             cursor = alignUp4(cursor + subsectionSize);
         }
 
-        return false;
+        return true;
+    }
+
+    bool symbolsSubsectionContainsRecord(const ByteSpan bytes, const uint16_t recordType)
+    {
+        uint32_t count = 0;
+        return countSymbolsSubsectionRecords(bytes, recordType, count) && count != 0;
     }
 
     bool countLineRecords(const ByteSpan bytes, const uint32_t expectedLine, uint32_t& outCount)
@@ -1359,6 +1367,126 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     }
 
     if (!sawAcc)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_RuntimeStorageLocalsStayOutOfCodeView)
+{
+    static constexpr std::string_view SOURCE     = R"(struct DebugInfoRuntimeStoragePair { left: s32; right: s32 }
+
+func debugInfoRuntimeStorageRead(value: const &DebugInfoRuntimeStoragePair)->s32
+{
+    return value.left + value.right
+}
+
+#test
+{
+    var visible: DebugInfoRuntimeStoragePair = {left: 1, right: 2}
+    @assert(debugInfoRuntimeStorageRead({left: 3, right: 4}) == 7)
+    @assert(visible.left == 1)
+}
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "RuntimeStorageLocalsStayOutOfCodeView");
+
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.name        = "compiler_runtime_storage_debug";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    if (nativeBuilder.prepare() != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const auto& nativeTests = compiler.nativeTestFunctions();
+    if (nativeTests.size() != 1)
+        return Result::Error;
+
+    const SymbolFunction* testFn = nativeTests.front();
+    if (!testFn)
+        return Result::Error;
+
+    const NativeFunctionInfo* functionInfo = nativeBuilder.tryFindFunctionInfo(*testFn);
+    if (!functionInfo)
+        return Result::Error;
+
+    TaskContext compilerCtx(compiler);
+    uint32_t    expectedParameterRecords = 0;
+    for (const SymbolVariable* parameter : testFn->parameters())
+    {
+        if (!parameter)
+            continue;
+        if (!parameter->debugStackSlotSize())
+            continue;
+        if (!parameter->idRef().isValid() || parameter->typeRef().isInvalid() || parameter->name(compilerCtx).empty())
+            continue;
+        expectedParameterRecords++;
+    }
+
+    uint32_t expectedLocalRecords       = 0;
+    uint32_t runtimeStorageStackLocals  = 0;
+    for (const SymbolVariable* local : testFn->localVariables())
+    {
+        if (!local)
+            continue;
+        if (!local->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            continue;
+
+        if (local->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage))
+        {
+            runtimeStorageStackLocals++;
+            continue;
+        }
+
+        if (!local->idRef().isValid() || local->typeRef().isInvalid() || local->name(compilerCtx).empty())
+            continue;
+        expectedLocalRecords++;
+    }
+
+    if (!runtimeStorageStackLocals || !expectedLocalRecords)
+        return Result::Error;
+
+    const std::array<const NativeFunctionInfo*, 1> functions = {functionInfo};
+    CollectedDebugRecords                          debugRecords;
+    collectDebugRecords(nativeBuilder, std::span<const NativeFunctionInfo* const>(functions.data(), functions.size()), nullptr, false, debugRecords);
+    if (debugRecords.functions.size() != 1 || debugRecords.functionStorage.size() != 1)
+        return Result::Error;
+    if (debugRecords.functions.front().parameters.size() != expectedParameterRecords)
+        return Result::Error;
+    if (debugRecords.functions.front().locals.size() != expectedLocalRecords)
+        return Result::Error;
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &compilerCtx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-runtime-storage.obj"),
+        .functions    = debugRecords.functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    uint32_t regRelativeRecords = 0;
+    if (!countSymbolsSubsectionRecords(asByteSpan(debugSection->bytes), K_S_REGREL32, regRelativeRecords))
+        return Result::Error;
+    if (regRelativeRecords != expectedParameterRecords + expectedLocalRecords)
         return Result::Error;
 }
 SWC_TEST_END()

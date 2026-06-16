@@ -18,6 +18,9 @@ enum class SymbolVariableFlagsE : uint16_t
     NeedsAddressableStorage = 1 << 7,
     CallerLocationDefault   = 1 << 8,
     ImplicitUndefinedInit   = 1 << 9,
+    RuntimeStorage          = 1 << 10,
+    ClosureCaptureByRef     = 1 << 11,
+    GlobalStorage           = 1 << 12,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 
@@ -51,9 +54,9 @@ public:
     void                  setClosureCapturedSource(SymbolVariable* source) noexcept { closureCapturedSource_ = source; }
     uint32_t              closureCaptureOffset() const noexcept { return closureCaptureOffset_; }
     void                  setClosureCaptureOffset(uint32_t offset) noexcept { closureCaptureOffset_ = offset; }
-    bool                  closureCaptureByRef() const noexcept { return closureCaptureByRef_; }
-    void                  setClosureCaptureByRef(bool value) noexcept { closureCaptureByRef_ = value; }
-    bool                  hasGlobalStorage() const { return hasGlobalStorage_; }
+    bool                  closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }
+    void                  setClosureCaptureByRef(bool value) noexcept;
+    bool                  hasGlobalStorage() const { return hasExtraFlag(SymbolVariableFlagsE::GlobalStorage); }
     SymbolFunction*       globalFunctionInit() const { return globalFunctionInit_; }
     void                  setGlobalFunctionInit(SymbolFunction* symbol) { globalFunctionInit_ = symbol; }
     const SymbolFunction* ownerFunction() const noexcept;
@@ -62,15 +65,8 @@ public:
     bool                  isUsingField() const noexcept;
     const SymbolStruct*   usingTargetStruct(const TaskContext& ctx) const;
     const SymbolStruct*   usingTargetStruct(const TaskContext& ctx, bool& outIsPointer) const;
-
-    void setGlobalStorage(DataSegmentKind kind, uint32_t offset)
-    {
-        globalStorageKind_ = kind;
-        offset_            = offset;
-        hasGlobalStorage_  = true;
-    }
-
-    DataSegmentKind globalStorageKind() const { return globalStorageKind_; }
+    void                  setGlobalStorage(DataSegmentKind kind, uint32_t offset);
+    DataSegmentKind       globalStorageKind() const { return globalStorageKind_; }
 
 private:
     uint32_t        offset_                = 0;
@@ -81,11 +77,9 @@ private:
     uint32_t        debugStackSlotOffset_  = 0;
     uint32_t        debugStackSlotSize_    = 0;
     DataSegmentKind globalStorageKind_     = DataSegmentKind::Zero;
-    bool            hasGlobalStorage_      = false;
     SymbolFunction* globalFunctionInit_    = nullptr;
     SymbolVariable* closureCapturedSource_ = nullptr;
     uint32_t        closureCaptureOffset_  = 0;
-    bool            closureCaptureByRef_   = false;
 };
 
 SWC_END_NAMESPACE();

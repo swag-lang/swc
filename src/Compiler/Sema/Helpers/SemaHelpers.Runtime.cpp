@@ -331,6 +331,7 @@ SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, cons
     const IdentifierRef idRef       = getUniqueIdentifier(sema, privateName);
     const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
     auto* const         symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+    symVariable->addExtraFlag(SymbolVariableFlagsE::RuntimeStorage);
 
     if (currentLocalSymbolScope(sema))
     {

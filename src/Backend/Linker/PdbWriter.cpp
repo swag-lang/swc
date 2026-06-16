@@ -802,9 +802,13 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
             for (const LinkDebugLocal& local : fn->locals)
             {
+                // CodeView S_REGREL32 layout is: offset (u32), then type index (u32), then register. They
+                // must be in this order -- swapping them feeds msdia/DIA (and thus Visual Studio) a garbage
+                // type index, which makes it fault while resolving the local and drop the whole module's
+                // symbols. (The COFF object writer, DebugInfoCodeView::appendRegRelativeSymbol, gets it right.)
                 Bytes lp;
-                appendLe32(lp, local.typeIndex);
                 appendLe32(lp, static_cast<uint32_t>(local.frameOffset));
+                appendLe32(lp, local.typeIndex);
                 appendLe16(lp, local.cvRegister);
                 appendCString(lp, local.name.view());
                 appendSymbol(moduleSymbols, K_S_REGREL32, lp);

@@ -712,6 +712,26 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
     CollectedDebugRecords collected;
     collectDebugRecords(*builder_, functionPtrs, builder_->startup.get(), true, collected);
 
+    // Mirror the COFF object split as PDB compilands: each function's owning object file (its codegen
+    // job) becomes a module named after that .obj, so the PDB has the same per-object compiland layout an
+    // external link.exe PDB would. Visual Studio expects per-object compilands; the previous
+    // source-file-sized ones (with the image itself as module 0) confused its module model.
+    dbg.objectNames.reserve(builder_->objectDescriptions.size());
+    for (const NativeObjDescription& obj : builder_->objectDescriptions)
+    {
+        // Use native (backslash) separators like an external link.exe PDB records for its compilands.
+        Utf8 objName = Utf8(obj.objPath);
+        std::ranges::replace(objName, '/', '\\');
+        dbg.objectNames.push_back(std::move(objName));
+    }
+
+    std::unordered_map<std::string_view, uint32_t> objIndexBySymbol;
+    objIndexBySymbol.reserve(builder_->functionInfos.size() + 1);
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+        objIndexBySymbol.insert_or_assign(info.symbolName.view(), info.jobIndex);
+    if (builder_->startup)
+        objIndexBySymbol.insert_or_assign(builder_->startup->symbolName.view(), 0u);
+
     const DebugInfoObjectRequest request = {
         .ctx        = &builder_->ctx(),
         .targetOs   = builder_->ctx().cmdLine().targetOs,
@@ -757,6 +777,8 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
         fn.symbolName  = record.symbolName;
         fn.displayName = record.debugName.empty() ? record.symbolName : record.debugName;
         fn.codeSize    = static_cast<uint32_t>(record.machineCode->bytes.size());
+        if (const auto objIt = objIndexBySymbol.find(record.symbolName.view()); objIt != objIndexBySymbol.end())
+            fn.objIndex = objIt->second;
         fn.frameSize   = record.frameSize;
         if (record.sourceFile)
         {

@@ -32,6 +32,7 @@ struct LinkDebugFunction
 {
     Utf8                            symbolName; // defined symbol to resolve to section:offset
     Utf8                            displayName;
+    uint32_t                        objIndex = 0; // index into LinkDebugInfo::objectNames (the owning compiland)
     uint32_t                        primaryFileIndex = std::numeric_limits<uint32_t>::max();
     uint32_t                        codeSize     = 0;
     uint32_t                        funcIdIndex  = 0; // CodeView IPI LF_FUNC_ID index (0 = none)
@@ -83,6 +84,7 @@ struct LinkDebugInfo
     uint32_t               buildInfoIndex = 0;
 
     std::vector<LinkDebugFile>     files; // source files, referenced by LinkDebugLineBlock::fileIndex
+    std::vector<Utf8>              objectNames; // synthetic compiland (object file) names, indexed by LinkDebugFunction::objIndex
     std::vector<LinkDebugFunction> functions;
     std::vector<LinkDebugGlobal>   globals;
     std::vector<LinkDebugUdt>      udts;

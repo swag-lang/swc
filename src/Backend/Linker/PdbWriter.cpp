@@ -616,11 +616,11 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     }
 
     // ---- Module streams -------------------------------------------------------------------------
-    // LLDB/Rider models each PDB compiland as a compile unit. Keep compilands source-sized: every
-    // function belongs to its owning source file, while macro/import ranges remain referenced from that
-    // compiland's line table.
+    // Model each PDB compiland as the object file the backend split functions into (the codegen job),
+    // named after that .obj. This mirrors the layout an external link.exe PDB has -- Visual Studio
+    // expects per-object compilands -- while every function still carries its own source-file line table.
     std::vector<PdbModuleBuild> modules;
-    std::unordered_map<uint32_t, size_t> moduleOfFile;
+    std::unordered_map<uint32_t, size_t> moduleOfObj;
     const auto addFileToModule = [](PdbModuleBuild& module, const uint32_t fileIndex) {
         if (fileIndex == std::numeric_limits<uint32_t>::max())
             return;
@@ -641,24 +641,24 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             primaryFile = fn.lineBlocks.front().fileIndex;
 
         size_t     moduleIndex;
-        const auto it = moduleOfFile.find(primaryFile);
-        if (it != moduleOfFile.end())
+        const auto it = moduleOfObj.find(fn.objIndex);
+        if (it != moduleOfObj.end())
         {
             moduleIndex = it->second;
         }
         else
         {
             moduleIndex = modules.size();
-            moduleOfFile.emplace(primaryFile, moduleIndex);
+            moduleOfObj.emplace(fn.objIndex, moduleIndex);
             PdbModuleBuild module;
             module.primaryFileIndex = primaryFile;
-            module.name             = primaryFile < debugInfo.files.size() ? debugInfo.files[primaryFile].path : moduleName;
-            addFileToModule(module, primaryFile);
+            module.name             = fn.objIndex < debugInfo.objectNames.size() ? debugInfo.objectNames[fn.objIndex] : moduleName;
             modules.push_back(std::move(module));
         }
 
         PdbModuleBuild& module = modules[moduleIndex];
         module.functions.push_back(&fn);
+        addFileToModule(module, primaryFile);
         for (const LinkDebugLineBlock& block : fn.lineBlocks)
             if (block.fileIndex < debugInfo.files.size())
                 addFileToModule(module, block.fileIndex);
@@ -914,8 +914,8 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendLe32(modInfo, 0);                 // Unused2
         appendLe32(modInfo, 0);                 // SourceFileNameIndex (EC string table index)
         appendLe32(modInfo, 0);                 // PdbFilePathNameIndex (EC string table index)
-        appendCString(modInfo, module.name.view());
-        appendCString(modInfo, moduleName.view());
+        appendCString(modInfo, module.name.view()); // ModuleName (the object file)
+        appendCString(modInfo, module.name.view()); // ObjFileName (standalone object: same as ModuleName)
         alignTo4(modInfo);
         sourceFileRefCount += static_cast<uint32_t>(module.fileIndices.size());
     }
@@ -1045,9 +1045,9 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendLe32(dbi, 19990903);       // VersionHeader (V70)
         appendLe32(dbi, outAge);         // Age
         appendLe16(dbi, globalsStreamIndex); // GlobalStreamIndex
-        appendLe16(dbi, 0x8e1d);         // BuildNumber (new-format flag set)
+        appendLe16(dbi, 0x8e32);         // BuildNumber: new-format flag | 14.50, matching link.exe's DBI header
         appendLe16(dbi, publicsStreamIndex); // PublicStreamIndex
-        appendLe16(dbi, 0);              // PdbDllVersion
+        appendLe16(dbi, 35726);          // PdbDllVersion (non-zero, matching the link.exe-produced PDB)
         appendLe16(dbi, symRecordsStreamIndex); // SymRecordStreamIndex
         appendLe16(dbi, 0);              // PdbDllRbld
         appendLe32(dbi, static_cast<uint32_t>(modInfo.size()));

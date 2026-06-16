@@ -438,7 +438,7 @@ namespace
         auto [castRef, castPtr] = sema.ast().makeNode<AstNodeId::CastExpr>(sourceCast->tokRef());
         castPtr->flags()        = sourceCast->flags();
         castPtr->modifierFlags  = sourceCast->modifierFlags;
-        castPtr->setDebugCodeRef(sourceCast->debugCodeRef());
+        castPtr->setCodeRef(sourceCast->codeRef());
         castPtr->nodeTypeRef    = cloneNodeRef(sema, sourceCast->nodeTypeRef, cloneContext);
         castPtr->nodeExprRef    = clonedRef;
 
@@ -813,7 +813,6 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     }
 
     Ast::setThreadSourceViewOverride(previousSrcView);
-    sema.node(clonedRef).setDebugCodeRef(node.debugCodeRef());
     copyCallableClonePayload(sema, cloneContext, nodeRef, clonedRef);
     copyImplicitCastSubstitute(sema, cloneContext, nodeRef, clonedRef);
     copyImplicitCastPayload(sema, cloneContext, node, nodeRef, clonedRef);
@@ -1501,6 +1500,7 @@ AstNodeRef AstParenExpr::semaClone(Sema& sema, const CloneContext& cloneContext)
 AstNodeRef AstUnaryExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::UnaryExpr>(tokRef());
+    newPtr->setCodeRef(codeRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -1730,6 +1730,7 @@ AstNodeRef AstUnnamedArgumentList::semaClone(Sema& sema, const CloneContext& clo
 AstNodeRef AstAutoMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(tokRef());
+    newPtr->setCodeRef(codeRef());
     newPtr->flags()       = flags();
     newPtr->nodeIdentRef  = cloneNodeRefWithoutBindings(sema, nodeIdentRef, cloneContextAsInline(cloneContext));
     return newRef;
@@ -1738,6 +1739,7 @@ AstNodeRef AstAutoMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cl
 AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
+    newPtr->setCodeRef(codeRef());
     newPtr->flags()       = flags();
     newPtr->nodeLeftRef   = SemaClone::cloneAst(sema, nodeLeftRef, cloneContextAsInline(cloneContext));
     newPtr->nodeRightRef  = cloneNodeRefWithoutBindings(sema, nodeRightRef, cloneContextAsInline(cloneContext));

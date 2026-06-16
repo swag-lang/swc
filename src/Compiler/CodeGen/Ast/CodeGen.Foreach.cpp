@@ -620,7 +620,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
             return Result::Continue;
         }
 
-        builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).debugCodeRef());
+        builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
         if (whereRef.isValid())
         {

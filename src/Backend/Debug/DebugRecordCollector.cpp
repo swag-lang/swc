@@ -147,7 +147,11 @@ namespace
                 record.typeRef     = symVar->typeRef();
                 record.isConst     = symVar->hasExtraFlag(SymbolVariableFlagsE::Let);
                 record.offset      = symVar->debugStackSlotOffset();
-                record.baseReg     = parameterBaseReg;
+                // Parameters are spilled to their debug home relative to the local-stack base
+                // register (see spillParametersToDebugSlots), the same base locals use -- not raw
+                // SP, which moves during the body. Record that base so the debugger reads the
+                // right slot.
+                record.baseReg     = localBaseReg;
                 storage.parameters.push_back(record);
             }
 

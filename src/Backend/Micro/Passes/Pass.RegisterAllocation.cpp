@@ -1595,6 +1595,12 @@ void MicroRegisterAllocationPass::mapVirtReg(MicroReg virtKey, MicroReg physReg)
     }
 
     regState.phys = physReg;
+
+    // Record the physical home the debug local-stack base resolves to. The base is defined once
+    // in the prologue and stays resident for the whole function, so its first (defining) mapping
+    // is the home all locals are addressed against; capture that and ignore any later reload.
+    if (context_->debugStackBaseVirtualReg.isValid() && virtKey == context_->debugStackBaseVirtualReg && !context_->debugStackBasePhysReg.isValid())
+        context_->debugStackBasePhysReg = physReg;
 }
 
 bool MicroRegisterAllocationPass::tryTransferCopySource(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, const uint32_t stamp, const int64_t stackDepth, std::vector<PendingInsert>& pending, const bool allowLiveSourceSpill, const bool allowConcreteLive, MicroReg& outPhys)

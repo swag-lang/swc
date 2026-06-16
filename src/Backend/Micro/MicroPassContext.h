@@ -29,6 +29,15 @@ struct MicroPassContext
     bool                  usesIntReturnRegOnRet   = true;
     bool                  usesFloatReturnRegOnRet = true;
 
+    // Debug info: the virtual register that holds the local-stack base (the value all local
+    // variables are addressed against). Set by the caller before the pass pipeline runs.
+    // Register allocation records the physical register it resolves to in debugStackBasePhysReg,
+    // and PrologEpilog keeps that in sync across any physical-register remap. Without this the
+    // debug records would name a virtual register, which CodeView cannot encode, so every local
+    // would be silently dropped and invisible in the debugger.
+    MicroReg debugStackBaseVirtualReg = MicroReg::invalid();
+    MicroReg debugStackBasePhysReg    = MicroReg::invalid();
+
     // Shared use-def map for pre-RA optimization passes.
     // Built once at the start of the optimization loop, invalidated when a pass mutates the IR.
     MicroUseDefMap* useDefMap = nullptr;

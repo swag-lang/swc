@@ -1093,6 +1093,11 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
         return Result::Error;
     if (!testFn->debugStackBaseReg().isValid())
         return Result::Error;
+    // The base must be resolved to a physical register after register allocation. CodeView's
+    // S_REGREL32 can only name a physical frame register, so a leftover virtual one would make
+    // every local silently undecodable and invisible in the debugger.
+    if (testFn->debugStackBaseReg().isVirtual() || !testFn->debugStackBaseReg().isInt())
+        return Result::Error;
 
     const TaskContext compilerCtx(compiler);
     bool              sawAcc = false;

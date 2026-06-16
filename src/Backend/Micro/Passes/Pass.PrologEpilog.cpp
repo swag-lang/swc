@@ -236,7 +236,7 @@ namespace
         return false;
     }
 
-    bool remapPersistentIntRegsToUnusedTransient(const MicroPassContext& context, const CallConv& conv)
+    bool remapPersistentIntRegsToUnusedTransient(MicroPassContext& context, const CallConv& conv)
     {
         if (hasCallInstruction(context))
             return false;
@@ -292,6 +292,16 @@ namespace
 
         if (remap.empty())
             return false;
+
+        // Keep the debug local-stack base in sync: if its physical home is one of the persistent
+        // registers being renamed, the debug records must name the replacement or locals would
+        // resolve against the wrong register.
+        if (context.debugStackBasePhysReg.isValid())
+        {
+            const auto baseIt = remap.find(context.debugStackBasePhysReg);
+            if (baseIt != remap.end())
+                context.debugStackBasePhysReg = baseIt->second;
+        }
 
         bool  remapped = false;
         auto& operands = *context.operands;

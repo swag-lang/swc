@@ -40,15 +40,16 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
     return tryResolveDebugSourceRange(ctx, outResolvedRange, *range);
 }
 
-Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
+Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg   = ctx.compiler().buildCfg().backend;
     const bool                      computeUnwindInfo = backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
 
     MicroPassContext passContext;
-    passContext.callConvKind           = CallConvKind::Swag;
-    passContext.preservePersistentRegs = true;
-    passContext.forceFramePointer      = computeUnwindInfo;
+    passContext.callConvKind             = CallConvKind::Swag;
+    passContext.preservePersistentRegs   = true;
+    passContext.forceFramePointer        = computeUnwindInfo;
+    passContext.debugStackBaseVirtualReg = debugStackBaseVirtualReg;
 
 #ifdef _M_X64
     X64Encoder encoder(ctx);
@@ -58,6 +59,8 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     encoder.clearDebugSourceRanges();
 
     SWC_RESULT(builder.runPasses(&encoder, passContext));
+
+    debugStackBasePhysReg = passContext.debugStackBasePhysReg;
 
 #if SWC_HAS_STATS
     if (Stats::enabledRuntime())

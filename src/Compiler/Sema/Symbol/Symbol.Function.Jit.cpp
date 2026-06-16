@@ -310,12 +310,18 @@ Result SymbolFunction::emit(TaskContext& ctx)
 #if SWC_HAS_STATS
     Timer timeMicroLower(Stats::timedMetric(Stats::get().timeMicroLower));
 #endif
-    const Result emitResult = loweredMicroCode_.emit(ctx, builder);
+    const Result emitResult = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg());
     if (emitResult != Result::Continue)
     {
         ctx.state().jitEmissionError = true;
         return emitResult;
     }
+
+    // Before register allocation the debug base is a virtual register; CodeView can only encode a
+    // physical one. Replace it with the physical home the backend resolved, so the debug records
+    // for locals name a real frame register instead of being dropped.
+    if (loweredMicroCode_.debugStackBasePhysReg.isValid())
+        setDebugStackBaseReg(loweredMicroCode_.debugStackBasePhysReg);
 
     // Lowered machine code keeps the emitted bytes/debug info/relocations.
     // The micro builder itself is transient and otherwise retains per-function IR memory.

@@ -32,6 +32,35 @@ const Menu_Quit = "Menu.Quit"
     host.shutdown()
 }
 
+// Hidden popup rows keep their previous layout values, but they must not
+// intercept the row now visible under the mouse.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Open", Menu_Open)
+    popup.addItem("Hidden", "Menu.Hidden")
+    popup.addSeparator()
+    popup.addSeparator()
+    popup.addItem("Quit", Menu_Quit)
+
+    popup.items[1].hidden = true
+    popup.computeLayoutPopup()
+    popup.setPosition({0, 0, popup.position.width, popup.position.height})
+
+    popup.items[1].pos  = popup.items[4].pos
+    popup.items[1].size = popup.items[4].size
+    popup.items[3].pos  = popup.items[4].pos
+    popup.items[3].size = popup.items[4].size
+
+    let pointOnQuit = Math.Point{popup.position.width * 0.5, popup.items[4].pos + popup.items[4].size * 0.5}
+    @assert(popup.hitTestPopup(pointOnQuit) == 4)
+
+    host.shutdown()
+}
+
 // A popup item links a submenu back to its owner.
 #test
 {

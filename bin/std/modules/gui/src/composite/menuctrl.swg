@@ -513,6 +513,11 @@ impl MenuCtrl
         let sl         = metrics.menuBar_SpaceBetween
         foreach i, idx in .items
         {
+            if i.hidden do
+                continue
+            if i.separator do
+                continue
+
             let rect = Math.Rectangle{i.pos - sl * 0.5, clientRect.y, i.size + sl, clientRect.height}
             if rect.contains(pos) do
                 return cast(u32) idx
@@ -527,11 +532,19 @@ impl MenuCtrl
         let metrics    = .getThemeMetrics()
         let clientRect = .getClientRect()
         let sl         = metrics.menuPopup_SpaceLines
+        var lastIsSeparator = true
         foreach i, idx in .items
         {
+            if i.hidden do
+                continue
+            if i.separator and lastIsSeparator do
+                continue
+
             let rect = Math.Rectangle{clientRect.x, i.pos - sl * 0.5, clientRect.width, i.size + sl}
             if rect.contains(pos) do
                 return cast(u32) idx
+
+            lastIsSeparator = i.separator
         }
 
         return Swag.U32.Max

@@ -788,14 +788,18 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             const uint32_t endFieldOffset = procOffset + 2 + 2 + 4;
 
             {
+                // Byte layout must match the COFF object writer's S_FRAMEPROC exactly (26-byte payload):
+                // cbFrame, cbPad, cbPadOff, cbSaveRegs, offExHdlr, then the base-register encoding as the
+                // u16 at the sectExHdlr slot, then the flags u32 -- with no trailing pad. An extra pad here
+                // shifts the flags/base-pointer bits, so msdia/VS reads the wrong frame register and fails
+                // to locate locals.
                 Bytes fp;
                 appendLe32(fp, fn->frameSize);
-                appendLe32(fp, 0); // pad bytes
+                appendLe32(fp, 0); // cbPad
                 appendLe32(fp, 0); // offset of pad
                 appendLe32(fp, 0); // bytes of callee-saved registers
                 appendLe32(fp, 0); // exception handler offset
-                appendLe16(fp, 0); // exception handler section
-                appendLe16(fp, 0); // pad
+                appendLe16(fp, fn->frameToCodeReg); // frame base-register encoding (sectExHdlr slot)
                 appendLe32(fp, fn->frameProcFlags);
                 appendSymbol(moduleSymbols, K_S_FRAMEPROC, fp);
             }

@@ -621,6 +621,12 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
         regState.phys   = reg;
         pinnedPhysRegs_.push_back(reg);
         ++pins;
+
+        // Pinned values bypass mapVirtReg, so capture the debug local-stack base here too. A loop
+        // function pins its base register (it is loop-carried), and without this every local and
+        // parameter would be dropped because the base would stay a virtual register.
+        if (context_->debugStackBaseVirtualReg.isValid() && vreg == context_->debugStackBaseVirtualReg && !context_->debugStackBasePhysReg.isValid())
+            context_->debugStackBasePhysReg = reg;
     }
 }
 

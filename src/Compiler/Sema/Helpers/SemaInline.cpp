@@ -787,6 +787,7 @@ namespace
         auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, tokRef, idRef, flags);
         if (materializedAsLet)
             symVar->addExtraFlag(SymbolVariableFlagsE::Let);
+        symVar->addExtraFlag(SymbolVariableFlagsE::RuntimeStorage);
         return symVar;
     }
 

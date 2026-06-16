@@ -43,6 +43,7 @@ namespace
     constexpr uint32_t K_CV_LINE_STATEMENT = 0x80000000u;
 
     constexpr uint16_t K_CV_CFL_AMD64 = 0x00D0;
+    constexpr uint32_t K_CV_CFL_CXX   = 0x01; // S_COMPILE3 language byte: C++ (matches the COFF object writer)
 
     constexpr uint32_t K_PUB_FLAG_FUNCTION = 0x00000002u;
 
@@ -738,18 +739,27 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             appendSymbol(moduleSymbols, K_S_OBJNAME, payload);
         }
         {
+            // Keep this record byte-for-byte consistent with the COFF object writer's S_COMPILE3
+            // (DebugInfoCodeView::appendCompileRecord): language C++, a non-zero producer version, and
+            // the "swc X.Y.Z" version string. Visual Studio keys source/symbol/JMC behaviour off this
+            // record, and a divergent one (language C, version 0) made VS treat the image as external.
+            constexpr auto major   = static_cast<uint16_t>(std::max<uint32_t>(1, SWC_VERSION));
+            constexpr auto minor   = static_cast<uint16_t>(SWC_REVISION);
+            constexpr auto build   = static_cast<uint16_t>(SWC_BUILD_NUM);
+            const Utf8     version = debugInfo.compilerVersion.empty() ? Utf8(std::format("swc {}.{}.{}", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM)) : debugInfo.compilerVersion;
+
             Bytes payload;
-            appendLe32(payload, 0);              // flags
+            appendLe32(payload, K_CV_CFL_CXX);   // flags (low byte = language: C++)
             appendLe16(payload, K_CV_CFL_AMD64); // machine
-            appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // frontend major (producer/compiler version)
-            appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // frontend minor
-            appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // frontend build
+            appendLe16(payload, major);          // frontend major (producer/compiler version)
+            appendLe16(payload, minor);          // frontend minor
+            appendLe16(payload, build);          // frontend build
             appendLe16(payload, 0);              // frontend QFE
-            appendLe16(payload, static_cast<uint16_t>(SWC_VERSION));   // backend major
-            appendLe16(payload, static_cast<uint16_t>(SWC_REVISION));  // backend minor
-            appendLe16(payload, static_cast<uint16_t>(SWC_BUILD_NUM)); // backend build
+            appendLe16(payload, major);          // backend major
+            appendLe16(payload, minor);          // backend minor
+            appendLe16(payload, build);          // backend build
             appendLe16(payload, 0);              // backend QFE
-            appendCString(payload, debugInfo.compilerVersion.empty() ? std::string_view{"swc"} : debugInfo.compilerVersion.view());
+            appendCString(payload, version.view());
             appendSymbol(moduleSymbols, K_S_COMPILE3, payload);
         }
 

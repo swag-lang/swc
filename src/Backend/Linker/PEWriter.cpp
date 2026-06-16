@@ -15,6 +15,17 @@ namespace
     constexpr uint32_t SECTION_ALIGNMENT = 0x1000;
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
 
+    // The PDB path is embedded both in the exe's RSDS debug-directory record and in the PDB header.
+    // Emit it with native (backslash) separators like link.exe does: a forward-slash path built from a
+    // forward-slash workspace argument can stop Visual Studio from loading the module's symbols.
+    // (Utf8(fs::path) goes through generic_string(), which forces forward slashes, so convert here.)
+    Utf8 nativePdbPathString(const fs::path& pdbPath)
+    {
+        Utf8 result = Utf8(pdbPath);
+        std::ranges::replace(result, '/', '\\');
+        return result;
+    }
+
     uint32_t sectionCharacteristics(std::string_view name)
     {
         if (name == ".text")
@@ -723,7 +734,7 @@ void PEWriter::reserveDebugDirectorySection()
     if (!debugInfoEnabled())
         return;
 
-    const Utf8     pdbPathStr = Utf8(pdbPath_);
+    const Utf8     pdbPathStr = nativePdbPathString(pdbPath_);
     const uint32_t rsdsSize   = 4 + 16 + 4 + static_cast<uint32_t>(pdbPathStr.size()) + 1;
     constexpr uint32_t debugDirEntrySize = 28; // sizeof(IMAGE_DEBUG_DIRECTORY)
     constexpr uint32_t featDataSize      = 20; // IMAGE_DEBUG_TYPE_VC_FEATURE payload (5 x u32 counts)
@@ -876,7 +887,7 @@ void PEWriter::emitDebugInfo()
     std::array<uint8_t, 16> guid{};
     uint32_t                age       = 0;
     uint32_t                signature = 0;
-    const Utf8              pdbPathStr = Utf8(pdbPath_);
+    const Utf8              pdbPathStr = nativePdbPathString(pdbPath_);
     PdbWriter::build(*outPdbBytes_, guid, age, signature, *debugInfo_, pdbSections, resolver, image_->moduleName, pdbPathStr);
 
     // Fill the reserved debug-directory section. Like link.exe, emit two entries — CodeView (the RSDS record

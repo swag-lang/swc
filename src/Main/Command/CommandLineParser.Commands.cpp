@@ -213,6 +213,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--dev-full", "-df",
         &cmdLine_->devFull,
         "Force every compiled development test and validation.");
+    add(HelpOptionGroup::Development, "all", "--external-link", nullptr,
+        &cmdLine_->externalLink,
+        "Use the external toolchain (link.exe / lib.exe) instead of the integrated linker.");
 
 #if SWC_HAS_UNITTEST
     add(HelpOptionGroup::Development, "unittest", "--verbose-unittest", "-vu",

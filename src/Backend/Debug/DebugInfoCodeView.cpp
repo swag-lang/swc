@@ -48,6 +48,12 @@ namespace
     constexpr uint16_t K_LF_BUILDINFO            = 0x1603;
     constexpr uint16_t K_LF_STRING_ID            = 0x1605;
     constexpr uint16_t K_LF_MEMBER               = 0x150D;
+    constexpr uint16_t K_LF_INDEX                = 0x1404;
+    // CodeView type records store their length in a uint16_t, so a single record (e.g. a field list)
+    // cannot exceed 0xFFFF bytes. Field lists that would overflow are split into several records
+    // chained with LF_INDEX. Match cl.exe/LLVM and cap below the hard limit to leave room for the
+    // trailing LF_INDEX (8 bytes) and end-of-record padding.
+    constexpr uint32_t K_CV_FIELDLIST_MAX_RECORD = 0xFF00;
     constexpr uint32_t K_CV_CFL_CXX              = 0x01;
     constexpr uint16_t K_CV_CFL_AMD64            = 0x00D0;
     constexpr uint32_t K_CV_TYPE_SIGNATURE       = 4;
@@ -926,10 +932,26 @@ namespace
             return typeIndex;
         }
 
-        uint32_t appendFieldList(const std::span<const FieldDesc> fields)
+        // Encoded size of one LF_MEMBER sub-record: leaf + access (2+2), member type index (4), the
+        // numeric offset leaf, and the NUL-terminated name. Used to decide where to split a field list.
+        static uint32_t fieldMemberEncodedSize(const FieldDesc& field)
         {
-            const uint32_t typeIndex    = nextTypeIndex++;
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FIELDLIST);
+            uint32_t offsetSize = 2;
+            if (field.offset >= K_CV_NUMERIC_LEAF)
+            {
+                if (field.offset <= std::numeric_limits<uint16_t>::max())
+                    offsetSize = 4;
+                else if (field.offset <= std::numeric_limits<uint32_t>::max())
+                    offsetSize = 6;
+                else
+                    offsetSize = 10;
+            }
+
+            return 2 + 2 + 4 + offsetSize + static_cast<uint32_t>(field.name.size()) + 1;
+        }
+
+        void appendFieldListMembers(const std::span<const FieldDesc> fields)
+        {
             for (const FieldDesc& field : fields)
             {
                 writeU16(bytes, K_LF_MEMBER);
@@ -938,9 +960,57 @@ namespace
                 writeEncodedUnsigned(bytes, field.offset);
                 writeCString(bytes, field.name);
             }
+        }
+
+        // Emits one LF_FIELDLIST record for the given members, optionally chained to a continuation
+        // record via a trailing LF_INDEX leaf (0 means no continuation). Returns its type index.
+        uint32_t appendFieldListChunk(const std::span<const FieldDesc> fields, const uint32_t continuationTypeIndex)
+        {
+            const uint32_t typeIndex    = nextTypeIndex++;
+            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FIELDLIST);
+            appendFieldListMembers(fields);
+            if (continuationTypeIndex != 0)
+            {
+                writeU16(bytes, K_LF_INDEX);
+                writeU16(bytes, 0); // padding, must be zero
+                writeU32(bytes, continuationTypeIndex);
+            }
 
             endTypeRecord(bytes, recordOffset);
             return typeIndex;
+        }
+
+        uint32_t appendFieldList(const std::span<const FieldDesc> fields)
+        {
+            // Partition the members into chunks that each stay under the per-record size limit, reserving
+            // room in every chunk for a trailing LF_INDEX so any chunk can chain to the next.
+            std::vector<size_t> chunkStarts;
+            chunkStarts.push_back(0);
+            uint32_t chunkSize = 2 /* leaf */ + 8 /* reserved LF_INDEX */;
+            for (size_t i = 0; i < fields.size(); ++i)
+            {
+                const uint32_t memberSize = fieldMemberEncodedSize(fields[i]);
+                if (i != chunkStarts.back() && chunkSize + memberSize > K_CV_FIELDLIST_MAX_RECORD)
+                {
+                    chunkStarts.push_back(i);
+                    chunkSize = 2 + 8;
+                }
+                chunkSize += memberSize;
+            }
+
+            // Type records may only reference lower (already-emitted) indices, and a chunk's LF_INDEX
+            // points at the next chunk, so emit them back-to-front: the final chunk first (no
+            // continuation), each earlier chunk chaining to the one just written. The struct then
+            // references the first chunk, which is emitted last and has the highest index.
+            uint32_t continuationTypeIndex = 0;
+            for (size_t chunk = chunkStarts.size(); chunk-- > 0;)
+            {
+                const size_t start = chunkStarts[chunk];
+                const size_t end   = chunk + 1 < chunkStarts.size() ? chunkStarts[chunk + 1] : fields.size();
+                continuationTypeIndex = appendFieldListChunk(fields.subspan(start, end - start), continuationTypeIndex);
+            }
+
+            return continuationTypeIndex;
         }
 
         uint32_t appendStructRecord(const Utf8& typeName, const uint32_t fieldListType, const uint16_t memberCount, const uint64_t sizeOf, const uint16_t properties)

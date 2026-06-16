@@ -1793,6 +1793,12 @@ ExitCode CompilerInstance::runWorkspace()
 
             modulePending->launchLink();
             pendingLink = std::move(modulePending);
+
+            // The external toolchain (--external-link) shells out to link.exe, whose PDB engine
+            // (mspdbsrv) is unreliable when several links run at once or overlap the next module's
+            // codegen. Force a strictly serial, one-at-a-time link by draining it before continuing.
+            if (cmdLine().externalLink && joinPendingLink() != Result::Continue)
+                return ExitCode::CompileError;
         }
 
         workspaceBuildLogState_.builtModules++;

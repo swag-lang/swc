@@ -986,7 +986,11 @@ Result NativeBackendBuilder::buildObjects()
     const NativeArtifactBuilder artifactBuilder(*this);
     SWC_RESULT(artifactBuilder.prepareOutputFolders());
 
-    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
+    // The integrated PE linker builds the executable/DLL image directly from functionInfos, so it never
+    // needs the intermediate COFF objects (only static libraries are archived from them). The external
+    // toolchain (--external-link), however, consumes real .obj files for every backend kind, so build
+    // them here when it is selected.
+    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary && !ctx_.cmdLine().externalLink)
         return Result::Continue;
 
     JobManager& jobMgr = ctx_.global().jobMgr();

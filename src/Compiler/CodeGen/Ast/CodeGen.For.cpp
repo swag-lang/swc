@@ -617,7 +617,7 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
 
         const MicroOpBits opBits  = loopOperationBits(codeGen, loopState->indexTypeRef);
         MicroBuilder&     builder = codeGen.builder();
-        builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
+        builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).debugCodeRef());
         builder.setCurrentDebugNoStep(false);
 
         builder.placeLabel(loopState->continueLabel);

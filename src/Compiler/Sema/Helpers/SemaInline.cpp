@@ -779,6 +779,17 @@ namespace
         return TokenRef::invalid();
     }
 
+    SourceCodeRef materializedInlineBindingDebugCodeRef(Sema& sema, const SymbolVariable& sourceParam, AstNodeRef exprRef)
+    {
+        if (exprRef.isValid() && sema.node(exprRef).codeRef().isValid())
+            return sema.node(exprRef).codeRef();
+        if (sourceParam.codeRef().isValid())
+            return sourceParam.codeRef();
+        if (sema.curNodeRef().isValid())
+            return sema.node(sema.curNodeRef()).codeRef();
+        return SourceCodeRef::invalid();
+    }
+
     SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, TokenRef tokRef, const AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
     {
         SWC_UNUSED(sourceParam);
@@ -790,9 +801,10 @@ namespace
         return symVar;
     }
 
-    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, TokenRef tokRef, SymbolVariable& materializedSym)
+    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, TokenRef tokRef, const SourceCodeRef& debugCodeRef, SymbolVariable& materializedSym)
     {
         auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        identPtr->setDebugCodeRef(debugCodeRef);
         identPtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
         sema.setSymbol(identRef, &materializedSym);
         return identRef;
@@ -1200,12 +1212,14 @@ namespace
             if (paramType.isCodeBlock() || paramType.isAnyVariadic())
                 return Result::Continue;
 
-            const TokenRef   tokRef        = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            const TokenRef      tokRef       = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            const SourceCodeRef debugCodeRef = materializedInlineBindingDebugCodeRef(sema, *binding.sourceParam, binding.exprRef);
             const AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
             auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(tokRef);
+            declPtr->setDebugCodeRef(debugCodeRef);
             declPtr->flags()        = AstVarDeclFlagsE::Let;
             declPtr->tokNameRef     = tokRef;
             declPtr->nodeInitRef    = clonedInitRef;
@@ -1214,7 +1228,7 @@ namespace
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
 
-            binding.exprRef          = makeMaterializedInlineBindingUse(sema, tokRef, *materializedSym);
+            binding.exprRef          = makeMaterializedInlineBindingUse(sema, tokRef, debugCodeRef, *materializedSym);
             binding.typeRef          = TypeRef::invalid();
             binding.forceMaterialize = false;
             return Result::Continue;
@@ -1287,13 +1301,15 @@ namespace
                 continue;
             }
 
-            const TokenRef paramNameRef = materializedInlineBindingTokRef(sema, *param, binding.exprRef);
+            const TokenRef      paramNameRef = materializedInlineBindingTokRef(sema, *param, binding.exprRef);
+            const SourceCodeRef debugCodeRef = materializedInlineBindingDebugCodeRef(sema, *param, binding.exprRef);
 
             AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
             auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
+            declPtr->setDebugCodeRef(debugCodeRef);
             const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
             declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
             declPtr->tokNameRef          = paramNameRef;
@@ -1310,7 +1326,7 @@ namespace
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
 
-            binding.exprRef = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
+            binding.exprRef = makeMaterializedInlineBindingUse(sema, paramNameRef, debugCodeRef, *materializedSym);
             if (!forceVariadicMaterialization)
                 binding.typeRef = TypeRef::invalid();
             remainingBindings.push_back(binding);

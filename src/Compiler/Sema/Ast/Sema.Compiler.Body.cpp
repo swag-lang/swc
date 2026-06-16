@@ -312,6 +312,7 @@ namespace
         if (const SourceFile* ownerFile = sema.file())
         {
             srcView.setOwnerFileRef(ownerFile->ref());
+            srcView.setDebugSourceCodeRef(sema.node(ownerRef).codeRef());
             if (const SymbolNamespace* moduleNamespace = ownerFile->moduleNamespace())
                 sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(moduleNamespace));
         }

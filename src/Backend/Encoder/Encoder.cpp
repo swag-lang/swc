@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -28,12 +29,29 @@ bool tryResolveDebugSourceInfo(const TaskContext& ctx, ResolvedDebugSourceInfo& 
     if (!debugSourceInfo.isValid())
         return false;
 
+    SourceCodeRef sourceCodeRef = debugSourceInfo.sourceCodeRef;
     CompilerInstance::ResolvedSourceLocation resolvedLocation;
-    if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, debugSourceInfo.sourceCodeRef))
-        return false;
+    for (uint32_t i = 0; i < 8; ++i)
+    {
+        if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, sourceCodeRef))
+            return false;
+
+        const SourceView* srcView = resolvedLocation.codeRange.srcView;
+        if (!srcView)
+            break;
+
+        const SourceCodeRef debugSourceCodeRef = srcView->debugSourceCodeRef();
+        if (!debugSourceCodeRef.isValid() ||
+            (debugSourceCodeRef.srcViewRef == sourceCodeRef.srcViewRef && debugSourceCodeRef.tokRef == sourceCodeRef.tokRef))
+            break;
+
+        sourceCodeRef = debugSourceCodeRef;
+    }
 
     outResolvedInfo.codeRange  = resolvedLocation.codeRange;
-    outResolvedInfo.sourceFile = resolvedLocation.sourceFile;
+    outResolvedInfo.sourceFile = ctx.compiler().owningSourceFile(resolvedLocation.codeRange.srcView);
+    if (!outResolvedInfo.sourceFile)
+        outResolvedInfo.sourceFile = resolvedLocation.sourceFile;
     return true;
 }
 

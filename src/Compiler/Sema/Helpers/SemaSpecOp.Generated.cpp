@@ -776,7 +776,7 @@ namespace
         return Result::Continue;
     }
 
-    Result prepareGeneratedSourceView(Sema& sema, const std::string_view source, PreparedGeneratedSourceView& outPrepared)
+    Result prepareGeneratedSourceView(Sema& sema, const std::string_view source, const SourceCodeRef& debugSourceCodeRef, PreparedGeneratedSourceView& outPrepared)
     {
         CompilerInstance& compiler        = sema.compiler();
         const SourceView& ownerSrcView    = sema.ast().srcView();
@@ -784,6 +784,7 @@ namespace
         SWC_ASSERT(ownerSourceFile != nullptr);
 
         SourceView&    sourceView   = compiler.addBufferedSourceView(ownerSourceFile->ref(), source);
+        sourceView.setDebugSourceCodeRef(debugSourceCodeRef);
         const uint64_t errorsBefore = Stats::getNumErrors();
         Lexer          lexer;
         lexer.tokenize(sema.ctx(), sourceView, LexerFlagsE::Default);
@@ -802,7 +803,7 @@ namespace
         CompilerInstance& compiler = sema.compiler();
 
         PreparedGeneratedSourceView prepared;
-        SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
+        SWC_RESULT(prepareGeneratedSourceView(sema, source, ownerStruct.codeRef(), prepared));
         SourceView& srcView = *prepared.sourceView;
         if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
@@ -836,7 +837,7 @@ namespace
         TaskContext& ctx = sema.ctx();
 
         PreparedGeneratedSourceView prepared;
-        SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
+        SWC_RESULT(prepareGeneratedSourceView(sema, source, ownerStruct.codeRef(), prepared));
         SourceView& srcView = *prepared.sourceView;
         if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;

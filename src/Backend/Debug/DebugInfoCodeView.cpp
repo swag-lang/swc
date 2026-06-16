@@ -549,8 +549,9 @@ namespace
 
     FunctionLines collectFunctionLines(const TaskContext& ctx, const MachineCode& code)
     {
-        FunctionLines                    result;
-        std::unordered_map<Utf8, size_t> blockIndices;
+        FunctionLines result;
+        size_t        currentBlock = std::numeric_limits<size_t>::max();
+        Utf8          currentFileName;
 
         for (const auto& range : code.debugSourceRanges)
         {
@@ -564,21 +565,14 @@ namespace
                 continue;
 
             const auto codeViewFileName = codeViewPathString(resolvedRange.source.sourceFile->path());
-
-            size_t     blockIndex = 0;
-            const auto blockIt    = blockIndices.find(codeViewFileName);
-            if (blockIt == blockIndices.end())
+            if (currentBlock == std::numeric_limits<size_t>::max() || currentFileName != codeViewFileName)
             {
-                blockIndex = result.blocks.size();
+                currentBlock = result.blocks.size();
                 result.blocks.push_back({.fileName = codeViewFileName, .sourceFile = resolvedRange.source.sourceFile, .entries = {}});
-                blockIndices.emplace(codeViewFileName, blockIndex);
-            }
-            else
-            {
-                blockIndex = blockIt->second;
+                currentFileName = codeViewFileName;
             }
 
-            auto&          entries = result.blocks[blockIndex].entries;
+            auto&          entries = result.blocks[currentBlock].entries;
             const uint32_t line    = std::min<uint32_t>(resolvedRange.source.codeRange.line, 0x00FFFFFFu);
             if (!entries.empty() && entries.back().line == line)
                 continue;

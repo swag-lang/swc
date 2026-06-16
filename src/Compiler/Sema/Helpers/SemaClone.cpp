@@ -438,6 +438,7 @@ namespace
         auto [castRef, castPtr] = sema.ast().makeNode<AstNodeId::CastExpr>(sourceCast->tokRef());
         castPtr->flags()        = sourceCast->flags();
         castPtr->modifierFlags  = sourceCast->modifierFlags;
+        castPtr->setDebugCodeRef(sourceCast->debugCodeRef());
         castPtr->nodeTypeRef    = cloneNodeRef(sema, sourceCast->nodeTypeRef, cloneContext);
         castPtr->nodeExprRef    = clonedRef;
 
@@ -812,6 +813,7 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     }
 
     Ast::setThreadSourceViewOverride(previousSrcView);
+    sema.node(clonedRef).setDebugCodeRef(node.debugCodeRef());
     copyCallableClonePayload(sema, cloneContext, nodeRef, clonedRef);
     copyImplicitCastSubstitute(sema, cloneContext, nodeRef, clonedRef);
     copyImplicitCastPayload(sema, cloneContext, node, nodeRef, clonedRef);

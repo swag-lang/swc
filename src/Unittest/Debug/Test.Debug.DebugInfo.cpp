@@ -439,6 +439,57 @@ namespace
         return false;
     }
 
+    bool countLineRecords(const ByteSpan bytes, const uint32_t expectedLine, uint32_t& outCount)
+    {
+        outCount = 0;
+        if (bytes.size() < sizeof(uint32_t) || readU32(bytes, 0) != K_CV_SIGNATURE_C13)
+            return false;
+
+        uint32_t cursor = sizeof(uint32_t);
+        while (cursor + 8 <= bytes.size())
+        {
+            const uint32_t subsectionType = readU32(bytes, cursor + 0);
+            const uint32_t subsectionSize = readU32(bytes, cursor + 4);
+            cursor += 8;
+
+            if (cursor + subsectionSize > bytes.size())
+                return false;
+
+            if (subsectionType == K_DEBUG_S_LINES)
+            {
+                if (subsectionSize < 12)
+                    return false;
+
+                uint32_t blockOffset = cursor + 12;
+                while (blockOffset + 12 <= cursor + subsectionSize)
+                {
+                    const uint32_t lineCount = readU32(bytes, blockOffset + 4);
+                    const uint32_t blockSize = readU32(bytes, blockOffset + 8);
+                    if (blockSize < 12)
+                        return false;
+
+                    const uint32_t entriesOffset = blockOffset + 12;
+                    const uint32_t entriesSize   = lineCount * 8;
+                    if (entriesOffset + entriesSize > cursor + subsectionSize)
+                        return false;
+
+                    for (uint32_t i = 0; i < lineCount; ++i)
+                    {
+                        const uint32_t lineInfo = readU32(bytes, entriesOffset + i * 8 + 4);
+                        if ((lineInfo & K_CV_LINE_NUMBER_MASK) == expectedLine)
+                            outCount++;
+                    }
+
+                    blockOffset += blockSize;
+                }
+            }
+
+            cursor = alignUp4(cursor + subsectionSize);
+        }
+
+        return true;
+    }
+
     DebugInfoLocalRecord makeDebugLocalRecord(const Utf8& name, const TypeRef typeRef, const uint32_t offset, const MicroReg baseReg)
     {
         DebugInfoLocalRecord record;
@@ -1047,6 +1098,199 @@ SWC_TEST_BEGIN(DebugInfo_ResolvesNoStepBackendSourceInfo)
     if (resolvedRange.source.sourceFile != &sourceFile)
         return Result::Error;
     if (resolvedRange.source.codeRange.line != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_UsesOwnerSourceFileForGeneratedViews)
+{
+    const fs::path ownerPath     = Unittest::makeTestSourcePath("DebugInfo", "UsesOwnerSourceFileForGeneratedViews");
+    const fs::path generatedPath = Unittest::makeTestSourcePath("DebugInfo", "UsesOwnerSourceFileForGeneratedViews.generated");
+
+    SourceFile& ownerFile = Unittest::addTestSource(ctx, ownerPath, "ownerToken\n");
+    SWC_RESULT(ownerFile.loadContent(ctx));
+    SourceFile& generatedFile = Unittest::addTestSource(ctx, generatedPath, "generatedToken\n");
+    SWC_RESULT(generatedFile.loadContent(ctx));
+
+    Lexer lexer;
+    lexer.tokenize(ctx, ownerFile.ast().srcView(), LexerFlagsE::Default);
+    lexer.tokenize(ctx, generatedFile.ast().srcView(), LexerFlagsE::Default);
+
+    SourceView& generatedView = generatedFile.ast().srcView();
+    generatedView.setOwnerFileRef(ownerFile.ref());
+    if (ctx.compiler().sourceViewFile(generatedView.ref()) != &generatedFile)
+        return Result::Error;
+    if (ctx.compiler().owningSourceFile(generatedView) != &ownerFile)
+        return Result::Error;
+
+    TokenRef tokenRef;
+    for (uint32_t i = 0; i < generatedView.tokens().size(); ++i)
+    {
+        const TokenRef        candidate(i);
+        const SourceCodeRange codeRange = generatedView.tokenCodeRange(ctx, candidate);
+        if (!codeRange.line)
+            continue;
+
+        tokenRef = candidate;
+        break;
+    }
+
+    if (!tokenRef.isValid())
+        return Result::Error;
+
+    const DebugSourceInfo debugSourceInfo = {
+        .sourceCodeRef = {.srcViewRef = generatedView.ref(), .tokRef = tokenRef},
+    };
+
+    ResolvedDebugSourceInfo resolvedInfo;
+    if (!tryResolveDebugSourceInfo(ctx, resolvedInfo, debugSourceInfo))
+        return Result::Error;
+    if (resolvedInfo.sourceFile != &ownerFile)
+        return Result::Error;
+    if (resolvedInfo.codeRange.srcView != &generatedView)
+        return Result::Error;
+    if (resolvedInfo.codeRange.line != 1)
+        return Result::Error;
+
+    MachineCode code;
+    code.bytes.push_back(std::byte{0xC3});
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 0,
+        .codeEndOffset   = 1,
+        .debugSourceInfo = debugSourceInfo,
+    });
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName  = "__swc_debug_info_owner_source_proc",
+        .debugName   = "debug::ownerSource",
+        .machineCode = &code,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-owner-source.obj"),
+        .functions    = functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    if (!bytesContainString(debugBytes, Utf8(ownerPath.string())))
+        return Result::Error;
+    if (bytesContainString(debugBytes, Utf8(generatedPath.string())))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DebugInfo_UsesDebugSourceCodeRefForGeneratedViewLines)
+{
+    const fs::path ownerPath = Unittest::makeTestSourcePath("DebugInfo", "UsesDebugSourceCodeRefForGeneratedViewLines");
+
+    std::string ownerSource;
+    std::string generatedSource;
+    for (uint32_t i = 1; i <= 160; ++i)
+    {
+        ownerSource += std::format("ownerLine{}\n", i);
+        generatedSource += std::format("generatedLine{}\n", i);
+    }
+
+    SourceFile& ownerFile = Unittest::addTestSource(ctx, ownerPath, ownerSource);
+    SWC_RESULT(ownerFile.loadContent(ctx));
+
+    Lexer lexer;
+    SourceView& ownerView = ownerFile.ast().srcView();
+    lexer.tokenize(ctx, ownerView, LexerFlagsE::Default);
+
+    SourceView& generatedView = ctx.compiler().addBufferedSourceView(ownerFile.ref(), generatedSource);
+    lexer.tokenize(ctx, generatedView, LexerFlagsE::Default);
+
+    const auto findTokenAtLine = [&](const SourceView& srcView, const uint32_t expectedLine) {
+        for (uint32_t i = 0; i < srcView.tokens().size(); ++i)
+        {
+            const TokenRef        tokRef(i);
+            const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, tokRef);
+            if (codeRange.line == expectedLine)
+                return tokRef;
+        }
+
+        return TokenRef::invalid();
+    };
+
+    const TokenRef ownerLine45Tok     = findTokenAtLine(ownerView, 45);
+    const TokenRef ownerLine144Tok    = findTokenAtLine(ownerView, 144);
+    const TokenRef generatedLine144Tok = findTokenAtLine(generatedView, 144);
+    if (!ownerLine45Tok.isValid() || !ownerLine144Tok.isValid() || !generatedLine144Tok.isValid())
+        return Result::Error;
+
+    generatedView.setDebugSourceCodeRef({.srcViewRef = ownerView.ref(), .tokRef = ownerLine45Tok});
+
+    const DebugSourceInfo generatedDebugSourceInfo = {
+        .sourceCodeRef = {.srcViewRef = generatedView.ref(), .tokRef = generatedLine144Tok},
+    };
+
+    ResolvedDebugSourceInfo generatedResolvedInfo;
+    if (!tryResolveDebugSourceInfo(ctx, generatedResolvedInfo, generatedDebugSourceInfo))
+        return Result::Error;
+    if (generatedResolvedInfo.sourceFile != &ownerFile)
+        return Result::Error;
+    if (generatedResolvedInfo.codeRange.srcView != &ownerView)
+        return Result::Error;
+    if (generatedResolvedInfo.codeRange.line != 45)
+        return Result::Error;
+
+    MachineCode code;
+    code.bytes = {std::byte{0x90}, std::byte{0xC3}};
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 0,
+        .codeEndOffset   = 1,
+        .debugSourceInfo = generatedDebugSourceInfo,
+    });
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 1,
+        .codeEndOffset   = 2,
+        .debugSourceInfo = {.sourceCodeRef = {.srcViewRef = ownerView.ref(), .tokRef = ownerLine144Tok}},
+    });
+
+    const DebugInfoFunctionRecord function = {
+        .symbolName  = "__swc_debug_info_generated_line_proc",
+        .debugName   = "debug::generatedLine",
+        .machineCode = &code,
+    };
+
+    const std::array functions = {function};
+
+    DebugInfoObjectResult        debugInfo;
+    const DebugInfoObjectRequest request = {
+        .ctx          = &ctx,
+        .targetOs     = Runtime::TargetOs::Windows,
+        .objectPath   = fs::path("C:\\swc\\debug-info-generated-line.obj"),
+        .functions    = functions,
+        .emitCodeView = true,
+    };
+
+    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+
+    const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
+    if (!debugSection)
+        return Result::Error;
+
+    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    uint32_t       line45Count;
+    uint32_t       line144Count;
+    if (!countLineRecords(debugBytes, 45, line45Count))
+        return Result::Error;
+    if (!countLineRecords(debugBytes, 144, line144Count))
+        return Result::Error;
+    if (line45Count != 1 || line144Count != 1)
         return Result::Error;
 }
 SWC_TEST_END()

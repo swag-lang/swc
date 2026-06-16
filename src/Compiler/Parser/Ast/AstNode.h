@@ -45,7 +45,8 @@ struct AstNode
     AstNode(const AstNode& other) :
         id_(other.id_),
         parserFlags_(other.parserFlags_),
-        codeRef_(other.codeRef_)
+        codeRef_(other.codeRef_),
+        debugCodeRef_(other.debugCodeRef_)
     {
         payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
@@ -58,6 +59,7 @@ struct AstNode
             id_          = other.id_;
             parserFlags_ = other.parserFlags_;
             codeRef_     = other.codeRef_;
+            debugCodeRef_ = other.debugCodeRef_;
         }
 
         return *this;
@@ -66,7 +68,8 @@ struct AstNode
     AstNode(AstNode&& other) noexcept :
         id_(other.id_),
         parserFlags_(other.parserFlags_),
-        codeRef_(other.codeRef_)
+        codeRef_(other.codeRef_),
+        debugCodeRef_(other.debugCodeRef_)
     {
         payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
@@ -79,6 +82,7 @@ struct AstNode
             id_          = other.id_;
             parserFlags_ = other.parserFlags_;
             codeRef_     = other.codeRef_;
+            debugCodeRef_ = other.debugCodeRef_;
         }
 
         return *this;
@@ -251,6 +255,8 @@ struct AstNode
     SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast, const SourceView& view) const;
     const SourceCodeRef& codeRef() const { return codeRef_; }
     void                 setCodeRef(const SourceCodeRef& codeRef) { codeRef_ = codeRef; }
+    SourceCodeRef        debugCodeRef() const { return debugCodeRef_.isValid() ? debugCodeRef_ : codeRef_; }
+    void                 setDebugCodeRef(const SourceCodeRef& codeRef) { debugCodeRef_ = codeRef; }
     SourceViewRef        srcViewRef() const { return codeRef_.srcViewRef; }
     TokenRef             tokRef() const { return codeRef_.tokRef; }
     TokenRef             tokRefEnd(const Ast& ast) const;
@@ -295,6 +301,7 @@ protected:
     AstNodeId             id_ = AstNodeId::Invalid;
     ParserFlags           parserFlags_{};
     SourceCodeRef         codeRef_;
+    SourceCodeRef         debugCodeRef_;
 };
 
 template<AstNodeId I, typename E = void>

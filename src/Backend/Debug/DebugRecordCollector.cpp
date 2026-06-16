@@ -121,7 +121,7 @@ namespace
         if (!builder.compiler().hasSourceView(srcViewRef))
             return nullptr;
 
-        return builder.compiler().srcView(srcViewRef).file();
+        return builder.compiler().owningSourceFile(builder.compiler().srcView(srcViewRef));
     }
 
     void collectFunction(NativeBackendBuilder& builder, const NativeFunctionInfo& info, CollectedDebugRecords& out)

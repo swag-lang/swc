@@ -99,12 +99,13 @@ namespace
         return SemaClone::cloneAst(sema, sourceRef, noBindings);
     }
 
-    AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const AutoMemberCandidate& candidate)
+    AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const SourceCodeRef& debugCodeRef, const AutoMemberCandidate& candidate)
     {
         if (candidate.baseExprRef.isValid())
             return cloneDetachedExpr(sema, candidate.baseExprRef);
 
         auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        leftPtr->setDebugCodeRef(debugCodeRef);
         if (candidate.symVar)
         {
             sema.setSymbol(leftRef, candidate.symVar);
@@ -123,10 +124,11 @@ namespace
         return leftRef;
     }
 
-    AstNodeRef makeAutoMemberAccessExpr(Sema& sema, TokenRef tokRef, const AutoMemberCandidate& candidate, AstNodeRef rightRef, AstMemberAccessExpr*& outNode)
+    AstNodeRef makeAutoMemberAccessExpr(Sema& sema, TokenRef tokRef, const SourceCodeRef& debugCodeRef, const AutoMemberCandidate& candidate, AstNodeRef rightRef, AstMemberAccessExpr*& outNode)
     {
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef);
-        nodePtr->nodeLeftRef    = makeAutoMemberLeftExpr(sema, tokRef, candidate);
+        nodePtr->setDebugCodeRef(debugCodeRef);
+        nodePtr->nodeLeftRef = makeAutoMemberLeftExpr(sema, tokRef, debugCodeRef, candidate);
         // The RHS of a synthesized member access is a member name, not an arbitrary expression.
         // Reusing detached-expression clone state there can leak stale substitutes from the
         // auto-member source into the generated `left.member` form.
@@ -558,19 +560,20 @@ namespace
         return false;
     }
 
-    AstNodeRef makeReceiverBoundLocalCallable(Sema& sema, TokenRef tokRef, AstNodeRef rightRef, std::span<const Symbol*> callableSymbols)
+    AstNodeRef makeReceiverBoundLocalCallable(Sema& sema, TokenRef tokRef, const SourceCodeRef& debugCodeRef, AstNodeRef rightRef, std::span<const Symbol*> callableSymbols)
     {
         SymbolVariable* receiver = activeReceiverBinding(sema);
         if (!receiver)
             return AstNodeRef::invalid();
 
         auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        leftPtr->setDebugCodeRef(debugCodeRef);
         sema.setSymbol(leftRef, receiver);
         sema.setIsValue(*leftPtr);
         sema.setIsLValue(*leftPtr);
 
         AstMemberAccessExpr* memberNode = nullptr;
-        const AstNodeRef     memberRef  = makeAutoMemberAccessExpr(sema, tokRef, {.baseExprRef = leftRef}, rightRef, memberNode);
+        const AstNodeRef     memberRef  = makeAutoMemberAccessExpr(sema, tokRef, debugCodeRef, {.baseExprRef = leftRef}, rightRef, memberNode);
         sema.setSymbolList(memberRef, callableSymbols);
         sema.setSymbolList(rightRef, callableSymbols);
         sema.setSymbolList(memberNode->nodeRightRef, callableSymbols);
@@ -595,10 +598,11 @@ namespace
 
         AstNodeRef nodeRef = AstNodeRef::invalid();
         if (callableSetNeedsReceiver(callableSymbols.span()))
-            nodeRef = makeReceiverBoundLocalCallable(sema, tokRef, rightRef, callableSymbols.span());
+            nodeRef = makeReceiverBoundLocalCallable(sema, tokRef, codeRef, rightRef, callableSymbols.span());
         if (nodeRef.isInvalid())
         {
             auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+            identPtr->setDebugCodeRef(codeRef);
             SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, identRef, true, callableSymbols.span()));
             sema.setIsValue(*identPtr);
             nodeRef = identRef;
@@ -748,7 +752,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 
         AstMemberAccessExpr*     substituteNode = nullptr;
-        const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), selected, nodeIdentRef, substituteNode);
+        const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), codeRef, selected, nodeIdentRef, substituteNode);
         const std::span<Symbol*> symbols        = sema.curViewSymbolList().symList();
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
@@ -765,7 +769,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     // Aggregate structs do not have member symbols, so they must go through
     // the regular member-access semantic path.
     AstMemberAccessExpr* substituteNode = nullptr;
-    const AstNodeRef     nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), selected, nodeIdentRef, substituteNode);
+    const AstNodeRef     nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), codeRef, selected, nodeIdentRef, substituteNode);
     SWC_RESULT(SemaHelpers::resolveMemberAccess(sema, nodeRef, *substituteNode, allowOverloadSet));
 
     AstNodeRef substituteRef = nodeRef;

@@ -1430,7 +1430,7 @@ Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
     currentDeferredAddressGeneration_ = savedDeferredAddressGeneration;
     visit_                            = std::move(savedVisit);
     if (curNodeRef().isValid())
-        builder().setCurrentDebugSourceCodeRef(node(curNodeRef()).codeRef());
+        builder().setCurrentDebugSourceCodeRef(node(curNodeRef()).debugCodeRef());
 
     return result;
 }
@@ -1534,7 +1534,7 @@ void CodeGen::setVisitors()
 
 Result CodeGen::preNode(AstNode& node)
 {
-    builder().setCurrentDebugSourceCodeRef(node.codeRef());
+    builder().setCurrentDebugSourceCodeRef(node.debugCodeRef());
     if (node.id() == AstNodeId::Attribute)
         return Result::SkipChildren;
 
@@ -1579,7 +1579,7 @@ Result CodeGen::preNode(AstNode& node)
 
 Result CodeGen::postNode(AstNode& node)
 {
-    builder().setCurrentDebugSourceCodeRef(node.codeRef());
+    builder().setCurrentDebugSourceCodeRef(node.debugCodeRef());
     if (curViewConstant().hasConstant())
     {
         SWC_RESULT(emitConstant(curNodeRef()));
@@ -1639,7 +1639,7 @@ Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)
     if (sema().isImplicitCodeBlockArg(curNodeRef(), childRef))
         return Result::SkipChildren;
     if (childRef.isValid())
-        builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
+        builder().setCurrentDebugSourceCodeRef(this->node(childRef).debugCodeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPreNodeChild(*this, node, childRef);
 }
@@ -1647,7 +1647,7 @@ Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)
 Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (childRef.isValid())
-        builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
+        builder().setCurrentDebugSourceCodeRef(this->node(childRef).debugCodeRef());
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPostNodeChild(*this, node, childRef);

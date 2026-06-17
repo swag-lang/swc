@@ -82,6 +82,18 @@ using Swag, Core
     let bounds3 = getOutlineBounds(&scope.face.glyph.outline)
     @assert(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
 
+    // Emboldening a glyph with a counter ('o') must add ink: the outer contour
+    // grows while the inner hole shrinks. A per-contour winding bug would instead
+    // grow the hole, so the total filled area would not increase.
+    discard catch scope.face.loadChar('o', .NoBitmap)
+    @assert(@err == null)
+    @assert(scope.face.glyph.outline.contourCount >= 2)
+    let inkBefore = Math.abs(totalOutlineSignedArea(&scope.face.glyph.outline))
+    discard catch scope.face.glyph.outline.embolden(128)
+    @assert(@err == null)
+    let inkAfter = Math.abs(totalOutlineSignedArea(&scope.face.glyph.outline))
+    @assert(inkAfter > inkBefore)
+
     discard catch scope.face.loadChar('A', .NoBitmap)
     @assert(@err == null)
     let sampleIdx = findPointWithNonZeroY(&scope.face.glyph.outline)

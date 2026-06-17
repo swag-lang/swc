@@ -58,12 +58,19 @@ public impl Outline
         if .pointCount <= 0 or .contourCount <= 0 or !strength do
             return
 
+        // Orientation must be computed once for the whole glyph, not per contour.
+        // Outer contours and their holes (counters) are wound in opposite
+        // directions, so a single shift sign expands the outer ring and shrinks
+        // the holes - both adding ink. Re-deriving the winding per contour would
+        // instead grow the holes, making letters bigger but not actually bolder.
+        let ccw = totalOutlineSignedArea(me) >= 0
+
         var start = 0'u32
         for cast(u32) .contourCount
         {
             let endIdx = cast(u32) .contours[@index]
             let slice  = @mkslice(.points + start, endIdx - start + 1)
-            applyEmboldenToContour(slice, strength)
+            applyEmboldenToContour(slice, strength, ccw)
             start = endIdx + 1
         }
     }
@@ -175,14 +182,34 @@ func contourSignedArea(points: [..] Vector)->f64
     return area * 0.5
 }
 
-func applyEmboldenToContour(points: [..] Vector, strength: f64)
+// Sum the signed area of every contour. For a well-formed glyph the outer
+// contour dominates, so the sign gives the glyph orientation; the magnitude is
+// the net filled area (outer minus holes).
+func totalOutlineSignedArea(outline: const *Outline)->f64
+{
+    if outline.pointCount <= 0 or outline.contourCount <= 0 do
+        return 0
+
+    var total = 0.0'f64
+    var start = 0'u32
+    for cast(u32) outline.contourCount
+    {
+        let endIdx = cast(u32) outline.contours[@index]
+        let slice  = @mkslice(outline.points + start, endIdx - start + 1)
+        total += contourSignedArea(slice)
+        start = endIdx + 1
+    }
+
+    return total
+}
+
+func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 {
     if @countof(points) < 2 or Math.isZeroEpsilon(cast(f32) strength) do
         return
 
     var source: Array'Vector
     source.add(points)
-    let ccw = contourSignedArea(source.toSlice()) >= 0
 
     for @countof(points)
     {

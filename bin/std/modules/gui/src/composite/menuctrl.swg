@@ -95,8 +95,9 @@ public impl IWnd for MenuCtrl
             colorRightText = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
 
             // Back selection
+            let selected = !i.disabled and (.hotIdx == idx or .selectedIdx == idx)
             var colorSel: Color
-            if !i.disabled and (.hotIdx == idx or .selectedIdx == idx)
+            if selected
             {
                 colorSel       = colors.menuBar_SelectedBk
                 colorText      = colors.menuBar_SelectedText
@@ -106,7 +107,14 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)
+            if selected and i.popup
+            {
+                backPos.height += metrics.menuPopup_BarItemOverlap
+                theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
+                theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+            }
+            else do
+                theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)
 
             // Icon
             if i.icon.isValid()

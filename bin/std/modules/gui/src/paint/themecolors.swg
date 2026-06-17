@@ -730,7 +730,7 @@ impl ThemeColors
         .embInfo_InformationBk   = 0xFF404060
         .embInfo_InformationText = White
         .embInfo_MessageBk       = 0xFFAD8F1B
-        .embInfo_MessageText     = Gray5
+        .embInfo_MessageText     = White
 
         .prop_FocusBk     = Color.getLighter(Color.fromArgb(Gray5), 0.05)
         .prop_FocusBorder = Gray3
@@ -1113,7 +1113,7 @@ impl ThemeColors
         .embInfo_InformationBk   = 0xFF404060
         .embInfo_InformationText = White
         .embInfo_MessageBk       = 0xFFAD8F1B
-        .embInfo_MessageText     = Gray5
+        .embInfo_MessageText     = White
 
         .prop_FocusBk     = AccentPressedBk
         .prop_FocusBorder = Blue

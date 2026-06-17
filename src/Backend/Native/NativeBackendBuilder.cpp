@@ -882,11 +882,10 @@ Result NativeBackendBuilder::publishExistingArtifact()
 
 Result NativeBackendBuilder::publishExecutableDependencies()
 {
-    if (!ctx_.cmdLine().publish)
-        return Result::Continue;
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
 
+    const bool publishDependencies = ctx_.cmdLine().publish;
     const fs::path artifactDir = artifactPath.parent_path();
     if (artifactDir.empty())
         return Result::Continue;
@@ -915,6 +914,25 @@ Result NativeBackendBuilder::publishExecutableDependencies()
             const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();
             if (FileSystem::pathEquals(FileSystem::normalizePath(it->path()), FileSystem::normalizePath(dstPath)))
                 continue;
+
+            if (!publishDependencies)
+            {
+                // Windows loads DLLs from the executable folder before PATH. If dependencies
+                // were published by a previous build, remove them when publish is now disabled.
+                ec.clear();
+                if (!fs::exists(dstPath, ec))
+                    continue;
+                if (ec)
+                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+
+                ec.clear();
+                fs::remove(dstPath, ec);
+                if (ec)
+                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+
+                continue;
+            }
+
             if (!shouldCopyPublishDependencyFile(it->path(), dstPath))
                 continue;
 

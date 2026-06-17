@@ -65,12 +65,18 @@ public impl Outline
         // instead grow the holes, making letters bigger but not actually bolder.
         let ccw = totalOutlineSignedArea(me) >= 0
 
+        // Match FreeType's FT_Outline_EmboldenXY, which halves the strength before
+        // shifting: each side of a stem moves by strength/2, so the stem thickens by
+        // strength total. Shifting by the full strength per side would otherwise
+        // double the visual weight for the same nominal value.
+        let perSide = cast(f64) strength * 0.5
+
         var start = 0'u32
         for cast(u32) .contourCount
         {
             let endIdx = cast(u32) .contours[@index]
             let slice  = @mkslice(.points + start, endIdx - start + 1)
-            applyEmboldenToContour(slice, strength, ccw)
+            applyEmboldenToContour(slice, perSide, ccw)
             start = endIdx + 1
         }
     }

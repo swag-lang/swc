@@ -607,8 +607,8 @@ namespace
             appendWindowsStackFrame(outMsg, ctx, numFrames, address);
             ++numFrames;
 
-            DWORD64           imageBase     = 0;
-            PRUNTIME_FUNCTION functionEntry = RtlLookupFunctionEntry(walkContext.Rip, &imageBase, nullptr);
+            DWORD64                 imageBase     = 0;
+            const PRUNTIME_FUNCTION functionEntry = RtlLookupFunctionEntry(walkContext.Rip, &imageBase, nullptr);
             if (functionEntry)
             {
                 PVOID   handlerData      = nullptr;

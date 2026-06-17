@@ -24,8 +24,8 @@ namespace Crypto
     {
         uint32_t h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-        const uint64_t       bitLen = data.size() * 8;
-        std::vector<uint8_t> msg(reinterpret_cast<const uint8_t*>(data.data()), reinterpret_cast<const uint8_t*>(data.data()) + data.size());
+        const uint64_t bitLen = data.size() * 8;
+        std::vector    msg(reinterpret_cast<const uint8_t*>(data.data()), reinterpret_cast<const uint8_t*>(data.data()) + data.size());
         msg.push_back(0x80);
         while (msg.size() % 64 != 56)
             msg.push_back(0);
@@ -47,12 +47,12 @@ namespace Crypto
             uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
             for (int i = 0; i < 64; ++i)
             {
-                const uint32_t S1    = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+                const uint32_t s1    = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
                 const uint32_t ch    = (e & f) ^ (~e & g);
-                const uint32_t temp1 = hh + S1 + ch + K_RC[i] + w[i];
-                const uint32_t S0    = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+                const uint32_t temp1 = hh + s1 + ch + K_RC[i] + w[i];
+                const uint32_t s0    = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
                 const uint32_t maj   = (a & b) ^ (a & c) ^ (b & c);
-                const uint32_t temp2 = S0 + maj;
+                const uint32_t temp2 = s0 + maj;
                 hh                   = g;
                 g                    = f;
                 f                    = e;

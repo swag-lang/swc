@@ -45,7 +45,6 @@ namespace
     constexpr uint16_t K_LF_FUNC_ID          = 0x1601;
     constexpr uint16_t K_LF_BUILDINFO        = 0x1603;
     constexpr uint16_t K_LF_STRING_ID        = 0x1605;
-    constexpr uint8_t  K_CHKSUM_TYPE_NONE    = 0x00;
     constexpr uint8_t  K_CHKSUM_TYPE_SHA256  = 0x03;
 
     uint32_t alignUp4(const uint32_t value)
@@ -1458,9 +1457,9 @@ func debugInfoRuntimeStorageRead(value: const &DebugInfoRuntimeStoragePair)->s32
     if (!runtimeStorageStackLocals || !expectedLocalRecords)
         return Result::Error;
 
-    const std::array<const NativeFunctionInfo*, 1> functions = {functionInfo};
-    CollectedDebugRecords                          debugRecords;
-    collectDebugRecords(nativeBuilder, std::span<const NativeFunctionInfo* const>(functions.data(), functions.size()), nullptr, false, debugRecords);
+    const std::array      functions = {functionInfo};
+    CollectedDebugRecords debugRecords;
+    collectDebugRecords(nativeBuilder, std::span(functions.data(), functions.size()), nullptr, false, debugRecords);
     if (debugRecords.functions.size() != 1 || debugRecords.functionStorage.size() != 1)
         return Result::Error;
     if (debugRecords.functions.front().parameters.size() != expectedParameterRecords)

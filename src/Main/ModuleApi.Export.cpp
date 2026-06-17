@@ -461,17 +461,6 @@ namespace
         return diag;
     }
 
-    Result reportModuleApiFieldNotPublic(TaskContext& ctx, const SymbolStruct& ownerStruct, const SymbolVariable& field)
-    {
-        Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_type_field_private, field);
-        diag.addArgument(Diagnostic::ARG_WHAT, moduleApiSymbolKindName(ownerStruct));
-        diag.addArgument(Diagnostic::ARG_SYM, ownerStruct.name(ctx));
-        diag.addArgument(Diagnostic::ARG_VALUE, field.name(ctx));
-        diag.last().addSpan(ownerStruct.codeRange(ctx), "public type declared here", DiagnosticSeverity::Note);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
     Result reportModuleApiNonPublicTypeReference(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol)
     {
         Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_type_reference_private, focusSymbol);

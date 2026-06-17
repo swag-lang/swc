@@ -1124,8 +1124,8 @@ namespace
             (argNodeView.cstRef().isValid() && !argNodeView.hasSymbol()))
             castFlags.add(CastFlagsE::ConstSource);
 
-        TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
-        TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
+        const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
+        const TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
         SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castToTypeRef, argNodeView));
         from = argNodeView.typeRef().isValid() ? argNodeView.typeRef() : from;
 

@@ -110,8 +110,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
 {
-    DataSegment              segment;
-    std::array<std::byte, 3> bytes{std::byte{1}, std::byte{2}, std::byte{3}};
+    DataSegment segment;
+    std::array  bytes{std::byte{1}, std::byte{2}, std::byte{3}};
 
     const auto [span, offset] = segment.addSpan(ByteSpan{bytes.data(), bytes.size()});
     SWC_UNUSED(span);

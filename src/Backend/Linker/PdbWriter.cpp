@@ -8,6 +8,10 @@ SWC_BEGIN_NAMESPACE();
 
 // ReSharper disable IdentifierTypo
 // ReSharper disable CommentTypo
+// ReSharper disable CppInconsistentNaming
+// ReSharper disable CppDeclaratorNeverUsed
+// ReSharper disable CppEnumeratorNeverUsed
+// ReSharper disable CppClangTidyClangDiagnosticUnusedConstVariable
 
 namespace
 {
@@ -139,7 +143,8 @@ namespace
     uint32_t appendBuildInfoRecord(Bytes& out, uint32_t& nextTypeIndex, const std::array<uint32_t, 5>& items)
     {
         Bytes payload;
-        appendLe16(payload, items.size());
+        constexpr auto offset = static_cast<uint16_t>(items.size());
+        appendLe16(payload, offset);
         for (const uint32_t item : items)
             appendLe32(payload, item);
         appendTypeRecord(out, K_LF_BUILDINFO, payload);
@@ -208,7 +213,7 @@ namespace
     void buildMsf(Bytes& outFile, const std::vector<Bytes>& streams)
     {
         uint32_t   nextBlock  = 3; // 0 = superblock, 1/2 = the two free-page maps
-        const auto allocBlock = [&]() {
+        const auto allocBlock = [&] {
             while ((nextBlock % K_BLOCK_SIZE) == 1 || (nextBlock % K_BLOCK_SIZE) == 2)
                 ++nextBlock;
             return nextBlock++;
@@ -272,8 +277,8 @@ namespace
         Bytes                 super;
         static constexpr char K_MAGIC[] = "Microsoft C/C++ MSF 7.00\r\n\x1A"
                                           "DS\0\0";
-        for (size_t i = 0; i < 32; ++i)
-            super.push_back(static_cast<std::byte>(K_MAGIC[i]));
+        for (char i : K_MAGIC)
+            super.push_back(static_cast<std::byte>(i));
         appendLe32(super, K_BLOCK_SIZE);   // BlockSize
         appendLe32(super, 1);              // FreeBlockMapBlock (use FPM #1)
         appendLe32(super, totalBlocks);    // NumBlocks
@@ -291,7 +296,9 @@ namespace
             fpm[byteIdx] &= static_cast<std::byte>(~(1u << bitIdx));
         }
         writeAt(1, fpm.data(), fpm.size());
-        constexpr Bytes fpm2(K_BLOCK_SIZE, std::byte{0xFF});
+
+        // ReSharper disable once CppVariableCanBeMadeConstexpr
+        const Bytes fpm2(K_BLOCK_SIZE, std::byte{0xFF});
         writeAt(2, fpm2.data(), fpm2.size());
     }
 
@@ -830,9 +837,9 @@ void PdbWriter::build(std::vector<std::byte>&            outBytes,
             appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
         }
 
-        Bytes                 c13;
-        Bytes                 chksmContent;
-        std::vector<uint32_t> chksmEntryOffset(debugInfo.files.size(), std::numeric_limits<uint32_t>::max());
+        Bytes       c13;
+        Bytes       chksmContent;
+        std::vector chksmEntryOffset(debugInfo.files.size(), std::numeric_limits<uint32_t>::max());
         for (const uint32_t fileIndex : module.fileIndices)
         {
             const LinkDebugFile& file   = debugInfo.files[fileIndex];
@@ -1094,7 +1101,7 @@ void PdbWriter::build(std::vector<std::byte>&            outBytes,
 
         const Bytes hash = buildGsiHash(publicSyms);
         Bytes       addrMap;
-        for (const auto& [recordOffset, addr] : publicAddrs)
+        for (const auto& recordOffset : publicAddrs | std::views::keys)
             appendLe32(addrMap, recordOffset);
 
         appendLe32(publicsStream, static_cast<uint32_t>(hash.size()));    // SymHash size

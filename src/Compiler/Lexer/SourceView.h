@@ -45,7 +45,7 @@ public:
     FileRef                              ownerFileRef() const { return ownerFileRef_; }
     void                                 setOwnerFileRef(FileRef fileRef) { ownerFileRef_ = fileRef; }
     SourceCodeRef                        debugSourceCodeRef() const { return debugSourceCodeRef_; }
-    void                                 setDebugSourceCodeRef(SourceCodeRef codeRef) { debugSourceCodeRef_ = codeRef; }
+    void                                 setDebugSourceCodeRef(const SourceCodeRef& codeRef) { debugSourceCodeRef_ = codeRef; }
     std::string_view                     stringView() const { return stringView_; }
     const std::vector<SourceTrivia>&     trivia() const { return trivia_; }
     std::vector<SourceTrivia>&           trivia() { return trivia_; }

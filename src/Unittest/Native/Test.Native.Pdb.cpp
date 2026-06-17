@@ -88,7 +88,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
     LinkSection dataSection;
     dataSection.name  = ".data";
-    dataSection.bytes = std::vector<std::byte>(8, std::byte{0});
+    dataSection.bytes = std::vector(8, std::byte{0});
     dataSection.align = 8;
     dataSection.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write;
 
@@ -101,8 +101,8 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     image.imageBase    = imageBase;
     image.stackReserve = 0x100000;
 
-    constexpr uint32_t T_INT4     = 0x0074; // CodeView primitive: 32-bit signed int (no TPI record needed)
-    constexpr uint16_t CV_REG_RSP = 335;
+    constexpr uint32_t tInt4    = 0x0074; // CodeView primitive: 32-bit signed int (no TPI record needed)
+    constexpr uint16_t cvRegRsp = 335;
 
     const fs::path  dir = fs::temp_directory_path() / "swc_pdb_test";
     std::error_code ec;
@@ -143,14 +143,14 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     tailBlock.codeOffsets = {8, 16};
     tailBlock.lines       = {11, 12};
     fn.lineBlocks.push_back(std::move(tailBlock));
-    fn.locals.push_back({.name = "myLocal", .typeIndex = T_INT4, .frameOffset = 0x20, .cvRegister = CV_REG_RSP, .isParam = false});
+    fn.locals.push_back({.name = "myLocal", .typeIndex = tInt4, .frameOffset = 0x20, .cvRegister = cvRegRsp, .isParam = false});
     dbg.functions.push_back(std::move(fn));
 
     LinkDebugGlobal global;
     global.sectionName   = ".data";
     global.sectionOffset = 0;
     global.displayName   = "myGlobal";
-    global.typeIndex     = T_INT4;
+    global.typeIndex     = tInt4;
     global.isPublic      = true;
     dbg.globals.push_back(std::move(global));
 
@@ -284,9 +284,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
             SymSetContext(symHandle, &frame, nullptr);
 
             bool       foundLocal = false;
-            const auto localCb    = [](PSYMBOL_INFO sym, ULONG, PVOID ctx) -> BOOL {
+            const auto localCb    = [](PSYMBOL_INFO sym, ULONG, PVOID ctx1) -> BOOL {
                 if (std::string_view{sym->Name, sym->NameLen} == "myLocal")
-                    *static_cast<bool*>(ctx) = true;
+                    *static_cast<bool*>(ctx1) = true;
                 return TRUE;
             };
             SymEnumSymbols(symHandle, 0, "*", localCb, &foundLocal);

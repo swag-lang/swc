@@ -1602,8 +1602,8 @@ ExitCode CompilerInstance::runWorkspace()
         filterTargetIndex = it->second;
         snapshotOrder.push_back(it->second);
         snapshotQueued[it->second] = true;
-        for (size_t i = 0; i < modules.size(); ++i)
-            modules[i].filteredOut = true;
+        for (auto& module : modules)
+            module.filteredOut = true;
     }
     else
     {

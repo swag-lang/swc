@@ -186,7 +186,7 @@ namespace
         return {};
     }
 
-    Utf8 activeMixinCallerScopeName(Sema& sema)
+    Utf8 activeMixinCallerScopeName(const Sema& sema)
     {
         const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         if (!inlinePayload || !inlinePayload->sourceFunction || !inlinePayload->callerScope)

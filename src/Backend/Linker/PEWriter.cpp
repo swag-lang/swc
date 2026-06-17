@@ -754,7 +754,7 @@ void PEWriter::reserveDebugDirectorySection()
 // stores its payload by RVA, which is patched in emit() once the section's address is known.
 void PEWriter::reserveResourceSection()
 {
-    static constexpr char manifest[] =
+    static constexpr char MANIFEST[] =
         "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\r\n"
         "<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>\r\n"
         "  <trustInfo xmlns=\"urn:schemas-microsoft-com:asm.v3\">\r\n"
@@ -765,16 +765,15 @@ void PEWriter::reserveResourceSection()
         "    </security>\r\n"
         "  </trustInfo>\r\n"
         "</assembly>\r\n";
-    constexpr auto manifestLen = static_cast<uint32_t>(sizeof(manifest) - 1); // drop the trailing NUL
+    constexpr auto manifestLen = static_cast<uint32_t>(sizeof(MANIFEST) - 1); // drop the trailing NUL
 
     // Three directory levels (type / id / language), each a 16-byte directory + one 8-byte entry, then a
     // 16-byte data entry, then the manifest bytes. Offsets below are relative to the section start.
-    constexpr uint32_t K_RT_MANIFEST   = 24;
-    constexpr uint32_t K_MANIFEST_ID   = 1; // CREATEPROCESS_MANIFEST_RESOURCE_ID
-    constexpr uint32_t K_LANG_EN_US    = 0x0409;
-    constexpr uint32_t K_SUBDIR_FLAG   = 0x80000000u;
-    constexpr uint32_t dataEntryOffset = (16 + 8) * 3;         // 72
-    constexpr uint32_t dataOffset      = dataEntryOffset + 16; // 88
+    constexpr uint32_t kRtManifest     = 24;
+    constexpr uint32_t kManifestId     = 1; // CREATEPROCESS_MANIFEST_RESOURCE_ID
+    constexpr uint32_t kLangEnUs       = 0x0409;
+    constexpr uint32_t kSubdirFlag     = 0x80000000u;
+    constexpr uint32_t dataEntryOffset = (16 + 8) * 3; // 72
 
     std::vector<std::byte> b;
     const auto             u16 = [&](uint16_t v) {
@@ -793,20 +792,20 @@ void PEWriter::reserveResourceSection()
     }; // one id entry
 
     dir();
-    u32(K_RT_MANIFEST);
-    u32(K_SUBDIR_FLAG | 24); // root -> type dir at 24
+    u32(kRtManifest);
+    u32(kSubdirFlag | 24); // root -> type dir at 24
     dir();
-    u32(K_MANIFEST_ID);
-    u32(K_SUBDIR_FLAG | 48); // type -> language dir at 48
+    u32(kManifestId);
+    u32(kSubdirFlag | 48); // type -> language dir at 48
     dir();
-    u32(K_LANG_EN_US);
+    u32(kLangEnUs);
     u32(dataEntryOffset); // language -> data entry at 72
     u32(0 /*OffsetToData RVA, patched later*/);
     u32(manifestLen);
     u32(0);
     u32(0);
     for (uint32_t i = 0; i < manifestLen; ++i)
-        b.push_back(static_cast<std::byte>(manifest[i]));
+        b.push_back(static_cast<std::byte>(MANIFEST[i]));
 
     OutSection section;
     section.name        = ".rsrc";
@@ -928,15 +927,15 @@ void PEWriter::emitDebugInfo()
 
     // VC_FEATURE payload: Pre-VC++11 / C-C++ / GS / sdl / guardN counts. swc applies none of these
     // hardening passes, so the counts are zero — a valid, honest entry.
-    constexpr uint32_t     featDataSize = 20;
-    std::vector<std::byte> feat(featDataSize, std::byte{0});
+    constexpr uint32_t featDataSize = 20;
+    std::vector        feat(featDataSize, std::byte{0});
 
     const uint32_t rsdsRva  = section.rva + dirSize;
     const uint32_t rsdsFile = section.fileOffset + dirSize;
     const uint32_t featRva  = rsdsRva + static_cast<uint32_t>(rsds.size());
     const uint32_t featFile = rsdsFile + static_cast<uint32_t>(rsds.size());
 
-    constexpr uint32_t K_IMAGE_DEBUG_TYPE_VC_FEATURE = 12;
+    constexpr uint32_t kImageDebugTypeVcFeature = 12;
 
     const auto appendDirEntry = [&](std::vector<std::byte>& out, uint32_t type, uint32_t size, uint32_t rva, uint32_t fileOff) {
         ByteUtils::appendLe32(out, 0);              // Characteristics
@@ -951,7 +950,7 @@ void PEWriter::emitDebugInfo()
 
     std::vector<std::byte> dir;
     appendDirEntry(dir, IMAGE_DEBUG_TYPE_CODEVIEW, static_cast<uint32_t>(rsds.size()), rsdsRva, rsdsFile);
-    appendDirEntry(dir, K_IMAGE_DEBUG_TYPE_VC_FEATURE, featDataSize, featRva, featFile);
+    appendDirEntry(dir, kImageDebugTypeVcFeature, featDataSize, featRva, featFile);
 
     SWC_ASSERT(section.bytes.size() >= dirSize + rsds.size() + feat.size());
     std::memcpy(section.bytes.data(), dir.data(), dir.size());

@@ -271,7 +271,7 @@ const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
     if (!currentFn)
         return nullptr;
 
-    return sema.inlinePayload(*currentFn);
+    return Sema::inlinePayload(*currentFn);
 }
 
 uint32_t SemaHelpers::aliasSlotIndex(const TokenId tokenId)

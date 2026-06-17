@@ -49,23 +49,23 @@ namespace
         public:
             WorkerJob(const TaskContext& ctx, std::atomic<uint32_t>& next, uint32_t count, const T& fn) :
                 Job(ctx, JobKind::ModuleApiExport),
-                next_(next),
+                next_(&next),
                 count_(count),
-                fn_(fn)
+                fn_(&fn)
             {
             }
 
             JobResult exec() override
             {
-                for (uint32_t i = next_.fetch_add(1, std::memory_order_relaxed); i < count_; i = next_.fetch_add(1, std::memory_order_relaxed))
-                    fn_(ctx(), i);
+                for (uint32_t i = next_->fetch_add(1, std::memory_order_relaxed); i < count_; i = next_->fetch_add(1, std::memory_order_relaxed))
+                    (*fn_)(ctx(), i);
                 return JobResult::Done;
             }
 
         private:
-            std::atomic<uint32_t>& next_;
+            std::atomic<uint32_t>* next_;
             uint32_t               count_;
-            const T&               fn_;
+            const T*               fn_;
         };
 
         const uint32_t        numWorkers = std::min(count, jobMgr.numWorkers());
@@ -687,7 +687,7 @@ namespace
 
     struct ModuleApiDependencyCollector
     {
-        TaskContext&                      ctx;
+        TaskContext*                      ctx;
         std::vector<const Symbol*>        symbols;
         std::unordered_set<const Symbol*> symbolSet;
         std::unordered_set<const Symbol*> visitedSymbols;
@@ -704,9 +704,9 @@ namespace
 
     void collectModuleApiTypeSymbolDependency(ModuleApiDependencyCollector& collector, const Symbol& symbol)
     {
-        if (!isCurrentModuleSymbol(collector.ctx.compiler(), symbol))
+        if (!isCurrentModuleSymbol(collector.ctx->compiler(), symbol))
             return;
-        if (isWholeFileExportedSymbol(collector.ctx.compiler(), symbol))
+        if (isWholeFileExportedSymbol(collector.ctx->compiler(), symbol))
             return;
         if (!symbol.isPublic() || !isGeneratedModuleApiTypeSymbol(symbol))
             return;
@@ -726,7 +726,7 @@ namespace
             }
 
             if (arg.cstRef.isValid())
-                collectModuleApiTypeRefDependencies(collector, collector.ctx.cstMgr().get(arg.cstRef).typeRef());
+                collectModuleApiTypeRefDependencies(collector, collector.ctx->cstMgr().get(arg.cstRef).typeRef());
         }
     }
 
@@ -748,11 +748,11 @@ namespace
         if (symbolFunction.isGenericInstance())
         {
             SmallVector<GenericInstanceKey> genericArgs;
-            if (symbolFunction.tryGetGenericInstanceArgs(collector.ctx, genericArgs))
+            if (symbolFunction.tryGetGenericInstanceArgs(*collector.ctx, genericArgs))
                 collectModuleApiGenericArgDependencies(collector, genericArgs.span());
         }
 
-        if (symbolFunction.returnTypeRef().isValid() && symbolFunction.returnTypeRef() != collector.ctx.typeMgr().typeVoid())
+        if (symbolFunction.returnTypeRef().isValid() && symbolFunction.returnTypeRef() != collector.ctx->typeMgr().typeVoid())
             collectModuleApiTypeRefDependencies(collector, symbolFunction.returnTypeRef());
 
         for (const SymbolVariable* param : symbolFunction.parameters())
@@ -767,7 +767,7 @@ namespace
         if (!typeRef.isValid() || !collector.visitedTypeRefs.insert(typeRef).second)
             return;
 
-        const TypeInfo& type = collector.ctx.typeMgr().get(typeRef);
+        const TypeInfo& type = collector.ctx->typeMgr().get(typeRef);
         if (type.isAlias())
         {
             const SymbolAlias& alias = type.payloadSymAlias();
@@ -910,7 +910,7 @@ namespace
             if (!symbol)
                 continue;
 
-            ModuleApiDependencyCollector collector{.ctx = ctx};
+            ModuleApiDependencyCollector collector{.ctx = &ctx};
             collectModuleApiSymbolDependencies(collector, *symbol);
             for (const Symbol* dependencySymbol : collector.symbols)
             {

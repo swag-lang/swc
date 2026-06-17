@@ -910,27 +910,19 @@ impl Capture
     {
         with let menu = MenuCtrl.createPopup(view)
         {
-            if me.selection.count
-            {
-                let f = me.forms[me.selection.back()]
-                let t = @kindof(f)
-                switch t
-                {
-                case FormText:
-                    .addItem(ActionEdit.EditText)
-                    .addSeparator()
-                }
-            }
+            // Actions specific to the current selection. They all hide themselves
+            // when they don't apply, and the trailing separator collapses when none
+            // of them is visible.
+            .addItem(ActionEdit.EditText)
+            .addItem(ActionCopyPaste.PasteImageInside)
+            .addItem(ActionEdit.ClearImageInside)
+            .addSeparator()
 
             .addItem(ActionCopyPaste.Copy)
             .addItem(ActionCopyPaste.Cut)
             .addItem(ActionCopyPaste.Paste)
             .addSeparator()
             .addItem(ActionCopyPaste.CopyAsImage)
-            .addSeparator()
-            .addItem(ActionCopyPaste.PasteImageInside)
-            .addItem(ActionEdit.ClearImageInside)
-            .addItem(ActionEdit.ResetRotation)
             .addSeparator()
             .addItem(ActionSelection.DeleteSelection)
             .addSeparator()
@@ -959,6 +951,7 @@ impl Capture
 
         with menu
         {
+            .addItem(ActionEdit.ResetRotation)
             .addSeparator()
             .addItem(ActionSelection.SelectAll)
             .addItem(ActionSelection.SelectSameAll)

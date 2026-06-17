@@ -41,8 +41,9 @@ impl IActionUI for ActionEdit
         switch cxt.id
         {
         case EditText:
-            evt.setFlags |= .Disabled | .Name
+            evt.setFlags |= .Disabled | .Name | .Hidden
             evt.disabled = !hasSel or !lastSelType or lastSelType != FormText
+            evt.hidden   = evt.disabled
             evt.name     = "Edit"
 
         case ClearImageInside:

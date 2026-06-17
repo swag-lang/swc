@@ -89,7 +89,24 @@ impl BaseForm
 
         painter.end()
 
-        let pos = Math.Vector2{pt.x, pt.y}
+        // The form paints into an un-rotated buffer (rotation is applied around the
+        // center at draw time), so un-rotate the test point to match.
+        let base = cast(*BaseForm) @dataof(itf)
+        var pos  = Math.Vector2{pt.x, pt.y}
+        if base.subKind != .Highlight and base.subKind != .PixSel and !Math.isZeroEpsilon(base.rotate)
+        {
+            let br  = itf.boundRect()
+            let cx  = br.horzCenter() * z
+            let cy  = br.vertCenter() * z
+            let ang = -Math.toRadians(base.rotate)
+            let c   = Math.cos(ang)
+            let s   = Math.sin(ang)
+            let dx  = pos.x - cx
+            let dy  = pos.y - cy
+            pos.x = cx + (c * dx - s * dy)
+            pos.y = cy + (s * dx + c * dy)
+        }
+
         foreach cmd in painter.commandBuffer
         {
             if cmd.id != .DrawTriangles do

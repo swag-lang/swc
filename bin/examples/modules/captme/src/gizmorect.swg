@@ -17,7 +17,7 @@ struct GizmoRect
     sigChanged:            func||(*GizmoRect, bool, u32)
     sigHasChanged:         func||()
 
-    // Rotation handle (orbits the bounding box center at the current angle)
+    // Rotation: the whole gizmo (box + anchors + handle) rotates with the form
     rotateEnabled:         bool = false
     rotateValue:           f32  = 0
     rotateAnchor:          Math.Rectangle
@@ -27,6 +27,10 @@ struct GizmoRect
     rotateStartValue:      f32
     rotateStartAngle:      f32
     sigRotate:             func||(*GizmoRect, bool, bool, f32)
+
+    // Captured at the start of a resize so the math stays in the rotated frame
+    gizmoRad:              f32
+    gizmoCenter:           Math.Point
 
     minSizeX:              f32 = 2
     minSizeY:              f32 = 2
@@ -48,7 +52,7 @@ impl GizmoRect
                 return true
             if evt.button != .Left do
                 break
-            if .rotateEnabled and .rotateAnchor.contains(pos)
+            if .rotateEnabled and .rotateAnchor.contains(.toLocal(pos))
             {
                 .rotating         = true
                 .firstRotating    = true
@@ -60,8 +64,21 @@ impl GizmoRect
             if .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
-            .startRect   = .rect
-            .movingRect  = .rect
+            .gizmoRad    = .gizmoAngleRad()
+            .gizmoCenter = {.rect.horzCenter(), .rect.vertCenter()}
+            if .gizmoRad != 0
+            {
+                // Work in a frame centered on the box and aligned to its axes
+                let halfW = .rect.width * 0.5
+                let halfH = .rect.height * 0.5
+                .startRect  = {-halfW, -halfH, .rect.width, .rect.height}
+                .movingRect = .startRect
+            }
+            else
+            {
+                .startRect  = .rect
+                .movingRect = .rect
+            }
             .movingStart = pos
             view.captureMouse()
             return true
@@ -143,6 +160,10 @@ impl GizmoRect
 
                 var diff = pos - .movingStart
                 .movingStart = pos
+
+                // Express the drag in the box's own (rotated) axes
+                if .gizmoRad != 0 do
+                    diff = GizmoRect.rotateVec(diff, -.gizmoRad)
 
                 switch .hotAnchor
                 {
@@ -226,14 +247,15 @@ impl GizmoRect
             }
             else
             {
+                let lp = .toLocal(pos)
                 .hotAnchor = Swag.U32.Max
-                foreach c, i in .anchors where c.contains(pos)
+                foreach c, i in .anchors where c.contains(lp)
                 {
                     .hotAnchor = cast(u32) i
                     break
                 }
 
-                .rotateHot = .rotateEnabled and .hotAnchor == Swag.U32.Max and .rotateAnchor.contains(pos)
+                .rotateHot = .rotateEnabled and .hotAnchor == Swag.U32.Max and .rotateAnchor.contains(lp)
             }
 
             switch .hotAnchor
@@ -273,11 +295,52 @@ impl GizmoRect
         return deg
     }
 
+    // Current gizmo rotation in radians (0 when the form is not rotated)
+    mtd gizmoAngleRad()->f32
+    {
+        if !.rotateEnabled or Math.isZeroEpsilon(.rotateValue) do
+            return 0
+        return Math.toRadians(.rotateValue)
+    }
+
+    // Rotate a vector by the given angle (painter convention: clockwise in screen space)
+    func rotateVec(v: Math.Point, ang: f32)->Math.Point
+    {
+        let c = Math.cos(ang)
+        let s = Math.sin(ang)
+        return Math.Point{c * v.x - s * v.y, s * v.x + c * v.y}
+    }
+
+    // Map a screen point into the gizmo's unrotated frame, so the axis-aligned
+    // anchors/handle can be hit-tested even when the box is rotated.
+    mtd toLocal(pos: Math.Point)->Math.Point
+    {
+        let ang = .gizmoAngleRad()
+        if ang == 0 do
+            return pos
+        let cx = .rect.horzCenter()
+        let cy = .rect.vertCenter()
+        let r  = GizmoRect.rotateVec({pos.x - cx, pos.y - cy}, -ang)
+        return Math.Point{cx + r.x, cy + r.y}
+    }
+
     mtd paint(painter: *Painter, hot: bool, col: Color = Argb.White)
     {
         let anchorSize2 = .anchorSize * 0.5
 
         let color = Color.getBlend(Argb.Black, col, hot ? 0.8 : 1)
+
+        // Rotate the whole gizmo (box + anchors + handle) around the box center.
+        // Anchors are kept axis-aligned in storage; hit-testing un-rotates the mouse.
+        // rotateTransform pivots in screen space, so map the content-space center
+        // through the current transform first (otherwise the pivot drifts with zoom).
+        let ang = .gizmoAngleRad()
+        if ang != 0
+        {
+            painter.pushTransform()
+            let sc = painter.getTransform().transformPoint({.rect.horzCenter(), .rect.vertCenter()})
+            painter.rotateTransform(ang, sc.x, sc.y)
+        }
 
         if .moving and !.trackChange do
             painter.drawRect(.movingRect, Pen.createDash(.Dot, color, 2))
@@ -323,31 +386,29 @@ impl GizmoRect
             }
         }
 
-        // Rotation handle: orbits the bounding box center at the current angle
+        // Rotation handle: sticks to the top edge (the transform rotates it with the box)
         if .rotateEnabled and !hot
         {
-            let cx   = .rect.horzCenter()
-            let cy   = .rect.vertCenter()
-            let rad  = Math.toRadians(.rotateValue)
-            let dirX = Math.sin(rad)
-            let dirY = -Math.cos(rad)
+            let cx      = .rect.horzCenter()
+            let topY    = .rect.y
+            let handleY = topY - RotateHandleDist
+            let knobR   = anchorSize2 + 2
+            let knobCol = .rotateHot ? Argb.Yellow : col
 
-            let diagHalf = Math.sqrt(.rect.width * .rect.width + .rect.height * .rect.height) * 0.5
-            let dist     = diagHalf + RotateHandleDist
+            .rotateAnchor = {cx - knobR, handleY - knobR, knobR * 2, knobR * 2}
 
-            let hx = cx + dirX * dist
-            let hy = cy + dirY * dist
-            let sx = cx + dirX * diagHalf
-            let sy = cy + dirY * diagHalf
+            // Embossed leader line, matching the big-border style (dark core + light overlay)
+            painter.drawLine(cx, topY, cx, handleY, Argb.DarkGray, 4)
+            painter.drawLine(cx, topY, cx, handleY, col, 2)
 
-            .rotateAnchor = {hx - anchorSize2, hy - anchorSize2, .anchorSize, .anchorSize}
-
-            painter.drawLine(sx, sy, hx, hy, color, 2)
-
-            let hcol = .rotateHot ? Argb.Yellow : Argb.White
-            painter.fillCircle(hx, hy, anchorSize2, hcol)
-            painter.drawCircle(hx, hy, anchorSize2, color, anchorSize2 * 0.3)
+            // Knob: dark backing ring for depth, light fill, black outline like the anchors
+            painter.fillCircle(cx, handleY, knobR + 1.5, Argb.DarkGray)
+            painter.fillCircle(cx, handleY, knobR, knobCol)
+            painter.drawCircle(cx, handleY, knobR, Argb.Black, knobR * 0.3)
         }
+
+        if ang != 0 do
+            painter.popTransform()
     }
 
     mtd apply(iform: IForm, first: bool, hitMove: u32)
@@ -359,6 +420,32 @@ impl GizmoRect
         let undo = capture.newUndo(.MoveBaseForm)
         undo.baseForm = iform
         let zoom = capture.editView.zoom
+
+        // Rotated resize: movingRect lives in the box-centered, rotated frame.
+        // Convert it back to an absolute axis-aligned model box (no snapping).
+        if .gizmoRad != 0
+        {
+            let cl  = GizmoRect.rotateVec({.movingRect.horzCenter(), .movingRect.vertCenter()}, .gizmoRad)
+            let scx = .gizmoCenter.x + cl.x
+            let scy = .gizmoCenter.y + cl.y
+
+            let newW = .movingRect.width / zoom
+            let newH = .movingRect.height / zoom
+
+            let startW = .startRect.width / zoom
+            let startH = .startRect.height / zoom
+            let startX = (.gizmoCenter.x - .startRect.width * 0.5) / zoom
+            let startY = (.gizmoCenter.y - .startRect.height * 0.5) / zoom
+
+            undo.newPosX  = cast(s32) ((scx / zoom - newW * 0.5) - startX)
+            undo.newPosY  = cast(s32) ((scy / zoom - newH * 0.5) - startY)
+            undo.newSizeX = cast(s32) (newW - startW)
+            undo.newSizeY = cast(s32) (newH - startH)
+
+            capture.pushUndo(undo)
+            capture.editView.invalidate()
+            return
+        }
 
         let dx = cast(s32) ((.movingRect.x - .startRect.x) / zoom)
         let dy = cast(s32) ((.movingRect.y - .startRect.y) / zoom)

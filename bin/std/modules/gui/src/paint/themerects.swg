@@ -102,6 +102,8 @@ struct ThemeImageRects
     menuPopup_HotBk:                ThemeImageRect = {{57, 197, 27, 27}, 12}
     menuPopup_BarAnchorBk:          ThemeImageRect = {{281, 1, 27, 39}, 12}
     menuPopup_BarAnchorBorder:      ThemeImageRect = {{309, 1, 27, 39}, 12}
+    menuBar_PopupSelectedBk:        ThemeImageRect = {{337, 1, 27, 27}, 12}
+    menuBar_PopupSelectedBorder:    ThemeImageRect = {{365, 1, 27, 27}, 12}
     menuBar_Bk:                     ThemeImageRect = {{1, 225, 27, 27}, 12}
     menuBar_Border:                 ThemeImageRect = {{29, 225, 27, 27}, 5}
     menuBar_SelectedBk:             ThemeImageRect = {{57, 197, 27, 27}, 12}

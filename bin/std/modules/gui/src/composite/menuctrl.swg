@@ -107,11 +107,16 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            if selected and i.popup
+            if selected and i.popup and .subVisible == i.popup
             {
                 backPos.height += metrics.menuPopup_BarItemOverlap
                 theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+            }
+            elif selected and i.popup
+            {
+                theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
+                theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
             else do
                 theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)

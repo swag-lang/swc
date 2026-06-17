@@ -21,7 +21,7 @@ namespace
     // (Utf8(fs::path) goes through generic_string(), which forces forward slashes, so convert here.)
     Utf8 nativePdbPathString(const fs::path& pdbPath)
     {
-        Utf8 result = Utf8(pdbPath);
+        auto result = Utf8(pdbPath);
         std::ranges::replace(result, '/', '\\');
         return result;
     }
@@ -603,7 +603,7 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
 
     IMAGE_OPTIONAL_HEADER64 opt{};
     opt.Magic                       = IMAGE_NT_OPTIONAL_HDR64_MAGIC;
-    opt.MajorLinkerVersion          = static_cast<uint8_t>(SWC_VERSION);  // the PE "linker version" is the producer/compiler version
+    opt.MajorLinkerVersion          = static_cast<uint8_t>(SWC_VERSION); // the PE "linker version" is the producer/compiler version
     opt.MinorLinkerVersion          = static_cast<uint8_t>(SWC_REVISION);
     opt.AddressOfEntryPoint         = entryRva;
     opt.ImageBase                   = image_->imageBase;
@@ -734,14 +734,14 @@ void PEWriter::reserveDebugDirectorySection()
     if (!debugInfoEnabled())
         return;
 
-    const Utf8     pdbPathStr = nativePdbPathString(pdbPath_);
-    const uint32_t rsdsSize   = 4 + 16 + 4 + static_cast<uint32_t>(pdbPathStr.size()) + 1;
+    const Utf8         pdbPathStr        = nativePdbPathString(pdbPath_);
+    const uint32_t     rsdsSize          = 4 + 16 + 4 + static_cast<uint32_t>(pdbPathStr.size()) + 1;
     constexpr uint32_t debugDirEntrySize = 28; // sizeof(IMAGE_DEBUG_DIRECTORY)
     constexpr uint32_t featDataSize      = 20; // IMAGE_DEBUG_TYPE_VC_FEATURE payload (5 x u32 counts)
 
     // Two directory entries (CodeView + VC_FEATURE) followed by their data blobs, matching link.exe's layout.
     OutSection section;
-    section.name        = ".debug";
+    section.name = ".debug";
     section.bytes.assign(2 * debugDirEntrySize + rsdsSize + featDataSize, std::byte{0});
     section.virtualSize = static_cast<uint32_t>(section.bytes.size());
     section.align       = 4;
@@ -765,26 +765,46 @@ void PEWriter::reserveResourceSection()
         "    </security>\r\n"
         "  </trustInfo>\r\n"
         "</assembly>\r\n";
-    const auto manifestLen = static_cast<uint32_t>(sizeof(manifest) - 1); // drop the trailing NUL
+    constexpr auto manifestLen = static_cast<uint32_t>(sizeof(manifest) - 1); // drop the trailing NUL
 
     // Three directory levels (type / id / language), each a 16-byte directory + one 8-byte entry, then a
     // 16-byte data entry, then the manifest bytes. Offsets below are relative to the section start.
     constexpr uint32_t K_RT_MANIFEST   = 24;
-    constexpr uint32_t K_MANIFEST_ID   = 1;       // CREATEPROCESS_MANIFEST_RESOURCE_ID
+    constexpr uint32_t K_MANIFEST_ID   = 1; // CREATEPROCESS_MANIFEST_RESOURCE_ID
     constexpr uint32_t K_LANG_EN_US    = 0x0409;
     constexpr uint32_t K_SUBDIR_FLAG   = 0x80000000u;
-    constexpr uint32_t dataEntryOffset = (16 + 8) * 3; // 72
+    constexpr uint32_t dataEntryOffset = (16 + 8) * 3;         // 72
     constexpr uint32_t dataOffset      = dataEntryOffset + 16; // 88
 
     std::vector<std::byte> b;
-    const auto u16 = [&](uint16_t v) { ByteUtils::appendLe16(b, v); };
-    const auto u32 = [&](uint32_t v) { ByteUtils::appendLe32(b, v); };
-    const auto dir = [&] { u32(0); u32(0); u16(0); u16(0); u16(0); u16(1); }; // one id entry
+    const auto             u16 = [&](uint16_t v) {
+        ByteUtils::appendLe16(b, v);
+    };
+    const auto u32 = [&](uint32_t v) {
+        ByteUtils::appendLe32(b, v);
+    };
+    const auto dir = [&] {
+        u32(0);
+        u32(0);
+        u16(0);
+        u16(0);
+        u16(0);
+        u16(1);
+    }; // one id entry
 
-    dir(); u32(K_RT_MANIFEST); u32(K_SUBDIR_FLAG | 24);          // root -> type dir at 24
-    dir(); u32(K_MANIFEST_ID); u32(K_SUBDIR_FLAG | 48);          // type -> language dir at 48
-    dir(); u32(K_LANG_EN_US);  u32(dataEntryOffset);             // language -> data entry at 72
-    u32(0 /*OffsetToData RVA, patched later*/); u32(manifestLen); u32(0); u32(0);
+    dir();
+    u32(K_RT_MANIFEST);
+    u32(K_SUBDIR_FLAG | 24); // root -> type dir at 24
+    dir();
+    u32(K_MANIFEST_ID);
+    u32(K_SUBDIR_FLAG | 48); // type -> language dir at 48
+    dir();
+    u32(K_LANG_EN_US);
+    u32(dataEntryOffset); // language -> data entry at 72
+    u32(0 /*OffsetToData RVA, patched later*/);
+    u32(manifestLen);
+    u32(0);
+    u32(0);
     for (uint32_t i = 0; i < manifestLen; ++i)
         b.push_back(static_cast<std::byte>(manifest[i]));
 
@@ -885,17 +905,17 @@ void PEWriter::emitDebugInfo()
     resolver.sections  = &sectionAddresses;
 
     std::array<uint8_t, 16> guid{};
-    uint32_t                age       = 0;
-    uint32_t                signature = 0;
+    uint32_t                age        = 0;
+    uint32_t                signature  = 0;
     const Utf8              pdbPathStr = nativePdbPathString(pdbPath_);
     PdbWriter::build(*outPdbBytes_, guid, age, signature, *debugInfo_, pdbSections, resolver, image_->moduleName, pdbPathStr);
 
     // Fill the reserved debug-directory section. Like link.exe, emit two entries — CodeView (the RSDS record
     // pointing at the PDB) and VC_FEATURE (feature counts) — followed by their data blobs in the same section.
-    OutSection&        section   = sections_[debugDirIndex_];
-    constexpr uint32_t entrySize = 28;
+    OutSection&        section    = sections_[debugDirIndex_];
+    constexpr uint32_t entrySize  = 28;
     constexpr uint32_t entryCount = 2;
-    constexpr uint32_t dirSize   = entrySize * entryCount;
+    constexpr uint32_t dirSize    = entrySize * entryCount;
 
     std::vector<std::byte> rsds;
     ByteUtils::appendLe32(rsds, 0x53445352u); // "RSDS"

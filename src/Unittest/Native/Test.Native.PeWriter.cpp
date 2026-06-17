@@ -77,9 +77,9 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
             return Result::Error;
     }
 
-    uint32_t                   exitCode = 0;
-    const std::vector<Utf8>    args;
-    const Os::ProcessRunResult runResult = Os::runProcess(exitCode, exePath, args, dir, nullptr);
+    uint32_t                    exitCode = 0;
+    constexpr std::vector<Utf8> args;
+    const Os::ProcessRunResult  runResult = Os::runProcess(exitCode, exePath, args, dir, nullptr);
 
     fs::remove(exePath, ec);
 

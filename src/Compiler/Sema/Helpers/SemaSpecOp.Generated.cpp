@@ -783,7 +783,7 @@ namespace
         const SourceFile* ownerSourceFile = compiler.owningSourceFile(ownerSrcView);
         SWC_ASSERT(ownerSourceFile != nullptr);
 
-        SourceView&    sourceView   = compiler.addBufferedSourceView(ownerSourceFile->ref(), source);
+        SourceView& sourceView = compiler.addBufferedSourceView(ownerSourceFile->ref(), source);
         sourceView.setDebugSourceCodeRef(debugSourceCodeRef);
         const uint64_t errorsBefore = Stats::getNumErrors();
         Lexer          lexer;

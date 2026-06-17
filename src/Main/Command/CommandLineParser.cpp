@@ -191,16 +191,16 @@ namespace
     {
         if (cfgName == "fast-compile")
         {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::None;
-            buildCfg.sanity            = false;
-            buildCfg.allocatorCaptureStack = false;
-            buildCfg.allocatorLeaks        = false;
+            buildCfg.safetyGuards              = Runtime::SafetyWhat::None;
+            buildCfg.sanity                    = false;
+            buildCfg.allocatorCaptureStack     = false;
+            buildCfg.allocatorLeaks            = false;
             buildCfg.allocatorTrackAllocations = false;
-            buildCfg.allocatorElectricMode = false;
-            buildCfg.allocatorFillMemory   = false;
-            buildCfg.errorStackTrace   = false;
-            buildCfg.backend.optimize  = false;
-            buildCfg.backend.debugInfo = false;
+            buildCfg.allocatorElectricMode     = false;
+            buildCfg.allocatorFillMemory       = false;
+            buildCfg.errorStackTrace           = false;
+            buildCfg.backend.optimize          = false;
+            buildCfg.backend.debugInfo         = false;
         }
         else if (cfgName == "debug")
         {
@@ -217,16 +217,16 @@ namespace
         }
         else if (cfgName == "fast-debug")
         {
-            buildCfg.safetyGuards      = Runtime::SafetyWhat::All;
-            buildCfg.sanity            = true;
-            buildCfg.allocatorCaptureStack = false;
-            buildCfg.allocatorLeaks        = true;
+            buildCfg.safetyGuards              = Runtime::SafetyWhat::All;
+            buildCfg.sanity                    = true;
+            buildCfg.allocatorCaptureStack     = false;
+            buildCfg.allocatorLeaks            = true;
             buildCfg.allocatorTrackAllocations = false;
-            buildCfg.allocatorElectricMode = false;
-            buildCfg.allocatorFillMemory   = false;
-            buildCfg.errorStackTrace   = true;
-            buildCfg.backend.optimize  = true;
-            buildCfg.backend.debugInfo = true;
+            buildCfg.allocatorElectricMode     = false;
+            buildCfg.allocatorFillMemory       = false;
+            buildCfg.errorStackTrace           = true;
+            buildCfg.backend.optimize          = true;
+            buildCfg.backend.debugInfo         = true;
         }
         else if (cfgName == "release")
         {

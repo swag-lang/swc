@@ -21,10 +21,10 @@ struct LinkDebugLineBlock
 struct LinkDebugLocal
 {
     Utf8     name;
-    uint32_t typeIndex  = 0; // CodeView TPI type index (0 = T_NOTYPE)
+    uint32_t typeIndex   = 0; // CodeView TPI type index (0 = T_NOTYPE)
     int32_t  frameOffset = 0;
-    uint16_t cvRegister = 0; // CodeView register enum for the frame base
-    bool     isParam    = false;
+    uint16_t cvRegister  = 0; // CodeView register enum for the frame base
+    bool     isParam     = false;
 };
 
 // A function with code in the image. The writer resolves symbolName to its final address.
@@ -32,14 +32,14 @@ struct LinkDebugFunction
 {
     Utf8                            symbolName; // defined symbol to resolve to section:offset
     Utf8                            displayName;
-    uint32_t                        objIndex = 0; // index into LinkDebugInfo::objectNames (the owning compiland)
+    uint32_t                        objIndex         = 0; // index into LinkDebugInfo::objectNames (the owning compiland)
     uint32_t                        primaryFileIndex = std::numeric_limits<uint32_t>::max();
-    uint32_t                        codeSize     = 0;
-    uint32_t                        funcIdIndex  = 0; // CodeView IPI LF_FUNC_ID index (0 = none)
-    uint32_t                        procTypeIndex = 0; // CodeView TPI LF_PROCEDURE index (0 = T_NOTYPE)
-    uint32_t                        frameSize    = 0;
-    uint32_t                        frameProcFlags = 0;
-    uint16_t                        frameToCodeReg = 0; // CodeView register used to address locals/params
+    uint32_t                        codeSize         = 0;
+    uint32_t                        funcIdIndex      = 0; // CodeView IPI LF_FUNC_ID index (0 = none)
+    uint32_t                        procTypeIndex    = 0; // CodeView TPI LF_PROCEDURE index (0 = T_NOTYPE)
+    uint32_t                        frameSize        = 0;
+    uint32_t                        frameProcFlags   = 0;
+    uint16_t                        frameToCodeReg   = 0; // CodeView register used to address locals/params
     std::vector<LinkDebugLineBlock> lineBlocks;
     std::vector<LinkDebugLocal>     locals;
 };
@@ -48,11 +48,11 @@ struct LinkDebugFunction
 // section to its final segment/RVA).
 struct LinkDebugGlobal
 {
-    Utf8     sectionName;        // ".data" / ".bss"
-    uint32_t sectionOffset = 0;  // byte offset within that section
+    Utf8     sectionName;       // ".data" / ".bss"
+    uint32_t sectionOffset = 0; // byte offset within that section
     Utf8     displayName;
-    uint32_t typeIndex     = 0;
-    bool     isPublic      = false;
+    uint32_t typeIndex = 0;
+    bool     isPublic  = false;
 };
 
 // A user-defined type name to surface via S_UDT in the global symbol stream.
@@ -67,7 +67,7 @@ struct LinkDebugUdt
 struct LinkDebugFile
 {
     Utf8                 path;
-    std::vector<uint8_t> checksum;        // empty when checksumKind == 0
+    std::vector<uint8_t> checksum; // empty when checksumKind == 0
     uint8_t              checksumKind = 0;
 };
 
@@ -79,11 +79,11 @@ struct LinkDebugInfo
     // run from 0x1000 to the matching *End value. The two streams have independent index spaces.
     std::vector<std::byte> tpiRecords;
     std::vector<std::byte> ipiRecords;
-    uint32_t               tpiIndexEnd = 0x1000;
-    uint32_t               ipiIndexEnd = 0x1000;
+    uint32_t               tpiIndexEnd    = 0x1000;
+    uint32_t               ipiIndexEnd    = 0x1000;
     uint32_t               buildInfoIndex = 0;
 
-    std::vector<LinkDebugFile>     files; // source files, referenced by LinkDebugLineBlock::fileIndex
+    std::vector<LinkDebugFile>     files;       // source files, referenced by LinkDebugLineBlock::fileIndex
     std::vector<Utf8>              objectNames; // synthetic compiland (object file) names, indexed by LinkDebugFunction::objIndex
     std::vector<LinkDebugFunction> functions;
     std::vector<LinkDebugGlobal>   globals;

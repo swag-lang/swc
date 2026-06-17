@@ -872,7 +872,8 @@ namespace
         addVirtualForbiddenReg(context, scratchReg, originalReg1);
         addVirtualForbiddenReg(context, scratchReg, originalReg2);
 
-        const MicroReg movedReg = issue.operandIndex == 0 ? originalReg0 : issue.operandIndex == 1 ? originalReg1 : originalReg2;
+        const MicroReg movedReg = issue.operandIndex == 0 ? originalReg0 : issue.operandIndex == 1 ? originalReg1
+                                                                                                   : originalReg2;
         insertMoveRegReg(context, instRef, scratchReg, movedReg, MicroOpBits::B64);
 
         MicroReg rewrittenReg0 = originalReg0;

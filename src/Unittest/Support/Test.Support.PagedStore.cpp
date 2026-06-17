@@ -56,15 +56,15 @@ SWC_TEST_BEGIN(DataSegment_RelocationIndexHandlesInterleavedMonotonicAdds)
     DataSegment segment;
 
     const uint32_t targetOffset = segment.reserveBlock(1, 1, true);
-    const uint32_t firstOffset  = segment.reserveBlock(static_cast<uint32_t>(sizeof(void*)), static_cast<uint32_t>(alignof(void*)), true);
+    const uint32_t firstOffset  = segment.reserveBlock(sizeof(void*), alignof(void*), true);
     segment.addRelocation(firstOffset, targetOffset);
 
     std::vector<DataSegmentRelocation> relocations;
-    segment.copyRelocations(relocations, firstOffset, static_cast<uint32_t>(sizeof(void*)));
+    segment.copyRelocations(relocations, firstOffset, sizeof(void*));
     if (relocations.size() != 1 || relocations[0].offset != firstOffset)
         return Result::Error;
 
-    const uint32_t secondOffset = segment.reserveBlock(static_cast<uint32_t>(sizeof(void*)), static_cast<uint32_t>(alignof(void*)), true);
+    const uint32_t secondOffset = segment.reserveBlock(sizeof(void*), alignof(void*), true);
     segment.addRelocation(secondOffset, targetOffset);
 
     segment.copyRelocations(relocations, firstOffset, secondOffset - firstOffset + static_cast<uint32_t>(sizeof(void*)));

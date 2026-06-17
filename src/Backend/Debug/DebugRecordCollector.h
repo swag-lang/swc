@@ -31,10 +31,10 @@ struct CollectedDebugRecords
 // Gathers the debug records for the given functions (optionally a startup stub and module data/constants).
 // Shared by the COFF object writer (per-object) and the integrated linker (whole module, for the PDB), so
 // both describe the program identically. Must run on the foreground thread: it reads compiler state.
-void collectDebugRecords(NativeBackendBuilder&                        builder,
-                         std::span<const NativeFunctionInfo* const>   functions,
-                         const NativeStartupInfo*                     startup,
-                         bool                                         includeData,
-                         CollectedDebugRecords&                       out);
+void collectDebugRecords(NativeBackendBuilder&                      builder,
+                         std::span<const NativeFunctionInfo* const> functions,
+                         const NativeStartupInfo*                   startup,
+                         bool                                       includeData,
+                         CollectedDebugRecords&                     out);
 
 SWC_END_NAMESPACE();

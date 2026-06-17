@@ -1201,7 +1201,7 @@ namespace
             if (paramType.isCodeBlock() || paramType.isAnyVariadic())
                 return Result::Continue;
 
-            const TokenRef tokRef = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            const TokenRef   tokRef        = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
             const AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
@@ -1288,7 +1288,7 @@ namespace
                 continue;
             }
 
-            const TokenRef      paramNameRef = materializedInlineBindingTokRef(sema, *param, binding.exprRef);
+            const TokenRef paramNameRef = materializedInlineBindingTokRef(sema, *param, binding.exprRef);
 
             AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())

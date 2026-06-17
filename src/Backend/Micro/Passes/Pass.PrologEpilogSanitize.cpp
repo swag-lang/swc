@@ -257,7 +257,7 @@ namespace
             }
         }
 
-        constexpr MicroInstrOpcode setupOpcode = MicroInstrOpcode::LoadRegReg;
+        constexpr auto setupOpcode = MicroInstrOpcode::LoadRegReg;
 
         MicroInstrOperand setFrameOps[3];
         setFrameOps[0].reg    = conv.framePointer;

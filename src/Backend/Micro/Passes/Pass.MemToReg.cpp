@@ -239,8 +239,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         auto resolveBase = [&](MicroReg reg, uint64_t extraOffset) {
             if (reg == frameBase)
             {
-                baseReg = reg;
-                baseSlot = extraOffset;
+                baseReg   = reg;
+                baseSlot  = extraOffset;
                 baseValid = true;
             }
             else
@@ -248,8 +248,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 const auto found = addrRegOffset.find(reg);
                 if (found != addrRegOffset.end() && !badAddrReg.contains(reg))
                 {
-                    baseReg = reg;
-                    baseSlot = found->second + extraOffset;
+                    baseReg   = reg;
+                    baseSlot  = found->second + extraOffset;
                     baseValid = true;
                 }
             }
@@ -265,7 +265,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 valueReg = ops[0].reg;
                 if (baseValid)
                 {
-                    pending = {ref, baseSlot, ops[2].opBits, false};
+                    pending    = {ref, baseSlot, ops[2].opBits, false};
                     hasPending = true;
                 }
                 break;
@@ -274,7 +274,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 valueReg = ops[1].reg;
                 if (baseValid)
                 {
-                    pending = {ref, baseSlot, ops[2].opBits, true};
+                    pending    = {ref, baseSlot, ops[2].opBits, true};
                     hasPending = true;
                 }
                 break;
@@ -282,7 +282,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 resolveBase(ops[0].reg, ops[2].valueU64);
                 if (baseValid)
                 {
-                    pending = {ref, baseSlot, ops[1].opBits, true};
+                    pending    = {ref, baseSlot, ops[1].opBits, true};
                     hasPending = true;
                 }
                 break;

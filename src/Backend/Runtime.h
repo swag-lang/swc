@@ -479,16 +479,16 @@ namespace Runtime
         bool     embeddedImports   = false;
         bool     ignoreInWorkspace = false;
 
-        uint32_t   tempAllocatorCapacity      = 4u * 1024u * 1024u;
-        uint32_t   errorAllocatorCapacity     = 16u * 1024u;
-        SafetyWhat safetyGuards               = SafetyWhat::All;
-        bool       sanity                     = true;
-        bool       allocatorCaptureStack      = false;
-        bool       allocatorLeaks             = true;
-        bool       allocatorTrackAllocations  = false;
-        bool       allocatorElectricMode      = false;
-        bool       allocatorFillMemory        = false;
-        bool       errorStackTrace            = true;
+        uint32_t   tempAllocatorCapacity     = 4u * 1024u * 1024u;
+        uint32_t   errorAllocatorCapacity    = 16u * 1024u;
+        SafetyWhat safetyGuards              = SafetyWhat::All;
+        bool       sanity                    = true;
+        bool       allocatorCaptureStack     = false;
+        bool       allocatorLeaks            = true;
+        bool       allocatorTrackAllocations = false;
+        bool       allocatorElectricMode     = false;
+        bool       allocatorFillMemory       = false;
+        bool       errorStackTrace           = true;
 
         String warnAsErrors;
         String warnAsWarning;

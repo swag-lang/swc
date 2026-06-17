@@ -107,8 +107,8 @@ struct DebugInfoPdbResult
 {
     std::vector<std::byte>            tpiRecords;
     std::vector<std::byte>            ipiRecords;
-    uint32_t                          tpiIndexEnd = 0x1000;
-    uint32_t                          ipiIndexEnd = 0x1000;
+    uint32_t                          tpiIndexEnd    = 0x1000;
+    uint32_t                          ipiIndexEnd    = 0x1000;
     uint32_t                          buildInfoIndex = 0;
     std::vector<DebugInfoPdbFunction> functions;
     std::vector<uint32_t>             globalTypes;
@@ -131,7 +131,7 @@ public:
     static std::array<uint8_t, 32> sourceFileChecksum(const TaskContext& ctx, const SourceFile& file);
 
     virtual Result buildObject(DebugInfoObjectResult& outResult, const DebugInfoObjectRequest& request) = 0;
-    virtual void   buildPdbInfo(DebugInfoPdbResult& outResult, const DebugInfoObjectRequest& request)    = 0;
+    virtual void   buildPdbInfo(DebugInfoPdbResult& outResult, const DebugInfoObjectRequest& request)   = 0;
 };
 
 SWC_END_NAMESPACE();

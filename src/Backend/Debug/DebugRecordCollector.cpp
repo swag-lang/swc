@@ -153,7 +153,7 @@ namespace
                 // register (see spillParametersToDebugSlots), the same base locals use -- not raw
                 // SP, which moves during the body. Record that base so the debugger reads the
                 // right slot.
-                record.baseReg     = localBaseReg;
+                record.baseReg = localBaseReg;
                 storage.parameters.push_back(record);
             }
 

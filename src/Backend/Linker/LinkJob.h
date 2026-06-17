@@ -34,12 +34,12 @@ struct LinkJob
     };
 
     // Common inputs (filled by prepareLink).
-    Mode                           mode     = Mode::Internal;
-    Output                         output   = Output::Executable;
-    Runtime::TargetOs              targetOs = Runtime::TargetOs::Windows; // selects the artifact writer
-    fs::path                       outputPath;
-    fs::path                       pdbPath; // debug-info sidecar; empty when debug info is disabled
-    fs::path                       buildDir;
+    Mode              mode     = Mode::Internal;
+    Output            output   = Output::Executable;
+    Runtime::TargetOs targetOs = Runtime::TargetOs::Windows; // selects the artifact writer
+    fs::path          outputPath;
+    fs::path          pdbPath; // debug-info sidecar; empty when debug info is disabled
+    fs::path          buildDir;
 
     // Internal-mode inputs.
     LinkImage                      image;          // Executable / SharedLibrary

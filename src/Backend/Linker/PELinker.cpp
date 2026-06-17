@@ -720,7 +720,7 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
     for (const NativeObjDescription& obj : builder_->objectDescriptions)
     {
         // Use native (backslash) separators like an external link.exe PDB records for its compilands.
-        Utf8 objName = Utf8(obj.objPath);
+        auto objName = Utf8(obj.objPath);
         std::ranges::replace(objName, '/', '\\');
         dbg.objectNames.push_back(std::move(objName));
     }
@@ -749,7 +749,7 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
     dbg.buildInfoIndex = pdbTypes.buildInfoIndex;
 
     std::unordered_map<Utf8, uint32_t> fileIndices;
-    const auto fileIndexFor = [&](const Utf8& path, const SourceFile* sourceFile) {
+    const auto                         fileIndexFor = [&](const Utf8& path, const SourceFile* sourceFile) {
         if (const auto it = fileIndices.find(path); it != fileIndices.end())
             return it->second;
         const auto    index = static_cast<uint32_t>(dbg.files.size());
@@ -779,19 +779,19 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
         fn.codeSize    = static_cast<uint32_t>(record.machineCode->bytes.size());
         if (const auto objIt = objIndexBySymbol.find(record.symbolName.view()); objIt != objIndexBySymbol.end())
             fn.objIndex = objIt->second;
-        fn.frameSize   = record.frameSize;
+        fn.frameSize = record.frameSize;
         if (record.sourceFile)
         {
-            const Utf8 path = debugSourcePath(record.sourceFile->path());
+            const Utf8 path     = debugSourcePath(record.sourceFile->path());
             fn.primaryFileIndex = fileIndexFor(path, record.sourceFile);
         }
 
         if (i < pdbTypes.functions.size())
         {
             const DebugInfoPdbFunction& fnTypes = pdbTypes.functions[i];
-            fn.procTypeIndex   = fnTypes.procTypeIndex;
-            fn.frameProcFlags  = fnTypes.frameFlags;
-            fn.frameToCodeReg  = fnTypes.frameReg;
+            fn.procTypeIndex                    = fnTypes.procTypeIndex;
+            fn.frameProcFlags                   = fnTypes.frameFlags;
+            fn.frameToCodeReg                   = fnTypes.frameReg;
             for (const DebugInfoPdbLocal& local : fnTypes.locals)
                 fn.locals.push_back({.name = local.name, .typeIndex = local.typeIndex, .frameOffset = local.frameOffset, .cvRegister = local.cvRegister, .isParam = local.isParam});
         }
@@ -820,7 +820,7 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
                 currentBlock = fn.lineBlocks.size();
                 fn.lineBlocks.emplace_back();
                 fn.lineBlocks.back().fileIndex = file;
-                currentFile = file;
+                currentFile                    = file;
             }
 
             LinkDebugLineBlock& block = fn.lineBlocks[currentBlock];

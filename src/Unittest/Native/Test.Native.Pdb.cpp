@@ -101,15 +101,15 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     image.imageBase    = imageBase;
     image.stackReserve = 0x100000;
 
-    constexpr uint32_t T_INT4    = 0x0074; // CodeView primitive: 32-bit signed int (no TPI record needed)
+    constexpr uint32_t T_INT4     = 0x0074; // CodeView primitive: 32-bit signed int (no TPI record needed)
     constexpr uint16_t CV_REG_RSP = 335;
 
     const fs::path  dir = fs::temp_directory_path() / "swc_pdb_test";
     std::error_code ec;
     fs::create_directories(dir, ec);
-    const fs::path exePath = dir / "pdbtest.exe";
-    const fs::path pdbPath = dir / "pdbtest.pdb";
-    const fs::path srcPath = dir / "pdbtest.swg";
+    const fs::path exePath   = dir / "pdbtest.exe";
+    const fs::path pdbPath   = dir / "pdbtest.pdb";
+    const fs::path srcPath   = dir / "pdbtest.swg";
     const fs::path macroPath = dir / "pdbmacro.swg";
 
     LinkDebugInfo dbg;
@@ -117,12 +117,12 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     LinkDebugFile dbgFile;
     dbgFile.path         = Utf8(srcPath);
     dbgFile.checksumKind = 3; // SHA-256
-    dbgFile.checksum.assign(32, static_cast<uint8_t>(0xAB));
+    dbgFile.checksum.assign(32, 0xAB);
     dbg.files.push_back(std::move(dbgFile));
     LinkDebugFile macroFile;
     macroFile.path         = Utf8(macroPath);
     macroFile.checksumKind = 3; // SHA-256
-    macroFile.checksum.assign(32, static_cast<uint8_t>(0xCD));
+    macroFile.checksum.assign(32, 0xCD);
     dbg.files.push_back(std::move(macroFile));
     LinkDebugFunction fn;
     fn.symbolName  = "myFunc";
@@ -196,11 +196,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
         return Result::Error;
     }
 
-    Result         result   = Result::Continue;
-    const Utf8     exePathU  = Utf8(exePath);
+    auto       result   = Result::Continue;
+    const auto exePathU = Utf8(exePath);
     // Pass size 0 so dbghelp reads SizeOfImage (the virtual size) from the PE header rather than the
     // smaller on-disk byte count, which would exclude .text's virtual address from the module range.
-    const DWORD64  modBase   = SymLoadModuleEx(symHandle, nullptr, exePathU.c_str(), nullptr, imageBase, 0, nullptr, 0);
+    const DWORD64 modBase = SymLoadModuleEx(symHandle, nullptr, exePathU.c_str(), nullptr, imageBase, 0, nullptr, 0);
 
     const auto fail = [&](std::string_view msg) {
         std::println(stderr, "Pdb test: {} (err={})", msg, GetLastError());
@@ -214,9 +214,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     else
     {
         alignas(SYMBOL_INFO) std::array<std::byte, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symBuffer{};
-        auto* symbol         = reinterpret_cast<SYMBOL_INFO*>(symBuffer.data());
-        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen   = MAX_SYM_NAME;
+        auto*                                                                          symbol = reinterpret_cast<SYMBOL_INFO*>(symBuffer.data());
+        symbol->SizeOfStruct                                                                  = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen                                                                    = MAX_SYM_NAME;
 
         // Name -> address.
         if (result == Result::Continue && !SymFromName(symHandle, "myFunc", symbol))
@@ -227,7 +227,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
         // Address -> name.
         if (result == Result::Continue)
         {
-            DWORD64 disp = 0;
+            DWORD64 disp         = 0;
             symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
             symbol->MaxNameLen   = MAX_SYM_NAME;
             if (!SymFromAddr(symHandle, funcAddr, &disp, symbol))

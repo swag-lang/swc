@@ -24,7 +24,7 @@ namespace Crypto
     {
         uint32_t h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-        const uint64_t       bitLen = static_cast<uint64_t>(data.size()) * 8;
+        const uint64_t       bitLen = data.size() * 8;
         std::vector<uint8_t> msg(reinterpret_cast<const uint8_t*>(data.data()), reinterpret_cast<const uint8_t*>(data.data()) + data.size());
         msg.push_back(0x80);
         while (msg.size() % 64 != 56)
@@ -63,7 +63,14 @@ namespace Crypto
                 a                    = temp1 + temp2;
             }
 
-            h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+            h[0] += a;
+            h[1] += b;
+            h[2] += c;
+            h[3] += d;
+            h[4] += e;
+            h[5] += f;
+            h[6] += g;
+            h[7] += hh;
         }
 
         std::array<uint8_t, 32> out{};

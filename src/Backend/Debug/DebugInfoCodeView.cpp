@@ -3,11 +3,11 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Runtime.h"
 #include "Backend/RuntimeName.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Version.h"
 #include "Support/Math/Hash.h"
@@ -21,34 +21,34 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_CV_SIGNATURE_C13        = 4;
-    constexpr uint32_t K_DEBUG_S_SYMBOLS         = 0xF1;
-    constexpr uint32_t K_DEBUG_S_LINES           = 0xF2;
-    constexpr uint32_t K_DEBUG_S_STRINGTABLE     = 0xF3;
-    constexpr uint32_t K_DEBUG_S_FILECHKSMS      = 0xF4;
-    constexpr uint16_t K_S_CONSTANT              = 0x1107;
-    constexpr uint16_t K_S_UDT                   = 0x1108;
-    constexpr uint16_t K_S_LDATA32               = 0x110C;
-    constexpr uint16_t K_S_GDATA32               = 0x110D;
-    constexpr uint16_t K_S_REGREL32              = 0x1111;
-    constexpr uint16_t K_S_FRAMEPROC             = 0x1012;
-    constexpr uint16_t K_S_OBJNAME               = 0x1101;
-    constexpr uint16_t K_S_GPROC32_ID            = 0x1147;
-    constexpr uint16_t K_S_BUILDINFO             = 0x114C;
-    constexpr uint16_t K_S_PROC_ID_END           = 0x114F;
-    constexpr uint16_t K_S_COMPILE3              = 0x113C;
-    constexpr uint16_t K_LF_MODIFIER             = 0x1001;
-    constexpr uint16_t K_LF_POINTER              = 0x1002;
-    constexpr uint16_t K_LF_ARRAY                = 0x1503;
-    constexpr uint16_t K_LF_STRUCTURE            = 0x1505;
-    constexpr uint16_t K_LF_PROCEDURE            = 0x1008;
-    constexpr uint16_t K_LF_ARGLIST              = 0x1201;
-    constexpr uint16_t K_LF_FIELDLIST            = 0x1203;
-    constexpr uint16_t K_LF_FUNC_ID              = 0x1601;
-    constexpr uint16_t K_LF_BUILDINFO            = 0x1603;
-    constexpr uint16_t K_LF_STRING_ID            = 0x1605;
-    constexpr uint16_t K_LF_MEMBER               = 0x150D;
-    constexpr uint16_t K_LF_INDEX                = 0x1404;
+    constexpr uint32_t K_CV_SIGNATURE_C13    = 4;
+    constexpr uint32_t K_DEBUG_S_SYMBOLS     = 0xF1;
+    constexpr uint32_t K_DEBUG_S_LINES       = 0xF2;
+    constexpr uint32_t K_DEBUG_S_STRINGTABLE = 0xF3;
+    constexpr uint32_t K_DEBUG_S_FILECHKSMS  = 0xF4;
+    constexpr uint16_t K_S_CONSTANT          = 0x1107;
+    constexpr uint16_t K_S_UDT               = 0x1108;
+    constexpr uint16_t K_S_LDATA32           = 0x110C;
+    constexpr uint16_t K_S_GDATA32           = 0x110D;
+    constexpr uint16_t K_S_REGREL32          = 0x1111;
+    constexpr uint16_t K_S_FRAMEPROC         = 0x1012;
+    constexpr uint16_t K_S_OBJNAME           = 0x1101;
+    constexpr uint16_t K_S_GPROC32_ID        = 0x1147;
+    constexpr uint16_t K_S_BUILDINFO         = 0x114C;
+    constexpr uint16_t K_S_PROC_ID_END       = 0x114F;
+    constexpr uint16_t K_S_COMPILE3          = 0x113C;
+    constexpr uint16_t K_LF_MODIFIER         = 0x1001;
+    constexpr uint16_t K_LF_POINTER          = 0x1002;
+    constexpr uint16_t K_LF_ARRAY            = 0x1503;
+    constexpr uint16_t K_LF_STRUCTURE        = 0x1505;
+    constexpr uint16_t K_LF_PROCEDURE        = 0x1008;
+    constexpr uint16_t K_LF_ARGLIST          = 0x1201;
+    constexpr uint16_t K_LF_FIELDLIST        = 0x1203;
+    constexpr uint16_t K_LF_FUNC_ID          = 0x1601;
+    constexpr uint16_t K_LF_BUILDINFO        = 0x1603;
+    constexpr uint16_t K_LF_STRING_ID        = 0x1605;
+    constexpr uint16_t K_LF_MEMBER           = 0x150D;
+    constexpr uint16_t K_LF_INDEX            = 0x1404;
     // CodeView type records store their length in a uint16_t, so a single record (e.g. a field list)
     // cannot exceed 0xFFFF bytes. Field lists that would overflow are split into several records
     // chained with LF_INDEX. Match cl.exe/LLVM and cap below the hard limit to leave room for the
@@ -999,8 +999,8 @@ namespace
             uint32_t continuationTypeIndex = 0;
             for (size_t chunk = chunkStarts.size(); chunk-- > 0;)
             {
-                const size_t start = chunkStarts[chunk];
-                const size_t end   = chunk + 1 < chunkStarts.size() ? chunkStarts[chunk + 1] : fields.size();
+                const size_t start    = chunkStarts[chunk];
+                const size_t end      = chunk + 1 < chunkStarts.size() ? chunkStarts[chunk + 1] : fields.size();
                 continuationTypeIndex = appendFieldListChunk(fields.subspan(start, end - start), continuationTypeIndex);
             }
 

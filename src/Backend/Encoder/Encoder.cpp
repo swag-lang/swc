@@ -29,7 +29,7 @@ bool tryResolveDebugSourceInfo(const TaskContext& ctx, ResolvedDebugSourceInfo& 
     if (!debugSourceInfo.isValid())
         return false;
 
-    SourceCodeRef sourceCodeRef = debugSourceInfo.sourceCodeRef;
+    SourceCodeRef                            sourceCodeRef = debugSourceInfo.sourceCodeRef;
     CompilerInstance::ResolvedSourceLocation resolvedLocation;
     for (uint32_t i = 0; i < 8; ++i)
     {

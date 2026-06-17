@@ -20,18 +20,18 @@ namespace
 
     constexpr uint32_t K_CV_SIGNATURE_C13 = 4;
 
-    constexpr uint16_t K_S_END        = 0x0006;
-    constexpr uint16_t K_S_FRAMEPROC  = 0x1012;
-    constexpr uint16_t K_S_OBJNAME    = 0x1101;
-    constexpr uint16_t K_S_COMPILE3   = 0x113C;
-    constexpr uint16_t K_S_GPROC32    = 0x1110;
-    constexpr uint16_t K_S_PUB32      = 0x110E;
-    constexpr uint16_t K_S_LDATA32    = 0x110C;
-    constexpr uint16_t K_S_GDATA32    = 0x110D;
-    constexpr uint16_t K_S_UDT        = 0x1108;
-    constexpr uint16_t K_S_REGREL32   = 0x1111;
-    constexpr uint16_t K_S_PROCREF    = 0x1125;
-    constexpr uint16_t K_S_BUILDINFO  = 0x114C;
+    constexpr uint16_t K_S_END       = 0x0006;
+    constexpr uint16_t K_S_FRAMEPROC = 0x1012;
+    constexpr uint16_t K_S_OBJNAME   = 0x1101;
+    constexpr uint16_t K_S_COMPILE3  = 0x113C;
+    constexpr uint16_t K_S_GPROC32   = 0x1110;
+    constexpr uint16_t K_S_PUB32     = 0x110E;
+    constexpr uint16_t K_S_LDATA32   = 0x110C;
+    constexpr uint16_t K_S_GDATA32   = 0x110D;
+    constexpr uint16_t K_S_UDT       = 0x1108;
+    constexpr uint16_t K_S_REGREL32  = 0x1111;
+    constexpr uint16_t K_S_PROCREF   = 0x1125;
+    constexpr uint16_t K_S_BUILDINFO = 0x114C;
 
     constexpr uint16_t K_LF_BUILDINFO = 0x1603;
     constexpr uint16_t K_LF_STRING_ID = 0x1605;
@@ -139,7 +139,7 @@ namespace
     uint32_t appendBuildInfoRecord(Bytes& out, uint32_t& nextTypeIndex, const std::array<uint32_t, 5>& items)
     {
         Bytes payload;
-        appendLe16(payload, static_cast<uint16_t>(items.size()));
+        appendLe16(payload, items.size());
         for (const uint32_t item : items)
             appendLe32(payload, item);
         appendTypeRecord(out, K_LF_BUILDINFO, payload);
@@ -174,8 +174,8 @@ namespace
     // CodeView V1 string hash, used by the /names table and the GSI/public symbol hashes.
     uint32_t hashStringV1(std::string_view str)
     {
-        uint32_t    result    = 0;
-        const auto* data      = str.data();
+        uint32_t     result   = 0;
+        const auto*  data     = str.data();
         const size_t size     = str.size();
         const size_t numLongs = size / 4;
         for (size_t i = 0; i < numLongs; ++i)
@@ -207,7 +207,7 @@ namespace
     // file. Stream contents are provided verbatim; this only deals with block allocation and the directory.
     void buildMsf(Bytes& outFile, const std::vector<Bytes>& streams)
     {
-        uint32_t nextBlock = 3; // 0 = superblock, 1/2 = the two free-page maps
+        uint32_t   nextBlock  = 3; // 0 = superblock, 1/2 = the two free-page maps
         const auto allocBlock = [&]() {
             while ((nextBlock % K_BLOCK_SIZE) == 1 || (nextBlock % K_BLOCK_SIZE) == 2)
                 ++nextBlock;
@@ -232,8 +232,8 @@ namespace
             for (const uint32_t block : blocks)
                 appendLe32(directory, block);
 
-        const uint32_t directoryBytes  = static_cast<uint32_t>(directory.size());
-        const uint32_t directoryBlocks = Math::alignUpU32(directoryBytes, K_BLOCK_SIZE) / K_BLOCK_SIZE;
+        const uint32_t        directoryBytes  = static_cast<uint32_t>(directory.size());
+        const uint32_t        directoryBlocks = Math::alignUpU32(directoryBytes, K_BLOCK_SIZE) / K_BLOCK_SIZE;
         std::vector<uint32_t> dirBlockList;
         dirBlockList.reserve(directoryBlocks);
         for (uint32_t b = 0; b < directoryBlocks; ++b)
@@ -269,8 +269,9 @@ namespace
         writeAt(blockMapAddr, blockMap.data(), blockMap.size());
 
         // Superblock.
-        Bytes super;
-        static constexpr char K_MAGIC[] = "Microsoft C/C++ MSF 7.00\r\n\x1A" "DS\0\0";
+        Bytes                 super;
+        static constexpr char K_MAGIC[] = "Microsoft C/C++ MSF 7.00\r\n\x1A"
+                                          "DS\0\0";
         for (size_t i = 0; i < 32; ++i)
             super.push_back(static_cast<std::byte>(K_MAGIC[i]));
         appendLe32(super, K_BLOCK_SIZE);   // BlockSize
@@ -290,7 +291,7 @@ namespace
             fpm[byteIdx] &= static_cast<std::byte>(~(1u << bitIdx));
         }
         writeAt(1, fpm.data(), fpm.size());
-        const Bytes fpm2(K_BLOCK_SIZE, std::byte{0xFF});
+        constexpr Bytes fpm2(K_BLOCK_SIZE, std::byte{0xFF});
         writeAt(2, fpm2.data(), fpm2.size());
     }
 
@@ -325,7 +326,7 @@ namespace
             appendLe32(out, static_cast<uint32_t>(buffer.size()));
             appendBytes(out, buffer);
 
-            const uint32_t bucketCount = std::max<uint32_t>(1, count * 2 + 1);
+            const uint32_t        bucketCount = std::max<uint32_t>(1, count * 2 + 1);
             std::vector<uint32_t> buckets(bucketCount, 0);
             for (const auto& [name, offset] : offsets)
             {
@@ -365,13 +366,13 @@ namespace
         std::vector<uint32_t>                 fileIndices;
         std::vector<const LinkDebugFunction*> functions;
         Bytes                                 stream;
-        uint32_t                              symByteSize = 0;
-        uint32_t                              c13ByteSize = 0;
-        uint16_t                              streamIndex = 0;
-        uint16_t                              codeSegment = 1;
-        uint32_t                              codeOffset  = 0;
-        uint32_t                              codeSize    = 0;
-        uint32_t                              codeChars   = 0;
+        uint32_t                              symByteSize    = 0;
+        uint32_t                              c13ByteSize    = 0;
+        uint16_t                              streamIndex    = 0;
+        uint16_t                              codeSegment    = 1;
+        uint32_t                              codeOffset     = 0;
+        uint32_t                              codeSize       = 0;
+        uint32_t                              codeChars      = 0;
         uint32_t                              buildInfoIndex = 0;
     };
 
@@ -415,10 +416,10 @@ namespace
         Bytes bucketSection;
 
         // Bitmap of present buckets: (IPHR_HASH/32 + 1) words.
-        constexpr uint32_t bitmapWords = K_IPHR_HASH / 32 + 1;
+        constexpr uint32_t                bitmapWords = K_IPHR_HASH / 32 + 1;
         std::array<uint32_t, bitmapWords> bitmap{};
 
-        Bytes bucketOffsets;
+        Bytes    bucketOffsets;
         uint32_t recordsBefore = 0;
         for (uint32_t b = 0; b < K_IPHR_HASH; ++b)
         {
@@ -439,8 +440,8 @@ namespace
         appendBytes(bucketSection, bucketOffsets);
 
         Bytes out;
-        appendLe32(out, 0xFFFFFFFFu);              // VerSignature
-        appendLe32(out, 0xeffe0000u + 19990810u);  // VerHdr
+        appendLe32(out, 0xFFFFFFFFu);             // VerSignature
+        appendLe32(out, 0xeffe0000u + 19990810u); // VerHdr
         appendLe32(out, static_cast<uint32_t>(records.size()));
         appendLe32(out, static_cast<uint32_t>(bucketSection.size()));
         appendBytes(out, records);
@@ -517,34 +518,34 @@ namespace
     void appendSectionContribEntry(Bytes& out, const uint16_t isect, const uint32_t off, const uint32_t size, const uint32_t characteristics, const uint16_t moduleIndex = 0)
     {
         appendLe16(out, isect);
-        appendLe16(out, 0);            // padding
+        appendLe16(out, 0); // padding
         appendLe32(out, off);
         appendLe32(out, size);
         appendLe32(out, characteristics);
         appendLe16(out, moduleIndex);
-        appendLe16(out, 0);            // padding
-        appendLe32(out, 0);            // data CRC
-        appendLe32(out, 0);            // reloc CRC
+        appendLe16(out, 0); // padding
+        appendLe32(out, 0); // data CRC
+        appendLe32(out, 0); // reloc CRC
     }
 }
 
 // =================================================================================================
 
-void PdbWriter::build(std::vector<std::byte>&             outBytes,
-                      std::array<uint8_t, 16>&            outGuid,
-                      uint32_t&                           outAge,
-                      uint32_t&                           outSignature,
-                      const LinkDebugInfo&                debugInfo,
-                      const std::vector<PdbSectionInfo>&  sections,
-                      const SymbolResolver&               resolver,
-                      const Utf8&                         moduleName,
-                      const Utf8&                         pdbPath)
+void PdbWriter::build(std::vector<std::byte>&            outBytes,
+                      std::array<uint8_t, 16>&           outGuid,
+                      uint32_t&                          outAge,
+                      uint32_t&                          outSignature,
+                      const LinkDebugInfo&               debugInfo,
+                      const std::vector<PdbSectionInfo>& sections,
+                      const SymbolResolver&              resolver,
+                      const Utf8&                        moduleName,
+                      const Utf8&                        pdbPath)
 {
     outAge = 1;
 
     // Deterministic GUID/signature derived from the module's debug content so rebuilds are stable.
-    uint64_t h0 = 0xcbf29ce484222325ull;
-    uint64_t h1 = 0x100000001b3ull;
+    uint64_t   h0  = 0xcbf29ce484222325ull;
+    uint64_t   h1  = 0x100000001b3ull;
     const auto mix = [&](std::string_view text) {
         for (const char ch : text)
         {
@@ -563,15 +564,15 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     outSignature = static_cast<uint32_t>(h0 ^ (h0 >> 32));
 
     // ---- /names ---------------------------------------------------------------------------------
-    NamesTable names;
+    NamesTable            names;
     std::vector<uint32_t> fileNameOffsets(debugInfo.files.size());
     for (size_t i = 0; i < debugInfo.files.size(); ++i)
         fileNameOffsets[i] = names.insert(debugInfo.files[i].path);
 
     // ---- Symbol record stream (publics + globals referenced by GSI/PSI) -------------------------
-    Bytes                    symRecords;
-    std::vector<HashedSym>   publicSyms;
-    std::vector<HashedSym>   globalSyms;
+    Bytes                                              symRecords;
+    std::vector<HashedSym>                             publicSyms;
+    std::vector<HashedSym>                             globalSyms;
     std::vector<std::pair<uint32_t, PdbSymbolAddress>> publicAddrs; // record offset + address (for the addr map)
 
     for (const LinkDebugFunction& fn : debugInfo.functions)
@@ -619,9 +620,9 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     // Model each PDB compiland as the object file the backend split functions into (the codegen job),
     // named after that .obj. This mirrors the layout an external link.exe PDB has -- Visual Studio
     // expects per-object compilands -- while every function still carries its own source-file line table.
-    std::vector<PdbModuleBuild> modules;
+    std::vector<PdbModuleBuild>          modules;
     std::unordered_map<uint32_t, size_t> moduleOfObj;
-    const auto addFileToModule = [](PdbModuleBuild& module, const uint32_t fileIndex) {
+    const auto                           addFileToModule = [](PdbModuleBuild& module, const uint32_t fileIndex) {
         if (fileIndex == std::numeric_limits<uint32_t>::max())
             return;
         for (const uint32_t existing : module.fileIndices)
@@ -676,9 +677,9 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         }
     }
 
-    constexpr uint32_t symBase = sizeof(uint32_t);
+    constexpr uint32_t      symBase = sizeof(uint32_t);
     std::vector<ProcRefSym> procRefs;
-    const uint16_t          moduleStreamStart = STREAM_NAMES + 1;
+    constexpr uint16_t      moduleStreamStart = STREAM_NAMES + 1;
     for (PdbModuleBuild& module : modules)
     {
         module.codeSegment = textSegment;
@@ -717,7 +718,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     uint32_t ipiIndexEnd = std::max<uint32_t>(0x1000, debugInfo.ipiIndexEnd);
     for (PdbModuleBuild& module : modules)
     {
-        const Utf8 primarySource = module.primaryFileIndex < debugInfo.files.size() ? debugInfo.files[module.primaryFileIndex].path : module.name;
+        const Utf8     primarySource = module.primaryFileIndex < debugInfo.files.size() ? debugInfo.files[module.primaryFileIndex].path : module.name;
         const uint32_t currentDirId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, buildInfoDirectory(primarySource));
         const uint32_t buildToolId   = appendStringIdRecord(ipiRecords, ipiIndexEnd, {});
         const uint32_t sourceFileId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, buildInfoFileName(primarySource));
@@ -776,7 +777,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             appendLe32(payload, 0); // end (placeholder)
             appendLe32(payload, 0); // next
             appendLe32(payload, fn->codeSize);
-            appendLe32(payload, 0); // dbg start
+            appendLe32(payload, 0);            // dbg start
             appendLe32(payload, fn->codeSize); // dbg end
             appendLe32(payload, fn->procTypeIndex);
             appendLe32(payload, addr.offset);
@@ -795,10 +796,10 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
                 // to locate locals.
                 Bytes fp;
                 appendLe32(fp, fn->frameSize);
-                appendLe32(fp, 0); // cbPad
-                appendLe32(fp, 0); // offset of pad
-                appendLe32(fp, 0); // bytes of callee-saved registers
-                appendLe32(fp, 0); // exception handler offset
+                appendLe32(fp, 0);                  // cbPad
+                appendLe32(fp, 0);                  // offset of pad
+                appendLe32(fp, 0);                  // bytes of callee-saved registers
+                appendLe32(fp, 0);                  // exception handler offset
                 appendLe16(fp, fn->frameToCodeReg); // frame base-register encoding (sectExHdlr slot)
                 appendLe32(fp, fn->frameProcFlags);
                 appendSymbol(moduleSymbols, K_S_FRAMEPROC, fp);
@@ -829,12 +830,12 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
             appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
         }
 
-        Bytes c13;
-        Bytes chksmContent;
+        Bytes                 c13;
+        Bytes                 chksmContent;
         std::vector<uint32_t> chksmEntryOffset(debugInfo.files.size(), std::numeric_limits<uint32_t>::max());
         for (const uint32_t fileIndex : module.fileIndices)
         {
-            const LinkDebugFile& file = debugInfo.files[fileIndex];
+            const LinkDebugFile& file   = debugInfo.files[fileIndex];
             chksmEntryOffset[fileIndex] = static_cast<uint32_t>(chksmContent.size());
             appendLe32(chksmContent, fileNameOffsets[fileIndex]);
             chksmContent.push_back(static_cast<std::byte>(file.checksum.size()));
@@ -860,7 +861,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
             for (const LinkDebugLineBlock& block : fn->lineBlocks)
             {
-                const uint32_t numLines = static_cast<uint32_t>(block.lines.size());
+                const uint32_t numLines    = static_cast<uint32_t>(block.lines.size());
                 const uint32_t chksmOffset = block.fileIndex < chksmEntryOffset.size() && chksmEntryOffset[block.fileIndex] != std::numeric_limits<uint32_t>::max() ? chksmEntryOffset[block.fileIndex] : 0;
                 appendLe32(content, chksmOffset);
                 appendLe32(content, numLines);
@@ -906,24 +907,24 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     }
 
     // ---- DBI stream -----------------------------------------------------------------------------
-    Bytes modInfo;
+    Bytes    modInfo;
     uint32_t sourceFileRefCount = 0;
     for (PdbModuleBuild& module : modules)
     {
         appendLe32(modInfo, 0); // Unused1
         appendSectionContribEntry(modInfo, module.codeSegment, module.codeOffset, module.codeSize, module.codeChars, static_cast<uint16_t>(&module - modules.data()));
-        appendLe16(modInfo, 0);                 // Flags
-        appendLe16(modInfo, module.streamIndex); // ModuleSymStream
-        appendLe32(modInfo, module.symByteSize); // SymByteSize
-        appendLe32(modInfo, 0);                 // C11ByteSize
-        appendLe32(modInfo, module.c13ByteSize); // C13ByteSize
+        appendLe16(modInfo, 0);                                                // Flags
+        appendLe16(modInfo, module.streamIndex);                               // ModuleSymStream
+        appendLe32(modInfo, module.symByteSize);                               // SymByteSize
+        appendLe32(modInfo, 0);                                                // C11ByteSize
+        appendLe32(modInfo, module.c13ByteSize);                               // C13ByteSize
         appendLe16(modInfo, static_cast<uint16_t>(module.fileIndices.size())); // SourceFileCount
-        appendLe16(modInfo, 0);                 // padding
-        appendLe32(modInfo, 0);                 // Unused2
-        appendLe32(modInfo, 0);                 // SourceFileNameIndex (EC string table index)
-        appendLe32(modInfo, 0);                 // PdbFilePathNameIndex (EC string table index)
-        appendCString(modInfo, module.name.view()); // ModuleName (the object file)
-        appendCString(modInfo, module.name.view()); // ObjFileName (standalone object: same as ModuleName)
+        appendLe16(modInfo, 0);                                                // padding
+        appendLe32(modInfo, 0);                                                // Unused2
+        appendLe32(modInfo, 0);                                                // SourceFileNameIndex (EC string table index)
+        appendLe32(modInfo, 0);                                                // PdbFilePathNameIndex (EC string table index)
+        appendCString(modInfo, module.name.view());                            // ModuleName (the object file)
+        appendCString(modInfo, module.name.view());                            // ObjFileName (standalone object: same as ModuleName)
         alignTo4(modInfo);
         sourceFileRefCount += static_cast<uint32_t>(module.fileIndices.size());
     }
@@ -966,19 +967,22 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendLe16(secMap, count);
         for (size_t i = 0; i < sections.size(); ++i)
         {
-            const uint32_t ch = sections[i].characteristics;
-            uint16_t flags = 0x8; // AddressIs32Bit
-            if (ch & K_SCN_MEM_READ) flags |= 0x1;
-            if (ch & K_SCN_MEM_WRITE) flags |= 0x2;
-            if (ch & K_SCN_MEM_EXECUTE) flags |= 0x4;
+            const uint32_t ch    = sections[i].characteristics;
+            uint16_t       flags = 0x8; // AddressIs32Bit
+            if (ch & K_SCN_MEM_READ)
+                flags |= 0x1;
+            if (ch & K_SCN_MEM_WRITE)
+                flags |= 0x2;
+            if (ch & K_SCN_MEM_EXECUTE)
+                flags |= 0x4;
             appendLe16(secMap, flags);
-            appendLe16(secMap, 0);                              // Ovl
-            appendLe16(secMap, 0);                              // Group
-            appendLe16(secMap, static_cast<uint16_t>(i + 1));  // Frame
-            appendLe16(secMap, 0xFFFF);                         // SectionName
-            appendLe16(secMap, 0xFFFF);                         // ClassName
-            appendLe32(secMap, 0);                              // Offset
-            appendLe32(secMap, sections[i].virtualSize);        // SectionLength
+            appendLe16(secMap, 0);                            // Ovl
+            appendLe16(secMap, 0);                            // Group
+            appendLe16(secMap, static_cast<uint16_t>(i + 1)); // Frame
+            appendLe16(secMap, 0xFFFF);                       // SectionName
+            appendLe16(secMap, 0xFFFF);                       // ClassName
+            appendLe32(secMap, 0);                            // Offset
+            appendLe32(secMap, sections[i].virtualSize);      // SectionLength
         }
         // Trailing absolute section descriptor.
         appendLe16(secMap, 0x208);
@@ -993,7 +997,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
     Bytes sourceInfo;
     {
-        appendLe16(sourceInfo, static_cast<uint16_t>(modules.size())); // NumModules
+        appendLe16(sourceInfo, static_cast<uint16_t>(modules.size()));     // NumModules
         appendLe16(sourceInfo, static_cast<uint16_t>(sourceFileRefCount)); // NumSourceFiles
         uint16_t sourceFileBase = 0;
         for (const PdbModuleBuild& module : modules)
@@ -1004,7 +1008,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         for (const PdbModuleBuild& module : modules)
             appendLe16(sourceInfo, static_cast<uint16_t>(module.fileIndices.size()));
 
-        Bytes namesBuf;
+        Bytes                 namesBuf;
         std::vector<uint32_t> offs;
         offs.reserve(sourceFileRefCount);
         for (const PdbModuleBuild& module : modules)
@@ -1049,26 +1053,26 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
 
     Bytes dbi;
     {
-        appendLe32(dbi, 0xFFFFFFFFu);    // VersionSignature (-1)
-        appendLe32(dbi, 19990903);       // VersionHeader (V70)
-        appendLe32(dbi, outAge);         // Age
-        appendLe16(dbi, globalsStreamIndex); // GlobalStreamIndex
-        appendLe16(dbi, 0x8e32);         // BuildNumber: new-format flag | 14.50, matching link.exe's DBI header
-        appendLe16(dbi, publicsStreamIndex); // PublicStreamIndex
-        appendLe16(dbi, 35726);          // PdbDllVersion (non-zero, matching the link.exe-produced PDB)
+        appendLe32(dbi, 0xFFFFFFFFu);           // VersionSignature (-1)
+        appendLe32(dbi, 19990903);              // VersionHeader (V70)
+        appendLe32(dbi, outAge);                // Age
+        appendLe16(dbi, globalsStreamIndex);    // GlobalStreamIndex
+        appendLe16(dbi, 0x8e32);                // BuildNumber: new-format flag | 14.50, matching link.exe's DBI header
+        appendLe16(dbi, publicsStreamIndex);    // PublicStreamIndex
+        appendLe16(dbi, 35726);                 // PdbDllVersion (non-zero, matching the link.exe-produced PDB)
         appendLe16(dbi, symRecordsStreamIndex); // SymRecordStreamIndex
-        appendLe16(dbi, 0);              // PdbDllRbld
+        appendLe16(dbi, 0);                     // PdbDllRbld
         appendLe32(dbi, static_cast<uint32_t>(modInfo.size()));
         appendLe32(dbi, static_cast<uint32_t>(secContr.size()));
         appendLe32(dbi, static_cast<uint32_t>(secMap.size()));
         appendLe32(dbi, static_cast<uint32_t>(sourceInfo.size()));
-        appendLe32(dbi, 0);              // TypeServerMapSize
-        appendLe32(dbi, 0);              // MFCTypeServerIndex
+        appendLe32(dbi, 0); // TypeServerMapSize
+        appendLe32(dbi, 0); // MFCTypeServerIndex
         appendLe32(dbi, static_cast<uint32_t>(optDbgHeader.size()));
         appendLe32(dbi, static_cast<uint32_t>(ecSubstream.size()));
-        appendLe16(dbi, 0);              // Flags
-        appendLe16(dbi, 0x8664);         // Machine (AMD64)
-        appendLe32(dbi, 0);              // Reserved
+        appendLe16(dbi, 0);      // Flags
+        appendLe16(dbi, 0x8664); // Machine (AMD64)
+        appendLe32(dbi, 0);      // Reserved
         appendBytes(dbi, modInfo);
         appendBytes(dbi, secContr);
         appendBytes(dbi, secMap);
@@ -1089,18 +1093,18 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         });
 
         const Bytes hash = buildGsiHash(publicSyms);
-        Bytes addrMap;
+        Bytes       addrMap;
         for (const auto& [recordOffset, addr] : publicAddrs)
             appendLe32(addrMap, recordOffset);
 
-        appendLe32(publicsStream, static_cast<uint32_t>(hash.size())); // SymHash size
+        appendLe32(publicsStream, static_cast<uint32_t>(hash.size()));    // SymHash size
         appendLe32(publicsStream, static_cast<uint32_t>(addrMap.size())); // AddrMap size
-        appendLe32(publicsStream, 0); // NumThunks
-        appendLe32(publicsStream, 0); // SizeOfThunk
-        appendLe16(publicsStream, 0); // ISectThunkTable
-        appendLe16(publicsStream, 0); // padding
-        appendLe32(publicsStream, 0); // OffThunkTable
-        appendLe32(publicsStream, 0); // NumSections
+        appendLe32(publicsStream, 0);                                     // NumThunks
+        appendLe32(publicsStream, 0);                                     // SizeOfThunk
+        appendLe16(publicsStream, 0);                                     // ISectThunkTable
+        appendLe16(publicsStream, 0);                                     // padding
+        appendLe32(publicsStream, 0);                                     // OffThunkTable
+        appendLe32(publicsStream, 0);                                     // NumSections
         appendBytes(publicsStream, hash);
         appendBytes(publicsStream, addrMap);
     }
@@ -1109,8 +1113,8 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     Bytes sectionHdrStream;
     for (const PdbSectionInfo& s : sections)
     {
-        char nameField[8] = {};
-        const std::string_view nm = s.name.view();
+        char                   nameField[8] = {};
+        const std::string_view nm           = s.name.view();
         std::memcpy(nameField, nm.data(), std::min<size_t>(nm.size(), 8));
         for (const char c : nameField)
             sectionHdrStream.push_back(static_cast<std::byte>(c));
@@ -1128,14 +1132,14 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     // ---- PDB info stream ------------------------------------------------------------------------
     Bytes pdbInfo;
     {
-        appendLe32(pdbInfo, 20000404);      // Version (VC70)
-        appendLe32(pdbInfo, outSignature);  // Signature
-        appendLe32(pdbInfo, outAge);        // Age
+        appendLe32(pdbInfo, 20000404);     // Version (VC70)
+        appendLe32(pdbInfo, outSignature); // Signature
+        appendLe32(pdbInfo, outAge);       // Age
         for (const uint8_t b : outGuid)
             pdbInfo.push_back(static_cast<std::byte>(b));
 
         // Named stream map: maps "/names" to the names stream.
-        Bytes strBuffer;
+        Bytes      strBuffer;
         const auto namesKeyOffset = static_cast<uint32_t>(strBuffer.size());
         appendCString(strBuffer, "/names");
 
@@ -1143,10 +1147,10 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendBytes(pdbInfo, strBuffer);
 
         // Hash table with a single entry.
-        const uint32_t capacity = 4;
-        std::vector<int64_t> bucketKey(capacity, -1);
+        constexpr uint32_t    capacity = 4;
+        std::vector<int64_t>  bucketKey(capacity, -1);
         std::vector<uint32_t> bucketVal(capacity, 0);
-        uint32_t b = hashStringV1("/names") % capacity;
+        uint32_t              b = hashStringV1("/names") % capacity;
         while (bucketKey[b] != -1)
             b = (b + 1) % capacity;
         bucketKey[b] = namesKeyOffset;
@@ -1155,7 +1159,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         appendLe32(pdbInfo, 1);        // Size (present entries)
         appendLe32(pdbInfo, capacity); // Capacity
         // Present bit vector.
-        const uint32_t presentWords = (capacity + 31) / 32;
+        constexpr uint32_t presentWords = (capacity + 31) / 32;
         appendLe32(pdbInfo, presentWords);
         std::vector<uint32_t> present(presentWords, 0);
         present[b / 32] |= (1u << (b % 32));
@@ -1174,8 +1178,8 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     }
 
     // ---- Assemble all streams -------------------------------------------------------------------
-    Bytes tpiHash;
-    Bytes ipiHash;
+    Bytes              tpiHash;
+    Bytes              ipiHash;
     std::vector<Bytes> streams(static_cast<size_t>(ipiHashStreamIndex) + 1);
     streams[STREAM_OLD_DIRECTORY] = {};
     streams[STREAM_PDB_INFO]      = std::move(pdbInfo);
@@ -1192,7 +1196,7 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
     streams[tpiHashStreamIndex]    = std::move(tpiHash);
     streams[ipiHashStreamIndex]    = std::move(ipiHash);
 
-    (void)pdbPath;
+    (void) pdbPath;
     buildMsf(outBytes, streams);
 }
 

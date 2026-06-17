@@ -628,7 +628,7 @@ SWC_TEST_BEGIN(DebugInfo_PdbInfoEmitsWindowsBuildInfo)
 
     const std::array functions = {function};
 
-    DebugInfoPdbResult          pdbInfo;
+    DebugInfoPdbResult           pdbInfo;
     const DebugInfoObjectRequest request = {
         .ctx        = &ctx,
         .targetOs   = Runtime::TargetOs::Windows,
@@ -976,7 +976,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(DebugInfo_FirstLineCoversEntry)
 {
     SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "FirstLineCoversEntry", "alpha\n"
-                                                                                              "beta\n");
+                                                                                               "beta\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
@@ -1214,7 +1214,7 @@ SWC_TEST_BEGIN(DebugInfo_UsesDebugSourceCodeRefForGeneratedViewLines)
     SourceFile& ownerFile = Unittest::addTestSource(ctx, ownerPath, ownerSource);
     SWC_RESULT(ownerFile.loadContent(ctx));
 
-    Lexer lexer;
+    Lexer       lexer;
     SourceView& ownerView = ownerFile.ast().srcView();
     lexer.tokenize(ctx, ownerView, LexerFlagsE::Default);
 
@@ -1233,8 +1233,8 @@ SWC_TEST_BEGIN(DebugInfo_UsesDebugSourceCodeRefForGeneratedViewLines)
         return TokenRef::invalid();
     };
 
-    const TokenRef ownerLine45Tok     = findTokenAtLine(ownerView, 45);
-    const TokenRef ownerLine144Tok    = findTokenAtLine(ownerView, 144);
+    const TokenRef ownerLine45Tok      = findTokenAtLine(ownerView, 45);
+    const TokenRef ownerLine144Tok     = findTokenAtLine(ownerView, 144);
     const TokenRef generatedLine144Tok = findTokenAtLine(generatedView, 144);
     if (!ownerLine45Tok.isValid() || !ownerLine144Tok.isValid() || !generatedLine144Tok.isValid())
         return Result::Error;
@@ -1435,8 +1435,8 @@ func debugInfoRuntimeStorageRead(value: const &DebugInfoRuntimeStoragePair)->s32
         expectedParameterRecords++;
     }
 
-    uint32_t expectedLocalRecords       = 0;
-    uint32_t runtimeStorageStackLocals  = 0;
+    uint32_t expectedLocalRecords      = 0;
+    uint32_t runtimeStorageStackLocals = 0;
     for (const SymbolVariable* local : testFn->localVariables())
     {
         if (!local)

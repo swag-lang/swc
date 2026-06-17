@@ -32,7 +32,7 @@ class PdbWriter
 public:
     struct SymbolResolver
     {
-        virtual ~SymbolResolver()                                       = default;
+        virtual ~SymbolResolver()                                      = default;
         virtual PdbSymbolAddress resolve(const Utf8& symbolName) const = 0;
         // Resolves a section name + offset to a final placement (used for global/static data).
         virtual PdbSymbolAddress resolveSection(const Utf8& sectionName, uint32_t offset) const = 0;
@@ -40,15 +40,15 @@ public:
 
     // Returns the PDB bytes in outBytes and fills outGuid/outAge/outSignature. moduleName/pdbPath are used
     // for the module and object-name records. Never fails for well-formed input.
-    static void build(std::vector<std::byte>&             outBytes,
-                      std::array<uint8_t, 16>&            outGuid,
-                      uint32_t&                           outAge,
-                      uint32_t&                           outSignature,
-                      const LinkDebugInfo&                debugInfo,
-                      const std::vector<PdbSectionInfo>&  sections,
-                      const SymbolResolver&               resolver,
-                      const Utf8&                         moduleName,
-                      const Utf8&                         pdbPath);
+    static void build(std::vector<std::byte>&            outBytes,
+                      std::array<uint8_t, 16>&           outGuid,
+                      uint32_t&                          outAge,
+                      uint32_t&                          outSignature,
+                      const LinkDebugInfo&               debugInfo,
+                      const std::vector<PdbSectionInfo>& sections,
+                      const SymbolResolver&              resolver,
+                      const Utf8&                        moduleName,
+                      const Utf8&                        pdbPath);
 };
 
 SWC_END_NAMESPACE();

@@ -883,7 +883,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             {
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
                 outIssue.operandIndex = 1;
-                outIssue.forbiddenReg  = raxReg;
+                outIssue.forbiddenReg = raxReg;
                 return true;
             }
 
@@ -891,7 +891,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             {
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
                 outIssue.operandIndex = 2;
-                outIssue.forbiddenReg  = raxReg;
+                outIssue.forbiddenReg = raxReg;
                 return true;
             }
         }

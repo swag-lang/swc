@@ -595,8 +595,8 @@ namespace
         // Walk with RtlVirtualUnwind (x64 table-based unwinding). Unlike StackWalk64 it does not
         // depend on RBP being a frame pointer, so it can unwind through FPO/leaf routines such as
         // the CRT memmove/memcpy where RBP holds an arbitrary value.
-        CONTEXT      walkContext = *context;
-        uint32_t     numFrames   = 0;
+        CONTEXT  walkContext = *context;
+        uint32_t numFrames   = 0;
 
         while (numFrames < 64)
         {
@@ -607,11 +607,11 @@ namespace
             appendWindowsStackFrame(outMsg, ctx, numFrames, address);
             ++numFrames;
 
-            DWORD64                imageBase    = 0;
-            PRUNTIME_FUNCTION      functionEntry = RtlLookupFunctionEntry(walkContext.Rip, &imageBase, nullptr);
+            DWORD64           imageBase     = 0;
+            PRUNTIME_FUNCTION functionEntry = RtlLookupFunctionEntry(walkContext.Rip, &imageBase, nullptr);
             if (functionEntry)
             {
-                PVOID   handlerData     = nullptr;
+                PVOID   handlerData      = nullptr;
                 DWORD64 establisherFrame = 0;
                 RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, walkContext.Rip, functionEntry, &walkContext, &handlerData, &establisherFrame, nullptr);
             }

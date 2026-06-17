@@ -121,6 +121,12 @@ struct StateEvent
 {
     enum Kind
     {
+        // Sent once, the first time a surface is shown, *before* the window
+        // becomes visible. Perform slow first-time initialization here
+        // (restoring state, loading content, resizing): the surface is
+        // guaranteed not to be displayed until this returns and a first frame
+        // has been rendered, so there is no black/empty flash on startup.
+        Init
         Show
         Hide
     }

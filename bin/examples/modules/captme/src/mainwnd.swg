@@ -158,19 +158,24 @@ impl IWnd for MainWnd
 
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Show
+        switch evt.kind
         {
-            if .firstShow
-            {
-                .firstShow = false
-                catch g_App.loadState()
-                .surface.constaintPositionToScreen(topLeft: true, margin: 10)
-                .recentWnd.scheduleLoadRecent()
-            }
+        case Init:
+            // Runs while the window is still hidden, so restoring the persisted
+            // size/position and loading content happens before the surface is
+            // ever displayed (no black/empty flash on startup).
+            .firstShow = false
+            catch g_App.loadState()
+            .surface.constaintPositionToScreen(topLeft: true, margin: 10)
+            .recentWnd.scheduleLoadRecent()
             evt.accepted = true
-        }
-        elif evt.kind == .Hide do
+
+        case Show:
+            evt.accepted = true
+
+        case Hide:
             .saveAppState()
+        }
     }
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)

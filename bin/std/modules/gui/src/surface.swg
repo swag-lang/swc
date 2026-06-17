@@ -28,6 +28,7 @@ struct Surface
 
     isDirty:           bool
     isHidden:          bool = true
+    isInitialized:     bool
     isDisabled:        bool
     isMinimized:       bool
     using state:       SurfaceState

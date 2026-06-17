@@ -353,9 +353,28 @@ impl Surface
             return
 
         .isHidden = false
-        .invalidate()
 
+        // First-show initialization stage. Runs while the window is still hidden,
+        // so the application can perform slow setup (restoring state, loading
+        // content, resizing the surface, ...). The window is only made visible
+        // afterwards, once a first frame has been rendered.
+        if !.isInitialized
+        {
+            .isInitialized = true
+            .wnd.view.sendStateEvent(.Init)
+        }
+
+        .invalidate()
         .wnd.applyLayout({.position.width, .position.height})
+
+        // Render the first complete frame into the back buffer *before* the window
+        // becomes visible. Otherwise ShowWindow composites the still-empty (black)
+        // GL surface, and the user sees a black flash until the first runFrame()
+        // paint completes (which is slow on the first frame because of the lazy
+        // font/glyph generation it triggers). Painting while still hidden means the
+        // window appears already showing correct content.
+        .paint()
+
         ShowWindow(.hWnd, SW_SHOW)
 
         let curFocus = .wnd.view.getFocus()

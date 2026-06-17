@@ -6,6 +6,7 @@ struct SliderCtrl
     using frameWnd:     FrameWnd
     labelSize:          f32 = 60
     editSize:           f32 = 60
+    gap:                f32 = 8
 
     sigChanged:         SigArray'func||(*SliderCtrl)
 
@@ -28,7 +29,9 @@ impl IWnd for SliderCtrl
         // Size the value box to its content (the formatted numeric range) so values
         // are never clipped. Prefer `editSize`, but shrink when the row is
         // narrower and keep the track usable by capping at 60% of the available width.
-        let available = Math.max(rect.width - .labelSize, 0.0)
+        // Reserve a gap on each side of the slider (between the label and the track,
+        // and between the track and the value box) so the controls aren't cramped.
+        let available = Math.max(rect.width - .labelSize - .gap * 2, 0.0)
         var es        = .editSize
         let adaptive = .edit.numericPreferredWidth()
         if adaptive > es do
@@ -36,9 +39,9 @@ impl IWnd for SliderCtrl
         es = Math.min(es, available)
 
         let w = available - es
-        .slider.setPosition(.label.position.right(), rect.vertCenter() - metrics.slider_Height / 2, w, metrics.slider_Height)
+        .slider.setPosition(.label.position.right() + .gap, rect.vertCenter() - metrics.slider_Height / 2, w, metrics.slider_Height)
 
-        .edit.setPosition(.slider.position.right(), rect.vertCenter() - metrics.editBox_Height / 2, es, metrics.editBox_Height)
+        .edit.setPosition(.slider.position.right() + .gap, rect.vertCenter() - metrics.editBox_Height / 2, es, metrics.editBox_Height)
     }
 }
 

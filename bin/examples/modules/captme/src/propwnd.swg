@@ -87,12 +87,24 @@ impl PropWnd
         .main.editWnd.invalidate()
     }
 
+    // Common width for every slider's value box, so the column of edit boxes lines
+    // up. Derived from the font height so it scales with the font size.
+    mtd sliderEditSize()->f32
+    {
+        let fontR = .getFont().regular
+        if !fontR do
+            return 60
+        return Math.round(fontR.height * 4)
+    }
+
     mtd createSlider(name: string, minv, maxv: s64, val: f32)->*SliderCtrl
     {
         with let ctrl = SliderCtrl.create(me.mainLayout, name)
         {
             .setMinMaxS64(minv, maxv)
-            .dockStyle = .Top
+            .dockStyle    = .Top
+            .autoEditSize = false
+            .editSize     = me.sliderEditSize()
             .setValue(val)
         }
 

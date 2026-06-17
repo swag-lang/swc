@@ -7,6 +7,7 @@ struct SliderCtrl
     labelSize:          f32 = 60
     editSize:           f32 = 60
     gap:                f32 = 8
+    autoEditSize:       bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
     sigChanged:         SigArray'func||(*SliderCtrl)
 
@@ -26,16 +27,20 @@ impl IWnd for SliderCtrl
 
         .label.setPosition(0, 0, .labelSize, rect.height)
 
-        // Size the value box to its content (the formatted numeric range) so values
-        // are never clipped. Prefer `editSize`, but shrink when the row is
-        // narrower and keep the track usable by capping at 60% of the available width.
+        // Size the value box. With `autoEditSize` the box grows to fit its numeric
+        // range so values are never clipped; otherwise the caller-provided `editSize`
+        // is used verbatim (e.g. to force a common width across several sliders).
+        // In both cases keep the track usable by capping at 60% of the available width.
         // Reserve a gap on each side of the slider (between the label and the track,
         // and between the track and the value box) so the controls aren't cramped.
         let available = Math.max(rect.width - .labelSize - .gap * 2, 0.0)
         var es        = .editSize
-        let adaptive = .edit.numericPreferredWidth()
-        if adaptive > es do
-            es = Math.min(adaptive, Math.max(available * 0.6, .editSize))
+        if .autoEditSize
+        {
+            let adaptive = .edit.numericPreferredWidth()
+            if adaptive > es do
+                es = Math.min(adaptive, Math.max(available * 0.6, .editSize))
+        }
         es = Math.min(es, available)
 
         let w = available - es

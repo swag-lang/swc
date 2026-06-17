@@ -239,7 +239,8 @@ impl IWnd for EditBox
         }
 
         // Content
-        let y = clientRect.vertCenter() - fontR.height * 0.5
+        let y         = clientRect.vertCenter() - fontR.height * 0.5
+        let editRight = clientRect.right()
         if .editBoxFlags.has(.RightAlign)
         {
             clientRect.x = clientRect.right() - sizeX - .getTextMarginRight()
@@ -247,7 +248,8 @@ impl IWnd for EditBox
 
         bc.painter.drawString(clientRect.x, y, .text, fontR, colorText)
 
-        if !.unit.isEmpty()
+        // Left-aligned boxes let the unit trail the value inside the scrolled content.
+        if !.unit.isEmpty() and !.editBoxFlags.has(.RightAlign)
         {
             bc.painter.drawString(clientRect.x + sizeX + metrics.editBox_UnitMargin, y, .unit, fontR, colorUnit)
         }
@@ -260,6 +262,14 @@ impl IWnd for EditBox
 
         painter.popClippingRect()
         painter.translateTransform(.scrollPosX, 0)
+
+        // Right-aligned boxes pin the unit to the right edge, outside the scroll
+        // transform, so it stays put while the value text scrolls underneath.
+        if !.unit.isEmpty() and .editBoxFlags.has(.RightAlign)
+        {
+            let unitW = Painter.measureString(.unit, fontR).width
+            bc.painter.drawString(editRight - unitW, y, .unit, fontR, colorUnit)
+        }
     }
 
     // Processes mouse interaction with the EditBox (clicks, drags, hover, wheel).

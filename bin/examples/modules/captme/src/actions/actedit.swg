@@ -6,6 +6,7 @@ impl ActionEdit
 {
     newCmdId("EditText")
     newCmdId("ClearImageInside")
+    newCmdId("ResetRotation")
 }
 
 impl IActionUI for ActionEdit
@@ -14,7 +15,7 @@ impl IActionUI for ActionEdit
     {
         switch cxt.id
         {
-        case EditText, ClearImageInside:
+        case EditText, ClearImageInside, ResetRotation:
             return true
         }
 
@@ -67,6 +68,28 @@ impl IActionUI for ActionEdit
                     }
                 }
             }
+
+        case ResetRotation:
+            evt.setFlags |= .Disabled | .Name | .Hidden
+            evt.disabled, evt.hidden = true
+            evt.name = "Reset Rotation"
+
+            if capture and hasSel
+            {
+                foreach it in capture.selection
+                {
+                    let itfForm = capture.forms[it]
+                    if !itfForm.canRotate() do
+                        continue
+                    evt.hidden = false
+                    let b = cast(*BaseForm) @dataof(itfForm)
+                    if !Math.isZeroEpsilon(b.rotate)
+                    {
+                        evt.disabled = false
+                        break
+                    }
+                }
+            }
         }
 
         return true
@@ -86,6 +109,9 @@ impl IActionUI for ActionEdit
 
         case ClearImageInside:
             capture.clearImageInside()
+
+        case ResetRotation:
+            capture.pushUndo(capture.newUndo(.ResetRotation))
         }
 
         return true

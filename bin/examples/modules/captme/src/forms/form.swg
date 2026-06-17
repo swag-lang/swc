@@ -38,6 +38,7 @@ interface IForm
     mtd isSame(ptr: *BaseForm)->bool;
     mtd copy(dst, src: *BaseForm);
     mtd mustClipToBound()->bool { return false; }
+    mtd canRotate()->bool { return false; }
 }
 
 struct BaseForm

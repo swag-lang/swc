@@ -17,6 +17,7 @@ enum UndoKind
     CreateForm
     DeleteSelection
     SetTypedValue
+    ResetRotation
     SetFormFromModel
     SetText
     SetFont
@@ -218,6 +219,17 @@ impl Undo
                 .oldU32.add(val)
             }
 
+        case ResetRotation:
+            .selection = .capture.selection
+            foreach s in .selection
+            {
+                let f = .capture.forms[s]
+                if !f.canRotate() do
+                    continue
+                let b = cast(*BaseForm) @dataof(f)
+                .oldU32.add(cast #bit (u32) b.rotate)
+            }
+
         case MoveToFront, MoveToBack, MoveBackward, MoveForward:
             .selection = .capture.selection
             .oldForms  = .capture.forms
@@ -355,6 +367,18 @@ impl Undo
                 if !.acceptsType(@kindof(f)) do
                     continue
                 Reflection.setFieldValue(@dataof(f), .valRef, &.valU32, true)
+            }
+
+            .capture.updateModelFromSelection()
+
+        case ResetRotation:
+            foreach s in .selection
+            {
+                let f = .capture.forms[s]
+                if !f.canRotate() do
+                    continue
+                let b = cast(*BaseForm) @dataof(f)
+                b.rotate = 0
             }
 
             .capture.updateModelFromSelection()
@@ -609,6 +633,19 @@ impl Undo
                     continue
                 var val = .oldU32[i]
                 Reflection.setFieldValue(@dataof(f), .valRef, &val, true)
+            }
+            .capture.updateModelFromSelection()
+
+        case ResetRotation:
+            var idx = 0
+            foreach s in .selection
+            {
+                let f = .capture.forms[s]
+                if !f.canRotate() do
+                    continue
+                let b = cast(*BaseForm) @dataof(f)
+                b.rotate = cast #bit (f32) .oldU32[idx]
+                idx += 1
             }
             .capture.updateModelFromSelection()
 

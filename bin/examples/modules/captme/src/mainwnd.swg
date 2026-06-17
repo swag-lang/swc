@@ -501,6 +501,7 @@ impl MainWnd
             .addGroup([ActionUndo.DoUndo, ActionUndo.DoRedo])
             .addGroup([ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste])
             .addGroup([ActionSelection.SelectAll, ActionSelection.SelectSameAll, ActionSelection.DeSelectAll, ActionSelection.InvertSelection])
+            .addGroup([ActionEdit.ResetRotation])
             .addGroup([ActionSelection.Freeze])
             .addItems([ActionSelection.Snap])
             topMenu.addPopup("Edit", editMenu)

@@ -22,6 +22,11 @@ struct FormShape
 
 impl IForm for FormShape
 {
+    mtd impl canRotate()->bool
+    {
+        return .subKind == .None
+    }
+
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormShape) ptr
@@ -148,7 +153,7 @@ impl IForm for FormShape
         if flags.has(.Hot | .Selected)
         {
             .gizmo.rect          = .boundRect() * z
-            .gizmo.rotateEnabled = .subKind == .None
+            .gizmo.rotateEnabled = .canRotate()
             .gizmo.rotateValue   = .rotate
             let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
             .gizmo.paint(painter, !flags.has(.Selected), col)

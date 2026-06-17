@@ -85,6 +85,11 @@ impl IForm for FormText
         return true
     }
 
+    mtd impl canRotate()->bool
+    {
+        return .subKind == .None
+    }
+
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         let xa = cast(s32) (movingStart.x / zoom)
@@ -161,7 +166,7 @@ impl IForm for FormText
         if flags.has(.Hot | .Selected)
         {
             .gizmo.rect          = .boundRect() * z
-            .gizmo.rotateEnabled = .subKind == .None
+            .gizmo.rotateEnabled = .canRotate()
             .gizmo.rotateValue   = .rotate
             .gizmo.paint(painter, !flags.has(.Selected))
         }

@@ -87,6 +87,11 @@ impl FormImage
 
 impl IForm for FormImage
 {
+    mtd impl canRotate()->bool
+    {
+        return !.mustEditInside() and .subKind == .None
+    }
+
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormImage) ptr
@@ -258,7 +263,7 @@ impl IForm for FormImage
         {
             .gizmo.rect          = .boundRect() * z
             .gizmo.rotateValue   = .rotate
-            .gizmo.rotateEnabled = !.mustEditInside() and .subKind == .None
+            .gizmo.rotateEnabled = .canRotate()
             if .mustEditInside()
             {
                 .gizmo.rect.offset(.freePos.x * z, .freePos.y * z)

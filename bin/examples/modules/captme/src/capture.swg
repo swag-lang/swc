@@ -930,6 +930,7 @@ impl Capture
             .addSeparator()
             .addItem(ActionCopyPaste.PasteImageInside)
             .addItem(ActionEdit.ClearImageInside)
+            .addItem(ActionEdit.ResetRotation)
             .addSeparator()
             .addItem(ActionSelection.DeleteSelection)
             .addSeparator()

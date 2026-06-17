@@ -259,9 +259,15 @@ impl RenderOgl
     // To be called after rendering
     mtd end()
     {
-        // SwapBuffers already flushes and orders the command stream; an explicit
-        // glFinish() here would stall the CPU until the GPU fully drains every
-        // frame, killing CPU/GPU overlap. Let the swap handle synchronization.
+        // The surface renders into a persistent FBO and then samples it to blit
+        // onscreen, so the frame must be fully resolved and presented before we
+        // return. With on-demand rendering (paint only when dirty) SwapBuffers
+        // alone does not guarantee the last submitted frame is presented before
+        // the next one is built, which makes hot-tracking visuals (menu/listctrl
+        // highlight) lag one update behind. Flush + finish keeps the swap chain
+        // in lockstep with what was just drawn.
+        glFlush()
+        glFinish()
         .native.swapBuffers(.curRC)
     }
 

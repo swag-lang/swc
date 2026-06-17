@@ -256,7 +256,9 @@ impl IForm for FormImage
     {
         if flags.has(.Hot | .Selected)
         {
-            .gizmo.rect = .boundRect() * z
+            .gizmo.rect          = .boundRect() * z
+            .gizmo.rotateValue   = .rotate
+            .gizmo.rotateEnabled = !.mustEditInside() and .subKind == .None
             if .mustEditInside()
             {
                 .gizmo.rect.offset(.freePos.x * z, .freePos.y * z)
@@ -482,6 +484,10 @@ impl IForm for FormImage
         .gizmo.sigChanged = func|form|(g, first, hitMove)
         {
             g.apply(form, first, hitMove)
+        }
+        .gizmo.sigRotate = func|form|(g, first, last, angle)
+        {
+            g.applyRotate(form, first, last, angle)
         }
     }
 }

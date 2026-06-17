@@ -160,7 +160,9 @@ impl IForm for FormText
     {
         if flags.has(.Hot | .Selected)
         {
-            .gizmo.rect = .boundRect() * z
+            .gizmo.rect          = .boundRect() * z
+            .gizmo.rotateEnabled = .subKind == .None
+            .gizmo.rotateValue   = .rotate
             .gizmo.paint(painter, !flags.has(.Selected))
         }
     }
@@ -408,6 +410,10 @@ impl IForm for FormText
         .gizmo.sigChanged = func|form|(g, first, hitMove)
         {
             g.apply(form, first, hitMove)
+        }
+        .gizmo.sigRotate = func|form|(g, first, last, angle)
+        {
+            g.applyRotate(form, first, last, angle)
         }
     }
 }

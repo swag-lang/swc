@@ -17,9 +17,23 @@ struct GizmoRect
     sigChanged:            func||(*GizmoRect, bool, u32)
     sigHasChanged:         func||()
 
+    // Rotation handle (orbits the bounding box center at the current angle)
+    rotateEnabled:         bool = false
+    rotateValue:           f32  = 0
+    rotateAnchor:          Math.Rectangle
+    rotateHot:             bool
+    rotating:              bool
+    firstRotating:         bool
+    rotateStartValue:      f32
+    rotateStartAngle:      f32
+    sigRotate:             func||(*GizmoRect, bool, bool, f32)
+
     minSizeX:              f32 = 2
     minSizeY:              f32 = 2
 }
+
+// Distance of the rotation handle above the bounding box edge
+const RotateHandleDist = 26.0
 
 impl GizmoRect
 {
@@ -30,9 +44,20 @@ impl GizmoRect
         switch evt.kind
         {
         case MousePressed:
-            if .moving do
+            if .moving or .rotating do
                 return true
-            if evt.button != .Left or .hotAnchor == Swag.U32.Max do
+            if evt.button != .Left do
+                break
+            if .rotateEnabled and .rotateAnchor.contains(pos)
+            {
+                .rotating         = true
+                .firstRotating    = true
+                .rotateStartValue = .rotateValue
+                .rotateStartAngle = .computeRotate(pos)
+                view.captureMouse()
+                return true
+            }
+            if .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
             .startRect   = .rect
@@ -42,6 +67,27 @@ impl GizmoRect
             return true
 
         case MouseReleased:
+            if .rotating
+            {
+                if evt.button == .Left
+                {
+                    .rotating  = false
+                    .rotateHot = false
+                    view.releaseMouse()
+
+                    // Only commit if a rotation actually happened (mouse moved)
+                    if !.firstRotating
+                    {
+                        if .sigRotate do
+                            .sigRotate(me, false, true, .rotateValue)
+                        if .sigHasChanged do
+                            .sigHasChanged()
+                    }
+                }
+
+                return true
+            }
+
             if .moving
             {
                 if evt.button == .Left
@@ -66,6 +112,27 @@ impl GizmoRect
             }
 
         case MouseMove:
+            if .rotating
+            {
+                var deg = .rotateStartValue + (.computeRotate(pos) - .rotateStartAngle)
+                while deg < 0 do
+                    deg += 360
+                while deg >= 360 do
+                    deg -= 360
+
+                // Snap to 15° steps while Shift is held
+                if (evt.modifiers & .Shift) do
+                    deg = Math.round(deg / 15) * 15
+
+                .rotateValue = deg
+                if .sigRotate do
+                    .sigRotate(me, .firstRotating, false, deg)
+                .firstRotating = false
+
+                view.getApp().setFrameCursor(Cursor.from(.Hand))
+                return true
+            }
+
             if .moving
             {
                 var hitMove = 0'u32
@@ -165,6 +232,8 @@ impl GizmoRect
                     .hotAnchor = cast(u32) i
                     break
                 }
+
+                .rotateHot = .rotateEnabled and .hotAnchor == Swag.U32.Max and .rotateAnchor.contains(pos)
             }
 
             switch .hotAnchor
@@ -179,11 +248,29 @@ impl GizmoRect
                 view.getApp().setFrameCursor(Cursor.from(.SizeWE))
             }
 
+            if .rotateHot
+            {
+                view.getApp().setFrameCursor(Cursor.from(.Hand))
+                return true
+            }
+
             if .hotAnchor != Swag.U32.Max do
                 return true
         }
 
         return false
+    }
+
+    // Angle (in degrees, 0..360) of a point around the bounding box center,
+    // matching the painter rotation convention (0 = up, clockwise positive).
+    mtd computeRotate(pos: Math.Point)->f32
+    {
+        let dx  = pos.x - .rect.horzCenter()
+        let dy  = pos.y - .rect.vertCenter()
+        var deg = Math.toDegrees(Math.atan2(dx, -dy))
+        if deg < 0 do
+            deg += 360
+        return deg
     }
 
     mtd paint(painter: *Painter, hot: bool, col: Color = Argb.White)
@@ -235,6 +322,32 @@ impl GizmoRect
                 painter.drawRect(c, color, 3)
             }
         }
+
+        // Rotation handle: orbits the bounding box center at the current angle
+        if .rotateEnabled and !hot
+        {
+            let cx   = .rect.horzCenter()
+            let cy   = .rect.vertCenter()
+            let rad  = Math.toRadians(.rotateValue)
+            let dirX = Math.sin(rad)
+            let dirY = -Math.cos(rad)
+
+            let diagHalf = Math.sqrt(.rect.width * .rect.width + .rect.height * .rect.height) * 0.5
+            let dist     = diagHalf + RotateHandleDist
+
+            let hx = cx + dirX * dist
+            let hy = cy + dirY * dist
+            let sx = cx + dirX * diagHalf
+            let sy = cy + dirY * diagHalf
+
+            .rotateAnchor = {hx - anchorSize2, hy - anchorSize2, .anchorSize, .anchorSize}
+
+            painter.drawLine(sx, sy, hx, hy, color, 2)
+
+            let hcol = .rotateHot ? Argb.Yellow : Argb.White
+            painter.fillCircle(hx, hy, anchorSize2, hcol)
+            painter.drawCircle(hx, hy, anchorSize2, color, anchorSize2 * 0.3)
+        }
     }
 
     mtd apply(iform: IForm, first: bool, hitMove: u32)
@@ -272,5 +385,26 @@ impl GizmoRect
 
         capture.pushUndo(undo)
         capture.editView.invalidate()
+    }
+
+    // Apply a rotation (in degrees) to the selected form(s), mirroring the
+    // Rotate slider in the property window so undo/redo stays consistent.
+    mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
+    {
+        let form    = cast(*BaseForm) @dataof(iform)
+        let capture = form.capture
+        if !first do
+            capture.undo()
+
+        let undo    = capture.newUndo(.SetTypedValue)
+        undo.valU32 = cast #bit (u32) angle
+        undo.valRef = Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+        capture.pushUndo(undo)
+
+        let main = capture.editView.main
+        main.quickWnd.updateSelection()
+        if last and main.propWnd do
+            main.propWnd.selectionHasChanged()
+        main.editWnd.invalidate()
     }
 }

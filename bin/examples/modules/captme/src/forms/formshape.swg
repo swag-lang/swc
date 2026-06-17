@@ -147,7 +147,9 @@ impl IForm for FormShape
     {
         if flags.has(.Hot | .Selected)
         {
-            .gizmo.rect = .boundRect() * z
+            .gizmo.rect          = .boundRect() * z
+            .gizmo.rotateEnabled = .subKind == .None
+            .gizmo.rotateValue   = .rotate
             let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
             .gizmo.paint(painter, !flags.has(.Selected), col)
         }
@@ -255,6 +257,10 @@ impl IForm for FormShape
         .gizmo.sigChanged = func|form|(g, first, hitMove)
         {
             g.apply(form, first, hitMove)
+        }
+        .gizmo.sigRotate = func|form|(g, first, last, angle)
+        {
+            g.applyRotate(form, first, last, angle)
         }
     }
 }

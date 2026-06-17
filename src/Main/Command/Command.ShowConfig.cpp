@@ -50,7 +50,6 @@ namespace
         addBoolEntry(entries, "Error ids", cmdLine.errorId);
         addBoolEntry(entries, "Silent", cmdLine.silent);
         addBoolEntry(entries, "Stats", cmdLine.stats);
-        addBoolEntry(entries, "Clear screen", cmdLine.clear);
         addBoolEntry(entries, "Publish", cmdLine.publish);
         addBoolEntry(entries, "Rebuild", cmdLine.rebuild);
         addBoolEntry(entries, "Dry run", cmdLine.dryRun);

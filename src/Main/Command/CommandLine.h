@@ -100,7 +100,6 @@ struct CommandLine
     bool silent                  = false;
     bool stats                   = false;
     bool statsMem                = false;
-    bool clear                   = false;
     bool publish                 = false;
     bool rebuild                 = false;
     bool dryRun                  = false;

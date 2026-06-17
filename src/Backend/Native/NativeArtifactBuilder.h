@@ -31,7 +31,6 @@ public:
 private:
     friend class NativeStartupBuildJob;
 
-    Result clearOutputFolders(const NativeArtifactPaths& paths) const;
     Utf8   artifactExtension() const;
     Utf8   objectExtension() const;
     Result createOutDir(const fs::path& outDir) const;

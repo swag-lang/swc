@@ -110,7 +110,6 @@ namespace
         cmdLine.workDir           = outputRoot / std::format("{}_work", testName);
         cmdLine.outDirStorage     = Utf8(cmdLine.outDir.lexically_normal().string());
         cmdLine.workDirStorage    = Utf8(cmdLine.workDir.lexically_normal().string());
-        cmdLine.clear             = true;
         CommandLineParser::refreshBuildCfg(cmdLine);
         return cmdLine;
     }

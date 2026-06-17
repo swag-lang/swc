@@ -53,7 +53,6 @@ namespace FileSystem
     Result      resolveExistingFolder(fs::path& folder, Utf8& because);
     Result      resolveFile(TaskContext& ctx, fs::path& file);
     Result      resolveFolder(TaskContext& ctx, fs::path& folder);
-    Result      clearDirectoryContents(TaskContext& ctx, const fs::path& path, DiagnosticId diagId);
     Result      readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error);
     Result      readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error);
     Result      readBinaryFile(const fs::path& path, std::vector<std::byte>& outData, IoErrorInfo& error);

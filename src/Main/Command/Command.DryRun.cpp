@@ -292,8 +292,6 @@ namespace
                 if (nativePreview.enabled)
                 {
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
-                    if (cmdLine.clear)
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
                     if (cmdLine.externalLink)
                     {
                         addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "write object files to the build directory");
@@ -323,8 +321,6 @@ namespace
                 if (nativePreview.enabled)
                 {
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
-                    if (cmdLine.clear)
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
                     if (cmdLine.externalLink)
                     {
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "write object files to the build directory");

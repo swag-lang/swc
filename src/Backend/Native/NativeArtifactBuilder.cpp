@@ -275,8 +275,6 @@ Result NativeArtifactBuilder::prepareOutputFolders() const
 {
     NativeArtifactPaths paths;
     queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
-    if (builder_->ctx().cmdLine().clear && builder_->compiler().markNativeOutputsCleared())
-        SWC_RESULT(clearOutputFolders(paths));
     SWC_RESULT(createBuildDir(paths.buildDir));
     SWC_RESULT(createOutDir(paths.outDir));
     return Result::Continue;
@@ -378,14 +376,6 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     const Utf8 objectExt = objectExtension();
     for (uint32_t i = 0; i < numObjects; ++i)
         outPaths.objectPaths.push_back(outPaths.buildDir / std::format("{}_{:02}{}", outPaths.name, i, objectExt).c_str());
-}
-
-Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const
-{
-    SWC_RESULT(FileSystem::clearDirectoryContents(builder_->ctx(), paths.workDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
-    if (!FileSystem::pathEquals(paths.outDir, paths.workDir))
-        SWC_RESULT(FileSystem::clearDirectoryContents(builder_->ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
-    return Result::Continue;
 }
 
 Utf8 NativeArtifactBuilder::artifactExtension() const

@@ -1057,7 +1057,7 @@ namespace
 
     bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)
     {
-        if (cmdLine.rebuild || cmdLine.clear || cmdLine.dryRun || cmdLine.showConfig)
+        if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
             return false;
 
         return cmdLine.command != CommandKind::Test;

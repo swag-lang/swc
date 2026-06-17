@@ -134,9 +134,6 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "test run", "--run-arg", nullptr,
         &cmdLine_->runArgs,
         "Append one argument to every emitted executable launched by the test or run command. May be specified multiple times.");
-    add(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co",
-        &cmdLine_->clear,
-        "Clear native work and artifact folders before building native outputs.");
     add(HelpOptionGroup::Compiler, "test build run", "--publish", nullptr,
         &cmdLine_->publish,
         "Copy executable dependency DLLs and PDBs into the artifact output directory after a successful native link.");

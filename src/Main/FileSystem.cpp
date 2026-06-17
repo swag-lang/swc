@@ -99,13 +99,6 @@ namespace
         return Result::Continue;
     }
 
-    Result reportClearDirectoryError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(diagId);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
 }
 
 fs::path FileSystem::normalizePath(const fs::path& path)
@@ -278,38 +271,6 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
         setDiagnosticPathAndBecause(diag, &ctx, folder, because);
         diag.report(ctx);
         return Result::Error;
-    }
-
-    return Result::Continue;
-}
-
-Result FileSystem::clearDirectoryContents(TaskContext& ctx, const fs::path& path, const DiagnosticId diagId)
-{
-    if (path.empty())
-        return Result::Continue;
-
-    std::error_code ec;
-    const bool      exists = fs::exists(path, ec);
-    if (ec)
-        return reportClearDirectoryError(ctx, diagId, path, normalizeSystemMessage(ec));
-    if (!exists)
-        return Result::Continue;
-
-    const bool isDirectory = fs::is_directory(path, ec);
-    if (ec)
-        return reportClearDirectoryError(ctx, diagId, path, normalizeSystemMessage(ec));
-    if (!isDirectory)
-        return reportClearDirectoryError(ctx, diagId, path, describePathProblem(PathProblem::NotDirectory));
-
-    for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-    {
-        if (ec)
-            return reportClearDirectoryError(ctx, diagId, path, normalizeSystemMessage(ec));
-
-        std::error_code removeEc;
-        fs::remove_all(it->path(), removeEc);
-        if (removeEc)
-            return reportClearDirectoryError(ctx, diagId, it->path(), normalizeSystemMessage(removeEc));
     }
 
     return Result::Continue;

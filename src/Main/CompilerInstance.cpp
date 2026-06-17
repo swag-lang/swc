@@ -1095,11 +1095,6 @@ bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
     return mainFunc_.compare_exchange_strong(expected, node, std::memory_order_release, std::memory_order_acquire);
 }
 
-bool CompilerInstance::markNativeOutputsCleared()
-{
-    return !nativeOutputsCleared_.exchange(true, std::memory_order_acq_rel);
-}
-
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
     const std::scoped_lock lock(foreignLibsMutex_);

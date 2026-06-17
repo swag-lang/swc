@@ -53,6 +53,7 @@ struct ThemeMetrics
     menuPopup_IconMargin:                  f32 = 2
     menuPopup_IconTextMargin:              f32 = 6
     menuPopup_SeparatorHeight:             f32 = 8
+    menuPopup_BarItemOverlap:              f32 = 12
 
     menuBar_Height:                        f32 = 30
     menuBar_SpaceBetween:                  f32 = 24

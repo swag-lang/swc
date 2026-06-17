@@ -81,3 +81,28 @@ const Menu_Quit = "Menu.Quit"
 
     host.shutdown()
 }
+
+// A menu-bar popup carries the opened bar item inside its own themed area.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let metrics = host.root.getThemeMetrics()
+    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Open", Menu_Open)
+    bar.addPopup("File", sub)
+
+    bar.computeLayoutBar()
+    bar.hotIdx = 0
+    bar.showHotPopup()
+
+    @assert(bar.subVisible == sub)
+    @assert(sub.popupBarItemIdx == 0)
+    @assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
+    @assert(sub.position.y == -metrics.menuPopup_ShadowSize)
+    @assert(sub.items[0].pos > metrics.menuPopup_ShadowSize + bar.position.height)
+
+    host.shutdown()
+}

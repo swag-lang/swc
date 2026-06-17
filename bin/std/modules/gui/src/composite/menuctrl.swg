@@ -47,6 +47,8 @@ public struct MenuCtrl
     timer:                *Timer
     dirtyLayout:          bool
     paintByFrame:         bool
+    popupBarItemIdx:      u32 = Swag.U32.Max
+    popupBarItemSurfaceRect: Math.Rectangle
 }
 
 public impl IWnd for MenuCtrl
@@ -134,18 +136,19 @@ public impl IWnd for MenuCtrl
         if !.paintByFrame
         {
             let subRect = &theme.rects.menuPopup_Shadow
-            theme.drawSubRect(painter, {0, 0, .position.width, .position.height}, subRect, colors.menuPopup_Shadow)
+            let anchorHeight = .getPopupBarAnchorHeight()
+            theme.drawSubRect(painter, {0, anchorHeight, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
         }
 
         // Back
-        var clientRect = .getClientRect()
+        var clientRect = .getPopupBodyRect()
         if !.paintByFrame
         {
-            clientRect.inflate(-metrics.menuPopup_ShadowSize)
             theme.drawSubRect(painter, clientRect, &rects.menuPopup_Bk, colors.menuPopup_Bk)
             theme.drawSubRect(painter, clientRect, &rects.menuPopup_Border, colors.menuPopup_Border, interpol: .Pixel)
         }
 
+        .paintPopupBarAnchor(painter, clientRect)
         clientRect.applyPadding(.padding)
 
         var labelPos:       Math.Rectangle = undefined
@@ -339,6 +342,94 @@ public impl IWnd for MenuCtrl
 
 impl MenuCtrl
 {
+    fileprivate mtd hasPopupBarAnchor()->bool
+    {
+        return .popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar
+    }
+
+    fileprivate mtd clearPopupBarAnchor()
+    {
+        .popupBarItemIdx = Swag.U32.Max
+        .popupBarItemSurfaceRect.clear()
+    }
+
+    fileprivate mtd setPopupBarAnchor(itemIdx: u32, itemSurfaceRect: Math.Rectangle)
+    {
+        .popupBarItemIdx         = itemIdx
+        .popupBarItemSurfaceRect = itemSurfaceRect
+    }
+
+    fileprivate mtd getPopupBarAnchorHeight()->f32
+    {
+        return .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
+    }
+
+    fileprivate mtd getPopupBarAnchorLocalRect()->Math.Rectangle
+    {
+        var result: retval = .popupBarItemSurfaceRect
+        let surfaceRect = .getSurfaceRect()
+        result.x -= surfaceRect.x
+        result.y -= surfaceRect.y
+        return result
+    }
+
+    fileprivate mtd getPopupBodyRect()->Math.Rectangle
+    {
+        let metrics = .getThemeMetrics()
+        var result: retval = .getClientRect()
+        let anchorHeight = .getPopupBarAnchorHeight()
+        if anchorHeight
+        {
+            result.y += anchorHeight
+            result.height -= anchorHeight
+        }
+
+        if !.paintByFrame do
+            result.inflate(-metrics.menuPopup_ShadowSize)
+        return result
+    }
+
+    fileprivate mtd paintPopupBarAnchor(painter: *Painter, bodyRect: Math.Rectangle)
+    {
+        if !.hasPopupBarAnchor() do
+            return
+
+        let theme   = .getTheme()
+        let colors  = .getThemeColors()
+        let rects   = .getThemeRects()
+        let metrics = .getThemeMetrics()
+
+        var anchorRect = .getPopupBarAnchorLocalRect()
+        if anchorRect.isEmpty() do
+            return
+
+        var anchorBk = anchorRect
+        anchorBk.setBottom(bodyRect.y + metrics.menuPopup_BarItemOverlap)
+        theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
+        theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+
+        let i = .ownerMenu.items[.popupBarItemIdx]
+        var labelPos = anchorRect
+        labelPos.x += metrics.menuBar_SpaceBetween * 0.5
+        labelPos.width -= metrics.menuBar_SpaceBetween
+
+        var format: RichStringFormat
+        let colorText = i.disabled ? colors.popupItem_DisabledText : colors.menuBar_SelectedText
+        theme.setTextColors(&format, colorText)
+        format.horzAlignment = .Left
+        format.vertAlignment = .Center
+        format.flags         = .Clip
+        format.font          = .getFont()
+
+        if i.icon.isValid()
+        {
+            i.icon.sizeX, i.icon.sizeY = i.size - 4
+            i.icon.paint(painter, labelPos.x, labelPos.vertCenter() - i.icon.sizeY * 0.5, colorText)
+        }
+
+        painter.drawRichString(labelPos, &i.name, format)
+    }
+
     mtd setEndModal(result: WndId)
     {
         var p = &me
@@ -439,13 +530,16 @@ impl MenuCtrl
         let hotItem = .items[.hotIdx]
         let metrics = .getThemeMetrics()
 
-        var pos = .getSurfaceRect()
-        pos.x += hotItem.pos
+        var anchorRect = .getSurfaceRect()
+        anchorRect.x += hotItem.pos - metrics.menuBar_SpaceBetween * 0.5
+        anchorRect.width = hotItem.size + metrics.menuBar_SpaceBetween
+        anchorRect.height = .getClientRect().height
+
+        var pos = anchorRect
         pos.x -= metrics.menuPopup_ShadowSize
-        pos.x -= metrics.menuBar_SpaceBetween * 0.5
-        pos.y += pos.height
         pos.y -= metrics.menuPopup_ShadowSize
         .subVisible = hotItem.popup
+        .subVisible.setPopupBarAnchor(.hotIdx, anchorRect)
 
         // Be sure popup menu is in the client area of the top view
         .subVisible.updateState()
@@ -474,6 +568,7 @@ impl MenuCtrl
         pos.y += hotItem.pos
         pos.y -= .padding.y
         .subVisible = hotItem.popup
+        .subVisible.clearPopupBarAnchor()
 
         // Be sure popup menu is in the client area of the top view
         .subVisible.updateState()
@@ -583,9 +678,7 @@ impl MenuCtrl
     {
         let metrics = .getThemeMetrics()
 
-        var clientRect = .getClientRect()
-        if !.paintByFrame do
-            clientRect.inflate(-metrics.menuPopup_ShadowSize)
+        var clientRect = .getPopupBodyRect()
         clientRect.applyPadding(.padding)
 
         .position.width  = 0
@@ -637,6 +730,13 @@ impl MenuCtrl
             .position.width += 2 * metrics.menuPopup_ShadowSize
 
         .position.width += (2 * rsf.font.regular.height) + (1 * metrics.menuPopup_IconTextMargin)
+
+        if .hasPopupBarAnchor() and !.paintByFrame
+        {
+            let bodyWidth = .position.width - 2 * metrics.menuPopup_ShadowSize
+            if bodyWidth < .popupBarItemSurfaceRect.width do
+                .position.width += .popupBarItemSurfaceRect.width - bodyWidth
+        }
 
         if !.paintByFrame do
             .position.height += metrics.menuPopup_ShadowSize
@@ -752,6 +852,7 @@ public impl MenuCtrl
     {
         Debug.assert(!.bar)
 
+        .clearPopupBarAnchor()
         .updateState()
 
         switch pos

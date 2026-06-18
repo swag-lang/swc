@@ -65,7 +65,6 @@ namespace
         return Result::Continue;
     }
 
-
     Result failStructMemberType(Sema& sema, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);

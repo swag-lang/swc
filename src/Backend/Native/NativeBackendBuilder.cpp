@@ -885,8 +885,8 @@ Result NativeBackendBuilder::publishExecutableDependencies()
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
 
-    const bool publishDependencies = ctx_.cmdLine().publish;
-    const fs::path artifactDir = artifactPath.parent_path();
+    const bool     publishDependencies = ctx_.cmdLine().publish;
+    const fs::path artifactDir         = artifactPath.parent_path();
     if (artifactDir.empty())
         return Result::Continue;
 

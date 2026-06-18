@@ -95,11 +95,11 @@ public:
     TypeInfo& operator=(TypeInfo&& other) noexcept;
     ~TypeInfo();
 
-    bool        operator==(const TypeInfo& other) const noexcept;
-    Utf8        toName(const TaskContext& ctx) const;
-    Utf8        toFullName(const TaskContext& ctx) const;
-    Utf8        toFamily(const TaskContext& ctx) const;
-    Utf8        toArticleFamily(const TaskContext& ctx) const;
+    bool operator==(const TypeInfo& other) const noexcept;
+    Utf8 toName(const TaskContext& ctx) const;
+    Utf8 toFullName(const TaskContext& ctx) const;
+    Utf8 toFamily(const TaskContext& ctx) const;
+    Utf8 toArticleFamily(const TaskContext& ctx) const;
 
     TypeInfoKind  kind() const noexcept { return kind_; }
     TypeInfoFlags flags() const noexcept { return flags_; }

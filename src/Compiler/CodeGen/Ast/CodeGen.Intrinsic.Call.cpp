@@ -1058,8 +1058,8 @@ namespace
 
         SmallVector<const SymbolInterface*>        interfaces;
         std::unordered_set<const SymbolInterface*> seenInterfaces;
-        const SymbolModule*                        rootModule  = codeGen.compiler().symModule();
-        const SymbolNamespace*                     importRoot  = codeGen.compiler().importRootNamespace();
+        const SymbolModule*                        rootModule = codeGen.compiler().symModule();
+        const SymbolNamespace*                     importRoot = codeGen.compiler().importRootNamespace();
         if (rootModule)
             collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);
         if (importRoot)

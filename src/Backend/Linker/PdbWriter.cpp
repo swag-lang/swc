@@ -142,7 +142,7 @@ namespace
 
     uint32_t appendBuildInfoRecord(Bytes& out, uint32_t& nextTypeIndex, const std::array<uint32_t, 5>& items)
     {
-        Bytes payload;
+        Bytes          payload;
         constexpr auto offset = static_cast<uint16_t>(items.size());
         appendLe16(payload, offset);
         for (const uint32_t item : items)

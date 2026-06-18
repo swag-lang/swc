@@ -391,7 +391,7 @@ private:
     std::unique_ptr<ExternalModuleManager>             externalModuleMgr_;
     SymbolModule*                                      symModule_           = nullptr;
     SymbolNamespace*                                   importRootNamespace_ = nullptr;
-    JobClientId                                        jobClientId_ = 0;
+    JobClientId                                        jobClientId_         = 0;
     fs::path                                           modulePathSrc_;
     fs::path                                           modulePathFile_;
     fs::path                                           exeFullName_;
@@ -451,7 +451,7 @@ private:
     };
 
     std::vector<PerThreadData>                                                                                   perThreadData_;
-    std::atomic<uint32_t>                                                                                        atomicId_             = 0;
+    std::atomic<uint32_t>                                                                                        atomicId_ = 0;
     std::atomic<AstCompilerFunc*>                                                                                mainFunc_{nullptr};
     std::vector<Utf8>                                                                                            foreignLibs_;
     std::unordered_set<Utf8>                                                                                     foreignLibSet_;

@@ -430,6 +430,7 @@ func RGB(r, g, b: s32)->COLORREF
     func GetObjectW(h: HANDLE, c: s32, pv: LPVOID)->s32;
     func SelectObject(hdc: HDC, h: HGDIOBJ)->HGDIOBJ;
     func GetDeviceCaps(hdc: HDC, index: s32)->s32;
+    func GdiFlush()->BOOL;
 
     func EnumFontFamiliesA(hdc: HDC, lpLogfont: LPCSTR, lpProc: FONTENUMPROCA, lParam: LPARAM)->s32;
     func EnumFontFamiliesW(hdc: HDC, lpLogfont: LPCWSTR, lpProc: FONTENUMPROCW, lParam: LPARAM)->s32;

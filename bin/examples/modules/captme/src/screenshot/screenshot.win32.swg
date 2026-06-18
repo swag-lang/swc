@@ -137,7 +137,22 @@ func getDesktopImage(drawCursor: bool)->Image throw
 
     let memDC = CreateCompatibleDC(hDesktopDC)
     defer catch DeleteDC(memDC)
-    let memBMP = CreateCompatibleBitmap(hDesktopDC, w, h)
+
+    // Capture straight into a 32-bit DIB section so the BitBlt lands directly in a
+    // CPU-readable buffer. This avoids the extra GetDIBits read-back of a
+    // device-dependent bitmap, which is the dominant per-pixel cost when grabbing
+    // large areas or the whole multi-monitor virtual desktop.
+    // biHeight stays positive (bottom-up) to match the orientation Image expects.
+    var bi: BITMAPINFO
+    bi.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
+    bi.bmiHeader.biWidth       = w
+    bi.bmiHeader.biHeight      = h
+    bi.bmiHeader.biPlanes      = 1
+    bi.bmiHeader.biBitCount    = 32
+    bi.bmiHeader.biCompression = BI_RGB
+
+    var bits: *u8
+    let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
     defer catch DeleteObject(cast() memBMP)
 
     SelectObject(memDC, cast() memBMP)
@@ -146,5 +161,10 @@ func getDesktopImage(drawCursor: bool)->Image throw
     if drawCursor do
         drawCursorInto(memDC, x, y)
 
-    return Image.from(memBMP)
+    // Flush the GDI command batch so the DIB memory is fully written before we read it.
+    GdiFlush()
+
+    var result = Image.create(w, h, PixelFormat.BGRA8)
+    Memory.copy(result.pixels.buffer, bits, result.size)
+    return result
 }

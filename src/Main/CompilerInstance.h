@@ -419,7 +419,6 @@ private:
     Runtime::IAllocator                                runtimeAllocator_{};
     Runtime::CompilerMessage                           runtimeCompilerMessage_{};
     std::unique_ptr<JITExecManager>                    jitExecMgr_;
-    void*                                              runtimeAllocatorITable_[2]{};
     void*                                              runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                          sourceStorageMutex_;
     mutable std::shared_mutex                          nativeCodeSegmentMutex_;

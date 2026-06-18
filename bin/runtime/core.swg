@@ -238,10 +238,18 @@ func __runtimeAllocator()->IAllocator
     let cxt = @getcontext()
     if cxt.allocator == null
     {
-        let allocator = defaultAllocator()
-        if !allocator.installed() do
-            allocator.setup()
-        cxt.allocator = @mkinterface(allocator, #typeof(dref allocator), IAllocator)
+        // Under the compiler (JIT) the host installs a process-stable runtime allocator into the
+        // context. Building a swag @mkinterface allocator here would place its interface table in
+        // per-run JIT memory that is released between workspace modules; if that interface is then
+        // cached in a process-persistent imported-DLL global (e.g. a reflection hash table) it
+        // dangles and crashes on a later module's allocation. So only build it for native runs.
+        if !@jit()
+        {
+            let allocator = defaultAllocator()
+            if !allocator.installed() do
+                allocator.setup()
+            cxt.allocator = @mkinterface(allocator, #typeof(dref allocator), IAllocator)
+        }
     }
     return cxt.allocator
 }

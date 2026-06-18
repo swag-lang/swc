@@ -555,10 +555,15 @@ void CompilerInstance::processCommand()
 
 void CompilerInstance::setupRuntimeCompiler()
 {
-    runtimeAllocator_.obj      = this;
-    runtimeAllocator_.itable   = runtimeAllocatorITable_;
-    runtimeAllocatorITable_[0] = nullptr;
-    runtimeAllocatorITable_[1] = reinterpret_cast<void*>(&runtimeAllocatorReq);
+    // The runtime allocator's interface table is process-stable: its contents are identical for
+    // every CompilerInstance (typeinfo slot + the global mimalloc-backed `req`), and a workspace
+    // build creates a fresh CompilerInstance per module. The JIT runtime context allocator can be
+    // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
+    // per-instance member itable would dangle once that module's CompilerInstance is freed,
+    // producing a null dispatch in a later module. A shared static itable never dangles.
+    static void* s_runtimeAllocatorITable[2] = {nullptr, reinterpret_cast<void*>(&runtimeAllocatorReq)};
+    runtimeAllocator_.obj    = this;
+    runtimeAllocator_.itable = s_runtimeAllocatorITable;
 
     runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;

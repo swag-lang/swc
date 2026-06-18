@@ -53,8 +53,13 @@ impl Image
 
         Memory.copy(ppvBits, .pixels.buffer, cast(u64) .width * .height * .bpp8)
 
+        // CreateIconIndirect requires a non-null mask: for a 32-bit color icon the
+        // alpha channel drives transparency, but the AND mask (hbmMask) must still
+        // be supplied or the call fails and returns null. Reusing the color bitmap
+        // as the mask is the standard trick for alpha icons.
         var ii: ICONINFO
         ii.fIcon    = TRUE
+        ii.hbmMask  = hbmp
         ii.hbmColor = hbmp
         return CreateIconIndirect(&ii)
     }

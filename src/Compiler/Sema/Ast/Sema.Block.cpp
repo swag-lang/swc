@@ -39,6 +39,21 @@ namespace
         scope.addUsingSymMap(usingSymMap);
     }
 
+    // Top-level symbols of an imported-API file are created under the shared import-root namespace
+    // (not this module's namespace), so an imported module keeps its own namespace hierarchy
+    // (e.g. `Pixel.Color`) instead of being nested under the importer (`Importer.Pixel.Color`).
+    // Lookup still uses the module namespace (so builtins like `Swag` and sibling imports resolve).
+    SymbolMap* topLevelCreationSymMap(Sema& sema)
+    {
+        const SourceFile* file = sema.file();
+        if (file && file->isImportedApi())
+        {
+            if (SymbolNamespace* importRoot = sema.compiler().importRootNamespace())
+                return importRoot;
+        }
+        return &sema.moduleNamespace();
+    }
+
     SymbolMap* usingDeclChildSymMap(Sema& sema, AstNodeRef nodeRef)
     {
         const SemaNodeView view = sema.viewSymbol(nodeRef);
@@ -53,14 +68,14 @@ Result AstFile::semaPreDecl(Sema& sema) const
     auto* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     sema.setFileNamespace(*fileNamespace);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
-    sema.curScope().setSymMap(&sema.moduleNamespace());
+    sema.curScope().setSymMap(topLevelCreationSymMap(sema));
     return Result::Continue;
 }
 
 Result AstFile::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
-    sema.curScope().setSymMap(&sema.moduleNamespace());
+    sema.curScope().setSymMap(topLevelCreationSymMap(sema));
     return Result::Continue;
 }
 

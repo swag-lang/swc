@@ -122,6 +122,13 @@ namespace Command
         symModule->addSingleSymbol(ctx, moduleNamespace);
         compiler.setSymModule(symModule);
 
+        // Empty-named root namespace hosting symbols imported from other modules (see importRootNamespace).
+        // Owned by the module symbol (like the module namespace) so it is treated as a module-root when
+        // collecting namespace paths (collectSymbolMapNamespacePath) and contributes no name prefix.
+        auto* importRootNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), namespaceFlags);
+        importRootNamespace->setOwnerSymMap(symModule);
+        compiler.setImportRootNamespace(importRootNamespace);
+
         for (SourceFile* f : files)
         {
             f->setModuleNamespace(*moduleNamespace);

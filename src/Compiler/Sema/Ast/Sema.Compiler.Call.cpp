@@ -1115,7 +1115,7 @@ namespace
 
     Utf8 compilerTypeFullName(Sema& sema, const TypeRef typeRef)
     {
-        return sema.typeMgr().get(typeRef).toFullNameWithoutModule(sema.ctx(), sema.moduleNamespace());
+        return sema.typeMgr().get(typeRef).toFullName(sema.ctx());
     }
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallOne& node)

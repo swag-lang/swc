@@ -2,6 +2,8 @@
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -136,7 +138,21 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     if (access == SymbolAccess::FilePrivate)
         root = &sema.fileNamespace();
     else
+    {
         root = &sema.moduleNamespace();
+
+        // Imported-API files create their top-level symbols under the shared import-root namespace
+        // (siblings of this module's namespace) so an imported module keeps its own namespace
+        // hierarchy (e.g. `Pixel.Color`) exactly as if compiled directly, instead of being nested
+        // under the importing module (`Importer.Pixel.Color`). Lookup still goes through the module
+        // namespace, so builtins (`Swag`) and sibling imports keep resolving.
+        const SourceFile* file = sema.file();
+        if (file && file->isImportedApi())
+        {
+            if (SymbolNamespace* importRoot = sema.compiler().importRootNamespace())
+                root = importRoot;
+        }
+    }
 
     return followNamespace(sema, root, sema.frame().nsPath());
 }

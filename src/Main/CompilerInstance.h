@@ -25,6 +25,7 @@ class ConstantManager;
 class IdentifierManager;
 class Symbol;
 class SymbolModule;
+class SymbolNamespace;
 class SymbolFunction;
 class SymbolVariable;
 class JITMemoryManager;
@@ -161,6 +162,14 @@ public:
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
     void                setSymModule(SymbolModule* symModule) { symModule_ = symModule; }
+
+    // Root scope hosting symbols imported from other modules. Imported-API files are scoped here
+    // (instead of under this module's namespace) so an imported module keeps its own namespace
+    // hierarchy (e.g. `Pixel.Color`) exactly as if compiled directly, rather than being nested
+    // under the importing module (`Importer.Pixel.Color`). Empty-named, so it adds no prefix.
+    SymbolNamespace*       importRootNamespace() { return importRootNamespace_; }
+    const SymbolNamespace* importRootNamespace() const { return importRootNamespace_; }
+    void                   setImportRootNamespace(SymbolNamespace* ns) { importRootNamespace_ = ns; }
 
     // When set, the native backend stops short of running the external linker and hands the prepared
     // builder back via the deferred-builder slot, so the workspace pipeline can run the link off the
@@ -380,7 +389,8 @@ private:
     std::unique_ptr<IdentifierManager>                 idMgr_;
     std::unique_ptr<JITMemoryManager>                  jitMemMgr_;
     std::unique_ptr<ExternalModuleManager>             externalModuleMgr_;
-    SymbolModule*                                      symModule_   = nullptr;
+    SymbolModule*                                      symModule_           = nullptr;
+    SymbolNamespace*                                   importRootNamespace_ = nullptr;
     JobClientId                                        jobClientId_ = 0;
     fs::path                                           modulePathSrc_;
     fs::path                                           modulePathFile_;

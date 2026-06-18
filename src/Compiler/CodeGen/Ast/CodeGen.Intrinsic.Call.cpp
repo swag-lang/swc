@@ -495,6 +495,120 @@ namespace
         return Result::Continue;
     }
 
+    void emitTypeInfoIdentityMatchOrJump(CodeGen& codeGen, MicroReg runtimeTypeReg, MicroReg candidateTypeReg, MicroLabelRef matchLabel, MicroLabelRef mismatchLabel);
+
+    // Build an interface value by reading the method table straight from the runtime typeinfo's
+    // interface array (TypeValue.value, wired by TypeGen). This is the only mechanism that works
+    // when the implementing struct lives in a module that the call site cannot enumerate as a
+    // static candidate (e.g. `parseValue` in core building an interface for `Pixel.Color`). On a
+    // match it fills `runtimeStorage` and jumps to `doneLabel`; otherwise it falls through leaving
+    // the (already zeroed) storage untouched.
+    Result emitMakeInterfaceFromRuntimeTypeInfo(CodeGen& codeGen, TypeRef interfaceTypeRef, AstNodeRef typeRefNode, MicroReg typeInfoReg, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, MicroReg runtimeStorageReg, uint64_t objectSpillOffset, MicroLabelRef doneLabel)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        ConstantRef itfTypeCstRef = ConstantRef::invalid();
+        SWC_RESULT(prepareTypeInfoValuePointer(itfTypeCstRef, codeGen, interfaceTypeRef, typeRefNode));
+        if (!itfTypeCstRef.isValid())
+            return Result::Continue;
+        const ConstantValue& itfTypeCst = codeGen.cstMgr().get(itfTypeCstRef);
+        SWC_ASSERT(itfTypeCst.isValuePointer());
+
+        const MicroLabelRef skipLabel = builder.createLabel();
+
+        // Only a non-null struct typeinfo carries an interface array.
+        builder.emitCmpRegImm(typeInfoReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
+        const MicroReg kindReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(kindReg, typeInfoReg, offsetof(Runtime::TypeInfo, kind), MicroOpBits::B8);
+        builder.emitCmpRegImm(kindReg, ApInt(static_cast<uint64_t>(Runtime::TypeInfoKind::Struct), 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
+
+        const MicroReg entryReg = codeGen.nextVirtualIntRegister();
+        const MicroReg cntReg   = codeGen.nextVirtualIntRegister();
+        const MicroReg idxReg   = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(entryReg, typeInfoReg, offsetof(Runtime::TypeInfoStruct, interfaces), MicroOpBits::B64);
+        builder.emitLoadRegMem(cntReg, typeInfoReg, offsetof(Runtime::TypeInfoStruct, interfaces) + static_cast<uint32_t>(sizeof(void*)), MicroOpBits::B64);
+        builder.emitLoadRegImm(idxReg, ApInt(0, 64), MicroOpBits::B64);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        const MicroLabelRef nextLabel = builder.createLabel();
+        builder.placeLabel(loopLabel);
+        builder.emitCmpRegReg(idxReg, cntReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skipLabel);
+
+        const MicroReg pointedTypeReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(pointedTypeReg, entryReg, offsetof(Runtime::TypeValue, pointedType), MicroOpBits::B64);
+        const MicroReg itfTypeReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrReloc(itfTypeReg, itfTypeCst.getValuePointer(), itfTypeCstRef);
+
+        const MicroLabelRef matchLabel = builder.createLabel();
+        emitTypeInfoIdentityMatchOrJump(codeGen, pointedTypeReg, itfTypeReg, matchLabel, nextLabel);
+
+        builder.placeLabel(matchLabel);
+        const MicroReg itableReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(itableReg, entryReg, offsetof(Runtime::TypeValue, value), MicroOpBits::B64);
+        const MicroReg objReg = materializeInterfaceObjectPointer(codeGen, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOffset);
+        builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, obj), objReg, MicroOpBits::B64);
+        builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(nextLabel);
+        builder.emitOpBinaryRegImm(entryReg, ApInt(sizeof(Runtime::TypeValue), 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(idxReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+
+        builder.placeLabel(skipLabel);
+        return Result::Continue;
+    }
+
+    // `@tableof` counterpart of emitMakeInterfaceFromRuntimeTypeInfo: read the method table from the
+    // runtime typeinfo's interface array. On a match writes the itable to `outTableReg` and jumps to
+    // `doneLabel`; otherwise falls through leaving `outTableReg` untouched.
+    Result emitTableOfFromRuntimeTypeInfo(CodeGen& codeGen, MicroReg objectTypeReg, MicroReg interfaceTypeReg, MicroReg outTableReg, MicroLabelRef doneLabel)
+    {
+        MicroBuilder&       builder   = codeGen.builder();
+        const MicroLabelRef skipLabel = builder.createLabel();
+
+        builder.emitCmpRegImm(objectTypeReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
+        const MicroReg kindReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(kindReg, objectTypeReg, offsetof(Runtime::TypeInfo, kind), MicroOpBits::B8);
+        builder.emitCmpRegImm(kindReg, ApInt(static_cast<uint64_t>(Runtime::TypeInfoKind::Struct), 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
+
+        const MicroReg entryReg = codeGen.nextVirtualIntRegister();
+        const MicroReg cntReg   = codeGen.nextVirtualIntRegister();
+        const MicroReg idxReg   = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(entryReg, objectTypeReg, offsetof(Runtime::TypeInfoStruct, interfaces), MicroOpBits::B64);
+        builder.emitLoadRegMem(cntReg, objectTypeReg, offsetof(Runtime::TypeInfoStruct, interfaces) + static_cast<uint32_t>(sizeof(void*)), MicroOpBits::B64);
+        builder.emitLoadRegImm(idxReg, ApInt(0, 64), MicroOpBits::B64);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        const MicroLabelRef nextLabel = builder.createLabel();
+        builder.placeLabel(loopLabel);
+        builder.emitCmpRegReg(idxReg, cntReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skipLabel);
+
+        const MicroReg pointedTypeReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(pointedTypeReg, entryReg, offsetof(Runtime::TypeValue, pointedType), MicroOpBits::B64);
+
+        const MicroLabelRef matchLabel = builder.createLabel();
+        emitTypeInfoIdentityMatchOrJump(codeGen, pointedTypeReg, interfaceTypeReg, matchLabel, nextLabel);
+
+        builder.placeLabel(matchLabel);
+        builder.emitLoadRegMem(outTableReg, entryReg, offsetof(Runtime::TypeValue, value), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(nextLabel);
+        builder.emitOpBinaryRegImm(entryReg, ApInt(sizeof(Runtime::TypeValue), 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(idxReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+
+        builder.placeLabel(skipLabel);
+        return Result::Continue;
+    }
+
     Result codeGenAtomicBinaryRmw(CodeGen& codeGen, const AstIntrinsicCallExpr& node, MicroOp op)
     {
         SmallVector<AstNodeRef> children;
@@ -840,6 +954,10 @@ namespace
         SmallVector<InterfaceMakeRuntimeCandidate> candidates;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
             collectMakeInterfaceRuntimeCandidatesRec(codeGen, *rootModule, resultType.payloadSymInterface(), candidates);
+        // Imported modules' symbols live under the import-root namespace (siblings of this module),
+        // so enumerate them too — otherwise an imported struct could not be matched as a candidate.
+        if (const SymbolNamespace* importRoot = codeGen.compiler().importRootNamespace())
+            collectMakeInterfaceRuntimeCandidatesRec(codeGen, *importRoot, resultType.payloadSymInterface(), candidates);
 
         SmallVector<PreparedInterfaceMakeRuntimeCandidate> preparedCandidates;
         preparedCandidates.reserve(candidates.size());
@@ -858,29 +976,34 @@ namespace
 
         CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeStorageReg, interfaceSize);
 
-        if (!preparedCandidates.empty())
+        const MicroReg      typeInfoReg = materializeIntrinsicIntArgReg(codeGen, typePayload, MicroOpBits::B64);
+        const MicroLabelRef doneLabel   = builder.createLabel();
+
+        // Static candidates first: they share `ensureInterfaceMethodTable`'s cached constant with
+        // the direct path and `@tableof`, so all routes to the same (struct, interface) yield one
+        // itable pointer.
+        for (const auto& candidate : preparedCandidates)
         {
-            const MicroReg      typeInfoReg = materializeIntrinsicIntArgReg(codeGen, typePayload, MicroOpBits::B64);
-            const MicroLabelRef doneLabel   = builder.createLabel();
+            const ConstantValue& typeInfoCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);
+            SWC_ASSERT(typeInfoCst.isValuePointer());
 
-            for (const auto& candidate : preparedCandidates)
-            {
-                const ConstantValue& typeInfoCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);
-                SWC_ASSERT(typeInfoCst.isValuePointer());
-
-                const MicroLabelRef nextLabel        = builder.createLabel();
-                const MicroLabelRef matchLabel       = builder.createLabel();
-                const MicroReg      candidateTypeReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), candidate.objectTypeCstRef);
-                emitTypeInfoIdentityMatchOrJump(codeGen, typeInfoReg, candidateTypeReg, matchLabel, nextLabel);
-                builder.placeLabel(matchLabel);
-                SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, candidate.interfaceTableCstRef, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
-                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-                builder.placeLabel(nextLabel);
-            }
-
-            builder.placeLabel(doneLabel);
+            const MicroLabelRef nextLabel        = builder.createLabel();
+            const MicroLabelRef matchLabel       = builder.createLabel();
+            const MicroReg      candidateTypeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), candidate.objectTypeCstRef);
+            emitTypeInfoIdentityMatchOrJump(codeGen, typeInfoReg, candidateTypeReg, matchLabel, nextLabel);
+            builder.placeLabel(matchLabel);
+            SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, candidate.interfaceTableCstRef, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(nextLabel);
         }
+
+        // Fallback: read the itable from the runtime typeinfo. Required when no module at this call
+        // site enumerates the implementing struct as a candidate (e.g. core's `parseValue` for
+        // `Pixel.Color`).
+        SWC_RESULT(emitMakeInterfaceFromRuntimeTypeInfo(codeGen, resultTypeRef, typeRefNode, typeInfoReg, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff, doneLabel));
+
+        builder.placeLabel(doneLabel);
 
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, resultTypeRef);
         return Result::Continue;
@@ -935,15 +1058,21 @@ namespace
 
         SmallVector<const SymbolInterface*>        interfaces;
         std::unordered_set<const SymbolInterface*> seenInterfaces;
-        if (const SymbolModule* rootModule = codeGen.compiler().symModule())
+        const SymbolModule*                        rootModule  = codeGen.compiler().symModule();
+        const SymbolNamespace*                     importRoot  = codeGen.compiler().importRootNamespace();
+        if (rootModule)
             collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);
+        if (importRoot)
+            collectRuntimeInterfaceSymbolsRec(*importRoot, interfaces, seenInterfaces);
 
         SmallVector<InterfaceTableRuntimeCandidate> candidates;
         if (!interfaces.empty())
         {
-            const SymbolModule* rootModule = codeGen.compiler().symModule();
-            SWC_ASSERT(rootModule != nullptr);
-            collectTableOfRuntimeCandidatesRec(codeGen, *rootModule, interfaces.span(), candidates);
+            if (rootModule)
+                collectTableOfRuntimeCandidatesRec(codeGen, *rootModule, interfaces.span(), candidates);
+            // Imported structs live under the import-root namespace; enumerate them too.
+            if (importRoot)
+                collectTableOfRuntimeCandidatesRec(codeGen, *importRoot, interfaces.span(), candidates);
         }
 
         SmallVector<PreparedInterfaceTableRuntimeCandidate> preparedCandidates;
@@ -967,12 +1096,13 @@ namespace
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
-        if (preparedCandidates.empty())
-            return Result::Continue;
 
         const MicroReg      objectTypeReg    = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
         const MicroReg      interfaceTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
         const MicroLabelRef doneLabel        = builder.createLabel();
+
+        // Static candidates first (share `ensureInterfaceMethodTable`'s cached constant with
+        // `@mkinterface`, so both intrinsics yield the same itable pointer).
         for (const auto& candidate : preparedCandidates)
         {
             const ConstantValue& objectTypeCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);
@@ -997,6 +1127,10 @@ namespace
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
             builder.placeLabel(nextLabel);
         }
+
+        // Fallback: read the itable from the runtime typeinfo (cross-module, where the struct is not
+        // an enumerable candidate here).
+        SWC_RESULT(emitTableOfFromRuntimeTypeInfo(codeGen, objectTypeReg, interfaceTypeReg, resultPayload.reg, doneLabel));
 
         builder.placeLabel(doneLabel);
         return Result::Continue;

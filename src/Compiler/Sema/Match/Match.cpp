@@ -310,16 +310,34 @@ namespace
         addSymMap(lookUpCxt, &sema.fileNamespace(), fileRootPriority);
         addPersistedUsingSymMaps(lookUpCxt, &sema.fileNamespace(), fileRootPriority);
 
+        // Symbols imported from other modules live under the empty-named import-root namespace
+        // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Pixel`,
+        // `Core`). An imported-API file's own relative names resolve against that root, so the
+        // current namespace path must be walked from there too (e.g. `Core.Math.Point` inside the
+        // generated `core.swg`).
+        const SymbolNamespace* importRoot = sema.compiler().importRootNamespace();
+        if (importRoot == &sema.moduleNamespace())
+            importRoot = nullptr;
+
         MatchContext::Priority modulePathPriority;
         modulePathPriority.scopeDepth = static_cast<uint16_t>(scopeDepth + 1);
         modulePathPriority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
         addNamespacePathSymMap(sema, lookUpCxt, &sema.moduleNamespace(), modulePathPriority);
+        if (importRoot)
+            addNamespacePathSymMap(sema, lookUpCxt, importRoot, modulePathPriority);
 
         MatchContext::Priority moduleRootPriority;
         moduleRootPriority.scopeDepth = static_cast<uint16_t>(scopeDepth + 2);
         moduleRootPriority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
         addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
         addPersistedUsingSymMaps(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+
+        // Expose the imported module namespaces (Core, Pixel, ...) as siblings. Do NOT pull in
+        // importRoot's persisted `using` directives: those accumulate every imported file's usings
+        // (e.g. `using Win32`) and would flood unqualified lookups with unrelated symbols
+        // (e.g. `Gdi32.Rectangle` shadowing `Core.Math.Rectangle`).
+        if (importRoot)
+            addSymMap(lookUpCxt, importRoot, moduleRootPriority);
 
         addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(scopeDepth + 3));
         return Result::Continue;

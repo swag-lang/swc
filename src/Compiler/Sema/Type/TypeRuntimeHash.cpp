@@ -136,27 +136,13 @@ namespace
     uint32_t stableTypeHash(const TaskContext& ctx, TypeRef typeRef);
     uint32_t stableConstantHash(const TaskContext& ctx, ConstantRef cstRef);
 
-    // Cross-module-stable hash of a named symbol's scoped name. Imported-API
-    // declarations are regenerated locally in each importing module and wrapped
-    // under that module's namespace (the outermost scope, e.g. `Gui4.Pixel.Color`).
-    // Skip that importing-module element so the hashed name matches the defining
-    // module's `Pixel.Color`, identical in every module.
+    // Cross-module-stable hash of a named symbol's scoped name. Imported symbols keep their
+    // defining module's namespace hierarchy (e.g. `Pixel.Color`) in every importing module, so
+    // the scoped name is already canonical and identical across modules.
     uint32_t canonicalScopedNameHash(const TaskContext& ctx, const Symbol& symbol)
     {
-        Utf8 fullName = symbol.getFullScopedName(ctx);
-
-        // Imported-API declarations are wrapped under the importing module's
-        // namespace; strip it (exactly as buildRuntimeFullName does for the
-        // reflected name) so the canonical name matches the defining module.
-        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
-        if (sourceFile && sourceFile->isImportedApi())
-        {
-            const Runtime::String& moduleNs = ctx.compiler().buildCfg().moduleNamespace;
-            if (moduleNs.ptr && moduleNs.length)
-                fullName = TypeInfo::stripModuleQualifiersFromFullName(std::move(fullName), std::string_view(moduleNs.ptr, moduleNs.length));
-        }
-
-        const uint32_t h = Math::hash(fullName.view());
+        const Utf8     fullName = symbol.getFullScopedName(ctx);
+        const uint32_t h        = Math::hash(fullName.view());
         return h ? h : 1;
     }
 

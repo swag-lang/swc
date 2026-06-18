@@ -19,11 +19,6 @@ namespace
 
     Utf8 renderTypeName(const TypeInfo& typeInfo, const TaskContext& ctx, TypeNameMode mode);
 
-    bool isTypeNameModuleQualifierBoundary(const char c)
-    {
-        return !std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '.';
-    }
-
     void appendGenericStructInstanceArgs(Utf8& out, const SymbolStruct& instance, const TaskContext& ctx, const TypeNameMode mode)
     {
         SmallVector<GenericInstanceKey> args;
@@ -655,37 +650,6 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 Utf8 TypeInfo::toFullName(const TaskContext& ctx) const
 {
     return renderTypeName(*this, ctx, TypeNameMode::Full);
-}
-
-Utf8 TypeInfo::toFullNameWithoutModule(const TaskContext& ctx, const SymbolNamespace& moduleNamespace) const
-{
-    Utf8 fullName = toFullName(ctx);
-    return stripModuleQualifiersFromFullName(std::move(fullName), moduleNamespace.name(ctx));
-}
-
-Utf8 TypeInfo::stripModuleQualifiersFromFullName(Utf8 fullName, const std::string_view moduleNamespace)
-{
-    if (moduleNamespace.empty())
-        return fullName;
-
-    Utf8 prefix;
-    prefix += moduleNamespace;
-    prefix += ".";
-
-    size_t pos = fullName.find(prefix.view());
-    while (pos != std::string_view::npos)
-    {
-        if (pos == 0 || isTypeNameModuleQualifierBoundary(fullName[pos - 1]))
-        {
-            fullName.erase(pos, prefix.size());
-            pos = fullName.find(prefix.view(), pos);
-            continue;
-        }
-
-        pos = fullName.find(prefix.view(), pos + prefix.size());
-    }
-
-    return fullName;
 }
 
 Utf8 TypeInfo::toFamily(const TaskContext& ctx) const

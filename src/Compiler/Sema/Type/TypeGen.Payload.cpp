@@ -24,36 +24,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const Symbol* namedTypeDefiningSymbol(const TypeInfo& type)
-    {
-        if (type.isStruct())
-            return &type.payloadSymStruct();
-        if (type.isEnum())
-            return &type.payloadSymEnum();
-        if (type.isInterface())
-            return &type.payloadSymInterface();
-        if (type.isAlias())
-            return &type.payloadSymAlias();
-        return nullptr;
-    }
-
-    // The runtime fullname is the cross-module identity used by `@is`/`@typecmp`
-    // (they match types by fullname). An imported-API type is regenerated locally in
-    // every importing module, but the importer wraps the imported declarations under
-    // its own module namespace (e.g. `Gui2.Gui.DestroyEvent` instead of the defining
-    // module's `Gui.DestroyEvent`). Strip that importing-module prefix so the runtime
-    // fullname stays identical across modules and cross-module type checks succeed.
-    Utf8 buildRuntimeFullName(Sema& sema, const TypeInfo& type)
-    {
-        const TaskContext& ctx = sema.ctx();
-        if (const Symbol* sym = namedTypeDefiningSymbol(type))
-        {
-            const SourceFile* sourceFile = ctx.compiler().sourceViewFile(*sym);
-            if (sourceFile && sourceFile->isImportedApi())
-                return type.toFullNameWithoutModule(ctx, sema.moduleNamespace());
-        }
-        return type.toFullName(ctx);
-    }
 
     bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
 
@@ -320,7 +290,7 @@ namespace
         if (lifecycle.canCopy)
             addFlag(rtType, Runtime::TypeInfoFlags::CanCopy);
 
-        Utf8 fullName = buildRuntimeFullName(sema, type);
+        Utf8 fullName = type.toFullName(ctx);
         Utf8 name     = type.toName(ctx);
         if (type.isFunction())
         {
@@ -329,15 +299,6 @@ namespace
             {
                 fullName = symFunc.getFullScopedName(ctx);
                 name     = Utf8{symFunc.name(ctx)};
-
-                // Like buildRuntimeFullName: an attribute imported from another module is
-                // regenerated under the importer's module namespace (e.g. the importer would
-                // emit `Captme.Core.Serialization.Final` instead of `Core.Serialization.Final`).
-                // Strip that importing-module prefix so the runtime fullname stays canonical and
-                // cross-module attribute identity (Reflection.hasAttribute, ...) keeps working.
-                const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symFunc);
-                if (sourceFile && sourceFile->isImportedApi())
-                    fullName = TypeInfo::stripModuleQualifiersFromFullName(std::move(fullName), sema.moduleNamespace().name(ctx));
             }
         }
 
@@ -925,6 +886,43 @@ namespace
                 const uint32_t      elemOffset = interfacesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 tv.name.length                 = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
                 entry.structInterfaceTypes.push_back(symInterface->typeRef());
+
+                // Wire the interface method table (itable) into `value` so `@mkinterface`/`@tableof`
+                // can build an interface from a runtime typeinfo when the implementing struct lives
+                // in a module the call site cannot enumerate as a static candidate (e.g. core's
+                // `parseValue` building an interface for `Pixel.Color`). Layout matches
+                // SymbolImpl::ensureInterfaceMethodTable: slot[0] = the owning struct's typeinfo,
+                // slot[1..] = the impl's resolved method pointers. Skip generic ROOTs (their methods
+                // are uninstantiated and have no concrete code to relocate to).
+                const auto&                        itfMethods = symInterface->functions();
+                SmallVector<const SymbolFunction*> implMethods;
+                implMethods.reserve(itfMethods.size());
+                bool itableComplete = !symStruct.isGenericRoot() || symStruct.isGenericInstance();
+                for (const SymbolFunction* itfMethod : itfMethods)
+                {
+                    if (!itableComplete)
+                        break;
+                    const SymbolFunction* implMethod = itfMethod ? symImpl->resolveInterfaceMethodTarget(ctx, *itfMethod) : nullptr;
+                    if (!implMethod || !canReflectMethodValue(*implMethod) || implMethod->isGenericRoot())
+                    {
+                        itableComplete = false;
+                        break;
+                    }
+                    implMethods.push_back(implMethod);
+                }
+
+                if (itableComplete)
+                {
+                    const uint32_t slotCount           = static_cast<uint32_t>(implMethods.size()) + 1;
+                    const auto [tableOffset, tablePtr] = storage.reserveSpan<const void*>(slotCount);
+                    SWC_UNUSED(tablePtr);
+                    // slot 0: the owning struct's own typeinfo (this typeinfo, currently at `offset`).
+                    storage.addRelocation(tableOffset, offset);
+                    for (uint32_t m = 0; m < implMethods.size(); ++m)
+                        storage.addFunctionRelocation(tableOffset + static_cast<uint32_t>((m + 1) * sizeof(void*)), implMethods[m], true);
+                    storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), tableOffset);
+                    tv.value = storage.ptr<std::byte>(tableOffset);
+                }
             }
         }
     }

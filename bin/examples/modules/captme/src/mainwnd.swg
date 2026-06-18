@@ -481,6 +481,7 @@ impl MainWnd
 
             .addSeparator()
             .addItem(ActionCapture.HideEditor)
+            .addItem(ActionCapture.CaptureCursor)
 
             with let delayMenu = MenuCtrl.createPopup(captureMenu, owner: me)
             {

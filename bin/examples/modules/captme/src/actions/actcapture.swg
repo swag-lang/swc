@@ -14,6 +14,7 @@ impl ActionCapture
     newCmdId("Screen3")
     newCmdId("ActiveWnd")
     newCmdId("HideEditor")
+    newCmdId("CaptureCursor")
     newCmdId("ToInPlace")
     newCmdId("ToEditor")
     newCmdId("ToClipboard")
@@ -27,7 +28,7 @@ impl IActionUI for ActionCapture
         {
         case DoIt, Area, LastArea, FullScreen,
              Screen0, Screen1, Screen2, Screen3,
-             ActiveWnd, HideEditor, ToInPlace, ToEditor,
+             ActiveWnd, HideEditor, CaptureCursor, ToInPlace, ToEditor,
              ToClipboard:
             return true
         }
@@ -83,6 +84,11 @@ impl IActionUI for ActionCapture
             evt.name     = "Hide Editor Before Capture"
             evt.checked  = main.captureOptions.hideEditorBefore
             evt.accepted = true
+        case CaptureCursor:
+            evt.setFlags |= .Name | .Checked
+            evt.name     = "Capture Mouse Cursor"
+            evt.checked  = main.captureOptions.captureCursor
+            evt.accepted = true
         case ToInPlace:
             evt.setFlags |= .Name | .Checked
             evt.name     = "Edit Captured Area In Place"
@@ -132,6 +138,8 @@ impl IActionUI for ActionCapture
             main.captureOptions.inPlaceEdit = !main.captureOptions.inPlaceEdit
         case HideEditor:
             main.captureOptions.hideEditorBefore = !main.captureOptions.hideEditorBefore
+        case CaptureCursor:
+            main.captureOptions.captureCursor = !main.captureOptions.captureCursor
         case ToEditor:
             main.captureOptions.sendToEditor = !main.captureOptions.sendToEditor
         case ToClipboard:

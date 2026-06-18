@@ -16,7 +16,7 @@ namespace
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
 
     // The PDB path is embedded both in the exe's RSDS debug-directory record and in the PDB header.
-    // Emit it with native (backslash) separators like link.exe does: a forward-slash path built from a
+    // Emit it with native (backslash) separators: a forward-slash path built from a
     // forward-slash workspace argument can stop Visual Studio from loading the module's symbols.
     // (Utf8(fs::path) goes through generic_string(), which forces forward slashes, so convert here.)
     Utf8 nativePdbPathString(const fs::path& pdbPath)
@@ -739,7 +739,7 @@ void PEWriter::reserveDebugDirectorySection()
     constexpr uint32_t debugDirEntrySize = 28; // sizeof(IMAGE_DEBUG_DIRECTORY)
     constexpr uint32_t featDataSize      = 20; // IMAGE_DEBUG_TYPE_VC_FEATURE payload (5 x u32 counts)
 
-    // Two directory entries (CodeView + VC_FEATURE) followed by their data blobs, matching link.exe's layout.
+    // Two directory entries (CodeView + VC_FEATURE) followed by their data blobs, matching MSVC layout.
     OutSection section;
     section.name = ".debug";
     section.bytes.assign(2 * debugDirEntrySize + rsdsSize + featDataSize, std::byte{0});
@@ -750,7 +750,7 @@ void PEWriter::reserveDebugDirectorySection()
 }
 
 // Embeds a standard application manifest as an RT_MANIFEST resource in a .rsrc section, matching the
-// resource directory a conventional Windows linker (link.exe) emits. The single IMAGE_RESOURCE_DATA_ENTRY
+// resource directory a conventional Windows linker emits. The single IMAGE_RESOURCE_DATA_ENTRY
 // stores its payload by RVA, which is patched in emit() once the section's address is known.
 void PEWriter::reserveResourceSection()
 {
@@ -909,8 +909,8 @@ void PEWriter::emitDebugInfo()
     const Utf8              pdbPathStr = nativePdbPathString(pdbPath_);
     PdbWriter::build(*outPdbBytes_, guid, age, signature, *debugInfo_, pdbSections, resolver, image_->moduleName, pdbPathStr);
 
-    // Fill the reserved debug-directory section. Like link.exe, emit two entries — CodeView (the RSDS record
-    // pointing at the PDB) and VC_FEATURE (feature counts) — followed by their data blobs in the same section.
+    // Fill the reserved debug-directory section. Emit CodeView (the RSDS record pointing at the PDB)
+    // and VC_FEATURE (feature counts) followed by their data blobs in the same section.
     OutSection&        section    = sections_[debugDirIndex_];
     constexpr uint32_t entrySize  = 28;
     constexpr uint32_t entryCount = 2;

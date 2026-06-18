@@ -838,7 +838,6 @@ namespace Swag
         backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
 
-        linkerArgs:                    string                               // Additional linker arguments
         name:                          string                               // Artifact name
         outDir:                        string                               // Artifact output directory
         workDir:                       string                               // Work directory

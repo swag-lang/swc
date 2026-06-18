@@ -103,7 +103,6 @@ struct CommandLine
     bool publish                 = false;
     bool rebuild                 = false;
     bool dryRun                  = false;
-    bool externalLink            = false;
     bool showConfig              = false;
     bool verboseVerify           = false;
     bool sourceDrivenTest        = false;

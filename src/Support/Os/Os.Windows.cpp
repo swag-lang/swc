@@ -280,24 +280,8 @@ namespace
         out.push_back(L'"');
     }
 
-    bool shouldForwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view line)
-    {
-        if (!options || !options->outputLineFilter)
-            return true;
-        return options->outputLineFilter(line);
-    }
-
     void forwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view lineWithEnding)
     {
-        std::string_view line = lineWithEnding;
-        if (!line.empty() && line.back() == '\n')
-            line.remove_suffix(1);
-        if (!line.empty() && line.back() == '\r')
-            line.remove_suffix(1);
-
-        if (!shouldForwardProcessOutputLine(options, line))
-            return;
-
         if (options && options->logCtx)
         {
             Logger::print(*options->logCtx, lineWithEnding);
@@ -998,7 +982,7 @@ namespace Os
 
         HANDLE     childOutputRead  = nullptr;
         HANDLE     childOutputWrite = nullptr;
-        const bool redirectOutput   = options && (options->capturedOutput || !options->forwardOutput || options->outputLineFilter);
+        const bool redirectOutput   = options && (options->capturedOutput || !options->forwardOutput);
         if (redirectOutput)
         {
             SECURITY_ATTRIBUTES securityAttributes{};
@@ -1097,19 +1081,15 @@ namespace Os
         for (const auto& root : candidates)
         {
             std::error_code ec;
-            const fs::path  linkExe = root / "bin" / "Hostx64" / "x64" / "link.exe";
-            const fs::path  libExe  = root / "bin" / "Hostx64" / "x64" / "lib.exe";
             const fs::path  vcLib   = root / "lib" / "x64";
-            if (!fs::exists(linkExe, ec) || !fs::exists(libExe, ec))
+            if (!fs::exists(vcLib, ec))
                 continue;
 
-            outToolchain.linkExe   = linkExe;
-            outToolchain.libExe    = libExe;
             outToolchain.vcLibPath = vcLib;
             break;
         }
 
-        if (outToolchain.linkExe.empty() || outToolchain.libExe.empty())
+        if (outToolchain.vcLibPath.empty())
             return WindowsToolchainDiscoveryResult::MissingMsvcToolchain;
 
         candidates.clear();

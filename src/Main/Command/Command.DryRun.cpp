@@ -292,16 +292,8 @@ namespace
                 if (nativePreview.enabled)
                 {
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
-                    if (cmdLine.externalLink)
-                    {
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "write object files to the build directory");
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("invoke the external toolchain (link.exe / lib.exe) to produce {}", Utf8(nativePreview.paths.artifactPath)));
-                    }
-                    else
-                    {
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
-                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
-                    }
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
                     if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("copy dependency DLLs/PDBs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
                     if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
@@ -321,16 +313,8 @@ namespace
                 if (nativePreview.enabled)
                 {
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
-                    if (cmdLine.externalLink)
-                    {
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "write object files to the build directory");
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("invoke the external toolchain (link.exe / lib.exe) to produce {}", Utf8(nativePreview.paths.artifactPath)));
-                    }
-                    else
-                    {
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
-                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
-                    }
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
                     if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
                     if (nativePreview.mayRunArtifact)
@@ -366,72 +350,8 @@ namespace
         addInfoEntry(entries, "Artifact path", nativePreview.paths.artifactPath);
         if (!nativePreview.paths.pdbPath.empty())
             addInfoEntry(entries, "PDB path", nativePreview.paths.pdbPath);
-        if (ctx.cmdLine().externalLink)
-            addInfoEntry(entries, "Link inputs", ".obj files written to the build directory");
-        else
-            addInfoEntry(entries, "Link inputs", "in memory (no intermediate .obj files)");
+        addInfoEntry(entries, "Link inputs", "in memory");
         Logger::printFieldGroup(ctx, "Native Outputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
-    }
-
-    // Preview of the link.exe / lib.exe command line for the external toolchain path (--external-link).
-    std::vector<Utf8> buildLinkPreviewArgs(const DryRunNativePreview& preview, const Runtime::BuildCfg& buildCfg)
-    {
-        std::vector<Utf8> args;
-        switch (preview.backendKind)
-        {
-            case Runtime::BuildCfgBackendKind::Executable:
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-            {
-                const bool dll = preview.backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
-                args.emplace_back("/NOLOGO");
-                args.emplace_back("/NODEFAULTLIB");
-                args.emplace_back("/INCREMENTAL:NO");
-                args.emplace_back("/MACHINE:X64");
-                if (buildCfg.backend.debugInfo)
-                {
-                    args.emplace_back("/DEBUG:FULL");
-                    args.emplace_back(std::format("/PDB:{}", Utf8(preview.paths.pdbPath)));
-                }
-
-                if (dll)
-                {
-                    args.emplace_back("/DLL");
-                    args.emplace_back("/NOENTRY");
-                }
-                else
-                {
-                    args.emplace_back("/SUBSYSTEM:CONSOLE");
-                    args.emplace_back("/ENTRY:mainCRTStartup");
-                }
-
-                args.emplace_back(std::format("/OUT:{}", Utf8(preview.paths.artifactPath)));
-                if (!preview.toolchain.vcLibPath.empty())
-                    args.emplace_back(std::format("/LIBPATH:{}", Utf8(preview.toolchain.vcLibPath)));
-                if (!preview.toolchain.sdkUmLibPath.empty())
-                    args.emplace_back(std::format("/LIBPATH:{}", Utf8(preview.toolchain.sdkUmLibPath)));
-                if (!preview.toolchain.sdkUcrtLibPath.empty())
-                    args.emplace_back(std::format("/LIBPATH:{}", Utf8(preview.toolchain.sdkUcrtLibPath)));
-
-                args.emplace_back("<object-files>");
-                args.emplace_back("<libraries from command line and source>");
-                if (dll)
-                    args.emplace_back("<exports discovered during semantic/codegen>");
-                break;
-            }
-
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-                args.emplace_back("/NOLOGO");
-                args.emplace_back("/MACHINE:X64");
-                args.emplace_back(std::format("/OUT:{}", Utf8(preview.paths.artifactPath)));
-                args.emplace_back("<object-files>");
-                break;
-
-            case Runtime::BuildCfgBackendKind::Export:
-            case Runtime::BuildCfgBackendKind::None:
-                break;
-        }
-
-        return args;
     }
 
     void printDryRunNativeCommands(const TaskContext& ctx, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
@@ -441,39 +361,7 @@ namespace
 
         std::vector<Logger::FieldEntry> entries;
 
-        if (ctx.cmdLine().externalLink)
-        {
-            const fs::path* exePath = nullptr;
-            switch (nativePreview.backendKind)
-            {
-                case Runtime::BuildCfgBackendKind::Executable:
-                case Runtime::BuildCfgBackendKind::SharedLibrary:
-                    exePath = &nativePreview.toolchain.linkExe;
-                    break;
-                case Runtime::BuildCfgBackendKind::StaticLibrary:
-                    exePath = &nativePreview.toolchain.libExe;
-                    break;
-                case Runtime::BuildCfgBackendKind::Export:
-                case Runtime::BuildCfgBackendKind::None:
-                    break;
-            }
-
-            if (exePath)
-            {
-                addInfoEntry(entries, "Native tool", *exePath);
-                addInfoEntry(entries, "Tool working dir", nativePreview.paths.buildDir);
-                if (nativePreview.toolchainResult == Os::WindowsToolchainDiscoveryResult::Ok)
-                {
-                    const Utf8 commandLine = Os::formatProcessCommandLine(*exePath, buildLinkPreviewArgs(nativePreview, ctx.compiler().buildCfg()));
-                    addInfoEntry(entries, "Tool command", commandLine);
-                }
-            }
-        }
-        else
-        {
-            // Linking is done in process by the integrated linker; there is no external link/lib command.
-            addInfoEntry(entries, "Linker", "integrated (in-process)");
-        }
+        addInfoEntry(entries, "Linker", "integrated (in-process)");
 
         if (nativePreview.mayRunArtifact)
         {
@@ -499,15 +387,7 @@ namespace
         {
             case Os::WindowsToolchainDiscoveryResult::Ok:
                 addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
-                if (ctx.cmdLine().externalLink)
-                {
-                    addInfoEntry(entries, "Linker", nativePreview.toolchain.linkExe);
-                    addInfoEntry(entries, "Librarian", nativePreview.toolchain.libExe);
-                }
-                else
-                {
-                    addInfoEntry(entries, "Linker", "integrated (swc)");
-                }
+                addInfoEntry(entries, "Linker", "integrated (swc)");
                 addInfoEntry(entries, "MSVC library path", nativePreview.toolchain.vcLibPath);
                 addInfoEntry(entries, "Windows SDK UM libs", nativePreview.toolchain.sdkUmLibPath);
                 addInfoEntry(entries, "Windows SDK UCRT libs", nativePreview.toolchain.sdkUcrtLibPath);

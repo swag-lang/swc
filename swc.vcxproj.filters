@@ -255,9 +255,6 @@
     <ClCompile Include="src\Backend\Linker\Linker.cpp">
       <Filter>src\Backend\Linker</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Linker\CoffLinker.cpp">
-      <Filter>src\Backend\Linker</Filter>
-    </ClCompile>
     <ClCompile Include="src\Backend\Linker\PELinker.cpp">
       <Filter>src\Backend\Linker</Filter>
     </ClCompile>
@@ -1533,9 +1530,6 @@
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\Linker.h">
-      <Filter>src\Backend\Linker</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\Linker\CoffLinker.h">
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\PELinker.h">

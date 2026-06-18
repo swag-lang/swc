@@ -93,7 +93,35 @@ func getBackgroundWndRect()->Math.Rectangle
     return Math.Rectangle{r.left, r.top, r.right - r.left, r.bottom - r.top}
 }
 
-func getDesktopImage()->Image throw
+// Draw the current mouse cursor into the device context, accounting for the
+// cursor hotspot and the offset of the captured rect on the virtual desktop.
+func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
+{
+    var ci: CURSORINFO
+    ci.cbSize = #sizeof(CURSORINFO)
+    if !GetCursorInfo(&ci) do
+        return
+    if !(ci.flags & CURSOR_SHOWING) or !ci.hCursor do
+        return
+
+    let hIcon = cast(HICON) ci.hCursor
+
+    var ii: ICONINFO
+    catch GetIconInfo(hIcon, &ii)
+    defer
+    {
+        if ii.hbmMask do
+            catch DeleteObject(cast() ii.hbmMask)
+        if ii.hbmColor do
+            catch DeleteObject(cast() ii.hbmColor)
+    }
+
+    let x = ci.ptScreenPos.x - offsetX - cast(s32) ii.xHotspot
+    let y = ci.ptScreenPos.y - offsetY - cast(s32) ii.yHotspot
+    DrawIconEx(memDC, x, y, hIcon, 0, 0, 0, null, DI_NORMAL)
+}
+
+func getDesktopImage(drawCursor: bool)->Image throw
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
@@ -114,5 +142,9 @@ func getDesktopImage()->Image throw
 
     SelectObject(memDC, cast() memBMP)
     BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)
+
+    if drawCursor do
+        drawCursorInto(memDC, x, y)
+
     return Image.from(memBMP)
 }

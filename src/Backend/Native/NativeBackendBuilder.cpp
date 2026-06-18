@@ -706,10 +706,10 @@ Result NativeBackendBuilder::run()
     return runAfterLink();
 }
 
-// Builds everything up to but not including the external link, leaving a prepared link command in
-// deferredToolRun_. Mirrors run() but stops short of executing the linker so the workspace pipeline
-// can overlap the (out-of-process) link with the next module's compilation. The link is excluded
-// from the Build stage on purpose: in the deferred path it runs later, off this thread.
+// Builds everything up to but not including the link, leaving a prepared LinkJob in deferredToolRun_.
+// Mirrors run() but stops short of executing the linker so the workspace pipeline can overlap the
+// link with the next module's compilation. The link is excluded from the Build stage on purpose: in
+// the deferred path it runs later, off this thread.
 Result NativeBackendBuilder::prepareForLink()
 {
     SWC_MEM_SCOPE("Backend/Native");
@@ -1004,11 +1004,9 @@ Result NativeBackendBuilder::buildObjects()
     const NativeArtifactBuilder artifactBuilder(*this);
     SWC_RESULT(artifactBuilder.prepareOutputFolders());
 
-    // The integrated PE linker builds the executable/DLL image directly from functionInfos, so it never
-    // needs the intermediate COFF objects (only static libraries are archived from them). The external
-    // toolchain (--external-link), however, consumes real .obj files for every backend kind, so build
-    // them here when it is selected.
-    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary && !ctx_.cmdLine().externalLink)
+    // The integrated PE linker builds executable/DLL images directly from functionInfos, so it only
+    // needs COFF object bytes when producing a static library archive.
+    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
         return Result::Continue;
 
     JobManager& jobMgr = ctx_.global().jobMgr();

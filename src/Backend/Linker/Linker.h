@@ -6,10 +6,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Base class for the linker. A target-specific subclass lowers the backend output into a LinkJob; the
-// shared executeLink()/finishLink() turn that job into the final on-disk artifact, either in process
-// (the integrated PE linker, PELinker) or by shelling out to the platform toolchain (link.exe /
-// lib.exe via CoffLinker, selected with --external-link).
+// Base class for the integrated linker. A target-specific subclass lowers the backend output into a
+// LinkJob; the shared executeLink()/finishLink() turn that job into the final on-disk artifact.
 //
 // The three phases mirror the workspace async pipeline:
 //   prepareLink  - foreground, reads compiler state, produces a self-contained LinkJob.
@@ -35,10 +33,6 @@ public:
     Result         finishLink(const LinkJob& job) const;
 
 protected:
-    // Helper for the external-toolchain backend (CoffLinker): turns an argument list into a runnable
-    // command, spilling to a response file when the command line would be too long.
-    Result prepareToolRun(LinkJob& outJob, const fs::path& exePath, const std::vector<Utf8>& args, const Os::ProcessRunOptions* options) const;
-
     NativeBackendBuilder* builder_ = nullptr;
 };
 

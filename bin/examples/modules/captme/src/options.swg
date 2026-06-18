@@ -6,6 +6,9 @@ struct CaptureOptions
         #[Description("Show a large cross at the mouse position during capture")]
         drawCross = true
 
+        #[Description("Include the mouse cursor in the captured image")]
+        captureCursor = false
+
         #[Description("Temporarily hide the editor before starting the capture")]
         hideEditorBefore = true
 

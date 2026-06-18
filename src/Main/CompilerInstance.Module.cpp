@@ -96,7 +96,6 @@ namespace
         ownBuildCfgString(buildCfg.warnAsErrors, newOwnedStrings);
         ownBuildCfgString(buildCfg.warnAsWarning, newOwnedStrings);
         ownBuildCfgString(buildCfg.warnAsDisabled, newOwnedStrings);
-        ownBuildCfgString(buildCfg.linkerArgs, newOwnedStrings);
         ownBuildCfgString(buildCfg.name, newOwnedStrings);
         ownBuildCfgString(buildCfg.outDir, newOwnedStrings);
         ownBuildCfgString(buildCfg.workDir, newOwnedStrings);
@@ -1754,12 +1753,11 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
-    // Module compilation runs serially in dependency order, but each module's external link is
-    // launched on a background thread so it overlaps the next module's (CPU-bound) compilation
-    // instead of stalling every worker while link.exe runs. A module reads its dependencies' link
-    // artifacts while resolving imports during setup, so a pending dependency link is joined before
-    // its dependent starts. This is a depth-1 pipeline: at most one link is in flight, which bounds
-    // the extra peak memory to a single retained module compiler.
+    // Module compilation runs serially in dependency order, but each module's link is launched on a
+    // background thread so it overlaps the next module's compilation. A module reads its dependencies'
+    // link artifacts while resolving imports during setup, so a pending dependency link is joined
+    // before its dependent starts. This is a depth-1 pipeline: at most one link is in flight, which
+    // bounds the extra peak memory to a single retained module compiler.
     std::unique_ptr<WorkspaceModuleLink> pendingLink;
 
     const auto joinPendingLink = [&]() -> Result {
@@ -1793,12 +1791,6 @@ ExitCode CompilerInstance::runWorkspace()
 
             modulePending->launchLink();
             pendingLink = std::move(modulePending);
-
-            // The external toolchain (--external-link) shells out to link.exe, whose PDB engine
-            // (mspdbsrv) is unreliable when several links run at once or overlap the next module's
-            // codegen. Force a strictly serial, one-at-a-time link by draining it before continuing.
-            if (cmdLine().externalLink && joinPendingLink() != Result::Continue)
-                return ExitCode::CompileError;
         }
 
         workspaceBuildLogState_.builtModules++;
@@ -1929,7 +1921,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         deferredBuilder = moduleCompiler->takeDeferredBuilder();
         if (!deferredBuilder)
         {
-            // No external link to defer (non-native backend, or a test run): finalize synchronously,
+            // No deferred link to finalize (non-native backend, or a test run): finalize synchronously,
             // exactly as before. The artifacts, if any, were already produced by processCommand.
             if (moduleCmdLine.command != CommandKind::Test)
             {

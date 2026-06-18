@@ -203,7 +203,6 @@
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Linker\Linker.cpp"/>
-        <ClCompile Include="src\Backend\Linker\CoffLinker.cpp"/>
         <ClCompile Include="src\Backend\Linker\PELinker.cpp" />
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
@@ -653,7 +652,6 @@
         <ClInclude Include="src\Backend\Native\NativeValidate.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
         <ClInclude Include="src\Backend\Linker\Linker.h"/>
-        <ClInclude Include="src\Backend\Linker\CoffLinker.h"/>
         <ClInclude Include="src\Backend\Linker\PELinker.h" />
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>
         <ClInclude Include="src\Backend\Linker\LinkImage.h"/>
@@ -738,7 +736,6 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
-
 
 
 

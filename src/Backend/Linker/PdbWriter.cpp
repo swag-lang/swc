@@ -625,8 +625,8 @@ void PdbWriter::build(std::vector<std::byte>&            outBytes,
 
     // ---- Module streams -------------------------------------------------------------------------
     // Model each PDB compiland as the object file the backend split functions into (the codegen job),
-    // named after that .obj. This mirrors the layout an external link.exe PDB has -- Visual Studio
-    // expects per-object compilands -- while every function still carries its own source-file line table.
+    // named after that .obj. This mirrors the MSVC-style layout Visual Studio expects while every
+    // function still carries its own source-file line table.
     std::vector<PdbModuleBuild>          modules;
     std::unordered_map<uint32_t, size_t> moduleOfObj;
     const auto                           addFileToModule = [](PdbModuleBuild& module, const uint32_t fileIndex) {
@@ -1064,9 +1064,9 @@ void PdbWriter::build(std::vector<std::byte>&            outBytes,
         appendLe32(dbi, 19990903);              // VersionHeader (V70)
         appendLe32(dbi, outAge);                // Age
         appendLe16(dbi, globalsStreamIndex);    // GlobalStreamIndex
-        appendLe16(dbi, 0x8e32);                // BuildNumber: new-format flag | 14.50, matching link.exe's DBI header
+        appendLe16(dbi, 0x8e32);                // BuildNumber: new-format flag | 14.50, matching MSVC's DBI header
         appendLe16(dbi, publicsStreamIndex);    // PublicStreamIndex
-        appendLe16(dbi, 35726);                 // PdbDllVersion (non-zero, matching the link.exe-produced PDB)
+        appendLe16(dbi, 35726);                 // PdbDllVersion (non-zero, matching MSVC-produced PDBs)
         appendLe16(dbi, symRecordsStreamIndex); // SymRecordStreamIndex
         appendLe16(dbi, 0);                     // PdbDllRbld
         appendLe32(dbi, static_cast<uint32_t>(modInfo.size()));

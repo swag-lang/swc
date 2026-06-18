@@ -965,6 +965,24 @@ struct ICONINFO
     hbmColor:     HBITMAP
 }
 
+struct CURSORINFO
+{
+    cbSize:       DWORD
+    flags:        DWORD
+    hCursor:      HCURSOR
+    ptScreenPos:  POINT
+}
+
+const CURSOR_SHOWING   = 0x00000001
+const CURSOR_SUPPRESSED = 0x00000002
+
+const DI_MASK        = 0x0001
+const DI_IMAGE       = 0x0002
+const DI_NORMAL      = 0x0003
+const DI_COMPAT      = 0x0004
+const DI_DEFAULTSIZE = 0x0008
+const DI_NOMIRROR    = 0x0010
+
 alias DPI_AWARENESS_CONTEXT = *void
 const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -1's64
 const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -2's64
@@ -1051,6 +1069,8 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 #[Foreign("user32"), Discardable]
 {
     func GetCursorPos(lpPoint: *POINT)->BOOL;
+    func GetCursorInfo(pci: *CURSORINFO)->BOOL;
+    func DrawIconEx(hdc: HDC, xLeft, yTop: s32, hIcon: HICON, cxWidth, cyWidth: s32, istepIfAniCur: UINT, hbrFlickerFreeDraw: HBRUSH, diFlags: UINT)->BOOL;
 
     func FillRect(hDC: HDC, lprc: const *RECT, hbr: HBRUSH)->s32;
     func GetClientRect(hWnd: HWND, lpRect: *RECT)->BOOL;

@@ -713,13 +713,13 @@ void PELinker::collectDebugInfo(LinkJob& outJob) const
     collectDebugRecords(*builder_, functionPtrs, builder_->startup.get(), true, collected);
 
     // Mirror the COFF object split as PDB compilands: each function's owning object file (its codegen
-    // job) becomes a module named after that .obj, so the PDB has the same per-object compiland layout an
-    // external link.exe PDB would. Visual Studio expects per-object compilands; the previous
-    // source-file-sized ones (with the image itself as module 0) confused its module model.
+    // job) becomes a module named after that .obj. Visual Studio expects this per-object compiland
+    // layout; the previous source-file-sized ones (with the image itself as module 0) confused its
+    // module model.
     dbg.objectNames.reserve(builder_->objectDescriptions.size());
     for (const NativeObjDescription& obj : builder_->objectDescriptions)
     {
-        // Use native (backslash) separators like an external link.exe PDB records for its compilands.
+        // Use native (backslash) separators as expected by Windows PDB consumers.
         auto objName = Utf8(obj.objPath);
         std::ranges::replace(objName, '/', '\\');
         dbg.objectNames.push_back(std::move(objName));

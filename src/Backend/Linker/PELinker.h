@@ -10,7 +10,7 @@ struct CoffObject;
 // Integrated Windows PE linker. Lowers the native backend state directly into a LinkImage, resolves
 // the remaining undefined symbols against dependency and system import/static libraries (pulling
 // static members and turning DLL imports into an import table), and hands the image to the PE writer
-// -- no external link.exe or intermediate object files involved.
+// without invoking an out-of-process toolchain.
 class PELinker final : public Linker
 {
 public:

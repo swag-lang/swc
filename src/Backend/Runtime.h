@@ -499,7 +499,6 @@ namespace Runtime
         BuildCfgBackendKind    backendKind    = BuildCfgBackendKind::Executable;
         BuildCfgBackendSubKind backendSubKind = BuildCfgBackendSubKind::Console;
 
-        String          linkerArgs;
         String          name;
         String          outDir;
         String          workDir;

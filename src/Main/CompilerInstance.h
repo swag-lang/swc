@@ -171,7 +171,7 @@ public:
     const SymbolNamespace* importRootNamespace() const { return importRootNamespace_; }
     void                   setImportRootNamespace(SymbolNamespace* ns) { importRootNamespace_ = ns; }
 
-    // When set, the native backend stops short of running the external linker and hands the prepared
+    // When set, the native backend stops short of running the linker and hands the prepared
     // builder back via the deferred-builder slot, so the workspace pipeline can run the link off the
     // main thread. See runWorkspace.
     void                                  setDeferNativeLink(bool defer) { deferNativeLink_ = defer; }

@@ -58,7 +58,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface } throw
     defer g_App.enableHotKeys()
 
     var result: retval
-    result.img       = getDesktopImage()
+    result.img       = getDesktopImage(main.captureOptions.captureCursor)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
@@ -198,7 +198,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
         let wGrab    = Math.max(grabRect.width, 8)
         let hGrab    = Math.max(grabRect.height, 8)
 
-        var img = getDesktopImage()
+        var img = getDesktopImage(main.captureOptions.captureCursor)
         img.crop(cast(s32) grabRect.x, cast(s32) grabRect.y, cast(s32) wGrab, cast(s32) hGrab)
 
         with capture = Memory.new'Capture()

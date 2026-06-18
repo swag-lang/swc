@@ -37,8 +37,6 @@ namespace Os
 
     struct WindowsToolchainPaths
     {
-        fs::path linkExe;
-        fs::path libExe;
         fs::path vcLibPath;
         fs::path sdkUmLibPath;
         fs::path sdkUcrtLibPath;
@@ -49,7 +47,6 @@ namespace Os
         std::string*                          capturedOutput = nullptr;
         bool                                  forwardOutput  = true;
         const TaskContext*                    logCtx         = nullptr;
-        std::function<bool(std::string_view)> outputLineFilter;
         std::span<const fs::path>             additionalPathDirectories;
     };
 

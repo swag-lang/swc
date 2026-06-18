@@ -17,11 +17,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// With --external-link the executable and its PDB are produced by link.exe rather than the integrated
-// linker. They get this name suffix so both backends' artifacts coexist in the same output folder for
-// side-by-side comparison. Libraries are not suffixed, so the dependency chain still resolves by name.
-inline constexpr auto K_EXTERNAL_LINK_ARTIFACT_SUFFIX = "_external";
-
 class NativeStartupBuildJob final : public Job
 {
 public:
@@ -359,14 +354,8 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
         outPaths.outDir = fs::path(buildCfgOutDir.c_str());
     else
         outPaths.outDir = outPaths.workDir;
-    // The external toolchain produces a distinctly named executable + PDB so both linker backends'
-    // outputs can sit side by side; libraries keep their base name so dependents still resolve them.
-    Utf8 artifactBaseName = outPaths.name;
-    if (builder_->ctx().cmdLine().externalLink && builder_->compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
-        artifactBaseName += K_EXTERNAL_LINK_ARTIFACT_SUFFIX;
-
-    outPaths.artifactPath = outPaths.outDir / std::format("{}{}", artifactBaseName, outPaths.artifactExtension);
-    outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", artifactBaseName);
+    outPaths.artifactPath = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
+    outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", outPaths.name);
 
     if (!numObjects)
         return;

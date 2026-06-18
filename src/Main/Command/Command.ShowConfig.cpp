@@ -150,15 +150,7 @@ namespace
         {
             case Os::WindowsToolchainDiscoveryResult::Ok:
                 addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
-                if (ctx.cmdLine().externalLink)
-                {
-                    addInfoEntry(entries, "Linker", toolchain.linkExe);
-                    addInfoEntry(entries, "Librarian", toolchain.libExe);
-                }
-                else
-                {
-                    addInfoEntry(entries, "Linker", "integrated (swc)");
-                }
+                addInfoEntry(entries, "Linker", "integrated (swc)");
                 addInfoEntry(entries, "MSVC library path", toolchain.vcLibPath);
                 addInfoEntry(entries, "Windows SDK UM libs", toolchain.sdkUmLibPath);
                 addInfoEntry(entries, "Windows SDK UCRT libs", toolchain.sdkUcrtLibPath);

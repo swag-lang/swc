@@ -29,8 +29,8 @@ namespace Command
             const bool runExecutable = runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable;
 
             // Workspace pipeline: build everything but the link, then hand the prepared builder back so
-            // the caller can run the external linker off the main thread and finish it at a later sync
-            // point. The builder owns its own TaskContext, so it only needs the compiler kept alive.
+            // the caller can run the linker off the main thread and finish it at a later sync point.
+            // The builder owns its own TaskContext, so it only needs the compiler kept alive.
             if (compiler.deferNativeLink())
             {
                 auto builder = std::make_unique<NativeBackendBuilder>(compiler, runExecutable);

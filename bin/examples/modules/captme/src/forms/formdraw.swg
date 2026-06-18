@@ -25,7 +25,8 @@ impl IForm for FormDraw
         return .borderColor == other.borderColor and
                .borderSize == other.borderSize and
                .alpha == other.alpha and
-               .paintShadow == .paintShadow
+               .subKind == other.subKind and
+               .paintShadow == other.paintShadow
     }
 
     mtd impl copy(dst, src: *BaseForm)
@@ -35,6 +36,7 @@ impl IForm for FormDraw
         dstf.borderColor = srcf.borderColor
         dstf.borderSize  = srcf.borderSize
         dstf.alpha       = srcf.alpha
+        dstf.subKind     = srcf.subKind
         dstf.paintShadow = srcf.paintShadow
     }
 

@@ -32,6 +32,7 @@ impl IForm for FormLine
                .startSize == other.startSize and
                .endSize == other.endSize and
                .dashCap == other.dashCap and
+               .subKind == other.subKind and
                .bezier == other.bezier and
                .paintShadow == other.paintShadow
     }
@@ -49,6 +50,7 @@ impl IForm for FormLine
         dstf.startSize   = srcf.startSize
         dstf.endSize     = srcf.endSize
         dstf.dashCap     = srcf.dashCap
+        dstf.subKind     = srcf.subKind
         dstf.bezier      = srcf.bezier
         dstf.paintShadow = srcf.paintShadow
     }

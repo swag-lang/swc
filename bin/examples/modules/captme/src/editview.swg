@@ -135,8 +135,8 @@ impl EditView
         .invalidate()
     }
 
-    mtd canZoomIn()  => .zoom != MaxZoom
-    mtd canZoomOut() => .zoom != MinZoom
+    mtd canZoomIn()  => !Math.isEqualEpsilon(.zoom, MaxZoom, 0.001)
+    mtd canZoomOut() => !Math.isEqualEpsilon(.zoom, MinZoom, 0.001)
 
     mtd zoomIn()
     {

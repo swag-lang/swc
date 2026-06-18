@@ -33,6 +33,7 @@ impl IForm for FormPolygon
                .borderSize == other.borderSize and
                .backColor == other.backColor and
                .alpha == other.alpha and
+               .subKind == other.subKind and
                .bezier == other.bezier and
                .paintShadow == other.paintShadow
     }
@@ -45,6 +46,7 @@ impl IForm for FormPolygon
         dstf.borderSize  = srcf.borderSize
         dstf.backColor   = srcf.backColor
         dstf.alpha       = srcf.alpha
+        dstf.subKind     = srcf.subKind
         dstf.paintShadow = srcf.paintShadow
         dstf.bezier      = srcf.bezier
     }

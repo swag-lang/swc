@@ -199,7 +199,7 @@ impl Undo
             {
                 let f = .capture.forms[s]
                 let r = f.boundRect()
-                .oldS32.add(cast(s32) r.x)
+                .oldS32.add(cast(s32) r.y)
                 .minP = Math.min(.minP, cast(s32) r.y)
                 .maxP = Math.max(.maxP, cast(s32) (r.y + r.height))
             }
@@ -649,11 +649,18 @@ impl Undo
             }
             .capture.updateModelFromSelection()
 
-        case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
+        case AlignLeft, AlignRight, AlignCenter:
             foreach s, i in .selection
             {
                 let b = cast(*BaseForm) @dataof(.capture.forms[s])
                 b.x = .oldS32[i]
+            }
+
+        case AlignTop, AlignBottom, AlignMiddle:
+            foreach s, i in .selection
+            {
+                let b = cast(*BaseForm) @dataof(.capture.forms[s])
+                b.y = .oldS32[i]
             }
 
         case MovePoint:

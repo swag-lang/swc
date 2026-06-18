@@ -1,4 +1,3 @@
-#global #if #command == Swag.CompilerCommand.Test
 #global public
 using Swag, Core
 

@@ -25,6 +25,7 @@ private:
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
     Result resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const;
     void   collectExports(LinkImage& image) const;
+    Result collectWin32ApplicationConfig(LinkImage& image) const;
     void   buildDebugTable(LinkImage& image) const;
     void   collectDebugInfo(LinkJob& outJob) const;
 };

@@ -204,6 +204,7 @@
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Linker\Linker.cpp"/>
         <ClCompile Include="src\Backend\Linker\PELinker.cpp" />
+        <ClCompile Include="src\Backend\Linker\Win32OsPatcher.cpp" />
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
         <ClCompile Include="src\Backend\Linker\PEWriter.cpp" />
@@ -658,6 +659,7 @@
         <ClInclude Include="src\Backend\Linker\LinkDebugInfo.h"/>
         <ClInclude Include="src\Backend\Linker\PdbWriter.h"/>
         <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
+        <ClInclude Include="src\Backend\Linker\Win32OsPatcher.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h" />
@@ -736,7 +738,6 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
-
 
 
 

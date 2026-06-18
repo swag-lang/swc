@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PdbWriter.h"
+#include "Backend/Linker/Win32OsPatcher.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -51,7 +52,7 @@ private:
     bool     applyRelocations(Diagnostic& outDiag);
     void     buildBaseRelocations();
     void     reserveDebugDirectorySection();
-    void     reserveResourceSection();
+    bool     reserveResourceSection(Diagnostic& outDiag);
     void     emitDebugInfo(); // builds the PDB and fills the debug-directory section; no-op if disabled
     bool     emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag);
     bool     debugInfoEnabled() const;
@@ -82,6 +83,7 @@ private:
     uint32_t                               debugDirSize_  = 0;
     uint32_t                               timeDateStamp_ = 0;  // deterministic, non-zero image timestamp (module identity)
     int32_t                                rsrcIndex_     = -1; // section holding the .rsrc resource directory (manifest)
+    std::vector<Win32ResourceRvaPatch>     rsrcRvaPatches_;
 };
 
 SWC_END_NAMESPACE();

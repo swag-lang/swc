@@ -641,6 +641,48 @@ void PELinker::collectExports(LinkImage& image) const
     }
 }
 
+Result PELinker::collectWin32ApplicationConfig(LinkImage& image) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+    const Runtime::BuildCfg& buildCfg = builder_->compiler().buildCfg();
+
+    if (buildCfg.backendSubKind == Runtime::BuildCfgBackendSubKind::Default)
+        image.win32.subsystem = LinkWin32Subsystem::Windows;
+    else
+        image.win32.subsystem = LinkWin32Subsystem::Console;
+
+    if (buildCfg.backendKind != Runtime::BuildCfgBackendKind::Executable)
+        return Result::Continue;
+
+    image.win32.appName        = Utf8(buildCfg.resAppName);
+    image.win32.appDescription = Utf8(buildCfg.resAppDescription);
+    image.win32.appCompany     = Utf8(buildCfg.resAppCompany);
+    image.win32.appCopyright   = Utf8(buildCfg.resAppCopyright);
+    image.win32.version        = buildCfg.moduleVersion;
+    image.win32.revision       = buildCfg.moduleRevision;
+    image.win32.buildNum       = buildCfg.moduleBuildNum;
+
+    const Utf8 iconFileName = Utf8(buildCfg.resAppIcoFileName);
+    if (iconFileName.empty())
+        return Result::Continue;
+
+    fs::path iconPath(iconFileName.c_str());
+    if (iconPath.is_relative())
+        iconPath = FileSystem::absolutePathNoThrow(iconPath);
+    iconPath = iconPath.lexically_normal();
+
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::readBinaryFile(iconPath, image.win32.iconBytes, ioError) != Result::Continue)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_link_resource_read_failed);
+        FileSystem::setDiagnosticPathAndBecause(diag, &builder_->ctx(), iconPath, FileSystem::describeIoFailure(ioError));
+        return builder_->reportError(diag);
+    }
+
+    image.win32.iconPath = Utf8(iconPath);
+    return Result::Continue;
+}
+
 Result PELinker::buildImage(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -673,6 +715,7 @@ Result PELinker::buildImage(LinkImage& image) const
     }
 
     image.stackReserve = DEFAULT_EXECUTABLE_STACK_RESERVE;
+    SWC_RESULT(collectWin32ApplicationConfig(image));
     return Result::Continue;
 }
 

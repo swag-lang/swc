@@ -91,6 +91,29 @@ enum class LinkImageKind : uint8_t
     SharedLibrary,
 };
 
+enum class LinkWin32Subsystem : uint8_t
+{
+    Console,
+    Windows,
+};
+
+struct LinkWin32ApplicationConfig
+{
+    Utf8                   iconPath;
+    std::vector<std::byte> iconBytes;
+    Utf8                   appName;
+    Utf8                   appDescription;
+    Utf8                   appCompany;
+    Utf8                   appCopyright;
+    uint32_t               version  = 0;
+    uint32_t               revision = 0;
+    uint32_t               buildNum = 0;
+    LinkWin32Subsystem     subsystem = LinkWin32Subsystem::Console;
+
+    bool hasIcon() const { return !iconBytes.empty(); }
+    bool hasVersionInfo() const { return version != 0 || revision != 0 || buildNum != 0 || !appName.empty() || !appDescription.empty() || !appCompany.empty() || !appCopyright.empty(); }
+};
+
 struct LinkImage
 {
     std::vector<LinkSection> sections;
@@ -104,6 +127,7 @@ struct LinkImage
     uint64_t      imageBase    = 0;
     uint64_t      stackReserve = 0;
     uint64_t      stackCommit  = 0;
+    LinkWin32ApplicationConfig win32;
 };
 
 SWC_END_NAMESPACE();

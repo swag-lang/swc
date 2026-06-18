@@ -548,11 +548,11 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     // Every section now has a final RVA/file offset: build the PDB and fill the debug-directory section.
     emitDebugInfo();
 
-    // Patch the resource data entry's payload RVA now that the .rsrc section has an address.
+    // Patch resource payload RVAs now that the .rsrc section has an address.
     if (rsrcIndex_ >= 0)
     {
         OutSection& rs = sections_[rsrcIndex_];
-        ByteUtils::writeLe32(rs.bytes, 72, rs.rva + 88); // IMAGE_RESOURCE_DATA_ENTRY.OffsetToData (RVA)
+        Win32OsPatcher::patchResourceSectionRvas(rs.bytes, rsrcRvaPatches_, rs.rva);
     }
 
     // Compute SizeOfImage and the entry point.
@@ -613,7 +613,7 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     opt.MajorSubsystemVersion       = 6;
     opt.SizeOfImage                 = sizeOfImage;
     opt.SizeOfHeaders               = headersSize;
-    opt.Subsystem                   = IMAGE_SUBSYSTEM_WINDOWS_CUI;
+    opt.Subsystem                   = image_->win32.subsystem == LinkWin32Subsystem::Windows ? IMAGE_SUBSYSTEM_WINDOWS_GUI : IMAGE_SUBSYSTEM_WINDOWS_CUI;
     opt.DllCharacteristics          = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT |
                              IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
     if (!baseRelocSites_.empty())
@@ -749,71 +749,24 @@ void PEWriter::reserveDebugDirectorySection()
     sections_.push_back(std::move(section));
 }
 
-// Embeds a standard application manifest as an RT_MANIFEST resource in a .rsrc section, matching the
-// resource directory a conventional Windows linker emits. The single IMAGE_RESOURCE_DATA_ENTRY
-// stores its payload by RVA, which is patched in emit() once the section's address is known.
-void PEWriter::reserveResourceSection()
+// Reserves the Win32 resource directory. Payload RVAs are patched in emit() once the section's address is known.
+bool PEWriter::reserveResourceSection(Diagnostic& outDiag)
 {
-    static constexpr char MANIFEST[] =
-        "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\r\n"
-        "<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>\r\n"
-        "  <trustInfo xmlns=\"urn:schemas-microsoft-com:asm.v3\">\r\n"
-        "    <security>\r\n"
-        "      <requestedPrivileges>\r\n"
-        "        <requestedExecutionLevel level='asInvoker' uiAccess='false' />\r\n"
-        "      </requestedPrivileges>\r\n"
-        "    </security>\r\n"
-        "  </trustInfo>\r\n"
-        "</assembly>\r\n";
-    constexpr auto manifestLen = static_cast<uint32_t>(sizeof(MANIFEST) - 1); // drop the trailing NUL
-
-    // Three directory levels (type / id / language), each a 16-byte directory + one 8-byte entry, then a
-    // 16-byte data entry, then the manifest bytes. Offsets below are relative to the section start.
-    constexpr uint32_t kRtManifest     = 24;
-    constexpr uint32_t kManifestId     = 1; // CREATEPROCESS_MANIFEST_RESOURCE_ID
-    constexpr uint32_t kLangEnUs       = 0x0409;
-    constexpr uint32_t kSubdirFlag     = 0x80000000u;
-    constexpr uint32_t dataEntryOffset = (16 + 8) * 3; // 72
-
-    std::vector<std::byte> b;
-    const auto             u16 = [&](uint16_t v) {
-        ByteUtils::appendLe16(b, v);
-    };
-    const auto u32 = [&](uint32_t v) {
-        ByteUtils::appendLe32(b, v);
-    };
-    const auto dir = [&] {
-        u32(0);
-        u32(0);
-        u16(0);
-        u16(0);
-        u16(0);
-        u16(1);
-    }; // one id entry
-
-    dir();
-    u32(kRtManifest);
-    u32(kSubdirFlag | 24); // root -> type dir at 24
-    dir();
-    u32(kManifestId);
-    u32(kSubdirFlag | 48); // type -> language dir at 48
-    dir();
-    u32(kLangEnUs);
-    u32(dataEntryOffset); // language -> data entry at 72
-    u32(0 /*OffsetToData RVA, patched later*/);
-    u32(manifestLen);
-    u32(0);
-    u32(0);
-    for (uint32_t i = 0; i < manifestLen; ++i)
-        b.push_back(static_cast<std::byte>(MANIFEST[i]));
+    Win32ResourceSection resourceSection;
+    if (!Win32OsPatcher::buildResourceSection(resourceSection, outDiag, *image_))
+        return false;
+    if (resourceSection.bytes.empty())
+        return true;
 
     OutSection section;
     section.name        = ".rsrc";
-    section.bytes       = std::move(b);
+    section.bytes       = std::move(resourceSection.bytes);
     section.virtualSize = static_cast<uint32_t>(section.bytes.size());
     section.align       = 4;
     rsrcIndex_          = static_cast<int32_t>(sections_.size());
+    rsrcRvaPatches_     = std::move(resourceSection.rvaPatches);
     sections_.push_back(std::move(section));
+    return true;
 }
 
 namespace
@@ -998,7 +951,8 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, std::vector<std::byt
     buildImports();
     buildExports();
     reserveDebugDirectorySection();
-    reserveResourceSection();
+    if (!reserveResourceSection(outDiag))
+        return false;
     assignLayout();
 
     if (!applyRelocations(outDiag))

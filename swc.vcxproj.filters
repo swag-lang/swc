@@ -258,6 +258,9 @@
     <ClCompile Include="src\Backend\Linker\PELinker.cpp">
       <Filter>src\Backend\Linker</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Linker\Win32OsPatcher.cpp">
+      <Filter>src\Backend\Linker</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Linker\PdbWriter.cpp">
       <Filter>src\Backend\Linker</Filter>
     </ClCompile>
@@ -1548,6 +1551,9 @@
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\ImageWriter.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\Win32OsPatcher.h">
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\CoffReader.h">

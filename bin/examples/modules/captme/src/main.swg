@@ -53,34 +53,10 @@ var g_App: Application
     if !Env.hasArg("--hide") do
         surface.show()
 
-    // Icon task bar.
-    // `using` (not `with`) brings the Win32 namespace into scope without opening a
-    // block, so the cleanup `defer`s below belong to `#main` and run at app exit
-    // instead of being executed immediately at the end of a `with` block.
-    using Win32
-
-    let hIcon = catch img.toHICON()
-    defer catch DestroyIcon(hIcon)
-
-    // Use the legacy (version 0) NOTIFYICON behaviour: the callback's `lParam`
-    // carries the raw mouse message (e.g. WM_RBUTTONDOWN), which is what the
-    // surface forwards as `evt.param1` and what `onSysUserEvent` expects. Do NOT
-    // call NIM_SETVERSION/NOTIFYICON_VERSION_4 here: version 4 packs the message
-    // into LOWORD(lParam) and reports right-clicks as WM_CONTEXTMENU, which would
-    // break the tray menu unless the surface decoder is taught the v4 layout.
-    with var tnid: NOTIFYICONDATAA
-    {
-        .cbSize           = #sizeof(NOTIFYICONDATAA)
-        .hWnd             = surface.hWnd
-        .uID              = 1
-        .uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP
-        .uCallbackMessage = WM_USER
-        .hIcon            = hIcon
-        Memory.copy(&.szTip[0], @dataof("Captme"), @countof("Captme"))
-    }
-
-    catch Shell_NotifyIconA(NIM_ADD, &tnid)
-    defer catch Shell_NotifyIconA(NIM_DELETE, &tnid)
+    // Show the app icon in the notification area (system tray). Right-clicking it
+    // is delivered to MainWnd.onSysUserEvent as a WM_USER event; the icon is removed
+    // automatically when the surface is destroyed.
+    surface.setTrayIcon(img, "Captme")
 
     with Env
     {

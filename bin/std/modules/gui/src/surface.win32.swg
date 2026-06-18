@@ -23,7 +23,11 @@ struct NativeSurface
     hWnd:             HWND
     lastDeadChar:     WPARAM
     topMost:          bool
+    trayIcon:         HICON
 }
+
+// Fixed notification-area icon id. A surface owns at most one tray icon.
+const TrayIconID = 1
 
 fileprivate func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
 {
@@ -242,12 +246,56 @@ fileprivate impl Surface
 
     mtd destroyNative()
     {
+        if .trayIcon
+        {
+            var tnid: NOTIFYICONDATAA
+            tnid.cbSize = #sizeof(NOTIFYICONDATAA)
+            tnid.hWnd   = .hWnd
+            tnid.uID    = TrayIconID
+            catch Shell_NotifyIconA(NIM_DELETE, &tnid)
+            catch DestroyIcon(.trayIcon)
+            .trayIcon = null
+        }
+
         catch DestroyWindow(.hWnd)
     }
 }
 
 impl Surface
 {
+    // Show 'icon' for this surface in the notification area (system tray), with an
+    // optional tooltip. Mouse interactions are delivered to the surface as WM_USER
+    // SysUserEvents whose 'param1' holds the raw mouse message (e.g. WM_RBUTTONDOWN
+    // for a right-click); handle them in the surface view's onSysUserEvent. The icon
+    // is removed automatically when the surface is destroyed.
+    //
+    // This uses the legacy (version 0) NOTIFYICON behaviour on purpose: the callback
+    // carries the mouse message directly in 'lParam', which is what the window proc
+    // forwards as 'param1'. NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that
+    // layout and is intentionally not used.
+    mtd setTrayIcon(icon: Pixel.Image, tip: string = null)
+    {
+        var img   = icon
+        .trayIcon = catch img.toHICON()
+
+        var tnid: NOTIFYICONDATAA
+        tnid.cbSize           = #sizeof(NOTIFYICONDATAA)
+        tnid.hWnd             = .hWnd
+        tnid.uID              = TrayIconID
+        tnid.uFlags           = NIF_ICON | NIF_MESSAGE
+        tnid.uCallbackMessage = WM_USER
+        tnid.hIcon            = .trayIcon
+
+        if tip
+        {
+            tnid.uFlags |= NIF_TIP
+            let count = Math.min(@countof(tip), #sizeof(tnid.szTip) - 1)
+            Memory.copy(&tnid.szTip[0], @dataof(tip), count)
+        }
+
+        catch Shell_NotifyIconA(NIM_ADD, &tnid)
+    }
+
     mtd requestClose()
     {
         catch PostMessageW(.hWnd, WM_CLOSE, 0, 0)

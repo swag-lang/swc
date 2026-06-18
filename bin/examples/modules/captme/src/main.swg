@@ -1,7 +1,5 @@
 var g_App: Application
 
-const NotifyIconVersion4 = 4
-
 #premain
 {
     Reflection.registerType(#typeof(FormArrow))
@@ -55,28 +53,34 @@ const NotifyIconVersion4 = 4
     if !Env.hasArg("--hide") do
         surface.show()
 
-    // Icon task bar
-    with Win32
+    // Icon task bar.
+    // `using` (not `with`) brings the Win32 namespace into scope without opening a
+    // block, so the cleanup `defer`s below belong to `#main` and run at app exit
+    // instead of being executed immediately at the end of a `with` block.
+    using Win32
+
+    let hIcon = catch img.toHICON()
+    defer catch DestroyIcon(hIcon)
+
+    // Use the legacy (version 0) NOTIFYICON behaviour: the callback's `lParam`
+    // carries the raw mouse message (e.g. WM_RBUTTONDOWN), which is what the
+    // surface forwards as `evt.param1` and what `onSysUserEvent` expects. Do NOT
+    // call NIM_SETVERSION/NOTIFYICON_VERSION_4 here: version 4 packs the message
+    // into LOWORD(lParam) and reports right-clicks as WM_CONTEXTMENU, which would
+    // break the tray menu unless the surface decoder is taught the v4 layout.
+    with var tnid: NOTIFYICONDATAA
     {
-        let hIcon = catch img.toHICON()
-        defer catch DestroyIcon(hIcon)
-
-        with var tnid: NOTIFYICONDATAA
-        {
-            .cbSize           = #sizeof(NOTIFYICONDATAA)
-            .hWnd             = surface.hWnd
-            .uID              = 1
-            .uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP
-            .uCallbackMessage = WM_USER
-            .hIcon            = hIcon
-            Memory.copy(&.szTip[0], @dataof("Captme"), @countof("Captme"))
-        }
-
-        catch Shell_NotifyIconA(NIM_ADD, &tnid)
-        tnid.uVersion = NotifyIconVersion4
-        catch Shell_NotifyIconA(NIM_SETVERSION, &tnid)
-        defer catch Shell_NotifyIconA(NIM_DELETE, &tnid)
+        .cbSize           = #sizeof(NOTIFYICONDATAA)
+        .hWnd             = surface.hWnd
+        .uID              = 1
+        .uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP
+        .uCallbackMessage = WM_USER
+        .hIcon            = hIcon
+        Memory.copy(&.szTip[0], @dataof("Captme"), @countof("Captme"))
     }
+
+    catch Shell_NotifyIconA(NIM_ADD, &tnid)
+    defer catch Shell_NotifyIconA(NIM_DELETE, &tnid)
 
     with Env
     {

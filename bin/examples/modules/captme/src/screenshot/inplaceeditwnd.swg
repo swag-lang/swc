@@ -22,6 +22,23 @@ struct InPlaceEditWnd
     editMode:             InPlaceEditMode = .Arrow
     editColor:            Color = Argb.Red
     editColorHilight:     Color = Argb.Yellow
+    uiScale:              f32 = 1 // DPI scale of the monitor the capture sits on
+}
+
+// The capture overlay spans the whole virtual desktop in physical pixels, so the
+// editor chrome must be sized for the DPI of the monitor the captured area is on,
+// otherwise the bars/buttons render at 96-DPI size and look tiny on a hi-DPI screen.
+func captureUIScale(capture: *Capture)->f32
+{
+    let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
+    let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
+    foreach m in Env.getMonitors()
+    {
+        let r = m.rectReal
+        if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
+            return Math.max(m.scale, 1.0)
+    }
+    return 1.0
 }
 
 impl InPlaceEditWnd
@@ -30,6 +47,7 @@ impl InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
+            .uiScale = captureUIScale(capture)
             .createActionBar()
             .createEditBar(main)
             .setupCapture(capture)
@@ -72,7 +90,7 @@ impl InPlaceEditWnd
 
     mtd createActionBar()
     {
-        .actionBar                 = IconBar.create(.editWnd.editView, 24, {})
+        .actionBar                 = IconBar.create(.editWnd.editView, 24 * .uiScale, {})
         .actionBar.backgroundStyle = .Window
         let self                   = me
 
@@ -91,7 +109,7 @@ impl InPlaceEditWnd
 
     mtd createEditBar(main: *MainWnd)
     {
-        .editBar                 = IconBar.create(.editWnd.editView, 24, {})
+        .editBar                 = IconBar.create(.editWnd.editView, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
         .editBar.setIconBarFlags(.Vertical)
         let self = me
@@ -324,31 +342,31 @@ impl InPlaceEditWnd
 
     mtd positionActionBar(rect: Math.Rectangle)
     {
-        const MARGIN = 4
-        const HEIGHT = 40.0
-        let width    = .actionBar.position.width
-        let x        = Math.max(10, rect.right() - width)
+        let margin = 4.0 * .uiScale
+        let height = 40.0 * .uiScale
+        let width  = .actionBar.position.width
+        let x      = Math.max(10.0 * .uiScale, rect.right() - width)
 
-        if rect.bottom() < g_ScreenHeight - HEIGHT + MARGIN do
-            .actionBar.setPosition(x, rect.bottom() + MARGIN, width, HEIGHT)
-        elif rect.y > HEIGHT + MARGIN do
-            .actionBar.setPosition(x, rect.y - HEIGHT - MARGIN, width, HEIGHT)
+        if rect.bottom() < g_ScreenHeight - height + margin do
+            .actionBar.setPosition(x, rect.bottom() + margin, width, height)
+        elif rect.y > height + margin do
+            .actionBar.setPosition(x, rect.y - height - margin, width, height)
         else do
-            .actionBar.setPosition(x, rect.bottom() - HEIGHT - MARGIN, width, HEIGHT)
+            .actionBar.setPosition(x, rect.bottom() - height - margin, width, height)
     }
 
     mtd positionEditBar(rect: Math.Rectangle)
     {
-        const MARGIN = 4
-        const WIDTH  = 40.0
-        let height   = .editBar.position.height
+        let margin = 4.0 * .uiScale
+        let width  = 40.0 * .uiScale
+        let height = .editBar.position.height
 
-        if rect.right() < g_ScreenWidth - WIDTH + MARGIN do
-            .editBar.setPosition(rect.right() + MARGIN, rect.bottom() - height, WIDTH, height)
-        elif rect.x > WIDTH + MARGIN do
-            .editBar.setPosition(rect.x - WIDTH - MARGIN, rect.bottom() - height, WIDTH, height)
+        if rect.right() < g_ScreenWidth - width + margin do
+            .editBar.setPosition(rect.right() + margin, rect.bottom() - height, width, height)
+        elif rect.x > width + margin do
+            .editBar.setPosition(rect.x - width - margin, rect.bottom() - height, width, height)
         else do
-            .editBar.setPosition(rect.right() - WIDTH - MARGIN, rect.bottom() - height - MARGIN, WIDTH, height)
+            .editBar.setPosition(rect.right() - width - margin, rect.bottom() - height - margin, width, height)
     }
 }
 

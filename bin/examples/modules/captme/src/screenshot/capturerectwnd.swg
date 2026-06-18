@@ -164,11 +164,17 @@ impl IWnd for CaptureRectWnd
         let col = .getThemeColors().hilight
         painter.drawRect(grabRect, col, 2)
 
-        // Rectangles - only show crosshairs in manual grab mode
+        // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
+        // corner, so split each line around the selection instead of running it along
+        // (and hiding it behind) the rectangle border. The cross then meets the corner
+        // and stays clearly visible over the dimmed background.
         if .main.captureOptions.drawCross and !.autoGrab
         {
-            painter.drawLine(g_EndGrabX, 0, g_EndGrabX, cast() g_ScreenHeight, Argb.White)
-            painter.drawLine(0, g_EndGrabY, cast() g_ScreenWidth, g_EndGrabY, Argb.White)
+            let cross = Argb.White
+            painter.drawLine(g_EndGrabX, 0, g_EndGrabX, grabRect.y, cross)
+            painter.drawLine(g_EndGrabX, grabRect.bottom(), g_EndGrabX, cast() g_ScreenHeight, cross)
+            painter.drawLine(0, g_EndGrabY, grabRect.x, g_EndGrabY, cross)
+            painter.drawLine(grabRect.right(), g_EndGrabY, cast() g_ScreenWidth, g_EndGrabY, cross)
         }
 
         // Dimensions

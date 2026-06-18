@@ -130,23 +130,24 @@ impl IWnd for CaptureRectWnd
         }
 
         let painter = evt.bc.painter
-
-        // Draw the desktop back image
         painter.setInterpolationMode(.Linear)
-        painter.drawTexture(.position, g_DesktopTexture)
 
-        // Draw the normal desktop image inside the grab rectangle
-        let bkCol: Color = {0, 0, 0, 100}
+        // Dim the whole desktop in a single opaque, tinted texture draw. The shader
+        // multiplies the texture by the brush color, so a gray tint darkens the image
+        // exactly like the former {0,0,0,100} black overlay (100/255 ~= 0.61 -> 155),
+        // but without alpha-blending the entire virtual desktop every frame.
+        let dimTint: Color = {155, 155, 155, 255}
+        painter.drawTexture(.position, g_DesktopTexture, dimTint)
+
+        // Redraw the selected region at full brightness from the same texture. The
+        // desktop texture maps 1:1 onto the surface, so the source rect is the grab
+        // rect relative to the surface origin.
         if !grabRect.isEmpty()
         {
-            painter.fillRect(0, 0, grabRect.x, .position.height, bkCol)
-            painter.fillRect(grabRect.x, 0, grabRect.width, grabRect.y, bkCol)
-            painter.fillRect(grabRect.right(), 0, .position.width - grabRect.right(), .position.bottom(), bkCol)
-            painter.fillRect(grabRect.x, grabRect.bottom(), grabRect.width, .position.bottom() - grabRect.bottom(), bkCol)
-        }
-        else
-        {
-            painter.fillRect(.position, bkCol)
+            var srcRect = grabRect
+            srcRect.x -= .position.x
+            srcRect.y -= .position.y
+            painter.drawTexture(grabRect, srcRect, g_DesktopTexture)
         }
 
         let col = .getThemeColors().hilight

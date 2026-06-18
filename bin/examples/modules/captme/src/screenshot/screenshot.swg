@@ -23,7 +23,6 @@ var g_ScreenHeight:       s32
 var g_Exit:               bool
 var g_GrabDone:           bool
 var g_DesktopTexture:     Texture
-var g_GrayDesktopTexture: Texture
 
 func getGrabRect()->Math.Rectangle
 {

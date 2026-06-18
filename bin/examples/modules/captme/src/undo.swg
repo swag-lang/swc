@@ -670,8 +670,8 @@ impl Undo
             .baseForm.moveBaseForm(-.newPosX, -.newPosY, -.newSizeX, -.newSizeY)
 
         case MoveCapture:
-            .capture.backImagePos.x += -.newPosX
-            .capture.backImagePos.y += -.newPosY
+            .capture.backImagePos.x -= .newPosX
+            .capture.backImagePos.y -= .newPosY
             foreach f in .capture.forms do
                 f.moveForm(-.newPosX, -.newPosY)
             .capture.width -= .newSizeX

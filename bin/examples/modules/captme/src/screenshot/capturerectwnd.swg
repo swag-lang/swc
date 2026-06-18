@@ -1,5 +1,17 @@
 using Core, Win32, Gdi32, Pixel
 
+// Ease-out one component of the auto-selection rectangle toward its target. Advancing
+// a fraction of the remaining distance each frame makes long jumps (e.g. moving from
+// one monitor to another) close quickly while decelerating smoothly near the target.
+// A minimum step keeps short moves responsive and guarantees the animation settles.
+func easeGrab(current, target: f32)->f32
+{
+    let factor  = 0.35'f32
+    let minStep = 16.0'f32
+    let step    = Math.max(Math.abs(target - current) * factor, minStep)
+    return Math.moveTowards(current, target, step)
+}
+
 struct CaptureRectWnd
 {
     using wnd:         Wnd
@@ -113,11 +125,10 @@ impl IWnd for CaptureRectWnd
         // Lerp grab rectangle only in auto grab mode
         if .autoGrab and !.startGrab
         {
-            let dt = 100.0'f32
-            .lerpGrab.x      = Math.moveTowards(.lerpGrab.x, grabRect.x, dt)
-            .lerpGrab.y      = Math.moveTowards(.lerpGrab.y, grabRect.y, dt)
-            .lerpGrab.width  = Math.moveTowards(.lerpGrab.width, grabRect.width, dt)
-            .lerpGrab.height = Math.moveTowards(.lerpGrab.height, grabRect.height, dt)
+            .lerpGrab.x      = easeGrab(.lerpGrab.x, grabRect.x)
+            .lerpGrab.y      = easeGrab(.lerpGrab.y, grabRect.y)
+            .lerpGrab.width  = easeGrab(.lerpGrab.width, grabRect.width)
+            .lerpGrab.height = easeGrab(.lerpGrab.height, grabRect.height)
             var roundRect = .lerpGrab
             roundRect.round()
             if !grabRect.isEqualEpsilon(roundRect) do

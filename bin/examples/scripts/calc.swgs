@@ -32,7 +32,7 @@ func validateOp(str: string)
     }
     else
     {
-        switch g_Op
+        switch cast(string) g_Op
         {
         case "+":
             g_ComputeValue += g_CurValue

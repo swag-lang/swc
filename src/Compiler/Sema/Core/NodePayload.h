@@ -173,6 +173,7 @@ private:
     static void                    storePayload(AstNode& node, uint16_t bits, uint32_t ref);
     static uint16_t                applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol*> symbols);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
+    std::span<const Symbol* const> symbolsFromInfo(const PayloadInfo& info) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
     SubstituteStorage*             substituteStorage(const AstNode& node);
     const SubstituteStorage*       substituteStorage(const AstNode& node) const;

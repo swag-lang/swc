@@ -9,8 +9,10 @@
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
+#include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -19,6 +21,16 @@ namespace Command
 {
     namespace
     {
+        Utf8 formatCommandStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const TimedActionLog::StatsSnapshot& deltaSnapshot)
+        {
+            std::vector<Utf8> statParts;
+            if (deltaSnapshot.numFiles)
+                statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+            if (!compiler.lastArtifactLabel().empty())
+                statParts.push_back(TimedActionLog::formatStatName(ctx, compiler.lastArtifactLabel()));
+            return TimedActionLog::joinStatItems(ctx, statParts);
+        }
+
         Result finishNonArtifactBackend(CompilerInstance& compiler)
         {
             TaskContext outputCtx(compiler);
@@ -217,31 +229,38 @@ namespace Command
 
     void build(CompilerInstance& compiler)
     {
+        TaskContext                 ctx(compiler);
+        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Build);
         const uint64_t errorsBefore = Stats::getNumErrors();
-        sema(compiler);
-        if (Stats::getNumErrors() != errorsBefore)
-            return;
+        {
+            Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
 
-        if (finishBuildBackend(compiler, false) != Result::Continue)
-            return;
+            sema(compiler);
+            if (Stats::getNumErrors() == errorsBefore && finishBuildBackend(compiler, false) != Result::Continue)
+                stage.markFailure();
+        }
+
+        stage.setStat(formatCommandStageStat(ctx, compiler, stage.delta()));
     }
 
     void run(CompilerInstance& compiler)
     {
+        TaskContext                 ctx(compiler);
+        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Run);
         const uint64_t errorsBefore = Stats::getNumErrors();
-        sema(compiler);
-        if (Stats::getNumErrors() != errorsBefore)
-            return;
-
-        if (compiler.cmdLine().scriptMode)
         {
-            if (finishScriptBackend(compiler) != Result::Continue)
-                return;
-            return;
+            Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
+
+            sema(compiler);
+            if (Stats::getNumErrors() == errorsBefore)
+            {
+                const Result result = compiler.cmdLine().scriptMode ? finishScriptBackend(compiler) : finishBuildBackend(compiler, true);
+                if (result != Result::Continue)
+                    stage.markFailure();
+            }
         }
 
-        if (finishBuildBackend(compiler, true) != Result::Continue)
-            return;
+        stage.setStat(formatCommandStageStat(ctx, compiler, stage.delta()));
     }
 }
 

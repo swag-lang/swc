@@ -10,15 +10,25 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Utf8 formatTestStageStat(const TaskContext& ctx, const TimedActionLog::StatsSnapshot& deltaSnapshot)
+    {
+        std::vector<Utf8> statParts;
+        if (deltaSnapshot.numFiles)
+            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+        return TimedActionLog::joinStatItems(ctx, statParts);
+    }
+
     bool hasJitEligibleInputs(const CompilerInstance& compiler)
     {
         for (SourceFile* file : compiler.files())
@@ -576,13 +586,27 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        TaskContext    ctx(compiler);
-        const uint64_t errorsBefore = Stats::getNumErrors();
-        sema(compiler);
-        if (Stats::getNumErrors() != errorsBefore)
-            return;
+        TaskContext                 ctx(compiler);
+        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Test);
 
-        if (!finishTestCommand(compiler) && !Stats::hasError())
+        bool           testPassed   = true;
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        {
+            Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
+
+            sema(compiler);
+            if (Stats::getNumErrors() != errorsBefore)
+                testPassed = false;
+            else
+                testPassed = finishTestCommand(compiler);
+        }
+
+        if (!testPassed)
+            stage.markFailure();
+
+        stage.setStat(formatTestStageStat(ctx, stage.delta()));
+
+        if (!testPassed && !Stats::hasError())
         {
             const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_command_failed);
             diag.report(ctx);

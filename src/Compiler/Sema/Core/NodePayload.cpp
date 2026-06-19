@@ -253,44 +253,25 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
         }
 
         case NodePayloadKind::SymbolRef:
-        {
-            const Shard* shard = tryGetShard(info.shardIdx);
-            if (!shard)
-                break;
-
-            const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
-            if (!slot || !*slot)
-                break;
-
-            const Symbol& sym = **slot;
-            if (sym.isConstant())
-                return sym.cast<SymbolConstant>().cstRef();
-            if (sym.isEnumValue())
-                return sym.cast<SymbolEnumValue>().cstRef();
-            if (canFoldLetVariable(node, sym))
-            {
-                const auto& symVar = sym.cast<SymbolVariable>();
-                return symVar.cstRef();
-            }
-            break;
-        }
-
         case NodePayloadKind::SymbolList:
         {
-            if (!hasSymbolList(nodeRef))
-                return ConstantRef::invalid();
-            const auto symList = getSymbolList(nodeRef);
-            if (symList.empty())
-                return ConstantRef::invalid();
-            if (symList.size() > 1)
-                return ConstantRef::invalid();
-            if (symList.front()->isConstant())
-                return symList.front()->cast<SymbolConstant>().cstRef();
-            if (symList.front()->isEnumValue())
-                return symList.front()->cast<SymbolEnumValue>().cstRef();
-            if (canFoldLetVariable(node, *symList.front()))
+            const auto symbols = symbolsFromInfo(info);
+            if (symbols.empty())
+                break;
+            if (info.kind == NodePayloadKind::SymbolList && symbols.size() > 1)
+                break;
+
+            const Symbol* front = symbols.front();
+            if (!front)
+                break;
+
+            if (front->isConstant())
+                return front->cast<SymbolConstant>().cstRef();
+            if (front->isEnumValue())
+                return front->cast<SymbolEnumValue>().cstRef();
+            if (canFoldLetVariable(node, *front))
             {
-                const auto& symVar = symList.front()->cast<SymbolVariable>();
+                const auto& symVar = front->cast<SymbolVariable>();
                 return symVar.cstRef();
             }
             break;
@@ -397,7 +378,7 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     {
         case NodePayloadKind::ConstantRef:
         {
-            const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
+            const ConstantRef cstRef{info.ref};
             if (cstRef.isInvalid())
                 return TypeRef::invalid();
             value = ctx.cstMgr().get(cstRef).typeRef();
@@ -407,16 +388,10 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
             value = TypeRef{info.ref};
             break;
         case NodePayloadKind::SymbolRef:
-            if (!hasSymbol(nodeRef))
-                return TypeRef::invalid();
-            value = getSymbol(ctx, nodeRef).typeRef();
-            break;
         case NodePayloadKind::SymbolList:
         {
-            if (!hasSymbolList(nodeRef))
-                return TypeRef::invalid();
-            const auto symbols = getSymbolList(nodeRef);
-            if (symbols.empty())
+            const auto symbols = symbolsFromInfo(info);
+            if (symbols.empty() || !symbols.back())
                 return TypeRef::invalid();
             value = symbols.back()->typeRef();
             break;
@@ -892,6 +867,38 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 
         return info;
     }
+}
+
+std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& info) const
+{
+    // Resolve the symbol(s) from a single, already-captured payload snapshot. Callers must
+    // never re-read the node's payload to fetch the symbol after switching on its kind: a
+    // concurrent kind transition (e.g. SymbolRef -> ConstantRef while a shared generic `where`
+    // eval node is constant-folded) would otherwise make a ConstantRef/TypeRef value be
+    // reinterpreted as a PagedStore offset, indexing past the store's pages.
+    if (info.kind != NodePayloadKind::SymbolRef && info.kind != NodePayloadKind::SymbolList)
+        return {};
+
+    const Shard* shard = tryGetShard(info.shardIdx);
+    if (!shard)
+        return {};
+
+    if (info.kind == NodePayloadKind::SymbolRef)
+    {
+        const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
+        if (!slot)
+            return {};
+        return std::span<const Symbol* const>{slot, 1};
+    }
+
+    const auto spanView = shard->store.span<const Symbol*>(info.ref);
+    if (spanView.empty())
+        return {};
+
+    const auto  it    = spanView.chunksBegin();
+    const auto& chunk = *it;
+    SWC_ASSERT(chunk.count == spanView.size());
+    return std::span<const Symbol* const>{static_cast<const Symbol* const*>(chunk.ptr), chunk.count};
 }
 
 NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const

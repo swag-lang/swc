@@ -216,8 +216,11 @@ namespace
         return SemaHelpers::resolveArrayLikeChildBindingType(sema, children, childRef, targetTypeRef, outBindingTypeRef);
     }
 
-    Result pushLiteralChildBindingType(Sema& sema, LiteralChildBindingKind kind, std::span<const AstNodeRef> children, AstNodeRef childRef)
+    Result pushLiteralChildBindingType(Sema& sema, LiteralChildBindingKind kind, std::span<const AstNodeRef> children, AstNodeRef childRef, bool* outPushed = nullptr)
     {
+        if (outPushed)
+            *outPushed = false;
+
         const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
         for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
         {
@@ -228,6 +231,35 @@ namespace
 
             auto frame = sema.frame();
             frame.pushBindingType(bindingTypeRef);
+            sema.pushFramePopOnPostChild(frame, childRef);
+            if (outPushed)
+                *outPushed = true;
+            break;
+        }
+
+        return Result::Continue;
+    }
+
+    // When an array literal has no outer binding type (e.g. `const X = [E.A, .B, .C]`), an
+    // auto-member element like `.B` has no scope to resolve against. Fall back to the element
+    // type already resolved for an earlier sibling, so the first concrete element types the
+    // rest of the array.
+    Result pushArrayLiteralSiblingBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef)
+    {
+        if (sema.node(childRef).isNot(AstNodeId::AutoMemberAccessExpr))
+            return Result::Continue;
+
+        for (const AstNodeRef siblingRef : children)
+        {
+            if (siblingRef == childRef)
+                break;
+
+            const TypeRef siblingTypeRef = sema.viewType(siblingRef).typeRef();
+            if (!siblingTypeRef.isValid())
+                continue;
+
+            auto frame = sema.frame();
+            frame.pushBindingType(siblingTypeRef);
             sema.pushFramePopOnPostChild(frame, childRef);
             break;
         }
@@ -706,7 +738,12 @@ Result AstArrayLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return pushLiteralChildBindingType(sema, LiteralChildBindingKind::ArrayLike, children.span(), childRef);
+
+    bool pushed = false;
+    SWC_RESULT(pushLiteralChildBindingType(sema, LiteralChildBindingKind::ArrayLike, children.span(), childRef, &pushed));
+    if (!pushed)
+        SWC_RESULT(pushArrayLiteralSiblingBindingType(sema, children.span(), childRef));
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

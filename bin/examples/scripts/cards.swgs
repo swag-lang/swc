@@ -386,7 +386,7 @@ func layoutThreeImages(all: &Array'Image, rectImage: Math.Rectangle, dc: *Painte
         let config = &configs[configIdx]
         for permIdx in 0 to 5
         {
-            let perm = &permutations[permIdx]
+            let perm = permutations[permIdx]
 
             // Use fast evaluation with pre-computed saliency
             let score0 = all[perm[0]].evaluateCropScore(config.rects[0], g_Opts)
@@ -406,7 +406,7 @@ func layoutThreeImages(all: &Array'Image, rectImage: Math.Rectangle, dc: *Painte
 
     // Render using best configuration (no recalculation needed)
     let chosenConfig = &configs[bestConfig]
-    let chosenPerm   = &permutations[bestPerm]
+    let chosenPerm   = permutations[bestPerm]
 
     for i in 0 to 2
     {

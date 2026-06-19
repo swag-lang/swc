@@ -558,8 +558,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 #main
 {
     var app: Gui.Application
-    if Env.hasArg("swag.test") do
-        app.maxRunFrame = 100
+    app.applyTestArgs()
 
     let surface = try app.createSurface(100, 100, 1024, 1024, flags: (.OverlappedWindow & ~.Sizeable), hook: &onEvent)
     surface.setTitle("Chess")

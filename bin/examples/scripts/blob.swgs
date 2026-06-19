@@ -14,13 +14,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     let paintEvt = evt as PaintEvent
     if !paintEvt do
         return false
-    if paintEvt.kind != .Paint do
-        return false
 
     let painter = paintEvt.bc.painter
-
-    let centerX = wnd.position.width * 0.5
-    let centerY = wnd.position.height * 0.5
 
     #[Swag.Global]
     var zoff: f32
@@ -45,7 +40,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
     painter.setParams(.Antialiased)
     painter.clear(Argb.Black)
-    painter.translateTransform(centerX, centerY)
+    painter.translateTransform(wnd.position.width * 0.5, wnd.position.height * 0.5)
     painter.fillPath(&lp, Argb.DarkBlue)
     painter.drawPath(&lp, Argb.White, 2)
 
@@ -55,6 +50,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    func test(app: *Application) { if Env.hasArg("swag.test") do app.maxRunFrame = 100 }
-    Application.runSurface(100, 100, 512, 512, title: "Blob", hook: &onEvent, init: &test)
+    Application.runSurface(100, 100, 512, 512, title: "Blob", hook: &onEvent)
 }

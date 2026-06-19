@@ -2224,14 +2224,6 @@ func loadBindTextures()
     assume Audio.createEngine()
     defer Audio.destroyEngine()
 
-    func test(app: *Application)
-    {
-        if Env.hasArg("swag.test")
-        {
-            app.maxRunFrame = 100
-            assume Audio.setOutputVolume(0)
-        }
-    }
-
-    Application.runSurface(100, 100, cast(s32) (300 * Scale), cast(s32) (345 * Scale), title: "Pacman", hook: &onEvent, init: &test)
+    func muteForTest(app: *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
+    Application.runSurface(100, 100, cast(s32) (300 * Scale), cast(s32) (345 * Scale), title: "Pacman", hook: &onEvent, init: &muteForTest)
 }

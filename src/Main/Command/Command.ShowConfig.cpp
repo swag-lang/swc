@@ -62,7 +62,6 @@ namespace
         addBoolEntry(entries, "Syntax only", cmdLine.syntaxOnly);
         addBoolEntry(entries, "Sema only", cmdLine.semaOnly);
         addBoolEntry(entries, "Emit output", cmdLine.output);
-        addBoolEntry(entries, "Runtime", cmdLine.runtime);
         addBoolEntry(entries, "Dev full", cmdLine.devFull);
 
 #if SWC_HAS_UNITTEST

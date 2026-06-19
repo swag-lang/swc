@@ -2265,7 +2265,6 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     setupCmdLine.exportApiDir.clear();
     setupCmdLine.moduleFilePath = modulePathFile_;
     setupCmdLine.modulePath     = modulePathFile_.parent_path();
-    setupCmdLine.runtime        = true;
     CommandLineParser::refreshBuildCfg(setupCmdLine);
 
     ModuleSetupSnapshot setupSnapshot;
@@ -2407,8 +2406,9 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
     SWC_RESULT(collectImportedApiFiles(ctx));
 
-    // Collect runtime files
-    if (cmdLine.runtime)
+    // Collect runtime files. The runtime bootstrap (which declares compiler intrinsics such
+    // as `@compiler`) must always be part of the input set, including the module-setup pass
+    // that runs `#dependencies`/`#run` blocks, so those blocks can reach it too.
     {
         fs::path runtimePath = FileSystem::compilerResourceRoot(exeFullName_) / "runtime";
         SWC_RESULT(FileSystem::resolveFolder(ctx, runtimePath));

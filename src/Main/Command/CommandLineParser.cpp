@@ -900,9 +900,6 @@ Result CommandLineParser::parse(int argc, char* argv[])
         return Result::Error;
     }
 
-    if (cmdLine_->command == CommandKind::Format)
-        cmdLine_->runtime = false;
-
     bool endOfOptions = false;
     for (size_t i = argStartIndex; i < args.size(); i++)
     {

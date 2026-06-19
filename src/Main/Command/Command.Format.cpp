@@ -39,6 +39,11 @@ namespace Command
             if (!file)
                 continue;
 
+            // The runtime bootstrap is always part of the input set, but it is a compiler
+            // resource and must never be rewritten by a user `format` invocation.
+            if (file->isRuntime())
+                continue;
+
             FormatOptions formatOptions;
             if (optionsLoader.resolve(file->path(), formatOptions) != Result::Continue)
                 return;

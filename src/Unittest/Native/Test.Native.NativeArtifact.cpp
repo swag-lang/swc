@@ -80,7 +80,6 @@ namespace
         cmdLine.syntaxOnly       = false;
         cmdLine.semaOnly         = false;
         cmdLine.output           = true;
-        cmdLine.runtime          = true;
         cmdLine.verboseUnittest  = false;
         cmdLine.directories.clear();
         cmdLine.files.clear();

@@ -75,10 +75,6 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "sema build run", "--export-api-dir", nullptr,
         &cmdLine_->exportApiDir,
         "Generate the module public API into this directory after a successful semantic pass.");
-    add(HelpOptionGroup::Input, "all", "--runtime", "-rt",
-        &cmdLine_->runtime,
-        "Include runtime files in the input set.");
-
     addEnum(HelpOptionGroup::Target, "sema test build run", "--arch", "-a",
             &cmdLine_->targetArch,
             {

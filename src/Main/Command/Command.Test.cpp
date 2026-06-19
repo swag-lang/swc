@@ -24,8 +24,8 @@ namespace
     Utf8 formatTestStageStat(const TaskContext& ctx, const TimedActionLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> statParts;
-        if (deltaSnapshot.numFiles)
-            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+        if (deltaSnapshot.numTests)
+            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numTests, "test"));
         return TimedActionLog::joinStatItems(ctx, statParts);
     }
 
@@ -536,6 +536,7 @@ namespace
         }
 
         stage.setStat(TimedActionLog::formatStatCount(ctx, executedTestCount, "test"));
+        Stats::get().numTests.fetch_add(executedTestCount, std::memory_order_relaxed);
 
         if (executedTestCount != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);
@@ -565,6 +566,11 @@ namespace
 
                     if (Stats::hasError())
                         return false;
+
+                    // The JIT phase already counted the executed tests. When it is disabled the
+                    // native artifact is the one that runs them, so account for them here instead.
+                    if (!compiler.cmdLine().testJit)
+                        Stats::get().numTests.fetch_add(builder.testFunctions.size(), std::memory_order_relaxed);
 
                     TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);
                     verifyExpectedMarkers(ctx);

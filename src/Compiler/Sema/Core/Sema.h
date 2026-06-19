@@ -372,6 +372,8 @@ private:
     Symbol&                  symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
     bool                     hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
     std::span<Symbol*>       getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    NodePayload::ResolvedSymbols resolveSymbols(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(resolvedNodeRef(n)); }
+    NodePayload::ResolvedSymbols resolveSymbolsStored(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(n); }
 
     SemaScope*         pushScope(SemaScopeFlags flags);
     void               popScope();

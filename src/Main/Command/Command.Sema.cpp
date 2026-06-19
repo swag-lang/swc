@@ -37,18 +37,6 @@ namespace
         return defaultModuleNamespace(artifactName);
     }
 
-    bool shouldLogBuildConfiguration(const CompilerInstance& compiler)
-    {
-        switch (compiler.cmdLine().command)
-        {
-            case CommandKind::Build:
-            case CommandKind::Run:
-            case CommandKind::Test:
-                return true;
-            default:
-                return false;
-        }
-    }
 }
 
 namespace Command
@@ -77,9 +65,6 @@ namespace Command
             if (compiler.runModuleSetup(ctx) == Result::Error)
                 return;
         }
-        if (shouldLogBuildConfiguration(compiler))
-            TimedActionLog::printBuildConfiguration(ctx);
-
         TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Sema);
 
         std::vector<SourceFile*> inputFiles;

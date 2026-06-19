@@ -242,6 +242,7 @@ void Stats::resetCommandMetrics()
     stats.numErrors.store(0, std::memory_order_relaxed);
     stats.numWarnings.store(0, std::memory_order_relaxed);
     stats.numFiles.store(0, std::memory_order_relaxed);
+    stats.numTests.store(0, std::memory_order_relaxed);
     stats.numTokens.store(0, std::memory_order_relaxed);
     stats.numFormatRewrittenFiles.store(0, std::memory_order_relaxed);
 

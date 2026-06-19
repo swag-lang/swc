@@ -494,13 +494,10 @@ void CompilerInstance::logBefore()
 {
     const TaskContext ctx(*this);
     ctx.global().logger().resetStageClaims();
-    TimedActionLog::printSessionFlags(ctx);
 }
 
 void CompilerInstance::logAfter()
 {
-    const TaskContext ctx(*this);
-    TimedActionLog::printSummary(ctx);
 }
 
 void CompilerInstance::logStats()

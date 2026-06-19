@@ -149,34 +149,23 @@ void SemaNodeView::assignSymbolList(std::span<Symbol*> symbols)
 
 bool SemaNodeView::loadResolvedSymbols(Sema& sema, AstNodeRef targetRef, SemaNodeViewResolveE resolveMode)
 {
-    if (resolveMode == SemaNodeViewResolveE::Stored)
+    // Read the symbol payload from a single snapshot. Splitting this into hasSymbol()/getSymbol()
+    // (two separate atomic payload reads) races with a concurrent kind transition on shared
+    // generic eval nodes and can reinterpret a non-symbol payload as a store offset.
+    const NodePayload::ResolvedSymbols resolved = resolveMode == SemaNodeViewResolveE::Stored
+                                                      ? sema.resolveSymbolsStored(targetRef)
+                                                      : sema.resolveSymbols(targetRef);
+
+    if (resolved.isSymbolList)
     {
-        if (sema.hasSymbolListStored(targetRef))
-        {
-            assignSymbolList(sema.getSymbolListStored(targetRef));
-            return true;
-        }
-
-        if (sema.hasSymbolStored(targetRef))
-        {
-            hasSymbol_ = true;
-            sym_       = &sema.symbolOfStored(targetRef);
-            return true;
-        }
-
-        return false;
-    }
-
-    if (sema.hasSymbolList(targetRef))
-    {
-        assignSymbolList(sema.getSymbolList(targetRef));
+        assignSymbolList({const_cast<Symbol**>(resolved.symbols.data()), resolved.symbols.size()});
         return true;
     }
 
-    if (sema.hasSymbol(targetRef))
+    if (!resolved.symbols.empty())
     {
         hasSymbol_ = true;
-        sym_       = &sema.symbolOf(targetRef);
+        sym_       = const_cast<Symbol*>(resolved.symbols.front());
         return true;
     }
 

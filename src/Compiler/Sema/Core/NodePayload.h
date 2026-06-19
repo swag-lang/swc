@@ -76,10 +76,22 @@ public:
         NodePayloadFlags         flags         = static_cast<NodePayloadFlags>(0);
     };
 
+    // Resolved symbol payload read from a single payload snapshot. Reading the symbol(s)
+    // from one snapshot (rather than a hasSymbol()/getSymbol() pair of separate atomic
+    // loads) is mandatory for nodes that can be mutated concurrently (shared generic eval
+    // nodes): a kind transition between the two reads would otherwise reinterpret a
+    // ConstantRef/TypeRef value as a PagedStore offset and index past the store's pages.
+    struct ResolvedSymbols
+    {
+        std::span<const Symbol* const> symbols      = {};
+        bool                           isSymbolList = false;
+    };
+
     NodePayload() = default;
     ~NodePayload();
-    bool       hasResolvedCallArguments(AstNodeRef nodeRef) const;
-    StoredView viewStored(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    bool            hasResolvedCallArguments(AstNodeRef nodeRef) const;
+    StoredView      viewStored(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    ResolvedSymbols resolveSymbols(AstNodeRef nodeRef) const;
 
 protected:
     Ast&       ast() { return ast_; }

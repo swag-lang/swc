@@ -96,21 +96,39 @@ NodePayload::StoredView NodePayload::viewStored(const TaskContext& ctx, AstNodeR
     view.flags          = payloadFlagsStored(node);
     view.typeRef        = getTypeRef(ctx, nodeRef);
     view.cstRef         = getConstantRef(ctx, nodeRef);
-    if (hasSymbolList(nodeRef))
+
+    const ResolvedSymbols resolved = resolveSymbols(nodeRef);
+    if (resolved.isSymbolList)
     {
         view.hasSymbolList = true;
-        view.symList       = getSymbolList(nodeRef);
+        view.symList       = {const_cast<const Symbol**>(resolved.symbols.data()), resolved.symbols.size()};
         view.hasSymbol     = !view.symList.empty();
         if (view.hasSymbol)
             view.sym = view.symList.front();
     }
-    else if (hasSymbol(nodeRef))
+    else if (!resolved.symbols.empty())
     {
         view.hasSymbol = true;
-        view.sym       = &getSymbol(ctx, nodeRef);
+        view.sym       = resolved.symbols.front();
     }
 
     return view;
+}
+
+NodePayload::ResolvedSymbols NodePayload::resolveSymbols(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return {};
+
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    if (info.kind != NodePayloadKind::SymbolRef && info.kind != NodePayloadKind::SymbolList)
+        return {};
+
+    if (!tryGetShard(info.shardIdx))
+        return {};
+
+    return {.symbols = symbolsFromInfo(info), .isSymbolList = info.kind == NodePayloadKind::SymbolList};
 }
 
 NodePayload::Shard* NodePayload::ensureShard(uint32_t shardIdx)
@@ -886,7 +904,7 @@ std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& i
     if (info.kind == NodePayloadKind::SymbolRef)
     {
         const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
-        if (!slot)
+        if (!slot || !*slot)
             return {};
         return std::span<const Symbol* const>{slot, 1};
     }

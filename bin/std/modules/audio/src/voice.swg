@@ -71,12 +71,12 @@ fileprivate impl Voice
 
     mtd setState(st: VoiceState)
     {
-        Atomic.logicOr(cast(*u32) &.state, cast(u32) st)
+        discard Atomic.logicOr(cast(*u32) &.state, cast(u32) st)
     }
 
     mtd resetState(st: VoiceState)
     {
-        Atomic.logicAnd(cast(*u32) &.state, ~cast(u32) st)
+        discard Atomic.logicAnd(cast(*u32) &.state, ~cast(u32) st)
     }
 }
 

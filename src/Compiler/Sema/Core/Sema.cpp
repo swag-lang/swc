@@ -697,8 +697,10 @@ namespace
         if (!state.hasPauseReason())
             return false;
 
-        if (state.symbol && state.symbol->isIgnored())
-            return true;
+        // A waited symbol can become ignored because a compiler-if branch was resolved.
+        // Let the current node run again so name lookup can discard that stale candidate
+        // and bind an equivalent live homonym when one exists. Real dependency failures
+        // are still reported by the wait helpers after the node is re-evaluated.
         if (state.waiterSymbol && state.waiterSymbol->isIgnored())
             return true;
 

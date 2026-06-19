@@ -39,14 +39,5 @@ voice.play(Loop)
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Audio"
-    cfg.backendKind     = .StaticLibrary
-    cfg.ignoreInWorkspace = true
-    cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/audio"
-
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputExtension = ".php"
-    cfg.genDoc.css             = "css/style.css"
-    cfg.genDoc.startHead       = "<?php include('common/start-head.php'); ?>"
-    cfg.genDoc.endHead         = "<?php include('common/end-head.php'); ?>"
-    cfg.genDoc.startBody       = "<?php include('common/start-body.php'); ?>"
+    cfg.backendKind     = .SharedLibrary
 }

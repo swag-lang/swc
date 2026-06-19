@@ -30,7 +30,7 @@ public impl Bus
 
         Sync.scopedLock(&g_Driver.mutexBuses)
         g_Driver.buses.remove(me)
-        Memory.delete(me)
+        Memory.delete(&me)
     }
 
     // Set the playing bus volume in DB.

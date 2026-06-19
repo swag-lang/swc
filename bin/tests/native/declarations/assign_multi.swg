@@ -10,7 +10,6 @@
     @assert(b == 2)
 }
 
-
 #test
 {
     var a: s32
@@ -20,7 +19,6 @@
     @assert(b == 1)
 }
 
-
 #test
 {
     var a: f32
@@ -29,7 +27,6 @@
     @assert(a == 1.0)
     @assert(b == 1)
 }
-
 
 #test
 {

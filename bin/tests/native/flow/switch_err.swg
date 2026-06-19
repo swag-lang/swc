@@ -54,7 +54,6 @@
     @assert(hit == 1)
 }
 
-
 #test
 {
     var b = "hello"

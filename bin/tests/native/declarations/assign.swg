@@ -1,6 +1,5 @@
 #global fileprivate
 
-
 #test
 {
     var ptr: [*] s32

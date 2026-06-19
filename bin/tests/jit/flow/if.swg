@@ -16,7 +16,6 @@
     #assert(V0 == 11)
 }
 
-
 #test
 {
     func ifArgNoElse(flag: bool)->s32

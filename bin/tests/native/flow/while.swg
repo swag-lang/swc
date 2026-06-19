@@ -1,6 +1,5 @@
 #global fileprivate
 
-
 #test
 {
     var i = 0

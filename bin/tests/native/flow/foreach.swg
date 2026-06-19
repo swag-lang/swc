@@ -58,7 +58,6 @@ alias StrictForeachF32 = f32
     @assert(sum == 3)
 }
 
-
 #test
 {
     var arr: [2] u32 = [10'u32, 20]
@@ -177,7 +176,6 @@ func foreachCStringRefSum(value: &cstring)->s32
     @assert(sumV == 7)
     @assert(sumI == 1)
 }
-
 
 #test
 {

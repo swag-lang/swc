@@ -19,7 +19,6 @@
     @assert(hit == 11)
 }
 
-
 #test
 {
     var v = 1

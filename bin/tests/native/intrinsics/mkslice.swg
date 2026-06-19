@@ -26,7 +26,6 @@ alias MksliceStrictConstS32Ptr = const *s32
     @assert(@countof(str3) == 20)
 }
 
-
 #test
 {
     var buf4: [100] u8

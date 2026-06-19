@@ -18,7 +18,6 @@ func Amb(a: s32) { gAmb1Last = a }
     @assert(gAmb1Last == 10)
 }
 
-
 namespace N
 {
     func Amb() { gNAmb0Calls += 1 }
@@ -34,7 +33,6 @@ namespace N
     @assert(gNAmb0Calls == 1)
     @assert(gNAmb1Last == 10)
 }
-
 
 func DeclAndDef();
 func DeclAndDef() { gDeclAndDefCalls += 1 }

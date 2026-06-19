@@ -88,7 +88,6 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     @assert(sum == 3)
 }
 
-
 #test
 {
     var count = 0

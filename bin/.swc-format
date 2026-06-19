@@ -23,7 +23,7 @@ insert-final-newline = preserve
 trim-trailing-newlines = preserve
 
 # Maximum blank lines allowed in a row (0 disables the limit).
-max-consecutive-empty-lines = 0
+max-consecutive-empty-lines = 1
 
 # Keep blank lines at the start of a `{ ... }` block.
 keep-empty-lines-at-start-of-block = preserve

@@ -22,6 +22,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
+#include "Support/Math/Sha256.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
@@ -1070,6 +1071,68 @@ namespace
             parts.push_back(TimedActionLog::formatStatName(ctx, compiler.lastArtifactLabel()));
         return TimedActionLog::joinStatItems(ctx, parts);
     }
+
+    Utf8 bytesToLowerHex(const std::span<const uint8_t> bytes)
+    {
+        Utf8 result;
+        result.reserve(bytes.size() * 2);
+        for (const uint8_t b : bytes)
+            result += std::format("{:02x}", b);
+        return result;
+    }
+
+    fs::path normalizedScriptImportBaseDir(const CompilerInstance::ModuleSetupImport& importRequest)
+    {
+        if (importRequest.baseDir.empty())
+            return {};
+        return FileSystem::normalizePath(importRequest.baseDir);
+    }
+
+    bool scriptImportLess(const CompilerInstance::ModuleSetupImport* lhs, const CompilerInstance::ModuleSetupImport* rhs)
+    {
+        if (lhs->moduleName != rhs->moduleName)
+            return lhs->moduleName < rhs->moduleName;
+        if (lhs->location != rhs->location)
+            return lhs->location < rhs->location;
+        if (lhs->version != rhs->version)
+            return lhs->version < rhs->version;
+        if (lhs->linkBackendKind != rhs->linkBackendKind)
+            return lhs->linkBackendKind < rhs->linkBackendKind;
+        return normalizedScriptImportBaseDir(*lhs) < normalizedScriptImportBaseDir(*rhs);
+    }
+
+    fs::path scriptDependencyDirectory(const CommandLine& cmdLine, std::span<const CompilerInstance::ModuleSetupImport> imports)
+    {
+        std::vector<const CompilerInstance::ModuleSetupImport*> sortedImports;
+        sortedImports.reserve(imports.size());
+        for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
+            sortedImports.push_back(&importRequest);
+
+        std::ranges::sort(sortedImports, scriptImportLess);
+
+        Utf8 signature = "version=1\n";
+        signature += "build-cfg=";
+        signature += cmdLine.buildCfg;
+        signature += "\narch=";
+        signature += targetArchName(cmdLine.targetArch);
+        signature += "\n";
+        for (const CompilerInstance::ModuleSetupImport* importRequest : sortedImports)
+        {
+            signature += importRequest->moduleName;
+            signature += '\t';
+            signature += importRequest->location;
+            signature += '\t';
+            signature += importRequest->version;
+            signature += '\t';
+            signature += backendKindName(importRequest->linkBackendKind);
+            signature += '\t';
+            signature += Utf8(normalizedScriptImportBaseDir(*importRequest));
+            signature += '\n';
+        }
+
+        const auto digest = sha256(asByteSpan(signature.view()));
+        return (Os::getTemporaryPath() / "swag" / "scripts" / fs::path(bytesToLowerHex(digest).c_str()) / ".dep").lexically_normal();
+    }
 }
 
 struct ModuleSetupInputApplier
@@ -1127,6 +1190,13 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
     instance().moduleSetupImports_ = setupSnapshot.imports;
     instance().nativeRuntimeImports_.clear();
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
+
+    if (instance().cmdLine().scriptMode)
+    {
+        workspaceDependencyRoot = FileSystem::normalizePath(scriptDependencyDirectory(instance().cmdLine(), setupSnapshot.imports));
+        std::unordered_set<fs::path> ensuredDirs;
+        SWC_RESULT(ensureWorkspaceDependencyDirectory(taskCtx(), ensuredDirs, workspaceDependencyRoot));
+    }
 
     SWC_RESULT(processImports(setupSnapshot.imports, nullptr, true));
 

@@ -63,10 +63,20 @@ namespace Command
         const JobClientId clientId = compiler.jobClientId();
 
         // Collect files
-        if (compiler.collectFiles(ctx) == Result::Error)
-            return;
-        if (compiler.runModuleSetup(ctx) == Result::Error)
-            return;
+        if (compiler.cmdLine().scriptMode)
+        {
+            if (compiler.runModuleSetup(ctx) == Result::Error)
+                return;
+            if (compiler.collectFiles(ctx) == Result::Error)
+                return;
+        }
+        else
+        {
+            if (compiler.collectFiles(ctx) == Result::Error)
+                return;
+            if (compiler.runModuleSetup(ctx) == Result::Error)
+                return;
+        }
         if (shouldLogBuildConfiguration(compiler))
             TimedActionLog::printBuildConfiguration(ctx);
 

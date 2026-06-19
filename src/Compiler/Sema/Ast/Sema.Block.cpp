@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -37,6 +38,40 @@ namespace
         }
 
         scope.addUsingSymMap(usingSymMap);
+    }
+
+    bool isScriptModuleSetupFile(const Sema& sema)
+    {
+        return sema.compiler().isModuleSetupMode() && sema.ctx().cmdLine().scriptMode;
+    }
+
+    bool isScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)
+    {
+        const AstNode& childNode = sema.node(childRef);
+        switch (childNode.id())
+        {
+            case AstNodeId::DependenciesBlock:
+            case AstNodeId::CompilerImport:
+                return true;
+
+            case AstNodeId::CompilerCallOne:
+                return sema.token(childNode.codeRef()).id == TokenId::CompilerLoad;
+
+            case AstNodeId::CompilerFunc:
+                return sema.token(childNode.codeRef()).id == TokenId::CompilerRun;
+
+            default:
+                return false;
+        }
+    }
+
+    Result filterScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)
+    {
+        if (!isScriptModuleSetupFile(sema))
+            return Result::Continue;
+        if (isScriptModuleSetupChild(sema, childRef))
+            return Result::Continue;
+        return Result::SkipChildren;
     }
 
     // Top-level symbols of an imported-API file are created under the shared import-root namespace
@@ -72,6 +107,11 @@ Result AstFile::semaPreDecl(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstFile::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef)
+{
+    return filterScriptModuleSetupChild(sema, childRef);
+}
+
 Result AstFile::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
@@ -81,7 +121,7 @@ Result AstFile::semaPreNode(Sema& sema)
 
 Result AstFile::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
-    SWC_UNUSED(childRef);
+    SWC_RESULT(filterScriptModuleSetupChild(sema, childRef));
     if (!sema.frame().globalCompilerIfEnabled())
         return Result::SkipChildren;
     return Result::Continue;

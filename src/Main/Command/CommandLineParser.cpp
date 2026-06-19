@@ -113,6 +113,22 @@ namespace
         return false;
     }
 
+    bool isSwagScriptPath(const fs::path& path)
+    {
+        std::string ext = path.extension().string();
+        std::ranges::transform(ext, ext.begin(), [](const char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
+        return ext == ".swgs";
+    }
+
+    void configureScriptCommand(CommandLine& cmdLine, const fs::path& scriptPath)
+    {
+        cmdLine.command         = CommandKind::Run;
+        cmdLine.commandExplicit = true;
+        cmdLine.scriptMode      = true;
+        cmdLine.moduleFilePath  = scriptPath;
+        cmdLine.files.insert(scriptPath);
+    }
+
     void splitInlineOptionValue(const Utf8& raw, Utf8& lookup, std::optional<Utf8>& inlineValue)
     {
         lookup = raw;
@@ -850,17 +866,28 @@ Result CommandLineParser::parse(int argc, char* argv[])
         cmdLine_->command     = isAllowedCommand(candidate);
         if (cmdLine_->command == CommandKind::Invalid)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
-            setReportArguments(diag, candidate);
-            diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
-            diag.addDidYouMeanNote(suggestCommand(candidate));
-            diag.report(ctx);
-            return Result::Error;
+            if (isSwagScriptPath(fs::path(candidate.c_str())))
+            {
+                configureScriptCommand(*cmdLine_, fs::path(candidate.c_str()));
+                command_      = commandName(cmdLine_->command);
+                argStartIndex = 1;
+            }
+            else
+            {
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
+                setReportArguments(diag, candidate);
+                diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
+                diag.addDidYouMeanNote(suggestCommand(candidate));
+                diag.report(ctx);
+                return Result::Error;
+            }
         }
-
-        cmdLine_->commandExplicit = true;
-        command_                  = candidate;
-        argStartIndex             = 1;
+        else
+        {
+            cmdLine_->commandExplicit = true;
+            command_                  = candidate;
+            argStartIndex             = 1;
+        }
     }
     else if (cmdLine_->commandExplicit)
     {
@@ -1001,6 +1028,11 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
             return reportConflictingArgument(ctx, "--module-file", "--module");
 
         cmdLine_->modulePath = derivedModulePath;
+        if (cmdLine_->scriptMode)
+        {
+            cmdLine_->files.clear();
+            cmdLine_->files.insert(cmdLine_->moduleFilePath);
+        }
     }
 
     if (!cmdLine_->workspacePath.empty())
@@ -1042,6 +1074,20 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->files, FileSystem::resolveFile));
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiDirs, FileSystem::resolveFolder));
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiFiles, FileSystem::resolveFile));
+
+    if (!cmdLine_->scriptMode &&
+        cmdLine_->command == CommandKind::Run &&
+        cmdLine_->moduleFilePath.empty() &&
+        cmdLine_->modulePath.empty() &&
+        cmdLine_->workspacePath.empty() &&
+        cmdLine_->directories.empty() &&
+        cmdLine_->files.size() == 1 &&
+        isSwagScriptPath(*cmdLine_->files.begin()))
+    {
+        cmdLine_->scriptMode     = true;
+        cmdLine_->moduleFilePath = *cmdLine_->files.begin();
+        cmdLine_->modulePath     = cmdLine_->moduleFilePath.parent_path().lexically_normal();
+    }
 
     if (!cmdLine_->configFile.empty())
     {

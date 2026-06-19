@@ -26,6 +26,7 @@ public:
         JITReturn                    jitReturn;
         bool                         hasJitReturn = false;
         bool                         runImmediate = false;
+        JITRuntimeSetupMode          runtimeSetupMode = JITRuntimeSetupMode::FromCompiler;
         // Returned to the caller with consumeCompletion so queued requests can
         // keep companion state without a second global registry.
         std::shared_ptr<void>       completionPayload;

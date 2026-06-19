@@ -20,6 +20,7 @@ struct AstFile : AstCompoundT<AstNodeId::File>
     }
 
     Result        semaPreDecl(Sema& sema) const;
+    static Result semaPreDeclChild(Sema& sema, const AstNodeRef& childRef);
     static Result semaPreNode(Sema& sema);
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -1156,6 +1157,7 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
 // -----------------------------------------------------------------------------
 struct AstDependenciesBlock : AstCompoundT<AstNodeId::DependenciesBlock>
 {
+    static Result semaPreNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

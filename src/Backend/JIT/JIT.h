@@ -29,6 +29,12 @@ enum class JITCallErrorKind : uint8_t
     HardwareException,
 };
 
+enum class JITRuntimeSetupMode : uint8_t
+{
+    FromCompiler,
+    None,
+};
+
 class JIT final
 {
 public:
@@ -39,7 +45,7 @@ public:
     static Result emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, std::span<const std::byte> unwindInfo = {}, const SymbolFunction* ownerFunction = nullptr);
     static bool   resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction);
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind = CallConvKind::C);
-    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr);
+    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler);
 };
 
 SWC_END_NAMESPACE();

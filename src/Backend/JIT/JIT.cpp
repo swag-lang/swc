@@ -35,7 +35,7 @@ namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
     using RuntimeSetupInvoker                    = void (*)(Runtime::RuntimeFlags);
-    using RuntimeHookInvoker                     = void (*)(uint64_t, uint64_t);
+    using RuntimeHookInvoker                     = void (*)(uint64_t, uint64_t, uint64_t);
 
     enum class RuntimeHookStage : uint64_t
     {
@@ -188,8 +188,8 @@ namespace
             // their one-time lifecycle guards, which is exactly what JIT needs
             // to keep @getcontext() valid inside imported DLL code like core.dll.
             const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne);
+            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler));
+            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler));
         }
 
         return Result::Continue;
@@ -1608,17 +1608,24 @@ namespace
     }
 }
 
-Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind, const JITRuntimeSetupMode setupMode)
 {
     const TaskContext* savedContext = TaskContext::setCurrent(&ctx);
     SWC_ASSERT(invoker != nullptr);
 
     RuntimeSetupInvoker setupInvoker = nullptr;
-    const Result        setupResult  = ensureJitRuntimeSetup(ctx, setupInvoker);
-    if (setupResult != Result::Continue)
+    if (setupMode == JITRuntimeSetupMode::FromCompiler)
     {
-        TaskContext::setCurrent(savedContext);
-        return setupResult;
+        const Result setupResult = ensureJitRuntimeSetup(ctx, setupInvoker);
+        if (setupResult != Result::Continue)
+        {
+            TaskContext::setCurrent(savedContext);
+            return setupResult;
+        }
+    }
+    else
+    {
+        ctx.compiler().initPerThreadRuntimeContextForJit();
     }
 
     bool hasException = false;
@@ -1630,7 +1637,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         if (setupInvoker)
             setupInvoker(Runtime::RuntimeFlags::FromCompiler);
 
-        callResult = synchronizeImportedRuntimeContexts(ctx);
+        callResult = setupMode == JITRuntimeSetupMode::FromCompiler ? synchronizeImportedRuntimeContexts(ctx) : Result::Continue;
         if (callResult == Result::Continue)
         {
             if (arg0)

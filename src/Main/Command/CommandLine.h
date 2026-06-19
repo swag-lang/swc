@@ -105,6 +105,7 @@ struct CommandLine
     bool dryRun                  = false;
     bool showConfig              = false;
     bool verboseVerify           = false;
+    bool scriptMode              = false;
     bool sourceDrivenTest        = false;
     bool buildCfgExplicit        = false;
     bool artifactKindExplicit    = false;

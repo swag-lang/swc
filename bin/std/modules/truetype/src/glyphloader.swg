@@ -131,8 +131,8 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
         }
         else
         {
-            arg1 = cast(s8) readU8(glyphData, offset + 0)
-            arg2 = cast(s8) readU8(glyphData, offset + 1)
+            arg1 = cast #bit (s8) readU8(glyphData, offset + 0)
+            arg2 = cast #bit (s8) readU8(glyphData, offset + 1)
             offset += 2
         }
 

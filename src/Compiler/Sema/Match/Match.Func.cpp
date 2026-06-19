@@ -2229,7 +2229,15 @@ namespace
             return false;
         if (!currentBest->candidate.fn || !fallbackBest->candidate.fn)
             return false;
-        if (!currentBest->candidate.fn->isMethod() || fallbackBest->candidate.fn->isMethod())
+
+        // The current best was selected from the highest-priority scope tier only, so a
+        // genuinely better-matching overload living in a lower-priority tier (for example an
+        // imported `cos(f32)` shadowed by a same-name `cos(f64)` instance closer in scope) can
+        // be missing from it. The fallback set gathers every visible same-name overload, so
+        // prefer it whenever it yields a strictly better conversion ranking. Never let the
+        // fallback promote a *method*: that path stays reserved for the UFCS disambiguation
+        // below, where a non-method free function should win over a higher-priority method.
+        if (fallbackBest->candidate.fn->isMethod())
             return false;
 
         return compareCallCandidates(sema, fallbackBest->candidate, currentBest->candidate, ufcsArg) < 0;

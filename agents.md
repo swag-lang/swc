@@ -28,7 +28,7 @@
 ### Testing
 
 - Any new swag language feature must include **relevant tests**:
-    - Place them in the appropriate `bin/tests` folder.
+    - Place them in the appropriate `bin/unittests` folder.
 
 - **C++ unit tests**:
     - Must be placed in `src/Unittest`

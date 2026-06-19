@@ -38,16 +38,16 @@ if /I "%SWC_MODE%"=="devmode" (
     call "%TOOLS_DIR%_common.bat" :run_swc unittest --dev-full%EXTRA_ARGS% || exit /b 1
 )
 
-call :run_source_test "tests\lexer" "Lexer" "lex-only" "--lex-only" || exit /b 1
-call :run_source_test "tests\parser" "Parser" "syntax-only" "--syntax-only" || exit /b 1
-call :run_source_test "tests\errors\lexer" "Lexer" "lex-only" "--lex-only" || exit /b 1
-call :run_source_test "tests\errors\parser" "Parser" "syntax-only" "--syntax-only" || exit /b 1
-call :run_source_test "tests\sema" "Sema" "sema-only" "--sema-only" || exit /b 1
-call :run_source_test "tests\errors\sema" "Sema" "sema-only" "--sema-only" || exit /b 1
-call :run_source_test "tests\jit" "Jit" "no-output" "--no-output" || exit /b 1
-call :run_source_test "tests\safety" "Safety" "no-output" "--no-output" || exit /b 1
+call :run_source_test "unittests\lexer" "Lexer" "lex-only" "--lex-only" || exit /b 1
+call :run_source_test "unittests\parser" "Parser" "syntax-only" "--syntax-only" || exit /b 1
+call :run_source_test "unittests\errors\lexer" "Lexer" "lex-only" "--lex-only" || exit /b 1
+call :run_source_test "unittests\errors\parser" "Parser" "syntax-only" "--syntax-only" || exit /b 1
+call :run_source_test "unittests\sema" "Sema" "sema-only" "--sema-only" || exit /b 1
+call :run_source_test "unittests\errors\sema" "Sema" "sema-only" "--sema-only" || exit /b 1
+call :run_source_test "unittests\jit" "Jit" "no-output" "--no-output" || exit /b 1
+call :run_source_test "unittests\safety" "Safety" "no-output" "--no-output" || exit /b 1
 call :run_native_test "executable" || exit /b 1
-call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%ROOT%\bin\tests\workspace" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%ROOT%\bin\unittests\workspace" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 
 call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"
 exit /b 0
@@ -58,8 +58,8 @@ exit /b %ERRORLEVEL%
 
 :run_native_test
 set "ARTIFACT_KIND=%~1"
-call "%TOOLS_DIR%_common.bat" :set_paths "tests\native" "%ARTIFACT_KIND%" "%BUILD_CFG%"
+call "%TOOLS_DIR%_common.bat" :set_paths "unittests\native" "%ARTIFACT_KIND%" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind "%ARTIFACT_KIND%" -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind "%ARTIFACT_KIND%" -d "%ROOT%\bin\unittests\native" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

@@ -58,7 +58,7 @@ call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%STD_WORKSPACE%" --bui
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 for /d %%D in ("%STD_WORKSPACE%\modules\*") do (
-    if exist "%%~fD\src\tests\*.test.swg" (
+    if exist "%%~fD\src\unittests\*.test.swg" (
         set "MODULE_NAME=%%~nxD"
         set "MODULE_FILE=%%~fD\module.swg"
         set "RUN_MODULE="

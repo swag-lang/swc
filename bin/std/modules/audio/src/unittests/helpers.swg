@@ -37,7 +37,7 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 func audioGetTestDataPath(fileName: string, loc = #callerlocation)->string
 {
     var path = Path.getDirectoryName(loc.fileName)
-    path = Path.combine(path, "data")
+    path = Path.combine(path, "datas")
     path = Path.combine(path, fileName)
     @assert(File.exists(path))
     return path

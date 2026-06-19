@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Support/Crypto/Sha256.h"
+#include "Support/Math/Sha256.h"
 
 SWC_BEGIN_NAMESPACE();
 

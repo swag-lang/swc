@@ -12,7 +12,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
-#include "Support/Crypto/Sha256.h"
+#include "Support/Math/Sha256.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
@@ -1619,7 +1619,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     // checksum must carry the real digest of the source content (kind 3, 32 bytes), not a None placeholder.
     if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_SHA256, 32))
         return Result::Error;
-    const std::array<uint8_t, 32> expectedHash = Crypto::sha256(asByteSpan(sourceFile.sourceView()));
+    const std::array<uint8_t, 32> expectedHash = sha256(asByteSpan(sourceFile.sourceView()));
     if (!bytesContainString(debugBytes, Utf8(std::string_view(reinterpret_cast<const char*>(expectedHash.data()), expectedHash.size()))))
         return Result::Error;
     if (!subsectionTypeAppearsBefore(debugBytes, K_DEBUG_S_FILECHKSMS, K_DEBUG_S_STRINGTABLE))

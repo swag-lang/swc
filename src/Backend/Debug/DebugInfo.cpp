@@ -4,7 +4,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Support/Crypto/Sha256.h"
+#include "Support/Math/Sha256.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -15,8 +15,8 @@ std::array<uint8_t, 32> DebugInfo::sourceFileChecksum(const TaskContext& ctx, co
     // race with the on-disk flush) so the checksum matches what a debugger re-hashes from disk.
     std::string_view content;
     if (file.hasFlag(FileFlagsE::CustomSrc) && ctx.compiler().tryGetGeneratedSourceContent(file.path(), content))
-        return Crypto::sha256(asByteSpan(content));
-    return Crypto::sha256(asByteSpan(file.sourceView()));
+        return sha256(asByteSpan(content));
+    return sha256(asByteSpan(file.sourceView()));
 }
 
 std::unique_ptr<DebugInfo> DebugInfo::create(const Runtime::TargetOs targetOs)

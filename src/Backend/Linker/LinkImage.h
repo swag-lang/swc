@@ -105,9 +105,9 @@ struct LinkWin32ApplicationConfig
     Utf8                   appDescription;
     Utf8                   appCompany;
     Utf8                   appCopyright;
-    uint32_t               version  = 0;
-    uint32_t               revision = 0;
-    uint32_t               buildNum = 0;
+    uint32_t               version   = 0;
+    uint32_t               revision  = 0;
+    uint32_t               buildNum  = 0;
     LinkWin32Subsystem     subsystem = LinkWin32Subsystem::Console;
 
     bool hasIcon() const { return !iconBytes.empty(); }
@@ -121,12 +121,12 @@ struct LinkImage
     std::vector<LinkImport>  imports;
     std::vector<LinkExport>  exports;
 
-    Utf8          entrySymbol;
-    Utf8          moduleName; // output file name, used for the export directory of a shared library
-    LinkImageKind kind         = LinkImageKind::Executable;
-    uint64_t      imageBase    = 0;
-    uint64_t      stackReserve = 0;
-    uint64_t      stackCommit  = 0;
+    Utf8                       entrySymbol;
+    Utf8                       moduleName; // output file name, used for the export directory of a shared library
+    LinkImageKind              kind         = LinkImageKind::Executable;
+    uint64_t                   imageBase    = 0;
+    uint64_t                   stackReserve = 0;
+    uint64_t                   stackCommit  = 0;
     LinkWin32ApplicationConfig win32;
 };
 

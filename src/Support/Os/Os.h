@@ -44,10 +44,10 @@ namespace Os
 
     struct ProcessRunOptions
     {
-        std::string*                          capturedOutput = nullptr;
-        bool                                  forwardOutput  = true;
-        const TaskContext*                    logCtx         = nullptr;
-        std::span<const fs::path>             additionalPathDirectories;
+        std::string*              capturedOutput = nullptr;
+        bool                      forwardOutput  = true;
+        const TaskContext*        logCtx         = nullptr;
+        std::span<const fs::path> additionalPathDirectories;
     };
 
     void initialize();

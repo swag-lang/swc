@@ -32,7 +32,7 @@ namespace
 
     struct ResourceLeafRef
     {
-        const ResourcePayload* payload = nullptr;
+        const ResourcePayload* payload          = nullptr;
         uint32_t               entryValueOffset = 0;
         uint32_t               dataEntryOffset  = 0;
     };
@@ -132,7 +132,7 @@ namespace
                 continue;
             }
 
-            uint32_t cp = 0xFFFD;
+            uint32_t cp    = 0xFFFD;
             size_t   count = 0;
             if ((b0 & 0xE0) == 0xC0)
             {
@@ -393,7 +393,7 @@ namespace
         const ByteSpan iconBytes = asByteSpan(config.iconBytes);
         for (const IconDirEntry& entry : entries)
         {
-            const auto* imageBegin = iconBytes.data() + entry.imageOffset;
+            const auto*            imageBegin = iconBytes.data() + entry.imageOffset;
             std::vector<std::byte> image(imageBegin, imageBegin + entry.bytesInRes);
             addPayload(payloads, K_RT_ICON, entry.resourceId, std::move(image));
         }

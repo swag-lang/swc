@@ -662,7 +662,7 @@ Result PELinker::collectWin32ApplicationConfig(LinkImage& image) const
     image.win32.revision       = buildCfg.moduleRevision;
     image.win32.buildNum       = buildCfg.moduleBuildNum;
 
-    const Utf8 iconFileName = Utf8(buildCfg.resAppIcoFileName);
+    const auto iconFileName = Utf8(buildCfg.resAppIcoFileName);
     if (iconFileName.empty())
         return Result::Continue;
 

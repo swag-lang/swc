@@ -1081,7 +1081,7 @@ namespace Os
         for (const auto& root : candidates)
         {
             std::error_code ec;
-            const fs::path  vcLib   = root / "lib" / "x64";
+            const fs::path  vcLib = root / "lib" / "x64";
             if (!fs::exists(vcLib, ec))
                 continue;
 

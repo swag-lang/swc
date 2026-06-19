@@ -42,7 +42,15 @@ namespace
 
     bool isScriptModuleSetupFile(const Sema& sema)
     {
-        return sema.compiler().isModuleSetupMode() && sema.ctx().cmdLine().scriptMode;
+        if (!sema.compiler().isModuleSetupMode() || !sema.ctx().cmdLine().scriptMode)
+            return false;
+
+        // Only the script file itself (the module-setup file) keeps just its directive nodes
+        // during the setup pass. Other files pulled into the same setup unit - notably the
+        // always-present runtime bootstrap that declares `@compiler`, `@pinfos`, ... - must be
+        // processed in full so those declarations are visible to the script's `#run` blocks.
+        const SourceFile* file = sema.file();
+        return file != nullptr && file->hasFlag(FileFlagsE::Module);
     }
 
     bool isScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)

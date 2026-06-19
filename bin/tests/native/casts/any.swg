@@ -3,7 +3,6 @@
 #[Swag.Strict]
 alias AnyCastStrictAny = any
 
-
 #test
 {
     var a: any = 12
@@ -26,7 +25,6 @@ alias AnyCastStrictAny = any
     takes(b)
     @assert(b == 12)
 }
-
 
 #test
 {

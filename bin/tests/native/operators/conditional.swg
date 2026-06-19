@@ -57,7 +57,6 @@ func chooseConditionalStrictS32(flag: bool)->ConditionalStrictS32
     @assert(c == 1)
 }
 
-
 namespace NC{}
 
 #assert((true ? (false ? 1 : 2) : 3) == 2)

@@ -14,13 +14,10 @@ impl I for A {
 
 namespace B {}
 
-
 enum ARC { A, B }
-
 
 interface I0 { mtd toto(); }
 struct S0 {}
-
 
 interface I1 { mtd toto(); }
 struct T {}

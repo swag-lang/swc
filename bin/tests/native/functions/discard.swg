@@ -15,7 +15,6 @@ func canDiscard()->s32
     return 2
 }
 
-
 #test
 {
     gMustUseCalls = 0

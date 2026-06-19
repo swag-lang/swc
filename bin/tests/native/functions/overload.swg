@@ -15,7 +15,6 @@ func A(a: s32) { gOverloadA1Last = a }
     @assert(gOverloadA1Last == 10)
 }
 
-
 struct S {}
 var gOverloadFoo0Calls: s32
 var gOverloadFoo1Last: s32

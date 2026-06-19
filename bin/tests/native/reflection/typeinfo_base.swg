@@ -77,7 +77,6 @@ const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped
 #assert(PScopedBox.fullname == "Scoped.Box")
 #assert(PScopedWrapper.fullname == "Scoped.Wrapper'(Scoped.Box)")
 
-
 #test
 {
     const a = #typeof(s32)

@@ -54,7 +54,6 @@
     @assert(y == null)
 }
 
-
 #test
 {
     var x: const *s32 = null
@@ -85,7 +84,6 @@
     @assert(v1 == null)
     @assert(x2 == 0)
 }
-
 
 #test
 {

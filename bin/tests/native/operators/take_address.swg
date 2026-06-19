@@ -79,7 +79,6 @@ alias StrictAddressArray = [3] s32
     @assert(dref ppx == &x)
 }
 
-
 #test
 {
     var a: [4] s32
@@ -87,7 +86,6 @@ alias StrictAddressArray = [3] s32
     #assert(#typeof(p) == *s32)
     @assert(p == &a[0])
 }
-
 
 #test
 {
@@ -203,7 +201,6 @@ alias StrictAddressArray = [3] s32
     #assert(#typeof(constRefPtr) == const *s32)
     @assert(dref constRefPtr == 55)
 }
-
 
 #test
 {

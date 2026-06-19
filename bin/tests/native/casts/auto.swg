@@ -26,7 +26,6 @@ func takes_f64(v: f64) { gAutoF64 = v }
     @assert(gAutoS32 == 12)
 }
 
-
 #test
 {
     const B: bool = true
@@ -50,7 +49,6 @@ func takes_f64(v: f64) { gAutoF64 = v }
     @assert(y == 42)
 }
 
-
 #test
 {
     var v: u16 = 7
@@ -59,7 +57,6 @@ func takes_f64(v: f64) { gAutoF64 = v }
     @assert(gAutoU64 == 7)
     @assert(gAutoF64 == 7.0)
 }
-
 
 #test
 {
@@ -104,13 +101,11 @@ func takes_f64(v: f64) { gAutoF64 = v }
 func ret_u64_short() => cast(u64) 42
 func a_takes_s32(v: s32) { gAutoS32 = v }
 
-
 #test
 {
     var y: s32 = cast() ret_u64_short()
     @assert(y == 42)
 }
-
 
 #test
 {

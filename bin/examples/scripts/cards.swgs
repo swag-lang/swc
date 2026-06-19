@@ -17,9 +17,9 @@ const MARGIN_BOTTOM = cast(s32) (CARD_WIDTH / 17.0)
 const ROUND_IMAGE = CARD_WIDTH / 54.0
 
 const BADGE_SIZE   = cast(f32) (CARD_WIDTH / 6)
-const BADGE_BORDER = BORDER_SIZE * 0.3
+const BADGE_BORDER = cast(f32) (BORDER_SIZE * 0.3)
 
-const PEPPER_SIZE = TITLE_HEIGHT * 0.6
+const PEPPER_SIZE = cast(f32) (TITLE_HEIGHT * 0.6)
 
 const DESCRIPTION_PADDING    = BORDER_SIZE * 0.5
 const DESCRIPTION_FONT_SIZE  = cast(u32) (CARD_WIDTH / 17)
@@ -768,8 +768,11 @@ func paintObjects(what: string, colorDeck: Color)
     var empty = false
     g_Id       = 1
     lastFamily = files[0].family
-    foreach &f in files
+    // Index loop (not 'foreach') so the draw closures below can capture 'f': a closure cannot
+    // capture a variable introduced inside an 'Array' foreach iterator scope.
+    for fi in files.count
     {
+        let f = &files[fi]
         if f.family != lastFamily
         {
             lastFamily = f.family

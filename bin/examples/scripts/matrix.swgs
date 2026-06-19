@@ -7,7 +7,7 @@ using Core, Gui, Pixel
 
 const FirstRune    = 33
 const LastRune     = 600
-const FontSize     = 15'u32
+const FontSize     = 15
 const MinTrailSize = 10
 const MaxTrailSize = 50
 const MaxColumns   = 80

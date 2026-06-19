@@ -16,7 +16,7 @@ var a1   = 0.0
 var a2   = 0.0
 var a1_v = 0.0
 var a2_v = 0.0
-var g    = 0.98
+var g: f32 = 0.98
 var cx, cy: f32
 var friction  = 1.0
 var linePath: Array'Vector2

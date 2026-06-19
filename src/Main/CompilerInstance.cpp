@@ -561,9 +561,9 @@ void CompilerInstance::setupRuntimeCompiler()
     // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles.
-    static void* s_runtimeAllocatorITable[2] = {nullptr, reinterpret_cast<void*>(&runtimeAllocatorReq)};
-    runtimeAllocator_.obj                    = this;
-    runtimeAllocator_.itable                 = s_runtimeAllocatorITable;
+    static void* sRuntimeAllocatorITable[2] = {nullptr, reinterpret_cast<void*>(&runtimeAllocatorReq)};
+    runtimeAllocator_.obj                   = this;
+    runtimeAllocator_.itable                = sRuntimeAllocatorITable;
 
     runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;

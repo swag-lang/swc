@@ -393,8 +393,8 @@ namespace
         const ByteSpan iconBytes = asByteSpan(config.iconBytes);
         for (const IconDirEntry& entry : entries)
         {
-            const auto*            imageBegin = iconBytes.data() + entry.imageOffset;
-            std::vector<std::byte> image(imageBegin, imageBegin + entry.bytesInRes);
+            const auto* imageBegin = iconBytes.data() + entry.imageOffset;
+            std::vector image(imageBegin, imageBegin + entry.bytesInRes);
             addPayload(payloads, K_RT_ICON, entry.resourceId, std::move(image));
         }
 
@@ -475,7 +475,7 @@ namespace
 
     void appendResourcePayloads(Win32ResourceSection& outSection, std::vector<ResourceLeafRef>& leaves)
     {
-        for (ResourceLeafRef& leaf : leaves)
+        for (const ResourceLeafRef& leaf : leaves)
         {
             padToDword(outSection.bytes);
             const uint32_t payloadOffset = static_cast<uint32_t>(outSection.bytes.size());

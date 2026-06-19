@@ -35,8 +35,14 @@ namespace Crypto
         for (size_t off = 0; off < msg.size(); off += 64)
         {
             uint32_t w[64];
-            for (int i = 0; i < 16; ++i)
-                w[i] = (static_cast<uint32_t>(msg[off + i * 4]) << 24) | (static_cast<uint32_t>(msg[off + i * 4 + 1]) << 16) | (static_cast<uint32_t>(msg[off + i * 4 + 2]) << 8) | static_cast<uint32_t>(msg[off + i * 4 + 3]);
+            for (size_t i = 0; i < 16; ++i)
+            {
+                w[i] = (static_cast<uint32_t>(msg[off + i * 4]) << 24) |
+                       (static_cast<uint32_t>(msg[off + i * 4 + 1]) << 16) |
+                       (static_cast<uint32_t>(msg[off + i * 4 + 2]) << 8) |
+                       static_cast<uint32_t>(msg[off + i * 4 + 3]);
+            }
+
             for (int i = 16; i < 64; ++i)
             {
                 const uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);

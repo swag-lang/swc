@@ -2,7 +2,6 @@
 #include "Backend/Linker/LinkDebugInfo.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Backend/Runtime.h"
-#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

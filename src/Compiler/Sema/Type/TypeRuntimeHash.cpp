@@ -3,7 +3,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
 

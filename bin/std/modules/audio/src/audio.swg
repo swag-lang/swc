@@ -4,10 +4,13 @@ var g_Driver: Driver
 
 // Creates the audio engine.
 // Must be called once, before anything else.
-public func createEngine() throw
+public func createEngine(kind: DriverKind = .Default) throw
 {
-    g_Driver.create()
+    g_Driver.create(kind)
 }
+
+// Creates the audio engine with the no-sound driver.
+public func createNoSoundEngine() throw => createEngine(.NoSound)
 
 // Destroy the audio engine.
 // Must be called at the end, when engine is no more used.

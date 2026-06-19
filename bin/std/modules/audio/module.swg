@@ -1,11 +1,17 @@
 /*
 'Std.Audio' is a module to decode and play sound files.
 Under windows, it is based on the 'xaudio2' library.
+The no-sound driver can be selected with [[Audio.createEngine]] and [[Audio.DriverKind.NoSound]] when code needs to run without an audio device, for example in tests or CI.
 # How to play a sound
 First, you have to initialize the audio engine by calling [[Audio.createEngine]].
 ```swag
 Audio.createEngine()
 defer Audio.destroyEngine() // Don't forget to destroy the engine when you are done
+```
+To explicitly run without audio hardware:
+```swag
+Audio.createNoSoundEngine()
+defer Audio.destroyEngine()
 ```
 You then have to load a sound file.
 ```swag

@@ -93,10 +93,10 @@ moduleprivate func updateThreadProc(th: Threading.Thread)
 
 impl Driver
 {
-    mtd create() throw
+    mtd create(kind: DriverKind = .Default) throw
     {
         .driverIsClosing = false
-        .createNative()
+        .createNative(kind)
 
         .wakeupUpdate.init()
         .updateTh.init(&updateThreadProc)
@@ -176,4 +176,8 @@ impl Driver
             back.recycle()
         return back orelse Memory.new'Voice()
     }
+
+    mtd setOutputVolume(volume: f32) throw => .native.setOutputVolumeNative(volume)
+
+    mtd getOutputVolume()->f32 => .native.getOutputVolumeNative()
 }

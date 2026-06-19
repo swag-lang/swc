@@ -68,8 +68,9 @@ impl Voice
         // to decode, we can directly read in the destination buffer
         if .file.encoding == .requestedEncoding
         {
+            let readStart = .streamCurSeek
             let bytesRead = .readData(destBuffer, length)
-            .streamCurSeek += bytesRead
+            .streamCurSeek = readStart + bytesRead
             return bytesRead
         }
 
@@ -78,13 +79,15 @@ impl Voice
         {
             assume .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
+            let readStart = .streamCurSeek
             .streamBuffer.count = .readData(.streamBuffer.buffer, StreamBufferSize)
-            .streamCurSeek      = .codec.init(.streamBuffer.buffer, .streamBuffer.count)
+            .streamCurSeek      = readStart + .codec.init(.streamBuffer.buffer, .streamBuffer.count)
         }
 
+        let readStart = .streamCurSeek
         .streamBuffer.count = .readData(.streamBuffer.buffer, StreamBufferSize)
         let used = .codec.decode(destBuffer, length, .streamBuffer.buffer, .streamBuffer.count)
-        .streamCurSeek += used.read
+        .streamCurSeek = readStart + used.read
         return used.write
     }
 

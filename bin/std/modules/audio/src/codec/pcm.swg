@@ -22,7 +22,7 @@ impl ICodec for CodecPcmToPcm16
     {
         switch encoding
         {
-        case Pcm8, Pcm16, Pcm32, Float32:
+        case Pcm8, Pcm16, Pcm24, Pcm32, Float32:
             return true
         }
 
@@ -38,14 +38,15 @@ impl ICodec for CodecPcmToPcm16
     {
         if .srcEncoding == .dstEncoding
         {
-            Memory.copy(destBuffer, srcBuffer, srcLength)
-            return {srcLength, srcLength}
+            let length = Math.min(srcLength, destLength)
+            Memory.copy(destBuffer, srcBuffer, length)
+            return {length, length}
         }
 
         func(TS: s32, EN: SoundFileEncoding) doIt(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 }
         {
             var dst = cast([*] s16) destBuffer
-            var src = cast([*] s8) srcBuffer
+            var src = cast([*] u8) srcBuffer
 
             var write, read = 0
             for i in srcLength / TS
@@ -55,16 +56,14 @@ impl ICodec for CodecPcmToPcm16
 
                 #if EN == .Pcm8
                 {
-                    dst[0] = (cast(s16) src[0] - 128) << 8
+                    dst[0] = cast(s16) ((cast(s32) src[0] - 128) << 8)
                 }
                 #elif EN == .Pcm24
                 {
-                    var intS: s32
-                    intS = cast(s32) src[2] << 16
-                    intS |= cast(s32) src[1] << 8
-                    intS |= src[0]
-                    intS   = Math.clamp(intS, -32768, 32767)
-                    dst[0] = cast(s16) intS
+                    var sample = cast(u32) src[0] | (cast(u32) src[1] << 8) | (cast(u32) src[2] << 16)
+                    if sample & 0x00800000 do
+                        sample |= 0xFF000000
+                    dst[0] = cast(s16) (cast #wrap (s32) sample >> 8)
                 }
                 #elif EN == .Pcm32
                 {

@@ -185,6 +185,13 @@ impl Painter
         return result
     }
 
+    // Scale applied to text by the current transform (max of the two axis scales).
+    mtd const textTransformScale()->f32
+    {
+        let tr = .curState.transform
+        return Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
+    }
+
     func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo, runStart = false)->{ glyphX: f32, rightX: f32 }
     {
         var result: retval
@@ -398,9 +405,7 @@ impl Painter
         if .fake do
             return
 
-        let tr      = .curState.transform
-        let trScale = Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
-        let info = Painter.getTextDrawInfo(font, zoom, trScale)
+        let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
 
@@ -519,7 +524,11 @@ impl Painter
         if .fake do
             return
 
-        var shaped = shapeRun(text, font)
+        // Shape directly on the resolved draw font. For an 'Auto' font drawn small
+        // this is the crisp bitmap, so we avoid rasterizing the (unused) MSDF glyph
+        // and the subsequent re-shape that drawShapedRun would otherwise do.
+        let info   = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        var shaped = shapeRun(text, info.drawFont)
         .drawShapedRun(left, top, &shaped, font, brush, under, zoom)
     }
 

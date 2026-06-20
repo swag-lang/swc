@@ -767,24 +767,38 @@ impl RenderOgl
             let minF  = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             cache.dirty = false
             glActiveTexture(GL_TEXTURE1)
+            let fmt = cache.renderMode.bytesPerPixel() == 1 ? GL_RED : GL_RGB
             foreach &atlas in cache.atlases
             {
                 if !atlas.dirty do
                     continue
                 atlas.dirty = false
-                if atlas.texture.handle == InvalidTextureHandle do
-                    glGenTextures(1, cast(*GLuint) &atlas.texture.handle)
+
                 atlas.texture.width  = atlas.width / atlas.bpp
                 atlas.texture.height = atlas.height
                 atlas.texture.pf     = atlas.bpp == 1 ? .RGBA8 : .RGB8
+
+                // An atlas keeps fixed dimensions for its whole life, so allocate the
+                // texture storage once and stream new glyphs in with glTexSubImage2D.
+                // Re-uploading with glTexImage2D every time a glyph is appended forces
+                // the driver to reallocate and synchronize, which stalls the frame and
+                // is felt as a series of hitches while a font warms up its glyphs.
+                let isNew = atlas.texture.handle == InvalidTextureHandle
+                if isNew do
+                    glGenTextures(1, cast(*GLuint) &atlas.texture.handle)
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) atlas.texture.handle)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-                let fmt = atlas.bpp == 1 ? GL_RED : GL_RGB
-                glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
+
+                if isNew
+                {
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
+                    glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
+                }
+                else do
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
 
                 // Build the mip chain for distance-field atlases. Each glyph keeps a
                 // 'spread'-texel margin, so low mips do not bleed neighbouring glyphs.

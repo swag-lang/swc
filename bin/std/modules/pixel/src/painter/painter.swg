@@ -173,6 +173,10 @@ struct Painter
     curTextureFont:         *Font
     curTextureFontAtlas:    s32 = -1
 
+    // Reusable shaped run for the immediate drawString path, so per-frame text drawing
+    // shapes without allocating a fresh glyph buffer on every call.
+    scratchShaped:          ShapedRun
+
     drawingBegin:           bool
     overlapMode:            bool
     canSetTexture0:         bool = true

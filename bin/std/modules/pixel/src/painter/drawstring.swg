@@ -205,17 +205,21 @@ impl Painter
         return result
     }
 
-    // Shape a single-font text run. This currently preserves the legacy one-rune
-    // to one-glyph behavior, but stores glyph indexes, advances and cluster
-    // positions so GSUB/GPOS, fallback and bidi can be introduced at this layer.
-    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->ShapedRun
+    // Shape a single-font text run into a caller-provided run, reusing its glyph
+    // buffer (cleared, capacity kept) so a per-frame draw path can shape without
+    // allocating. This currently preserves the legacy one-rune to one-glyph behavior,
+    // but stores glyph indexes, advances and cluster positions so GSUB/GPOS, fallback
+    // and bidi can be introduced at this layer.
+    func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)
     {
         Debug.assert(font != null, "invalid font")
 
-        var result: retval
-        result.font = font
-        result.tabSize = tabSize
+        result.font          = font
+        result.tabSize       = tabSize
         result.letterSpacing = letterSpacing
+        result.hasInk        = false
+        result.metrics.ascent, result.metrics.descent, result.metrics.width, result.metrics.height = 0
+        result.glyphs.clear()
         result.glyphs.reserve(@countof(text))
 
         var count = @countof(text)
@@ -233,13 +237,13 @@ impl Painter
 
             if c == '\t'
             {
-                appendShapedTab(&result, font, byteIdx, tabSize)
+                appendShapedTab(result, font, byteIdx, tabSize)
                 previousGlyphIndex = 0
             }
             else
             {
                 let glyphIndex = font.glyphIndex(c)
-                appendShapedGlyph(&result, font, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef)
+                appendShapedGlyph(result, font, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef)
                 previousGlyphIndex = glyphIndex
             }
 
@@ -248,7 +252,14 @@ impl Painter
             count -= eat
         }
 
-        finishShapedRun(&result, font)
+        finishShapedRun(result, font)
+    }
+
+    // Shape a single-font text run, returning a freshly allocated run.
+    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->ShapedRun
+    {
+        var result: retval
+        shapeRunInto(&result, text, font, tabSize, letterSpacing)
         return result
     }
 
@@ -526,10 +537,11 @@ impl Painter
 
         // Shape directly on the resolved draw font. For an 'Auto' font drawn small
         // this is the crisp bitmap, so we avoid rasterizing the (unused) MSDF glyph
-        // and the subsequent re-shape that drawShapedRun would otherwise do.
-        let info   = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
-        var shaped = shapeRun(text, info.drawFont)
-        .drawShapedRun(left, top, &shaped, font, brush, under, zoom)
+        // and the subsequent re-shape that drawShapedRun would otherwise do. Shaping
+        // into the painter's reusable scratch run avoids a per-call glyph allocation.
+        let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
+        .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom)
     }
 
     // Recompute the layout for a given rectangle

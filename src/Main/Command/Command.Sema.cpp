@@ -13,7 +13,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/Job.h"
 #include "Support/Thread/JobManager.h"
 

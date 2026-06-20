@@ -393,7 +393,7 @@
         <ClCompile Include="src\Support\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Support\Report\Logger.cpp"/>
         <ClCompile Include="src\Support\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Support\Report\ScopedTimedAction.cpp"/>
+        <ClCompile Include="src\Support\Report\ScopedTimedLog.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp"/>
@@ -498,7 +498,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
         <ClInclude Include="src\Main\Command\CommandRun.h"/>
         <ClInclude Include="src\Support\Math\Sha256.h"/>
-        <ClInclude Include="src\Support\Report\ScopedTimedAction.h"/>
+        <ClInclude Include="src\Support\Report\ScopedTimedLog.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroSsaState.h"/>

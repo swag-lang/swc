@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -244,7 +244,14 @@ StatsSnapshot ScopedTimedLog::delta() const
     return result;
 }
 
-void ScopedTimedLog::markFailure() { forcedOutcome_ = StageOutcome::Error; }
-void ScopedTimedLog::setStat(Utf8 stat) { stat_ = std::move(stat); }
+void ScopedTimedLog::markFailure()
+{
+    forcedOutcome_ = StageOutcome::Error;
+}
+
+void ScopedTimedLog::setStat(Utf8 stat)
+{
+    stat_ = std::move(stat);
+}
 
 SWC_END_NAMESPACE();

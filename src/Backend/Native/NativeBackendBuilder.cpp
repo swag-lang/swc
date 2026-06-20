@@ -17,7 +17,7 @@
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 
 SWC_BEGIN_NAMESPACE();
 

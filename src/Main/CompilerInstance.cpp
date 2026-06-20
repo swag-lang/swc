@@ -34,7 +34,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

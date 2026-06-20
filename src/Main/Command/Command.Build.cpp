@@ -13,7 +13,7 @@
 #include "Main/Stats.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -160,7 +160,7 @@ namespace Command
             if (!setupFn)
                 return Result::Error;
 
-            const uint64_t flags = static_cast<uint64_t>(Runtime::RuntimeFlags::Zero);
+            constexpr uint64_t flags = static_cast<uint64_t>(Runtime::RuntimeFlags::Zero);
             return runJitScriptFunction(ctx, *setupFn, JITRuntimeSetupMode::None, &flags);
         }
 
@@ -179,30 +179,30 @@ namespace Command
 
         Result finishScriptBackend(CompilerInstance& compiler)
         {
-            TaskContext ctx(compiler);
+            TaskContext    ctx(compiler);
             ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::JIT);
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeRunByteCode); }));
 
-            std::vector<SymbolFunction*> allFunctions;
-            std::vector<SymbolFunction*> initFunctions;
-            std::vector<SymbolFunction*> preMainFunctions;
-            std::vector<SymbolFunction*> mainFunctions;
-            std::vector<SymbolFunction*> dropFunctions;
+            std::vector<SymbolFunction*>         allFunctions;
+            std::vector<SymbolFunction*>         initFunctions;
+            std::vector<SymbolFunction*>         preMainFunctions;
+            std::vector<SymbolFunction*>         mainFunctions;
+            std::vector<SymbolFunction*>         dropFunctions;
             std::vector<NativeRuntimeDependency> runtimeDependencies;
             std::vector<uint32_t>                runtimeDependencyInitOrder;
             std::vector<uint32_t>                runtimeDependencyDropOrder;
             {
                 NativeBackendBuilder nativeBuilder(compiler, false);
                 SWC_RESULT(nativeBuilder.prepare());
-                allFunctions                = collectPreparedFunctions(nativeBuilder);
-                initFunctions               = std::move(nativeBuilder.initFunctions);
-                preMainFunctions            = std::move(nativeBuilder.preMainFunctions);
-                mainFunctions               = std::move(nativeBuilder.mainFunctions);
-                dropFunctions               = std::move(nativeBuilder.dropFunctions);
-                runtimeDependencies         = std::move(nativeBuilder.runtimeDependencies);
-                runtimeDependencyInitOrder  = std::move(nativeBuilder.runtimeDependencyInitOrder);
-                runtimeDependencyDropOrder  = std::move(nativeBuilder.runtimeDependencyDropOrder);
+                allFunctions               = collectPreparedFunctions(nativeBuilder);
+                initFunctions              = std::move(nativeBuilder.initFunctions);
+                preMainFunctions           = std::move(nativeBuilder.preMainFunctions);
+                mainFunctions              = std::move(nativeBuilder.mainFunctions);
+                dropFunctions              = std::move(nativeBuilder.dropFunctions);
+                runtimeDependencies        = std::move(nativeBuilder.runtimeDependencies);
+                runtimeDependencyInitOrder = std::move(nativeBuilder.runtimeDependencyInitOrder);
+                runtimeDependencyDropOrder = std::move(nativeBuilder.runtimeDependencyDropOrder);
             }
 
             SymbolSort::sortAndUniqueByLocation(allFunctions, compiler);
@@ -229,7 +229,7 @@ namespace Command
 
     void build(CompilerInstance& compiler)
     {
-        TaskContext                 ctx(compiler);
+        TaskContext    ctx(compiler);
         ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Build);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
@@ -245,7 +245,7 @@ namespace Command
 
     void run(CompilerInstance& compiler)
     {
-        TaskContext                 ctx(compiler);
+        TaskContext    ctx(compiler);
         ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Run);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {

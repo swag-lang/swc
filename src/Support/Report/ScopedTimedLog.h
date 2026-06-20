@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Main/TaskContext.h"
-#include "Support/Report/LogColor.h"
+struct TaskContext;
 
 SWC_BEGIN_NAMESPACE();
 

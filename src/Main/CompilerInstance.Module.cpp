@@ -26,7 +26,7 @@
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1576,11 +1576,11 @@ namespace
 
 ExitCode CompilerInstance::runWorkspace()
 {
-    TaskContext                 ctx(*this);
+    TaskContext    ctx(*this);
     ScopedTimedLog workspaceStage(ctx, ScopedTimedLog::Stage::Workspace);
-    fs::path                    workspacePath = cmdLine().workspacePath;
-    fs::path                    modulesPath   = workspaceModulesDirectory(workspacePath);
-    Utf8                        because;
+    fs::path       workspacePath = cmdLine().workspacePath;
+    fs::path       modulesPath   = workspaceModulesDirectory(workspacePath);
+    Utf8           because;
 
     workspaceBuildLogState_ = {};
 
@@ -1979,7 +1979,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
     std::unique_ptr<NativeBackendBuilder> deferredBuilder;
     {
-        TaskContext                 moduleCtx(*moduleCompiler);
+        TaskContext    moduleCtx(*moduleCompiler);
         ScopedTimedLog moduleStage(moduleCtx, ScopedTimedLog::Stage::Module);
         moduleCompiler->processCommand();
         if (moduleCompiler->flushGeneratedSourceDumps(moduleCtx) != Result::Continue)

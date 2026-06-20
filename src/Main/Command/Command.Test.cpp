@@ -15,7 +15,7 @@
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -442,9 +442,9 @@ namespace
             return true;
 
         SWC_MEM_SCOPE("Backend/JIT");
-        TaskContext                 ctx(compiler);
+        TaskContext    ctx(compiler);
         ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::JIT);
-        uint32_t                    expectedTestCount = 0;
+        uint32_t       expectedTestCount = 0;
 
         if (CommandRun::afterPauses(ctx, [&] {
                 return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeRunByteCode);
@@ -579,7 +579,7 @@ namespace
             }
         }
 
-        TaskContext                 ctx(compiler);
+        TaskContext    ctx(compiler);
         ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Verify);
         verifyExpectedMarkers(ctx);
         return !Stats::hasError();
@@ -592,7 +592,7 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        TaskContext                 ctx(compiler);
+        TaskContext    ctx(compiler);
         ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Test);
 
         bool           testPassed   = true;

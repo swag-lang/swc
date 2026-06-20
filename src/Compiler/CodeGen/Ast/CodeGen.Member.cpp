@@ -114,15 +114,18 @@ namespace
         if (!aggregateType.isAggregateStruct())
             return false;
 
-        const auto& names = aggregateType.payloadAggregate().names;
-        const auto& types = aggregateType.payloadAggregate().types;
-        SWC_ASSERT(names.size() == types.size());
+        const auto& aggregate = aggregateType.payloadAggregate();
+        const auto& types     = aggregate.types;
+        SWC_ASSERT(aggregate.names.size() == types.size());
 
         const IdentifierRef    idRef  = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), codeGen.node(memberRef).codeRef());
         const std::string_view idName = codeGen.sema().idMgr().get(idRef).name;
-        uint64_t               offset = 0;
+        size_t                 memberIndex = 0;
+        if (!aggregateType.tryGetAggregateMemberIndexByName(memberIndex, idRef, idName) || memberIndex >= types.size())
+            return false;
 
-        for (size_t i = 0; i < types.size(); ++i)
+        uint64_t offset = 0;
+        for (size_t i = 0; i <= memberIndex; ++i)
         {
             const TypeInfo& memberType  = codeGen.typeMgr().get(types[i]);
             const uint32_t  memberAlign = std::max<uint32_t>(memberType.alignOf(codeGen.ctx()), 1);
@@ -130,13 +133,7 @@ namespace
             if (memberSize)
                 offset = ((offset + static_cast<uint64_t>(memberAlign) - 1) / static_cast<uint64_t>(memberAlign)) * static_cast<uint64_t>(memberAlign);
 
-            bool found = false;
-            if (names[i].isValid() && names[i] == idRef)
-                found = true;
-            else if (!names[i].isValid() && idName == ("item" + std::to_string(i)))
-                found = idName == ("item" + std::to_string(i));
-
-            if (found)
+            if (i == memberIndex)
             {
                 outInfo.offset        = static_cast<uint32_t>(offset);
                 outInfo.memberTypeRef = types[i];

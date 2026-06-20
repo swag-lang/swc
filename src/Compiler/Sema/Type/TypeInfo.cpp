@@ -82,6 +82,32 @@ namespace
 
         return true;
     }
+
+    bool parseImplicitAggregateItemIndex(size_t& outIndex, const std::string_view name)
+    {
+        constexpr std::string_view prefix = "item";
+        if (!name.starts_with(prefix) || name.size() == prefix.size())
+            return false;
+
+        const std::string_view digits = name.substr(prefix.size());
+        if (digits.size() > 1 && digits.front() == '0')
+            return false;
+
+        size_t index = 0;
+        for (const char c : digits)
+        {
+            if (c < '0' || c > '9')
+                return false;
+
+            const size_t digit = static_cast<size_t>(c - '0');
+            if (index > (std::numeric_limits<size_t>::max() - digit) / 10)
+                return false;
+            index = index * 10 + digit;
+        }
+
+        outIndex = index;
+        return true;
+    }
 }
 
 TypeInfo::~TypeInfo()
@@ -108,6 +134,31 @@ TypeRef TypeInfo::payloadTypeRef() const noexcept
     if (isAlias())
         return payloadAlias_.sym->underlyingTypeRef();
     return payloadTypeRef_.typeRef;
+}
+
+bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const IdentifierRef name, const std::string_view nameText) const noexcept
+{
+    if (!isAggregateStruct())
+        return false;
+
+    const auto& names = payloadAggregate_.names;
+    for (size_t index = 0; index < names.size(); ++index)
+    {
+        if (names[index].isValid() && names[index] == name)
+        {
+            outIndex = index;
+            return true;
+        }
+    }
+
+    size_t implicitIndex = 0;
+    if (parseImplicitAggregateItemIndex(implicitIndex, nameText) && implicitIndex < names.size() && !names[implicitIndex].isValid())
+    {
+        outIndex = implicitIndex;
+        return true;
+    }
+
+    return false;
 }
 
 TypeInfo::TypeInfo(const TypeInfo& other) :

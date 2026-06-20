@@ -280,6 +280,8 @@ public:
         return payloadAggregate_;
     }
 
+    bool tryGetAggregateMemberIndexByName(size_t& outIndex, IdentifierRef name, std::string_view nameText) const noexcept;
+
     TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept
     {
         return unwrap(ctx, defaultTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);

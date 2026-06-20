@@ -217,6 +217,7 @@ namespace
             buildCfg.errorStackTrace           = false;
             buildCfg.backend.optimize          = false;
             buildCfg.backend.debugInfo         = false;
+            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Never;
         }
         else if (cfgName == "debug")
         {
@@ -230,6 +231,7 @@ namespace
             buildCfg.errorStackTrace           = true;
             buildCfg.backend.optimize          = false;
             buildCfg.backend.debugInfo         = true;
+            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Never;
         }
         else if (cfgName == "fast-debug")
         {
@@ -243,6 +245,7 @@ namespace
             buildCfg.errorStackTrace           = true;
             buildCfg.backend.optimize          = true;
             buildCfg.backend.debugInfo         = true;
+            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
         }
         else if (cfgName == "release")
         {
@@ -260,6 +263,15 @@ namespace
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
+            // Intended default: Auto. The semantic layer of auto-inlining is hardened (callee
+            // sema-completion wait + preserved resolved symbols + isolated inline scope, all
+            // gated on isAutoSelected so marked/macro/mixin inlines are unchanged). The
+            // remaining blocker is in CODEGEN: an auto-inlined body that passes a constant call
+            // argument trips materializeTypedConstantPayload (CodeGenCallHelpers.Call.cpp) — the
+            // moved body's typed-constant argument payload is not reconstructed the way codegen
+            // expects. Held at MarkedOnly (no regression — all auto-only paths are inert) until
+            // that codegen materialization is fixed; then flip this to Auto.
+            buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
         }
         else
         {

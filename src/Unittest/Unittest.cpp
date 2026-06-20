@@ -10,7 +10,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/ScopedTimedAction.h"
+#include "Support/Report/ScopedTimedLog.h"
 #endif
 
 SWC_BEGIN_NAMESPACE();

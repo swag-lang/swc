@@ -54,6 +54,7 @@ public:
 
     StatsSnapshot delta() const;
     void          markFailure();
+    void          markUpToDate();
     void          setStat(Utf8 stat);
 
     // Small helpers callers use to assemble the parts of a stage line.
@@ -72,6 +73,7 @@ private:
     Utf8                        detail_;
     Utf8                        stat_;
     bool                        printEnabled_ = true;
+    bool                        upToDate_     = false;
 };
 
 SWC_END_NAMESPACE();

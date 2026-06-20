@@ -733,6 +733,14 @@ namespace Swag
         Build
     }
 
+    // Controls which calls the semantic inliner expands.
+    enum BuildCfgBackendInlineMode: u8
+    {
+        Never      = 0   // Only mandatory expansions (macro/mixin); no inlining.
+        MarkedOnly = 1   // Also inline functions explicitly tagged #[Inline].
+        Auto       = 2   // MarkedOnly plus compiler-chosen small/cheap callees.
+    }
+
     // Backend options
     struct BuildCfgBackend
     {
@@ -746,6 +754,7 @@ namespace Swag
         fpMathUnsafe:           bool
         fpMathApproxFunc:       bool
         unrollMemLimit:         u32      // Maximum number of bytes to unroll memset/cpy in optimize mode
+        inlineMode              = BuildCfgBackendInlineMode.MarkedOnly  // Inlining policy (set per build config)
     }
 
     // The kind of native backend to generate.

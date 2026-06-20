@@ -63,6 +63,7 @@ namespace
         buildCfg.allocatorFillMemory        = explicitBuildCfg.allocatorFillMemory;
         buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
         buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
+        buildCfg.backend.inlineMode         = explicitBuildCfg.backend.inlineMode;
         buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;
         buildCfg.backend.fpMathFma          = explicitBuildCfg.backend.fpMathFma;
         buildCfg.backend.fpMathNoNaN        = explicitBuildCfg.backend.fpMathNoNaN;
@@ -1960,6 +1961,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 }
             }
 
+            moduleStage.markUpToDate();
             moduleStage.setStat(formatWorkspaceReuseStat(probeCtx, probeCompiler));
             return Result::Continue;
         }

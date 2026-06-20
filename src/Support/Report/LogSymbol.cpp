@@ -23,12 +23,28 @@ Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
             return ascii ? "*" : "\xE2\x80\xA2";
         case LogSymbol::Check:
             return ascii ? "*" : "\xE2\x9C\x93";
+        case LogSymbol::UpToDate:
+            return ascii ? "=" : "\xE2\x86\xBB";
         case LogSymbol::Warning:
             return ascii ? "!" : "\xE2\x9A\xA0";
         case LogSymbol::Error:
             return ascii ? "x" : "\xE2\x9C\x96";
         case LogSymbol::Cross:
             return ascii ? "X" : "\xE2\x9C\x96";
+        case LogSymbol::CommandBuild:
+            return ascii ? "B" : "\xE2\x97\x86";
+        case LogSymbol::CommandRun:
+            return ascii ? ">" : "\xE2\x96\xB6";
+        case LogSymbol::CommandTest:
+            return ascii ? "T" : "\xE2\x97\x8E";
+        case LogSymbol::CommandFormat:
+            return ascii ? "F" : "\xE2\x9C\x8E";
+        case LogSymbol::CommandSyntax:
+            return ascii ? "S" : "\xE2\x97\x87";
+        case LogSymbol::CommandSema:
+            return ascii ? "M" : "\xE2\x97\x88";
+        case LogSymbol::CommandUnittest:
+            return ascii ? "U" : "\xE2\x8A\x99";
         case LogSymbol::HorizontalLine:
             return ascii ? "-" : "\xE2\x94\x80";
         case LogSymbol::HorizontalLine2:

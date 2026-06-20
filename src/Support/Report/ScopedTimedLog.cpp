@@ -17,6 +17,12 @@ using StatsSnapshot = ScopedTimedLog::StatsSnapshot;
 
 namespace
 {
+    struct LineGlyph
+    {
+        LogColor  color  = LogColor::Gray;
+        LogSymbol symbol = LogSymbol::DotCenter;
+    };
+
     Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
     {
         Utf8 result = LogColorHelper::toAnsi(ctx, color);
@@ -51,6 +57,42 @@ namespace
             case Stage::Unittest: return "Unittest";
         }
         SWC_UNREACHABLE();
+    }
+
+    LineGlyph commandLineGlyph(const CommandKind command)
+    {
+        switch (command)
+        {
+            case CommandKind::Build:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandBuild};
+            case CommandKind::Run:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandRun};
+            case CommandKind::Test:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandTest};
+            case CommandKind::Format:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandFormat};
+            case CommandKind::Syntax:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandSyntax};
+            case CommandKind::Sema:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandSema};
+            case CommandKind::Unittest:
+                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandUnittest};
+            case CommandKind::Invalid:
+                return {};
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    LineGlyph stageOutcomeGlyph(const ScopedTimedLog::StageOutcome outcome, const bool upToDate)
+    {
+        if (outcome == ScopedTimedLog::StageOutcome::Error)
+            return {.color = LogColor::BrightRed, .symbol = LogSymbol::Error};
+        if (outcome == ScopedTimedLog::StageOutcome::Warning)
+            return {.color = LogColor::BrightYellow, .symbol = LogSymbol::Warning};
+        if (upToDate)
+            return {.color = LogColor::BrightBlue, .symbol = LogSymbol::UpToDate};
+        return {.color = LogColor::BrightGreen, .symbol = LogSymbol::Check};
     }
 
     // What the command operates on: workspace / module / directory name.
@@ -172,7 +214,8 @@ void ScopedTimedLog::printCommandHeader(const TaskContext& ctx)
     if (cmd.command == CommandKind::Build || cmd.command == CommandKind::Run || cmd.command == CommandKind::Test)
         parts.push_back(colorize(ctx, LogColor::Gray, cmd.buildCfg));
 
-    printLine(ctx, 0, LogColor::Gray, LogSymbol::DotCenter, commandName(cmd.command), parts);
+    const LineGlyph glyph = commandLineGlyph(cmd.command);
+    printLine(ctx, 0, glyph.color, glyph.symbol, commandName(cmd.command), parts);
 }
 
 ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 detail) :
@@ -211,23 +254,12 @@ ScopedTimedLog::~ScopedTimedLog()
     if (forcedOutcome_ && static_cast<int>(*forcedOutcome_) > static_cast<int>(outcome))
         outcome = *forcedOutcome_;
 
-    auto color = LogColor::BrightGreen;
-    auto glyph = LogSymbol::Check;
-    if (outcome == StageOutcome::Error)
-    {
-        color = LogColor::BrightRed;
-        glyph = LogSymbol::Error;
-    }
-    else if (outcome == StageOutcome::Warning)
-    {
-        color = LogColor::BrightYellow;
-        glyph = LogSymbol::Warning;
-    }
+    const LineGlyph glyph = stageOutcomeGlyph(outcome, upToDate_);
 
     const uint64_t durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - startTick_).count();
     const Utf8     time       = colorize(*ctx_, LogColor::Gray, Utf8Helper::toNiceTime(Timer::toSeconds(durationNs)));
 
-    printLine(*ctx_, 0, color, glyph, stageLabel(stage_), {detail_, stat_, time});
+    printLine(*ctx_, 0, glyph.color, glyph.symbol, stageLabel(stage_), {detail_, stat_, time});
 }
 
 StatsSnapshot ScopedTimedLog::delta() const
@@ -247,6 +279,11 @@ StatsSnapshot ScopedTimedLog::delta() const
 void ScopedTimedLog::markFailure()
 {
     forcedOutcome_ = StageOutcome::Error;
+}
+
+void ScopedTimedLog::markUpToDate()
+{
+    upToDate_ = true;
 }
 
 void ScopedTimedLog::setStat(Utf8 stat)

@@ -1746,10 +1746,65 @@ namespace
         return Result::Continue;
     }
 
+    // Auto-inline budget: a candidate body wider than this many source tokens is left out of
+    // line. Tokens are a cheap, stable proxy for body size (no AST walk).
+    constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 80;
+
+    // Auto mode candidate selection. Beyond canInlineCall's structural guards:
+    //  - skip generics (cross-Ast generic inlining re-binds generic params in the caller, not
+    //    handled here);
+    //  - only volunteer SAME-Ast callees: a cross-module callee's Ast is owned by another,
+    //    possibly concurrently running, compilation job, so reading its node/paged stores from
+    //    this thread is unsafe. Marked cross-module functions still inline through
+    //    tryInlineCall's guarded cross-Ast path;
+    //  - bound the body size to keep code growth in check.
+    // Body shape is otherwise unrestricted: correct materialization (preserved resolved symbols
+    // + inline-scope isolation) handles arbitrary statements/locals/calls.
+    bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
+    {
+        if (fn.isGenericRoot() || fn.isGenericInstance())
+            return false;
+
+        const AstFunctionDecl* decl    = nullptr;
+        const Ast*             declAst = nullptr;
+        if (!resolveFunctionDecl(sema, fn, decl, declAst))
+            return false;
+        if (declAst != &sema.ast())
+            return false;
+        if (decl->nodeBodyRef.isInvalid())
+            return false;
+
+        // Exclude bodies containing constructs whose materialization is not yet reproduced
+        // faithfully when moved into the caller: calls/casts/struct-literals re-run overload
+        // selection and coercion (member/UFCS calls regrow a receiver argument; intrinsic calls
+        // lose their argument typing), and nested local functions re-bind their outer-scope
+        // access. Preserving resolved identifier symbols (above) already lets a body reference
+        // the callee's file-private globals/helpers safely; this guard keeps the remaining,
+        // not-yet-handled re-resolution cases out of line. Leaf computational callees (member
+        // access, indexing, arithmetic, assignments, control flow over params/`me`/locals/
+        // globals) still inline — including into callers that themselves contain calls.
+        if (bodyHasUnsafeCrossAstConstruct(*declAst, decl->nodeBodyRef))
+            return false;
+        SmallVector<AstNodeRef> localFns;
+        collectInlineLocalFunctionDecls(sema, decl->nodeBodyRef, localFns);
+        if (!localFns.empty())
+            return false;
+
+        const AstNode& body     = declAst->node(decl->nodeBodyRef);
+        const TokenRef startTok = body.tokRef();
+        const TokenRef endTok   = body.tokRefEnd(*declAst);
+        if (startTok.isInvalid() || endTok.isInvalid() || endTok.get() < startTok.get())
+            return false;
+
+        const uint32_t tokenSpan = endTok.get() - startTok.get();
+        return tokenSpan <= K_AUTO_INLINE_MAX_BODY_TOKENS;
+    }
+
 }
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
+    // Structural guards that hold in every inline mode.
     if (fn.isClosure() || fn.isEmpty() || fn.isForeign())
         return false;
     if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
@@ -1763,10 +1818,25 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     }
 
     const AttributeList& attributes = fn.attributes();
+
+    // Macros and mixins are not ordinary functions: they must always be expanded, regardless
+    // of the inline mode.
     if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
         return true;
 
-    return sema.isOptimizeEnabled() && attributes.hasRtFlag(RtAttributeFlagsE::Inline);
+    const Runtime::BuildCfgBackendInlineMode mode = sema.buildCfgBackend().inlineMode;
+    if (mode == Runtime::BuildCfgBackendInlineMode::Never)
+        return false;
+
+    // Explicitly tagged functions inline in both MarkedOnly and Auto.
+    if (attributes.hasRtFlag(RtAttributeFlagsE::Inline))
+        return true;
+
+    // Auto additionally lets the compiler pick small, cheap callees.
+    if (mode == Runtime::BuildCfgBackendInlineMode::Auto)
+        return shouldAutoInline(sema, fn);
+
+    return false;
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs)
@@ -1788,6 +1858,14 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const bool isMixin          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
     const bool isCrossAstInline = declAst != &sema.ast();
 
+    // Auto-selected = inlined purely by the size/shape heuristic, not by an explicit #[Inline]
+    // tag, macro or mixin. Auto candidates opt into the hardened same-Ast materialization
+    // (callee-completion wait, preserved resolved symbols, isolated inline scope). Marked /
+    // macro / mixin inlines keep their established behavior to avoid any regression.
+    const bool isAutoSelected = !isMacro && !isMixin &&
+                                !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
+                                sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
+
     // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
     // Regular inline relies on the body's identifiers already carrying their resolved symbols
     // so cloning can preserve them (PreResolvedSymbol) instead of re-resolving by name in the
@@ -1802,7 +1880,13 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (isCrossAstInline && !isMacro && !isMixin && bodyHasUnsafeCrossAstConstruct(*declAst, decl->nodeBodyRef))
         return Result::Continue;
 
-    if (isCrossAstInline && !isMacro && !isMixin)
+    // Wait for the callee to be sema-completed before materializing its body. A cross-Ast inline
+    // needs this so its identifiers carry resolved symbols (they cannot be re-resolved by name in
+    // another file); an auto-selected same-Ast inline that pins resolved symbols needs it for the
+    // same reason — a not-yet-resolved reference (e.g. a file-scope const used in the body) would
+    // otherwise be cloned with nothing to pin and fail to re-resolve. Self-recursive callees are
+    // already filtered out above, so this does not wait on the function being expanded.
+    if ((isCrossAstInline || isAutoSelected) && !isMacro && !isMixin)
         SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
 
     SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -1859,8 +1943,13 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.
     SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
 
-    const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
-    const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
+    SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
+    // An auto-selected inline body resolves in the callee's context: pin its already-resolved
+    // identifier symbols so a same-Ast inline does not re-resolve the callee's file-private
+    // references by name in the caller. Marked / macro / mixin inlines keep their established
+    // (re-resolving) behavior to avoid regressing intrinsic-argument and overload handling.
+    cloneContext.preserveResolvedSymbols = isAutoSelected;
+    const AstNodeRef inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
         return Result::Continue;
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
@@ -1936,7 +2025,24 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         }
         else
         {
-            sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+            SemaScope* inlineScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+
+            // An auto-selected inline body is its own resolution scope: a distinct function, not
+            // a nested block of the caller. pushScope() inherits the parent's symMap (here the
+            // CALLER function), which would register the inlined body's own locals under the
+            // caller's function and let them clash with the caller's parameters. Bind the inline
+            // scope to the CALLEE and re-parent its lookup above the caller's function-local
+            // scopes onto the enclosing namespace. Argument expressions are unaffected: they are
+            // cloned and resolved against the caller through upLookupScope, not through here.
+            // Marked inlines keep the prior (inherited) scope to avoid regressions.
+            if (isAutoSelected)
+            {
+                inlineScope->setSymMap(const_cast<SymbolFunction*>(&fn));
+                SemaScope* isolatedParent = callerScope;
+                while (isolatedParent && (isolatedParent->isLocal() || isolatedParent->isParameters()))
+                    isolatedParent = isolatedParent->lookupParent();
+                inlineScope->setLookupParent(isolatedParent);
+            }
         }
     }
 

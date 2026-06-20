@@ -34,6 +34,21 @@ inline Utf8 backendKindName(const Runtime::BuildCfgBackendKind backendKind)
     SWC_UNREACHABLE();
 }
 
+inline Utf8 inlineModeName(const Runtime::BuildCfgBackendInlineMode mode)
+{
+    switch (mode)
+    {
+        case Runtime::BuildCfgBackendInlineMode::Never:
+            return "never";
+        case Runtime::BuildCfgBackendInlineMode::MarkedOnly:
+            return "marked-only";
+        case Runtime::BuildCfgBackendInlineMode::Auto:
+            return "auto";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 inline Utf8 targetOsName(const Runtime::TargetOs value)
 {
     switch (value)

@@ -2,8 +2,11 @@
 
 #if SWC_HAS_UNITTEST
 
+#include <sstream>
+
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
+#include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
 
@@ -71,6 +74,26 @@ namespace
         const void* target_ = nullptr;
         bool        slept_  = false;
     };
+
+    class StdoutCapture
+    {
+    public:
+        StdoutCapture() :
+            previous_(std::cout.rdbuf(stream_.rdbuf()))
+        {
+        }
+
+        ~StdoutCapture()
+        {
+            std::cout.rdbuf(previous_);
+        }
+
+        std::string str() const { return stream_.str(); }
+
+    private:
+        std::ostringstream stream_;
+        std::streambuf*    previous_ = nullptr;
+    };
 }
 
 SWC_TEST_BEGIN(JobManager_DebugStateReportsSleepingJobs)
@@ -93,6 +116,51 @@ SWC_TEST_BEGIN(JobManager_DebugStateReportsSleepingJobs)
         return Result::Error;
 
     jobMgr.waitAll(clientId);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ScopedTimedLog_CommandHeaderUsesCommandGlyph)
+{
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Run;
+    cmdLine.logAscii = true;
+    cmdLine.logColor = false;
+    cmdLine.buildCfg = "debug";
+
+    const Global      global;
+    const TaskContext localCtx(global, cmdLine);
+    StdoutCapture     capture;
+    ScopedTimedLog::printCommandHeader(localCtx);
+
+    const std::string text = capture.str();
+    if (!text.starts_with("  >  run"))
+        return Result::Error;
+    if (text.find("debug") == std::string::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ScopedTimedLog_UpToDateUsesReuseGlyph)
+{
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Build;
+    cmdLine.logAscii = true;
+    cmdLine.logColor = false;
+
+    const Global      global;
+    const TaskContext localCtx(global, cmdLine);
+    StdoutCapture     capture;
+    {
+        ScopedTimedLog stage(localCtx, ScopedTimedLog::Stage::Module, "core");
+        stage.markUpToDate();
+        stage.setStat(ScopedTimedLog::formatStatName(localCtx, "up-to-date"));
+    }
+
+    const std::string text = capture.str();
+    if (!text.starts_with("  =  Module"))
+        return Result::Error;
+    if (text.find("up-to-date") == std::string::npos)
+        return Result::Error;
 }
 SWC_TEST_END()
 

@@ -40,6 +40,7 @@ namespace
         addInfoEntry(entries, "Module namespace", Utf8(buildCfg.moduleNamespace));
         addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
         addBoolEntry(entries, "Backend optimize", buildCfg.backend.optimize);
+        addInfoEntry(entries, "Inline mode", inlineModeName(buildCfg.backend.inlineMode));
         Logger::printFieldGroup(ctx, "Command Line", entries, nextInfoGroupStyle(hasPrintedGroup));
 
         entries.clear();

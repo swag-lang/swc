@@ -172,7 +172,7 @@ fileprivate func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, re
     cache.spread      = spread
     cache.forceBold   = forceBold
     cache.forceItalic = forceItalic
-    cache.hasKerning  = typeFace.face.hasKerning()
+    cache.hasKerning  = assume typeFace.face.hasKerning()
 
     assume typeFace.face.setPixelSize(0, refSize)
     let metrics = &typeFace.face.size.metrics

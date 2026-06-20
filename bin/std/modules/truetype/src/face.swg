@@ -118,10 +118,9 @@ public impl Face
 
     // True if the face carries any (legacy 'kern' format-0) kerning pairs. Lets callers
     // skip per-glyph-pair kerning lookups entirely for the many fonts that have none.
-    mtd hasKerning()->bool
+    mtd hasKerning()->bool throw
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
-        return faceData != null and faceData.kernPairs.count != 0
+        return getFaceImpl(me).kernPairs.count != 0
     }
 
     // Horizontal kerning between two glyphs, scaled to the current pixel size.

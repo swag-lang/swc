@@ -389,7 +389,17 @@ impl Polygon
 
         if isClosed do
             .points.count += 1
-        .isSimple = .computeIsSimple(n)
+
+        // A convex polygon never self-intersects, so it is simple by construction.
+        // Skip the O(n^2) self-intersection test in that case — it covers the common
+        // UI shapes (round rects, circles, ellipses) flattened every frame. 'isSimple'
+        // is only read for non-convex polygons (the triangulated fill branch and the
+        // offset-input selection), so this stays correct.
+        if .isConvex do
+            .isSimple = true
+        else do
+            .isSimple = .computeIsSimple(n)
+
         .isClockwise = .area >= 0
     }
 }

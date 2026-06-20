@@ -52,17 +52,7 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
         }
     }
 
-    bool found = false;
-    for (const CandidateSymbol& s : allSymbols_)
-    {
-        if (s.symbol == symbol)
-        {
-            found = true;
-            break;
-        }
-    }
-
-    if (!found)
+    if (std::ranges::find(allSymbols_, symbol, &CandidateSymbol::symbol) == allSymbols_.end())
         allSymbols_.push_back({.symbol = symbol, .priority = priority});
 
     if (!hasBestPriority_)
@@ -93,9 +83,8 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
 
     // Same priority: keep all candidates at this level (for ambiguity checks),
     // but avoid duplicates.
-    for (const Symbol* s : symbols_)
-        if (s == symbol)
-            return;
+    if (std::ranges::find(symbols_, symbol) != symbols_.end())
+        return;
 
     symbols_.push_back(symbol);
 }
@@ -119,17 +108,7 @@ void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSym
         if (!symbol || !symbol->acceptOverloads())
             continue;
 
-        bool duplicate = false;
-        for (const Symbol* existing : outSymbols)
-        {
-            if (existing == symbol)
-            {
-                duplicate = true;
-                break;
-            }
-        }
-
-        if (!duplicate)
+        if (std::ranges::find(outSymbols, symbol) == outSymbols.end())
             outSymbols.push_back(symbol);
     }
 }
@@ -144,17 +123,7 @@ void MatchContext::collectCallableSymbols(SmallVector<const Symbol*>& outSymbols
         if (!symbol || !symbol->isFunction())
             continue;
 
-        bool duplicate = false;
-        for (const Symbol* existing : outSymbols)
-        {
-            if (existing == symbol)
-            {
-                duplicate = true;
-                break;
-            }
-        }
-
-        if (!duplicate)
+        if (std::ranges::find(outSymbols, symbol) == outSymbols.end())
             outSymbols.push_back(symbol);
     }
 }

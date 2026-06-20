@@ -918,6 +918,32 @@ namespace
             return SemaHelpers::resolveAggregateMemberIndex(*sema, *targetType, idRef, outIndex);
         }
     };
+
+    bool parseImplicitAggregateItemIndex(size_t& outIndex, const std::string_view name)
+    {
+        constexpr std::string_view prefix = "item";
+        if (!name.starts_with(prefix) || name.size() == prefix.size())
+            return false;
+
+        const std::string_view digits = name.substr(prefix.size());
+        if (digits.size() > 1 && digits.front() == '0')
+            return false;
+
+        size_t index = 0;
+        for (const char c : digits)
+        {
+            if (c < '0' || c > '9')
+                return false;
+
+            const size_t digit = static_cast<size_t>(c - '0');
+            if (index > (std::numeric_limits<size_t>::max() - digit) / 10)
+                return false;
+            index = index * 10 + digit;
+        }
+
+        outIndex = index;
+        return true;
+    }
 }
 
 Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers)
@@ -1058,12 +1084,13 @@ bool SemaHelpers::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggreg
             outIndex = i;
             return true;
         }
+    }
 
-        if (!names[i].isValid() && idName == ("item" + std::to_string(i)))
-        {
-            outIndex = i;
-            return true;
-        }
+    size_t implicitIndex = 0;
+    if (parseImplicitAggregateItemIndex(implicitIndex, idName) && implicitIndex < names.size() && !names[implicitIndex].isValid())
+    {
+        outIndex = implicitIndex;
+        return true;
     }
 
     return false;

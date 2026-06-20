@@ -1752,14 +1752,15 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
     if (fn.isClosure() || fn.isEmpty() || fn.isForeign())
         return false;
+    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
+        return false;
+
     if (fn.hasVariadicParam())
     {
         const auto& params = fn.parameters();
         if (!params.empty() && params.back()->type(sema.ctx()).isVariadic())
             return false;
     }
-    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
-        return false;
 
     const AttributeList& attributes = fn.attributes();
     if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
@@ -1771,26 +1772,16 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs)
 {
     if (sema.hasSubstitute(callRef))
-    {
         return Result::Continue;
-    }
-
     if (isInlineRecursion(sema, fn))
-    {
         return Result::Continue;
-    }
-
     if (!canInlineCall(sema, fn))
-    {
         return Result::Continue;
-    }
 
     const AstFunctionDecl* decl    = nullptr;
     const Ast*             declAst = nullptr;
     if (!resolveFunctionDecl(sema, fn, decl, declAst))
-    {
         return Result::Continue;
-    }
     SWC_ASSERT(declAst != nullptr);
 
     const bool isMacro          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
@@ -1832,9 +1823,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     bool                                 mapped = false;
     SWC_RESULT(mapArguments(sema, mapped, context, bindings, variadicBinding));
     if (!mapped)
-    {
         return Result::Continue;
-    }
+
     if (isCrossAstInline || isMacro || isMixin)
         appendGenericInstanceBindings(sema, fn, bindings);
 
@@ -1850,9 +1840,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (variadicBinding.param)
     {
         if (variadicExprRef.isInvalid() || variadicExprTypeRef.isInvalid())
-        {
             return Result::Continue;
-        }
         if (variadicBinding.param->idRef().isValid())
             bindings.push_back({variadicBinding.param->idRef(), variadicExprRef, variadicExprTypeRef, ConstantRef::invalid(), variadicBinding.allArgsConstant});
     }
@@ -1874,9 +1862,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
-    {
         return Result::Continue;
-    }
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
 
     SymbolVariable* resultVar = nullptr;
@@ -1925,6 +1911,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
                 frame.pushBindingVar(receiver);
         }
     }
+    
     const bool needsOwnerScope = isMacro;
     SemaScope* ownerScope      = nullptr;
     if (needsOwnerScope)

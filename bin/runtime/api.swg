@@ -737,8 +737,8 @@ namespace Swag
     struct BuildCfgBackend
     {
         optimize:               bool
-        debugInfo               = false    // Output debug information if 'true'
-        enableExceptions        = true     // Generate unwind info for JIT code and register SEH function tables
+        debugInfo               = false  // Output debug information if 'true'
+        enableExceptions        = true   // Generate unwind info for JIT code and register SEH function tables
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'
         fpMathNoInf:            bool     // true in 'release'

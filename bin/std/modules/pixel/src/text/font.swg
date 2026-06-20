@@ -75,6 +75,7 @@ public struct GlyphCache
     spread:            u32
     forceBold:         bool
     forceItalic:       bool
+    hasKerning:        bool
 
     // Metrics at the reference size, in pixels.
     ascent:            f32
@@ -171,6 +172,7 @@ fileprivate func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, re
     cache.spread      = spread
     cache.forceBold   = forceBold
     cache.forceItalic = forceItalic
+    cache.hasKerning  = typeFace.face.hasKerning()
 
     assume typeFace.face.setPixelSize(0, refSize)
     let metrics = &typeFace.face.size.metrics
@@ -361,7 +363,8 @@ public impl GlyphCache
     // Returns 0 when the typeface has no kerning pair for the couple.
     mtd kerning(leftIndex, rightIndex: u32)->f32
     {
-        if !leftIndex or !rightIndex do
+        // Most fonts carry no legacy 'kern' table: skip the per-pair hash lookup entirely.
+        if !.hasKerning or !leftIndex or !rightIndex do
             return 0
 
         let key  = (cast(u64) leftIndex << 32) | cast(u64) rightIndex

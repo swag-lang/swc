@@ -11,34 +11,42 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32 throw
     let deltasOff     = startCodesOff + cast(u64) segCount * 2
     let rangesOff     = deltasOff + cast(u64) segCount * 2
 
-    for segCount
+    // endCodes are sorted ascending: binary-search the first segment whose endCode
+    // covers charCode, instead of scanning every segment (fonts have 100s of them).
+    var lo = 0'u32
+    var hi = cast(u32) segCount
+    while lo < hi
     {
-        let idx       = cast(u64) @index
-        let endCode   = readU16(cmap, endCodesOff + idx * 2)
+        let mid     = lo + (hi - lo) / 2
+        let endCode = readU16(cmap, endCodesOff + cast(u64) mid * 2)
         if charCode > endCode do
-            continue
-
-        let startCode = readU16(cmap, startCodesOff + idx * 2)
-        if charCode < startCode do
-            return 0
-
-        let delta     = readS16(cmap, deltasOff + idx * 2)
-        let range     = readU16(cmap, rangesOff + idx * 2)
-        if !range do
-            return cast(u32) ((cast(s32) charCode + delta) & 0xFFFF)
-
-        let rangePos  = rangesOff + idx * 2
-        let glyphPos  = rangePos + range + cast(u64) (charCode - startCode) * 2
-        if glyphPos + 2 > @countof(cmap) do
-            return 0
-
-        var glyph = readU16(cmap, glyphPos)
-        if glyph do
-            glyph = cast(u16) ((cast(s32) glyph + delta) & 0xFFFF)
-        return glyph
+            lo = mid + 1
+        else do
+            hi = mid
     }
 
-    return 0
+    if lo >= cast(u32) segCount do
+        return 0
+
+    let idx       = cast(u64) lo
+    let startCode = readU16(cmap, startCodesOff + idx * 2)
+    if charCode < startCode do
+        return 0
+
+    let delta     = readS16(cmap, deltasOff + idx * 2)
+    let range     = readU16(cmap, rangesOff + idx * 2)
+    if !range do
+        return cast(u32) ((cast(s32) charCode + delta) & 0xFFFF)
+
+    let rangePos  = rangesOff + idx * 2
+    let glyphPos  = rangePos + range + cast(u64) (charCode - startCode) * 2
+    if glyphPos + 2 > @countof(cmap) do
+        return 0
+
+    var glyph = readU16(cmap, glyphPos)
+    if glyph do
+        glyph = cast(u16) ((cast(s32) glyph + delta) & 0xFFFF)
+    return glyph
 }
 
 func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32 throw

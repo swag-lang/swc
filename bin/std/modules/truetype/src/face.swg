@@ -91,7 +91,6 @@ public impl Face
     }
 
     mtd const isBold()->bool => .style.has(.Bold)
-
     mtd const isItalic()->bool => .style.has(.Italic)
 
     mtd setPixelSize(pixelWidth, pixelHeight: u32) throw
@@ -115,6 +114,14 @@ public impl Face
         .size.metrics.descender  = scale26_6(.descender, height, faceData.unitsPerEm)
         .size.metrics.height     = scale26_6(.height, height, faceData.unitsPerEm)
         .size.metrics.maxAdvance = scale26_6(.maxAdvanceWidth, width, faceData.unitsPerEm)
+    }
+
+    // True if the face carries any (legacy 'kern' format-0) kerning pairs. Lets callers
+    // skip per-glyph-pair kerning lookups entirely for the many fonts that have none.
+    mtd hasKerning()->bool
+    {
+        let faceData = cast(*FaceImpl) cast(*void) me
+        return faceData != null and faceData.kernPairs.count != 0
     }
 
     // Horizontal kerning between two glyphs, scaled to the current pixel size.

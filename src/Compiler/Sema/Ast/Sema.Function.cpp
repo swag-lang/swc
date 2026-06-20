@@ -113,43 +113,6 @@ namespace
         return nullptr;
     }
 
-    Result tryMaterializeAggregateLiteralConstant(Sema& sema, const AstNodeRef exprRef, const TypeRef typeRef)
-    {
-        if (sema.viewConstant(exprRef).hasConstant())
-            return Result::Continue;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (!typeInfo.isAggregateArray() && !typeInfo.isAggregateStruct())
-            return Result::Continue;
-
-        SmallVector<AstNodeRef> children;
-        sema.node(exprRef).collectChildrenFromAst(children, sema.ast());
-        if (children.empty())
-            return Result::Continue;
-
-        SmallVector<ConstantRef> values;
-        values.reserve(children.size());
-        for (const AstNodeRef childRef : children)
-        {
-            const SemaNodeView childView = sema.viewTypeConstant(childRef);
-            if (childView.cstRef().isInvalid())
-                return Result::Continue;
-            values.push_back(childView.cstRef());
-        }
-
-        SmallVector<IdentifierRef> names;
-        if (typeInfo.isAggregateStruct())
-        {
-            names.reserve(typeInfo.payloadAggregate().names.size());
-            for (const IdentifierRef name : typeInfo.payloadAggregate().names)
-                names.push_back(name);
-        }
-
-        const ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
-        sema.setConstant(exprRef, sema.cstMgr().addConstant(sema.ctx(), cst));
-        return Result::Continue;
-    }
-
     Result isGenericRootImplFunction(Sema& sema, const SymbolFunction& sym, const SymbolImpl* declImpl, bool& outResult)
     {
         outResult = false;
@@ -670,7 +633,7 @@ namespace
         if (exprRef.isInvalid() || !ioTypeRef.isValid())
             return Result::Continue;
 
-        SWC_RESULT(tryMaterializeAggregateLiteralConstant(sema, exprRef, ioTypeRef));
+        SWC_RESULT(SemaHelpers::tryMaterializeAggregateLiteralConstant(sema, exprRef, ioTypeRef));
 
         const TypeInfo& typeInfo = sema.typeMgr().get(ioTypeRef);
         if (typeInfo.isScalarUnsized() && sema.viewConstant(exprRef).hasConstant())

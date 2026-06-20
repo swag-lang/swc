@@ -76,47 +76,6 @@ namespace
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
-    void tryMaterializeAggregateLiteralConstant(Sema& sema, SemaNodeView& defaultView)
-    {
-        if (defaultView.cstRef().isValid() || defaultView.typeRef().isInvalid())
-            return;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(defaultView.typeRef());
-        if (!typeInfo.isAggregateArray() && !typeInfo.isAggregateStruct())
-            return;
-
-        SmallVector<AstNodeRef> children;
-        sema.node(defaultView.nodeRef()).collectChildrenFromAst(children, sema.ast());
-        if (children.empty())
-            return;
-
-        SmallVector<ConstantRef> values;
-        values.reserve(children.size());
-
-        for (const AstNodeRef childRef : children)
-        {
-            if (childRef.isInvalid())
-                return;
-
-            const SemaNodeView childView = sema.viewTypeConstant(childRef);
-            if (childView.cstRef().isInvalid())
-                return;
-            values.push_back(childView.cstRef());
-        }
-
-        SmallVector<IdentifierRef> names;
-        if (typeInfo.isAggregateStruct())
-        {
-            names.reserve(typeInfo.payloadAggregate().names.size());
-            for (const IdentifierRef name : typeInfo.payloadAggregate().names)
-                names.push_back(name);
-        }
-
-        ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
-        sema.setConstant(defaultView.nodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
-        defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-    }
-
     bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
     {
         return SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef);
@@ -131,7 +90,12 @@ namespace
 
     Result normalizeDefaultValueView(Sema& sema, SemaNodeView& defaultView, TypeRef targetTypeRef, TypeRef* outResolvedTypeRef = nullptr)
     {
-        tryMaterializeAggregateLiteralConstant(sema, defaultView);
+        if (defaultView.cstRef().isInvalid() && defaultView.typeRef().isValid())
+        {
+            SWC_RESULT(SemaHelpers::tryMaterializeAggregateLiteralConstant(sema, defaultView.nodeRef(), defaultView.typeRef()));
+            if (sema.viewConstant(defaultView.nodeRef()).hasConstant())
+                defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
 
         if (defaultView.typeRef().isInvalid() && defaultView.cstRef().isValid())
         {
@@ -778,6 +742,46 @@ Result SemaHelpers::deduceDefaultValueType(Sema& sema, AstNodeRef defaultValueRe
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
     SWC_RESULT(normalizeDefaultValueView(sema, defaultView, TypeRef::invalid(), &outTypeRef));
 
+    return Result::Continue;
+}
+
+Result SemaHelpers::tryMaterializeAggregateLiteralConstant(Sema& sema, const AstNodeRef exprRef, const TypeRef typeRef)
+{
+    if (sema.viewConstant(exprRef).hasConstant())
+        return Result::Continue;
+
+    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    if (!typeInfo.isAggregateArray() && !typeInfo.isAggregateStruct())
+        return Result::Continue;
+
+    SmallVector<AstNodeRef> children;
+    sema.node(exprRef).collectChildrenFromAst(children, sema.ast());
+    if (children.empty())
+        return Result::Continue;
+
+    SmallVector<ConstantRef> values;
+    values.reserve(children.size());
+    for (const AstNodeRef childRef : children)
+    {
+        if (childRef.isInvalid())
+            return Result::Continue;
+
+        const SemaNodeView childView = sema.viewTypeConstant(childRef);
+        if (childView.cstRef().isInvalid())
+            return Result::Continue;
+        values.push_back(childView.cstRef());
+    }
+
+    SmallVector<IdentifierRef> names;
+    if (typeInfo.isAggregateStruct())
+    {
+        names.reserve(typeInfo.payloadAggregate().names.size());
+        for (const IdentifierRef name : typeInfo.payloadAggregate().names)
+            names.push_back(name);
+    }
+
+    const ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
+    sema.setConstant(exprRef, sema.cstMgr().addConstant(sema.ctx(), cst));
     return Result::Continue;
 }
 

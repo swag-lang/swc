@@ -20,5 +20,5 @@ call "%TOOLS_DIR%_common.bat" :run_swc format ^
  -d "%ROOT%\bin\reference" ^
  -d "%ROOT%\bin\runtime" ^
  -d "%ROOT%\bin\std" ^
- -d "%ROOT%\bin\tests"%EXTRA_ARGS%
+ -d "%ROOT%\bin\unittests"%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

@@ -543,6 +543,9 @@
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenStructHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
@@ -1260,6 +1263,9 @@
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenStructHelpers.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h">

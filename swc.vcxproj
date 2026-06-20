@@ -298,6 +298,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenStructHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenSafety.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
@@ -559,6 +560,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenLoopHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenStructHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenSafety.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
@@ -738,7 +740,6 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
-
 
 
 

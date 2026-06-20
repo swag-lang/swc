@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -14,7 +15,6 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -148,57 +148,6 @@ namespace
         return recoverFunctionLocalIdentifierSymbol(codeGen, nodeRef);
     }
 
-    const SymbolStruct* variableOwnerStruct(const SymbolVariable& symVar)
-    {
-        const SymbolMap* owner = symVar.ownerSymMap();
-        if (!owner)
-            return nullptr;
-
-        if (owner->isStruct())
-            return &owner->cast<SymbolStruct>();
-
-        if (owner->isImpl())
-        {
-            const auto& ownerImpl = owner->cast<SymbolImpl>();
-            if (ownerImpl.isForStruct())
-                return ownerImpl.symStruct();
-        }
-
-        return nullptr;
-    }
-
-    const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen, const SymbolVariable& receiver)
-    {
-        const TypeRef receiverTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), receiver.typeRef());
-        if (receiverTypeRef.isInvalid())
-            return codeGen.function().ownerStruct();
-
-        const TypeInfo& receiverType = codeGen.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isPointerOrReference())
-            return codeGen.function().ownerStruct();
-
-        const TypeRef pointeeTypeRef = codeGen.typeMgr().get(receiverType.payloadTypeRef()).unwrapAliasEnum(codeGen.ctx(), receiverType.payloadTypeRef());
-        if (pointeeTypeRef.isInvalid())
-            return codeGen.function().ownerStruct();
-
-        const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
-        if (!pointeeType.isStruct())
-            return codeGen.function().ownerStruct();
-
-        return &pointeeType.payloadSymStruct();
-    }
-
-    const SymbolVariable* tryResolveConcreteReceiverFieldSymbol(const SymbolStruct& receiverStruct, const SymbolVariable& symVar)
-    {
-        const SymbolStruct* fieldOwner = variableOwnerStruct(symVar);
-        if (!fieldOwner || fieldOwner == &receiverStruct)
-            return nullptr;
-        if (!fieldOwner->sameGenericFamily(receiverStruct))
-            return nullptr;
-
-        return receiverStruct.findFieldByName(symVar.idRef());
-    }
-
     SymbolVariable* implicitMeReceiver(CodeGen& codeGen)
     {
         const auto& params = codeGen.function().parameters();
@@ -218,13 +167,13 @@ namespace
         if (!receiver)
             return false;
 
-        const SymbolStruct* receiverStruct = receiverRuntimeStruct(codeGen, *receiver);
+        const SymbolStruct* receiverStruct = CodeGenStructHelpers::resolveReceiverRuntimeStruct(codeGen);
         if (!receiverStruct)
             return false;
 
-        const SymbolVariable* concreteField = tryResolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
+        const SymbolVariable* concreteField = CodeGenStructHelpers::tryResolveSameGenericFamilyFieldSymbol(*receiverStruct, symVar);
         const SymbolVariable& resolvedField = concreteField ? *concreteField : symVar;
-        const SymbolStruct*   fieldOwner    = variableOwnerStruct(resolvedField);
+        const SymbolStruct*   fieldOwner    = CodeGenStructHelpers::variableOwnerStruct(resolvedField);
         if (!fieldOwner || !fieldOwner->sameGenericFamily(*receiverStruct))
             return false;
 

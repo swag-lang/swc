@@ -168,11 +168,11 @@ void ScopedTimedLog::printCommandHeader(const TaskContext& ctx)
     const CommandLine& cmd = ctx.cmdLine();
 
     std::vector<Utf8> parts;
-    parts.emplace_back(colorize(ctx, LogColor::White, commandName(cmd.command)) + " " + colorize(ctx, LogColor::Yellow, scopeName(cmd)));
+    parts.emplace_back(colorize(ctx, LogColor::Yellow, scopeName(cmd)));
     if (cmd.command == CommandKind::Build || cmd.command == CommandKind::Run || cmd.command == CommandKind::Test)
         parts.push_back(colorize(ctx, LogColor::Gray, cmd.buildCfg));
 
-    printLine(ctx, 0, LogColor::Gray, LogSymbol::DotCenter, {}, parts);
+    printLine(ctx, 0, LogColor::Gray, LogSymbol::DotCenter, commandName(cmd.command), parts);
 }
 
 ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 detail) :

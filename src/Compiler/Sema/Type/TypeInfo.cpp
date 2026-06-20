@@ -932,7 +932,7 @@ TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTyp
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types)
+TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<TypeRef>& types)
 {
     SWC_ASSERT(types.size() == names.size());
     TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};

@@ -629,14 +629,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         if (srcCst.isAggregateArray())
             concretizedAggregate = ConstantValue::makeAggregateArray(ctx, concretizedValues);
         else
-        {
-            const auto&                namesSrc = ty.payloadAggregate().names;
-            SmallVector<IdentifierRef> names;
-            names.reserve(namesSrc.size());
-            for (const IdentifierRef name : namesSrc)
-                names.push_back(name);
-            concretizedAggregate = ConstantValue::makeAggregateStruct(ctx, names, concretizedValues);
-        }
+            concretizedAggregate = ConstantValue::makeAggregateStruct(ctx, ty.payloadAggregate().names, concretizedValues);
 
         result = sema.cstMgr().addConstant(ctx, concretizedAggregate);
         return true;

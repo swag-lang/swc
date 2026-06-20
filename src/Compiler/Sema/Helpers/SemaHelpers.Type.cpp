@@ -772,15 +772,7 @@ Result SemaHelpers::tryMaterializeAggregateLiteralConstant(Sema& sema, const Ast
         values.push_back(childView.cstRef());
     }
 
-    SmallVector<IdentifierRef> names;
-    if (typeInfo.isAggregateStruct())
-    {
-        names.reserve(typeInfo.payloadAggregate().names.size());
-        for (const IdentifierRef name : typeInfo.payloadAggregate().names)
-            names.push_back(name);
-    }
-
-    const ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
+    const ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), typeInfo.payloadAggregate().names, values);
     sema.setConstant(exprRef, sema.cstMgr().addConstant(sema.ctx(), cst));
     return Result::Continue;
 }

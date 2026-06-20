@@ -185,12 +185,7 @@ namespace
             castedValues.push_back(castedRef);
         }
 
-        SmallVector<IdentifierRef> names;
-        names.reserve(dstAggregate.names.size());
-        for (const IdentifierRef name : dstAggregate.names)
-            names.push_back(name);
-
-        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), names, castedValues);
+        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), dstAggregate.names, castedValues);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), result));
         return Result::Continue;
     }

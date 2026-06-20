@@ -791,6 +791,21 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
     parameters_.push_back(sym);
 }
 
+bool SymbolFunction::tryGetParameterIndexByName(size_t& outIndex, const IdentifierRef name, const size_t startIndex) const noexcept
+{
+    for (size_t index = startIndex; index < parameters_.size(); ++index)
+    {
+        const SymbolVariable* param = parameters_[index];
+        if (param && param->idRef() == name)
+        {
+            outIndex = index;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void SymbolFunction::setVariadicParamFlag(TaskContext& ctx)
 {
     for (const SymbolVariable* param : parameters_)

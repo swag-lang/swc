@@ -895,27 +895,14 @@ namespace
         return false;
     }
 
-    bool resolveStructFieldIndex(std::span<const SymbolVariable* const> fields, const IdentifierRef idRef, size_t& outIndex)
-    {
-        for (size_t i = 0; i < fields.size(); ++i)
-        {
-            if (fields[i] && fields[i]->idRef() == idRef)
-            {
-                outIndex = i;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     struct StructFieldIndexResolver
     {
-        std::span<const SymbolVariable* const> fields;
+        const SymbolStruct* targetStruct = nullptr;
 
         bool operator()(const IdentifierRef idRef, size_t& outIndex) const
         {
-            return resolveStructFieldIndex(fields, idRef, outIndex);
+            SWC_ASSERT(targetStruct != nullptr);
+            return targetStruct->tryGetFieldIndexByName(outIndex, idRef);
         }
     };
 
@@ -997,8 +984,9 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     if (targetType.isStruct())
     {
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
-        const auto&                    fields = targetType.payloadSymStruct().fields();
-        const StructFieldIndexResolver findFieldIndex{fields};
+        const SymbolStruct&            targetStruct = targetType.payloadSymStruct();
+        const auto&                    fields       = targetStruct.fields();
+        const StructFieldIndexResolver findFieldIndex{.targetStruct = &targetStruct};
         const bool                     found = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
         if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
             return Result::Continue;
@@ -1027,22 +1015,11 @@ Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const
     if (!targetRef.isValid())
         return Result::Continue;
 
-    size_t childIndex = 0;
-    bool   found      = false;
-    for (const AstNodeRef currentChildRef : children)
-    {
-        if (currentChildRef == childRef)
-        {
-            found = true;
-            break;
-        }
-
-        ++childIndex;
-    }
-
-    if (!found)
+    const auto childIt = std::ranges::find(children, childRef);
+    if (childIt == children.end())
         return Result::Continue;
 
+    const size_t childIndex = static_cast<size_t>(std::distance(children.begin(), childIt));
     const TypeInfo& targetType = sema.typeMgr().get(targetRef);
     if (targetType.isArray())
     {

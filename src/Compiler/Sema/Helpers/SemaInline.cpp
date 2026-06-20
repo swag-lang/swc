@@ -1643,16 +1643,7 @@ namespace
             const IdentifierRef idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg.codeRef());
 
             size_t paramIndex = params.size();
-            for (size_t i = 0; i < params.size(); i++)
-            {
-                if (params[i]->idRef() == idRef)
-                {
-                    paramIndex = i;
-                    break;
-                }
-            }
-
-            if (paramIndex >= params.size())
+            if (!fn.tryGetParameterIndexByName(paramIndex, idRef))
                 return Result::Continue;
 
             AstNodeRef       sourceValueRef = AstNodeRef::invalid();

@@ -58,6 +58,7 @@ public:
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
     void                                addParameter(SymbolVariable* sym);
+    bool                                tryGetParameterIndexByName(size_t& outIndex, IdentifierRef name, size_t startIndex = 0) const noexcept;
     void                                setVariadicParamFlag(TaskContext& ctx);
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;

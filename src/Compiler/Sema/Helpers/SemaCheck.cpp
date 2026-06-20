@@ -120,11 +120,10 @@ namespace
             return nullptr;
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
-        for (const SymbolVariable* param : sema.currentFunction()->parameters())
-        {
-            if (param && param->idRef() == idRef)
-                return param;
-        }
+        const SymbolFunction* currentFunction = sema.currentFunction();
+        size_t                paramIndex      = 0;
+        if (currentFunction->tryGetParameterIndexByName(paramIndex, idRef))
+            return currentFunction->parameters()[paramIndex];
 
         return nullptr;
     }

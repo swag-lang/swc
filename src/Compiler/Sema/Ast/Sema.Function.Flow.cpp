@@ -609,14 +609,9 @@ namespace
                 continue;
 
             const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
-            for (size_t paramIndex = 0; paramIndex < params.size(); ++paramIndex)
-            {
-                if (params[paramIndex]->idRef() == idRef)
-                {
-                    assigned[paramIndex] = 1;
-                    break;
-                }
-            }
+            size_t              paramIndex = 0;
+            if (fn.tryGetParameterIndexByName(paramIndex, idRef))
+                assigned[paramIndex] = 1;
         }
 
         size_t nextParam = ufcsArg.isValid() ? 1 : 0;
@@ -841,12 +836,9 @@ namespace
         if (childNode.is(AstNodeId::NamedArgument))
         {
             const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
-            for (uint32_t i = paramStart; i < params.size(); ++i)
-            {
-                const SymbolVariable* param = params[i];
-                if (param && param->idRef() == idRef)
-                    return param;
-            }
+            size_t              paramIndex = 0;
+            if (fn.tryGetParameterIndexByName(paramIndex, idRef, paramStart))
+                return params[paramIndex];
 
             return nullptr;
         }

@@ -590,17 +590,8 @@ namespace
 
                 const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
 
-                int32_t found = -1;
-                for (uint32_t i = paramStart; i < numParams; ++i)
-                {
-                    if (params[i]->idRef() == idRef)
-                    {
-                        found = static_cast<int32_t>(i);
-                        break;
-                    }
-                }
-
-                if (found < 0)
+                size_t found = 0;
+                if (!fn.tryGetParameterIndexByName(found, idRef, paramStart))
                 {
                     const Utf8 namedParams = formatNamedParameters(sema, params, paramStart, numParams);
                     recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, DiagnosticId::sema_err_named_argument_unknown, idRef, UINT32_MAX, namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments, AstNodeRef::invalid(), namedParams);

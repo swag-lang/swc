@@ -174,6 +174,19 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
             return 0
 
         case WM_GETMINMAXINFO:
+            let mm = cast(*MINMAXINFO) cast(u64) lParam
+
+            // Enforce the surface min/max size during interactive (border-drag) resizing,
+            // which is handled by the OS sizing loop and only honours the track sizes.
+            if surface.minSize.x > 0 do
+                mm.ptMinTrackSize.x = cast(s32) surface.minSize.x
+            if surface.minSize.y > 0 do
+                mm.ptMinTrackSize.y = cast(s32) surface.minSize.y
+            if surface.maxSize.x > 0 do
+                mm.ptMaxTrackSize.x = cast(s32) surface.maxSize.x
+            if surface.maxSize.y > 0 do
+                mm.ptMaxTrackSize.y = cast(s32) surface.maxSize.y
+
             var pt: POINT
             pt.x = cast(s32) surface.position.x
             pt.y = cast(s32) surface.position.y
@@ -184,7 +197,6 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
                 catch GetMonitorInfoA(hm, &info)
                 let sdw = cast(s32) surface.app.theme.metrics.surfaceWnd_ShadowSize
 
-                let mm = cast(*MINMAXINFO) cast(u64) lParam
                 mm.ptMaxPosition.x = (info.rcWork.left - info.rcMonitor.left) - sdw
                 mm.ptMaxPosition.y = (info.rcWork.top - info.rcMonitor.top) - sdw
                 mm.ptMaxSize.x     = (info.rcWork.right - info.rcWork.left) + 2 * sdw

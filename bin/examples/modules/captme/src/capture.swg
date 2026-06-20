@@ -645,12 +645,23 @@ impl Capture
         // Shapes
         foreach f in .forms
         {
-            var pp = f.boundRect() * zoom
-            if !pp.intersectWith(clip) do
+            // Cull against the form's actual painted extent. 'paintForm' inflates the
+            // bound by 200 (the rendered geometry - arrow caps, thick strokes, shadow -
+            // can reach well beyond the tight 'boundRect') and draws it offset by 'rect'.
+            // Testing the raw, un-offset bound wrongly hid forms whose tight bound fell
+            // just outside the clip (e.g. a thin arrow).
+            var cull = f.boundRect()
+            cull.width  = Math.max(cull.width, 1)
+            cull.height = Math.max(cull.height, 1)
+            cull.inflate(200)
+            cull = cull * zoom
+            cull.offset(rect.x, rect.y)
+            if !cull.intersectWith(clip) do
                 continue
 
             if f.mustClipToBound()
             {
+                var pp = f.boundRect() * zoom
                 pp.offset(rect.x, rect.y)
                 painter.pushClippingRect(pp)
                 paintForm(painter, clip, rect, f, zoom)

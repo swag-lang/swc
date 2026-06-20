@@ -628,7 +628,7 @@ impl MainWnd
 
     func create(parent: *Wnd)->*MainWnd
     {
-        parent.surface.minSize = {1024, 512}
+        parent.surface.minSize = {1152, 512}
 
         let img24    = assume Image.decode(".png", Icons24)
         let img48    = assume Image.decode(".png", Icons48)

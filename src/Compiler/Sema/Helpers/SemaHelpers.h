@@ -120,7 +120,6 @@ namespace SemaHelpers
     void                     handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
     void                     ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym);
     void                     ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol* const> symbols);
-    bool                     resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex);
     Result                   resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet);
 
     inline SemaScope* currentLocalSymbolScope(Sema& sema)

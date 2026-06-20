@@ -196,13 +196,7 @@ namespace
         if (!fieldOwner->sameGenericFamily(receiverStruct))
             return nullptr;
 
-        for (const SymbolVariable* field : receiverStruct.fields())
-        {
-            if (field && field->idRef() == symVar.idRef())
-                return field;
-        }
-
-        return nullptr;
+        return receiverStruct.findFieldByName(symVar.idRef());
     }
 
     SymbolVariable* implicitMeReceiver(CodeGen& codeGen)

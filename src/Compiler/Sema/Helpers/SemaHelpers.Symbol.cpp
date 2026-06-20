@@ -1245,7 +1245,7 @@ namespace
         SWC_ASSERT(aggregate.names.size() == types.size());
 
         size_t memberIndex = 0;
-        if (!SemaHelpers::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex))
+        if (!typeInfo.tryGetAggregateMemberIndexByName(memberIndex, sema.ctx(), idRef))
         {
             bool handled = false;
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));

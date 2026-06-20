@@ -154,17 +154,6 @@ namespace
         return &typeInfo->payloadSymStruct();
     }
 
-    const SymbolVariable* findDirectStructFieldById(const SymbolStruct& owner, const IdentifierRef idRef)
-    {
-        for (const SymbolVariable* field : owner.fields())
-        {
-            if (field && field->idRef() == idRef)
-                return field;
-        }
-
-        return nullptr;
-    }
-
     bool ownerStructReachableThroughUsing(CodeGen& codeGen, const SymbolStruct& leftStruct, const SymbolStruct& ownerStruct)
     {
         SmallVector<SymbolStructUsingPathStep> ignoredSteps;
@@ -181,7 +170,7 @@ namespace
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
 
-        const SymbolVariable* directField = findDirectStructFieldById(*leftStruct, memberSym.idRef());
+        const SymbolVariable* directField = leftStruct->findFieldByName(memberSym.idRef());
         if (!directField)
             return nullptr;
 
@@ -250,7 +239,7 @@ namespace
         if (!fieldOwner || fieldOwner == receiverStruct)
             return nullptr;
 
-        const SymbolVariable* directField = findDirectStructFieldById(*receiverStruct, fieldSym.idRef());
+        const SymbolVariable* directField = receiverStruct->findFieldByName(fieldSym.idRef());
         if (!directField)
             return nullptr;
 

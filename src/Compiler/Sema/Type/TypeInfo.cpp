@@ -400,6 +400,12 @@ bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const Identifi
     return false;
 }
 
+bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, const IdentifierRef name) const noexcept
+{
+    const std::string_view nameText = ctx.idMgr().get(name).name;
+    return tryGetAggregateMemberIndexByName(outIndex, name, nameText);
+}
+
 TypeRef TypeInfo::unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef) const noexcept
 {
     return unwrap(ctx, defaultTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);

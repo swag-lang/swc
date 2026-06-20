@@ -118,10 +118,9 @@ namespace
         const auto& types     = aggregate.types;
         SWC_ASSERT(aggregate.names.size() == types.size());
 
-        const IdentifierRef    idRef  = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), codeGen.node(memberRef).codeRef());
-        const std::string_view idName = codeGen.sema().idMgr().get(idRef).name;
-        size_t                 memberIndex = 0;
-        if (!aggregateType.tryGetAggregateMemberIndexByName(memberIndex, idRef, idName) || memberIndex >= types.size())
+        const IdentifierRef idRef       = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), codeGen.node(memberRef).codeRef());
+        size_t              memberIndex = 0;
+        if (!aggregateType.tryGetAggregateMemberIndexByName(memberIndex, codeGen.ctx(), idRef) || memberIndex >= types.size())
             return false;
 
         uint64_t offset = 0;
@@ -228,17 +227,6 @@ namespace
         return &baseTypeInfo->payloadSymStruct();
     }
 
-    const SymbolVariable* findDirectStructFieldById(const SymbolStruct& owner, const IdentifierRef idRef)
-    {
-        for (const SymbolVariable* field : owner.fields())
-        {
-            if (field && field->idRef() == idRef)
-                return field;
-        }
-
-        return nullptr;
-    }
-
     bool ownerStructReachableThroughUsing(CodeGen& codeGen, const SymbolStruct& leftStruct, const SymbolStruct& ownerStruct)
     {
         SmallVector<SymbolStructUsingPathStep> ignoredSteps;
@@ -293,7 +281,7 @@ namespace
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
 
-        const SymbolVariable* directField = findDirectStructFieldById(*leftStruct, memberSym.idRef());
+        const SymbolVariable* directField = leftStruct->findFieldByName(memberSym.idRef());
         if (!directField)
             return nullptr;
 

@@ -278,6 +278,7 @@ public:
     }
 
     bool    tryGetAggregateMemberIndexByName(size_t& outIndex, IdentifierRef name, std::string_view nameText) const noexcept;
+    bool    tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, IdentifierRef name) const noexcept;
     TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept;
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
     TypeRef payloadTypeRef() const noexcept;

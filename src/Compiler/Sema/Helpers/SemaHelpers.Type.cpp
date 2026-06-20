@@ -904,14 +904,14 @@ namespace
 
     struct AggregateMemberIndexResolver
     {
-        Sema*           sema       = nullptr;
-        const TypeInfo* targetType = nullptr;
+        const TaskContext* ctx        = nullptr;
+        const TypeInfo*    targetType = nullptr;
 
         bool operator()(const IdentifierRef idRef, size_t& outIndex) const
         {
-            SWC_ASSERT(sema != nullptr);
+            SWC_ASSERT(ctx != nullptr);
             SWC_ASSERT(targetType != nullptr);
-            return SemaHelpers::resolveAggregateMemberIndex(*sema, *targetType, idRef, outIndex);
+            return targetType->tryGetAggregateMemberIndexByName(outIndex, *ctx, idRef);
         }
     };
 
@@ -996,7 +996,7 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
         return Result::Continue;
 
     const auto&                        aggregate = targetType.payloadAggregate();
-    const AggregateMemberIndexResolver resolveMemberIndex{.sema = &sema, .targetType = &targetType};
+    const AggregateMemberIndexResolver resolveMemberIndex{.ctx = &sema.ctx(), .targetType = &targetType};
     const bool                         found = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex);
     if (!found || fieldIndex >= aggregate.types.size())
         return Result::Continue;
@@ -1039,12 +1039,6 @@ Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const
 
     outTypeRef = elementTypes[childIndex];
     return Result::Continue;
-}
-
-bool SemaHelpers::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex)
-{
-    const std::string_view idName = sema.idMgr().get(idRef).name;
-    return aggregateType.tryGetAggregateMemberIndexByName(outIndex, idRef, idName);
 }
 
 SWC_END_NAMESPACE();

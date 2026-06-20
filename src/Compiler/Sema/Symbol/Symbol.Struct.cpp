@@ -777,17 +777,19 @@ bool SymbolStruct::tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym)
 
 bool SymbolStruct::tryGetFieldIndexByName(size_t& outIndex, const IdentifierRef name) const noexcept
 {
-    for (size_t index = 0; index < fields_.size(); ++index)
+    const SymbolVariable* field = findFieldByName(name);
+    return field && tryGetFieldIndex(outIndex, *field);
+}
+
+const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) const noexcept
+{
+    for (const SymbolVariable* field : fields_)
     {
-        const SymbolVariable* field = fields_[index];
         if (field && field->idRef() == name)
-        {
-            outIndex = index;
-            return true;
-        }
+            return field;
     }
 
-    return false;
+    return nullptr;
 }
 
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)

@@ -186,7 +186,7 @@ namespace
             return false;
 
         size_t memberIndex = 0;
-        return SemaHelpers::resolveAggregateMemberIndex(sema, typeInfo, idRef, memberIndex);
+        return typeInfo.tryGetAggregateMemberIndexByName(memberIndex, sema.ctx(), idRef);
     }
 
     Result addCandidateFromType(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, TypeRef typeRef, const SymbolVariable* symVar, AstNodeRef baseExprRef, uint32_t precedence)

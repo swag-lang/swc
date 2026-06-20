@@ -743,6 +743,8 @@ impl Application
             return null
         let surface = assume targetSurface
         surface.screenToSurface(&mousePos)
+        if !surface.isMaximized and surface.wnd.hitTestBorders(mousePos) != SizingBorder.Zero do
+            return surface.wnd
         let targetWnd = surface.wnd.getWndAt(mousePos.x, mousePos.y)
         return targetWnd
     }

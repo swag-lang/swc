@@ -49,6 +49,7 @@ public struct MenuCtrl
     paintByFrame:         bool
     popupBarItemIdx:      u32 = Swag.U32.Max
     popupBarItemSurfaceRect: Math.Rectangle
+    ignoreNextRelease:    bool
 }
 
 public impl IWnd for MenuCtrl
@@ -85,10 +86,7 @@ public impl IWnd for MenuCtrl
             if i.separator do
                 continue
 
-            labelPos.x      = i.pos
-            labelPos.y      = clientRect.y
-            labelPos.width  = i.size
-            labelPos.height = clientRect.height
+            labelPos = .getBarLabelRect(i)
 
             var format: RichStringFormat
             colorText      = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
@@ -308,6 +306,12 @@ public impl IWnd for MenuCtrl
         }
 
         evt.accepted = true
+        if .ignoreNextRelease and evt.kind == .MouseReleased and evt.button == .Left
+        {
+            .ignoreNextRelease = false
+            return
+        }
+
         if .hotIdx == Swag.U32.Max and .ownerMenu
         {
             .ownerMenu.onMouseEvent(evt)
@@ -322,6 +326,22 @@ public impl IWnd for MenuCtrl
 
         // If this is a bar, then track sub popup if one is currently open
         if .bar and .subVisible and .hotIdx != Swag.U32.Max
+        {
+            .hideSubVisible()
+            .deleteTimer()
+            .showHotPopup()
+        }
+
+        elif .bar and evt.kind == .MousePressed and evt.button == .Left and .hotIdx != Swag.U32.Max
+        {
+            .hideSubVisible()
+            .deleteTimer()
+            .showHotPopup()
+            if .subVisible do
+                .subVisible.ignoreNextRelease = true
+        }
+
+        elif .bar and evt.kind == .MouseReleased and evt.button == .Left and .hotIdx != Swag.U32.Max and !.subVisible
         {
             .hideSubVisible()
             .deleteTimer()
@@ -383,6 +403,32 @@ impl MenuCtrl
         let surfaceRect = .getSurfaceRect()
         result.x -= surfaceRect.x
         result.y -= surfaceRect.y
+        return result
+    }
+
+    fileprivate mtd getBarItemHeight()->f32
+    {
+        return Math.min(.getClientRect().height, .getThemeMetrics().menuBar_Height)
+    }
+
+    fileprivate mtd getBarLabelRect(item: *PopupMenuItem)->Math.Rectangle
+    {
+        let clientRect = .getClientRect()
+        let height     = .getBarItemHeight()
+        return {
+            item.pos,
+            clientRect.y + (clientRect.height - height) * 0.5,
+            item.size,
+            height
+        }
+    }
+
+    fileprivate mtd getBarItemRect(item: *PopupMenuItem)->Math.Rectangle
+    {
+        let metrics = .getThemeMetrics()
+        var result  = .getBarLabelRect(item)
+        result.x -= metrics.menuBar_SpaceBetween * 0.5
+        result.width += metrics.menuBar_SpaceBetween
         return result
     }
 
@@ -478,6 +524,7 @@ impl MenuCtrl
     {
         while .subVisible
         {
+            .subVisible.ignoreNextRelease = false
             .subVisible.hide()
             .subVisible = .subVisible.subVisible
         }
@@ -543,15 +590,13 @@ impl MenuCtrl
         let hotItem = .items[.hotIdx]
         let metrics = .getThemeMetrics()
 
-        var anchorRect = .getSurfaceRect()
-        anchorRect.x += hotItem.pos - metrics.menuBar_SpaceBetween * 0.5
-        anchorRect.width = hotItem.size + metrics.menuBar_SpaceBetween
-        anchorRect.height = .getClientRect().height
+        var anchorRect = .localToSurface(.getBarItemRect(hotItem))
 
         var pos = anchorRect
         pos.x -= metrics.menuPopup_ShadowSize
         pos.y -= metrics.menuPopup_ShadowSize
         .subVisible = hotItem.popup
+        .subVisible.ignoreNextRelease = false
         .subVisible.setPopupBarAnchor(.hotIdx, anchorRect)
 
         // Be sure popup menu is in the client area of the top view
@@ -581,6 +626,7 @@ impl MenuCtrl
         pos.y += hotItem.pos
         pos.y -= .padding.y
         .subVisible = hotItem.popup
+        .subVisible.ignoreNextRelease = false
         .subVisible.clearPopupBarAnchor()
 
         // Be sure popup menu is in the client area of the top view
@@ -616,9 +662,6 @@ impl MenuCtrl
     mtd hitTestBar(surfacePos: Math.Point)->u32
     {
         let pos        = .surfaceToLocal(surfacePos)
-        let metrics    = .getThemeMetrics()
-        let clientRect = .getClientRect()
-        let sl         = metrics.menuBar_SpaceBetween
         foreach i, idx in .items
         {
             if i.hidden do
@@ -626,8 +669,7 @@ impl MenuCtrl
             if i.separator do
                 continue
 
-            let rect = Math.Rectangle{i.pos - sl * 0.5, clientRect.y, i.size + sl, clientRect.height}
-            if rect.contains(pos) do
+            if .getBarItemRect(i).contains(pos) do
                 return cast(u32) idx
         }
 
@@ -765,7 +807,8 @@ public impl MenuCtrl
     #[Swag.Discardable]
     func createPopup(parent: *Wnd, id: WndId = null, owner: *Wnd = null)->*MenuCtrl
     {
-        with let res = Wnd.create'MenuCtrl(parent.getTopView(), null, {}, id)
+        let popupParent = parent == parent.getTopWnd() ? parent : parent.getTopView()
+        with let res = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
             .owner = owner orelse parent
             .setAllPaddings(.getThemeMetrics().menuPopup_Padding)

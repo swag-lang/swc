@@ -82,6 +82,72 @@ const Menu_Quit = "Menu.Quit"
     host.shutdown()
 }
 
+// Opening a menu-bar popup on press must not be cancelled by the release
+// captured by the newly shown popup.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Open", Menu_Open)
+    bar.addPopup("File", sub)
+
+    bar.computeLayoutBar()
+    let itemX = bar.items[0].pos + bar.items[0].size * 0.5
+    let itemY = bar.position.height * 0.5
+
+    var evt = MouseEvent{kind: .MousePressed}
+    evt.button     = .Left
+    evt.surfacePos = {itemX, itemY}
+    bar.sendEvent(&evt)
+
+    @assert(bar.subVisible == sub)
+    @assert(sub.ignoreNextRelease)
+
+    evt.kind       = .MouseReleased
+    evt.surfacePos = {0, 0}
+    sub.sendEvent(&evt)
+
+    @assert(bar.subVisible == sub)
+    @assert(!sub.ignoreNextRelease)
+
+    host.shutdown()
+}
+
+// A taller menu bar centers its visual/hit item band and uses that band as popup anchor.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let metrics = host.root.getThemeMetrics()
+    let barHeight = metrics.menuBar_Height + 12
+    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, barHeight})
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Open", Menu_Open)
+    bar.addPopup("File", sub)
+
+    bar.computeLayoutBar()
+    let expectedItemY = (barHeight - metrics.menuBar_Height) * 0.5
+
+    let itemX = bar.items[0].pos + bar.items[0].size * 0.5
+    @assert(bar.hitTestBar({itemX, 1}) == Swag.U32.Max)
+    @assert(bar.hitTestBar({itemX, expectedItemY + 1}) == 0)
+
+    var evt = MouseEvent{kind: .MouseReleased}
+    evt.button     = .Left
+    evt.surfacePos = {itemX, expectedItemY + 1}
+    bar.sendEvent(&evt)
+
+    @assert(sub.popupBarItemSurfaceRect.y == expectedItemY)
+    @assert(sub.popupBarItemSurfaceRect.height == metrics.menuBar_Height)
+    @assert(sub.position.y == expectedItemY - metrics.menuPopup_ShadowSize)
+
+    host.shutdown()
+}
+
 // A menu-bar popup carries the opened bar item inside its own themed area.
 #test
 {

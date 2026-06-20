@@ -454,6 +454,7 @@ impl MainWnd
         with let topMenu = MenuCtrl.createBar(me.parent, owner: me)
         {
             .bringToFront()
+            .position.height = Math.max(.position.height, me.parent.padding.y)
             .dockStyle       = .Top
             .margin.y        = -me.parent.padding.y
             .backgroundStyle = .Transparent

@@ -29,6 +29,7 @@ struct ThemeColors
     wnd_CaptionBkNotActived:              Color
     wnd_CaptionText:                      Color
     wnd_CaptionNotActivatedText:          Color
+    wnd_Border:                           Color
     wnd_BtnCloseBk:                       Color
     wnd_BtnCloseHotBk:                    Color
     wnd_BtnCloseHotIcon:                  Color
@@ -410,11 +411,12 @@ impl ThemeColors
         .wnd_CaptionBkNotActived     = Gray4
         .wnd_CaptionText             = White
         .wnd_CaptionNotActivatedText = White
+        .wnd_Border                  = 0x40FFFFFF
         .wnd_BtnCloseBk              = 0xFFD61425
         .wnd_BtnCloseHotBk           = 0xFFE62435
         .wnd_BtnCloseHotIcon         = White
         .wnd_BtnClosePressedIcon     = White
-        .wnd_Shadow                  = 0x8C000000
+        .wnd_Shadow                  = 0x70000000
 
         .view_Bk = 0xFF282828
 
@@ -793,11 +795,12 @@ impl ThemeColors
         .wnd_CaptionBkNotActived     = Gray8
         .wnd_CaptionText             = Gray1
         .wnd_CaptionNotActivatedText = Gray2
+        .wnd_Border                  = 0x26000000
         .wnd_BtnCloseBk              = 0xFFD61425
         .wnd_BtnCloseHotBk           = 0xFFE62435
         .wnd_BtnCloseHotIcon         = White
         .wnd_BtnClosePressedIcon     = White
-        .wnd_Shadow                  = 0x33000000
+        .wnd_Shadow                  = 0x44000000
 
         .view_Bk = White
 

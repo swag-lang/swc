@@ -76,7 +76,7 @@ impl Surface
         else do
             .wnd.padding.y = 0
 
-        if .flags.has(.Border)
+        if .flags.has(.Border) and .app.theme.metrics.surfaceWnd_ShadowSize > 0
         {
             let size = .app.theme.metrics.wnd_BorderSize
             .wnd.padding.x = size
@@ -243,18 +243,16 @@ impl Surface
 
         // Draw shadow around surface
         var myRect = Math.Rectangle{0, 0, .position.width, .position.height}
-        if !.flags.has(.NoShadow)
-        {
-            let subRect = &.app.theme.rects.surfaceWnd_Shadow
-            .painter.pushClippingRect(clipRect)
-            .painter.setColorMaskFull()
-            .app.theme.drawSubRect(&.painter, myRect, subRect, .app.theme.colors.wnd_Shadow, false)
-        }
+        .painter.pushClippingRect(clipRect)
+        .painter.setColorMaskFull()
+        .paintShadow()
 
         // Hierarchy paint
         .painter.pushClippingRect(.wnd.getSurfaceRect())
         .painter.setColorMaskColor()
         .wnd.paint(&cxt)
+        .painter.resetTransform()
+        .painter.popClippingRect()
 
         if .app.options.showClipRect
         {
@@ -263,8 +261,8 @@ impl Surface
             .painter.fillRect(clipRect, Color.fromArgb(dbgColor))
         }
 
-        .painter.setColorMaskAlpha()
-        .painter.clear(Argb.Black)
+        .paintShadowOutsideBody()
+        .paintAlphaMask()
         .painter.end()
 
         // Paint to surface render target
@@ -315,6 +313,82 @@ impl Surface
 
         let sdw = .flags.has(.NoShadow) ? 0 : .app.theme.metrics.surfaceWnd_ShadowSize
         .wnd.setPosition({sdw, sdw, width - 2 * sdw, height - 2 * sdw})
+    }
+
+    mtd getCornerRadius()->f32
+    {
+        if .isMaximized or .flags.has(.NoShadow) do
+            return 0
+        return .app.theme.metrics.surfaceWnd_CornerRadius
+    }
+
+    fileprivate mtd paintShadow()
+    {
+        if .flags.has(.NoShadow) do
+            return
+
+        let metrics = &.app.theme.metrics
+        let layers  = metrics.surfaceWnd_ShadowLayers
+        if layers == 0 or metrics.surfaceWnd_ShadowSpread <= 0 or .app.theme.colors.wnd_Shadow.a == 0 do
+            return
+
+        var bodyRect = .wnd.getSurfaceRect()
+        bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
+
+        let baseAlpha = cast(f32) .app.theme.colors.wnd_Shadow.a
+        for i in layers
+        {
+            let t          = cast(f32) (layers - i) / cast(f32) layers
+            let alphaScale = (1.0 - t) * (1.0 - t)
+            let alpha      = cast(u8) Math.clamp(baseAlpha * alphaScale, 0.0, 255.0)
+            if alpha == 0 do
+                continue
+
+            let spread = metrics.surfaceWnd_ShadowSpread * t
+            var rect = bodyRect
+            rect.inflate(spread)
+            let radius = .getCornerRadius() + spread
+            .painter.fillRoundRect(rect, radius, radius, .app.theme.colors.wnd_Shadow.withAlpha(alpha))
+        }
+    }
+
+    fileprivate mtd paintShadowOutsideBody()
+    {
+        if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
+            return
+
+        let radius = .getCornerRadius()
+        if radius <= 0 do
+            return
+
+        let surfaceRect = Math.Rectangle{0, 0, .position.width, .position.height}
+
+        .painter.startClippingRegion()
+        .painter.fillRect(surfaceRect, Argb.White)
+        .painter.setClippingRegionMode(.Clear)
+        .painter.fillRoundRect(.wnd.getSurfaceRect(), radius, radius, Argb.White)
+        .painter.endClippingRegion()
+        .paintShadow()
+        .painter.resetClippingRegion()
+    }
+
+    fileprivate mtd paintAlphaMask()
+    {
+        let rect   = .wnd.getSurfaceRect()
+
+        .painter.resetTransform()
+        .painter.setColorMaskAlpha()
+        if .app.theme.metrics.surfaceWnd_ShadowSize <= 0
+        {
+            .painter.fillRect(rect, Argb.Black)
+            return
+        }
+
+        let radius = .getCornerRadius()
+        if radius > 0 do
+            .painter.fillRoundRect(rect, radius, radius, Argb.Black)
+        else do
+            .painter.fillRect(rect, Argb.Black)
     }
 
     mtd setView(view: *Wnd)

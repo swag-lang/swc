@@ -23,50 +23,6 @@ public struct SurfaceWnd
 
 impl IWnd for SurfaceWnd
 {
-    mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
-    {
-        let sdw = .getThemeMetrics().surfaceWnd_ShadowSize
-
-        var newSizingBorder = SizingBorder.Zero
-        if .surface.flags.has(.Sizeable)
-        {
-            const SizeBorder = 10
-            if surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < sdw + SizeBorder and
-               surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < .surface.position.height - sdw + SizeBorder
-            {
-                newSizingBorder |= .Left
-            }
-
-            if surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < sdw + SizeBorder and
-               surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < .surface.position.width - sdw + SizeBorder
-            {
-                newSizingBorder |= .Top
-            }
-
-            if surfacePos.x > .surface.position.width - sdw - SizeBorder and
-               surfacePos.x < .surface.position.width - sdw + SizeBorder and
-               surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < .surface.position.height - sdw + SizeBorder
-            {
-                newSizingBorder |= .Right
-            }
-
-            if surfacePos.y > .surface.position.height - sdw - SizeBorder and
-               surfacePos.y < .surface.position.height - sdw + SizeBorder and
-               surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < .surface.position.width - sdw + SizeBorder
-            {
-                newSizingBorder |= .Bottom
-            }
-        }
-
-        return newSizingBorder
-    }
-
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         switch evt.kind
@@ -76,6 +32,12 @@ impl IWnd for SurfaceWnd
                 break
             .surface.bringToTop()
             if .surface.isMaximized do
+                break
+            if .surface.flags.has(.Sizeable) do
+                .sizingBorder = .hitTestBorders(evt.surfacePos)
+            else do
+                .sizingBorder = .Zero
+            if .sizingBorder == .Zero and !.hitTestCaption(evt.surfacePos) do
                 break
             .captureMouse()
             .movingSurface = true
@@ -89,6 +51,7 @@ impl IWnd for SurfaceWnd
 
             .releaseMouse()
             .movingSurface = false
+            .sizingBorder  = .Zero
             fallthrough
 
         case MouseMove:
@@ -185,12 +148,13 @@ impl IWnd for SurfaceWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         let clientRect = .getClientRect()
+        let metrics    = .getThemeMetrics()
 
         var pos = clientRect
-        pos.width  = .surface.wnd.padding.y * 1.5
-        pos.x      = clientRect.right() - pos.width
-        pos.height = .surface.wnd.padding.y
-        pos.y      = 0
+        pos.height = Math.max(0, .surface.wnd.padding.y - 2 * metrics.wnd_CaptionButtonMargin)
+        pos.width  = Math.max(metrics.wnd_CaptionButtonMinWidth, pos.height * metrics.wnd_CaptionButtonAspect)
+        pos.x      = clientRect.right() - pos.width - metrics.wnd_CaptionButtonMargin
+        pos.y      = metrics.wnd_CaptionButtonMargin
 
         if .closeBtn
         {
@@ -220,31 +184,35 @@ impl IWnd for SurfaceWnd
         let bc     = evt.bc
         let theme  = .getTheme()
         let colors = .getThemeColors()
-        let rects  = .getThemeRects()
+        let metrics = .getThemeMetrics()
 
         let clientRect = .getClientRect()
+        let radius     = .surface.getCornerRadius()
 
-        if .surface.flags.has(.Border)
-        {
-            let subRect = &rects.wnd_Border
-            theme.drawSubRect(bc.painter, clientRect, subRect, colors.wnd_CaptionBk, center: false)
-        }
+        if radius > 0 and metrics.surfaceWnd_ShadowSize > 0 do
+            bc.painter.fillRoundRect(clientRect, radius, radius, colors.wnd_Bk)
+        else do
+            bc.painter.fillRect(clientRect, colors.wnd_Bk)
 
         var posCaption = clientRect
-        if .surface.flags.has(.BigCaption)
-        {
+        if .surface.flags.has(.BigCaption) do
             posCaption.height = .surface.wnd.padding.y
-            let subRect = &rects.wnd_CaptionBk
-            let colorBk = .surface.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
-            theme.drawSubRect(bc.painter, posCaption, subRect, colorBk)
-        }
 
-        if .surface.flags.has(.SmallCaption)
-        {
+        if .surface.flags.has(.SmallCaption) do
             posCaption.height = .surface.wnd.padding.y
-            let subRect = &rects.wnd_CaptionSmall
-            let colorBk = .surface.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
-            theme.drawSubRect(bc.painter, posCaption, subRect, colorBk)
+
+        let captionColor = .surface.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
+        if .surface.flags.has(.BigCaption | .SmallCaption) do
+            bc.painter.fillRect(posCaption, captionColor)
+
+        if .surface.flags.has(.Border) and metrics.surfaceWnd_ShadowSize > 0
+        {
+            var pen = Pen.createSolid(colors.wnd_Border, metrics.wnd_BorderSize)
+            pen.borderPos = .Inside
+            if radius > 0 do
+                bc.painter.drawRoundRect(clientRect, radius, radius, pen)
+            else do
+                bc.painter.drawRect(clientRect, pen)
         }
 
         if .surface.flags.has(.BigCaption | .SmallCaption)
@@ -279,6 +247,93 @@ impl IWnd for SurfaceWnd
 
 impl SurfaceWnd
 {
+    mtd hitTestCaptionButton(surfacePos: Math.Point)->bool
+    {
+        let pos = .surfaceToLocal(surfacePos)
+        if .closeBtn and .closeBtn.position.contains(pos.x, pos.y) do
+            return true
+        if .maximizeBtn and .maximizeBtn.position.contains(pos.x, pos.y) do
+            return true
+        if .minimizeBtn and .minimizeBtn.position.contains(pos.x, pos.y) do
+            return true
+        return false
+    }
+
+    mtd hitTestCaption(surfacePos: Math.Point)->bool
+    {
+        if !.surface.flags.has(.BigCaption | .SmallCaption) do
+            return false
+        if .hitTestCaptionButton(surfacePos) do
+            return false
+
+        let pos = .surfaceToLocal(surfacePos)
+        if pos.x < 0 or pos.x >= .position.width do
+            return false
+        if pos.y < 0 or pos.y >= .surface.wnd.padding.y do
+            return false
+
+        let target = .getWndAt(pos.x, pos.y, true)
+        if target and target != me
+        {
+            if target.type == MenuCtrl
+            {
+                let menu = cast(*MenuCtrl) target
+                if menu.bar and menu.hitTestBar(surfacePos) == Swag.U32.Max do
+                    return true
+            }
+
+            return false
+        }
+
+        return true
+    }
+
+    mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
+    {
+        let metrics = .getThemeMetrics()
+        let sdw     = metrics.surfaceWnd_ShadowSize
+
+        var newSizingBorder = SizingBorder.Zero
+        if .surface.flags.has(.Sizeable)
+        {
+            let SizeBorder    = metrics.wnd_SizingBorderSize
+            let TopSizeBorder = Math.min(SizeBorder, metrics.wnd_TopSizingBorderSize)
+            if surfacePos.x > sdw - SizeBorder and
+               surfacePos.x < sdw + SizeBorder and
+               surfacePos.y > sdw - SizeBorder and
+               surfacePos.y < .surface.position.height - sdw + SizeBorder
+            {
+                newSizingBorder |= .Left
+            }
+
+            if surfacePos.y > sdw - TopSizeBorder and
+               surfacePos.y < sdw + TopSizeBorder and
+               surfacePos.x > sdw - SizeBorder and
+               surfacePos.x < .surface.position.width - sdw + SizeBorder
+            {
+                newSizingBorder |= .Top
+            }
+
+            if surfacePos.x > .surface.position.width - sdw - SizeBorder and
+               surfacePos.x < .surface.position.width - sdw + SizeBorder and
+               surfacePos.y > sdw - SizeBorder and
+               surfacePos.y < .surface.position.height - sdw + SizeBorder
+            {
+                newSizingBorder |= .Right
+            }
+
+            if surfacePos.y > .surface.position.height - sdw - SizeBorder and
+               surfacePos.y < .surface.position.height - sdw + SizeBorder and
+               surfacePos.x > sdw - SizeBorder and
+               surfacePos.x < .surface.position.width - sdw + SizeBorder
+            {
+                newSizingBorder |= .Bottom
+            }
+        }
+
+        return newSizingBorder
+    }
+
     func onMinimize(btn: *Button)
     {
         btn.surface.requestMinimize()
@@ -309,6 +364,7 @@ impl SurfaceWnd
             {
                 with me.minimizeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndMinimize), {0, 0, 0, 0})
                 {
+                    .form          = .RoundSquare
                     .focusStrategy = .None
                     .sigPressed += &onMinimize
                 }
@@ -326,6 +382,7 @@ impl SurfaceWnd
             {
                 with me.maximizeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndMaximize), {0, 0, 0, 0})
                 {
+                    .form          = .RoundSquare
                     .focusStrategy = .None
                     .sigPressed += &onMaximize
                 }
@@ -343,6 +400,7 @@ impl SurfaceWnd
             {
                 with me.closeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndClose), {0, 0, 0, 0})
                 {
+                    .form          = .RoundSquare
                     .focusStrategy = .None
                     .sigPressed += &onClose
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseBk))

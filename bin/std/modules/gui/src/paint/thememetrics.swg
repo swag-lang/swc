@@ -5,12 +5,22 @@ struct ThemeMetrics
 {
     defaultFontSize:                       u32 = 14
     defaultFixedFontSize:                  u32 = 16
-    surfaceWnd_ShadowSize:                 f32 = 20
+    surfaceWnd_ShadowSize:                 f32 = 0
+    surfaceWnd_CornerRadius:               f32 = 18
+    surfaceWnd_ShadowSpread:               f32 = 16
+    surfaceWnd_ShadowOffsetX:              f32 = 0
+    surfaceWnd_ShadowOffsetY:              f32 = 3
+    surfaceWnd_ShadowLayers:               u32 = 8
 
-    wnd_BorderSize:                        f32 = 3
-    wnd_BigCaptionCY:                      f32 = 30
-    wnd_SmallCaptionCY:                    f32 = 24
-    wnd_CaptionMarginTitle:                f32 = 5
+    wnd_BorderSize:                        f32 = 1
+    wnd_BigCaptionCY:                      f32 = 42
+    wnd_SmallCaptionCY:                    f32 = 32
+    wnd_CaptionMarginTitle:                f32 = 14
+    wnd_CaptionButtonMargin:               f32 = 5
+    wnd_CaptionButtonAspect:               f32 = 1.35
+    wnd_CaptionButtonMinWidth:             f32 = 44
+    wnd_SizingBorderSize:                  f32 = 8
+    wnd_TopSizingBorderSize:               f32 = 7
 
     tabBar_FlatHeight:                     f32 = 40
     tabBar_RoundHeight:                    f32 = 28

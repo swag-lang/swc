@@ -3,19 +3,27 @@
 #foreignlib("dwmapi")
 using Core, Win32
 
-#[Swag.NoDoc]
-struct MARGINS
-{
-    cxLeftWidth:        s32
-    cxRightWidth:       s32
-    cyTopHeight:        s32
-    cyBottomHeight:     s32
-}
-
 #[Swag.Foreign("dwmapi")]
 {
-    func DwmExtendFrameIntoClientArea(hWnd: HWND, pMarInset: *MARGINS);
+    func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32;
 }
+
+const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32
+const DWMWA_BORDER_COLOR             = 34'u32
+const DWMWA_COLOR_NONE               = 0xFFFFFFFE'u32
+
+const DWMWCP_DONOTROUND = 1'u32
+const DWMWCP_ROUND      = 2'u32
+const HTCLIENT          = 1
+const HTCAPTION         = 2
+const HTLEFT            = 10
+const HTRIGHT           = 11
+const HTTOP             = 12
+const HTTOPLEFT         = 13
+const HTTOPRIGHT        = 14
+const HTBOTTOM          = 15
+const HTBOTTOMLEFT      = 16
+const HTBOTTOMRIGHT     = 17
 
 #[Swag.NoCopy]
 struct NativeSurface
@@ -118,6 +126,41 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
             return 0
         case WM_NCCALCSIZE:
             return 0
+        case WM_NCHITTEST:
+            var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
+            surface.screenToSurface(&pt)
+
+            if surface.wnd.hitTestCaptionButton(pt) do
+                return HTCLIENT
+
+            if !surface.isMaximized
+            {
+                let sizingBorder = surface.wnd.hitTestBorders(pt)
+                switch sizingBorder
+                {
+                case Left | Top:
+                    return HTTOPLEFT
+                case Right | Top:
+                    return HTTOPRIGHT
+                case Left | Bottom:
+                    return HTBOTTOMLEFT
+                case Right | Bottom:
+                    return HTBOTTOMRIGHT
+                case Left:
+                    return HTLEFT
+                case Right:
+                    return HTRIGHT
+                case Top:
+                    return HTTOP
+                case Bottom:
+                    return HTBOTTOM
+                }
+            }
+
+            if surface.wnd.hitTestCaption(pt) do
+                return HTCAPTION
+
+            return HTCLIENT
 
         case WM_PAINT:
             var ps: PAINTSTRUCT
@@ -233,13 +276,7 @@ fileprivate impl Surface
         // Create window
         result.hWnd = cast(const *void) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
 
-        // Extend frame inside client area. This will also activate composition.
-        if !flags.has(.NoShadow)
-        {
-            let vm: s32 = cast(s32) app.theme.metrics.surfaceWnd_ShadowSize
-            var m:  MARGINS = {vm, vm, vm, vm}
-            DwmExtendFrameIntoClientArea(result.hWnd, &m)
-        }
+        result.applyNativeDwmStyle()
 
         result.rc = try app.renderer.native.createContext(result.hWnd, width, height, mainSurface ? mainSurface.rc.hRC : null)
     }
@@ -263,6 +300,15 @@ fileprivate impl Surface
 
 impl Surface
 {
+    fileprivate mtd applyNativeDwmStyle()
+    {
+        var cornerPreference = .getCornerRadius() > 0 ? DWMWCP_ROUND : DWMWCP_DONOTROUND
+        discard DwmSetWindowAttribute(.hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, cast(LPCVOID) &cornerPreference, #sizeof(cornerPreference))
+
+        var borderColor = DWMWA_COLOR_NONE
+        discard DwmSetWindowAttribute(.hWnd, DWMWA_BORDER_COLOR, cast(LPCVOID) &borderColor, #sizeof(borderColor))
+    }
+
     // Show 'icon' for this surface in the notification area (system tray), with an
     // optional tooltip. Mouse interactions are delivered to the surface as WM_USER
     // SysUserEvents whose 'param1' holds the raw mouse message (e.g. WM_RBUTTONDOWN
@@ -328,6 +374,7 @@ impl Surface
         else do
             exStyle &= ~WS_EX_TOPMOST
         SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast(LONG_PTR) exStyle)
+        .applyNativeDwmStyle()
     }
 
     // Send a custom message to the surface application with name 'surfaceID'
@@ -424,6 +471,7 @@ impl Surface
         .paint()
 
         ShowWindow(.hWnd, SW_SHOW)
+        .applyNativeDwmStyle()
 
         let curFocus = .wnd.view.getFocus()
         if !curFocus or !.wnd.isParentOf(curFocus) do
@@ -453,6 +501,7 @@ impl Surface
         .isMaximized          = true
         .isMinimized          = false
         .positionNotMaximized = .position
+        .applyNativeDwmStyle()
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
 
@@ -463,6 +512,7 @@ impl Surface
             return
         .isMaximized = false
         .isMinimized = false
+        .applyNativeDwmStyle()
         ShowWindow(.hWnd, SW_RESTORE)
     }
 

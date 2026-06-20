@@ -24,7 +24,7 @@ impl GuiHeadlessHost
 
         let style = Memory.new'ThemeStyleRef()
         style.theme = .theme
-        style.count = 2
+        style.count = 3
 
         .app.theme = .theme
         .app.style.refr = style
@@ -45,9 +45,14 @@ impl GuiHeadlessHost
         // Wire the surface root window so getTopView()/getTopWnd() resolve to the
         // root view. This enables popup-based widgets (combobox, menus, tabs)
         // which anchor their popups to the top view.
-        .surfaceWnd.surface = &.surface
-        .surfaceWnd.view    = root
-        .surface.wnd        = &.surfaceWnd
+        .surfaceWnd.itf           = cast(IWnd) &.surfaceWnd
+        .surfaceWnd.type          = SurfaceWnd
+        .surfaceWnd.surface       = &.surface
+        .surfaceWnd.style.refr    = style
+        .surfaceWnd.position      = {0, 0, width, height}
+        .surfaceWnd.focusStrategy = .None
+        .surfaceWnd.view          = root
+        .surface.wnd              = &.surfaceWnd
     }
 
     mtd shutdown()

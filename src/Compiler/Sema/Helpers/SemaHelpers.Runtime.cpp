@@ -461,7 +461,7 @@ void SemaHelpers::ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym)
     sema.compiler().notifyAlive();
 }
 
-void SemaHelpers::ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol*> symbols)
+void SemaHelpers::ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol* const> symbols)
 {
     if (!sema.curScope().isLocal())
         return;

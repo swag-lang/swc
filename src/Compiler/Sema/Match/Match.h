@@ -39,8 +39,8 @@ namespace Match
     void       resolveCallArgumentValues(Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args);
 
     int    compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const FunctionCandidateProbe& b);
-    Result probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch = false, ResolveCallMode mode = ResolveCallMode::Normal);
-    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid(), SmallVector<ResolvedCallArgument>* outResolvedArgs = nullptr, ResolveCallMode mode = ResolveCallMode::Normal);
+    Result probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch = false, ResolveCallMode mode = ResolveCallMode::Normal);
+    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid(), SmallVector<ResolvedCallArgument>* outResolvedArgs = nullptr, ResolveCallMode mode = ResolveCallMode::Normal);
 }
 
 SWC_END_NAMESPACE();

@@ -533,7 +533,7 @@ namespace
         return params[index];
     }
 
-    void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol*> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
+    void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol* const> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
     {
         outMutableCandidates.clear();
         outConstCandidates.clear();
@@ -555,7 +555,7 @@ namespace
         }
     }
 
-    SymbolFunction* selectReceiverOnlyCandidate(Sema& sema, std::span<Symbol*> candidates, bool receiverIsConst)
+    SymbolFunction* selectReceiverOnlyCandidate(Sema& sema, std::span<Symbol* const> candidates, bool receiverIsConst)
     {
         SmallVector<Symbol*> mutableCandidates;
         SmallVector<Symbol*> constCandidates;
@@ -657,7 +657,7 @@ namespace
         return false;
     }
 
-    Result matchSyntheticCall(Sema& sema, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch, SmallVector<ResolvedCallArgument>& outResolvedArgs, bool& outMatched)
+    Result matchSyntheticCall(Sema& sema, std::span<Symbol* const> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch, SmallVector<ResolvedCallArgument>& outResolvedArgs, bool& outMatched)
     {
         outResolvedArgs.clear();
         outMatched = false;
@@ -723,7 +723,7 @@ namespace
         return Result::Continue;
     }
 
-    Result probeIndexAssignSpecOp(Sema& sema, const AstAssignStmt& node, AstNodeRef indexedExprRef, std::span<const AstNodeRef> indexArgRefs, std::span<Symbol*> candidates, SymbolFunction*& outCalledFn, bool& outMatched)
+    Result probeIndexAssignSpecOp(Sema& sema, const AstAssignStmt& node, AstNodeRef indexedExprRef, std::span<const AstNodeRef> indexArgRefs, std::span<Symbol* const> candidates, SymbolFunction*& outCalledFn, bool& outMatched)
     {
         outCalledFn = nullptr;
         outMatched  = false;
@@ -795,7 +795,7 @@ namespace
         return false;
     }
 
-    Result resolveSyntheticCall(Sema& sema, const AstNode& node, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch = false, bool* outMatched = nullptr, bool allowConstEval = true, bool allowInline = true, SymbolFunction** outCalledFn = nullptr)
+    Result resolveSyntheticCall(Sema& sema, const AstNode& node, std::span<Symbol* const> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch = false, bool* outMatched = nullptr, bool allowConstEval = true, bool allowInline = true, SymbolFunction** outCalledFn = nullptr)
     {
         SmallVector<ResolvedCallArgument> resolvedArgs;
         bool                              matched = false;

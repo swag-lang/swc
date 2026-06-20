@@ -766,7 +766,7 @@ namespace
         return wrappedRef;
     }
 
-    AstNodeRef resolveTrailingCodeBlockArgument(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<const AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef& outSiblingRef)
+    AstNodeRef resolveTrailingCodeBlockArgument(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<const AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef& outSiblingRef)
     {
         outSiblingRef = findTrailingCodeBlockSibling(sema, sema.curNodeRef());
         if (outSiblingRef.isInvalid())

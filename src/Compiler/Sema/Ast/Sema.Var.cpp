@@ -106,7 +106,7 @@ namespace
         ConstantRef defaultValueCstRef = ConstantRef::invalid();
     };
 
-    void markRetValVariables(std::span<Symbol*> symbols)
+    void markRetValVariables(std::span<Symbol* const> symbols)
     {
         for (Symbol* s : symbols)
         {
@@ -214,7 +214,7 @@ namespace
         return Result::Continue;
     }
 
-    void completeConst(Sema& sema, const std::span<Symbol*>& symbols, ConstantRef cstRef, TypeRef typeRef)
+    void completeConst(Sema& sema, std::span<Symbol* const> symbols, ConstantRef cstRef, TypeRef typeRef)
     {
         for (Symbol* s : symbols)
         {
@@ -227,7 +227,7 @@ namespace
         }
     }
 
-    Result completeVar(Sema& sema, const std::span<Symbol*>& symbols, TypeRef typeRef)
+    Result completeVar(Sema& sema, std::span<Symbol* const> symbols, TypeRef typeRef)
     {
         for (Symbol* s : symbols)
         {
@@ -420,7 +420,7 @@ namespace
         return elemTypeRef;
     }
 
-    void storeFieldDefaultConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)
+    void storeFieldDefaultConstants(std::span<Symbol* const> symbols, ConstantRef cstRef)
     {
         if (cstRef.isInvalid())
             return;
@@ -438,7 +438,7 @@ namespace
         }
     }
 
-    void storeParameterDefaultConstants(const std::span<Symbol*>& symbols, bool isParameter, ConstantRef cstRef)
+    void storeParameterDefaultConstants(std::span<Symbol* const> symbols, bool isParameter, ConstantRef cstRef)
     {
         if (!isParameter || cstRef.isInvalid())
             return;
@@ -453,7 +453,7 @@ namespace
         }
     }
 
-    void storeVariableDefaultConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)
+    void storeVariableDefaultConstants(std::span<Symbol* const> symbols, ConstantRef cstRef)
     {
         if (cstRef.isInvalid())
             return;
@@ -468,7 +468,7 @@ namespace
         }
     }
 
-    void storeLetConstants(const std::span<Symbol*>& symbols, bool isLet, ConstantRef cstRef)
+    void storeLetConstants(std::span<Symbol* const> symbols, bool isLet, ConstantRef cstRef)
     {
         if (!isLet || cstRef.isInvalid())
             return;
@@ -483,7 +483,7 @@ namespace
         }
     }
 
-    void storeGlobalVariableConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)
+    void storeGlobalVariableConstants(std::span<Symbol* const> symbols, ConstantRef cstRef)
     {
         if (cstRef.isInvalid())
             return;
@@ -500,7 +500,7 @@ namespace
         }
     }
 
-    void storeDestructuringLetConstants(Sema& sema, const std::span<Symbol*>& symbols, const std::span<const SymbolVariable*>& fields, const std::span<const size_t>& fieldIndices, ConstantRef cstRef)
+    void storeDestructuringLetConstants(Sema& sema, std::span<Symbol* const> symbols, const std::span<const SymbolVariable*>& fields, const std::span<const size_t>& fieldIndices, ConstantRef cstRef)
     {
         if (symbols.empty() || symbols.size() != fields.size() || cstRef.isInvalid())
             return;
@@ -575,7 +575,7 @@ namespace
         return Result::Error;
     }
 
-    Result tryResolveVarDeclSetInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols, bool isConst, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, SemaNodeView& nodeInitView, VarDeclSetInitInfo& outInfo)
+    Result tryResolveVarDeclSetInit(Sema& sema, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols, bool isConst, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, SemaNodeView& nodeInitView, VarDeclSetInitInfo& outInfo)
     {
         outInfo = {};
 
@@ -626,7 +626,7 @@ namespace
         return Result::Continue;
     }
 
-    Result reportMissingInitializer(Sema& sema, DiagnosticId id, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
+    Result reportMissingInitializer(Sema& sema, DiagnosticId id, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols)
     {
         SWC_ASSERT(context.owner != nullptr);
         const SourceCodeRef where{context.owner->srcViewRef(), context.tokDiag};
@@ -641,7 +641,7 @@ namespace
         return SemaError::raise(sema, id, where);
     }
 
-    Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols, bool isConst, bool isLet, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
+    Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols, bool isConst, bool isLet, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
     {
         if (context.nodeInitRef.isInvalid() || nodeInitView.cstRef() != sema.cstMgr().cstUndefined())
             return Result::Continue;
@@ -898,7 +898,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
+    Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols)
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
         if (context.nodeInitRef.isValid())
@@ -1155,7 +1155,7 @@ Result AstSingleVarDecl::semaPostNode(Sema& sema) const
     Symbol&                   sym     = *sema.curViewSymbol().sym();
     Symbol*                   one[]   = {&sym};
     const SemaPostVarDeclArgs context = {this, tokNameRef, nodeInitRef, nodeTypeRef, flags()};
-    return semaPostVarDeclCommon(sema, context, std::span<Symbol*>{one});
+    return semaPostVarDeclCommon(sema, context, std::span<Symbol* const>{one});
 }
 
 Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
@@ -1195,7 +1195,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         if (!nodeSymbolsView.hasSymbolList())
             semaPreDecl(sema);
         nodeSymbolsView.recompute(sema, SemaNodeViewPartE::Symbol);
-        const std::span<Symbol*> symbols = nodeSymbolsView.symList();
+        const std::span<Symbol* const> symbols = nodeSymbolsView.symList();
         for (Symbol* sym : symbols)
         {
             sym->registerAttributes(sema);
@@ -1203,7 +1203,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         }
     }
 
-    const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
+    const std::span<Symbol* const> symbols = sema.curViewSymbolList().symList();
     SemaHelpers::ensureCurrentLocalScopeSymbols(sema, symbols);
     for (const Symbol* sym : symbols)
     {
@@ -1249,7 +1249,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const std::span<Symbol*>  symbols = sema.curViewSymbolList().symList();
+    const std::span<Symbol* const> symbols = sema.curViewSymbolList().symList();
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }

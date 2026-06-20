@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -165,50 +166,7 @@ namespace
     }
 
     using SemaHelpers::callableTypeFunction;
-
-    bool hasConcreteFunctionCandidate(std::span<Symbol*> symbols)
-    {
-        for (Symbol* sym : symbols)
-        {
-            if (!sym || !sym->isFunction())
-                continue;
-            const auto& fn = sym->cast<SymbolFunction>();
-            if (!fn.isEmpty())
-                return true;
-        }
-
-        return false;
-    }
-
-    void removeEmptyFunctionDeclarations(std::span<Symbol*> inSymbols, SmallVector<Symbol*>& outSymbols)
-    {
-        outSymbols.clear();
-        outSymbols.reserve(inSymbols.size());
-
-        if (!hasConcreteFunctionCandidate(inSymbols))
-        {
-            for (Symbol* sym : inSymbols)
-            {
-                if (sym)
-                    outSymbols.push_back(sym);
-            }
-            return;
-        }
-
-        for (Symbol* sym : inSymbols)
-        {
-            if (!sym)
-                continue;
-            if (sym->isFunction())
-            {
-                const auto& fn = sym->cast<SymbolFunction>();
-                if (!fn.isForeign() && fn.isEmpty())
-                    continue;
-            }
-
-            outSymbols.push_back(sym);
-        }
-    }
+    using SemaSymbolLookup::removeEmptyFunctionDeclarations;
 
     bool isCallableForMode(const Symbol& sym, Match::ResolveCallMode mode)
     {
@@ -2050,7 +2008,7 @@ namespace
 
     // Evaluate each function symbol to see how well it matches the given arguments.
     // This includes checking the number of parameters, types, and potential UFCS usage.
-    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
+    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
         outAttempts.clear();
         outFunctionSymbols.clear();
@@ -2190,7 +2148,7 @@ namespace
         }
     }
 
-    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
+    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
         SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg, explicitGenericArgNodes, mode));
         gatherViableAttempts(out.attempts, out.viable);
@@ -2247,7 +2205,7 @@ namespace
         SmallVector<Symbol*> fallbackRuntimeSymbols;
         SmallVector<Symbol*> fallbackConcreteSymbols;
         SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
-        removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
+        removeEmptyFunctionDeclarations(fallbackRuntimeSymbols.span(), fallbackConcreteSymbols);
 
         CandidateAttempts fallback;
         SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg, {}, mode));
@@ -2830,7 +2788,7 @@ int Match::compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const
     return 0;
 }
 
-Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch, ResolveCallMode mode)
+Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch, ResolveCallMode mode)
 {
     outProbe = {};
 
@@ -2847,7 +2805,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
     SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols.span(), runtimeSymbols));
-    removeEmptyFunctionDeclarations(runtimeSymbols, concreteSymbols);
+    removeEmptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
@@ -2872,7 +2830,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     return Result::Continue;
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, ResolveCallMode mode)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, ResolveCallMode mode)
 {
     SmallVector<Symbol*> filteredSymbols;
     filteredSymbols.reserve(symbols.size());
@@ -2887,7 +2845,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
     SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols.span(), runtimeSymbols));
-    removeEmptyFunctionDeclarations(runtimeSymbols, concreteSymbols);
+    removeEmptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());

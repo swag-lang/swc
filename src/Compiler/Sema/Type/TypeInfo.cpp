@@ -923,7 +923,7 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
-TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Array, flags};
     std::construct_at(&ti.payloadArray_.dims, dims.begin(), dims.end());
@@ -932,7 +932,7 @@ TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTyp
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<TypeRef>& types)
+TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types)
 {
     SWC_ASSERT(types.size() == names.size());
     TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
@@ -943,7 +943,7 @@ TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& nam
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateArray(const std::span<TypeRef>& types)
+TypeInfo TypeInfo::makeAggregateArray(const std::span<const TypeRef>& types)
 {
     TypeInfo ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
     std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());

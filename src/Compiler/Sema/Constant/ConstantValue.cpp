@@ -613,7 +613,7 @@ ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef t
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<const IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
+ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<const IdentifierRef>& names, const std::span<const ConstantRef>& values, const std::span<const SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(values.size() == names.size());
     SWC_UNUSED(fieldRefs);
@@ -630,7 +630,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
+ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<const ConstantRef>& values, const std::span<const SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(!values.empty());
     SWC_UNUSED(fieldRefs);

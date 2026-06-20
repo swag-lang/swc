@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 
     global.initialize(cmdLine);
     const swc::TaskContext startupCtx(global, cmdLine);
-    swc::TimedActionLog::printCommandHeader(startupCtx);
+    swc::ScopedTimedLog::printCommandHeader(startupCtx);
 
 #if SWC_HAS_UNITTEST
     if (cmdLine.command == swc::CommandKind::Unittest && !cmdLine.dryRun && !cmdLine.showConfig)

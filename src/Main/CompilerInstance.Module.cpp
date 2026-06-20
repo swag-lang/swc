@@ -681,29 +681,29 @@ namespace
         if (workspaceLogState.activeModules)
         {
             if (workspaceLogState.builtModules < workspaceLogState.activeModules)
-                parts.push_back(TimedActionLog::formatStatRatio(ctx, workspaceLogState.builtModules, workspaceLogState.activeModules, "module"));
+                parts.push_back(ScopedTimedLog::formatStatRatio(ctx, workspaceLogState.builtModules, workspaceLogState.activeModules, "module"));
             else
-                parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.activeModules, "module"));
+                parts.push_back(ScopedTimedLog::formatStatCount(ctx, workspaceLogState.activeModules, "module"));
         }
         else if (workspaceLogState.discoveredModules)
         {
-            parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.discoveredModules, "module"));
+            parts.push_back(ScopedTimedLog::formatStatCount(ctx, workspaceLogState.discoveredModules, "module"));
         }
 
-        return TimedActionLog::joinStatItems(ctx, parts);
+        return ScopedTimedLog::joinStatItems(ctx, parts);
     }
 
-    Utf8 formatWorkspaceModuleStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const TimedActionLog::StatsSnapshot& deltaSnapshot)
+    Utf8 formatWorkspaceModuleStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> parts;
         if (deltaSnapshot.numFiles)
-            parts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+            parts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
 
         const Utf8& artifactLabel = compiler.lastArtifactLabel();
         if (!artifactLabel.empty())
-            parts.push_back(TimedActionLog::formatStatName(ctx, artifactLabel));
+            parts.push_back(ScopedTimedLog::formatStatName(ctx, artifactLabel));
 
-        return TimedActionLog::joinStatItems(ctx, parts);
+        return ScopedTimedLog::joinStatItems(ctx, parts);
     }
 
     void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files, const bool canFilter = true)
@@ -1066,10 +1066,10 @@ namespace
     Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
     {
         std::vector<Utf8> parts;
-        parts.push_back(TimedActionLog::formatStatName(ctx, "up-to-date"));
+        parts.push_back(ScopedTimedLog::formatStatName(ctx, "up-to-date"));
         if (!compiler.lastArtifactLabel().empty())
-            parts.push_back(TimedActionLog::formatStatName(ctx, compiler.lastArtifactLabel()));
-        return TimedActionLog::joinStatItems(ctx, parts);
+            parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
+        return ScopedTimedLog::joinStatItems(ctx, parts);
     }
 
     Utf8 bytesToLowerHex(const std::span<const uint8_t> bytes)
@@ -1577,7 +1577,7 @@ namespace
 ExitCode CompilerInstance::runWorkspace()
 {
     TaskContext                 ctx(*this);
-    TimedActionLog::ScopedStage workspaceStage(ctx, TimedActionLog::Stage::Workspace);
+    ScopedTimedLog workspaceStage(ctx, ScopedTimedLog::Stage::Workspace);
     fs::path                    workspacePath = cmdLine().workspacePath;
     fs::path                    modulesPath   = workspaceModulesDirectory(workspacePath);
     Utf8                        because;
@@ -1936,7 +1936,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
             workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
         {
-            TimedActionLog::ScopedStage moduleStage(probeCtx, TimedActionLog::Stage::Module);
+            ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
             if (moduleCmdLine.publish && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
                 if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
@@ -1980,7 +1980,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     std::unique_ptr<NativeBackendBuilder> deferredBuilder;
     {
         TaskContext                 moduleCtx(*moduleCompiler);
-        TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
+        ScopedTimedLog moduleStage(moduleCtx, ScopedTimedLog::Stage::Module);
         moduleCompiler->processCommand();
         if (moduleCompiler->flushGeneratedSourceDumps(moduleCtx) != Result::Continue)
             return Result::Error;

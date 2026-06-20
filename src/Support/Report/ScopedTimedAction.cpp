@@ -12,8 +12,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-using Stage         = TimedActionLog::Stage;
-using StatsSnapshot = TimedActionLog::StatsSnapshot;
+using Stage         = ScopedTimedLog::Stage;
+using StatsSnapshot = ScopedTimedLog::StatsSnapshot;
 
 namespace
 {
@@ -39,8 +39,6 @@ namespace
         {
             case Stage::Workspace: return "Workspace";
             case Stage::Module: return "Module";
-            case Stage::Config: return "Config";
-            case Stage::Modes: return "Mode";
             case Stage::Format: return "Format";
             case Stage::Syntax: return "Syntax";
             case Stage::Sema: return "Sema";
@@ -130,22 +128,22 @@ StatsSnapshot StatsSnapshot::capture()
     return result;
 }
 
-Utf8 TimedActionLog::formatStatCount(const TaskContext& ctx, const size_t value, const std::string_view singular, const char* pluralForm)
+Utf8 ScopedTimedLog::formatStatCount(const TaskContext& ctx, const size_t value, const std::string_view singular, const char* pluralForm)
 {
     return colorize(ctx, LogColor::Gray, Utf8Helper::toNiceBigNumber(value)) + " " + colorize(ctx, LogColor::Gray, plural(value, singular, pluralForm));
 }
 
-Utf8 TimedActionLog::formatStatRatio(const TaskContext& ctx, const size_t value, const size_t total, const std::string_view singular)
+Utf8 ScopedTimedLog::formatStatRatio(const TaskContext& ctx, const size_t value, const size_t total, const std::string_view singular)
 {
     return colorize(ctx, LogColor::Gray, std::format("{}/{}", Utf8Helper::toNiceBigNumber(value), Utf8Helper::toNiceBigNumber(total))) + " " + colorize(ctx, LogColor::Gray, plural(total, singular, nullptr));
 }
 
-Utf8 TimedActionLog::formatStatName(const TaskContext& ctx, const std::string_view name)
+Utf8 ScopedTimedLog::formatStatName(const TaskContext& ctx, const std::string_view name)
 {
     return colorize(ctx, LogColor::Gray, name);
 }
 
-Utf8 TimedActionLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items)
+Utf8 ScopedTimedLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items)
 {
     const Utf8 bullet = colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList));
     Utf8       result;
@@ -162,7 +160,7 @@ Utf8 TimedActionLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf
     return result;
 }
 
-void TimedActionLog::printCommandHeader(const TaskContext& ctx)
+void ScopedTimedLog::printCommandHeader(const TaskContext& ctx)
 {
     if (ctx.global().logger().stageOutputMuted())
         return;
@@ -177,7 +175,7 @@ void TimedActionLog::printCommandHeader(const TaskContext& ctx)
     printLine(ctx, 0, LogColor::Gray, LogSymbol::DotCenter, {}, parts);
 }
 
-TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, const Stage stage, Utf8 detail) :
+ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 detail) :
     ctx_(&ctx),
     stage_(stage),
     startTick_(Clock::now()),
@@ -198,7 +196,7 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, const Stage sta
         detail_ = colorize(ctx, LogColor::Yellow, moduleLog ? moduleLog->name : scopeName(ctx.cmdLine()));
 }
 
-TimedActionLog::ScopedStage::~ScopedStage()
+ScopedTimedLog::~ScopedTimedLog()
 {
     if (!ctx_ || !printEnabled_)
         return;
@@ -232,7 +230,7 @@ TimedActionLog::ScopedStage::~ScopedStage()
     printLine(*ctx_, 0, color, glyph, stageLabel(stage_), {detail_, stat_, time});
 }
 
-StatsSnapshot TimedActionLog::ScopedStage::delta() const
+StatsSnapshot ScopedTimedLog::delta() const
 {
     const StatsSnapshot now = StatsSnapshot::capture();
     StatsSnapshot       result;
@@ -246,9 +244,7 @@ StatsSnapshot TimedActionLog::ScopedStage::delta() const
     return result;
 }
 
-void TimedActionLog::ScopedStage::markOutcome(const StageOutcome outcome) { forcedOutcome_ = outcome; }
-void TimedActionLog::ScopedStage::markFailure() { markOutcome(StageOutcome::Error); }
-void TimedActionLog::ScopedStage::markWarning() { markOutcome(StageOutcome::Warning); }
-void TimedActionLog::ScopedStage::setStat(Utf8 stat) { stat_ = std::move(stat); }
+void ScopedTimedLog::markFailure() { forcedOutcome_ = StageOutcome::Error; }
+void ScopedTimedLog::setStat(Utf8 stat) { stat_ = std::move(stat); }
 
 SWC_END_NAMESPACE();

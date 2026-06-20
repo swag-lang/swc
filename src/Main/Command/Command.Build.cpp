@@ -21,14 +21,14 @@ namespace Command
 {
     namespace
     {
-        Utf8 formatCommandStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const TimedActionLog::StatsSnapshot& deltaSnapshot)
+        Utf8 formatCommandStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
         {
             std::vector<Utf8> statParts;
             if (deltaSnapshot.numFiles)
-                statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+                statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
             if (!compiler.lastArtifactLabel().empty())
-                statParts.push_back(TimedActionLog::formatStatName(ctx, compiler.lastArtifactLabel()));
-            return TimedActionLog::joinStatItems(ctx, statParts);
+                statParts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
+            return ScopedTimedLog::joinStatItems(ctx, statParts);
         }
 
         Result finishNonArtifactBackend(CompilerInstance& compiler)
@@ -180,7 +180,7 @@ namespace Command
         Result finishScriptBackend(CompilerInstance& compiler)
         {
             TaskContext ctx(compiler);
-            TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::JIT);
+            ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::JIT);
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeRunByteCode); }));
 
@@ -222,7 +222,7 @@ namespace Command
             SWC_RESULT(runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None));
             SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop));
 
-            stage.setStat(TimedActionLog::formatStatCount(ctx, mainFunctions.size(), "main"));
+            stage.setStat(ScopedTimedLog::formatStatCount(ctx, mainFunctions.size(), "main"));
             return Result::Continue;
         }
     }
@@ -230,7 +230,7 @@ namespace Command
     void build(CompilerInstance& compiler)
     {
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Build);
+        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Build);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
             Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
@@ -246,7 +246,7 @@ namespace Command
     void run(CompilerInstance& compiler)
     {
         TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Run);
+        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Run);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
             Logger::ScopedStageMute muteNestedStages(ctx.global().logger());

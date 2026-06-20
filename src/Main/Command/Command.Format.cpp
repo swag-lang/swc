@@ -15,12 +15,13 @@ namespace Command
 {
     void format(CompilerInstance& compiler)
     {
-        TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Format);
-        const Global&               global       = ctx.global();
-        JobManager&                 jobMgr       = global.jobMgr();
-        const JobClientId           clientId     = compiler.jobClientId();
-        const uint64_t              errorsBefore = Stats::getNumErrors();
+        TaskContext    ctx(compiler);
+        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Format);
+
+        const Global&     global       = ctx.global();
+        JobManager&       jobMgr       = global.jobMgr();
+        const JobClientId clientId     = compiler.jobClientId();
+        const uint64_t    errorsBefore = Stats::getNumErrors();
 
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
@@ -72,15 +73,15 @@ namespace Command
         }
 
         std::vector<Utf8> statItems;
-        statItems.push_back(TimedActionLog::formatStatCount(ctx, jobs.size(), "file"));
+        statItems.push_back(ScopedTimedLog::formatStatCount(ctx, jobs.size(), "file"));
         if (rewrittenFiles)
-            statItems.push_back(TimedActionLog::formatStatCount(ctx, rewrittenFiles, "rewritten file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, rewrittenFiles, "rewritten file"));
         if (skippedFmtFiles)
-            statItems.push_back(TimedActionLog::formatStatCount(ctx, skippedFmtFiles, "format-skipped file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, skippedFmtFiles, "format-skipped file"));
         if (skippedInvalidFiles)
-            statItems.push_back(TimedActionLog::formatStatCount(ctx, skippedInvalidFiles, "skipped invalid file"));
+            statItems.push_back(ScopedTimedLog::formatStatCount(ctx, skippedInvalidFiles, "skipped invalid file"));
 
-        stage.setStat(TimedActionLog::joinStatItems(ctx, statItems));
+        stage.setStat(ScopedTimedLog::joinStatItems(ctx, statItems));
     }
 }
 

@@ -65,7 +65,8 @@ namespace Command
             if (compiler.runModuleSetup(ctx) == Result::Error)
                 return;
         }
-        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Sema);
+
+        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Sema);
 
         std::vector<SourceFile*> inputFiles;
         inputFiles.reserve(compiler.files().size());
@@ -143,14 +144,14 @@ namespace Command
         if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
             return;
 
-        const TimedActionLog::StatsSnapshot deltaSnapshot = stage.delta();
+        const ScopedTimedLog::StatsSnapshot deltaSnapshot = stage.delta();
         std::vector<Utf8>                   statParts;
         if (deltaSnapshot.numFiles)
-            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+            statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
         if (deltaSnapshot.numTokens)
-            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numTokens, "token"));
+            statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numTokens, "token"));
 
-        stage.setStat(TimedActionLog::joinStatItems(ctx, statParts));
+        stage.setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
     }
 }
 

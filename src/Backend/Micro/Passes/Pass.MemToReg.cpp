@@ -50,7 +50,9 @@ namespace
     {
         return op == MicroInstrOpcode::LoadRegMem ||
                op == MicroInstrOpcode::LoadMemReg ||
-               op == MicroInstrOpcode::LoadMemImm;
+               op == MicroInstrOpcode::LoadMemImm ||
+               op == MicroInstrOpcode::LoadSignedExtRegMem ||
+               op == MicroInstrOpcode::LoadZeroExtRegMem;
     }
 
     bool isPromotableBits(MicroOpBits bits)
@@ -286,6 +288,20 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     hasPending = true;
                 }
                 break;
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                // A widening load of a slot (e.g. a 32-bit index sign-extended to
+                // 64 bits for array addressing). The slot's width is the SOURCE
+                // width (ops[3]); the destination width (ops[2]) belongs to the
+                // extended result, not the slot. The offset lives in ops[4].
+                resolveBase(ops[1].reg, ops[4].valueU64);
+                valueReg = ops[0].reg;
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[3].opBits, false};
+                    hasPending = true;
+                }
+                break;
             default:
                 break;
         }
@@ -516,6 +532,20 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 ops[2]                      = imm;
                 inst->op                    = MicroInstrOpcode::LoadRegImm;
                 inst->numOperands           = 3;
+            }
+            else if (inst->op == MicroInstrOpcode::LoadSignedExtRegMem ||
+                     inst->op == MicroInstrOpcode::LoadZeroExtRegMem)
+            {
+                // Widening load of the slot becomes a widening register move from
+                // the promoted (source-width) register. Destination width
+                // (ops[2]) and source width (ops[3]) are preserved; the memory
+                // base in ops[1] is replaced by the slot register and the offset
+                // operand (ops[4]) is dropped.
+                ops[1].reg        = vreg;
+                inst->op          = (inst->op == MicroInstrOpcode::LoadSignedExtRegMem)
+                                        ? MicroInstrOpcode::LoadSignedExtRegReg
+                                        : MicroInstrOpcode::LoadZeroExtRegReg;
+                inst->numOperands = 4;
             }
         }
     }

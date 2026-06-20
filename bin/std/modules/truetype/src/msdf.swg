@@ -367,40 +367,105 @@ func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f6
     return curSigned
 }
 
-func msdfChannelDistance(segs: const [..] MsdfSeg, bit: u8, px, py: f64)->f64
+// Signed pseudo-distance for the three MSDF channels at one sample point, in a
+// single pass over the segments. Each segment's true distance is computed once and
+// folded into every channel it carries (a segment is often coloured WHITE and would
+// otherwise be measured three times by three separate per-channel scans).
+func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64 }
 {
-    var bestAbs    = Swag.F64.Max
-    var bestSigned = -Swag.F64.Max
-    var bestDot    = Swag.F64.Max
-    var bestIdx    = -1
-    var bestParam: f64 = 0
+    var bestAbs:    [3] f64 = [Swag.F64.Max, Swag.F64.Max, Swag.F64.Max]
+    var bestSigned: [3] f64 = [-Swag.F64.Max, -Swag.F64.Max, -Swag.F64.Max]
+    var bestDot:    [3] f64 = [Swag.F64.Max, Swag.F64.Max, Swag.F64.Max]
+    var bestIdx:    [3] s32 = [-1, -1, -1]
+    var bestParam:  [3] f64
 
     foreach &s, i in segs
     {
-        if !(s.color & bit) do
-            continue
-
         let (sd, dt, param) = msdfSegSignedDistance(s, px, py)
         let a = Math.abs(sd)
-        if a < bestAbs or (a == bestAbs and dt < bestDot)
+
+        for ch in 3
         {
-            bestAbs    = a
-            bestSigned = sd
-            bestDot    = dt
-            bestIdx    = cast(s32) i
-            bestParam  = param
+            if !(s.color & cast(u8) (1 << ch)) do
+                continue
+            if a < bestAbs[ch] or (a == bestAbs[ch] and dt < bestDot[ch])
+            {
+                bestAbs[ch]    = a
+                bestSigned[ch] = sd
+                bestDot[ch]    = dt
+                bestIdx[ch]    = cast(s32) i
+                bestParam[ch]  = param
+            }
         }
     }
 
-    if bestIdx < 0 do
-        return bestSigned
-    return msdfSegPseudoDistance(&segs[bestIdx], px, py, bestParam, bestSigned)
+    var d: [3] f64
+    for ch in 3
+    {
+        d[ch] = bestSigned[ch]
+        if bestIdx[ch] >= 0 do
+            d[ch] = msdfSegPseudoDistance(&segs[bestIdx[ch]], px, py, bestParam[ch], bestSigned[ch])
+    }
+
+    var result: retval
+    result.r = d[0]
+    result.g = d[1]
+    result.b = d[2]
+    return result
 }
 
 func msdfMedian(a, b, c: f64)->f64
 {
     return Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
 }
+
+struct MsdfRowCtx
+{
+    segs:        const *Array'MsdfSeg
+    edges:       const *Array'Edge
+    channels:    [*] f32
+    rowVotes:    [*] s64
+    width:       s32
+    left:        s32
+    top:         s32
+}
+
+// Fill one output row of the MSDF field and accumulate that row's sign vote.
+func msdfProcessRow(c: *MsdfRowCtx, py: u32)
+{
+    let segsS   = c.segs.toSlice()
+    let edgesS  = c.edges.toSlice()
+    let sampleY = cast(f64) c.top - (cast(f64) py + 0.5)
+
+    var localVote = 0's64
+    for px in c.width
+    {
+        let sampleX = cast(f64) c.left + cast(f64) px + 0.5
+        let (r, g, b) = msdfChannelDistances(segsS, sampleX, sampleY)
+
+        let idx = (cast(u64) py * cast(u64) c.width + cast(u64) px) * 3
+        c.channels[idx + 0] = cast(f32) r
+        c.channels[idx + 1] = cast(f32) g
+        c.channels[idx + 2] = cast(f32) b
+
+        // Sparse sign sampling (every other pixel on both axes): enough for a robust
+        // global majority while keeping the per-pixel winding test off the hot path.
+        if (px & 1) == 0 and (py & 1) == 0
+        {
+            let med    = msdfMedian(r, g, b)
+            let inside = isInside(edgesS, sampleX, sampleY)
+            localVote += (med > 0) == inside ? 1 : -1
+        }
+    }
+
+    c.rowVotes[py] = localVote
+}
+
+// Fork the per-row work across the job pool only above this many output samples;
+// below it (small punctuation glyphs) the fork/join latency outweighs the win.
+// MSDF glyphs always rasterize at the reference em size, so a typical letter sits
+// well above this and is parallelised, while commas/periods stay serial.
+const MsdfParallelMinSamples: u64 = 2000
 
 // Render the current glyph outline as a 3-channel (RGB) multi-channel SDF.
 // The output bitmap has 3 bytes per pixel (pitch = width * 3).
@@ -442,32 +507,40 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     channels.resize(cast(u64) width * rows * 3)
 
     let scale = 127.0 / cast(f64) safeSpread
-    var vote  = 0's64
 
-    for py in rows
+    // Per-row sign votes, summed afterwards. The vote only decides the single global
+    // sign of the field, so it is sampled on a sparse grid (every other pixel) — that
+    // is hundreds of authoritative inside/outside tests, plenty for a robust majority,
+    // while keeping the expensive per-pixel winding test off the hot path.
+    var rowVotes: Array's64
+    rowVotes.resize(cast(u64) rows)
+
+    var ctx: MsdfRowCtx
+    ctx.segs     = &segs
+    ctx.edges    = &edges
+    ctx.channels = channels.buffer
+    ctx.rowVotes = rowVotes.buffer
+    ctx.width    = width
+    ctx.left     = left
+    ctx.top      = top
+
+    let samples = cast(u64) width * cast(u64) rows
+    if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchrone()
     {
-        for px in width
+        Jobs.parallelFor(|py, data| cast(u32) rows, &ctx)
         {
-            let sampleX = left + cast(f64) px + 0.5
-            let sampleY = top - (cast(f64) py + 0.5)
-
-            let r = msdfChannelDistance(segs.toSlice(), MSDF_RED, sampleX, sampleY)
-            let g = msdfChannelDistance(segs.toSlice(), MSDF_GREEN, sampleX, sampleY)
-            let b = msdfChannelDistance(segs.toSlice(), MSDF_BLUE, sampleX, sampleY)
-
-            let idx = (cast(u64) py * cast(u64) width + cast(u64) px) * 3
-            channels[idx + 0] = cast(f32) r
-            channels[idx + 1] = cast(f32) g
-            channels[idx + 2] = cast(f32) b
-
-            let med    = msdfMedian(r, g, b)
-            let inside = isInside(edges.toSlice(), sampleX, sampleY)
-            if (med > 0) == inside do
-                vote += 1
-            else do
-                vote -= 1
+            msdfProcessRow(cast(*MsdfRowCtx) data, py)
         }
     }
+    else
+    {
+        for py in rows do
+            msdfProcessRow(&ctx, cast(u32) py)
+    }
+
+    var vote = 0's64
+    for i in rows do
+        vote += rowVotes[i]
 
     let flip: f64 = vote < 0 ? -1 : 1
 

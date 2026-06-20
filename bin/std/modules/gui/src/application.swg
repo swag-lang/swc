@@ -608,6 +608,12 @@ impl Application
             .renderer.init()
             .theme.setupDefault(&.renderer)
             .mainSurface = surface
+
+            // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF
+            // generation, image resize/filtering, ...) actually run multi-core instead
+            // of falling back to a synchronous single thread.
+            if Jobs.isSynchrone() do
+                discard catch Jobs.setNumWorkers()
         }
 
         .surfaces.add(surface)

@@ -644,21 +644,6 @@ namespace
         return Result::Continue;
     }
 
-    bool findStructFieldByName(const std::vector<SymbolVariable*>& fields, const IdentifierRef name, size_t& outIndex)
-    {
-        for (size_t i = 0; i < fields.size(); ++i)
-        {
-            const SymbolVariable* field = fields[i];
-            if (field && field->idRef() == name)
-            {
-                outIndex = i;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     size_t nextPositionalStructField(const std::vector<SymbolVariable*>& fields, const std::vector<uint8_t>& assigned, size_t start)
     {
         while (start < fields.size() && (!fields[start] || assigned[start]))
@@ -666,8 +651,9 @@ namespace
         return start;
     }
 
-    void mapAggregateStructValuesToFields(const TypeInfo* srcType, const std::vector<SymbolVariable*>& dstFields, const std::vector<ConstantRef>& values, std::vector<ConstantRef>& outValues)
+    void mapAggregateStructValuesToFields(const TypeInfo* srcType, const SymbolStruct& dstStruct, const std::vector<ConstantRef>& values, std::vector<ConstantRef>& outValues)
     {
+        const std::vector<SymbolVariable*>& dstFields = dstStruct.fields();
         outValues.assign(dstFields.size(), ConstantRef::invalid());
         if (!srcType || !srcType->isAggregateStruct())
         {
@@ -697,7 +683,7 @@ namespace
             if (name.isValid())
             {
                 seenNamed = true;
-                SWC_INTERNAL_CHECK(findStructFieldByName(dstFields, name, fieldIdx));
+                SWC_INTERNAL_CHECK(dstStruct.tryGetFieldIndexByName(fieldIdx, name));
             }
             else
             {
@@ -715,9 +701,10 @@ namespace
 
     Result lowerAggregateStructToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeInfo* srcType, const std::vector<ConstantRef>& values)
     {
-        const auto&              dstFields = dstType.payloadSymStruct().fields();
+        const SymbolStruct&      dstStruct = dstType.payloadSymStruct();
+        const auto&              dstFields = dstStruct.fields();
         std::vector<ConstantRef> valuesByField;
-        mapAggregateStructValuesToFields(srcType, dstFields, values, valuesByField);
+        mapAggregateStructValuesToFields(srcType, dstStruct, values, valuesByField);
 
         for (size_t fieldIdx = 0; fieldIdx < dstFields.size(); ++fieldIdx)
         {

@@ -191,6 +191,13 @@ namespace
     ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef);
     ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
+    TypeRef implicitDefaultStorageTypeRef(Sema& sema, const TypeRef typeRef)
+    {
+        const TypeInfo& rawType        = sema.typeMgr().get(typeRef);
+        const TypeRef   storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        return storageTypeRef.isValid() ? storageTypeRef : typeRef;
+    }
+
     bool implicitDefaultKindHasUndefined(const ImplicitDefaultKind kind)
     {
         return kind == ImplicitDefaultKind::AllUndefined || kind == ImplicitDefaultKind::MixedWithUndefined;
@@ -252,9 +259,7 @@ namespace
         if (cst.isUndefined())
             return ImplicitDefaultKind::AllUndefined;
 
-        const TypeInfo& rawType = sema.typeMgr().get(typeRef);
-        if (const TypeRef storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum); storageTypeRef.isValid())
-            typeRef = storageTypeRef;
+        typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         if (cst.isEnumValue())
         {
@@ -343,9 +348,7 @@ namespace
         if (typeRef.isInvalid())
             return ImplicitDefaultKind::Mixed;
 
-        const TypeInfo& rawType = sema.typeMgr().get(typeRef);
-        if (const TypeRef storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum); storageTypeRef.isValid())
-            typeRef = storageTypeRef;
+        typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isStruct())
@@ -372,9 +375,7 @@ namespace
 
     Result lowerImplicitDefaultBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef typeRef)
     {
-        const TypeInfo& rawType = sema.typeMgr().get(typeRef);
-        if (const TypeRef storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum); storageTypeRef.isValid())
-            typeRef = storageTypeRef;
+        typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isStruct())
@@ -428,6 +429,18 @@ namespace
         if (!dstBytes.empty())
             std::memset(dstBytes.data(), 0, dstBytes.size());
         return Result::Continue;
+    }
+
+    ImplicitDefaultKind classifyFieldImplicitDefault(Sema& sema, const SymbolVariable& field)
+    {
+        if (field.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            return ImplicitDefaultKind::AllUndefined;
+
+        const ConstantRef valueRef = field.defaultValueRef();
+        if (valueRef.isValid())
+            return classifyConstantImplicitDefault(sema, field.typeRef(), valueRef);
+
+        return classifyTypeImplicitDefault(sema, field.typeRef());
     }
 
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
@@ -762,6 +775,21 @@ bool SymbolStruct::tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym)
     return true;
 }
 
+bool SymbolStruct::tryGetFieldIndexByName(size_t& outIndex, const IdentifierRef name) const noexcept
+{
+    for (size_t index = 0; index < fields_.size(); ++index)
+    {
+        const SymbolVariable* field = fields_[index];
+        if (field && field->idRef() == name)
+        {
+            outIndex = index;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
     computeImplicitDefaultFlags(sema);
@@ -810,19 +838,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
             if (!field)
                 continue;
 
-            auto fieldKind = ImplicitDefaultKind::Mixed;
-            if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-            {
-                fieldKind = ImplicitDefaultKind::AllUndefined;
-            }
-            else if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
-            {
-                fieldKind = classifyConstantImplicitDefault(sema, field->typeRef(), valueRef);
-            }
-            else
-            {
-                fieldKind = classifyTypeImplicitDefault(sema, field->typeRef());
-            }
+            const ImplicitDefaultKind fieldKind = classifyFieldImplicitDefault(sema, *field);
 
             allZero &= fieldKind == ImplicitDefaultKind::AllZero;
             allUndefined &= fieldKind == ImplicitDefaultKind::AllUndefined;

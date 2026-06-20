@@ -56,6 +56,7 @@ public:
     std::vector<SymbolVariable*>&       fields() { return fields_; }
     const std::vector<SymbolVariable*>& fields() const { return fields_; }
     bool                                tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym) const noexcept;
+    bool                                tryGetFieldIndexByName(size_t& outIndex, IdentifierRef name) const noexcept;
 
     void                         addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>     impls() const;

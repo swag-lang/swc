@@ -390,7 +390,8 @@ namespace
         const auto& aggregate = args.srcType->payloadAggregate();
         const auto& srcTypes  = aggregate.types;
         const auto& srcNames  = aggregate.names;
-        const auto& dstFields = args.dstType->payloadSymStruct().fields();
+        const auto& dstStruct = args.dstType->payloadSymStruct();
+        const auto& dstFields = dstStruct.fields();
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
@@ -423,20 +424,8 @@ namespace
             }
 
             seenNamed       = true;
-            bool   found    = false;
             size_t dstIndex = 0;
-            for (size_t j = 0; j < dstFields.size(); ++j)
-            {
-                const SymbolVariable* symbolVariable = dstFields[j];
-                if (symbolVariable->idRef() == name)
-                {
-                    found    = true;
-                    dstIndex = j;
-                    break;
-                }
-            }
-
-            if (!found)
+            if (!dstStruct.tryGetFieldIndexByName(dstIndex, name))
                 return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
             if (dstUsed[dstIndex])
             {

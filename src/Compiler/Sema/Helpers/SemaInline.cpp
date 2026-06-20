@@ -1760,10 +1760,27 @@ namespace
     //  - bound the body size to keep code growth in check.
     // Body shape is otherwise unrestricted: correct materialization (preserved resolved symbols
     // + inline-scope isolation) handles arbitrary statements/locals/calls.
+    // An aggregate/by-value-struct type whose inline materialization is not yet reliable
+    // (struct-typed constant payloads, the `retval` placeholder of a struct-returning callee,
+    // by-value aggregate parameters). Auto-inline restricts itself to scalar/pointer signatures
+    // to stay clear of these until the codegen materialization handles moved aggregates.
+    bool isInlineAggregateType(const TypeInfo& ti)
+    {
+        return ti.isStruct() || ti.isArray() || ti.isAggregateStruct() || ti.isAggregateArray() ||
+               ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice();
+    }
+
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
     {
         if (fn.isGenericRoot() || fn.isGenericInstance())
             return false;
+
+        // Scalar/pointer signature only — see isInlineAggregateType.
+        if (fn.returnTypeRef().isValid() && isInlineAggregateType(sema.ctx().typeMgr().get(fn.returnTypeRef())))
+            return false;
+        for (const SymbolVariable* param : fn.parameters())
+            if (param && isInlineAggregateType(param->type(sema.ctx())))
+                return false;
 
         const AstFunctionDecl* decl    = nullptr;
         const Ast*             declAst = nullptr;

@@ -34,6 +34,13 @@ namespace SemaClone
         bool                             preserveFunctionGenerics = false;
         bool                             preserveBindingExprState = false;
         bool                             duplicateRuntimeStorage  = false;
+        // Pin already-resolved identifier symbols even on a same-Ast clone (as a cross-Ast clone
+        // always does). Used when inlining a body within its own file so references to the
+        // callee's file-private helpers/globals/constants keep resolving to the callee's symbols
+        // instead of being re-resolved by name in the caller's scope. Function-local/parameter
+        // identifiers are still re-resolved (to the cloned decls / substituted args) because the
+        // preserveSyntheticSymbol predicate excludes them.
+        bool                             preserveResolvedSymbols  = false;
         uint32_t                         breakableDepth           = 0;
         explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false, uint32_t inBreakableDepth = 0) :
             bindings(inBindings),

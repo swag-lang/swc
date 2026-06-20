@@ -728,7 +728,8 @@ namespace
             return markConstParamBindingTarget(sema, *binding, castRef);
         }
 
-        const bool crossAstSource = &sourceAst != &sema.ast();
+        const bool crossAstSource    = &sourceAst != &sema.ast();
+        const bool pinResolvedSymbol = crossAstSource || cloneContext.preserveResolvedSymbols;
         auto [nodeRef, nodePtr]   = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()          = node.flags();
         nodePtr->setCodeRef(node.codeRef());
@@ -738,19 +739,20 @@ namespace
                                                  storedView->sym->ownerSymMap()->isFunction();
         const bool preserveSyntheticSymbol = storedView && storedView->sym &&
                                              (node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) ||
-                                              ((!crossAstSource || !sourceSymbolOwnedByFunction) &&
+                                              ((!pinResolvedSymbol || !sourceSymbolOwnedByFunction) &&
                                                (!storedView->sym->isFunctionLocalVariable() ||
                                                 !node.codeRef().isValid() ||
                                                 sema.token(node.codeRef()).id != TokenId::Identifier)));
         if (preserveSyntheticSymbol)
         {
             sema.setSymbol(nodeRef, storedView->sym);
-            // For a cross-Ast clone (e.g. inlining a body from another file) the cloned
-            // identifier cannot be re-resolved by name in the destination scope: the source
-            // symbol may be file/module-private, an overload that name-lookup would pick wrong,
-            // or shadowed there. Mark it pre-resolved so sema honors the carried symbol instead
-            // of re-resolving it. (Same-Ast clones can still re-resolve safely.)
-            if (crossAstSource)
+            // When pinning resolved symbols (a cross-Ast clone, or a same-Ast inline that opted
+            // in) the cloned identifier must not be re-resolved by name in the destination
+            // scope: the source symbol may be file/module-private, an overload that name-lookup
+            // would pick wrong, or shadowed there. Mark it pre-resolved so sema honors the
+            // carried symbol. Function-owned symbols (locals/params) are excluded above so they
+            // still bind to the cloned decls / substituted arguments.
+            if (pinResolvedSymbol)
                 nodePtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
         }
         const bool carryResolvedTypeId = storedView &&

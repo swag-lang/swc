@@ -110,6 +110,13 @@ public struct Font
     underlineSize:     f32
 
     fullname:          String
+
+    // Memoized result of 'resolveDrawFont' for an 'Auto' font: the last on-screen
+    // pixel size that was resolved and the concrete bitmap view it produced. Avoids a
+    // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
+    // size of 0 is never resolved, so it doubles as the "empty" sentinel.
+    drawResolvePx:     s32
+    drawResolveFont:   *Font
 }
 
 fileprivate var g_HashFont:       HashTable'(String, *Font)
@@ -304,7 +311,20 @@ public impl Font
 
         var px = cast(s32) Math.round(effectivePx)
         px = Math.clamp(px, 1, cast(s32) AutoMsdfMinPx)
-        return createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
+
+        // Fast path: same on-screen size as the previous draw (the common case for a
+        // given widget) returns the already-resolved view with no lookup or lock.
+        if px == font.drawResolvePx do
+            return font.drawResolveFont
+
+        let view = createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
+
+        // Publish the view before the size so a concurrent reader that sees the new
+        // size also sees the matching view (drawing is single-threaded per surface;
+        // this only guards the rare cross-surface overlap).
+        font.drawResolveFont = view
+        font.drawResolvePx   = px
+        return view
     }
 
     // Creates a Font of the given typeface and size.

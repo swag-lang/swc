@@ -168,6 +168,11 @@ struct Painter
     lastTexture0Handle:     TextureHandle
     hasTextureFont:         bool
 
+    // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
+    // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
+    curTextureFont:         *Font
+    curTextureFontAtlas:    s32 = -1
+
     drawingBegin:           bool
     overlapMode:            bool
     canSetTexture0:         bool = true
@@ -280,6 +285,8 @@ impl Painter
 
     fileprivate mtd resetTextureFont()
     {
+        .curTextureFont      = null
+        .curTextureFontAtlas = -1
         if !.hasTextureFont do
             return
         .hasTextureFont = false
@@ -288,11 +295,18 @@ impl Painter
 
     fileprivate mtd setTextureFont(font: *Font, atlasIndex: s32)
     {
+        // Already bound to this atlas: nothing to emit, so the following glyph
+        // triangles extend the current DrawTriangles batch instead of starting a new one.
+        if .hasTextureFont and .curTextureFont == font and .curTextureFontAtlas == atlasIndex do
+            return
+
         let cmd    = .newCommand(.BindTextureFont, true)
         let params = &cmd.textureFont
         params.font       = font
         params.atlasIndex = atlasIndex
-        .hasTextureFont   = true
+        .hasTextureFont      = true
+        .curTextureFont      = font
+        .curTextureFontAtlas = atlasIndex
     }
 
     fileprivate mtd pushTriangleCmd()->*Command

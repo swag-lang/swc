@@ -107,11 +107,11 @@ public:
     bool          hasFlag(TypeInfoFlagsE flag) const noexcept { return flags_.has(flag); }
     void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
     void          removeFlag(TypeInfoFlagsE flag) noexcept { flags_.remove(flag); }
-    bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
-    bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
-    bool          isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
-    bool          isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
 
+    bool isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
+    bool isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
+    bool isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
+    bool isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool isString() const noexcept { return kind_ == TypeInfoKind::String; }
@@ -140,7 +140,6 @@ public:
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
     bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
     bool isCodeBlock() const noexcept { return kind_ == TypeInfoKind::CodeBlock; }
-
     bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && payloadInt_.bits == 0; }
     bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && payloadFloat_.bits == 0; }
     bool isScalarUnsized() const noexcept { return isIntUnsized() || isFloatUnsized(); }
@@ -167,8 +166,8 @@ public:
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
     bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isCString() || isAnyVariadic(); }
-    bool supportsNullableQualifier() const noexcept;
 
+    bool isSupportsNullableQualifier() const noexcept;
     bool isEnumFlags() const noexcept;
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;
@@ -260,8 +259,6 @@ public:
         return *(payloadFunction_.sym);
     }
 
-    TypeRef payloadTypeRef() const noexcept;
-
     auto& payloadArrayDims() const noexcept
     {
         SWC_ASSERT(isArray());
@@ -280,14 +277,10 @@ public:
         return payloadAggregate_;
     }
 
-    bool tryGetAggregateMemberIndexByName(size_t& outIndex, IdentifierRef name, std::string_view nameText) const noexcept;
-
-    TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept
-    {
-        return unwrap(ctx, defaultTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    }
-
+    bool    tryGetAggregateMemberIndexByName(size_t& outIndex, IdentifierRef name, std::string_view nameText) const noexcept;
+    TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept;
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
+    TypeRef payloadTypeRef() const noexcept;
     TypeRef dereferenceTypeRef(const TaskContext& ctx) const;
 
     static TypeInfo makeBool();

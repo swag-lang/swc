@@ -313,7 +313,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
     if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
     {
-        if (!qualifiedType.supportsNullableQualifier())
+        if (!qualifiedType.isSupportsNullableQualifier())
         {
             const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
             const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});

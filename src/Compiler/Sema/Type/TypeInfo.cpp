@@ -110,57 +110,6 @@ namespace
     }
 }
 
-TypeInfo::~TypeInfo()
-{
-    switch (kind_)
-    {
-        case TypeInfoKind::Array:
-            std::destroy_at(&payloadArray_.dims);
-            break;
-        case TypeInfoKind::AggregateStruct:
-        case TypeInfoKind::AggregateArray:
-            std::destroy_at(&payloadAggregate_.types);
-            std::destroy_at(&payloadAggregate_.names);
-            std::destroy_at(&payloadAggregate_.fieldRefs);
-            break;
-        default:
-            break;
-    }
-}
-
-TypeRef TypeInfo::payloadTypeRef() const noexcept
-{
-    SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
-    if (isAlias())
-        return payloadAlias_.sym->underlyingTypeRef();
-    return payloadTypeRef_.typeRef;
-}
-
-bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const IdentifierRef name, const std::string_view nameText) const noexcept
-{
-    if (!isAggregateStruct())
-        return false;
-
-    const auto& names = payloadAggregate_.names;
-    for (size_t index = 0; index < names.size(); ++index)
-    {
-        if (names[index].isValid() && names[index] == name)
-        {
-            outIndex = index;
-            return true;
-        }
-    }
-
-    size_t implicitIndex = 0;
-    if (parseImplicitAggregateItemIndex(implicitIndex, nameText) && implicitIndex < names.size() && !names[implicitIndex].isValid())
-    {
-        outIndex = implicitIndex;
-        return true;
-    }
-
-    return false;
-}
-
 TypeInfo::TypeInfo(const TypeInfo& other) :
     kind_(other.kind_),
     flags_(other.flags_)
@@ -321,74 +270,21 @@ TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
     return *this;
 }
 
-uint32_t TypeInfo::hash() const
+TypeInfo::~TypeInfo()
 {
-    uint32_t h = Math::hash(static_cast<uint32_t>(kind_));
-    h          = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
-
     switch (kind_)
     {
-        case TypeInfoKind::Bool:
-        case TypeInfoKind::Char:
-        case TypeInfoKind::String:
-        case TypeInfoKind::Void:
-        case TypeInfoKind::Any:
-        case TypeInfoKind::Rune:
-        case TypeInfoKind::CString:
-        case TypeInfoKind::Null:
-        case TypeInfoKind::Undefined:
-        case TypeInfoKind::Variadic:
-        case TypeInfoKind::TypeInfo:
-            return h;
-
-        case TypeInfoKind::Int:
-            h = Math::hashCombine(h, payloadInt_.bits);
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadInt_.sign));
-            return h;
-        case TypeInfoKind::Float:
-            h = Math::hashCombine(h, payloadFloat_.bits);
-            return h;
-        case TypeInfoKind::ValuePointer:
-        case TypeInfoKind::BlockPointer:
-        case TypeInfoKind::Reference:
-        case TypeInfoKind::MoveReference:
-        case TypeInfoKind::Slice:
-        case TypeInfoKind::TypeValue:
-        case TypeInfoKind::TypedVariadic:
-        case TypeInfoKind::CodeBlock:
-            h = Math::hashCombine(h, payloadTypeRef_.typeRef.get());
-            return h;
-
-        case TypeInfoKind::AggregateStruct:
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.names.size()));
-            return h;
-        case TypeInfoKind::AggregateArray:
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
-            return h;
-        case TypeInfoKind::Enum:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
-            return h;
-        case TypeInfoKind::Struct:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadStruct_.sym));
-            return h;
-        case TypeInfoKind::Interface:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadInterface_.sym));
-            return h;
-        case TypeInfoKind::Alias:
-            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadAlias_.sym));
-            return h;
-        case TypeInfoKind::Function:
-            h = Math::hashCombine(h, payloadFunction_.sym->typeSignatureHash());
-            return h;
         case TypeInfoKind::Array:
-            h = Math::hashCombine(h, payloadArray_.typeRef.get());
-            for (const auto dim : payloadArray_.dims)
-                h = Math::hashCombine(h, static_cast<uint32_t>(dim));
-            return h;
-
+            std::destroy_at(&payloadArray_.dims);
+            break;
+        case TypeInfoKind::AggregateStruct:
+        case TypeInfoKind::AggregateArray:
+            std::destroy_at(&payloadAggregate_.types);
+            std::destroy_at(&payloadAggregate_.names);
+            std::destroy_at(&payloadAggregate_.fieldRefs);
+            break;
         default:
-            SWC_UNREACHABLE();
+            break;
     }
 }
 
@@ -465,6 +361,115 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                 if (payloadArray_.dims[i] != other.payloadArray_.dims[i])
                     return false;
             return true;
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+TypeRef TypeInfo::payloadTypeRef() const noexcept
+{
+    SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
+    if (isAlias())
+        return payloadAlias_.sym->underlyingTypeRef();
+    return payloadTypeRef_.typeRef;
+}
+
+bool TypeInfo::tryGetAggregateMemberIndexByName(size_t& outIndex, const IdentifierRef name, const std::string_view nameText) const noexcept
+{
+    if (!isAggregateStruct())
+        return false;
+
+    const auto& names = payloadAggregate_.names;
+    for (size_t index = 0; index < names.size(); ++index)
+    {
+        if (names[index].isValid() && names[index] == name)
+        {
+            outIndex = index;
+            return true;
+        }
+    }
+
+    size_t implicitIndex = 0;
+    if (parseImplicitAggregateItemIndex(implicitIndex, nameText) && implicitIndex < names.size() && !names[implicitIndex].isValid())
+    {
+        outIndex = implicitIndex;
+        return true;
+    }
+
+    return false;
+}
+
+TypeRef TypeInfo::unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef) const noexcept
+{
+    return unwrap(ctx, defaultTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+}
+
+uint32_t TypeInfo::hash() const
+{
+    uint32_t h = Math::hash(static_cast<uint32_t>(kind_));
+    h          = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
+
+    switch (kind_)
+    {
+        case TypeInfoKind::Bool:
+        case TypeInfoKind::Char:
+        case TypeInfoKind::String:
+        case TypeInfoKind::Void:
+        case TypeInfoKind::Any:
+        case TypeInfoKind::Rune:
+        case TypeInfoKind::CString:
+        case TypeInfoKind::Null:
+        case TypeInfoKind::Undefined:
+        case TypeInfoKind::Variadic:
+        case TypeInfoKind::TypeInfo:
+            return h;
+
+        case TypeInfoKind::Int:
+            h = Math::hashCombine(h, payloadInt_.bits);
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadInt_.sign));
+            return h;
+        case TypeInfoKind::Float:
+            h = Math::hashCombine(h, payloadFloat_.bits);
+            return h;
+        case TypeInfoKind::ValuePointer:
+        case TypeInfoKind::BlockPointer:
+        case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
+        case TypeInfoKind::Slice:
+        case TypeInfoKind::TypeValue:
+        case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::CodeBlock:
+            h = Math::hashCombine(h, payloadTypeRef_.typeRef.get());
+            return h;
+
+        case TypeInfoKind::AggregateStruct:
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.names.size()));
+            return h;
+        case TypeInfoKind::AggregateArray:
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
+            return h;
+        case TypeInfoKind::Enum:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
+            return h;
+        case TypeInfoKind::Struct:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadStruct_.sym));
+            return h;
+        case TypeInfoKind::Interface:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadInterface_.sym));
+            return h;
+        case TypeInfoKind::Alias:
+            h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadAlias_.sym));
+            return h;
+        case TypeInfoKind::Function:
+            h = Math::hashCombine(h, payloadFunction_.sym->typeSignatureHash());
+            return h;
+        case TypeInfoKind::Array:
+            h = Math::hashCombine(h, payloadArray_.typeRef.get());
+            for (const auto dim : payloadArray_.dims)
+                h = Math::hashCombine(h, static_cast<uint32_t>(dim));
+            return h;
 
         default:
             SWC_UNREACHABLE();
@@ -1245,7 +1250,7 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
     return nullptr;
 }
 
-bool TypeInfo::supportsNullableQualifier() const noexcept
+bool TypeInfo::isSupportsNullableQualifier() const noexcept
 {
     switch (kind_)
     {

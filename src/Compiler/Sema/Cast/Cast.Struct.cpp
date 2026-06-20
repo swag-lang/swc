@@ -284,7 +284,7 @@ namespace
         const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
         if (returnType.isNullable() || !dstType.isNullable())
             return false;
-        if (!returnType.supportsNullableQualifier() || !dstType.supportsNullableQualifier())
+        if (!returnType.isSupportsNullableQualifier() || !dstType.isSupportsNullableQualifier())
             return false;
         if (returnType.kind() != dstType.kind())
             return false;

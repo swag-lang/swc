@@ -199,7 +199,7 @@ namespace
     {
         if (srcType.isNullable() == dstType.isNullable())
             return false;
-        if (!srcType.supportsNullableQualifier() || !dstType.supportsNullableQualifier())
+        if (!srcType.isSupportsNullableQualifier() || !dstType.isSupportsNullableQualifier())
             return false;
         if (srcType.kind() != dstType.kind())
             return false;

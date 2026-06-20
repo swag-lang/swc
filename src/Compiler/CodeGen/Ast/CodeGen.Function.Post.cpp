@@ -70,18 +70,7 @@ namespace
 
     SymbolFunction* singleFunctionFromView(const SemaNodeView& view)
     {
-        if (view.hasSymbolList())
-        {
-            if (view.symList().size() != 1)
-                return nullptr;
-
-            Symbol* symbol = view.symList().front();
-            if (!symbol || !symbol->isFunction())
-                return nullptr;
-            return &symbol->cast<SymbolFunction>();
-        }
-
-        Symbol* symbol = view.sym();
+        Symbol* symbol = view.singleSymbol();
         if (!symbol || !symbol->isFunction())
             return nullptr;
         return &symbol->cast<SymbolFunction>();

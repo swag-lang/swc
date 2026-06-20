@@ -378,7 +378,7 @@ Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
     MicroBuilder&               builder = codeGen.builder();
     ForCStyleStmtCodeGenPayload loopState;
     const SemaNodeView          symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
-    const auto                  symbols     = symbolsView.symList();
+    const std::span<Symbol* const> symbols  = symbolsView.symList();
     loopState.loopLabel                     = builder.createLabel();
     loopState.bodyLabel                     = builder.createLabel();
     loopState.postLabel                     = builder.createLabel();

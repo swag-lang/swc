@@ -31,17 +31,18 @@ struct SemaNodeView
     void compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All, SemaNodeViewResolveE mode = SemaNodeViewResolveE::Resolved);
     void recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void getSymbols(SmallVector<Symbol*>& symbols) const;
+    Symbol* singleSymbol() const;
 
     const AstNode*        node() const;
     const AstNode*&       node();
     const ConstantValue*  cst() const;
     const ConstantValue*& cst();
     const TypeInfo*       type() const;
-    const TypeInfo*&      type();
-    Symbol*               sym() const;
-    Symbol*&              sym();
-    std::span<Symbol*>    symList() const;
-    std::span<Symbol*>&   symList();
+    const TypeInfo*&         type();
+    Symbol*                  sym() const;
+    Symbol*&                 sym();
+    std::span<Symbol* const> symList() const;
+    std::span<Symbol*>&      symList();
 
     AstNodeRef   nodeRef() const;
     AstNodeRef&  nodeRef();

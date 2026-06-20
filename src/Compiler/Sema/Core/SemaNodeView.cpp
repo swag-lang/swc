@@ -180,15 +180,30 @@ void SemaNodeView::recompute(Sema& sema, SemaNodeViewPart part)
 
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 {
-    if (!symList_.empty())
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
+
+    symbols.clear();
+
+    if (hasSymList_)
     {
+        symbols.reserve(symList_.size());
         for (auto* s : symList_)
             symbols.push_back(s);
     }
-    else if (sym_)
+    else if (hasSymbol_)
     {
         symbols.push_back(sym_);
     }
+}
+
+Symbol* SemaNodeView::singleSymbol() const
+{
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
+
+    if (hasSymList_)
+        return symList_.size() == 1 ? symList_.front() : nullptr;
+
+    return hasSymbol_ ? sym_ : nullptr;
 }
 
 const AstNode* SemaNodeView::node() const
@@ -239,10 +254,10 @@ Symbol*& SemaNodeView::sym()
     return sym_;
 }
 
-std::span<Symbol*> SemaNodeView::symList() const
+std::span<Symbol* const> SemaNodeView::symList() const
 {
     SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
-    return symList_;
+    return {symList_.data(), symList_.size()};
 }
 
 std::span<Symbol*>& SemaNodeView::symList()

@@ -106,23 +106,6 @@ namespace
         return false;
     }
 
-    void collectSymbolsFromView(SmallVector<Symbol*>& outSymbols, const SemaNodeView& view)
-    {
-        outSymbols.clear();
-
-        if (view.hasSymbolList())
-        {
-            const std::span<Symbol* const> list = view.symList();
-            outSymbols.reserve(list.size());
-            for (Symbol* sym : list)
-                outSymbols.push_back(sym);
-        }
-        else if (view.hasSymbol())
-        {
-            outSymbols.push_back(view.sym());
-        }
-    }
-
     bool singleIfVarDeclConditionSymbol(Sema& sema, AstNodeRef varDeclRef, Symbol*& outSym)
     {
         outSym = nullptr;
@@ -131,14 +114,12 @@ namespace
         if (declRef.isInvalid())
             return false;
 
-        SmallVector<Symbol*> symbols;
-        const SemaNodeView   declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-        collectSymbolsFromView(symbols, declView);
-
-        if (symbols.size() != 1)
+        const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
+        Symbol*            symbol   = declView.singleSymbol();
+        if (!symbol)
             return false;
 
-        outSym = symbols.front();
+        outSym = symbol;
         return true;
     }
 
@@ -333,14 +314,12 @@ namespace
     {
         outSym = nullptr;
 
-        SmallVector<Symbol*> symbols;
-        const SemaNodeView   view = sema.view(nodeRef, SemaNodeViewPartE::Symbol);
-        collectSymbolsFromView(symbols, view);
-
-        if (symbols.size() != 1 || !symbols.front()->isVariable())
+        const SemaNodeView view   = sema.view(nodeRef, SemaNodeViewPartE::Symbol);
+        Symbol*            symbol = view.singleSymbol();
+        if (!symbol || !symbol->isVariable())
             return false;
 
-        outSym = &symbols.front()->cast<SymbolVariable>();
+        outSym = &symbol->cast<SymbolVariable>();
         return true;
     }
 
@@ -424,14 +403,11 @@ namespace
             declRef = decls.front();
         }
 
-        SmallVector<Symbol*> symbols;
-        const SemaNodeView   declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-        collectSymbolsFromView(symbols, declView);
-
-        if (symbols.size() != 1)
+        const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
+        const Symbol*      sym      = declView.singleSymbol();
+        if (!sym)
             return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, declRef);
 
-        const Symbol* sym     = symbols.front();
         const TypeRef typeRef = sym->typeRef();
         if (typeRef.isInvalid())
             return Result::Continue;

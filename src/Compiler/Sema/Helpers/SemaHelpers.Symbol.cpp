@@ -1212,7 +1212,7 @@ namespace
 
         // Constant struct member access
         const SemaNodeView       nodeRightView            = sema.viewSymbolList(node.nodeRightRef);
-        const std::span<Symbol*> symbols                  = nodeRightView.symList();
+        const std::span<Symbol* const> symbols            = nodeRightView.symList();
         const size_t             finalSymCount            = symbols.size();
         const bool               throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
         bool                     canExtractConstantMember = !throughPointerOrRef;

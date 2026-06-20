@@ -106,6 +106,23 @@ namespace
         return false;
     }
 
+    void collectSymbolsFromView(SmallVector<Symbol*>& outSymbols, const SemaNodeView& view)
+    {
+        outSymbols.clear();
+
+        if (view.hasSymbolList())
+        {
+            const std::span<Symbol* const> list = view.symList();
+            outSymbols.reserve(list.size());
+            for (Symbol* sym : list)
+                outSymbols.push_back(sym);
+        }
+        else if (view.hasSymbol())
+        {
+            outSymbols.push_back(view.sym());
+        }
+    }
+
     bool singleIfVarDeclConditionSymbol(Sema& sema, AstNodeRef varDeclRef, Symbol*& outSym)
     {
         outSym = nullptr;
@@ -116,17 +133,7 @@ namespace
 
         SmallVector<Symbol*> symbols;
         const SemaNodeView   declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-        if (declView.hasSymbolList())
-        {
-            const std::span<Symbol*> list = declView.symList();
-            symbols.reserve(list.size());
-            for (Symbol* sym : list)
-                symbols.push_back(sym);
-        }
-        else if (declView.hasSymbol())
-        {
-            symbols.push_back(declView.sym());
-        }
+        collectSymbolsFromView(symbols, declView);
 
         if (symbols.size() != 1)
             return false;
@@ -328,17 +335,7 @@ namespace
 
         SmallVector<Symbol*> symbols;
         const SemaNodeView   view = sema.view(nodeRef, SemaNodeViewPartE::Symbol);
-        if (view.hasSymbolList())
-        {
-            const std::span<Symbol*> symList = view.symList();
-            symbols.reserve(symList.size());
-            for (Symbol* sym : symList)
-                symbols.push_back(sym);
-        }
-        else if (view.hasSymbol())
-        {
-            symbols.push_back(view.sym());
-        }
+        collectSymbolsFromView(symbols, view);
 
         if (symbols.size() != 1 || !symbols.front()->isVariable())
             return false;
@@ -429,17 +426,7 @@ namespace
 
         SmallVector<Symbol*> symbols;
         const SemaNodeView   declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
-        if (declView.hasSymbolList())
-        {
-            const std::span<Symbol*> list = declView.symList();
-            symbols.reserve(list.size());
-            for (Symbol* sym : list)
-                symbols.push_back(sym);
-        }
-        else if (declView.hasSymbol())
-        {
-            symbols.push_back(declView.sym());
-        }
+        collectSymbolsFromView(symbols, declView);
 
         if (symbols.size() != 1)
             return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, declRef);

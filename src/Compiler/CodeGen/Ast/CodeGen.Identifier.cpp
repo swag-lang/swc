@@ -781,7 +781,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView    view = codeGen.curViewSymbolList();
     SmallVector<TokenRef> tokNames;
     SmallVector<Symbol*>  recoveredSymbols;
-    std::span<Symbol*>    symbols = view.symList();
+    std::span<Symbol* const> symbols = view.symList();
     if (symbols.empty())
     {
         codeGen.ast().appendTokens(tokNames, spanNamesRef);
@@ -828,7 +828,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     const SemaNodeView   view = codeGen.curViewSymbolList();
     SmallVector<Symbol*> recoveredSymbols;
-    std::span<Symbol*>   symbols = view.symList();
+    std::span<Symbol* const> symbols = view.symList();
     if (symbols.empty())
     {
         recoverFunctionVariableDeclSymbols(codeGen, codeGen.curNodeRef(), tokNames.span(), recoveredSymbols);

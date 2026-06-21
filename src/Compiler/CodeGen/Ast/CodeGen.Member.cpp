@@ -414,7 +414,12 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
         rightSym = recoverMemberAccessRightSymbol(codeGen, nodeRightRef);
     if (rightSym)
     {
-        if (leftIsRuntimeValue && rightSym->isVariable())
+        // A static data member (`var` in an `impl`) has a single global storage, so
+        // `instance.staticMember` must resolve to that global - never to `instance +
+        // offset`. Only instance fields use the runtime base-relative access below;
+        // statics fall through to the scoped-symbol materialization (same as the
+        // type-qualified `Type.staticMember` case).
+        if (leftIsRuntimeValue && rightSym->isVariable() && !rightSym->cast<SymbolVariable>().hasGlobalStorage())
             return finalizeRuntimeMemberAccess(codeGen, codeGenStructMemberAccess(codeGen, *this));
         if (rightSym->isFunction() || rightSym->isType() || rightSym->isNamespace() || rightSym->isModule() || rightSym->isImpl())
             return Result::Continue;

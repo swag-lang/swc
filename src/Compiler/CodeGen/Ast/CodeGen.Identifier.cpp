@@ -163,6 +163,12 @@ namespace
 
     bool tryResolveImplicitReceiverFieldPayload(CodeGen& codeGen, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
     {
+        // A static (per-impl) data member has its own global storage; even though it
+        // is nominally a member of the receiver struct, it must never be addressed
+        // relative to the receiver instance. Let it fall through to the global path.
+        if (symVar.hasGlobalStorage())
+            return false;
+
         const SymbolVariable* receiver = implicitMeReceiver(codeGen);
         if (!receiver)
             return false;

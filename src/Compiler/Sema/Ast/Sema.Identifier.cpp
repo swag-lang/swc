@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -219,6 +220,20 @@ namespace
         return std::ranges::find(params, &symVar) != params.end();
     }
 
+    bool inlinePayloadOwnsVariable(const SemaInlinePayload* inlinePayload, const SymbolFunction& function, const SymbolVariable& symVar)
+    {
+        while (inlinePayload)
+        {
+            if (inlinePayload->sourceFunction == &function &&
+                std::ranges::find_if(inlinePayload->localVariables, [&symVar](const SymbolVariable* localVar) { return localVar == &symVar; }) != inlinePayload->localVariables.end())
+                return true;
+
+            inlinePayload = inlinePayload->parentInlinePayload;
+        }
+
+        return false;
+    }
+
     const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
     {
         const SymbolMap* map = function.ownerSymMap();
@@ -232,7 +247,7 @@ namespace
         return nullptr;
     }
 
-    const SymbolFunction* localFunctionBoundaryForOuterVariable(const SymbolFunction& currentFn, const SymbolVariable& symVar)
+    const SymbolFunction* localFunctionBoundaryForOuterVariable(Sema& sema, const SymbolFunction& currentFn, const SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
             return nullptr;
@@ -243,9 +258,12 @@ namespace
             return nullptr;
 
         const SymbolFunction* fn = &currentFn;
+        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         while (fn)
         {
             if (functionOwnsVariable(*fn, symVar))
+                return nullptr;
+            if (inlinePayloadOwnsVariable(inlinePayload, *fn, symVar))
                 return nullptr;
 
             const AstNode* decl = fn->decl();
@@ -712,7 +730,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
         const bool            isImplicitReceiver          = symVar.idRef() == meId;
         const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
-        const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(*sema.currentFunction(), symVar) : nullptr;
+        const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
         if (localFnBoundary)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());

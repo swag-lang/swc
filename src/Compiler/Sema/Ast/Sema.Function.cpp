@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -1049,6 +1050,28 @@ namespace
         return IdentifierRef::invalid();
     }
 
+    Result resolveClosureCaptureSourceSymbol(Sema& sema, AstNodeRef identifierRef, Symbol*& outSymbol)
+    {
+        outSymbol = sema.viewSymbol(identifierRef).sym();
+        if (outSymbol)
+            return Result::Continue;
+
+        if (!SemaHelpers::effectiveInlinePayload(sema))
+            return Result::Continue;
+
+        const auto* identifier = sema.node(identifierRef).safeCast<AstIdentifier>();
+        if (!identifier || !identifier->hasFlag(AstIdentifierFlagsE::InClosureCapture) || !identifier->codeRef().isValid())
+            return Result::Continue;
+
+        MatchContext lookupContext;
+        lookupContext.codeRef = identifier->codeRef();
+        SWC_RESULT(Match::match(sema, lookupContext, SemaHelpers::resolveIdentifier(sema, identifier->codeRef())));
+        SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, identifierRef, false, lookupContext.symbols().span()));
+
+        outSymbol = sema.viewSymbol(identifierRef).sym();
+        return Result::Continue;
+    }
+
     Result buildClosureCaptureSymbols(Sema& sema, const AstClosureExpr& node, SymbolFunction& sym)
     {
         TaskContext&            ctx = sema.ctx();
@@ -1059,8 +1082,8 @@ namespace
         for (const AstNodeRef captureRef : captures)
         {
             const AstClosureArgument& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
-            const SemaNodeView        sourceView = sema.viewSymbol(captureArg.nodeIdentifierRef);
-            Symbol* const             sourceSym  = sourceView.sym();
+            Symbol*                   sourceSym  = nullptr;
+            SWC_RESULT(resolveClosureCaptureSourceSymbol(sema, captureArg.nodeIdentifierRef, sourceSym));
             if (!sourceSym)
                 return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
 

@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -437,6 +438,13 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
     const TypeInfo& symType = sema.typeMgr().get(typeRef);
     SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
     sema.currentFunction()->addLocalVariable(sema.ctx(), &symVar);
+
+    if (auto* inlinePayload = const_cast<SemaInlinePayload*>(SemaHelpers::effectiveInlinePayload(sema)))
+    {
+        if (std::ranges::find(inlinePayload->localVariables, &symVar) == inlinePayload->localVariables.end())
+            inlinePayload->localVariables.push_back(&symVar);
+    }
+
     return Result::Continue;
 }
 

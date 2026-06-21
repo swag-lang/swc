@@ -788,6 +788,11 @@ namespace
         return lhs.size() == rhs.size() && std::ranges::equal(lhs, rhs);
     }
 
+    bool workspacePathListContainsAll(std::span<const fs::path> paths, std::span<const fs::path> expectedPaths)
+    {
+        return std::ranges::includes(paths, expectedPaths, {}, [](const fs::path& path) { return path.native(); }, [](const fs::path& path) { return path.native(); });
+    }
+
     bool tryGetWorkspacePathWriteTime(fs::file_time_type& outTime, const fs::path& path)
     {
         std::error_code ec;
@@ -816,7 +821,14 @@ namespace
         return true;
     }
 
-    void collectWorkspaceModuleInputs(std::vector<fs::path>& outInputs, const CommandLine& cmdLine, const fs::path& moduleFile, const fs::path& sourceDir, const std::set<fs::path>& loadedFiles)
+    void appendWorkspaceInputFiles(std::vector<fs::path>& outInputs, const std::set<fs::path>& inputFiles)
+    {
+        outInputs.reserve(outInputs.size() + inputFiles.size());
+        for (const fs::path& filePath : inputFiles)
+            outInputs.push_back(filePath);
+    }
+
+    void collectWorkspaceModuleInputs(std::vector<fs::path>& outInputs, const CommandLine& cmdLine, const fs::path& moduleFile, const fs::path& sourceDir, const std::set<fs::path>& loadedFiles, const std::set<fs::path>& setupCompilerInputFiles, const std::set<fs::path>& buildCompilerInputFiles)
     {
         outInputs.clear();
         if (!moduleFile.empty())
@@ -825,9 +837,9 @@ namespace
         if (!sourceDir.empty())
             collectSwagFilesRec(cmdLine, sourceDir, outInputs, true);
 
-        outInputs.reserve(outInputs.size() + loadedFiles.size());
-        for (const fs::path& filePath : loadedFiles)
-            outInputs.push_back(filePath);
+        appendWorkspaceInputFiles(outInputs, loadedFiles);
+        appendWorkspaceInputFiles(outInputs, setupCompilerInputFiles);
+        appendWorkspaceInputFiles(outInputs, buildCompilerInputFiles);
 
         normalizeWorkspacePaths(outInputs);
     }
@@ -981,14 +993,14 @@ namespace
 
     bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
     {
-        if (!sameWorkspacePathList(manifest.inputs, currentInputs))
+        if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
             return false;
 
         fs::file_time_type latestInputTime{};
         bool               hasInputTime = false;
-        for (const fs::path& path : currentInputs)
+        for (const fs::path& path : manifest.inputs)
         {
             fs::file_time_type pathTime;
             if (!tryGetWorkspacePathWriteTime(pathTime, path))
@@ -1902,7 +1914,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine))
     {
         std::vector<fs::path> currentInputs;
-        collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+        collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, {});
 
         CompilerInstance probeCompiler(global(), moduleCmdLine);
         probeCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
@@ -1998,7 +2010,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             if (moduleCmdLine.command != CommandKind::Test)
             {
                 WorkspaceArtifactManifest manifest;
-                collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+                collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
                 if (collectWorkspaceModuleDependencyDirs(manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
                 collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
@@ -2018,7 +2030,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         link->writeManifest = moduleCmdLine.command != CommandKind::Test;
         if (link->writeManifest)
         {
-            collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+            collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
             if (collectWorkspaceModuleDependencyDirs(link->manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
                 return Result::Error;
         }
@@ -2075,6 +2087,14 @@ Result CompilerInstance::registerModuleSetupLoad(const fs::path& filePath)
 
     moduleSetupLoadedFiles_.insert(FileSystem::normalizePath(filePath));
     return Result::Continue;
+}
+
+void CompilerInstance::registerCompilerInputFile(const fs::path& filePath)
+{
+    if (filePath.empty())
+        return;
+
+    compilerInputFiles_.insert(FileSystem::normalizePath(filePath));
 }
 
 void CompilerInstance::registerImportedDependencyLinkDir(const fs::path& path)
@@ -2151,9 +2171,10 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
     if (files.empty())
     {
-        outSnapshot.buildCfg    = setupCompiler.buildCfg();
-        outSnapshot.imports     = setupCompiler.moduleSetupImports_;
-        outSnapshot.loadedFiles = setupCompiler.moduleSetupLoadedFiles_;
+        outSnapshot.buildCfg            = setupCompiler.buildCfg();
+        outSnapshot.imports             = setupCompiler.moduleSetupImports_;
+        outSnapshot.loadedFiles         = setupCompiler.moduleSetupLoadedFiles_;
+        outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
         return Result::Continue;
     }
@@ -2197,9 +2218,10 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    outSnapshot.buildCfg    = setupCompiler.buildCfg();
-    outSnapshot.imports     = setupCompiler.moduleSetupImports_;
-    outSnapshot.loadedFiles = setupCompiler.moduleSetupLoadedFiles_;
+    outSnapshot.buildCfg            = setupCompiler.buildCfg();
+    outSnapshot.imports             = setupCompiler.moduleSetupImports_;
+    outSnapshot.loadedFiles         = setupCompiler.moduleSetupLoadedFiles_;
+    outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
     ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
     return Result::Continue;
 }

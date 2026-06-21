@@ -1407,6 +1407,7 @@ namespace
         std::vector<std::byte> bytes;
         SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
+        sema.compiler().registerCompilerInputFile(resolvedPath);
 
         SmallVector4<uint64_t> dims;
         dims.push_back(bytes.size());

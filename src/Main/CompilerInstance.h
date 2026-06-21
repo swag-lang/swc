@@ -273,6 +273,7 @@ public:
     bool                     isModuleSetupMode() const { return moduleSetupMode_; }
     Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
     Result                   registerModuleSetupLoad(const fs::path& filePath);
+    void                     registerCompilerInputFile(const fs::path& filePath);
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
@@ -308,6 +309,7 @@ private:
         Runtime::BuildCfg                  buildCfg{};
         std::vector<ModuleSetupImport>     imports;
         std::set<fs::path>                 loadedFiles;
+        std::set<fs::path>                 compilerInputFiles;
         std::vector<std::unique_ptr<Utf8>> ownedStrings;
 
         ModuleSetupSnapshot()                                          = default;
@@ -404,6 +406,7 @@ private:
     std::vector<ModuleSetupImport>                     moduleSetupImports_;
     std::vector<NativeRuntimeImport>                   nativeRuntimeImports_;
     std::set<fs::path>                                 moduleSetupLoadedFiles_;
+    std::set<fs::path>                                 compilerInputFiles_;
     std::vector<fs::path>                              importedDependencyLinkDirs_;
     std::unordered_set<fs::path>                       importedDependencyLinkDirSet_;
     std::vector<std::unique_ptr<Utf8>>                 ownedBuildCfgStrings_;

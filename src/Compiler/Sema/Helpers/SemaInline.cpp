@@ -1922,6 +1922,25 @@ namespace
         return tokenSpan <= K_AUTO_INLINE_MAX_BODY_TOKENS;
     }
 
+    bool isDynamicInterfaceDispatchCall(Sema& sema, const SymbolFunction& fn, AstNodeRef ufcsArg, std::span<const ResolvedCallArgument> resolvedArgs)
+    {
+        if (!fn.hasInterfaceMethodSlot())
+            return false;
+
+        if (ufcsArg.isValid())
+        {
+            const SemaNodeView receiverView = sema.viewType(ufcsArg);
+            if (receiverView.type() && receiverView.type()->isInterface())
+                return true;
+        }
+
+        for (const ResolvedCallArgument& arg : resolvedArgs)
+            if (arg.passKind == CallArgumentPassKind::InterfaceObject)
+                return true;
+
+        return false;
+    }
+
 }
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
@@ -1970,6 +1989,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!canInlineCall(sema, fn))
         return Result::Continue;
 
+    SmallVector<ResolvedCallArgument> resolvedArgs;
+    sema.appendResolvedCallArguments(callRef, resolvedArgs);
+    if (isDynamicInterfaceDispatchCall(sema, fn, ufcsArg, resolvedArgs.span()))
+        return Result::Continue;
+
     const AstFunctionDecl* decl    = nullptr;
     const Ast*             declAst = nullptr;
     if (!resolveFunctionDecl(sema, fn, decl, declAst))
@@ -2010,9 +2034,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // already filtered out above, so this does not wait on the function being expanded.
     if ((isCrossAstInline || isAutoSelected) && !isMacro && !isMixin)
         SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
-
-    SmallVector<ResolvedCallArgument> resolvedArgs;
-    sema.appendResolvedCallArguments(callRef, resolvedArgs);
 
     const InlineArgumentMapContext context{
         .callRef      = callRef,

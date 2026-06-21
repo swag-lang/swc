@@ -2170,22 +2170,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         {
             SemaScope* inlineScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
 
-            // An auto-selected inline body is its own resolution scope: a distinct function, not
-            // a nested block of the caller. pushScope() inherits the parent's symMap (here the
-            // CALLER function), which would register the inlined body's own locals under the
-            // caller's function and let them clash with the caller's parameters. Bind the inline
-            // scope to the CALLEE and re-parent its lookup above the caller's function-local
-            // scopes onto the enclosing namespace. Argument expressions are unaffected: they are
-            // cloned and resolved against the caller through upLookupScope, not through here.
-            // Marked inlines keep the prior (inherited) scope to avoid regressions.
-            if (isAutoSelected)
-            {
-                inlineScope->setSymMap(const_cast<SymbolFunction*>(&fn));
-                SemaScope* isolatedParent = callerScope;
-                while (isolatedParent && (isolatedParent->isLocal() || isolatedParent->isParameters()))
-                    isolatedParent = isolatedParent->lookupParent();
-                inlineScope->setLookupParent(isolatedParent);
-            }
+            // An inline body is its own function body materialized at the caller site. Keep the
+            // caller lookup chain reachable for nested inline expressions, but bind declarations
+            // in the cloned body to the callee function so local names do not collide with caller
+            // parameters at the same lookup priority.
+            inlineScope->setSymMap(const_cast<SymbolFunction*>(&fn));
         }
     }
 

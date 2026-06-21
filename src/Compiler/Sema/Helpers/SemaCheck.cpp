@@ -115,6 +115,21 @@ namespace
         if (!sema.node(nodeRef).is(AstNodeId::Identifier))
             return nullptr;
 
+        const SemaNodeView symbolView = sema.viewSymbol(nodeRef);
+        if (const Symbol* symbol = symbolView.sym())
+        {
+            if (!symbol->isVariable())
+                return nullptr;
+
+            const auto& symVar = symbol->cast<SymbolVariable>();
+            if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                return nullptr;
+            if (symVar.ownerSymMap() != sema.currentFunction())
+                return nullptr;
+
+            return &symVar;
+        }
+
         const SourceCodeRef codeRef = sema.node(nodeRef).codeRef();
         if (!canResolveFunctionParameterIdentifier(sema, codeRef))
             return nullptr;

@@ -264,8 +264,8 @@ namespace
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
             // Intended default: Auto. The semantic layer of auto-inlining is hardened (callee
-            // sema-completion wait + preserved resolved symbols + isolated inline scope, all
-            // gated on isAutoSelected so marked/macro/mixin inlines are unchanged). The
+            // sema-completion wait + preserved resolved symbols for auto candidates, plus a
+            // callee-owned inline body scope for ordinary inline materialization). The
             // remaining blocker is in CODEGEN: an auto-inlined body that passes a constant call
             // argument trips materializeTypedConstantPayload (CodeGenCallHelpers.Call.cpp) — the
             // moved body's typed-constant argument payload is not reconstructed the way codegen

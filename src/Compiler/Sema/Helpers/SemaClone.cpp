@@ -89,6 +89,26 @@ namespace
                decl->is(AstNodeId::ForeachStmt);
     }
 
+    bool containsAutoMemberAccess(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid() || !sema.ast().hasNode(nodeRef))
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::AutoMemberAccessExpr))
+            return true;
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (containsAutoMemberAccess(sema, childRef))
+                return true;
+        }
+
+        return false;
+    }
+
     NodePayload::StoredView currentStoredView(Sema& sema, AstNodeRef sourceRef)
     {
         NodePayload::StoredView view;
@@ -728,8 +748,9 @@ namespace
                 return newRef;
             }
 
-            AstNodeRef clonedExprRef = AstNodeRef::invalid();
-            if (cloneContext.preserveBindingExprState)
+            AstNodeRef clonedExprRef                         = AstNodeRef::invalid();
+            const bool bindingNeedsContextualAutoMemberClone = binding->typeRef.isValid() && containsAutoMemberAccess(sema, binding->exprRef);
+            if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone)
                 clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
             else
                 clonedExprRef = cloneExprPreservingResolvedIdentifierSymbols(sema, binding->exprRef);

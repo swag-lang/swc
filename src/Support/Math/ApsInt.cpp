@@ -71,6 +71,19 @@ int ApsInt::compare(const ApsInt& other) const
 {
     if (unsigned_ != other.unsigned_)
         return unsigned_ ? -1 : 1;
+
+    // ApInt::compare is an unsigned word comparison, which is wrong for signed
+    // negative values (e.g. -1 would compare greater than 0). Dispatch on the
+    // signedness, mirroring lt/gt.
+    if (!unsigned_)
+    {
+        if (slt(other))
+            return -1;
+        if (sgt(other))
+            return 1;
+        return 0;
+    }
+
     return ApInt::compare(other);
 }
 

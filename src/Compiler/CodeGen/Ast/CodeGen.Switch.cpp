@@ -682,16 +682,18 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
 
 Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const CodeGenFrame::BreakContext& breakCtx = codeGen.frame().currentBreakContext();
+    const CodeGenFrame::BreakContext breakCtx = codeGen.frame().currentBreakContext();
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::None)
         return Result::Continue;
+
+    const MicroLabelRef breakLabel = codeGen.frame().currentLoopBreakLabel();
+    const AstNodeRef    switchRef  = codeGen.frame().currentSwitch();
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(breakCtx.nodeRef));
 
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop ||
         breakCtx.kind == CodeGenFrame::BreakContextKind::Scope)
     {
-        const MicroLabelRef breakLabel = codeGen.frame().currentLoopBreakLabel();
         if (breakLabel != MicroLabelRef::invalid())
         {
             MicroBuilder& builder = codeGen.builder();
@@ -700,7 +702,6 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
         return Result::Continue;
     }
 
-    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
     const SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);

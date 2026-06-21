@@ -667,7 +667,7 @@ Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const CodeGenFrame::BreakContext& continueCtx = codeGen.frame().currentContinueContext();
+    const CodeGenFrame::BreakContext continueCtx = codeGen.frame().currentContinueContext();
     if (continueCtx.kind != CodeGenFrame::BreakContextKind::Loop &&
         continueCtx.kind != CodeGenFrame::BreakContextKind::Scope)
         return Result::Continue;

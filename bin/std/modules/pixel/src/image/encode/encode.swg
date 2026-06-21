@@ -40,10 +40,25 @@ public impl Image
         return false
     }
 
-    // Save the image to a file
+    // Save the image to a file.
+    //
+    // The body is delegated to the 'saveToFile' free function on purpose: the
+    // 'encoders' registry is a static data member that is duplicated per module,
+    // and only the copy in this (pixel) module is populated by the '#init' below.
+    // An instance method like this one is materialized into the *calling* module,
+    // where '&encoders' would resolve to that module's empty/uninitialized copy and
+    // crash (access violation when called from another DLL/exe). A free function is
+    // reached through this module's exported symbol, so it runs here and sees the
+    // initialized registry.
     mtd save(fileName: string, options: any = null) throw
     {
-        Debug.assert(.pixels.buffer != null, "image is invalid")
+        try saveToFile(me, fileName, options)
+    }
+
+    // Save 'image' to a file, picking the encoder from the file extension.
+    func saveToFile(image: Image, fileName: string, options: any = null) throw
+    {
+        Debug.assert(image.pixels.buffer != null, "image is invalid")
 
         // Find the encoder that can treat 'fileName'
         var found: *ImageEncoder
@@ -69,9 +84,9 @@ public impl Image
         }
 
         // Encode
-        let itf     = @mkinterface(ptrEncoder, found.type, IImageEncoder)
+        let itf = @mkinterface(ptrEncoder, found.type, IImageEncoder)
         var result: ConcatBuffer
-        itf.encode(&result, me, options)
+        itf.encode(&result, image, options)
         File.writeAllBytes(fileName, result)
     }
 }

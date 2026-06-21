@@ -1087,6 +1087,46 @@ namespace
         return inlineBindingUseCount(sema, sourceAst, nodeRef, binding.idRef) > 1;
     }
 
+    bool inlineBindingExprIsDirectStableLValue(Sema& sema, AstNodeRef exprRef)
+    {
+        AstNodeRef ref = exprRef;
+        for (uint32_t depth = 0; depth < 8 && ref.isValid(); ++depth)
+        {
+            const AstNode& node = sema.node(ref);
+            if (node.is(AstNodeId::Identifier))
+                return true;
+            if (const auto* castNode = node.safeCast<AstCastExpr>())
+            {
+                ref = castNode->nodeExprRef;
+                continue;
+            }
+            if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
+            {
+                ref = autoCastNode->nodeExprRef;
+                continue;
+            }
+            if (const auto* parenNode = node.safeCast<AstParenExpr>())
+            {
+                ref = parenNode->nodeExprRef;
+                continue;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    bool inlineBindingNeedsRepeatedLValueMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, const SemaClone::ParamBinding& binding)
+    {
+        if (!binding.exprRef.isValid() || !binding.idRef.isValid())
+            return false;
+        if (!sema.isLValue(binding.exprRef))
+            return false;
+        if (inlineBindingExprIsDirectStableLValue(sema, binding.exprRef))
+            return false;
+        return inlineBindingUseCount(sema, sourceAst, nodeRef, binding.idRef) > 1;
+    }
+
     bool sourceSubtreeUsesIdentifier(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
     {
         const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
@@ -1272,10 +1312,13 @@ namespace
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceRepeatedRValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
+            const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
+                                                            inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool forceBindingMaterialization = forceExplicitMaterialization ||
                                                      forceVariadicMaterialization ||
                                                      forceIndexOrForeachMaterialization ||
-                                                     forceRepeatedRValueMaterialization;
+                                                     forceRepeatedRValueMaterialization ||
+                                                     forceRepeatedLValueMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);

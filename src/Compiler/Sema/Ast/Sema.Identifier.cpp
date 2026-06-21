@@ -103,6 +103,16 @@ namespace
         return bindingIds;
     }
 
+    void appendInlineBindingChain(SmallVector<SemaClone::ParamBinding>& outBindings, const SemaInlinePayload* inlinePayload)
+    {
+        while (inlinePayload)
+        {
+            for (const SemaClone::ParamBinding& binding : inlinePayload->argMappings)
+                outBindings.push_back(binding);
+            inlinePayload = inlinePayload->parentInlinePayload;
+        }
+    }
+
     bool containsInlineBindingUse(Sema& sema, AstNodeRef nodeRef, const InlineBindingIdentifierSet& bindingIds)
     {
         if (nodeRef.isInvalid() || bindingIds.empty())
@@ -590,10 +600,12 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     const auto* inlinePayload     = SemaHelpers::effectiveInlinePayload(sema);
     if (inlinePayload)
     {
-        const auto bindingIds = collectInlineBindingIdentifiers(inlinePayload->argMappings.span());
+        SmallVector<SemaClone::ParamBinding> bindings;
+        appendInlineBindingChain(bindings, inlinePayload);
+        const auto bindingIds = collectInlineBindingIdentifiers(bindings.span());
         if (containsInlineBindingUse(sema, nodeIdentRef, bindingIds))
         {
-            const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span(), std::span<const SemaClone::NodeReplacement>{}, false, nullptr, true};
+            const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, nullptr, true};
             targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
             if (targetRef.isInvalid())
                 return Result::Error;

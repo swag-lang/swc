@@ -36,9 +36,47 @@ namespace
         return function && function->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
     }
 
+    const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
+    {
+        const SymbolMap* map = function.ownerSymMap();
+        while (map)
+        {
+            if (map->isFunction())
+                return &map->cast<SymbolFunction>();
+            map = map->ownerSymMap();
+        }
+
+        return nullptr;
+    }
+
+    bool isMacroFunctionOrNestedInMacro(const SymbolFunction* function)
+    {
+        while (function)
+        {
+            if (isMacroFunction(function))
+                return true;
+            function = parentLexicalFunction(*function);
+        }
+
+        return false;
+    }
+
+    const SemaInlinePayload* macroInlinePayload(const Sema& sema)
+    {
+        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        while (inlinePayload)
+        {
+            if (isMacroFunctionOrNestedInMacro(inlinePayload->sourceFunction))
+                return inlinePayload;
+            inlinePayload = inlinePayload->parentInlinePayload;
+        }
+
+        return nullptr;
+    }
+
     bool isMacroInlineContext(const Sema& sema)
     {
-        return isMacroFunction(SemaHelpers::effectiveInlinePayload(sema) ? SemaHelpers::effectiveInlinePayload(sema)->sourceFunction : nullptr);
+        return macroInlinePayload(sema) != nullptr;
     }
 
     Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
@@ -1542,11 +1580,7 @@ Result AstCompilerMacro::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     auto* hiddenScope = sema.curScopePtr();
     auto* callerScope = sema.resolvedUpLookupScope();
-    if (const auto* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
-        inlinePayload &&
-        inlinePayload->sourceFunction &&
-        inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
-        inlinePayload->callerScope)
+    if (const auto* inlinePayload = macroInlinePayload(sema); inlinePayload && inlinePayload->callerScope)
     {
         callerScope = inlinePayload->callerScope;
     }

@@ -64,6 +64,30 @@ public:
         Logger* logger_ = nullptr;
     };
 
+    class ScopedStageOutputUnmute
+    {
+    public:
+        explicit ScopedStageOutputUnmute(Logger& logger) :
+            logger_(&logger),
+            savedStageMuteDepth_(logger.stageMuteDepth_)
+        {
+            logger_->stageMuteDepth_ = 0;
+        }
+
+        ~ScopedStageOutputUnmute()
+        {
+            if (logger_)
+                logger_->stageMuteDepth_ = savedStageMuteDepth_;
+        }
+
+        ScopedStageOutputUnmute(const ScopedStageOutputUnmute&)            = delete;
+        ScopedStageOutputUnmute& operator=(const ScopedStageOutputUnmute&) = delete;
+
+    private:
+        Logger* logger_              = nullptr;
+        size_t  savedStageMuteDepth_ = 0;
+    };
+
     class ScopedLock
     {
     public:

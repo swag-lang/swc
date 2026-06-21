@@ -23,10 +23,9 @@ void main()
     // pixel distance and the coverage ramps over ~1px centred on the contour. The
     // edge therefore stays crisp at any zoom, instead of widening (blurring) with
     // the transform the way a raw path-space band does. At scale ~1 this matches the
-    // old linear ramp, but it is orientation-correct and scale-invariant.
-    color.w *= clamp(vcov, 0.0, 1.0);
-    //float d = vcov - 0.5;
-    //color.w *= clamp(d / max(fwidth(d), 1e-5) + 0.5, 0.0, 1.0);
+    // old linear ramp, but it is orientation-correct and scale-invariant.   
+    float d = vcov - 0.5;
+    color.w *= clamp(d / max(fwidth(d), 1e-5) + 0.5, 0.0, 1.0);
 
     color.w *= texture(inTexture1, vuv1).r;
     if(color.w == 0 && !copyMode)

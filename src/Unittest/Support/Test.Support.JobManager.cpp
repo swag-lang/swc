@@ -6,6 +6,7 @@
 
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
@@ -78,7 +79,8 @@ namespace
     class StdoutCapture
     {
     public:
-        StdoutCapture() :
+        explicit StdoutCapture(Logger& logger) :
+            unmute_(logger),
             previous_(std::cout.rdbuf(stream_.rdbuf()))
         {
         }
@@ -91,6 +93,7 @@ namespace
         std::string str() const { return stream_.str(); }
 
     private:
+        Logger::ScopedStageOutputUnmute unmute_;
         std::ostringstream stream_;
         std::streambuf*    previous_ = nullptr;
     };
@@ -129,7 +132,7 @@ SWC_TEST_BEGIN(ScopedTimedLog_CommandHeaderUsesCommandGlyph)
 
     const Global      global;
     const TaskContext localCtx(global, cmdLine);
-    StdoutCapture     capture;
+    StdoutCapture     capture(global.logger());
     ScopedTimedLog::printCommandHeader(localCtx);
 
     const std::string text = capture.str();
@@ -149,7 +152,7 @@ SWC_TEST_BEGIN(ScopedTimedLog_UpToDateUsesReuseGlyph)
 
     const Global      global;
     const TaskContext localCtx(global, cmdLine);
-    StdoutCapture     capture;
+    StdoutCapture     capture(global.logger());
     {
         ScopedTimedLog stage(localCtx, ScopedTimedLog::Stage::Module, "core");
         stage.markUpToDate();

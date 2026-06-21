@@ -7,6 +7,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -374,11 +375,38 @@ namespace
         }
     }
 
-    Result emitSpecialEqualsNotEqual(CodeGen& codeGen)
+    Result emitSpecialCallResult(CodeGen& codeGen, const RelationalSpecOpPayload& relationalPayload)
     {
-        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+        const AstNodeRef callRef     = codeGen.curNodeRef();
+        AstNodeRef       resolvedRef = codeGen.resolvedNodeRef(callRef);
+        if ((resolvedRef.isInvalid() || resolvedRef == callRef) && relationalPayload.inlineSubstituteRef.isValid())
+            resolvedRef = relationalPayload.inlineSubstituteRef;
+        if (resolvedRef.isValid() && resolvedRef != callRef)
+        {
+            SWC_RESULT(codeGen.emitNodeNow(resolvedRef));
+            codeGen.inheritPayload(callRef, resolvedRef);
+            return Result::Continue;
+        }
 
-        const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
+
+    CodeGenNodePayload& materializeSpecialResultPayload(CodeGen& codeGen, TypeRef resultTypeRef, MicroOpBits opBits)
+    {
+        const CodeGenNodePayload callPayload = codeGen.payload(codeGen.curNodeRef());
+        CodeGenNodePayload&      resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        if (callPayload.isAddress())
+            CodeGenMemoryHelpers::loadOperandToRegister(resultPayload.reg, codeGen, callPayload, callPayload.typeRef, opBits);
+        else
+            codeGen.builder().emitLoadRegReg(resultPayload.reg, callPayload.reg, opBits);
+        return resultPayload;
+    }
+
+    Result emitSpecialEqualsNotEqual(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
+    {
+        SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
+
+        const CodeGenNodePayload& resultPayload = materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B8);
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
         builder.emitSetCondReg(resultPayload.reg, MicroCond::Equal);
@@ -386,9 +414,21 @@ namespace
         return Result::Continue;
     }
 
-    Result emitSpecialCmpBool(CodeGen& codeGen, TokenId tokId)
+    Result emitSpecialEqualsEqual(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
     {
-        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+        SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
+
+        const CodeGenNodePayload& resultPayload = materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B8);
+        MicroBuilder&             builder       = codeGen.builder();
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitSetCondReg(resultPayload.reg, MicroCond::NotEqual);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        return Result::Continue;
+    }
+
+    Result emitSpecialCmpBool(CodeGen& codeGen, TokenId tokId, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
+    {
+        SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
 
         auto cond = MicroCond::Equal;
         switch (tokId)
@@ -409,7 +449,7 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
+        const CodeGenNodePayload& resultPayload = materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B32);
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B32);
         builder.emitSetCondReg(resultPayload.reg, cond);
@@ -417,22 +457,29 @@ namespace
         return Result::Continue;
     }
 
-    Result emitSpecialRelational(CodeGen& codeGen, TokenId tokId, const SymbolFunction& calledFn)
+    Result emitSpecialCmpValue(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
+    {
+        SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
+        materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B32);
+        return Result::Continue;
+    }
+
+    Result emitSpecialRelational(CodeGen& codeGen, TokenId tokId, const SymbolFunction& calledFn, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
     {
         switch (calledFn.specOpKind())
         {
             case SpecOpKind::OpEquals:
                 if (tokId == TokenId::SymEqualEqual)
-                    return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+                    return emitSpecialEqualsEqual(codeGen, resultTypeRef, relationalPayload);
                 if (tokId == TokenId::SymBangEqual)
-                    return emitSpecialEqualsNotEqual(codeGen);
+                    return emitSpecialEqualsNotEqual(codeGen, resultTypeRef, relationalPayload);
                 break;
 
             case SpecOpKind::OpCompare:
                 if (tokId == TokenId::SymLessEqualGreater)
-                    return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+                    return emitSpecialCmpValue(codeGen, resultTypeRef, relationalPayload);
                 if (tokId == TokenId::SymLess || tokId == TokenId::SymLessEqual || tokId == TokenId::SymGreater || tokId == TokenId::SymGreaterEqual)
-                    return emitSpecialCmpBool(codeGen, tokId);
+                    return emitSpecialCmpBool(codeGen, tokId, resultTypeRef, relationalPayload);
                 break;
 
             default:
@@ -631,10 +678,12 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto*  relationalPayload = codeGen.sema().semaPayload<RelationalSpecOpPayload>(codeGen.curNodeRef());
     if (relationalPayload && relationalPayload->calledFn != nullptr)
     {
+        const TypeRef resultTypeRef = codeGen.viewType(codeGen.curNodeRef()).typeRef();
+        SWC_ASSERT(resultTypeRef.isValid());
         codeGen.sema().setSymbol(codeGen.curNodeRef(), relationalPayload->calledFn);
         const auto& calledFn = *relationalPayload->calledFn;
         if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCompare)
-            return emitSpecialRelational(codeGen, tok.id, calledFn);
+            return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);
     }
 
     switch (tok.id)

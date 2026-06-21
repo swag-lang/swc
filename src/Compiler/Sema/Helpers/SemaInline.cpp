@@ -2133,6 +2133,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
     frame.setInlineContextRootRef(inlineRootRef);
+    if (!isMacro && !isMixin)
+    {
+        frame.setCurrentImpl(fn.declImplContext());
+        frame.setCurrentInterface(fn.declInterfaceContext());
+    }
     if (isMacro || isMixin)
     {
         if (SymbolVariable* receiver = receiverBinding(sema, fn))
@@ -2143,7 +2148,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
                 frame.pushBindingVar(receiver);
         }
     }
-    
+
     const bool needsOwnerScope = isMacro;
     SemaScope* ownerScope      = nullptr;
     if (needsOwnerScope)

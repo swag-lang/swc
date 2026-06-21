@@ -74,6 +74,21 @@ namespace
         return (static_cast<uint16_t>(view.flags) & static_cast<uint16_t>(flag)) != 0;
     }
 
+    bool isNonParameterVariableDecl(const Symbol& symbol)
+    {
+        const AstNode* decl = symbol.decl();
+        if (!decl)
+            return false;
+
+        if (const auto* singleVar = decl->safeCast<AstSingleVarDecl>())
+            return !singleVar->hasFlag(AstVarDeclFlagsE::Parameter);
+        if (const auto* multiVar = decl->safeCast<AstMultiVarDecl>())
+            return !multiVar->hasFlag(AstVarDeclFlagsE::Parameter);
+        return decl->is(AstNodeId::VarDeclDestructuring) ||
+               decl->is(AstNodeId::ForStmt) ||
+               decl->is(AstNodeId::ForeachStmt);
+    }
+
     NodePayload::StoredView currentStoredView(Sema& sema, AstNodeRef sourceRef)
     {
         NodePayload::StoredView view;
@@ -737,9 +752,22 @@ namespace
                                                  storedView->sym &&
                                                  storedView->sym->ownerSymMap() &&
                                                  storedView->sym->ownerSymMap()->isFunction();
+        const bool sourceFunctionLocalIdentifier = storedView &&
+                                                   storedView->sym &&
+                                                   storedView->sym->isFunctionLocalVariable() &&
+                                                   node.codeRef().isValid() &&
+                                                   sema.token(node.codeRef()).id == TokenId::Identifier;
+        const bool sourceLexicalLocalIdentifier = storedView &&
+                                                  storedView->sym &&
+                                                  !storedView->sym->ownerSymMap() &&
+                                                  storedView->sym->isValueExpr() &&
+                                                  isNonParameterVariableDecl(*storedView->sym) &&
+                                                  node.codeRef().isValid() &&
+                                                  sema.token(node.codeRef()).id == TokenId::Identifier;
+        const bool sourceLocalIdentifierPinned = pinResolvedSymbol && (sourceSymbolOwnedByFunction || sourceFunctionLocalIdentifier || sourceLexicalLocalIdentifier);
         const bool preserveSyntheticSymbol = storedView && storedView->sym &&
-                                             (node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) ||
-                                              ((!pinResolvedSymbol || !sourceSymbolOwnedByFunction) &&
+                                             ((node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && !sourceLocalIdentifierPinned) ||
+                                              (!sourceLocalIdentifierPinned &&
                                                (!storedView->sym->isFunctionLocalVariable() ||
                                                 !node.codeRef().isValid() ||
                                                 sema.token(node.codeRef()).id != TokenId::Identifier)));
@@ -750,8 +778,8 @@ namespace
             // in) the cloned identifier must not be re-resolved by name in the destination
             // scope: the source symbol may be file/module-private, an overload that name-lookup
             // would pick wrong, or shadowed there. Mark it pre-resolved so sema honors the
-            // carried symbol. Function-owned symbols (locals/params) are excluded above so they
-            // still bind to the cloned decls / substituted arguments.
+            // carried symbol. Local symbols are excluded above so they still bind to the cloned
+            // decls / substituted arguments.
             if (pinResolvedSymbol)
                 nodePtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
         }

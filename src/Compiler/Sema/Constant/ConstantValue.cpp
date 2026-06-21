@@ -551,7 +551,12 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
         return makeChar(ctx, static_cast<uint32_t>(v.asI64()));
     if (ty.isRune())
         return makeRune(ctx, static_cast<uint32_t>(v.asI64()));
-    return makeInt(ctx, v, ty.payloadIntBits(), ty.payloadIntSign());
+
+    ApsInt value = v;
+    if (ty.isIntUnsized() && value.bitWidth() != ApInt::maxBitWidth())
+        value.resize(ApInt::maxBitWidth());
+
+    return makeInt(ctx, value, ty.payloadIntBits(), ty.payloadIntSign());
 }
 
 ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef)

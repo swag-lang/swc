@@ -290,7 +290,7 @@ namespace
         if (!isActiveCompilerRunRoot(codeGen))
             return Result::SkipChildren;
 
-        if (childRef != bodyRef)
+        if (childRef != codeGen.resolvedNodeRef(bodyRef))
             return Result::SkipChildren;
 
         const CallConvKind callConvKind  = codeGen.function().callConvKind();
@@ -369,7 +369,7 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     if (!isActiveCompilerRunRoot(codeGen))
         return Result::SkipChildren;
 
-    if (childRef != nodeBodyRef)
+    if (childRef != codeGen.resolvedNodeRef(nodeBodyRef))
         return Result::SkipChildren;
 
     const CallConvKind callConvKind = codeGen.function().callConvKind();

@@ -127,17 +127,25 @@ namespace
         return nullptr;
     }
 
-    Result validateInlineBindingOuterScopeVariables(Sema& sema, AstNodeRef exprRef)
+    const SymbolFunction* inlineBindingValidationFunction(Sema& sema, AstNodeRef nodeRef, const SymbolFunction& currentFn)
+    {
+        const AstNode& node = sema.node(nodeRef);
+        if (node.isNot(AstNodeId::FunctionExpr) && node.isNot(AstNodeId::ClosureExpr))
+            return &currentFn;
+
+        const Symbol* sym = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
+        if (!sym || !sym->isFunction())
+            return &currentFn;
+
+        return &sym->cast<SymbolFunction>();
+    }
+
+    Result validateInlineBindingOuterScopeVariables(Sema& sema, const SymbolFunction& currentFn, AstNodeRef exprRef, SmallVector<AstNodeRef>& visited)
     {
         if (exprRef.isInvalid())
             return Result::Continue;
 
-        const SymbolFunction* currentFn = sema.currentFunction();
-        if (!currentFn)
-            return Result::Continue;
-
         SmallVector<AstNodeRef> pending;
-        SmallVector<AstNodeRef> visited;
         pending.push_back(exprRef);
         while (!pending.empty())
         {
@@ -156,7 +164,7 @@ namespace
                 if (sym && sym->isVariable())
                 {
                     const auto&           symVar        = sym->cast<SymbolVariable>();
-                    const SymbolFunction* localBoundary = localFunctionBoundaryForOuterVariable(*currentFn, symVar);
+                    const SymbolFunction* localBoundary = localFunctionBoundaryForOuterVariable(currentFn, symVar);
                     if (localBoundary)
                     {
                         const std::string_view symName = node.codeRef().isValid() ? sema.tokenString(node.codeRef()) : symVar.name(sema.ctx());
@@ -187,6 +195,16 @@ namespace
             if (resolvedRef.isValid() && resolvedRef != nodeRef)
                 pending.push_back(resolvedRef);
 
+            const SymbolFunction* childCurrentFn = inlineBindingValidationFunction(sema, nodeRef, currentFn);
+            if (childCurrentFn != &currentFn)
+            {
+                SmallVector<AstNodeRef> children;
+                node.collectChildrenFromAst(children, sema.ast());
+                for (const AstNodeRef childRef : children)
+                    SWC_RESULT(validateInlineBindingOuterScopeVariables(sema, *childCurrentFn, childRef, visited));
+                continue;
+            }
+
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema.ast());
             for (const AstNodeRef childRef : children)
@@ -194,6 +212,16 @@ namespace
         }
 
         return Result::Continue;
+    }
+
+    Result validateInlineBindingOuterScopeVariables(Sema& sema, AstNodeRef exprRef)
+    {
+        const SymbolFunction* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> visited;
+        return validateInlineBindingOuterScopeVariables(sema, *currentFn, exprRef, visited);
     }
 
     struct InlineVariadicBinding

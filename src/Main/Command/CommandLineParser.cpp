@@ -263,11 +263,8 @@ namespace
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
-            // Auto-inlining is not yet robust: under optimization it materializes inlined
-            // bodies that fail re-resolution (e.g. `cannot assign to 'let' __inline_arg`,
-            // spurious cast errors) and trips materializeTypedConstantPayload in
-            // CodeGenCallHelpers.Call.cpp for constant call arguments. Held at MarkedOnly
-            // (matches fast-debug, no regression) until that hardening lands; then flip to Auto.
+            // Auto-inlining is not yet robust: keep release on explicitly-marked calls
+            // while individual auto-inline regressions are captured as forced Inline tests.
             buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
         }
         else

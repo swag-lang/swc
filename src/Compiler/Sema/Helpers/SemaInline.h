@@ -36,6 +36,25 @@ struct SemaInlinePayload
     TypeRef                                          returnTypeRef    = TypeRef::invalid();
 };
 
+namespace SemaInline
+{
+    inline bool hasReturnContext(const SemaInlinePayload& payload) { return !payload.returnsToCallerSite() && payload.returnTypeRef.isValid(); }
+
+    inline SemaInlinePayload* returnContextPayload(SemaInlinePayload* payload)
+    {
+        while (payload && !hasReturnContext(*payload))
+            payload = payload->parentInlinePayload;
+        return payload;
+    }
+
+    inline const SemaInlinePayload* returnContextPayload(const SemaInlinePayload* payload)
+    {
+        while (payload && !hasReturnContext(*payload))
+            payload = payload->parentInlinePayload;
+        return payload;
+    }
+}
+
 struct SemaInlineContextOverride
 {
     const SemaInlinePayload* targetInlinePayload = nullptr;

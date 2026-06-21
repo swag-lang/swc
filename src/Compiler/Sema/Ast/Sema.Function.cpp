@@ -30,12 +30,6 @@ namespace
         return node.hasFlag(AstFunctionFlagsE::Short) && node.nodeReturnTypeRef.isInvalid();
     }
 
-    bool usesInlineReturnContext(const Sema& sema, const SemaInlinePayload& inlinePayload)
-    {
-        SWC_UNUSED(sema);
-        return !inlinePayload.returnsToCallerSite() && inlinePayload.returnTypeRef.isValid();
-    }
-
     SymbolFunction& registerFunctionSymbol(Sema& sema, const AstFunctionDecl& node)
     {
         if (!sema.curScope().isLocal())
@@ -736,8 +730,8 @@ namespace
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
         outTypeRef                             = TypeRef::invalid();
-        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && usesInlineReturnContext(sema, *inlinePayload))
+        const SemaInlinePayload* inlinePayload = SemaInline::returnContextPayload(sema.frame().currentInlinePayload());
+        if (inlinePayload)
         {
             outTypeRef = inlinePayload->returnTypeRef;
             return Result::Continue;
@@ -1562,8 +1556,8 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         return Result::Continue;
 
     TypeRef                  returnTypeRef = TypeRef::invalid();
-    const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-    if (inlinePayload && usesInlineReturnContext(sema, *inlinePayload))
+    const SemaInlinePayload* inlinePayload = SemaInline::returnContextPayload(sema.frame().currentInlinePayload());
+    if (inlinePayload)
     {
         returnTypeRef = inlinePayload->returnTypeRef;
     }

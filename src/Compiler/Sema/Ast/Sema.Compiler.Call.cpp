@@ -513,7 +513,7 @@ namespace
             if (injectsVoidCode)
             {
                 auto* inlineOverridePayload                = sema.compiler().allocate<SemaInlineContextOverride>();
-                inlineOverridePayload->targetInlinePayload = inlinePayload->parentInlinePayload;
+                inlineOverridePayload->targetInlinePayload = SemaInline::returnContextPayload(inlinePayload->parentInlinePayload);
                 sema.setInlineContextOverride(clonedRef, inlineOverridePayload);
             }
 

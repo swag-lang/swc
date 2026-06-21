@@ -70,29 +70,31 @@ namespace
         return payload && payload->usesCustomVisit;
     }
 
-    std::span<const Symbol* const> foreachSymbols(CodeGen& codeGen, AstNodeRef nodeRef)
+    std::span<const Symbol* const> storedForeachSymbols(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        SemaNodeView symbolsView = codeGen.viewSymbolList(nodeRef);
+        const SemaNodeView symbolsView = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Symbol);
         if (symbolsView.symList().size() >= 2)
             return {symbolsView.symList().data(), symbolsView.symList().size()};
-
-        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
-        if (resolvedRef.isValid() && resolvedRef != nodeRef)
-        {
-            symbolsView = codeGen.viewSymbolList(resolvedRef);
-            if (symbolsView.symList().size() >= 2)
-                return {symbolsView.symList().data(), symbolsView.symList().size()};
-        }
 
         if (const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(nodeRef);
             payload && payload->localSymbols.size() >= 2)
             return {payload->localSymbols.data(), payload->localSymbols.size()};
 
+        return {};
+    }
+
+    std::span<const Symbol* const> foreachSymbols(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        auto symbols = storedForeachSymbols(codeGen, nodeRef);
+        if (symbols.size() >= 2)
+            return symbols;
+
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
         if (resolvedRef.isValid() && resolvedRef != nodeRef)
         {
-            if (const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(resolvedRef);
-                payload && payload->localSymbols.size() >= 2)
-                return {payload->localSymbols.data(), payload->localSymbols.size()};
+            symbols = storedForeachSymbols(codeGen, resolvedRef);
+            if (symbols.size() >= 2)
+                return symbols;
         }
 
         return {};

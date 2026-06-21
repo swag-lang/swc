@@ -410,6 +410,9 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     const CallConv&    callConv     = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
+    buildCompilerFunctionStackLayout(codeGen);
+    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+
     // Compiler-run entry points receive the caller output buffer in the first integer argument.
     const MicroReg            outputStorageReg = callConv.intArgRegs[0];
     const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
@@ -560,6 +563,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         }
     }
     SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+    emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
     builder.emitRet();
     return Result::Continue;
 }

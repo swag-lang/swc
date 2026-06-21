@@ -320,9 +320,11 @@ namespace
     {
         if (binding.sourceParam != nullptr && targetRef.isValid())
         {
-            sema.setConstAssignBinding(targetRef);
-
             const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
+            if (paramType.isReference() && !paramType.isConst())
+                return targetRef;
+
+            sema.setConstAssignBinding(targetRef);
             if (!paramType.isPointerOrReference())
                 sema.setConstAssignTarget(targetRef);
         }
@@ -750,7 +752,8 @@ namespace
 
             AstNodeRef clonedExprRef                         = AstNodeRef::invalid();
             const bool bindingNeedsContextualAutoMemberClone = binding->typeRef.isValid() && containsAutoMemberAccess(sema, binding->exprRef);
-            if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone)
+            const bool bindingNeedsReferenceStateClone        = binding->sourceParam && binding->sourceParam->type(sema.ctx()).isReference();
+            if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone || bindingNeedsReferenceStateClone)
                 clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
             else
                 clonedExprRef = cloneExprPreservingResolvedIdentifierSymbols(sema, binding->exprRef);

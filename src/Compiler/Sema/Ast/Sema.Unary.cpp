@@ -275,13 +275,12 @@ namespace
         return Result::Continue;
     }
 
-    bool isCallLikeNode(const AstNode& node)
+    bool isFunctionDesignatorNode(const AstNode& node)
     {
-        return node.is(AstNodeId::CallExpr) ||
-               node.is(AstNodeId::IntrinsicCallExpr) ||
-               node.is(AstNodeId::AliasCallExpr) ||
-               node.is(AstNodeId::CompilerCall) ||
-               node.is(AstNodeId::CompilerCallOne);
+        return node.is(AstNodeId::Identifier) ||
+               node.is(AstNodeId::AncestorIdentifier) ||
+               node.is(AstNodeId::MemberAccessExpr) ||
+               node.is(AstNodeId::AutoMemberAccessExpr);
     }
 
     bool isFunctionAddressOperand(const SemaNodeView& view)
@@ -289,7 +288,7 @@ namespace
         return view.sym() &&
                view.sym()->isFunction() &&
                view.node() &&
-               !isCallLikeNode(*view.node());
+               isFunctionDesignatorNode(*view.node());
     }
 
     TypeRef takeAddressResultTypeRef(Sema& sema, const SemaNodeView& view)

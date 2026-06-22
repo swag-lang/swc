@@ -460,7 +460,16 @@ bool ApFloat::lt(const ApFloat& rhs) const
 
 bool ApFloat::le(const ApFloat& rhs) const
 {
-    return !rhs.lt(*this);
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    switch (bitWidth_)
+    {
+        case 32:
+            return value_.f32 <= rhs.value_.f32;
+        case 64:
+            return value_.f64 <= rhs.value_.f64;
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 bool ApFloat::gt(const ApFloat& rhs) const
@@ -470,7 +479,16 @@ bool ApFloat::gt(const ApFloat& rhs) const
 
 bool ApFloat::ge(const ApFloat& rhs) const
 {
-    return !lt(rhs);
+    SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
+    switch (bitWidth_)
+    {
+        case 32:
+            return value_.f32 >= rhs.value_.f32;
+        case 64:
+            return value_.f64 >= rhs.value_.f64;
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 Utf8 ApFloat::toString() const

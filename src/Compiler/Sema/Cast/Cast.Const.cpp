@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Math/Helpers.h"
 
@@ -522,6 +523,16 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
 
     leftCstRef  = nodeLeftView.cstRef();
     rightCstRef = nodeRightView.cstRef();
+
+    // If the right side accepts contextual typing, mirror binary expression sema: the resolved
+    // left type is offered to the right child before the operator is finalized.
+    if (leftType->isFloat() && rightType->isFloatUnsized() && SemaHelpers::canUseContextualBinding(sema, nodeRightView.nodeRef()))
+    {
+        CastRequest castRequest(CastKind::Implicit);
+        castRequest.errorNodeRef = nodeRightView.nodeRef();
+        SWC_RESULT(castConstant(sema, rightCstRef, castRequest, rightCstRef, leftTypeRef));
+        rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
+    }
 
     // If one side is concrete, concretize the other side.
     // If both sides are not concrete, keep it that way to concretize at the very last moment.

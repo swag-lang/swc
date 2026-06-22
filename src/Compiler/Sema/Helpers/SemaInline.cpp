@@ -469,6 +469,23 @@ namespace
         return moveOp == TokenId::SymAmpersand ? moveUnary.nodeExprRef : unary.nodeExprRef;
     }
 
+    AstNodeRef moveReferenceBindingArgumentRef(Sema& sema, AstNodeRef argRef)
+    {
+        const AstNodeRef sourceRef = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
+        if (sourceRef.isValid())
+        {
+            const AstNode& sourceNode = sema.node(sourceRef);
+            if (sourceNode.is(AstNodeId::UnaryExpr) && sourceNode.codeRef().isValid())
+            {
+                const TokenId op = sema.token(sourceNode.codeRef()).id;
+                if (op == TokenId::KwdMoveRef)
+                    return sourceRef;
+            }
+        }
+
+        return bindingValueArgumentRef(sema, argRef);
+    }
+
     bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
     {
         const AstNode& argNode = sema.node(argRef);
@@ -497,6 +514,8 @@ namespace
             return AstNodeRef::invalid();
 
         const TypeInfo& paramType = param.type(sema.ctx());
+        if (paramType.isMoveReference())
+            return moveReferenceBindingArgumentRef(sema, sourceArgRef.isValid() ? sourceArgRef : argRef);
         if (paramType.isReference())
             return referenceBindingArgumentRef(sema, sourceArgRef.isValid() ? sourceArgRef : argRef);
 

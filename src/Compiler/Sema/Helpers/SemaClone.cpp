@@ -455,6 +455,44 @@ namespace
         copyImplicitCastLoweringPayload(sema, cloneContext, sourceRef, clonedRef);
     }
 
+    void foldClonedImplicitCastConstant(Sema& sema, AstNodeRef clonedExprRef, AstNodeRef clonedCastRef)
+    {
+        const SemaNodeView exprView = sema.viewConstant(clonedExprRef);
+        if (!exprView.hasConstant())
+            return;
+
+        const TypeRef dstTypeRef = sema.viewStored(clonedCastRef, SemaNodeViewPartE::Type).typeRef();
+        if (!dstTypeRef.isValid())
+            return;
+
+        const ConstantValue& exprCst    = sema.cstMgr().get(exprView.cstRef());
+        const TypeRef        srcTypeRef = exprCst.typeRef();
+        CastRequest          castRequest(CastKind::Implicit);
+        castRequest.errorNodeRef = clonedCastRef;
+        castRequest.setConstantFoldingSrc(exprView.cstRef());
+        if (Cast::castAllowed(sema, castRequest, srcTypeRef, dstTypeRef) != Result::Continue)
+            return;
+
+        ConstantRef castedCstRef = castRequest.constantFoldingResult();
+        if (castedCstRef.isInvalid())
+            return;
+
+        if (sema.cstMgr().get(castedCstRef).typeRef() != dstTypeRef)
+        {
+            const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+            const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+            if (!srcType.isAnyTypeInfo(sema.ctx()) || !dstType.isAnyTypeInfo(sema.ctx()))
+                return;
+
+            ConstantValue castedCst = sema.cstMgr().get(castedCstRef);
+            castedCst.setTypeRef(dstTypeRef);
+            castedCstRef = sema.cstMgr().addConstant(sema.ctx(), castedCst);
+        }
+
+        sema.setFoldedTypedConst(clonedCastRef);
+        sema.setConstant(clonedCastRef, castedCstRef);
+    }
+
     void copyImplicitCastSubstitute(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
         if (!canReadSourcePayload(sema, cloneContext))
@@ -480,6 +518,7 @@ namespace
         castPtr->nodeExprRef = clonedRef;
 
         copyImplicitCastPayload(sema, cloneContext, *sourceCast, resolvedRef, castRef);
+        foldClonedImplicitCastConstant(sema, clonedRef, castRef);
         sema.setSubstitute(clonedRef, castRef);
     }
 

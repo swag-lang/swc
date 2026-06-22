@@ -72,9 +72,26 @@ namespace
     void assignInlineBindingExpr(Sema& sema, SemaClone::ParamBinding& binding, const SymbolVariable& param, AstNodeRef exprRef)
     {
         binding.idRef       = param.idRef();
-        binding.exprRef     = exprRef;
-        binding.typeRef     = inlineContextualBindingTypeRef(sema, param, exprRef);
         binding.sourceParam = &param;
+
+        const TypeRef paramTypeRef = param.typeRef();
+        if (paramTypeRef.isValid() && exprRef.isValid())
+        {
+            const TypeInfo& paramType = param.type(sema.ctx());
+            if (paramType.isAnyTypeInfo(sema.ctx()))
+            {
+                const SemaNodeView exprView(sema, exprRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                if (exprView.cstRef().isValid() && exprView.type() && exprView.type()->isAnyTypeInfo(sema.ctx()))
+                {
+                    binding.typeRef = paramTypeRef;
+                    binding.cstRef  = exprView.cstRef();
+                    return;
+                }
+            }
+        }
+
+        binding.exprRef = exprRef;
+        binding.typeRef = inlineContextualBindingTypeRef(sema, param, exprRef);
     }
 
     bool functionOwnsVariable(const SymbolFunction& function, const SymbolVariable& symVar)

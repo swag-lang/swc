@@ -835,6 +835,29 @@ namespace
         return Result::Continue;
     }
 
+    void applyIndexReadSpecOpResult(Sema& sema, AstNodeRef indexExprRef, SymbolFunction& calledFn)
+    {
+        auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
+        payload->calledFn = &calledFn;
+        sema.setSemaPayload(indexExprRef, payload);
+
+        const TypeRef   returnTypeRef = calledFn.returnTypeRef();
+        const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
+
+        if (returnType.isReference())
+        {
+            sema.setType(indexExprRef, returnType.payloadTypeRef());
+            sema.setIsValue(indexExprRef);
+            sema.setIsLValue(indexExprRef);
+        }
+        else
+        {
+            sema.setType(indexExprRef, returnTypeRef);
+            sema.setIsValue(indexExprRef);
+            sema.unsetIsLValue(indexExprRef);
+        }
+    }
+
     Result tryResolveReceiverOnlySpecOp(Sema& sema, SymbolFunction*& outCalledFn, bool& outHandled, AstNodeRef exprRef, IdentifierRef opId, bool allowConstEval)
     {
         outCalledFn = nullptr;
@@ -1419,17 +1442,11 @@ namespace
             }
             return Result::Continue;
         }
-        if (sema.hasSubstitute(indexExprRef))
-        {
-            outHandled = true;
-            return Result::Continue;
-        }
 
         SWC_ASSERT(calledFn);
 
-        const TypeRef    returnTypeRef = calledFn->returnTypeRef();
-        const TypeInfo&  returnType    = sema.typeMgr().get(returnTypeRef);
-        const AstNodeRef resultNodeRef = sema.viewZero(indexExprRef).nodeRef();
+        const TypeRef   returnTypeRef = calledFn->returnTypeRef();
+        const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
 
         if (deferToSimpleAssignWriteSpecOp && !returnType.isReference())
         {
@@ -1440,29 +1457,12 @@ namespace
         }
 
         if (!sema.viewConstant(indexExprRef).hasConstant())
-        {
-            auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
-            payload->calledFn = calledFn;
-            sema.setSemaPayload(indexExprRef, payload);
+            applyIndexReadSpecOpResult(sema, indexExprRef, *calledFn);
 
-            if (returnType.isReference())
-            {
-                sema.setType(indexExprRef, returnType.payloadTypeRef());
-                sema.setType(resultNodeRef, returnType.payloadTypeRef());
-                sema.setIsValue(indexExprRef);
-                sema.setIsValue(resultNodeRef);
-                sema.setIsLValue(indexExprRef);
-                sema.setIsLValue(resultNodeRef);
-            }
-            else
-            {
-                sema.setType(indexExprRef, returnTypeRef);
-                sema.setType(resultNodeRef, returnTypeRef);
-                sema.setIsValue(indexExprRef);
-                sema.setIsValue(resultNodeRef);
-                sema.unsetIsLValue(indexExprRef);
-                sema.unsetIsLValue(resultNodeRef);
-            }
+        if (sema.hasSubstitute(indexExprRef))
+        {
+            outHandled = true;
+            return Result::Continue;
         }
 
         outHandled = true;

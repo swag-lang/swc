@@ -383,6 +383,7 @@ namespace SemaGeneric
 
             auto& rootStruct     = const_cast<SymbolStruct&>(root.cast<SymbolStruct>());
             auto& instanceStruct = instance.cast<SymbolStruct>();
+            SWC_RESULT(sema.waitSemaCompleted(&rootStruct, rootStruct.codeRef()));
             SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, rootStruct));
             SWC_RESULT(instantiateGenericStructImpls(sema, rootStruct, instanceStruct, params, resolvedArgs));
             instanceStruct.removeIgnoredFields();

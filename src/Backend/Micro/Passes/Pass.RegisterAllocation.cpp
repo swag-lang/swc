@@ -2155,9 +2155,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
 
             SmallVector<MicroReg> forbiddenPhysRegs;
-            forbiddenPhysRegs.reserve((defOnlyCopyFromConcrete ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size());
+            forbiddenPhysRegs.reserve((defOnlyCopyFromConcrete ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size() + mentionedConcreteRegs.size() + assignedPhysRegs.size());
             SmallVector<MicroReg> remapForbiddenPhysRegs;
-            remapForbiddenPhysRegs.reserve(1);
+            remapForbiddenPhysRegs.reserve(1 + mentionedConcreteRegs.size() + assignedPhysRegs.size());
             if (defOnlyCopyFromConcrete)
             {
                 for (const MicroReg key : currentConcreteLiveOut_)
@@ -2197,6 +2197,29 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
                 appendUniqueReg(forbiddenPhysRegs, alias.physReg);
                 appendUniqueReg(remapForbiddenPhysRegs, alias.physReg);
+            }
+
+            if (!isRegisterCopyLike(it->op))
+            {
+                for (const MicroReg key : mentionedConcreteRegs)
+                {
+                    if (!request.virtReg.isSameClass(key))
+                        continue;
+
+                    appendUniqueReg(forbiddenPhysRegs, key);
+                    appendUniqueReg(remapForbiddenPhysRegs, key);
+                }
+
+                for (const auto& assigned : assignedPhysRegs)
+                {
+                    if (assigned.virtKey == request.virtKey)
+                        continue;
+                    if (!request.virtReg.isSameClass(assigned.physReg))
+                        continue;
+
+                    appendUniqueReg(forbiddenPhysRegs, assigned.physReg);
+                    appendUniqueReg(remapForbiddenPhysRegs, assigned.physReg);
+                }
             }
 
             const bool liveAcrossCall = isLiveAcrossCall(request.virtKey);

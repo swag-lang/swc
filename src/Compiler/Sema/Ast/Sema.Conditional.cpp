@@ -192,10 +192,10 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef().isValid())
     {
-        SemaNodeView nodeBoolView = sema.viewNodeTypeConstant(nodeLeftRef);
-        SWC_RESULT(Cast::cast(sema, nodeBoolView, sema.typeMgr().typeBool(), CastKind::Condition));
+        ConstantRef nodeBoolCstRef = ConstantRef::invalid();
+        SWC_RESULT(Cast::castConstant(sema, nodeBoolCstRef, nodeLeftView.cstRef(), sema.typeMgr().typeBool(), nodeLeftView.nodeRef(), CastKind::Condition));
 
-        const bool        leftIsFalse = nodeBoolView.cstRef() == sema.cstMgr().cstFalse();
+        const bool        leftIsFalse = nodeBoolCstRef == sema.cstMgr().cstFalse();
         const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef() : nodeLeftView.nodeRef();
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef() : nodeLeftView.cstRef();
         if (selectedCst.isValid())

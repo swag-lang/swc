@@ -1277,6 +1277,30 @@ namespace
         return false;
     }
 
+    bool inlineBindingNeedsMutableMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
+    {
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst || !idRef.isValid())
+            return false;
+
+        const AstNode& node = nodeAst->node(nodeRef);
+        if (const auto* assignStmt = node.safeCast<AstAssignStmt>())
+        {
+            if (sourceSubtreeUsesIdentifier(sema, sourceAst, assignStmt->nodeLeftRef, idRef))
+                return true;
+        }
+
+        SmallVector<AstNodeRef> children;
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingNeedsMutableMaterialization(sema, sourceAst, childRef, idRef))
+                return true;
+        }
+
+        return false;
+    }
+
     bool inlineBindingNeedsIndexOrForeachMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
     {
         const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
@@ -1476,7 +1500,9 @@ namespace
             const bool      forceExplicitMaterialization       = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
             const bool      hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
+            const bool      canInlineReferenceBindingDirectly  = paramType.isReference() && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
             const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
+                                                            !canInlineReferenceBindingDirectly &&
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool bindingHasAddressUse = inlineBindingNeedsAddressMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceAddressMaterialization = !bindingIsCaptured && bindingHasAddressUse &&
@@ -1485,6 +1511,7 @@ namespace
                                                             inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
+            const bool bindingNeedsMutableMaterialization = inlineBindingNeedsMutableMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceBindingMaterialization = forceExplicitMaterialization ||
                                                      forceVariadicMaterialization ||
                                                      forceIndexOrForeachMaterialization ||
@@ -1510,7 +1537,7 @@ namespace
                 return Result::Error;
 
             auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
+            const bool materializedAsLet = !bindingNeedsMutableMaterialization && !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
             declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
             declPtr->tokNameRef          = paramNameRef;
             if (forceAddressMaterialization && paramType.isReference())

@@ -97,14 +97,21 @@ void main()
     float faceCov  = clamp((sdFace - faceEdge)  * screenPxRange / aa + 0.5, 0.0, 1.0);
     float outerCov = clamp((sdT - outlineEdge)  * screenPxRange / aa + 0.5, 0.0, 1.0);
 
-    // Bevel: emboss the face using the distance-field gradient, lit from upper-left.
+    // Bevel: emboss only the sloped rim near the edge, lit from the upper-left. The
+    // true SDF (smooth, ray-free) gives the surface gradient; its magnitude fades to
+    // zero across the flat interior, so the body keeps the base face color while only
+    // the bevel band is shaded. 'ref' is the in-ramp gradient magnitude (~1/range),
+    // which makes the band size-independent.
     vec3 faceRgb = face.rgb;
     if (fxBevel > 0.0)
     {
-        vec2  grad = vec2(dFdx(sdM), dFdy(sdM));
-        vec2  n    = normalize(grad + vec2(1e-6));
-        float lit  = dot(n, normalize(vec2(-1.0, -1.0)));
-        faceRgb   *= clamp(1.0 + fxBevel * lit, 0.25, 1.75);
+        vec2  grad     = vec2(dFdx(sdT), dFdy(sdT));
+        float gmag     = length(grad);
+        float ref      = 1.0 / screenPxRange;
+        float strength = smoothstep(0.0, 0.6 * ref, gmag);
+        vec2  n        = gmag > 1e-6 ? grad / gmag : vec2(0.0);
+        float lit      = dot(n, normalize(vec2(-1.0, -1.0)));
+        faceRgb       *= clamp(1.0 + fxBevel * lit * strength, 0.25, 1.75);
     }
 
     // Face over outline (straight-alpha compositing). With no outline this reduces

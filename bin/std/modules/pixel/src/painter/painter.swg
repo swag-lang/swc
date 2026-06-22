@@ -188,6 +188,13 @@ struct Painter
     lastTexture0Handle:     TextureHandle
     hasTextureFont:         bool
 
+    // The paintType / gradient uniforms live per shader program, but texture0 state
+    // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
+    // program's paint uniforms stale, so a program switch forces the next texture0
+    // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
+    texture0Dirty:          bool
+    curTextProgram:         s32
+
     // Last MSDF font-effect uniforms emitted this frame, to skip redundant
     // SetFontEffect commands (most text shares the same -- usually empty -- effect).
     lastFontEffect:         FontEffectParams
@@ -229,10 +236,11 @@ impl Painter
 
     fileprivate mtd resetTexture0()
     {
-        if .lastTexture0Handle or .lastTexture0Type != .SolidColor
+        if .texture0Dirty or .lastTexture0Handle or .lastTexture0Type != .SolidColor
         {
             .lastTexture0Handle = cast(TextureHandle) 0
             .lastTexture0Type   = .SolidColor
+            .texture0Dirty      = false
             discard .newCommand(.ResetTexture0, true)
         }
     }
@@ -295,20 +303,36 @@ impl Painter
 
         .lastTexture0Handle = brush.texture.handle
         .lastTexture0Type   = brush.type
+        .texture0Dirty      = false
     }
 
     fileprivate mtd startFont()
     {
+        if .curTextProgram != 1
+        {
+            .curTextProgram = 1
+            .texture0Dirty  = true
+        }
         discard .newCommand(.StartFont, true)
     }
 
     fileprivate mtd startMsdfFont()
     {
+        if .curTextProgram != 2
+        {
+            .curTextProgram = 2
+            .texture0Dirty  = true
+        }
         discard .newCommand(.StartMsdfFont, true)
     }
 
     fileprivate mtd endFont()
     {
+        if .curTextProgram != 0
+        {
+            .curTextProgram = 0
+            .texture0Dirty  = true
+        }
         discard .newCommand(.EndFont, true)
     }
 
@@ -539,6 +563,8 @@ impl Painter
         .canSetTexture0 = true
         .overlapMode    = false
         .hasFontEffect  = false
+        .texture0Dirty  = true
+        .curTextProgram = 0
         .curRT          = null
         .stackRT.clear()
 

@@ -35,19 +35,51 @@ namespace
         for (SymbolFunction* dep : deps)
         {
             SWC_ASSERT(dep != nullptr);
+            if (dep->declNodeRef() == nodeRef && dep->declNodePayloadContext() == &codeGen.sema().currentNodePayloadContext())
+                return dep;
+        }
+
+        SymbolFunction* sourceLocationMatch = nullptr;
+        for (SymbolFunction* dep : deps)
+        {
+            SWC_ASSERT(dep != nullptr);
             if (dep->declNodeRef().isInvalid())
                 continue;
 
             // Nested function expressions can be lowered before the symbol view is rebound, so recover the
-            // callee by matching the declaration source location recorded in the dependency list.
+            // callee by matching the declaration source location recorded in the dependency list. Inline
+            // clones can share source tokens, so this fallback is only valid when the match is unique.
             if (dep->srcViewRef() != node.srcViewRef())
                 continue;
             if (dep->tokRef() != node.tokRef())
                 continue;
-            return dep;
+            if (sourceLocationMatch)
+                return nullptr;
+            sourceLocationMatch = dep;
         }
 
-        return nullptr;
+        return sourceLocationMatch;
+    }
+
+    AstNodeRef resolvedCallableDeclRef(CodeGen& codeGen, AstNodeRef nodeRef, AstNodeId nodeId)
+    {
+        const AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isValid() && codeGen.node(resolvedRef).is(nodeId))
+            return resolvedRef;
+        return nodeRef;
+    }
+
+    AstNodeRef resolvedFunctionLikeDeclRef(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNode& node = codeGen.node(nodeRef);
+        if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+            return resolvedCallableDeclRef(codeGen, nodeRef, node.id());
+
+        const AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
+        return resolvedRef.isValid() ? resolvedRef : nodeRef;
     }
 
     SymbolFunction& functionExprSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -1041,8 +1073,8 @@ namespace
 
     bool isActiveFunctionRoot(CodeGen& codeGen, AstNodeRef declRef)
     {
-        const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
-        const AstNodeRef activeDeclRef  = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef currentDeclRef = resolvedFunctionLikeDeclRef(codeGen, codeGen.curNodeRef());
+        const AstNodeRef activeDeclRef  = resolvedFunctionLikeDeclRef(codeGen, codeGen.function().declNodeRef());
         return currentDeclRef == declRef && activeDeclRef == declRef;
     }
 
@@ -1215,7 +1247,7 @@ namespace
 
     Result codeGenFunctionLikePostNode(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef bodyRef, bool hasExpressionBody)
     {
-        declRef = codeGen.viewZero(declRef).nodeRef();
+        declRef = resolvedFunctionLikeDeclRef(codeGen, declRef);
         if (!isActiveFunctionRoot(codeGen, declRef))
             return Result::Continue;
 
@@ -1341,7 +1373,7 @@ Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstFunctionExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    const AstNodeRef declRef = resolvedFunctionLikeDeclRef(codeGen, codeGen.curNodeRef());
     if (!isActiveFunctionRoot(codeGen, declRef))
     {
         const auto&               symFunc = functionExprSymbol(codeGen, declRef);
@@ -1358,7 +1390,7 @@ Result AstFunctionExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstClosureExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+    const AstNodeRef declRef = resolvedFunctionLikeDeclRef(codeGen, codeGen.curNodeRef());
     if (!isActiveFunctionRoot(codeGen, declRef))
     {
         const auto&        symFunc = functionExprSymbol(codeGen, declRef);

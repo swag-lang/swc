@@ -148,24 +148,29 @@ using Swag, Core
     let msdf = &scope.face.glyph.bitmap
     @assert(msdf.width > normalWidth)
     @assert(msdf.rows > normalRows)
-    @assert(msdf.pitch == cast(s32) msdf.width * 3)
+    // MTSDF: 4 bytes per pixel (RGB multi-channel field + true SDF in alpha).
+    @assert(msdf.pitch == cast(s32) msdf.width * 4)
     @assert(scope.face.glyph.bitmapLeft == normalLeft - cast(s32) spread)
     @assert(scope.face.glyph.bitmapTop == normalTop + cast(s32) spread)
 
     // The padded border must be fully outside (median < 128), the glyph body must
     // contain inside pixels (median > 128), and channels must actually differ
-    // somewhere (otherwise this degenerated into a plain single-channel SDF).
+    // somewhere (otherwise this degenerated into a plain single-channel SDF). The
+    // alpha (true SDF) channel must also carry an inside/outside transition.
     var hasInside      = false
     var hasOutside     = false
     var channelsDiffer = false
+    var hasInsideA     = false
+    var hasOutsideA    = false
     for y in msdf.rows
     {
         for x in msdf.width
         {
-            let p = (cast(u64) y * msdf.width + x) * 3
+            let p = (cast(u64) y * msdf.width + x) * 4
             let r = msdf.buffer[p + 0]
             let g = msdf.buffer[p + 1]
             let b = msdf.buffer[p + 2]
+            let a = msdf.buffer[p + 3]
             let m = Math.max(Math.min(r, g), Math.min(Math.max(r, g), b))
             if m > 128 do
                 hasInside = true
@@ -173,12 +178,18 @@ using Swag, Core
                 hasOutside = true
             if r != g or g != b do
                 channelsDiffer = true
+            if a > 128 do
+                hasInsideA = true
+            if a < 128 do
+                hasOutsideA = true
         }
     }
 
     @assert(hasInside)
     @assert(hasOutside)
     @assert(channelsDiffer)
+    @assert(hasInsideA)
+    @assert(hasOutsideA)
 
     // Top-left corner of the padded bounding box is far outside the glyph.
     let corner = Math.max(Math.min(msdf.buffer[0], msdf.buffer[1]), Math.min(Math.max(msdf.buffer[0], msdf.buffer[1]), msdf.buffer[2]))

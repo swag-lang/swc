@@ -86,6 +86,30 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwo)
 }
 SWC_TEST_END()
 
+// mul r, 8 is not reduced when the following branch still reads OF.
+SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwoKeepsLiveFlags)
+{
+    constexpr MicroReg r8 = MicroReg::intReg(8);
+    MicroBuilder       builder(ctx);
+
+    const MicroLabelRef done = builder.createLabel();
+
+    builder.emitOpBinaryRegImm(r8, ApInt(8, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotOverflow, MicroOpBits::B32, done);
+    builder.placeLabel(done);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+
+    if (getFirstBinaryOp(builder) != MicroOp::MultiplyUnsigned)
+        return Result::Error;
+    if (getFirstBinaryImm(builder) != 8)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // mul r, 0 -> and r, 0
 SWC_TEST_BEGIN(StrengthReduction_MultiplyByZero)
 {

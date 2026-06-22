@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -130,6 +131,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         const MicroOpBits opBits    = ops[1].opBits;
         const MicroOp     microOp   = ops[2].microOp;
         const uint64_t    immediate = ops[3].valueU64;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
+            continue;
 
         bool changed = false;
         switch (microOp)

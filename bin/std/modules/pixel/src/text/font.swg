@@ -41,10 +41,11 @@ public enum FontRenderMode
 
 public impl FontRenderMode
 {
-    // Number of bytes per pixel in the glyph atlas for this render mode
+    // Number of bytes per pixel in the glyph atlas for this render mode.
+    // MSDF is 4 (MTSDF): RGB multi-channel field + a true SDF in alpha for effects.
     mtd bytesPerPixel()->u32
     {
-        return me == .Msdf ? 3 : 1
+        return me == .Msdf ? 4 : 1
     }
 
     // True if the mode is a distance field (sampled with linear filtering)

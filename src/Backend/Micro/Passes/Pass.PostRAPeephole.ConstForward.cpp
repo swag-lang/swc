@@ -26,6 +26,11 @@ namespace PostRaPeephole
             return false;
         }
 
+        bool canForwardImmediateToBinaryOp(MicroOp op, MicroOpBits bits)
+        {
+            return op != MicroOp::MultiplySigned || bits != MicroOpBits::B8;
+        }
+
         // True iff `reg` is guaranteed dead starting at the instruction after
         // `fromRef`: the next touch within the window is a definition, with
         // no intervening read. Labels are pure markers and safe to walk past.
@@ -184,6 +189,9 @@ namespace PostRaPeephole
                         return false;
 
                     const MicroOpBits bits = ops[2].opBits;
+                    if (!canForwardImmediateToBinaryOp(ops[3].microOp, bits))
+                        return false;
+
                     out.newOp              = MicroInstrOpcode::OpBinaryRegImm;
                     out.numOps             = 4;
                     out.ops[0].reg         = ops[0].reg;

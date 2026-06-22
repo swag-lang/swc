@@ -443,17 +443,25 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
         let sampleX = cast(f64) c.left + cast(f64) px + 0.5
         let (r, g, b) = msdfChannelDistances(segsS, sampleX, sampleY)
 
-        let idx = (cast(u64) py * cast(u64) c.width + cast(u64) px) * 3
+        // True signed distance to the nearest contour, stored in a 4th channel
+        // (MTSDF). The RGB median keeps sharp corners for the glyph face, but its
+        // sub-edge field has corner-ray artifacts; the true SDF is smooth there, so
+        // outer effects (glow, outline outer edge, soft shadow) sample it instead.
+        let inside = isInside(edgesS, sampleX, sampleY)
+        let dist   = closestEdgeDistance(edgesS, sampleX, sampleY)
+        let trueSd = inside ? dist : -dist
+
+        let idx = (cast(u64) py * cast(u64) c.width + cast(u64) px) * 4
         c.channels[idx + 0] = cast(f32) r
         c.channels[idx + 1] = cast(f32) g
         c.channels[idx + 2] = cast(f32) b
+        c.channels[idx + 3] = cast(f32) trueSd
 
         // Sparse sign sampling (every other pixel on both axes): enough for a robust
         // global majority while keeping the per-pixel winding test off the hot path.
         if (px & 1) == 0 and (py & 1) == 0
         {
-            let med    = msdfMedian(r, g, b)
-            let inside = isInside(edgesS, sampleX, sampleY)
+            let med = msdfMedian(r, g, b)
             localVote += (med > 0) == inside ? 1 : -1
         }
     }
@@ -504,7 +512,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     let edges = buildEdges(&slot.outline)
 
     var channels: Array'f32
-    channels.resize(cast(u64) width * rows * 3)
+    channels.resize(cast(u64) width * rows * 4)
 
     let scale = 127.0 / cast(f64) safeSpread
 
@@ -544,19 +552,28 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
 
     let flip: f64 = vote < 0 ? -1 : 1
 
-    faceData.bitmapPixels.resize(cast(u64) width * rows * 3)
+    let count = cast(u64) width * rows
+    faceData.bitmapPixels.resize(count * 4)
     var dst = faceData.bitmapPixels.buffer
-    for i in cast(u64) width * rows * 3
+    for i in count
     {
-        let value = 128.0'f64 + flip * cast(f64) channels[i] * scale
-        dst[i] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))
+        let src = i * 4
+        // RGB: multi-channel field, corrected by the global sign vote.
+        for c in 3
+        {
+            let value = 128.0'f64 + flip * cast(f64) channels[src + c] * scale
+            dst[src + c] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))
+        }
+        // A: true signed distance (already signed by the per-pixel inside test).
+        let av = 128.0'f64 + cast(f64) channels[src + 3] * scale
+        dst[src + 3] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av)))
     }
 
     slot.bitmap.rows       = rows
     slot.bitmap.width       = width
-    slot.bitmap.pitch       = cast(s32) width * 3
+    slot.bitmap.pitch       = cast(s32) width * 4
     slot.bitmap.buffer      = faceData.bitmapPixels.buffer
-    slot.bitmap.pixelMode   = .Lcd
+    slot.bitmap.pixelMode   = .Bgra
     slot.bitmap.grayCount   = 256
     slot.bitmapLeft         = left
     slot.bitmapTop          = top

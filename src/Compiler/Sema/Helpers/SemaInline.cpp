@@ -1498,6 +1498,11 @@ namespace
             const bool      bindingNeedsMaterialization        = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
             const TypeInfo& paramType                          = param->type(sema.ctx());
             const bool      forceExplicitMaterialization       = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
+            const bool      forceRuntimeSafetyMaterialization  = !bindingIsCaptured &&
+                                                            !fn.attributes().runtimeSafetyOverrides.empty() &&
+                                                            !paramType.isCodeBlock() &&
+                                                            !paramType.isReference() &&
+                                                            !paramType.isAnyVariadic();
             const bool      hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
             const bool      canInlineReferenceBindingDirectly  = paramType.isReference() && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
@@ -1513,6 +1518,7 @@ namespace
                                                             inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool bindingNeedsMutableMaterialization = inlineBindingNeedsMutableMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceBindingMaterialization = forceExplicitMaterialization ||
+                                                     forceRuntimeSafetyMaterialization ||
                                                      forceVariadicMaterialization ||
                                                      forceIndexOrForeachMaterialization ||
                                                      forceAddressMaterialization ||
@@ -1537,20 +1543,27 @@ namespace
                 return Result::Error;
 
             auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            const bool materializedAsLet = !bindingNeedsMutableMaterialization && !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
+            const bool materializedAsLet = !forceRuntimeSafetyMaterialization &&
+                                           !bindingNeedsMutableMaterialization &&
+                                           !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
             declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
             declPtr->tokNameRef          = paramNameRef;
             if (forceAddressMaterialization && paramType.isReference())
             {
                 declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
             }
-            else if (!paramType.isAnyVariadic() && SemaHelpers::canUseContextualBinding(sema, binding.exprRef))
+            else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
             {
+                AstNodeRef materializedTypeRef = AstNodeRef::invalid();
                 if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())
                 {
                     const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, &sourceAst};
-                    declPtr->nodeTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
+                    materializedTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
                 }
+                if (materializedTypeRef.isInvalid())
+                    clonedInitRef = Cast::createCastNode(sema, param->typeRef(), clonedInitRef);
+                else
+                    declPtr->nodeTypeRef = materializedTypeRef;
             }
             declPtr->nodeInitRef            = clonedInitRef;
             SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, paramNameRef, *declPtr, materializedAsLet);
@@ -1558,6 +1571,7 @@ namespace
             outStatements.push_back(declRef);
 
             binding.exprRef = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
+            binding.preserveUseCodeRef = forceRuntimeSafetyMaterialization;
             if (!forceVariadicMaterialization)
                 binding.typeRef = TypeRef::invalid();
             remainingBindings.push_back(binding);
@@ -2276,6 +2290,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     frame.setInlineContextRootRef(inlineRootRef);
     if (!isMacro && !isMixin)
     {
+        frame.currentAttributes() = fn.attributes();
         frame.setCurrentImpl(fn.declImplContext());
         frame.setCurrentInterface(fn.declInterfaceContext());
     }

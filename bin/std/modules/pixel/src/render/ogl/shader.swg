@@ -45,6 +45,19 @@ struct ShaderAA
 struct ShaderFont
 {
     using base: ShaderBase
+
+    // TextMeshPro-style effect uniforms (MSDF font shader only).
+    fxEnabled:       ShaderParamHandle
+    fxFaceDilate:    ShaderParamHandle
+    fxFaceSoftness:  ShaderParamHandle
+    fxOutlineWidth:  ShaderParamHandle
+    fxOutlineColor:  ShaderParamHandle
+    fxGlowColor:     ShaderParamHandle
+    fxGlowOffset:    ShaderParamHandle
+    fxGlowInner:     ShaderParamHandle
+    fxGlowOuter:     ShaderParamHandle
+    fxGlowPower:     ShaderParamHandle
+    fxBevel:         ShaderParamHandle
 }
 
 struct ShaderBlur

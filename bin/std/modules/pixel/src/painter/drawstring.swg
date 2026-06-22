@@ -23,6 +23,86 @@ enum UnderlineStyle
     Strikeout
 }
 
+// TextMeshPro-style text effects for MSDF fonts. They are derived from the glyph
+// distance field, so a single draw produces outline, glow and bevel; the soft drop
+// shadow is rendered as an offset second pass. Effects only apply when the resolved
+// draw font is MSDF (an explicit .Msdf font, or an .Auto font drawn at >= 20px);
+// for a bitmap font they are ignored. Distances are in distance-field units, where
+// 0.5 spans roughly the atlas spread, so widths scale with the text size.
+public struct TextEffect
+{
+    // Outline drawn under the glyph face. 0 disables it; useful range ~0.05..0.35.
+    outlineWidth:    f32
+    outlineColor:    Color = Color.fromArgb(Argb.Black)
+
+    // Grows (+) or shrinks (-) the glyph face; ~ -0.3..0.3.
+    faceDilate:      f32
+    // Edge softness in distance-field units; 0 = crisp, > 0 = feathered.
+    softness:        f32
+
+    // Soft halo around the glyph. A fully transparent color disables it.
+    glowColor:       Color
+    glowOffset:      f32        // shifts the glow band outward
+    glowInner:       f32 = 0.0
+    glowOuter:       f32 = 0.45
+    glowPower:       f32 = 1.0
+
+    // Distance-field emboss amount, lit from the upper-left; 0 disables it (~0..1).
+    bevel:           f32
+
+    // Soft drop shadow (offset second pass). A transparent color disables it.
+    shadowColor:     Color
+    shadowOffset:    Math.Point
+    shadowDilate:    f32 = 0.0
+    shadowSoftness:  f32 = 0.35
+}
+
+public impl TextEffect
+{
+    // True if any single-pass face effect (outline/glow/bevel/dilate/softness) is on.
+    mtd const hasFaceEffects()->bool
+    {
+        return .outlineWidth > 0 or .glowColor.a > 0 or .bevel > 0 or .faceDilate != 0 or .softness != 0
+    }
+
+    // True if a drop shadow must be rendered.
+    mtd const hasShadow()->bool
+    {
+        return .shadowColor.a > 0
+    }
+
+    // Resolve the shader uniforms for the main glyph face.
+    mtd const faceParams()->FontEffectParams
+    {
+        var r: retval
+        r.enabled      = .hasFaceEffects() ? 1.0 : 0.0
+        r.faceDilate   = .faceDilate
+        r.faceSoftness = .softness
+        r.outlineWidth = .outlineWidth
+        r.outlineColor = .outlineColor
+        r.glowColor    = .glowColor
+        r.glowOffset   = .glowOffset
+        r.glowInner    = .glowInner
+        r.glowOuter    = .glowOuter
+        r.glowPower    = .glowPower
+        r.bevel        = .bevel
+        return r
+    }
+
+    // Resolve the shader uniforms for the drop-shadow pass: a softened, dilated face
+    // drawn solid in the shadow color (no outline/glow/bevel).
+    mtd const shadowParams()->FontEffectParams
+    {
+        var r: retval
+        r.enabled      = 1.0
+        r.faceDilate   = .shadowDilate
+        r.faceSoftness = .shadowSoftness
+        r.glowOuter    = 1.0
+        r.glowPower    = 1.0
+        return r
+    }
+}
+
 const DefaultTextTabSize: u32 = 4
 
 #[Swag.EnumFlags]
@@ -408,17 +488,67 @@ impl Painter
         return result
     }
 
+    // Emit the glyph quads of a shaped run, translated by (dx, dy) and tinted with
+    // 'color'. The offset is applied after pixel snapping so a sub-pixel shadow
+    // offset survives. Shared by the face pass and the drop-shadow pass.
+    fileprivate mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
+    {
+        var x = startLeft
+        foreach glyph, idx in runToDraw.glyphs
+        {
+            let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
+            let glyphX = step.glyphX
+
+            let refr = glyph.desc
+            if refr.width != 0 and refr.height != 0
+            {
+                .setTextureFont(drawFont, refr.atlasIndex)
+
+                let x1 = snapTextPosition(glyphX + refr.shiftX * info.scale, snapPixels) + dx
+                let y1 = snapTextPosition(baselineY + glyph.offsetY * info.scale - refr.shiftY * info.scale, snapPixels) + dy
+                let x2 = snapTextPosition(glyphX + (refr.shiftX * info.scale) + (refr.width * info.scale), snapPixels) + dx
+                let y2 = snapTextPosition(baselineY + glyph.offsetY * info.scale - (refr.shiftY * info.scale) + (refr.height * info.scale), snapPixels) + dy
+
+                let p1 = Math.Vector2{x1, y1}
+                let p2 = Math.Vector2{x2, y1}
+                let p3 = Math.Vector2{x1, y2}
+                let p4 = Math.Vector2{x2, y2}
+
+                let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
+                let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
+                let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
+                let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
+
+                discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, color)
+                discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, color)
+            }
+
+            x = step.rightX
+        }
+    }
+
     // Draw an already shaped text run
     mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if shaped.glyphs.isEmpty() or !brush.hasVisibleAlpha() do
+        .drawShapedRun(left, top, shaped, font, brush, TextEffect{}, under, zoom)
+    }
+
+    // Draw an already shaped text run, with MSDF text effects (outline/glow/bevel/
+    // shadow). Effects are ignored when the resolved draw font is not MSDF.
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    {
+        if shaped.glyphs.isEmpty() do
             return
         if .fake do
+            return
+        // Nothing visible: no face fill and no outline/glow/shadow either.
+        if !brush.hasVisibleAlpha() and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
             return
 
         let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
+        let isMsdf     = drawFont.cache.renderMode == .Msdf
 
         var drawShape: ShapedRun
         var runToDraw: *ShapedRun = shaped
@@ -429,7 +559,6 @@ impl Painter
         }
 
         let drawLeft = snapTextPosition(left, snapPixels)
-        var x = left
         let y = snapTextPosition(top + font.ascent * zoom, snapPixels)
 
         switch drawFont.cache.renderMode
@@ -440,6 +569,19 @@ impl Painter
             .startFont()
         }
 
+        .updateFont(drawFont)
+
+        // Drop shadow: an offset pass behind the text, drawn solid in the shadow
+        // color (paint reset to solid). Binds the glyph atlas, so reset the font
+        // texture afterwards to keep the underline (which samples a white texture).
+        if isMsdf and effect.hasShadow()
+        {
+            .resetTexture0()
+            .setFontEffect(effect.shadowParams())
+            .pushShapedGlyphs(runToDraw, drawFont, info, left, y, effect.shadowOffset.x * zoom, effect.shadowOffset.y * zoom, snapPixels, effect.shadowColor)
+            .resetTextureFont()
+        }
+
         // Set brush main texture
         if brush.type != .SolidColor
         {
@@ -448,6 +590,9 @@ impl Painter
         }
         else do
             .resetTexture0()
+
+        if isMsdf do
+            .setFontEffect(effect.faceParams())
 
         // Underline
         if under != .None
@@ -470,39 +615,7 @@ impl Painter
             .canSetTexture0 = true
         }
 
-        .updateFont(drawFont)
-
-        foreach glyph, idx in runToDraw.glyphs
-        {
-            let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
-            let glyphX = step.glyphX
-
-            let refr = glyph.desc
-            if refr.width != 0 and refr.height != 0
-            {
-                .setTextureFont(drawFont, refr.atlasIndex)
-
-                let x1 = snapTextPosition(glyphX + refr.shiftX * info.scale, snapPixels)
-                let y1 = snapTextPosition(y + glyph.offsetY * info.scale - refr.shiftY * info.scale, snapPixels)
-                let x2 = snapTextPosition(glyphX + (refr.shiftX * info.scale) + (refr.width * info.scale), snapPixels)
-                let y2 = snapTextPosition(y + glyph.offsetY * info.scale - (refr.shiftY * info.scale) + (refr.height * info.scale), snapPixels)
-
-                let p1 = Math.Vector2{x1, y1}
-                let p2 = Math.Vector2{x2, y1}
-                let p3 = Math.Vector2{x1, y2}
-                let p4 = Math.Vector2{x2, y2}
-
-                let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
-                let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
-                let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
-                let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
-
-                discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
-                discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
-            }
-
-            x = step.rightX
-        }
+        .pushShapedGlyphs(runToDraw, drawFont, info, left, y, 0, 0, snapPixels, brush.color)
 
         .resetTextureFont()
         .endFont()
@@ -542,6 +655,28 @@ impl Painter
         let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
         Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
         .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom)
+    }
+
+    // Draw a simple string with MSDF text effects (outline/glow/bevel/shadow).
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    {
+        if @countof(text) == 0 do
+            return
+        let brush = Brush.createSolid(color)
+        .drawString(left, top, text, font, brush, effect, under, zoom)
+    }
+
+    // Draw a simple string with a brush and MSDF text effects.
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    {
+        if @countof(text) == 0 do
+            return
+        if .fake do
+            return
+
+        let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
+        .drawShapedRun(left, top, &.scratchShaped, font, brush, effect, under, zoom)
     }
 
     // Recompute the layout for a given rectangle

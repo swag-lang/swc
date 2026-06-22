@@ -49,6 +49,7 @@ enum CommandId
     ReleaseRenderTarget
     SetShader
     SetShaderParam
+    SetFontEffect
 }
 
 #[Swag.EnumFlags]
@@ -97,6 +98,23 @@ struct PaintState
 
 struct ColorMask { r, g, b, a: bool }
 
+// Resolved MSDF font-effect uniforms (see TextEffect / font_msdf.frag). Colors are
+// kept as Color (not Vector4) and expanded to vec4 at the GL layer.
+struct FontEffectParams
+{
+    enabled:       f32
+    faceDilate:    f32
+    faceSoftness:  f32
+    outlineWidth:  f32
+    outlineColor:  Color
+    glowColor:     Color
+    glowOffset:    f32
+    glowInner:     f32
+    glowOuter:     f32
+    glowPower:     f32
+    bevel:         f32
+}
+
 struct Command
 {
     id:  CommandId = undefined
@@ -122,6 +140,8 @@ struct Command
             _f32:      f32
             _s32:      s32
         }
+
+        fontEffect: FontEffectParams
 
         texture0: struct
         {
@@ -167,6 +187,11 @@ struct Painter
 
     lastTexture0Handle:     TextureHandle
     hasTextureFont:         bool
+
+    // Last MSDF font-effect uniforms emitted this frame, to skip redundant
+    // SetFontEffect commands (most text shares the same -- usually empty -- effect).
+    lastFontEffect:         FontEffectParams
+    hasFontEffect:          bool
 
     // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
     // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
@@ -285,6 +310,32 @@ impl Painter
     fileprivate mtd endFont()
     {
         discard .newCommand(.EndFont, true)
+    }
+
+    // Set the MSDF font-effect uniforms for the following glyph runs. Emitted only
+    // when the effect changes (most runs share the same one), and must follow a
+    // StartMsdfFont so the uniforms land on the MSDF font program.
+    fileprivate mtd setFontEffect(fx: FontEffectParams)
+    {
+        if .hasFontEffect
+           and .lastFontEffect.enabled      == fx.enabled
+           and .lastFontEffect.faceDilate   == fx.faceDilate
+           and .lastFontEffect.faceSoftness == fx.faceSoftness
+           and .lastFontEffect.outlineWidth == fx.outlineWidth
+           and .lastFontEffect.outlineColor.argb == fx.outlineColor.argb
+           and .lastFontEffect.glowColor.argb == fx.glowColor.argb
+           and .lastFontEffect.glowOffset   == fx.glowOffset
+           and .lastFontEffect.glowInner    == fx.glowInner
+           and .lastFontEffect.glowOuter    == fx.glowOuter
+           and .lastFontEffect.glowPower    == fx.glowPower
+           and .lastFontEffect.bevel        == fx.bevel do
+            return
+
+        .lastFontEffect = fx
+        .hasFontEffect  = true
+
+        let cmd = .newCommand(.SetFontEffect, true)
+        cmd.fontEffect = fx
     }
 
     fileprivate mtd resetTextureFont()
@@ -487,6 +538,7 @@ impl Painter
         .drawingBegin   = true
         .canSetTexture0 = true
         .overlapMode    = false
+        .hasFontEffect  = false
         .curRT          = null
         .stackRT.clear()
 

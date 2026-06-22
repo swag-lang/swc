@@ -15,7 +15,8 @@ namespace SemaClone
         AstNodeRef            exprRef;
         TypeRef               typeRef          = TypeRef::invalid();
         ConstantRef           cstRef           = ConstantRef::invalid();
-        bool                  forceMaterialize = false;
+        bool                  forceMaterialize   = false;
+        bool                  preserveUseCodeRef = false;
         const SymbolVariable* sourceParam      = nullptr;
     };
 

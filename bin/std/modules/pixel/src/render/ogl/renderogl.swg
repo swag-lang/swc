@@ -124,6 +124,19 @@ fileprivate impl RenderOgl
             glUniform1i(text1, 1)
             glUniform1f(gamma, FontGamma)
             glUniform1f(range, MsdfRange)
+
+            let h = cast(GLuint) .shaderFontMsdf.handle
+            .shaderFontMsdf.fxEnabled      = cast() glGetUniformLocation(h, @dataof("fxEnabled"))
+            .shaderFontMsdf.fxFaceDilate   = cast() glGetUniformLocation(h, @dataof("fxFaceDilate"))
+            .shaderFontMsdf.fxFaceSoftness = cast() glGetUniformLocation(h, @dataof("fxFaceSoftness"))
+            .shaderFontMsdf.fxOutlineWidth = cast() glGetUniformLocation(h, @dataof("fxOutlineWidth"))
+            .shaderFontMsdf.fxOutlineColor = cast() glGetUniformLocation(h, @dataof("fxOutlineColor"))
+            .shaderFontMsdf.fxGlowColor    = cast() glGetUniformLocation(h, @dataof("fxGlowColor"))
+            .shaderFontMsdf.fxGlowOffset   = cast() glGetUniformLocation(h, @dataof("fxGlowOffset"))
+            .shaderFontMsdf.fxGlowInner    = cast() glGetUniformLocation(h, @dataof("fxGlowInner"))
+            .shaderFontMsdf.fxGlowOuter    = cast() glGetUniformLocation(h, @dataof("fxGlowOuter"))
+            .shaderFontMsdf.fxGlowPower    = cast() glGetUniformLocation(h, @dataof("fxGlowPower"))
+            .shaderFontMsdf.fxBevel        = cast() glGetUniformLocation(h, @dataof("fxBevel"))
         }
 
         {
@@ -767,7 +780,8 @@ impl RenderOgl
             let minF  = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             cache.dirty = false
             glActiveTexture(GL_TEXTURE1)
-            let fmt = cache.renderMode.bytesPerPixel() == 1 ? GL_RED : GL_RGB
+            let bpp = cache.renderMode.bytesPerPixel()
+            let fmt = bpp == 1 ? GL_RED : (bpp == 4 ? GL_RGBA : GL_RGB)
             foreach &atlas in cache.atlases
             {
                 if !atlas.dirty do
@@ -776,7 +790,7 @@ impl RenderOgl
 
                 atlas.texture.width  = atlas.width / atlas.bpp
                 atlas.texture.height = atlas.height
-                atlas.texture.pf     = atlas.bpp == 1 ? .RGBA8 : .RGB8
+                atlas.texture.pf     = atlas.bpp == 3 ? .RGB8 : .RGBA8
 
                 // An atlas keeps fixed dimensions for its whole life, so allocate the
                 // texture storage once and stream new glyphs in with glTexSubImage2D.
@@ -904,7 +918,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case Transform, StartFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
+                    case Transform, StartFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, SetFontEffect, DrawTriangles:
                         .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }
@@ -931,6 +945,25 @@ impl RenderOgl
             default:
                 Debug.assert(false)
             }
+
+        case SetFontEffect:
+            // Always emitted right after StartMsdfFont, so the MSDF font program is
+            // the active one and these uniforms land on it.
+            let p = &cmd.fontEffect
+            let s = &.shaderFontMsdf
+            let oc = p.outlineColor.toVector4()
+            let gc = p.glowColor.toVector4()
+            glUniform1f(cast(GLint) s.fxEnabled,      p.enabled)
+            glUniform1f(cast(GLint) s.fxFaceDilate,   p.faceDilate)
+            glUniform1f(cast(GLint) s.fxFaceSoftness, p.faceSoftness)
+            glUniform1f(cast(GLint) s.fxOutlineWidth, p.outlineWidth)
+            glUniform4fv(cast(GLint) s.fxOutlineColor, 1, &oc.x)
+            glUniform4fv(cast(GLint) s.fxGlowColor, 1, &gc.x)
+            glUniform1f(cast(GLint) s.fxGlowOffset,   p.glowOffset)
+            glUniform1f(cast(GLint) s.fxGlowInner,    p.glowInner)
+            glUniform1f(cast(GLint) s.fxGlowOuter,    p.glowOuter)
+            glUniform1f(cast(GLint) s.fxGlowPower,    p.glowPower)
+            glUniform1f(cast(GLint) s.fxBevel,        p.bevel)
         }
     }
 

@@ -830,6 +830,36 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpBinaryRegMem)
+    {
+        const MicroOp op = ops[3].microOp;
+
+        if (ops[2].opBits != MicroOpBits::B8 &&
+            ops[2].opBits != MicroOpBits::B16 &&
+            ops[2].opBits != MicroOpBits::B32 &&
+            ops[2].opBits != MicroOpBits::B64)
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 2;
+            outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
+
+        const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
+        if (op == MicroOp::MultiplyUnsigned || isB8SignedMul)
+        {
+            const MicroReg raxReg = x64RegToMicroReg(X64Reg::Rax);
+            if (ops[0].reg != raxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 0;
+                outIssue.requiredReg  = raxReg;
+                return true;
+            }
+        }
+    }
+
+    ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
     {
         const MicroOp op = ops[3].microOp;

@@ -796,12 +796,16 @@ namespace
                 clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
             else
                 clonedExprRef = cloneExprPreservingResolvedIdentifierSymbols(sema, binding->exprRef);
+            if (binding->preserveUseCodeRef && clonedExprRef.isValid())
+                sema.node(clonedExprRef).setCodeRef(node.codeRef());
             if (!binding->typeRef.isValid())
                 return markConstParamBindingTarget(sema, *binding, clonedExprRef);
 
             const AstNodeRef castRef = Cast::createCast(sema, binding->typeRef, clonedExprRef);
             if (castRef.isInvalid())
                 return AstNodeRef::invalid();
+            if (binding->preserveUseCodeRef)
+                sema.node(castRef).setCodeRef(node.codeRef());
             copyTypedBindingConstant(sema, *binding, castRef);
             return markConstParamBindingTarget(sema, *binding, castRef);
         }

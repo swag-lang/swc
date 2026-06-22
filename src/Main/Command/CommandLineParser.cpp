@@ -263,9 +263,7 @@ namespace
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
-            // Auto-inlining is not yet robust: keep release on explicitly-marked calls
-            // while individual auto-inline regressions are captured as forced Inline tests.
-            buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
+            buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::Auto;
         }
         else
         {

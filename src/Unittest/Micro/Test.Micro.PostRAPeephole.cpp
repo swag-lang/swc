@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Unittest/Unittest.h"
 
@@ -23,6 +24,17 @@ namespace
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, encoder, passContext);
+    }
+
+    Result runLegalizePass(MicroBuilder& builder, Encoder& encoder)
+    {
+        MicroLegalizePass pass;
+        MicroPassManager  passManager;
+        passManager.addStartPass(pass);
+
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        return builder.runPasses(passManager, &encoder, passContext);
     }
 
     uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
@@ -50,6 +62,44 @@ namespace
                 continue;
 
             if (ops[0].reg == dst && ops[1].reg == src)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool hasBinaryRegReg(const MicroBuilder& builder, MicroReg dst, MicroReg src, MicroOp op, MicroOpBits bits)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            if (ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == bits && ops[3].microOp == op)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool hasBinaryRegRegDst(const MicroBuilder& builder, MicroReg dst, MicroOp op, MicroOpBits bits)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            if (ops[0].reg == dst && ops[2].opBits == bits && ops[3].microOp == op)
                 return true;
         }
 
@@ -92,6 +142,49 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
     SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
 
     if (!hasLoadRegReg(builder, rdx, r9))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Legalize_RewritesB8SignedMultiplyRegMemToRax)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg r14 = MicroReg::intReg(14);
+
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegMem(r14, r10, 0, MicroOp::MultiplySigned, MicroOpBits::B8);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runLegalizePass(builder, encoder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != 0)
+        return Result::Error;
+    if (!hasBinaryRegRegDst(builder, rax, MicroOp::MultiplySigned, MicroOpBits::B8))
+        return Result::Error;
+    if (!hasLoadRegReg(builder, r14, rax))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardB8SignedMultiplyImmediate)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(r8, ApInt(2, 64), MicroOpBits::B8);
+    builder.emitOpBinaryRegReg(rax, r8, MicroOp::MultiplySigned, MicroOpBits::B8);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }

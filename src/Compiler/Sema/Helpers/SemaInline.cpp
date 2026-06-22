@@ -1290,6 +1290,48 @@ namespace
         return false;
     }
 
+    bool inlineBindingNeedsAddressMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
+    {
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst || !idRef.isValid())
+            return false;
+
+        const AstNode& node = nodeAst->node(nodeRef);
+        if (node.is(AstNodeId::Identifier) &&
+            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
+            parentRef.isValid())
+        {
+            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
+            if (parentAst)
+            {
+                const AstNode& parentNode = parentAst->node(parentRef);
+                if (parentNode.is(AstNodeId::UnaryExpr) && parentNode.codeRef().isValid())
+                    return sema.token(parentNode.codeRef()).id == TokenId::SymAmpersand;
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingNeedsAddressMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    AstNodeRef makeInlineMaterializedTypeNode(Sema& sema, TokenRef tokRef, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        auto [typeNodeRef, typeNodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        typeNodePtr->addFlag(AstIdentifierFlagsE::GenericTypeBinding);
+        sema.setType(typeNodeRef, typeRef);
+        return typeNodeRef;
+    }
+
     void appendBodyStatements(Sema& sema, AstNodeRef bodyRef, SmallVector<AstNodeRef>& outStatements, const AstNodeId transparentBodyId)
     {
         if (bodyRef.isInvalid())
@@ -1417,6 +1459,9 @@ namespace
             const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
             const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool bindingHasAddressUse = inlineBindingNeedsAddressMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool forceAddressMaterialization = !bindingIsCaptured && bindingHasAddressUse &&
+                                                     (!paramType.isReference() || !sema.isLValue(binding.exprRef));
             const bool forceRepeatedRValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
@@ -1424,6 +1469,7 @@ namespace
             const bool forceBindingMaterialization = forceExplicitMaterialization ||
                                                      forceVariadicMaterialization ||
                                                      forceIndexOrForeachMaterialization ||
+                                                     forceAddressMaterialization ||
                                                      forceRepeatedRValueMaterialization ||
                                                      forceRepeatedLValueMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
@@ -1448,7 +1494,11 @@ namespace
             const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
             declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
             declPtr->tokNameRef          = paramNameRef;
-            if (!paramType.isAnyVariadic() && SemaHelpers::canUseContextualBinding(sema, binding.exprRef))
+            if (forceAddressMaterialization && paramType.isReference())
+            {
+                declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
+            }
+            else if (!paramType.isAnyVariadic() && SemaHelpers::canUseContextualBinding(sema, binding.exprRef))
             {
                 if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())
                 {

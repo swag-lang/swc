@@ -325,7 +325,7 @@ namespace
                 return targetRef;
 
             sema.setConstAssignBinding(targetRef);
-            if (!paramType.isPointerOrReference())
+            if (!paramType.isPointerOrReference() || paramType.isReference())
                 sema.setConstAssignTarget(targetRef);
         }
         return targetRef;

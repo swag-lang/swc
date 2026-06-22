@@ -263,7 +263,7 @@ namespace
             buildCfg.backend.fpMathNoNaN        = true;
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
-            buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::Auto;
+            buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::MarkedOnly;
         }
         else
         {

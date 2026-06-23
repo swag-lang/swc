@@ -8,6 +8,10 @@
 
 using Core, Gui, Pixel, Core.Math
 
+const SimulationSpeed = 50'f32
+const MaxFrameStep    = 1'f32
+const FixedStep       = 0.05'f32
+
 var r1   = 125.0
 var r2   = 125.0
 var m1   = 10.0
@@ -21,21 +25,57 @@ var cx, cy: f32
 var friction  = 1.0
 var linePath: Array'Vector2
 
+func restartPendulum()
+{
+    a1, a2 = ConstF32.Pi / 2
+    a1_v, a2_v = 0
+    linePath.clear()
+}
+
+func pendulumStateIsFinite()->bool
+{
+    return Math.isFinite(a1) and Math.isFinite(a2) and Math.isFinite(a1_v) and Math.isFinite(a2_v)
+}
+
+func stepPendulum(dt: f32)->bool
+{
+    var num1 = -g * (2 * m1 + m2) * sin(a1)
+    var num2 = -m2 * g * sin(a1 - 2 * a2)
+    var num3 = -2 * sin(a1 - a2) * m2
+    var num4 = a2_v * a2_v * r2 + a1_v * a1_v * r1 * cos(a1 - a2)
+    var den  = r1 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
+    let a1_a = (num1 + num2 + num3 * num4) / den
+
+    num1 = 2 * sin(a1 - a2)
+    num2 = a1_v * a1_v * r1 * (m1 + m2)
+    num3 = g * (m1 + m2) * cos(a1)
+    num4 = a2_v * a2_v * r2 * m2 * cos(a1 - a2)
+    den  = r2 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
+    let a2_a = (num1 * (num2 + num3 + num4)) / den
+
+    if !Math.isFinite(a1_a) or !Math.isFinite(a2_a) do
+        return false
+
+    a1_v += a1_a * dt
+    a2_v += a2_a * dt
+    a1 += a1_v * dt
+    a2 += a2_v * dt
+
+    a1_v *= friction
+    a2_v *= friction
+
+    return pendulumStateIsFinite()
+}
+
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    func start()
-    {
-        a1, a2 = ConstF32.Pi / 2
-        linePath.clear()
-    }
-
     switch evt
     {
     case CreateEvent:
         let rect = wnd.getClientRect()
         cx = rect.width / 3
         cy = 50
-        start()
+        restartPendulum()
 
         let panel = StackLayoutCtrl.create(wnd, .Top, {0, 0, 360})
         panel.padding   = 10
@@ -74,41 +114,40 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             btn.maxSize = 100
             btn.sigPressed += func(btn)
             {
-                start()
+                restartPendulum()
             }
         }
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
 
-        var num1 = -g * (2 * m1 + m2) * sin(a1)
-        var num2 = -m2 * g * sin(a1 - 2 * a2)
-        var num3 = -2 * sin(a1 - a2) * m2
-        var num4 = a2_v * a2_v * r2 + a1_v * a1_v * r1 * cos(a1 - a2)
-        var den  = r1 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
-        let a1_a = (num1 + num2 + num3 * num4) / den
+        var remaining = Math.min(wnd.getApp().getDt() * SimulationSpeed, MaxFrameStep)
+        var valid     = Math.isFinite(remaining)
+        while valid and remaining > 0
+        {
+            let dt = Math.min(remaining, FixedStep)
+            if !stepPendulum(dt)
+            {
+                valid = false
+                break
+            }
 
-        num1 = 2 * sin(a1 - a2)
-        num2 = a1_v * a1_v * r1 * (m1 + m2)
-        num3 = g * (m1 + m2) * cos(a1)
-        num4 = a2_v * a2_v * r2 * m2 * cos(a1 - a2)
-        den  = r2 * (2 * m1 + m2 - m2 * cos(2 * a1 - 2 * a2))
-        let a2_a = (num1 * (num2 + num3 + num4)) / den
+            remaining -= dt
+        }
+
+        if !valid do
+            restartPendulum()
 
         let x1 = r1 * sin(a1)
         let y1 = r1 * cos(a1)
         let x2 = x1 + r2 * sin(a2)
         let y2 = y1 + r2 * cos(a2)
 
-        let dt = wnd.getApp().getDt() * 50
-
-        a1_v += a1_a * dt
-        a2_v += a2_a * dt
-        a1 += a1_v * dt
-        a2 += a2_v * dt
-
-        a1_v *= friction
-        a2_v *= friction
+        if !Math.isFinite(x1) or !Math.isFinite(y1) or !Math.isFinite(x2) or !Math.isFinite(y2)
+        {
+            restartPendulum()
+            return false
+        }
 
         painter.setParams(.Antialiased)
         painter.clear(Argb.Black)

@@ -625,7 +625,7 @@ func createRootView()
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
-    g_Surface = try app.createSurface(100, 50, W, H, flags)
+    g_Surface = try app.createSurface(100, 50, W - 46, H - 31, flags)
     g_Surface.setTitle("GUI5 color widgets")
     g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.Picker, 18))
 

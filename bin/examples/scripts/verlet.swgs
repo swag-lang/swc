@@ -129,5 +129,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 800, 600, title: "Verlet", hook: &onEvent)
+    Application.runSurface(100, 100, 754, 569, title: "Verlet", hook: &onEvent)
 }

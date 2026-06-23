@@ -830,7 +830,7 @@ func createRootView()
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
-    g_Surface = try app.createSurface(100, 80, W, H, flags)
+    g_Surface = try app.createSurface(100, 80, W - 46, H - 31, flags)
     g_Surface.setTitle("GUI6 menu showcase")
     g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.More, 18))
     g_StatusText = "Open a menu or use shortcuts to exercise command dispatch."

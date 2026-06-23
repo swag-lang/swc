@@ -640,7 +640,7 @@ func createRootView()
     initDemoData()
 
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
-    g_Surface = try app.createSurface(100, 100, W, H, flags)
+    g_Surface = try app.createSurface(100, 100, W - 46, H - 31, flags)
     g_Surface.setTitle("GUI4 property control inspector")
     g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
 

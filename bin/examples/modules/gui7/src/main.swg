@@ -342,7 +342,7 @@ func createRootView()
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
-    g_Surface = try app.createSurface(120, 90, W, H, flags)
+    g_Surface = try app.createSurface(120, 90, W - 46, H - 31, flags)
     g_Surface.setTitle("GUI7 layout showcase")
     g_Surface.setIcon(app.theme.getIcon24(.Sort, 18))
 

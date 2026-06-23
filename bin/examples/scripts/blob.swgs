@@ -50,5 +50,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 512, 512, title: "Blob", hook: &onEvent)
+    Application.runSurface(100, 100, 466, 481, title: "Blob", hook: &onEvent)
 }

@@ -309,5 +309,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 600, 730, title: "2048", hook: &onEvent)
+    Application.runSurface(100, 100, 554, 699, title: "2048", hook: &onEvent)
 }

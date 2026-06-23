@@ -113,5 +113,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     try Jobs.setNumWorkers()
 
-    Application.runSurface(100, 100, W + UX, H, title: "Noise", canSize: false, hook: &onEvent)
+    Application.runSurface(100, 100, W + UX - 46, H - 31, title: "Noise", canSize: false, hook: &onEvent)
 }

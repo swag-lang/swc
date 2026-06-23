@@ -560,7 +560,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     var app: Gui.Application
     app.applyTestArgs()
 
-    let surface = try app.createSurface(100, 100, 1024, 1024, flags: (.OverlappedWindow & ~.Sizeable), hook: &onEvent)
+    let surface = try app.createSurface(100, 100, 978, 993, flags: (.OverlappedWindow & ~.Sizeable), hook: &onEvent)
     surface.setTitle("Chess")
 
     var dataPath: String = Path.getDirectoryName(#curlocation.fileName)

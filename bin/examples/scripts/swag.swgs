@@ -98,5 +98,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 800, 512, title: "Swag (move mouse on me!)", hook: &onEvent, testFrames: 50)
+    Application.runSurface(100, 100, 754, 481, title: "Swag (move mouse on me!)", hook: &onEvent, testFrames: 50)
 }

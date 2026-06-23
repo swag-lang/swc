@@ -29,7 +29,7 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    let surface = try app.createSurface(100, 100, 640, 480, SurfaceFlags.OverlappedWindow)
+    let surface = try app.createSurface(100, 100, 594, 449, SurfaceFlags.OverlappedWindow)
     surface.setTitle("GUI example")
 
     let view         = surface.getView()

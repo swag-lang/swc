@@ -415,6 +415,119 @@ SWC_TEST_BEGIN(InstCombine_MemFold_VtReadAfterStore_NotFolded)
 }
 SWC_TEST_END()
 
+namespace
+{
+    uint32_t countBinaryMicroOp(const MicroBuilder& builder, MicroOp wanted)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        uint32_t                   count     = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+            if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[2].microOp == wanted)
+                ++count;
+            else if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[3].microOp == wanted)
+                ++count;
+        }
+        return count;
+    }
+}
+
+// (x & C) << s  ->  x << s  when C keeps every bit the shift preserves: the AND
+// is dead and removed, the shift stays. Immediate mask, feeding the shift directly.
+SWC_TEST_BEGIN(InstCombine_MaskBeforeLeftShift_DroppedDirect)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(v1, ApInt(uint64_t{0x123456789ABCDEF}, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{0x0007FFFFFFFFFFFF}, 64), MicroOp::And, MicroOpBits::B64); // low 51 bits
+    builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{13}, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countBinaryMicroOp(builder, MicroOp::And) != 0)
+        return Result::Error;
+    if (countBinaryMicroOp(builder, MicroOp::ShiftLeft) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Same fold, but the masked value reaches the shift through value-preserving
+// copies with a register-held mask (the shape codegen actually emits).
+SWC_TEST_BEGIN(InstCombine_MaskBeforeLeftShift_DroppedThroughCopies)
+{
+    constexpr MicroReg seed  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg vmask = MicroReg::virtualIntReg(2);
+    constexpr MicroReg v2    = MicroReg::virtualIntReg(3);
+    constexpr MicroReg v3    = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(seed, ApInt(uint64_t{0x123456789ABCDEF}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(vmask, ApInt(uint64_t{0x00007FFFFFFFFFFF}, 64), MicroOpBits::B64); // low 47 bits
+    builder.emitLoadRegReg(v2, seed, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(v2, vmask, MicroOp::And, MicroOpBits::B64);
+    builder.emitLoadRegReg(v3, v2, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v3, ApInt(uint64_t{17}, 64), MicroOp::ShiftLeft, MicroOpBits::B64); // 64-17 = 47
+    builder.emitRet();
+
+    // Two iterations, mirroring the real optimization loop: pass 1 folds the
+    // register-held mask into an immediate AND, pass 2 drops the now-redundant AND.
+    SWC_RESULT(runInstCombinePass(builder));
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countBinaryMicroOp(builder, MicroOp::And) != 0)
+        return Result::Error;
+    if (countBinaryMicroOp(builder, MicroOp::ShiftLeft) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Not folded: the mask clears bits the shift keeps (0xFF vs the low 51 bits a
+// shift-by-13 preserves), so the AND is semantically required.
+SWC_TEST_BEGIN(InstCombine_MaskBeforeLeftShift_KeptWhenMaskTooNarrow)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(v1, ApInt(uint64_t{0x123456789ABCDEF}, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{0xFF}, 64), MicroOp::And, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{13}, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countBinaryMicroOp(builder, MicroOp::And) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Not folded: a right shift does not discard the masked high bits, so the mask
+// is meaningful and must stay.
+SWC_TEST_BEGIN(InstCombine_MaskBeforeRightShift_Kept)
+{
+    constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(v1, ApInt(uint64_t{0x123456789ABCDEF}, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{0x0007FFFFFFFFFFFF}, 64), MicroOp::And, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{7}, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runInstCombinePass(builder));
+
+    if (countBinaryMicroOp(builder, MicroOp::And) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

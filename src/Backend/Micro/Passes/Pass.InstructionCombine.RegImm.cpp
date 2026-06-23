@@ -105,6 +105,126 @@ namespace InstructionCombine
 
         return tryReassociateWithPrevious(ctx, ref, dst, opBits, op, imm);
     }
+
+    // (x & C) << s  ==  x << s   when the low (width - s) bits of C are all set.
+    //
+    // Those low bits are exactly the ones the left shift keeps; every bit the
+    // mask clears is shifted out anyway, so the AND is dead. Frontends emit this
+    // shape whenever source masks a value before a left shift (e.g. wrap-safe
+    // arithmetic). The AND (and its materialized mask constant, removed later by
+    // DCE) is pure overhead the shift makes redundant. Anchored on the shift.
+    bool tryFoldRedundantMaskBeforeShift(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+
+        const MicroOp op = ops[2].microOp;
+        if (op != MicroOp::ShiftLeft && op != MicroOp::ShiftArithmeticLeft)
+            return false;
+
+        const MicroReg dst = ops[0].reg;
+        if (!dst.isVirtualInt())
+            return false;
+
+        const MicroOpBits opBits = ops[1].opBits;
+        const unsigned    width  = static_cast<unsigned>(static_cast<uint8_t>(opBits));
+        if (width == 0 || width > 64)
+            return false;
+
+        const uint64_t shift = ops[3].valueU64;
+        if (shift == 0 || shift >= width)
+            return false;
+
+        const unsigned keptBits = width - static_cast<unsigned>(shift);
+        const uint64_t keptMask = keptBits >= 64 ? ~0ull : ((1ull << keptBits) - 1);
+
+        // Walk back from the shifted register to the AND that produced it. The
+        // value typically reaches the shift through one or more value-preserving
+        // copies (the builder materializes each step into a fresh temp), so the
+        // AND is rarely the direct reaching def. Every hop must be single-use so
+        // that dropping the mask cannot perturb another consumer.
+        // Exactly one real instruction consumer (dead loop-header phis ignored, as
+        // in tryFuseInPlaceUpdate) so dropping the mask cannot perturb anyone else.
+        const auto singleRealUse = [&](MicroReg reg, MicroInstrRef defRef) {
+            uint32_t vId = 0;
+            return ctx.ssa->defValue(reg, defRef, vId) && ctx.ssa->transitiveInstructionUseCount(vId, 2) == 1;
+        };
+
+        MicroReg      cur    = dst;
+        MicroInstrRef curRef = ref;
+        for (int depth = 0; depth < 8; ++depth)
+        {
+            const auto reach = ctx.ssa->reachingDef(cur, curRef);
+            if (!reach.valid() || reach.isPhi || !reach.inst)
+                return false;
+            if (!singleRealUse(cur, reach.instRef))
+                return false;
+
+            const MicroInstr*        defInst = reach.inst;
+            const MicroInstrOperand* defOps  = defInst->ops(*ctx.operands);
+            if (!defOps)
+                return false;
+
+            // Skip a value-preserving copy `cur = src`.
+            if (defInst->op == MicroInstrOpcode::LoadRegReg && defOps[0].reg == cur)
+            {
+                const MicroReg src = defOps[1].reg;
+                if (!src.isVirtualInt() || !isSameOpBitsInt(defOps[2].opBits, opBits))
+                    return false;
+                cur    = src;
+                curRef = reach.instRef;
+                continue;
+            }
+
+            // Otherwise this must be the in-place `cur &= C` we want to drop.
+            if (defOps[0].reg != cur)
+                return false;
+
+            uint64_t mask = 0;
+            if (defInst->op == MicroInstrOpcode::OpBinaryRegImm)
+            {
+                if (defOps[2].microOp != MicroOp::And || !isSameOpBitsInt(defOps[1].opBits, opBits))
+                    return false;
+                mask = defOps[3].valueU64;
+            }
+            else if (defInst->op == MicroInstrOpcode::OpBinaryRegReg)
+            {
+                if (defOps[3].microOp != MicroOp::And || !isSameOpBitsInt(defOps[2].opBits, opBits))
+                    return false;
+                const MicroReg maskReg = defOps[1].reg;
+                if (!maskReg.isVirtualInt())
+                    return false;
+                const auto reachMask = ctx.ssa->reachingDef(maskReg, reach.instRef);
+                if (!reachMask.valid() || reachMask.isPhi || !reachMask.inst || reachMask.inst->op != MicroInstrOpcode::LoadRegImm)
+                    return false;
+                const MicroInstrOperand* maskOps = reachMask.inst->ops(*ctx.operands);
+                if (!maskOps)
+                    return false;
+                mask = maskOps[2].valueU64;
+            }
+            else
+                return false;
+
+            if ((mask & keptMask) != keptMask)
+                return false;
+
+            // The AND's flag write must be dead (the shift redefines flags).
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reach.instRef))
+                return false;
+
+            // Drop the AND; `cur` keeps its pre-mask value, which the shift needs.
+            if (!ctx.claimAll({reach.instRef}))
+                return false;
+            ctx.emitErase(reach.instRef);
+            return true;
+        }
+
+        return false;
+    }
 }
 
 SWC_END_NAMESPACE();

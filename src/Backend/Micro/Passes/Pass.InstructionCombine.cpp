@@ -30,6 +30,7 @@ namespace
     {
         PatternRegistry r;
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryOpBinaryRegImm);
+        r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldRedundantMaskBeforeShift);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFuseInPlaceUpdate);

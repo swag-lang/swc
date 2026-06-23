@@ -442,9 +442,11 @@ namespace
             return true;
 
         SWC_MEM_SCOPE("Backend/JIT");
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::JIT);
-        uint32_t       expectedTestCount = 0;
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::JIT))
+            stage.emplace(ctx, ScopedTimedLog::Stage::JIT);
+        uint32_t expectedTestCount = 0;
 
         if (CommandRun::afterPauses(ctx, [&] {
                 return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeRunByteCode);
@@ -535,7 +537,8 @@ namespace
             executedTestCount++;
         }
 
-        stage.setStat(ScopedTimedLog::formatStatCount(ctx, executedTestCount, "test"));
+        if (stage)
+            stage->setStat(ScopedTimedLog::formatStatCount(ctx, executedTestCount, "test"));
         Stats::get().numTests.fetch_add(executedTestCount, std::memory_order_relaxed);
 
         if (executedTestCount != expectedTestCount)
@@ -572,15 +575,19 @@ namespace
                     if (!compiler.cmdLine().testJit)
                         Stats::get().numTests.fetch_add(builder.testFunctions.size(), std::memory_order_relaxed);
 
-                    ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Verify);
+                    std::optional<ScopedTimedLog> stage;
+                    if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
+                        stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
                     verifyExpectedMarkers(ctx);
                     return !Stats::hasError();
                 }
             }
         }
 
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Verify);
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
         verifyExpectedMarkers(ctx);
         return !Stats::hasError();
     }
@@ -592,8 +599,10 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Test);
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Test))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Test);
 
         bool           testPassed   = true;
         const uint64_t errorsBefore = Stats::getNumErrors();
@@ -608,9 +617,13 @@ namespace Command
         }
 
         if (!testPassed)
-            stage.markFailure();
+        {
+            if (stage)
+                stage->markFailure();
+        }
 
-        stage.setStat(formatTestStageStat(ctx, stage.delta()));
+        if (stage)
+            stage->setStat(formatTestStageStat(ctx, stage->delta()));
 
         if (!testPassed && !Stats::hasError())
         {

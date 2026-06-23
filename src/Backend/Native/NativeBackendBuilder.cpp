@@ -686,13 +686,18 @@ Result NativeBackendBuilder::run()
     artifactBuilder.queryPaths(paths);
     compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
     {
-        ScopedTimedLog stage(ctx_, ScopedTimedLog::Stage::Build);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Build))
+            stage.emplace(ctx_, ScopedTimedLog::Stage::Build);
 
         SWC_RESULT(prepare());
-        Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
-        if (!compiler_->lastArtifactLabel().empty())
-            buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
-        stage.setStat(std::move(buildStat));
+        if (stage)
+        {
+            Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
+            if (!compiler_->lastArtifactLabel().empty())
+                buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
+            stage->setStat(std::move(buildStat));
+        }
         SWC_RESULT(artifactBuilder.build());
         SWC_RESULT(buildObjects());
 
@@ -720,14 +725,17 @@ Result NativeBackendBuilder::prepareForLink()
     artifactBuilder.queryPaths(paths);
     compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
     {
-        ScopedTimedLog stage(ctx_, ScopedTimedLog::Stage::Build);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Build))
+            stage.emplace(ctx_, ScopedTimedLog::Stage::Build);
         SWC_RESULT(prepare());
-        Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
-        if (!compiler_->lastArtifactLabel().empty())
+        if (stage)
         {
-            buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
+            Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
+            if (!compiler_->lastArtifactLabel().empty())
+                buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
+            stage->setStat(std::move(buildStat));
         }
-        stage.setStat(std::move(buildStat));
         SWC_RESULT(artifactBuilder.build());
         SWC_RESULT(buildObjects());
     }
@@ -824,7 +832,7 @@ Result NativeBackendBuilder::prepare()
     buildRuntimeDependencyOrders(*this);
 
     std::optional<ScopedTimedLog> microStage;
-    if (ctx_.global().logger().claimStageOnce("micro"))
+    if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Micro) && ctx_.global().logger().claimStageOnce("micro"))
     {
         microStage.emplace(ctx_, ScopedTimedLog::Stage::Micro);
     }
@@ -1020,7 +1028,9 @@ Result NativeBackendBuilder::buildObjects()
 
 Result NativeBackendBuilder::runGeneratedArtifact()
 {
-    ScopedTimedLog stage(ctx_, ScopedTimedLog::Stage::Run);
+    std::optional<ScopedTimedLog> stage;
+    if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Run))
+        stage.emplace(ctx_, ScopedTimedLog::Stage::Run);
 
     uint32_t              exitCode = 0;
     std::string           artifactOutput;

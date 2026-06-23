@@ -66,7 +66,9 @@ namespace Command
                 return;
         }
 
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Sema);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Sema))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Sema);
 
         std::vector<SourceFile*> inputFiles;
         inputFiles.reserve(compiler.files().size());
@@ -144,14 +146,17 @@ namespace Command
         if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
             return;
 
-        const ScopedTimedLog::StatsSnapshot deltaSnapshot = stage.delta();
-        std::vector<Utf8>                   statParts;
-        if (deltaSnapshot.numFiles)
-            statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
-        if (deltaSnapshot.numTokens)
-            statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numTokens, "token"));
+        if (stage)
+        {
+            const ScopedTimedLog::StatsSnapshot deltaSnapshot = stage->delta();
+            std::vector<Utf8>                   statParts;
+            if (deltaSnapshot.numFiles)
+                statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
+            if (deltaSnapshot.numTokens)
+                statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numTokens, "token"));
 
-        stage.setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
+            stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
+        }
     }
 }
 

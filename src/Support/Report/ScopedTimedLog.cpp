@@ -202,6 +202,15 @@ Utf8 ScopedTimedLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf
     return result;
 }
 
+bool ScopedTimedLog::isOutputEnabled(const TaskContext& ctx, const Stage stage)
+{
+    if (ctx.cmdLine().silent || ctx.global().logger().stageOutputMuted())
+        return false;
+
+    const auto* moduleLog = ctx.hasCompiler() ? ctx.compiler().workspaceModuleLogState() : nullptr;
+    return !moduleLog || stage == Stage::Module;
+}
+
 void ScopedTimedLog::printCommandHeader(const TaskContext& ctx)
 {
     if (ctx.global().logger().stageOutputMuted())
@@ -223,13 +232,9 @@ ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 d
     stage_(stage),
     startTick_(Clock::now()),
     startSnapshot_(StatsSnapshot::capture()),
-    printEnabled_(!ctx.global().logger().stageOutputMuted())
+    printEnabled_(isOutputEnabled(ctx, stage))
 {
     const auto* moduleLog = ctx.hasCompiler() ? ctx.compiler().workspaceModuleLogState() : nullptr;
-
-    // Inside a workspace module only the Module line is interesting; its sub-stages stay quiet.
-    if (moduleLog && stage != Stage::Module)
-        printEnabled_ = false;
 
     if (!detail.empty())
         detail_ = std::move(detail);

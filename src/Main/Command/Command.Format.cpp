@@ -15,8 +15,10 @@ namespace Command
 {
     void format(CompilerInstance& compiler)
     {
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Format);
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Format))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Format);
 
         const Global&     global       = ctx.global();
         JobManager&       jobMgr       = global.jobMgr();
@@ -81,7 +83,8 @@ namespace Command
         if (skippedInvalidFiles)
             statItems.push_back(ScopedTimedLog::formatStatCount(ctx, skippedInvalidFiles, "skipped invalid file"));
 
-        stage.setStat(ScopedTimedLog::joinStatItems(ctx, statItems));
+        if (stage)
+            stage->setStat(ScopedTimedLog::joinStatItems(ctx, statItems));
     }
 }
 

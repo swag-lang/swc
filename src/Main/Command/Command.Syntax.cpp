@@ -18,8 +18,10 @@ namespace Command
 {
     void syntax(CompilerInstance& compiler)
     {
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Syntax);
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Syntax))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Syntax);
 
         const Global&     global   = ctx.global();
         JobManager&       jobMgr   = global.jobMgr();
@@ -36,7 +38,8 @@ namespace Command
 
         jobMgr.waitAll(compiler.jobClientId());
 
-        stage.setStat(ScopedTimedLog::formatStatCount(ctx, compiler.files().size(), "file"));
+        if (stage)
+            stage->setStat(ScopedTimedLog::formatStatCount(ctx, compiler.files().size(), "file"));
 
         if (!Stats::hasError())
         {

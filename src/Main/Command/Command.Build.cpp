@@ -179,8 +179,10 @@ namespace Command
 
         Result finishScriptBackend(CompilerInstance& compiler)
         {
-            TaskContext    ctx(compiler);
-            ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::JIT);
+            TaskContext ctx(compiler);
+            std::optional<ScopedTimedLog> stage;
+            if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::JIT))
+                stage.emplace(ctx, ScopedTimedLog::Stage::JIT);
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeRunByteCode); }));
 
@@ -222,31 +224,40 @@ namespace Command
             SWC_RESULT(runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None));
             SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop));
 
-            stage.setStat(ScopedTimedLog::formatStatCount(ctx, mainFunctions.size(), "main"));
+            if (stage)
+                stage->setStat(ScopedTimedLog::formatStatCount(ctx, mainFunctions.size(), "main"));
             return Result::Continue;
         }
     }
 
     void build(CompilerInstance& compiler)
     {
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Build);
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Build))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Build);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
             Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
 
             sema(compiler);
             if (Stats::getNumErrors() == errorsBefore && finishBuildBackend(compiler, false) != Result::Continue)
-                stage.markFailure();
+            {
+                if (stage)
+                    stage->markFailure();
+            }
         }
 
-        stage.setStat(formatCommandStageStat(ctx, compiler, stage.delta()));
+        if (stage)
+            stage->setStat(formatCommandStageStat(ctx, compiler, stage->delta()));
     }
 
     void run(CompilerInstance& compiler)
     {
-        TaskContext    ctx(compiler);
-        ScopedTimedLog stage(ctx, ScopedTimedLog::Stage::Run);
+        TaskContext ctx(compiler);
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Run))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Run);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
             Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
@@ -256,11 +267,15 @@ namespace Command
             {
                 const Result result = compiler.cmdLine().scriptMode ? finishScriptBackend(compiler) : finishBuildBackend(compiler, true);
                 if (result != Result::Continue)
-                    stage.markFailure();
+                {
+                    if (stage)
+                        stage->markFailure();
+                }
             }
         }
 
-        stage.setStat(formatCommandStageStat(ctx, compiler, stage.delta()));
+        if (stage)
+            stage->setStat(formatCommandStageStat(ctx, compiler, stage->delta()));
     }
 }
 

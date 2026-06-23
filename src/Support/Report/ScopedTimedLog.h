@@ -62,6 +62,7 @@ public:
     static Utf8 formatStatRatio(const TaskContext& ctx, size_t value, size_t total, std::string_view singular);
     static Utf8 formatStatName(const TaskContext& ctx, std::string_view name);
     static Utf8 joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items);
+    static bool isOutputEnabled(const TaskContext& ctx, Stage stage);
     static void printCommandHeader(const TaskContext& ctx);
 
 private:

@@ -143,6 +143,27 @@ SWC_TEST_BEGIN(ScopedTimedLog_CommandHeaderUsesCommandGlyph)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ScopedTimedLog_OutputDisabledWhileMuted)
+{
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Build;
+
+    const Global      global;
+    const TaskContext localCtx(global, cmdLine);
+    if (!ScopedTimedLog::isOutputEnabled(localCtx, ScopedTimedLog::Stage::Build))
+        return Result::Error;
+
+    {
+        Logger::ScopedStageMute muteNestedStages(global.logger());
+        if (ScopedTimedLog::isOutputEnabled(localCtx, ScopedTimedLog::Stage::Build))
+            return Result::Error;
+    }
+
+    if (!ScopedTimedLog::isOutputEnabled(localCtx, ScopedTimedLog::Stage::Build))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ScopedTimedLog_UpToDateUsesReuseGlyph)
 {
     CommandLine cmdLine;

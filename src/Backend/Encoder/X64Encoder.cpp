@@ -1656,6 +1656,30 @@ void X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsD
 
 // ============================================================================
 
+// movdqu xmm, m128   (F3 0F 6F /r) : unaligned 128-bit packed load.
+void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
+{
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
+    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    emitCpuOp(store_, static_cast<uint8_t>(0xF3));
+    emitRex(store_, MicroOpBits::Zero, regDst, memReg);
+    emitCpuOp(store_, static_cast<uint8_t>(0x0F));
+    emitCpuOp(store_, static_cast<uint8_t>(0x6F));
+    emitModRm(store_, memOffset, regDst, memReg);
+}
+
+// movdqu m128, xmm   (F3 0F 7F /r) : unaligned 128-bit packed store.
+void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)
+{
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regSrc.isFloat() && !memReg.isFloat());
+    SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    emitCpuOp(store_, static_cast<uint8_t>(0xF3));
+    emitRex(store_, MicroOpBits::Zero, regSrc, memReg);
+    emitCpuOp(store_, static_cast<uint8_t>(0x0F));
+    emitCpuOp(store_, static_cast<uint8_t>(0x7F));
+    emitModRm(store_, memOffset, regSrc, memReg);
+}
+
 void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());

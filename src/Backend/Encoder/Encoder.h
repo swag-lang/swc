@@ -120,6 +120,8 @@ protected:
     virtual void encodePatchJump(const MicroJump& jump)                                                                                                                                    = 0;
     virtual void encodeJumpReg(MicroReg reg)                                                                                                                                               = 0;
     virtual void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                                   = 0;
+    virtual void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                             = 0;
+    virtual void encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits)                                                                            = 0;
     virtual void encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)                                                                                                    = 0;
     virtual void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits)                                                                                                    = 0;
     virtual void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                           = 0;

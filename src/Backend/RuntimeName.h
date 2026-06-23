@@ -49,6 +49,21 @@ inline Utf8 inlineModeName(const Runtime::BuildCfgBackendInlineMode mode)
     SWC_UNREACHABLE();
 }
 
+inline Utf8 cpuVectorizeName(const Runtime::BuildCfgBackendCpuVectorize mode)
+{
+    switch (mode)
+    {
+        case Runtime::BuildCfgBackendCpuVectorize::None:
+            return "none";
+        case Runtime::BuildCfgBackendCpuVectorize::SSE2:
+            return "sse2";
+        case Runtime::BuildCfgBackendCpuVectorize::AVX2:
+            return "avx2";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 inline Utf8 targetOsName(const Runtime::TargetOs value)
 {
     switch (value)

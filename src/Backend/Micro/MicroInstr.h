@@ -67,7 +67,7 @@ inline constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
 #undef SWC_MICRO_INSTR_DEF
 };
 
-static_assert(MICRO_INSTR_OPCODE_INFOS.size() == static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1);
+static_assert(MICRO_INSTR_OPCODE_INFOS.size() == static_cast<size_t>(MicroInstrOpcode::StoreVecMemReg) + 1);
 
 struct MicroInstrOperand
 {

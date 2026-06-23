@@ -506,3 +506,27 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+SWC_MICRO_INSTR_DEF(
+    LoadVecRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .memBaseOperandIndex   = 1,
+        .memOffsetOperandIndex = 3,
+    })
+
+SWC_MICRO_INSTR_DEF(
+    StoreVecMemReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 3,
+    })

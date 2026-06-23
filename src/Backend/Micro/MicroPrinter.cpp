@@ -592,6 +592,10 @@ namespace
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Constant, relocValue));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadVecRegMem:
+                return std::format("{} = vec128 {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::StoreVecMemReg:
+                return std::format("{} = vec128 {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadSignedExtRegMem:
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadZeroExtRegMem:

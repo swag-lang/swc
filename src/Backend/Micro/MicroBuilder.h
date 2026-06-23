@@ -129,6 +129,8 @@ public:
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
+    void emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
+    void emitStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits);
     void emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits);
     void emitLoadRegPtrImm(MicroReg reg, uint64_t value);
     void emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), const Symbol* targetSymbol = nullptr);

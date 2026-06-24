@@ -221,20 +221,6 @@ namespace
         return path == "." || path == "..";
     }
 
-    bool workspaceDependencyFilesHaveSameContent(const fs::path& lhsPath, const fs::path& rhsPath)
-    {
-        FileSystem::IoErrorInfo ioError;
-        std::vector<std::byte>  lhsData;
-        if (FileSystem::readBinaryFile(lhsPath, lhsData, ioError) != Result::Continue)
-            return false;
-
-        std::vector<std::byte> rhsData;
-        if (FileSystem::readBinaryFile(rhsPath, rhsData, ioError) != Result::Continue)
-            return false;
-
-        return lhsData == rhsData;
-    }
-
     bool shouldCopyWorkspaceDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
     {
         std::error_code ec;
@@ -266,10 +252,11 @@ namespace
         if (ec)
             return true;
 
-        if (srcTime != dstTime)
-            return true;
-
-        return !workspaceDependencyFilesHaveSameContent(srcPath, dstPath);
+        // Matching size and modification time is a strong, cheap signal that the file is unchanged
+        // (the sync copies preserve the source mtime, so an unchanged dependency reproduces it
+        // exactly). Reading both files in full just to byte-compare them on every run defeats the
+        // purpose of the timestamp check and dominated script-mode setup time, so trust it here.
+        return srcTime != dstTime;
     }
 
     Result ensureWorkspaceDependencyDirectory(TaskContext& ctx, std::unordered_set<fs::path>& ensuredDirs, const fs::path& dir)
@@ -1168,6 +1155,11 @@ struct ModuleSetupInputApplier
     Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
     Result resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
+    // Parsing+sema'ing a dependency's .dep metadata file is expensive and the same file is reached
+    // by both the processImports walk and the collectDependencyClosure walk (and by multiple
+    // importers of a shared dependency). Cache the resulting import list keyed by the resolved .dep
+    // path so each metadata file is captured at most once per setup.
+    Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
     Result collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot);
     Result processImports(std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot, bool recordDirectImports);
 
@@ -1187,8 +1179,9 @@ struct ModuleSetupInputApplier
     TaskContext*                                ctx      = nullptr;
     fs::path                                    workspaceDependencyRoot;
     std::unordered_set<Utf8>                    mirroredDependencyDirs;
-    std::unordered_map<Utf8, std::vector<Utf8>> dependencyClosureCache;
-    std::unordered_set<Utf8>                    processedDependencyApis;
+    std::unordered_map<Utf8, std::vector<Utf8>>                            dependencyClosureCache;
+    std::unordered_set<Utf8>                                               processedDependencyApis;
+    std::unordered_map<Utf8, std::vector<CompilerInstance::ModuleSetupImport>> dependencyImportsCache;
 };
 
 ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
@@ -1396,6 +1389,26 @@ Result ModuleSetupInputApplier::captureDependencyImportSnapshot(const fs::path& 
     return instance().captureModuleSetupSnapshot(taskCtx(), setupCmdLine, outSnapshot);
 }
 
+Result ModuleSetupInputApplier::captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports)
+{
+    // depsFile has already been resolved to an absolute path by the caller, so a lexical key is
+    // enough to identify it without paying for another weakly_canonical() disk round-trip.
+    const Utf8 key = Utf8(depsFile.lexically_normal().string());
+    const auto it  = dependencyImportsCache.find(key);
+    if (it != dependencyImportsCache.end())
+    {
+        *outImports = &it->second;
+        return Result::Continue;
+    }
+
+    CompilerInstance::ModuleSetupSnapshot snapshot;
+    SWC_RESULT(captureDependencyImportSnapshot(depsFile, snapshot));
+    const auto [insertedIt, inserted] = dependencyImportsCache.emplace(key, std::move(snapshot.imports));
+    SWC_UNUSED(inserted);
+    *outImports = &insertedIt->second;
+    return Result::Continue;
+}
+
 Result ModuleSetupInputApplier::collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot)
 {
     std::unordered_set seenModules(outModules.begin(), outModules.end());
@@ -1425,12 +1438,12 @@ Result ModuleSetupInputApplier::collectDependencyClosure(std::vector<Utf8>& outM
             continue;
         }
 
-        CompilerInstance::ModuleSetupSnapshot nestedSnapshot;
-        SWC_RESULT(captureDependencyImportSnapshot(depsFile, nestedSnapshot));
+        const std::vector<CompilerInstance::ModuleSetupImport>* nestedImports = nullptr;
+        SWC_RESULT(captureDependencyImports(depsFile, &nestedImports));
 
         std::vector<Utf8> nestedModules;
         const fs::path    sourceDependencyRoot = importPaths.dependencyRoot;
-        SWC_RESULT(collectDependencyClosure(nestedModules, nestedSnapshot.imports, &sourceDependencyRoot));
+        SWC_RESULT(collectDependencyClosure(nestedModules, *nestedImports, &sourceDependencyRoot));
         const auto [insertedIt, inserted] = dependencyClosureCache.emplace(cacheKey, std::move(nestedModules));
         appendUniqueModules(outModules, seenModules, insertedIt->second);
         SWC_UNUSED(inserted);
@@ -1458,12 +1471,12 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
         instance().registerImportedDependencyLinkDir(importPaths.linkDir);
         instance().registerImportedSharedModuleDir(importPaths.sharedDir);
 
-        fs::path                              depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
-        Utf8                                  because;
-        CompilerInstance::ModuleSetupSnapshot nestedSnapshot;
-        const bool                            hasDepsFile = FileSystem::resolveExistingFile(depsFile, because) == Result::Continue;
+        fs::path                                                depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
+        Utf8                                                    because;
+        const std::vector<CompilerInstance::ModuleSetupImport>* nestedImports = nullptr;
+        const bool                                              hasDepsFile   = FileSystem::resolveExistingFile(depsFile, because) == Result::Continue;
         if (hasDepsFile)
-            SWC_RESULT(captureDependencyImportSnapshot(depsFile, nestedSnapshot));
+            SWC_RESULT(captureDependencyImports(depsFile, &nestedImports));
 
         if (recordDirectImports && !importPaths.linkDir.empty())
         {
@@ -1472,7 +1485,7 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
             runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(importPaths.linkDir, importRequest.moduleName.view());
             runtimeImport.hasSharedRuntimeHook = !importPaths.sharedDir.empty();
             if (hasDepsFile)
-                SWC_RESULT(collectDependencyClosure(runtimeImport.transitiveImports, nestedSnapshot.imports, &sourceDependencyRoot));
+                SWC_RESULT(collectDependencyClosure(runtimeImport.transitiveImports, *nestedImports, &sourceDependencyRoot));
             instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));
         }
 
@@ -1482,7 +1495,7 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
         if (!hasDepsFile)
             continue;
 
-        SWC_RESULT(processImports(nestedSnapshot.imports, &sourceDependencyRoot, false));
+        SWC_RESULT(processImports(*nestedImports, &sourceDependencyRoot, false));
     }
 
     return Result::Continue;

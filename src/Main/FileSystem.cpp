@@ -101,30 +101,65 @@ namespace
 
 }
 
+namespace
+{
+    // normalizePath() resolves symlinks via fs::weakly_canonical(), which is a relatively expensive
+    // disk round-trip. The same handful of dependency roots and module paths are normalized over and
+    // over during setup, and for a given input the result is stable for the lifetime of the process
+    // (the working directory and on-disk symlink topology do not change during a build). Memoize it.
+    struct NormalizePathCache
+    {
+        std::mutex                                mutex;
+        std::unordered_map<std::string, fs::path> entries;
+    };
+
+    NormalizePathCache& normalizePathCache()
+    {
+        static NormalizePathCache cache;
+        return cache;
+    }
+
+    fs::path computeNormalizePath(const fs::path& path)
+    {
+        std::error_code ec;
+        fs::path        result = path;
+        if (!result.is_absolute())
+        {
+            const fs::path absolutePath = fs::absolute(result, ec);
+            if (!ec)
+                result = absolutePath;
+        }
+
+        ec.clear();
+        const fs::path normalized = fs::weakly_canonical(result, ec);
+        if (!ec)
+            result = normalized;
+
+        return result.lexically_normal();
+    }
+}
+
 fs::path FileSystem::normalizePath(const fs::path& path)
 {
     if (path.empty())
         return path;
 
-    std::error_code ec;
-    fs::path        result = path;
-    if (!result.is_absolute())
+    std::string         key   = path.string();
+    NormalizePathCache& cache = normalizePathCache();
     {
-        const fs::path absolutePath = fs::absolute(result, ec);
-        if (!ec)
-            result = absolutePath;
-    }
-    else
-    {
-        ec.clear();
+        const std::lock_guard lock(cache.mutex);
+        const auto            it = cache.entries.find(key);
+        if (it != cache.entries.end())
+            return it->second;
     }
 
-    ec.clear();
-    const fs::path normalized = fs::weakly_canonical(result, ec);
-    if (!ec)
-        result = normalized;
+    fs::path result = computeNormalizePath(path);
 
-    return lexicallyNormalize(result);
+    {
+        const std::lock_guard lock(cache.mutex);
+        cache.entries.emplace(std::move(key), result);
+    }
+    return result;
 }
 
 fs::path FileSystem::commonPathPrefix(const fs::path& lhs, const fs::path& rhs)

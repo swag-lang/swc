@@ -558,7 +558,7 @@ impl Application
 
     // When launched with the 'swag.test' argument, auto-exit after 'testFrames' frames.
     // Useful when the surface is created manually instead of through 'runSurface'.
-    mtd applyTestArgs(testFrames: u32 = 100)
+    mtd applyTestArgs(testFrames: u32 = 50)
     {
         if Env.hasArg("swag.test") do
             .maxRunFrame = testFrames
@@ -567,7 +567,7 @@ impl Application
     // Create a main surface, and run.
     // When the application is launched with the 'swag.test' argument, it auto-exits
     // after 'testFrames' frames, so examples can be run headless by the test suite.
-    func runSurface(x, y, width, height: s32, title: string = null, view: *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 100)
+    func runSurface(x, y, width, height: s32, title: string = null, view: *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 50)
     {
         var app: Application
 

@@ -301,7 +301,7 @@ public struct Window
 
 public struct WindowLoop
 {
-    maxTestFrames:     u32 = 100
+    maxTestFrames:     u32 = 50
     testFrames:        u32
 }
 

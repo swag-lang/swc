@@ -1626,6 +1626,11 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
     else
     {
         ctx.compiler().initPerThreadRuntimeContextForJit();
+
+        // This is an actual program run (not compile-time evaluation), so make the
+        // program's '@args' reflect the command line it was effectively launched with.
+        // Done here rather than at codegen so compile-time '#run' keeps a zeroed @pinfos.
+        ctx.compiler().ensureProcessInfosRunArgs();
     }
 
     bool hasException = false;

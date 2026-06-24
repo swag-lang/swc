@@ -158,6 +158,7 @@ public:
     static void                     setRuntimeContextForCurrentThread(Runtime::Context* context);
     uint32_t                        nativeRuntimeContextTlsIdOffset();
     uint32_t                        nativeProcessInfosOffset();
+    void                            ensureProcessInfosRunArgs();
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -299,6 +300,11 @@ public:
     }
 
     static bool dbgDevStop;
+
+    // Set when the run was launched with the 'swag.test' run-arg (headless test
+    // execution). In that mode a panic must never pop an interactive dialog box,
+    // which would stall the automated test flow; it logs and exits instead.
+    static bool headlessTestRun;
 
 private:
     friend class CompilerMessageTypeInfoJob;
@@ -478,6 +484,8 @@ private:
     std::once_flag                                                                                               nativeProcessInfosOffsetOnce_;
     uint32_t                                                                                                     nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     uint32_t                                                                                                     nativeProcessInfosOffset_        = UINT32_MAX;
+    Utf8                                                                                                         processInfosArgsStorage_;
+    bool                                                                                                         processInfosRunArgsReady_        = false;
     std::vector<SymbolFunction*>                                                                                 nativeCodeSegment_;
     std::unordered_set<SymbolFunction*>                                                                          nativeCodeSegmentSet_;
     std::vector<SymbolFunction*>                                                                                 nativeTestFunctions_;

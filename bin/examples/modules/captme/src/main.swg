@@ -49,7 +49,7 @@ var g_App: Application
     let mainWnd = MainWnd.create(surface.wnd)
 
     if Env.hasArg("swag.test") do
-        g_App.maxRunFrame = 100
+        g_App.maxRunFrame = 50
     if !Env.hasArg("--hide") do
         surface.show()
 

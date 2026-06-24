@@ -40,6 +40,7 @@
 SWC_BEGIN_NAMESPACE();
 
 bool CompilerInstance::dbgDevStop = false;
+bool CompilerInstance::headlessTestRun = false;
 
 namespace
 {
@@ -335,6 +336,12 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 {
     (void) runtimeContextTlsId();
 
+    // Headless test runs must never block on an interactive panic dialog. The test
+    // command auto-injects the 'swag.test' run-arg (see effectiveGeneratedArtifactRunArgs),
+    // so treat it as headless too even though the raw run-args don't list it yet.
+    if (cmdLine.command == CommandKind::Test || hasRunArg(cmdLine.runArgs, SWAG_TEST_RUN_ARG))
+        headlessTestRun = true;
+
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 
@@ -608,6 +615,45 @@ uint32_t CompilerInstance::nativeProcessInfosOffset()
 
     SWC_ASSERT(nativeProcessInfosOffset_ != UINT32_MAX);
     return nativeProcessInfosOffset_;
+}
+
+// Populate '@pinfos.args' for a JIT-hosted program run. A native executable fills this
+// from its real OS command line at startup, but a JIT-hosted run (swc run/test) never
+// does, so the program's '@args' would come back empty -- which breaks the runtime's
+// 'swag.test' panic guard (it scans @args), letting a headless panic pop an interactive
+// dialog box. We build the command line the program is effectively launched with: argv[0]
+// plus the effective run args (which include the auto-added 'swag.test' for the test
+// command). This is done lazily at run time -- never at codegen -- so compile-time '#run'
+// code keeps seeing a zeroed @pinfos (see the context_intrinsics unit test).
+void CompilerInstance::ensureProcessInfosRunArgs()
+{
+    if (processInfosRunArgsReady_)
+        return;
+    processInfosRunArgsReady_ = true;
+
+    Utf8       cmdLineStr;
+    const auto appendQuoted = [&cmdLineStr](const std::string_view token) {
+        const bool needQuotes = token.find(' ') != std::string_view::npos;
+        if (needQuotes)
+            cmdLineStr += '"';
+        cmdLineStr += token;
+        if (needQuotes)
+            cmdLineStr += '"';
+    };
+
+    const std::string exeName = exeFullName_.string();
+    appendQuoted(exeName);
+    for (const Utf8& arg : effectiveGeneratedArtifactRunArgs(cmdLine()))
+    {
+        cmdLineStr += ' ';
+        appendQuoted(arg.view());
+    }
+
+    processInfosArgsStorage_ = std::move(cmdLineStr);
+
+    auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfos>(nativeProcessInfosOffset());
+    SWC_ASSERT(infos != nullptr);
+    infos->args = {processInfosArgsStorage_.data(), processInfosArgsStorage_.length()};
 }
 
 void CompilerInstance::initPerThreadRuntimeContextForJit()

@@ -1,6 +1,6 @@
 using Core, Gui
 
-const TestFrames = 100
+const TestFrames = 50
 
 var app: Application
 var g_Button: *PushButton

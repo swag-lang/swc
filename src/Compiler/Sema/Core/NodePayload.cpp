@@ -611,8 +611,8 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     }
 
     Shard*                 shard = ensureShard(shardIdx);
-    const std::scoped_lock lock(shard->resolvedCallArgsMutex, shard->storeMutex);
-    shard->resolvedCallArgsByNode[nodeRef] = shard->store.pushSpan(args);
+    const std::unique_lock lock(shard->resolvedCallArgsMutex);
+    shard->resolvedCallArgsByNode[nodeRef].assign(args.begin(), args.end());
 }
 
 bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
@@ -642,12 +642,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     if (it == shard->resolvedCallArgsByNode.end())
         return;
 
-    const auto spanView = shard->store.span<ResolvedCallArgument>(it->second.get());
-    for (PagedStore::SpanView::ChunkIterator it1 = spanView.chunksBegin(); it1 != spanView.chunksEnd(); ++it1)
-    {
-        const PagedStore::SpanView::Chunk& chunk = *it1;
-        out.append(static_cast<const ResolvedCallArgument*>(chunk.ptr), chunk.count);
-    }
+    out.append(it->second.data(), it->second.size());
 }
 
 bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const

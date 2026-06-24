@@ -210,7 +210,11 @@ private:
         std::unordered_map<AstNodeRef, void*>   inlinePayloads;
         std::unordered_map<AstNodeRef, void*>   inlineContextOverrides;
         std::unordered_map<AstNodeRef, void*>   semaPayloads;
-        std::unordered_map<AstNodeRef, SpanRef> resolvedCallArgsByNode;
+
+        // Resolved call arguments are stored inline (not in `store`) so writing them only
+        // contends on `resolvedCallArgsMutex`, never on the hot `storeMutex` shared with the
+        // symbol/substitute payload writers.
+        std::unordered_map<AstNodeRef, SmallVector<ResolvedCallArgument, 4>> resolvedCallArgsByNode;
     };
 
     std::array<std::atomic<Shard*>, NODE_PAYLOAD_SHARD_NUM> shards_{};

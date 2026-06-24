@@ -668,11 +668,22 @@ namespace
         return true;
     }
 
-    // Calls, casts, switches and intrinsics inside an inline body are re-matched / re-derived
-    // (overload selection, argument coercions, case-type resolution) when the body is
-    // materialized, and that resolution isn't preserved across a cross-Ast inline yet. A body
-    // containing any of them stays on the previous (non cross-Ast) path. Plain operator/member
-    // bodies (the hot bit-stream accessors) are unaffected and still inline across files.
+    // Calls, switches, intrinsics, named types and struct literals inside an inline body are
+    // re-matched / re-derived (overload selection, argument coercions, case-type resolution, type
+    // name lookup) when the body is materialized, and that resolution isn't fully preserved across
+    // a cross-Ast inline yet. A body containing any of them stays on the previous (non cross-Ast)
+    // path.
+    //
+    // The rest still gate inlining because removing them exposes cross-Ast re-resolution bugs:
+    //  - NamedType / StructLiteral / StructInitializerList re-resolve the type by NAME in the
+    //    caller's scope (`Point{...}` -> "unknown symbol 'Point'" in the std test build).
+    //  - CallExpr re-runs overload selection and trips a nested-inline auto-member wait-deadlock.
+    //  - SwitchStmt / intrinsics re-derive case-type and argument typing.
+    // Two CallExpr-related corners were already fixed (the inline-payload walk-up in
+    // Sema.Member.Auto.cpp for auto-members inside injected #code, and the resolved-overload pin in
+    // SemaClone.cpp); both also benefit the always-expanded macro path. The remaining cases must be
+    // handled (proper cross-Ast symbol pinning for types / overloads / case types) before these
+    // node kinds can leave the guard.
     bool bodyHasUnsafeCrossAstConstruct(const Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -680,7 +691,7 @@ namespace
         const AstNode& node = ast.node(nodeRef);
         if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
             node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
-            node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
+            node.is(AstNodeId::CallExpr) ||
             node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
             node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::NamedType))
             return true;

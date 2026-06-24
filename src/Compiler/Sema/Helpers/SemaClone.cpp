@@ -893,6 +893,33 @@ namespace
 
         return nodeRef;
     }
+
+    // Pin the call's resolved overload onto the cloned callee identifier. Overload selection ran
+    // against the call node, not its callee identifier (which only carries the overload set / first
+    // overload), so a clone that re-resolves by name in a foreign scope (cross-Ast inline, or a
+    // same-Ast inline that opted into preserving resolved symbols) can pick the wrong overload.
+    // Carry the actually-selected function, mirroring copyResolvedIdentifierSymbols for the
+    // semaClone-based inline path.
+    void pinClonedCallResolvedFunction(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceCallRef, AstNodeRef clonedCalleeRef)
+    {
+        if (sourceCallRef.isInvalid() || clonedCalleeRef.isInvalid())
+            return;
+
+        const Ast& sourceAst         = cloneSourceAst(sema, cloneContext);
+        const bool pinResolvedSymbol = (&sourceAst != &sema.ast()) || cloneContext.preserveResolvedSymbols;
+        if (!pinResolvedSymbol)
+            return;
+
+        if (!sema.node(clonedCalleeRef).is(AstNodeId::Identifier))
+            return;
+
+        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, cloneContext, sourceCallRef);
+        if (!storedView || !storedView->sym || !storedView->sym->safeCast<SymbolFunction>())
+            return;
+
+        sema.setSymbol(clonedCalleeRef, storedView->sym);
+        sema.node(clonedCalleeRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+    }
 }
 
 AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
@@ -1788,10 +1815,12 @@ AstNodeRef AstStructInitializerList::semaClone(Sema& sema, const CloneContext& c
 
 AstNodeRef AstCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::CallExpr>(tokRef());
-    newPtr->flags()         = flags();
-    newPtr->nodeExprRef     = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::CallExpr>(tokRef());
+    newPtr->flags()           = flags();
+    newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, inlineContext);
+    newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, inlineContext);
+    pinClonedCallResolvedFunction(sema, inlineContext, nodeRef(cloneSourceAst(sema, inlineContext)), newPtr->nodeExprRef);
     return newRef;
 }
 

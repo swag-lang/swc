@@ -273,17 +273,22 @@ namespace
         return false;
     }
 
-    Result addCandidateFromInlineReceiver(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence)
+    // Adds the inline receiver (`me`) candidate from a single inline payload. Sets outFound when
+    // this payload actually binds `me` (so the caller stops walking the payload chain), regardless
+    // of whether a usable candidate could be produced.
+    Result addCandidateFromInlineReceiverPayload(Sema& sema, const SemaInlinePayload& inlinePayload, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence, bool& outFound)
     {
-        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        if (!inlinePayload)
-            return Result::Continue;
+        outFound = false;
 
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        for (const SemaClone::ParamBinding& binding : inlinePayload->argMappings)
+        for (const SemaClone::ParamBinding& binding : inlinePayload.argMappings)
         {
             if (binding.idRef != meId || binding.exprRef.isInvalid())
                 continue;
+
+            // This payload owns the receiver: do not look past it into parent payloads even if no
+            // candidate can be derived below.
+            outFound = true;
 
             if (const Symbol* boundSymbol = sema.viewSymbol(binding.exprRef).sym(); boundSymbol && boundSymbol->isVariable())
             {
@@ -308,6 +313,25 @@ namespace
 
             SWC_RESULT(addCandidateFromType(sema, outCandidates, typeRef, nullptr, binding.exprRef, precedence++));
             return Result::Continue;
+        }
+
+        return Result::Continue;
+    }
+
+    Result addCandidateFromInlineReceiver(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence)
+    {
+        // Walk the inline payload chain. A macro expanded inside an inlined method gets its own
+        // payload, which has no `me` binding; an injected #code argument written in the method body
+        // (e.g. `index < .count`) must still resolve its auto-member against the enclosing method's
+        // receiver, which lives in a parent payload. Use the nearest payload that binds `me`.
+        for (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+             inlinePayload;
+             inlinePayload = inlinePayload->parentInlinePayload)
+        {
+            bool found = false;
+            SWC_RESULT(addCandidateFromInlineReceiverPayload(sema, *inlinePayload, outCandidates, precedence, found));
+            if (found)
+                return Result::Continue;
         }
 
         return Result::Continue;

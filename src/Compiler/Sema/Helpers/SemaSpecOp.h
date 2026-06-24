@@ -42,10 +42,10 @@ struct DataOfSpecOpPayload
 
 struct RelationalSpecOpPayload
 {
-    SymbolFunction* calledFn            = nullptr;
+    SymbolFunction* calledFn = nullptr;
     // Special relation nodes keep their own semantic type; the inlined call body
     // is only used later by codegen.
-    AstNodeRef      inlineSubstituteRef = AstNodeRef::invalid();
+    AstNodeRef inlineSubstituteRef = AstNodeRef::invalid();
 };
 
 struct UnarySpecOpPayload

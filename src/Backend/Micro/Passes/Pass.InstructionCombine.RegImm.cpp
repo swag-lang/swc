@@ -131,7 +131,7 @@ namespace InstructionCombine
             return false;
 
         const MicroOpBits opBits = ops[1].opBits;
-        const unsigned    width  = static_cast<unsigned>(static_cast<uint8_t>(opBits));
+        const unsigned    width  = static_cast<uint8_t>(opBits);
         if (width == 0 || width > 64)
             return false;
 

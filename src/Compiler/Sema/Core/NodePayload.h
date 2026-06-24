@@ -199,17 +199,17 @@ private:
 
     struct Shard
     {
-        mutable std::mutex                      storeMutex;
-        mutable std::shared_mutex               loweringPayloadsMutex;
-        mutable std::shared_mutex               inlinePayloadsMutex;
-        mutable std::shared_mutex               inlineContextOverridesMutex;
-        mutable std::shared_mutex               semaPayloadsMutex;
-        mutable std::shared_mutex               resolvedCallArgsMutex;
-        PagedStore                              store;
-        std::unordered_map<AstNodeRef, void*>   loweringPayloads;
-        std::unordered_map<AstNodeRef, void*>   inlinePayloads;
-        std::unordered_map<AstNodeRef, void*>   inlineContextOverrides;
-        std::unordered_map<AstNodeRef, void*>   semaPayloads;
+        mutable std::mutex                    storeMutex;
+        mutable std::shared_mutex             loweringPayloadsMutex;
+        mutable std::shared_mutex             inlinePayloadsMutex;
+        mutable std::shared_mutex             inlineContextOverridesMutex;
+        mutable std::shared_mutex             semaPayloadsMutex;
+        mutable std::shared_mutex             resolvedCallArgsMutex;
+        PagedStore                            store;
+        std::unordered_map<AstNodeRef, void*> loweringPayloads;
+        std::unordered_map<AstNodeRef, void*> inlinePayloads;
+        std::unordered_map<AstNodeRef, void*> inlineContextOverrides;
+        std::unordered_map<AstNodeRef, void*> semaPayloads;
 
         // Resolved call arguments are stored inline (not in `store`) so writing them only
         // contends on `resolvedCallArgsMutex`, never on the hot `storeMutex` shared with the

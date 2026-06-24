@@ -134,7 +134,7 @@ namespace
         if (!canResolveFunctionParameterIdentifier(sema, codeRef))
             return nullptr;
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+        const IdentifierRef   idRef           = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
         const SymbolFunction* currentFunction = sema.currentFunction();
         size_t                paramIndex      = 0;
         if (currentFunction->tryGetParameterIndexByName(paramIndex, idRef))

@@ -179,7 +179,7 @@ namespace Command
 
         Result finishScriptBackend(CompilerInstance& compiler)
         {
-            TaskContext ctx(compiler);
+            TaskContext                   ctx(compiler);
             std::optional<ScopedTimedLog> stage;
             if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::JIT))
                 stage.emplace(ctx, ScopedTimedLog::Stage::JIT);
@@ -232,7 +232,7 @@ namespace Command
 
     void build(CompilerInstance& compiler)
     {
-        TaskContext ctx(compiler);
+        TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Build))
             stage.emplace(ctx, ScopedTimedLog::Stage::Build);
@@ -254,7 +254,7 @@ namespace Command
 
     void run(CompilerInstance& compiler)
     {
-        TaskContext ctx(compiler);
+        TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Run))
             stage.emplace(ctx, ScopedTimedLog::Stage::Run);

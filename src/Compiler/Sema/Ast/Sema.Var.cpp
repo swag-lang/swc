@@ -1250,7 +1250,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
     const std::span<Symbol* const> symbols = sema.curViewSymbolList().symList();
-    const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
+    const SemaPostVarDeclArgs      context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }
 

@@ -1211,11 +1211,11 @@ namespace
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
 
         // Constant struct member access
-        const SemaNodeView       nodeRightView            = sema.viewSymbolList(node.nodeRightRef);
-        const std::span<Symbol* const> symbols            = nodeRightView.symList();
-        const size_t             finalSymCount            = symbols.size();
-        const bool               throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
-        bool                     canExtractConstantMember = !throughPointerOrRef;
+        const SemaNodeView             nodeRightView            = sema.viewSymbolList(node.nodeRightRef);
+        const std::span<Symbol* const> symbols                  = nodeRightView.symList();
+        const size_t                   finalSymCount            = symbols.size();
+        const bool                     throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
+        bool                           canExtractConstantMember = !throughPointerOrRef;
         if (throughPointerOrRef && nodeLeftView.cst())
         {
             const ConstantValue& cst = *nodeLeftView.cst();

@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using MatchPriority = MatchContext::Priority;
+    using MatchPriority  = MatchContext::Priority;
     using VisibilityTier = MatchContext::VisibilityTier;
 
     bool scopeUsesRedirectedLookupChain(const SemaScope* scope)
@@ -124,8 +124,8 @@ namespace
         const SymbolMap* current = root;
         for (const IdentifierRef idRef : nsPath)
         {
-            MatchContext        matchCxt;
-            const MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::LocalScope};
+            MatchContext            matchCxt;
+            constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::LocalScope};
             matchCxt.beginSymMapLookup(priority);
             current->lookupAppend(idRef, matchCxt);
 
@@ -175,7 +175,7 @@ namespace
 
             SWC_RESULT(sema.waitSemaCompleted(target, lookUpCxt.codeRef));
 
-            const MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::UsingDirective};
+            constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::UsingDirective};
 
             addSymMap(lookUpCxt, target, priority);
             SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, *target, visited));
@@ -213,7 +213,7 @@ namespace
         // and give it top priority.
         if (lookUpCxt.symMapHint)
         {
-            const MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::LocalScope};
+            constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::LocalScope};
 
             // If the caller hints a struct scope, but we're currently inside an `impl Interface for Struct`
             // block for that same struct, member lookup must also consider the current impl scope.

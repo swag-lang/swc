@@ -91,6 +91,23 @@ private:
     // Only keyable sleepers appear here; non-keyable ones stay wildcard (barrier-woken).
     std::unordered_multimap<WaitKey, JobRecord*, WaitKeyHash> waiters_;
 
+    // Lock-free presence filter over the registered wait keys. wake() consults it BEFORE
+    // taking mtx_: an empty shard proves no job is parked on the key, so the (overwhelmingly
+    // common) wake with no waiter never touches the global scheduler mutex. Symbol-state wakes
+    // (setTyped/setDeclared/...) fire on every symbol transition across the whole compile; the
+    // old unconditional lock serialized every worker on mtx_ even though almost nobody waits on
+    // that exact symbol. The filter is a counting filter: shard == 0 means "no waiter here",
+    // shard > 0 means "maybe a waiter" (hash collisions only cause a correct fall-through to the
+    // authoritative locked scan). A genuinely lost wake is impossible beyond the pre-existing
+    // best-effort window already covered by the wakeAll barrier in Sema::waitDone. All mutations
+    // happen under mtx_ (release); only wake()'s fast-path read is lock-free (acquire).
+    static constexpr size_t                                 WAITER_FILTER_SHARDS = 4096; // power of two
+    std::array<std::atomic<uint32_t>, WAITER_FILTER_SHARDS> waiterFilter_{};
+
+    static size_t waiterShard(const WaitKey& key) noexcept { return WaitKeyHash{}(key) & (WAITER_FILTER_SHARDS - 1); }
+    void          filterAdd(const WaitKey& key) noexcept { waiterFilter_[waiterShard(key)].fetch_add(1, std::memory_order_release); }
+    void          filterSub(const WaitKey& key) noexcept { waiterFilter_[waiterShard(key)].fetch_sub(1, std::memory_order_release); }
+
     void bumpClientCountLocked(JobClientId client, int delta);
 
     struct RecordPool;

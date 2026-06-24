@@ -179,6 +179,7 @@ void JobManager::unregisterWaiterLocked(JobRecord* rec)
         if (it->second == rec)
         {
             waiters_.erase(it);
+            filterSub(rec->waitKey);
             break;
         }
     }
@@ -191,18 +192,26 @@ void JobManager::wake(const WaitKey& key)
     if (!key.valid())
         return;
 
+    // Lock-free fast path: an empty shard means no job is parked on this key, so there is
+    // nothing to wake and no reason to touch the global scheduler mutex. This is what keeps the
+    // very frequent symbol-state wakes from serializing every worker on mtx_ when, as is almost
+    // always the case, nobody waits on that exact dependency.
+    if (waiterFilter_[waiterShard(key)].load(std::memory_order_acquire) == 0)
+        return;
+
     const std::unique_lock lk(mtx_);
 
     const auto range = waiters_.equal_range(key);
     if (range.first == range.second)
         return;
 
-    bool any = false;
+    size_t woken = 0;
     for (auto it = range.first; it != range.second;)
     {
         JobRecord* rec  = it->second;
         it              = waiters_.erase(it);
         rec->registered = false;
+        filterSub(key); // every erased entry was counted in the filter, regardless of its state
 
         if (rec->state != JobRecord::State::Waiting)
             continue;
@@ -210,10 +219,14 @@ void JobManager::wake(const WaitKey& key)
         rec->state = JobRecord::State::Ready;
         bumpClientCountLocked(rec->clientId, +1);
         pushReady(rec, rec->priority);
-        any = true;
+        ++woken;
     }
 
-    if (any)
+    // Wake only as many workers as we made jobs ready: a single readied job does not warrant a
+    // thundering-herd notify_all across every parked worker.
+    if (woken == 1)
+        cv_.notify_one();
+    else if (woken > 1)
         cv_.notify_all();
 }
 
@@ -528,6 +541,7 @@ void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
                 rec->waitKey    = *key;
                 rec->registered = true;
                 waiters_.emplace(*key, rec);
+                filterAdd(*key);
             }
             break;
         }

@@ -681,6 +681,16 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             if (parentNode.is(AstNodeId::NamedType))
                 return Result::Continue;
 
+            // The type-name (`what`) of a typed struct literal `T{...}`. A cross-Ast inline clone
+            // carries its already-resolved type here (the symbol can't survive the clone because a
+            // node payload holds a type OR a symbol, not both); re-resolving the bare name `T` in
+            // the destination scope would fail when `T` is namespace/file-private to the callee
+            // (e.g. Math.Rectangle.topLeft returning `Point{.x, .y}`). The carried type is enough
+            // for the struct initializer, so do not look the name up again.
+            if (const auto* structInit = parentNode.safeCast<AstStructInitializerList>();
+                structInit && structInit->nodeWhatRef == sema.curNodeRef())
+                return Result::Continue;
+
             if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
             {
                 if (sema.curViewSymbol().sym() || sema.curViewSymbolList().hasSymbolList())

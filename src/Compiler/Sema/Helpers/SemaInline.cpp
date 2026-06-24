@@ -444,7 +444,7 @@ namespace
             }
         }
 
-        AstNodeRef valueRef = bindingValueArgumentRef(sema, argRef);
+        const AstNodeRef valueRef = bindingValueArgumentRef(sema, argRef);
         if (valueRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -668,22 +668,27 @@ namespace
         return true;
     }
 
-    // Calls, switches, intrinsics, named types and struct literals inside an inline body are
-    // re-matched / re-derived (overload selection, argument coercions, case-type resolution, type
-    // name lookup) when the body is materialized, and that resolution isn't fully preserved across
-    // a cross-Ast inline yet. A body containing any of them stays on the previous (non cross-Ast)
-    // path.
+    // Calls and intrinsics inside an inline body are re-matched / re-derived (overload selection,
+    // argument coercions) when the body is materialized, and that resolution isn't fully preserved
+    // across a cross-Ast inline yet. A body containing one of them stays on the previous (non
+    // cross-Ast) path.
     //
-    // The rest still gate inlining because removing them exposes cross-Ast re-resolution bugs:
-    //  - NamedType / StructLiteral / StructInitializerList re-resolve the type by NAME in the
-    //    caller's scope (`Point{...}` -> "unknown symbol 'Point'" in the std test build).
-    //  - CallExpr re-runs overload selection and trips a nested-inline auto-member wait-deadlock.
-    //  - SwitchStmt / intrinsics re-derive case-type and argument typing.
-    // Two CallExpr-related corners were already fixed (the inline-payload walk-up in
-    // Sema.Member.Auto.cpp for auto-members inside injected #code, and the resolved-overload pin in
-    // SemaClone.cpp); both also benefit the always-expanded macro path. The remaining cases must be
-    // handled (proper cross-Ast symbol pinning for types / overloads / case types) before these
-    // node kinds can leave the guard.
+    // Casts, named types, struct literals and switches were REMOVED from this set: their cross-Ast
+    // materialization is handled (the cast operand / type carries its resolved type, the struct
+    // literal's type-name node keeps its resolved type via the struct-init skip in
+    // Sema.Identifier.cpp, switch case values resolve against the switched value's type) and they
+    // inline across files correctly — covered by the std test build and
+    // bin/unittests/native/regression/inline_crossast_{constructs,switch_*,structtype_*}.swg.
+    //
+    // CallExpr and the intrinsic node kinds still gate inlining:
+    //  - CallExpr re-runs overload selection and trips a nested-inline auto-member wait-deadlock
+    //    (e.g. `.lines[i].length()`). Two corners were already fixed (the inline-payload walk-up in
+    //    Sema.Member.Auto.cpp for auto-members inside injected #code, and the resolved-overload pin
+    //    in SemaClone.cpp), but the remaining cases must be handled first.
+    //  - Intrinsics re-derive per-type overloads (@min/@max picked the wrong width) and, more
+    //    fundamentally, moving an intrinsic-bodied helper (e.g. Math.ror) into the caller changes
+    //    the caller's safety context AND miscompiles bit-rotate-heavy code (core sha1 digest
+    //    mismatch). That needs the inline safety-context fix plus a codegen investigation.
     bool bodyHasUnsafeCrossAstConstruct(const Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -691,14 +696,36 @@ namespace
         const AstNode& node = ast.node(nodeRef);
         if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
             node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
-            node.is(AstNodeId::CallExpr) ||
+            node.is(AstNodeId::CallExpr))
+            return true;
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, ast);
+        for (const AstNodeRef childRef : children)
+            if (bodyHasUnsafeCrossAstConstruct(ast, childRef))
+                return true;
+        return false;
+    }
+
+    // Auto-inline (release mode) volunteers a far wider, less-validated candidate set than the
+    // marked `#[Inline]` cross-Ast path, so it keeps the ORIGINAL conservative construct set:
+    // cast / named-type / struct-literal / switch were only proven safe for the marked path and
+    // regress the release/Auto std build when auto-inlined (e.g. a re-resolved `character`->`u8`
+    // cast). Auto stays on the strict set until it is validated through the release suite.
+    bool bodyHasUnsafeAutoInlineConstruct(const Ast& ast, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+        const AstNode& node = ast.node(nodeRef);
+        if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
+            node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
+            node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
             node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
             node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::NamedType))
             return true;
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
         for (const AstNodeRef childRef : children)
-            if (bodyHasUnsafeCrossAstConstruct(ast, childRef))
+            if (bodyHasUnsafeAutoInlineConstruct(ast, childRef))
                 return true;
         return false;
     }
@@ -2071,7 +2098,7 @@ namespace
         // not-yet-handled re-resolution cases out of line. Leaf computational callees (member
         // access, indexing, arithmetic, assignments, control flow over params/`me`/locals/
         // globals) still inline — including into callers that themselves contain calls.
-        if (bodyHasUnsafeCrossAstConstruct(*declAst, decl->nodeBodyRef))
+        if (bodyHasUnsafeAutoInlineConstruct(*declAst, decl->nodeBodyRef))
             return false;
         SmallVector<AstNodeRef> localFns;
         collectInlineLocalFunctionDecls(sema, decl->nodeBodyRef, localFns);

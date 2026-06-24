@@ -1467,8 +1467,14 @@ namespace
             if (paramType.isCodeBlock() || paramType.isAnyVariadic())
                 return Result::Continue;
 
-            const TokenRef   tokRef        = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
-            const AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
+            const TokenRef tokRef = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            // The receiver is an already-resolved CALLER expression (e.g. `me.slab[i]`, where
+            // `.slab` resolved against the caller's `me`). Materializing it into the inline body
+            // prologue means a plain re-expanding clone would re-resolve its auto-members in the
+            // *callee* inline frame — where the caller's `me` is gone — and stall on the `.` marker.
+            // Preserve the resolved identifier symbols so the receiver stays bound to the caller.
+            const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+            const AstNodeRef              clonedInitRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, binding.exprRef, noBindings);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 

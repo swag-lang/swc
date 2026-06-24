@@ -631,7 +631,18 @@ namespace
 
         if (sema.node(sourceRef).is(AstNodeId::Identifier) && sema.node(clonedRef).is(AstNodeId::Identifier))
         {
-            if (const Symbol* symbol = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym())
+            // Use the stored symbol when present (the committed truth for already-resolved nodes).
+            // Fall back to the live (current-pass) symbol only when nothing is stored: a synthesized
+            // auto-member receiver (`makeAutoMemberLeftExpr`'s implicit-`me` `.` marker) is bound via
+            // setSymbol during the current resolution and may not be committed to the stored payload
+            // yet when a caller receiver expression is cloned for inline materialization. Without the
+            // fallback the cloned `.` is symbolless and re-resolves by name in the callee frame
+            // (caller `me` gone) and stalls. Stored-first keeps already-resolved identifiers (the
+            // common case) byte-for-byte unchanged.
+            const Symbol* symbol = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym();
+            if (!symbol)
+                symbol = sema.viewSymbol(sourceRef).sym();
+            if (symbol)
             {
                 sema.setSymbol(clonedRef, symbol);
                 sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);

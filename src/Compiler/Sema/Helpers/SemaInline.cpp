@@ -668,35 +668,31 @@ namespace
         return true;
     }
 
-    // Calls and intrinsics inside an inline body are re-matched / re-derived (overload selection,
-    // argument coercions) when the body is materialized, and that resolution isn't fully preserved
-    // across a cross-Ast inline yet. A body containing one of them stays on the previous (non
-    // cross-Ast) path.
+    // Only CallExpr inside an inline body now stays out of the cross-Ast inline path: re-matching
+    // it re-runs overload selection and trips a nested-inline auto-member wait-deadlock
+    // (e.g. `.lines[i].length()` — the receiver `.lines[i]` is the unresolved expression). Two
+    // corners are already fixed (the inline-payload walk-up in Sema.Member.Auto.cpp for auto-members
+    // inside injected #code, and the resolved-overload pin in SemaClone.cpp), but the remaining
+    // receiver-materialization case must be handled before CallExpr can leave the guard.
     //
-    // Casts, named types, struct literals and switches were REMOVED from this set: their cross-Ast
-    // materialization is handled (the cast operand / type carries its resolved type, the struct
-    // literal's type-name node keeps its resolved type via the struct-init skip in
-    // Sema.Identifier.cpp, switch case values resolve against the switched value's type) and they
-    // inline across files correctly — covered by the std test build and
-    // bin/unittests/native/regression/inline_crossast_{constructs,switch_*,structtype_*}.swg.
-    //
-    // CallExpr and the intrinsic node kinds still gate inlining:
-    //  - CallExpr re-runs overload selection and trips a nested-inline auto-member wait-deadlock
-    //    (e.g. `.lines[i].length()`). Two corners were already fixed (the inline-payload walk-up in
-    //    Sema.Member.Auto.cpp for auto-members inside injected #code, and the resolved-overload pin
-    //    in SemaClone.cpp), but the remaining cases must be handled first.
-    //  - Intrinsics re-derive per-type overloads (@min/@max picked the wrong width) and, more
-    //    fundamentally, moving an intrinsic-bodied helper (e.g. Math.ror) into the caller changes
-    //    the caller's safety context AND miscompiles bit-rotate-heavy code (core sha1 digest
-    //    mismatch). That needs the inline safety-context fix plus a codegen investigation.
+    // Casts, named types, struct literals, switches AND intrinsics were removed from this set; each
+    // needed a fix to materialize correctly across the Ast boundary:
+    //  - cast operand/type and switch case values carry their resolved type;
+    //  - struct-literal type-name nodes keep their resolved type via the struct-init skip in
+    //    Sema.Identifier.cpp;
+    //  - intrinsics: the resolved per-type overload is pinned (@min/@max) in SemaClone.cpp, the
+    //    inline body keeps the call site's disabled safety guards (tryInlineCall, so a wrapping
+    //    `#[Safety(.Overflow,false)]` caller like Hash.City32.update does not regain overflow checks
+    //    on its own arg exprs), and a latent x64 encoder bug was fixed (a 128-bit move with
+    //    scaled-index addressing emitted MOVD instead of MOVDQU — surfaced when Memory.copy/@memcpy
+    //    inlines into Hash.Sha1.final copying `&.state[0]`).
+    // Covered by the std test build + bin/unittests/native/regression/inline_crossast_*.swg.
     bool bodyHasUnsafeCrossAstConstruct(const Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
             return false;
         const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
-            node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
-            node.is(AstNodeId::CallExpr))
+        if (node.is(AstNodeId::CallExpr))
             return true;
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
@@ -2328,7 +2324,19 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     frame.setInlineContextRootRef(inlineRootRef);
     if (!isMacro && !isMixin)
     {
-        frame.currentAttributes() = fn.attributes();
+        const auto callerSafetyOverrides = frame.currentAttributes().runtimeSafetyOverrides;
+        frame.currentAttributes()        = fn.attributes();
+        // Inlining is transparent to the call site's disabled safety guards: a guard turned OFF at
+        // the call site (e.g. an `#[Swag.Safety(.Overflow, false)]` caller) must stay off in the
+        // materialized body, otherwise an inlined helper re-introduces overflow/bound checks the
+        // caller deliberately suppressed for its own argument expressions (e.g. CityHash's wrapping
+        // `fetch(...) * C1` once `Math.ror` is inlined into it). Re-apply the caller's disable
+        // overrides on top of the callee attributes — the union of disabled guards. The callee's
+        // own deliberate disables are preserved untouched; enables are not propagated so a wrapping
+        // callee body never starts trapping when inlined into a safety-on caller.
+        for (const auto& ov : callerSafetyOverrides)
+            if (!ov.value)
+                frame.currentAttributes().runtimeSafetyOverrides.push_back(ov);
         frame.setCurrentImpl(fn.declImplContext());
         frame.setCurrentInterface(fn.declInterfaceContext());
     }

@@ -1558,7 +1558,9 @@ namespace
         // Prefixes
         if (opBitsBaseMul == MicroOpBits::B32)
             store.pushU8(0x67);
-        if (opBitsReg == MicroOpBits::B16 || reg.isFloat())
+        if (reg.isFloat() && opBitsReg == MicroOpBits::B128)
+            store.pushU8(0xF3); // movdqu (128-bit) — mandatory prefix, not the 0x66 of movd/movq
+        else if (opBitsReg == MicroOpBits::B16 || reg.isFloat())
             store.pushU8(0x66);
 
         // REX prefix
@@ -1585,7 +1587,10 @@ namespace
                 if (reg.isFloat())
                 {
                     emitCpuOp(store, 0x0F);
-                    emitCpuOp(store, mr ? 0x7E : 0x6E);
+                    if (opBitsReg == MicroOpBits::B128)
+                        emitCpuOp(store, mr ? 0x7F : 0x6F); // movdqu store/load (128-bit)
+                    else
+                        emitCpuOp(store, mr ? 0x7E : 0x6E); // movd/movq store/load (32/64-bit)
                 }
                 else
                 {

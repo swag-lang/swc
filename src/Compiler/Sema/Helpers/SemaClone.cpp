@@ -1826,10 +1826,16 @@ AstNodeRef AstCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) 
 
 AstNodeRef AstIntrinsicCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::IntrinsicCallExpr>(tokRef());
-    newPtr->flags()         = flags();
-    newPtr->nodeExprRef     = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::IntrinsicCallExpr>(tokRef());
+    newPtr->flags()           = flags();
+    newPtr->nodeExprRef       = SemaClone::cloneAst(sema, nodeExprRef, inlineContext);
+    newPtr->spanChildrenRef   = cloneSpan(sema, spanChildrenRef, inlineContext);
+    // Type-overloaded intrinsics (@min/@max/...) pick a per-type overload by argument types. When
+    // the body is inlined, typed parameters become the (possibly untyped-literal) call arguments,
+    // so re-selection in the destination can land on a different overload. Pin the overload the
+    // intrinsic actually resolved to, mirroring the regular-call path.
+    pinClonedCallResolvedFunction(sema, inlineContext, nodeRef(cloneSourceAst(sema, inlineContext)), newPtr->nodeExprRef);
     return newRef;
 }
 

@@ -31,8 +31,9 @@ goto parse_args
 :run
 call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 
-REM The scripts are independent compilation units; run them concurrently (each
-REM swc invocation only partly saturates the cores) and fail if any fails.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%TOOLS_DIR%_parallel.ps1" -Kind scripts -SwcExe "%SWC_EXE%" -Root "%ROOT%" -BuildCfg "%BUILD_CFG%" -ExtraArgs "%EXTRA_ARGS%" || exit /b 1
+for %%F in ("%SCRIPTS_DIR%\*.swgs") do (
+    call "%TOOLS_DIR%_common.bat" :run_swc "%%~fF" --run-arg swag.test --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+    if not "!ERRORLEVEL!"=="0" exit /b !ERRORLEVEL!
+)
 
 exit /b 0

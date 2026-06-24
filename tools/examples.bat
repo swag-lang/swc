@@ -53,14 +53,5 @@ goto parse_args
 
 :run
 call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-
-REM Testing the whole examples workspace (no specific -m module) means many
-REM independent modules; test them concurrently. Any other case (build/run, or a
-REM single -m module) keeps the normal single workspace invocation.
-if /I "%SWC_COMMAND%"=="test" if not defined WORKSPACE_ARGS (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%TOOLS_DIR%_parallel.ps1" -Kind examples -SwcExe "%SWC_EXE%" -Root "%ROOT%" -BuildCfg "%BUILD_CFG%" -ExtraArgs "%EXTRA_ARGS%" || exit /b 1
-    exit /b 0
-)
-
 call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%WORKSPACE_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

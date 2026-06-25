@@ -827,7 +827,6 @@ namespace
         if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
             node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
             node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
-            node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
             node.is(AstNodeId::StructInitializerList) ||
             node.is(AstNodeId::ForeachStmt) ||
             node.is(AstNodeId::ClosureExpr) || node.is(AstNodeId::FunctionExpr))

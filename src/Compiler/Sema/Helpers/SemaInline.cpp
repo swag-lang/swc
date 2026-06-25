@@ -180,8 +180,8 @@ namespace
             const AstNode& node = sema.node(nodeRef);
             if (node.is(AstNodeId::Identifier))
             {
-                const auto* identifier = node.safeCast<AstIdentifier>();
-                const Symbol* sym      = identifier && identifier->hasFlag(AstIdentifierFlagsE::InClosureCapture) ? nullptr : sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
+                const auto*   identifier = node.safeCast<AstIdentifier>();
+                const Symbol* sym        = identifier && identifier->hasFlag(AstIdentifierFlagsE::InClosureCapture) ? nullptr : sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
                 if (sym && sym->isVariable())
                 {
                     const auto&           symVar        = sym->cast<SymbolVariable>();
@@ -387,7 +387,7 @@ namespace
         if (!identifier)
             return nullptr;
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
+        const IdentifierRef      idRef         = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
         if (!inlinePayload)
             inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
@@ -829,7 +829,6 @@ namespace
             node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
             node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
             node.is(AstNodeId::StructInitializerList) ||
-            node.is(AstNodeId::WithStmt) || node.is(AstNodeId::WithVarDecl) ||
             node.is(AstNodeId::ForeachStmt) ||
             node.is(AstNodeId::ClosureExpr) || node.is(AstNodeId::FunctionExpr))
             return true;
@@ -1649,22 +1648,22 @@ namespace
             if (!param)
                 continue;
 
-            const bool      bindingIsCaptured                  = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
-            const bool      bindingNeedsMaterialization        = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
-            const TypeInfo& paramType                          = param->type(sema.ctx());
-            const bool      forceExplicitMaterialization       = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
-            const bool      forceRuntimeSafetyMaterialization  = !bindingIsCaptured &&
-                                                            !fn.attributes().runtimeSafetyOverrides.empty() &&
-                                                            !paramType.isCodeBlock() &&
-                                                            !paramType.isReference() &&
-                                                            !paramType.isAnyVariadic();
-            const bool      hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
-            const bool      canInlineReferenceBindingDirectly  = paramType.isReference() && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
-            const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
+            const bool      bindingIsCaptured                 = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
+            const bool      bindingNeedsMaterialization       = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
+            const TypeInfo& paramType                         = param->type(sema.ctx());
+            const bool      forceExplicitMaterialization      = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
+            const bool      forceRuntimeSafetyMaterialization = !bindingIsCaptured &&
+                                                           !fn.attributes().runtimeSafetyOverrides.empty() &&
+                                                           !paramType.isCodeBlock() &&
+                                                           !paramType.isReference() &&
+                                                           !paramType.isAnyVariadic();
+            const bool hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
+            const bool canInlineReferenceBindingDirectly  = paramType.isReference() && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
+            const bool forceIndexOrForeachMaterialization = !bindingIsCaptured &&
                                                             !canInlineReferenceBindingDirectly &&
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool bindingHasAddressUse = inlineBindingNeedsAddressMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool bindingHasAddressUse        = inlineBindingNeedsAddressMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceAddressMaterialization = !bindingIsCaptured && bindingHasAddressUse &&
                                                      (!paramType.isReference() || !sema.isLValue(binding.exprRef));
             const bool forceRepeatedRValueMaterialization = !bindingIsCaptured &&
@@ -1672,7 +1671,7 @@ namespace
             const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool bindingNeedsMutableMaterialization = inlineBindingNeedsMutableMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceBindingMaterialization = forceExplicitMaterialization ||
+            const bool forceBindingMaterialization        = forceExplicitMaterialization ||
                                                      forceRuntimeSafetyMaterialization ||
                                                      forceVariadicMaterialization ||
                                                      forceIndexOrForeachMaterialization ||
@@ -1701,8 +1700,8 @@ namespace
             const bool materializedAsLet = !forceRuntimeSafetyMaterialization &&
                                            !bindingNeedsMutableMaterialization &&
                                            !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
-            declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
-            declPtr->tokNameRef          = paramNameRef;
+            declPtr->flags()    = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
+            declPtr->tokNameRef = paramNameRef;
             if (forceAddressMaterialization && paramType.isReference())
             {
                 declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
@@ -1725,7 +1724,7 @@ namespace
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
 
-            binding.exprRef = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
+            binding.exprRef            = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
             binding.preserveUseCodeRef = forceRuntimeSafetyMaterialization;
             if (!forceVariadicMaterialization)
                 binding.typeRef = TypeRef::invalid();
@@ -2406,7 +2405,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // references by name in the caller. Marked / macro / mixin inlines keep their established
     // (re-resolving) behavior to avoid regressing intrinsic-argument and overload handling.
     cloneContext.preserveResolvedSymbols = isAutoSelected;
-    const AstNodeRef inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
+    const AstNodeRef inlineRootRef       = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
         return Result::Continue;
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());

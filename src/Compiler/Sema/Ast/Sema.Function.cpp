@@ -728,10 +728,48 @@ namespace
         return false;
     }
 
+    bool payloadUsesCallerScope(const SemaInlinePayload* payload)
+    {
+        return payload &&
+               payload->sourceFunction &&
+               (payload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+                payload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
+    }
+
+    const SemaInlinePayload* resolveReturnContextPayload(const SemaInlinePayload* payload, const bool directInlineBody)
+    {
+        if (directInlineBody && payloadUsesCallerScope(payload) && !payload->returnsToCallerSite() && payload->returnTypeRef.isValid())
+            return payload;
+
+        return SemaInline::returnContextPayload(payload);
+    }
+
+    const SemaInlinePayload* nearestReturnContextPayload(Sema& sema)
+    {
+        const SemaInlinePayload* frameInlinePayload = sema.frame().currentInlinePayload();
+
+        if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(sema.curNodeRef()))
+            return SemaInline::returnContextPayload(overridePayload->targetInlinePayload);
+
+        if (frameInlinePayload && sema.inlinePayload(sema.curNodeRef()) == frameInlinePayload)
+            return resolveReturnContextPayload(frameInlinePayload, true);
+
+        for (uint32_t i = 0;; ++i)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(i);
+            if (parentRef.isInvalid())
+                return resolveReturnContextPayload(frameInlinePayload, false);
+            if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(parentRef))
+                return SemaInline::returnContextPayload(overridePayload->targetInlinePayload);
+            if (frameInlinePayload && sema.inlinePayload(parentRef) == frameInlinePayload)
+                return resolveReturnContextPayload(frameInlinePayload, true);
+        }
+    }
+
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
         outTypeRef                             = TypeRef::invalid();
-        const SemaInlinePayload* inlinePayload = SemaInline::returnContextPayload(sema.frame().currentInlinePayload());
+        const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema);
         if (inlinePayload)
         {
             outTypeRef = inlinePayload->returnTypeRef;
@@ -1579,7 +1617,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         return Result::Continue;
 
     TypeRef                  returnTypeRef = TypeRef::invalid();
-    const SemaInlinePayload* inlinePayload = SemaInline::returnContextPayload(sema.frame().currentInlinePayload());
+    const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema);
     if (inlinePayload)
     {
         returnTypeRef = inlinePayload->returnTypeRef;

@@ -103,12 +103,28 @@ namespace
         return bindingIds;
     }
 
+    bool hasInlineBinding(const SmallVector<SemaClone::ParamBinding>& bindings, const SemaClone::ParamBinding& binding)
+    {
+        for (const SemaClone::ParamBinding& existing : bindings)
+        {
+            if (binding.sourceParam && existing.sourceParam == binding.sourceParam)
+                return true;
+            if (!binding.sourceParam && binding.idRef.isValid() && existing.sourceParam == nullptr && existing.idRef == binding.idRef)
+                return true;
+        }
+
+        return false;
+    }
+
     void appendInlineBindingChain(SmallVector<SemaClone::ParamBinding>& outBindings, const SemaInlinePayload* inlinePayload)
     {
         while (inlinePayload)
         {
             for (const SemaClone::ParamBinding& binding : inlinePayload->argMappings)
-                outBindings.push_back(binding);
+            {
+                if (!hasInlineBinding(outBindings, binding))
+                    outBindings.push_back(binding);
+            }
             inlinePayload = inlinePayload->parentInlinePayload;
         }
     }
@@ -244,6 +260,30 @@ namespace
         return false;
     }
 
+    bool inlinePayloadBindsSourceVariable(const SemaInlinePayload* inlinePayload, const SymbolVariable& symVar)
+    {
+        while (inlinePayload)
+        {
+            for (const auto& binding : inlinePayload->argMappings)
+            {
+                if (binding.sourceParam == &symVar)
+                    return true;
+            }
+
+            inlinePayload = inlinePayload->parentInlinePayload;
+        }
+
+        return false;
+    }
+
+    bool inlinePayloadUsesCallerScope(const SemaInlinePayload* inlinePayload)
+    {
+        return inlinePayload &&
+               inlinePayload->sourceFunction &&
+               (inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+                inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
+    }
+
     const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
     {
         const SymbolMap* map = function.ownerSymMap();
@@ -257,6 +297,20 @@ namespace
         return nullptr;
     }
 
+    bool functionOrLexicalParentUsesCallerScope(const SymbolFunction* function)
+    {
+        while (function)
+        {
+            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+                function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                return true;
+
+            function = parentLexicalFunction(*function);
+        }
+
+        return false;
+    }
+
     const SymbolFunction* localFunctionBoundaryForOuterVariable(Sema& sema, const SymbolFunction& currentFn, const SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
@@ -268,7 +322,21 @@ namespace
             return nullptr;
 
         const SymbolFunction* fn = &currentFn;
+        const SemaInlinePayload* frameInlinePayload = sema.frame().currentInlinePayload();
+        if (inlinePayloadBindsSourceVariable(frameInlinePayload, symVar))
+            return nullptr;
+
         const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        if (inlinePayload != frameInlinePayload && inlinePayloadBindsSourceVariable(inlinePayload, symVar))
+            return nullptr;
+
+        if (inlinePayloadUsesCallerScope(inlinePayload))
+        {
+            const SymbolFunction* callerFn = sema.currentFunction();
+            if (callerFn && functionOwnsVariable(*callerFn, symVar))
+                return nullptr;
+        }
+
         while (fn)
         {
             if (functionOwnsVariable(*fn, symVar))
@@ -597,7 +665,11 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
 
     AstNodeRef  targetRef         = nodeIdentRef;
     bool        usedInlineBinding = false;
-    const auto* inlinePayload     = SemaHelpers::effectiveInlinePayload(sema);
+    const auto* inlinePayload     = sema.inlinePayload(sema.curNodeRef());
+    if (!inlinePayload)
+        inlinePayload = sema.frame().currentInlinePayload();
+    if (!inlinePayload)
+        inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
     if (inlinePayload)
     {
         SmallVector<SemaClone::ParamBinding> bindings;
@@ -635,6 +707,20 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const SemaNodeView view = sema.curViewConstant();
     if (view.cstRef().isValid())
         return Result::Continue;
+
+    if (hasFlag(AstIdentifierFlagsE::ConstantBinding))
+    {
+        const SemaNodeView storedView = sema.viewStored(sema.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (storedView.cstRef().isValid())
+        {
+            if (storedView.typeRef().isValid())
+                sema.setType(sema.curNodeRef(), storedView.typeRef());
+            sema.setConstant(sema.curNodeRef(), storedView.cstRef());
+            sema.setIsValue(sema.curNodeRef());
+            sema.unsetIsLValue(sema.curNodeRef());
+            return Result::Continue;
+        }
+    }
 
     const Symbol* const storedSymbol = sema.curViewSymbol().sym();
     if (!codeRef().isValid() && storedSymbol)
@@ -750,9 +836,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         const SymbolVariable& symVar                      = sym->cast<SymbolVariable>();
         const IdentifierRef   meId                        = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
         const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
+        const bool            isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
         const bool            isImplicitReceiver          = symVar.idRef() == meId;
         const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
-        const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
+        const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isCallerScopeClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
         if (localFnBoundary)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());

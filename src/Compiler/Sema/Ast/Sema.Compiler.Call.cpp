@@ -63,7 +63,9 @@ namespace
 
     const SemaInlinePayload* macroInlinePayload(const Sema& sema)
     {
-        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        if (!inlinePayload)
+            inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         while (inlinePayload)
         {
             if (isMacroFunctionOrNestedInMacro(inlinePayload->sourceFunction))
@@ -210,7 +212,9 @@ namespace
         if (nodeRef.isInvalid())
             return nullptr;
 
-        const auto* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        if (!inlinePayload)
+            inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         if (!inlinePayload)
             return nullptr;
 
@@ -219,10 +223,14 @@ namespace
             return nullptr;
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
-        for (const auto& binding : inlinePayload->argMappings)
+        while (inlinePayload)
         {
-            if (binding.idRef == idRef)
-                return &binding;
+            for (const auto& binding : inlinePayload->argMappings)
+            {
+                if (binding.idRef == idRef)
+                    return &binding;
+            }
+            inlinePayload = inlinePayload->parentInlinePayload;
         }
 
         return nullptr;
@@ -230,14 +238,22 @@ namespace
 
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
+        auto resolveNestedRawRef = [&sema, nodeRef](AstNodeRef rawRef) -> AstNodeRef {
+            if (rawRef.isInvalid() || rawRef == nodeRef)
+                return rawRef;
+
+            const AstNodeRef nestedRef = rawInjectedNodeRef(sema, rawRef);
+            return nestedRef.isValid() ? nestedRef : rawRef;
+        };
+
         if (const auto* binding = findInjectInlineBinding(sema, nodeRef); binding && binding->exprRef.isValid())
         {
             const AstNode& bindingNode = sema.node(binding->exprRef);
             if (bindingNode.is(AstNodeId::CompilerCodeExpr))
-                return bindingNode.cast<AstCompilerCodeExpr>().nodeExprRef;
+                return resolveNestedRawRef(bindingNode.cast<AstCompilerCodeExpr>().nodeExprRef);
             if (bindingNode.is(AstNodeId::CompilerCodeBlock))
-                return bindingNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
-            return binding->exprRef;
+                return resolveNestedRawRef(bindingNode.cast<AstCompilerCodeBlock>().nodeBodyRef);
+            return resolveNestedRawRef(binding->exprRef);
         }
 
         AstNodeRef       resultRef   = nodeRef;
@@ -247,9 +263,9 @@ namespace
 
         const AstNode& resultNode = sema.node(resultRef);
         if (resultNode.is(AstNodeId::CompilerCodeExpr))
-            return resultNode.cast<AstCompilerCodeExpr>().nodeExprRef;
+            return resolveNestedRawRef(resultNode.cast<AstCompilerCodeExpr>().nodeExprRef);
         if (resultNode.is(AstNodeId::CompilerCodeBlock))
-            return resultNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+            return resolveNestedRawRef(resultNode.cast<AstCompilerCodeBlock>().nodeBodyRef);
 
         return resultRef;
     }

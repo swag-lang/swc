@@ -723,9 +723,9 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView view   = codeGen.curViewSymbol();
     const Symbol*      symbol = view.sym();
+    const AstNodeRef   parentRef = codeGen.visit().parentNodeRef();
     if (!view.sym())
     {
-        const AstNodeRef parentRef = codeGen.visit().parentNodeRef();
         if (codeGen.curNode().codeRef().isValid() &&
             codeGen.token(codeGen.curNode().codeRef()).id == TokenId::SymSingleQuote &&
             parentRef.isValid() &&
@@ -742,7 +742,22 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
              codeGen.node(parentRef).is(AstNodeId::QuotedExpr) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
             return Result::Continue;
+    }
 
+    const bool         isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
+    const SemaNodeView constView         = isConstantBinding
+                                       ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant)
+                                       : codeGen.curViewTypeConstant();
+    if (constView.hasConstant())
+    {
+        CodeGenNodePayload constantPayload;
+        SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, constantPayload, constView.typeRef(), constView.cstRef()));
+        codeGen.setNodePayload<CodeGenNodePayload>(codeGen.curNodeRef(), constantPayload);
+        return Result::Continue;
+    }
+
+    if (!view.sym())
+    {
         symbol = recoverIdentifierSymbol(codeGen, codeGen.curNodeRef());
         SWC_ASSERT(symbol);
         if (!symbol)

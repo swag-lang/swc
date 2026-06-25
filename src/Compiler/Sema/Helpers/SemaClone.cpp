@@ -7,6 +7,8 @@
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 
@@ -144,6 +146,8 @@ namespace
         const AstNode&    sourceNode = sourceAst->node(sourceRef);
         const SourceView* sourceView = resolveCloneSourceView(sema, *sourceAst, sourceNode);
         const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
+        if (!sourceFile && sourceNode.srcViewRef().isValid())
+            sourceFile = sema.ownerSourceFile(sourceNode.srcViewRef());
         if (!sourceFile)
             return std::nullopt;
 
@@ -154,6 +158,7 @@ namespace
     {
         SemaClone::CloneContext result{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
 
@@ -161,6 +166,7 @@ namespace
     {
         SemaClone::CloneContext result{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
 
@@ -168,6 +174,7 @@ namespace
     {
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
 
@@ -175,6 +182,7 @@ namespace
     {
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth + 1};
         result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
 
@@ -189,15 +197,79 @@ namespace
                node.is(AstNodeId::CompilerScope);
     }
 
-    const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef)
+    bool sameBindingIdentity(const SemaClone::ParamBinding& lhs, const SemaClone::ParamBinding& rhs)
     {
-        for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
+        return lhs.idRef == rhs.idRef &&
+               lhs.sourceParam == rhs.sourceParam &&
+               lhs.exprRef == rhs.exprRef &&
+               lhs.typeRef == rhs.typeRef &&
+               lhs.cstRef == rhs.cstRef;
+    }
+
+    const SemaClone::ParamBinding* findInlinePayloadBinding(const SemaInlinePayload* inlinePayload, const Symbol* sourceSymbol)
+    {
+        if (!inlinePayload || !sourceSymbol || !sourceSymbol->isVariable())
+            return nullptr;
+
+        for (const SemaClone::ParamBinding& binding : inlinePayload->argMappings)
         {
-            if (binding.idRef == idRef)
+            if (binding.sourceParam == sourceSymbol)
                 return &binding;
         }
 
         return nullptr;
+    }
+
+    const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef, const Symbol* sourceSymbol, const SemaInlinePayload* sourceInlinePayload)
+    {
+        if (const SemaClone::ParamBinding* payloadBinding = findInlinePayloadBinding(sourceInlinePayload, sourceSymbol))
+        {
+            for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
+            {
+                if (sameBindingIdentity(binding, *payloadBinding))
+                    return &binding;
+            }
+        }
+
+        if (sourceSymbol && sourceSymbol->isVariable())
+        {
+            for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
+            {
+                if (binding.sourceParam == sourceSymbol)
+                    return &binding;
+            }
+        }
+
+        for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
+        {
+            if (binding.idRef == idRef)
+            {
+                if (sourceSymbol && binding.sourceParam && binding.sourceParam != sourceSymbol)
+                    continue;
+                return &binding;
+            }
+        }
+
+        return nullptr;
+    }
+
+    SemaClone::CloneContext cloneContextAfterBinding(const SemaClone::CloneContext& cloneContext, const SemaClone::ParamBinding& binding)
+    {
+        std::span<const SemaClone::ParamBinding> nestedBindings;
+        if (!cloneContext.bindings.empty())
+        {
+            const SemaClone::ParamBinding* begin      = cloneContext.bindings.data();
+            const SemaClone::ParamBinding* end        = begin + cloneContext.bindings.size();
+            const SemaClone::ParamBinding* bindingPtr = &binding;
+            SWC_ASSERT(bindingPtr >= begin && bindingPtr < end);
+            if (bindingPtr >= begin && bindingPtr < end)
+                nestedBindings = std::span<const SemaClone::ParamBinding>{bindingPtr + 1, static_cast<size_t>(end - bindingPtr - 1)};
+        }
+
+        SemaClone::CloneContext result{nestedBindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
+        result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
+        return result;
     }
 
     bool isDetachedReexpandableExpr(const AstNode& node)
@@ -339,22 +411,103 @@ namespace
         return targetRef;
     }
 
-    void copyTypedBindingConstant(Sema& sema, const SemaClone::ParamBinding& binding, AstNodeRef castRef)
+    bool bindingInlineContextOverrideTarget(Sema& sema, const SemaInlinePayload*& outTarget, const SemaClone::ParamBinding& binding)
     {
-        if (!binding.typeRef.isValid() || binding.exprRef.isInvalid() || castRef.isInvalid())
+        if (!binding.sourceParam || !binding.sourceParam->type(sema.ctx()).isCodeBlock() || binding.exprRef.isInvalid())
+            return false;
+
+        const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(binding.exprRef);
+        if (!overridePayload)
+            return false;
+
+        outTarget = overridePayload->targetInlinePayload;
+        return true;
+    }
+
+    void setCallerInlineContextOverride(Sema& sema, AstNodeRef targetRef, const SemaClone::ParamBinding& binding)
+    {
+        if (targetRef.isInvalid())
+            return;
+
+        const SemaInlinePayload* targetInlinePayload = nullptr;
+        if (!bindingInlineContextOverrideTarget(sema, targetInlinePayload, binding))
+            targetInlinePayload = sema.frame().currentInlinePayload();
+
+        auto* inlineOverridePayload                = sema.compiler().allocate<SemaInlineContextOverride>();
+        inlineOverridePayload->targetInlinePayload = targetInlinePayload;
+        sema.setInlineContextOverride(targetRef, inlineOverridePayload);
+    }
+
+    AstNodeRef makeConstantBindingIdentifier(Sema& sema, const AstIdentifier& node, TypeRef typeRef, ConstantRef cstRef, bool foldedTypedConst)
+    {
+        auto [newRef, newNodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
+        newNodePtr->flags()       = node.flags();
+        newNodePtr->addFlag(AstIdentifierFlagsE::ConstantBinding);
+        newNodePtr->setCodeRef(node.codeRef());
+        if (typeRef.isValid())
+            sema.setType(newRef, typeRef);
+        sema.setConstant(newRef, cstRef);
+        if (foldedTypedConst)
+            sema.setFoldedTypedConst(newRef);
+        return newRef;
+    }
+
+    ConstantRef foldImplicitCastConstant(Sema& sema, ConstantRef sourceCstRef, TypeRef dstTypeRef, AstNodeRef errorNodeRef)
+    {
+        if (sourceCstRef.isInvalid() || dstTypeRef.isInvalid())
+            return ConstantRef::invalid();
+
+        const ConstantValue& value      = sema.cstMgr().get(sourceCstRef);
+        const TypeRef        srcTypeRef = value.typeRef();
+        CastRequest          castRequest(CastKind::Implicit);
+        castRequest.errorNodeRef = errorNodeRef;
+        castRequest.setConstantFoldingSrc(sourceCstRef);
+        if (Cast::castAllowed(sema, castRequest, srcTypeRef, dstTypeRef) != Result::Continue)
+            return ConstantRef::invalid();
+
+        ConstantRef castedCstRef = castRequest.constantFoldingResult();
+        if (castedCstRef.isInvalid())
+            return ConstantRef::invalid();
+
+        if (sema.cstMgr().get(castedCstRef).typeRef() != dstTypeRef)
+        {
+            const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+            const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+            if (!srcType.isAnyTypeInfo(sema.ctx()) || !dstType.isAnyTypeInfo(sema.ctx()))
+                return ConstantRef::invalid();
+
+            ConstantValue castedCst = sema.cstMgr().get(castedCstRef);
+            castedCst.setTypeRef(dstTypeRef);
+            castedCstRef = sema.cstMgr().addConstant(sema.ctx(), castedCst);
+        }
+
+        return castedCstRef;
+    }
+
+    void setFoldedImplicitCastConstant(Sema& sema, AstNodeRef castRef, ConstantRef sourceCstRef)
+    {
+        if (castRef.isInvalid() || sourceCstRef.isInvalid())
+            return;
+
+        const TypeRef dstTypeRef = sema.viewStored(castRef, SemaNodeViewPartE::Type).typeRef();
+        const ConstantRef castedCstRef = foldImplicitCastConstant(sema, sourceCstRef, dstTypeRef, castRef);
+        if (castedCstRef.isInvalid())
+            return;
+
+        sema.setFoldedTypedConst(castRef);
+        sema.setConstant(castRef, castedCstRef);
+    }
+
+    void foldTypedBindingConstant(Sema& sema, const SemaClone::ParamBinding& binding, AstNodeRef castRef)
+    {
+        if (!binding.typeRef.isValid() || binding.exprRef.isInvalid())
             return;
 
         const SemaNodeView sourceView = sema.viewConstant(binding.exprRef);
         if (!sourceView.hasConstant())
             return;
 
-        const ConstantValue& value = sema.cstMgr().get(sourceView.cstRef());
-        if (value.typeRef() != binding.typeRef)
-            return;
-
-        sema.setConstant(castRef, sourceView.cstRef());
-        if (sema.isFoldedTypedConst(binding.exprRef))
-            sema.setFoldedTypedConst(castRef);
+        setFoldedImplicitCastConstant(sema, castRef, sourceView.cstRef());
     }
 
     AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const SemaClone::CloneContext& cloneContext)
@@ -472,36 +625,7 @@ namespace
         if (!exprView.hasConstant())
             return;
 
-        const TypeRef dstTypeRef = sema.viewStored(clonedCastRef, SemaNodeViewPartE::Type).typeRef();
-        if (!dstTypeRef.isValid())
-            return;
-
-        const ConstantValue& exprCst    = sema.cstMgr().get(exprView.cstRef());
-        const TypeRef        srcTypeRef = exprCst.typeRef();
-        CastRequest          castRequest(CastKind::Implicit);
-        castRequest.errorNodeRef = clonedCastRef;
-        castRequest.setConstantFoldingSrc(exprView.cstRef());
-        if (Cast::castAllowed(sema, castRequest, srcTypeRef, dstTypeRef) != Result::Continue)
-            return;
-
-        ConstantRef castedCstRef = castRequest.constantFoldingResult();
-        if (castedCstRef.isInvalid())
-            return;
-
-        if (sema.cstMgr().get(castedCstRef).typeRef() != dstTypeRef)
-        {
-            const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-            const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-            if (!srcType.isAnyTypeInfo(sema.ctx()) || !dstType.isAnyTypeInfo(sema.ctx()))
-                return;
-
-            ConstantValue castedCst = sema.cstMgr().get(castedCstRef);
-            castedCst.setTypeRef(dstTypeRef);
-            castedCstRef = sema.cstMgr().addConstant(sema.ctx(), castedCst);
-        }
-
-        sema.setFoldedTypedConst(clonedCastRef);
-        sema.setConstant(clonedCastRef, castedCstRef);
+        setFoldedImplicitCastConstant(sema, clonedCastRef, exprView.cstRef());
     }
 
     void copyImplicitCastSubstitute(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef, AstNodeRef clonedRef)
@@ -778,27 +902,47 @@ namespace
 
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
-        const Ast&                                   sourceAst  = cloneSourceAst(sema, cloneContext);
-        const AstNodeRef                             sourceRef  = node.nodeRef(sourceAst);
-        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, cloneContext, sourceRef);
+        const Ast* sourceAst = &cloneSourceAst(sema, cloneContext);
+        AstNodeRef sourceRef = sourceAst->tryFindNodeRef(&node);
+        if (sourceRef.isInvalid() && sourceAst != &sema.ast())
+        {
+            sourceAst = &sema.ast();
+            sourceRef = sourceAst->tryFindNodeRef(&node);
+        }
+
+        std::optional<NodePayload::StoredView> storedView;
+        if (sourceRef.isValid())
+        {
+            if (sourceAst == &sema.ast())
+                storedView = currentStoredView(sema, sourceRef);
+            else
+            {
+                const SourceView* sourceView = resolveCloneSourceView(sema, *sourceAst, node);
+                const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
+                if (!sourceFile && node.srcViewRef().isValid())
+                    sourceFile = sema.ownerSourceFile(node.srcViewRef());
+                if (sourceFile)
+                    storedView = sourceFile->nodePayloadContext().viewStored(sema.ctx(), sourceRef);
+            }
+        }
 
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (storedView && storedView->sym)
+        if (node.codeRef().isValid() && sema.token(node.codeRef()).id == TokenId::Identifier)
+            idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
+        if (!idRef.isValid() && storedView && storedView->sym)
             idRef = storedView->sym->idRef();
         if (!idRef.isValid())
             idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
 
-        if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef))
+        const SemaInlinePayload* sourceInlinePayload = nullptr;
+        if (sourceRef.isValid() && sourceAst == &sema.ast())
+            sourceInlinePayload = sema.inlinePayload(sourceRef);
+
+        if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef, storedView ? storedView->sym : nullptr, sourceInlinePayload))
         {
             if (binding->cstRef.isValid())
             {
-                auto [newRef, newNodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
-                newNodePtr->flags()       = node.flags();
-                newNodePtr->setCodeRef(node.codeRef());
-                if (binding->typeRef.isValid())
-                    sema.setType(newRef, binding->typeRef);
-                sema.setConstant(newRef, binding->cstRef);
-                return newRef;
+                return makeConstantBindingIdentifier(sema, node, binding->typeRef, binding->cstRef, false);
             }
 
             if (binding->exprRef.isInvalid() && binding->typeRef.isValid())
@@ -811,28 +955,53 @@ namespace
                 return newRef;
             }
 
+            if (binding->typeRef.isValid() && binding->exprRef.isValid())
+            {
+                const SemaNodeView sourceView = sema.viewConstant(binding->exprRef);
+                if (sourceView.hasConstant())
+                {
+                    const ConstantRef cstRef = foldImplicitCastConstant(sema, sourceView.cstRef(), binding->typeRef, AstNodeRef::invalid());
+                    if (cstRef.isValid())
+                        return markConstParamBindingTarget(sema, *binding, makeConstantBindingIdentifier(sema, node, binding->typeRef, cstRef, true));
+                }
+            }
+
             AstNodeRef clonedExprRef                         = AstNodeRef::invalid();
             const bool bindingNeedsContextualAutoMemberClone = binding->typeRef.isValid() && containsAutoMemberAccess(sema, binding->exprRef);
             const bool bindingNeedsReferenceStateClone        = binding->sourceParam && binding->sourceParam->type(sema.ctx()).isReference();
             if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone || bindingNeedsReferenceStateClone)
                 clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
+            else if (cloneContext.resolveBindingExprWithParentBindings)
+            {
+                const SemaClone::CloneContext nestedCloneContext = cloneContextAfterBinding(cloneContext, *binding);
+                if (nestedCloneContext.bindings.empty() && nestedCloneContext.replacements.empty())
+                    clonedExprRef = cloneExprPreservingResolvedIdentifierSymbols(sema, binding->exprRef);
+                else
+                    clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, nestedCloneContext);
+            }
             else
                 clonedExprRef = cloneExprPreservingResolvedIdentifierSymbols(sema, binding->exprRef);
             if (binding->preserveUseCodeRef && clonedExprRef.isValid())
                 sema.node(clonedExprRef).setCodeRef(node.codeRef());
             if (!binding->typeRef.isValid())
+            {
+                if (!cloneContext.resolveBindingExprWithParentBindings)
+                    setCallerInlineContextOverride(sema, clonedExprRef, *binding);
                 return markConstParamBindingTarget(sema, *binding, clonedExprRef);
+            }
 
             const AstNodeRef castRef = Cast::createCast(sema, binding->typeRef, clonedExprRef);
             if (castRef.isInvalid())
                 return AstNodeRef::invalid();
             if (binding->preserveUseCodeRef)
                 sema.node(castRef).setCodeRef(node.codeRef());
-            copyTypedBindingConstant(sema, *binding, castRef);
+            foldTypedBindingConstant(sema, *binding, castRef);
+            if (!cloneContext.resolveBindingExprWithParentBindings)
+                setCallerInlineContextOverride(sema, castRef, *binding);
             return markConstParamBindingTarget(sema, *binding, castRef);
         }
 
-        const bool crossAstSource    = &sourceAst != &sema.ast();
+        const bool crossAstSource    = sourceAst != &sema.ast();
         const bool pinResolvedSymbol = crossAstSource || cloneContext.preserveResolvedSymbols;
         auto [nodeRef, nodePtr]   = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()          = node.flags();

@@ -450,6 +450,7 @@ namespace
         const TypeInfo& leftAliasType  = aliasType(sema, nodeLeftView);
         const TypeInfo& rightAliasType = aliasType(sema, nodeRightView);
         TypeRef         resultTypeRef  = nodeLeftView.typeRef();
+        bool            handledPointerArithmetic = false;
         switch (op)
         {
             case TokenId::SymPlus:
@@ -461,6 +462,7 @@ namespace
                         nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
                     resultTypeRef = nodeRightView.typeRef();
+                    handledPointerArithmetic = true;
                 }
                 else if (leftType.isAnyPointer() && rightAliasType.isIntLike())
                 {
@@ -470,6 +472,7 @@ namespace
                         nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
                     resultTypeRef = nodeLeftView.typeRef();
+                    handledPointerArithmetic = true;
                 }
                 break;
 
@@ -482,10 +485,12 @@ namespace
                         nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
                     resultTypeRef = nodeLeftView.typeRef();
+                    handledPointerArithmetic = true;
                 }
                 else if (leftType.isAnyPointer() && rightType.isAnyPointer())
                 {
                     resultTypeRef = sema.typeMgr().typeS64();
+                    handledPointerArithmetic = true;
                 }
                 break;
 
@@ -508,7 +513,9 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
+                if (handledPointerArithmetic)
+                    break;
+                else if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
                     leftAliasType.isScalarNumeric() &&
                     rightAliasType.isScalarNumeric())
                 {

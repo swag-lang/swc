@@ -35,6 +35,7 @@ namespace SemaClone
         bool                             preserveFunctionGenerics = false;
         bool                             preserveBindingExprState = false;
         bool                             duplicateRuntimeStorage  = false;
+        bool                             resolveBindingExprWithParentBindings = false;
         // Pin already-resolved identifier symbols even on a same-Ast clone (as a cross-Ast clone
         // always does). Used when inlining a body within its own file so references to the
         // callee's file-private helpers/globals/constants keep resolving to the callee's symbols

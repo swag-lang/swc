@@ -1580,15 +1580,19 @@ Result CodeGen::preNode(AstNode& node)
 Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
+    Result result = Result::Continue;
     if (curViewConstant().hasConstant())
     {
-        SWC_RESULT(emitConstant(curNodeRef()));
+        result = emitConstant(curNodeRef());
     }
     else
     {
         const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-        SWC_RESULT(info.codeGenPostNode(*this, node));
+        result = info.codeGenPostNode(*this, node);
     }
+
+    if (result == Result::Pause || result == Result::Error)
+        return result;
 
     if (frame().hasCurrentInlineBoundary() && frame().currentInlineBoundaryRootRef() == curNodeRef())
     {
@@ -1631,7 +1635,7 @@ Result CodeGen::postNode(AstNode& node)
         popFrame();
     }
 
-    return Result::Continue;
+    return result;
 }
 
 Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)

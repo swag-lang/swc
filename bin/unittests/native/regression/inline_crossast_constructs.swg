@@ -2,10 +2,9 @@
 
 // Cross-Ast inline of a cast expression.
 //
-// CastExpr was removed from bodyHasUnsafeCrossAstConstruct, so an #[Inline] body containing a
-// cast now materializes across an Ast boundary. Instantiating a generic clones the method into
-// its own Ast, so inlining it at the call site is a genuine cross-Ast inline. The asserts verify
-// the materialized cast computes correctly.
+// An #[Inline] body containing a cast must materialize correctly across an Ast boundary.
+// Instantiating a generic clones the method into its own Ast, so inlining it at the call site is
+// a genuine cross-Ast inline. The asserts verify the materialized cast computes correctly.
 
 struct(T) CrossAstCastProbe
 {

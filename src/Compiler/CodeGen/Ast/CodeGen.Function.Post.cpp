@@ -638,7 +638,11 @@ namespace
         if (tryEmitInlineDirectCallResultStore(codeGen, inlinePayload, exprRef))
             return Result::Continue;
 
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        AstNodeRef payloadExprRef = codeGen.viewZero(exprRef).nodeRef();
+        if (payloadExprRef.isInvalid())
+            payloadExprRef = exprRef;
+
+        const CodeGenNodePayload& exprPayload = codeGen.payload(payloadExprRef);
         return emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef);
     }
 

@@ -8,8 +8,8 @@
 // which has no `me`; the auto-member must still resolve against the enclosing method's receiver
 // (a parent inline payload). Mirrors core Array.opIndex calling Debug.safetyBoundCheck(index < .count).
 //
-// This is a same-Ast inline (not gated by bodyHasUnsafeCrossAstConstruct), so it exercises the
-// fix directly. Before the fix it failed with "expected a value expression here" on `.count`.
+// This is a same-Ast inline, so it exercises the fix directly. Before the fix it failed with
+// "expected a value expression here" on `.count`.
 
 enum CrossAstSafetyWhat
 {

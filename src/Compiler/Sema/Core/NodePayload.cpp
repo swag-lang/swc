@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/NodePayload.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -478,11 +479,18 @@ Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     SWC_ASSERT(symbol);
+    AstNode& node = ast().node(nodeRef);
+    // Constant binding identifiers are synthetic value nodes created while cloning inline
+    // arguments; a later name lookup must not turn them back into source-scope variables.
+    if (node.is(AstNodeId::Identifier) &&
+        node.cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding) &&
+        payloadKind(node) == NodePayloadKind::ConstantRef)
+        return;
+
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::scoped_lock lock(shard->storeMutex);
 
-    AstNode&  node    = ast().node(nodeRef);
     const Ref value   = shard->store.pushBack(symbol);
     uint16_t  newBits = static_cast<uint16_t>((node.payloadBits() & ~(NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK)) |
                                               static_cast<uint16_t>(NodePayloadKind::SymbolRef) |

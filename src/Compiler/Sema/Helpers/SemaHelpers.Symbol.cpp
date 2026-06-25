@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
@@ -149,6 +150,27 @@ namespace
                 return inlinePayload;
         }
     }
+
+    bool inlineContextOverrideFromVisitPath(const Sema& sema, const SemaInlinePayload*& outPayload)
+    {
+        if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(sema.curNodeRef()))
+        {
+            outPayload = overridePayload->targetInlinePayload;
+            return true;
+        }
+
+        for (uint32_t i = 0;; i++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(i);
+            if (parentRef.isInvalid())
+                return false;
+            if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(parentRef))
+            {
+                outPayload = overridePayload->targetInlinePayload;
+                return true;
+            }
+        }
+    }
 }
 
 AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
@@ -261,6 +283,10 @@ IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& co
 
 const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
 {
+    const SemaInlinePayload* overridePayload = nullptr;
+    if (inlineContextOverrideFromVisitPath(sema, overridePayload))
+        return overridePayload;
+
     if (const auto* inlinePayload = sema.frame().currentInlinePayload())
         return inlinePayload;
 
@@ -284,15 +310,21 @@ IdentifierRef SemaHelpers::resolveAliasIdentifier(const Sema& sema, const TokenI
 {
     SWC_ASSERT(Token::isCompilerAlias(tokenId));
 
-    const auto* inlinePayload = effectiveInlinePayload(sema);
+    const auto* inlinePayload = sema.frame().currentInlinePayload();
+    if (!inlinePayload)
+        inlinePayload = effectiveInlinePayload(sema);
     if (!inlinePayload)
         return IdentifierRef::invalid();
 
     const uint32_t slot = aliasSlotIndex(tokenId);
-    if (slot >= inlinePayload->aliasIdentifiers.size())
-        return IdentifierRef::invalid();
+    while (inlinePayload)
+    {
+        if (slot < inlinePayload->aliasIdentifiers.size() && inlinePayload->aliasIdentifiers[slot].isValid())
+            return inlinePayload->aliasIdentifiers[slot];
+        inlinePayload = inlinePayload->parentInlinePayload;
+    }
 
-    return inlinePayload->aliasIdentifiers[slot];
+    return IdentifierRef::invalid();
 }
 
 uint32_t SemaHelpers::uniqSlotIndex(const TokenId tokenId)

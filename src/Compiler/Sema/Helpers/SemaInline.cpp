@@ -21,10 +21,13 @@ namespace
 {
     bool isInlineRecursion(Sema& sema, const SymbolFunction& fn)
     {
-        if (sema.currentFunction() == &fn)
+        const SemaInlinePayload* frameInlinePayload     = sema.frame().currentInlinePayload();
+        const SemaInlinePayload* effectiveInlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+
+        if (effectiveInlinePayload == frameInlinePayload && sema.currentFunction() == &fn)
             return true;
 
-        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        const SemaInlinePayload* inlinePayload = effectiveInlinePayload;
         while (inlinePayload)
         {
             if (inlinePayload->sourceFunction == &fn)
@@ -177,7 +180,8 @@ namespace
             const AstNode& node = sema.node(nodeRef);
             if (node.is(AstNodeId::Identifier))
             {
-                const Symbol* sym = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
+                const auto* identifier = node.safeCast<AstIdentifier>();
+                const Symbol* sym      = identifier && identifier->hasFlag(AstIdentifierFlagsE::InClosureCapture) ? nullptr : sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
                 if (sym && sym->isVariable())
                 {
                     const auto&           symVar        = sym->cast<SymbolVariable>();
@@ -239,6 +243,22 @@ namespace
 
         SmallVector<AstNodeRef> visited;
         return validateInlineBindingOuterScopeVariables(sema, *currentFn, exprRef, visited);
+    }
+
+    bool shouldValidateInlineBindingOuterScope(Sema& sema, const SemaClone::ParamBinding& binding, bool callerScopeInline)
+    {
+        if (!callerScopeInline)
+            return true;
+
+        if (binding.sourceParam && binding.sourceParam->type(sema.ctx()).isCodeBlock())
+            return false;
+
+        if (binding.exprRef.isInvalid())
+            return true;
+
+        const AstNode& exprNode = sema.node(binding.exprRef);
+        return !exprNode.is(AstNodeId::CompilerCodeExpr) &&
+               !exprNode.is(AstNodeId::CompilerCodeBlock);
     }
 
     struct InlineVariadicBinding
@@ -339,6 +359,89 @@ namespace
         appendOwnerStructGenericBindings(sema, fn, outBindings);
     }
 
+    bool directInlineContextOverrideTarget(Sema& sema, const SemaInlinePayload*& outTarget, AstNodeRef nodeRef)
+    {
+        const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(nodeRef);
+        if (!overridePayload || !overridePayload->targetInlinePayload)
+            return false;
+
+        outTarget = overridePayload->targetInlinePayload;
+        return true;
+    }
+
+    AstNodeRef compilerCodeInnerRef(const AstNode& node)
+    {
+        if (node.is(AstNodeId::CompilerCodeExpr))
+            return node.cast<AstCompilerCodeExpr>().nodeExprRef;
+        if (node.is(AstNodeId::CompilerCodeBlock))
+            return node.cast<AstCompilerCodeBlock>().nodeBodyRef;
+        return AstNodeRef::invalid();
+    }
+
+    const SemaClone::ParamBinding* findInlineBinding(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        const auto* identifier = sema.node(nodeRef).safeCast<AstIdentifier>();
+        if (!identifier)
+            return nullptr;
+
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
+        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        if (!inlinePayload)
+            inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+
+        while (inlinePayload)
+        {
+            for (const auto& binding : inlinePayload->argMappings)
+            {
+                if (binding.idRef == idRef)
+                    return &binding;
+            }
+            inlinePayload = inlinePayload->parentInlinePayload;
+        }
+
+        return nullptr;
+    }
+
+    bool codeArgumentInlineContextTarget(Sema& sema, const SemaInlinePayload*& outTarget, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return false;
+
+        if (directInlineContextOverrideTarget(sema, outTarget, argRef))
+            return true;
+
+        if (const auto* binding = findInlineBinding(sema, argRef); binding && binding->exprRef.isValid() && binding->exprRef != argRef)
+        {
+            if (codeArgumentInlineContextTarget(sema, outTarget, binding->exprRef))
+                return true;
+        }
+
+        const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
+        if (resolvedRef.isValid() && resolvedRef != argRef && codeArgumentInlineContextTarget(sema, outTarget, resolvedRef))
+            return true;
+
+        const AstNodeRef innerRef = compilerCodeInnerRef(sema.node(argRef));
+        if (innerRef.isValid() && innerRef != argRef)
+            return codeArgumentInlineContextTarget(sema, outTarget, innerRef);
+
+        return false;
+    }
+
+    AstNodeRef setCodeArgumentContext(Sema& sema, AstNodeRef wrappedRef, AstNodeRef argRef)
+    {
+        const SemaInlinePayload* targetInlinePayload = nullptr;
+        if (!codeArgumentInlineContextTarget(sema, targetInlinePayload, argRef))
+            targetInlinePayload = sema.frame().currentInlinePayload();
+
+        auto* inlineOverridePayload                = sema.compiler().allocate<SemaInlineContextOverride>();
+        inlineOverridePayload->targetInlinePayload = targetInlinePayload;
+        sema.setInlineContextOverride(wrappedRef, inlineOverridePayload);
+        return wrappedRef;
+    }
+
     AstNodeRef wrapCodeArgument(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -352,7 +455,7 @@ namespace
             wrappedPtr->setCodeRef(argNode.codeRef());
             wrappedPtr->nodeBodyRef    = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
             wrappedPtr->payloadTypeRef = payloadTypeRef;
-            return wrappedRef;
+            return setCodeArgumentContext(sema, wrappedRef, argRef);
         }
 
         if (argNode.is(AstNodeId::CompilerCodeExpr))
@@ -361,7 +464,7 @@ namespace
             wrappedPtr->setCodeRef(argNode.codeRef());
             wrappedPtr->nodeExprRef    = argNode.cast<AstCompilerCodeExpr>().nodeExprRef;
             wrappedPtr->payloadTypeRef = payloadTypeRef;
-            return wrappedRef;
+            return setCodeArgumentContext(sema, wrappedRef, argRef);
         }
 
         if (argNode.is(AstNodeId::EmbeddedBlock))
@@ -370,14 +473,14 @@ namespace
             wrappedPtr->setCodeRef(argNode.codeRef());
             wrappedPtr->nodeBodyRef    = argRef;
             wrappedPtr->payloadTypeRef = payloadTypeRef;
-            return wrappedRef;
+            return setCodeArgumentContext(sema, wrappedRef, argRef);
         }
 
         auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(argNode.tokRef());
         wrappedPtr->setCodeRef(argNode.codeRef());
         wrappedPtr->nodeExprRef    = argRef;
         wrappedPtr->payloadTypeRef = payloadTypeRef;
-        return wrappedRef;
+        return setCodeArgumentContext(sema, wrappedRef, argRef);
     }
 
     AstNodeRef bindingValueArgumentRef(Sema& sema, AstNodeRef argRef)
@@ -668,37 +771,23 @@ namespace
         return true;
     }
 
-    // Only CallExpr inside an inline body now stays out of the cross-Ast inline path: re-matching
-    // it re-runs overload selection and trips a nested-inline auto-member wait-deadlock
-    // (e.g. `.lines[i].length()` — the receiver `.lines[i]` is the unresolved expression). Two
-    // corners are already fixed (the inline-payload walk-up in Sema.Member.Auto.cpp for auto-members
-    // inside injected #code, and the resolved-overload pin in SemaClone.cpp), but the remaining
-    // receiver-materialization case must be handled before CallExpr can leave the guard.
-    //
-    // Casts, named types, struct literals, switches AND intrinsics were removed from this set; each
-    // needed a fix to materialize correctly across the Ast boundary:
-    //  - cast operand/type and switch case values carry their resolved type;
-    //  - struct-literal type-name nodes keep their resolved type via the struct-init skip in
-    //    Sema.Identifier.cpp;
-    //  - intrinsics: the resolved per-type overload is pinned (@min/@max) in SemaClone.cpp, the
-    //    inline body keeps the call site's disabled safety guards (tryInlineCall, so a wrapping
-    //    `#[Safety(.Overflow,false)]` caller like Hash.City32.update does not regain overflow checks
-    //    on its own arg exprs), and a latent x64 encoder bug was fixed (a 128-bit move with
-    //    scaled-index addressing emitted MOVD instead of MOVDQU — surfaced when Memory.copy/@memcpy
-    //    inlines into Hash.Sha1.final copying `&.state[0]`).
-    // Covered by the std test build + bin/unittests/native/regression/inline_crossast_*.swg.
     bool bodyHasUnsafeCrossAstConstruct(const Ast& ast, AstNodeRef nodeRef)
     {
-        if (nodeRef.isInvalid())
+        if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
             return false;
+
         const AstNode& node = ast.node(nodeRef);
         if (node.is(AstNodeId::CallExpr))
             return true;
+
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
         for (const AstNodeRef childRef : children)
+        {
             if (bodyHasUnsafeCrossAstConstruct(ast, childRef))
                 return true;
+        }
+
         return false;
     }
 
@@ -707,6 +796,23 @@ namespace
     // cast / named-type / struct-literal / switch were only proven safe for the marked path and
     // regress the release/Auto std build when auto-inlined (e.g. a re-resolved `character`->`u8`
     // cast). Auto stays on the strict set until it is validated through the release suite.
+    //
+    // `foreach` over a container expands to a caller-scope `opVisit` macro whose injected `#code`
+    // loop body carries a `SemaInlineContextOverride` redirecting a `return` to the enclosing
+    // function. The auto-inline `preserveResolvedSymbols` clone re-expands that macro with the
+    // override target resolved to the *original* function (null = real return) rather than the
+    // new inline payload, so a `return <value>` in the loop body re-binds to the void `opVisit`
+    // payload instead of the caller (e.g. regexp `hasActiveCapture`/`findDisappearingEmptyGroup`
+    // -> "cannot return a value from void function"). The marked `#[Inline]` path re-resolves the
+    // body and re-creates the override correctly, so this only affects auto-selection. Keep
+    // foreach-bearing bodies out of line until the override is remapped during the clone.
+    //
+    // A closure / function expression (`func|capture|(){...}`) that captures an enclosing local
+    // breaks the same way: auto-inlining its owner relocates the captured local into the caller,
+    // and the closure's capture-ownership check (functionOwnsVariable) no longer recognizes the
+    // moved local, raising a bogus "local function cannot reference outer-scope variable" (e.g.
+    // `makeCounter` returning `func|total|`). Local function decls are already excluded via
+    // collectInlineLocalFunctionDecls; closures/function-expressions are not, so exclude them here.
     bool bodyHasUnsafeAutoInlineConstruct(const Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -716,7 +822,9 @@ namespace
             node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
             node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
             node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
-            node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::NamedType))
+            node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::NamedType) ||
+            node.is(AstNodeId::ForeachStmt) ||
+            node.is(AstNodeId::ClosureExpr) || node.is(AstNodeId::FunctionExpr))
             return true;
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
@@ -2056,7 +2164,7 @@ namespace
     //  - only volunteer SAME-Ast callees: a cross-module callee's Ast is owned by another,
     //    possibly concurrently running, compilation job, so reading its node/paged stores from
     //    this thread is unsafe. Marked cross-module functions still inline through
-    //    tryInlineCall's guarded cross-Ast path;
+    //    tryInlineCall's explicit cross-Ast path;
     //  - bound the body size to keep code growth in check.
     // Body shape is otherwise unrestricted: correct materialization (preserved resolved symbols
     // + inline-scope isolation) handles arbitrary statements/locals/calls.
@@ -2073,6 +2181,8 @@ namespace
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
     {
         if (fn.isGenericRoot() || fn.isGenericInstance())
+            return false;
+        if (!fn.isSemaCompleted())
             return false;
 
         // Scalar/pointer signature only — see isInlineAggregateType.
@@ -2251,7 +2361,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         appendGenericInstanceBindings(sema, fn, bindings);
 
     for (const SemaClone::ParamBinding& binding : bindings)
-        SWC_RESULT(validateInlineBindingOuterScopeVariables(sema, binding.exprRef));
+    {
+        if (shouldValidateInlineBindingOuterScope(sema, binding, isMacro || isMixin))
+            SWC_RESULT(validateInlineBindingOuterScopeVariables(sema, binding.exprRef));
+    }
 
     AliasIdentifierArray aliasIdentifiers = {};
     SWC_RESULT(collectAliasIdentifiers(sema, callRef, *declAst, *decl, aliasIdentifiers));
@@ -2280,7 +2393,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Closure captures and non-addressable aggregate uses still need concrete locals before
     // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.
     SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
-
     SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     // An auto-selected inline body resolves in the callee's context: pin its already-resolved
     // identifier symbols so a same-Ast inline does not re-resolve the callee's file-private

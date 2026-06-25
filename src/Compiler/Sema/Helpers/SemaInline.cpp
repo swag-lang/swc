@@ -792,10 +792,10 @@ namespace
     }
 
     // Auto-inline (release mode) volunteers a far wider, less-validated candidate set than the
-    // marked `#[Inline]` cross-Ast path, so it keeps the ORIGINAL conservative construct set:
-    // cast / named-type / struct-literal / switch were only proven safe for the marked path and
-    // regress the release/Auto std build when auto-inlined (e.g. a re-resolved `character`->`u8`
-    // cast). Auto stays on the strict set until it is validated through the release suite.
+    // marked `#[Inline]` path, so it keeps a conservative construct set. Named type annotations
+    // are covered by the resolved-symbol clone and the scalar-signature filter used for auto
+    // candidates, but calls/intrinsics, casts, struct-literals, switches, and `with` still have
+    // materialization or re-resolution gaps to close before they can be auto-selected.
     //
     // `foreach` over a container expands to a caller-scope `opVisit` macro whose injected `#code`
     // loop body carries a `SemaInlineContextOverride` redirecting a `return` to the enclosing
@@ -806,6 +806,12 @@ namespace
     // -> "cannot return a value from void function"). The marked `#[Inline]` path re-resolves the
     // body and re-creates the override correctly, so this only affects auto-selection. Keep
     // foreach-bearing bodies out of line until the override is remapped during the clone.
+    //
+    // `with` changes auto-member binding precedence so its target shadows the enclosing receiver
+    // `me`. Auto-inlining a method body currently relocates that binding stack into the caller and
+    // can make `.member` choose the receiver instead of the `with` target (e.g. `applyShadow` in
+    // `flow/with.swg`). Keep it explicit-only until the cloned inline frame preserves that
+    // precedence correctly.
     //
     // A closure / function expression (`func|capture|(){...}`) that captures an enclosing local
     // breaks the same way: auto-inlining its owner relocates the captured local into the caller,
@@ -822,7 +828,8 @@ namespace
             node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
             node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
             node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
-            node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::NamedType) ||
+            node.is(AstNodeId::StructInitializerList) ||
+            node.is(AstNodeId::WithStmt) || node.is(AstNodeId::WithVarDecl) ||
             node.is(AstNodeId::ForeachStmt) ||
             node.is(AstNodeId::ClosureExpr) || node.is(AstNodeId::FunctionExpr))
             return true;

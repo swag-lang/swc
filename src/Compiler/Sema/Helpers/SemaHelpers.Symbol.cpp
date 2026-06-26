@@ -135,42 +135,6 @@ namespace
 
         return TypeRef::invalid();
     }
-
-    const SemaInlinePayload* inlinePayloadFromVisitPath(const Sema& sema)
-    {
-        if (const auto* inlinePayload = sema.inlinePayload(sema.curNodeRef()))
-            return inlinePayload;
-
-        for (uint32_t i = 0;; i++)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(i);
-            if (parentRef.isInvalid())
-                return nullptr;
-            if (const auto* inlinePayload = sema.inlinePayload(parentRef))
-                return inlinePayload;
-        }
-    }
-
-    bool inlineContextOverrideFromVisitPath(const Sema& sema, const SemaInlinePayload*& outPayload)
-    {
-        if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(sema.curNodeRef()))
-        {
-            outPayload = overridePayload->targetInlinePayload;
-            return true;
-        }
-
-        for (uint32_t i = 0;; i++)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(i);
-            if (parentRef.isInvalid())
-                return false;
-            if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(parentRef))
-            {
-                outPayload = overridePayload->targetInlinePayload;
-                return true;
-            }
-        }
-    }
 }
 
 AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
@@ -283,14 +247,25 @@ IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& co
 
 const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
 {
-    const SemaInlinePayload* overridePayload = nullptr;
-    if (inlineContextOverrideFromVisitPath(sema, overridePayload))
-        return overridePayload;
+    // Walk the visit path from the current node outward and let the CLOSEST inline
+    // context win, whether it is an explicit #inject override or a materialized inline
+    // body's payload. A separate "all overrides first, then any payload" lookup would let
+    // an outer caller's #inject override shadow an inner inline that is materialized inside
+    // it — e.g. a foreach `opVisit` macro expanded inside an inlined callee, whose own
+    // #inject must see the opVisit payload (to route the loop body's `return` to the
+    // inlined callee) rather than the enclosing caller's override.
+    for (uint32_t i = 0;; i++)
+    {
+        const AstNodeRef nodeRef = (i == 0) ? sema.curNodeRef() : sema.visit().parentNodeRef(i - 1);
+        if (nodeRef.isInvalid())
+            break;
+        if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(nodeRef))
+            return overridePayload->targetInlinePayload;
+        if (const auto* inlinePayload = sema.inlinePayload(nodeRef))
+            return inlinePayload;
+    }
 
     if (const auto* inlinePayload = sema.frame().currentInlinePayload())
-        return inlinePayload;
-
-    if (const auto* inlinePayload = inlinePayloadFromVisitPath(sema))
         return inlinePayload;
 
     const SymbolFunction* currentFn = sema.currentFunction();

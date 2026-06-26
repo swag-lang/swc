@@ -796,7 +796,7 @@ namespace
         if (nodeRef.isInvalid())
             return false;
         const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) || node.is(AstNodeId::ForeachStmt))
+        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr))
             return true;
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);

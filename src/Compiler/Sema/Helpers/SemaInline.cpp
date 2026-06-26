@@ -2214,8 +2214,23 @@ namespace
         if (fn.returnTypeRef().isValid() && isInlineAggregateType(sema.ctx().typeMgr().get(fn.returnTypeRef())))
             return false;
         for (const SymbolVariable* param : fn.parameters())
-            if (param && isInlineAggregateType(param->type(sema.ctx())))
+        {
+            if (!param)
+                continue;
+            const TypeInfo& paramType = param->type(sema.ctx());
+            if (isInlineAggregateType(paramType))
                 return false;
+            // A reference parameter to an aggregate (e.g. `const &{x, y}`) is excluded for the same
+            // reason its by-value form is: the aggregate is not a scalar/pointer the auto-inline clone
+            // can carry faithfully. For an ANONYMOUS aggregate this is also unsafe under concurrency —
+            // the clone re-resolves a member access (`param.x`) by name against that ephemeral tuple
+            // type, whose member-symbol map may not yet be published on the thread doing the inline,
+            // intermittently yielding a spurious "unknown symbol". Look through the reference and
+            // apply the same scalar/pointer-only boundary to the pointee.
+            if (paramType.isReference() && paramType.payloadTypeRef().isValid() &&
+                isInlineAggregateType(sema.ctx().typeMgr().get(paramType.payloadTypeRef())))
+                return false;
+        }
 
         const AstFunctionDecl* decl    = nullptr;
         const Ast*             declAst = nullptr;

@@ -188,6 +188,17 @@ namespace
         if (!whereRef.isValid())
             return true;
 
+        // Duplicate-case detection is a source-level check, but it is re-run when a callee's body
+        // is materialized inline. Inlining substitutes the callee parameters with the call-site
+        // arguments, so a runtime `case <v> where <param>` clause can fold to a constant `true`
+        // (e.g. `#run f(1, true)` makes `where takeFirst` look unconditional) even though the
+        // source clause is conditional. The canonical body was already validated before being
+        // materialized, so inside an inline context a `where` clause must keep its source meaning
+        // (conditional) and never be treated as unconditional, otherwise a later same-value case is
+        // falsely reported as a duplicate.
+        if (sema.frame().currentInlinePayload() != nullptr)
+            return false;
+
         const SemaNodeView whereView = sema.viewConstant(whereRef);
         return whereView.cstRef().isValid() && whereView.cstRef() == sema.cstMgr().cstTrue();
     }

@@ -337,6 +337,20 @@ namespace
                 return nullptr;
         }
 
+        // A function that is itself an inline materialization (its decl carries an inline payload)
+        // can reference locals that the materialization relocated and left detached — a captured
+        // local whose declaration was cloned into the inline body resolves straight from the capture
+        // source and ends up with no owning scope. Such a detached function-local is the
+        // materialization's own relocated local, not an outer-scope variable crossing a local
+        // function boundary, so referencing it is legal. The distinguishing facts: a genuine
+        // outer-scope variable keeps its owning block/function scope (owner != null), and a
+        // not-inlined local function carries no inline payload (e.g. a `func makeCounter` that is
+        // never called, so its `func|&outer|` capture of an enclosing local is still correctly
+        // rejected).
+        if (!symVar.ownerSymMap() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) &&
+            Sema::inlinePayload(currentFn) != nullptr)
+            return nullptr;
+
         while (fn)
         {
             if (functionOwnsVariable(*fn, symVar))

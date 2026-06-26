@@ -337,6 +337,32 @@ namespace
         return Result::Continue;
     }
 
+    // The nearest inline payload that binds `me`. Its `callerBindingVars` are the binding vars that
+    // already existed in the caller when this method body was materialized inline — i.e. bindings
+    // the inlined method does not own and that its receiver `me` should outrank.
+    const SemaInlinePayload* nearestInlineReceiverPayload(Sema& sema)
+    {
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        for (const SemaInlinePayload* payload = sema.frame().currentInlinePayload(); payload; payload = payload->parentInlinePayload)
+        {
+            for (const SemaClone::ParamBinding& binding : payload->argMappings)
+                if (binding.idRef == meId && binding.exprRef.isValid())
+                    return payload;
+        }
+
+        return nullptr;
+    }
+
+    bool isCallerInheritedBindingVar(const SemaInlinePayload* inlineReceiverPayload, const SymbolVariable* bindingVar)
+    {
+        if (!inlineReceiverPayload)
+            return false;
+        for (const SymbolVariable* callerVar : inlineReceiverPayload->callerBindingVars)
+            if (callerVar == bindingVar)
+                return true;
+        return false;
+    }
+
     Result addCandidatesFromAutoMemberBindings(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, std::span<const SemaScope::AutoMemberBinding> autoMemberBindings, uint32_t& precedence)
     {
         for (auto& binding : std::ranges::reverse_view(autoMemberBindings))
@@ -402,8 +428,6 @@ namespace
             }
         }
 
-        SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
-
         // A `with` block must shadow the enclosing receiver `me`. `with <var>` targets
         // are pushed as binding vars after the receiver (so they already outrank it),
         // but `with <member-access>`/`with <expr>` targets are auto-member bindings,
@@ -412,9 +436,27 @@ namespace
         if (!bindingTypesFirst)
             SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
 
+        // The inline receiver `me` must rank like a non-inlined method's receiver: its own `with`
+        // targets outrank it, but bindings inherited from the caller's frame (the materialized body
+        // inherits the caller frame's binding vars) do not — they belong to the caller, not this
+        // method. So add the method's own binding vars (its `with <var>` targets) first, then `me`,
+        // then the caller-inherited binding vars. In a non-inlined body there is no inline receiver
+        // payload, so every binding var counts as "own" and `me` is itself one of them (added in the
+        // first loop), preserving the original ordering exactly.
+        const SemaInlinePayload* inlineReceiverPayload = nearestInlineReceiverPayload(sema);
+
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
+            if (!isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar))
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
+        }
+
+        SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
+
+        for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
+        {
+            if (isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar))
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
         }
 
         if (!bindingTypesFirst)

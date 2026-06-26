@@ -791,34 +791,6 @@ namespace
         return false;
     }
 
-    // Auto-inline (release mode) volunteers a far wider, less-validated candidate set than the
-    // marked `#[Inline]` path, so it keeps a conservative construct set. Named type annotations
-    // are covered by the resolved-symbol clone and the scalar-signature filter used for auto
-    // candidates, but calls/intrinsics, casts, struct-literals, switches, and `with` still have
-    // materialization or re-resolution gaps to close before they can be auto-selected.
-    //
-    // `foreach` over a container expands to a caller-scope `opVisit` macro whose injected `#code`
-    // loop body carries a `SemaInlineContextOverride` redirecting a `return` to the enclosing
-    // function. The auto-inline `preserveResolvedSymbols` clone re-expands that macro with the
-    // override target resolved to the *original* function (null = real return) rather than the
-    // new inline payload, so a `return <value>` in the loop body re-binds to the void `opVisit`
-    // payload instead of the caller (e.g. regexp `hasActiveCapture`/`findDisappearingEmptyGroup`
-    // -> "cannot return a value from void function"). The marked `#[Inline]` path re-resolves the
-    // body and re-creates the override correctly, so this only affects auto-selection. Keep
-    // foreach-bearing bodies out of line until the override is remapped during the clone.
-    //
-    // `with` changes auto-member binding precedence so its target shadows the enclosing receiver
-    // `me`. Auto-inlining a method body currently relocates that binding stack into the caller and
-    // can make `.member` choose the receiver instead of the `with` target (e.g. `applyShadow` in
-    // `flow/with.swg`). Keep it explicit-only until the cloned inline frame preserves that
-    // precedence correctly.
-    //
-    // A closure / function expression (`func|capture|(){...}`) that captures an enclosing local
-    // breaks the same way: auto-inlining its owner relocates the captured local into the caller,
-    // and the closure's capture-ownership check (functionOwnsVariable) no longer recognizes the
-    // moved local, raising a bogus "local function cannot reference outer-scope variable" (e.g.
-    // `makeCounter` returning `func|total|`). Local function decls are already excluded via
-    // collectInlineLocalFunctionDecls; closures/function-expressions are not, so exclude them here.
     bool bodyHasUnsafeAutoInlineConstruct(const Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -2184,6 +2156,15 @@ namespace
         if (fn.isGenericRoot() || fn.isGenericInstance())
             return false;
         if (!fn.isSemaCompleted())
+            return false;
+
+        // Inlining a throwable callee requires materializing its error-propagation ABI at the
+        // call site. Routing an inlined `throw` to an enclosing `assume` is not yet wired in
+        // codegen — it crashes even for an explicit #[Inline] throwable callee under `assume` —
+        // so the auto heuristic must not volunteer throwable callees until that lands. (`try` /
+        // `catch` routing of an inlined throw already works; only the `assume` panic path does
+        // not, but the gate stays at the callee granularity for safety.)
+        if (fn.isThrowable())
             return false;
 
         // Scalar/pointer signature only — see isInlineAggregateType.

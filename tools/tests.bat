@@ -22,6 +22,12 @@ if /I "%~1"=="--build-cfg" (
     shift
     goto parse_args
 )
+if /I "%~1"=="-bc" (
+    set "BUILD_CFG=%~2"
+    shift
+    shift
+    goto parse_args
+)
 set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 shift
 goto parse_args

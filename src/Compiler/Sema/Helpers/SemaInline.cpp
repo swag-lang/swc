@@ -824,9 +824,7 @@ namespace
         if (nodeRef.isInvalid())
             return false;
         const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
-            node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
-            node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
+        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
             node.is(AstNodeId::StructInitializerList) ||
             node.is(AstNodeId::ForeachStmt) ||
             node.is(AstNodeId::ClosureExpr) || node.is(AstNodeId::FunctionExpr))

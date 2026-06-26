@@ -781,7 +781,16 @@ namespace
         return true;
     }
 
-    bool bodyHasUnsafeCrossAstConstruct(const Ast& ast, AstNodeRef nodeRef)
+    // A materialized inline body is cloned and re-sema'd in the caller's scope. Identifier symbols
+    // are pinned (PreResolvedSymbol) so file-private references survive, but a nested `CallExpr`
+    // re-runs overload selection AND drives re-resolution/coercion in downstream subsystems that the
+    // clone does not reproduce faithfully: a lambda argument loses the contextual parameter-type
+    // inference it took from the callee signature, a const `typeinfo` member access const-folds a
+    // func-typed field that cannot be evaluated at compile time, intrinsic calls lose their argument
+    // typing, etc. These failures live in const-folding / typeinfo / lambda-inference, not in the
+    // inliner, so until they are addressed there, any body containing a call stays out of line. The
+    // guard is shared by the auto-inline heuristic (same-Ast) and the explicit cross-Ast inline path.
+    bool bodyHasNestedCallExpr(const Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
             return false;
@@ -794,25 +803,10 @@ namespace
         node.collectChildrenFromAst(children, ast);
         for (const AstNodeRef childRef : children)
         {
-            if (bodyHasUnsafeCrossAstConstruct(ast, childRef))
+            if (bodyHasNestedCallExpr(ast, childRef))
                 return true;
         }
 
-        return false;
-    }
-
-    bool bodyHasUnsafeAutoInlineConstruct(const Ast& ast, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return false;
-        const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CallExpr))
-            return true;
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, ast);
-        for (const AstNodeRef childRef : children)
-            if (bodyHasUnsafeAutoInlineConstruct(ast, childRef))
-                return true;
         return false;
     }
 
@@ -2242,15 +2236,13 @@ namespace
             return false;
 
         // Exclude bodies containing constructs whose materialization is not yet reproduced
-        // faithfully when moved into the caller: a call re-runs overload selection and coercion
-        // (member/UFCS calls regrow a receiver argument; intrinsic calls lose their argument
-        // typing), and nested local functions re-bind their outer-scope access. Preserving
-        // resolved identifier symbols (above) already lets a body reference the callee's
-        // file-private globals/helpers safely; this guard keeps the remaining, not-yet-handled
-        // re-resolution cases out of line. Leaf computational callees (member access, indexing,
-        // arithmetic, casts, assignments, control flow over params/`me`/locals/globals) still
-        // inline — including into callers that themselves contain calls.
-        if (bodyHasUnsafeAutoInlineConstruct(*declAst, decl->nodeBodyRef))
+        // faithfully when moved into the caller (any nested call — see bodyHasNestedCallExpr — and
+        // nested local functions that re-bind their outer-scope access). Preserving resolved
+        // identifier symbols (above) already lets a body reference the callee's file-private
+        // globals/helpers safely; this guard keeps the remaining, not-yet-handled re-resolution
+        // cases out of line. Leaf computational callees (member access, indexing, arithmetic,
+        // casts, assignments, control flow over params/`me`/locals/globals) still inline.
+        if (bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
             return false;
         if (bodyUsesCompilerOffsetOf(sema, *declAst, decl->nodeBodyRef))
             return false;
@@ -2354,11 +2346,16 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const bool isMixin          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
     const bool isCrossAstInline = declAst != &sema.ast();
 
+    // An "ordinary" inline is any inline that is not a macro/mixin expansion: an explicit
+    // #[Inline] callee or an auto-selected one. Macros/mixins keep their established re-resolving
+    // materialization; ordinary inlines use the hardened (preserved-resolved-symbol) path.
+    const bool isOrdinaryInline = !isMacro && !isMixin;
+
     // Auto-selected = inlined purely by the size/shape heuristic, not by an explicit #[Inline]
     // tag, macro or mixin. Auto candidates opt into the hardened same-Ast materialization
     // (callee-completion wait, preserved resolved symbols, isolated inline scope). Marked /
     // macro / mixin inlines keep their established behavior to avoid any regression.
-    const bool isAutoSelected = !isMacro && !isMixin &&
+    const bool isAutoSelected = isOrdinaryInline &&
                                 !fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) &&
                                 sema.buildCfgBackend().inlineMode == Runtime::BuildCfgBackendInlineMode::Auto;
 
@@ -2371,9 +2368,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Generic functions instantiated cross-Ast still re-bind their generic parameters and
     // intrinsic argument matching in the caller's Ast, which isn't handled yet; keep them on
     // the previous (no cross-Ast inline) path. The hot inline accessors are non-generic.
-    if (isCrossAstInline && !isMacro && !isMixin && (fn.isGenericInstance() || fn.isGenericRoot()))
+    if (isCrossAstInline && isOrdinaryInline && (fn.isGenericInstance() || fn.isGenericRoot()))
         return Result::Continue;
-    if (isCrossAstInline && !isMacro && !isMixin && bodyHasUnsafeCrossAstConstruct(*declAst, decl->nodeBodyRef))
+    if (isCrossAstInline && isOrdinaryInline && bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
         return Result::Continue;
 
     // Wait for the callee to be sema-completed before materializing its body. A cross-Ast inline
@@ -2382,7 +2379,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // same reason — a not-yet-resolved reference (e.g. a file-scope const used in the body) would
     // otherwise be cloned with nothing to pin and fail to re-resolve. Self-recursive callees are
     // already filtered out above, so this does not wait on the function being expanded.
-    if ((isCrossAstInline || isAutoSelected) && !isMacro && !isMixin)
+    if ((isCrossAstInline || isAutoSelected) && isOrdinaryInline)
         SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
 
     const InlineArgumentMapContext context{
@@ -2485,7 +2482,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
     frame.setInlineContextRootRef(inlineRootRef);
-    if (!isMacro && !isMixin)
+    if (isOrdinaryInline)
     {
         const auto callerSafetyOverrides = frame.currentAttributes().runtimeSafetyOverrides;
         frame.currentAttributes()        = fn.attributes();

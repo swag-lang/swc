@@ -1229,6 +1229,22 @@ namespace
             canExtractConstantMember = (cst.isValuePointer() && cst.getValuePointer() != 0) || (cst.isBlockPointer() && cst.getBlockPointer() != 0);
         }
 
+        // A function-typed field holds a code address that is not resolved until link time, so it
+        // cannot be const-folded from the (constant) container's bytes — read it at runtime instead
+        // of taking the const-extract path, which hard-errors in ConstantExtract::structMember. This
+        // surfaces when a const container reaches the member access, e.g. a `typeinfo` cast whose
+        // member is TypeInfoStruct.opDrop (`func(*void)`), as produced by auto-inlining such an
+        // accessor with a constant type argument.
+        if (canExtractConstantMember && finalSymCount == 1 && symbols[0]->isVariable())
+        {
+            const SymbolVariable& fieldVar      = symbols[0]->cast<SymbolVariable>();
+            const TypeInfo&       fieldType     = fieldVar.typeInfo(sema.ctx());
+            const TypeRef         unwrappedRef  = fieldType.unwrap(sema.ctx(), fieldVar.typeRef(), TypeExpandE::Alias);
+            const TypeInfo&       fieldRealType = unwrappedRef.isValid() ? sema.typeMgr().get(unwrappedRef) : fieldType;
+            if (fieldRealType.isFunction())
+                canExtractConstantMember = false;
+        }
+
         if (nodeLeftView.cst() && canExtractConstantMember && finalSymCount == 1 && symbols[0]->isVariable())
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();

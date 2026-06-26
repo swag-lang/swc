@@ -66,7 +66,7 @@ impl IActionUI for ActionAbout
             case "Swag":
                 Env.locateUrl("https://www.swag-lang.org/")
             case "here":
-                Env.locateUrl("https://github.com/swag-lang/swag/tree/master/bin/examples/modules/captme/")
+                Env.locateUrl("https://github.com/swag-lang/swag/tree/master/bin/apps/modules/captme/")
             }
         }
 

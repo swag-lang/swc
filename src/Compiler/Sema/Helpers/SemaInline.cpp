@@ -55,6 +55,16 @@ namespace
         return binding.exprRef.isValid() || binding.cstRef.isValid();
     }
 
+    // A `character`/`bool` literal argument is a coercible constant just like an integer literal: a
+    // real call coerces it to the parameter type (e.g. `'A'` -> `u8`). The shared
+    // canUseContextualBinding does not list them (to stay conservative at its other, non-inline call
+    // sites), so an inline binding recognizes them here. Without this, the materialized body sees the
+    // raw `character`/`bool` type and, e.g., rejects `arr[vkey]` as a non-integer index.
+    bool isInlineCoercibleLiteralArg(const AstNode& node)
+    {
+        return node.is(AstNodeId::CharacterLiteral) || node.is(AstNodeId::BoolLiteral);
+    }
+
     TypeRef inlineContextualBindingTypeRef(Sema& sema, const SymbolVariable& param, AstNodeRef exprRef)
     {
         const TypeRef paramTypeRef = param.typeRef();
@@ -66,7 +76,7 @@ namespace
             return TypeRef::invalid();
         const AstNode& exprNode   = sema.node(exprRef);
         const bool     isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
-        if (!isCastExpr && !SemaHelpers::canUseContextualBinding(sema, exprRef))
+        if (!isCastExpr && !isInlineCoercibleLiteralArg(exprNode) && !SemaHelpers::canUseContextualBinding(sema, exprRef))
             return TypeRef::invalid();
 
         return paramTypeRef;
@@ -796,7 +806,7 @@ namespace
         if (nodeRef.isInvalid())
             return false;
         const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr))
+        if (node.is(AstNodeId::CallExpr))
             return true;
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
@@ -1672,7 +1682,7 @@ namespace
             {
                 declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
             }
-            else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
+            else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
             {
                 AstNodeRef materializedTypeRef = AstNodeRef::invalid();
                 if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())
@@ -2217,14 +2227,14 @@ namespace
             return false;
 
         // Exclude bodies containing constructs whose materialization is not yet reproduced
-        // faithfully when moved into the caller: calls/casts/struct-literals re-run overload
-        // selection and coercion (member/UFCS calls regrow a receiver argument; intrinsic calls
-        // lose their argument typing), and nested local functions re-bind their outer-scope
-        // access. Preserving resolved identifier symbols (above) already lets a body reference
-        // the callee's file-private globals/helpers safely; this guard keeps the remaining,
-        // not-yet-handled re-resolution cases out of line. Leaf computational callees (member
-        // access, indexing, arithmetic, assignments, control flow over params/`me`/locals/
-        // globals) still inline — including into callers that themselves contain calls.
+        // faithfully when moved into the caller: a call re-runs overload selection and coercion
+        // (member/UFCS calls regrow a receiver argument; intrinsic calls lose their argument
+        // typing), and nested local functions re-bind their outer-scope access. Preserving
+        // resolved identifier symbols (above) already lets a body reference the callee's
+        // file-private globals/helpers safely; this guard keeps the remaining, not-yet-handled
+        // re-resolution cases out of line. Leaf computational callees (member access, indexing,
+        // arithmetic, casts, assignments, control flow over params/`me`/locals/globals) still
+        // inline — including into callers that themselves contain calls.
         if (bodyHasUnsafeAutoInlineConstruct(*declAst, decl->nodeBodyRef))
             return false;
         if (bodyUsesCompilerOffsetOf(sema, *declAst, decl->nodeBodyRef))

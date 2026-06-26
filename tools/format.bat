@@ -17,6 +17,7 @@ goto parse_args
 :run
 call "%TOOLS_DIR%_common.bat" :run_swc format ^
  -d "%ROOT%\bin\examples" ^
+ -d "%ROOT%\bin\apps" ^
  -d "%ROOT%\bin\reference" ^
  -d "%ROOT%\bin\runtime" ^
  -d "%ROOT%\bin\std" ^

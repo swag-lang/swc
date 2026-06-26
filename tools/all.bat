@@ -31,6 +31,7 @@ exit /b 0
 set "BUILD_CFG=%~1"
 call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%examples.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%apps.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%reference.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%ROOT%\bin\tests\workspace" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 exit /b 0

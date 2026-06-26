@@ -1640,6 +1640,17 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             SWC_RESULT(setupRuntimeArrayScalarFillIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef, effectiveKind, needsRuntimeStorage));
             if (needsRuntimeStorage)
                 SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, srcCstRef));
+            else
+            {
+                // A cast that folds to a constant needs no runtime storage buffer. When this cast was
+                // materialized by an inline clone of a callee whose source was a runtime value (e.g. a
+                // value-to-`any` box), the clone carried over the callee's runtime storage symbol (a
+                // `[sizeof(Any) + sizeof(value)]` buffer). Now that the inlined argument is constant the
+                // box folds to a self-contained constant `any`, so that stale, oversized buffer must be
+                // dropped — otherwise codegen tries to fill it with the smaller constant and asserts.
+                if (auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(view.nodeRef()))
+                    payload->runtimeStorageSym = nullptr;
+            }
         }
 
         view.recompute(sema);

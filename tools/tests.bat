@@ -36,6 +36,7 @@ goto parse_args
 call "%TOOLS_DIR%scripts.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%std.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%examples.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%apps.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%reference.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%unittests.bat" %MODE_ARG% --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 

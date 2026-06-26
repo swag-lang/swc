@@ -796,8 +796,7 @@ namespace
         if (nodeRef.isInvalid())
             return false;
         const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
-            node.is(AstNodeId::ForeachStmt))
+        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) || node.is(AstNodeId::ForeachStmt))
             return true;
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
@@ -2151,12 +2150,46 @@ namespace
                ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice();
     }
 
+    // `#offsetof(local)` yields the byte offset of a local within its function's stack frame.
+    // That value is frame-relative: inlining materializes the callee's locals into the caller's
+    // frame (after the caller's own locals), so every offset shifts by the caller prefix. The
+    // relative layout is preserved but the absolute base is not, so a body that takes `#offsetof`
+    // of one of its locals cannot be auto-inlined without changing its observable result. (Struct
+    // `#offsetof` is layout-invariant, but distinguishing the operand needs full resolution; a
+    // body using `#offsetof` at all is rare enough that the conservative gate costs nothing.)
+    bool bodyUsesCompilerOffsetOf(Sema& sema, const Ast& ast, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+        const AstNode& node = ast.node(nodeRef);
+        if (node.is(AstNodeId::CompilerCallOne) && sema.token(node.codeRef()).id == TokenId::CompilerOffsetOf)
+            return true;
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, ast);
+        for (const AstNodeRef childRef : children)
+            if (bodyUsesCompilerOffsetOf(sema, ast, childRef))
+                return true;
+        return false;
+    }
+
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
     {
         if (fn.isGenericRoot() || fn.isGenericInstance())
             return false;
         if (!fn.isSemaCompleted())
             return false;
+
+        // A typed variadic (`T...`) callee packs its trailing call-site args into a typed slice.
+        // Auto-inlining it materializes that packing into the caller and drops the per-argument
+        // coercion (e.g. a `null` arg to a `*void...` is no longer coerced to `*void`, leaving an
+        // un-lowerable `null`-typed constant tuple element). Explicit #[Inline]/macro/mixin callees
+        // opt into this deliberately and keep working; the auto heuristic must not volunteer it.
+        if (fn.hasVariadicParam())
+        {
+            const auto& params = fn.parameters();
+            if (!params.empty() && params.back()->type(sema.ctx()).isAnyVariadic())
+                return false;
+        }
 
         // Inlining a throwable callee requires materializing its error-propagation ABI at the
         // call site. Routing an inlined `throw` to an enclosing `assume` is not yet wired in
@@ -2193,6 +2226,8 @@ namespace
         // access, indexing, arithmetic, assignments, control flow over params/`me`/locals/
         // globals) still inline — including into callers that themselves contain calls.
         if (bodyHasUnsafeAutoInlineConstruct(*declAst, decl->nodeBodyRef))
+            return false;
+        if (bodyUsesCompilerOffsetOf(sema, *declAst, decl->nodeBodyRef))
             return false;
         SmallVector<AstNodeRef> localFns;
         collectInlineLocalFunctionDecls(sema, decl->nodeBodyRef, localFns);
@@ -2238,6 +2273,9 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
         return false;
 
+    // An untyped (`...`) variadic callee can never be inlined in any mode: there is no materialized
+    // arg pack. (A TYPED `T...` variadic is fine for macros/mixins and explicit #[Inline], and is
+    // gated out of the AUTO heuristic separately in shouldAutoInline.)
     if (fn.hasVariadicParam())
     {
         const auto& params = fn.parameters();

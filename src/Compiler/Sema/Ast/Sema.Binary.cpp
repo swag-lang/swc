@@ -256,6 +256,18 @@ namespace
                 val1.setSigned(true);
                 val2.setSigned(true);
             }
+            else if (op == TokenId::SymGreaterGreater && storageType.isInt())
+            {
+                // A right shift is arithmetic or logical according to the LEFT operand's sign,
+                // which is the shift's storage (result) type restored above — NOT the promoted
+                // constant's sign. promoteConstants unifies the left operand's sign with the shift
+                // count (typically unsigned), so without re-applying the storage sign here a
+                // const-folded `signed >> count` would shift the now-unsigned value logically.
+                // This only surfaces once the expression is const-foldable (e.g. the left operand
+                // becomes constant after the function is inlined), mirroring the existing
+                // left-shift sign fix above.
+                val1.setSigned(storageType.payloadIntSign() == TypeInfo::Sign::Signed);
+            }
 
             Math::FoldBinaryOp foldOp;
             const bool         mapped = mapTokenToFoldBinaryOp(foldOp, op);

@@ -253,7 +253,14 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
 
     if (targetUnsigned)
     {
-        if (!value.isUnsigned() && value.isNegative() && !castRequest.flags.has(CastFlagsE::NoOverflow) && targetBits != 0 && castRequest.kind != CastKind::Promotion)
+        // An explicit `cast(uN) <negative>` reinterprets/wraps the bit pattern, exactly like the
+        // runtime cast does — it must NOT be rejected as out-of-range. (A negative literal *suffix*
+        // such as `-1'u32` is a different, genuinely contradictory form and keeps erroring: it is a
+        // LiteralSuffix cast, not FromExplicitNode.) This only surfaces in const folding once the
+        // operand is constant — e.g. a runtime `cast(u32) r` whose `r` becomes a negative constant
+        // after the function is inlined at a constant call site.
+        const bool explicitWrap = castRequest.flags.has(CastFlagsE::FromExplicitNode);
+        if (!value.isUnsigned() && value.isNegative() && !castRequest.flags.has(CastFlagsE::NoOverflow) && !explicitWrap && targetBits != 0 && castRequest.kind != CastKind::Promotion)
         {
             castRequest.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
             return false;

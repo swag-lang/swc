@@ -314,6 +314,15 @@ Result ConstantExtract::atIndexRef(Sema& sema, const ConstantValue& cst, int64_t
     SWC_ASSERT(cst.isValid());
     outCstRef = ConstantRef::invalid();
 
+    // A `null` constant of an indexable type (e.g. `cast(const [..] s32) null`) carries no
+    // element payload to extract. The TYPE is indexable, so this is not a "type does not support
+    // indexing" error — leave the index un-folded (outCstRef invalid) so it lowers to a runtime
+    // index with the normal bound check. This matters once such an expression becomes constant
+    // (e.g. a function inlined with a constant argument that folds a ternary to its `null` branch);
+    // without it, const-folding a null-slice index wrongly reports the slice type as non-indexable.
+    if (cst.isNull())
+        return Result::Continue;
+
     if (cst.isAggregateArray())
         return extractAtIndexAggregateArray(sema, cst, constIndex, nodeArgRef, outCstRef);
     if (cst.isArray())

@@ -110,9 +110,26 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         }
         else
         {
-            if (!sym.isInterface())
-                return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
-            symImpl.setSymInterface(&sym.cast<SymbolInterface>());
+            // The interface name in `impl <Iface> for <Struct>` can flakily resolve to a same-named
+            // impl block instead of the interface: every `impl IWnd for X` is a symbol carrying the
+            // interface's identifier ("IWnd"), so it is a homonym of the `interface IWnd` symbol in
+            // name lookup. Under parallel sema the lookup non-deterministically returns one of those
+            // sibling impls. Recover the interface that impl implements — its symInterface is set
+            // during the impl header's own sema, before the impl is registered as a lookup candidate,
+            // so it is reliably available here — and re-point the identifier to it.
+            SymbolInterface* symInterface = nullptr;
+            if (sym.isInterface())
+            {
+                symInterface = &sym.cast<SymbolInterface>();
+            }
+            else
+            {
+                symInterface = sym.isImpl() ? sym.cast<SymbolImpl>().symInterface() : nullptr;
+                if (!symInterface)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
+                sema.setSymbol(nodeIdentRef, symInterface);
+            }
+            symImpl.setSymInterface(symInterface);
         }
 
         if (nodeForRef.isValid())

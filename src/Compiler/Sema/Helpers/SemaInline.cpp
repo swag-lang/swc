@@ -369,7 +369,7 @@ namespace
         appendOwnerStructGenericBindings(sema, fn, outBindings);
     }
 
-    bool directInlineContextOverrideTarget(Sema& sema, const SemaInlinePayload*& outTarget, AstNodeRef nodeRef)
+    bool directInlineContextOverrideTarget(const Sema& sema, const SemaInlinePayload*& outTarget, AstNodeRef nodeRef)
     {
         const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(nodeRef);
         if (!overridePayload || !overridePayload->targetInlinePayload)

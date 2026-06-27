@@ -724,7 +724,7 @@ namespace
             insertMoveRegReg(context, instRef, savedRequiredReg, requiredReg, MicroOpBits::B64);
         }
 
-        MicroReg scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+        const MicroReg scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
         addVirtualForbiddenReg(context, scratchReg, requiredReg);
         addVirtualForbiddenReg(context, scratchReg, originalDstReg);
         addVirtualForbiddenReg(context, scratchReg, originalMemReg);

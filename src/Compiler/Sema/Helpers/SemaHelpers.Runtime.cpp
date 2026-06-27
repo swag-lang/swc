@@ -439,7 +439,7 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
     SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
     sema.currentFunction()->addLocalVariable(sema.ctx(), &symVar);
 
-    if (auto* inlinePayload = const_cast<SemaInlinePayload*>(SemaHelpers::effectiveInlinePayload(sema)))
+    if (auto* inlinePayload = const_cast<SemaInlinePayload*>(effectiveInlinePayload(sema)))
     {
         if (std::ranges::find(inlinePayload->localVariables, &symVar) == inlinePayload->localVariables.end())
             inlinePayload->localVariables.push_back(&symVar);

@@ -147,7 +147,7 @@ void SemaNodeView::assignSymbolList(std::span<Symbol*> symbols)
         sym_ = symbols.front();
 }
 
-bool SemaNodeView::loadResolvedSymbols(Sema& sema, AstNodeRef targetRef, SemaNodeViewResolveE resolveMode)
+bool SemaNodeView::loadResolvedSymbols(const Sema& sema, AstNodeRef targetRef, SemaNodeViewResolveE resolveMode)
 {
     // Read the symbol payload from a single snapshot. Splitting this into hasSymbol()/getSymbol()
     // (two separate atomic payload reads) races with a concurrent kind transition on shared

@@ -457,11 +457,11 @@ namespace
             }
         }
 
-        const TypeInfo& leftType       = aliasEnumType(sema, nodeLeftView);
-        const TypeInfo& rightType      = aliasEnumType(sema, nodeRightView);
-        const TypeInfo& leftAliasType  = aliasType(sema, nodeLeftView);
-        const TypeInfo& rightAliasType = aliasType(sema, nodeRightView);
-        TypeRef         resultTypeRef  = nodeLeftView.typeRef();
+        const TypeInfo& leftType                 = aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType                = aliasEnumType(sema, nodeRightView);
+        const TypeInfo& leftAliasType            = aliasType(sema, nodeLeftView);
+        const TypeInfo& rightAliasType           = aliasType(sema, nodeRightView);
+        TypeRef         resultTypeRef            = nodeLeftView.typeRef();
         bool            handledPointerArithmetic = false;
         switch (op)
         {
@@ -473,7 +473,7 @@ namespace
                         SWC_RESULT(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
                         nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
-                    resultTypeRef = nodeRightView.typeRef();
+                    resultTypeRef            = nodeRightView.typeRef();
                     handledPointerArithmetic = true;
                 }
                 else if (leftType.isAnyPointer() && rightAliasType.isIntLike())
@@ -483,7 +483,7 @@ namespace
                         SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                         nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
-                    resultTypeRef = nodeLeftView.typeRef();
+                    resultTypeRef            = nodeLeftView.typeRef();
                     handledPointerArithmetic = true;
                 }
                 break;
@@ -496,12 +496,12 @@ namespace
                         SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                         nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
-                    resultTypeRef = nodeLeftView.typeRef();
+                    resultTypeRef            = nodeLeftView.typeRef();
                     handledPointerArithmetic = true;
                 }
                 else if (leftType.isAnyPointer() && rightType.isAnyPointer())
                 {
-                    resultTypeRef = sema.typeMgr().typeS64();
+                    resultTypeRef            = sema.typeMgr().typeS64();
                     handledPointerArithmetic = true;
                 }
                 break;
@@ -527,7 +527,7 @@ namespace
             case TokenId::SymLowerLower:
                 if (handledPointerArithmetic)
                     break;
-                else if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
+                if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
                     leftAliasType.isScalarNumeric() &&
                     rightAliasType.isScalarNumeric())
                 {

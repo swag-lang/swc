@@ -58,7 +58,7 @@ public:
     void          setStat(Utf8 stat);
 
     // Small helpers callers use to assemble the parts of a stage line.
-    static Utf8 formatStatCount(const TaskContext& ctx, size_t value, std::string_view singular, const char* plural = nullptr);
+    static Utf8 formatStatCount(const TaskContext& ctx, size_t value, std::string_view singular, const char* pluralForm = nullptr);
     static Utf8 formatStatRatio(const TaskContext& ctx, size_t value, size_t total, std::string_view singular);
     static Utf8 formatStatName(const TaskContext& ctx, std::string_view name);
     static Utf8 joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items);

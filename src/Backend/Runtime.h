@@ -410,8 +410,8 @@ namespace Runtime
     enum class BuildCfgBackendCpuVectorize : uint8_t
     {
         None = 0,
-        SSE2 = 1,
-        AVX2 = 2,
+        Sse2 = 1,
+        Avx2 = 2,
     };
 
     struct BuildCfgBackend

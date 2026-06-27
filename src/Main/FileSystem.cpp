@@ -146,9 +146,10 @@ fs::path FileSystem::normalizePath(const fs::path& path)
 
     std::string         key   = path.string();
     NormalizePathCache& cache = normalizePathCache();
+
     {
-        const std::lock_guard lock(cache.mutex);
-        const auto            it = cache.entries.find(key);
+        const std::scoped_lock lock(cache.mutex);
+        const auto             it = cache.entries.find(key);
         if (it != cache.entries.end())
             return it->second;
     }
@@ -156,9 +157,10 @@ fs::path FileSystem::normalizePath(const fs::path& path)
     fs::path result = computeNormalizePath(path);
 
     {
-        const std::lock_guard lock(cache.mutex);
+        const std::scoped_lock lock(cache.mutex);
         cache.entries.emplace(std::move(key), result);
     }
+
     return result;
 }
 

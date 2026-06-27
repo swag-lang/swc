@@ -34,12 +34,11 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
-#include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
-bool CompilerInstance::dbgDevStop = false;
+bool CompilerInstance::dbgDevStop      = false;
 bool CompilerInstance::headlessTestRun = false;
 
 namespace
@@ -503,10 +502,6 @@ void CompilerInstance::logBefore()
     ctx.global().logger().resetStageClaims();
 }
 
-void CompilerInstance::logAfter()
-{
-}
-
 void CompilerInstance::logStats()
 {
     if (!cmdLine().stats && !cmdLine().statsMem)
@@ -890,6 +885,7 @@ ExitCode CompilerInstance::run()
 {
     Stats::resetCommandMetrics();
     logBefore();
+    
     const auto runStart = std::chrono::steady_clock::now();
     ExitCode   exitCode;
     if (!cmdLine().workspacePath.empty())
@@ -905,8 +901,8 @@ ExitCode CompilerInstance::run()
 
         exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
     }
+    
     commandWallTimeNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - runStart).count();
-    logAfter();
     logStats();
     return exitCode;
 }

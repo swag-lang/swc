@@ -263,7 +263,7 @@ namespace
             const SemaClone::ParamBinding* bindingPtr = &binding;
             SWC_ASSERT(bindingPtr >= begin && bindingPtr < end);
             if (bindingPtr >= begin && bindingPtr < end)
-                nestedBindings = std::span<const SemaClone::ParamBinding>{bindingPtr + 1, static_cast<size_t>(end - bindingPtr - 1)};
+                nestedBindings = std::span{bindingPtr + 1, static_cast<size_t>(end - bindingPtr - 1)};
         }
 
         SemaClone::CloneContext result{nestedBindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};

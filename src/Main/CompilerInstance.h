@@ -509,7 +509,6 @@ private:
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 
     void   logBefore();
-    void   logAfter();
     void   logStats();
     void   processCommand();
     void   setupRuntimeCompiler();

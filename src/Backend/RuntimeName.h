@@ -55,9 +55,9 @@ inline Utf8 cpuVectorizeName(const Runtime::BuildCfgBackendCpuVectorize mode)
     {
         case Runtime::BuildCfgBackendCpuVectorize::None:
             return "none";
-        case Runtime::BuildCfgBackendCpuVectorize::SSE2:
+        case Runtime::BuildCfgBackendCpuVectorize::Sse2:
             return "sse2";
-        case Runtime::BuildCfgBackendCpuVectorize::AVX2:
+        case Runtime::BuildCfgBackendCpuVectorize::Avx2:
             return "avx2";
     }
 

@@ -909,7 +909,7 @@ std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& i
         const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
         if (!slot || !*slot)
             return {};
-        return std::span<const Symbol* const>{slot, 1};
+        return std::span{slot, 1};
     }
 
     const auto spanView = shard->store.span<const Symbol*>(info.ref);
@@ -919,7 +919,7 @@ std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& i
     const auto  it    = spanView.chunksBegin();
     const auto& chunk = *it;
     SWC_ASSERT(chunk.count == spanView.size());
-    return std::span<const Symbol* const>{static_cast<const Symbol* const*>(chunk.ptr), chunk.count};
+    return std::span{static_cast<const Symbol* const*>(chunk.ptr), chunk.count};
 }
 
 NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const

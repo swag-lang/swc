@@ -1127,7 +1127,7 @@ namespace
 
             if (!sourceSym->isVariable())
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
                 diag.report(sema.ctx());
                 return Result::Error;
             }
@@ -1158,7 +1158,7 @@ namespace
                 storageAlign = 1;
 
             captureOffset = Math::alignUpU64(captureOffset, storageAlign);
-            if (SymbolVariable* existingCapture = findClosureCaptureSymbol(sym, sourceVar))
+            if (const SymbolVariable* existingCapture = findClosureCaptureSymbol(sym, sourceVar))
             {
                 if (existingCapture->decl() == &captureArg)
                 {
@@ -1191,7 +1191,7 @@ namespace
 
             if (captureIdRef.isValid())
             {
-                Symbol* inserted = sym.addSingleSymbol(ctx, captureSym);
+                const Symbol* inserted = sym.addSingleSymbol(ctx, captureSym);
                 if (inserted != captureSym)
                 {
                     auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_duplicate, captureArg.nodeIdentifierRef);

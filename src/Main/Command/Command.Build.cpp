@@ -155,7 +155,7 @@ namespace Command
 
         Result runScriptRuntimeSetup(TaskContext& ctx)
         {
-            SymbolFunction* setupFn = runtimeFunction(ctx.compiler(), IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+            const SymbolFunction* setupFn = runtimeFunction(ctx.compiler(), IdentifierManager::RuntimeFunctionKind::SetupRuntime);
             SWC_ASSERT(setupFn != nullptr);
             if (!setupFn)
                 return Result::Error;

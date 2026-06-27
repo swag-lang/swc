@@ -473,7 +473,7 @@ namespace
         }
     }
 
-    void appendResourcePayloads(Win32ResourceSection& outSection, std::vector<ResourceLeafRef>& leaves)
+    void appendResourcePayloads(Win32ResourceSection& outSection, const std::vector<ResourceLeafRef>& leaves)
     {
         for (const ResourceLeafRef& leaf : leaves)
         {

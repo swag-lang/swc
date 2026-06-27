@@ -795,8 +795,12 @@ fileprivate impl EditBox
         // Naïve incremental search. Could be improved for performance.
         if .editBoxFlags.has(.RightAlign)
         {
+            if .text.length == 1 do
+                return 0
+
             var clientRect = .getEditRect()
             clientRect.x -= .getTextMarginRight()
+
             // Hit-test against the same snapped advances the glyphs are drawn with.
             let shaped    = Painter.shapeRun(.text.toString(), fontR)
             let base      = clientRect.right() - Painter.measureStringSnapped(&shaped)

@@ -4,9 +4,18 @@ public impl Painter
 {
     // Emit a connected, mitered antialiasing fringe ring around a closed polygon
     // contour. Adjacent edges share their mitered inner/outer vertices, so corners
-    // stay seamless (no per-edge wedges). The band is centered on the contour
-    // (AAHalf inside / AAHalf outside).
-    fileprivate mtd fillContourAA(polygon: *Polygon, color: Color)
+    // stay seamless (no per-edge wedges).
+    //
+    // 'innerOff'/'outerOff' place the full-coverage (cov=1) and zero-coverage (cov=0)
+    // rings relative to the contour. The convex fill insets its solid by AAHalf and
+    // uses a centered band (-AAHalf / +AAHalf). The non-convex (triangulated) fill
+    // cannot inset its cached triangulation, so it keeps the solid on the true contour
+    // and places the band fully outside (0 / 2*AAHalf): the full-coverage ring then
+    // coincides with the solid's hard edge, leaving a single clean outward ramp. A
+    // centered band there leaves the hard solid edge exposed at full coverage, which
+    // survives intact when alpha is later extracted via the MAX pass of a paintAlpha
+    // render target — producing visibly aliased text.
+    fileprivate mtd fillContourAA(polygon: *Polygon, color: Color, innerOff = -AAHalf, outerOff = AAHalf)
     {
         let count = polygon.points.count - 1
         if count < 2 do
@@ -16,10 +25,10 @@ public impl Painter
         for i in count
         {
             let j      = (i + 1) % count
-            let innerA = polygon.getPoint(i, -AAHalf)
-            let outerA = polygon.getPoint(i, AAHalf)
-            let innerB = polygon.getPoint(j, -AAHalf)
-            let outerB = polygon.getPoint(j, AAHalf)
+            let innerA = polygon.getPoint(i, innerOff)
+            let outerA = polygon.getPoint(i, outerOff)
+            let innerB = polygon.getPoint(j, innerOff)
+            let outerB = polygon.getPoint(j, outerOff)
             .pushFringeQuad(innerA, outerA, innerB, outerB, argb)
         }
     }
@@ -48,8 +57,10 @@ public impl Painter
             discard .pushTriangle(tri.points[0].v, tri.points[1].v, tri.points[2].v, brush.color)
         }
 
+        // Solid sits on the true contour (the triangulation is cached and must not be
+        // inset), so push the fringe fully outside: the cov=1 ring meets the solid edge.
         if .curState.paintParams & .Antialiased do
-            .fillContourAA(&p.polygon, brush.color)
+            .fillContourAA(&p.polygon, brush.color, 0, 2 * AAHalf)
     }
 
     // Fill a list of paths.

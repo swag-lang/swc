@@ -926,13 +926,21 @@ namespace
             }
         }
 
+        // A cloned identifier's codeRef can name a token that does not exist in its source view (a
+        // synthetic node carries a borrowed/out-of-range token location). Reading such a token is an
+        // out-of-bounds access, so only consult the source token when its location is in range;
+        // otherwise the node's resolved symbol below is the authoritative identifier.
+        const SourceCodeRef nodeCodeRef     = node.codeRef();
+        const bool          nodeTokInRange  = nodeCodeRef.isValid() &&
+                                    nodeCodeRef.tokRef.get() < sema.ctx().compiler().srcView(nodeCodeRef.srcViewRef).tokens().size();
+
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (node.codeRef().isValid() && sema.token(node.codeRef()).id == TokenId::Identifier)
-            idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
+        if (nodeTokInRange && sema.token(nodeCodeRef).id == TokenId::Identifier)
+            idRef = sema.idMgr().addIdentifier(sema.ctx(), nodeCodeRef);
         if (!idRef.isValid() && storedView && storedView->sym)
             idRef = storedView->sym->idRef();
-        if (!idRef.isValid())
-            idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
+        if (!idRef.isValid() && nodeTokInRange)
+            idRef = sema.idMgr().addIdentifier(sema.ctx(), nodeCodeRef);
 
         const SemaInlinePayload* sourceInlinePayload = nullptr;
         if (sourceRef.isValid() && sourceAst == &sema.ast())

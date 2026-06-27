@@ -165,7 +165,18 @@ void IdentifierManager::setup(const TaskContext& ctx)
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)
 {
     const SourceView& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
-    const Token&      tok     = srcView.token(codeRef.tokRef);
+
+    // A synthetic or cloned identifier can carry a codeRef whose tokRef does not index this source
+    // view: makeNode() stamps a new node with the active source view but a borrowed token location,
+    // which is later corrected for diagnostics but can legitimately point past this view's token
+    // array (e.g. a location borrowed from a larger source). Such a codeRef does not name a real
+    // token here, so there is no token-derived identifier — return invalid and let the caller use
+    // the node's resolved symbol. Without this guard the srcView.token() read below indexes past the
+    // token array (intermittent out-of-bounds crash in the parallel macro/inline clone path).
+    if (codeRef.tokRef.isInvalid() || codeRef.tokRef.get() >= srcView.tokens().size())
+        return IdentifierRef::invalid();
+
+    const Token& tok = srcView.token(codeRef.tokRef);
 
     if (tok.id == TokenId::Identifier)
     {

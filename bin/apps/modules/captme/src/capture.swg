@@ -120,12 +120,18 @@ impl Capture
         var painter: Pixel.Painter
 
         let render = g_App.getRenderer()
+        render.begin(.editView.surface.rc)
 
         with painter
         {
             .begin()
-            .setColorMaskFull()
-            .clear(Argb.White)
+        }
+
+        var layer: Layer
+        layer.begin(render, &painter, {width: cast(s32) rect.width, height: cast(s32) rect.height, paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
+
+        with painter
+        {
             me.paintBackImage(&painter, 0, 0, zoom)
             .setColorMaskColor()
             .setParams(.Antialiased)
@@ -153,26 +159,17 @@ impl Capture
             }
         }
 
+        layer.end()
         painter.end()
 
-        render.begin(.editView.surface.rc)
-
-        let rt = render.getRenderTarget(cast(s32) rect.width, cast(s32) rect.height)
-        with render
-        {
-            .bindRenderTarget(rt)
-            .setScissorRect(rect)
-            .clear()
-            .draw(&painter)
-            .unbindRenderTarget()
-            .releaseRenderTarget(rt)
-        }
-
+        render.draw(&painter)
         render.end()
 
+        let rt = layer.contentTarget
         var buffer = render.getTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
         result.crop(0, 0, cast(s32) rect.width, cast(s32) rect.height)
+        render.releaseRenderTarget(rt)
 
         return result
     }
@@ -371,7 +368,7 @@ impl Capture
         var clipOffset: Math.Vector2
         var savePaintPos: Math.Rectangle
         var saveNoClipPos: Math.Rectangle
-        var wt2, ht2, wt, ht: s32
+        var wt2, ht2: s32
         with let base = cast(*BaseForm) @dataof(f)
         {
             savePaintPos = .paintPos
@@ -405,24 +402,14 @@ impl Capture
 
             wt2 = cast(s32) (.paintPos.width - clipOffset.x)
             ht2 = cast(s32) (.paintPos.height - clipOffset.y)
-            wt  = wt2
-            ht  = ht2
         }
 
         let textSuperSample = (!quickMode and @kindof(f) == FormText) ? TextFormSuperSample : 1
-        let renderWt2 = wt2 * textSuperSample
-        let renderHt2 = ht2 * textSuperSample
-        let rtPaint = render.getRenderTarget(renderWt2, renderHt2)
-        var rt: *RenderTarget
+        var layer: Layer
+        layer.begin(render, painter, {width: wt2, height: ht2, renderScale: textSuperSample})
 
         with painter
         {
-            .bindRenderTarget(rtPaint, true)
-            .setAntialiased()
-            .setColorMaskFull()
-            .clear(Argb.Zero)
-            .setColorMaskColor()
-            .setBlendingMode(.Alpha)
             .pushTransform()
             .translateTransform(((-boundRect.x * zoom) - clipOffset.x) * textSuperSample, ((-boundRect.y * zoom) - clipOffset.y) * textSuperSample)
             var cxt: FormPaintContext
@@ -431,117 +418,9 @@ impl Capture
             cxt.quickMode   = quickMode
             f.paint(painter, cxt)
             .popTransform()
-            .unbindRenderTarget()
         }
 
-        if textSuperSample == 1
-        {
-            rt = rtPaint
-        }
-        else
-        {
-            rt = render.getRenderTarget(wt2, ht2)
-            with painter
-            {
-                .bindRenderTarget(rt)
-                .setShader(&render.shaderResolve)
-                .setShaderParam(render.shaderResolve.factor, textSuperSample)
-                .setColorMaskFull()
-                .setBlendingMode(.Copy)
-                .clear(Argb.Zero)
-                .drawTexture(Math.Rectangle{0, 0, wt2, ht2}, Math.Rectangle{0, 0, renderWt2, renderHt2}, rtPaint.colorBuffer)
-                .setShader()
-                .unbindRenderTarget()
-                .releaseRenderTarget(rtPaint)
-            }
-        }
-
-        const Margin = 8
-
-        var rt1, rt2: *RenderTarget
-        if base.paintShadow
-        {
-            wt += 2 * Margin
-            ht += 2 * Margin
-
-            rt1 = render.getRenderTarget(wt, ht)
-            rt2 = render.getRenderTarget(wt, ht)
-
-            // Draw the image with a margin around
-            let srcRect = Math.Rectangle{0, 0, wt2, ht2}
-            let dstRect = Math.Rectangle{Margin, Margin, wt2, ht2}
-            with painter
-            {
-                .bindRenderTarget(rt1)
-                .setShader(&render.shaderSimple)
-                .setBlendingMode(.Copy)
-                .setColorMaskFull()
-                .clear(Argb.Zero)
-                .drawTexture(dstRect, srcRect, rt.colorBuffer)
-                .unbindRenderTarget()
-            }
-
-            let blurRadius = quickMode ? 4.0 : 8.0
-
-            // Blur first pass
-            with painter
-            {
-                .bindRenderTarget(rt2)
-                .setShader(&render.shaderBlur)
-                .setShaderParam(render.shaderBlur.axis, 0's32)
-                .setShaderParam(render.shaderBlur.radius, blurRadius)
-                .setBlendingMode(.Copy)
-                .setColorMaskFull()
-                .clear(Argb.Zero)
-                .drawTexture(Math.Rectangle{0, 0, wt, ht}, Math.Rectangle{0, 0, wt, ht}, rt1.colorBuffer)
-                .setShader()
-                .unbindRenderTarget()
-            }
-
-            // Blur second pass
-            with painter
-            {
-                .bindRenderTarget(rt1)
-                .setShader(&render.shaderBlur)
-                .setShaderParam(render.shaderBlur.axis, 1's32)
-                .setShaderParam(render.shaderBlur.radius, blurRadius)
-                .setBlendingMode(.Copy)
-                .setColorMaskFull()
-                .drawTexture(Math.Rectangle{0, 0, wt, ht}, Math.Rectangle{0, 0, wt, ht}, rt2.colorBuffer, Color.fromArgb(150, Argb.Black))
-            }
-
-            // Add the real image at the right place just after
-            with var imgRect = Math.Rectangle{0, 0, wt, ht}
-            {
-                .offset(cast(f32) Margin)
-                .width  = wt2
-                .height = ht2
-                .offset(-base.shadowOffsetX, -base.shadowOffsetY)
-            }
-
-            with painter
-            {
-                .setShader(&render.shaderSimple)
-                .setBlendingMode(.Alpha)
-                .drawTexture(imgRect, srcRect, rt.colorBuffer)
-                .unbindRenderTarget()
-            }
-        }
-        else
-        {
-            with painter
-            {
-                .setShader(&render.shaderSimple)
-                .setBlendingMode(.Alpha)
-            }
-        }
-
-        // Paint resulting image
-        with painter
-        {
-            .setShader()
-            .setAntialiased(false)
-        }
+        layer.end()
 
         var colForm: Color
         if quickMode and base.subKind == .Highlight do
@@ -551,16 +430,11 @@ impl Capture
         else do
             colForm = Color.fromArgb(cast(u8) Math.map(cast(f32) base.alpha, 0, 100, 0, 255), Argb.White)
 
-        let srcRect = Math.Rectangle{0, 0, wt, ht}
-
         var paintRect: Math.Rectangle
         paintRect.x      = base.paintPos.x + clipOffset.x
         paintRect.y      = base.paintPos.y + clipOffset.y
-        paintRect.width  = wt
-        paintRect.height = ht
-
-        if base.paintShadow do
-            paintRect.offset(base.shadowOffsetX - Margin, base.shadowOffsetY - Margin)
+        paintRect.width  = wt2
+        paintRect.height = ht2
 
         // Rotation
         painter.pushTransform()
@@ -576,39 +450,21 @@ impl Capture
 
         defer painter.popTransform()
 
-        if base.paintShadow
-        {
-            with painter
-            {
-                .setColorMaskColor()
-                .drawTexture(paintRect, srcRect, rt1.colorBuffer, colForm)
-                .setBlendingMode(.Max)
-                .setColorMaskAlpha()
-                .drawTexture(paintRect, srcRect, rt1.colorBuffer, colForm)
-            }
-        }
-        else
-        {
-            with painter
-            {
-                .setColorMaskColor()
-                .setInterpolationMode(.Pixel)
-                .drawTexture(paintRect, srcRect, rt.colorBuffer, colForm)
-                .setBlendingMode(.Max)
-                .setColorMaskAlpha()
-                .drawTexture(paintRect, srcRect, rt.colorBuffer, colForm)
-                .setInterpolationMode(.Linear)
-            }
-        }
+        var drawInfo: LayerDrawInfo
+        drawInfo.dstRect           = paintRect
+        drawInfo.color             = colForm
+        drawInfo.interpolationMode = base.paintShadow ? .Linear : .Pixel
+        drawInfo.shadow.enabled    = base.paintShadow
+        drawInfo.shadow.radius     = quickMode ? 4.0 : 8.0
+        drawInfo.shadow.offsetX    = base.shadowOffsetX
+        drawInfo.shadow.offsetY    = base.shadowOffsetY
+        layer.draw(drawInfo)
 
         with painter
         {
             .setColorMaskColor()
             .setBlendingMode(.Alpha)
             .setInterpolationMode(.Linear)
-            .releaseRenderTarget(rt)
-            .releaseRenderTarget(rt1)
-            .releaseRenderTarget(rt2)
             .setAntialiased(true)
         }
 

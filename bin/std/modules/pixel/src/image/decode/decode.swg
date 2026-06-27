@@ -115,4 +115,6 @@ public impl Image
     Image.addDecoder'(Jpg.Decoder)()
     Image.addDecoder'(Png.Decoder)()
     Image.addDecoder'(Gif.Decoder)()
+    Image.addDecoder'(Tiff.Decoder)()
+    Image.addDecoder'(Ico.Decoder)()
 }

@@ -46,6 +46,38 @@ func makeTempGifPath()->String
     return Path.combine(tempDir.toString(), name.toString())
 }
 
+func makeTempTiffPath()->String
+{
+    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var name: String = "swag_pixel_tiff_"
+    name += GUID64.getRandom().getString()
+    name += ".tif"
+    return Path.combine(tempDir.toString(), name.toString())
+}
+
+func makeTempIcoPath()->String
+{
+    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var name: String = "swag_pixel_ico_"
+    name += GUID64.getRandom().getString()
+    name += ".ico"
+    return Path.combine(tempDir.toString(), name.toString())
+}
+
+// Copy a ConcatBuffer's bytes into an owning Array. ConcatBuffer cannot be
+// returned by value safely (it owns linked buckets), so test builders that
+// assemble bytes return an Array instead.
+func cbToArray(cb: *ConcatBuffer)->Array'u8
+{
+    cb.makeLinear()
+    var result: retval
+    let s = cb.toSlice()
+    result.resize(@countof(s))
+    if @countof(s) do
+        Memory.copy(result.buffer, @dataof(s), @countof(s))
+    return result
+}
+
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {
     let expectedSize = cast(u64) (width * height * cast(s32) (pf.bpp() >> 3))

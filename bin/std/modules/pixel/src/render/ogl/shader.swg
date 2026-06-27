@@ -66,3 +66,9 @@ struct ShaderBlur
     radius:         ShaderParamHandle
     axis:           ShaderParamHandle
 }
+
+struct ShaderResolve
+{
+    using base:     ShaderBase
+    factor:         ShaderParamHandle
+}

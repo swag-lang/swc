@@ -64,6 +64,7 @@ enum PaintQuality
 {
     Draft
     Normal
+    High
 }
 
 enum ClippingMode
@@ -476,11 +477,33 @@ impl Painter
         ptr.pos = outerA; ptr.color = color; ptr.cov = 0
     }
 
+    mtd aaHalfPathSpace()->f32
+    {
+        let tr = .curState.transform
+        let sx = Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12)
+        let sy = Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22)
+        let sc = Math.min(sx, sy)
+        if sc <= 0.001 do
+            return AAHalf
+        return AAHalf / sc
+    }
+
+    mtd aaHalfPathSpace(normal: Vector2)->f32
+    {
+        let tr = .curState.transform
+        let tx = normal.x * tr.m11 + normal.y * tr.m21
+        let ty = normal.x * tr.m12 + normal.y * tr.m22
+        let sc = Math.sqrt(tx * tx + ty * ty)
+        if sc <= 0.001 do
+            return AAHalf
+        return AAHalf / sc
+    }
+
     // Emit a centered antialiasing fringe along the edge (startx,starty)-(endx,endy)
     // of the triangle 'tri'. The band straddles the edge (AAHalf inside / AAHalf
     // outside), the outside direction being the one pointing away from the
     // triangle centroid. Used by stroke geometry, where overlap on the inner half
-    // is handled by the no-overlap blending pass (or is harmless for opaque pens).
+    // is handled by the no-overlap blending pass.
     #[Swag.Safety(.All, false)]
     fileprivate mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
@@ -496,7 +519,7 @@ impl Painter
         if n.dot(mid - centroid) < 0 do
             n = -n
 
-        let off = n * AAHalf
+        let off = n * .aaHalfPathSpace(n)
         .pushFringeQuad(p - off, p + off, q - off, q + off, v0.color)
     }
 
@@ -531,6 +554,8 @@ impl Painter
     fileprivate mtd startOverlapMode(pen: Pen)
     {
         var alpha = false
+        if .curState.paintParams & .Antialiased do
+            alpha = true
         if !pen.brush.isOpaque() do
             alpha = true
         if .curRT and .curRT.paintAlpha and .curState.paintParams & .Antialiased do

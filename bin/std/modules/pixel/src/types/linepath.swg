@@ -316,7 +316,7 @@ public impl LinePath
         // Already done ?
         if .isPolyOnly do
             return
-        if !.isDirty and .flattenQuality == quality and .isFlatten do
+        if !.isDirty and .isFlatten and cast(u32) .flattenQuality >= cast(u32) quality do
             return
 
         .isDirty        = false
@@ -367,6 +367,8 @@ impl LinePath
             minDist = 1
         case Normal:
             minDist = 0.2
+        case High:
+            minDist = 0.05
         }
 
         return minDist

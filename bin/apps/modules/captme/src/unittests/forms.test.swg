@@ -3,6 +3,54 @@
 
 using Swag, Core
 
+struct CaptmeTextPaintTransform
+{
+    tr:       Math.Transform2
+    found:    bool
+}
+
+func captmeTestTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->CaptmeTextPaintTransform
+{
+    var result: retval
+
+    var painter: Painter{fake: true}
+    painter.begin()
+    painter.setAntialiased()
+    painter.translateTransform(tx * renderScale, ty * renderScale)
+
+    var cxt: FormPaintContext
+    cxt.z           = z
+    cxt.renderScale = renderScale
+    text.IForm.paint(&painter, cxt)
+
+    foreach cmd in painter.commandBuffer
+    {
+        if cmd.id != .Transform do
+            continue
+
+        let tr      = cmd.transform.tr
+        let weight  = Math.abs(tr.m11) + Math.abs(tr.m22) + Math.abs(tr.tx) + Math.abs(tr.ty)
+        let current = Math.abs(result.tr.m11) + Math.abs(result.tr.m22) + Math.abs(result.tr.tx) + Math.abs(result.tr.ty)
+        if !result.found or weight > current
+        {
+            result.tr    = tr
+            result.found = true
+        }
+    }
+
+    painter.end()
+    return result
+}
+
+func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, scale: f32)
+{
+    @assert(base.found and scaled.found)
+    @assert(Math.abs(base.tr.m11 - scaled.tr.m11 / scale) < 0.001)
+    @assert(Math.abs(base.tr.m22 - scaled.tr.m22 / scale) < 0.001)
+    @assert(Math.abs(base.tr.tx - scaled.tr.tx / scale) < 0.01)
+    @assert(Math.abs(base.tr.ty - scaled.tr.ty / scale) < 0.01)
+}
+
 // Rectangle-like forms normalize negative sizes and keep their base geometry coherent.
 #test
 {
@@ -28,6 +76,27 @@ using Swag, Core
 
     shape.kind = .Rectangle
     @assert(shape.IForm.isInside({-1000, -1000}))
+
+    f.shutdown()
+}
+
+// Text supersampling must only increase raster resolution, never logical layout.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    let text = captmeTestAddText(f.capture, 20, 30, 180, 90)
+    text.text        = "780"
+    text.fontSize    = 48
+    text.borderSize  = 7
+    text.boldSize    = 2
+    text.backColor   = Argb.Black
+    text.borderColor = Argb.White
+
+    let base   = captmeTestTextPaintTransform(text, 17, -9, 1, 1)
+    let scaled = captmeTestTextPaintTransform(text, 17, -9, 1, 3)
+    captmeTestAssertScaledTransform(base, scaled, 3)
 
     f.shutdown()
 }

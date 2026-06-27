@@ -11,6 +11,8 @@ enum MouseMode
     Selecting
 }
 
+const TextFormSuperSample = 3
+
 struct Capture
 {
     const MinSize            = 16
@@ -407,23 +409,51 @@ impl Capture
             ht  = ht2
         }
 
-        let rt = render.getRenderTarget(wt2, ht2)
+        let textSuperSample = (!quickMode and @kindof(f) == FormText) ? TextFormSuperSample : 1
+        let renderWt2 = wt2 * textSuperSample
+        let renderHt2 = ht2 * textSuperSample
+        let rtPaint = render.getRenderTarget(renderWt2, renderHt2)
+        var rt: *RenderTarget
+
         with painter
         {
-            .bindRenderTarget(rt, true)
+            .bindRenderTarget(rtPaint, true)
             .setAntialiased()
             .setColorMaskFull()
             .clear(Argb.Zero)
             .setColorMaskColor()
             .setBlendingMode(.Alpha)
             .pushTransform()
-            .translateTransform((-boundRect.x * zoom) - clipOffset.x, (-boundRect.y * zoom) - clipOffset.y)
+            .translateTransform(((-boundRect.x * zoom) - clipOffset.x) * textSuperSample, ((-boundRect.y * zoom) - clipOffset.y) * textSuperSample)
             var cxt: FormPaintContext
-            cxt.z         = zoom
-            cxt.quickMode = quickMode
+            cxt.z           = zoom
+            cxt.renderScale = cast() textSuperSample
+            cxt.quickMode   = quickMode
             f.paint(painter, cxt)
             .popTransform()
             .unbindRenderTarget()
+        }
+
+        if textSuperSample == 1
+        {
+            rt = rtPaint
+        }
+        else
+        {
+            rt = render.getRenderTarget(wt2, ht2)
+            with painter
+            {
+                .bindRenderTarget(rt)
+                .setShader(&render.shaderResolve)
+                .setShaderParam(render.shaderResolve.factor, textSuperSample)
+                .setColorMaskFull()
+                .setBlendingMode(.Copy)
+                .clear(Argb.Zero)
+                .drawTexture(Math.Rectangle{0, 0, wt2, ht2}, Math.Rectangle{0, 0, renderWt2, renderHt2}, rtPaint.colorBuffer)
+                .setShader()
+                .unbindRenderTarget()
+                .releaseRenderTarget(rtPaint)
+            }
         }
 
         const Margin = 8

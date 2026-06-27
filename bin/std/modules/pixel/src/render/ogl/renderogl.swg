@@ -13,6 +13,7 @@ fileprivate
     const PixelShaderAA  = #include("shaders/aa.frag")
 
     const PixelShaderBlur = #include("shaders/blur.frag")
+    const PixelShaderResolve = #include("shaders/resolve.frag")
 
     const VertexShaderFont = #include("shaders/font.vert")
     const PixelShaderFont  = #include("shaders/font.frag")
@@ -48,6 +49,7 @@ struct RenderOgl
     shaderSimple:        ShaderSimple
     shaderAA:            ShaderAA
     shaderBlur:          ShaderBlur
+    shaderResolve:       ShaderResolve
     shaderFont:          ShaderFont
     shaderFontMsdf:      ShaderFont
     worldTransform:      Transform2
@@ -146,6 +148,14 @@ fileprivate impl RenderOgl
             glUniform1i(text0, 0)
             .shaderBlur.axis   = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("axis"))
             .shaderBlur.radius = cast() glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("radius"))
+        }
+
+        {
+            assume createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderResolve.handle, @dataof("inTexture0"))
+            glUseProgram(cast(GLuint) .shaderResolve.handle)
+            glUniform1i(text0, 0)
+            .shaderResolve.factor = cast() glGetUniformLocation(cast(GLuint) .shaderResolve.handle, @dataof("factor"))
         }
     }
 

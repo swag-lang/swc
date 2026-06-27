@@ -1,6 +1,7 @@
 struct FormPaintContext
 {
     z:             f32
+    renderScale:   f32 = 1
     quickMode:     bool
     hitTest:       bool
 }

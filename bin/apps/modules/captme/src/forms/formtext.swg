@@ -5,13 +5,6 @@ enum FormTextAlign
     Center
 }
 
-struct FormTextRune
-{
-    back:        LinePathList
-    border:      LinePathList
-    advance:     f32
-}
-
 struct FormText
 {
     using base:     BaseForm
@@ -41,8 +34,8 @@ struct FormText
         cacheBColorA:     u8
 
         totalY:           f32
-        runes:            HashTable'(rune, FormTextRune)
         paths:            Array'LinePathList
+        borderPaths:      Array'LinePathList
     }
 }
 
@@ -258,67 +251,58 @@ impl IForm for FormText
             .cacheBColorA = .borderColor.a
 
             .paths.clear()
-            .paths.resize(tokens.count * 2)
-            .runes.clear()
+            .borderPaths.clear()
+            .paths.resize(tokens.count)
+            .borderPaths.resize(tokens.count)
 
             .totalY = 0
             foreach t, idx in tokens
             {
-                let pathl  = &.paths[idx * 2]
-                let pathl1 = &.paths[(idx * 2) + 1]
-
-                Utf8.visitRunes(|c| t)
+                let pathl = &.paths[idx]
+                assume face.getStringOutline(pathl, t, cast() fSize, cast() sSize)
+                pathl.flatten(.High)
+                pathl.clean()
+                if !pathl.paths.count
                 {
-                    var it = .runes.tryFind(c)
-                    if !it
-                    {
-                        var ftr: FormTextRune
-
-                        // Back
-                        ftr.advance = assume face.getRuneOutline(&ftr.back, c, cast() fSize, cast() sSize)
-                        ftr.back.flatten(painter.curState.paintQuality)
-                        ftr.back.clean()
-
-                        // Border
-                        if !Math.isZeroEpsilon(bSize) and .borderColor.a
-                        {
-                            assume face.getRuneOutline(&ftr.border, c, cast() fSize, cast() sSize)
-                            ftr.border.flatten(painter.curState.paintQuality)
-                            ftr.border.offset(bSize, .joinStyle, 0.5)
-                        }
-
-                        it = .runes.add(c, ftr)
-                    }
-
-                    pathl.bvMax.x += it.value.advance
-                    pathl.bvMin.y = Math.min(pathl.bvMin.y, it.value.back.bvMin.y)
-                    pathl.bvMax.y = Math.max(pathl.bvMax.y, it.value.back.bvMax.y)
-
-                    if it.value.border.paths.count
-                    {
-                        pathl1.bvMax.x += it.value.advance
-                        pathl1.bvMin.y = Math.min(pathl1.bvMin.y, it.value.border.bvMin.y)
-                        pathl1.bvMax.y = Math.max(pathl1.bvMax.y, it.value.border.bvMax.y)
-                    }
-                    else
-                    {
-                        pathl1.bvMin = pathl.bvMin
-                        pathl1.bvMax = pathl.bvMax
-                    }
+                    pathl.bvMin = {0, 0}
+                    pathl.bvMax = {0, 0}
                 }
 
-                .totalY += (pathl.bvMax.y - pathl.bvMin.y)
+                let borderPath = &.borderPaths[idx]
+                if !Math.isZeroEpsilon(bSize) and .borderColor.a
+                {
+                    assume face.getStringOutline(borderPath, t, cast() fSize, cast() sSize)
+                    borderPath.flatten(.High)
+                    borderPath.clean()
+                    borderPath.offset(bSize, .joinStyle, 0.25)
+                    borderPath.clean()
+                }
+
+                if !borderPath.paths.count
+                {
+                    borderPath.bvMin = pathl.bvMin
+                    borderPath.bvMax = pathl.bvMax
+                }
+
+                .totalY += (borderPath.bvMax.y - borderPath.bvMin.y)
             }
         }
 
         let zscale  = z * (cxt.quickMode ? 1 : Math.map(.scale, 0, 100, 1'f32, 2'f32))
+        let rscale  = cxt.renderScale
+        let pscale  = zscale * rscale
         var y0      = 0'f32
         let addSize = (bSize + sSize) * zscale
 
-        let count = .paths.count / 2
+        let count = .paths.count
 
-        var totalYZ = .totalY * zscale
-        totalYZ += cast(f32) ((count - 1) * (.lineSpacing * zscale))
+        var totalYZ = 0'f32
+        foreach &pathl in .borderPaths
+        {
+            totalYZ += (pathl.bvMax.y - pathl.bvMin.y) * zscale
+        }
+        if count > 1 do
+            totalYZ += cast(f32) (count - 1) * (.lineSpacing * zscale)
 
         let aV = cxt.quickMode ? FormTextAlign.Center : .alignVert
         let aH = cxt.quickMode ? FormTextAlign.Center : .alignHorz
@@ -332,12 +316,11 @@ impl IForm for FormText
             y0 = pp.bottom() - addSize - totalYZ
         }
 
-        for var i = 0; i < .paths.count; i += 2
+        foreach &pathl, idx in .paths
         {
-            let pathl1 = &.paths[i + 1]
-
-            let wt = (pathl1.bvMax.x - pathl1.bvMin.x) * zscale
-            let ht = (pathl1.bvMax.y - pathl1.bvMin.y) * zscale
+            let borderPath = &.borderPaths[idx]
+            let wt         = (borderPath.bvMax.x - borderPath.bvMin.x) * zscale
+            let ht         = (borderPath.bvMax.y - borderPath.bvMin.y) * zscale
 
             var x0 = 0'f32
             switch aH
@@ -350,48 +333,24 @@ impl IForm for FormText
                 x0 = pp.right() - (wt + addSize)
             }
 
-            var pl: LinePathList
             let tt  = painter.curState.transform
+            let drawX = x0 - (borderPath.bvMin.x * zscale)
+            let drawY = y0 - (borderPath.bvMin.y * zscale)
 
-            // Border
-            if !Math.isZeroEpsilon(bSize) and .borderColor.a
-            {
-                painter.pushTransform()
-                painter.curState.transform.tx = 0
-                painter.curState.transform.ty = 0
-                painter.scaleTransform(zscale, zscale)
-                painter.translateTransform(tt.tx, tt.ty)
-                painter.translateTransform(x0, y0 - (pathl1.bvMin.y * zscale))
-                Utf8.visitRunes(|c| tokens[i / 2])
-                {
-                    let it = .runes.find(c)
-                    pl.paths.add(it.value.border.paths.toSlice())
-                    painter.fillPath(&pl, .borderColor)
-                    pl.paths.count = 0
-                    painter.translateTransform(cast(f32) it.value.advance * zscale, 0)
-                }
-                painter.popTransform()
-            }
+            painter.pushTransform()
+            painter.curState.transform.tx = 0
+            painter.curState.transform.ty = 0
+            painter.scaleTransform(pscale, pscale)
+            painter.translateTransform(tt.tx, tt.ty)
+            painter.translateTransform(drawX * rscale, drawY * rscale)
 
-            // Back
-            if .backColor.a
-            {
-                painter.pushTransform()
-                painter.curState.transform.tx = 0
-                painter.curState.transform.ty = 0
-                painter.scaleTransform(zscale, zscale)
-                painter.translateTransform(tt.tx, tt.ty)
-                painter.translateTransform(x0, y0 - (pathl1.bvMin.y * zscale))
-                Utf8.visitRunes(|c| tokens[i / 2])
-                {
-                    let it = .runes.find(c)
-                    pl.paths.add(it.value.back.paths.toSlice())
-                    painter.fillPath(&pl, .backColor)
-                    pl.paths.count = 0
-                    painter.translateTransform(cast(f32) it.value.advance * zscale, 0)
-                }
-                painter.popTransform()
-            }
+            if !Math.isZeroEpsilon(bSize) and .borderColor.a do
+                painter.fillPath(borderPath, .borderColor)
+
+            if .backColor.a do
+                painter.fillPath(pathl, .backColor)
+
+            painter.popTransform()
 
             // Next line
             y0 += ht + (.lineSpacing * zscale)

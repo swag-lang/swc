@@ -15,7 +15,7 @@ public impl Painter
     // centered band there leaves the hard solid edge exposed at full coverage, which
     // survives intact when alpha is later extracted via the MAX pass of a paintAlpha
     // render target — producing visibly aliased text.
-    fileprivate mtd fillContourAA(polygon: *Polygon, color: Color, innerOff = -AAHalf, outerOff = AAHalf)
+    fileprivate mtd fillContourAA(polygon: *Polygon, color: Color, innerOff: f32, outerOff: f32)
     {
         let count = polygon.points.count - 1
         if count < 2 do
@@ -59,8 +59,11 @@ public impl Painter
 
         // Solid sits on the true contour (the triangulation is cached and must not be
         // inset), so push the fringe fully outside: the cov=1 ring meets the solid edge.
-        if .curState.paintParams & .Antialiased do
-            .fillContourAA(&p.polygon, brush.color, 0, 2 * AAHalf)
+        if .curState.paintParams & .Antialiased
+        {
+            let aa = .aaHalfPathSpace()
+            .fillContourAA(&p.polygon, brush.color, 0, 2 * aa)
+        }
     }
 
     // Fill a list of paths.
@@ -93,8 +96,9 @@ public impl Painter
             // fringe band (added afterwards) never overlaps the solid fill. This keeps
             // translucent fills clean and the silhouette at its true size.
             var so = 0'f32
+            let aa = .aaHalfPathSpace()
             if .curState.paintParams & .Antialiased do
-                so = -AAHalf
+                so = -aa
 
             // Convex shape : 1 triangle
             if count == 3
@@ -127,7 +131,7 @@ public impl Painter
             }
 
             if .curState.paintParams & .Antialiased do
-                .fillContourAA(polygon, brush.color)
+                .fillContourAA(polygon, brush.color, -aa, aa)
         }
 
         // Non convex shape: complex painting (triangulation)

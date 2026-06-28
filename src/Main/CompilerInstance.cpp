@@ -885,7 +885,7 @@ ExitCode CompilerInstance::run()
 {
     Stats::resetCommandMetrics();
     logBefore();
-    
+
     const auto runStart = std::chrono::steady_clock::now();
     ExitCode   exitCode;
     if (!cmdLine().workspacePath.empty())
@@ -901,7 +901,7 @@ ExitCode CompilerInstance::run()
 
         exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
     }
-    
+
     commandWallTimeNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - runStart).count();
     logStats();
     return exitCode;

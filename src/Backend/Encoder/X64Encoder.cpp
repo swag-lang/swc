@@ -1666,10 +1666,10 @@ void X64Encoder::encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t 
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && !memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
-    emitCpuOp(store_, static_cast<uint8_t>(0xF3));
+    emitCpuOp(store_, 0xF3);
     emitRex(store_, MicroOpBits::Zero, regDst, memReg);
-    emitCpuOp(store_, static_cast<uint8_t>(0x0F));
-    emitCpuOp(store_, static_cast<uint8_t>(0x6F));
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0x6F);
     emitModRm(store_, memOffset, regDst, memReg);
 }
 
@@ -1678,10 +1678,10 @@ void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, Micro
 {
     SWC_ASSERT(opBits == MicroOpBits::B128 && regSrc.isFloat() && !memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
-    emitCpuOp(store_, static_cast<uint8_t>(0xF3));
+    emitCpuOp(store_, 0xF3);
     emitRex(store_, MicroOpBits::Zero, regSrc, memReg);
-    emitCpuOp(store_, static_cast<uint8_t>(0x0F));
-    emitCpuOp(store_, static_cast<uint8_t>(0x7F));
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0x7F);
     emitModRm(store_, memOffset, regSrc, memReg);
 }
 

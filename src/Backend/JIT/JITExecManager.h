@@ -24,8 +24,8 @@ public:
         bool                         hasArg0  = false;
         std::span<const JITArgument> jitArgs;
         JITReturn                    jitReturn;
-        bool                         hasJitReturn = false;
-        bool                         runImmediate = false;
+        bool                         hasJitReturn     = false;
+        bool                         runImmediate     = false;
         JITRuntimeSetupMode          runtimeSetupMode = JITRuntimeSetupMode::FromCompiler;
         // Returned to the caller with consumeCompletion so queued requests can
         // keep companion state without a second global registry.

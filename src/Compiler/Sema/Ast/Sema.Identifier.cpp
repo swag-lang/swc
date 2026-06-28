@@ -321,7 +321,7 @@ namespace
               symVar.isClosureCapture()))
             return nullptr;
 
-        const SymbolFunction* fn = &currentFn;
+        const SymbolFunction*    fn                 = &currentFn;
         const SemaInlinePayload* frameInlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayloadBindsSourceVariable(frameInlinePayload, symVar))
             return nullptr;

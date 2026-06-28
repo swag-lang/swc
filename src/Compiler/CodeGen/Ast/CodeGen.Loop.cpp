@@ -121,13 +121,13 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&          builder = codeGen.builder();
-    LoopStmtCodeGenPayload loopState;
-    const SemaNodeView     symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
-    const std::span<Symbol* const> symbols = symbolsView.symList();
-    loopState.bodyLabel                = builder.createLabel();
-    loopState.continueLabel            = builder.createLabel();
-    loopState.doneLabel                = builder.createLabel();
+    MicroBuilder&                  builder = codeGen.builder();
+    LoopStmtCodeGenPayload         loopState;
+    const SemaNodeView             symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
+    const std::span<Symbol* const> symbols     = symbolsView.symList();
+    loopState.bodyLabel                        = builder.createLabel();
+    loopState.continueLabel                    = builder.createLabel();
+    loopState.doneLabel                        = builder.createLabel();
     if (const auto* indexUsage = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef()))
         loopState.usesIndexState = indexUsage->usesLoopIndex;
     if (!symbols.empty())

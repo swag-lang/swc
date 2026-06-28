@@ -711,9 +711,9 @@ namespace
         const MicroReg    requiredReg    = issue.requiredReg;
         SWC_ASSERT(requiredReg.isValid());
 
-        const bool     mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
-        const bool     shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
-        MicroReg       savedRequiredReg          = MicroReg::invalid();
+        const bool mustPreserveRequiredReg   = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
+        const bool shouldPreserveRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        MicroReg   savedRequiredReg          = MicroReg::invalid();
         if (shouldPreserveRequiredReg)
         {
             savedRequiredReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);

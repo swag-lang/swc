@@ -345,33 +345,33 @@ private:
     friend struct SemaNodeView;
     friend void SemaGeneric::prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 
-    bool                     hasActiveLookupScopeOverride() const;
-    AstNodeRef               resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
-    TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
-    ConstantRef              constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
-    TypeRef                  typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
-    ConstantRef              constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
-    const ConstantValue&     constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), resolvedNodeRef(n)); }
-    const Symbol&            symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
-    Symbol&                  symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
-    const Symbol&            symbolOfStored(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
-    Symbol&                  symbolOfStored(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
-    bool                     hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
-    bool                     hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
-    bool                     hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
-    bool                     hasSymbolStored(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
-    AstNodeRef               getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
-    bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
-    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
-    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
-    bool                     hasSymbolListStored(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
-    std::span<const Symbol*> getSymbolListStored(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
-    std::span<Symbol*>       getSymbolListStored(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
-    bool                     hasSymbolRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
-    const Symbol&            symbolOfRaw(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
-    Symbol&                  symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
-    bool                     hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
-    std::span<Symbol*>       getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    bool                         hasActiveLookupScopeOverride() const;
+    AstNodeRef                   resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
+    TypeRef                      typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
+    ConstantRef                  constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
+    TypeRef                      typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
+    ConstantRef                  constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
+    const ConstantValue&         constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), resolvedNodeRef(n)); }
+    const Symbol&                symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
+    Symbol&                      symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
+    const Symbol&                symbolOfStored(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&                      symbolOfStored(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+    bool                         hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
+    bool                         hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
+    bool                         hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
+    bool                         hasSymbolStored(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    AstNodeRef                   getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
+    bool                         hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
+    std::span<const Symbol*>     getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    std::span<Symbol*>           getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    bool                         hasSymbolListStored(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<const Symbol*>     getSymbolListStored(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
+    std::span<Symbol*>           getSymbolListStored(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    bool                         hasSymbolRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    const Symbol&                symbolOfRaw(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&                      symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+    bool                         hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<Symbol*>           getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
     NodePayload::ResolvedSymbols resolveSymbols(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(resolvedNodeRef(n)); }
     NodePayload::ResolvedSymbols resolveSymbolsStored(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(n); }
 

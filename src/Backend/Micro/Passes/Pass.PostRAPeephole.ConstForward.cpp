@@ -192,11 +192,11 @@ namespace PostRaPeephole
                     if (!canForwardImmediateToBinaryOp(ops[3].microOp, bits))
                         return false;
 
-                    out.newOp              = MicroInstrOpcode::OpBinaryRegImm;
-                    out.numOps             = 4;
-                    out.ops[0].reg         = ops[0].reg;
-                    out.ops[1].opBits      = bits;
-                    out.ops[2].microOp     = ops[3].microOp;
+                    out.newOp          = MicroInstrOpcode::OpBinaryRegImm;
+                    out.numOps         = 4;
+                    out.ops[0].reg     = ops[0].reg;
+                    out.ops[1].opBits  = bits;
+                    out.ops[2].microOp = ops[3].microOp;
                     out.ops[3].setImmediateValue(ApInt(imm & getBitsMask(bits), getNumBits(bits)));
                     return true;
                 }

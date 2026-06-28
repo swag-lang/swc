@@ -1887,8 +1887,8 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
 
     relationalPayload->calledFn = calledFn;
 
-    const ConstantRef specOpCstRef = sema.viewConstant(relRef).cstRef();
-    const AstNodeRef  relSubstRef  = sema.viewZero(relRef).nodeRef();
+    const ConstantRef specOpCstRef         = sema.viewConstant(relRef).cstRef();
+    const AstNodeRef  relSubstRef          = sema.viewZero(relRef).nodeRef();
     relationalPayload->inlineSubstituteRef = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
 
     switch (tok.id)

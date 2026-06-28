@@ -13,11 +13,11 @@ namespace SemaClone
     {
         IdentifierRef         idRef;
         AstNodeRef            exprRef;
-        TypeRef               typeRef          = TypeRef::invalid();
-        ConstantRef           cstRef           = ConstantRef::invalid();
+        TypeRef               typeRef            = TypeRef::invalid();
+        ConstantRef           cstRef             = ConstantRef::invalid();
         bool                  forceMaterialize   = false;
         bool                  preserveUseCodeRef = false;
-        const SymbolVariable* sourceParam      = nullptr;
+        const SymbolVariable* sourceParam        = nullptr;
     };
 
     struct NodeReplacement
@@ -31,10 +31,10 @@ namespace SemaClone
     {
         std::span<const ParamBinding>    bindings;
         std::span<const NodeReplacement> replacements;
-        const Ast*                       sourceAst                = nullptr;
-        bool                             preserveFunctionGenerics = false;
-        bool                             preserveBindingExprState = false;
-        bool                             duplicateRuntimeStorage  = false;
+        const Ast*                       sourceAst                            = nullptr;
+        bool                             preserveFunctionGenerics             = false;
+        bool                             preserveBindingExprState             = false;
+        bool                             duplicateRuntimeStorage              = false;
         bool                             resolveBindingExprWithParentBindings = false;
         // Pin already-resolved identifier symbols even on a same-Ast clone (as a cross-Ast clone
         // always does). Used when inlining a body within its own file so references to the
@@ -42,8 +42,8 @@ namespace SemaClone
         // instead of being re-resolved by name in the caller's scope. Function-local/parameter
         // identifiers are still re-resolved (to the cloned decls / substituted args) because the
         // preserveSyntheticSymbol predicate excludes them.
-        bool                             preserveResolvedSymbols  = false;
-        uint32_t                         breakableDepth           = 0;
+        bool     preserveResolvedSymbols = false;
+        uint32_t breakableDepth          = 0;
         explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false, uint32_t inBreakableDepth = 0) :
             bindings(inBindings),
             replacements(inReplacements),

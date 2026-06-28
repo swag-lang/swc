@@ -1175,12 +1175,12 @@ struct ModuleSetupInputApplier
         return *ctx;
     }
 
-    CompilerInstance*                           compiler = nullptr;
-    TaskContext*                                ctx      = nullptr;
-    fs::path                                    workspaceDependencyRoot;
-    std::unordered_set<Utf8>                    mirroredDependencyDirs;
-    std::unordered_map<Utf8, std::vector<Utf8>>                            dependencyClosureCache;
-    std::unordered_set<Utf8>                                               processedDependencyApis;
+    CompilerInstance*                                                          compiler = nullptr;
+    TaskContext*                                                               ctx      = nullptr;
+    fs::path                                                                   workspaceDependencyRoot;
+    std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
+    std::unordered_map<Utf8, std::vector<Utf8>>                                dependencyClosureCache;
+    std::unordered_set<Utf8>                                                   processedDependencyApis;
     std::unordered_map<Utf8, std::vector<CompilerInstance::ModuleSetupImport>> dependencyImportsCache;
 };
 
@@ -1393,7 +1393,7 @@ Result ModuleSetupInputApplier::captureDependencyImports(const fs::path& depsFil
 {
     // depsFile has already been resolved to an absolute path by the caller, so a lexical key is
     // enough to identify it without paying for another weakly_canonical() disk round-trip.
-    const Utf8 key = Utf8(depsFile.lexically_normal().string());
+    const auto key = Utf8(depsFile.lexically_normal().string());
     const auto it  = dependencyImportsCache.find(key);
     if (it != dependencyImportsCache.end())
     {
@@ -2185,9 +2185,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
     if (files.empty())
     {
-        outSnapshot.buildCfg            = setupCompiler.buildCfg();
-        outSnapshot.imports             = setupCompiler.moduleSetupImports_;
-        outSnapshot.loadedFiles         = setupCompiler.moduleSetupLoadedFiles_;
+        outSnapshot.buildCfg           = setupCompiler.buildCfg();
+        outSnapshot.imports            = setupCompiler.moduleSetupImports_;
+        outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles_;
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
         return Result::Continue;
@@ -2232,9 +2232,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    outSnapshot.buildCfg            = setupCompiler.buildCfg();
-    outSnapshot.imports             = setupCompiler.moduleSetupImports_;
-    outSnapshot.loadedFiles         = setupCompiler.moduleSetupLoadedFiles_;
+    outSnapshot.buildCfg           = setupCompiler.buildCfg();
+    outSnapshot.imports            = setupCompiler.moduleSetupImports_;
+    outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles_;
     outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles_;
     ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
     return Result::Continue;

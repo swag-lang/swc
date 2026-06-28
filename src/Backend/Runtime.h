@@ -416,17 +416,17 @@ namespace Runtime
 
     struct BuildCfgBackend
     {
-        bool                       optimize;
-        bool                       debugInfo;
-        bool                       enableExceptions;
-        bool                       fpMathFma;
-        bool                       fpMathNoNaN;
-        bool                       fpMathNoInf;
-        bool                       fpMathNoSignedZero;
-        bool                       fpMathUnsafe;
-        bool                       fpMathApproxFunc;
-        uint32_t                   unrollMemLimit;
-        BuildCfgBackendInlineMode  inlineMode   = BuildCfgBackendInlineMode::MarkedOnly;
+        bool                        optimize;
+        bool                        debugInfo;
+        bool                        enableExceptions;
+        bool                        fpMathFma;
+        bool                        fpMathNoNaN;
+        bool                        fpMathNoInf;
+        bool                        fpMathNoSignedZero;
+        bool                        fpMathUnsafe;
+        bool                        fpMathApproxFunc;
+        uint32_t                    unrollMemLimit;
+        BuildCfgBackendInlineMode   inlineMode   = BuildCfgBackendInlineMode::MarkedOnly;
         BuildCfgBackendCpuVectorize cpuVectorize = BuildCfgBackendCpuVectorize::None;
     };
 

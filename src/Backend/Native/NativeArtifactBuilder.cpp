@@ -59,9 +59,9 @@ namespace
         Drop    = 3,
     };
 
-    constexpr uint32_t K_RUNTIME_HOOK_INIT_DONE    = 1u << 0;
-    constexpr uint32_t K_RUNTIME_HOOK_PREMAIN_DONE = 1u << 1;
-    constexpr uint32_t K_RUNTIME_HOOK_DROP_DONE    = 1u << 2;
+    constexpr uint32_t K_RUNTIME_HOOK_INIT_DONE             = 1u << 0;
+    constexpr uint32_t K_RUNTIME_HOOK_PREMAIN_DONE          = 1u << 1;
+    constexpr uint32_t K_RUNTIME_HOOK_DROP_DONE             = 1u << 2;
     constexpr uint32_t K_RUNTIME_HOOK_PREMAIN_COMPILER_DONE = 1u << 3;
 
     uint32_t runtimeHookStageDoneMask(const RuntimeHookStage stage)

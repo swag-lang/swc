@@ -18,7 +18,7 @@ namespace Command
 {
     void syntax(CompilerInstance& compiler)
     {
-        TaskContext ctx(compiler);
+        TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Syntax))
             stage.emplace(ctx, ScopedTimedLog::Stage::Syntax);

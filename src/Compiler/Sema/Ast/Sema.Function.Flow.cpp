@@ -608,7 +608,7 @@ namespace
             if (!argNode.is(AstNodeId::NamedArgument))
                 continue;
 
-            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
+            const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
             size_t              paramIndex = 0;
             if (fn.tryGetParameterIndexByName(paramIndex, idRef))
                 assigned[paramIndex] = 1;
@@ -835,7 +835,7 @@ namespace
         const AstNode& childNode = sema.node(childRef);
         if (childNode.is(AstNodeId::NamedArgument))
         {
-            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
+            const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
             size_t              paramIndex = 0;
             if (fn.tryGetParameterIndexByName(paramIndex, idRef, paramStart))
                 return params[paramIndex];

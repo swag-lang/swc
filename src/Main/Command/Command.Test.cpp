@@ -442,7 +442,7 @@ namespace
             return true;
 
         SWC_MEM_SCOPE("Backend/JIT");
-        TaskContext ctx(compiler);
+        TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::JIT))
             stage.emplace(ctx, ScopedTimedLog::Stage::JIT);
@@ -584,7 +584,7 @@ namespace
             }
         }
 
-        TaskContext ctx(compiler);
+        TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
             stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
@@ -599,7 +599,7 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        TaskContext ctx(compiler);
+        TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Test))
             stage.emplace(ctx, ScopedTimedLog::Stage::Test);

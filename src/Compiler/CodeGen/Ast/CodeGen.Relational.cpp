@@ -393,7 +393,7 @@ namespace
 
     CodeGenNodePayload& materializeSpecialResultPayload(CodeGen& codeGen, TypeRef resultTypeRef, MicroOpBits opBits)
     {
-        const CodeGenNodePayload callPayload = codeGen.payload(codeGen.curNodeRef());
+        const CodeGenNodePayload callPayload   = codeGen.payload(codeGen.curNodeRef());
         CodeGenNodePayload&      resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         if (callPayload.isAddress())
             CodeGenMemoryHelpers::loadOperandToRegister(resultPayload.reg, codeGen, callPayload, callPayload.typeRef, opBits);

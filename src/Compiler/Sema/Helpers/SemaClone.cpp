@@ -157,7 +157,7 @@ namespace
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
         SemaClone::CloneContext result{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
@@ -165,7 +165,7 @@ namespace
     SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
         SemaClone::CloneContext result{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
@@ -173,7 +173,7 @@ namespace
     SemaClone::CloneContext cloneContextForDestinationAst(const SemaClone::CloneContext& cloneContext)
     {
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
@@ -181,7 +181,7 @@ namespace
     SemaClone::CloneContext cloneContextInsideBreakable(const SemaClone::CloneContext& cloneContext)
     {
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth + 1};
-        result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
@@ -267,7 +267,7 @@ namespace
         }
 
         SemaClone::CloneContext result{nestedBindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols = cloneContext.preserveResolvedSymbols;
+        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
         return result;
     }
@@ -489,7 +489,7 @@ namespace
         if (castRef.isInvalid() || sourceCstRef.isInvalid())
             return;
 
-        const TypeRef dstTypeRef = sema.viewStored(castRef, SemaNodeViewPartE::Type).typeRef();
+        const TypeRef     dstTypeRef   = sema.viewStored(castRef, SemaNodeViewPartE::Type).typeRef();
         const ConstantRef castedCstRef = foldImplicitCastConstant(sema, sourceCstRef, dstTypeRef, castRef);
         if (castedCstRef.isInvalid())
             return;
@@ -930,8 +930,8 @@ namespace
         // synthetic node carries a borrowed/out-of-range token location). Reading such a token is an
         // out-of-bounds access, so only consult the source token when its location is in range;
         // otherwise the node's resolved symbol below is the authoritative identifier.
-        const SourceCodeRef nodeCodeRef     = node.codeRef();
-        const bool          nodeTokInRange  = nodeCodeRef.isValid() &&
+        const SourceCodeRef nodeCodeRef    = node.codeRef();
+        const bool          nodeTokInRange = nodeCodeRef.isValid() &&
                                     nodeCodeRef.tokRef.get() < sema.ctx().compiler().srcView(nodeCodeRef.srcViewRef).tokens().size();
 
         IdentifierRef idRef = IdentifierRef::invalid();
@@ -976,7 +976,7 @@ namespace
 
             AstNodeRef clonedExprRef                         = AstNodeRef::invalid();
             const bool bindingNeedsContextualAutoMemberClone = binding->typeRef.isValid() && containsAutoMemberAccess(sema, binding->exprRef);
-            const bool bindingNeedsReferenceStateClone        = binding->sourceParam && binding->sourceParam->type(sema.ctx()).isReference();
+            const bool bindingNeedsReferenceStateClone       = binding->sourceParam && binding->sourceParam->type(sema.ctx()).isReference();
             if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone || bindingNeedsReferenceStateClone)
                 clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
             else if (cloneContext.resolveBindingExprWithParentBindings)
@@ -1011,8 +1011,8 @@ namespace
 
         const bool crossAstSource    = sourceAst != &sema.ast();
         const bool pinResolvedSymbol = crossAstSource || cloneContext.preserveResolvedSymbols;
-        auto [nodeRef, nodePtr]   = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
-        nodePtr->flags()          = node.flags();
+        auto [nodeRef, nodePtr]      = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
+        nodePtr->flags()             = node.flags();
         nodePtr->setCodeRef(node.codeRef());
         const bool sourceSymbolOwnedByFunction = storedView &&
                                                  storedView->sym &&
@@ -1034,7 +1034,7 @@ namespace
                                                      sourceFunctionLocalIdentifier ||
                                                      sourceLexicalLocalIdentifier;
         const bool sourceLocalIdentifierPinned = pinResolvedSymbol && (sourceSymbolOwnedByFunction || sourceFunctionLocalIdentifier || sourceLexicalLocalIdentifier);
-        const bool preserveSyntheticSymbol = storedView && storedView->sym &&
+        const bool preserveSyntheticSymbol     = storedView && storedView->sym &&
                                              ((node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && !sourceLocalIdentifierPinned && !sourceRebindableLocalIdentifier) ||
                                               (!sourceLocalIdentifierPinned &&
                                                !sourceRebindableLocalIdentifier &&
@@ -1896,7 +1896,7 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     excludeCapturedClosureBindings(sema, *this, inlineContext, bodyBindings);
     SemaClone::CloneContext bodyContext{bodyBindings.span(), inlineContext.replacements, inlineContext.preserveFunctionGenerics, inlineContext.sourceAst, inlineContext.preserveBindingExprState, inlineContext.duplicateRuntimeStorage, inlineContext.breakableDepth};
     bodyContext.preserveResolvedSymbols = inlineContext.preserveResolvedSymbols;
-    newPtr->nodeBodyRef = SemaClone::cloneAst(sema, nodeBodyRef, bodyContext);
+    newPtr->nodeBodyRef                 = SemaClone::cloneAst(sema, nodeBodyRef, bodyContext);
     return newRef;
 }
 

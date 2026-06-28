@@ -1016,7 +1016,7 @@ Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const
     if (childIt == children.end())
         return Result::Continue;
 
-    const size_t childIndex = static_cast<size_t>(std::distance(children.begin(), childIt));
+    const size_t    childIndex = static_cast<size_t>(std::distance(children.begin(), childIt));
     const TypeInfo& targetType = sema.typeMgr().get(targetRef);
     if (targetType.isArray())
     {

@@ -721,8 +721,8 @@ Result AstAnonymousUnionDecl::codeGenPreNode(const CodeGen& codeGen)
 
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
-    const SemaNodeView view   = codeGen.curViewSymbol();
-    const Symbol*      symbol = view.sym();
+    const SemaNodeView view      = codeGen.curViewSymbol();
+    const Symbol*      symbol    = view.sym();
     const AstNodeRef   parentRef = codeGen.visit().parentNodeRef();
     if (!view.sym())
     {
@@ -746,8 +746,8 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 
     const bool         isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
     const SemaNodeView constView         = isConstantBinding
-                                       ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant)
-                                       : codeGen.curViewTypeConstant();
+                                               ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant)
+                                               : codeGen.curViewTypeConstant();
     if (constView.hasConstant())
     {
         CodeGenNodePayload constantPayload;
@@ -799,9 +799,9 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView    view = codeGen.curViewSymbolList();
-    SmallVector<TokenRef> tokNames;
-    SmallVector<Symbol*>  recoveredSymbols;
+    const SemaNodeView       view = codeGen.curViewSymbolList();
+    SmallVector<TokenRef>    tokNames;
+    SmallVector<Symbol*>     recoveredSymbols;
     std::span<Symbol* const> symbols = view.symList();
     if (symbols.empty())
     {
@@ -847,8 +847,8 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<TokenRef> tokNames;
     codeGen.ast().appendTokens(tokNames, spanNamesRef);
 
-    const SemaNodeView   view = codeGen.curViewSymbolList();
-    SmallVector<Symbol*> recoveredSymbols;
+    const SemaNodeView       view = codeGen.curViewSymbolList();
+    SmallVector<Symbol*>     recoveredSymbols;
     std::span<Symbol* const> symbols = view.symList();
     if (symbols.empty())
     {

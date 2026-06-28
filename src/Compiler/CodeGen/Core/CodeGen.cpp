@@ -1580,7 +1580,7 @@ Result CodeGen::preNode(AstNode& node)
 Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
-    Result result = Result::Continue;
+    auto result = Result::Continue;
     if (curViewConstant().hasConstant())
     {
         result = emitConstant(curNodeRef());
@@ -1588,7 +1588,7 @@ Result CodeGen::postNode(AstNode& node)
     else
     {
         const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-        result = info.codeGenPostNode(*this, node);
+        result                    = info.codeGenPostNode(*this, node);
     }
 
     if (result == Result::Pause || result == Result::Error)

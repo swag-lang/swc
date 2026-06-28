@@ -420,7 +420,7 @@ namespace
     uint32_t countBinaryMicroOp(const MicroBuilder& builder, MicroOp wanted)
     {
         const MicroOperandStorage& operands = builder.operands();
-        uint32_t                   count     = 0;
+        uint32_t                   count    = 0;
         for (const MicroInstr& inst : builder.instructions().view())
         {
             const MicroInstrOperand* ops = inst.ops(operands);

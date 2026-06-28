@@ -154,8 +154,8 @@ namespace Unittest
         TaskContext      testCtx(compiler);
         if (compiler.setupSema(testCtx) != Result::Continue)
             return Result::Error;
-        ScopedTimedLog stage(testCtx, ScopedTimedLog::Stage::Unittest);
-        Logger::ScopedStageMute     muteNestedStages(testCtx.global().logger());
+        ScopedTimedLog          stage(testCtx, ScopedTimedLog::Stage::Unittest);
+        Logger::ScopedStageMute muteNestedStages(testCtx.global().logger());
 
         bool                         hasFailure             = false;
         uint64_t                     setupDurationNs        = 0;

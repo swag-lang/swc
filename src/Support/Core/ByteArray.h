@@ -1,21 +1,67 @@
 #pragma once
-#include <cstddef>
-#include <cstdint>
-#include <span>
-#include <string_view>
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
-struct ByteArray : std::vector<std::byte>
+struct ByteArray
 {
-    using Base = std::vector<std::byte>;
+    using Storage        = std::vector<std::byte>;
+    using value_type     = Storage::value_type;
+    using iterator       = Storage::iterator;
+    using const_iterator = Storage::const_iterator;
 
-    using Base::Base;
-    using Base::operator=;
+    ByteArray()                                = default;
+    ByteArray(const ByteArray&)                = default;
+    ByteArray(ByteArray&&) noexcept            = default;
+    ByteArray& operator=(const ByteArray&)     = default;
+    ByteArray& operator=(ByteArray&&) noexcept = default;
+    ByteArray(std::initializer_list<std::byte> bytes);
+    explicit ByteArray(size_t count);
+    ByteArray(size_t count, std::byte value);
+    explicit ByteArray(Storage bytes);
 
-    ByteArray() = default;
-    ByteArray(Base bytes);
+    template<typename IT>
+    ByteArray(IT first, IT last) :
+        storage_(first, last)
+    {
+    }
+
+    ByteArray& operator=(std::initializer_list<std::byte> bytes);
+    bool       operator==(const ByteArray& other) const noexcept;
+    bool       operator!=(const ByteArray& other) const noexcept;
+
+    iterator       begin() noexcept;
+    const_iterator begin() const noexcept;
+    const_iterator cbegin() const noexcept;
+    iterator       end() noexcept;
+    const_iterator end() const noexcept;
+    const_iterator cend() const noexcept;
+
+    std::byte*       data() noexcept;
+    const std::byte* data() const noexcept;
+    size_t           size() const noexcept;
+    bool             empty() const noexcept;
+    void             clear() noexcept;
+    void             reserve(size_t count);
+    void             resize(size_t count);
+    void             resize(size_t count, std::byte value);
+    void             pushBack(std::byte value);
+    std::byte&       operator[](size_t index) noexcept;
+    const std::byte& operator[](size_t index) const noexcept;
+
+    iterator insert(const_iterator pos, size_t count, std::byte value);
+    void     assign(size_t count, std::byte value);
+
+    template<typename IT>
+    iterator insert(const_iterator pos, IT first, IT last)
+    {
+        return storage_.insert(pos, first, last);
+    }
+
+    template<typename IT>
+    void assign(IT first, IT last)
+    {
+        storage_.assign(first, last);
+    }
 
     std::span<std::byte>       span() noexcept;
     std::span<const std::byte> span() const noexcept;
@@ -48,6 +94,9 @@ struct ByteArray : std::vector<std::byte>
     void writeLe32(size_t offset, uint32_t value) noexcept;
     void writeLe64(size_t offset, uint64_t value) noexcept;
     void align(size_t alignment, std::byte pad = std::byte{0});
+
+private:
+    Storage storage_;
 };
 
 SWC_END_NAMESPACE();

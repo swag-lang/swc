@@ -171,7 +171,7 @@ namespace
         outStorage = runtimeStringStorage;
 
         const std::span<const std::byte> bytes{reinterpret_cast<const std::byte*>(runtimeStringStorage), sizeof(Runtime::String)};
-        auto           makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
+        auto                             makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
         makeStructBorrowed.setDataSegmentRef({.shardIndex = 0, .offset = runtimeStringOffset});
         return compiler.cstMgr().addConstant(ctx, makeStructBorrowed);
     }
@@ -560,7 +560,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
     MachineCode targetCode;
-    targetCode.bytes.push_back(std::byte{0xC3});
+    targetCode.bytes.pushBack(std::byte{0xC3});
 
     auto* targetFunction = makeTestFunction(*fixture.compilerCtx, "rdata_target");
     fixture.nativeBuilder->functionInfos.push_back({
@@ -604,7 +604,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
     MachineCode targetCode;
-    targetCode.bytes.push_back(std::byte{0xC3});
+    targetCode.bytes.pushBack(std::byte{0xC3});
 
     auto* targetFunction = makeTestFunction(*fixture.compilerCtx, "data_target");
     fixture.nativeBuilder->functionInfos.push_back({

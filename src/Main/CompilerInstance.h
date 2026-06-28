@@ -1,14 +1,14 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Result.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
 #include "Main/ModuleApi.h"
-#include "Support/Core/AppendOnlyLookupTable.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/LookupTable.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
@@ -386,63 +386,63 @@ private:
     static void                            runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str);
     const SourceView*                      findSourceViewByLocation(const Runtime::SourceCodeLocation& location) const;
 
-    const CommandLine*                                 cmdLine_ = nullptr;
-    const Global*                                      global_  = nullptr;
-    std::vector<std::unique_ptr<SourceFile>>           files_;
-    std::vector<std::unique_ptr<SourceView>>           srcViews_;
-    std::vector<std::unique_ptr<SourceViewBuffer>>     srcViewBuffers_;
-    std::unique_ptr<AppendOnlyLookupTable<SourceFile>> fileLookup_;
-    std::unique_ptr<AppendOnlyLookupTable<SourceView>> srcViewLookup_;
-    std::unique_ptr<TypeManager>                       typeMgr_;
-    std::unique_ptr<TypeGen>                           typeGen_;
-    std::unique_ptr<ConstantManager>                   cstMgr_;
-    std::unique_ptr<IdentifierManager>                 idMgr_;
-    std::unique_ptr<JITMemoryManager>                  jitMemMgr_;
-    std::unique_ptr<ExternalModuleManager>             externalModuleMgr_;
-    SymbolModule*                                      symModule_           = nullptr;
-    SymbolNamespace*                                   importRootNamespace_ = nullptr;
-    JobClientId                                        jobClientId_         = 0;
-    fs::path                                           modulePathSrc_;
-    fs::path                                           modulePathFile_;
-    fs::path                                           exeFullName_;
-    DataSegment                                        constantSegment_;
-    DataSegment                                        globalZeroSegment_;
-    DataSegment                                        globalInitSegment_;
-    DataSegment                                        compilerSegment_;
-    Runtime::BuildCfg                                  buildCfg_{};
-    bool                                               moduleSetupMode_ = false;
-    std::vector<ModuleSetupImport>                     moduleSetupImports_;
-    std::vector<NativeRuntimeImport>                   nativeRuntimeImports_;
-    std::set<fs::path>                                 moduleSetupLoadedFiles_;
-    std::set<fs::path>                                 compilerInputFiles_;
-    std::vector<fs::path>                              importedDependencyLinkDirs_;
-    std::unordered_set<fs::path>                       importedDependencyLinkDirSet_;
-    std::vector<std::unique_ptr<Utf8>>                 ownedBuildCfgStrings_;
-    const ModuleSetupSnapshot*                         precomputedModuleSetup_ = nullptr;
-    bool                                               deferNativeLink_        = false;
-    std::unique_ptr<NativeBackendBuilder>              deferredBuilder_;
-    Utf8                                               lastArtifactLabel_;
-    WorkspaceBuildLogState                             workspaceBuildLogState_{};
-    std::optional<WorkspaceModuleLogState>             workspaceModuleLogState_;
-    bool                                               suppressBuildConfigurationLog_ = false;
-    uint64_t                                           commandWallTimeNs_             = 0;
-    Runtime::ICompiler                                 runtimeCompiler_{};
-    Runtime::IAllocator                                runtimeAllocator_{};
-    Runtime::CompilerMessage                           runtimeCompilerMessage_{};
-    std::unique_ptr<JITExecManager>                    jitExecMgr_;
-    void*                                              runtimeCompilerITable_[4]{};
-    mutable std::shared_mutex                          sourceStorageMutex_;
-    mutable std::shared_mutex                          nativeCodeSegmentMutex_;
-    mutable std::shared_mutex                          nativeSpecialFunctionsMutex_;
-    mutable std::shared_mutex                          nativeGlobalFunctionInitTargetsMutex_;
-    mutable std::shared_mutex                          nativeGlobalVariablesMutex_;
-    mutable std::shared_mutex                          jitPreparedFunctionsMutex_;
-    mutable std::mutex                                 foreignLibsMutex_;
-    std::atomic<bool>                                  changed_{true};
-    std::mutex                                         globalFunctionBindingsMutex_;
-    std::atomic<uint64_t>                              globalFunctionBindingsVersion_{1};
-    std::atomic<uint64_t>                              patchedGlobalFunctionBindingsVersion_{0};
-    std::atomic<uint64_t>                              nativeGlobalFunctionInitTargetsVersion_{1};
+    const CommandLine*                             cmdLine_ = nullptr;
+    const Global*                                  global_  = nullptr;
+    std::vector<std::unique_ptr<SourceFile>>       files_;
+    std::vector<std::unique_ptr<SourceView>>       srcViews_;
+    std::vector<std::unique_ptr<SourceViewBuffer>> srcViewBuffers_;
+    std::unique_ptr<LookupTable<SourceFile>>       fileLookup_;
+    std::unique_ptr<LookupTable<SourceView>>       srcViewLookup_;
+    std::unique_ptr<TypeManager>                   typeMgr_;
+    std::unique_ptr<TypeGen>                       typeGen_;
+    std::unique_ptr<ConstantManager>               cstMgr_;
+    std::unique_ptr<IdentifierManager>             idMgr_;
+    std::unique_ptr<JITMemoryManager>              jitMemMgr_;
+    std::unique_ptr<ExternalModuleManager>         externalModuleMgr_;
+    SymbolModule*                                  symModule_           = nullptr;
+    SymbolNamespace*                               importRootNamespace_ = nullptr;
+    JobClientId                                    jobClientId_         = 0;
+    fs::path                                       modulePathSrc_;
+    fs::path                                       modulePathFile_;
+    fs::path                                       exeFullName_;
+    DataSegment                                    constantSegment_;
+    DataSegment                                    globalZeroSegment_;
+    DataSegment                                    globalInitSegment_;
+    DataSegment                                    compilerSegment_;
+    Runtime::BuildCfg                              buildCfg_{};
+    bool                                           moduleSetupMode_ = false;
+    std::vector<ModuleSetupImport>                 moduleSetupImports_;
+    std::vector<NativeRuntimeImport>               nativeRuntimeImports_;
+    std::set<fs::path>                             moduleSetupLoadedFiles_;
+    std::set<fs::path>                             compilerInputFiles_;
+    std::vector<fs::path>                          importedDependencyLinkDirs_;
+    std::unordered_set<fs::path>                   importedDependencyLinkDirSet_;
+    std::vector<std::unique_ptr<Utf8>>             ownedBuildCfgStrings_;
+    const ModuleSetupSnapshot*                     precomputedModuleSetup_ = nullptr;
+    bool                                           deferNativeLink_        = false;
+    std::unique_ptr<NativeBackendBuilder>          deferredBuilder_;
+    Utf8                                           lastArtifactLabel_;
+    WorkspaceBuildLogState                         workspaceBuildLogState_{};
+    std::optional<WorkspaceModuleLogState>         workspaceModuleLogState_;
+    bool                                           suppressBuildConfigurationLog_ = false;
+    uint64_t                                       commandWallTimeNs_             = 0;
+    Runtime::ICompiler                             runtimeCompiler_{};
+    Runtime::IAllocator                            runtimeAllocator_{};
+    Runtime::CompilerMessage                       runtimeCompilerMessage_{};
+    std::unique_ptr<JITExecManager>                jitExecMgr_;
+    void*                                          runtimeCompilerITable_[4]{};
+    mutable std::shared_mutex                      sourceStorageMutex_;
+    mutable std::shared_mutex                      nativeCodeSegmentMutex_;
+    mutable std::shared_mutex                      nativeSpecialFunctionsMutex_;
+    mutable std::shared_mutex                      nativeGlobalFunctionInitTargetsMutex_;
+    mutable std::shared_mutex                      nativeGlobalVariablesMutex_;
+    mutable std::shared_mutex                      jitPreparedFunctionsMutex_;
+    mutable std::mutex                             foreignLibsMutex_;
+    std::atomic<bool>                              changed_{true};
+    std::mutex                                     globalFunctionBindingsMutex_;
+    std::atomic<uint64_t>                          globalFunctionBindingsVersion_{1};
+    std::atomic<uint64_t>                          patchedGlobalFunctionBindingsVersion_{0};
+    std::atomic<uint64_t>                          nativeGlobalFunctionInitTargetsVersion_{1};
 
     struct PerThreadData
     {

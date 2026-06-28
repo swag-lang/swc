@@ -2,14 +2,14 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Support/Core/AppendOnlyLookupTable.h"
+#include "Support/Core/LookupTable.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(AppendOnlyLookupTable_GrowsAcrossChunks)
 {
-    AppendOnlyLookupTable<int, 2>     table;
+    LookupTable<int, 2>               table;
     std::vector<std::unique_ptr<int>> values;
     values.reserve(10);
     for (int i = 0; i < 10; ++i)
@@ -33,8 +33,8 @@ SWC_TEST_BEGIN(AppendOnlyLookupTable_ConcurrentReaderSeesPublishedEntries)
 {
     static constexpr uint32_t VALUE_COUNT = 64;
 
-    AppendOnlyLookupTable<int, 3> table;
-    std::array<int, VALUE_COUNT>  values{};
+    LookupTable<int, 3>          table;
+    std::array<int, VALUE_COUNT> values{};
     for (uint32_t i = 0; i < VALUE_COUNT; ++i)
         values[i] = static_cast<int>(i * 3 + 1);
 

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Runtime.h"
@@ -14,6 +13,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -146,7 +146,7 @@ namespace
 
         void commit(ByteArray& outBytes) const
         {
-            outBytes.push_back(std::byte{0});
+            outBytes.pushBack(std::byte{0});
             for (const Utf8& entry : entries)
                 outBytes.appendCString(entry.view());
         }
@@ -187,14 +187,14 @@ namespace
             for (const Entry& entry : entries)
             {
                 outBytes.appendLe32(entry.stringOffset);
-                outBytes.push_back(static_cast<std::byte>(entry.checksumSize));
-                outBytes.push_back(static_cast<std::byte>(entry.checksumKind));
+                outBytes.pushBack(static_cast<std::byte>(entry.checksumSize));
+                outBytes.pushBack(static_cast<std::byte>(entry.checksumKind));
                 outBytes.append(std::span<const std::byte>{entry.checksum.data(), entry.checksumSize});
 
                 const uint32_t recordSize = 6 + entry.checksumSize;
                 const uint32_t padBytes   = Math::alignUpU32(recordSize, 4) - recordSize;
                 for (uint32_t i = 0; i < padBytes; ++i)
-                    outBytes.push_back(std::byte{0});
+                    outBytes.pushBack(std::byte{0});
             }
         }
 
@@ -308,7 +308,7 @@ namespace
         if (value >= std::numeric_limits<int8_t>::min() && value <= std::numeric_limits<int8_t>::max())
         {
             writeU16(bytes, K_LF_CHAR_NUMERIC);
-            bytes.push_back(static_cast<std::byte>(static_cast<uint8_t>(value)));
+            bytes.pushBack(static_cast<std::byte>(static_cast<uint8_t>(value)));
             return;
         }
 
@@ -374,7 +374,7 @@ namespace
         const uint32_t rawRecordSize = static_cast<uint32_t>(bytes.size()) - recordOffset;
         const uint32_t padBytes      = Math::alignUpU32(rawRecordSize, 4) - rawRecordSize;
         for (uint32_t i = padBytes; i > 0; --i)
-            bytes.push_back(static_cast<std::byte>(0xF0u + i));
+            bytes.pushBack(static_cast<std::byte>(0xF0u + i));
 
         const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
         patchU16(bytes, recordOffset, recordLength);
@@ -772,7 +772,7 @@ namespace
         writeU32(bytes, 0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
         writeU16(bytes, 0);
-        bytes.push_back(std::byte{0});
+        bytes.pushBack(std::byte{0});
         writeCString(bytes, function.debugName.empty() ? function.symbolName : function.debugName);
 
         addSecrelAndSectionRelocations(debugSection, function.symbolName, offRelocOffset, segRelocOffset);
@@ -839,8 +839,8 @@ namespace
             const uint32_t typeIndex    = nextTypeIndex++;
             const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_PROCEDURE);
             writeU32(bytes, returnType);
-            bytes.push_back(static_cast<std::byte>(K_CV_CALL_NEAR_C));
-            bytes.push_back(std::byte{0});
+            bytes.pushBack(static_cast<std::byte>(K_CV_CALL_NEAR_C));
+            bytes.pushBack(std::byte{0});
             writeU16(bytes, static_cast<uint16_t>(arguments.size()));
             writeU32(bytes, argListType);
             endTypeRecord(bytes, recordOffset);
@@ -1249,7 +1249,7 @@ namespace
         }
 
         TaskContext*                           ctx = nullptr;
-        ByteArray                 bytes;
+        ByteArray                              bytes;
         uint32_t                               nextTypeIndex = K_CV_FIRST_NONPRIM;
         std::unordered_map<uint64_t, uint32_t> builtTypes;
         std::unordered_map<uint64_t, uint32_t> modifierTypes;

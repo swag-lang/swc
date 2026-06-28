@@ -566,7 +566,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
-        <ClInclude Include="src\Support\Core\AppendOnlyLookupTable.h"/>
+        <ClInclude Include="src\Support\Core\LookupTable.h"/>
         <ClInclude Include="src\Support\Core\ByteArray.h"/>
         <ClInclude Include="src\Support\Core\DenseBits.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>

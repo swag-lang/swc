@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
@@ -27,12 +26,13 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/AppendOnlyLookupTable.h"
+#include "Support/Core/LookupTable.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
@@ -348,8 +348,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     const uint32_t numWorkers     = global.jobMgr().numWorkers();
     const uint32_t perThreadSlots = global.jobMgr().isSingleThreaded() ? 1 : numWorkers + 1;
     perThreadData_.resize(perThreadSlots);
-    fileLookup_        = std::make_unique<AppendOnlyLookupTable<SourceFile>>();
-    srcViewLookup_     = std::make_unique<AppendOnlyLookupTable<SourceView>>();
+    fileLookup_        = std::make_unique<LookupTable<SourceFile>>();
+    srcViewLookup_     = std::make_unique<LookupTable<SourceView>>();
     jitMemMgr_         = std::make_unique<JITMemoryManager>();
     jitExecMgr_        = std::make_unique<JITExecManager>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();

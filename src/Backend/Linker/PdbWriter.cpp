@@ -88,7 +88,7 @@ namespace
         body.appendLe16(kind);
         body.append(payload);
         while ((body.size() + 2) % 4 != 0)
-            body.push_back(std::byte{0});
+            body.pushBack(std::byte{0});
 
         out.appendLe16(static_cast<uint16_t>(body.size()));
         out.append(body);
@@ -106,7 +106,7 @@ namespace
         const uint32_t rawRecordSize = static_cast<uint32_t>(body.size() + sizeof(uint16_t));
         const uint32_t padBytes      = Math::alignUpU32(rawRecordSize, 4) - rawRecordSize;
         for (uint32_t i = padBytes; i > 0; --i)
-            body.push_back(static_cast<std::byte>(0xF0u + i));
+            body.pushBack(static_cast<std::byte>(0xF0u + i));
 
         out.appendLe16(static_cast<uint16_t>(body.size()));
         out.append(body);
@@ -263,7 +263,7 @@ namespace
         static constexpr char K_MAGIC[] = "Microsoft C/C++ MSF 7.00\r\n\x1A"
                                           "DS\0\0";
         for (char i : K_MAGIC)
-            super.push_back(static_cast<std::byte>(i));
+            super.pushBack(static_cast<std::byte>(i));
         super.appendLe32(K_BLOCK_SIZE);   // BlockSize
         super.appendLe32(1);              // FreeBlockMapBlock (use FPM #1)
         super.appendLe32(totalBlocks);    // NumBlocks
@@ -304,8 +304,8 @@ namespace
             const auto offset = static_cast<uint32_t>(buffer.size());
             offsets.emplace(value, offset);
             for (const char ch : value.view())
-                buffer.push_back(static_cast<std::byte>(ch));
-            buffer.push_back(std::byte{0});
+                buffer.pushBack(static_cast<std::byte>(ch));
+            buffer.pushBack(std::byte{0});
             ++count;
             return offset;
         }
@@ -774,7 +774,7 @@ void PdbWriter::build(ByteArray&            outBytes,
             payload.appendLe32(fn->procTypeIndex);
             payload.appendLe32(addr.offset);
             payload.appendLe16(addr.segment);
-            payload.push_back(std::byte{0}); // flags
+            payload.pushBack(std::byte{0}); // flags
             payload.appendCString(functionName);
             const uint32_t procOffset = appendSymbol(moduleSymbols, K_S_GPROC32, payload);
             procRefs.push_back({Utf8(functionName), symBase + procOffset, static_cast<uint16_t>(i)});
@@ -830,10 +830,10 @@ void PdbWriter::build(ByteArray&            outBytes,
             const LinkDebugFile& file   = debugInfo.files[fileIndex];
             chksmEntryOffset[fileIndex] = static_cast<uint32_t>(chksmContent.size());
             chksmContent.appendLe32(fileNameOffsets[fileIndex]);
-            chksmContent.push_back(static_cast<std::byte>(file.checksum.size()));
-            chksmContent.push_back(static_cast<std::byte>(file.checksumKind));
+            chksmContent.pushBack(static_cast<std::byte>(file.checksum.size()));
+            chksmContent.pushBack(static_cast<std::byte>(file.checksumKind));
             for (const uint8_t b : file.checksum)
-                chksmContent.push_back(static_cast<std::byte>(b));
+                chksmContent.pushBack(static_cast<std::byte>(b));
             chksmContent.align(4);
         }
 
@@ -1030,7 +1030,7 @@ void PdbWriter::build(ByteArray&            outBytes,
         ecSubstream.appendLe32(0xEFFEEFFEu);
         ecSubstream.appendLe32(1);
         ecSubstream.appendLe32(1);
-        ecSubstream.push_back(std::byte{0});
+        ecSubstream.pushBack(std::byte{0});
         ecSubstream.appendLe32(1); // bucket count
         ecSubstream.appendLe32(0); // bucket[0]
         ecSubstream.appendLe32(0); // name count
@@ -1109,7 +1109,7 @@ void PdbWriter::build(ByteArray&            outBytes,
         const std::string_view nm           = s.name.view();
         std::memcpy(nameField, nm.data(), std::min<size_t>(nm.size(), 8));
         for (const char c : nameField)
-            sectionHdrStream.push_back(static_cast<std::byte>(c));
+            sectionHdrStream.pushBack(static_cast<std::byte>(c));
         sectionHdrStream.appendLe32(s.virtualSize);
         sectionHdrStream.appendLe32(s.rva);
         sectionHdrStream.appendLe32(s.rawSize);
@@ -1128,7 +1128,7 @@ void PdbWriter::build(ByteArray&            outBytes,
         pdbInfo.appendLe32(outSignature); // Signature
         pdbInfo.appendLe32(outAge);       // Age
         for (const uint8_t b : outGuid)
-            pdbInfo.push_back(static_cast<std::byte>(b));
+            pdbInfo.pushBack(static_cast<std::byte>(b));
 
         // Named stream map: maps "/names" to the names stream.
         Bytes      strBuffer;

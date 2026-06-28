@@ -47,9 +47,10 @@ namespace
         return Result::Continue;
     }
 
-    template<typename T>
-    Result readBinaryFileImpl(const fs::path& path, std::vector<T>& outData, FileSystem::IoErrorInfo& error)
+    template<typename Buffer>
+    Result readBinaryFileImpl(const fs::path& path, Buffer& outData, FileSystem::IoErrorInfo& error)
     {
+        using T = typename Buffer::value_type;
         static_assert(sizeof(T) == 1);
 
         outData.clear();
@@ -326,7 +327,7 @@ Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char8_t>& ou
 
 Result FileSystem::readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error)
 {
-    return readBinaryFileImpl(path, static_cast<ByteArray::Base&>(outData), error);
+    return readBinaryFileImpl(path, outData, error);
 }
 
 Result FileSystem::readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error)

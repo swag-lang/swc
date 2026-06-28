@@ -19,7 +19,7 @@ namespace
     void emit(ByteArray& out, std::initializer_list<int> bytes)
     {
         for (const int b : bytes)
-            out.push_back(static_cast<std::byte>(b));
+            out.pushBack(static_cast<std::byte>(b));
     }
 
     bool writeFile(const fs::path& path, const ByteArray& bytes)
@@ -85,7 +85,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
     LinkSection dataSection;
     dataSection.name  = ".data";
-    dataSection.bytes = std::vector(8, std::byte{0});
+    dataSection.bytes = ByteArray(8, std::byte{0});
     dataSection.align = 8;
     dataSection.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write;
 
@@ -151,10 +151,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     global.isPublic      = true;
     dbg.globals.push_back(std::move(global));
 
-    ByteArray peBytes;
-    ByteArray pdbBytes;
-    Diagnostic             diag;
-    PEWriter               writer;
+    ByteArray  peBytes;
+    ByteArray  pdbBytes;
+    Diagnostic diag;
+    PEWriter   writer;
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, dbg, pdbPath))
     {
         std::println(stderr, "Pdb test: writeImage failed");

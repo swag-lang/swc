@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -137,8 +137,8 @@ void PEWriter::buildImports()
     }
 
     // Build the .idata section: import descriptors, ILTs, IATs, hint/name table and DLL names.
-    ByteArray idata;
-    const uint32_t         descCount = static_cast<uint32_t>(dllOrder.size());
+    ByteArray      idata;
+    const uint32_t descCount = static_cast<uint32_t>(dllOrder.size());
 
     // Reserve the import directory table (+1 null terminator).
     constexpr uint32_t descTableOffset = 0;
@@ -186,7 +186,7 @@ void PEWriter::buildImports()
             idata.appendLe16(0); // hint
             idata.appendCString(imp->importName.view());
             if (idata.size() % 2 != 0)
-                idata.push_back(std::byte{0});
+                idata.pushBack(std::byte{0});
         }
     }
 
@@ -197,7 +197,7 @@ void PEWriter::buildImports()
         dllNameOffset[dll] = static_cast<uint32_t>(idata.size());
         idata.appendCString(dll.view());
         if (idata.size() % 2 != 0)
-            idata.push_back(std::byte{0});
+            idata.pushBack(std::byte{0});
     }
 
     // Fill ILT and IAT entries (offsets to hint/name; fixed up to RVAs after layout).
@@ -476,7 +476,7 @@ void PEWriter::buildBaseRelocations()
     std::ranges::sort(baseRelocSites_);
 
     ByteArray reloc;
-    size_t                 i = 0;
+    size_t    i = 0;
     while (i < baseRelocSites_.size())
     {
         const uint32_t pageRva = baseRelocSites_[i] & ~0xFFFu;
@@ -872,16 +872,16 @@ void PEWriter::emitDebugInfo()
     ByteArray rsds;
     rsds.appendLe32(0x53445352u); // "RSDS"
     for (const uint8_t b : guid)
-        rsds.push_back(static_cast<std::byte>(b));
+        rsds.pushBack(static_cast<std::byte>(b));
     rsds.appendLe32(age);
     for (const char ch : pdbPathStr.view())
-        rsds.push_back(static_cast<std::byte>(ch));
-    rsds.push_back(std::byte{0});
+        rsds.pushBack(static_cast<std::byte>(ch));
+    rsds.pushBack(std::byte{0});
 
     // VC_FEATURE payload: Pre-VC++11 / C-C++ / GS / sdl / guardN counts. swc applies none of these
     // hardening passes, so the counts are zero: a valid, honest entry.
     constexpr uint32_t featDataSize = 20;
-    ByteArray feat(featDataSize, std::byte{0});
+    ByteArray          feat(featDataSize, std::byte{0});
 
     const uint32_t rsdsRva  = section.rva + dirSize;
     const uint32_t rsdsFile = section.fileOffset + dirSize;

@@ -4,7 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 template<typename T, uint32_t CHUNK_BITS = 8>
-class AppendOnlyLookupTable
+class LookupTable
 {
 public:
     // Single-writer, multi-reader pointer table. Readers only need ref->pointer
@@ -15,7 +15,7 @@ public:
     static constexpr uint32_t CHUNK_MASK = CHUNK_SIZE - 1;
     using Chunk                          = std::array<std::atomic<T*>, CHUNK_SIZE>;
 
-    AppendOnlyLookupTable()
+    LookupTable()
     {
         publishChunkSnapshot();
     }

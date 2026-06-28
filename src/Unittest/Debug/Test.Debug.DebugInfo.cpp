@@ -549,7 +549,7 @@ namespace
 SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
 {
     MachineCode code;
-    code.bytes.push_back(std::byte{0xC3});
+    code.bytes.pushBack(std::byte{0xC3});
 
     static constexpr std::string_view OBJECT_NAME = "C:\\swc\\debug-info-test.obj";
     static constexpr std::string_view DEBUG_NAME  = "debug::proc";
@@ -620,7 +620,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(DebugInfo_PdbInfoEmitsWindowsBuildInfo)
 {
     MachineCode code;
-    code.bytes.push_back(std::byte{0xC3});
+    code.bytes.pushBack(std::byte{0xC3});
 
     const DebugInfoFunctionRecord function = {
         .symbolName  = "__swc_debug_info_pdb_proc",
@@ -667,7 +667,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
 {
     MachineCode code;
-    code.bytes.push_back(std::byte{0xC3});
+    code.bytes.pushBack(std::byte{0xC3});
 
     const ConstantRef constantRef = ctx.cstMgr().addS32(ctx, 42);
 
@@ -762,7 +762,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(DebugInfo_UsesPerVariableBaseRegistersForRegRelativeSymbols)
 {
     MachineCode code;
-    code.bytes.push_back(std::byte{0xC3});
+    code.bytes.pushBack(std::byte{0xC3});
 
     const DebugInfoLocalRecord parameter = makeDebugLocalRecord("arg0", ctx.typeMgr().typeS32(), 32, MicroReg::intReg(4));
     const DebugInfoLocalRecord local     = makeDebugLocalRecord("local0", ctx.typeMgr().typeS32(), 16, MicroReg::intReg(1));
@@ -1163,7 +1163,7 @@ SWC_TEST_BEGIN(DebugInfo_UsesOwnerSourceFileForGeneratedViews)
         return Result::Error;
 
     MachineCode code;
-    code.bytes.push_back(std::byte{0xC3});
+    code.bytes.pushBack(std::byte{0xC3});
     code.debugSourceRanges.push_back({
         .codeStartOffset = 0,
         .codeEndOffset   = 1,
@@ -1585,7 +1585,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
         return Result::Error;
 
     MachineCode code;
-    code.bytes.push_back(std::byte{0xC3});
+    code.bytes.pushBack(std::byte{0xC3});
     code.debugSourceRanges.push_back({
         .codeStartOffset = 0,
         .codeEndOffset   = 1,

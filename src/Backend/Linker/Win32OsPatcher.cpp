@@ -356,10 +356,10 @@ namespace
         group.appendLe16(static_cast<uint16_t>(entries.size()));
         for (const IconDirEntry& entry : entries)
         {
-            group.push_back(static_cast<std::byte>(entry.width));
-            group.push_back(static_cast<std::byte>(entry.height));
-            group.push_back(static_cast<std::byte>(entry.colorCount));
-            group.push_back(std::byte{0});
+            group.pushBack(static_cast<std::byte>(entry.width));
+            group.pushBack(static_cast<std::byte>(entry.height));
+            group.pushBack(static_cast<std::byte>(entry.colorCount));
+            group.pushBack(std::byte{0});
             group.appendLe16(entry.planes);
             group.appendLe16(entry.bitCount);
             group.appendLe32(entry.bytesInRes);

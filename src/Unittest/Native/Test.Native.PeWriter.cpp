@@ -14,7 +14,7 @@ namespace
     void emit(ByteArray& out, std::initializer_list<int> bytes)
     {
         for (const int b : bytes)
-            out.push_back(static_cast<std::byte>(b));
+            out.pushBack(static_cast<std::byte>(b));
     }
 
     uint16_t peSubsystem(const ByteArray& bytes)
@@ -38,10 +38,10 @@ namespace
         bytes.appendLe16(0);
         bytes.appendLe16(1);
         bytes.appendLe16(1);
-        bytes.push_back(std::byte{16});
-        bytes.push_back(std::byte{16});
-        bytes.push_back(std::byte{0});
-        bytes.push_back(std::byte{0});
+        bytes.pushBack(std::byte{16});
+        bytes.pushBack(std::byte{16});
+        bytes.pushBack(std::byte{0});
+        bytes.pushBack(std::byte{0});
         bytes.appendLe16(1);
         bytes.appendLe16(32);
         bytes.appendLe32(static_cast<uint32_t>(image.size()));

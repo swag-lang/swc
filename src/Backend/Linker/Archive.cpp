@@ -200,7 +200,7 @@ namespace
         appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
         outBytes.append(data);
         if (data.size() & 1)
-            outBytes.push_back(static_cast<std::byte>('\n'));
+            outBytes.pushBack(static_cast<std::byte>('\n'));
     }
 
     struct ArchiveMemberBuild
@@ -231,7 +231,7 @@ namespace
             {
                 nameField[i] = std::format("/{}", longNames.size());
                 longNames.append(name.view());
-                longNames.push_back(static_cast<std::byte>('\n'));
+                longNames.pushBack(static_cast<std::byte>('\n'));
             }
         }
 

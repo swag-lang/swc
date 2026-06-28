@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -36,6 +37,35 @@ bool ByteArray::contains(const ByteSpan needle) const noexcept
 bool ByteArray::contains(const std::string_view text) const noexcept
 {
     return contains(asByteSpan(text));
+}
+
+bool ByteArray::containsRange(const size_t offset, const size_t byteCount) const noexcept
+{
+    return offset <= size() && byteCount <= size() - offset;
+}
+
+uint16_t ByteArray::readLe16(const size_t offset) const noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint16_t)));
+    return std::to_integer<uint16_t>((*this)[offset + 0]) | (std::to_integer<uint16_t>((*this)[offset + 1]) << 8);
+}
+
+uint32_t ByteArray::readLe32(const size_t offset) const noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
+    uint32_t value = 0;
+    for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
+        value |= std::to_integer<uint32_t>((*this)[offset + i]) << (i * 8);
+    return value;
+}
+
+uint64_t ByteArray::readLe64(const size_t offset) const noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint64_t)));
+    uint64_t value = 0;
+    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
+        value |= std::to_integer<uint64_t>((*this)[offset + i]) << (i * 8);
+    return value;
 }
 
 void ByteArray::append(const ByteSpan bytes)
@@ -98,6 +128,27 @@ void ByteArray::appendUtf16LeZ(const std::u16string_view text)
 {
     appendUtf16Le(text);
     appendLe16(0);
+}
+
+void ByteArray::writeLe16(const size_t offset, const uint16_t value) noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint16_t)));
+    (*this)[offset + 0] = static_cast<std::byte>(value & 0xFF);
+    (*this)[offset + 1] = static_cast<std::byte>((value >> 8) & 0xFF);
+}
+
+void ByteArray::writeLe32(const size_t offset, const uint32_t value) noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
+    for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
+        (*this)[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
+}
+
+void ByteArray::writeLe64(const size_t offset, const uint64_t value) noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint64_t)));
+    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
+        (*this)[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
 }
 
 void ByteArray::align(const size_t alignment, const std::byte pad)

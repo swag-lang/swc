@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
-#include "Support/Core/ByteUtils.h"
+#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 #include "Support/Report/Diagnostic.h"
@@ -79,7 +79,7 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
     outObject = {};
 
     IMAGE_FILE_HEADER fileHeader{};
-    if (!ByteUtils::tryReadValue(fileHeader, bytes, 0))
+    if (!tryReadValue(fileHeader, bytes, 0))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_header);
         return false;
@@ -105,7 +105,7 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
     for (size_t i = 0; i < symbolCount;)
     {
         IMAGE_SYMBOL record{};
-        if (!ByteUtils::tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
+        if (!tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
         {
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);
             return false;
@@ -124,7 +124,7 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
     for (size_t s = 0; s < sectionCount; ++s)
     {
         IMAGE_SECTION_HEADER header{};
-        if (!ByteUtils::tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
+        if (!tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
         {
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_section);
             return false;
@@ -164,7 +164,7 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
         {
             // The real count lives in the first record; skip that placeholder.
             IMAGE_RELOCATION overflow{};
-            if (!ByteUtils::tryReadValue(overflow, bytes, relocOffset))
+            if (!tryReadValue(overflow, bytes, relocOffset))
             {
                 outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow);
                 return false;
@@ -179,7 +179,7 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
         for (uint32_t r = 0; r < relocCount; ++r)
         {
             IMAGE_RELOCATION reloc{};
-            if (!ByteUtils::tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
+            if (!tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
             {
                 outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_relocs);
                 return false;

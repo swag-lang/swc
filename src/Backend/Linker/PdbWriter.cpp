@@ -2,7 +2,7 @@
 #include "Support/Report/Assert.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
-#include "Support/Core/ByteUtils.h"
+#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -157,7 +157,7 @@ namespace
 
     // ---- Hashing ------------------------------------------------------------------------------------
 
-    uint32_t loadLe32(const char* p) { return ByteUtils::readLe32(asByteSpan(std::string_view{p, 4}), 0); }
+    uint32_t loadLe32(const char* p) { return readLe32(asByteSpan(std::string_view{p, 4}), 0); }
 
     // CodeView V1 string hash, used by the /names table and the GSI/public symbol hashes.
     uint32_t hashStringV1(std::string_view str)
@@ -810,7 +810,7 @@ void PdbWriter::build(ByteArray&            outBytes,
             }
 
             const uint32_t endOffset = appendSymbol(moduleSymbols, K_S_END, {});
-            ByteUtils::writeLe32(moduleSymbols, endFieldOffset, symBase + endOffset);
+            moduleSymbols.writeLe32(endFieldOffset, symBase + endOffset);
         }
 
         if (module.buildInfoIndex != 0)

@@ -4,7 +4,6 @@
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
-#include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
@@ -77,7 +76,7 @@ namespace
     // it to an image RVA once the owning section's RVA is known.
     void writeRvaFixup(ByteArray& bytes, std::vector<uint32_t>& fixups, uint32_t offset, uint32_t value)
     {
-        ByteUtils::writeLe32(bytes, offset, value);
+        bytes.writeLe32(offset, value);
         fixups.push_back(offset);
     }
 
@@ -85,7 +84,7 @@ namespace
     void rebaseRvaFixups(ByteArray& bytes, const std::vector<uint32_t>& fixups, uint32_t rva)
     {
         for (const uint32_t fixup : fixups)
-            ByteUtils::writeLe32(bytes, fixup, ByteUtils::readLe32(asByteSpan(bytes), fixup) + rva);
+            bytes.writeLe32(fixup, bytes.readLe32(fixup) + rva);
     }
 }
 
@@ -211,14 +210,14 @@ void PEWriter::buildImports()
             if (imp->byOrdinal)
             {
                 const uint64_t entry = 0x8000000000000000ull | imp->ordinal;
-                ByteUtils::writeLe64(idata, iltCursor, entry);
-                ByteUtils::writeLe64(idata, iatCursor, entry);
+                idata.writeLe64(iltCursor, entry);
+                idata.writeLe64(iatCursor, entry);
             }
             else
             {
-                ByteUtils::writeLe64(idata, iltCursor, hintNameOffset[imp]);
+                idata.writeLe64(iltCursor, hintNameOffset[imp]);
                 idataRvaFixups_.push_back(iltCursor);
-                ByteUtils::writeLe64(idata, iatCursor, hintNameOffset[imp]);
+                idata.writeLe64(iatCursor, hintNameOffset[imp]);
                 idataRvaFixups_.push_back(iatCursor);
             }
             iltCursor += sizeof(uint64_t);
@@ -303,9 +302,9 @@ void PEWriter::buildExports()
 
     // Fill IMAGE_EXPORT_DIRECTORY.
     writeRvaFixup(edata, edataRvaFixups_, 12, dllNameOffset);
-    ByteUtils::writeLe32(edata, 16, 1);     // Base ordinal
-    ByteUtils::writeLe32(edata, 20, count); // NumberOfFunctions
-    ByteUtils::writeLe32(edata, 24, count); // NumberOfNames
+    edata.writeLe32(16, 1);     // Base ordinal
+    edata.writeLe32(20, count); // NumberOfFunctions
+    edata.writeLe32(24, count); // NumberOfNames
     writeRvaFixup(edata, edataRvaFixups_, 28, eatOffset);
     writeRvaFixup(edata, edataRvaFixups_, 32, nptOffset);
     writeRvaFixup(edata, edataRvaFixups_, 36, ordinalOffset);
@@ -403,9 +402,9 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
-                    const uint64_t inPlace = ByteUtils::readLe64(asByteSpan(out.bytes), reloc.offset);
+                    const uint64_t inPlace = out.bytes.readLe64(reloc.offset);
                     const uint64_t value   = image_->imageBase + targetRva + inPlace + static_cast<uint64_t>(reloc.addend);
-                    ByteUtils::writeLe64(out.bytes, reloc.offset, value);
+                    out.bytes.writeLe64(reloc.offset, value);
                     baseRelocSites_.push_back(out.rva + reloc.offset);
                     break;
                 }
@@ -416,9 +415,9 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
-                    const uint32_t inPlace = ByteUtils::readLe32(asByteSpan(out.bytes), reloc.offset);
+                    const uint32_t inPlace = out.bytes.readLe32(reloc.offset);
                     const uint32_t value   = targetRva + inPlace + static_cast<uint32_t>(reloc.addend);
-                    ByteUtils::writeLe32(out.bytes, reloc.offset, value);
+                    out.bytes.writeLe32(reloc.offset, value);
                     break;
                 }
             }
@@ -462,7 +461,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                 outDiag.addArgument(Diagnostic::ARG_SYM, symbolName);
                 return false;
             }
-            ByteUtils::writeLe32(sections_[edataIndex_].bytes, offset, targetRva);
+            sections_[edataIndex_].bytes.writeLe32(offset, targetRva);
         }
     }
 

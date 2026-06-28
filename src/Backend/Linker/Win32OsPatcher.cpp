@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Support/Report/Assert.h"
 #include "Backend/Linker/Win32OsPatcher.h"
-#include "Support/Core/ByteUtils.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -59,7 +58,7 @@ namespace
 
     bool hasRange(ByteSpan bytes, const size_t offset, const size_t size)
     {
-        return ByteUtils::containsRange(bytes, offset, size);
+        return containsRange(bytes, offset, size);
     }
 
     bool resourceTreeNodeLess(const ResourceTreeNode& lhs, const ResourceTreeNode& rhs)
@@ -71,7 +70,7 @@ namespace
     {
         if (!hasRange(bytes, offset, sizeof(uint16_t)))
             return false;
-        outValue = ByteUtils::readLe16(bytes, offset);
+        outValue = readLe16(bytes, offset);
         return true;
     }
 
@@ -79,15 +78,13 @@ namespace
     {
         if (!hasRange(bytes, offset, sizeof(uint32_t)))
             return false;
-        outValue = ByteUtils::readLe32(bytes, offset);
+        outValue = readLe32(bytes, offset);
         return true;
     }
 
     void writeU16(ByteArray& bytes, const size_t offset, const uint16_t value)
     {
-        SWC_ASSERT(ByteUtils::containsRange(asByteSpan(bytes), offset, sizeof(uint16_t)));
-        bytes[offset + 0] = static_cast<std::byte>(value & 0xFF);
-        bytes[offset + 1] = static_cast<std::byte>((value >> 8) & 0xFF);
+        bytes.writeLe16(offset, value);
     }
 
     void appendUtf16CodePoint(std::u16string& out, uint32_t cp)
@@ -434,7 +431,7 @@ namespace
         {
             const ResourceTreeNode& child       = node.children[i];
             const uint32_t          entryOffset = entriesOffset + i * 8;
-            ByteUtils::writeLe32(bytes, entryOffset + 0, child.id);
+            bytes.writeLe32(entryOffset + 0, child.id);
             if (child.payload)
             {
                 leaves.push_back({.payload = child.payload, .entryValueOffset = entryOffset + 4});
@@ -442,7 +439,7 @@ namespace
             }
 
             const uint32_t childOffset = appendDirectory(bytes, child, leaves);
-            ByteUtils::writeLe32(bytes, entryOffset + 4, K_SUBDIR_FLAG | childOffset);
+            bytes.writeLe32(entryOffset + 4, K_SUBDIR_FLAG | childOffset);
         }
 
         return offset;
@@ -453,7 +450,7 @@ namespace
         for (ResourceLeafRef& leaf : leaves)
         {
             leaf.dataEntryOffset = static_cast<uint32_t>(outSection.bytes.size());
-            ByteUtils::writeLe32(outSection.bytes, leaf.entryValueOffset, leaf.dataEntryOffset);
+            outSection.bytes.writeLe32(leaf.entryValueOffset, leaf.dataEntryOffset);
             outSection.bytes.appendLe32(0);
             outSection.bytes.appendLe32(static_cast<uint32_t>(leaf.payload->bytes.size()));
             outSection.bytes.appendLe32(0);
@@ -467,7 +464,7 @@ namespace
         {
             outSection.bytes.align(4);
             const uint32_t payloadOffset = static_cast<uint32_t>(outSection.bytes.size());
-            ByteUtils::writeLe32(outSection.bytes, leaf.dataEntryOffset, payloadOffset);
+            outSection.bytes.writeLe32(leaf.dataEntryOffset, payloadOffset);
             outSection.bytes.append(asByteSpan(leaf.payload->bytes));
             outSection.rvaPatches.push_back({.dataEntryOffset = leaf.dataEntryOffset, .payloadOffset = payloadOffset});
         }
@@ -505,7 +502,7 @@ bool Win32OsPatcher::buildResourceSection(Win32ResourceSection& outSection, Diag
 void Win32OsPatcher::patchResourceSectionRvas(ByteArray& bytes, std::span<const Win32ResourceRvaPatch> patches, const uint32_t sectionRva)
 {
     for (const Win32ResourceRvaPatch& patch : patches)
-        ByteUtils::writeLe32(bytes, patch.dataEntryOffset, sectionRva + patch.payloadOffset);
+        bytes.writeLe32(patch.dataEntryOffset, sectionRva + patch.payloadOffset);
 }
 
 SWC_END_NAMESPACE();

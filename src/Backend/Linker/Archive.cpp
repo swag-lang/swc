@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
-#include "Support/Core/ByteUtils.h"
+#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -71,7 +71,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
         return false;
     }
 
-    const uint32_t   symbolCount = ByteUtils::readBe32(span, dataOffset);
+    const uint32_t   symbolCount = readBe32(span, dataOffset);
     constexpr size_t offsetsAt   = dataOffset + 4;
     const size_t     namesAt     = offsetsAt + static_cast<size_t>(symbolCount) * 4;
     if (namesAt > dataOffset + memberSize)
@@ -94,7 +94,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
             ++nameLen;
 
-        const uint32_t memberOffset = ByteUtils::readBe32(span, offsetsAt + static_cast<size_t>(i) * 4);
+        const uint32_t memberOffset = readBe32(span, offsetsAt + static_cast<size_t>(i) * 4);
         symbolToMember_.emplace(Utf8{std::string_view{nameStart, nameLen}}, memberOffset);
         nameCursor += nameLen + 1;
     }
@@ -138,11 +138,11 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint3
         return false;
     if (data.size() < IMPORT_HEADER_SIZE)
         return false;
-    if (ByteUtils::readLe16(data, 0) != 0 || ByteUtils::readLe16(data, 2) != IMPORT_SIG2)
+    if (readLe16(data, 0) != 0 || readLe16(data, 2) != IMPORT_SIG2)
         return false; // a regular COFF member, not a short import
 
-    const uint16_t ordinalOrHint = ByteUtils::readLe16(data, 16);
-    const uint16_t flags         = ByteUtils::readLe16(data, 18);
+    const uint16_t ordinalOrHint = readLe16(data, 16);
+    const uint16_t flags         = readLe16(data, 18);
     const uint16_t type          = flags & 0x3;
     const uint16_t nameType      = (flags >> 2) & 0x7;
 

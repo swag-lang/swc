@@ -10,7 +10,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
-#include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -333,12 +332,12 @@ namespace
                 case IMAGE_REL_AMD64_ADDR64:
                     if (patchOffset + sizeof(uint64_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-                    ByteUtils::writeLe64(section.bytes, patchOffset, relocation.addend);
+                    section.bytes.writeLe64(patchOffset, relocation.addend);
                     break;
                 case IMAGE_REL_AMD64_ADDR32NB:
                     if (patchOffset + sizeof(uint32_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-                    ByteUtils::writeLe32(section.bytes, patchOffset, static_cast<uint32_t>(relocation.addend));
+                    section.bytes.writeLe32(patchOffset, static_cast<uint32_t>(relocation.addend));
                     break;
                 default:
                     SWC_UNREACHABLE();

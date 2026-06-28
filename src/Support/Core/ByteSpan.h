@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -67,6 +68,53 @@ inline bool containsBytes(ByteSpan bytes, ByteSpan needle) noexcept
 }
 
 bool containsUtf16Le(ByteSpan bytes, std::string_view text);
+
+inline bool containsRange(ByteSpan bytes, size_t offset, size_t size) noexcept
+{
+    return offset <= bytes.size() && size <= bytes.size() - offset;
+}
+
+template<typename T>
+bool tryReadValue(T& outValue, ByteSpan bytes, size_t offset) noexcept
+{
+    static_assert(std::is_trivially_copyable_v<T>);
+    if (!containsRange(bytes, offset, sizeof(T)))
+        return false;
+
+    std::memcpy(&outValue, bytes.data() + offset, sizeof(T));
+    return true;
+}
+
+inline uint16_t readLe16(ByteSpan bytes, size_t offset) noexcept
+{
+    SWC_ASSERT(containsRange(bytes, offset, sizeof(uint16_t)));
+    const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
+    return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
+}
+
+inline uint32_t readLe32(ByteSpan bytes, size_t offset) noexcept
+{
+    SWC_ASSERT(containsRange(bytes, offset, sizeof(uint32_t)));
+    const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
+    return static_cast<uint32_t>(data[0]) | (static_cast<uint32_t>(data[1]) << 8) | (static_cast<uint32_t>(data[2]) << 16) | (static_cast<uint32_t>(data[3]) << 24);
+}
+
+inline uint64_t readLe64(ByteSpan bytes, size_t offset) noexcept
+{
+    SWC_ASSERT(containsRange(bytes, offset, sizeof(uint64_t)));
+    const auto* data  = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
+    uint64_t    value = 0;
+    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
+        value |= static_cast<uint64_t>(data[i]) << (i * 8);
+    return value;
+}
+
+inline uint32_t readBe32(ByteSpan bytes, size_t offset) noexcept
+{
+    SWC_ASSERT(containsRange(bytes, offset, sizeof(uint32_t)));
+    const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
+    return (static_cast<uint32_t>(data[0]) << 24) | (static_cast<uint32_t>(data[1]) << 16) | (static_cast<uint32_t>(data[2]) << 8) | static_cast<uint32_t>(data[3]);
+}
 
 inline std::string_view asStringView(ByteSpanR v) noexcept
 {

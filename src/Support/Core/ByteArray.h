@@ -20,6 +20,11 @@ struct ByteArray : std::vector<std::byte>
     bool contains(std::byte value) const noexcept;
     bool contains(ByteSpan needle) const noexcept;
     bool contains(std::string_view text) const noexcept;
+    bool containsRange(size_t offset, size_t byteCount) const noexcept;
+
+    uint16_t readLe16(size_t offset) const noexcept;
+    uint32_t readLe32(size_t offset) const noexcept;
+    uint64_t readLe64(size_t offset) const noexcept;
 
     void append(ByteSpan bytes);
     void append(std::string_view text);
@@ -31,6 +36,9 @@ struct ByteArray : std::vector<std::byte>
     void appendUtf16Le(std::string_view text);
     void appendUtf16Le(std::u16string_view text);
     void appendUtf16LeZ(std::u16string_view text);
+    void writeLe16(size_t offset, uint16_t value) noexcept;
+    void writeLe32(size_t offset, uint32_t value) noexcept;
+    void writeLe64(size_t offset, uint64_t value) noexcept;
     void align(size_t alignment, std::byte pad = std::byte{0});
 };
 

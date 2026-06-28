@@ -3,7 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Linker/PeWriter.h"
-#include "Support/Core/ByteUtils.h"
+#include "Support/Core/ByteSpan.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
@@ -20,17 +20,17 @@ namespace
 
     uint16_t peSubsystem(ByteSpan bytes)
     {
-        if (!ByteUtils::containsRange(bytes, 0x3C, sizeof(uint32_t)))
+        if (!containsRange(bytes, 0x3C, sizeof(uint32_t)))
             return 0;
 
-        const uint32_t peOffset = ByteUtils::readLe32(bytes, 0x3C);
-        if (!ByteUtils::containsRange(bytes, peOffset, sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64)))
+        const uint32_t peOffset = readLe32(bytes, 0x3C);
+        if (!containsRange(bytes, peOffset, sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64)))
             return 0;
-        if (ByteUtils::readLe32(bytes, peOffset) != IMAGE_NT_SIGNATURE)
+        if (readLe32(bytes, peOffset) != IMAGE_NT_SIGNATURE)
             return 0;
 
         const size_t optionalOffset = peOffset + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER);
-        return ByteUtils::readLe16(bytes, optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
+        return readLe16(bytes, optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
     }
 
     ByteArray makeSingleImageIcon(ByteSpan image)

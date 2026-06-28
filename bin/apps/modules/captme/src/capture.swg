@@ -57,6 +57,7 @@ struct Capture
         firstMouseMove:        bool
         dirtyBackImg:          bool
         drawSelRect:           bool
+        prevSnapActive:        bool
 
         inPlaceEdit:           bool
         inPlacePosX:           f32
@@ -515,6 +516,41 @@ impl Capture
         }
     }
 
+    // Invalidate only the region a just-moved/resized form occupied before ('oldRect',
+    // in capture coordinates) and now occupies, so a single-form drag re-renders just
+    // that form rather than every form. Falls back to a full repaint while snap guides
+    // are (or just were) visible, since those lines span the whole capture.
+    mtd invalidateAfterMove(iform: IForm, oldRect: Math.Rectangle)
+    {
+        let view = .editView
+        if !view do
+            return
+
+        let snapNow = .snapX != -1 or .snapY != -1
+        defer { me.prevSnapActive = snapNow }
+        if snapNow or .prevSnapActive
+        {
+            view.invalidate()
+            return
+        }
+
+        let nb   = iform.boundRect()
+        let minx = Math.min(oldRect.x, nb.x)
+        let miny = Math.min(oldRect.y, nb.y)
+        let maxx = Math.max(oldRect.right(), nb.right())
+        let maxy = Math.max(oldRect.bottom(), nb.bottom())
+
+        // Union of old + new bound, padded for the drop shadow / stroke extent.
+        var r = Math.Rectangle{minx, miny, maxx - minx, maxy - miny}
+        r.inflate(48)
+
+        // To view-local pixels, then pad for the gizmo handles / rotation knob.
+        var local = r * view.zoom
+        local.offset(.paintRect.x, .paintRect.y)
+        local.inflate(56, 56)
+        view.invalidateRect(local)
+    }
+
     mtd paint(painter: *Painter, clip, rect: Math.Rectangle)
     {
         painter.fillRect(rect, Argb.LightGray)
@@ -523,6 +559,20 @@ impl Capture
 
         .paintRect = rect
         let zoom = rect.width / .width
+
+        // Cull forms against the real invalidated region, not just the full view clip.
+        // When a single form is dragged we only invalidate its rectangle (see
+        // GizmoRect.apply), so the surface clips the painter to that region; testing
+        // each form against it lets the static forms be skipped entirely instead of
+        // re-rendering all of them (with their supersampled layers + shadow blur) every
+        // frame. On a full repaint the painter clip is the whole view, so nothing changes.
+        var cullClip = clip
+        if painter.curState.clippingRectOn
+        {
+            var pc = painter.getClippingRect()
+            pc.offset(-painter.curState.transform.tx, -painter.curState.transform.ty)
+            cullClip.intersect(pc)
+        }
 
         // Background image
         painter.setAntialiased(false)
@@ -542,7 +592,7 @@ impl Capture
             cull.inflate(200)
             cull = cull * zoom
             cull.offset(rect.x, rect.y)
-            if !cull.intersectWith(clip) do
+            if !cull.intersectWith(cullClip) do
                 continue
 
             if f.mustClipToBound()

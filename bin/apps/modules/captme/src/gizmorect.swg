@@ -415,6 +415,7 @@ impl GizmoRect
     {
         let form    = cast(*BaseForm) @dataof(iform)
         let capture = form.capture
+        let oldRect = iform.boundRect()
         if !first do
             capture.undo()
         let undo = capture.newUndo(.MoveBaseForm)
@@ -443,7 +444,7 @@ impl GizmoRect
             undo.newSizeY = cast(s32) (newH - startH)
 
             capture.pushUndo(undo)
-            capture.editView.invalidate()
+            capture.invalidateAfterMove(iform, oldRect)
             return
         }
 
@@ -471,7 +472,7 @@ impl GizmoRect
             undo.newSizeY -= (undo.newPosY - dy)
 
         capture.pushUndo(undo)
-        capture.editView.invalidate()
+        capture.invalidateAfterMove(iform, oldRect)
     }
 
     // Apply a rotation (in degrees) to the selected form(s), mirroring the

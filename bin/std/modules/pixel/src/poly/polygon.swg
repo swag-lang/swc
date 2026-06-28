@@ -144,6 +144,57 @@ impl Polygon
         if count < 4 do
             return true
 
+        // Small rings: the brute-force all-pairs test is cheaper than building a grid
+        // (no allocation), and stays exact. The O(n^2) cost is negligible here.
+        if count <= 48
+        {
+            for i in count
+            {
+                let nextI = (i + 1) % count
+                let a0    = .points[i]
+                let a1    = .points[nextI]
+                if a0.isEqualEpsilon(a1) do
+                    continue
+
+                var j = i + 1
+                while j < count
+                {
+                    defer j += 1
+                    let nextJ = (j + 1) % count
+                    if nextI == j or nextJ == i do
+                        continue
+
+                    let b0 = .points[j]
+                    let b1 = .points[nextJ]
+                    if b0.isEqualEpsilon(b1) do
+                        continue
+                    if Geometry.segSegIntersect(a0, a1, b0, b1, 0.01).yes do
+                        return false
+                }
+            }
+
+            return true
+        }
+
+        // Self-intersection test via a uniform spatial grid over the polygon bbox.
+        // Each edge is registered in every cell its bounding box overlaps and tested
+        // only against edges already present in those cells. Two intersecting edges
+        // always share the cell containing their crossing point, so no pair is missed,
+        // while for the dense, short edges produced by flattening this runs in ~O(n)
+        // instead of the O(n^2) brute-force all-pairs test. That test dominated the
+        // entire vector pipeline (it runs in every non-convex path flatten).
+        // 'bvMin'/'bvMax' are already filled by the compute() loop above.
+        var res = cast(s32) Math.sqrt(cast(f32) count)
+        res = Math.clamp(res, 1, 1024)
+
+        let w     = .bvMax.x - .bvMin.x
+        let h     = .bvMax.y - .bvMin.y
+        let invCw = w > Math.ConstF32.Epsilon ? cast(f32) res / w : 0'f32
+        let invCh = h > Math.ConstF32.Epsilon ? cast(f32) res / h : 0'f32
+
+        var grid: Array'(Array'u32)
+        grid.resize(cast(u64) res * cast(u64) res)
+
         for i in count
         {
             let nextI = (i + 1) % count
@@ -152,20 +203,37 @@ impl Polygon
             if a0.isEqualEpsilon(a1) do
                 continue
 
-            var j = i + 1
-            while j < count
-            {
-                defer j += 1
-                let nextJ = (j + 1) % count
-                if nextI == j or nextJ == i do
-                    continue
+            let cx0 = Math.clamp(cast(s32) ((Math.min(a0.x, a1.x) - .bvMin.x) * invCw), 0, res - 1)
+            let cx1 = Math.clamp(cast(s32) ((Math.max(a0.x, a1.x) - .bvMin.x) * invCw), 0, res - 1)
+            let cy0 = Math.clamp(cast(s32) ((Math.min(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
+            let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
 
-                let b0 = .points[j]
-                let b1 = .points[nextJ]
-                if b0.isEqualEpsilon(b1) do
-                    continue
-                if Geometry.segSegIntersect(a0, a1, b0, b1, 0.01).yes do
-                    return false
+            // Test against edges already registered in any cell this edge overlaps.
+            for cy in cy0 to cy1
+            {
+                for cx in cx0 to cx1
+                {
+                    foreach j in grid[cast(u64) (cy * res + cx)]
+                    {
+                        let nextJ = (j + 1) % count
+                        if nextI == j or nextJ == i do
+                            continue
+
+                        let b0 = .points[j]
+                        let b1 = .points[nextJ]
+                        if b0.isEqualEpsilon(b1) do
+                            continue
+                        if Geometry.segSegIntersect(a0, a1, b0, b1, 0.01).yes do
+                            return false
+                    }
+                }
+            }
+
+            // Register this edge in every overlapped cell.
+            for cy in cy0 to cy1
+            {
+                for cx in cx0 to cx1 do
+                    grid[cast(u64) (cy * res + cx)].add(cast(u32) i)
             }
         }
 

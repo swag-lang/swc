@@ -1,8 +1,5 @@
 #pragma once
-#include <span>
-
 #include "Support/Core/ByteArray.h"
-
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/EncoderTypes.h"
 #include "Backend/Micro/MicroReg.h"

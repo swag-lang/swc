@@ -1,6 +1,4 @@
 #pragma once
-#include <span>
-
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"

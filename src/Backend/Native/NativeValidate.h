@@ -1,6 +1,4 @@
 #pragma once
-#include <span>
-
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Support/Core/RefTypes.h"
 

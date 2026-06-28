@@ -3,9 +3,6 @@
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Assert.h"
-#include <span>
-#include <vector>
-
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"

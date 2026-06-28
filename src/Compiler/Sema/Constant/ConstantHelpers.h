@@ -1,6 +1,4 @@
 #pragma once
-#include <span>
-
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 

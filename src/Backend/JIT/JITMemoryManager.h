@@ -1,6 +1,4 @@
 #pragma once
-#include <span>
-
 #include "Backend/JIT/JITMemory.h"
 
 SWC_BEGIN_NAMESPACE();

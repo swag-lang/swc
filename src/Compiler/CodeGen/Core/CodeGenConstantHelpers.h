@@ -1,6 +1,4 @@
 #pragma once
-#include <span>
-
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

@@ -5,8 +5,6 @@
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
-#include <memory>
-#include <string_view>
 
 SWC_BEGIN_NAMESPACE();
 

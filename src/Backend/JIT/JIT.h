@@ -1,7 +1,4 @@
 #pragma once
-#include <cstdint>
-#include <span>
-
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Support/Core/ByteArray.h"

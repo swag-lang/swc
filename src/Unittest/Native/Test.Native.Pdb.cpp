@@ -33,14 +33,11 @@ namespace
 
     uint16_t readU16(const ByteArray& bytes, const size_t offset)
     {
-        uint16_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
+        return bytes.readLe16(offset);
     }
 
     bool pdbContainsSymbolRecord(const ByteArray& bytes, const uint16_t kind, const std::string_view name)
     {
-        const ByteSpan needle = asByteSpan(name);
         for (size_t offset = 0; offset + sizeof(uint16_t) * 2 <= bytes.size(); ++offset)
         {
             const uint16_t recordSize = readU16(bytes, offset);
@@ -53,8 +50,8 @@ namespace
             if (readU16(bytes, offset + sizeof(uint16_t)) != kind)
                 continue;
 
-            const ByteSpan recordBytes{bytes.data() + offset, recordEnd - offset};
-            if (containsBytes(recordBytes, needle))
+            const std::string_view recordBytes{reinterpret_cast<const char*>(bytes.data() + offset), recordEnd - offset};
+            if (recordBytes.contains(name))
                 return true;
         }
 

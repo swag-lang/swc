@@ -87,12 +87,12 @@ namespace
 
         Bytes body;
         body.appendLe16(kind);
-        body.append(payload.span());
+        body.append(payload);
         while ((body.size() + 2) % 4 != 0)
             body.push_back(std::byte{0});
 
         out.appendLe16(static_cast<uint16_t>(body.size()));
-        out.append(body.span());
+        out.append(body);
         return offset;
     }
 
@@ -102,7 +102,7 @@ namespace
 
         Bytes body;
         body.appendLe16(kind);
-        body.append(payload.span());
+        body.append(payload);
 
         const uint32_t rawRecordSize = static_cast<uint32_t>(body.size() + sizeof(uint16_t));
         const uint32_t padBytes      = Math::alignUpU32(rawRecordSize, 4) - rawRecordSize;
@@ -110,7 +110,7 @@ namespace
             body.push_back(static_cast<std::byte>(0xF0u + i));
 
         out.appendLe16(static_cast<uint16_t>(body.size()));
-        out.append(body.span());
+        out.append(body);
         return offset;
     }
 
@@ -314,7 +314,7 @@ namespace
             out.appendLe32(0xEFFEEFFEu); // Signature
             out.appendLe32(1);           // HashVersion (V1)
             out.appendLe32(static_cast<uint32_t>(buffer.size()));
-            out.append(buffer.span());
+            out.append(buffer);
 
             const uint32_t        bucketCount = std::max<uint32_t>(1, count * 2 + 1);
             std::vector<uint32_t> buckets(bucketCount, 0);
@@ -427,15 +427,15 @@ namespace
 
         for (const uint32_t word : bitmap)
             bucketSection.appendLe32(word);
-        bucketSection.append(bucketOffsets.span());
+        bucketSection.append(bucketOffsets);
 
         Bytes out;
         out.appendLe32(0xFFFFFFFFu);             // VerSignature
         out.appendLe32(0xeffe0000u + 19990810u); // VerHdr
         out.appendLe32(static_cast<uint32_t>(records.size()));
         out.appendLe32(static_cast<uint32_t>(bucketSection.size()));
-        out.append(records.span());
-        out.append(bucketSection.span());
+        out.append(records);
+        out.append(bucketSection);
         return out;
     }
 
@@ -499,7 +499,7 @@ namespace
         out.appendLe32(indexOffLen);                           // IndexOffsetBufferLength
         out.appendLe32(hashValuesLen + indexOffLen);           // HashAdjBufferOffset
         out.appendLe32(0);                                     // HashAdjBufferLength
-        out.append(records.span());
+        out.append(records);
         return out;
     }
 
@@ -865,7 +865,7 @@ void PdbWriter::build(ByteArray&            outBytes,
 
             c13.appendLe32(K_DEBUG_S_LINES);
             c13.appendLe32(static_cast<uint32_t>(content.size()));
-            c13.append(content.span());
+            c13.append(content);
             c13.align(4);
         }
 
@@ -873,14 +873,14 @@ void PdbWriter::build(ByteArray&            outBytes,
         {
             c13.appendLe32(K_DEBUG_S_FILECHKSMS);
             c13.appendLe32(static_cast<uint32_t>(chksmContent.size()));
-            c13.append(chksmContent.span());
+            c13.append(chksmContent);
             c13.align(4);
         }
 
         module.stream.appendLe32(K_CV_SIGNATURE_C13);
-        module.stream.append(moduleSymbols.span());
+        module.stream.append(moduleSymbols);
         module.symByteSize = static_cast<uint32_t>(module.stream.size());
-        module.stream.append(c13.span());
+        module.stream.append(c13);
         module.c13ByteSize = static_cast<uint32_t>(c13.size());
         module.stream.appendLe32(0); // GlobalRefs byte size
     }
@@ -1011,7 +1011,7 @@ void PdbWriter::build(ByteArray&            outBytes,
         }
         for (const uint32_t o : offs)
             sourceInfo.appendLe32(o);
-        sourceInfo.append(namesBuf.span());
+        sourceInfo.append(namesBuf);
         sourceInfo.align(4);
     }
 
@@ -1063,12 +1063,12 @@ void PdbWriter::build(ByteArray&            outBytes,
         dbi.appendLe16(0);      // Flags
         dbi.appendLe16(0x8664); // Machine (AMD64)
         dbi.appendLe32(0);      // Reserved
-        dbi.append(modInfo.span());
-        dbi.append(secContr.span());
-        dbi.append(secMap.span());
-        dbi.append(sourceInfo.span());
-        dbi.append(ecSubstream.span());
-        dbi.append(optDbgHeader.span());
+        dbi.append(modInfo);
+        dbi.append(secContr);
+        dbi.append(secMap);
+        dbi.append(sourceInfo);
+        dbi.append(ecSubstream);
+        dbi.append(optDbgHeader);
     }
 
     // ---- Globals / publics streams --------------------------------------------------------------
@@ -1095,8 +1095,8 @@ void PdbWriter::build(ByteArray&            outBytes,
         publicsStream.appendLe16(0);                                     // padding
         publicsStream.appendLe32(0);                                     // OffThunkTable
         publicsStream.appendLe32(0);                                     // NumSections
-        publicsStream.append(hash.span());
-        publicsStream.append(addrMap.span());
+        publicsStream.append(hash);
+        publicsStream.append(addrMap);
     }
 
     // ---- Section headers stream -----------------------------------------------------------------
@@ -1134,7 +1134,7 @@ void PdbWriter::build(ByteArray&            outBytes,
         strBuffer.appendCString("/names");
 
         pdbInfo.appendLe32(static_cast<uint32_t>(strBuffer.size()));
-        pdbInfo.append(strBuffer.span());
+        pdbInfo.append(strBuffer);
 
         // Hash table with a single entry.
         constexpr uint32_t    capacity = 4;

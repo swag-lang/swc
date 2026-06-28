@@ -3,7 +3,6 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Linker/PeWriter.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
@@ -18,22 +17,22 @@ namespace
             out.push_back(static_cast<std::byte>(b));
     }
 
-    uint16_t peSubsystem(ByteSpan bytes)
+    uint16_t peSubsystem(const ByteArray& bytes)
     {
-        if (!containsRange(bytes, 0x3C, sizeof(uint32_t)))
+        if (!bytes.containsRange(0x3C, sizeof(uint32_t)))
             return 0;
 
-        const uint32_t peOffset = readLe32(bytes, 0x3C);
-        if (!containsRange(bytes, peOffset, sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64)))
+        const uint32_t peOffset = bytes.readLe32(0x3C);
+        if (!bytes.containsRange(peOffset, sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64)))
             return 0;
-        if (readLe32(bytes, peOffset) != IMAGE_NT_SIGNATURE)
+        if (bytes.readLe32(peOffset) != IMAGE_NT_SIGNATURE)
             return 0;
 
         const size_t optionalOffset = peOffset + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER);
-        return readLe16(bytes, optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
+        return bytes.readLe16(optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
     }
 
-    ByteArray makeSingleImageIcon(ByteSpan image)
+    ByteArray makeSingleImageIcon(const ByteArray& image)
     {
         ByteArray bytes;
         bytes.appendLe16(0);
@@ -161,7 +160,7 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
     image.win32.revision       = 2;
     image.win32.buildNum       = 3;
     image.win32.iconPath       = "patch.ico";
-    image.win32.iconBytes      = makeSingleImageIcon(asByteSpan(iconPayload));
+    image.win32.iconBytes      = makeSingleImageIcon(iconPayload);
 
     ByteArray peBytes;
     ByteArray pdbBytes;
@@ -175,20 +174,19 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
         return Result::Error;
     }
 
-    const ByteSpan pe = asByteSpan(peBytes);
-    if (peSubsystem(pe) != IMAGE_SUBSYSTEM_WINDOWS_GUI)
+    if (peSubsystem(peBytes) != IMAGE_SUBSYSTEM_WINDOWS_GUI)
         return Result::Error;
-    if (!containsUtf16Le(pe, "Patch App"))
+    if (!peBytes.containsUtf16Le("Patch App"))
         return Result::Error;
-    if (!containsUtf16Le(pe, "Patch Description"))
+    if (!peBytes.containsUtf16Le("Patch Description"))
         return Result::Error;
-    if (!containsUtf16Le(pe, "Patch Company"))
+    if (!peBytes.containsUtf16Le("Patch Company"))
         return Result::Error;
-    if (!containsUtf16Le(pe, "Patch Copyright"))
+    if (!peBytes.containsUtf16Le("Patch Copyright"))
         return Result::Error;
-    if (!containsUtf16Le(pe, "1.2.3.0"))
+    if (!peBytes.containsUtf16Le("1.2.3.0"))
         return Result::Error;
-    if (!containsBytes(pe, asByteSpan(iconPayload)))
+    if (!peBytes.contains(iconPayload))
         return Result::Error;
 }
 SWC_TEST_END()

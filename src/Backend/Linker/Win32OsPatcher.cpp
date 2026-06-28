@@ -56,9 +56,9 @@ namespace
         std::u16string value;
     };
 
-    bool hasRange(ByteSpan bytes, const size_t offset, const size_t size)
+    bool hasRange(const ByteArray& bytes, const size_t offset, const size_t size)
     {
-        return containsRange(bytes, offset, size);
+        return bytes.containsRange(offset, size);
     }
 
     bool resourceTreeNodeLess(const ResourceTreeNode& lhs, const ResourceTreeNode& rhs)
@@ -66,19 +66,19 @@ namespace
         return lhs.id < rhs.id;
     }
 
-    bool tryReadU16(uint16_t& outValue, ByteSpan bytes, const size_t offset)
+    bool tryReadU16(uint16_t& outValue, const ByteArray& bytes, const size_t offset)
     {
         if (!hasRange(bytes, offset, sizeof(uint16_t)))
             return false;
-        outValue = readLe16(bytes, offset);
+        outValue = bytes.readLe16(offset);
         return true;
     }
 
-    bool tryReadU32(uint32_t& outValue, ByteSpan bytes, const size_t offset)
+    bool tryReadU32(uint32_t& outValue, const ByteArray& bytes, const size_t offset)
     {
         if (!hasRange(bytes, offset, sizeof(uint32_t)))
             return false;
-        outValue = readLe32(bytes, offset);
+        outValue = bytes.readLe32(offset);
         return true;
     }
 
@@ -311,7 +311,7 @@ namespace
     bool readIconEntries(std::vector<IconDirEntry>& outEntries, Diagnostic& outDiag, const LinkWin32ApplicationConfig& config)
     {
         outEntries.clear();
-        const ByteSpan bytes = asByteSpan(config.iconBytes);
+        const ByteArray& bytes = config.iconBytes;
 
         uint16_t reserved = 0;
         uint16_t type     = 0;
@@ -375,10 +375,9 @@ namespace
         if (!readIconEntries(entries, outDiag, config))
             return false;
 
-        const ByteSpan iconBytes = asByteSpan(config.iconBytes);
         for (const IconDirEntry& entry : entries)
         {
-            const auto* imageBegin = iconBytes.data() + entry.imageOffset;
+            const auto* imageBegin = config.iconBytes.data() + entry.imageOffset;
             ByteArray image(imageBegin, imageBegin + entry.bytesInRes);
             addPayload(payloads, K_RT_ICON, entry.resourceId, std::move(image));
         }
@@ -465,7 +464,7 @@ namespace
             outSection.bytes.align(4);
             const uint32_t payloadOffset = static_cast<uint32_t>(outSection.bytes.size());
             outSection.bytes.writeLe32(leaf.dataEntryOffset, payloadOffset);
-            outSection.bytes.append(asByteSpan(leaf.payload->bytes));
+            outSection.bytes.append(leaf.payload->bytes);
             outSection.rvaPatches.push_back({.dataEntryOffset = leaf.dataEntryOffset, .payloadOffset = payloadOffset});
         }
     }

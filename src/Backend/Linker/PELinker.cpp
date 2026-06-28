@@ -623,7 +623,7 @@ void PELinker::buildDebugTable(LinkImage& image) const
         section.bytes.appendLe32(entry.line);
     }
 
-    section.bytes.append(strings.bytes.span());
+    section.bytes.append(strings.bytes);
     image.sections.push_back(std::move(section));
 }
 

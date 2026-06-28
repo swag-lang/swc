@@ -16,7 +16,7 @@ namespace
     constexpr uint16_t         IMPORT_MACHINE_AMD64 = 0x8664;
 
     // Member sizes are stored as a right-padded decimal ASCII string.
-    bool parseMemberSize(uint32_t& outSize, ByteSpan bytes, size_t headerOffset)
+    bool parseMemberSize(uint32_t& outSize, std::span<const std::byte> bytes, size_t headerOffset)
     {
         outSize = 0;
         for (size_t i = 48; i < 58; ++i)
@@ -42,8 +42,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
     bytes_ = std::move(bytes);
     symbolToMember_.clear();
 
-    const ByteSpan span = asByteSpan(bytes_);
-    if (span.size() < ARCHIVE_MAGIC.size() || asStringView(span.subspan(0, ARCHIVE_MAGIC.size())) != ARCHIVE_MAGIC)
+    if (!bytes_.containsRange(0, ARCHIVE_MAGIC.size()) || std::memcmp(bytes_.data(), ARCHIVE_MAGIC.data(), ARCHIVE_MAGIC.size()) != 0)
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_magic);
         return false;
@@ -51,27 +50,27 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
 
     // The first member is the linker member: a big-endian symbol -> member-offset directory.
     constexpr size_t firstHeader = ARCHIVE_MAGIC.size();
-    if (firstHeader + MEMBER_HEADER_SIZE > span.size())
+    if (!bytes_.containsRange(firstHeader, MEMBER_HEADER_SIZE))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated);
         return false;
     }
 
     uint32_t memberSize = 0;
-    if (!parseMemberSize(memberSize, span, firstHeader))
+    if (!parseMemberSize(memberSize, bytes_.span(), firstHeader))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return false;
     }
 
     constexpr size_t dataOffset = firstHeader + MEMBER_HEADER_SIZE;
-    if (dataOffset + memberSize > span.size() || memberSize < 4)
+    if (!bytes_.containsRange(dataOffset, memberSize) || memberSize < 4)
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated_linker_member);
         return false;
     }
 
-    const uint32_t   symbolCount = readBe32(span, dataOffset);
+    const uint32_t   symbolCount = bytes_.readBe32(dataOffset);
     constexpr size_t offsetsAt   = dataOffset + 4;
     const size_t     namesAt     = offsetsAt + static_cast<size_t>(symbolCount) * 4;
     if (namesAt > dataOffset + memberSize)
@@ -89,12 +88,12 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_names);
             return false;
         }
-        const auto* nameStart = reinterpret_cast<const char*>(span.data() + nameCursor);
+        const auto* nameStart = reinterpret_cast<const char*>(bytes_.data() + nameCursor);
         size_t      nameLen   = 0;
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
             ++nameLen;
 
-        const uint32_t memberOffset = readBe32(span, offsetsAt + static_cast<size_t>(i) * 4);
+        const uint32_t memberOffset = bytes_.readBe32(offsetsAt + static_cast<size_t>(i) * 4);
         symbolToMember_.emplace(Utf8{std::string_view{nameStart, nameLen}}, memberOffset);
         nameCursor += nameLen + 1;
     }
@@ -110,25 +109,24 @@ uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
 
 ByteSpan Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const
 {
-    const ByteSpan span = asByteSpan(bytes_);
-    if (headerOffset + MEMBER_HEADER_SIZE > span.size())
+    if (!bytes_.containsRange(headerOffset, MEMBER_HEADER_SIZE))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_member_out_of_range);
         return {};
     }
     uint32_t memberSize = 0;
-    if (!parseMemberSize(memberSize, span, headerOffset))
+    if (!parseMemberSize(memberSize, bytes_.span(), headerOffset))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return {};
     }
     const size_t dataOffset = headerOffset + MEMBER_HEADER_SIZE;
-    if (dataOffset + memberSize > span.size())
+    if (!bytes_.containsRange(dataOffset, memberSize))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated_member);
         return {};
     }
-    return span.subspan(dataOffset, memberSize);
+    return {bytes_.data() + dataOffset, memberSize};
 }
 
 bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const
@@ -192,7 +190,7 @@ namespace
     void appendArchiveMember(ByteArray& outBytes, std::string_view name, const ByteArray& data)
     {
         appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
-        outBytes.append(data.span());
+        outBytes.append(data);
         if (data.size() & 1)
             outBytes.push_back(static_cast<std::byte>('\n'));
     }
@@ -285,7 +283,7 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
     for (const LinkArchiveMember& inputMember : inputMembers)
     {
         CoffObject object;
-        if (!readCoffObject(object, outDiag, asByteSpan(inputMember.bytes)))
+        if (!readCoffObject(object, outDiag, inputMember.bytes.span()))
             return false;
 
         ArchiveMemberBuild member;

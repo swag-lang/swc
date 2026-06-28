@@ -4,39 +4,96 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    std::span<const std::byte> byteSpan(std::string_view text) noexcept
+    {
+        return {reinterpret_cast<const std::byte*>(text.data()), text.size()};
+    }
+
+    bool containsBytes(std::span<const std::byte> bytes, std::span<const std::byte> needle) noexcept
+    {
+        if (needle.empty())
+            return true;
+        if (needle.size() > bytes.size())
+            return false;
+        return std::ranges::search(bytes, needle).begin() != bytes.end();
+    }
+
+    bool containsUtf16LeBytes(std::span<const std::byte> bytes, std::string_view text) noexcept
+    {
+        if (text.empty())
+            return true;
+        if (text.size() > bytes.size() / sizeof(char16_t))
+            return false;
+
+        const size_t needleSize = text.size() * sizeof(char16_t);
+        for (size_t offset = 0; offset <= bytes.size() - needleSize; ++offset)
+        {
+            bool found = true;
+            for (size_t i = 0; i < text.size(); ++i)
+            {
+                if (bytes[offset + i * 2] != static_cast<std::byte>(static_cast<uint8_t>(text[i])) || bytes[offset + i * 2 + 1] != std::byte{0})
+                {
+                    found = false;
+                    break;
+                }
+            }
+            if (found)
+                return true;
+        }
+        return false;
+    }
+}
+
 ByteArray::ByteArray(Base bytes) :
     Base(std::move(bytes))
 {
 }
 
-ByteSpanRW ByteArray::span() noexcept
+std::span<std::byte> ByteArray::span() noexcept
 {
     return {data(), size()};
 }
 
-ByteSpan ByteArray::span() const noexcept
+std::span<const std::byte> ByteArray::span() const noexcept
 {
     return {data(), size()};
 }
 
 bool ByteArray::allZero() const noexcept
 {
-    return allZeroBytes(span());
+    for (const std::byte value : *this)
+    {
+        if (value != std::byte{})
+            return false;
+    }
+    return true;
 }
 
 bool ByteArray::contains(const std::byte value) const noexcept
 {
-    return containsByte(span(), value);
+    return std::ranges::find(*this, value) != end();
 }
 
-bool ByteArray::contains(const ByteSpan needle) const noexcept
+bool ByteArray::contains(const std::span<const std::byte> needle) const noexcept
 {
     return containsBytes(span(), needle);
 }
 
+bool ByteArray::contains(const ByteArray& needle) const noexcept
+{
+    return contains(needle.span());
+}
+
 bool ByteArray::contains(const std::string_view text) const noexcept
 {
-    return contains(asByteSpan(text));
+    return contains(byteSpan(text));
+}
+
+bool ByteArray::containsUtf16Le(const std::string_view text) const noexcept
+{
+    return containsUtf16LeBytes(span(), text);
 }
 
 bool ByteArray::containsRange(const size_t offset, const size_t byteCount) const noexcept
@@ -68,16 +125,27 @@ uint64_t ByteArray::readLe64(const size_t offset) const noexcept
     return value;
 }
 
-void ByteArray::append(const ByteSpan bytes)
+uint32_t ByteArray::readBe32(const size_t offset) const noexcept
+{
+    SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
+    return (std::to_integer<uint32_t>((*this)[offset + 0]) << 24) | (std::to_integer<uint32_t>((*this)[offset + 1]) << 16) | (std::to_integer<uint32_t>((*this)[offset + 2]) << 8) | std::to_integer<uint32_t>((*this)[offset + 3]);
+}
+
+void ByteArray::append(const std::span<const std::byte> bytes)
 {
     if (bytes.empty())
         return;
     insert(end(), bytes.begin(), bytes.end());
 }
 
+void ByteArray::append(const ByteArray& bytes)
+{
+    append(bytes.span());
+}
+
 void ByteArray::append(const std::string_view text)
 {
-    append(asByteSpan(text));
+    append(byteSpan(text));
 }
 
 void ByteArray::appendCString(const std::string_view text)
@@ -155,25 +223,6 @@ void ByteArray::align(const size_t alignment, const std::byte pad)
 {
     while (size() % alignment != 0)
         push_back(pad);
-}
-
-ByteSpanRW asByteSpan(ByteArray& v) noexcept
-{
-    return v.span();
-}
-
-ByteSpan asByteSpan(const ByteArray& v) noexcept
-{
-    return v.span();
-}
-
-bool containsUtf16Le(const ByteSpan bytes, const std::string_view text)
-{
-    ByteArray needle;
-    needle.reserve(text.size() * sizeof(char16_t));
-    needle.appendUtf16Le(text);
-
-    return containsBytes(bytes, needle.span());
 }
 
 SWC_END_NAMESPACE();

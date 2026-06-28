@@ -408,9 +408,9 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    if (!containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(referencedMarker)))
+    if (!fixture.nativeBuilder->mergedRData.bytes.contains(referencedMarker))
         return Result::Error;
-    if (containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(unreferencedMarker)))
+    if (fixture.nativeBuilder->mergedRData.bytes.contains(unreferencedMarker))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
         return Result::Error;
@@ -435,7 +435,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    if (!containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(referencedMarker)))
+    if (!fixture.nativeBuilder->mergedRData.bytes.contains(referencedMarker))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
         return Result::Error;
@@ -533,7 +533,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    if (!containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(dependencyMarker)))
+    if (!fixture.nativeBuilder->mergedRData.bytes.contains(dependencyMarker))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 2)
         return Result::Error;

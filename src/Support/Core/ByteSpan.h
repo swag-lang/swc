@@ -67,7 +67,30 @@ inline bool containsBytes(ByteSpan bytes, ByteSpan needle) noexcept
     return std::ranges::search(bytes, needle).begin() != bytes.end();
 }
 
-bool containsUtf16Le(ByteSpan bytes, std::string_view text);
+inline bool containsUtf16Le(ByteSpan bytes, std::string_view text) noexcept
+{
+    if (text.empty())
+        return true;
+    if (text.size() > bytes.size() / sizeof(char16_t))
+        return false;
+
+    const size_t needleSize = text.size() * sizeof(char16_t);
+    for (size_t offset = 0; offset <= bytes.size() - needleSize; ++offset)
+    {
+        bool found = true;
+        for (size_t i = 0; i < text.size(); ++i)
+        {
+            if (bytes[offset + i * 2] != static_cast<std::byte>(static_cast<uint8_t>(text[i])) || bytes[offset + i * 2 + 1] != std::byte{0})
+            {
+                found = false;
+                break;
+            }
+        }
+        if (found)
+            return true;
+    }
+    return false;
+}
 
 inline bool containsRange(ByteSpan bytes, size_t offset, size_t size) noexcept
 {

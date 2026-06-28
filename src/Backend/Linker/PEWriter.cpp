@@ -74,14 +74,14 @@ namespace
 
     // Writes a section-relative RVA placeholder and records its position so applyRelocations can rebase
     // it to an image RVA once the owning section's RVA is known.
-    void writeRvaFixup(std::vector<std::byte>& bytes, std::vector<uint32_t>& fixups, uint32_t offset, uint32_t value)
+    void writeRvaFixup(ByteArray& bytes, std::vector<uint32_t>& fixups, uint32_t offset, uint32_t value)
     {
         ByteUtils::writeLe32(bytes, offset, value);
         fixups.push_back(offset);
     }
 
     // Adds the section RVA to every recorded fixup site, turning section-relative offsets into image RVAs.
-    void rebaseRvaFixups(std::vector<std::byte>& bytes, const std::vector<uint32_t>& fixups, uint32_t rva)
+    void rebaseRvaFixups(ByteArray& bytes, const std::vector<uint32_t>& fixups, uint32_t rva)
     {
         for (const uint32_t fixup : fixups)
             ByteUtils::writeLe32(bytes, fixup, ByteUtils::readLe32(asByteSpan(bytes), fixup) + rva);
@@ -137,7 +137,7 @@ void PEWriter::buildImports()
     }
 
     // Build the .idata section: import descriptors, ILTs, IATs, hint/name table and DLL names.
-    std::vector<std::byte> idata;
+    ByteArray idata;
     const uint32_t         descCount = static_cast<uint32_t>(dllOrder.size());
 
     // Reserve the import directory table (+1 null terminator).
@@ -183,8 +183,8 @@ void PEWriter::buildImports()
             if (imp->byOrdinal)
                 continue; // imported by ordinal: no hint/name entry
             hintNameOffset[imp] = static_cast<uint32_t>(idata.size());
-            ByteUtils::appendLe16(idata, 0); // hint
-            ByteUtils::appendCString(idata, imp->importName.view());
+            idata.appendLe16(0); // hint
+            idata.appendCString(imp->importName.view());
             if (idata.size() % 2 != 0)
                 idata.push_back(std::byte{0});
         }
@@ -195,7 +195,7 @@ void PEWriter::buildImports()
     for (const Utf8& dll : dllOrder)
     {
         dllNameOffset[dll] = static_cast<uint32_t>(idata.size());
-        ByteUtils::appendCString(idata, dll.view());
+        idata.appendCString(dll.view());
         if (idata.size() % 2 != 0)
             idata.push_back(std::byte{0});
     }
@@ -268,14 +268,14 @@ void PEWriter::buildExports()
 
     const uint32_t count = static_cast<uint32_t>(sorted.size());
 
-    std::vector<std::byte> edata;
+    ByteArray edata;
     edata.resize(40, std::byte{0}); // IMAGE_EXPORT_DIRECTORY
 
     const uint32_t eatOffset = static_cast<uint32_t>(edata.size());
     for (uint32_t i = 0; i < count; ++i)
     {
         eatSymbolFixups_.emplace_back(static_cast<uint32_t>(edata.size()), sorted[i]->symbolName);
-        ByteUtils::appendLe32(edata, 0); // filled with the exported symbol RVA after layout
+        edata.appendLe32(0); // filled with the exported symbol RVA after layout
     }
 
     const uint32_t nptOffset = static_cast<uint32_t>(edata.size());
@@ -283,18 +283,18 @@ void PEWriter::buildExports()
 
     const uint32_t ordinalOffset = static_cast<uint32_t>(edata.size());
     for (uint32_t i = 0; i < count; ++i)
-        ByteUtils::appendLe16(edata, static_cast<uint16_t>(i));
+        edata.appendLe16(static_cast<uint16_t>(i));
 
     // Name strings, then the module name.
     std::vector<uint32_t> nameOffsets(count);
     for (uint32_t i = 0; i < count; ++i)
     {
         nameOffsets[i] = static_cast<uint32_t>(edata.size());
-        ByteUtils::appendCString(edata, sorted[i]->name.view());
+        edata.appendCString(sorted[i]->name.view());
     }
     const uint32_t         dllNameOffset = static_cast<uint32_t>(edata.size());
     const std::string_view exportModule  = image_->moduleName.empty() ? std::string_view{"module.dll"} : image_->moduleName.view();
-    ByteUtils::appendCString(edata, exportModule);
+    edata.appendCString(exportModule);
 
     // Fill the name-pointer table with RVAs of the name strings (relocated after layout).
     for (uint32_t i = 0; i < count; ++i)
@@ -475,7 +475,7 @@ void PEWriter::buildBaseRelocations()
 
     std::ranges::sort(baseRelocSites_);
 
-    std::vector<std::byte> reloc;
+    ByteArray reloc;
     size_t                 i = 0;
     while (i < baseRelocSites_.size())
     {
@@ -488,15 +488,15 @@ void PEWriter::buildBaseRelocations()
         const bool     pad        = (entryCount % 2) != 0;
         const uint32_t blockSize  = sizeof(uint32_t) * 2 + (entryCount + (pad ? 1 : 0)) * sizeof(uint16_t);
 
-        ByteUtils::appendLe32(reloc, pageRva);
-        ByteUtils::appendLe32(reloc, blockSize);
+        reloc.appendLe32(pageRva);
+        reloc.appendLe32(blockSize);
         for (size_t k = i; k < j; ++k)
         {
             const uint16_t entry = static_cast<uint16_t>((IMAGE_REL_BASED_DIR64 << 12) | (baseRelocSites_[k] & 0xFFF));
-            ByteUtils::appendLe16(reloc, entry);
+            reloc.appendLe16(entry);
         }
         if (pad)
-            ByteUtils::appendLe16(reloc, 0);
+            reloc.appendLe16(0);
 
         i = j;
     }
@@ -510,7 +510,7 @@ void PEWriter::buildBaseRelocations()
     sections_.push_back(std::move(relocSection));
 }
 
-bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
+bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
 {
     const bool isDll = image_->kind == LinkImageKind::SharedLibrary;
 
@@ -575,7 +575,7 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     }
 
     // ---- Headers ----
-    std::vector<std::byte> file;
+    ByteArray file;
     file.resize(headersSize, std::byte{0});
 
     IMAGE_DOS_HEADER dos{};
@@ -869,19 +869,19 @@ void PEWriter::emitDebugInfo()
     constexpr uint32_t entryCount = 2;
     constexpr uint32_t dirSize    = entrySize * entryCount;
 
-    std::vector<std::byte> rsds;
-    ByteUtils::appendLe32(rsds, 0x53445352u); // "RSDS"
+    ByteArray rsds;
+    rsds.appendLe32(0x53445352u); // "RSDS"
     for (const uint8_t b : guid)
         rsds.push_back(static_cast<std::byte>(b));
-    ByteUtils::appendLe32(rsds, age);
+    rsds.appendLe32(age);
     for (const char ch : pdbPathStr.view())
         rsds.push_back(static_cast<std::byte>(ch));
     rsds.push_back(std::byte{0});
 
     // VC_FEATURE payload: Pre-VC++11 / C-C++ / GS / sdl / guardN counts. swc applies none of these
-    // hardening passes, so the counts are zero — a valid, honest entry.
+    // hardening passes, so the counts are zero: a valid, honest entry.
     constexpr uint32_t featDataSize = 20;
-    std::vector        feat(featDataSize, std::byte{0});
+    ByteArray feat(featDataSize, std::byte{0});
 
     const uint32_t rsdsRva  = section.rva + dirSize;
     const uint32_t rsdsFile = section.fileOffset + dirSize;
@@ -890,18 +890,18 @@ void PEWriter::emitDebugInfo()
 
     constexpr uint32_t kImageDebugTypeVcFeature = 12;
 
-    const auto appendDirEntry = [&](std::vector<std::byte>& out, uint32_t type, uint32_t size, uint32_t rva, uint32_t fileOff) {
-        ByteUtils::appendLe32(out, 0);              // Characteristics
-        ByteUtils::appendLe32(out, timeDateStamp_); // TimeDateStamp (matches the PE file header)
-        ByteUtils::appendLe16(out, 0);              // MajorVersion
-        ByteUtils::appendLe16(out, 0);              // MinorVersion
-        ByteUtils::appendLe32(out, type);
-        ByteUtils::appendLe32(out, size);
-        ByteUtils::appendLe32(out, rva);
-        ByteUtils::appendLe32(out, fileOff);
+    const auto appendDirEntry = [&](ByteArray& out, uint32_t type, uint32_t size, uint32_t rva, uint32_t fileOff) {
+        out.appendLe32(0);              // Characteristics
+        out.appendLe32(timeDateStamp_); // TimeDateStamp (matches the PE file header)
+        out.appendLe16(0);              // MajorVersion
+        out.appendLe16(0);              // MinorVersion
+        out.appendLe32(type);
+        out.appendLe32(size);
+        out.appendLe32(rva);
+        out.appendLe32(fileOff);
     };
 
-    std::vector<std::byte> dir;
+    ByteArray dir;
     appendDirEntry(dir, IMAGE_DEBUG_TYPE_CODEVIEW, static_cast<uint32_t>(rsds.size()), rsdsRva, rsdsFile);
     appendDirEntry(dir, kImageDebugTypeVcFeature, featDataSize, featRva, featFile);
 
@@ -914,7 +914,7 @@ void PEWriter::emitDebugInfo()
     debugDirSize_ = dirSize;
 }
 
-bool PEWriter::writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath)
+bool PEWriter::writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath)
 {
     image_       = &image;
     debugInfo_   = &debugInfo;
@@ -963,12 +963,12 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, std::vector<std::byt
     return emit(outBytes, outDiag);
 }
 
-bool PEWriter::buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members)
+bool PEWriter::buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members)
 {
     return buildCoffStaticArchive(outBytes, outDiag, members);
 }
 
-void PEWriter::buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
+void PEWriter::buildImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
 {
     buildCoffImportLibrary(outBytes, dllFileName, exportNames);
 }

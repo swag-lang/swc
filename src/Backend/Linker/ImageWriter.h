@@ -23,14 +23,14 @@ public:
     // structural problem. When debugInfo is enabled, also produces the matching debug-info sidecar bytes
     // (a PDB on Windows) into outPdbBytes and embeds the reference to it in the image; outPdbBytes is left
     // empty when debug info is disabled.
-    virtual bool writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) = 0;
+    virtual bool writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) = 0;
 
     // Static library archive built from prepared object members. Returns false and fills outDiag on a
     // malformed member.
-    virtual bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) = 0;
+    virtual bool buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) = 0;
 
     // Import library that accompanies a shared library so dependents can resolve its exports by name.
-    virtual void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) = 0;
+    virtual void buildImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) = 0;
 };
 
 SWC_END_NAMESPACE();

@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -105,8 +106,8 @@ struct DebugInfoPdbUdt
 // the request's functions/globals.
 struct DebugInfoPdbResult
 {
-    std::vector<std::byte>            tpiRecords;
-    std::vector<std::byte>            ipiRecords;
+    ByteArray                         tpiRecords;
+    ByteArray                         ipiRecords;
     uint32_t                          tpiIndexEnd    = 0x1000;
     uint32_t                          ipiIndexEnd    = 0x1000;
     uint32_t                          buildInfoIndex = 0;

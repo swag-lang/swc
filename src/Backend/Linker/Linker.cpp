@@ -12,7 +12,7 @@ namespace
 {
     // Writes the produced bytes through the shared FileSystem helper, recording a ready-to-report
     // diagnostic on the job if the write fails (finishLink reports it on the foreground thread).
-    bool writeJobArtifact(LinkJob& job, const fs::path& path, const std::vector<std::byte>& bytes)
+    bool writeJobArtifact(LinkJob& job, const fs::path& path, const ByteArray& bytes)
     {
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFile(path, bytes.data(), bytes.size(), ioError) != Result::Continue)
@@ -29,8 +29,8 @@ namespace
     // job.error filled on any failure. Split out so executeInternalLink records job.ok in one place.
     bool runInternalLink(LinkJob& job, ImageWriter& writer)
     {
-        std::vector<std::byte> bytes;
-        std::vector<std::byte> pdbBytes;
+        ByteArray bytes;
+        ByteArray pdbBytes;
         switch (job.output)
         {
             case LinkJob::Output::Executable:
@@ -59,7 +59,7 @@ namespace
             for (const LinkExport& exported : job.image.exports)
                 exportNames.push_back(exported.name);
 
-            std::vector<std::byte> libBytes;
+            ByteArray libBytes;
             writer.buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");

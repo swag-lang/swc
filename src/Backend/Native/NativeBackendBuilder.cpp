@@ -38,11 +38,11 @@ namespace
     bool publishDependencyFilesHaveSameContent(const fs::path& lhsPath, const fs::path& rhsPath)
     {
         FileSystem::IoErrorInfo ioError;
-        std::vector<std::byte>  lhsData;
+        ByteArray lhsData;
         if (FileSystem::readBinaryFile(lhsPath, lhsData, ioError) != Result::Continue)
             return false;
 
-        std::vector<std::byte> rhsData;
+        ByteArray rhsData;
         if (FileSystem::readBinaryFile(rhsPath, rhsData, ioError) != Result::Continue)
             return false;
 
@@ -54,7 +54,7 @@ namespace
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
     }
 
-    void writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
+    void writeU64(ByteArray& bytes, const uint32_t offset, const uint64_t value)
     {
         std::memcpy(bytes.data() + offset, &value, sizeof(value));
     }

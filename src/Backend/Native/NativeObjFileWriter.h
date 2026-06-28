@@ -10,7 +10,7 @@ public:
 
     static std::unique_ptr<NativeObjFileWriter> create(NativeBackendBuilder& builder);
 
-    virtual Result buildObjectFile(std::vector<std::byte>& outBytes, const NativeObjDescription& description) = 0;
+    virtual Result buildObjectFile(ByteArray& outBytes, const NativeObjDescription& description) = 0;
     virtual Result writeObjectFile(const NativeObjDescription& description)                                   = 0;
 };
 

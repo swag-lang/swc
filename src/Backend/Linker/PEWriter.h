@@ -14,21 +14,21 @@ class Diagnostic;
 class PEWriter final : public ImageWriter
 {
 public:
-    bool writeImage(std::vector<std::byte>& outBytes, std::vector<std::byte>& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) override;
-    bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) override;
-    void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
+    bool writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) override;
+    bool buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) override;
+    void buildImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
 
 private:
     struct OutSection
     {
-        Utf8                   name;
-        std::vector<std::byte> bytes;
-        uint32_t               virtualSize = 0;
-        bool                   isBss       = false;
-        uint32_t               align       = 16;
-        uint32_t               rva         = 0;
-        uint32_t               fileOffset  = 0;
-        uint32_t               rawSize     = 0;
+        Utf8      name;
+        ByteArray bytes;
+        uint32_t  virtualSize = 0;
+        bool      isBss       = false;
+        uint32_t  align       = 16;
+        uint32_t  rva         = 0;
+        uint32_t  fileOffset  = 0;
+        uint32_t  rawSize     = 0;
     };
 
     struct ImportThunk
@@ -54,12 +54,12 @@ private:
     void     reserveDebugDirectorySection();
     bool     reserveResourceSection(Diagnostic& outDiag);
     void     emitDebugInfo(); // builds the PDB and fills the debug-directory section; no-op if disabled
-    bool     emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag);
+    bool     emit(ByteArray& outBytes, Diagnostic& outDiag);
     bool     debugInfoEnabled() const;
 
     const LinkImage*                       image_       = nullptr;
     const LinkDebugInfo*                   debugInfo_   = nullptr;
-    std::vector<std::byte>*                outPdbBytes_ = nullptr;
+    ByteArray*                            outPdbBytes_ = nullptr;
     fs::path                               pdbPath_;
     std::vector<OutSection>                sections_;
     std::vector<uint32_t>                  imageToOut_; // image.sections index -> sections_ index

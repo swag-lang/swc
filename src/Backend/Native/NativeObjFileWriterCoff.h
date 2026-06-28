@@ -9,7 +9,7 @@ class NativeObjFileWriterCoff final : public NativeObjFileWriter
 public:
     explicit NativeObjFileWriterCoff(NativeBackendBuilder& builder);
 
-    Result buildObjectFile(std::vector<std::byte>& outBytes, const NativeObjDescription& description) override;
+    Result buildObjectFile(ByteArray& outBytes, const NativeObjDescription& description) override;
     Result writeObjectFile(const NativeObjDescription& description) override;
 
 private:
@@ -58,18 +58,18 @@ private:
     };
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
-    static void   appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const std::vector<std::byte>& bytes);
+    static void   appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, ByteSpan bytes);
     Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     static Result applySectionRelocations(CoffSectionBuild& section);
-    static void   writeU16(std::vector<std::byte>& bytes, uint32_t offset, uint16_t value);
-    static void   writeU32(std::vector<std::byte>& bytes, uint32_t offset, uint32_t value);
-    static void   writeU64(std::vector<std::byte>& bytes, uint32_t offset, uint64_t value);
+    static void   writeU16(ByteArray& bytes, uint32_t offset, uint16_t value);
+    static void   writeU32(ByteArray& bytes, uint32_t offset, uint32_t value);
+    static void   writeU64(ByteArray& bytes, uint32_t offset, uint64_t value);
     void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
     static void   addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record);
     static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
-    static Result buildCoffFile(std::vector<std::byte>& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices);
+    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices);
 
     NativeBackendBuilder* builder_ = nullptr;
 };

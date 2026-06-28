@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -77,8 +78,8 @@ struct LinkDebugInfo
 
     // Pre-lowered CodeView type/id records, ready to drop into the PDB TPI/IPI streams verbatim. Indices
     // run from 0x1000 to the matching *End value. The two streams have independent index spaces.
-    std::vector<std::byte> tpiRecords;
-    std::vector<std::byte> ipiRecords;
+    ByteArray              tpiRecords;
+    ByteArray              ipiRecords;
     uint32_t               tpiIndexEnd    = 0x1000;
     uint32_t               ipiIndexEnd    = 0x1000;
     uint32_t               buildInfoIndex = 0;

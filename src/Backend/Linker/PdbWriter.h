@@ -40,7 +40,7 @@ public:
 
     // Returns the PDB bytes in outBytes and fills outGuid/outAge/outSignature. moduleName/pdbPath are used
     // for the module and object-name records. Never fails for well-formed input.
-    static void build(std::vector<std::byte>&            outBytes,
+    static void build(ByteArray&                         outBytes,
                       std::array<uint8_t, 16>&           outGuid,
                       uint32_t&                          outAge,
                       uint32_t&                          outSignature,

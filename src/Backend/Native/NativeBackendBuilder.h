@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Hash.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
@@ -102,7 +103,7 @@ struct NativeSectionRelocation
 struct NativeSectionData
 {
     Utf8                                 name;
-    std::vector<std::byte>               bytes;
+    ByteArray                            bytes;
     std::vector<NativeSectionRelocation> relocations;
     uint32_t                             characteristics = 0;
     bool                                 bss             = false;
@@ -111,7 +112,7 @@ struct NativeSectionData
 
 struct NativeCodeRelocationTarget
 {
-    std::vector<std::byte>*               bytes                  = nullptr;
+    ByteArray*                            bytes                  = nullptr;
     std::vector<NativeSectionRelocation>* relocations            = nullptr;
     uint32_t                              functionOffset         = 0;
     bool                                  allowUnresolvedSymbols = false;
@@ -128,7 +129,7 @@ struct NativeObjDescription
 {
     uint32_t                         index = 0;
     fs::path                         objPath;
-    std::vector<std::byte>           objBytes;
+    ByteArray                        objBytes;
     std::vector<NativeFunctionInfo*> functions;
     NativeStartupInfo*               startup                = nullptr;
     bool                             includeData            = false;

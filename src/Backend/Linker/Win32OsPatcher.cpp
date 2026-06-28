@@ -20,7 +20,7 @@ namespace
         uint32_t               typeId = 0;
         uint32_t               nameId = 0;
         uint32_t               langId = K_RESOURCE_LANG;
-        std::vector<std::byte> bytes;
+        ByteArray bytes;
     };
 
     struct ResourceTreeNode
@@ -82,24 +82,11 @@ namespace
         return true;
     }
 
-    void writeU16(std::vector<std::byte>& bytes, const size_t offset, const uint16_t value)
+    void writeU16(ByteArray& bytes, const size_t offset, const uint16_t value)
     {
         SWC_ASSERT(ByteUtils::containsRange(asByteSpan(bytes), offset, sizeof(uint16_t)));
         bytes[offset + 0] = static_cast<std::byte>(value & 0xFF);
         bytes[offset + 1] = static_cast<std::byte>((value >> 8) & 0xFF);
-    }
-
-    void padToDword(std::vector<std::byte>& bytes)
-    {
-        while (bytes.size() % 4 != 0)
-            bytes.push_back(std::byte{0});
-    }
-
-    void appendUtf16Z(std::vector<std::byte>& bytes, std::u16string_view text)
-    {
-        for (const char16_t ch : text)
-            ByteUtils::appendLe16(bytes, static_cast<uint16_t>(ch));
-        ByteUtils::appendLe16(bytes, 0);
     }
 
     void appendUtf16CodePoint(std::u16string& out, uint32_t cp)
@@ -197,30 +184,30 @@ namespace
         return build << 16;
     }
 
-    uint32_t beginVersionBlock(std::vector<std::byte>& bytes, std::u16string_view key, const uint16_t valueLength, const uint16_t type)
+    uint32_t beginVersionBlock(ByteArray& bytes, std::u16string_view key, const uint16_t valueLength, const uint16_t type)
     {
         const uint32_t offset = static_cast<uint32_t>(bytes.size());
-        ByteUtils::appendLe16(bytes, 0);
-        ByteUtils::appendLe16(bytes, valueLength);
-        ByteUtils::appendLe16(bytes, type);
-        appendUtf16Z(bytes, key);
-        padToDword(bytes);
+        bytes.appendLe16(0);
+        bytes.appendLe16(valueLength);
+        bytes.appendLe16(type);
+        bytes.appendUtf16LeZ(key);
+        bytes.align(4);
         return offset;
     }
 
-    void finishVersionBlock(std::vector<std::byte>& bytes, const uint32_t offset)
+    void finishVersionBlock(ByteArray& bytes, const uint32_t offset)
     {
         const uint32_t length = static_cast<uint32_t>(bytes.size()) - offset;
         SWC_ASSERT(length <= 0xFFFF);
         writeU16(bytes, offset, static_cast<uint16_t>(length));
     }
 
-    void appendVersionStringBlock(std::vector<std::byte>& bytes, const VersionString& value)
+    void appendVersionStringBlock(ByteArray& bytes, const VersionString& value)
     {
         const uint16_t valueLength = static_cast<uint16_t>(std::min<size_t>(value.value.size() + 1, 0xFFFF));
         const uint32_t offset      = beginVersionBlock(bytes, value.key, valueLength, 1);
-        appendUtf16Z(bytes, value.value);
-        padToDword(bytes);
+        bytes.appendUtf16LeZ(value.value);
+        bytes.align(4);
         finishVersionBlock(bytes, offset);
     }
 
@@ -231,7 +218,7 @@ namespace
         strings.push_back({.key = utf8ToUtf16(key), .value = utf8ToUtf16(value.view())});
     }
 
-    void appendVersionStringFileInfo(std::vector<std::byte>& bytes, const LinkImage& image)
+    void appendVersionStringFileInfo(ByteArray& bytes, const LinkImage& image)
     {
         std::vector<VersionString> strings;
         const Utf8                 appName     = image.win32.appName.empty() ? image.moduleName : image.win32.appName;
@@ -255,36 +242,36 @@ namespace
         finishVersionBlock(bytes, fileInfoOffset);
     }
 
-    void appendVersionVarFileInfo(std::vector<std::byte>& bytes)
+    void appendVersionVarFileInfo(ByteArray& bytes)
     {
         const uint32_t varInfoOffset = beginVersionBlock(bytes, u"VarFileInfo", 0, 1);
         const uint32_t varOffset     = beginVersionBlock(bytes, u"Translation", 4, 0);
-        ByteUtils::appendLe16(bytes, K_RESOURCE_LANG);
-        ByteUtils::appendLe16(bytes, K_RESOURCE_CODEPAGE);
-        padToDword(bytes);
+        bytes.appendLe16(K_RESOURCE_LANG);
+        bytes.appendLe16(K_RESOURCE_CODEPAGE);
+        bytes.align(4);
         finishVersionBlock(bytes, varOffset);
         finishVersionBlock(bytes, varInfoOffset);
     }
 
-    std::vector<std::byte> buildVersionInfo(const LinkImage& image)
+    ByteArray buildVersionInfo(const LinkImage& image)
     {
-        std::vector<std::byte> bytes;
+        ByteArray bytes;
         const uint32_t         rootOffset = beginVersionBlock(bytes, u"VS_VERSION_INFO", 52, 0);
 
-        ByteUtils::appendLe32(bytes, 0xFEEF04BDu);
-        ByteUtils::appendLe32(bytes, 0x00010000u);
-        ByteUtils::appendLe32(bytes, versionMs(image.win32));
-        ByteUtils::appendLe32(bytes, versionLs(image.win32));
-        ByteUtils::appendLe32(bytes, versionMs(image.win32));
-        ByteUtils::appendLe32(bytes, versionLs(image.win32));
-        ByteUtils::appendLe32(bytes, 0x0000003Fu);
-        ByteUtils::appendLe32(bytes, 0);
-        ByteUtils::appendLe32(bytes, 0x00040004u);
-        ByteUtils::appendLe32(bytes, image.kind == LinkImageKind::SharedLibrary ? 2u : 1u);
-        ByteUtils::appendLe32(bytes, 0);
-        ByteUtils::appendLe32(bytes, 0);
-        ByteUtils::appendLe32(bytes, 0);
-        padToDword(bytes);
+        bytes.appendLe32(0xFEEF04BDu);
+        bytes.appendLe32(0x00010000u);
+        bytes.appendLe32(versionMs(image.win32));
+        bytes.appendLe32(versionLs(image.win32));
+        bytes.appendLe32(versionMs(image.win32));
+        bytes.appendLe32(versionLs(image.win32));
+        bytes.appendLe32(0x0000003Fu);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0x00040004u);
+        bytes.appendLe32(image.kind == LinkImageKind::SharedLibrary ? 2u : 1u);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.align(4);
 
         appendVersionStringFileInfo(bytes, image);
         appendVersionVarFileInfo(bytes);
@@ -292,12 +279,12 @@ namespace
         return bytes;
     }
 
-    void addPayload(std::vector<ResourcePayload>& payloads, const uint32_t typeId, const uint32_t nameId, std::vector<std::byte> bytes)
+    void addPayload(std::vector<ResourcePayload>& payloads, const uint32_t typeId, const uint32_t nameId, ByteArray bytes)
     {
         payloads.push_back({.typeId = typeId, .nameId = nameId, .langId = K_RESOURCE_LANG, .bytes = std::move(bytes)});
     }
 
-    std::vector<std::byte> buildManifest()
+    ByteArray buildManifest()
     {
         static constexpr char MANIFEST[] =
             "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\r\n"
@@ -363,22 +350,22 @@ namespace
         return true;
     }
 
-    std::vector<std::byte> buildGroupIcon(const std::vector<IconDirEntry>& entries)
+    ByteArray buildGroupIcon(const std::vector<IconDirEntry>& entries)
     {
-        std::vector<std::byte> group;
-        ByteUtils::appendLe16(group, 0);
-        ByteUtils::appendLe16(group, 1);
-        ByteUtils::appendLe16(group, static_cast<uint16_t>(entries.size()));
+        ByteArray group;
+        group.appendLe16(0);
+        group.appendLe16(1);
+        group.appendLe16(static_cast<uint16_t>(entries.size()));
         for (const IconDirEntry& entry : entries)
         {
             group.push_back(static_cast<std::byte>(entry.width));
             group.push_back(static_cast<std::byte>(entry.height));
             group.push_back(static_cast<std::byte>(entry.colorCount));
             group.push_back(std::byte{0});
-            ByteUtils::appendLe16(group, entry.planes);
-            ByteUtils::appendLe16(group, entry.bitCount);
-            ByteUtils::appendLe32(group, entry.bytesInRes);
-            ByteUtils::appendLe16(group, entry.resourceId);
+            group.appendLe16(entry.planes);
+            group.appendLe16(entry.bitCount);
+            group.appendLe32(entry.bytesInRes);
+            group.appendLe16(entry.resourceId);
         }
 
         return group;
@@ -394,7 +381,7 @@ namespace
         for (const IconDirEntry& entry : entries)
         {
             const auto* imageBegin = iconBytes.data() + entry.imageOffset;
-            std::vector image(imageBegin, imageBegin + entry.bytesInRes);
+            ByteArray image(imageBegin, imageBegin + entry.bytesInRes);
             addPayload(payloads, K_RT_ICON, entry.resourceId, std::move(image));
         }
 
@@ -429,15 +416,15 @@ namespace
             sortTree(child);
     }
 
-    uint32_t appendDirectory(std::vector<std::byte>& bytes, const ResourceTreeNode& node, std::vector<ResourceLeafRef>& leaves)
+    uint32_t appendDirectory(ByteArray& bytes, const ResourceTreeNode& node, std::vector<ResourceLeafRef>& leaves)
     {
         const uint32_t offset = static_cast<uint32_t>(bytes.size());
-        ByteUtils::appendLe32(bytes, 0);
-        ByteUtils::appendLe32(bytes, 0);
-        ByteUtils::appendLe16(bytes, 0);
-        ByteUtils::appendLe16(bytes, 0);
-        ByteUtils::appendLe16(bytes, 0);
-        ByteUtils::appendLe16(bytes, static_cast<uint16_t>(node.children.size()));
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe16(0);
+        bytes.appendLe16(0);
+        bytes.appendLe16(0);
+        bytes.appendLe16(static_cast<uint16_t>(node.children.size()));
 
         const uint32_t entriesOffset = static_cast<uint32_t>(bytes.size());
         bytes.resize(bytes.size() + node.children.size() * 8, std::byte{0});
@@ -466,10 +453,10 @@ namespace
         {
             leaf.dataEntryOffset = static_cast<uint32_t>(outSection.bytes.size());
             ByteUtils::writeLe32(outSection.bytes, leaf.entryValueOffset, leaf.dataEntryOffset);
-            ByteUtils::appendLe32(outSection.bytes, 0);
-            ByteUtils::appendLe32(outSection.bytes, static_cast<uint32_t>(leaf.payload->bytes.size()));
-            ByteUtils::appendLe32(outSection.bytes, 0);
-            ByteUtils::appendLe32(outSection.bytes, 0);
+            outSection.bytes.appendLe32(0);
+            outSection.bytes.appendLe32(static_cast<uint32_t>(leaf.payload->bytes.size()));
+            outSection.bytes.appendLe32(0);
+            outSection.bytes.appendLe32(0);
         }
     }
 
@@ -477,10 +464,10 @@ namespace
     {
         for (const ResourceLeafRef& leaf : leaves)
         {
-            padToDword(outSection.bytes);
+            outSection.bytes.align(4);
             const uint32_t payloadOffset = static_cast<uint32_t>(outSection.bytes.size());
             ByteUtils::writeLe32(outSection.bytes, leaf.dataEntryOffset, payloadOffset);
-            ByteUtils::appendBytes(outSection.bytes, asByteSpan(leaf.payload->bytes));
+            outSection.bytes.append(asByteSpan(leaf.payload->bytes));
             outSection.rvaPatches.push_back({.dataEntryOffset = leaf.dataEntryOffset, .payloadOffset = payloadOffset});
         }
     }
@@ -514,7 +501,7 @@ bool Win32OsPatcher::buildResourceSection(Win32ResourceSection& outSection, Diag
     return true;
 }
 
-void Win32OsPatcher::patchResourceSectionRvas(std::vector<std::byte>& bytes, std::span<const Win32ResourceRvaPatch> patches, const uint32_t sectionRva)
+void Win32OsPatcher::patchResourceSectionRvas(ByteArray& bytes, std::span<const Win32ResourceRvaPatch> patches, const uint32_t sectionRva)
 {
     for (const Win32ResourceRvaPatch& patch : patches)
         ByteUtils::writeLe32(bytes, patch.dataEntryOffset, sectionRva + patch.payloadOffset);

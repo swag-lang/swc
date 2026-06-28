@@ -22,7 +22,7 @@ struct CoffInputSection
 {
     Utf8                        name;
     uint32_t                    characteristics = 0;
-    std::vector<std::byte>      bytes; // empty for an uninitialised section
+    ByteArray                   bytes; // empty for an uninitialised section
     bool                        isBss   = false;
     uint32_t                    bssSize = 0;
     std::vector<CoffInputReloc> relocs;

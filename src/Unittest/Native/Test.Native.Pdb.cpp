@@ -16,13 +16,13 @@ namespace
 {
     constexpr uint16_t K_S_PROCREF = 0x1125;
 
-    void emit(std::vector<std::byte>& out, std::initializer_list<int> bytes)
+    void emit(ByteArray& out, std::initializer_list<int> bytes)
     {
         for (const int b : bytes)
             out.push_back(static_cast<std::byte>(b));
     }
 
-    bool writeFile(const fs::path& path, const std::vector<std::byte>& bytes)
+    bool writeFile(const fs::path& path, const ByteArray& bytes)
     {
         std::ofstream file(path, std::ios::binary | std::ios::trunc);
         if (!file.is_open())
@@ -31,14 +31,14 @@ namespace
         return file.good();
     }
 
-    uint16_t readU16(const std::vector<std::byte>& bytes, const size_t offset)
+    uint16_t readU16(const ByteArray& bytes, const size_t offset)
     {
         uint16_t value = 0;
         std::memcpy(&value, bytes.data() + offset, sizeof(value));
         return value;
     }
 
-    bool pdbContainsSymbolRecord(const std::vector<std::byte>& bytes, const uint16_t kind, const std::string_view name)
+    bool pdbContainsSymbolRecord(const ByteArray& bytes, const uint16_t kind, const std::string_view name)
     {
         const ByteSpan needle = asByteSpan(name);
         for (size_t offset = 0; offset + sizeof(uint16_t) * 2 <= bytes.size(); ++offset)
@@ -72,7 +72,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
     constexpr uint64_t imageBase = 0x140000000ull;
 
-    std::vector<std::byte> text;
+    ByteArray text;
     emit(text, {0x48, 0x83, 0xEC, 0x28}); // sub rsp, 0x28   (line 10)
     emit(text, {0xB8, 0x2A, 0x00, 0x00}); // mov eax, ...    (macro line 20)
     emit(text, {0x90, 0x90, 0x90, 0x90}); //                 (line 11)
@@ -154,8 +154,8 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     global.isPublic      = true;
     dbg.globals.push_back(std::move(global));
 
-    std::vector<std::byte> peBytes;
-    std::vector<std::byte> pdbBytes;
+    ByteArray peBytes;
+    ByteArray pdbBytes;
     Diagnostic             diag;
     PEWriter               writer;
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, dbg, pdbPath))

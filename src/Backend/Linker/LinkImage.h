@@ -1,5 +1,6 @@
 #pragma once
 #include "Support/Core/Flags.h"
+#include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -41,7 +42,7 @@ struct LinkReloc
 struct LinkSection
 {
     Utf8                         name;
-    std::vector<std::byte>       bytes;       // raw contents; empty for an uninitialised (bss) section
+    ByteArray                    bytes;       // raw contents; empty for an uninitialised (bss) section
     uint32_t                     bssSize = 0; // size in bytes when the Uninit flag is set
     uint32_t                     align   = 16;
     EnumFlags<LinkSectionFlagsE> flags;
@@ -81,8 +82,8 @@ struct LinkExport
 // name for debug records and archive member headers, but the linker owns the bytes directly.
 struct LinkArchiveMember
 {
-    Utf8                   name;
-    std::vector<std::byte> bytes;
+    Utf8      name;
+    ByteArray bytes;
 };
 
 enum class LinkImageKind : uint8_t
@@ -99,16 +100,16 @@ enum class LinkWin32Subsystem : uint8_t
 
 struct LinkWin32ApplicationConfig
 {
-    Utf8                   iconPath;
-    std::vector<std::byte> iconBytes;
-    Utf8                   appName;
-    Utf8                   appDescription;
-    Utf8                   appCompany;
-    Utf8                   appCopyright;
-    uint32_t               version   = 0;
-    uint32_t               revision  = 0;
-    uint32_t               buildNum  = 0;
-    LinkWin32Subsystem     subsystem = LinkWin32Subsystem::Console;
+    Utf8                 iconPath;
+    ByteArray            iconBytes;
+    Utf8                 appName;
+    Utf8                 appDescription;
+    Utf8                 appCompany;
+    Utf8                 appCopyright;
+    uint32_t             version   = 0;
+    uint32_t             revision  = 0;
+    uint32_t             buildNum  = 0;
+    LinkWin32Subsystem   subsystem = LinkWin32Subsystem::Console;
 
     bool hasIcon() const { return !iconBytes.empty(); }
     bool hasVersionInfo() const { return version != 0 || revision != 0 || buildNum != 0 || !appName.empty() || !appDescription.empty() || !appCompany.empty() || !appCopyright.empty(); }

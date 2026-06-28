@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Backend/Micro/MicroBuilder.h"
+#include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,8 +18,8 @@ struct MachineCode
         ResolvedDebugSourceInfo source;
     };
 
-    std::vector<std::byte>        bytes;
-    std::vector<std::byte>        unwindInfo;
+    ByteArray                     bytes;
+    ByteArray                     unwindInfo;
     std::vector<MicroRelocation>  codeRelocations;
     std::vector<DebugSourceRange> debugSourceRanges;
 

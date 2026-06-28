@@ -24,7 +24,7 @@ class Archive
 {
 public:
     // Takes ownership of the archive bytes. Returns false and fills outDiag on a malformed archive.
-    bool load(Diagnostic& outDiag, std::vector<std::byte> bytes);
+    bool load(Diagnostic& outDiag, ByteArray bytes);
 
     // Returns the file offset of the member header defining the given symbol, or 0 if this archive
     // does not provide it (0 is never a valid member offset because the magic occupies offset 0).
@@ -37,16 +37,16 @@ public:
     bool tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const;
 
 private:
-    std::vector<std::byte>             bytes_;
+    ByteArray                          bytes_;
     std::unordered_map<Utf8, uint32_t> symbolToMember_;
 };
 
 // Builds a COFF static library (`!<arch>`) from prepared object members: a symbol-directory linker
 // member, a long-names member, and the object members. Returns false and fills outDiag on failure.
-bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers);
+bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers);
 
 // Builds an import library: a COFF archive of short-import records, one per exported name, so a
 // dependent link resolves those names as by-name imports from the given DLL file.
-void buildCoffImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
+void buildCoffImportLibrary(ByteArray& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
 
 SWC_END_NAMESPACE();

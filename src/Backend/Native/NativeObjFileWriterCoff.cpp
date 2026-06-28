@@ -23,7 +23,7 @@ NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) 
 {
 }
 
-Result NativeObjFileWriterCoff::buildObjectFile(std::vector<std::byte>& outBytes, const NativeObjDescription& description)
+Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const NativeObjDescription& description)
 {
     outBytes.clear();
     SWC_ASSERT(builder_ != nullptr);
@@ -93,7 +93,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(std::vector<std::byte>& outBytes
 
 Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
 {
-    std::vector<std::byte> fileData;
+    ByteArray fileData;
     SWC_RESULT(buildObjectFile(fileData, description));
 
     FileSystem::IoErrorInfo ioError;
@@ -106,21 +106,21 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
 }
 
-void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const std::vector<std::byte>& bytes)
+void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const ByteSpan bytes)
 {
     const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
     if (textSection.data.bytes.size() < alignedOffset)
         textSection.data.bytes.resize(alignedOffset, std::byte{0});
     outOffset = alignedOffset;
-    textSection.data.bytes.insert(textSection.data.bytes.end(), bytes.begin(), bytes.end());
+    textSection.data.bytes.append(bytes);
 }
 
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     if (description.startup)
-        appendAlignedCodeBytes(textSection, description.startup->textOffset, description.startup->code.bytes);
+        appendAlignedCodeBytes(textSection, description.startup->textOffset, description.startup->code.bytes.span());
     for (NativeFunctionInfo* info : description.functions)
-        appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes);
+        appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes.span());
 
     if (description.startup)
         SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));
@@ -188,17 +188,17 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
     return Result::Continue;
 }
 
-void NativeObjFileWriterCoff::writeU16(std::vector<std::byte>& bytes, const uint32_t offset, const uint16_t value)
+void NativeObjFileWriterCoff::writeU16(ByteArray& bytes, const uint32_t offset, const uint16_t value)
 {
     std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
-void NativeObjFileWriterCoff::writeU32(std::vector<std::byte>& bytes, const uint32_t offset, const uint32_t value)
+void NativeObjFileWriterCoff::writeU32(ByteArray& bytes, const uint32_t offset, const uint32_t value)
 {
     std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
 
-void NativeObjFileWriterCoff::writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
+void NativeObjFileWriterCoff::writeU64(ByteArray& bytes, const uint32_t offset, const uint64_t value)
 {
     std::memcpy(bytes.data() + offset, &value, sizeof(value));
 }
@@ -313,7 +313,7 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
     }
 }
 
-Result NativeObjFileWriterCoff::buildCoffFile(std::vector<std::byte>& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices)
+Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices)
 {
     outBytes.clear();
     CoffStringTable stringTable;

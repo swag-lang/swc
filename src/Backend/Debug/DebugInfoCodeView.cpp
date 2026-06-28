@@ -143,14 +143,11 @@ namespace
             return offset;
         }
 
-        void commit(std::vector<std::byte>& outBytes) const
+        void commit(ByteArray& outBytes) const
         {
             outBytes.push_back(std::byte{0});
             for (const Utf8& entry : entries)
-            {
-                outBytes.insert(outBytes.end(), reinterpret_cast<const std::byte*>(entry.data()), reinterpret_cast<const std::byte*>(entry.data() + entry.size()));
-                outBytes.push_back(std::byte{0});
-            }
+                outBytes.appendCString(entry.view());
         }
 
         uint32_t                           size = 1;
@@ -184,15 +181,14 @@ namespace
             return entryOffset;
         }
 
-        void commit(std::vector<std::byte>& outBytes) const
+        void commit(ByteArray& outBytes) const
         {
             for (const Entry& entry : entries)
             {
-                const uint32_t stringOffset = entry.stringOffset;
-                outBytes.insert(outBytes.end(), reinterpret_cast<const std::byte*>(&stringOffset), reinterpret_cast<const std::byte*>(&stringOffset) + sizeof(stringOffset));
+                outBytes.appendLe32(entry.stringOffset);
                 outBytes.push_back(static_cast<std::byte>(entry.checksumSize));
                 outBytes.push_back(static_cast<std::byte>(entry.checksumKind));
-                outBytes.insert(outBytes.end(), entry.checksum.begin(), entry.checksum.begin() + entry.checksumSize);
+                outBytes.append(ByteSpan{entry.checksum.data(), entry.checksumSize});
 
                 const uint32_t recordSize = 6 + entry.checksumSize;
                 const uint32_t padBytes   = Math::alignUpU32(recordSize, 4) - recordSize;
@@ -232,27 +228,24 @@ namespace
         return nullptr;
     }
 
-    void writeU16(std::vector<std::byte>& bytes, uint16_t value)
+    void writeU16(ByteArray& bytes, uint16_t value)
     {
-        const auto* src = reinterpret_cast<const std::byte*>(&value);
-        bytes.insert(bytes.end(), src, src + sizeof(value));
+        bytes.appendLe16(value);
     }
 
-    void writeU32(std::vector<std::byte>& bytes, uint32_t value)
+    void writeU32(ByteArray& bytes, uint32_t value)
     {
-        const auto* src = reinterpret_cast<const std::byte*>(&value);
-        bytes.insert(bytes.end(), src, src + sizeof(value));
+        bytes.appendLe32(value);
     }
 
-    void writeU64(std::vector<std::byte>& bytes, uint64_t value)
+    void writeU64(ByteArray& bytes, uint64_t value)
     {
-        const auto* src = reinterpret_cast<const std::byte*>(&value);
-        bytes.insert(bytes.end(), src, src + sizeof(value));
+        bytes.appendLe64(value);
     }
 
-    void writeBytes(std::vector<std::byte>& outBytes, const ByteSpan bytes)
+    void writeBytes(ByteArray& outBytes, const ByteSpan bytes)
     {
-        outBytes.insert(outBytes.end(), bytes.begin(), bytes.end());
+        outBytes.append(bytes);
     }
 
     void addSecrelAndSectionRelocations(NativeSectionData& section, const Utf8& symbolName, uint32_t offRelocOffset, uint32_t segRelocOffset, uint64_t addend = 0)
@@ -272,13 +265,12 @@ namespace
         section.relocations.push_back(segReloc);
     }
 
-    void writeCString(std::vector<std::byte>& bytes, const Utf8& value)
+    void writeCString(ByteArray& bytes, const Utf8& value)
     {
-        bytes.insert(bytes.end(), reinterpret_cast<const std::byte*>(value.data()), reinterpret_cast<const std::byte*>(value.data() + value.size()));
-        bytes.push_back(std::byte{0});
+        bytes.appendCString(value.view());
     }
 
-    void writeEncodedUnsigned(std::vector<std::byte>& bytes, const uint64_t value)
+    void writeEncodedUnsigned(ByteArray& bytes, const uint64_t value)
     {
         if (value < K_CV_NUMERIC_LEAF)
         {
@@ -304,7 +296,7 @@ namespace
         writeU64(bytes, value);
     }
 
-    void writeEncodedSigned(std::vector<std::byte>& bytes, const int64_t value)
+    void writeEncodedSigned(ByteArray& bytes, const int64_t value)
     {
         if (value >= 0 && std::cmp_less(value, K_CV_NUMERIC_LEAF))
         {
@@ -337,26 +329,24 @@ namespace
         writeU64(bytes, static_cast<uint64_t>(value));
     }
 
-    void patchU16(std::vector<std::byte>& bytes, const uint32_t offset, const uint16_t value)
+    void patchU16(ByteArray& bytes, const uint32_t offset, const uint16_t value)
     {
         SWC_ASSERT(offset + sizeof(value) <= bytes.size());
         std::memcpy(bytes.data() + offset, &value, sizeof(value));
     }
 
-    void patchU32(std::vector<std::byte>& bytes, const uint32_t offset, const uint32_t value)
+    void patchU32(ByteArray& bytes, const uint32_t offset, const uint32_t value)
     {
         SWC_ASSERT(offset + sizeof(value) <= bytes.size());
         std::memcpy(bytes.data() + offset, &value, sizeof(value));
     }
 
-    void alignBytes(std::vector<std::byte>& bytes, const uint32_t alignment)
+    void alignBytes(ByteArray& bytes, const uint32_t alignment)
     {
-        const uint32_t alignedSize = Math::alignUpU32(static_cast<uint32_t>(bytes.size()), alignment);
-        if (alignedSize > bytes.size())
-            bytes.resize(alignedSize, std::byte{0});
+        bytes.align(alignment);
     }
 
-    uint32_t beginRecord(std::vector<std::byte>& bytes, const uint16_t type)
+    uint32_t beginRecord(ByteArray& bytes, const uint16_t type)
     {
         const uint32_t offset = static_cast<uint32_t>(bytes.size());
         writeU16(bytes, 0);
@@ -364,13 +354,13 @@ namespace
         return offset;
     }
 
-    void endRecord(std::vector<std::byte>& bytes, const uint32_t recordOffset)
+    void endRecord(ByteArray& bytes, const uint32_t recordOffset)
     {
         const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
         patchU16(bytes, recordOffset, recordLength);
     }
 
-    uint32_t beginTypeRecord(std::vector<std::byte>& bytes, const uint16_t kind)
+    uint32_t beginTypeRecord(ByteArray& bytes, const uint16_t kind)
     {
         const uint32_t offset = static_cast<uint32_t>(bytes.size());
         writeU16(bytes, 0);
@@ -378,7 +368,7 @@ namespace
         return offset;
     }
 
-    void endTypeRecord(std::vector<std::byte>& bytes, const uint32_t recordOffset)
+    void endTypeRecord(ByteArray& bytes, const uint32_t recordOffset)
     {
         const uint32_t rawRecordSize = static_cast<uint32_t>(bytes.size()) - recordOffset;
         const uint32_t padBytes      = Math::alignUpU32(rawRecordSize, 4) - rawRecordSize;
@@ -389,7 +379,7 @@ namespace
         patchU16(bytes, recordOffset, recordLength);
     }
 
-    uint32_t beginSubsection(std::vector<std::byte>& bytes, const uint32_t type)
+    uint32_t beginSubsection(ByteArray& bytes, const uint32_t type)
     {
         writeU32(bytes, type);
         const uint32_t lenOffset = static_cast<uint32_t>(bytes.size());
@@ -397,7 +387,7 @@ namespace
         return lenOffset;
     }
 
-    void endSubsection(std::vector<std::byte>& bytes, const uint32_t lenOffset)
+    void endSubsection(ByteArray& bytes, const uint32_t lenOffset)
     {
         const uint32_t payloadOffset = lenOffset + sizeof(uint32_t);
         const uint32_t payloadSize   = static_cast<uint32_t>(bytes.size()) - payloadOffset;
@@ -593,7 +583,7 @@ namespace
         return result;
     }
 
-    void appendCompileRecord(std::vector<std::byte>& bytes, const Runtime::BuildCfgBackend& backend)
+    void appendCompileRecord(ByteArray& bytes, const Runtime::BuildCfgBackend& backend)
     {
         const Utf8         version      = compilerVersionString();
         constexpr uint16_t majorVersion = std::max<uint16_t>(1, SWC_VERSION);
@@ -614,7 +604,7 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    void appendObjNameRecord(std::vector<std::byte>& bytes, const fs::path& objectPath)
+    void appendObjNameRecord(ByteArray& bytes, const fs::path& objectPath)
     {
         const auto     objectName   = codeViewPathString(objectPath);
         const uint32_t recordOffset = beginRecord(bytes, K_S_OBJNAME);
@@ -623,14 +613,14 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    void appendBuildInfoRecord(std::vector<std::byte>& bytes, const uint32_t buildInfoTypeIndex)
+    void appendBuildInfoRecord(ByteArray& bytes, const uint32_t buildInfoTypeIndex)
     {
         const uint32_t recordOffset = beginRecord(bytes, K_S_BUILDINFO);
         writeU32(bytes, buildInfoTypeIndex);
         endRecord(bytes, recordOffset);
     }
 
-    bool appendConstantValueBytes(std::vector<std::byte>& bytes, const TaskContext& ctx, const ConstantValue& value)
+    bool appendConstantValueBytes(ByteArray& bytes, const TaskContext& ctx, const ConstantValue& value)
     {
         switch (value.kind())
         {
@@ -695,7 +685,7 @@ namespace
         }
     }
 
-    void appendRegRelativeSymbol(std::vector<std::byte>& bytes, const DebugInfoLocalRecord& local, const uint32_t typeIndex)
+    void appendRegRelativeSymbol(ByteArray& bytes, const DebugInfoLocalRecord& local, const uint32_t typeIndex)
     {
         const uint16_t cvReg = codeViewRegister(local.baseReg);
         if (!cvReg)
@@ -710,7 +700,7 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    void appendDataSymbol(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const CompilerInstance& compiler, const DebugInfoDataRecord& data, const uint32_t typeIndex)
+    void appendDataSymbol(ByteArray& bytes, NativeSectionData& debugSection, const CompilerInstance& compiler, const DebugInfoDataRecord& data, const uint32_t typeIndex)
     {
         const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? K_S_GDATA32 : K_S_LDATA32);
         writeU32(bytes, typeIndex);
@@ -728,7 +718,7 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    bool appendConstantSymbol(std::vector<std::byte>& bytes, const TaskContext& ctx, const DebugInfoConstantRecord& constant, const uint32_t typeIndex)
+    bool appendConstantSymbol(ByteArray& bytes, const TaskContext& ctx, const DebugInfoConstantRecord& constant, const uint32_t typeIndex)
     {
         if (!constant.valueRef.isValid())
             return false;
@@ -748,7 +738,7 @@ namespace
         return true;
     }
 
-    void appendUdtSymbol(std::vector<std::byte>& bytes, const uint32_t typeIndex, const Utf8& typeName)
+    void appendUdtSymbol(ByteArray& bytes, const uint32_t typeIndex, const Utf8& typeName)
     {
         if (typeName.empty())
             return;
@@ -759,7 +749,7 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    void appendProcSymbols(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const TaskContext& ctx, const DebugInfoFunctionRecord& function, const uint32_t typeIndex, const std::span<const uint32_t> parameterTypeIndices, const std::span<const uint32_t> localTypeIndices, const std::span<const uint32_t> constantTypeIndices)
+    void appendProcSymbols(ByteArray& bytes, NativeSectionData& debugSection, const TaskContext& ctx, const DebugInfoFunctionRecord& function, const uint32_t typeIndex, const std::span<const uint32_t> parameterTypeIndices, const std::span<const uint32_t> localTypeIndices, const std::span<const uint32_t> constantTypeIndices)
     {
         SWC_ASSERT(function.machineCode != nullptr);
         SWC_ASSERT(function.parameters.size() == parameterTypeIndices.size());
@@ -1258,7 +1248,7 @@ namespace
         }
 
         TaskContext*                           ctx = nullptr;
-        std::vector<std::byte>                 bytes;
+        ByteArray                 bytes;
         uint32_t                               nextTypeIndex = K_CV_FIRST_NONPRIM;
         std::unordered_map<uint64_t, uint32_t> builtTypes;
         std::unordered_map<uint64_t, uint32_t> modifierTypes;
@@ -1269,7 +1259,7 @@ namespace
         std::map<uint32_t, Utf8>               udtNames;
     };
 
-    void appendLinesSubsection(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function, const FunctionLines& functionLines, const FileChecksumBuilder& checksums)
+    void appendLinesSubsection(ByteArray& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function, const FunctionLines& functionLines, const FileChecksumBuilder& checksums)
     {
         if (functionLines.blocks.empty())
             return;
@@ -1462,7 +1452,7 @@ namespace
         return Result::Continue;
     }
 
-    void writeAddend(std::vector<std::byte>& bytes, const uint32_t offset, const uint32_t value)
+    void writeAddend(ByteArray& bytes, const uint32_t offset, const uint32_t value)
     {
         SWC_ASSERT(offset + sizeof(value) <= bytes.size());
         std::memcpy(bytes.data() + offset, &value, sizeof(value));

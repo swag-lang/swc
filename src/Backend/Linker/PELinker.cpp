@@ -90,13 +90,13 @@ namespace
         }
     }
 
-    void appendAlignedBytes(std::vector<std::byte>& outBytes, uint32_t& outOffset, const std::vector<std::byte>& bytes)
+    void appendAlignedBytes(ByteArray& outBytes, uint32_t& outOffset, const ByteSpan bytes)
     {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(outBytes.size()), 16);
         if (outBytes.size() < alignedOffset)
             outBytes.resize(alignedOffset, std::byte{0});
         outOffset = alignedOffset;
-        outBytes.insert(outBytes.end(), bytes.begin(), bytes.end());
+        outBytes.append(bytes);
     }
 
     void collectDefined(std::unordered_set<Utf8>& outDefined, const LinkImage& image)
@@ -169,9 +169,9 @@ namespace
             textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
 
             if (description.startup)
-                appendAlignedBytes(textSection.bytes, description.startup->textOffset, description.startup->code.bytes);
+                appendAlignedBytes(textSection.bytes, description.startup->textOffset, description.startup->code.bytes.span());
             for (NativeFunctionInfo* info : description.functions)
-                appendAlignedBytes(textSection.bytes, info->textOffset, info->machineCode->bytes);
+                appendAlignedBytes(textSection.bytes, info->textOffset, info->machineCode->bytes.span());
 
             if (description.startup)
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
@@ -441,7 +441,7 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
                 break;
 
             FileSystem::IoErrorInfo ioError;
-            std::vector<std::byte>  bytes;
+            ByteArray  bytes;
             if (FileSystem::readBinaryFile(candidate, bytes, ioError) != Result::Continue)
                 break;
 
@@ -539,12 +539,12 @@ namespace
 
             const uint32_t offset = blobBase + static_cast<uint32_t>(bytes.size());
             offsets.emplace(value, offset);
-            ByteUtils::appendCString(bytes, value.view());
+            bytes.appendCString(value.view());
             return offset;
         }
 
         uint32_t                           blobBase = 0;
-        std::vector<std::byte>             bytes;
+        ByteArray                          bytes;
         std::unordered_map<Utf8, uint32_t> offsets;
     };
 }
@@ -599,10 +599,10 @@ void PELinker::buildDebugTable(LinkImage& image) const
     section.name  = ".swagdbg";
     section.align = 4;
 
-    ByteUtils::appendLe32(section.bytes, 0x42445753u); // 'SWDB'
-    ByteUtils::appendLe32(section.bytes, 1);           // version
-    ByteUtils::appendLe32(section.bytes, static_cast<uint32_t>(entries.size()));
-    ByteUtils::appendLe32(section.bytes, strings.blobBase);
+    section.bytes.appendLe32(0x42445753u); // 'SWDB'
+    section.bytes.appendLe32(1);           // version
+    section.bytes.appendLe32(static_cast<uint32_t>(entries.size()));
+    section.bytes.appendLe32(strings.blobBase);
 
     for (const Entry& entry : entries)
     {
@@ -616,14 +616,14 @@ void PELinker::buildDebugTable(LinkImage& image) const
         reloc.kind         = LinkRelocKind::Rva32;
         section.relocs.push_back(std::move(reloc));
 
-        ByteUtils::appendLe32(section.bytes, 0); // rva, filled by the writer
-        ByteUtils::appendLe32(section.bytes, entry.size);
-        ByteUtils::appendLe32(section.bytes, nameOff);
-        ByteUtils::appendLe32(section.bytes, fileOff);
-        ByteUtils::appendLe32(section.bytes, entry.line);
+        section.bytes.appendLe32(0); // rva, filled by the writer
+        section.bytes.appendLe32(entry.size);
+        section.bytes.appendLe32(nameOff);
+        section.bytes.appendLe32(fileOff);
+        section.bytes.appendLe32(entry.line);
     }
 
-    ByteUtils::appendBytes(section.bytes, asByteSpan(strings.bytes));
+    section.bytes.append(strings.bytes.span());
     image.sections.push_back(std::move(section));
 }
 

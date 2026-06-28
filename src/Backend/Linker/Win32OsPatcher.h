@@ -13,7 +13,7 @@ struct Win32ResourceRvaPatch
 
 struct Win32ResourceSection
 {
-    std::vector<std::byte>             bytes;
+    ByteArray                          bytes;
     std::vector<Win32ResourceRvaPatch> rvaPatches;
 };
 
@@ -21,7 +21,7 @@ class Win32OsPatcher final
 {
 public:
     static bool buildResourceSection(Win32ResourceSection& outSection, Diagnostic& outDiag, const LinkImage& image);
-    static void patchResourceSectionRvas(std::vector<std::byte>& bytes, std::span<const Win32ResourceRvaPatch> patches, uint32_t sectionRva);
+    static void patchResourceSectionRvas(ByteArray& bytes, std::span<const Win32ResourceRvaPatch> patches, uint32_t sectionRva);
 };
 
 SWC_END_NAMESPACE();

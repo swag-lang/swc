@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void emit(std::vector<std::byte>& out, std::initializer_list<int> bytes)
+    void emit(ByteArray& out, std::initializer_list<int> bytes)
     {
         for (const int b : bytes)
             out.push_back(static_cast<std::byte>(b));
@@ -33,21 +33,21 @@ namespace
         return ByteUtils::readLe16(bytes, optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
     }
 
-    std::vector<std::byte> makeSingleImageIcon(ByteSpan image)
+    ByteArray makeSingleImageIcon(ByteSpan image)
     {
-        std::vector<std::byte> bytes;
-        ByteUtils::appendLe16(bytes, 0);
-        ByteUtils::appendLe16(bytes, 1);
-        ByteUtils::appendLe16(bytes, 1);
+        ByteArray bytes;
+        bytes.appendLe16(0);
+        bytes.appendLe16(1);
+        bytes.appendLe16(1);
         bytes.push_back(std::byte{16});
         bytes.push_back(std::byte{16});
         bytes.push_back(std::byte{0});
         bytes.push_back(std::byte{0});
-        ByteUtils::appendLe16(bytes, 1);
-        ByteUtils::appendLe16(bytes, 32);
-        ByteUtils::appendLe32(bytes, static_cast<uint32_t>(image.size()));
-        ByteUtils::appendLe32(bytes, 22);
-        ByteUtils::appendBytes(bytes, image);
+        bytes.appendLe16(1);
+        bytes.appendLe16(32);
+        bytes.appendLe32(static_cast<uint32_t>(image.size()));
+        bytes.appendLe32(22);
+        bytes.append(image);
         return bytes;
     }
 }
@@ -60,7 +60,7 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
 {
     SWC_UNUSED(ctx);
 
-    std::vector<std::byte> text;
+    ByteArray text;
     emit(text, {0x48, 0x83, 0xEC, 0x28});       // sub rsp, 0x28
     emit(text, {0xB9, 0x2A, 0x00, 0x00, 0x00}); // mov ecx, 42
     emit(text, {0x48, 0xB8});                   // movabs rax, <ExitProcess thunk>
@@ -85,8 +85,8 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     image.imageBase    = 0x140000000ull;
     image.stackReserve = 0x100000;
 
-    std::vector<std::byte> peBytes;
-    std::vector<std::byte> pdbBytes;
+    ByteArray peBytes;
+    ByteArray pdbBytes;
     Diagnostic             diag;
     PEWriter               writer;
     const LinkDebugInfo    noDebugInfo;
@@ -132,7 +132,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
 {
-    std::vector<std::byte> text;
+    ByteArray text;
     emit(text, {0xC3});
 
     LinkSection textSection;
@@ -141,7 +141,7 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
     textSection.align = 16;
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
 
-    std::vector<std::byte> iconPayload;
+    ByteArray iconPayload;
     emit(iconPayload, {0x11, 0x22, 0x33, 0x44, 0x55});
 
     LinkImage image;
@@ -163,8 +163,8 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
     image.win32.iconPath       = "patch.ico";
     image.win32.iconBytes      = makeSingleImageIcon(asByteSpan(iconPayload));
 
-    std::vector<std::byte> peBytes;
-    std::vector<std::byte> pdbBytes;
+    ByteArray peBytes;
+    ByteArray pdbBytes;
     Diagnostic             diag;
     PEWriter               writer;
     const LinkDebugInfo    noDebugInfo;

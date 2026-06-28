@@ -1,6 +1,6 @@
 #pragma once
-#include "Support/Report/Assert.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 struct TaskContext;
 

@@ -1,8 +1,4 @@
 #pragma once
-#include "Support/Core/Flags.h"
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
@@ -11,6 +7,10 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

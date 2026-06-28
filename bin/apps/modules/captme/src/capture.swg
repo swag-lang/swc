@@ -58,6 +58,7 @@ struct Capture
         dirtyBackImg:          bool
         drawSelRect:           bool
         prevSnapActive:        bool
+        interactiveMove:       bool
 
         inPlaceEdit:           bool
         inPlacePosX:           f32
@@ -183,9 +184,28 @@ impl Capture
     {
         .changed        = true
         .linkedUpToDate = false
+
+        // During an interactive form drag this runs twice per mouse move (undo() +
+        // pushUndo()). The full-view invalidate here would repaint every form and the
+        // recent-thumbnail strip each frame, defeating the per-form partial invalidate
+        // done by GizmoRect.apply. Skip the heavy refresh while dragging; it is done
+        // once when the drag ends (see Capture.mouse / endInteractiveMove).
+        if .interactiveMove do
+            return
+
         .editView.invalidate()
         .editView.main.captureHasChanged()
         .editView.main.updateRecent()
+    }
+
+    // Called once when an interactive form move/resize ends, to refresh the toolbar
+    // state / recent strip / full view that hasChanged() skipped during the drag.
+    mtd endInteractiveMove()
+    {
+        if !.interactiveMove do
+            return
+        .interactiveMove = false
+        .hasChanged()
     }
 
     mtd save() throw
@@ -918,6 +938,14 @@ impl Capture
     {
         let app = view.getApp()
 
+        // When a form drag/resize ends, commit the GUI refresh that hasChanged()
+        // deferred during the interactive move (runs on every exit of this handler).
+        defer
+        {
+            if evt.kind == .MouseReleased do
+                me.endInteractiveMove()
+        }
+
         var localPos = view.surfaceToLocal(evt.surfacePos)
         localPos += view.scrollPos
         localPos.x -= .paintRect.x
@@ -1320,7 +1348,10 @@ impl Capture
             .undos[.nextUndo].undoIt()
         }
 
-        .editView.invalidate()
+        // During an interactive drag, apply() calls undo() every move to re-apply the
+        // move from scratch; the per-form partial invalidate handles the repaint.
+        if !.interactiveMove do
+            .editView.invalidate()
     }
 
     mtd redo()
@@ -1335,7 +1366,8 @@ impl Capture
             .nextUndo += 1
         }
 
-        .editView.invalidate()
+        if !.interactiveMove do
+            .editView.invalidate()
     }
 
     mtd pushUndo(u: *Undo)

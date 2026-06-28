@@ -416,6 +416,7 @@ impl GizmoRect
         let form    = cast(*BaseForm) @dataof(iform)
         let capture = form.capture
         let oldRect = iform.boundRect()
+        capture.interactiveMove = true
         if !first do
             capture.undo()
         let undo = capture.newUndo(.MoveBaseForm)

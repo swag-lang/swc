@@ -19,7 +19,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
     const char*    expectedPtr    = runtimeString.ptr;
     const uint64_t expectedLength = runtimeString.length;
 
-    const ConstantValue  value  = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), std::span<const std::byte>{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
+    const ConstantValue  value  = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), std::span{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
     const ConstantRef    cstRef = ctx.cstMgr().addConstant(ctx, value);
     const ConstantValue& stored = ctx.cstMgr().get(cstRef);
     if (!stored.isStruct() || stored.typeRef() != ctx.typeMgr().typeString())
@@ -90,7 +90,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
 
     std::array           dims{source.size()};
     const TypeRef        arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
-    const ConstantValue  value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span<const std::byte>{source.data(), source.size()});
+    const ConstantValue  value        = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span{source.data(), source.size()});
     const ConstantRef    cstRef       = ctx.cstMgr().addConstant(ctx, value);
     const ConstantValue& stored       = ctx.cstMgr().get(cstRef);
     if (!stored.isArray() || stored.typeRef() != arrayTypeRef)
@@ -103,7 +103,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedArrayPayloadOutsideDataSegment)
         return Result::Error;
 
     source.fill(std::byte{0});
-    if (!std::ranges::equal(stored.getArray(), std::span<const std::byte>{expectedBytes.data(), expectedBytes.size()}))
+    if (!std::ranges::equal(stored.getArray(), std::span{expectedBytes.data(), expectedBytes.size()}))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -121,8 +121,8 @@ SWC_TEST_BEGIN(ConstantManager_DeduplicatesBorrowedArrayPayloadsByValue)
     std::array    dims{first.size()};
     const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
 
-    const ConstantRef firstRef  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span<const std::byte>{first.data(), first.size()}));
-    const ConstantRef secondRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span<const std::byte>{second.data(), second.size()}));
+    const ConstantRef firstRef  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span{first.data(), first.size()}));
+    const ConstantRef secondRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span{second.data(), second.size()}));
     if (firstRef != secondRef)
         return Result::Error;
 }
@@ -172,7 +172,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
     };
     const auto expectedBytes = source;
 
-    const ConstantValue  value  = ConstantValue::makeSliceBorrowed(ctx, ctx.typeMgr().typeU8(), std::span<const std::byte>{source.data(), source.size()});
+    const ConstantValue  value  = ConstantValue::makeSliceBorrowed(ctx, ctx.typeMgr().typeU8(), std::span{source.data(), source.size()});
     const ConstantRef    cstRef = ctx.cstMgr().addConstant(ctx, value);
     const ConstantValue& stored = ctx.cstMgr().get(cstRef);
     if (!stored.isSlice())
@@ -185,7 +185,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
         return Result::Error;
 
     source.fill(std::byte{0});
-    if (!std::ranges::equal(stored.getSlice(), std::span<const std::byte>{expectedBytes.data(), expectedBytes.size()}))
+    if (!std::ranges::equal(stored.getSlice(), std::span{expectedBytes.data(), expectedBytes.size()}))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -219,7 +219,7 @@ SWC_TEST_BEGIN(ConstantManager_DeduplicatesMaterializedArrayPayloadConstants)
     const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
 
     DataSegment& segment             = ctx.cstMgr().shardDataSegment(0);
-    const auto [storedBytes, offset] = segment.addSpan(std::span<const std::byte>{source.data(), source.size()});
+    const auto [storedBytes, offset] = segment.addSpan(std::span{source.data(), source.size()});
 
     ConstantValue value = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, storedBytes);
     value.setDataSegmentRef({.shardIndex = 0, .offset = offset});
@@ -245,10 +245,10 @@ SWC_TEST_BEGIN(ConstantManager_DoesNotDeduplicateMaterializedArrayPayloadsWithDi
     segment.addRelocation(firstOffset, targetA);
     segment.addRelocation(secondOffset, targetB);
 
-    ConstantValue firstValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span<const std::byte>{firstStorage, (dims[0])});
+    ConstantValue firstValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span{firstStorage, (dims[0])});
     firstValue.setDataSegmentRef({.shardIndex = 0, .offset = firstOffset});
 
-    ConstantValue secondValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span<const std::byte>{secondStorage, (dims[0])});
+    ConstantValue secondValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, std::span{secondStorage, (dims[0])});
     secondValue.setDataSegmentRef({.shardIndex = 0, .offset = secondOffset});
 
     const ConstantRef firstRef  = ctx.cstMgr().addMaterializedPayloadConstant(firstValue);

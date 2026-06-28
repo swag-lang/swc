@@ -271,7 +271,7 @@ namespace
         const TypeInfo& exprType        = sema.typeMgr().get(resultMeta.exprTypeRef);
         const TypeRef   constantTypeRef = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
         const uint64_t  resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
-        const auto      resultBytes     = std::span<const std::byte>{storagePtr, static_cast<size_t>(resultSize)};
+        const auto      resultBytes     = std::span{storagePtr, static_cast<size_t>(resultSize)};
 
         if (resultSize && SemaHelpers::needsPersistentCompilerRunReturn(sema, resultMeta.storageTypeRef))
         {
@@ -1260,7 +1260,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         SWC_RESULT(emitForeignConstExprCall(sema, calledFn, jitArgs.span(), {.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr}));
 
         const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
-        const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span<const std::byte>{receiverStorage, structSize});
+        const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span{receiverStorage, structSize});
         sema.setConstant(callRef, resultCstRef);
         sema.setFoldedTypedConst(callRef);
         return Result::Continue;
@@ -1282,7 +1282,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         return reportJitEvaluationFailure(sema, calledFn);
 
     const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
-    const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span<const std::byte>{receiverStorage, structSize});
+    const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span{receiverStorage, structSize});
     sema.setConstant(callRef, resultCstRef);
     sema.setFoldedTypedConst(callRef);
     return Result::Continue;

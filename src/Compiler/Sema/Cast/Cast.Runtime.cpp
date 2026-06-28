@@ -4,7 +4,6 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -1062,7 +1061,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             {
                 std::vector valueBytes(boxedValueSize, std::byte{0});
                 SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyTypeRef));
-                SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, std::span<const std::byte>{valueBytes.data(), valueBytes.size()}));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, std::span{valueBytes.data(), valueBytes.size()}));
             }
 
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
@@ -1076,7 +1075,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         }
     }
 
-    ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, std::span<const std::byte>{storage, sizeof(Runtime::Any)});
+    ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, std::span{storage, sizeof(Runtime::Any)});
     anyCst.setDataSegmentRef({.shardIndex = typeInfoRef.shardIndex, .offset = anyOffset});
     castRequest.setConstantFoldingResult(sema.cstMgr().addMaterializedPayloadConstant(anyCst));
     return Result::Continue;

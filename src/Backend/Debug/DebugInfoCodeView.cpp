@@ -189,7 +189,7 @@ namespace
                 outBytes.appendLe32(entry.stringOffset);
                 outBytes.pushBack(static_cast<std::byte>(entry.checksumSize));
                 outBytes.pushBack(static_cast<std::byte>(entry.checksumKind));
-                outBytes.append(std::span<const std::byte>{entry.checksum.data(), entry.checksumSize});
+                outBytes.append(std::span{entry.checksum.data(), entry.checksumSize});
 
                 const uint32_t recordSize = 6 + entry.checksumSize;
                 const uint32_t padBytes   = Math::alignUpU32(recordSize, 4) - recordSize;
@@ -1478,7 +1478,7 @@ namespace
 
             alignBytes(xdataSection.bytes, 4);
             const uint32_t unwindOffset = static_cast<uint32_t>(xdataSection.bytes.size());
-            writeBytes(xdataSection.bytes, std::span<const std::byte>{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
+            writeBytes(xdataSection.bytes, std::span{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
             const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:04}", objectHash, unwindIndex++);
             DebugInfoDefinedSymbol unwindSym;

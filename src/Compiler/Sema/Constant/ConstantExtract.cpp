@@ -105,7 +105,7 @@ namespace
             SWC_ASSERT(pointedType.isStruct());
             const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
             SWC_ASSERT(ptr);
-            bytes = std::span<const std::byte>{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
+            bytes = std::span{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
             return Result::Continue;
         }
 
@@ -175,7 +175,7 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     const TypeInfo& typeVar   = symVar.typeInfo(ctx);
     const TypeInfo* typeField = &typeVar;
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
-    const auto fieldBytes = std::span<const std::byte>{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
+    const auto fieldBytes = std::span{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
     ConstantRef cstRef = ConstantRef::invalid();
     SWC_RESULT(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
@@ -229,7 +229,7 @@ namespace
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
-        const auto        elemBytes  = std::span<const std::byte>{bytes.data() + (constIndex * elemSize), elemSize};
+        const auto        elemBytes  = std::span{bytes.data() + (constIndex * elemSize), elemSize};
         const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
 
         if (elemCstRef.isInvalid())

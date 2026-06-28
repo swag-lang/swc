@@ -47,10 +47,10 @@ namespace
         return Result::Continue;
     }
 
-    template<typename Buffer>
-    Result readBinaryFileImpl(const fs::path& path, Buffer& outData, FileSystem::IoErrorInfo& error)
+    template<typename BUF>
+    Result readBinaryFileImpl(const fs::path& path, BUF& outData, FileSystem::IoErrorInfo& error)
     {
-        using T = Buffer::value_type;
+        using T = BUF::value_type;
         static_assert(sizeof(T) == 1);
 
         outData.clear();

@@ -489,7 +489,7 @@ namespace
         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, boxedValueTypeRef) == Result::Continue);
 
         uint32_t valueOffset = INVALID_REF;
-        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(valueOffset, sema, storage, boxedValueTypeRef, std::span<const std::byte>{valueBytes.data(), valueBytes.size()}) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(valueOffset, sema, storage, boxedValueTypeRef, std::span{valueBytes.data(), valueBytes.size()}) == Result::Continue);
         SWC_ASSERT(valueOffset != INVALID_REF);
 
         storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, value), valueOffset);

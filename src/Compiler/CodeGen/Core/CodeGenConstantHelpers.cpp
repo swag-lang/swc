@@ -112,7 +112,7 @@ namespace
             for (uint64_t idx = 0; idx < runtimeSlice->count; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                const auto     elementBytes  = std::span<const std::byte>{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
+                const auto     elementBytes  = std::span{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, elementTypeRef, elementBytes))
                     return false;
             }
@@ -157,7 +157,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                const auto     elementBytes  = std::span<const std::byte>{payload.data() + elementOffset, static_cast<size_t>(elementSize)};
+                const auto     elementBytes  = std::span{payload.data() + elementOffset, static_cast<size_t>(elementSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, elementTypeRef, elementBytes))
                     return false;
             }
@@ -179,7 +179,7 @@ namespace
                 if (fieldOffset + fieldSize > payload.size())
                     return false;
 
-                const auto fieldBytes = std::span<const std::byte>{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
+                const auto fieldBytes = std::span{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, fieldTypeRef, fieldBytes))
                     return false;
             }
@@ -205,7 +205,7 @@ namespace
                 if (offset + fieldSize > payload.size())
                     return false;
 
-                const auto fieldBytes = std::span<const std::byte>{payload.data() + offset, static_cast<size_t>(fieldSize)};
+                const auto fieldBytes = std::span{payload.data() + offset, static_cast<size_t>(fieldSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, fieldTypeRef, fieldBytes))
                     return false;
 
@@ -309,7 +309,7 @@ ConstantRef CodeGenConstantHelpers::ensureStaticPayloadConstant(CodeGen& codeGen
     if (sizeOf)
         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{storageBytes.data(), storageBytes.size()}, cstRef, typeRef) == Result::Continue);
 
-    return materializeStaticPayloadConstant(codeGen, typeRef, std::span<const std::byte>{storageBytes.data(), storageBytes.size()});
+    return materializeStaticPayloadConstant(codeGen, typeRef, std::span{storageBytes.data(), storageBytes.size()});
 }
 
 ConstantRef CodeGenConstantHelpers::materializeStaticArrayBufferConstant(CodeGen& codeGen, const TypeRef elementTypeRef, const std::span<const std::byte> payload, const uint64_t count)
@@ -350,7 +350,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
-    const std::span<const std::byte> storedBytes = sizeOf ? std::span<const std::byte>{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
+    const std::span<const std::byte> storedBytes = sizeOf ? std::span{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
     const DataSegmentRef             dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
     const ConstantValue              value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
     if (!value.isValid())
@@ -387,7 +387,7 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
     if (targetRef.isValid())
         segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetRef.offset);
 
-    ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, std::span<const std::byte>{storage, sizeof(Runtime::Slice<std::byte>)});
+    ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, std::span{storage, sizeof(Runtime::Slice<std::byte>)});
     runtimeValueCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
     const ConstantRef cstRef = cstMgr.addUniqueMaterializedPayloadConstant(runtimeValueCst);
     return cstMgr.publishRuntimeBufferConstant(cacheShardIndex, typeRef, targetPtr, count, cstRef);

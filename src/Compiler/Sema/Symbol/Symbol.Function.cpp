@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"

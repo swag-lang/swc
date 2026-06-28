@@ -245,7 +245,7 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     if (copyName && !name.empty())
     {
         const std::scoped_lock storeLock(shard.storeMutex);
-        const auto [span, _] = shard.stringStore.pushCopySpan(std::span<const std::byte>{reinterpret_cast<const std::byte*>(name.data()), name.size()});
+        const auto [span, _] = shard.stringStore.pushCopySpan(std::span{reinterpret_cast<const std::byte*>(name.data()), name.size()});
         storedName           = std::string_view{reinterpret_cast<const char*>(span.data()), span.size()};
     }
 

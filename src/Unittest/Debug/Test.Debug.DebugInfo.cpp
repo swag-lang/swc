@@ -1623,7 +1623,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_SHA256, 32))
         return Result::Error;
     const std::string_view        sourceView   = sourceFile.sourceView();
-    const std::array<uint8_t, 32> expectedHash = sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(sourceView.data()), sourceView.size()});
+    const std::array<uint8_t, 32> expectedHash = sha256(std::span{reinterpret_cast<const std::byte*>(sourceView.data()), sourceView.size()});
     if (!bytesContainString(debugBytes, Utf8(std::string_view(reinterpret_cast<const char*>(expectedHash.data()), expectedHash.size()))))
         return Result::Error;
     if (!subsectionTypeAppearsBefore(debugBytes, K_DEBUG_S_FILECHKSMS, K_DEBUG_S_STRINGTABLE))

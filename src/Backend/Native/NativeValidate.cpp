@@ -337,7 +337,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         for (uint64_t offset = 0; offset < byteCount; offset += elementSize)
         {
-            const auto elementBytes = std::span<const std::byte>{segmentBytes + offset, static_cast<size_t>(elementSize)};
+            const auto elementBytes = std::span{segmentBytes + offset, static_cast<size_t>(elementSize)};
             validateNativeStaticPayload(elementTypeRef, targetRef.shardIndex, targetRef.offset + static_cast<uint32_t>(offset), elementBytes);
         }
 
@@ -359,7 +359,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         {
             const uint64_t elementOffset = idx * elementSize;
             SWC_ASSERT(elementOffset + elementSize <= bytes.size());
-            const auto elementBytes = std::span<const std::byte>{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
+            const auto elementBytes = std::span{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
             validateNativeStaticPayload(elementTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(elementOffset), elementBytes);
         }
 
@@ -379,7 +379,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
             const uint64_t  fieldOffset  = field->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
 
-            const auto fieldBytes = std::span<const std::byte>{bytes.data() + fieldOffset, static_cast<size_t>(fieldSize)};
+            const auto fieldBytes = std::span{bytes.data() + fieldOffset, static_cast<size_t>(fieldSize)};
             validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(fieldOffset), fieldBytes);
         }
 
@@ -403,7 +403,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
             offset = Math::alignUpU64(offset, align);
             SWC_ASSERT(offset + fieldSize <= bytes.size());
 
-            const auto fieldBytes = std::span<const std::byte>{bytes.data() + offset, static_cast<size_t>(fieldSize)};
+            const auto fieldBytes = std::span{bytes.data() + offset, static_cast<size_t>(fieldSize)};
             validateNativeStaticPayload(fieldTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(offset), fieldBytes);
 
             offset += fieldSize;
@@ -419,7 +419,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const auto* value = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
         if (!value->invoke)
         {
-            SWC_ASSERT(std::ranges::all_of(bytes, [](const std::byte value) { return value == std::byte{}; }));
+            SWC_ASSERT(std::ranges::all_of(bytes, [](const std::byte myValue) { return myValue == std::byte{}; }));
             return;
         }
 

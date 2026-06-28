@@ -1,6 +1,5 @@
 #pragma once
 #include "Backend/Debug/DebugInfo.h"
-#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

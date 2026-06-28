@@ -177,7 +177,7 @@ bool ByteArray::contains(const ByteArray& needle) const noexcept
 
 bool ByteArray::contains(const std::string_view text) const noexcept
 {
-    return contains(std::span<const std::byte>{reinterpret_cast<const std::byte*>(text.data()), text.size()});
+    return contains(std::span{reinterpret_cast<const std::byte*>(text.data()), text.size()});
 }
 
 bool ByteArray::containsUtf16Le(const std::string_view text) const noexcept
@@ -254,7 +254,7 @@ void ByteArray::append(const ByteArray& bytes)
 
 void ByteArray::append(const std::string_view text)
 {
-    append(std::span<const std::byte>{reinterpret_cast<const std::byte*>(text.data()), text.size()});
+    append(std::span{reinterpret_cast<const std::byte*>(text.data()), text.size()});
 }
 
 void ByteArray::appendCString(const std::string_view text)

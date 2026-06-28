@@ -724,7 +724,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isStruct() || ty.isAny() || ty.isInterface())
     {
-        const auto bytes = std::span<const std::byte>{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = std::span{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);
@@ -732,7 +732,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isArray())
     {
-        const auto bytes = std::span<const std::byte>{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = std::span{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeArrayBorrowed(ctx, typeRef, bytes);
         return makeArray(ctx, typeRef, bytes);
@@ -740,7 +740,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isFunction() && ty.isLambdaClosure())
     {
-        const auto bytes = std::span<const std::byte>{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = std::span{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);

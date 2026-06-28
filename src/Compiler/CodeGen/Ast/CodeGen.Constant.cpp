@@ -204,7 +204,7 @@ namespace
         if (storageSize)
             SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef));
 
-        emitPayloadBytesToAddress(codeGen, storageReg, std::span<const std::byte>{storageBytes.data(), storageBytes.size()});
+        emitPayloadBytesToAddress(codeGen, storageReg, std::span{storageBytes.data(), storageBytes.size()});
         payload.reg     = storageReg;
         payload.typeRef = storageTypeRef;
         payload.setIsAddress();
@@ -507,7 +507,7 @@ namespace
         if (storageSize)
             SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef) == Result::Continue);
 
-        return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span<const std::byte>{storageBytes.data(), storageBytes.size()});
+        return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{storageBytes.data(), storageBytes.size()});
     }
 
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)
@@ -627,7 +627,7 @@ namespace
                         std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
                         SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef));
 
-                        const ConstantRef    typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span<const std::byte>{typedNullBytes.data(), typedNullBytes.size()});
+                        const ConstantRef    typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
                         const ConstantValue& typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);
                         payload.setIsValue();
@@ -941,7 +941,7 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
             std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
             SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetTypeRef));
 
-            const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span<const std::byte>{typedNullBytes.data(), typedNullBytes.size()});
+            const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
             const CodeGenNodePayload& payload         = codeGen.setPayloadValue(codeGen.curNodeRef(), targetTypeRef);
             codeGen.builder().emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(typedNullCst.getStruct().data()), typedNullCstRef);

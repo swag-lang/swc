@@ -221,7 +221,7 @@ void DataSegment::restoreFromPreserveOffsets(std::span<const std::byte> src) con
     const std::unique_lock lock(mutex_);
     const uint32_t         storeExtent = store_.extentSize();
     if (storeExtent)
-        store_.restoreFromPreserveOffsets(std::span<const std::byte>{src.data(), storeExtent});
+        store_.restoreFromPreserveOffsets(std::span{src.data(), storeExtent});
     for (const LargeBlock& block : largeBlocks_)
     {
         SWC_ASSERT(block.offset + block.size <= src.size_bytes());
@@ -398,7 +398,7 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         return {offset, ptr};
     }
 
-    const std::pair<std::span<const std::byte>, Ref> res = store_.pushCopySpan(std::span<const std::byte>{static_cast<const std::byte*>(nullptr), size}, align);
+    const std::pair<std::span<const std::byte>, Ref> res = store_.pushCopySpan(std::span{static_cast<const std::byte*>(nullptr), size}, align);
     std::byte* const                                 ptr = store_.ptr<std::byte>(res.second);
     if (zeroInit)
         std::memset(ptr, 0, size);

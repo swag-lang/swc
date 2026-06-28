@@ -4,8 +4,6 @@
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
-#include "Compiler/Parser/Parser/ParserJob.h"
-#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"

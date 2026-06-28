@@ -143,7 +143,7 @@ namespace
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
                         if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface() || targetType.isString() || targetType.isSlice())
                         {
-                            typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
+                            typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{rawBytes.data(), rawBytes.size()});
                         }
                         else
                         {
@@ -241,7 +241,7 @@ namespace
             if (ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
                 return false;
 
-            const ConstantRef materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
+            const ConstantRef materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
             if (materializedCstRef.isInvalid())
                 return false;
 
@@ -272,7 +272,7 @@ namespace
         ConstantRef materializedCstRef = ConstantRef::invalid();
         if (storageType.isStruct() || storageType.isArray() || storageType.isAggregateStruct() || storageType.isAggregateArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())
         {
-            materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
+            materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
         }
         else
         {

@@ -540,7 +540,7 @@ namespace
                 if (fieldOffset + fieldSize > structBytes.size())
                     continue;
 
-                const auto fieldBytes = std::span<const std::byte>{structBytes.data() + fieldOffset, fieldSize};
+                const auto fieldBytes = std::span{structBytes.data() + fieldOffset, fieldSize};
                 fieldCstRef           = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, fieldBytes);
             }
 

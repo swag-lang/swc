@@ -54,7 +54,7 @@ inline bool byteSpanEq(ByteSpan lhs, ByteSpan rhs) noexcept
 
 inline bool containsByte(ByteSpan bytes, std::byte value) noexcept
 {
-    return std::find(bytes.begin(), bytes.end(), value) != bytes.end();
+    return std::ranges::find(bytes, value) != bytes.end();
 }
 
 inline bool containsBytes(ByteSpan bytes, ByteSpan needle) noexcept
@@ -63,7 +63,7 @@ inline bool containsBytes(ByteSpan bytes, ByteSpan needle) noexcept
         return true;
     if (needle.size() > bytes.size())
         return false;
-    return std::search(bytes.begin(), bytes.end(), needle.begin(), needle.end()) != bytes.end();
+    return std::ranges::search(bytes, needle).begin() != bytes.end();
 }
 
 inline bool containsUtf16Le(ByteSpan bytes, std::string_view text)

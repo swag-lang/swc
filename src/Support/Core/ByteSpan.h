@@ -122,23 +122,6 @@ inline uint32_t readLe32(ByteSpan bytes, size_t offset) noexcept
     return static_cast<uint32_t>(data[0]) | (static_cast<uint32_t>(data[1]) << 8) | (static_cast<uint32_t>(data[2]) << 16) | (static_cast<uint32_t>(data[3]) << 24);
 }
 
-inline uint64_t readLe64(ByteSpan bytes, size_t offset) noexcept
-{
-    SWC_ASSERT(containsRange(bytes, offset, sizeof(uint64_t)));
-    const auto* data  = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
-    uint64_t    value = 0;
-    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
-        value |= static_cast<uint64_t>(data[i]) << (i * 8);
-    return value;
-}
-
-inline uint32_t readBe32(ByteSpan bytes, size_t offset) noexcept
-{
-    SWC_ASSERT(containsRange(bytes, offset, sizeof(uint32_t)));
-    const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
-    return (static_cast<uint32_t>(data[0]) << 24) | (static_cast<uint32_t>(data[1]) << 16) | (static_cast<uint32_t>(data[2]) << 8) | static_cast<uint32_t>(data[3]);
-}
-
 inline std::string_view asStringView(ByteSpanR v) noexcept
 {
     return {reinterpret_cast<const char*>(v.data()), v.size()};

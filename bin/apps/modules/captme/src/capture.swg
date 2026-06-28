@@ -1102,9 +1102,16 @@ impl Capture
 
             if .mouseMode == .Moving or .firstMouseMove
             {
+                let wasMoving = .mouseMode == .Moving
                 view.releaseMouse()
                 view.invalidate()
                 .mouseMode = .None
+
+                // A body-drag move ends here (it does NOT go through GizmoRect/sigHasChanged,
+                // unlike a resize). Refresh the Properties panel so x/y reflect the new
+                // position, mirroring the rotate path.
+                if wasMoving and view.main.propWnd do
+                    view.main.propWnd.selectionHasChanged()
             }
         }
 

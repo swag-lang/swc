@@ -272,7 +272,17 @@ impl IForm for FormText
                 if !Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
                     assume face.getStringOutline(borderPath, t, cast() fSize, cast() sSize)
-                    borderPath.flatten(.High)
+
+                    // The border is the glyph outline expanded by 'bSize' via a polygon
+                    // offset (Clipper union). That offset is roughly super-linear in the
+                    // input vertex count, and a 'High' flatten of a large glyph (e.g.
+                    // fontSize 100+) emits thousands of sub-pixel segments, making the
+                    // first-paint cache build of a text-heavy capture take ~1s.
+                    // 'Normal' keeps the border - a solid stroke whose convex corners the
+                    // offset re-rounds anyway - visually identical while cutting the offset
+                    // cost ~6x. The fill ('pathl') stays 'High' so glyph edges remain crisp
+                    // when zoomed in.
+                    borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)
                     borderPath.clean()

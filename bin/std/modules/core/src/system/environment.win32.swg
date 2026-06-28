@@ -117,12 +117,17 @@ public func getMonitors()->Array'Monitor
 }
 
 // Locate file in the file explorer
-public func locateInExplorer(name: string)
+#[Swag.Discardable]
+public func locateInExplorer(name: string)->bool
 {
     var x: String = name
     x.replace("/", "\\")
     x = Format.toString("/select,\"%\"", x)
-    discard catch Env.startProcess("explorer.exe", x)
+
+    let explorer = Utf16.toZeroTerminated("explorer.exe")
+    let params   = Utf16.toZeroTerminated(x)
+    discard catch ShellExecuteW(null, null, @dataof(explorer), @dataof(params), null, SW_SHOW)
+    return @err == null
 }
 
 // Locate file in the internet explorer

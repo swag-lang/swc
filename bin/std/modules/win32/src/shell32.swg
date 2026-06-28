@@ -308,6 +308,7 @@ moduleprivate namespace Shell32Priv
         func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL;
         func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL;
         func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE;
+        func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE;
     }
 }
 
@@ -370,6 +371,14 @@ moduleprivate namespace Shell32Priv
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE throw
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
+        if cast(u64) result <= 32 do  // ?!
+            throwWinError(GetLastError())
+        return result
+    }
+
+    func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE throw
+    {
+        let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do  // ?!
             throwWinError(GetLastError())
         return result

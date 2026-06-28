@@ -212,10 +212,12 @@ impl IActionUI for ActionFile
             Memory.delete(dupCapture)
 
         case CaptureFileLocation:
-            Env.locateInExplorer(capture.file)
+            if !Env.locateInExplorer(capture.file) do
+                MessageDlg.error(main.surface, "Failed to locate capture file")
 
         case LinkedFileLocation:
-            Env.locateInExplorer(capture.linkedImage)
+            if !Env.locateInExplorer(capture.linkedImage) do
+                MessageDlg.error(main.surface, "Failed to locate linked image")
 
         case FileDetails:
 

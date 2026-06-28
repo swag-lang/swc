@@ -1,5 +1,6 @@
 #pragma once
-#include "Support/Core/ByteSpan.h"
+#include <span>
+
 #include "Support/Core/Utf8.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteArray.h"
@@ -45,7 +46,8 @@ struct CoffObject
 };
 
 // Decodes a COFF object image. Returns false and fills outDiag on a malformed/unsupported file.
-bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes);
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& bytes);
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, std::span<const std::byte> bytes);
 
 // Merges the given COFF objects into a single LinkImage: sections of the same name are concatenated
 // (honouring alignment and rebasing symbols/relocations), defined symbols are collected globally, and

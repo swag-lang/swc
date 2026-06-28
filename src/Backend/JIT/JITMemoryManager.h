@@ -1,6 +1,7 @@
 #pragma once
+#include <span>
+
 #include "Backend/JIT/JITMemory.h"
-#include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,7 +18,7 @@ public:
     void        allocate(JITMemory& outExecutableMemory, uint32_t size);
     static void registerUnwindInfo(JITMemory& executableMemory);
     static void makeExecutable(const JITMemory& executableMemory);
-    void        allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes);
+    void        allocateAndCopy(JITMemory& outExecutableMemory, std::span<const std::byte> bytes);
 
 private:
     struct Block

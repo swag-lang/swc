@@ -1,6 +1,5 @@
 #pragma once
 #include "Support/Core/ByteArray.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Core/Result.h"
 #include "Backend/Debug/DebugInfo.h"
@@ -62,7 +61,7 @@ private:
     };
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
-    static void   appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, ByteSpan bytes);
+    static void   appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const ByteArray& bytes);
     Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;

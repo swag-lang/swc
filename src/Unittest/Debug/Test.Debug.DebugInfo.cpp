@@ -13,6 +13,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Math/Sha256.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
@@ -53,7 +54,7 @@ namespace
         return (value + 3u) & ~3u;
     }
 
-    uint16_t readU16(const ByteSpan bytes, const uint32_t offset)
+    uint16_t readU16(const std::span<const std::byte> bytes, const uint32_t offset)
     {
         SWC_ASSERT(offset + sizeof(uint16_t) <= bytes.size());
         uint16_t value = 0;
@@ -61,7 +62,7 @@ namespace
         return value;
     }
 
-    uint32_t readU32(const ByteSpan bytes, const uint32_t offset)
+    uint32_t readU32(const std::span<const std::byte> bytes, const uint32_t offset)
     {
         SWC_ASSERT(offset + sizeof(uint32_t) <= bytes.size());
         uint32_t value = 0;
@@ -69,7 +70,7 @@ namespace
         return value;
     }
 
-    void appendU32(std::vector<std::byte>& bytes, const uint32_t value)
+    void appendU32(ByteArray& bytes, const uint32_t value)
     {
         const auto* src = reinterpret_cast<const std::byte*>(&value);
         bytes.insert(bytes.end(), src, src + sizeof(value));
@@ -86,13 +87,17 @@ namespace
         return nullptr;
     }
 
-    bool bytesContainString(const ByteSpan bytes, const Utf8& value)
+    bool bytesContainString(const std::span<const std::byte> bytes, const Utf8& value)
     {
-        const ByteSpan needle = asByteSpan(std::string_view(value.data(), value.size()));
-        return containsBytes(bytes, needle);
+        const std::span<const std::byte> needle{reinterpret_cast<const std::byte*>(value.data()), value.size()};
+        if (needle.empty())
+            return true;
+        if (needle.size() > bytes.size())
+            return false;
+        return std::ranges::search(bytes, needle).begin() != bytes.end();
     }
 
-    bool countSymbolsSubsectionRecords(const ByteSpan bytes, const uint16_t recordType, uint32_t& outCount)
+    bool countSymbolsSubsectionRecords(const std::span<const std::byte> bytes, const uint16_t recordType, uint32_t& outCount)
     {
         outCount = 0;
         if (bytes.size() < sizeof(uint32_t))
@@ -134,7 +139,7 @@ namespace
         return true;
     }
 
-    bool tryFindRegRelativeSymbol(const ByteSpan bytes, const Utf8& expectedName, uint16_t& outRegister, uint32_t& outOffset)
+    bool tryFindRegRelativeSymbol(const std::span<const std::byte> bytes, const Utf8& expectedName, uint16_t& outRegister, uint32_t& outOffset)
     {
         if (bytes.size() < sizeof(uint32_t))
             return false;
@@ -191,7 +196,7 @@ namespace
         return false;
     }
 
-    uint32_t countSymbolsSubsections(const ByteSpan bytes)
+    uint32_t countSymbolsSubsections(const std::span<const std::byte> bytes)
     {
         if (bytes.size() < sizeof(uint32_t) || readU32(bytes, 0) != K_CV_SIGNATURE_C13)
             return 0;
@@ -213,7 +218,7 @@ namespace
         return count;
     }
 
-    bool typeSectionContainsLeafs(const ByteSpan bytes, const std::span<const uint16_t> expectedKinds)
+    bool typeSectionContainsLeafs(const std::span<const std::byte> bytes, const std::span<const uint16_t> expectedKinds)
     {
         if (bytes.size() < sizeof(uint32_t))
             return false;
@@ -253,7 +258,7 @@ namespace
         return true;
     }
 
-    bool typeSectionContainsLeaf(const ByteSpan bytes, const uint16_t expectedKind)
+    bool typeSectionContainsLeaf(const std::span<const std::byte> bytes, const uint16_t expectedKind)
     {
         if (bytes.size() < sizeof(uint32_t))
             return false;
@@ -280,7 +285,7 @@ namespace
         return cursor == bytes.size();
     }
 
-    bool fileChecksumsSubsectionContainsKind(const ByteSpan bytes, const uint8_t expectedKind, const uint8_t expectedSize)
+    bool fileChecksumsSubsectionContainsKind(const std::span<const std::byte> bytes, const uint8_t expectedKind, const uint8_t expectedSize)
     {
         if (bytes.size() < sizeof(uint32_t))
             return false;
@@ -324,7 +329,7 @@ namespace
         return false;
     }
 
-    bool subsectionTypeAppearsBefore(const ByteSpan bytes, const uint32_t firstType, const uint32_t secondType)
+    bool subsectionTypeAppearsBefore(const std::span<const std::byte> bytes, const uint32_t firstType, const uint32_t secondType)
     {
         if (bytes.size() < sizeof(uint32_t))
             return false;
@@ -353,7 +358,7 @@ namespace
         return false;
     }
 
-    bool tryReadFirstLineBlockLines(const ByteSpan bytes, std::vector<uint32_t>& outLines)
+    bool tryReadFirstLineBlockLines(const std::span<const std::byte> bytes, std::vector<uint32_t>& outLines)
     {
         outLines.clear();
         if (bytes.size() < sizeof(uint32_t))
@@ -403,7 +408,7 @@ namespace
         return false;
     }
 
-    bool tryReadFirstLineBlockFirstCodeOffset(const ByteSpan bytes, uint32_t& outCodeOffset)
+    bool tryReadFirstLineBlockFirstCodeOffset(const std::span<const std::byte> bytes, uint32_t& outCodeOffset)
     {
         outCodeOffset = 0;
         if (bytes.size() < sizeof(uint32_t) || readU32(bytes, 0) != K_CV_SIGNATURE_C13)
@@ -438,13 +443,13 @@ namespace
         return true;
     }
 
-    bool symbolsSubsectionContainsRecord(const ByteSpan bytes, const uint16_t recordType)
+    bool symbolsSubsectionContainsRecord(const std::span<const std::byte> bytes, const uint16_t recordType)
     {
         uint32_t count = 0;
         return countSymbolsSubsectionRecords(bytes, recordType, count) && count != 0;
     }
 
-    bool countLineRecords(const ByteSpan bytes, const uint32_t expectedLine, uint32_t& outCount)
+    bool countLineRecords(const std::span<const std::byte> bytes, const uint32_t expectedLine, uint32_t& outCount)
     {
         outCount = 0;
         if (bytes.size() < sizeof(uint32_t) || readU32(bytes, 0) != K_CV_SIGNATURE_C13)
@@ -574,7 +579,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
     if (debugSection->relocations.size() != 2)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes = debugSection->bytes.span();
     if (countSymbolsSubsections(debugBytes) != 3)
         return Result::Error;
     if (!symbolsSubsectionContainsRecord(debugBytes, K_S_OBJNAME))
@@ -595,7 +600,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
     const NativeSectionData* typeSection = findSection(debugInfo, ".debug$T");
     if (!typeSection)
         return Result::Error;
-    const ByteSpan              typeBytes      = asByteSpan(typeSection->bytes);
+    const std::span<const std::byte>              typeBytes      = typeSection->bytes.span();
     static constexpr std::array EXPECTED_LEAFS = {
         K_LF_ARGLIST,
         K_LF_PROCEDURE,
@@ -640,7 +645,7 @@ SWC_TEST_BEGIN(DebugInfo_PdbInfoEmitsWindowsBuildInfo)
     if (pdbInfo.ipiIndexEnd != K_CV_FIRST_NONPRIM + 6)
         return Result::Error;
 
-    std::vector<std::byte> idBytes;
+    ByteArray idBytes;
     appendU32(idBytes, K_CV_TYPE_SIGNATURE);
     idBytes.insert(idBytes.end(), pdbInfo.ipiRecords.begin(), pdbInfo.ipiRecords.end());
 
@@ -652,9 +657,9 @@ SWC_TEST_BEGIN(DebugInfo_PdbInfoEmitsWindowsBuildInfo)
         K_LF_STRING_ID,
         K_LF_BUILDINFO,
     };
-    if (!typeSectionContainsLeafs(asByteSpan(idBytes), EXPECTED_ID_LEAFS))
+    if (!typeSectionContainsLeafs(idBytes.span(), EXPECTED_ID_LEAFS))
         return Result::Error;
-    if (!bytesContainString(asByteSpan(idBytes), Utf8("debug-info-pdb.pdb")))
+    if (!bytesContainString(idBytes.span(), Utf8("debug-info-pdb.pdb")))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -712,7 +717,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
     if (debugSection->relocations.size() != 4)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes = debugSection->bytes.span();
     if (!symbolsSubsectionContainsRecord(debugBytes, K_S_REGREL32))
         return Result::Error;
     if (!symbolsSubsectionContainsRecord(debugBytes, K_S_GDATA32) && !symbolsSubsectionContainsRecord(debugBytes, K_S_LDATA32))
@@ -723,7 +728,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
     const NativeSectionData* typeSection = findSection(debugInfo, ".debug$T");
     if (!typeSection)
         return Result::Error;
-    const ByteSpan typeBytes = asByteSpan(typeSection->bytes);
+    const std::span<const std::byte> typeBytes = typeSection->bytes.span();
     if (!typeSectionContainsLeaf(typeBytes, K_LF_MODIFIER))
         return Result::Error;
 
@@ -793,7 +798,7 @@ SWC_TEST_BEGIN(DebugInfo_UsesPerVariableBaseRegistersForRegRelativeSymbols)
     if (!debugSection)
         return Result::Error;
 
-    const ByteSpan debugBytes    = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes    = debugSection->bytes.span();
     uint16_t       paramRegister = 0;
     uint16_t       localRegister = 0;
     uint32_t       paramOffset   = 0;
@@ -875,7 +880,7 @@ SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
         return Result::Error;
 
     std::vector<uint32_t> lines;
-    if (!tryReadFirstLineBlockLines(asByteSpan(debugSection->bytes), lines))
+    if (!tryReadFirstLineBlockLines(debugSection->bytes.span(), lines))
         return Result::Error;
     if (lines.size() != 2)
         return Result::Error;
@@ -958,7 +963,7 @@ SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
         return Result::Error;
 
     std::vector<uint32_t> lines;
-    if (!tryReadFirstLineBlockLines(asByteSpan(debugSection->bytes), lines))
+    if (!tryReadFirstLineBlockLines(debugSection->bytes.span(), lines))
         return Result::Error;
     if (lines.size() != 2)
         return Result::Error;
@@ -1037,13 +1042,13 @@ SWC_TEST_BEGIN(DebugInfo_FirstLineCoversEntry)
 
     // Only the step-visible body line (2) is emitted, but its record must start at offset 0.
     std::vector<uint32_t> lines;
-    if (!tryReadFirstLineBlockLines(asByteSpan(debugSection->bytes), lines))
+    if (!tryReadFirstLineBlockLines(debugSection->bytes.span(), lines))
         return Result::Error;
     if (lines.size() != 1 || lines[0] != 2)
         return Result::Error;
 
     uint32_t firstCodeOffset = 0xFFFFFFFF;
-    if (!tryReadFirstLineBlockFirstCodeOffset(asByteSpan(debugSection->bytes), firstCodeOffset))
+    if (!tryReadFirstLineBlockFirstCodeOffset(debugSection->bytes.span(), firstCodeOffset))
         return Result::Error;
     if (firstCodeOffset != 0)
         return Result::Error;
@@ -1188,7 +1193,7 @@ SWC_TEST_BEGIN(DebugInfo_UsesOwnerSourceFileForGeneratedViews)
     if (!debugSection)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes = debugSection->bytes.span();
     if (!bytesContainString(debugBytes, Utf8(ownerPath.string())))
         return Result::Error;
     if (bytesContainString(debugBytes, Utf8(generatedPath.string())))
@@ -1288,7 +1293,7 @@ SWC_TEST_BEGIN(DebugInfo_UsesDebugSourceCodeRefForGeneratedViewLines)
     if (!debugSection)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes = debugSection->bytes.span();
     uint32_t       line45Count;
     uint32_t       line144Count;
     if (!countLineRecords(debugBytes, 45, line45Count))
@@ -1481,7 +1486,7 @@ func debugInfoRuntimeStorageRead(value: const &DebugInfoRuntimeStoragePair)->s32
         return Result::Error;
 
     uint32_t regRelativeRecords = 0;
-    if (!countSymbolsSubsectionRecords(asByteSpan(debugSection->bytes), K_S_REGREL32, regRelativeRecords))
+    if (!countSymbolsSubsectionRecords(debugSection->bytes.span(), K_S_REGREL32, regRelativeRecords))
         return Result::Error;
     if (regRelativeRecords != expectedParameterRecords + expectedLocalRecords)
         return Result::Error;
@@ -1560,7 +1565,7 @@ var GValue: s32 = 7
     if (!debugSection)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes = debugSection->bytes.span();
     if (!symbolsSubsectionContainsRecord(debugBytes, K_S_LDATA32))
         return Result::Error;
     if (!bytesContainString(debugBytes, "GValue"))
@@ -1610,14 +1615,15 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     if (!debugSection)
         return Result::Error;
 
-    const ByteSpan debugBytes = asByteSpan(debugSection->bytes);
+    const std::span<const std::byte> debugBytes = debugSection->bytes.span();
     if (!bytesContainString(debugBytes, Utf8(sourcePath.string())))
         return Result::Error;
     // Modern Visual Studio refuses to show source without a SHA-256 checksum it can verify; the file
     // checksum must carry the real digest of the source content (kind 3, 32 bytes), not a None placeholder.
     if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_SHA256, 32))
         return Result::Error;
-    const std::array<uint8_t, 32> expectedHash = sha256(asByteSpan(sourceFile.sourceView()));
+    const std::string_view sourceView = sourceFile.sourceView();
+    const std::array<uint8_t, 32> expectedHash = sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(sourceView.data()), sourceView.size()});
     if (!bytesContainString(debugBytes, Utf8(std::string_view(reinterpret_cast<const char*>(expectedHash.data()), expectedHash.size()))))
         return Result::Error;
     if (!subsectionTypeAppearsBefore(debugBytes, K_DEBUG_S_FILECHKSMS, K_DEBUG_S_STRINGTABLE))

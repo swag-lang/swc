@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
@@ -59,7 +60,7 @@ namespace
         return {ptr, std::strlen(ptr)};
     }
 
-    ByteSpan byteSpanFromCStringView(std::string_view view)
+    std::span<const std::byte> byteSpanFromCStringView(std::string_view view)
     {
         if (view.empty())
             return {};
@@ -151,8 +152,8 @@ namespace
         if (valueSize)
         {
             std::vector valueBytes(valueSize, std::byte{0});
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), srcCstRef, srcTypeRef));
-            const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span<std::byte>{valueBytes.data(), valueBytes.size()}, srcCstRef, srcTypeRef));
+            const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
             ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
         }
 
@@ -658,7 +659,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             {
                 const ConstantValue&   cst  = sema.cstMgr().get(castRequest.srcConstRef);
                 const std::string_view str  = cst.getString();
-                const ByteSpan         span = asByteSpan(str);
+                const std::span<const std::byte>         span{reinterpret_cast<const std::byte*>(str.data()), str.size()};
                 const ConstantValue    cv   = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
                 castRequest.outConstRef     = sema.cstMgr().addConstant(sema.ctx(), cv);
             }
@@ -774,8 +775,8 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const TypeInfo& arrayType    = sema.typeMgr().get(arrayTypeRef);
 
         const uint64_t         arraySize = arrayType.sizeOf(ctx);
-        std::vector<std::byte> arrayData(arraySize);
-        const ByteSpanRW       arraySpan = asByteSpan(arrayData);
+        ByteArray arrayData(arraySize);
+        const std::span<std::byte> arraySpan = arrayData.span();
         SWC_RESULT(ConstantLower::lowerAggregateArrayToBytes(sema, arraySpan, arrayType, castedValues));
 
         const ConstantValue sliceCst = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, arraySpan, srcValues.size(), dstType.flags());
@@ -1054,14 +1055,14 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             {
                 SWC_ASSERT(srcCst.isValuePointer());
                 const uint64_t ptrValue = srcCst.getValuePointer();
-                const ByteSpan ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
+                const std::span<const std::byte> ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
                 SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ptrBytes));
             }
             else
             {
                 std::vector valueBytes(boxedValueSize, std::byte{0});
                 SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyTypeRef));
-                SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, std::span<const std::byte>{valueBytes.data(), valueBytes.size()}));
             }
 
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
@@ -1075,7 +1076,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         }
     }
 
-    ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, ByteSpan{storage, sizeof(Runtime::Any)});
+    ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, std::span<const std::byte>{storage, sizeof(Runtime::Any)});
     anyCst.setDataSegmentRef({.shardIndex = typeInfoRef.shardIndex, .offset = anyOffset});
     castRequest.setConstantFoldingResult(sema.cstMgr().addMaterializedPayloadConstant(anyCst));
     return Result::Continue;
@@ -1151,7 +1152,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     if (!anyCst.isStruct())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    const ByteSpan anyBytes = anyCst.getStruct();
+    const std::span<const std::byte> anyBytes = anyCst.getStruct();
     if (anyBytes.size() != sizeof(Runtime::Any))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 

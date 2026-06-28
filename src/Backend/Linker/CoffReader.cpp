@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 #include "Support/Report/Diagnostic.h"
@@ -9,7 +8,23 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Utf8 readStringTableName(ByteSpan bytes, size_t stringTableOffset, uint32_t nameOffset)
+    bool containsRange(const std::span<const std::byte> bytes, const size_t offset, const size_t size) noexcept
+    {
+        return offset <= bytes.size() && size <= bytes.size() - offset;
+    }
+
+    template<typename T>
+    bool tryReadValue(T& outValue, const std::span<const std::byte> bytes, const size_t offset) noexcept
+    {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if (!containsRange(bytes, offset, sizeof(T)))
+            return false;
+
+        std::memcpy(&outValue, bytes.data() + offset, sizeof(T));
+        return true;
+    }
+
+    Utf8 readStringTableName(std::span<const std::byte> bytes, size_t stringTableOffset, uint32_t nameOffset)
     {
         const size_t start = stringTableOffset + nameOffset;
         if (start >= bytes.size())
@@ -60,7 +75,7 @@ namespace
         }
     }
 
-    Utf8 symbolName(const IMAGE_SYMBOL& record, ByteSpan bytes, size_t stringTableOffset)
+    Utf8 symbolName(const IMAGE_SYMBOL& record, std::span<const std::byte> bytes, size_t stringTableOffset)
     {
         if (record.N.Name.Short != 0)
         {
@@ -74,7 +89,12 @@ namespace
     }
 }
 
-bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& inputBytes)
+{
+    return readCoffObject(outObject, outDiag, inputBytes.span());
+}
+
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const std::span<const std::byte> bytes)
 {
     outObject = {};
 

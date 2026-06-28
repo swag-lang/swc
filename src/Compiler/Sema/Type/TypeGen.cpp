@@ -25,7 +25,7 @@ namespace
         result.rtTypeRef = entry.rtTypeRef;
 
         const TypeInfo& structType = ctx.typeMgr().get(result.rtTypeRef);
-        result.span                = ByteSpan{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
+        result.span                = std::span<const std::byte>{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
         return true;
     }
 }

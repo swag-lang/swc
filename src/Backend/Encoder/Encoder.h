@@ -1,5 +1,8 @@
 #pragma once
-#include "Support/Core/ByteSpan.h"
+#include <span>
+
+#include "Support/Core/ByteArray.h"
+
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/EncoderTypes.h"
 #include "Backend/Micro/MicroReg.h"
@@ -89,14 +92,14 @@ public:
     uint32_t                                    size() const { return store_.size(); }
     const uint8_t*                              data() const;
     uint8_t                                     byteAt(uint32_t index) const;
-    void                                        copyTo(ByteSpanRW dst) const;
+    void                                        copyTo(std::span<std::byte> dst) const;
     void                                        clearDebugSourceRanges() { debugSourceRanges_.clear(); }
     void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const DebugSourceInfo& debugSourceInfo);
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
     void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }
 
-    virtual void        buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const {}
+    virtual void        buildUnwindInfo(ByteArray& outUnwindInfo) const {}
     virtual std::string formatRegisterName(MicroReg reg) const;
     virtual MicroReg    stackPointerReg() const = 0;
 

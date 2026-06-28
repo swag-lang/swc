@@ -265,7 +265,7 @@ namespace
 
         const ConstantValue& defaultValue = codeGen.cstMgr().get(defaultValueRef);
 
-        ByteSpan rawBytes;
+        std::span<const std::byte> rawBytes;
         if (defaultValue.isStruct())
         {
             SWC_ASSERT(defaultValue.getStruct().size() == localSize);
@@ -334,7 +334,7 @@ namespace
         if (safeDefaultValueRef.isInvalid())
             return false;
 
-        ByteSpan             payloadBytes;
+        std::span<const std::byte>             payloadBytes;
         const ConstantValue& safeDefaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
         if (safeDefaultValue.isStruct())
             payloadBytes = safeDefaultValue.getStruct();

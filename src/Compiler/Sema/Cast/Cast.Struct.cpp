@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -496,8 +497,8 @@ namespace
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
-        std::vector<std::byte> buffer(structSize);
-        const ByteSpanRW       bytes = asByteSpan(buffer);
+        ByteArray buffer(structSize);
+        const std::span<std::byte> bytes = buffer.span();
 
         for (size_t i = 0; i < dstFields.size(); ++i)
         {
@@ -508,10 +509,10 @@ namespace
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
             const uint64_t  fieldOffset  = dstFields[i]->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
-            SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, std::span<std::byte>{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef));
         }
 
-        args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+        args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
         SWC_ASSERT(args.castRequest->outConstRef.isValid());
         return Result::Continue;
     }
@@ -521,16 +522,16 @@ namespace
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
-        std::vector<std::byte> buffer(structSize);
-        const ByteSpanRW       bytes        = asByteSpan(buffer);
+        ByteArray buffer(structSize);
+        const std::span<std::byte> bytes = buffer.span();
         const TypeRef          fieldTypeRef = field.typeRef();
         const TypeInfo&        fieldType    = args.sema->typeMgr().get(fieldTypeRef);
         const uint64_t         fieldSize    = fieldType.sizeOf(args.sema->ctx());
         const uint64_t         fieldOffset  = field.offset();
         SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
-        SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldTypeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, std::span<std::byte>{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldTypeRef));
 
-        args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+        args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
         SWC_ASSERT(args.castRequest->outConstRef.isValid());
         return Result::Continue;
     }

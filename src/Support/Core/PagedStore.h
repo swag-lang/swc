@@ -1,6 +1,11 @@
 #pragma once
+#include <cstdint>
+#include <limits>
+#include <span>
+#include <utility>
+#include <vector>
+
 #include "Support/Report/Assert.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Core/StrongRef.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -38,9 +43,9 @@ public:
     bool     containsRef(Ref ref, uint32_t minSize = 1) const noexcept;
     uint8_t* seekPtr() const noexcept { return lastPtr_; }
     void     clear() noexcept;
-    void     copyTo(ByteSpanRW dst) const;
-    void     copyToPreserveOffsets(ByteSpanRW dst) const;
-    void     restoreFromPreserveOffsets(ByteSpan src) const;
+    void     copyTo(std::span<std::byte> dst) const;
+    void     copyToPreserveOffsets(std::span<std::byte> dst) const;
+    void     restoreFromPreserveOffsets(std::span<const std::byte> src) const;
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }
@@ -51,7 +56,7 @@ public:
     uint8_t* pushS32(int32_t v) { return pushPod(v); }
     uint8_t* pushS64(int64_t v) { return pushPod(v); }
 
-    std::pair<ByteSpan, Ref> pushCopySpan(ByteSpan payload, uint32_t align = alignof(std::byte));
+    std::pair<std::span<const std::byte>, Ref> pushCopySpan(std::span<const std::byte> payload, uint32_t align = alignof(std::byte));
     Ref                      reserveRange(uint32_t size, uint32_t align, bool zeroInit);
     SpanRef                  pushSpanContiguousRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
     SpanRef                  pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);

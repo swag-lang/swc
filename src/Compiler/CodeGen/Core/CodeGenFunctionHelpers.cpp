@@ -75,7 +75,7 @@ namespace
         return offset <= localStackSize && size <= localStackSize - offset;
     }
 
-    Result persistCompilerRunValueRec(Sema& sema, DataSegment& segment, TypeRef typeRef, ByteSpanRW dstBytes, ByteSpan srcBytes, const std::byte* localStackBase, uint64_t localStackSize)
+    Result persistCompilerRunValueRec(Sema& sema, DataSegment& segment, TypeRef typeRef, std::span<std::byte> dstBytes, std::span<const std::byte> srcBytes, const std::byte* localStackBase, uint64_t localStackSize)
     {
         SWC_ASSERT(typeRef.isValid());
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
@@ -154,7 +154,7 @@ namespace
                 for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
                 {
                     const uint64_t elementOffset = idx * elementSize;
-                    SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                    SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span<std::byte>{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span<const std::byte>{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
                 }
             }
 
@@ -182,7 +182,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span<std::byte>{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span<const std::byte>{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -203,7 +203,7 @@ namespace
                 if (fieldOffset + fieldSize > dstBytes.size())
                     return Result::Error;
 
-                SWC_RESULT(persistCompilerRunValueRec(sema, segment, fieldTypeRef, ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(sema, segment, fieldTypeRef, std::span<std::byte>{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span<const std::byte>{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -231,7 +231,7 @@ namespace
             return;
 
         DataSegment& segment = sema->compiler().compilerSegment();
-        const Result result  = persistCompilerRunValueRec(*sema, segment, typeRef, ByteSpanRW{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, ByteSpan{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
+        const Result result  = persistCompilerRunValueRec(*sema, segment, typeRef, std::span<std::byte>{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span<const std::byte>{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
         SWC_ASSERT(result == Result::Continue);
     }
 
@@ -567,12 +567,12 @@ namespace
         return false;
     }
 
-    bool emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, ByteSpan rawBytes, bool allowNonZeroStores)
+    bool emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, std::span<const std::byte> rawBytes, bool allowNonZeroStores)
     {
         if (rawBytes.empty())
             return true;
 
-        if (allZeroBytes(rawBytes))
+        if (std::ranges::all_of(rawBytes, [](const std::byte value) { return value == std::byte{}; }))
         {
             CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(rawBytes.size()));
             return true;
@@ -620,7 +620,7 @@ namespace
         return false;
     }
 
-    Result materializeStaticDefaultPayload(CodeGen& codeGen, ConstantRef& outPayloadRef, ByteSpan& outPayloadBytes, TypeRef typeRef, ByteSpan payloadBytes)
+    Result materializeStaticDefaultPayload(CodeGen& codeGen, ConstantRef& outPayloadRef, std::span<const std::byte>& outPayloadBytes, TypeRef typeRef, std::span<const std::byte> payloadBytes)
     {
         outPayloadRef   = ConstantRef::invalid();
         outPayloadBytes = {};
@@ -642,7 +642,7 @@ namespace
         if (!storedBytes)
             return Result::Continue;
 
-        outPayloadBytes          = ByteSpan{storedBytes, static_cast<size_t>(size)};
+        outPayloadBytes          = std::span<const std::byte>{storedBytes, static_cast<size_t>(size)};
         ConstantValue payloadCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, outPayloadBytes);
         payloadCst.setDataSegmentRef({.shardIndex = 0, .offset = offset});
         outPayloadRef = codeGen.cstMgr().addMaterializedPayloadConstant(payloadCst);
@@ -655,9 +655,9 @@ namespace
         const uint32_t         size     = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         SmallVector<std::byte> payloadBytes;
         payloadBytes.resize(size);
-        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{payloadBytes.data(), payloadBytes.size()}, valueRef, typeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{payloadBytes.data(), payloadBytes.size()}, valueRef, typeRef));
         const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeRef);
-        if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, ByteSpan{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
+        if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, std::span<const std::byte>{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
             return Result::Continue;
 
         auto storeBits = MicroOpBits::Zero;
@@ -679,8 +679,8 @@ namespace
         }
 
         ConstantRef payloadRef;
-        ByteSpan    materializedPayload;
-        SWC_RESULT(materializeStaticDefaultPayload(codeGen, payloadRef, materializedPayload, typeRef, ByteSpan{payloadBytes.data(), payloadBytes.size()}));
+        std::span<const std::byte>    materializedPayload;
+        SWC_RESULT(materializeStaticDefaultPayload(codeGen, payloadRef, materializedPayload, typeRef, std::span<const std::byte>{payloadBytes.data(), payloadBytes.size()}));
         SWC_ASSERT(payloadRef.isValid());
         if (payloadRef.isInvalid())
             return Result::Continue;
@@ -769,7 +769,7 @@ namespace
         return Result::Continue;
     }
 
-    bool tryGetStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, ByteSpan& outPayloadBytes)
+    bool tryGetStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, std::span<const std::byte>& outPayloadBytes)
     {
         outSafeDefaultValueRef = ConstantRef::invalid();
         outPayloadBytes        = {};
@@ -822,7 +822,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     ConstantRef safeDefaultValueRef = ConstantRef::invalid();
-    ByteSpan    payloadBytes;
+    std::span<const std::byte>    payloadBytes;
     if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 
@@ -878,7 +878,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     }
 
     ConstantRef safeDefaultValueRef = ConstantRef::invalid();
-    ByteSpan    payloadBytes;
+    std::span<const std::byte>    payloadBytes;
     if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 

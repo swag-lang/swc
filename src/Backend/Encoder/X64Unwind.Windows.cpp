@@ -71,7 +71,7 @@ namespace
     }
 }
 
-void X64UnwindWindows::buildInfo(std::vector<std::byte>& outUnwindInfo, const uint32_t codeSize) const
+void X64UnwindWindows::buildInfo(ByteArray& outUnwindInfo, const uint32_t codeSize) const
 {
     SWC_ASSERT(codeSize != 0);
 

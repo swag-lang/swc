@@ -18,7 +18,7 @@ class X64Encoder : public Encoder
 public:
     explicit X64Encoder(TaskContext& ctx);
 
-    void        buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const override;
+    void        buildUnwindInfo(ByteArray& outUnwindInfo) const override;
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
     bool        queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;

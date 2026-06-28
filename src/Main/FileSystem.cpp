@@ -324,9 +324,9 @@ Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char8_t>& ou
     return readBinaryFileImpl(path, outData, error);
 }
 
-Result FileSystem::readBinaryFile(const fs::path& path, std::vector<std::byte>& outData, IoErrorInfo& error)
+Result FileSystem::readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error)
 {
-    return readBinaryFileImpl(path, outData, error);
+    return readBinaryFileImpl(path, static_cast<ByteArray::Base&>(outData), error);
 }
 
 Result FileSystem::readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error)

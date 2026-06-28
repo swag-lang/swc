@@ -1,4 +1,9 @@
 #pragma once
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string_view>
+#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 

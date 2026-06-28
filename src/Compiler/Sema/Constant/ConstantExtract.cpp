@@ -14,7 +14,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result makeScalarFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, ByteSpan bytes, ConstantRef& outCstRef)
+    Result makeScalarFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, std::span<const std::byte> bytes, ConstantRef& outCstRef)
     {
         outCstRef = ConstantRef::invalid();
         if (!fieldTypeRef.isValid())
@@ -73,7 +73,7 @@ namespace
         return Result::Error;
     }
 
-    Result getStructBytesFromConstant(Sema& sema, ByteSpan& bytes, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
+    Result getStructBytesFromConstant(Sema& sema, std::span<const std::byte>& bytes, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         if (cst.isStruct())
         {
@@ -105,7 +105,7 @@ namespace
             SWC_ASSERT(pointedType.isStruct());
             const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
             SWC_ASSERT(ptr);
-            bytes = ByteSpan{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
+            bytes = std::span<const std::byte>{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
             return Result::Continue;
         }
 
@@ -144,7 +144,7 @@ namespace
         sema.setConstant(nodeRef, values[fieldIndex]);
     }
 
-    Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
+    Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, std::span<const std::byte> bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, fieldTypeRef, nodeMemberRef));
         SWC_UNUSED(typeField);
@@ -169,13 +169,13 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
         return Result::Continue;
     }
 
-    ByteSpan bytes;
+    std::span<const std::byte> bytes;
     SWC_RESULT(getStructBytesFromConstant(sema, bytes, cst, symVar, nodeMemberRef));
 
     const TypeInfo& typeVar   = symVar.typeInfo(ctx);
     const TypeInfo* typeField = &typeVar;
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
-    const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
+    const auto fieldBytes = std::span<const std::byte>{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
     ConstantRef cstRef = ConstantRef::invalid();
     SWC_RESULT(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
@@ -217,7 +217,7 @@ namespace
         return Result::Continue;
     }
 
-    Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
+    Result extractAtIndexBytes(Sema& sema, std::span<const std::byte> bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         outCstRef                = ConstantRef::invalid();
         TaskContext&    ctx      = sema.ctx();
@@ -229,7 +229,7 @@ namespace
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
-        const auto        elemBytes  = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
+        const auto        elemBytes  = std::span<const std::byte>{bytes.data() + (constIndex * elemSize), elemSize};
         const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
 
         if (elemCstRef.isInvalid())
@@ -260,7 +260,7 @@ namespace
             const TypeRef nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
             const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
-            const ByteSpan    nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
+            const std::span<const std::byte>    nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
             const ConstantRef nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
             if (nextCstRef.isInvalid())
                 return Result::Continue;
@@ -277,7 +277,7 @@ namespace
         const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isSlice());
-        const ByteSpan bytes     = cst.getSlice();
+        const std::span<const std::byte> bytes     = cst.getSlice();
         const uint64_t elemCount = cst.getSliceCount();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef, outCstRef);
     }
@@ -294,7 +294,7 @@ namespace
         {
             const auto*    ptr   = reinterpret_cast<const char*>(ptrValue);
             const uint64_t count = std::strlen(ptr);
-            const ByteSpan bytes{reinterpret_cast<const std::byte*>(ptr), count};
+            const std::span<const std::byte> bytes{reinterpret_cast<const std::byte*>(ptr), count};
             return extractAtIndexBytes(sema, bytes, sema.typeMgr().typeU8(), constIndex, count, nodeArgRef, outCstRef);
         }
 
@@ -305,7 +305,7 @@ namespace
 
         const uint64_t byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
         const auto*    elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);
-        const ByteSpan elemBytes{elemPtr, elemSize};
+        const std::span<const std::byte> elemBytes{elemPtr, elemSize};
         return extractAtIndexBytes(sema, elemBytes, elemType, 0, 1, nodeArgRef, outCstRef);
     }
 }

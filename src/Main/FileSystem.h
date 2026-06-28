@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Core/Result.h"
 
@@ -57,7 +58,7 @@ namespace FileSystem
     Result      resolveFolder(TaskContext& ctx, fs::path& folder);
     Result      readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error);
     Result      readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error);
-    Result      readBinaryFile(const fs::path& path, std::vector<std::byte>& outData, IoErrorInfo& error);
+    Result      readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error);
     Result      readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error);
     Result      writeBinaryFile(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);
     bool        pathEquals(const fs::path& lhs, const fs::path& rhs);

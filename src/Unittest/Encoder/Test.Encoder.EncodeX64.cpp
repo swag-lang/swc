@@ -10,6 +10,7 @@
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Support/Core/ByteArray.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -369,7 +370,7 @@ namespace
         MicroPassContext passCtx;
         SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
 
-        std::vector<std::byte> unwindInfo;
+        ByteArray unwindInfo;
         encoder.buildUnwindInfo(unwindInfo);
         if (unwindInfo.size() != expectedUnwindBytes.size())
             return Result::Error;

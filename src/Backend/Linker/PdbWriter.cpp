@@ -2,7 +2,6 @@
 #include "Support/Report/Assert.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -157,7 +156,10 @@ namespace
 
     // ---- Hashing ------------------------------------------------------------------------------------
 
-    uint32_t loadLe32(const char* p) { return readLe32(asByteSpan(std::string_view{p, 4}), 0); }
+    uint32_t loadLe32(const char* p)
+    {
+        return static_cast<uint32_t>(static_cast<uint8_t>(p[0])) | (static_cast<uint32_t>(static_cast<uint8_t>(p[1])) << 8) | (static_cast<uint32_t>(static_cast<uint8_t>(p[2])) << 16) | (static_cast<uint32_t>(static_cast<uint8_t>(p[3])) << 24);
+    }
 
     // CodeView V1 string hash, used by the /names table and the GSI/public symbol hashes.
     uint32_t hashStringV1(std::string_view str)

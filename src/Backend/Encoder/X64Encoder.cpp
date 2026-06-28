@@ -669,7 +669,7 @@ X64Encoder::X64Encoder(TaskContext& ctx) :
 {
 }
 
-void X64Encoder::buildUnwindInfo(std::vector<std::byte>& outUnwindInfo) const
+void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
 {
     SWC_ASSERT(unwind_);
     unwind_->buildInfo(outUnwindInfo, size());

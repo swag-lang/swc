@@ -132,7 +132,7 @@ void JITMemoryManager::makeExecutable(const JITMemory& executableMemory)
     SWC_FORCE_ASSERT(Os::makeExecutableMemory(executableMemory.ptr_, executableMemory.allocationSize_));
 }
 
-void JITMemoryManager::allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes)
+void JITMemoryManager::allocateAndCopy(JITMemory& outExecutableMemory, std::span<const std::byte> bytes)
 {
     outExecutableMemory.reset();
 

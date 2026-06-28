@@ -90,7 +90,7 @@ namespace
         }
     }
 
-    void appendAlignedBytes(ByteArray& outBytes, uint32_t& outOffset, const ByteSpan bytes)
+    void appendAlignedBytes(ByteArray& outBytes, uint32_t& outOffset, const ByteArray& bytes)
     {
         const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(outBytes.size()), 16);
         if (outBytes.size() < alignedOffset)
@@ -169,9 +169,9 @@ namespace
             textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
 
             if (description.startup)
-                appendAlignedBytes(textSection.bytes, description.startup->textOffset, description.startup->code.bytes.span());
+                appendAlignedBytes(textSection.bytes, description.startup->textOffset, description.startup->code.bytes);
             for (NativeFunctionInfo* info : description.functions)
-                appendAlignedBytes(textSection.bytes, info->textOffset, info->machineCode->bytes.span());
+                appendAlignedBytes(textSection.bytes, info->textOffset, info->machineCode->bytes);
 
             if (description.startup)
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
@@ -497,7 +497,7 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives
                 break;
             }
 
-            const ByteSpan memberBytes = archive.memberData(diag, memberOffset);
+            const std::span<const std::byte> memberBytes = archive.memberData(diag, memberOffset);
             if (memberBytes.empty())
                 continue;
 

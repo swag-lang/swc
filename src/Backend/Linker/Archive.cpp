@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -16,8 +15,11 @@ namespace
     constexpr uint16_t         IMPORT_MACHINE_AMD64 = 0x8664;
 
     // Member sizes are stored as a right-padded decimal ASCII string.
-    bool parseMemberSize(uint32_t& outSize, std::span<const std::byte> bytes, size_t headerOffset)
+    bool parseMemberSize(uint32_t& outSize, const ByteArray& bytes, size_t headerOffset)
     {
+        if (!bytes.containsRange(headerOffset, MEMBER_HEADER_SIZE))
+            return false;
+
         outSize = 0;
         for (size_t i = 48; i < 58; ++i)
         {
@@ -29,6 +31,12 @@ namespace
             outSize = outSize * 10 + static_cast<uint32_t>(c - '0');
         }
         return true;
+    }
+
+    uint16_t readLe16(const std::span<const std::byte> bytes, const size_t offset) noexcept
+    {
+        SWC_ASSERT(offset <= bytes.size() && sizeof(uint16_t) <= bytes.size() - offset);
+        return std::to_integer<uint16_t>(bytes[offset + 0]) | (std::to_integer<uint16_t>(bytes[offset + 1]) << 8);
     }
 
     size_t archiveAlignedSize(size_t size)
@@ -57,7 +65,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
     }
 
     uint32_t memberSize = 0;
-    if (!parseMemberSize(memberSize, bytes_.span(), firstHeader))
+    if (!parseMemberSize(memberSize, bytes_, firstHeader))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return false;
@@ -107,7 +115,7 @@ uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
     return it == symbolToMember_.end() ? 0 : it->second;
 }
 
-ByteSpan Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const
+std::span<const std::byte> Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const
 {
     if (!bytes_.containsRange(headerOffset, MEMBER_HEADER_SIZE))
     {
@@ -115,7 +123,7 @@ ByteSpan Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const
         return {};
     }
     uint32_t memberSize = 0;
-    if (!parseMemberSize(memberSize, bytes_.span(), headerOffset))
+    if (!parseMemberSize(memberSize, bytes_, headerOffset))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return {};
@@ -131,7 +139,7 @@ ByteSpan Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const
 
 bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const
 {
-    const ByteSpan data = memberData(outDiag, headerOffset);
+    const std::span<const std::byte> data = memberData(outDiag, headerOffset);
     if (data.empty())
         return false;
     if (data.size() < IMPORT_HEADER_SIZE)
@@ -283,7 +291,7 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
     for (const LinkArchiveMember& inputMember : inputMembers)
     {
         CoffObject object;
-        if (!readCoffObject(object, outDiag, inputMember.bytes.span()))
+        if (!readCoffObject(object, outDiag, inputMember.bytes))
             return false;
 
         ArchiveMemberBuild member;

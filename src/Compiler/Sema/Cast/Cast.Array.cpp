@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -132,10 +133,9 @@ namespace
     {
         TaskContext&           ctx       = args.sema->ctx();
         const uint64_t         arraySize = args.dstType->sizeOf(ctx);
-        std::vector<std::byte> buffer(arraySize);
-        const ByteSpanRW       bytes = asByteSpan(buffer);
-        SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, bytes, *args.dstType, values) == Result::Continue);
-        const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+        ByteArray buffer(arraySize);
+        SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, buffer.span(), *args.dstType, values) == Result::Continue);
+        const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
         SWC_ASSERT(result.isValid());
         return result;
     }
@@ -233,8 +233,8 @@ namespace
 
             TaskContext&           ctx       = args.sema->ctx();
             const uint64_t         arraySize = args.dstType->sizeOf(ctx);
-            std::vector<std::byte> buffer(arraySize);
-            const ByteSpanRW       bytes        = asByteSpan(buffer);
+            ByteArray buffer(arraySize);
+            const std::span<std::byte> bytes = buffer.span();
             const uint64_t         subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
 
             for (size_t i = 0; i < srcValues->size(); ++i)
@@ -242,11 +242,11 @@ namespace
                 const ArrayElemLocation location = arrayElemLocation(args, i);
                 ConstantRef             castedRef;
                 SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, (*srcValues)[i], castedRef));
-                const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
+                const std::span<std::byte> dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
             }
 
-            args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+            args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
             SWC_ASSERT(args.castRequest->outConstRef.isValid());
             return Result::Continue;
         }

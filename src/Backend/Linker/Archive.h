@@ -1,5 +1,6 @@
 #pragma once
-#include "Support/Core/ByteSpan.h"
+#include <span>
+
 #include "Support/Core/Utf8.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteArray.h"
@@ -33,7 +34,7 @@ public:
     uint32_t memberOffsetForSymbol(const Utf8& symbol) const;
 
     // Returns the raw member contents at the given member-header offset.
-    ByteSpan memberData(Diagnostic& outDiag, uint32_t headerOffset) const;
+    std::span<const std::byte> memberData(Diagnostic& outDiag, uint32_t headerOffset) const;
 
     // If the member at the given offset is a short-import record, decodes it and returns true.
     bool tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const;

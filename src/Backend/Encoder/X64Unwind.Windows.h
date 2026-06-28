@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class X64UnwindWindows final : public X64Unwind
 {
 public:
-    void buildInfo(std::vector<std::byte>& outUnwindInfo, uint32_t codeSize) const override;
+    void buildInfo(ByteArray& outUnwindInfo, uint32_t codeSize) const override;
     void onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeStartOffset, uint32_t codeEndOffset) override;
 
 private:

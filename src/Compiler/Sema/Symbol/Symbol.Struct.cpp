@@ -271,10 +271,10 @@ namespace
         }
 
         if (cst.isStruct())
-            return allZeroBytes(cst.getStruct()) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+            return std::ranges::all_of(cst.getStruct(), [](const std::byte value) { return value == std::byte{}; }) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
 
         if (cst.isArray())
-            return allZeroBytes(cst.getArray()) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+            return std::ranges::all_of(cst.getArray(), [](const std::byte value) { return value == std::byte{}; }) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (!type.sizeOf(sema.ctx()))
@@ -374,7 +374,7 @@ namespace
         return ImplicitDefaultKind::AllZero;
     }
 
-    Result lowerImplicitDefaultBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef typeRef)
+    Result lowerImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
     {
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
@@ -394,7 +394,7 @@ namespace
                 const uint64_t  fieldOffset  = field->offset();
                 SWC_ASSERT(fieldOffset + fieldSize <= dstBytes.size());
 
-                const ByteSpanRW fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
+                const std::span<std::byte> fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
                 if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
                 {
                     if (sema.cstMgr().get(valueRef).isUndefined())
@@ -812,9 +812,9 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 
         SWC_ASSERT(structSize);
         std::vector      buffer(structSize, std::byte{0});
-        const ByteSpanRW bytes = asByteSpan(buffer);
+        const std::span<std::byte> bytes{buffer.data(), buffer.size()};
         SWC_INTERNAL_CHECK(lowerImplicitDefaultBytes(sema, bytes, typeRef) == Result::Continue);
-        defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, ByteSpan{bytes.data(), bytes.size()});
+        defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span<const std::byte>{bytes.data(), bytes.size()});
         SWC_ASSERT(defaultStructCst_.isValid());
     });
 

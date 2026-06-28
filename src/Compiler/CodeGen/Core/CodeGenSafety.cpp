@@ -35,7 +35,7 @@ namespace
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
         SWC_ASSERT(cst.isStruct() || cst.isArray());
 
-        const ByteSpan bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
+        const std::span<const std::byte> bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
         const uint64_t addr  = reinterpret_cast<uint64_t>(bytes.data());
 
         CodeGenNodePayload payload;

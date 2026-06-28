@@ -1132,7 +1132,8 @@ namespace
             signature += '\n';
         }
 
-        const auto digest = sha256(asByteSpan(signature.view()));
+        const std::string_view signatureView = signature.view();
+        const auto digest = sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(signatureView.data()), signatureView.size()});
         return (Os::getTemporaryPath() / "swag" / "scripts" / fs::path(bytesToLowerHex(digest).c_str()) / ".dep").lexically_normal();
     }
 }

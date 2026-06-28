@@ -486,9 +486,9 @@ namespace
 
         ConstantValue zeroValue;
         if (typeInfo.isStruct() || typeInfo.isAny() || typeInfo.isInterface())
-            zeroValue = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+            zeroValue = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
         else if (typeInfo.isArray())
-            zeroValue = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+            zeroValue = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
         else
             zeroValue = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (zeroValue.kind() == ConstantKind::Invalid)

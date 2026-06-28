@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -50,7 +51,7 @@ namespace
     struct ConstCallCacheArg
     {
         TypeRef                typeRef = TypeRef::invalid();
-        std::vector<std::byte> bytes;
+        ByteArray              bytes;
     };
 
     struct ConstCallCacheKey
@@ -270,7 +271,7 @@ namespace
         const TypeInfo& exprType        = sema.typeMgr().get(resultMeta.exprTypeRef);
         const TypeRef   constantTypeRef = exprType.isAlias() ? resultMeta.exprTypeRef : resultMeta.storageTypeRef;
         const uint64_t  resultSize      = sema.typeMgr().get(resultMeta.storageTypeRef).sizeOf(sema.ctx());
-        const auto      resultBytes     = ByteSpan{storagePtr, static_cast<size_t>(resultSize)};
+        const auto      resultBytes     = std::span<const std::byte>{storagePtr, static_cast<size_t>(resultSize)};
 
         if (resultSize && SemaHelpers::needsPersistentCompilerRunReturn(sema, resultMeta.storageTypeRef))
         {
@@ -846,7 +847,7 @@ namespace
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 argStorage.resize(argStorageSize);
@@ -871,7 +872,7 @@ namespace
             auto& argStorage = outArgStorage.emplace_back();
             argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;
@@ -933,7 +934,7 @@ namespace
                 pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
                 if (receiverInitCstRef.isValid())
-                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{pointeeStorage.data(), pointeeStorage.size()}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
+                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{pointeeStorage.data(), pointeeStorage.size()}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 argStorage.resize(argStorageSize);
@@ -987,7 +988,7 @@ namespace
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 argStorage.resize(argStorageSize);
@@ -1009,7 +1010,7 @@ namespace
             auto& argStorage = outArgStorage.emplace_back();
             argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, ByteSpanRW{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;
@@ -1259,7 +1260,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         SWC_RESULT(emitForeignConstExprCall(sema, calledFn, jitArgs.span(), {.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr}));
 
         const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
-        const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, ByteSpan{receiverStorage, structSize});
+        const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span<const std::byte>{receiverStorage, structSize});
         sema.setConstant(callRef, resultCstRef);
         sema.setFoldedTypedConst(callRef);
         return Result::Continue;
@@ -1281,7 +1282,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         return reportJitEvaluationFailure(sema, calledFn);
 
     const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
-    const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, ByteSpan{receiverStorage, structSize});
+    const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, std::span<const std::byte>{receiverStorage, structSize});
     sema.setConstant(callRef, resultCstRef);
     sema.setFoldedTypedConst(callRef);
     return Result::Continue;

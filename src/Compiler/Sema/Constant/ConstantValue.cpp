@@ -18,7 +18,7 @@ namespace
         Eq,
     };
 
-    uint64_t sliceCountFromBytes(TaskContext& ctx, const TypeRef elementTypeRef, const ByteSpan bytes)
+    uint64_t sliceCountFromBytes(TaskContext& ctx, const TypeRef elementTypeRef, const std::span<const std::byte> bytes)
     {
         const TypeInfo& elementType = ctx.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize = elementType.sizeOf(ctx);
@@ -32,7 +32,7 @@ namespace
         return bytes.size() / elementSize;
     }
 
-    void validateSlicePayload(TaskContext& ctx, const TypeRef elementTypeRef, const ByteSpan bytes, const uint64_t count)
+    void validateSlicePayload(TaskContext& ctx, const TypeRef elementTypeRef, const std::span<const std::byte> bytes, const uint64_t count)
     {
         const TypeInfo& elementType = ctx.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize = elementType.sizeOf(ctx);
@@ -60,9 +60,9 @@ namespace
             case ConstantKind::String:
                 return lhs.getString() == rhs.getString();
             case ConstantKind::Struct:
-                return byteSpanEq(lhs.getStruct(), rhs.getStruct());
+                return std::ranges::equal(lhs.getStruct(), rhs.getStruct());
             case ConstantKind::Array:
-                return byteSpanEq(lhs.getArray(), rhs.getArray());
+                return std::ranges::equal(lhs.getArray(), rhs.getArray());
             case ConstantKind::AggregateStruct:
             case ConstantKind::AggregateArray:
                 return lhs.getAggregate() == rhs.getAggregate();
@@ -79,7 +79,7 @@ namespace
             case ConstantKind::BlockPointer:
                 return lhs.getBlockPointer() == rhs.getBlockPointer();
             case ConstantKind::Slice:
-                return byteSpanEq(lhs.getSlice(), rhs.getSlice()) && lhs.getSliceCount() == rhs.getSliceCount();
+                return std::ranges::equal(lhs.getSlice(), rhs.getSlice()) && lhs.getSliceCount() == rhs.getSliceCount();
             case ConstantKind::Null:
                 return true;
             case ConstantKind::Undefined:
@@ -118,9 +118,9 @@ namespace
     }
 }
 
-ByteSpan ConstantValue::normalizePayloadBytes(ByteSpan bytes) noexcept
+std::span<const std::byte> ConstantValue::normalizePayloadBytes(std::span<const std::byte> bytes) noexcept
 {
-    return bytes.empty() ? ByteSpan{} : bytes;
+    return bytes.empty() ? std::span<const std::byte>{} : bytes;
 }
 
 // ReSharper disable once CppPossiblyUninitializedMember
@@ -393,17 +393,17 @@ bool ConstantValue::resolveDataSegmentRef(DataSegmentRef& outRef, const void* pt
         }
         case ConstantKind::Struct:
         {
-            const ByteSpan bytes = getStruct();
+            const std::span<const std::byte> bytes = getStruct();
             return resolveDataSegmentByteRange(outRef, dataSegmentRef, bytes.data(), bytes.size(), ptr);
         }
         case ConstantKind::Array:
         {
-            const ByteSpan bytes = getArray();
+            const std::span<const std::byte> bytes = getArray();
             return resolveDataSegmentByteRange(outRef, dataSegmentRef, bytes.data(), bytes.size(), ptr);
         }
         case ConstantKind::Slice:
         {
-            const ByteSpan bytes = getSlice();
+            const std::span<const std::byte> bytes = getSlice();
             return resolveDataSegmentByteRange(outRef, dataSegmentRef, bytes.data(), bytes.size(), ptr);
         }
         case ConstantKind::ValuePointer:
@@ -566,7 +566,7 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef v
     return cv;
 }
 
-ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes)
 {
     SWC_UNUSED(ctx);
     ConstantValue cv;
@@ -578,7 +578,7 @@ ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef,
     return cv;
 }
 
-ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes)
 {
     SWC_UNUSED(ctx);
     ConstantValue cv;
@@ -590,7 +590,7 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef 
     return cv;
 }
 
-ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes)
 {
     SWC_UNUSED(ctx);
     ConstantValue cv;
@@ -602,7 +602,7 @@ ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, 
     return cv;
 }
 
-ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes)
 {
     SWC_UNUSED(ctx);
     ConstantValue cv;
@@ -671,17 +671,17 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
     return cv;
 }
 
-ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags)
+ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, TypeInfoFlags flags)
 {
     return makeSliceCounted(ctx, typeRef, bytes, sliceCountFromBytes(ctx, typeRef, bytes), flags);
 }
 
-ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags)
+ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, TypeInfoFlags flags)
 {
     return makeSliceBorrowedCounted(ctx, typeRef, bytes, sliceCountFromBytes(ctx, typeRef, bytes), flags);
 }
 
-ConstantValue ConstantValue::makeSliceCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags)
+ConstantValue ConstantValue::makeSliceCounted(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t count, TypeInfoFlags flags)
 {
     validateSlicePayload(ctx, typeRef, bytes, count);
 
@@ -696,7 +696,7 @@ ConstantValue ConstantValue::makeSliceCounted(TaskContext& ctx, TypeRef typeRef,
     return cv;
 }
 
-ConstantValue ConstantValue::makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags)
+ConstantValue ConstantValue::makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t count, TypeInfoFlags flags)
 {
     validateSlicePayload(ctx, typeRef, bytes, count);
 
@@ -724,7 +724,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isStruct() || ty.isAny() || ty.isInterface())
     {
-        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = std::span<const std::byte>{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);
@@ -732,7 +732,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isArray())
     {
-        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = std::span<const std::byte>{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeArrayBorrowed(ctx, typeRef, bytes);
         return makeArray(ctx, typeRef, bytes);
@@ -740,7 +740,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isFunction() && ty.isLambdaClosure())
     {
-        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = std::span<const std::byte>{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);
@@ -831,7 +831,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
         SWC_ASSERT(!elementSize || slice->count <= std::numeric_limits<uint64_t>::max() / elementSize);
         SWC_ASSERT(slice->count == 0 || elementSize == 0 || slice->ptr != nullptr);
         const uint64_t byteCount = elementSize ? slice->count * elementSize : 0;
-        const ByteSpan span{reinterpret_cast<const std::byte*>(slice->ptr), byteCount};
+        const std::span<const std::byte> span{reinterpret_cast<const std::byte*>(slice->ptr), byteCount};
         if (ownership == PayloadOwnership::Borrowed)
             return makeSliceBorrowedCounted(ctx, ty.payloadTypeRef(), span, slice->count, ty.flags());
         return makeSliceCounted(ctx, ty.payloadTypeRef(), span, slice->count, ty.flags());

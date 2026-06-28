@@ -6,7 +6,6 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -246,8 +245,8 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     if (copyName && !name.empty())
     {
         const std::scoped_lock storeLock(shard.storeMutex);
-        const auto [span, _] = shard.stringStore.pushCopySpan(asByteSpan(name));
-        storedName           = asStringView(span);
+        const auto [span, _] = shard.stringStore.pushCopySpan(std::span<const std::byte>{reinterpret_cast<const std::byte*>(name.data()), name.size()});
+        storedName           = std::string_view{reinterpret_cast<const char*>(span.data()), span.size()};
     }
 
     const auto [it, inserted] = stripe.map.try_emplace(storedName, hash, IdentifierRef{});

@@ -105,7 +105,7 @@ namespace
         return result;
     }
 
-    ConstantValue makeMaterializedConstantValue(Sema& sema, TypeRef typeRef, ByteSpan storedBytes, DataSegmentRef dataSegmentRef)
+    ConstantValue makeMaterializedConstantValue(Sema& sema, TypeRef typeRef, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
     {
         TaskContext&    ctx            = sema.ctx();
         const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
@@ -180,7 +180,7 @@ namespace
         return sema.cstMgr().shardDataSegment(sourceRef.shardIndex).findRelocation(relocation, sourceRef.offset, DataSegmentRelocationKind::FunctionSymbol);
     }
 
-    bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, ByteSpan payload)
+    bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, std::span<const std::byte> payload)
     {
         if (payload.size() != sizeof(Runtime::ClosureValue))
             return false;
@@ -193,7 +193,7 @@ namespace
         return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, capturedTarget);
     }
 
-    bool resolveStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, TypeRef typeRef, ByteSpan payload)
+    bool resolveStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, TypeRef typeRef, std::span<const std::byte> payload)
     {
         if (typeRef.isInvalid())
             return false;
@@ -240,7 +240,7 @@ namespace
             for (uint64_t idx = 0; idx < runtimeSlice->count; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                const auto     elementBytes  = ByteSpan{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
+                const auto     elementBytes  = std::span<const std::byte>{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, elementTypeRef, elementBytes))
                     return false;
             }
@@ -285,7 +285,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                const auto     elementBytes  = ByteSpan{payload.data() + elementOffset, static_cast<size_t>(elementSize)};
+                const auto     elementBytes  = std::span<const std::byte>{payload.data() + elementOffset, static_cast<size_t>(elementSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, elementTypeRef, elementBytes))
                     return false;
             }
@@ -307,7 +307,7 @@ namespace
                 if (fieldOffset + fieldSize > payload.size())
                     return false;
 
-                const auto fieldBytes = ByteSpan{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
+                const auto fieldBytes = std::span<const std::byte>{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, fieldTypeRef, fieldBytes))
                     return false;
             }
@@ -333,7 +333,7 @@ namespace
                 if (offset + fieldSize > payload.size())
                     return false;
 
-                const auto fieldBytes = ByteSpan{payload.data() + offset, static_cast<size_t>(fieldSize)};
+                const auto fieldBytes = std::span<const std::byte>{payload.data() + offset, static_cast<size_t>(fieldSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, fieldTypeRef, fieldBytes))
                     return false;
 
@@ -388,15 +388,15 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
         return 0;
 
     SmallVector<std::byte> storage(sizeOf);
-    const ByteSpanRW       storageSpan{storage.data(), storage.size()};
+    const std::span<std::byte>       storageSpan{storage.data(), storage.size()};
     std::memset(storageSpan.data(), 0, storageSpan.size());
     SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
 
-    const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
+    const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(storageSpan.data()), storageSpan.size()});
     return reinterpret_cast<uint64_t>(persistentStorage.data());
 }
 
-ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, ByteSpan payload)
+ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, std::span<const std::byte> payload)
 {
     if (typeRef.isInvalid())
         return ConstantRef::invalid();
@@ -424,7 +424,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
-    const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
+    const std::span<const std::byte>       storedBytes = sizeOf ? std::span<const std::byte>{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
     const ConstantValue  result      = makeMaterializedConstantValue(sema, typeRef, storedBytes, dataRef);
     if (!result.isValid())
         return ConstantRef::invalid();
@@ -471,7 +471,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     rtLoc->lineEnd   = codeRange.line;
     rtLoc->colEnd    = codeRange.column + codeRange.len;
 
-    const auto    bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
+    const auto    bytes  = std::span<const std::byte>{storage, sizeof(Runtime::SourceCodeLocation)};
     ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
     cstVal.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
     outCstRef = sema.cstMgr().addUniqueMaterializedPayloadConstant(cstVal);

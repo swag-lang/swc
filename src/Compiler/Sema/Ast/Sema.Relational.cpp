@@ -94,7 +94,7 @@ namespace
             const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
             if (typeInfo.isAny())
             {
-                const ByteSpan bytes = cst.getStruct();
+                const std::span<const std::byte> bytes = cst.getStruct();
                 if (bytes.size() != sizeof(Runtime::Any))
                     return false;
 
@@ -105,7 +105,7 @@ namespace
 
             if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
             {
-                const ByteSpan bytes = cst.getStruct();
+                const std::span<const std::byte> bytes = cst.getStruct();
                 if (bytes.size() != sizeof(Runtime::ClosureValue))
                     return false;
 
@@ -166,7 +166,7 @@ namespace
         if (!anyCst.isStruct())
             return ConstantRef::invalid();
 
-        const ByteSpan anyBytes = anyCst.getStruct();
+        const std::span<const std::byte> anyBytes = anyCst.getStruct();
         if (anyBytes.size() != sizeof(Runtime::Any))
             return ConstantRef::invalid();
 

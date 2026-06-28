@@ -106,7 +106,7 @@ namespace
         }
 
         SWC_ASSERT(srcCst.isStruct());
-        const ByteSpan srcBytes = srcCst.getStruct();
+        const std::span<const std::byte> srcBytes = srcCst.getStruct();
         uint64_t       offset   = 0;
         outValues.reserve(srcTypes.size());
 
@@ -126,7 +126,7 @@ namespace
             }
 
             SWC_ASSERT(offset + elemSize <= srcBytes.size());
-            const ByteSpan    elemBytes{srcBytes.data() + offset, elemSize};
+            const std::span<const std::byte>    elemBytes{srcBytes.data() + offset, elemSize};
             const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
             SWC_INTERNAL_CHECK(elemCstRef.isValid());
             outValues.push_back(elemCstRef);
@@ -317,7 +317,7 @@ namespace
         }
 
         std::vector valueBytes(sizeOf, std::byte{0});
-        SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), castRequest.constantFoldingSrc(), srcTypeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span<std::byte>{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcTypeRef));
 
         uint64_t rawValue = 0;
         std::memcpy(&rawValue, valueBytes.data(), std::min<uint64_t>(sizeof(rawValue), valueBytes.size()));
@@ -1356,8 +1356,8 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             if (valueSize)
             {
                 std::vector valueBytes(valueSize, std::byte{0});
-                SWC_RESULT(ConstantLower::lowerToBytes(sema, asByteSpan(valueBytes), castRequest.constantFoldingSrc(), srcTypeRef));
-                const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span<std::byte>{valueBytes.data(), valueBytes.size()}, castRequest.constantFoldingSrc(), srcTypeRef));
+                const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
                 ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
             }
 

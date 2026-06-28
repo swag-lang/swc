@@ -19,6 +19,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
@@ -113,7 +114,7 @@ namespace
         return cmdLine;
     }
 
-    std::vector<std::byte> readBinaryFile(const fs::path& path)
+    ByteArray readBinaryFile(const fs::path& path)
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file.is_open())
@@ -123,7 +124,7 @@ namespace
         if (fileSize < 0)
             return {};
 
-        std::vector<std::byte> bytes(static_cast<size_t>(fileSize));
+        ByteArray bytes(static_cast<size_t>(fileSize));
         file.seekg(0);
         file.read(reinterpret_cast<char*>(bytes.data()), fileSize);
         if (!file.good())
@@ -133,7 +134,7 @@ namespace
     }
 
     template<typename T>
-    bool readBinaryRecord(T& outRecord, const std::vector<std::byte>& bytes, size_t offset)
+    bool readBinaryRecord(T& outRecord, const ByteArray& bytes, size_t offset)
     {
         if (offset > bytes.size() || sizeof(T) > bytes.size() - offset)
             return false;
@@ -169,7 +170,7 @@ namespace
         segment.addRelocation(runtimeStringOffset + offsetof(Runtime::String, ptr), stringOffset);
         outStorage = runtimeStringStorage;
 
-        const ByteSpan bytes{reinterpret_cast<const std::byte*>(runtimeStringStorage), sizeof(Runtime::String)};
+        const std::span<const std::byte> bytes{reinterpret_cast<const std::byte*>(runtimeStringStorage), sizeof(Runtime::String)};
         auto           makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
         makeStructBorrowed.setDataSegmentRef({.shardIndex = 0, .offset = runtimeStringOffset});
         return compiler.cstMgr().addConstant(ctx, makeStructBorrowed);
@@ -470,7 +471,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
     const auto objectWriter = NativeObjFileWriter::create(*fixture.nativeBuilder);
     SWC_RESULT(objectWriter->writeObjectFile(description));
 
-    const std::vector<std::byte> objectBytes = readBinaryFile(description.objPath);
+    const ByteArray objectBytes = readBinaryFile(description.objPath);
     if (objectBytes.empty())
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "object file was not written");
 

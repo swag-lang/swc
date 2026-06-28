@@ -489,7 +489,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
     result.rtTypeRef  = entry.rtTypeRef;
 
     const TypeInfo& structType = tm.get(result.rtTypeRef);
-    result.span                = ByteSpan{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
+    result.span                = std::span<const std::byte>{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
 
     return Result::Continue;
 }

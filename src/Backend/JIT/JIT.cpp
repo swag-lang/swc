@@ -871,7 +871,7 @@ namespace
         return report;
     }
 
-    void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
+    void patchAbsolute64(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
         auto*          basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
@@ -970,7 +970,7 @@ namespace
         return patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, sourceRef.shardIndex, sourceRef.offset);
     }
 
-    Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
+    Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, std::span<std::byte> writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_ASSERT(!writableCode.empty());
         if (relocations.empty())
@@ -1011,13 +1011,13 @@ namespace
     }
 }
 
-void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSpan linearCode, const std::span<const std::byte> unwindInfo)
+void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo)
 {
     SWC_ASSERT(!linearCode.empty());
-    SWC_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
+    SWC_ASSERT(linearCode.size() <= std::numeric_limits<uint32_t>::max());
 
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
-    const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size_bytes()), sizeof(uint32_t));
+    const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool        registerSehUnwind = !unwindInfo.empty();
 
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
@@ -1025,9 +1025,9 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteSp
     const uint32_t allocationSize    = static_cast<uint32_t>(allocationSizeU64);
     memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
 
-    ByteSpanRW writableCode;
-    writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
-    std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
+    std::span<std::byte> writableCode;
+    writableCode = {static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size()};
+    std::memcpy(writableCode.data(), linearCode.data(), linearCode.size());
 
     if (registerSehUnwind)
     {
@@ -1042,7 +1042,7 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(!executableMemory.empty());
-    const ByteSpanRW writableCode = asByteSpan(static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size());
+    const std::span<std::byte> writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size()};
     return patchRelocations(ctx, ownerFunction, writableCode, relocations);
 }
 
@@ -1105,7 +1105,7 @@ void JIT::finalize(JITMemory& executableMemory)
     JITMemoryManager::registerUnwindInfo(executableMemory);
 }
 
-Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations, const std::span<const std::byte> unwindInfo, const SymbolFunction* ownerFunction)
+Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction)
 {
     const TaskScopedContext scopedContext(ctx);
     prepare(ctx, outExecutableMemory, linearCode, unwindInfo);
@@ -1211,7 +1211,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     SWC_RESULT(loweredCode.emit(ctx, builder));
 
     JITMemory executableMemory;
-    SWC_RESULT(emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo));
+    SWC_RESULT(emit(ctx, executableMemory, loweredCode.bytes, loweredCode.codeRelocations, loweredCode.unwindInfo));
 
     void* invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);

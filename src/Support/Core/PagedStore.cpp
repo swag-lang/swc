@@ -116,7 +116,7 @@ uint64_t PagedStore::allocatedBytes() const noexcept
 }
 #endif
 
-void PagedStore::copyTo(ByteSpanRW dst) const
+void PagedStore::copyTo(std::span<std::byte> dst) const
 {
     SWC_ASSERT(dst.size() <= size());
 
@@ -139,7 +139,7 @@ void PagedStore::copyTo(ByteSpanRW dst) const
     SWC_ASSERT(remaining == 0);
 }
 
-void PagedStore::copyToPreserveOffsets(ByteSpanRW dst) const
+void PagedStore::copyToPreserveOffsets(std::span<std::byte> dst) const
 {
     SWC_ASSERT(dst.size() <= extentSize());
 
@@ -161,7 +161,7 @@ void PagedStore::copyToPreserveOffsets(ByteSpanRW dst) const
     }
 }
 
-void PagedStore::restoreFromPreserveOffsets(ByteSpan src) const
+void PagedStore::restoreFromPreserveOffsets(std::span<const std::byte> src) const
 {
     SWC_ASSERT(src.size() <= extentSize());
 
@@ -221,10 +221,10 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     return {hdrRef, fit};
 }
 
-std::pair<ByteSpan, Ref> PagedStore::pushCopySpan(ByteSpan payload, uint32_t align)
+std::pair<std::span<const std::byte>, Ref> PagedStore::pushCopySpan(std::span<const std::byte> payload, uint32_t align)
 {
     if (payload.empty())
-        return {ByteSpan{}, INVALID_REF};
+        return {std::span<const std::byte>{}, INVALID_REF};
 
     auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
     if (payload.data()) // TODO: define expectations for nullptr + nonzero size

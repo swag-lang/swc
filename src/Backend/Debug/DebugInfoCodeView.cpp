@@ -189,7 +189,7 @@ namespace
                 outBytes.appendLe32(entry.stringOffset);
                 outBytes.push_back(static_cast<std::byte>(entry.checksumSize));
                 outBytes.push_back(static_cast<std::byte>(entry.checksumKind));
-                outBytes.append(ByteSpan{entry.checksum.data(), entry.checksumSize});
+                outBytes.append(std::span<const std::byte>{entry.checksum.data(), entry.checksumSize});
 
                 const uint32_t recordSize = 6 + entry.checksumSize;
                 const uint32_t padBytes   = Math::alignUpU32(recordSize, 4) - recordSize;
@@ -244,7 +244,7 @@ namespace
         bytes.appendLe64(value);
     }
 
-    void writeBytes(ByteArray& outBytes, const ByteSpan bytes)
+    void writeBytes(ByteArray& outBytes, const std::span<const std::byte> bytes)
     {
         outBytes.append(bytes);
     }
@@ -1478,7 +1478,7 @@ namespace
 
             alignBytes(xdataSection.bytes, 4);
             const uint32_t unwindOffset = static_cast<uint32_t>(xdataSection.bytes.size());
-            writeBytes(xdataSection.bytes, ByteSpan{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
+            writeBytes(xdataSection.bytes, std::span<const std::byte>{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
             const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:04}", objectHash, unwindIndex++);
             DebugInfoDefinedSymbol unwindSym;

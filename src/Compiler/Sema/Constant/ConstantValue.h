@@ -1,6 +1,7 @@
 #pragma once
+#include <span>
+
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Assert.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -142,7 +143,7 @@ public:
         return payloadPointer_.val;
     }
 
-    ByteSpan getSlice() const
+    std::span<const std::byte> getSlice() const
     {
         SWC_ASSERT(isSlice());
         return payloadSlice_.val;
@@ -166,13 +167,13 @@ public:
         return payloadEnumValue_.val;
     }
 
-    ByteSpan getStruct() const
+    std::span<const std::byte> getStruct() const
     {
         SWC_ASSERT(isStruct());
         return payloadStruct_.val;
     }
 
-    ByteSpan getArray() const
+    std::span<const std::byte> getArray() const
     {
         SWC_ASSERT(isArray());
         return payloadArray_.val;
@@ -218,18 +219,18 @@ public:
     static ConstantValue makeFloatUnsized(const TaskContext& ctx, const ApFloat& value);
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
-    static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
-    static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
-    static ConstantValue makeArray(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
-    static ConstantValue makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
+    static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
+    static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
+    static ConstantValue makeArray(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
+    static ConstantValue makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
     static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<const IdentifierRef>& names, const std::span<const ConstantRef>& values, const std::span<const SourceCodeRef>& fieldRefs = {});
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<const ConstantRef>& values, const std::span<const SourceCodeRef>& fieldRefs = {});
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSliceCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceCounted(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef);
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef, PayloadOwnership ownership);
@@ -247,16 +248,16 @@ public:
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 
-    void setPayloadSlice(ByteSpan bytes, uint64_t count)
+    void setPayloadSlice(std::span<const std::byte> bytes, uint64_t count)
     {
         payloadSlice_.val   = normalizePayloadBytes(bytes);
         payloadSlice_.count = count;
     }
-    void setPayloadStruct(ByteSpan bytes) { payloadStruct_.val = normalizePayloadBytes(bytes); }
-    void setPayloadArray(ByteSpan bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
+    void setPayloadStruct(std::span<const std::byte> bytes) { payloadStruct_.val = normalizePayloadBytes(bytes); }
+    void setPayloadArray(std::span<const std::byte> bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
 private:
-    static ByteSpan       normalizePayloadBytes(ByteSpan bytes) noexcept;
+    static std::span<const std::byte>       normalizePayloadBytes(std::span<const std::byte> bytes) noexcept;
     static uint64_t       packDataSegmentRef(DataSegmentRef ref) noexcept;
     static DataSegmentRef unpackDataSegmentRef(uint64_t packedRef) noexcept;
 
@@ -264,7 +265,7 @@ private:
     TypeRef               typeRef_ = TypeRef::invalid();
     std::atomic<uint64_t> dataSegmentRef_{packDataSegmentRef({})};
 
-    // For Struct/Array/Slice only. When borrowed, the ByteSpan points to external storage whose lifetime must outlive
+    // For Struct/Array/Slice only. When borrowed, the std::span<const std::byte> points to external storage whose lifetime must outlive
     // the constant (typically memory already stored in a `DataSegment`).
     bool payloadBorrowed_ = false;
 
@@ -277,12 +278,12 @@ private:
 
         struct
         {
-            ByteSpan val;
+            std::span<const std::byte> val;
         } payloadStruct_;
 
         struct
         {
-            ByteSpan val;
+            std::span<const std::byte> val;
         } payloadArray_;
 
         struct
@@ -312,7 +313,7 @@ private:
 
         struct
         {
-            ByteSpan val;
+            std::span<const std::byte> val;
             uint64_t count;
         } payloadSlice_;
 

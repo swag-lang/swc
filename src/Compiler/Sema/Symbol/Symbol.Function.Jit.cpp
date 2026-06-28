@@ -499,7 +499,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
-    JIT::prepare(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.unwindInfo);
+    JIT::prepare(ctx, jitExecMemory_, loweredMicroCode_.bytes, loweredMicroCode_.unwindInfo);
     const void* entry = jitExecMemory_.entryPoint();
     if (!entry)
     {

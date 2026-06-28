@@ -128,9 +128,9 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
 
     ConstantValue value;
     if (storageType.isArray())
-        value = ConstantValue::makeArrayBorrowed(ctx, typeRef, ByteSpan{bytes.data(), bytes.size()});
+        value = ConstantValue::makeArrayBorrowed(ctx, typeRef, std::span<const std::byte>{bytes.data(), bytes.size()});
     else
-        value = ConstantValue::makeStructBorrowed(ctx, typeRef, ByteSpan{bytes.data(), bytes.size()});
+        value = ConstantValue::makeStructBorrowed(ctx, typeRef, std::span<const std::byte>{bytes.data(), bytes.size()});
 
     const ConstantRef cstRef = addConstant(ctx, value);
     if (cstRef.isInvalid())

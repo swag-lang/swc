@@ -1,5 +1,9 @@
 #pragma once
-#include "Support/Core/ByteSpan.h"
+#include <cstdint>
+#include <span>
+#include <utility>
+#include <vector>
+
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/Utf8.h"
 
@@ -63,8 +67,8 @@ public:
         uint32_t  blockOffset = 0;
     };
 
-    std::pair<ByteSpan, Ref>           addSpan(ByteSpan value);
-    std::pair<ByteSpan, Ref>           addSpan(ByteSpan value, uint32_t align);
+    std::pair<std::span<const std::byte>, Ref>           addSpan(std::span<const std::byte> value);
+    std::pair<std::span<const std::byte>, Ref>           addSpan(std::span<const std::byte> value, uint32_t align);
     std::pair<std::string_view, Ref>   addString(const Utf8& value);
     uint32_t                           addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                               addRelocation(uint32_t offset, uint32_t targetOffset);
@@ -76,9 +80,9 @@ public:
     bool                               findAllocation(DataSegmentAllocation& outAllocation, uint32_t offset) const noexcept;
     uint32_t                           size() const noexcept;
     uint32_t                           extentSize() const noexcept;
-    void                               copyTo(ByteSpanRW dst) const;
-    void                               copyToPreserveOffsets(ByteSpanRW dst) const;
-    void                               restoreFromPreserveOffsets(ByteSpan src) const;
+    void                               copyTo(std::span<std::byte> dst) const;
+    void                               copyToPreserveOffsets(std::span<std::byte> dst) const;
+    void                               restoreFromPreserveOffsets(std::span<const std::byte> src) const;
     std::vector<DataSegmentRelocation> copyRelocations() const;
     void                               copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
     bool                               findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;

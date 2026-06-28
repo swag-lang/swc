@@ -13,6 +13,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
@@ -379,8 +380,8 @@ namespace
 
     struct DataSegmentSnapshot
     {
-        std::vector<std::byte> globalZero;
-        std::vector<std::byte> globalInit;
+        ByteArray globalZero;
+        ByteArray globalInit;
     };
 
     DataSegmentSnapshot snapshotDataSegments(const CompilerInstance& compiler)
@@ -391,14 +392,14 @@ namespace
         if (zeroExtent)
         {
             result.globalZero.resize(zeroExtent);
-            compiler.globalZeroSegment().copyToPreserveOffsets(ByteSpanRW{result.globalZero.data(), result.globalZero.size()});
+            compiler.globalZeroSegment().copyToPreserveOffsets(result.globalZero.span());
         }
 
         const uint32_t initExtent = compiler.globalInitSegment().extentSize();
         if (initExtent)
         {
             result.globalInit.resize(initExtent);
-            compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{result.globalInit.data(), result.globalInit.size()});
+            compiler.globalInitSegment().copyToPreserveOffsets(result.globalInit.span());
         }
 
         return result;
@@ -415,9 +416,9 @@ namespace
                 return;
 
             if (!snapshot.globalZero.empty())
-                compiler->globalZeroSegment().restoreFromPreserveOffsets(ByteSpan{snapshot.globalZero.data(), snapshot.globalZero.size()});
+                compiler->globalZeroSegment().restoreFromPreserveOffsets(snapshot.globalZero.span());
             if (!snapshot.globalInit.empty())
-                compiler->globalInitSegment().restoreFromPreserveOffsets(ByteSpan{snapshot.globalInit.data(), snapshot.globalInit.size()});
+                compiler->globalInitSegment().restoreFromPreserveOffsets(snapshot.globalInit.span());
         }
     };
 

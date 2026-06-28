@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/RuntimeName.h"
@@ -196,7 +197,7 @@ namespace
         return Result::Continue;
     }
 
-    Result loadCompilerIncludeBytes(Sema& sema, AstNodeRef nodeRef, const fs::path& resolvedPath, std::vector<std::byte>& outBytes)
+    Result loadCompilerIncludeBytes(Sema& sema, AstNodeRef nodeRef, const fs::path& resolvedPath, ByteArray& outBytes)
     {
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::readBinaryFile(resolvedPath, outBytes, ioError) != Result::Continue)
@@ -1421,7 +1422,7 @@ namespace
             return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
 
         fs::path               resolvedPath;
-        std::vector<std::byte> bytes;
+        ByteArray bytes;
         SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
         sema.compiler().registerCompilerInputFile(resolvedPath);
@@ -1429,7 +1430,7 @@ namespace
         SmallVector4<uint64_t> dims;
         dims.push_back(bytes.size());
         const TypeRef       arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
-        const ConstantValue value        = ConstantValue::makeArray(ctx, arrayTypeRef, asByteSpan(bytes));
+        const ConstantValue value        = ConstantValue::makeArray(ctx, arrayTypeRef, bytes.span());
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
@@ -1484,7 +1485,7 @@ namespace
             cur = next;
         }
 
-        const ByteSpan      bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
+        const std::span<const std::byte>      bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
         const ConstantValue value = ConstantValue::makeSlice(ctx, sema.typeMgr().typeRune(), bytes, TypeInfoFlagsE::Const);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;

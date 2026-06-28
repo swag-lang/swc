@@ -17,14 +17,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
+    Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
     Result materializeStaticPayloadInPlace(Sema& sema, DataSegment& segment, TypeRef typeRef, const struct StaticPayload& payload);
 
     struct StaticPayload
     {
         uint32_t   baseOffset = 0;
-        ByteSpanRW dstBytes;
-        ByteSpan   srcBytes;
+        std::span<std::byte> dstBytes;
+        std::span<const std::byte>   srcBytes;
     };
 
     size_t narrowByteCount(const uint64_t value)
@@ -46,35 +46,35 @@ namespace
         return baseOffset + offset;
     }
 
-    ByteSpanRW rawBytes(void* data, const uint64_t size)
+    std::span<std::byte> rawBytes(void* data, const uint64_t size)
     {
         return {static_cast<std::byte*>(data), narrowByteCount(size)};
     }
 
-    ByteSpan rawBytes(const void* data, const uint64_t size)
+    std::span<const std::byte> rawBytes(const void* data, const uint64_t size)
     {
         return {static_cast<const std::byte*>(data), narrowByteCount(size)};
     }
 
-    ByteSpanRW subBytes(const ByteSpanRW bytes, const uint64_t offset, const uint64_t size)
+    std::span<std::byte> subBytes(const std::span<std::byte> bytes, const uint64_t offset, const uint64_t size)
     {
         return bytes.subspan(narrowByteCount(offset), narrowByteCount(size));
     }
 
-    ByteSpan subBytes(const ByteSpan bytes, const uint64_t offset, const uint64_t size)
+    std::span<const std::byte> subBytes(const std::span<const std::byte> bytes, const uint64_t offset, const uint64_t size)
     {
         return bytes.subspan(narrowByteCount(offset), narrowByteCount(size));
     }
 
     template<typename T>
-    T& writable(ByteSpanRW bytes)
+    T& writable(std::span<std::byte> bytes)
     {
         SWC_ASSERT(bytes.size() == sizeof(T));
         return *reinterpret_cast<T*>(bytes.data());
     }
 
     template<typename T>
-    const T& readable(const ByteSpan bytes)
+    const T& readable(const std::span<const std::byte> bytes)
     {
         SWC_ASSERT(bytes.size() == sizeof(T));
         return *reinterpret_cast<const T*>(bytes.data());
@@ -91,28 +91,28 @@ namespace
         return reinterpret_cast<T*>(value);
     }
 
-    void copyBytes(ByteSpanRW dstBytes, const ByteSpan srcBytes)
+    void copyBytes(std::span<std::byte> dstBytes, const std::span<const std::byte> srcBytes)
     {
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
         if (!dstBytes.empty())
             std::memcpy(dstBytes.data(), srcBytes.data(), dstBytes.size());
     }
 
-    void zeroBytes(ByteSpanRW dstBytes)
+    void zeroBytes(std::span<std::byte> dstBytes)
     {
         if (!dstBytes.empty())
             std::memset(dstBytes.data(), 0, dstBytes.size());
     }
 
     template<typename T>
-    void writeValue(ByteSpanRW dstBytes, const T& value)
+    void writeValue(std::span<std::byte> dstBytes, const T& value)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(T));
         std::memcpy(dstBytes.data(), &value, sizeof(T));
     }
 
     template<typename T>
-    void assertRuntimePayloadSize(const ByteSpan bytes)
+    void assertRuntimePayloadSize(const std::span<const std::byte> bytes)
     {
         SWC_ASSERT(bytes.size() == sizeof(T));
     }
@@ -206,14 +206,14 @@ namespace
             return Result::Continue;
 
         std::vector valueBytes(valueSize, std::byte{0});
-        SWC_RESULT(lowerConstantToBytes(sema, asByteSpan(valueBytes), valueTypeRef, cstRef));
+        SWC_RESULT(lowerConstantToBytes(sema, std::span<std::byte>{valueBytes.data(), valueBytes.size()}, valueTypeRef, cstRef));
 
-        const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(valueBytes)));
+        const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
         outData                             = rawValueData.data();
         return Result::Continue;
     }
 
-    Result materializeStaticScalar(ByteSpanRW dstBytes, ByteSpan srcBytes)
+    Result materializeStaticScalar(std::span<std::byte> dstBytes, std::span<const std::byte> srcBytes)
     {
         copyBytes(dstBytes, srcBytes);
         return Result::Continue;
@@ -412,7 +412,7 @@ namespace
     }
 
     // These helpers keep `lowerConstantToBytes` focused on dispatching by runtime shape.
-    Result lowerStringConstantToBytes(ByteSpanRW dstBytes, const TypeRef dstTypeRef, const ConstantValue& cst)
+    Result lowerStringConstantToBytes(std::span<std::byte> dstBytes, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isString() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::String));
         if (cst.isStruct(dstTypeRef))
@@ -433,7 +433,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerSliceConstantToBytes(const Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeRef dstTypeRef, const ConstantValue& cst)
+    Result lowerSliceConstantToBytes(const Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isSlice() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
         SWC_UNUSED(sema);
@@ -447,7 +447,7 @@ namespace
         Runtime::Slice<uint8_t> runtimeValue = {};
         if (cst.isSlice())
         {
-            const ByteSpan bytes = cst.getSlice();
+            const std::span<const std::byte> bytes = cst.getSlice();
             runtimeValue.count   = cst.getSliceCount();
             runtimeValue.ptr     = bytes.empty() ? nullptr : reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
         }
@@ -456,7 +456,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerInterfaceConstantToBytes(ByteSpanRW dstBytes, const TypeRef dstTypeRef, const ConstantValue& cst)
+    Result lowerInterfaceConstantToBytes(std::span<std::byte> dstBytes, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::Interface));
         if (cst.isStruct(dstTypeRef))
@@ -470,7 +470,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerAnyConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeRef dstTypeRef, ConstantRef cstRef, const ConstantValue& cst)
+    Result lowerAnyConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeRef dstTypeRef, ConstantRef cstRef, const ConstantValue& cst)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(Runtime::Any));
         if (cst.isNull())
@@ -510,7 +510,7 @@ namespace
         {
             SWC_INTERNAL_CHECK(valueCst.isValuePointer());
             const uint64_t         ptrValue    = valueCst.getValuePointer();
-            const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(asStringView(rawBytes(&ptrValue, sizeof(ptrValue))));
+            const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&ptrValue), sizeof(ptrValue)});
             anyValue.value                     = const_cast<char*>(payloadData.data());
             writeValue(dstBytes, anyValue);
             return Result::Continue;
@@ -520,7 +520,7 @@ namespace
         if (!boxedValueSize)
         {
             constexpr uint8_t      zeroByte    = 0;
-            const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(asStringView(rawBytes(&zeroByte, sizeof(zeroByte))));
+            const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&zeroByte), sizeof(zeroByte)});
             anyValue.value                     = const_cast<char*>(payloadData.data());
             writeValue(dstBytes, anyValue);
             return Result::Continue;
@@ -533,7 +533,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerClosureConstantToBytes(ByteSpanRW dstBytes, const ConstantValue& cst)
+    Result lowerClosureConstantToBytes(std::span<std::byte> dstBytes, const ConstantValue& cst)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(Runtime::ClosureValue));
         if (cst.isNull())
@@ -551,7 +551,7 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Result lowerPointerLikeConstantToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, ConstantRef cstRef, const ConstantValue& cst)
+    Result lowerPointerLikeConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, ConstantRef cstRef, const ConstantValue& cst)
     {
         SWC_ASSERT(dstBytes.size() == sizeof(uint64_t));
 
@@ -581,7 +581,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+    Result lowerAggregateArrayToBytesInternal(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
         TaskContext&    ctx         = sema.ctx();
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
@@ -615,7 +615,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerAggregateTupleToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+    Result lowerAggregateTupleToBytesInternal(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
         TaskContext& ctx    = sema.ctx();
         uint64_t     offset = 0;
@@ -700,7 +700,7 @@ namespace
         }
     }
 
-    Result lowerAggregateStructToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeInfo* srcType, const std::vector<ConstantRef>& values)
+    Result lowerAggregateStructToBytesInternal(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const TypeInfo* srcType, const std::vector<ConstantRef>& values)
     {
         const SymbolStruct&      dstStruct = dstType.payloadSymStruct();
         const auto&              dstFields = dstStruct.fields();
@@ -732,7 +732,7 @@ namespace
         return Result::Continue;
     }
 
-    Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
+    Result lowerConstantToBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
         if (cst.isUndefined())
@@ -984,22 +984,22 @@ namespace
     }
 }
 
-Result ConstantLower::lowerToBytes(Sema& sema, ByteSpanRW dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
+Result ConstantLower::lowerToBytes(Sema& sema, std::span<std::byte> dstBytes, ConstantRef cstRef, TypeRef dstTypeRef)
 {
     return lowerConstantToBytes(sema, dstBytes, dstTypeRef, cstRef);
 }
 
-Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
     return lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, values);
 }
 
-Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
+Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, std::span<std::byte> dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
     return lowerAggregateStructToBytesInternal(sema, dstBytes, dstType, nullptr, values);
 }
 
-Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
+Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const std::span<const std::byte> srcBytes)
 {
     outOffset = INVALID_REF;
     SWC_INTERNAL_CHECK(typeRef.isValid());

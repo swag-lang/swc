@@ -1,6 +1,7 @@
 #pragma once
+#include <span>
+
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/ByteSpan.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -18,7 +19,7 @@ private:
     bool isNativeStaticType(TypeRef typeRef) const;
     void validateRelocations(const MachineCode& code) const;
     void validateConstantRelocation(const MicroRelocation& relocation) const;
-    void validateNativeStaticPayload(TypeRef typeRef, uint32_t shardIndex, Ref baseOffset, ByteSpan bytes) const;
+    void validateNativeStaticPayload(TypeRef typeRef, uint32_t shardIndex, Ref baseOffset, std::span<const std::byte> bytes) const;
     bool findDataSegmentRelocation(DataSegmentRef& outTargetRef, uint32_t shardIndex, uint32_t offset) const;
     bool findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, uint32_t shardIndex, uint32_t offset) const;
 

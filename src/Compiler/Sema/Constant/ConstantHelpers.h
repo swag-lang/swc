@@ -1,6 +1,7 @@
 #pragma once
+#include <span>
+
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -14,7 +15,7 @@ namespace ConstantHelpers
 {
     Result      waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     uint64_t    materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view);
-    ConstantRef materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, ByteSpan payload);
+    ConstantRef materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, std::span<const std::byte> payload);
     Result      makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const AstNode& node, const SymbolFunction* function = nullptr);
     Result      makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const SourceCodeRange& codeRange, const SymbolFunction* function = nullptr);
 }

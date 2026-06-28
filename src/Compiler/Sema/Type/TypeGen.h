@@ -1,6 +1,7 @@
 #pragma once
+#include <span>
+
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/ByteSpan.h"
 #include "Support/Core/Result.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 
@@ -30,7 +31,7 @@ public:
 
     struct TypeGenResult
     {
-        ByteSpan span;
+        std::span<const std::byte> span;
         TypeRef  rtTypeRef;
         uint32_t offset = 0;
     };

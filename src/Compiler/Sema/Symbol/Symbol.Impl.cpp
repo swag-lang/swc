@@ -224,7 +224,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         segment.addFunctionRelocation(tableOffset + (i + 1) * sizeof(void*), implMethods[i]);
     }
 
-    const ByteSpan tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
+    const std::span<const std::byte> tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
     ConstantValue  tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
     tableCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = tableOffset});
     interfaceMethodTableRef_ = sema.cstMgr().addMaterializedPayloadConstant(tableCst);

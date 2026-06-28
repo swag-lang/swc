@@ -138,12 +138,12 @@ namespace
                         SmallVector<std::byte> rawBytes;
                         rawBytes.resize(rawSize);
                         std::memset(rawBytes.data(), 0, rawBytes.size());
-                        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef) == Result::Continue);
+                        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{rawBytes.data(), rawBytes.size()}, cstRef, targetTypeRef) == Result::Continue);
 
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
                         if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface() || targetType.isString() || targetType.isSlice())
                         {
-                            typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+                            typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
                         }
                         else
                         {
@@ -193,7 +193,7 @@ namespace
 
             case ConstantKind::Slice:
             {
-                const ByteSpan    sliceBytes      = cst.getSlice();
+                const std::span<const std::byte>    sliceBytes      = cst.getSlice();
                 const TypeRef     runtimeTypeRef  = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
                 const TypeInfo&   sliceType       = codeGen.typeMgr().get(runtimeTypeRef);
                 const uint64_t    elementCount    = cst.getSliceCount();
@@ -238,10 +238,10 @@ namespace
             SmallVector<std::byte> rawBytes;
             rawBytes.resize(rawSize);
             std::memset(rawBytes.data(), 0, rawBytes.size());
-            if (ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
+            if (ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
                 return false;
 
-            const ConstantRef materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+            const ConstantRef materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
             if (materializedCstRef.isInvalid())
                 return false;
 
@@ -266,13 +266,13 @@ namespace
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(rawSize);
         std::memset(rawBytes.data(), 0, rawBytes.size());
-        if (ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
+        if (ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
             return false;
 
         ConstantRef materializedCstRef = ConstantRef::invalid();
         if (storageType.isStruct() || storageType.isArray() || storageType.isAggregateStruct() || storageType.isAggregateArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())
         {
-            materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+            materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span<const std::byte>{rawBytes.data(), rawBytes.size()});
         }
         else
         {

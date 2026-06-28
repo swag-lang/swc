@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -168,15 +169,14 @@ namespace
 
         SWC_ASSERT(!(isCompilerGlobal && hasFunctionInit));
 
-        std::vector<std::byte> loweredBytes;
+        ByteArray loweredBytes;
         if (hasInitializerData)
         {
             loweredBytes.resize(size);
             std::memset(loweredBytes.data(), 0, loweredBytes.size());
-            const ByteSpanRW loweredBytesWrite{loweredBytes.data(), loweredBytes.size()};
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytesWrite, symVar.cstRef(), storageTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytes.span(), symVar.cstRef(), storageTypeRef));
 
-            if (!isCompilerGlobal && !allZeroBytes(loweredBytes))
+            if (!isCompilerGlobal && !loweredBytes.allZero())
                 storageKind = DataSegmentKind::GlobalInit;
             else if (!isCompilerGlobal)
                 storageKind = DataSegmentKind::GlobalZero;
@@ -186,14 +186,13 @@ namespace
         uint32_t     offset  = 0;
         if (hasInitializerData)
         {
-            const ByteSpan loweredBytesRead{loweredBytes.data(), loweredBytes.size()};
             if (storageKind == DataSegmentKind::GlobalInit)
             {
-                SWC_RESULT(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, loweredBytesRead));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, loweredBytes.span()));
             }
             else
             {
-                const std::pair<ByteSpan, Ref> addRes = segment.addSpan(loweredBytesRead, alignment);
+                const std::pair<std::span<const std::byte>, Ref> addRes = segment.addSpan(loweredBytes.span(), alignment);
                 offset                                = addRes.second;
             }
         }
@@ -514,7 +513,7 @@ namespace
             return;
 
         const std::vector<ConstantRef>* aggregateValues = fromAggregateStruct ? &cst.getAggregateStruct() : nullptr;
-        const ByteSpan                  structBytes     = fromStructBytes ? cst.getStruct() : ByteSpan{};
+        const std::span<const std::byte>                  structBytes     = fromStructBytes ? cst.getStruct() : std::span<const std::byte>{};
 
         const size_t count = symbols.size();
         for (size_t i = 0; i < count; ++i)
@@ -541,7 +540,7 @@ namespace
                 if (fieldOffset + fieldSize > structBytes.size())
                     continue;
 
-                const auto fieldBytes = ByteSpan{structBytes.data() + fieldOffset, fieldSize};
+                const auto fieldBytes = std::span<const std::byte>{structBytes.data() + fieldOffset, fieldSize};
                 fieldCstRef           = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, fieldBytes);
             }
 

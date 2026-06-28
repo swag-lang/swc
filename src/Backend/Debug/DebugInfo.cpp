@@ -16,8 +16,9 @@ std::array<uint8_t, 32> DebugInfo::sourceFileChecksum(const TaskContext& ctx, co
     // race with the on-disk flush) so the checksum matches what a debugger re-hashes from disk.
     std::string_view content;
     if (file.hasFlag(FileFlagsE::CustomSrc) && ctx.compiler().tryGetGeneratedSourceContent(file.path(), content))
-        return sha256(asByteSpan(content));
-    return sha256(asByteSpan(file.sourceView()));
+        return sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(content.data()), content.size()});
+    const std::string_view sourceView = file.sourceView();
+    return sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(sourceView.data()), sourceView.size()});
 }
 
 std::unique_ptr<DebugInfo> DebugInfo::create(const Runtime::TargetOs targetOs)

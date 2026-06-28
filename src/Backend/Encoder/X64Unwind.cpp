@@ -10,7 +10,7 @@ namespace
     class X64UnwindUnsupported final : public X64Unwind
     {
     public:
-        void buildInfo(std::vector<std::byte>& outUnwindInfo, const uint32_t codeSize) const override
+        void buildInfo(ByteArray& outUnwindInfo, const uint32_t codeSize) const override
         {
             SWC_UNUSED(codeSize);
             outUnwindInfo.clear();

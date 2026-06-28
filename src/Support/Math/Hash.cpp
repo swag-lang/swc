@@ -110,7 +110,7 @@ namespace Math
         return wyhash(v.data(), v.size(), seed) & 0xFFFFFFFF;
     }
 
-    uint32_t hash(ByteSpan v, uint64_t seed)
+    uint32_t hash(std::span<const std::byte> v, uint64_t seed)
     {
         if (!v.data())
             return 0;

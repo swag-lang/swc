@@ -19,7 +19,7 @@ uint8_t Encoder::byteAt(uint32_t index) const
     return *(store_.ptr<uint8_t>(index));
 }
 
-void Encoder::copyTo(ByteSpanRW dst) const
+void Encoder::copyTo(std::span<std::byte> dst) const
 {
     store_.copyTo(dst);
 }

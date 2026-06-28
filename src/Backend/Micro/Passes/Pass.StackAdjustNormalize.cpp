@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"

@@ -1,4 +1,6 @@
-﻿#pragma once
+#pragma once
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Flags.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"

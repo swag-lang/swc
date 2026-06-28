@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();

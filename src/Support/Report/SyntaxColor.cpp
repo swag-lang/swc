@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/SyntaxColor.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"

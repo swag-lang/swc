@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 

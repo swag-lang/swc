@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Sema/Type/TypeInfo.h"

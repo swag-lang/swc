@@ -1,7 +1,11 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Parser/Ast/AstNodeId.h"
+#include "Support/Core/Flags.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();

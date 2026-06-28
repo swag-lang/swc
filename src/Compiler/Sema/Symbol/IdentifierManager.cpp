@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"

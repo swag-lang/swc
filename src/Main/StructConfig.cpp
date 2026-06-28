@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Main/StructConfig.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/Utf8Helper.h"

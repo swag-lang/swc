@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/ByteArray.h"
 #include "Backend/Linker/LinkImage.h"
 
 SWC_BEGIN_NAMESPACE();

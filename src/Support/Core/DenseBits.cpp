@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Core/DenseBits.h"
 
 SWC_BEGIN_NAMESPACE();

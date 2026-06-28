@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/LangSpec.h"

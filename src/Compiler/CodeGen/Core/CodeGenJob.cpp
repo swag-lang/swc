@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"

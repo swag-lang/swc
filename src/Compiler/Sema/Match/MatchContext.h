@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/SmallVector.h"
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Linker/Win32OsPatcher.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Report/Diagnostic.h"

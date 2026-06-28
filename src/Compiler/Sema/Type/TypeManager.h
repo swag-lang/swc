@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/PagedStore.h"

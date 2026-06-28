@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Flags.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"

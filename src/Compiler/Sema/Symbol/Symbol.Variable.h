@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Flags.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();

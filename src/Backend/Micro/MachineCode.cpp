@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroPassContext.h"

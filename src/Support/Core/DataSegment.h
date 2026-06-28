@@ -1,5 +1,7 @@
 #pragma once
+#include "Support/Core/ByteSpan.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

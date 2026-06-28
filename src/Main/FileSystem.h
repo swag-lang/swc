@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 

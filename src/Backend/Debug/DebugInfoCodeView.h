@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/Result.h"
 
 #include "Backend/Debug/DebugInfo.h"
 

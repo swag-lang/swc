@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Native/NativeValidate.h"
 
 #if SWC_HAS_VALIDATE_NATIVE

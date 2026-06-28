@@ -1,6 +1,8 @@
 #pragma once
-#include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteSpan.h"
+#include "Support/Core/Utf8.h"
+#include "Backend/Linker/LinkImage.h"
+#include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();
 

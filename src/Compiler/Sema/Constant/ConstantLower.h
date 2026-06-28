@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/ByteSpan.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/Result.h"

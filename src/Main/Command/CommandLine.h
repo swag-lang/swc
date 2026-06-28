@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Runtime.h"
 #include "Main/FileSystem.h"
 

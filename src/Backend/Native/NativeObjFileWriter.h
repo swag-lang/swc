@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/ByteArray.h"
+#include "Support/Core/Result.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();

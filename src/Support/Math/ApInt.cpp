@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Math/ApInt.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"

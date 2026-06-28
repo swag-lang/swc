@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 #include "Support/Report/LogColor.h"
 

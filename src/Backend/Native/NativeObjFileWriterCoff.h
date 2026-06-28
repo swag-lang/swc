@@ -1,4 +1,8 @@
 #pragma once
+#include "Support/Core/ByteArray.h"
+#include "Support/Core/ByteSpan.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Result.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 

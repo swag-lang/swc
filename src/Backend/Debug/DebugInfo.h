@@ -1,7 +1,10 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Result.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Support/Core/ByteSpan.h"
+#include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();
 

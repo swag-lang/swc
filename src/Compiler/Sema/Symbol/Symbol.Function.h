@@ -1,4 +1,9 @@
-﻿#pragma once
+#pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Flags.h"
+#include "Support/Report/Assert.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"

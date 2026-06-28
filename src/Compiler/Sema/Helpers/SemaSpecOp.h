@@ -1,5 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/Result.h"
 
 #include "Compiler/Sema/Core/Sema.h"
 #include "Main/Stats.h"

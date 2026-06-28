@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/Lexer/SourceView.h"

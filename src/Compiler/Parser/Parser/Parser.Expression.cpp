@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Parser/Parser/Parser.h"
 
 SWC_BEGIN_NAMESPACE();

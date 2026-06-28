@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Support/Thread/Job.h"
 

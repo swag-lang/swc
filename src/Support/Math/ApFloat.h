@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/Utf8.h"
 #include "Support/Math/ApInt.h"
 #include "Support/Math/ApsInt.h"
 

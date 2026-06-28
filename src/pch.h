@@ -80,12 +80,3 @@ namespace fs = std::filesystem;
 #else
 #define SWC_HAS_STATS 0
 #endif
-
-#include "Support/Core/ByteSpan.h"
-#include "Support/Core/ByteArray.h"
-#include "Support/Core/Flags.h"
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Result.h"
-#include "Support/Core/StrongRef.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Report/Assert.h"

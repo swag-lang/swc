@@ -1,5 +1,7 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroReg.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

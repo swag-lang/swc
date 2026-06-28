@@ -570,6 +570,9 @@
     <ClCompile Include="src\Support\Core\DenseBits.cpp">
       <Filter>src\Support\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Support\Core\ByteArray.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Core\DataSegment.cpp">
       <Filter>src\Support\Core</Filter>
     </ClCompile>
@@ -1278,6 +1281,9 @@
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Core\AppendOnlyLookupTable.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\ByteArray.h">
       <Filter>src\Support\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Core\ByteSpan.h">

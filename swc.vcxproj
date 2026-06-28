@@ -308,6 +308,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
         <ClCompile Include="src\Support\Core\DenseBits.cpp"/>
+        <ClCompile Include="src\Support\Core\ByteArray.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
@@ -566,6 +567,7 @@
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\AppendOnlyLookupTable.h"/>
+        <ClInclude Include="src\Support\Core\ByteArray.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
         <ClInclude Include="src\Support\Core\ByteUtils.h"/>
         <ClInclude Include="src\Support\Core\DenseBits.h"/>
@@ -740,6 +742,5 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
-
 
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 

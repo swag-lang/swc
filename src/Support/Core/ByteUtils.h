@@ -1,5 +1,7 @@
 #pragma once
 #include "Support/Core/ByteSpan.h"
+#include "Support/Report/Assert.h"
+#include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();
 

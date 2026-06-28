@@ -1,5 +1,6 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

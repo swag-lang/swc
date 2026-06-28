@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Flags.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Parser/Ast/Ast.h"

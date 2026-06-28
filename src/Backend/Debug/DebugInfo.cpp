@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
 #include "Compiler/SourceFile.h"

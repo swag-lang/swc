@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Main/TaskContext.h"
 #include "Support/Thread/JobManager.h"
 

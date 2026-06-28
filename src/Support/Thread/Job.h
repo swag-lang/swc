@@ -1,5 +1,7 @@
 #pragma once
+#include "Support/Report/Assert.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "DiagnosticElement.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Diagnostic.h"

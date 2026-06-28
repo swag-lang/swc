@@ -1,4 +1,5 @@
-﻿#pragma once
+#pragma once
+#include "Support/Core/RefTypes.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/StringMap.h"

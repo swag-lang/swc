@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Parser/Ast/Ast.h"

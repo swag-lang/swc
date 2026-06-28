@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PELinker.h"

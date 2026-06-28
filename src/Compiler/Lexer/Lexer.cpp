@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/Command/CommandLine.h"

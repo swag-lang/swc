@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/Result.h"
 
 #include "Backend/Linker/LinkJob.h"
 #include "Backend/Native/NativeBackendBuilder.h"

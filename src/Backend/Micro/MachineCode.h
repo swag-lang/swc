@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
+#include "Support/Core/Result.h"
 
 #include "Backend/Micro/MicroBuilder.h"
-#include "Support/Core/ByteSpan.h"
+#include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();
 

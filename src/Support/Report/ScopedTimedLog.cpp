@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"

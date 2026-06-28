@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Cast/Cast.h"

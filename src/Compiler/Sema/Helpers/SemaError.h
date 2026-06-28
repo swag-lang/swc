@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Result.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Math/Fold.h"

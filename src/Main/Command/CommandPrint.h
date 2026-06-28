@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/Utf8.h"
 
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"

@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassManager.h"

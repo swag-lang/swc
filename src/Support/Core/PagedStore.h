@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Report/Assert.h"
+#include "Support/Core/ByteSpan.h"
+#include "Support/Core/StrongRef.h"
 
 SWC_BEGIN_NAMESPACE();
 

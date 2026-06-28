@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/JIT/JITPatchJob.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"

@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Verify.h"

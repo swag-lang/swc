@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -8,7 +8,11 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

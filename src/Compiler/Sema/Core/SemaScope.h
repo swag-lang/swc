@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Flags.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 class SymbolMap;

@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Core/Flags.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/SourceFile.h"
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Format/FormatOptions.h"

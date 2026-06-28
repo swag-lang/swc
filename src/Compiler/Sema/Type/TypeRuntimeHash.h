@@ -2,6 +2,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class TaskContext;
+class TypeInfo;
+
 namespace TypeRuntimeHash
 {
     uint32_t compute(const TaskContext& ctx, const TypeInfo& typeInfo);

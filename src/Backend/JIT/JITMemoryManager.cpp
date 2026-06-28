@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Support/Os/Os.h"
 

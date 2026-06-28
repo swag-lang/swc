@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Main/ModuleApi.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"

@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Support/Report/Assert.h"
 #ifdef _WIN32
 #include "Backend/JIT/JITMemory.h"
 #include "Main/CompilerInstance.h"

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"

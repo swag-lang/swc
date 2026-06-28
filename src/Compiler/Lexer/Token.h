@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
+#include "Support/Core/Flags.h"
 
 SWC_BEGIN_NAMESPACE();
 

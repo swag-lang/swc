@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Flags.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Parser/Ast/AstNodes.h"

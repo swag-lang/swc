@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/ByteSpan.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/EncoderTypes.h"
 #include "Backend/Micro/MicroReg.h"

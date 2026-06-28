@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Support/Core/SmallVector.h"
 

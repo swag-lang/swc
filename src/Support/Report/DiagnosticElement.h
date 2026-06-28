@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Lexer/Token.h"
 #include "Support/Report/DiagnosticDef.h"

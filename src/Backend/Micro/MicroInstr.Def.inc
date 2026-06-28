@@ -1,4 +1,4 @@
-﻿SWC_MICRO_INSTR_DEF(
+SWC_MICRO_INSTR_DEF(
     End,
     MicroInstrDef{
         .regModes              = {MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None},

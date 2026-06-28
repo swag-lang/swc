@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();

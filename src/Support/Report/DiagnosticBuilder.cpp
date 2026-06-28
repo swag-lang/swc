@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

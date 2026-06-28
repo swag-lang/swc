@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

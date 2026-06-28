@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Report/Assert.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
 

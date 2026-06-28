@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/ByteSpan.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();

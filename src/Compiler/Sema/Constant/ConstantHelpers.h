@@ -1,4 +1,7 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/ByteSpan.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 class Sema;

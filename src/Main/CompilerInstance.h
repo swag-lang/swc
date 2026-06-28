@@ -1,4 +1,6 @@
 #pragma once
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"

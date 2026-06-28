@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Native/NativeRDataCollector.h"
 
 #include "Support/Math/Helpers.h"

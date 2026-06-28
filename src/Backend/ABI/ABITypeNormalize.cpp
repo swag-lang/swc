@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"

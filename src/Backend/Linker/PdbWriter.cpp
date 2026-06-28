@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/Assert.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
 #include "Support/Core/ByteUtils.h"

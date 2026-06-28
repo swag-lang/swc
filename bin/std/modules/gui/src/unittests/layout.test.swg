@@ -88,6 +88,70 @@ using Swag, Core
     host.shutdown()
 }
 
+// StackLayoutCtrl distributes remaining space only to expandable children.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(220, 240)
+
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
+    stack.spacing = 0
+    let fixed = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
+    let grow = Wnd.create'Wnd(stack, null, {0, 0, 200, 20})
+    grow.layoutSpec.policyY = SizePolicy.Expand
+    grow.layoutSpec.weightY = 1
+    stack.computeLayout()
+
+    @assert(fixed.position == Math.Rectangle{0, 0, 200, 40})
+    @assert(grow.position == Math.Rectangle{0, 40, 200, 160})
+    @assert(grow.managedByLayout)
+    @assert(grow.layoutDebug.arrangedRect == grow.position)
+
+    host.shutdown()
+}
+
+// StackLayoutCtrl honors minSize when available space is too small.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(120, 120)
+
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 100, 50})
+    stack.spacing = 0
+    let child = Wnd.create'Wnd(stack, null, {0, 0, 100, 10})
+    child.minSize.y = 60
+    stack.computeLayout()
+
+    @assert(child.position.height == 60)
+    @assert(child.layoutDebug.measuredMin.y == 60)
+
+    host.shutdown()
+}
+
+// StackLayoutCtrl propagates layout to arranged children.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(160, 160)
+
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 120, 120})
+    stack.spacing = 0
+    let line = Wnd.create'Wnd(stack, null, {0, 0, 120, 35})
+    let fill = Wnd.create'Wnd(line, null, {0, 0, 0, 0})
+    fill.dockStyle = .Center
+    stack.computeLayout()
+
+    @assert(fill.position == Math.Rectangle{0, 0, 120, 35})
+
+    line.setPosition({0, 0, 120, 50})
+    stack.applyLayout()
+
+    @assert(line.position == Math.Rectangle{0, 0, 120, 50})
+    @assert(fill.position == Math.Rectangle{0, 0, 120, 50})
+
+    host.shutdown()
+}
+
 // WrapLayoutCtrl flows fixed-size items left to right, wrapping to new rows.
 #test
 {
@@ -107,6 +171,34 @@ using Swag, Core
     @assert(c1.position == Math.Rectangle{69, 0, 64, 64})
     // The third item no longer fits on the first row and wraps.
     @assert(c2.position == Math.Rectangle{0, 69, 64, 64})
+
+    host.shutdown()
+}
+
+// GridLayoutCtrl supports content and fractional tracks.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(340, 120)
+
+    let grid = GridLayoutCtrl.create(&host.root, 3, 1, {0, 0, 300, 80})
+    grid.spacingHorz = 0
+    grid.setColTrack(0, GridTrackKind.Content)
+    grid.setColTrack(1, GridTrackKind.Fraction, 1)
+    grid.setColTrack(2, GridTrackKind.Fraction, 2)
+
+    let c0 = Wnd.create'Wnd(grid, null, {0, 0, 60, 30})
+    let c1 = Wnd.create'Wnd(grid, null, {0, 0, 0, 30})
+    let c2 = Wnd.create'Wnd(grid, null, {0, 0, 0, 30})
+    grid.setColRowChild(c0, 0, 0)
+    grid.setColRowChild(c1, 1, 0)
+    grid.setColRowChild(c2, 2, 0)
+    grid.computeLayout()
+
+    @assert(c0.position.width == 60)
+    @assert(c1.position.x == 60)
+    @assert(Math.abs(c1.position.width - 80) <= 1)
+    @assert(Math.abs(c2.position.width - 160) <= 1)
 
     host.shutdown()
 }

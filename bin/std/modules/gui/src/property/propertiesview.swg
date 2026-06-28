@@ -16,7 +16,7 @@ impl IWnd for PropertiesView
             return
 
         .ed.refreshGridColumnLayout()
-        .applyLayout()
+        .computeLayout()
 
         var lastItem: *PropertiesItem
         foreach item in .ed.items
@@ -32,7 +32,7 @@ impl IWnd for PropertiesView
                 lastItem = item
         }
 
-        .applyLayout()
+        .computeLayout()
 
         // Vertical size is the bottom position of the last line
         if lastItem do

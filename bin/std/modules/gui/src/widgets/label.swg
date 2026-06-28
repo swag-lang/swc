@@ -213,9 +213,22 @@ impl Label
         if .labelFlags.has(.AutoHeight)
         {
             let sf = .getStringFormat(false)
+            var rect = .position
+            if rect.width <= 0 do
+                rect.width = .preferredSize.x
+            if rect.height <= 0 do
+                rect.height = .preferredSize.y
+            if rect.height <= 0 do
+                rect.height = sf.font.regular.height
+
             .name.compute()
-            Painter.computeLayout(.position, &.name, sf)
-            .position.height = .name.boundRect.height
+            Painter.computeLayout(rect, &.name, sf)
+
+            var height = .name.boundRect.height
+            if !.name.isEmpty() do
+                height = Math.max(height, sf.font.regular.height)
+            .position.height = height
+            .preferredSize.y = height
         }
     }
 }

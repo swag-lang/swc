@@ -40,6 +40,54 @@ enum FocusStategy
     MousePressed
 }
 
+enum SizePolicy
+{
+    Fixed
+    Content
+    Fill
+    Expand
+}
+
+enum LayoutAlign
+{
+    Start
+    Center
+    End
+    Stretch
+}
+
+struct SizeHint
+{
+    min:                  Math.Point
+    preferred:            Math.Point
+    max:                  Math.Point = {Swag.F32.Max, Swag.F32.Max}
+}
+
+struct LayoutSpec
+{
+    policyX:              SizePolicy = SizePolicy.Content
+    policyY:              SizePolicy = SizePolicy.Content
+    weightX:              f32 = 1
+    weightY:              f32 = 1
+    alignX:               LayoutAlign = LayoutAlign.Stretch
+    alignY:               LayoutAlign = LayoutAlign.Stretch
+    margin:               Math.Vector4
+}
+
+struct LayoutDebugInfo
+{
+    measuredMin:          Math.Point
+    measuredPreferred:    Math.Point
+    measuredMax:          Math.Point
+    arrangedRect:         Math.Rectangle
+    clippedX:             bool
+    clippedY:             bool
+    clampedByMinX:        bool
+    clampedByMinY:        bool
+    clampedByMaxX:        bool
+    clampedByMaxY:        bool
+}
+
 struct KeyShortcut
 {
     mdf:        Input.KeyModifiers = Zero
@@ -98,6 +146,7 @@ struct Wnd
     userData:              *void
 
     position:              Math.Rectangle
+    preferredSize:         Math.Point
     minSize:               Math.Point
     maxSize:               Math.Point
     scrollPos:             Math.Point
@@ -120,6 +169,9 @@ struct Wnd
     padding:               Math.Vector4
     dockStyle:             DockStyle = None
     anchorStyle:           AnchorStyle = None
+    layoutSpec:            LayoutSpec
+    cachedSizeHint:        SizeHint
+    layoutDebug:           LayoutDebugInfo
 
     focusStrategy:         FocusStategy = MousePressed
 
@@ -127,6 +179,8 @@ struct Wnd
     isAllocated:           bool
     isPendingDestroy:      bool
     createEventDone:       bool
+    layoutDirty:           bool = true
+    managedByLayout:       bool
 
     hookOnEvent:           HookEvent                         // Will be called before processing the event of the window
     hookOnChildEvent:      HookEvent                         // Will be called before processing whatever event of a child window
@@ -248,6 +302,7 @@ impl Wnd
         res.name        = name
         res.id          = id
         res.position    = position
+        res.preferredSize = {position.width, position.height}
         res.isAllocated = true
         res.hookOnEvent = hook
 
@@ -522,6 +577,11 @@ impl Wnd
                 c.paint(bc)
                 painter.popState()
             }
+
+            if .managedByLayout and .surface.app.options.showLayoutRects
+            {
+                painter.drawRect(.getClientRect(), Color.fromArgb(0x66FFCC00), 1)
+            }
         }
 
         // Restore clipping
@@ -556,6 +616,114 @@ impl Wnd
     mtd invalidateRect(rect: Math.Rectangle)
     {
         .surface.invalidateRect(.localToSurface(rect))
+    }
+
+    //////////////////////////////////////////////
+    // Layout sizing contract
+    //////////////////////////////////////////////
+
+    mtd invalidateLayout()
+    {
+        .layoutDirty = true
+        if .parent do
+            .parent.invalidateLayout()
+    }
+
+    mtd getLayoutMargin()->Math.Vector4
+    {
+        return .margin + .layoutSpec.margin
+    }
+
+    mtd measure(available: Math.Point)->SizeHint
+    {
+        discard available
+
+        var result: retval
+
+        result.min = .minSize
+        result.max.x = .maxSize.x > 0 ? .maxSize.x : Swag.F32.Max
+        result.max.y = .maxSize.y > 0 ? .maxSize.y : Swag.F32.Max
+
+        result.preferred = .preferredSize
+        if result.preferred.x <= 0 do
+            result.preferred.x = .position.width
+        if result.preferred.y <= 0 do
+            result.preferred.y = .position.height
+        if result.preferred.x <= 0 do
+            result.preferred.x = result.min.x
+        if result.preferred.y <= 0 do
+            result.preferred.y = result.min.y
+
+        result.min.x = Math.max(result.min.x, 0)
+        result.min.y = Math.max(result.min.y, 0)
+
+        if .layoutSpec.policyX == SizePolicy.Fixed do
+            result.min.x = Math.max(result.min.x, result.preferred.x)
+        if .layoutSpec.policyY == SizePolicy.Fixed do
+            result.min.y = Math.max(result.min.y, result.preferred.y)
+
+        result.max.x = Math.max(result.max.x, result.min.x)
+        result.max.y = Math.max(result.max.y, result.min.y)
+        result.preferred.x = Math.clamp(result.preferred.x, result.min.x, result.max.x)
+        result.preferred.y = Math.clamp(result.preferred.y, result.min.y, result.max.y)
+
+        if .layoutSpec.policyX == SizePolicy.Fixed do
+            result.max.x = result.preferred.x
+        if .layoutSpec.policyY == SizePolicy.Fixed do
+            result.max.y = result.preferred.y
+
+        .cachedSizeHint = result
+        .layoutDirty = false
+        .layoutDebug.measuredMin = result.min
+        .layoutDebug.measuredPreferred = result.preferred
+        .layoutDebug.measuredMax = result.max
+        return result
+    }
+
+    mtd arrange(rect: Math.Rectangle)
+    {
+        var pos = rect
+        let before = pos
+        .clampSize(&pos)
+
+        .managedByLayout = true
+        .setPosition(pos, false)
+
+        .layoutDebug.arrangedRect = pos
+        .layoutDebug.clippedX = pos.width < .cachedSizeHint.min.x
+        .layoutDebug.clippedY = pos.height < .cachedSizeHint.min.y
+        .layoutDebug.clampedByMinX = before.width < pos.width
+        .layoutDebug.clampedByMinY = before.height < pos.height
+        .layoutDebug.clampedByMaxX = before.width > pos.width
+        .layoutDebug.clampedByMaxY = before.height > pos.height
+    }
+
+    mtd dumpLayoutTree()
+    {
+        if .surface and !.surface.app.options.dumpLayoutTree do
+            return
+        .dumpLayoutTreeNode(0)
+    }
+
+    fileprivate mtd dumpLayoutTreeNode(depth: u32)
+    {
+        for depth do
+            Console.print("  ")
+
+        Console.println(
+            .type.name,
+            " name=", .name.raw,
+            " rect=", .position.x, ",", .position.y, ",", .position.width, ",", .position.height,
+            " min=", .layoutDebug.measuredMin.x, "x", .layoutDebug.measuredMin.y,
+            " pref=", .layoutDebug.measuredPreferred.x, "x", .layoutDebug.measuredPreferred.y,
+            " max=", .layoutDebug.measuredMax.x, "x", .layoutDebug.measuredMax.y,
+            " arranged=", .layoutDebug.arrangedRect.x, ",", .layoutDebug.arrangedRect.y, ",", .layoutDebug.arrangedRect.width, ",", .layoutDebug.arrangedRect.height,
+            " clip=", .layoutDebug.clippedX, "/", .layoutDebug.clippedY,
+            " clampMin=", .layoutDebug.clampedByMinX, "/", .layoutDebug.clampedByMinY,
+            " clampMax=", .layoutDebug.clampedByMaxX, "/", .layoutDebug.clampedByMaxY)
+
+        foreach c in .childs do
+            c.dumpLayoutTreeNode(depth + 1)
     }
 
     //////////////////////////////////////////////
@@ -786,6 +954,12 @@ impl Wnd
     {
         var pos = Math.Rectangle{0, 0, Math.round(width), Math.round(height)}
         .clampSize(&pos)
+
+        if computeLayout
+        {
+            .preferredSize = {pos.width, pos.height}
+            .invalidateLayout()
+        }
 
         if .position.width == pos.width and .position.height == pos.height do
             return

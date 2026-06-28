@@ -29,15 +29,27 @@ impl IWnd for WrapLayoutCtrl
         {
             if c.wndFlags & .Hidden do
                 continue
-            .resultHeight = y + .wrapHeight
-            let rect = Math.Rectangle{x, y, .wrapWidth, .wrapHeight}
-            c.setPosition(rect)
-            x += .wrapWidth + .spacing
-            if x + .wrapWidth > client.right()
+
+            let margin = c.getLayoutMargin()
+            let hint = c.measure({client.width, client.height})
+            var width = .wrapWidth
+            var height = .wrapHeight
+            if hint.preferred.x > 0 do
+                width = hint.preferred.x
+            if hint.preferred.y > 0 do
+                height = hint.preferred.y
+
+            let outerWidth = width + margin.x + margin.z
+            if x != .padding.x and x + outerWidth > client.right()
             {
                 x = .padding.x
-                y += .wrapHeight + .spacing
+                y += height + margin.y + margin.w + .spacing
             }
+
+            .resultHeight = y + height + margin.y + margin.w
+            var rect = Math.Rectangle{x + margin.x, y + margin.y, width, height}
+            c.arrange(rect)
+            x += outerWidth + .spacing
         }
 
         .wnd.IWnd.onResizeEvent(evt)

@@ -611,8 +611,26 @@ impl Transform
 
     mtd insertScanbeam(y: CInt)
     {
-        .scanBeamList.add(y)
-        .scanBeamList.sort()
+        // Keep scanBeamList sorted ascending via a binary-search insertion so it stays
+        // a simple max-stack for popScanbeam(). The previous code re-sorted the whole
+        // list on every insert; with one insert per edge/local-minima that made the
+        // Vatti sweep O(n^2 log n) and dominated offset/clean of dense contours (a glyph
+        // border offset of ~1600 points spent >100 ms here).
+        var lo = 0'u64
+        var hi = .scanBeamList.count
+        while lo < hi
+        {
+            let mid = lo + ((hi - lo) >> 1)
+            if .scanBeamList[mid] < y do
+                lo = mid + 1
+            else do
+                hi = mid
+        }
+
+        // Skip duplicates (popScanbeam also collapses equal Ys).
+        if lo < .scanBeamList.count and .scanBeamList[lo] == y do
+            return
+        .scanBeamList.insertAt(lo, y)
     }
 
     mtd reset()

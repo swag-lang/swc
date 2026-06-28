@@ -205,7 +205,9 @@ impl Polygon
         let v0 = .getPoint(0)
         .add(v0)
 
-        .compute()
+        // Clipper output contours never self-intersect, so the O(n^2) simplicity
+        // test in compute() is redundant here.
+        .compute(knownSimple: true)
     }
 
     moduleprivate mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
@@ -336,8 +338,11 @@ impl Polygon
     }
 
     // Compute fileprivate values, like convex/clockwise
-    // Call it once the polygon contains all its points
-    mtd compute()
+    // Call it once the polygon contains all its points.
+    // 'knownSimple' lets a caller that already guarantees the polygon does not
+    // self-intersect (e.g. the output of a Clipper union/clean/offset) skip the
+    // O(n^2) self-intersection test, which otherwise dominates for large contours.
+    mtd compute(knownSimple = false)
     {
         .area        = 0
         .isClockwise = false
@@ -395,7 +400,7 @@ impl Polygon
         // UI shapes (round rects, circles, ellipses) flattened every frame. 'isSimple'
         // is only read for non-convex polygons (the triangulated fill branch and the
         // offset-input selection), so this stays correct.
-        if .isConvex do
+        if .isConvex or knownSimple do
             .isSimple = true
         else do
             .isSimple = .computeIsSimple(n)

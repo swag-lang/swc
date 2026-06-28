@@ -54,7 +54,7 @@ namespace
                 continue;
 
             const ByteSpan recordBytes{bytes.data() + offset, recordEnd - offset};
-            if (std::ranges::search(recordBytes, needle).begin() != recordBytes.end())
+            if (containsBytes(recordBytes, needle))
                 return true;
         }
 

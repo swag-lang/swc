@@ -112,18 +112,6 @@ namespace
         return cmdLine;
     }
 
-    bool containsBytes(const std::vector<std::byte>& bytes, std::string_view value)
-    {
-        if (value.empty())
-            return true;
-        if (bytes.size() < value.size())
-            return false;
-
-        const auto* begin = reinterpret_cast<const char*>(bytes.data());
-        const auto* end   = begin + bytes.size();
-        return std::search(begin, end, value.begin(), value.end()) != end;
-    }
-
     std::vector<std::byte> readBinaryFile(const fs::path& path)
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -419,9 +407,9 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    if (!containsBytes(fixture.nativeBuilder->mergedRData.bytes, referencedMarker))
+    if (!containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(referencedMarker)))
         return Result::Error;
-    if (containsBytes(fixture.nativeBuilder->mergedRData.bytes, unreferencedMarker))
+    if (containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(unreferencedMarker)))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
         return Result::Error;
@@ -446,7 +434,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    if (!containsBytes(fixture.nativeBuilder->mergedRData.bytes, referencedMarker))
+    if (!containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(referencedMarker)))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
         return Result::Error;
@@ -544,7 +532,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    if (!containsBytes(fixture.nativeBuilder->mergedRData.bytes, dependencyMarker))
+    if (!containsBytes(asByteSpan(fixture.nativeBuilder->mergedRData.bytes), asByteSpan(dependencyMarker)))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 2)
         return Result::Error;

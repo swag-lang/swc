@@ -18,34 +18,6 @@ namespace
             out.push_back(static_cast<std::byte>(b));
     }
 
-    bool containsBytes(ByteSpan bytes, ByteSpan needle)
-    {
-        if (needle.empty())
-            return true;
-        if (needle.size() > bytes.size())
-            return false;
-
-        for (size_t offset = 0; offset <= bytes.size() - needle.size(); ++offset)
-        {
-            if (std::equal(needle.begin(), needle.end(), bytes.begin() + offset))
-                return true;
-        }
-
-        return false;
-    }
-
-    bool containsUtf16Le(ByteSpan bytes, std::string_view text)
-    {
-        std::vector<std::byte> needle;
-        needle.reserve(text.size() * sizeof(char16_t));
-        for (const char ch : text)
-        {
-            ByteUtils::appendLe16(needle, static_cast<uint8_t>(ch));
-        }
-
-        return containsBytes(bytes, asByteSpan(needle));
-    }
-
     uint16_t peSubsystem(ByteSpan bytes)
     {
         if (!ByteUtils::containsRange(bytes, 0x3C, sizeof(uint32_t)))

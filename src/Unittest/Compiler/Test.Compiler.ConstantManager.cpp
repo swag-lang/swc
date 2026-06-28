@@ -10,14 +10,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    bool byteSpanEq(ByteSpan lhs, ByteSpan rhs)
-    {
-        return lhs.size() == rhs.size() && (lhs.empty() || std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
-    }
-}
-
 SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
 {
     Runtime::String runtimeString{

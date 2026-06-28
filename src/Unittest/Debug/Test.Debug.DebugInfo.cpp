@@ -87,11 +87,8 @@ namespace
 
     bool bytesContainString(const ByteSpan bytes, const Utf8& value)
     {
-        if (value.empty())
-            return true;
-
         const ByteSpan needle = asByteSpan(std::string_view(value.data(), value.size()));
-        return std::ranges::search(bytes, needle).begin() != bytes.end();
+        return containsBytes(bytes, needle);
     }
 
     bool countSymbolsSubsectionRecords(const ByteSpan bytes, const uint16_t recordType, uint32_t& outCount)

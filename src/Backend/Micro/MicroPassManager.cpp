@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -25,6 +24,7 @@
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 

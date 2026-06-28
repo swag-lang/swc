@@ -1,7 +1,7 @@
 #pragma once
+#include "Backend/Linker/LinkDebugInfo.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"
-#include "Backend/Linker/LinkDebugInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 

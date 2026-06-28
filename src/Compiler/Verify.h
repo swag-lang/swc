@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/Utf8.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Report/DiagnosticDef.h"
 
 SWC_BEGIN_NAMESPACE();

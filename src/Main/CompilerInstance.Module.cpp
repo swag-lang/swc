@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
@@ -26,6 +25,7 @@
 #include "Support/Math/Sha256.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
@@ -1133,7 +1133,7 @@ namespace
         }
 
         const std::string_view signatureView = signature.view();
-        const auto digest = sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(signatureView.data()), signatureView.size()});
+        const auto             digest        = sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(signatureView.data()), signatureView.size()});
         return (Os::getTemporaryPath() / "swag" / "scripts" / fs::path(bytesToLowerHex(digest).c_str()) / ".dep").lexically_normal();
     }
 }

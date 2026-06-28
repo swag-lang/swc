@@ -1,5 +1,4 @@
-#include "pch.h"
-#include "Support/Report/Assert.h"
+﻿#include "pch.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Verify.h"
@@ -10,6 +9,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

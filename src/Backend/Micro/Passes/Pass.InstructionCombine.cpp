@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Pre-RA instruction combiner on virtual registers.
 //

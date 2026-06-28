@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -21,6 +20,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 

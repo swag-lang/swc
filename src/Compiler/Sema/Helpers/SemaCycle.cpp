@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -8,6 +7,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Thread/JobManager.h"
 

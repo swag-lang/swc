@@ -79,11 +79,11 @@ struct LinkDebugInfo
 
     // Pre-lowered CodeView type/id records, ready to drop into the PDB TPI/IPI streams verbatim. Indices
     // run from 0x1000 to the matching *End value. The two streams have independent index spaces.
-    ByteArray              tpiRecords;
-    ByteArray              ipiRecords;
-    uint32_t               tpiIndexEnd    = 0x1000;
-    uint32_t               ipiIndexEnd    = 0x1000;
-    uint32_t               buildInfoIndex = 0;
+    ByteArray tpiRecords;
+    ByteArray ipiRecords;
+    uint32_t  tpiIndexEnd    = 0x1000;
+    uint32_t  ipiIndexEnd    = 0x1000;
+    uint32_t  buildInfoIndex = 0;
 
     std::vector<LinkDebugFile>     files;       // source files, referenced by LinkDebugLineBlock::fileIndex
     std::vector<Utf8>              objectNames; // synthetic compiland (object file) names, indexed by LinkDebugFunction::objIndex

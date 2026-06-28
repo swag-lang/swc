@@ -1,7 +1,7 @@
-#pragma once
-#include "Support/Core/RefTypes.h"
+﻿#pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/StringMap.h"
 
 SWC_BEGIN_NAMESPACE();

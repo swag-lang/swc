@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Support/Core/ByteArray.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -14,6 +12,8 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/ByteArray.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -657,11 +657,11 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         {
             if (castRequest.isConstantFolding())
             {
-                const ConstantValue&   cst  = sema.cstMgr().get(castRequest.srcConstRef);
-                const std::string_view str  = cst.getString();
-                const std::span<const std::byte>         span{reinterpret_cast<const std::byte*>(str.data()), str.size()};
-                const ConstantValue    cv   = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
-                castRequest.outConstRef     = sema.cstMgr().addConstant(sema.ctx(), cv);
+                const ConstantValue&             cst = sema.cstMgr().get(castRequest.srcConstRef);
+                const std::string_view           str = cst.getString();
+                const std::span<const std::byte> span{reinterpret_cast<const std::byte*>(str.data()), str.size()};
+                const ConstantValue              cv = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
+                castRequest.outConstRef             = sema.cstMgr().addConstant(sema.ctx(), cv);
             }
 
             return Result::Continue;
@@ -774,8 +774,8 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const TypeRef   arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(arrayDims, dstElemTypeRef));
         const TypeInfo& arrayType    = sema.typeMgr().get(arrayTypeRef);
 
-        const uint64_t         arraySize = arrayType.sizeOf(ctx);
-        ByteArray arrayData(arraySize);
+        const uint64_t             arraySize = arrayType.sizeOf(ctx);
+        ByteArray                  arrayData(arraySize);
         const std::span<std::byte> arraySpan = arrayData.span();
         SWC_RESULT(ConstantLower::lowerAggregateArrayToBytes(sema, arraySpan, arrayType, castedValues));
 
@@ -1054,7 +1054,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             if (boxedAsTypeInfo)
             {
                 SWC_ASSERT(srcCst.isValuePointer());
-                const uint64_t ptrValue = srcCst.getValuePointer();
+                const uint64_t                   ptrValue = srcCst.getValuePointer();
                 const std::span<const std::byte> ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
                 SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ptrBytes));
             }

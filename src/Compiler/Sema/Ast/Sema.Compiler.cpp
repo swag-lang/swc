@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -26,6 +25,7 @@
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"

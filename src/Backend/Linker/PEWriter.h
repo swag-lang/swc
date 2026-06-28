@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Core/ByteArray.h"
-#include "Support/Core/Utf8.h"
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Backend/Linker/Win32OsPatcher.h"
+#include "Support/Core/ByteArray.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -61,7 +61,7 @@ private:
 
     const LinkImage*                       image_       = nullptr;
     const LinkDebugInfo*                   debugInfo_   = nullptr;
-    ByteArray*                            outPdbBytes_ = nullptr;
+    ByteArray*                             outPdbBytes_ = nullptr;
     fs::path                               pdbPath_;
     std::vector<OutSection>                sections_;
     std::vector<uint32_t>                  imageToOut_; // image.sections index -> sections_ index

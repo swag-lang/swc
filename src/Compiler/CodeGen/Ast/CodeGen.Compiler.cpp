@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -13,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

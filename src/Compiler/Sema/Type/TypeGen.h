@@ -1,9 +1,9 @@
 #pragma once
 #include <span>
 
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
-#include "Compiler/Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -32,8 +32,8 @@ public:
     struct TypeGenResult
     {
         std::span<const std::byte> span;
-        TypeRef  rtTypeRef;
-        uint32_t offset = 0;
+        TypeRef                    rtTypeRef;
+        uint32_t                   offset = 0;
     };
 
     struct TypeGenCache

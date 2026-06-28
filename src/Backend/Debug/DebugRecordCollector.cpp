@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -10,6 +9,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,8 +1,8 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Result.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
 #include <memory>

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/Command/Command.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
@@ -18,6 +17,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"

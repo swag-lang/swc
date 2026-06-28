@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Support/Report/Assert.h"
 
 // Fold a constant-offset computation into a memory operand's offset:
 //

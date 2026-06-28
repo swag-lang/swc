@@ -205,10 +205,10 @@ namespace
 
     struct ArchiveMemberBuild
     {
-        Utf8                   name;
-        ByteArray data;
-        std::vector<Utf8>      symbols;
-        uint32_t               headerOffset = 0;
+        Utf8              name;
+        ByteArray         data;
+        std::vector<Utf8> symbols;
+        uint32_t          headerOffset = 0;
     };
 
     // Assembles a COFF archive from prepared members: the linker symbol directory, an optional
@@ -217,8 +217,8 @@ namespace
     {
         // Long member names (>15 chars do not fit the inline "name/" form) live in a "//" member; an
         // affected member references them with "/<decimal-offset>".
-        ByteArray longNames;
-        std::vector<Utf8>      nameField(members.size());
+        ByteArray         longNames;
+        std::vector<Utf8> nameField(members.size());
         for (size_t i = 0; i < members.size(); ++i)
         {
             const Utf8& name = members[i].name;

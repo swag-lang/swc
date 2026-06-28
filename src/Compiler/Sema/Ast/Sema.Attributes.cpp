@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
@@ -15,6 +14,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 

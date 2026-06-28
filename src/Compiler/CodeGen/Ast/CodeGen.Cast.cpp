@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
@@ -26,6 +25,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -787,8 +787,8 @@ namespace
             const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
             if (srcConst.isArray())
             {
-                const std::span<const std::byte>    arrayBytes       = srcConst.getArray();
-                const ConstantRef runtimeStringRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
+                const std::span<const std::byte> arrayBytes       = srcConst.getArray();
+                const ConstantRef                runtimeStringRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
                 SWC_ASSERT(runtimeStringRef.isValid());
                 const ConstantValue&      runtimeStringCst = codeGen.cstMgr().get(runtimeStringRef);
                 const CodeGenNodePayload& dstPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);

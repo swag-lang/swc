@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -27,6 +26,7 @@
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
 

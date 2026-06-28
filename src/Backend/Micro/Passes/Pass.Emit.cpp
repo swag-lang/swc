@@ -1,10 +1,10 @@
-#include "pch.h"
-#include "Support/Report/Assert.h"
+﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Final emission pass: converts legalized micro instructions to machine code.
 //

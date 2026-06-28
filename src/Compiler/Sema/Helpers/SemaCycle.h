@@ -1,6 +1,6 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

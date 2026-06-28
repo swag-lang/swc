@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/ModuleApi.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -18,6 +17,7 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Thread/JobManager.h"
 

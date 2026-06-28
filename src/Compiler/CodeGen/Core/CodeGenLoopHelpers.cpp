@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenLoopHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

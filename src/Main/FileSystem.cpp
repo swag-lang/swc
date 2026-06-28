@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/FileSystem.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -50,7 +50,7 @@ namespace
     template<typename Buffer>
     Result readBinaryFileImpl(const fs::path& path, Buffer& outData, FileSystem::IoErrorInfo& error)
     {
-        using T = typename Buffer::value_type;
+        using T = Buffer::value_type;
         static_assert(sizeof(T) == 1);
 
         outData.clear();

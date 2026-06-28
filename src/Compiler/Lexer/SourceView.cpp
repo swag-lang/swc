@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Backend/Runtime.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

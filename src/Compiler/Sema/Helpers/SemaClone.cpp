@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
@@ -12,6 +11,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

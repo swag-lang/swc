@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

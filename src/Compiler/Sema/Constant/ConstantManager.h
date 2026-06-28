@@ -1,10 +1,10 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 class CompilerInstance;

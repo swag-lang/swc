@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Support/Core/ByteArray.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -24,8 +22,10 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
+#include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 
@@ -1421,7 +1421,7 @@ namespace
         if (!view.cst()->isString())
             return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
 
-        fs::path               resolvedPath;
+        fs::path  resolvedPath;
         ByteArray bytes;
         SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
@@ -1485,8 +1485,8 @@ namespace
             cur = next;
         }
 
-        const std::span<const std::byte>      bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
-        const ConstantValue value = ConstantValue::makeSlice(ctx, sema.typeMgr().typeRune(), bytes, TypeInfoFlagsE::Const);
+        const std::span<const std::byte> bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
+        const ConstantValue              value = ConstantValue::makeSlice(ctx, sema.typeMgr().typeRune(), bytes, TypeInfoFlagsE::Const);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }

@@ -1,8 +1,8 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Format/FormatOptions.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();

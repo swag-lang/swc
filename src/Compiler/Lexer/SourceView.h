@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Flags.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/SourceFile.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

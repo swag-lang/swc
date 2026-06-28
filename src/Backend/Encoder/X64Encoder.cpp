@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

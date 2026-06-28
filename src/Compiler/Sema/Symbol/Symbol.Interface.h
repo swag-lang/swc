@@ -1,7 +1,7 @@
 #pragma once
+#include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
-#include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();
 

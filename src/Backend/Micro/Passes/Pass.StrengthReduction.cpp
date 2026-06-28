@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Pre-RA strength reduction on virtual registers.
 //

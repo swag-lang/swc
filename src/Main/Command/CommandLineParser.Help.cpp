@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandPrint.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Main/Version.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 

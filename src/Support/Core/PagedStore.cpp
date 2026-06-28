@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

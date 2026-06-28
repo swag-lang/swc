@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

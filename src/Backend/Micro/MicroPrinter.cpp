@@ -1,5 +1,4 @@
-#include "pch.h"
-#include "Support/Report/Assert.h"
+﻿#include "pch.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -11,6 +10,7 @@
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 

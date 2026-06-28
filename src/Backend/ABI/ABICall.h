@@ -1,8 +1,8 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

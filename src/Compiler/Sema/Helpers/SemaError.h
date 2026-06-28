@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Math/Fold.h"
 #include "Support/Report/Diagnostic.h"
 

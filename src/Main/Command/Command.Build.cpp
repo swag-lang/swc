@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -12,6 +11,7 @@
 #include "Main/ExternalModuleManager.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"

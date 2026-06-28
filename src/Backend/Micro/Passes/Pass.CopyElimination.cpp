@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Pre-RA copy elimination on virtual registers.
 //

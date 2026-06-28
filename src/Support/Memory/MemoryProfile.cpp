@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
+#include "Support/Report/Assert.h"
 
 #if SWC_HAS_STATS
 #include "Main/Stats.h"

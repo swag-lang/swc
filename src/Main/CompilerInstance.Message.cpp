@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -16,6 +15,7 @@
 #include "Main/TaskContext.h"
 #include "Main/TaskState.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Thread/JobManager.h"
 

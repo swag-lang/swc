@@ -1,5 +1,4 @@
-#include "pch.h"
-#include "Support/Report/Assert.h"
+﻿#include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -9,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

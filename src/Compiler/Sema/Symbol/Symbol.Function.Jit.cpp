@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -10,6 +9,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"

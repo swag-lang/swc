@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

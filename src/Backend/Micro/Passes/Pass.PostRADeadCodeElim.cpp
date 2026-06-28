@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
@@ -7,6 +6,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Post-RA dead-code elimination.
 //

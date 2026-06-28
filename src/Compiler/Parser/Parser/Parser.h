@@ -1,11 +1,11 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Result.h"
-#include "Support/Core/Flags.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/Token.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNode.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Diagnostic.h"
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Compiler/Parser/Ast/AstNode.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

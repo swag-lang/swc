@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Format/AstSourceWriter.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

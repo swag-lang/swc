@@ -1,6 +1,4 @@
 #pragma once
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
 #include "Backend/Linker/LinkJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -8,6 +6,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Math/Hash.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"

@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -523,7 +523,7 @@ namespace
 
 // =================================================================================================
 
-void PdbWriter::build(ByteArray&            outBytes,
+void PdbWriter::build(ByteArray&                         outBytes,
                       std::array<uint8_t, 16>&           outGuid,
                       uint32_t&                          outAge,
                       uint32_t&                          outSignature,

@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/Flags.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
+#include "Support/Core/Flags.h"
 
 SWC_BEGIN_NAMESPACE();
 

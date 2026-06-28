@@ -1,8 +1,8 @@
 #pragma once
+#include "Compiler/Sema/Symbol/SymbolMap.h"
+#include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
-#include "Support/Core/Flags.h"
-#include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,7 +1,7 @@
 #pragma once
+#include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
-#include "Support/Core/Flags.h"
 #include "Support/Report/Assert.h"
 #include <span>
 #include <vector>

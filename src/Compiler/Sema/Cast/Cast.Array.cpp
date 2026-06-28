@@ -1,12 +1,12 @@
 #include "pch.h"
-#include "Support/Core/ByteArray.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/ByteArray.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -131,9 +131,9 @@ namespace
 
     ConstantRef makeArrayConstantFromValues(const CastArrayArgs& args, const std::vector<ConstantRef>& values)
     {
-        TaskContext&           ctx       = args.sema->ctx();
-        const uint64_t         arraySize = args.dstType->sizeOf(ctx);
-        ByteArray buffer(arraySize);
+        TaskContext&   ctx       = args.sema->ctx();
+        const uint64_t arraySize = args.dstType->sizeOf(ctx);
+        ByteArray      buffer(arraySize);
         SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, buffer.span(), *args.dstType, values) == Result::Continue);
         const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
         SWC_ASSERT(result.isValid());
@@ -231,11 +231,11 @@ namespace
             if (!args.castRequest->materializeConstantResult())
                 return Result::Continue;
 
-            TaskContext&           ctx       = args.sema->ctx();
-            const uint64_t         arraySize = args.dstType->sizeOf(ctx);
-            ByteArray buffer(arraySize);
-            const std::span<std::byte> bytes = buffer.span();
-            const uint64_t         subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
+            TaskContext&               ctx       = args.sema->ctx();
+            const uint64_t             arraySize = args.dstType->sizeOf(ctx);
+            ByteArray                  buffer(arraySize);
+            const std::span<std::byte> bytes        = buffer.span();
+            const uint64_t             subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
 
             for (size_t i = 0; i < srcValues->size(); ++i)
             {

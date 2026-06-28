@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Support/Core/ByteArray.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -15,6 +13,8 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Support/Core/ByteArray.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticDef.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -193,7 +193,7 @@ namespace
             else
             {
                 const std::pair<std::span<const std::byte>, Ref> addRes = segment.addSpan(loweredBytes.span(), alignment);
-                offset                                = addRes.second;
+                offset                                                  = addRes.second;
             }
         }
         else if (hasFunctionInit)
@@ -512,8 +512,8 @@ namespace
         if (!fromAggregateStruct && !fromStructBytes)
             return;
 
-        const std::vector<ConstantRef>* aggregateValues = fromAggregateStruct ? &cst.getAggregateStruct() : nullptr;
-        const std::span<const std::byte>                  structBytes     = fromStructBytes ? cst.getStruct() : std::span<const std::byte>{};
+        const std::vector<ConstantRef>*  aggregateValues = fromAggregateStruct ? &cst.getAggregateStruct() : nullptr;
+        const std::span<const std::byte> structBytes     = fromStructBytes ? cst.getStruct() : std::span<const std::byte>{};
 
         const size_t count = symbols.size();
         for (size_t i = 0; i < count; ++i)

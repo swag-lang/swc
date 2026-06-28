@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
@@ -11,6 +10,7 @@
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Linear-scan style register allocation for the micro IR.
 //

@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Core/ByteArray.h"
-#include "Support/Core/Utf8.h"
 #include "Backend/Linker/LinkDebugInfo.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Backend/Runtime.h"
+#include "Support/Core/ByteArray.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

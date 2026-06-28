@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
 #include "Support/Math/Hash.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

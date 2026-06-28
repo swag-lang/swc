@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Sha256.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

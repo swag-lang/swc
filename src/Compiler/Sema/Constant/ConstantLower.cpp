@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -12,6 +11,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,9 +22,9 @@ namespace
 
     struct StaticPayload
     {
-        uint32_t   baseOffset = 0;
-        std::span<std::byte> dstBytes;
-        std::span<const std::byte>   srcBytes;
+        uint32_t                   baseOffset = 0;
+        std::span<std::byte>       dstBytes;
+        std::span<const std::byte> srcBytes;
     };
 
     size_t narrowByteCount(const uint64_t value)
@@ -448,8 +448,8 @@ namespace
         if (cst.isSlice())
         {
             const std::span<const std::byte> bytes = cst.getSlice();
-            runtimeValue.count   = cst.getSliceCount();
-            runtimeValue.ptr     = bytes.empty() ? nullptr : reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
+            runtimeValue.count                     = cst.getSliceCount();
+            runtimeValue.ptr                       = bytes.empty() ? nullptr : reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
         }
 
         writeValue(dstBytes, runtimeValue);

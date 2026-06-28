@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
@@ -11,6 +10,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -441,7 +441,7 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
                 break;
 
             FileSystem::IoErrorInfo ioError;
-            ByteArray  bytes;
+            ByteArray               bytes;
             if (FileSystem::readBinaryFile(candidate, bytes, ioError) != Result::Continue)
                 break;
 

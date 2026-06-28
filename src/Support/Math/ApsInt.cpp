@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Math/Hash.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

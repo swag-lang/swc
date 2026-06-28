@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -7,6 +6,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -830,7 +830,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
         const uint64_t elementSize = elementType.sizeOf(ctx);
         SWC_ASSERT(!elementSize || slice->count <= std::numeric_limits<uint64_t>::max() / elementSize);
         SWC_ASSERT(slice->count == 0 || elementSize == 0 || slice->ptr != nullptr);
-        const uint64_t byteCount = elementSize ? slice->count * elementSize : 0;
+        const uint64_t                   byteCount = elementSize ? slice->count * elementSize : 0;
         const std::span<const std::byte> span{reinterpret_cast<const std::byte*>(slice->ptr), byteCount};
         if (ownership == PayloadOwnership::Borrowed)
             return makeSliceBorrowedCounted(ctx, ty.payloadTypeRef(), span, slice->count, ty.flags());

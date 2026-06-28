@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Flags.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

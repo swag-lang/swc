@@ -1,9 +1,9 @@
 #pragma once
 #include <span>
 
-#include "Support/Core/Utf8.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

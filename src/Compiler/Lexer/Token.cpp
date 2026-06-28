@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/Token.h"
-#include "Lexer.h"
+#include "Compiler/Lexer/Lexer.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

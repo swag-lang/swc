@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeRDataCollector.h"
@@ -11,6 +10,7 @@
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 #if SWC_HAS_VALIDATE_NATIVE
 #include "Backend/Native/NativeValidate.h"

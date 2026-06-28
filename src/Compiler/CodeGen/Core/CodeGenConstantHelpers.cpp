@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -350,9 +350,9 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
-    const std::span<const std::byte>       storedBytes = sizeOf ? std::span<const std::byte>{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
-    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
-    const ConstantValue  value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
+    const std::span<const std::byte> storedBytes = sizeOf ? std::span<const std::byte>{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
+    const DataSegmentRef             dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
+    const ConstantValue              value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
     if (!value.isValid())
         return ConstantRef::invalid();
 

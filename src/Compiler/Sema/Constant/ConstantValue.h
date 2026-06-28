@@ -1,13 +1,13 @@
 #pragma once
 #include <span>
 
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 class TaskContext;
@@ -257,9 +257,9 @@ public:
     void setPayloadArray(std::span<const std::byte> bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
 private:
-    static std::span<const std::byte>       normalizePayloadBytes(std::span<const std::byte> bytes) noexcept;
-    static uint64_t       packDataSegmentRef(DataSegmentRef ref) noexcept;
-    static DataSegmentRef unpackDataSegmentRef(uint64_t packedRef) noexcept;
+    static std::span<const std::byte> normalizePayloadBytes(std::span<const std::byte> bytes) noexcept;
+    static uint64_t                   packDataSegmentRef(DataSegmentRef ref) noexcept;
+    static DataSegmentRef             unpackDataSegmentRef(uint64_t packedRef) noexcept;
 
     ConstantKind          kind_    = ConstantKind::Invalid;
     TypeRef               typeRef_ = TypeRef::invalid();
@@ -314,7 +314,7 @@ private:
         struct
         {
             std::span<const std::byte> val;
-            uint64_t count;
+            uint64_t                   count;
         } payloadSlice_;
 
         struct

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -13,6 +12,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -811,7 +811,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         }
 
         SWC_ASSERT(structSize);
-        std::vector      buffer(structSize, std::byte{0});
+        std::vector                buffer(structSize, std::byte{0});
         const std::span<std::byte> bytes{buffer.data(), buffer.size()};
         SWC_INTERNAL_CHECK(lowerImplicitDefaultBytes(sema, bytes, typeRef) == Result::Continue);
         defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span<const std::byte>{bytes.data(), bytes.size()});

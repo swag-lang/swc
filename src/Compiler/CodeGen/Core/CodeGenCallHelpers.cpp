@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -14,6 +13,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -193,11 +193,11 @@ namespace
 
             case ConstantKind::Slice:
             {
-                const std::span<const std::byte>    sliceBytes      = cst.getSlice();
-                const TypeRef     runtimeTypeRef  = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
-                const TypeInfo&   sliceType       = codeGen.typeMgr().get(runtimeTypeRef);
-                const uint64_t    elementCount    = cst.getSliceCount();
-                const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
+                const std::span<const std::byte> sliceBytes      = cst.getSlice();
+                const TypeRef                    runtimeTypeRef  = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
+                const TypeInfo&                  sliceType       = codeGen.typeMgr().get(runtimeTypeRef);
+                const uint64_t                   elementCount    = cst.getSliceCount();
+                const ConstantRef                safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                 if (safeArrayCstRef.isInvalid())
                     return false;
                 const ConstantValue& safeArrayCst    = codeGen.cstMgr().get(safeArrayCstRef);

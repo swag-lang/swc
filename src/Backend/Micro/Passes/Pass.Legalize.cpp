@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -7,6 +6,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
 //

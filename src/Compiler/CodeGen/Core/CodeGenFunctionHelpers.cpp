@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -21,6 +20,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/Command/CommandLine.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -678,8 +678,8 @@ namespace
             return Result::Continue;
         }
 
-        ConstantRef payloadRef;
-        std::span<const std::byte>    materializedPayload;
+        ConstantRef                payloadRef;
+        std::span<const std::byte> materializedPayload;
         SWC_RESULT(materializeStaticDefaultPayload(codeGen, payloadRef, materializedPayload, typeRef, std::span<const std::byte>{payloadBytes.data(), payloadBytes.size()}));
         SWC_ASSERT(payloadRef.isValid());
         if (payloadRef.isInvalid())
@@ -821,8 +821,8 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (symStruct.hasImplicitUndefinedDefault())
         return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
-    ConstantRef safeDefaultValueRef = ConstantRef::invalid();
-    std::span<const std::byte>    payloadBytes;
+    ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
+    std::span<const std::byte> payloadBytes;
     if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 
@@ -877,8 +877,8 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         return Result::Continue;
     }
 
-    ConstantRef safeDefaultValueRef = ConstantRef::invalid();
-    std::span<const std::byte>    payloadBytes;
+    ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
+    std::span<const std::byte> payloadBytes;
     if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 

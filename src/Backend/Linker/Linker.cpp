@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Main/FileSystem.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

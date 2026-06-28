@@ -1,9 +1,5 @@
 // ReSharper disable CppMemberFunctionMayBeStatic
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
-#include "Support/Core/Flags.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
@@ -12,6 +8,10 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();

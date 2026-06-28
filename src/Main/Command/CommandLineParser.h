@@ -1,8 +1,8 @@
 #pragma once
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/StructConfig.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

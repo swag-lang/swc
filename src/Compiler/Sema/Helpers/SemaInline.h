@@ -1,10 +1,10 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Result.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 

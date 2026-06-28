@@ -1,5 +1,4 @@
-#include "pch.h"
-#include "Support/Report/Assert.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
@@ -7,6 +6,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

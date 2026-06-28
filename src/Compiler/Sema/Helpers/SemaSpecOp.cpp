@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -19,6 +18,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

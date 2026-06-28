@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -7,6 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Assert.h"
 #if SWC_HAS_REF_DEBUG_INFO
 #include "Compiler/Sema/Type/TypeManager.h"
 #endif

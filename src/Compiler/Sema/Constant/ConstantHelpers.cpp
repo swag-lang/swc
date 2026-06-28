@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -16,6 +15,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -387,8 +387,8 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
     if (!sizeOf)
         return 0;
 
-    SmallVector<std::byte> storage(sizeOf);
-    const std::span<std::byte>       storageSpan{storage.data(), storage.size()};
+    SmallVector<std::byte>     storage(sizeOf);
+    const std::span<std::byte> storageSpan{storage.data(), storage.size()};
     std::memset(storageSpan.data(), 0, storageSpan.size());
     SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
 
@@ -423,9 +423,9 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
-    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
-    const std::span<const std::byte>       storedBytes = sizeOf ? std::span<const std::byte>{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
-    const ConstantValue  result      = makeMaterializedConstantValue(sema, typeRef, storedBytes, dataRef);
+    const DataSegmentRef             dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
+    const std::span<const std::byte> storedBytes = sizeOf ? std::span<const std::byte>{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
+    const ConstantValue              result      = makeMaterializedConstantValue(sema, typeRef, storedBytes, dataRef);
     if (!result.isValid())
         return ConstantRef::invalid();
 

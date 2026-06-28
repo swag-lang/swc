@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/Command/CommandLine.h"
@@ -10,6 +9,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

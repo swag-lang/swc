@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/Result.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 

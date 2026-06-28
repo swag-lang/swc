@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -7,6 +6,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Tidies up the prologue / epilogue produced by lowering before final emission.
 //

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -18,6 +17,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -50,8 +50,8 @@ namespace
 
     struct ConstCallCacheArg
     {
-        TypeRef                typeRef = TypeRef::invalid();
-        ByteArray              bytes;
+        TypeRef   typeRef = TypeRef::invalid();
+        ByteArray bytes;
     };
 
     struct ConstCallCacheKey

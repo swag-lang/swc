@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
@@ -9,6 +8,7 @@
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // Pre-RA branch simplification and CFG cleanup.
 //

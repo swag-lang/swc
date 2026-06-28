@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

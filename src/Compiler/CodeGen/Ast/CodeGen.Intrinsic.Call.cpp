@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -28,6 +27,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Fold.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -48,7 +48,7 @@ namespace
         SWC_ASSERT(cst.isStruct() || cst.isArray());
 
         const std::span<const std::byte> bytes = cst.isStruct() ? cst.getStruct() : cst.getArray();
-        const uint64_t addr  = reinterpret_cast<uint64_t>(bytes.data());
+        const uint64_t                   addr  = reinterpret_cast<uint64_t>(bytes.data());
 
         CodeGenNodePayload payload;
         payload.typeRef = cst.typeRef();

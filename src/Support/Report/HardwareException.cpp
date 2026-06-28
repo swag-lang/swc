@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Report/HardwareException.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 

@@ -84,11 +84,11 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     image.imageBase    = 0x140000000ull;
     image.stackReserve = 0x100000;
 
-    ByteArray peBytes;
-    ByteArray pdbBytes;
-    Diagnostic             diag;
-    PEWriter               writer;
-    const LinkDebugInfo    noDebugInfo;
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, fs::path{}))
     {
         const std::string_view reason = diag.elements().empty() ? std::string_view{"unknown error"} : diag.elements().front()->idName();
@@ -162,11 +162,11 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
     image.win32.iconPath       = "patch.ico";
     image.win32.iconBytes      = makeSingleImageIcon(iconPayload);
 
-    ByteArray peBytes;
-    ByteArray pdbBytes;
-    Diagnostic             diag;
-    PEWriter               writer;
-    const LinkDebugInfo    noDebugInfo;
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, fs::path{}))
     {
         const std::string_view reason = diag.elements().empty() ? std::string_view{"unknown error"} : diag.elements().front()->idName();

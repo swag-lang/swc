@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -8,6 +7,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 #if SWC_HAS_STATS
 #include "Support/Core/Timer.h"
 #endif

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -17,6 +16,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

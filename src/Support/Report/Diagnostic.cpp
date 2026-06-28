@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
@@ -8,6 +7,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Support/Report/DiagnosticElement.h"
 #include "Support/Report/Logger.h"

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -9,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -259,9 +259,9 @@ namespace
 
             const TypeRef nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
-            const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
-            const std::span<const std::byte>    nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
-            const ConstantRef nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
+            const uint64_t                   nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
+            const std::span<const std::byte> nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
+            const ConstantRef                nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
             if (nextCstRef.isInvalid())
                 return Result::Continue;
 
@@ -278,7 +278,7 @@ namespace
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isSlice());
         const std::span<const std::byte> bytes     = cst.getSlice();
-        const uint64_t elemCount = cst.getSliceCount();
+        const uint64_t                   elemCount = cst.getSliceCount();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef, outCstRef);
     }
 
@@ -292,8 +292,8 @@ namespace
 
         if (typeInfo.isCString())
         {
-            const auto*    ptr   = reinterpret_cast<const char*>(ptrValue);
-            const uint64_t count = std::strlen(ptr);
+            const auto*                      ptr   = reinterpret_cast<const char*>(ptrValue);
+            const uint64_t                   count = std::strlen(ptr);
             const std::span<const std::byte> bytes{reinterpret_cast<const std::byte*>(ptr), count};
             return extractAtIndexBytes(sema, bytes, sema.typeMgr().typeU8(), constIndex, count, nodeArgRef, outCstRef);
         }
@@ -303,8 +303,8 @@ namespace
         const uint64_t elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
         SWC_ASSERT(elemSize);
 
-        const uint64_t byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
-        const auto*    elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);
+        const uint64_t                   byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
+        const auto*                      elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);
         const std::span<const std::byte> elemBytes{elemPtr, elemSize};
         return extractAtIndexBytes(sema, elemBytes, elemType, 0, 1, nodeArgRef, outCstRef);
     }

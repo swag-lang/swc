@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
@@ -19,6 +18,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -334,8 +334,8 @@ namespace
         if (safeDefaultValueRef.isInvalid())
             return false;
 
-        std::span<const std::byte>             payloadBytes;
-        const ConstantValue& safeDefaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
+        std::span<const std::byte> payloadBytes;
+        const ConstantValue&       safeDefaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
         if (safeDefaultValue.isStruct())
             payloadBytes = safeDefaultValue.getStruct();
         else if (safeDefaultValue.isArray())

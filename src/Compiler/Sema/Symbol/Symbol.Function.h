@@ -1,9 +1,4 @@
-#pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
-#include "Support/Core/Flags.h"
-#include "Support/Report/Assert.h"
+﻿#pragma once
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -12,6 +7,11 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

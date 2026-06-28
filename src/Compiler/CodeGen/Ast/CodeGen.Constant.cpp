@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
@@ -13,6 +12,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -182,8 +182,8 @@ namespace
         const ConstantRef staticCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, storageTypeRef);
         if (staticCstRef.isValid())
         {
-            const ConstantValue& staticCst   = codeGen.cstMgr().get(staticCstRef);
-            const std::span<const std::byte>       staticBytes = staticCst.isArray() ? staticCst.getArray() : staticCst.getStruct();
+            const ConstantValue&             staticCst   = codeGen.cstMgr().get(staticCstRef);
+            const std::span<const std::byte> staticBytes = staticCst.isArray() ? staticCst.getArray() : staticCst.getStruct();
             SWC_ASSERT(staticBytes.size() == storageSize);
             if (!staticBytes.empty())
             {
@@ -670,8 +670,8 @@ namespace
                     safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
                     return raiseConstantMaterializationError(codeGen, "failed to materialize a struct constant payload");
-                const ConstantValue& safeCst     = codeGen.cstMgr().get(safeCstRef);
-                const std::span<const std::byte>       structBytes = safeCst.getStruct();
+                const ConstantValue&             safeCst     = codeGen.cstMgr().get(safeCstRef);
+                const std::span<const std::byte> structBytes = safeCst.getStruct();
                 if (targetTypeRef.isValid())
                 {
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
@@ -742,8 +742,8 @@ namespace
 
             case ConstantKind::Slice:
             {
-                const std::span<const std::byte>  sliceBytes = cst.getSlice();
-                const TypeInfo& sliceType  = cst.type(codeGen.ctx());
+                const std::span<const std::byte> sliceBytes = cst.getSlice();
+                const TypeInfo&                  sliceType  = cst.type(codeGen.ctx());
                 SWC_ASSERT(sliceType.isSlice());
                 const uint64_t    elementCount    = cst.getSliceCount();
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);

@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

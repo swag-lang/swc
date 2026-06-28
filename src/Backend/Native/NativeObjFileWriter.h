@@ -1,7 +1,7 @@
 #pragma once
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Result.h"
-#include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,7 +13,7 @@ public:
     static std::unique_ptr<NativeObjFileWriter> create(NativeBackendBuilder& builder);
 
     virtual Result buildObjectFile(ByteArray& outBytes, const NativeObjDescription& description) = 0;
-    virtual Result writeObjectFile(const NativeObjDescription& description)                                   = 0;
+    virtual Result writeObjectFile(const NativeObjDescription& description)                      = 0;
 };
 
 SWC_END_NAMESPACE();

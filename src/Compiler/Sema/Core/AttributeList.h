@@ -1,11 +1,11 @@
-#pragma once
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Flags.h"
+﻿#pragma once
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"
+#include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 

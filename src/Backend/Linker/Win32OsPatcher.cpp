@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Linker/Win32OsPatcher.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -17,9 +17,9 @@ namespace
 
     struct ResourcePayload
     {
-        uint32_t               typeId = 0;
-        uint32_t               nameId = 0;
-        uint32_t               langId = K_RESOURCE_LANG;
+        uint32_t  typeId = 0;
+        uint32_t  nameId = 0;
+        uint32_t  langId = K_RESOURCE_LANG;
         ByteArray bytes;
     };
 
@@ -253,8 +253,8 @@ namespace
 
     ByteArray buildVersionInfo(const LinkImage& image)
     {
-        ByteArray bytes;
-        const uint32_t         rootOffset = beginVersionBlock(bytes, u"VS_VERSION_INFO", 52, 0);
+        ByteArray      bytes;
+        const uint32_t rootOffset = beginVersionBlock(bytes, u"VS_VERSION_INFO", 52, 0);
 
         bytes.appendLe32(0xFEEF04BDu);
         bytes.appendLe32(0x00010000u);
@@ -378,7 +378,7 @@ namespace
         for (const IconDirEntry& entry : entries)
         {
             const auto* imageBegin = config.iconBytes.data() + entry.imageOffset;
-            ByteArray image(imageBegin, imageBegin + entry.bytesInRes);
+            ByteArray   image(imageBegin, imageBegin + entry.bytesInRes);
             addPayload(payloads, K_RT_ICON, entry.resourceId, std::move(image));
         }
 

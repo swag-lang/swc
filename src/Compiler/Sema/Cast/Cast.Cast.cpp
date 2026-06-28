@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -16,6 +15,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -107,7 +107,7 @@ namespace
 
         SWC_ASSERT(srcCst.isStruct());
         const std::span<const std::byte> srcBytes = srcCst.getStruct();
-        uint64_t       offset   = 0;
+        uint64_t                         offset   = 0;
         outValues.reserve(srcTypes.size());
 
         for (const TypeRef elemTypeRef : srcTypes)
@@ -126,8 +126,8 @@ namespace
             }
 
             SWC_ASSERT(offset + elemSize <= srcBytes.size());
-            const std::span<const std::byte>    elemBytes{srcBytes.data() + offset, elemSize};
-            const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
+            const std::span<const std::byte> elemBytes{srcBytes.data() + offset, elemSize};
+            const ConstantRef                elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
             SWC_INTERNAL_CHECK(elemCstRef.isValid());
             outValues.push_back(elemCstRef);
             offset += elemSize;

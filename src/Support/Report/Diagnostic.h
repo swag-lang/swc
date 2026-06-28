@@ -1,6 +1,6 @@
 #pragma once
-#include "Support/Core/Utf8.h"
 #include "Compiler/SourceFile.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Report/DiagnosticElement.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -1,14 +1,14 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
-#include "Support/Core/Utf8.h"
-#include "Support/Core/Result.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
+#include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

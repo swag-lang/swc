@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "DiagnosticElement.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Diagnostic.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

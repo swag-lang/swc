@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -8,6 +7,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

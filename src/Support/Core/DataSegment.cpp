@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -399,7 +399,7 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
     }
 
     const std::pair<std::span<const std::byte>, Ref> res = store_.pushCopySpan(std::span<const std::byte>{static_cast<const std::byte*>(nullptr), size}, align);
-    std::byte* const               ptr = store_.ptr<std::byte>(res.second);
+    std::byte* const                                 ptr = store_.ptr<std::byte>(res.second);
     if (zeroInit)
         std::memset(ptr, 0, size);
     return {res.second, ptr};

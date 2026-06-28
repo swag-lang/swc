@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Report/Assert.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Support/Report/SyntaxColor.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
@@ -7,6 +6,7 @@
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();

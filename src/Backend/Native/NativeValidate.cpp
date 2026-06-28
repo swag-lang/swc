@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Native/NativeValidate.h"
+#include "Support/Report/Assert.h"
 
 #if SWC_HAS_VALIDATE_NATIVE
 
@@ -169,8 +169,8 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (constant.kind() == ConstantKind::Struct)
     {
         const std::span<const std::byte> payload = constant.getStruct();
-        DataSegmentRef payloadRef;
-        const bool     hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
+        DataSegmentRef                   payloadRef;
+        const bool                       hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);
         SWC_ASSERT(payloadRef.shardIndex == shardIndex);
         if (!hasPayloadRef)
@@ -188,8 +188,8 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (constant.kind() == ConstantKind::Array)
     {
         const std::span<const std::byte> payload = constant.getArray();
-        DataSegmentRef payloadRef;
-        const bool     hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
+        DataSegmentRef                   payloadRef;
+        const bool                       hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);
         SWC_ASSERT(payloadRef.shardIndex == shardIndex);
         if (!hasPayloadRef)
@@ -213,7 +213,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     const auto* payloadBytes = segment.ptr<std::byte>(baseOffset);
     SWC_ASSERT(payloadBytes != nullptr);
 
-    const std::span<const std::byte> payloadSpan{payloadBytes, static_cast<size_t>(sizeOf)};
+    const std::span<const std::byte> payloadSpan{payloadBytes, sizeOf};
     validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payloadSpan);
 }
 
@@ -283,7 +283,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const auto* payloadBytes = valueSegment.ptr<std::byte>(valueRef.offset);
         SWC_ASSERT(payloadBytes != nullptr);
 
-        const std::span<const std::byte> payloadSpan{payloadBytes, static_cast<size_t>(valueSize)};
+        const std::span<const std::byte> payloadSpan{payloadBytes, valueSize};
         validateNativeStaticPayload(valueTypeRef, valueRef.shardIndex, valueRef.offset, payloadSpan);
         return;
     }

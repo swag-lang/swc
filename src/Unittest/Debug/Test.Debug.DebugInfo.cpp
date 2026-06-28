@@ -600,8 +600,8 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
     const NativeSectionData* typeSection = findSection(debugInfo, ".debug$T");
     if (!typeSection)
         return Result::Error;
-    const std::span<const std::byte>              typeBytes      = typeSection->bytes.span();
-    static constexpr std::array EXPECTED_LEAFS = {
+    const std::span<const std::byte> typeBytes      = typeSection->bytes.span();
+    static constexpr std::array      EXPECTED_LEAFS = {
         K_LF_ARGLIST,
         K_LF_PROCEDURE,
         K_LF_FUNC_ID,
@@ -799,10 +799,10 @@ SWC_TEST_BEGIN(DebugInfo_UsesPerVariableBaseRegistersForRegRelativeSymbols)
         return Result::Error;
 
     const std::span<const std::byte> debugBytes    = debugSection->bytes.span();
-    uint16_t       paramRegister = 0;
-    uint16_t       localRegister = 0;
-    uint32_t       paramOffset   = 0;
-    uint32_t       localOffset   = 0;
+    uint16_t                         paramRegister = 0;
+    uint16_t                         localRegister = 0;
+    uint32_t                         paramOffset   = 0;
+    uint32_t                         localOffset   = 0;
     if (!tryFindRegRelativeSymbol(debugBytes, "arg0", paramRegister, paramOffset))
         return Result::Error;
     if (!tryFindRegRelativeSymbol(debugBytes, "local0", localRegister, localOffset))
@@ -1294,8 +1294,8 @@ SWC_TEST_BEGIN(DebugInfo_UsesDebugSourceCodeRefForGeneratedViewLines)
         return Result::Error;
 
     const std::span<const std::byte> debugBytes = debugSection->bytes.span();
-    uint32_t       line45Count;
-    uint32_t       line144Count;
+    uint32_t                         line45Count;
+    uint32_t                         line144Count;
     if (!countLineRecords(debugBytes, 45, line45Count))
         return Result::Error;
     if (!countLineRecords(debugBytes, 144, line144Count))
@@ -1622,7 +1622,7 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSourceChecksums)
     // checksum must carry the real digest of the source content (kind 3, 32 bytes), not a None placeholder.
     if (!fileChecksumsSubsectionContainsKind(debugBytes, K_CHKSUM_TYPE_SHA256, 32))
         return Result::Error;
-    const std::string_view sourceView = sourceFile.sourceView();
+    const std::string_view        sourceView   = sourceFile.sourceView();
     const std::array<uint8_t, 32> expectedHash = sha256(std::span<const std::byte>{reinterpret_cast<const std::byte*>(sourceView.data()), sourceView.size()});
     if (!bytesContainString(debugBytes, Utf8(std::string_view(reinterpret_cast<const char*>(expectedHash.data()), expectedHash.size()))))
         return Result::Error;

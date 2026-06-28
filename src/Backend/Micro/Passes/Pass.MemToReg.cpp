@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -9,6 +8,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 
 // mem2reg: promote non-escaping fixed-width scalar stack slots to virtual
 // registers. See the header for rationale.

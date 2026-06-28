@@ -1,5 +1,4 @@
-#include "pch.h"
-#include "Support/Report/Assert.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
@@ -16,6 +15,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Report/Assert.h"
 #if SWC_HAS_STATS
 #endif
 

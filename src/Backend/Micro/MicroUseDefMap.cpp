@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Micro/MicroUseDefMap.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

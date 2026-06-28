@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
@@ -17,6 +16,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
 
@@ -39,7 +39,7 @@ namespace
     bool publishDependencyFilesHaveSameContent(const fs::path& lhsPath, const fs::path& rhsPath)
     {
         FileSystem::IoErrorInfo ioError;
-        ByteArray lhsData;
+        ByteArray               lhsData;
         if (FileSystem::readBinaryFile(lhsPath, lhsData, ioError) != Result::Continue)
             return false;
 

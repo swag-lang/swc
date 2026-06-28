@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Math/Fold.h"
 
 SWC_BEGIN_NAMESPACE();

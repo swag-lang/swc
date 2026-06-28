@@ -1,6 +1,6 @@
 #pragma once
-#include "Support/Core/Flags.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/Flags.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -101,16 +101,16 @@ enum class LinkWin32Subsystem : uint8_t
 
 struct LinkWin32ApplicationConfig
 {
-    Utf8                 iconPath;
-    ByteArray            iconBytes;
-    Utf8                 appName;
-    Utf8                 appDescription;
-    Utf8                 appCompany;
-    Utf8                 appCopyright;
-    uint32_t             version   = 0;
-    uint32_t             revision  = 0;
-    uint32_t             buildNum  = 0;
-    LinkWin32Subsystem   subsystem = LinkWin32Subsystem::Console;
+    Utf8               iconPath;
+    ByteArray          iconBytes;
+    Utf8               appName;
+    Utf8               appDescription;
+    Utf8               appCompany;
+    Utf8               appCopyright;
+    uint32_t           version   = 0;
+    uint32_t           revision  = 0;
+    uint32_t           buildNum  = 0;
+    LinkWin32Subsystem subsystem = LinkWin32Subsystem::Console;
 
     bool hasIcon() const { return !iconBytes.empty(); }
     bool hasVersionInfo() const { return version != 0 || revision != 0 || buildNum != 0 || !appName.empty() || !appDescription.empty() || !appCompany.empty() || !appCopyright.empty(); }

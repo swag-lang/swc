@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 

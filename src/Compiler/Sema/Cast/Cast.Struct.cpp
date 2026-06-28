@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Support/Core/ByteArray.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -13,6 +11,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/ByteArray.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -497,7 +497,7 @@ namespace
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
-        ByteArray buffer(structSize);
+        ByteArray                  buffer(structSize);
         const std::span<std::byte> bytes = buffer.span();
 
         for (size_t i = 0; i < dstFields.size(); ++i)
@@ -522,12 +522,12 @@ namespace
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
-        ByteArray buffer(structSize);
-        const std::span<std::byte> bytes = buffer.span();
-        const TypeRef          fieldTypeRef = field.typeRef();
-        const TypeInfo&        fieldType    = args.sema->typeMgr().get(fieldTypeRef);
-        const uint64_t         fieldSize    = fieldType.sizeOf(args.sema->ctx());
-        const uint64_t         fieldOffset  = field.offset();
+        ByteArray                  buffer(structSize);
+        const std::span<std::byte> bytes        = buffer.span();
+        const TypeRef              fieldTypeRef = field.typeRef();
+        const TypeInfo&            fieldType    = args.sema->typeMgr().get(fieldTypeRef);
+        const uint64_t             fieldSize    = fieldType.sizeOf(args.sema->ctx());
+        const uint64_t             fieldOffset  = field.offset();
         SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
         SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, std::span<std::byte>{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldTypeRef));
 

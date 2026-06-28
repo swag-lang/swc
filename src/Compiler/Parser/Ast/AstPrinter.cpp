@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
@@ -7,6 +6,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 

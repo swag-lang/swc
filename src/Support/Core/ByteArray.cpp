@@ -4,48 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    std::span<const std::byte> byteSpan(std::string_view text) noexcept
-    {
-        return {reinterpret_cast<const std::byte*>(text.data()), text.size()};
-    }
-
-    bool containsBytes(std::span<const std::byte> bytes, std::span<const std::byte> needle) noexcept
-    {
-        if (needle.empty())
-            return true;
-        if (needle.size() > bytes.size())
-            return false;
-        return std::ranges::search(bytes, needle).begin() != bytes.end();
-    }
-
-    bool containsUtf16LeBytes(std::span<const std::byte> bytes, std::string_view text) noexcept
-    {
-        if (text.empty())
-            return true;
-        if (text.size() > bytes.size() / sizeof(char16_t))
-            return false;
-
-        const size_t needleSize = text.size() * sizeof(char16_t);
-        for (size_t offset = 0; offset <= bytes.size() - needleSize; ++offset)
-        {
-            bool found = true;
-            for (size_t i = 0; i < text.size(); ++i)
-            {
-                if (bytes[offset + i * 2] != static_cast<std::byte>(static_cast<uint8_t>(text[i])) || bytes[offset + i * 2 + 1] != std::byte{0})
-                {
-                    found = false;
-                    break;
-                }
-            }
-            if (found)
-                return true;
-        }
-        return false;
-    }
-}
-
 ByteArray::ByteArray(Base bytes) :
     Base(std::move(bytes))
 {
@@ -78,7 +36,12 @@ bool ByteArray::contains(const std::byte value) const noexcept
 
 bool ByteArray::contains(const std::span<const std::byte> needle) const noexcept
 {
-    return containsBytes(span(), needle);
+    if (needle.empty())
+        return true;
+    if (needle.size() > size())
+        return false;
+    const std::span<const std::byte> bytes = span();
+    return std::ranges::search(bytes, needle).begin() != bytes.end();
 }
 
 bool ByteArray::contains(const ByteArray& needle) const noexcept
@@ -88,12 +51,32 @@ bool ByteArray::contains(const ByteArray& needle) const noexcept
 
 bool ByteArray::contains(const std::string_view text) const noexcept
 {
-    return contains(byteSpan(text));
+    return contains(std::span<const std::byte>{reinterpret_cast<const std::byte*>(text.data()), text.size()});
 }
 
 bool ByteArray::containsUtf16Le(const std::string_view text) const noexcept
 {
-    return containsUtf16LeBytes(span(), text);
+    if (text.empty())
+        return true;
+    if (text.size() > size() / sizeof(char16_t))
+        return false;
+
+    const size_t needleSize = text.size() * sizeof(char16_t);
+    for (size_t offset = 0; offset <= size() - needleSize; ++offset)
+    {
+        bool found = true;
+        for (size_t i = 0; i < text.size(); ++i)
+        {
+            if ((*this)[offset + i * 2] != static_cast<std::byte>(static_cast<uint8_t>(text[i])) || (*this)[offset + i * 2 + 1] != std::byte{0})
+            {
+                found = false;
+                break;
+            }
+        }
+        if (found)
+            return true;
+    }
+    return false;
 }
 
 bool ByteArray::containsRange(const size_t offset, const size_t byteCount) const noexcept
@@ -145,7 +128,7 @@ void ByteArray::append(const ByteArray& bytes)
 
 void ByteArray::append(const std::string_view text)
 {
-    append(byteSpan(text));
+    append(std::span<const std::byte>{reinterpret_cast<const std::byte*>(text.data()), text.size()});
 }
 
 void ByteArray::appendCString(const std::string_view text)

@@ -292,7 +292,7 @@ func @panic(message: string, loc: SourceCodeLocation)
 
     str[len] = 0
 
-    __panicBox(cast(string) str, title)
+    //__panicBox(cast(string) str, title)
 }
 
 #[Swag.Safety(.All, false)]

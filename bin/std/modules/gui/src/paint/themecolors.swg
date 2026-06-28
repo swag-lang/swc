@@ -751,6 +751,7 @@ impl ThemeColors
         const Blue           = 0xFF1473E6
         const LightBlue      = 0xFF2483F6
         const Disabled       = 0x5F000000
+        const DisabledBorder = 0xFFDCDCDC     // weaker than the normal control border (Gray6)
         const LighterSmall   = 0x10888888
         const LighterMedium  = 0x20888888
         const LighterBig     = 0x30888888
@@ -821,11 +822,11 @@ impl ThemeColors
         .btnPush_HotBorder      = Blue
         .btnPush_HotBk          = AccentHotBk
         .btnPush_DisabledText   = Disabled
-        .btnPush_DisabledBorder = Disabled
+        .btnPush_DisabledBorder = DisabledBorder
         .btnPush_DisabledBk     = Transparent
 
         .btnPushFlat_DisabledText   = Disabled
-        .btnPushFlat_DisabledBorder = Disabled
+        .btnPushFlat_DisabledBorder = DisabledBorder
         .btnPushFlat_DisabledBk     = Transparent
         .btnPushFlat_Text           = Gray1
         .btnPushFlat_Border         = Transparent
@@ -838,7 +839,7 @@ impl ThemeColors
         .btnPushFlat_HotBk          = AccentHotBk
 
         .btnPushDefault_DisabledText   = Disabled
-        .btnPushDefault_DisabledBorder = Disabled
+        .btnPushDefault_DisabledBorder = DisabledBorder
         .btnPushDefault_DisabledBk     = Transparent
         .btnPushDefault_Text           = White
         .btnPushDefault_Border         = Blue

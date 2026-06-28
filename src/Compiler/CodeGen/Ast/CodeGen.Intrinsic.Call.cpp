@@ -95,10 +95,9 @@ namespace
 
     struct PreparedInterfaceTableRuntimeCandidate
     {
-        ConstantRef       objectTypeCstRef     = ConstantRef::invalid();
-        ConstantRef       interfaceTypeCstRef  = ConstantRef::invalid();
-        ConstantRef       interfaceTableCstRef = ConstantRef::invalid();
-        InterfaceCastInfo castInfo;
+        ConstantRef objectTypeCstRef     = ConstantRef::invalid();
+        ConstantRef interfaceTypeCstRef  = ConstantRef::invalid();
+        ConstantRef interfaceTableCstRef = ConstantRef::invalid();
     };
 
     void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols, std::unordered_set<const SymbolInterface*>& seenSymbols)
@@ -1090,7 +1089,7 @@ namespace
             if (!interfaceTableCstRef.isValid())
                 continue;
 
-            preparedCandidates.push_back({.objectTypeCstRef = objectTypeCstRef, .interfaceTypeCstRef = interfaceTypeCstRef, .interfaceTableCstRef = interfaceTableCstRef, .castInfo = candidate.castInfo});
+            preparedCandidates.push_back({.objectTypeCstRef = objectTypeCstRef, .interfaceTypeCstRef = interfaceTypeCstRef, .interfaceTableCstRef = interfaceTableCstRef});
         }
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);

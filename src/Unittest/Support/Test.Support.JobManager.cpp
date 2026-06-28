@@ -4,7 +4,6 @@
 
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
-#include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
 #include "Unittest/Unittest.h"
 

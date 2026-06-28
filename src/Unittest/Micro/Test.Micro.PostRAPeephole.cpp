@@ -68,25 +68,6 @@ namespace
         return false;
     }
 
-    bool hasBinaryRegReg(const MicroBuilder& builder, MicroReg dst, MicroReg src, MicroOp op, MicroOpBits bits)
-    {
-        const MicroOperandStorage& operands = builder.operands();
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
-                continue;
-
-            const MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops)
-                continue;
-
-            if (ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == bits && ops[3].microOp == op)
-                return true;
-        }
-
-        return false;
-    }
-
     bool hasBinaryRegRegDst(const MicroBuilder& builder, MicroReg dst, MicroOp op, MicroOpBits bits)
     {
         const MicroOperandStorage& operands = builder.operands();

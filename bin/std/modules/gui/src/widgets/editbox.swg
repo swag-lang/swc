@@ -198,40 +198,17 @@ impl IWnd for EditBox
             Theme.drawIconText(bc.painter, clientRect, {}, &.name, format, metrics.iconText_Margin)
         }
 
-        // Compute scroll position
-        let fontR     = .getFont().regular
-        let caretPos  = .getCaretPos()
-        let decalX    = Math.min(Painter.measureString("X", fontR).width * 10, clientRect.width * 0.5)
-        // Text is measured with the same pixel snapping it is drawn with, otherwise the
-        // drawn run is a touch wider than measured and the last glyph spills past the
-        // clip (or, for the trailing unit / scroll clamp, sits a few pixels off). This
-        // must match getCaretPos/computeCaretPos so the caret tracks the scrolled text.
-        let sizeX     = Painter.measureStringSnapped(.text.toString(), fontR)
-        let maxDecalX = sizeX - decalX
-
-        if caretPos.x - clientRect.x < .scrollPosX do
-            .scrollPosX = caretPos.x - clientRect.x - decalX
-        elif caretPos.x - clientRect.x >= .scrollPosX + clientRect.width do
-            .scrollPosX = Math.min(caretPos.x - clientRect.x - decalX, maxDecalX)
-
-        // Never stay scrolled past what the current size can show. The caret logic
-        // above scrolls the text when the box is too small, but it only reacts to the
-        // caret leaving the visible window, not to the box growing back. Clamp the
-        // scroll to the content extent so a box that regains room shows its text from
-        // a natural position instead of staying half-scrolled with empty space.
-        if .editBoxFlags.has(.RightAlign)
-        {
-            let maxScroll = Math.max(sizeX - clientRect.width, 0)
-            .scrollPosX = Math.max(Math.min(.scrollPosX, 0), -maxScroll)
-        }
-        else
-        {
-            var contentWidth = sizeX
-            if !.unit.isEmpty() do
-                contentWidth += metrics.editBox_UnitMargin + Painter.measureString(.unit, fontR).width
-            let maxScroll = Math.max(contentWidth - clientRect.width, 0)
-            .scrollPosX = Math.min(Math.max(.scrollPosX, 0), maxScroll)
-        }
+        // Caret rectangle and the snapped run width are reused below to place the
+        // selection, the content and the caret. Text is measured with the same pixel
+        // snapping it is drawn with, otherwise the drawn run is a touch wider than
+        // measured and the last glyph spills past the clip (or the trailing unit sits
+        // a few pixels off). This must match getCaretPos/computeCaretPos so the caret
+        // tracks the scrolled text. The scroll offset itself is computed by
+        // updateScroll (which mirrors this clientRect) so it can be unit-tested.
+        let fontR    = .getFont().regular
+        let caretPos = .getCaretPos()
+        let sizeX    = Painter.measureStringSnapped(.text.toString(), fontR)
+        .updateScroll()
 
         painter.pushClippingRect(clientRect)
         painter.translateTransform(-.scrollPosX, 0)
@@ -963,6 +940,72 @@ fileprivate impl EditBox
         .computeCaretPos()
         .syncClearButton()
         .invalidate()
+    }
+}
+
+moduleprivate impl EditBox
+{
+    // Recomputes the horizontal scroll offset so the caret stays inside the visible
+    // edit rectangle. Driven by onPaintEvent (it mirrors the exact clientRect paint
+    // uses), and exposed at module scope so the scroll/clip behaviour can be
+    // exercised headlessly — painting needs a renderer, this does not.
+    mtd updateScroll()
+    {
+        let fontR   = .getFont().regular
+        let metrics = .getThemeMetrics()
+
+        var clientRect = .getEditRect()
+        if .icon.isValid()
+        {
+            clientRect.x     += .icon.sizeX + metrics.iconText_Margin
+            clientRect.width -= .icon.sizeX + metrics.iconText_Margin
+        }
+
+        let caretPos  = .getCaretPos()
+        let decalX    = Math.min(Painter.measureString("X", fontR).width * 10, clientRect.width * 0.5)
+        let sizeX     = Painter.measureStringSnapped(.text.toString(), fontR)
+        let maxDecalX = sizeX - decalX
+
+        if caretPos.x - clientRect.x < .scrollPosX do
+            .scrollPosX = caretPos.x - clientRect.x - decalX
+        elif caretPos.x - clientRect.x >= .scrollPosX + clientRect.width do
+            .scrollPosX = Math.min(caretPos.x - clientRect.x - decalX, maxDecalX)
+
+        // Never stay scrolled past what the current size can show. The caret logic
+        // above scrolls the text when the box is too small, but it only reacts to the
+        // caret leaving the visible window, not to the box growing back. Clamp the
+        // scroll to the content extent so a box that regains room shows its text from
+        // a natural position instead of staying half-scrolled with empty space.
+        if .editBoxFlags.has(.RightAlign)
+        {
+            let maxScroll = Math.max(sizeX - clientRect.width, 0)
+            .scrollPosX = Math.max(Math.min(.scrollPosX, 0), -maxScroll)
+        }
+        else
+        {
+            var contentWidth = sizeX
+            if !.unit.isEmpty() do
+                contentWidth += metrics.editBox_UnitMargin + Painter.measureString(.unit, fontR).width
+
+            // Reserve room for the caret that sits *after* the last character. Without
+            // it, a box scrolled to the end of its text aligns the text's right edge
+            // with the clip, so the trailing caret (whose left edge then lands exactly
+            // on clientRect.right()) is fully clipped and appears to vanish.
+            contentWidth += caretPos.width
+
+            let maxScroll = Math.max(contentWidth - clientRect.width, 0)
+            .scrollPosX = Math.min(Math.max(.scrollPosX, 0), maxScroll)
+        }
+    }
+
+    // Caret rectangle and the visible edit rectangle it is clipped against, both in
+    // widget space after the current horizontal scroll (i.e. exactly what paint draws
+    // and clips). Exposed for tests asserting the caret is not clipped at either edge.
+    mtd caretClip()->{ caret: Math.Rectangle, view: Math.Rectangle }
+    {
+        var caret = .getCaretPos()
+        caret.x -= .scrollPosX
+        return {caret, .getEditRect()}
     }
 }
 

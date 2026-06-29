@@ -311,6 +311,54 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     host.shutdown()
 }
 
+// A caret placed after the last character of an overflowing (scrolled) box must
+// stay inside the visible edit rectangle — the scroll has to leave room for it,
+// otherwise it is clipped at the right edge and appears to vanish.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(160, 60)
+
+    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
+    host.focus(edit)
+
+    let len = @countof(edit.getText())
+    edit.setSelection(len, len)
+    edit.updateScroll()
+
+    // The box must actually be scrolled, otherwise the test proves nothing.
+    @assert(edit.scrollPosX > 0)
+
+    let cc = edit.caretClip()
+    @assert(cc.caret.x >= cc.view.x - 0.5)                        // not clipped left
+    @assert(cc.caret.right() <= cc.view.right() + 0.5)            // not clipped right (the bug)
+
+    host.shutdown()
+}
+
+// As the caret sweeps an overflowing box (home -> each rune -> end), it must stay
+// visible at every position once the scroll is updated.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(160, 60)
+
+    let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
+    host.focus(edit)
+
+    let len = @countof(edit.getText())
+    for idx in 0 to len
+    {
+        edit.setSelection(idx, idx)
+        edit.updateScroll()
+        let cc = edit.caretClip()
+        @assert(cc.caret.x >= cc.view.x - 0.5)
+        @assert(cc.caret.right() <= cc.view.right() + 0.5)
+    }
+
+    host.shutdown()
+}
+
 // Enter and Escape emit their dedicated signals.
 // (EditBoxFlags.Zero avoids AutoLoseFocus, which would re-focus the top view.)
 #test

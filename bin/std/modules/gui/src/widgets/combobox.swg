@@ -178,22 +178,38 @@ impl IWnd for ComboBox
 
         let alt = cast(bool) (evt.modifiers & .Alt)
 
+        // When the drop-down is open, the keys drive the list selection.
+        if .popup
+        {
+            switch evt.key
+            {
+            case Up:
+                .popup.keyMove(-1)
+            case Down:
+                .popup.keyMove(1)
+            case Home:
+                .popup.keyHome()
+            case End:
+                .popup.keyEnd()
+            case Return, Space:
+                .popup.keyCommit()
+            case Escape:
+                .popup.keyCancel()
+            default:
+                return
+            }
+
+            evt.accepted = true
+            return
+        }
+
         switch evt.key
         {
-        case Escape:
-            if !.popup do
-                return
-            .hidePopup()
-
         case Down where alt:
-            if !.popup do
-                .showPopup()
+            .showPopup()
 
         case Return, Space:
-            if .popup do
-                .hidePopup()
-            else do
-                .showPopup()
+            .showPopup()
 
         case Up, Left:
             .selectRelative(-1)
@@ -370,16 +386,13 @@ impl ComboBox
         return .items[.selectedIdx]
     }
 
-    // Open the drop-down and give it the keyboard focus, so the new item can be
-    // chosen with the arrows + Enter. Focus returns to the previous owner on close.
-    mtd openPopupKeyboard()
+    // Open the drop-down without moving the keyboard focus. The caller keeps the
+    // focus and drives the popup (Up/Down/Enter/Escape) through it, so the keys
+    // never leak elsewhere. Standalone, the combo's own onKeyEvent forwards them.
+    mtd openPopup()
     {
-        if .popup do
-            return
-        let prev = .getFocus()
-        .showPopup()
-        if .popup do
-            .popup.focusForKeyboard(prev)
+        if !.popup do
+            .showPopup()
     }
 
     // Set the selected item index

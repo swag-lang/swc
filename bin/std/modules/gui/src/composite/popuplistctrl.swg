@@ -22,7 +22,6 @@ struct PopupListCtrl
     selectedIdx           = Swag.U32.Max
     scrollWnd:            *ScrollWnd
     maxIconSize:          s32
-    restoreFocusWnd:      *Wnd        // keyboard focus to restore when the popup closes (keyboard open)
 }
 
 struct PopupListView
@@ -41,15 +40,15 @@ impl IWnd for PopupListView
         {
         case KillFocus:
             // The focus left the popup (clicked elsewhere, another window, ...):
-            // dismiss it. Don't restore focus here, let it go where it is heading.
+            // dismiss it.
             if !.closing and evt.other != .parent do
-                .close(Swag.U32.Max, restoreFocus: false)
+                .close(Swag.U32.Max)
         }
     }
 
-    // Keyboard control of the popup: arrows move the highlight, Enter commits it,
-    // Escape cancels. Used when the popup was opened by keyboard (it then holds the
-    // focus); harmless otherwise.
+    // Keyboard control of the popup when it holds the focus directly. The property
+    // grid keeps the focus and forwards keys via PopupListCtrl.key* instead, but a
+    // standalone focused popup still works through this path.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
@@ -67,9 +66,9 @@ impl IWnd for PopupListView
         case End:
             .moveHotEdge(forward: false)
         case Return, Space:
-            .close(.hotIdx, restoreFocus: true)
+            .close(.hotIdx)
         case Escape:
-            .close(Swag.U32.Max, restoreFocus: true)
+            .close(Swag.U32.Max)
         default:
             return
         }
@@ -79,67 +78,59 @@ impl IWnd for PopupListView
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        var hit: u32
+        let mouseInRect = .getSurfaceRect().contains(evt.surfacePos)
+        let pos         = .surfaceToLocal(evt.surfacePos)
+        let hit         = mouseInRect ? .hitAt(pos) : Swag.U32.Max
 
-        var surfaceRect = .getSurfaceRect()
-        var mouseInRect = surfaceRect.contains(evt.surfacePos)
-
-        let pos = .surfaceToLocal(evt.surfacePos)
-        if evt.kind == .MouseLeave or !mouseInRect do
-            hit = Swag.U32.Max
-        else
-        {
-            var y = pos.y + .scrollPos.y
-            foreach v, i in .list.items
-            {
-                if v.isSeparator
-                {
-                    if y <= .list.heightSeparator
-                    {
-                        hit = cast(u32) i
-                        break
-                    }
-                    y -= .list.heightSeparator
-                }
-                else
-                {
-                    if y <= .list.heightItem
-                    {
-                        hit = cast(u32) i
-                        break
-                    }
-                    y -= .list.heightItem
-                }
-            }
-
-            if hit >= .list.items.count or .list.items[hit].isSeparator do
-                hit = Swag.U32.Max
-        }
-
-        if hit != .hotIdx
+        // The popup holds the mouse capture, so a MouseMove is delivered every frame
+        // even when the cursor is still. Only let the mouse move the highlight when it
+        // actually moves over the popup, otherwise a keyboard-driven highlight would
+        // be wiped each frame.
+        let mouseMoved = evt.move.x != 0 or evt.move.y != 0
+        if evt.kind == .MouseMove and mouseMoved and mouseInRect and hit != .hotIdx
         {
             .hotIdx = hit
             .invalidate()
         }
 
-        if evt.kind == .MousePressed and evt.button == .Left and mouseInRect
+        if evt.kind == .MousePressed and evt.button == .Left
         {
-            .close(.hotIdx, restoreFocus: false)
-            return
+            // Click inside selects the item under the cursor; click outside cancels.
+            if mouseInRect
+            {
+                .close(hit)
+                return
+            }
+
+            if !.parent.getSurfaceRect().contains(evt.surfacePos)
+            {
+                .close(Swag.U32.Max)
+                return
+            }
         }
 
-        surfaceRect = .parent.getSurfaceRect()
-        mouseInRect = surfaceRect.contains(evt.surfacePos)
-        if evt.kind == .MousePressed and evt.button == .Left and !mouseInRect
+        evt.accepted = evt.kind == .MouseLeave
+    }
+
+    // Item index under a local position, or U32.Max when over a separator or empty
+    // space.
+    mtd hitAt(pos: Math.Point)->u32
+    {
+        var y = pos.y + .scrollPos.y
+        foreach v, i in .list.items
         {
-            .close(Swag.U32.Max, restoreFocus: false)
-            return
+            let h = v.isSeparator ? .list.heightSeparator : .list.heightItem
+            if y <= h
+            {
+                if v.isSeparator do
+                    return Swag.U32.Max
+                return cast(u32) i
+            }
+
+            y -= h
         }
 
-        if evt.kind == .MouseLeave do
-            evt.accepted = true
-        else do
-            evt.accepted = false
+        return Swag.U32.Max
     }
 
     mtd impl onPaintEvent(evt: *PaintEvent)
@@ -229,15 +220,12 @@ impl IWnd for PopupListView
 
 fileprivate impl PopupListView
 {
-    // Close the popup, optionally committing the highlighted item, and optionally
-    // restoring the keyboard focus to whoever owned it before the popup opened.
-    mtd close(idx: u32, restoreFocus: bool)
+    // Close the popup, optionally committing the highlighted item.
+    mtd close(idx: u32)
     {
         if .closing do
             return
         .closing = true
-
-        let restore = restoreFocus ? .list.restoreFocusWnd : null
 
         if .getApp().mouseCaptureWnd == cast(*Wnd) me do
             .releaseMouse()
@@ -246,9 +234,6 @@ fileprivate impl PopupListView
             .list.sigSelected(.list, idx)
         else do
             .list.destroy()
-
-        if restore do
-            restore.setFocus()
     }
 
     // Move the highlight by 'dir' (+1/-1), skipping separators and clamping. Starts
@@ -333,21 +318,27 @@ impl PopupListCtrl
         return popup
     }
 
-    // Give the popup the keyboard focus so it can be driven by arrows/Enter, and
-    // remember where to send the focus back when it closes. Highlights the current
-    // selection as a starting point.
-    mtd focusForKeyboard(restore: #null *Wnd)
+    // Keyboard control forwarded by a host that keeps the focus (e.g. the property
+    // grid drives the popup while keeping its own navigation focus, so the keys
+    // never leave the page).
+    mtd keyMove(dir: s32)         { let view = cast(*PopupListView) .scrollWnd.view; view.moveHot(dir) }
+    mtd keyHome()                 { let view = cast(*PopupListView) .scrollWnd.view; view.moveHotEdge(forward: true) }
+    mtd keyEnd()                  { let view = cast(*PopupListView) .scrollWnd.view; view.moveHotEdge(forward: false) }
+    mtd keyCancel()               { let view = cast(*PopupListView) .scrollWnd.view; view.close(Swag.U32.Max) }
+    mtd keyCommit()
     {
-        .restoreFocusWnd = restore
         let view = cast(*PopupListView) .scrollWnd.view
-        view.hotIdx = .selectedIdx
-        view.setFocus()
+        view.close(view.hotIdx)
     }
 
     // Show popup
     mtd show(x, y: f32, width: f32 = 10)
     {
         .scrollWnd.setScrollSize(0, cast(f32) .items.count * .heightItem)
+
+        // Highlight the current selection as the keyboard starting point.
+        let startView = cast(*PopupListView) .scrollWnd.view
+        startView.hotIdx = .selectedIdx
 
         let pt  = .parent.surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}

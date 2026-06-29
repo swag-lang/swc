@@ -47,6 +47,33 @@ moduleprivate impl Properties
         if evt.kind != .KeyPressed do
             return
 
+        // An open combo drop-down is driven here (the grid keeps the focus), so the
+        // arrows move the popup selection instead of the grid rows or the page.
+        if .selItem and .selItem.comboBox and .selItem.comboBox.popup
+        {
+            let popup = .selItem.comboBox.popup
+            switch evt.key
+            {
+            case Up:
+                popup.keyMove(-1)
+            case Down:
+                popup.keyMove(1)
+            case Home:
+                popup.keyHome()
+            case End:
+                popup.keyEnd()
+            case Return, Space:
+                popup.keyCommit()
+            case Escape:
+                popup.keyCancel()
+            default:
+                return
+            }
+
+            evt.accepted = true
+            return
+        }
+
         if !.selItem or !.isNavigable(.selItem) do
             .setSelItem(.firstNavigable(forward: true))
 
@@ -317,14 +344,19 @@ fileprivate impl Properties
         if item.comboBox
         {
             // Open the drop-down so the new item is chosen from the list, rather than
-            // silently cycling values in place.
-            item.comboBox.openPopupKeyboard()
+            // silently cycling values in place. The grid keeps the focus and forwards
+            // the keys to the popup (see navKeyEvent), so they never leave the page.
+            item.comboBox.openPopup()
             return
         }
 
         if item.sliderBox
         {
-            item.sliderBox.slider.setFocus()
+            // Edit the value box like a plain editbox row: focus it and select its
+            // text so the value can be typed over right away. The slider track stays
+            // reachable through the Left/Right steps in navigation mode.
+            item.sliderBox.edit.setFocus()
+            item.sliderBox.edit.selectAll()
             return
         }
 

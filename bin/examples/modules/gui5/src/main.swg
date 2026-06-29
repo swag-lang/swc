@@ -136,7 +136,7 @@ func updateHeader()
 {
     g_Title.setText(Format.toString("GUI5 color widgets - %", pageTitle(g_Page)))
     g_SubTitle.setText(pageSubtitle(g_Page))
-    g_Footer.setText(Format.toString("F1/right/down : next, left/up : previous (%/%). Selected %", g_Page + 1, MaxPages, colorSummary()))
+    g_Footer.setText(Format.toString("F1 : next page (%/%). Selected %", g_Page + 1, MaxPages, colorSummary()))
 }
 
 func updateThemeButton()
@@ -583,13 +583,6 @@ func onFrame(app: *Application)
 
     if app.keyb.isKeyJustPressed(.F1) do
         nextPage()
-    elif canUsePageArrows()
-    {
-        if app.keyb.isKeyJustPressed(.Right) or app.keyb.isKeyJustPressed(.Down) do
-            nextPage()
-        elif app.keyb.isKeyJustPressed(.Left) or app.keyb.isKeyJustPressed(.Up) do
-            previousPage()
-    }
 
     updateTestMode()
 }

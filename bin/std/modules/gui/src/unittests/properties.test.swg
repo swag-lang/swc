@@ -223,8 +223,8 @@ struct PropHeadlessGroupedData
     host.shutdown()
 }
 
-// Editing a slider row: Enter focuses the slider, Left/Right reach the editor and
-// change the value (auto-commit model), Down commits and moves to the next row.
+// Navigating a slider row: Right steps the slider track and focuses it (auto-commit
+// model), a further Right keeps stepping, Down commits and moves to the next row.
 #test
 {
     var host: GuiHeadlessHost
@@ -258,6 +258,33 @@ struct PropHeadlessGroupedData
     host.shutdown()
 }
 
+// Enter on a slider row edits its value box like a plain editbox row: it focuses the
+// inner EditBox and selects its text so the value can be typed over right away.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 220)
+
+    var data: PropHeadlessSliderData        // volume=50, level=5
+    let prop = Properties.create(&host.root, {0, 0, 300, 200})
+    prop.addStruct(data, "S")               // [0]=section [1]=volume [2]=level
+    prop.edView.sendResizeEvent()
+
+    prop.focusNav()
+    @assert(prop.selItem == prop.items[1])
+
+    let edit = prop.items[1].sliderBox.edit
+    @assert(edit != null)
+
+    // Enter focuses the value box (not the slider track) and selects its whole text.
+    host.keyPress(Input.Key.Return)
+    @assert(host.app.keybFocusWnd == cast(*Wnd) edit)
+    @assert(edit.selBeg == 0 and edit.selEnd == edit.text.length)
+    @assert(edit.text.length > 0)
+
+    host.shutdown()
+}
+
 // Editing an enum row: Enter focuses the combo, Left/Right change the selection
 // (reaching the combo, not intercepted) and write back to the data.
 #test
@@ -276,18 +303,31 @@ struct PropHeadlessGroupedData
     @assert(combo != null)
     @assert(combo.selectedIdx == 1)         // Mid
 
-    // Enter opens the drop-down popup and gives it the keyboard focus.
+    // Enter opens the drop-down popup. The grid keeps the keyboard focus and forwards
+    // the keys to the popup (so they never leak to page navigation outside the grid).
     host.keyPress(Input.Key.Return)
     @assert(combo.popup != null)
-    @assert(host.app.keybFocusWnd == cast(*Wnd) combo.popup.scrollWnd.view)
+    @assert(host.app.keybFocusWnd == cast(*Wnd) prop.edView)
 
-    // Highlight the next item and commit it; the value writes back to the data and
-    // the focus returns to the grid.
-    host.keyPress(Input.Key.Down)           // Mid -> High
-    host.keyPress(Input.Key.Return)         // commit High
+    let pview = cast(*PopupListView) combo.popup.scrollWnd.view
+    @assert(pview.hotIdx == 1)              // highlight starts on the current value
+
+    // Down moves the highlight only; the committed value stays until Enter.
+    host.keyPress(Input.Key.Down)           // highlight Mid -> High
+    @assert(pview.hotIdx == 2)
+    @assert(combo.selectedIdx == 1)         // not committed yet
+    @assert(data.choice == .Mid)
+
+    // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
+    host.sendMouseEvent(cast(*Wnd) pview, MouseEvent.Kind.MouseMove, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.Zero)
+    @assert(pview.hotIdx == 2)
+
+    // Enter commits the highlighted item (writes the data) and closes the edit.
+    host.keyPress(Input.Key.Return)
     host.pump()
     @assert(combo.selectedIdx == 2)
     @assert(data.choice == .High)
+    @assert(combo.popup == null)
     @assert(host.app.keybFocusWnd == cast(*Wnd) prop.edView)
 
     host.shutdown()

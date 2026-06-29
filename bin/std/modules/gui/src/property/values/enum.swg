@@ -230,7 +230,8 @@ impl Properties
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .anchorStyle = .X
-            .flat = me.kind == .Condensed
+            if me.kind == .Condensed do
+                .comboBoxFlags.add(.Flat)
         }
 
         me.adaptCondensedControl(ed)

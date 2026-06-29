@@ -92,6 +92,14 @@ struct PropertiesItem
     filter:             String
     line:               *Wnd
     data:               *u8
+    // Field address in every edited instance (multi-selection). [0] aliases `data`.
+    // Empty or a single entry means a plain single-instance edit. Items under a dynamic
+    // array are left single (their element addresses are not at a fixed struct offset).
+    dataInstances:      Array'(*u8)
+    // When set, the editor writes each instance itself (e.g. a vector component or an
+    // enum-flags bit), so hasChanged must not blindly copy the whole field over the
+    // others — that would clobber the components/bits the user did not touch.
+    selfPropagate:      bool
     type:               typeinfo
     typeValue:          Swag.TypeValue
     parent:             *PropertiesItem
@@ -588,17 +596,23 @@ fileprivate impl Properties
         if pointed
         {
             if Reflection.isEnum(pointed) and Reflection.hasAttribute(pointed, Swag.EnumFlags) do
-                refreshEnumFlags(item)
+                .refreshEnumFlags(item)
             elif Reflection.isEnum(pointed) do
-                refreshEnum(item)
+                .refreshEnum(item)
             elif Reflection.isBool(pointed) do
-                refreshBool(item)
+                .refreshBool(item)
             elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed) do
-                refreshNative(item)
-            elif Reflection.isString(pointed) and item.editBox do
+                .refreshNative(item)
+            elif Reflection.isString(pointed) and item.editBox
+            {
                 item.editBox.setText(dref cast(*string) item.data)
-            elif pointed == Core.String and item.editBox do
+                .setEditMixed(item, item.editBox)
+            }
+            elif pointed == Core.String and item.editBox
+            {
                 item.editBox.setText(dref cast(*String) item.data)
+                .setEditMixed(item, item.editBox)
+            }
             elif Reflection.isStruct(pointed)
             {
                 let typeStruct = cast(const *Swag.TypeInfoStruct) pointed
@@ -900,10 +914,24 @@ impl Properties
     // Add a new struct to display.
     mtd addStruct(val: any, section: string = null)
     {
-        let dataof = @dataof(val)
         let typeof = @kindof(val)
         Debug.assert(typeof.kind == .Struct)
 
+        var bases: Array'(*u8)
+        bases.add(cast(*u8) @dataof(val))
+        .addStructMulti(typeof, bases.toSlice(), section)
+    }
+
+    // Add several instances of the SAME struct type for multi-selection editing.
+    // 'bases' holds the base address of each instance to edit together (>= 1). Editing
+    // a field writes it into every instance; a field whose value differs across the
+    // instances is shown as "mixed". With a single base this behaves like addStruct.
+    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string = null)
+    {
+        Debug.assert(typeof.kind == .Struct)
+        Debug.assert(@countof(bases) >= 1)
+
+        let firstItemIdx   = .items.count
         var item:          *PropertiesItem
         let numItemsBefore = .items.count
 
@@ -927,12 +955,48 @@ impl Properties
         }
 
         let typeStruct = cast(const *Swag.TypeInfoStruct) typeof
-        .addStructInternal(typeStruct, dataof, item)
+        .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
         item.numChilds = cast(u32) (.items.count - numItemsBefore)
 
+        .assignInstances(firstItemIdx, bases)
+
+        // Editors were first filled from instance 0 before the instance addresses existed;
+        // refresh so any field that differs across instances now shows as "mixed".
+        if @countof(bases) > 1 do
+            .refresh()
+
         .updateStates()
         .edView.sendResizeEvent()
+    }
+
+    // Fill in the per-instance field addresses of every item created since 'fromIdx'.
+    // Each field sits at a fixed offset from its struct base, so its address in instance
+    // k is `base[k] + (item.data - base[0])`. Items under a dynamic array keep a single
+    // address (their element storage is not at a fixed struct offset).
+    mtd assignInstances(fromIdx: u64, bases: [..] *u8)
+    {
+        if @countof(bases) <= 1 do
+            return
+
+        let base0 = cast([*] u8) bases[0]
+        for i in fromIdx until .items.count
+        {
+            let it = .items[i]
+            it.dataInstances.clear()
+            if !it.data do
+                continue
+
+            if .isUnderDynamicArray(it)
+            {
+                it.dataInstances.add(it.data)
+                continue
+            }
+
+            let off = cast([*] u8) it.data - base0
+            foreach b in bases do
+                it.dataInstances.add(cast(*u8) (cast([*] u8) b + off))
+        }
     }
 
     // Refresh all displayed values.
@@ -945,6 +1009,13 @@ impl Properties
     // To be called when a value has changed.
     mtd hasChanged(item: *PropertiesItem)
     {
+        // Multi-selection: the editor wrote the new value into instance 0; mirror it into
+        // the other edited instances so they all change together. Composite editors that
+        // touch only part of the field (vector component, enum-flags bit) write every
+        // instance themselves and opt out, so we don't overwrite the untouched parts.
+        if !item.selfPropagate do
+            .propagateField(item)
+
         .refresh()
         .sigChanged.call(me, item)
 

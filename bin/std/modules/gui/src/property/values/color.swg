@@ -99,12 +99,13 @@ impl Properties
             prop.editPopup = null
         }
 
-        item.sigRefresh += func|ed, btn, color, editAlpha|(item)
+        item.sigRefresh += func|prop, ed, btn, color, editAlpha|(item)
         {
             if editAlpha do
                 ed.setText(Format.toString("%{X08}", color.argb))
             else do
                 ed.setText(Format.toString("%{X06}", color.argb & 0xFFFFFF))
+            prop.setEditMixed(item, ed)
             btn.invalidate()
         }
 

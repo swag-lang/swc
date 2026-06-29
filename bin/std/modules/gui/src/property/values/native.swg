@@ -1,6 +1,6 @@
 impl Properties
 {
-    func refreshNative(item: *PropertiesItem)
+    mtd refreshNative(item: *PropertiesItem)
     {
         let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
@@ -38,6 +38,8 @@ impl Properties
             case F64:
                 setEd'f64()
             }
+
+            .setEditMixed(item, item.sliderBox.edit)
         }
         elif item.editBox
         {
@@ -72,6 +74,8 @@ impl Properties
             case F64:
                 setEd'f64()
             }
+
+            .setEditMixed(item, item.editBox)
         }
     }
 
@@ -264,7 +268,7 @@ impl Properties
             }
         }
 
-        refreshNative(item)
+        .refreshNative(item)
         let prop = me
 
         if item.sliderBox

@@ -3,7 +3,7 @@ using Properties
 
 const W = 1240
 const H = 820
-const MaxPages = 3
+const MaxPages = 4
 const TestFramesPerPage = 60
 const RootMargin = 24.0
 const PageTop = 104.0
@@ -185,6 +185,13 @@ var g_Appearance: Gui4Appearance
 var g_Content: Gui4Content
 var g_Layout: Gui4Layout
 
+// Multi-selection page: three tiles, the grid edits the first g_TileCount of them.
+var g_Tiles: [3] TileData
+var g_TileCount: s32 = 1
+var g_MultiProps: *Properties
+var g_MultiHost: *Wnd
+var g_MultiRadios: [3] *RadioButton
+
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
@@ -261,6 +268,22 @@ func initDemoData()
     action.visible = false
     action.primary = false
     g_Layout.actions.add(action)
+
+    // Three tiles with deliberately different values so the multi-selection page shows
+    // shared fields, and "mixed" fields when more than one tile is edited.
+    initTile(&g_Tiles[0], "Alpha", 0xFF6495ED, 14, 96,  true,  .Raised)
+    initTile(&g_Tiles[1], "Beta",  0xFFE2725B, 14, 72,  false, .Flat)
+    initTile(&g_Tiles[2], "Gamma", 0xFF66BB6A, 28, 120, true,  .Outline)
+}
+
+func initTile(tile: *TileData, label: string, argb: u32, radius, height: f32, shadow: bool, style: TileStyle)
+{
+    tile.label  = label
+    tile.fill   = Pixel.Color.fromArgb(argb)
+    tile.radius = radius
+    tile.height = height
+    tile.shadow = shadow
+    tile.style  = style
 }
 
 func pageTitle(page: s32)->string
@@ -273,6 +296,8 @@ func pageTitle(page: s32)->string
         return "Option list"
     case 2:
         return "Condensed grid"
+    case 3:
+        return "Multi-selection"
     }
 
     unreachable
@@ -288,6 +313,8 @@ func pageSubtitle(page: s32)->string
         return "The same data in the flat, option-style list mode, with a find filter at the top to narrow down the visible rows."
     case 2:
         return "The dense, classic property grid: thin rows, tighter margins and compact inline editors that adapt to the reduced row height."
+    case 3:
+        return "Edit 1, 2 or 3 tiles at once. Pick the count with the radio buttons; a field that differs between tiles shows as mixed (—), and editing it writes every selected tile."
     }
 
     unreachable
@@ -475,9 +502,12 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
 func clearPage()
 {
-    g_Inspector = null
-    g_ListProps = null
-    g_Preview   = null
+    g_Inspector  = null
+    g_ListProps  = null
+    g_Preview    = null
+    g_MultiProps = null
+    g_MultiHost  = null
+    g_MultiRadios[0], g_MultiRadios[1], g_MultiRadios[2] = null
 
     foreach child in g_PageView.childs do
         child.destroy()
@@ -496,6 +526,8 @@ func buildPage()
         createListPage(g_PageView)
     case 2:
         createCondensedPage(g_PageView)
+    case 3:
+        createMultiPage(g_PageView)
     default:
         unreachable
     }

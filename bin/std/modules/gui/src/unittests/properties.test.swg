@@ -614,3 +614,300 @@ fileprivate func findIconButton(w: *Wnd)->#null *IconButton
 
     host.shutdown()
 }
+
+//
+// Multi-selection editing: the grid edits several instances of the same struct at once.
+//
+
+enum MultiChoice
+{
+    Low
+    Mid
+    High
+}
+
+#[Swag.EnumFlags]
+enum MultiBadges
+{
+    Star
+    Lock
+    Pin
+}
+
+struct MultiTile
+{
+    count:  s32 = 0
+    flag:   bool = false
+    name:   String
+    choice: MultiChoice = .Low
+    badges: MultiBadges
+    tint:   Pixel.Color
+    pos:    Math.Point = {0, 0}
+}
+
+fileprivate func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
+{
+    foreach it in prop.items
+    {
+        if it.typeValue.name == name do
+            return it
+    }
+    return null
+}
+
+// Edits applied through the grid write into every selected instance.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0, t1, t2: MultiTile
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8) &t2)
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let countItem = findFieldItem(prop, "count")
+    @assert(countItem != null)
+    @assert(prop.instanceCount(countItem) == 3)
+    @assert(!prop.fieldIsMixed(countItem))                  // all start equal (0)
+
+    // Edit the native field: all three instances change together.
+    countItem.editBox.setText("9")
+    prop.validateNative(countItem)
+    @assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
+
+    // Bool toggle propagates to all.
+    let flagItem = findFieldItem(prop, "flag")
+    flagItem.checkBox.toggle()
+    @assert(t0.flag and t1.flag and t2.flag)
+
+    // Enum selection propagates to all.
+    let choiceItem = findFieldItem(prop, "choice")
+    choiceItem.comboBox.selectItem(2)                       // High
+    @assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
+
+    host.shutdown()
+}
+
+// A field that differs across instances is "mixed": the editor shows no concrete value,
+// and editing it resolves the field on every instance.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0, t1: MultiTile
+    t0.count = 1
+    t1.count = 2                                            // differs -> mixed
+    t0.flag  = true
+    t1.flag  = false                                       // differs -> mixed
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let countItem = findFieldItem(prop, "count")
+    @assert(prop.fieldIsMixed(countItem))
+    @assert(countItem.editBox.getText() == "")             // blank when mixed
+
+    let flagItem = findFieldItem(prop, "flag")
+    @assert(prop.fieldIsMixed(flagItem))
+    @assert(flagItem.checkBox.checked == .Undefined)       // indeterminate when mixed
+
+    // Editing the mixed native field sets both instances and clears the mixed state.
+    countItem.editBox.setText("7")
+    prop.validateNative(countItem)
+    @assert(t0.count == 7 and t1.count == 7)
+    @assert(!prop.fieldIsMixed(countItem))
+    @assert(countItem.editBox.getText() == "7")
+
+    host.shutdown()
+}
+
+// A single instance behaves exactly like the classic addStruct (no multi state).
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0: MultiTile
+    t0.count = 3
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let countItem = findFieldItem(prop, "count")
+    @assert(prop.instanceCount(countItem) == 1)
+    @assert(!prop.fieldIsMixed(countItem))
+    @assert(countItem.editBox.getText() == "3")
+
+    countItem.editBox.setText("8")
+    prop.validateNative(countItem)
+    @assert(t0.count == 8)
+
+    host.shutdown()
+}
+
+fileprivate func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
+{
+    foreach c in w.childs
+    {
+        if c.type == EditBox do
+            out.add(cast(*EditBox) c)
+        collectEditBoxes(c, out)
+    }
+}
+
+// Editing one vector component writes that component into every instance while leaving
+// the other components (which may legitimately differ) untouched.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 380)
+
+    var t0, t1: MultiTile
+    t0.pos = {1, 10}
+    t1.pos = {2, 10}                                        // x differs (mixed), y uniform
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 360}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let posItem = findFieldItem(prop, "pos")
+    @assert(posItem != null)
+
+    // x component differs -> mixed; y component is uniform -> not mixed.
+    @assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+    @assert(!prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
+
+    var boxes: Array'(*EditBox)
+    collectEditBoxes(posItem.line, &boxes)
+    @assert(boxes.count == 2)                               // x and y
+
+    // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
+    boxes[0].setText("5")
+    boxes[0].sigLoseFocus.call(boxes[0])
+    @assert(t0.pos.x == 5 and t1.pos.x == 5)
+    @assert(t0.pos.y == 10 and t1.pos.y == 10)             // untouched
+    @assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+
+    host.shutdown()
+}
+
+// Enum-flags multi-edit logic: a bit that disagrees across instances is "mixed", and
+// setting one flag bit on every instance preserves the other (differing) bits. Exercised
+// through the helpers directly because the EnumFlags attribute is not reflected in a
+// test-mode build, so the flag rows would not be constructed here (they are in gui4).
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(200, 120)
+    let prop = Properties.create(&host.root, {0, 0, 180, 100}, .List)
+
+    var b0, b1: MultiBadges
+    b0 = .Star
+    b1 = MultiBadges.Star | MultiBadges.Lock               // Star shared, Lock only on b1
+
+    var item: PropertiesItem
+    item.type = MultiBadges
+    item.dataInstances.add(cast(*u8) &b0)
+    item.dataInstances.add(cast(*u8) &b1)
+
+    let starMask = cast(u64) cast(s32) MultiBadges.Star
+    let lockMask = cast(u64) cast(s32) MultiBadges.Lock
+    let pinMask  = cast(u64) cast(s32) MultiBadges.Pin
+
+    @assert(!prop.flagBitIsMixed(&item, starMask))         // shared -> uniform
+    @assert(prop.flagBitIsMixed(&item, lockMask))          // disagrees -> mixed
+    @assert(!prop.flagBitIsMixed(&item, pinMask))          // neither has it -> uniform
+
+    // Set Pin on every instance: Lock stays only on b1, Star stays on both.
+    prop.writeEnumBit(&item, pinMask, true)
+    @assert(cast(bool) (b0 & MultiBadges.Pin) and cast(bool) (b1 & MultiBadges.Pin))
+    @assert(!cast(bool) (b0 & MultiBadges.Lock))
+    @assert(cast(bool) (b1 & MultiBadges.Lock))
+    @assert(cast(bool) (b0 & MultiBadges.Star) and cast(bool) (b1 & MultiBadges.Star))
+
+    // Clearing a shared bit clears it everywhere.
+    prop.writeEnumBit(&item, starMask, false)
+    @assert(!cast(bool) (b0 & MultiBadges.Star) and !cast(bool) (b1 & MultiBadges.Star))
+
+    host.shutdown()
+}
+
+// Dynamic strings are compared and propagated by content (they own a heap buffer).
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0, t1: MultiTile
+    t0.name = "alpha"
+    t1.name = "beta"                                       // differs -> mixed
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let nameItem = findFieldItem(prop, "name")
+    @assert(nameItem != null)
+    @assert(prop.fieldIsMixed(nameItem))
+    @assert(nameItem.editBox.getText() == "")
+
+    nameItem.editBox.setText("shared")
+    prop.validateDynamicString(nameItem)
+    @assert(t0.name == "shared" and t1.name == "shared")
+    @assert(!prop.fieldIsMixed(nameItem))
+
+    // Same content in distinct buffers must not read as mixed.
+    t0.name = "same"
+    t1.name = "same"
+    @assert(!prop.fieldIsMixed(nameItem))
+
+    host.shutdown()
+}
+
+// A color (struct via IPropertyValue) reports mixed and propagates as a whole value.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0, t1: MultiTile
+    t0.tint = Pixel.Argb.Red
+    t1.tint = Pixel.Argb.Blue                              // differs -> mixed
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let tintItem = findFieldItem(prop, "tint")
+    @assert(tintItem != null)
+    @assert(prop.fieldIsMixed(tintItem))
+
+    // Make them equal and refresh: no longer mixed.
+    t1.tint = Pixel.Argb.Red
+    prop.refresh()
+    @assert(!prop.fieldIsMixed(tintItem))
+
+    host.shutdown()
+}

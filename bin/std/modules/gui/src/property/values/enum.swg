@@ -1,6 +1,6 @@
 impl Properties
 {
-    func refreshEnumFlags(item: *PropertiesItem)
+    mtd refreshEnumFlags(item: *PropertiesItem)
     {
         if item.checkBox
         {
@@ -21,12 +21,16 @@ impl Properties
                 val2 = cast(u64) dref cast(const *u64) item.typeValue.value
             }
 
-            item.checkBox.checked = val1 & val2 ? .Checked : .UnChecked
+            // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
+            if .flagBitIsMixed(item, val2) do
+                item.checkBox.checked = .Undefined
+            else do
+                item.checkBox.checked = val1 & val2 ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
     }
 
-    func refreshEnum(item: *PropertiesItem)
+    mtd refreshEnum(item: *PropertiesItem)
     {
         if item.comboBox
         {
@@ -69,7 +73,11 @@ impl Properties
                     idxSel = idx
             }
 
-            item.comboBox.selectItem(cast() idxSel)
+            // Multi-selection: clear the selection when the instances disagree.
+            if .fieldIsMixed(item) do
+                item.comboBox.selectItem(Swag.U32.Max)
+            else do
+                item.comboBox.selectItem(cast() idxSel)
         }
     }
 
@@ -77,28 +85,11 @@ impl Properties
     {
         if item.checkBox
         {
-            #[Swag.Mixin]
-            func(T) setEd()
-            {
-                let p  = cast(*T) item.data
-                let p1 = cast(*T) item.checkBox.userData
-                if item.checkBox.checked == .Checked do
-                    dref p |= dref p1
-                else do
-                    dref p &= ~(dref p1)
-            }
-
-            switch item.typeValue.pointedType.sizeof
-            {
-            case 1:
-                setEd'u8()
-            case 2:
-                setEd'u16()
-            case 4:
-                setEd'u32()
-            case 8:
-                setEd'u64()
-            }
+            // Set/clear this one flag bit in every edited instance (other bits, which may
+            // differ per instance, are left alone). The row's mask is the flag value.
+            let sz   = item.typeValue.pointedType.sizeof
+            let mask = readEnumBits(cast(*u8) item.checkBox.userData, sz)
+            .writeEnumBit(item, mask, item.checkBox.checked == .Checked)
         }
 
         .hasChanged(item)
@@ -118,6 +109,12 @@ impl Properties
 
             let typeEnum = cast(const *Swag.TypeInfoEnum) item.typeValue.pointedType
             let sel      = item.comboBox.selectedIdx
+
+            // A deselected combo means "mixed" was just shown (multi-selection); there is
+            // no concrete value to write, so don't touch the instances.
+            if sel >= @countof(typeEnum.values) do
+                return
+
             switch typeEnum.rawType.sizeof
             {
             case 1:
@@ -163,10 +160,11 @@ impl Properties
                 .data        = data
                 .extendFocus = 5
                 .filter      = item.filter
-                .line        = line
-                .parent      = item
-                .level       = item.level + 1
-                .section     = item.section
+                .line          = line
+                .parent        = item
+                .level         = item.level + 1
+                .section       = item.section
+                .selfPropagate = true       // toggles a single bit across all instances
                 .flags.add(.NoSeparator)
             }
 
@@ -202,7 +200,7 @@ impl Properties
                 line.applyLayout()
             }
 
-            refreshEnumFlags(itemB)
+            .refreshEnumFlags(itemB)
             itemB.checkBox.sigChanged += func|prop, itemB|(ed)
             {
                 prop.validateEnumFlags(itemB)
@@ -241,7 +239,7 @@ impl Properties
         foreach v, idx in typeEnum.values do
             ed.addItem(v.name)
 
-        refreshEnum(item)
+        .refreshEnum(item)
         item.comboBox.sigChanged += func|prop, item|(ed, n)
         {
             prop.validateEnum(item)

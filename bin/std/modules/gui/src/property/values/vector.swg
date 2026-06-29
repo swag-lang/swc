@@ -5,6 +5,7 @@ impl Properties
     mtd constructVector(value: Swag.TypeValue, typeStruct: const *Swag.TypeInfoStruct, data: [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
         let item = .addItem(value, data, parentItem)
+        item.selfPropagate = true       // each component box writes every instance itself
         let line = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
         let prop = me
 
@@ -20,7 +21,8 @@ impl Properties
 
         foreach v in typeStruct.fields
         {
-            let dataField = cast(*f32) (data + v.offset)
+            let dataField   = cast(*f32) (data + v.offset)
+            let fieldOffset = cast(u64) v.offset
 
             with let label = Label.create(line, v.name[0 to 0], {0, 0, item.line.position.height})
             {
@@ -32,18 +34,20 @@ impl Properties
             {
                 .dockStyle = .Left
                 .setInputF64()
-                .sigLoseFocus += func|prop, dataField, item|(ed)
+                .sigLoseFocus += func|prop, item, fieldOffset|(ed)
                 {
-                    dref dataField = catch StrConv.toF32(ed.text)
+                    // Write this component into every edited instance, leaving the others.
+                    prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text))
                     prop.hasChanged(item)
                 }
             }
 
             me.flattenCondensedEdit(ed)
 
-            item.sigRefresh += func|ed, dataField|(item)
+            item.sigRefresh += func|prop, ed, dataField, fieldOffset|(item)
             {
                 ed.setText(Format.toString("%", dref dataField))
+                prop.setEditMixedSub(item, ed, fieldOffset, #sizeof(f32))
             }
         }
 

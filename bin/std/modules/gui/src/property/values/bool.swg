@@ -1,10 +1,14 @@
 impl Properties
 {
-    func refreshBool(item: *PropertiesItem)
+    mtd refreshBool(item: *PropertiesItem)
     {
         if item.checkBox
         {
-            item.checkBox.checked = dref cast(*bool) item.data ? .Checked : .UnChecked
+            // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
+            if .fieldIsMixed(item) do
+                item.checkBox.checked = .Undefined
+            else do
+                item.checkBox.checked = dref cast(*bool) item.data ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
     }
@@ -79,6 +83,6 @@ impl Properties
             prop.validateBool(item)
         }
 
-        refreshBool(item)
+        .refreshBool(item)
     }
 }

@@ -202,12 +202,11 @@ impl IWnd for EditBox
         let fontR     = .getFont().regular
         let caretPos  = .getCaretPos()
         let decalX    = Math.min(Painter.measureString("X", fontR).width * 10, clientRect.width * 0.5)
-        // Right-aligned text is anchored to the right edge, so it must be measured
-        // with the same pixel snapping it is drawn with, otherwise the drawn run is
-        // a touch wider than measured and the last glyph spills past the clip.
-        let sizeX     = .editBoxFlags.has(.RightAlign)
-                        ? Painter.measureStringSnapped(.text.toString(), fontR)
-                        : Painter.measureString(.text, fontR).width
+        // Text is measured with the same pixel snapping it is drawn with, otherwise the
+        // drawn run is a touch wider than measured and the last glyph spills past the
+        // clip (or, for the trailing unit / scroll clamp, sits a few pixels off). This
+        // must match getCaretPos/computeCaretPos so the caret tracks the scrolled text.
+        let sizeX     = Painter.measureStringSnapped(.text.toString(), fontR)
         let maxDecalX = sizeX - decalX
 
         if caretPos.x - clientRect.x < .scrollPosX do
@@ -840,12 +839,15 @@ fileprivate impl EditBox
         else
         {
             x -= .getTextMarginLeft()
+
+            // Hit-test against the same snapped advances the glyphs are drawn with,
+            // so a click lands on the glyph the caret will be painted next to.
+            let shaped    = Painter.shapeRun(.text.toString(), fontR)
             var lastWidth = 0'f32
             var diff      = 0'f32
             for idx in 1 until .text.length
             {
-                let str = @mkstring(.text.buffer, idx)
-                let met = Painter.measureString(str, fontR).width
+                let met = Painter.measureStringSnapped(&shaped, idx)
                 diff = (met - lastWidth) * 0.5
                 if x <= met
                 {
@@ -872,28 +874,15 @@ fileprivate impl EditBox
 
         let fontR = .getFont().regular
 
-        // Right-aligned carets/selection are anchored to the right edge, so measure
-        // with the same pixel snapping used to draw (see measureStringSnapped). Left
-        // alignment keeps the plain measure it always used.
-        if .editBoxFlags.has(.RightAlign)
-        {
-            let text = .text.toString()
-            .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, fontR, .selEnd)
-            if .selBeg != .selEnd do
-                .posSelBeg = Painter.measureStringSnapped(text, fontR, .selBeg)
-            return
-        }
-
-        var str = @mkstring(.text.buffer, .selEnd)
-        var met = Painter.measureString(str, fontR)
-        .posSelBeg, .posSelEnd = met.width
-
-        if .selBeg != .selEnd
-        {
-            str        = @mkstring(.text.buffer, .selBeg)
-            met        = Painter.measureString(str, fontR)
-            .posSelBeg = met.width
-        }
+        // Carets and selection rectangles must sit on the same pixel-snapped advances
+        // the glyph run is drawn with (see measureStringSnapped). Measuring with the
+        // raw, unsnapped advances lets a per-glyph rounding error accumulate, so the
+        // caret drifts further from the real glyph edge the longer the text is. This
+        // holds for both alignments, so both use the snapped measure.
+        let text = .text.toString()
+        .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, fontR, .selEnd)
+        if .selBeg != .selEnd do
+            .posSelBeg = Painter.measureStringSnapped(text, fontR, .selBeg)
     }
 
     // Moves caret left to the start of the previous word.

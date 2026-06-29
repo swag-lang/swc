@@ -21,10 +21,11 @@ impl Properties
         // is the only one that ends up centered).
         let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
         line.maxSize.x = width
-        if .kind == .Grid do
+        if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
         else do
             line.anchorStyle = .X
+        .adaptCondensedControl(line)
 
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})
         {

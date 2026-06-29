@@ -115,7 +115,7 @@ impl Properties
             newData += valueType.sizeof
         }
 
-        let parentForBtn = .kind == .Grid ? item.line : cast(*Wnd) item.label
+        let parentForBtn = .isGridLike() ? item.line : cast(*Wnd) item.label
         let addBtn       = IconButton.create(parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .Right
         addBtn.setForm(IconButtonForm.Round)

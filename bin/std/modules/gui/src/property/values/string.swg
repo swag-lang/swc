@@ -15,13 +15,14 @@ impl Properties
         with let ed = EditBox.create(item.line, dref cast(*String) data)
         {
             .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
-            if me.kind == .Grid do
+            if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .anchorStyle = .X
             .sigLoseFocus += func|prop, item|(ed) { prop.validateDynamicString(item); }
         }
 
+        me.adaptCondensedControl(ed)
         item.editBox = ed
     }
 
@@ -32,13 +33,14 @@ impl Properties
         with let ed = EditBox.create(item.line, dref cast(*string) data)
         {
             .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
-            if me.kind == .Grid do
+            if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .anchorStyle = .X
             .editBoxFlags = .ReadOnly
         }
 
+        me.adaptCondensedControl(ed)
         item.editBox = ed
     }
 }

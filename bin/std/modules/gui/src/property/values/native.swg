@@ -161,12 +161,13 @@ impl Properties
             {
                 .labelSize = 0
                 .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
-                if me.kind == .Grid do
+                if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
                 else do
                     .anchorStyle = .X
             }
 
+            me.adaptCondensedControl(slider)
             item.sliderBox = slider
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
@@ -191,11 +192,13 @@ impl Properties
                 if unit != null do
                     .unit = cast(string) unit
                 .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
-                if me.kind == .Grid do
+                if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
                 else do
                     .anchorStyle = .X
             }
+
+            me.adaptCondensedControl(ed)
 
             var minV, maxV: s64
             var hasMinMax = false

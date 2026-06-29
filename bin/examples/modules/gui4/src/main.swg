@@ -3,7 +3,7 @@ using Properties
 
 const W = 1240
 const H = 820
-const MaxPages = 2
+const MaxPages = 3
 const TestFramesPerPage = 60
 const RootMargin = 24.0
 const PageTop = 104.0
@@ -271,6 +271,8 @@ func pageTitle(page: s32)->string
         return "Grid + preview"
     case 1:
         return "Option list"
+    case 2:
+        return "Condensed grid"
     }
 
     unreachable
@@ -284,6 +286,8 @@ func pageSubtitle(page: s32)->string
         return "Edit reflected data with the grid inspector beside the live preview, including colors, numbers, enum flags and arrays."
     case 1:
         return "The same data in the flat, option-style list mode, with a find filter at the top to narrow down the visible rows."
+    case 2:
+        return "The dense, classic property grid: thin rows, tighter margins and compact inline editors that adapt to the reduced row height."
     }
 
     unreachable
@@ -490,6 +494,8 @@ func buildPage()
         createGridPage(g_PageView)
     case 1:
         createListPage(g_PageView)
+    case 2:
+        createCondensedPage(g_PageView)
     default:
         unreachable
     }

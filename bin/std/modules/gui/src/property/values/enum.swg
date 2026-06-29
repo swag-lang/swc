@@ -173,12 +173,13 @@ impl Properties
 
             with let ed = CheckButton.create(line, "", {0, 0, me.gridLineHeight, 0})
             {
-                if me.kind == .Grid do
+                if me.isGridLike() do
                     .margin.x = me.leftMargin
                 .dockStyle = .Left
                 .userData  = cast #unconst (*void) v.value
             }
 
+            me.adaptCondensedControl(ed)
             itemB.checkBox = ed
 
             let dispDesc = Reflection.getAttributeValue(v, Properties.Description, "desc")
@@ -225,12 +226,13 @@ impl Properties
         with let ed = ComboBox.create(item.line, kind: .CheckBox)
         {
             .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
-            if me.kind == .Grid do
+            if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .anchorStyle = .X
         }
 
+        me.adaptCondensedControl(ed)
         item.comboBox = ed
 
         foreach v, idx in typeEnum.values do

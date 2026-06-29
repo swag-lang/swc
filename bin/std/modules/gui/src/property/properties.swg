@@ -19,9 +19,13 @@ interface IPropertyNotify
 
 enum PropertiesKind
 {
-    List     // This is a flat list
-    Grid     // This is a more compact property grid
+    List       // This is a flat list
+    Grid       // This is a more compact property grid
+    Condensed  // A dense, classic property grid: thin rows, compact controls
 }
+
+// Height of the inner value editors in condensed mode, so they fit the thin rows.
+const PropCondensedControlHeight = 20'f32
 
 struct Properties
 {
@@ -126,6 +130,26 @@ impl IWnd for Properties
     }
 }
 
+impl Properties
+{
+    // True for the grid-family modes (Grid and Condensed). They share the same
+    // column-based layout, expand/collapse behavior and column separator; only
+    // their metrics (row height, margins, control size) differ.
+    mtd isGridLike()->bool
+    {
+        return .kind == .Grid or .kind == .Condensed
+    }
+
+    // In condensed mode the value editors must shrink to fit the thin rows. For
+    // the other modes the control keeps its natural (theme) height.
+    mtd adaptCondensedControl(wnd: *Wnd)
+    {
+        if .kind != .Condensed do
+            return
+        wnd.position.height = PropCondensedControlHeight
+    }
+}
+
 fileprivate impl Properties
 {
     mtd clampColumnSize(size: s32)->s32
@@ -138,7 +162,7 @@ fileprivate impl Properties
 
     mtd isGridHeader(item: *PropertiesItem)->bool
     {
-        return .kind == .Grid and item.flags.has(.Section | .Category)
+        return .isGridLike() and item.flags.has(.Section | .Category)
     }
 
     mtd getGridHeaderLabelWidth(item: *PropertiesItem)->f32
@@ -303,7 +327,7 @@ fileprivate impl Properties
             }
 
             // Toggle/Expand
-            if prop.kind == .Grid and
+            if prop.isGridLike() and
                prop.selItem and
                prop.selItem.numChilds and
                pt.x < prop.leftMargin
@@ -315,7 +339,7 @@ fileprivate impl Properties
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseDoubleClick and mouseEvt.button == .Left:
 
             // Toggle/Expand
-            if prop.kind == .Grid and
+            if prop.isGridLike() and
                prop.selItem and
                prop.selItem.numChilds
             {
@@ -333,7 +357,7 @@ fileprivate impl Properties
             prop.resizingColumn = false
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseLeave:
-            if prop.hotItem and prop.kind == .Grid do
+            if prop.hotItem and prop.isGridLike() do
                 ToolTip.hide(prop.hotItem.line)
             prop.hotItem = null
 
@@ -352,7 +376,7 @@ fileprivate impl Properties
             if hit != prop.hotItem
             {
                 prop.hotItem = hit
-                if hit and hit.label and prop.kind == .Grid
+                if hit and hit.label and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.getClientRect().contains(pt) do
@@ -363,7 +387,7 @@ fileprivate impl Properties
             }
 
             // On the column size bar
-            if prop.kind == .Grid
+            if prop.isGridLike()
             {
                 let x = prop.getColumnX()
                 if pt.x >= x - 3 and pt.x <= x + 3 and hit and !hit.flags.has(.NoSeparator)
@@ -405,7 +429,7 @@ fileprivate impl Properties
         var r = wndItem.getClientRect()
         r.moveTop(wndItem.childs.front().position.y)
         r.inflate(item.extendFocus)
-        if .kind == .Grid
+        if .isGridLike()
         {
             r.x     = 0
             r.width = .edView.position.width - 1
@@ -417,11 +441,11 @@ fileprivate impl Properties
         }
 
         // Background
-        if .kind == .Grid and item.flags.has(.Section) do
+        if .isGridLike() and item.flags.has(.Section) do
             colBkBk = colors.prop_SectionBk
-        elif .kind == .Grid and item.flags.has(.Category) do
+        elif .isGridLike() and item.flags.has(.Category) do
             colBkBk = colors.prop_CategBk
-        elif .kind == .Grid and item.level > 1 do
+        elif .isGridLike() and item.level > 1 do
             colBkBk = colors.prop_Bk1
         painter.fillRect(r, colBkBk)
 
@@ -433,7 +457,7 @@ fileprivate impl Properties
         }
 
         // In grid mode, display borders and column separator
-        if .kind == .Grid
+        if .isGridLike()
         {
             var r1 = r
             r1.height += 1
@@ -456,7 +480,7 @@ fileprivate impl Properties
         }
 
         // Expand/Collapse icon
-        if .kind == .Grid and item.numChilds
+        if .isGridLike() and item.numChilds
         {
             let expand = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
             let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
@@ -507,7 +531,7 @@ fileprivate impl Properties
 
             scan = scan.parent
 
-            if scan and .kind == .Grid and scan.numChilds and !scan.flags.has(.Expanded) do
+            if scan and .isGridLike() and scan.numChilds and !scan.flags.has(.Expanded) do
                 result.visible = false
         }
 
@@ -550,7 +574,7 @@ fileprivate impl Properties
     {
         var line: *Wnd
 
-        if .kind == .Grid do
+        if .isGridLike() do
             line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height orelse .gridLineHeight})
         else
         {
@@ -564,7 +588,7 @@ fileprivate impl Properties
             .margin.z = me.rightMargin
             .wndFlags.add(.PreChildsPaint)
 
-            if me.kind == .Grid
+            if me.isGridLike()
             {
                 .margin.y = me.gridLineMargin * 0.5
                 .margin.w = me.gridLineMargin * 0.5
@@ -582,7 +606,7 @@ fileprivate impl Properties
             .parent    = parentItem
             .level     = parentItem ? parentItem.level + 1 : 0
             .section   = parentItem ? parentItem.section : 0
-            if me.kind == .Grid do
+            if me.isGridLike() do
                 .extendFocus = me.gridLineMargin * 0.5
         }
 
@@ -604,7 +628,7 @@ fileprivate impl Properties
             {
                 with let label = Label.create(line, dispName, {0, 0, me.gridColumnSize, item.line.position.height})
                 {
-                    if me.kind == .Grid
+                    if me.isGridLike()
                     {
                         .vertAlignmentText = .Center
                         .horzAlignmentText = .Left
@@ -615,7 +639,7 @@ fileprivate impl Properties
                     else
                     {
                         .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
-                        .vertAlignmentText = me.kind == .Grid ? .Center : .Top
+                        .vertAlignmentText = .Top
                         .horzAlignmentText = .Left
                         .margin.y          = me.listNameMarginBefore
                         .margin.w          = me.listNameMarginAfter
@@ -646,7 +670,7 @@ fileprivate impl Properties
 
             if flags.has(.Description)
             {
-                if .kind != .Grid
+                if !.isGridLike()
                 {
                     with let labelDesc = Label.create(line, "", {0, 0, me.position.width, 0})
                     {
@@ -815,6 +839,15 @@ impl Properties
                 .rightMargin          = 15
             }
 
+            // Condensed: a dense, classic property grid with thin rows and tight
+            // margins. Inherits the grid-family fonts/layout set just above.
+            if kind == .Condensed
+            {
+                .gridLineHeight = 24
+                .gridLineMargin = 4
+                .leftMargin     = 18
+            }
+
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }
         }
 
@@ -971,7 +1004,7 @@ impl Properties
     // Set the grid mode column size
     mtd setColumnSize(size: s32)
     {
-        if .kind != .Grid do
+        if !.isGridLike() do
             return
 
         .gridColumnSizeReq = size
@@ -983,7 +1016,7 @@ impl Properties
 
     mtd refreshGridColumnLayout()
     {
-        if .kind != .Grid do
+        if !.isGridLike() do
             return
 
         .gridColumnSize = .clampColumnSize(.gridColumnSizeReq)

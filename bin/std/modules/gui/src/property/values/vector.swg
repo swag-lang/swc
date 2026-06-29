@@ -8,6 +8,7 @@ impl Properties
         let line = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
         let prop = me
         line.dockStyle = .CenterKeepSizeVert
+        .adaptCondensedControl(line)
 
         foreach v in typeStruct.fields
         {

@@ -22,7 +22,7 @@ impl Properties
         let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
         let item     = .addItem(value, data, parentItem, flags: AddItemFlags.Name)
 
-        let lineHeight = .getThemeMetrics().btnPush_Height
+        let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, .position.width, lineHeight})
         line.dockStyle = .CenterKeepSizeVert
 

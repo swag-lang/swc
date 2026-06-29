@@ -53,6 +53,8 @@ impl Properties
             }
         }
 
+        me.flattenCondensedEdit(ed)
+
         btn.sigPaintIcon = func|color|(btn, bc, pos, paintFlags)
         {
             bc.painter.setParams(.Antialiased)

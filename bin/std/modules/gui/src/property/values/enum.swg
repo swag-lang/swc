@@ -230,6 +230,7 @@ impl Properties
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .anchorStyle = .X
+            .flat = me.kind == .Condensed
         }
 
         me.adaptCondensedControl(ed)

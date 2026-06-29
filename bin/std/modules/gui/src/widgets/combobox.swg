@@ -19,6 +19,7 @@ struct ComboBox
     using wnd:          Wnd
 
     kind                = ComboBoxKind.Select
+    flat:               bool                    // Borderless cell style: only paints background/border when hot or open (e.g. property grids)
     minWidthPopup:      f32 = 100
     maxHeightPopup:     f32 = 300
     sigChanged:         SigArray'func||(*ComboBox, u32)
@@ -93,8 +94,14 @@ impl IWnd for ComboBox
         .aniText.apply(me, colorText)
 
         let clientRect = .getClientRect()
-        theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
-        theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
+
+        // In flat (cell) mode the background and border are only painted when the
+        // control is hot or its popup is open, so at rest it blends into the cell.
+        if !.flat or .isHot or .popup != null
+        {
+            theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
+            theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
+        }
 
         // Item
         if !.editBox and .selectedIdx < .items.count

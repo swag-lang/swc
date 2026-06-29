@@ -140,13 +140,26 @@ impl Properties
         return .kind == .Grid or .kind == .Condensed
     }
 
-    // In condensed mode the value editors must shrink to fit the thin rows. For
-    // the other modes the control keeps its natural (theme) height.
+    // In condensed mode the value editors fill the whole value cell (both axes):
+    // the grid lines already provide the visual structure, so the editor stays
+    // flat and edge-to-edge instead of floating as a smaller bordered box.
     mtd adaptCondensedControl(wnd: *Wnd)
     {
         if .kind != .Condensed do
             return
-        wnd.position.height = PropCondensedControlHeight
+        wnd.dockStyle = .Center
+        wnd.maxSize.x = 0
+    }
+
+    // Flatten an edit box for the condensed cell look: no background/border at
+    // rest (only when invalid), with a small horizontal padding so the text does
+    // not touch the column separator.
+    mtd flattenCondensedEdit(ed: *EditBox)
+    {
+        if .kind != .Condensed do
+            return
+        ed.setForm(.Transparent)
+        ed.setAllPaddings(Math.Vector4{8, 0, 8, 0})
     }
 }
 

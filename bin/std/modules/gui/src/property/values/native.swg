@@ -168,6 +168,7 @@ impl Properties
             }
 
             me.adaptCondensedControl(slider)
+            me.flattenCondensedEdit(slider.edit)
             item.sliderBox = slider
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
@@ -199,6 +200,7 @@ impl Properties
             }
 
             me.adaptCondensedControl(ed)
+            me.flattenCondensedEdit(ed)
 
             var minV, maxV: s64
             var hasMinMax = false

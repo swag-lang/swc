@@ -23,6 +23,7 @@ impl Properties
         }
 
         me.adaptCondensedControl(ed)
+        me.flattenCondensedEdit(ed)
         item.editBox = ed
     }
 
@@ -41,6 +42,7 @@ impl Properties
         }
 
         me.adaptCondensedControl(ed)
+        me.flattenCondensedEdit(ed)
         item.editBox = ed
     }
 }

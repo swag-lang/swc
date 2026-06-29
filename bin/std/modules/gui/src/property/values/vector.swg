@@ -31,6 +31,8 @@ impl Properties
                 }
             }
 
+            me.flattenCondensedEdit(ed)
+
             item.sigRefresh += func|ed, dataField|(item)
             {
                 ed.setText(Format.toString("%", dref dataField))

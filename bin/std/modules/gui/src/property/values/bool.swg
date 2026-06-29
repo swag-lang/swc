@@ -52,20 +52,21 @@ impl Properties
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
-
-                // The check box is a symmetric square centered on the row, but a line of
-                // text is optically top-heavy (descenders sit mostly empty), so geometric
-                // centering makes the text read slightly high. Nudge the text down by a
-                // couple pixels so its visual center lines up with the box. Translate the
-                // text rect (equal +top/-bottom padding) so wrapped lines are not clipped.
-                const OpticalDescNudgeY = 2'f32
-                .paddingText = {0, OpticalDescNudgeY, 0, -OpticalDescNudgeY}
-
                 .setText(dispDesc == null ? "" : cast(string) dispDesc)
             }
 
             item.sigResize += func|label, line, lineHeight|(item)
             {
+                // The check box is a symmetric square centered on the row, but a centered
+                // text line reads slightly high because the descender space below the
+                // baseline is mostly empty. Nudge the text down by half the font descent
+                // so its visual center lines up with the box. Deriving the amount from the
+                // font metrics keeps it correct at any font size; the equal +top/-bottom
+                // padding translates the text rect without clipping wrapped lines.
+                let font = label.getFont().regular
+                if font do
+                    label.paddingText = {0, -font.descent * 0.5, 0, font.descent * 0.5}
+
                 label.autoHeight()
                 line.position.height = Math.max(lineHeight, label.position.height)
             }

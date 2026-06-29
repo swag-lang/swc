@@ -245,16 +245,16 @@ struct PropHeadlessArrayData
     assertBelowLabel(prop.items[2])     // array count editor
     assertBelowLabel(prop.items[4])     // bool
 
-    let chk   = prop.items[4].checkBox
-    let inner = chk.parent
-    var desc: *Wnd
-    foreach c in inner.childs do
+    // The bool description is nudged down to optically center on the box: it carries a
+    // positive top text padding derived from the font descent (never a hard-coded value).
+    let chk  = prop.items[4].checkBox
+    var desc: *Label
+    foreach c in chk.parent.childs do
         if c != cast(*Wnd) chk do
-            desc = c
-    let metrics = prop.getThemeMetrics()
-    Console.println("CHK h=", chk.position.height, " boxSize=", metrics.btnCheck_Size, " boxCenterY=", chk.position.height * 0.5)
-    Console.println("DESC y=", desc.position.y, " h=", desc.position.height, " centerY=", desc.position.y + desc.position.height * 0.5)
-    Console.println("INNER h=", inner.position.height)
+            desc = cast(*Label) c
+    @assert(desc != null)
+    @assert(desc.paddingText.y > 0)
+    @assert(Math.abs(desc.paddingText.y + desc.paddingText.w) < 0.01)   // pure translation, no height loss
 
     host.shutdown()
 }

@@ -131,4 +131,11 @@ impl PropertiesCtrl
         .prop.addStruct(val, category)
         .fillSections()
     }
+
+    // Give the keyboard focus to the property grid (navigation mode), so the whole
+    // control can be driven by keyboard.
+    mtd setFocus()
+    {
+        .prop.focusNav()
+    }
 }

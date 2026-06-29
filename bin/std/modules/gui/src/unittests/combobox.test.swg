@@ -94,3 +94,68 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     host.shutdown()
 }
+
+// Keyboard control: arrows move the selection (clamped at the ends, skipping
+// separators); Home/End jump to the first/last item.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 80)
+    ComboHeadlessChangedCount = 0
+
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
+    combo.addItem("One")
+    combo.addItem("Two")
+    combo.addSeparator()
+    combo.addItem("Four")
+    host.focus(combo)
+
+    // First Down selects the first item.
+    host.keyPress(Input.Key.Down)
+    @assert(combo.selectedIdx == 0)
+
+    host.keyPress(Input.Key.Down)
+    @assert(combo.selectedIdx == 1)
+
+    // Down skips the separator at index 2 and lands on index 3.
+    host.keyPress(Input.Key.Down)
+    @assert(combo.selectedIdx == 3)
+
+    // No wrap-around at the end.
+    host.keyPress(Input.Key.Down)
+    @assert(combo.selectedIdx == 3)
+
+    // Up skips the separator back to index 1.
+    host.keyPress(Input.Key.Up)
+    @assert(combo.selectedIdx == 1)
+
+    host.keyPress(Input.Key.Home)
+    @assert(combo.selectedIdx == 0)
+    host.keyPress(Input.Key.End)
+    @assert(combo.selectedIdx == 3)
+
+    host.shutdown()
+}
+
+// Enter opens the drop-down popup, Escape closes it.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 200)
+
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
+    combo.addItem("One")
+    combo.addItem("Two")
+    host.focus(combo)
+
+    @assert(combo.popup == null)
+    host.keyPress(Input.Key.Return)
+    @assert(combo.popup != null)
+
+    host.keyPress(Input.Key.Escape)
+    host.pump()
+    @assert(combo.popup == null)
+    host.app.mouseCaptureWnd = null
+
+    host.shutdown()
+}

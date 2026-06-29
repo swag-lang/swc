@@ -22,6 +22,7 @@ struct PopupListCtrl
     selectedIdx           = Swag.U32.Max
     scrollWnd:            *ScrollWnd
     maxIconSize:          s32
+    restoreFocusWnd:      *Wnd        // keyboard focus to restore when the popup closes (keyboard open)
 }
 
 struct PopupListView
@@ -29,6 +30,7 @@ struct PopupListView
     using wnd:     Wnd
     list:          *PopupListCtrl
     hotIdx:        u32 = Swag.U32.Max
+    closing:       bool
 }
 
 impl IWnd for PopupListView
@@ -38,14 +40,41 @@ impl IWnd for PopupListView
         switch evt.kind
         {
         case KillFocus:
-            if evt.other != .parent
-            {
-                if .list.sigSelected do
-                    .list.sigSelected(.list, Swag.U32.Max)
-                else do
-                    .list.destroy()
-            }
+            // The focus left the popup (clicked elsewhere, another window, ...):
+            // dismiss it. Don't restore focus here, let it go where it is heading.
+            if !.closing and evt.other != .parent do
+                .close(Swag.U32.Max, restoreFocus: false)
         }
+    }
+
+    // Keyboard control of the popup: arrows move the highlight, Enter commits it,
+    // Escape cancels. Used when the popup was opened by keyboard (it then holds the
+    // focus); harmless otherwise.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .KeyPressed do
+            return
+
+        switch evt.key
+        {
+        case Up:
+            .moveHot(-1)
+        case Down:
+            .moveHot(1)
+        case Home:
+            .moveHotEdge(forward: true)
+        case End:
+            .moveHotEdge(forward: false)
+        case Return, Space:
+            .close(.hotIdx, restoreFocus: true)
+        case Escape:
+            .close(Swag.U32.Max, restoreFocus: true)
+        default:
+            return
+        }
+
+        evt.accepted = true
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -95,10 +124,7 @@ impl IWnd for PopupListView
 
         if evt.kind == .MousePressed and evt.button == .Left and mouseInRect
         {
-            if .list.sigSelected do
-                .list.sigSelected(.list, .hotIdx)
-            .releaseMouse()
-            .list.destroy()
+            .close(.hotIdx, restoreFocus: false)
             return
         }
 
@@ -106,10 +132,7 @@ impl IWnd for PopupListView
         mouseInRect = surfaceRect.contains(evt.surfacePos)
         if evt.kind == .MousePressed and evt.button == .Left and !mouseInRect
         {
-            if .list.sigSelected do
-                .list.sigSelected(.list, Swag.U32.Max)
-            .releaseMouse()
-            .list.destroy()
+            .close(Swag.U32.Max, restoreFocus: false)
             return
         }
 
@@ -204,6 +227,90 @@ impl IWnd for PopupListView
     }
 }
 
+fileprivate impl PopupListView
+{
+    // Close the popup, optionally committing the highlighted item, and optionally
+    // restoring the keyboard focus to whoever owned it before the popup opened.
+    mtd close(idx: u32, restoreFocus: bool)
+    {
+        if .closing do
+            return
+        .closing = true
+
+        let restore = restoreFocus ? .list.restoreFocusWnd : null
+
+        if .getApp().mouseCaptureWnd == cast(*Wnd) me do
+            .releaseMouse()
+
+        if .list.sigSelected do
+            .list.sigSelected(.list, idx)
+        else do
+            .list.destroy()
+
+        if restore do
+            restore.setFocus()
+    }
+
+    // Move the highlight by 'dir' (+1/-1), skipping separators and clamping. Starts
+    // from the current selection when nothing is highlighted yet.
+    mtd moveHot(dir: s32)
+    {
+        if .list.items.isEmpty() do
+            return
+
+        var idx: s64
+        if .hotIdx >= .list.items.count
+        {
+            if .list.selectedIdx < .list.items.count do
+                idx = cast(s64) .list.selectedIdx
+            else do
+                idx = dir > 0 ? -1 : cast(s64) .list.items.count
+        }
+        else do
+            idx = cast(s64) .hotIdx
+
+        for
+        {
+            idx += dir
+            if idx < 0 or idx >= cast(s64) .list.items.count do
+                return
+            if !.list.items[cast(u64) idx].isSeparator do
+                break
+        }
+
+        .hotIdx = cast(u32) idx
+        .invalidate()
+    }
+
+    mtd moveHotEdge(forward: bool)
+    {
+        if forward
+        {
+            foreach v, idx in .list.items
+            {
+                if !v.isSeparator
+                {
+                    .hotIdx = cast(u32) idx
+                    .invalidate()
+                    return
+                }
+            }
+        }
+        else
+        {
+            for var i = cast(s64) .list.items.count - 1; i >= 0; i -= 1
+            {
+                if !.list.items[cast(u64) i].isSeparator
+                {
+                    .hotIdx = cast(u32) i
+                    .invalidate()
+                    return
+                }
+            }
+        }
+    }
+}
+
 impl PopupListCtrl
 {
     // Create the popup list, but: not display it
@@ -224,6 +331,17 @@ impl PopupListCtrl
         }
 
         return popup
+    }
+
+    // Give the popup the keyboard focus so it can be driven by arrows/Enter, and
+    // remember where to send the focus back when it closes. Highlights the current
+    // selection as a starting point.
+    mtd focusForKeyboard(restore: #null *Wnd)
+    {
+        .restoreFocusWnd = restore
+        let view = cast(*PopupListView) .scrollWnd.view
+        view.hotIdx = .selectedIdx
+        view.setFocus()
     }
 
     // Show popup

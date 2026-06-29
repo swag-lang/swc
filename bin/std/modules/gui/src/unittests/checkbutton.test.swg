@@ -67,6 +67,28 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     host.shutdown()
 }
 
+// Space and Enter toggle the focused check button.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 120)
+    CheckButtonHeadlessChangedCount = 0
+
+    let check = CheckButton.create(&host.root, "Key", {20, 20, 120, 30})
+    check.sigChanged += &checkButtonHeadlessChanged
+    host.focus(check)
+
+    host.keyPress(Input.Key.Space)
+    @assert(check.isChecked())
+    @assert(CheckButtonHeadlessChangedCount == 1)
+
+    host.keyPress(Input.Key.Return)
+    @assert(!check.isChecked())
+    @assert(CheckButtonHeadlessChangedCount == 2)
+
+    host.shutdown()
+}
+
 // A disabled checkbutton ignores clicks.
 #test
 {

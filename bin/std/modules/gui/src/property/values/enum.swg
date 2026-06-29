@@ -148,6 +148,7 @@ impl Properties
             with let line = Wnd.create'Wnd(me.edView)
             {
                 .wndFlags.set(.PreChildsPaint)
+                .focusStrategy = .None     // navigation lives on edView, edition on the checkbox
                 if me.kind == .List do
                     .margin.x = me.leftMargin
                 .margin.z = me.rightMargin

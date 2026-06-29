@@ -114,3 +114,57 @@ func sliderHeadlessReset()
 
     host.shutdown()
 }
+
+// Keyboard control: arrows step the value, Home/End jump to the bounds.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(280, 80)
+    sliderHeadlessReset()
+
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
+    slider.setMinMax(0, 100)
+    slider.setValue(50)
+    slider.sigChanged += &sliderHeadlessChanged
+    host.focus(slider)
+
+    // Default step is 5% of the range = 5 units.
+    host.keyPress(Input.Key.Right)
+    @assert(Math.abs(slider.getValue() - 55) < 0.01)
+    host.keyPress(Input.Key.Left)
+    @assert(Math.abs(slider.getValue() - 50) < 0.01)
+    @assert(SliderHeadlessChangedCount == 2)
+
+    host.keyPress(Input.Key.Home)
+    @assert(Math.abs(slider.getValue() - 0) < 0.01)
+    host.keyPress(Input.Key.End)
+    @assert(Math.abs(slider.getValue() - 100) < 0.01)
+
+    // Up/Down mirror Right/Left.
+    host.keyPress(Input.Key.Down)
+    @assert(Math.abs(slider.getValue() - 95) < 0.01)
+    host.keyPress(Input.Key.Up)
+    @assert(Math.abs(slider.getValue() - 100) < 0.01)
+
+    host.shutdown()
+}
+
+// Keyboard stepping snaps to integer steps when configured.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(280, 80)
+    sliderHeadlessReset()
+
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
+    slider.setMinMax(0, 10, 1)
+    slider.setValue(5)
+    host.focus(slider)
+
+    host.keyPress(Input.Key.Right)
+    @assert(Math.abs(slider.getValue() - 6) < 0.01)
+    host.keyPress(Input.Key.Left)
+    @assert(Math.abs(slider.getValue() - 5) < 0.01)
+
+    host.shutdown()
+}

@@ -166,10 +166,106 @@ impl IWnd for ComboBox
             .invalidate()
         }
     }
+
+    // Keyboard control of the focused combo box. Up/Left and Down/Right move the
+    // selection to the previous/next selectable item; Home/End jump to the first/
+    // last; Enter/Space (or Alt+Down) open the drop-down and Escape closes it.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .KeyPressed do
+            return
+
+        let alt = cast(bool) (evt.modifiers & .Alt)
+
+        switch evt.key
+        {
+        case Escape:
+            if !.popup do
+                return
+            .hidePopup()
+
+        case Down where alt:
+            if !.popup do
+                .showPopup()
+
+        case Return, Space:
+            if .popup do
+                .hidePopup()
+            else do
+                .showPopup()
+
+        case Up, Left:
+            .selectRelative(-1)
+        case Down, Right:
+            .selectRelative(1)
+        case Home:
+            .selectEdge(forward: true)
+        case End:
+            .selectEdge(forward: false)
+
+        default:
+            return
+        }
+
+        evt.accepted = true
+    }
 }
 
 fileprivate impl ComboBox
 {
+    // Move the selection by 'dir' (+1/-1), skipping separators and clamping at the
+    // ends (no wrap-around, matching native combo boxes).
+    mtd selectRelative(dir: s32)
+    {
+        if .items.isEmpty() do
+            return
+
+        var idx: s32
+        if .selectedIdx >= .items.count do
+            idx = dir > 0 ? -1 : cast(s32) .items.count
+        else do
+            idx = cast(s32) .selectedIdx
+
+        for
+        {
+            idx += dir
+            if idx < 0 or idx >= cast(s32) .items.count do
+                return
+            if !.items[idx].isSeparator do
+                break
+        }
+
+        .selectItem(cast(u32) idx)
+    }
+
+    // Select the first (forward) or last (backward) non-separator item.
+    mtd selectEdge(forward: bool)
+    {
+        if forward
+        {
+            foreach item, idx in .items
+            {
+                if !item.isSeparator
+                {
+                    .selectItem(cast(u32) idx)
+                    return
+                }
+            }
+        }
+        else
+        {
+            for var i = cast(s32) .items.count - 1; i >= 0; i -= 1
+            {
+                if !.items[i].isSeparator
+                {
+                    .selectItem(cast(u32) i)
+                    return
+                }
+            }
+        }
+    }
+
     mtd showPopup()
     {
         let combo = me
@@ -272,6 +368,18 @@ impl ComboBox
     {
         Debug.assert(.selectedIdx < .items.count)
         return .items[.selectedIdx]
+    }
+
+    // Open the drop-down and give it the keyboard focus, so the new item can be
+    // chosen with the arrows + Enter. Focus returns to the previous owner on close.
+    mtd openPopupKeyboard()
+    {
+        if .popup do
+            return
+        let prev = .getFocus()
+        .showPopup()
+        if .popup do
+            .popup.focusForKeyboard(prev)
     }
 
     // Set the selected item index

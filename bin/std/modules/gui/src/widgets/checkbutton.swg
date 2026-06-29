@@ -122,6 +122,21 @@ impl IWnd for CheckButton
         if .processMouseEvent(evt) do
             .toggle()
     }
+
+    // Space or Enter toggles the focused check button.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .KeyPressed do
+            return
+
+        switch evt.key
+        {
+        case Space, Return:
+            .toggle()
+            evt.accepted = true
+        }
+    }
 }
 
 impl CheckButton

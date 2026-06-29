@@ -323,6 +323,12 @@ fileprivate impl Properties
             if prop.cursorSet do
                 focusEvt.canChangeFocus = false
 
+        // While a row editor has the focus, intercept the navigation/mode keys
+        // before the editor sees them so the grid is always keyboard-drivable.
+        case KeyEvent as keyEvt where keyEvt.kind == .KeyPressed:
+            if prop.editKeyEvent(keyEvt) do
+                return true
+
         case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed:
             let pt = prop.surfaceToLocal(mouseEvt.surfacePos)
 
@@ -348,6 +354,11 @@ fileprivate impl Properties
                 prop.selItem.flags.toggle(.Expanded)
                 prop.updateStates()
             }
+
+            // Clicking a row (but not its editor) puts the keyboard focus on the
+            // grid in navigation mode, so the arrows work right after a click.
+            if !prop.isEditorWnd(mouseEvt.target) do
+                prop.focusNav()
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseDoubleClick and mouseEvt.button == .Left:
 
@@ -600,6 +611,11 @@ fileprivate impl Properties
         {
             .margin.z = me.rightMargin
             .wndFlags.add(.PreChildsPaint)
+
+            // Lines never take the keyboard focus themselves: navigation lives on
+            // the edView and edition on the row editors. This keeps a click on a
+            // row label from stealing focus away from the navigation surface.
+            .focusStrategy = .None
 
             if me.isGridLike()
             {

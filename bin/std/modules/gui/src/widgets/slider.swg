@@ -318,10 +318,78 @@ impl IWnd for Slider
             }
         }
     }
+
+    // Keyboard control of the focused slider. Left/Down decrease and Right/Up
+    // increase the (left) value by one step; Home/End jump to min/max; Page keys
+    // move by a larger amount. The step is the configured step, one integer unit
+    // for an integer slider, or 5% of the range otherwise.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .KeyPressed do
+            return
+
+        let bigBy = Math.max(.keyStep() * 5, 0.1)
+
+        switch evt.key
+        {
+        case Left, Down:
+            .stepBy(-1)
+        case Right, Up:
+            .stepBy(1)
+        case PageDown:
+            .stepValue1(-bigBy)
+        case PageUp:
+            .stepValue1(bigBy)
+        case Home:
+            .stepValue1To(0)
+        case End:
+            .stepValue1To(1)
+        default:
+            return
+        }
+
+        evt.accepted = true
+    }
 }
 
 fileprivate impl Slider
 {
+    // Normalized step used by keyboard control: the configured step, one integer
+    // unit, or 5% of the range as a fallback.
+    mtd keyStep()->f32
+    {
+        if .steps > 0 do
+            return .steps
+        if .sliderFlags.has(.Integer) and .max > .min do
+            return 1.0 / (.max - .min)
+        return 0.05
+    }
+
+    // Adjust the active value by a normalized delta. For a range slider the right
+    // mark is moved, mirroring the convention that the rightmost mark is the one a
+    // user most often tweaks; otherwise the single value is moved.
+    mtd stepValue1(delta: f32)
+    {
+        .startChange()
+        if .sliderFlags.has(.Range) do
+            .setValue2(.value2 + delta)
+        else do
+            .setValue1(.value1 + delta)
+        .endChange()
+    }
+
+    // Set the active value to a normalized absolute position.
+    mtd stepValue1To(f: f32)
+    {
+        .startChange()
+        if .sliderFlags.has(.Range) do
+            .setValue2(f)
+        else do
+            .setValue1(f)
+        .endChange()
+    }
+
     mtd clamp(f: f32)->f32
     {
         if .steps > 0
@@ -475,6 +543,14 @@ fileprivate impl Slider
 
 impl Slider
 {
+    // Move the active value by one keyboard step (dir = +1/-1). Public so a host
+    // (e.g. the property grid) can drive the slider from its own key handling.
+    mtd stepBy(dir: s32)
+    {
+        let s = .keyStep()
+        .stepValue1(dir > 0 ? s : -s)
+    }
+
     mtd const getValue()->f32      => .getValueLeft()
     mtd const getValueLeft()->f32  => .min + (.max - .min) * .value1
     mtd const getValueRight()->f32 => .min + (.max - .min) * .value2

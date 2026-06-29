@@ -9,6 +9,16 @@ public struct PropertiesView
 
 impl IWnd for PropertiesView
 {
+    // The edView owns the keyboard focus while navigating the grid; forward keys
+    // to the owning Properties so it can move the selection and start edition.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        if .ed do
+            .ed.navKeyEvent(evt)
+        else do
+            evt.accepted = false
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)

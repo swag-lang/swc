@@ -33,7 +33,9 @@ impl Properties
             .arrowPos    = .RightDown
             .checkedForm = .None
             .setForm(.RoundSquare)
-            .iconBtnFlags.add(.Popup | .CheckableToggle)
+            // Flat: the swatch itself is the affordance, so no hot/checked background box
+            // (which would otherwise show up as a white fill over a selected accent row).
+            .iconBtnFlags.add(.Popup | .CheckableToggle | .Flat)
         }
 
         with let ed = EditBox.create(line, "", {0, 0, width - MarginBtn - WidthBtn, item.line.position.height})

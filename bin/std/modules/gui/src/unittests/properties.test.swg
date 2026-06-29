@@ -259,6 +259,98 @@ struct PropHeadlessArrayData
     host.shutdown()
 }
 
+struct PropHeadlessColorData
+{
+    f0, f1, f2, f3, f4, f5, f6, f7: s32
+    tint: Pixel.Color
+    f8, f9, f10, f11, f12, f13: s32
+}
+
+// While an editor popup (e.g. the color picker) is open the grid is modal: mouse wheel
+// events over the list are swallowed so it cannot scroll out from under the anchored
+// popup. Clearing the popup restores scrolling.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(300, 200)
+
+    var data: PropHeadlessColorData
+    let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    @assert(prop.scrollWnd.scrollSize.y > prop.position.height)         // content overflows -> scrollable
+
+    func sendWheel(p: *Properties, deltaY: f32)
+    {
+        var wheel = MouseEvent{kind: .MouseWheel}
+        wheel.move.y     = deltaY
+        wheel.surfacePos = {20, 90}
+        p.edView.sendEvent(&wheel)
+    }
+
+    // Control: with no popup, the wheel scrolls the list.
+    let y0 = prop.scrollWnd.getScrollPos().y
+    sendWheel(prop, -6)                                                 // scroll down
+    let y1 = prop.scrollWnd.getScrollPos().y
+    @assert(y1 != y0)
+
+    // Modal: with a popup open, the same wheel is swallowed and the list stays put.
+    let popup = Wnd.create'Wnd(&host.root, {})
+    prop.editPopup = popup
+    sendWheel(prop, -6)
+    @assert(prop.scrollWnd.getScrollPos().y == y1)
+
+    // Clearing the popup restores scrolling.
+    prop.editPopup = null
+    sendWheel(prop, 6)                                                  // scroll back up
+    @assert(prop.scrollWnd.getScrollPos().y != y1)
+
+    host.shutdown()
+}
+
+fileprivate func findIconButton(w: *Wnd)->#null *IconButton
+{
+    foreach c in w.childs
+    {
+        if c.type == IconButton do
+            return cast(*IconButton) c
+        let sub = findIconButton(c)
+        if sub do
+            return sub
+    }
+    return null
+}
+
+// The modal block must swallow only wheel events, not hover/leave: otherwise the popup
+// trigger button never receives its MouseLeave and stays stuck in the hot state after
+// the popup closes. A MouseLeave while the popup is open must still clear the button.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(300, 200)
+
+    var data: PropHeadlessColorData
+    let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    let btn = findIconButton(prop.items[9].line)                        // the color swatch button
+    @assert(btn != null)
+
+    // Hover the button (no popup yet) -> hot.
+    host.sendMouseEvent(btn, .MouseEnter, {0, 0}, .Left, .Zero)
+    @assert(btn.isHot)
+
+    // With a popup open, a MouseLeave must still reach the button and clear the hover.
+    let popup = Wnd.create'Wnd(&host.root, {})
+    prop.editPopup = popup
+    host.sendMouseEvent(btn, .MouseLeave, {0, 0}, .Left, .Zero)
+    @assert(!btn.isHot)
+
+    host.shutdown()
+}
+
 // In navigation mode, Space toggles a bool row's checkbox in place.
 #test
 {

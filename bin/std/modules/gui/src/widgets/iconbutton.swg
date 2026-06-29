@@ -17,6 +17,7 @@ enum IconButtonFlags
     Popup
     Center
     HideName
+    Flat            // No background box (and no checked fill): paint only the icon/swatch and arrow
 }
 
 enum IconButtonArrowPos
@@ -195,12 +196,18 @@ impl IWnd for IconButton
         if .textColor.a do
             colorText = .textColor
 
-        // Background
+        // Background. A flat button paints no box in any state: useful for inline
+        // swatches (e.g. the color editor) where a contrasting hot/checked fill would
+        // clash with the row background, especially over a selected (accent) row.
         let clientRect = .getClientRect()
-        .aniBk.apply(me, colorBk)
-        theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
+        let flat       = .iconBtnFlags.has(.Flat)
+        if !flat
+        {
+            .aniBk.apply(me, colorBk)
+            theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
+        }
 
-        if .isChecked and .checkedForm != .None
+        if !flat and .isChecked and .checkedForm != .None
         {
             switch .checkedForm
             {

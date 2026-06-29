@@ -314,8 +314,22 @@ fileprivate impl Properties
     func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
     {
         let prop = cast(*Properties) wnd
-        if prop.editPopup do
+        if prop.editPopup
+        {
+            // While an editor popup (e.g. the color picker) is open the popup is anchored
+            // to a fixed surface position, so the list must not scroll out from under it.
+            // Swallow only wheel events aimed at the grid; let everything else through so
+            // the popup can still close on an outside click and the trigger button's hover
+            // state can clear normally. Wheel events inside the popup are left alone so it
+            // can scroll its own content.
+            if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .MouseWheel
+            {
+                let target = mouseEvt.target
+                if !(target and (target == prop.editPopup or prop.editPopup.isParentOf(target))) do
+                    return true
+            }
             return false
+        }
 
         switch evt
         {

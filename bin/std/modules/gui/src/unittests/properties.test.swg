@@ -199,6 +199,51 @@ struct PropHeadlessGroupedData
     host.shutdown()
 }
 
+struct PropHeadlessBoolData
+{
+    #[Description("Visible actions are listed in the preview footer.")]
+    visible: bool = true
+
+    #[Description("Primary actions receive the accent color.")]
+    primary: bool
+}
+
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(400, 320)
+
+    var data: PropHeadlessBoolData
+    let prop = Properties.create(&host.root, {0, 0, 380, 300}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    Console.println("=== item1 line type=", prop.items[1].line.type.name, " childs=", prop.items[1].line.childs.count)
+    foreach c in prop.items[1].line.childs do
+        Console.println("   child type=", c.type.name, " dock=", cast(s32) c.dockStyle, " pos=", c.position.y, " h=", c.position.height, " marginY=", c.margin.y)
+
+    foreach it, idx in prop.items
+    {
+        Console.println("item ", idx, " line=", it.line.position.x, ",", it.line.position.y, ",", it.line.position.width, ",", it.line.position.height)
+        if it.label do
+            Console.println("   name '", RichString.getNaked(it.label.getText()), "' pos=", it.label.position.x, ",", it.label.position.y, ",", it.label.position.width, ",", it.label.position.height)
+        if it.checkBox
+        {
+            let inner = it.checkBox.parent
+            Console.println("   inner pos=", inner.position.x, ",", inner.position.y, ",", inner.position.width, ",", inner.position.height)
+            Console.println("   chk   pos=", it.checkBox.position.x, ",", it.checkBox.position.y, ",", it.checkBox.position.width, ",", it.checkBox.position.height)
+            foreach c in inner.childs
+            {
+                if c == cast(*Wnd) it.checkBox do
+                    continue
+                Console.println("   desc  pos=", c.position.x, ",", c.position.y, ",", c.position.width, ",", c.position.height)
+            }
+        }
+    }
+
+    host.shutdown()
+}
+
 // In navigation mode, Space toggles a bool row's checkbox in place.
 #test
 {

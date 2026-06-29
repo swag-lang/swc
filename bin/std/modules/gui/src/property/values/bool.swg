@@ -24,7 +24,15 @@ impl Properties
 
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, .position.width, lineHeight})
-        line.dockStyle = .CenterKeepSizeVert
+
+        // Grid rows are single-line: center the editor vertically in the cell. List
+        // rows stack the editor under the name label (the row is a StackLayoutCtrl),
+        // so dock-centering would fight the stack and overlap the label — anchor the
+        // width instead and let the stack own the vertical placement.
+        if .isGridLike() do
+            line.dockStyle = .CenterKeepSizeVert
+        else do
+            line.anchorStyle = .X
 
         if !item.label
         {

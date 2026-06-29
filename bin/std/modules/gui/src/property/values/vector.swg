@@ -7,7 +7,15 @@ impl Properties
         let item = .addItem(value, data, parentItem)
         let line = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
         let prop = me
-        line.dockStyle = .CenterKeepSizeVert
+
+        // Grid rows center the field row vertically in the cell; list rows stack it
+        // under the name label (the row is a StackLayoutCtrl), where dock-centering
+        // would overlap the label — anchor the width and let the stack place it.
+        if .isGridLike() do
+            line.dockStyle = .CenterKeepSizeVert
+        else do
+            line.anchorStyle = .X
+
         .adaptCondensedControl(line)
 
         foreach v in typeStruct.fields

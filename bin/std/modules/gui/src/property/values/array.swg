@@ -127,7 +127,13 @@ impl Properties
 
         with item.editBox = EditBox.create(item.line, "")
         {
-            .dockStyle = .Left
+            // Grid rows dock the read-only count field to the left of the cell; list
+            // rows stack it under the name label (the row is a StackLayoutCtrl), where
+            // docking would overlap the label — anchor the width instead.
+            if me.isGridLike() do
+                .dockStyle = .Left
+            else do
+                .anchorStyle = .X
             .setForm(.Transparent)
             .enable(false)
         }

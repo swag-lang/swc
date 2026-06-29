@@ -199,47 +199,51 @@ struct PropHeadlessGroupedData
     host.shutdown()
 }
 
-struct PropHeadlessBoolData
+struct PropHeadlessActionData
 {
     #[Description("Visible actions are listed in the preview footer.")]
     visible: bool = true
-
-    #[Description("Primary actions receive the accent color.")]
-    primary: bool
 }
 
+struct PropHeadlessArrayData
+{
+    origin:  Math.Point = {36, 46}
+    actions: Array'PropHeadlessActionData
+}
+
+// In list mode each row is a vertical StackLayoutCtrl: the name label on top and the
+// value editor stacked underneath. Editors that wrap their control in an inner line
+// (bool, vector, array count) must not dock-center that line vertically, or it would
+// overlap the name label. This asserts every value child sits fully below its label.
 #test
 {
     var host: GuiHeadlessHost
-    host.setup(400, 320)
+    host.setup(400, 600)
 
-    var data: PropHeadlessBoolData
-    let prop = Properties.create(&host.root, {0, 0, 380, 300}, .List)
+    var data: PropHeadlessArrayData
+    data.actions.resize(1)
+    let prop = Properties.create(&host.root, {0, 0, 380, 560}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    Console.println("=== item1 line type=", prop.items[1].line.type.name, " childs=", prop.items[1].line.childs.count)
-    foreach c in prop.items[1].line.childs do
-        Console.println("   child type=", c.type.name, " dock=", cast(s32) c.dockStyle, " pos=", c.position.y, " h=", c.position.height, " marginY=", c.margin.y)
+    // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
+    @assert(prop.items[1].label != null and prop.items[2].label != null and prop.items[4].label != null)
 
-    foreach it, idx in prop.items
+    // For each value row, the inner value line must start at or below the label bottom.
+    func assertBelowLabel(item: *PropertiesItem)
     {
-        Console.println("item ", idx, " line=", it.line.position.x, ",", it.line.position.y, ",", it.line.position.width, ",", it.line.position.height)
-        if it.label do
-            Console.println("   name '", RichString.getNaked(it.label.getText()), "' pos=", it.label.position.x, ",", it.label.position.y, ",", it.label.position.width, ",", it.label.position.height)
-        if it.checkBox
+        let labelBottom = item.label.position.bottom()
+        foreach c in item.line.childs
         {
-            let inner = it.checkBox.parent
-            Console.println("   inner pos=", inner.position.x, ",", inner.position.y, ",", inner.position.width, ",", inner.position.height)
-            Console.println("   chk   pos=", it.checkBox.position.x, ",", it.checkBox.position.y, ",", it.checkBox.position.width, ",", it.checkBox.position.height)
-            foreach c in inner.childs
-            {
-                if c == cast(*Wnd) it.checkBox do
-                    continue
-                Console.println("   desc  pos=", c.position.x, ",", c.position.y, ",", c.position.width, ",", c.position.height)
-            }
+            if c == cast(*Wnd) item.label do
+                continue
+            @assert(c.position.y >= labelBottom)
         }
     }
+
+    assertBelowLabel(prop.items[1])     // vector
+    assertBelowLabel(prop.items[2])     // array count editor
+    assertBelowLabel(prop.items[4])     // bool
 
     host.shutdown()
 }

@@ -215,10 +215,24 @@ impl IWnd for EditBox
         elif caretPos.x - clientRect.x >= .scrollPosX + clientRect.width do
             .scrollPosX = Math.min(caretPos.x - clientRect.x - decalX, maxDecalX)
 
-        if .editBoxFlags.has(.RightAlign) do
-            .scrollPosX = Math.min(.scrollPosX, 0)
-        else do
-            .scrollPosX = Math.max(.scrollPosX, 0)
+        // Never stay scrolled past what the current size can show. The caret logic
+        // above scrolls the text when the box is too small, but it only reacts to the
+        // caret leaving the visible window, not to the box growing back. Clamp the
+        // scroll to the content extent so a box that regains room shows its text from
+        // a natural position instead of staying half-scrolled with empty space.
+        if .editBoxFlags.has(.RightAlign)
+        {
+            let maxScroll = Math.max(sizeX - clientRect.width, 0)
+            .scrollPosX = Math.max(Math.min(.scrollPosX, 0), -maxScroll)
+        }
+        else
+        {
+            var contentWidth = sizeX
+            if !.unit.isEmpty() do
+                contentWidth += metrics.editBox_UnitMargin + Painter.measureString(.unit, fontR).width
+            let maxScroll = Math.max(contentWidth - clientRect.width, 0)
+            .scrollPosX = Math.min(Math.max(.scrollPosX, 0), maxScroll)
+        }
 
         painter.pushClippingRect(clientRect)
         painter.translateTransform(-.scrollPosX, 0)

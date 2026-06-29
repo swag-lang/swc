@@ -620,9 +620,9 @@ impl ThemeColors
         .tabItem_PushButtonSelected       = Blue
         .tabItem_PushButtonSelectedText   = White
         .tabItem_PushButtonSelectedBorder = Blue
-        .tabItem_PushButtonHot            = Gray1
-        .tabItem_PushButtonHotText        = Gray5
-        .tabItem_PushButtonHotBorder      = Gray5
+        .tabItem_PushButtonHot            = Gray4
+        .tabItem_PushButtonHotText        = White
+        .tabItem_PushButtonHotBorder      = Blue
         .tabItem_PushButtonText           = Gray1
         .tabItem_PushButtonBk             = Gray6
         .tabItem_PushButtonBorder         = Gray2

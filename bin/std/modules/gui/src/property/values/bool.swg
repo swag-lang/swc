@@ -52,6 +52,15 @@ impl Properties
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
+
+                // The check box is a symmetric square centered on the row, but a line of
+                // text is optically top-heavy (descenders sit mostly empty), so geometric
+                // centering makes the text read slightly high. Nudge the text down by a
+                // couple pixels so its visual center lines up with the box. Translate the
+                // text rect (equal +top/-bottom padding) so wrapped lines are not clipped.
+                const OpticalDescNudgeY = 2'f32
+                .paddingText = {0, OpticalDescNudgeY, 0, -OpticalDescNudgeY}
+
                 .setText(dispDesc == null ? "" : cast(string) dispDesc)
             }
 

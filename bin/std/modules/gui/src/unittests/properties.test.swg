@@ -245,6 +245,17 @@ struct PropHeadlessArrayData
     assertBelowLabel(prop.items[2])     // array count editor
     assertBelowLabel(prop.items[4])     // bool
 
+    let chk   = prop.items[4].checkBox
+    let inner = chk.parent
+    var desc: *Wnd
+    foreach c in inner.childs do
+        if c != cast(*Wnd) chk do
+            desc = c
+    let metrics = prop.getThemeMetrics()
+    Console.println("CHK h=", chk.position.height, " boxSize=", metrics.btnCheck_Size, " boxCenterY=", chk.position.height * 0.5)
+    Console.println("DESC y=", desc.position.y, " h=", desc.position.height, " centerY=", desc.position.y + desc.position.height * 0.5)
+    Console.println("INNER h=", inner.position.height)
+
     host.shutdown()
 }
 

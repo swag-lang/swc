@@ -1004,7 +1004,7 @@ impl ThemeColors
         .tabItem_ButtonHot                = AccentHotBk
         .tabItem_PushButtonSelected       = Blue
         .tabItem_PushButtonSelectedText   = White
-        .tabItem_PushButtonSelectedBorder = White
+        .tabItem_PushButtonSelectedBorder = Gray1
         .tabItem_PushButtonHot            = AccentHotBk
         .tabItem_PushButtonHotText        = Gray1
         .tabItem_PushButtonHotBorder      = Blue

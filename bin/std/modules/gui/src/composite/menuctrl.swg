@@ -896,6 +896,8 @@ public impl MenuCtrl
     // Add a separator
     mtd addSeparator()
     {
+        if .items.isEmpty() or .items.getLast().separator do
+            return
         let item = .items.newPtr()
         item.separator = true
         .items.add(item)

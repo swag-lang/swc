@@ -37,6 +37,12 @@ impl ArrayPtr
         }
     }
 
+    // Checks if the array is empty (i.e., has no elements).
+    mtd isEmpty()->bool
+    {
+        return .count == 0
+    }
+
     // Deallocates all objects pointed to by the elements in the array and clears the array.
     // The array's count is set to 0, but the capacity is not changed.
     mtd clear()
@@ -75,5 +81,13 @@ impl ArrayPtr
         let ptr = .newPtr()
         .add(ptr)
         return ptr
+    }
+
+    // Returns the last pointer in the array, or null if the array is empty.
+    mtd getLast()->*T
+    {
+        if .count == 0 do
+            return null
+        return .buffer[.count - 1]
     }
 }

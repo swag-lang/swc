@@ -308,6 +308,14 @@ fileprivate impl Properties
         elif arrElem do
             arrItem = arrElem.parent
 
+        if item.data and item.type
+        {
+            menu.addSeparator()
+            menu.addItem("Copy", "Copy", .getTheme().getIcon24(.Copy))
+            itemDisabled = !canChange or !Clipboard.hasTypedValue(item.type)
+            menu.addItem("Paste", "Paste", .getTheme().getIcon24(.Paste), disabled: itemDisabled)
+        }
+
         if arrItem
         {
             let dynamic = Reflection.isStructArray(arrItem.type)
@@ -317,27 +325,19 @@ fileprivate impl Properties
             {
                 let info = .arrayElementInfo(arrItem)
                 let idx  = .arrayElementIndex(arrElem)
+                menu.addSeparator()
                 menu.addItem("Move Up", "MoveUp", .getTheme().getIcon24(.SortArrowUp), disabled: !canArr or idx == 0)
                 menu.addItem("Move Down", "MoveDown", .getTheme().getIcon24(.SortArrowDown), disabled: !canArr or idx + 1 >= info.count)
-
-                if dynamic do
-                    menu.addItem("Remove", "ClearElementArray", .getTheme().getIcon24(.Remove), disabled: !canArr)
             }
 
             if dynamic
             {
+                menu.addSeparator()
+                if arrElem do
+                    menu.addItem("Remove", "ClearElementArray", .getTheme().getIcon24(.Remove), disabled: !canArr)
                 let arrData = cast(*Array'u8) arrItem.data
                 menu.addItem("Remove All", "ClearArray", .getTheme().getIcon24(.RemoveAll), disabled: !canArr or arrData.isEmpty())
             }
-        }
-
-        if item.data and item.type
-        {
-            if menu.items.count do
-                menu.addSeparator()
-            menu.addItem("Copy", "Copy", .getTheme().getIcon24(.Copy))
-            itemDisabled = !canChange or !Clipboard.hasTypedValue(item.type)
-            menu.addItem("Paste", "Paste", .getTheme().getIcon24(.Paste), disabled: itemDisabled)
         }
 
         if !menu.items.count

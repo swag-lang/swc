@@ -362,6 +362,19 @@ fileprivate impl Properties
             return false
         }
 
+        // Mouse wheel anywhere over the list scrolls it, even when the cursor is over an
+        // editor (combobox/editbox/slider): those pass the wheel on, but their inner widgets
+        // would otherwise swallow the bubble before it reaches the scroll view.
+        if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .MouseWheel
+        {
+            if prop.scrollWnd and prop.edView and mouseEvt.target and prop.edView.isParentOf(mouseEvt.target)
+            {
+                let sp = prop.scrollWnd.getScrollPos()
+                prop.scrollWnd.setScrollPos(sp.x, sp.y - mouseEvt.move.y * prop.scrollWnd.scrollIncrementV)
+                return true
+            }
+        }
+
         switch evt
         {
         case FocusEvent as focusEvt where focusEvt.kind == .CanSetFocus:

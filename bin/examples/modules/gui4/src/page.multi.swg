@@ -36,17 +36,17 @@ impl IPropertyNotify for TileData
 {
     mtd impl validateItem(_list: *Properties, item: *PropertiesItem)->PropValidationResult
     {
-        switch item.nameCrc
+        switch item.typeValue.crc
         {
-        case Hash.Crc32.compute(#nameof(TileData.label)):
+        case Reflection.fieldCrc(TileData, #nameof(TileData.label)):
             if .label.length == 0 do
                 return {.Error, "A tile label is required."}
 
-        case Hash.Crc32.compute(#nameof(TileData.radius)):
+        case Reflection.fieldCrc(TileData, #nameof(TileData.radius)):
             if .radius > 30 do
                 return {.Warning, "A large radius can clip the tile content."}
 
-        case Hash.Crc32.compute(#nameof(TileData.height)):
+        case Reflection.fieldCrc(TileData, #nameof(TileData.height)):
             if .height < 60 do
                 return {.Info, "Short tiles hide the secondary line."}
         }

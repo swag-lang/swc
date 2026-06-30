@@ -662,7 +662,12 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         SWC_RESULT(validateRtAttributeConstraints(sema, currentAttributes, attrFlags, errorRef));
 
         sema.frame().currentAttributes().addRtFlag(attrFlags);
-        return Result::Continue;
+
+        // Most built-in flag attributes are compile-time mechanics and are not reflected.
+        // EnumFlags is a semantic marker that user code queries through reflection (e.g.
+        // Reflection.hasAttribute), so keep it in the reflected attribute list as well.
+        if (!attrFlags.has(RtAttributeFlagsE::EnumFlags))
+            return Result::Continue;
     }
 
     AttributeInstance inst;

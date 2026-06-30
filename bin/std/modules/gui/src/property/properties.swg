@@ -103,7 +103,6 @@ enum ItemFlags
 struct PropertiesItem
 {
     filter:             String
-    nameCrc:            u32             // CRC of the field name, for fast switch dispatch
     line:               *Wnd
     data:               *u8
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
@@ -686,7 +685,6 @@ fileprivate impl Properties
             .line      = line
             .type      = value.pointedType
             .typeValue = value
-            .nameCrc   = value.crc != 0 ? value.crc : Hash.Crc32.compute(value.name)
             .data      = data
             .parent    = parentItem
             .level     = parentItem ? parentItem.level + 1 : 0

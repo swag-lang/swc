@@ -127,6 +127,26 @@ namespace Math
         return v;
     }
 
+    // Standard CRC-32 (IEEE 802.3, reflected, poly 0xEDB88320). Must stay bit-for-bit
+    // identical to Core.Hash.Crc32.compute so the value exported in TypeValue.crc matches
+    // what the runtime reflection computes on demand.
+    uint32_t crc32(std::span<const std::byte> v)
+    {
+        uint32_t crc = 0xFFFFFFFFu;
+        for (const std::byte b : v)
+        {
+            crc ^= static_cast<uint8_t>(b);
+            for (int k = 0; k < 8; ++k)
+                crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
+        }
+        return ~crc;
+    }
+
+    uint32_t crc32(std::string_view v)
+    {
+        return crc32(std::span{reinterpret_cast<const std::byte*>(v.data()), v.size()});
+    }
+
     uint32_t hashCombine(uint32_t h, bool v)
     {
         return hashCombine(h, static_cast<uint32_t>(v));

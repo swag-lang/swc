@@ -182,14 +182,15 @@ impl Properties
             itemB.checkBox = ed
 
             let dispDesc = Reflection.getAttributeValue(v, Properties.Description, "desc")
-            itemB.filter += cast(string) dispDesc
+            let dispDescStr = dispDesc == null ? "" : cast(string) dispDesc
+            itemB.filter += dispDescStr
 
             with let label1 = Label.create(line, "", {item.line.position.height, 0, me.position.width - item.line.position.height})
             {
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
-                .setText(dispDesc)
+                .setText(dispDescStr)
             }
 
             let minHeight = ed.position.height

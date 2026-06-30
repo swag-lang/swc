@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -178,6 +179,7 @@ namespace
             {
                 const auto& id = ctx.idMgr().get(genericParams[i].idRef);
                 tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                tv.crc         = Math::crc32(id.name);
             }
 
             const TypeRef valueTypeRef = genericArgValueTypeRef(ctx, arg);
@@ -592,6 +594,7 @@ namespace
             const uint32_t      elemOffset = valuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
             const Utf8          name{symValue->name(ctx)};
             tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
+            tv.crc         = Math::crc32(name.view());
 
             // Enum values keep their declared enum type, while the pointed payload stores the lowered raw bytes.
             storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, pointedType), offset);
@@ -714,6 +717,7 @@ namespace
                 {
                     const auto& id = ctx.idMgr().get(aggregate.names[i]);
                     tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                    tv.crc         = Math::crc32(id.name);
                 }
 
                 const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
@@ -813,6 +817,7 @@ namespace
                 const Utf8     fName{id.name};
                 const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+                tv.crc                    = Math::crc32(fName.view());
                 tv.offset                 = symField->offset();
                 if (symField->isUsingField())
                     tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
@@ -829,6 +834,7 @@ namespace
                 const uint32_t      usingElemOffset =
                     usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
                 usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+                usingTv.crc         = Math::crc32(fName.view());
                 usingTv.offset      = symField->offset();
                 usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
                 entry.usingFieldTypes.push_back(symField->typeRef());
@@ -857,6 +863,7 @@ namespace
                 const uint32_t      elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 const Utf8          methodName{symMethod->name(ctx)};
                 tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
+                tv.crc         = Math::crc32(methodName.view());
                 if (canReflectMethodValue(*symMethod))
                     storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod, true);
             }

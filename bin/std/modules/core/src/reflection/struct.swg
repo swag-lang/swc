@@ -41,6 +41,16 @@ func getField(type: typeinfo, name: string)->#null const *TypeValue
     return null
 }
 
+// CRC of a struct field's name, read straight from the reflected TypeValue (the value the
+// compiler exported in TypeValue.crc). Use it to switch on item.typeValue.crc without
+// recomputing the hash. Returns 0 if the field does not exist.
+#[ConstExpr]
+func fieldCrc(type: typeinfo, name: string)->u32
+{
+    let f = getField(type, name)
+    return f ? f.crc : 0
+}
+
 // Get a field value with a given runtime type.
 #[ConstExpr]
 func getFieldValue(dest: *void, type: const *TypeValue, src: *void, hardCast: bool = false)

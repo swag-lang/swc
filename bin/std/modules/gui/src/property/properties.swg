@@ -506,18 +506,19 @@ fileprivate impl Properties
         {
             r.x     = 0
             r.width = .edView.position.width - 1
-
-            // A validation bar is stacked at the bottom of the (grown) row: keep the row
-            // chrome (background, border, separator, focus box) around the value cell only,
-            // so the bar reads as a separate strip below it, like in list mode.
-            if item.validationLabel and item.validationLabel.isVisible() do
-                r.setBottom(item.validationLabel.position.y - .valBarPaddingY)
         }
         else
         {
             r.x     = -.leftMargin + 1
             r.width = .edView.position.width - 1
         }
+
+        // When a validation bar grows the grid row, the row chrome (background, border, focus
+        // box) wraps the whole thing so the bar reads as part of the row. The column separator
+        // is the exception: it must stop at the value cell, since the bar spans full width.
+        var valueCellBottom = r.bottom()
+        if .isGridLike() and item.validationLabel and item.validationLabel.isVisible() do
+            valueCellBottom = item.validationLabel.position.y - .valBarPaddingY
 
         // Background
         if .isGridLike() and item.flags.has(.Section) do
@@ -546,7 +547,7 @@ fileprivate impl Properties
             {
                 let x    = .getColumnX() - item.line.position.x
                 let size = .cursorSet ? 4 : 1
-                let rect = Math.Rectangle{x - size * 0.5, r1.y, size, r1.height}
+                let rect = Math.Rectangle{x - size * 0.5, r1.y, size, valueCellBottom - r1.y}
                 painter.fillRect(rect, .aniBar.cur())
             }
         }

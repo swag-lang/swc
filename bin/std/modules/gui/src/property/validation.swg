@@ -156,16 +156,18 @@ moduleprivate impl Properties
             // Grid rows lay out by docking, which keeps the value cell at the top. To host the
             // bar below it we reserve a bottom band with the row padding (so the name/editor
             // stay in the value cell), grow the row, and place the bar in the band by hand.
+            // The bar spans the full row width (inset by the margins) and lives inside the row
+            // border, so it reads as part of the row rather than floating over the value column.
             var consume = 0'f32
             if visible
             {
-                let span = .valueWidgetsSpan(item)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
-                lbl.position.width = Math.max(span.right - span.left, 1.0)
+                let cw     = item.line.getClientRect().width
+                lbl.position.x     = me.leftMargin
+                lbl.position.width = Math.max(cw - me.leftMargin - me.rightMargin, 1.0)
                 lbl.autoHeight()
                 consume = topGap + lbl.position.height + botGap
-                lbl.position.x = span.left
                 lbl.position.y = item.valueCellHeight + topGap
             }
 

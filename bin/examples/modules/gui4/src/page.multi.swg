@@ -12,16 +12,16 @@ enum TileStyle
 #[Swag.Using(Gui.Properties)]
 struct TileData
 {
-    #[Description("Caption drawn on the tile."), EditSize(200)]
+    #[Description("Caption drawn on the tile.")]
     label: String
 
-    #[Category("Look"), Description("Fill color of the tile."), EditSize(160)]
+    #[Category("Look"), Description("Fill color of the tile.")]
     fill: Color
 
-    #[Description("Corner radius in pixels."), SliderMinMax(0, 40), EditSize(160)]
+    #[Description("Corner radius in pixels."), SliderMinMax(0, 40)]
     radius: f32
 
-    #[Description("Tile height in pixels."), SliderMinMax(48, 150), EditSize(160)]
+    #[Description("Tile height in pixels."), SliderMinMax(48, 150)]
     height: f32
 
     #[Description("Draw a drop shadow under the tile.")]

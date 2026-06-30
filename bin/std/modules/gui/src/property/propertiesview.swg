@@ -35,6 +35,8 @@ impl IWnd for PropertiesView
                 item.label.autoHeight()
             if item.labelDesc do
                 item.labelDesc.autoHeight()
+            if item.validationLabel do
+                item.validationLabel.autoHeight()
             item.sigResize.call(item)
             item.line.applyLayout()
             item.line.sendResizeEvent()

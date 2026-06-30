@@ -52,6 +52,13 @@ struct Properties
     listNameMarginAfter:      s32 = 0
     listDescMarginAfter:      s32 = 5
 
+    // Inline validation message bar (info/warning/error)
+    valBarGlyphWidth:         f32 = 22   // left room reserved for the severity glyph
+    valBarPaddingX:           f32 = 8    // horizontal text inset from the colored background
+    valBarPaddingY:           f32 = 3    // vertical breathing room added around the text
+    valBarGap:                f32 = 4    // gap between the row editor and the bar
+    valBarRadius:             f32 = 4    // corner radius of the colored background
+
     sigChanged:               SigArray'func||(*Properties, *PropertiesItem)
 
     leftMargin:               s32 = 15
@@ -95,6 +102,7 @@ enum ItemFlags
 struct PropertiesItem
 {
     filter:             String
+    nameCrc:            u32             // CRC of the field name, for fast switch dispatch
     line:               *Wnd
     data:               *u8
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
@@ -116,9 +124,11 @@ struct PropertiesItem
     description:        String
     labelDesc:          *Label
 
-    // Per-item validation (info/warning/error) shown as an accent bar + badge + tooltip.
+    // Per-item validation (info/warning/error) shown as an inline colored message bar
+    // stacked under the row.
     validation:         PropValidation
     validationMsg:      String
+    validationLabel:    *Label
 
     editBox:            *EditBox
     checkBox:           *CheckButton
@@ -430,13 +440,12 @@ fileprivate impl Properties
             let hit = prop.hitTest(pt)
             if hit != prop.hotItem
             {
+                // Leaving a row: drop its tooltip so it does not linger over the next row.
+                if prop.hotItem do
+                    ToolTip.hide(prop.hotItem.line)
                 prop.hotItem = hit
-                if hit and hit.validation != .None and hit.validationMsg.length != 0
-                {
-                    // A validated row shows its message, in any mode.
-                    ToolTip.show(hit.line, mouseEvt.surfacePos, hit.validationMsg)
-                }
-                elif hit and hit.label and prop.isGridLike()
+
+                if hit and hit.label and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.getClientRect().contains(pt) do
@@ -539,8 +548,8 @@ fileprivate impl Properties
             painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
         }
 
-        // Validation accent bar + badge
-        .paintValidationMarker(painter, item, r)
+        // Validation message bar background
+        .paintValidationBar(painter, item)
 
         // Expand/Collapse icon
         if .isGridLike() and item.numChilds
@@ -676,6 +685,7 @@ fileprivate impl Properties
             .line      = line
             .type      = value.pointedType
             .typeValue = value
+            .nameCrc   = value.crc != 0 ? value.crc : Hash.Crc32.compute(value.name)
             .data      = data
             .parent    = parentItem
             .level     = parentItem ? parentItem.level + 1 : 0
@@ -1034,7 +1044,15 @@ impl Properties
             .propagateField(item)
 
         .refresh()
-        .updateValidation()
+
+        // A change can add or remove a validation bar, which changes the row height: relay
+        // out the grid so the rows below shift and the scroll size stays correct.
+        if .updateValidation()
+        {
+            .applyLayout()
+            .scrollWnd.view.sendResizeEvent()
+        }
+
         .sigChanged.call(me, item)
 
         // Notify all the hierarchy

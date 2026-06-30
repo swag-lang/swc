@@ -926,12 +926,12 @@ impl Gui.IPropertyNotify for ValData
 {
     mtd impl validateItem(_list: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
     {
-        switch item.typeValue.name
+        switch item.nameCrc
         {
-        case "name":
+        case Hash.Crc32.compute(#nameof(ValData.name)):
             if .name.length == 0 do
                 return {.Error, "Name is required."}
-        case "count":
+        case Hash.Crc32.compute(#nameof(ValData.count)):
             if .count > 100 do
                 return {.Warning, "Count is unusually large."}
         }

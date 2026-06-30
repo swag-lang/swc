@@ -893,10 +893,12 @@ public impl MenuCtrl
         .dirtyLayout = true
     }
 
-    // Add a separator
+    // Add a separator. Consecutive separators (and a leading one) are collapsed so callers
+    // can unconditionally separate groups without producing duplicate dividers.
     mtd addSeparator()
     {
-        if .items.isEmpty() or .items.getLast().separator do
+        let last = .items.getLast()
+        if last == null or last.separator do
             return
         let item = .items.newPtr()
         item.separator = true

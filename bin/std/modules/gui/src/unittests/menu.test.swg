@@ -46,17 +46,19 @@ const Menu_Quit = "Menu.Quit"
     popup.addSeparator()
     popup.addItem("Quit", Menu_Quit)
 
+    // Consecutive separators collapse into one, so this is Open / Hidden / --- / Quit.
+    @assert(popup.items.count == 4)
+
     popup.items[1].hidden = true
     popup.computeLayoutPopup()
     popup.setPosition({0, 0, popup.position.width, popup.position.height})
 
-    popup.items[1].pos  = popup.items[4].pos
-    popup.items[1].size = popup.items[4].size
-    popup.items[3].pos  = popup.items[4].pos
-    popup.items[3].size = popup.items[4].size
+    // Move the hidden row on top of Quit: it keeps its stale layout but must not steal the hit.
+    popup.items[1].pos  = popup.items[3].pos
+    popup.items[1].size = popup.items[3].size
 
-    let pointOnQuit = Math.Point{popup.position.width * 0.5, popup.items[4].pos + popup.items[4].size * 0.5}
-    @assert(popup.hitTestPopup(pointOnQuit) == 4)
+    let pointOnQuit = Math.Point{popup.position.width * 0.5, popup.items[3].pos + popup.items[3].size * 0.5}
+    @assert(popup.hitTestPopup(pointOnQuit) == 3)
 
     host.shutdown()
 }

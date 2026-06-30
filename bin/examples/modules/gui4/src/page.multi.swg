@@ -31,6 +31,30 @@ struct TileData
     style: TileStyle
 }
 
+// Per-field validation, surfaced by the grid as an accent bar + badge + tooltip.
+impl IPropertyNotify for TileData
+{
+    mtd impl validateItem(_list: *Properties, item: *PropertiesItem)->PropValidationResult
+    {
+        switch item.typeValue.name
+        {
+        case #nameof(TileData.label):
+            if .label.length == 0 do
+                return {.Error, "A tile label is required."}
+
+        case #nameof(TileData.radius):
+            if .radius > 30 do
+                return {.Warning, "A large radius can clip the tile content."}
+
+        case #nameof(TileData.height):
+            if .height < 60 do
+                return {.Info, "Short tiles hide the secondary line."}
+        }
+
+        return {}
+    }
+}
+
 // (Re)bind the grid to the first g_TileCount tiles. Changing the count rebuilds the grid
 // (the bound instance set changes), so we destroy and recreate the Properties widget.
 func rebuildMultiGrid()

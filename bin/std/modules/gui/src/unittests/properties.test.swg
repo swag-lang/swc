@@ -911,3 +911,91 @@ fileprivate func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 
     host.shutdown()
 }
+
+//
+// Per-item validation (info / warning / error) state.
+//
+
+struct ValData
+{
+    name:  String
+    count: s32 = 5
+}
+
+impl Gui.IPropertyNotify for ValData
+{
+    mtd impl validateItem(_list: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
+    {
+        switch item.typeValue.name
+        {
+        case "name":
+            if .name.length == 0 do
+                return {.Error, "Name is required."}
+        case "count":
+            if .count > 100 do
+                return {.Warning, "Count is unusually large."}
+        }
+        return {}
+    }
+}
+
+// Validation is computed from the bound struct on build and after each change.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(300, 240)
+
+    var data: ValData                                      // name empty -> error, count ok
+    let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    let nameItem  = findFieldItem(prop, "name")
+    let countItem = findFieldItem(prop, "count")
+    @assert(nameItem != null and countItem != null)
+
+    @assert(nameItem.validation == .Error)                 // empty name flagged on build
+    @assert(nameItem.validationMsg == "Name is required.")
+    @assert(countItem.validation == .None)
+
+    // Editing into an invalid range raises a warning.
+    countItem.editBox.setText("150")
+    prop.validateNative(countItem)
+    @assert(data.count == 150)
+    @assert(countItem.validation == .Warning)
+    @assert(countItem.validationMsg == "Count is unusually large.")
+
+    // Fixing the name clears its error.
+    nameItem.editBox.setText("hello")
+    prop.validateDynamicString(nameItem)
+    @assert(nameItem.validation == .None)
+
+    host.shutdown()
+}
+
+// A validation set manually (no notify interface) is kept across refreshes.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(280, 220)
+
+    var data: PropHeadlessData                             // no IPropertyNotify
+    let prop = Properties.create(&host.root, {0, 0, 260, 200}, .List)
+    prop.addStruct(data)
+    prop.edView.sendResizeEvent()
+
+    let it = findFieldItem(prop, "count")
+    @assert(it != null)
+
+    prop.setItemValidation(it, .Error, "bad value")
+    @assert(it.validation == .Error and it.validationMsg == "bad value")
+
+    // updateValidation must not clobber a manual state when there is no notify interface.
+    prop.updateValidation()
+    @assert(it.validation == .Error)
+
+    prop.setItemValidation(it, .None)
+    @assert(it.validation == .None)
+
+    host.shutdown()
+}

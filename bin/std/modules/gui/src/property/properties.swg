@@ -15,6 +15,11 @@ interface IPropertyNotify
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool { return true; }
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool { return true; }
     mtd fillPopupMenu(list: *Properties, item: *PropertiesItem, menu: *MenuCtrl) {}
+
+    // Return a validation state + message for 'item'. Called on build and after every
+    // change; the row shows an accent bar + badge in the state color and the message as a
+    // tooltip. The most severe result along the item's parent chain wins.
+    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult { return {}; }
 }
 
 enum PropertiesKind
@@ -110,6 +115,10 @@ struct PropertiesItem
     label:              *Label
     description:        String
     labelDesc:          *Label
+
+    // Per-item validation (info/warning/error) shown as an accent bar + badge + tooltip.
+    validation:         PropValidation
+    validationMsg:      String
 
     editBox:            *EditBox
     checkBox:           *CheckButton
@@ -422,7 +431,12 @@ fileprivate impl Properties
             if hit != prop.hotItem
             {
                 prop.hotItem = hit
-                if hit and hit.label and prop.isGridLike()
+                if hit and hit.validation != .None and hit.validationMsg.length != 0
+                {
+                    // A validated row shows its message, in any mode.
+                    ToolTip.show(hit.line, mouseEvt.surfacePos, hit.validationMsg)
+                }
+                elif hit and hit.label and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.getClientRect().contains(pt) do
@@ -524,6 +538,9 @@ fileprivate impl Properties
             r1.inflate(-2)
             painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
         }
+
+        // Validation accent bar + badge
+        .paintValidationMarker(painter, item, r)
 
         // Expand/Collapse icon
         if .isGridLike() and item.numChilds
@@ -1017,6 +1034,7 @@ impl Properties
             .propagateField(item)
 
         .refresh()
+        .updateValidation()
         .sigChanged.call(me, item)
 
         // Notify all the hierarchy
@@ -1111,6 +1129,7 @@ impl Properties
     {
         foreach it in .items do
             .updateItemState(it)
+        .updateValidation()
         .applyLayout()
         .scrollWnd.view.sendResizeEvent()
     }

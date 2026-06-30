@@ -271,8 +271,8 @@ func initDemoData()
 
     // Three tiles with deliberately different values so the multi-selection page shows
     // shared fields, and "mixed" fields when more than one tile is edited.
-    initTile(&g_Tiles[0], "Alpha", 0xFF6495ED, 14, 96,  true,  .Raised)
-    initTile(&g_Tiles[1], "Beta",  0xFFE2725B, 14, 72,  false, .Flat)
+    initTile(&g_Tiles[0], "Alpha", 0xFF6495ED, 36, 96,  true,  .Raised)   // radius 36 -> warning
+    initTile(&g_Tiles[1], "Beta",  0xFFE2725B, 14, 54,  false, .Flat)     // height 54 -> info
     initTile(&g_Tiles[2], "Gamma", 0xFF66BB6A, 28, 120, true,  .Outline)
 }
 

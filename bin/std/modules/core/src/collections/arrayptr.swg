@@ -83,11 +83,71 @@ impl ArrayPtr
         return ptr
     }
 
+    // Allocates a new object and inserts its pointer at 'index', returning the pointer.
+    mtd insertNewPtr(index: u64)->*T
+    {
+        let ptr = .newPtr()
+        .insertAt(index, ptr)
+        return ptr
+    }
+
+    // Returns the first pointer in the array, or null if the array is empty.
+    mtd getFirst()->*T
+    {
+        if .count == 0 do
+            return null
+        return .buffer[0]
+    }
+
     // Returns the last pointer in the array, or null if the array is empty.
     mtd getLast()->*T
     {
         if .count == 0 do
             return null
         return .buffer[.count - 1]
+    }
+
+    // Returns the index of the given pointer (by identity), or 'Swag.U64.Max' if not present.
+    mtd indexOf(item: #null *T)->u64
+    {
+        for i in .count
+        {
+            if .buffer[i] == item do
+                return i
+        }
+        return Swag.U64.Max
+    }
+
+    // True if the given pointer (by identity) is in the array.
+    mtd contains(item: #null *T)->bool
+    {
+        return .indexOf(item) != Swag.U64.Max
+    }
+
+    // Removes and deallocates the element at 'index' (and the 'num'-1 following it), keeping
+    // the order of the remaining elements. Use removeAtOrdered to remove without deallocating.
+    mtd deleteAt(index: u64, num: u64 = 1)
+    {
+        for i in num do
+            Memory.delete(.buffer[index + i], .allocator)
+        .removeAtOrdered(index, num)
+    }
+
+    // Removes and deallocates the element at 'index' by swapping the last element into its
+    // place (does not preserve order). Use removeAt to remove without deallocating.
+    mtd deleteAtUnordered(index: u64)
+    {
+        Memory.delete(.buffer[index], .allocator)
+        .removeAt(index)
+    }
+
+    // Removes and deallocates the last element. Does nothing if the array is empty. Use
+    // popBack/removeBack to remove the pointer without deallocating the pointed-to object.
+    mtd deleteBack()
+    {
+        if .count == 0 do
+            return
+        Memory.delete(.buffer[.count - 1], .allocator)
+        .removeBack()
     }
 }

@@ -727,12 +727,14 @@ impl ThemeColors
 
         .imageRect_Fg = White
 
-        .embInfo_CriticalBk      = 0xFF9F1010
-        .embInfo_CriticalText    = White
-        .embInfo_InformationBk   = 0xFF404060
-        .embInfo_InformationText = White
-        .embInfo_MessageBk       = 0xFFAD8F1B
-        .embInfo_MessageText     = White
+        // Soft, desaturated "pastel" notice backgrounds with dark, readable text. The
+        // status icons keep their native colors and stand out against the muted fill.
+        .embInfo_CriticalBk      = 0xFFE7C0C0
+        .embInfo_CriticalText    = 0xFF7E2020
+        .embInfo_InformationBk   = 0xFFC6D4EC
+        .embInfo_InformationText = 0xFF2A3C63
+        .embInfo_MessageBk       = 0xFFE9D8A2
+        .embInfo_MessageText     = 0xFF6A5210
 
         .prop_FocusBk     = Color.getLighter(Color.fromArgb(Gray5), 0.05)
         .prop_FocusBorder = Gray3
@@ -1112,12 +1114,14 @@ impl ThemeColors
 
         .imageRect_Fg = White
 
-        .embInfo_CriticalBk      = 0xFF9F6060
-        .embInfo_CriticalText    = White
-        .embInfo_InformationBk   = 0xFF404060
-        .embInfo_InformationText = White
-        .embInfo_MessageBk       = 0xFFAD8F1B
-        .embInfo_MessageText     = White
+        // Soft, desaturated "pastel" notice backgrounds with dark, readable text. The
+        // status icons keep their native colors and stand out against the muted fill.
+        .embInfo_CriticalBk      = 0xFFF2D0D0
+        .embInfo_CriticalText    = 0xFF8A2626
+        .embInfo_InformationBk   = 0xFFD4DFF3
+        .embInfo_InformationText = 0xFF2F4068
+        .embInfo_MessageBk       = 0xFFF1E2AE
+        .embInfo_MessageText     = 0xFF6E5612
 
         .prop_FocusBk     = AccentPressedBk
         .prop_FocusBorder = Blue

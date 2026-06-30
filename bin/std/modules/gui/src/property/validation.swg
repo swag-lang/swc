@@ -131,12 +131,95 @@ moduleprivate impl Properties
         bar.height += 2 * .valBarPaddingY
         painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, .validationColor(item.validation))
 
-        // Severity icon (tinted with the theme text color), centered in the reserved glyph
-        // column on the left of the bar.
+        // Severity icon, drawn with its native colors (White = no tint) so it stays vivid
+        // and readable against the soft background, centered in the reserved glyph column
+        // on the left of the bar.
         let icon = .validationIcon(item.validation)
         let ix   = bar.x + (.valBarGlyphWidth - icon.sizeX) * 0.5
         let iy   = bar.vertCenter() - icon.sizeY * 0.5
-        icon.paint(painter, Math.round(ix), Math.round(iy), .validationTextColor(item.validation))
+        icon.paint(painter, Math.round(ix), Math.round(iy), Argb.White)
+    }
+
+    // Match the validation bar to the editor column and size the row to host it. Called once
+    // the row's value widgets are positioned (so we can read the editor extent). In list mode
+    // the bar caps its width to the value editor; in grid mode it spans the value cell and the
+    // row grows downward to make room for it (and shrinks back when the bar is gone). Returns
+    // true when it changed the row sizing, so the caller re-runs the row layout.
+    #[Swag.Discardable]
+    mtd syncValidationBar(item: *PropertiesItem)->bool
+    {
+        let lbl     = item.validationLabel
+        let visible = lbl != null and lbl.isVisible()
+
+        if me.isGridLike()
+        {
+            // Grid rows lay out by docking, which keeps the value cell at the top. To host the
+            // bar below it we reserve a bottom band with the row padding (so the name/editor
+            // stay in the value cell), grow the row, and place the bar in the band by hand.
+            var consume = 0'f32
+            if visible
+            {
+                let span = .valueWidgetsSpan(item)
+                let topGap = lbl.margin.y
+                let botGap = lbl.margin.w
+                lbl.position.width = Math.max(span.right - span.left, 1.0)
+                lbl.autoHeight()
+                consume = topGap + lbl.position.height + botGap
+                lbl.position.x = span.left
+                lbl.position.y = item.valueCellHeight + topGap
+            }
+
+            let h = item.valueCellHeight + consume
+            if item.line.position.height == h and item.line.padding.w == consume do
+                return false
+            item.line.padding.w       = consume
+            item.line.position.height = h
+            item.line.preferredSize.y = h
+            return true
+        }
+
+        if !visible do
+            return false
+
+        // List: cap the bar to the right edge of the value editor column so it lines up with
+        // the editors above instead of running the full row width.
+        let span = .valueWidgetsSpan(item)
+        let w    = span.right - lbl.position.x
+        if w > 0
+        {
+            lbl.maxSize.x      = w
+            lbl.position.width = w
+        }
+        lbl.autoHeight()
+        return true
+    }
+
+    // Horizontal extent [left, right] of an item's value widgets (the editor column): every
+    // line child except the name/description labels and the validation bar itself. Falls back
+    // to the value cell bounds when the row has no editor (e.g. a pure parent row).
+    mtd valueWidgetsSpan(item: *PropertiesItem)->{ left, right: f32 }
+    {
+        var left  = Swag.F32.Max
+        var right = 0'f32
+        var found = false
+        foreach c in item.line.childs
+        {
+            if c == item.label or c == item.labelDesc or c == item.validationLabel do
+                continue
+            if !c.isVisibleState() do
+                continue
+            left  = Math.min(left, c.position.x)
+            right = Math.max(right, c.position.right())
+            found = true
+        }
+
+        if !found
+        {
+            left  = me.getColumnX()
+            right = Math.max(item.line.getClientRect().width - me.rightMargin, left + 1.0)
+        }
+
+        return {left, right}
     }
 }
 
@@ -151,11 +234,6 @@ fileprivate impl Properties
 
         item.validation    = state
         item.validationMsg  = message
-
-        // The inline message bar stacks under the editor, which only fits the list mode;
-        // the fixed-height grid rows have no room for it.
-        if me.isGridLike() do
-            return false
 
         if state == .None
         {
@@ -193,8 +271,8 @@ fileprivate impl Properties
             // Gap above the bar + the painted vertical breathing room top and bottom.
             .margin.y = me.valBarGap + me.valBarPaddingY
             .margin.w = me.valBarPaddingY
-            if !me.isGridLike() do
-                .margin.x = me.leftMargin
+            // Left edge stays flush with the row name/description/editor (no extra indent),
+            // so the bar reads as belonging to the field above it.
             .margin.z = me.rightMargin
         }
 

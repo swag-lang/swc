@@ -53,12 +53,12 @@ struct Properties
     listDescMarginAfter:      s32 = 5
 
     // Inline validation message bar (info/warning/error)
-    valBarGlyphWidth:         f32 = 26   // left room reserved for the severity icon
+    valBarGlyphWidth:         f32 = 32   // left room reserved for the severity icon
     valBarIconSize:           f32 = 18   // size of the severity icon
-    valBarPaddingX:           f32 = 8    // horizontal text inset from the colored background
-    valBarPaddingY:           f32 = 3    // vertical breathing room added around the text
-    valBarGap:                f32 = 4    // gap between the row editor and the bar
-    valBarRadius:             f32 = 4    // corner radius of the colored background
+    valBarPaddingX:           f32 = 12   // horizontal text inset from the colored background
+    valBarPaddingY:           f32 = 7    // vertical breathing room added around the text
+    valBarGap:                f32 = 7    // gap between the row editor and the bar
+    valBarRadius:             f32 = 6    // corner radius of the colored background
 
     sigChanged:               SigArray'func||(*Properties, *PropertiesItem)
 
@@ -146,6 +146,10 @@ struct PropertiesItem
     numChilds:          u32
     section:            u32
     extendFocus:        f32 = 10
+
+    // Grid only: height of the value cell (label + editor) on its own. The row grows below
+    // it to host the validation message bar, so we keep the base height to restore/recompute.
+    valueCellHeight:    f32
 }
 
 impl IWnd for Properties
@@ -502,6 +506,12 @@ fileprivate impl Properties
         {
             r.x     = 0
             r.width = .edView.position.width - 1
+
+            // A validation bar is stacked at the bottom of the (grown) row: keep the row
+            // chrome (background, border, separator, focus box) around the value cell only,
+            // so the bar reads as a separate strip below it, like in list mode.
+            if item.validationLabel and item.validationLabel.isVisible() do
+                r.setBottom(item.validationLabel.position.y - .valBarPaddingY)
         }
         else
         {
@@ -548,7 +558,8 @@ fileprivate impl Properties
             painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
         }
 
-        // Validation message bar background
+        // Validation feedback: an inline colored message bar stacked under the value cell,
+        // in both list and grid modes.
         .paintValidationBar(painter, item)
 
         // Expand/Collapse icon
@@ -689,6 +700,7 @@ fileprivate impl Properties
             .parent    = parentItem
             .level     = parentItem ? parentItem.level + 1 : 0
             .section   = parentItem ? parentItem.section : 0
+            .valueCellHeight = height orelse me.gridLineHeight
             if me.isGridLike() do
                 .extendFocus = me.gridLineMargin * 0.5
         }

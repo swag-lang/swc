@@ -102,6 +102,25 @@ impl IPropertyNotify for Gui4Appearance
 
         return true
     }
+
+    // Per-field validation, surfaced by the grid as an accent strip + soft tint + tooltip.
+    mtd impl validateItem(_list: *Properties, item: *PropertiesItem)->PropValidationResult
+    {
+        switch item.typeValue.name
+        {
+        case #nameof(Gui4Appearance.width):
+            if .width >= 540 do
+                return {.Warning, "Very wide previews can overflow the canvas."}
+            if .width >= 380 do
+                return {.Info, "Wide previews may need a larger canvas."}
+
+        case #nameof(Gui4Appearance.borderSize):
+            if .showBorder and .borderSize >= 6 do
+                return {.Warning, "A thick border softens the corner radius."}
+        }
+
+        return {}
+    }
 }
 
 #[Swag.Using(Gui.Properties)]
@@ -137,6 +156,25 @@ impl IPropertyNotify for Gui4Content
         }
 
         return true
+    }
+
+    // Per-field validation, surfaced by the grid as an accent strip + soft tint + tooltip.
+    mtd impl validateItem(_list: *Properties, item: *PropertiesItem)->PropValidationResult
+    {
+        switch item.typeValue.name
+        {
+        case #nameof(Gui4Content.title):
+            if .title.isEmpty() do
+                return {.Error, "A title is required."}
+
+        case #nameof(Gui4Content.completion):
+            if .completion < 25 do
+                return {.Error, "Completion is too low to publish."}
+            if .completion < 75 do
+                return {.Warning, "Completion is below the 75% target."}
+        }
+
+        return {}
     }
 }
 

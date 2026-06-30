@@ -35,10 +35,15 @@ impl IWnd for PropertiesView
                 item.label.autoHeight()
             if item.labelDesc do
                 item.labelDesc.autoHeight()
-            if item.validationLabel do
-                item.validationLabel.autoHeight()
             item.sigResize.call(item)
             item.line.applyLayout()
+
+            // The validation bar is sized to the editor column (and, in grid mode, grows the
+            // row) only once the value widgets are positioned, so do it after the first pass
+            // and lay the row out again when it changed the sizing.
+            if item.validationLabel and .ed.syncValidationBar(item) do
+                item.line.applyLayout()
+
             item.line.sendResizeEvent()
             if item.line.isVisible() do
                 lastItem = item

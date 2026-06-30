@@ -80,6 +80,39 @@ func removeValueStructArray(arrayPtr: *void, valueType: typeinfo, index: u64)
     arr.count -= 1
 }
 
+// Swap two elements (by index) inside a contiguous buffer of 'valueType'. Works for both a
+// static array buffer and a 'Core.Array' buffer (pass arr.buffer), handling structs that need
+// a post-move fixup after their bytes are relocated.
+func swapValues(basePtr: *void, valueType: typeinfo, indexA, indexB: u64)
+{
+    if indexA == indexB do
+        return
+
+    let size = valueType.sizeof
+    let base = cast([*] u8) basePtr
+    let pa   = base + indexA * size
+    let pb   = base + indexB * size
+
+    var valueTypeStruct: const *TypeInfoStruct
+    if isStruct(valueType) do
+        valueTypeStruct = cast() valueType
+
+    let allocator = @getcontext().allocator
+    let tmp       = cast([*] u8) Memory.alloc(size, allocator)
+    defer Memory.free(tmp, size, allocator)
+
+    Memory.copy(tmp, pa, size)
+    Memory.copy(pa, pb, size)
+    Memory.copy(pb, tmp, size)
+
+    // Each element kept its own bytes but landed at a new address: fix up self-references.
+    if valueTypeStruct and hasPostMove(valueType)
+    {
+        valueTypeStruct.opPostMove(pa)
+        valueTypeStruct.opPostMove(pb)
+    }
+}
+
 // Add an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)
 func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
 {

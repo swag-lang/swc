@@ -14,7 +14,19 @@ interface IPropertyNotify
     mtd itemHasChanged(list: *Properties, item: *PropertiesItem) {}
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool { return true; }
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool { return true; }
+
+    // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
+    // disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor.
+    // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.
+    mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool { return false; }
+
+    // Called when the user right-clicks a row: add custom menu items (each with a unique
+    // command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.
     mtd fillPopupMenu(list: *Properties, item: *PropertiesItem, menu: *MenuCtrl) {}
+
+    // Called with the command id chosen in the popup menu when it is not one of the built-in
+    // actions. Return true once handled. This is how custom fillPopupMenu items are executed.
+    mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool { return false; }
 
     // Return a validation state + message for 'item'. Called on build and after every
     // change; the row shows an accent bar + badge in the state color and the message as a
@@ -283,20 +295,40 @@ fileprivate impl Properties
             scan = scan.parent
         }
 
-        let canChange     = canChangeItem(item)
+        let canChange     = .canChangeItem(item)
         var itemDisabled: bool
 
-        if Reflection.isStructArray(item.type)
-        {
-            let arrData = cast(*Array'u8) item.data
-            itemDisabled = !canChange or arrData.isEmpty()
-            menu.addItem("Remove All", "ClearArray", .getTheme().getIcon24(.RemoveAll), disabled: itemDisabled)
-        }
+        // Array actions. Resolve the array (and the clicked element row) from the item or one
+        // of its ancestors, so the actions also work when right-clicking an element's field.
+        // Reordering works for static and dynamic arrays; add/remove are dynamic only.
+        let arrElem = .resolveArrayElement(item)
+        var arrItem: #null *PropertiesItem
+        if .isArrayItem(item) do
+            arrItem = item
+        elif arrElem do
+            arrItem = arrElem.parent
 
-        if item.parent and item.parent.type and Reflection.isStructArray(item.parent.type)
+        if arrItem
         {
-            itemDisabled = !canChange
-            menu.addItem("Remove", "ClearElementArray", .getTheme().getIcon24(.Remove), disabled: itemDisabled)
+            let dynamic = Reflection.isStructArray(arrItem.type)
+            let canArr  = .canChangeItem(arrItem)
+
+            if arrElem
+            {
+                let info = .arrayElementInfo(arrItem)
+                let idx  = .arrayElementIndex(arrElem)
+                menu.addItem("Move Up", "MoveUp", .getTheme().getIcon24(.SortArrowUp), disabled: !canArr or idx == 0)
+                menu.addItem("Move Down", "MoveDown", .getTheme().getIcon24(.SortArrowDown), disabled: !canArr or idx + 1 >= info.count)
+
+                if dynamic do
+                    menu.addItem("Remove", "ClearElementArray", .getTheme().getIcon24(.Remove), disabled: !canArr)
+            }
+
+            if dynamic
+            {
+                let arrData = cast(*Array'u8) arrItem.data
+                menu.addItem("Remove All", "ClearArray", .getTheme().getIcon24(.RemoveAll), disabled: !canArr or arrData.isEmpty())
+            }
         }
 
         if item.data and item.type
@@ -320,21 +352,55 @@ fileprivate impl Properties
 
         switch result
         {
+        case "MoveUp":
+            if arrElem do
+                .moveArrayValue(arrElem, -1)
+
+        case "MoveDown":
+            if arrElem do
+                .moveArrayValue(arrElem, 1)
+
         case "ClearArray":
+            if !arrItem do
+                break
             if MessageDlg.confirm(.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
                 break
-            .clearArray(item)
+            .clearArray(arrItem)
 
         case "ClearElementArray":
+            if !arrElem do
+                break
             if MessageDlg.confirm(.wnd.surface, "This will remove the element") != Dialog.BtnYes do
                 break
-            .removeArrayValue(item)
+            .removeArrayValue(arrElem)
 
         case "Copy":
             Clipboard.addTypedValue(item.data, item.type)
 
         case "Paste":
             if Clipboard.getTypedValue(item.data, item.type)
+            {
+                .refreshItem(item)
+                .hasChanged(item)
+            }
+
+        default:
+            // Not a built-in action: hand the command to the notify interface(s) along the
+            // parent chain so custom fillPopupMenu items get executed. When one handles it we
+            // assume it may have changed the value and refresh the row, as for Paste.
+            var scan    = cast(#null *PropertiesItem) item
+            var handled = false
+            while scan
+            {
+                if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item, result)
+                {
+                    handled = true
+                    break
+                }
+                scan = scan.parent
+            }
+
+            if handled
             {
                 .refreshItem(item)
                 .hasChanged(item)
@@ -1110,16 +1176,42 @@ impl Properties
         .updateStates()
     }
 
-    // Returns true if the given item can be changed
-    func canChangeItem(item: *PropertiesItem)->bool
+    // Returns true if the given item is read-only: a static string, a field tagged with the
+    // ReadOnly attribute, or made read-only at runtime by a notify interface along the parent
+    // chain. Read-only items are shown but cannot be edited or pasted into.
+    mtd isItemReadOnly(item: *PropertiesItem)->bool
+    {
+        if !item.type do
+            return false
+
+        // Static strings are inherently read-only (shown with a read-only editor).
+        if item.type == string do
+            return true
+
+        if Reflection.hasAttribute(item.typeValue, .ReadOnly) do
+            return true
+
+        var scan = cast(#null *PropertiesItem) item
+        while scan
+        {
+            if scan.ntfyItf and scan.ntfyItf.isItemReadOnly(me, item) do
+                return true
+            scan = scan.parent
+        }
+
+        return false
+    }
+
+    // Returns true if the given item can be changed (edited / pasted into)
+    mtd canChangeItem(item: *PropertiesItem)->bool
     {
         if !item.data or !item.type do
             return false
 
-        if item.type == string do
+        if .isItemReadOnly(item) do
             return false
 
-        var scan = item
+        var scan = cast(#null *PropertiesItem) item
         while scan
         {
             if scan.line and scan.line.isDisabled() do
@@ -1149,6 +1241,28 @@ impl Properties
 
         item.line.show(mustShow)
         item.line.enable(mustEnable)
+
+        // Read-only items stay visible and selectable (so they can still be copied and the
+        // context menu opened). An edit box becomes read-only — focusable but not editable,
+        // exactly like a static string; any other editor (slider, combo, checkbox, ...) is
+        // grayed instead, since those have no read-only mode.
+        let readOnly = .isItemReadOnly(item)
+        if item.editBox
+        {
+            if readOnly do
+                item.editBox.editBoxFlags.add(.ReadOnly)
+            else do
+                item.editBox.editBoxFlags.remove(.ReadOnly)
+        }
+
+        foreach c in item.line.childs
+        {
+            if c == item.label or c == item.labelDesc or c == item.validationLabel do
+                continue
+            if item.editBox and c == cast(*Wnd) item.editBox do
+                continue
+            c.enable(!readOnly)
+        }
 
         // If an item is visible, then we show also all of its parents, in order
         // to put the item in context

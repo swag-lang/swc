@@ -138,11 +138,17 @@ struct Gui4Content
     #[Category("Metrics"), SliderMinMax(0.60, 1.40), EditSize(300), Description("Scale applied to the title and metadata.")]
     textScale: f32 = 1.0
 
-    #[MinMax(0, 100), Unit("%"), Description("A numeric edit box with validation and unit rendering.")]
+    #[MinMax(0, 100), Unit("%"), Description("A numeric edit box with validation and unit rendering. Right-click for a Reset action.")]
     completion: s32 = 68
 
     #[Description("Draw the completion bar under the subtitle."), RecalcLayout]
     showCompletion: bool = true
+
+    #[Description("Lock the text: Title and Subtitle become read-only at runtime."), RecalcLayout]
+    locked: bool = false
+
+    #[Category("System"), ReadOnly, Description("Build revision, assigned by the system. Marked read-only with an attribute.")]
+    revision: s32 = 7
 }
 
 impl IPropertyNotify for Gui4Content
@@ -176,6 +182,47 @@ impl IPropertyNotify for Gui4Content
 
         return {}
     }
+
+    // Dynamic (runtime) read-only: the "locked" toggle freezes Title and Subtitle. They stay
+    // visible but their editor is grayed and Paste is disabled, just like the ReadOnly attribute.
+    mtd impl isItemReadOnly(_list: *Properties, item: *PropertiesItem)->bool
+    {
+        switch item.typeValue.name
+        {
+        case #nameof(Gui4Content.title), #nameof(Gui4Content.subtitle):
+            return .locked
+        }
+
+        return false
+    }
+
+    // Custom right-click actions. Type-dependent: only the numeric fields offer a "Reset".
+    mtd impl fillPopupMenu(list: *Properties, item: *PropertiesItem, menu: *MenuCtrl)
+    {
+        switch item.typeValue.name
+        {
+        case #nameof(Gui4Content.completion), #nameof(Gui4Content.textScale):
+            menu.addItem("Reset to default", "Gui4.ResetField", list.getTheme().getIcon24(.Update))
+            menu.addSeparator()
+        }
+    }
+
+    // Execute a custom action chosen in the popup. The grid refreshes the row afterwards.
+    mtd impl onPopupCommand(_list: *Properties, item: *PropertiesItem, cmdId: string)->bool
+    {
+        if cmdId != "Gui4.ResetField" do
+            return false
+
+        switch item.typeValue.name
+        {
+        case #nameof(Gui4Content.completion):
+            .completion = 68
+        case #nameof(Gui4Content.textScale):
+            .textScale = 1.0
+        }
+
+        return true
+    }
 }
 
 #[Swag.Using(Gui.Properties)]
@@ -200,7 +247,7 @@ struct Gui4Layout
     #[Description("Inset used by the title, subtitle and completion bar.")]
     contentInset: Math.Rectangle = {28, 24, 28, 22}
 
-    #[Description("Editable array. Use the plus button or the context menu to add and remove actions.")]
+    #[Description("Editable array. Use the plus button to add; right-click an element to move it up/down or remove it.")]
     actions: Array'ActionBinding
 }
 

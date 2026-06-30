@@ -47,6 +47,39 @@ struct PropHeadlessGroupedData
     enabled:    bool = true
 }
 
+struct PropHeadlessRoData
+{
+    normal:     s32 = 1
+
+    #[ReadOnly]
+    locked:     s32 = 2
+
+    dynamic:    s32 = 3
+}
+
+struct PropMoveElem
+{
+    id:         s32 = 0
+}
+
+struct PropMoveData
+{
+    dyn:        Array'PropMoveElem
+    stat:       [3] s32
+}
+
+var g_PropRoDynamic: bool
+
+impl IPropertyNotify for PropHeadlessRoData
+{
+    mtd impl isItemReadOnly(_list: *Properties, item: *PropertiesItem)->bool
+    {
+        if item.typeValue.name == #nameof(PropHeadlessRoData.dynamic) do
+            return g_PropRoDynamic
+        return false
+    }
+}
+
 // Properties.addStruct reflects a struct into one item per field (+ a section item).
 #test
 {
@@ -996,6 +1029,99 @@ impl Gui.IPropertyNotify for ValData
 
     prop.setItemValidation(it, .None)
     @assert(it.validation == .None)
+
+    host.shutdown()
+}
+
+// Read-only fields gray (disable) their editor, while staying visible. Covers both the
+// ReadOnly attribute and the dynamic isItemReadOnly notify API, including toggling at runtime.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 360)
+
+    g_PropRoDynamic = true
+
+    var data: PropHeadlessRoData
+    let prop = Properties.create(&host.root, {0, 0, 240, 340})
+    prop.addStruct(data)
+
+    let normalItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.normal))
+    let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
+    let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
+    @assert(normalItem != null and lockedItem != null and dynamicItem != null)
+    @assert(normalItem.editBox != null and lockedItem.editBox != null and dynamicItem.editBox != null)
+
+    // Edit-box editors stay focusable but become read-only. The editable field is not; the
+    // read-only fields (attribute + dynamic) are. They are not changeable either.
+    @assert(!normalItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(prop.canChangeItem(normalItem))
+    @assert(!prop.canChangeItem(lockedItem))
+    @assert(!prop.canChangeItem(dynamicItem))
+
+    // Clearing the dynamic flag releases only that field; the attribute one stays locked.
+    g_PropRoDynamic = false
+    prop.setCurrentSection(Swag.U32.Max)
+    @assert(!dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(prop.canChangeItem(dynamicItem))
+    @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(!prop.canChangeItem(lockedItem))
+
+    host.shutdown()
+}
+
+// Reordering array elements (static + dynamic) and removing a dynamic element by the correct
+// index, including struct arrays whose element rows are interleaved with their field rows.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(300, 520)
+
+    var data: PropMoveData
+    data.dyn.resize(3)
+    data.dyn[0].id = 10
+    data.dyn[1].id = 20
+    data.dyn[2].id = 30
+    data.stat[0]   = 1
+    data.stat[1]   = 2
+    data.stat[2]   = 3
+
+    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
+    prop.addStruct(data)
+
+    let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
+    @assert(dynArr != null)
+    var elems: Array'(*PropertiesItem)
+    foreach it in prop.items where it.parent == dynArr do
+        elems.add(it)
+    @assert(elems.count == 3)
+
+    // Move element 0 down -> [20,10,30], then element 2 up -> [20,30,10].
+    prop.moveArrayValue(elems[0], 1)
+    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
+    prop.moveArrayValue(elems[2], -1)
+    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
+
+    // Move at the boundaries is a no-op.
+    prop.moveArrayValue(elems[0], -1)
+    @assert(data.dyn[0].id == 20)
+
+    // Remove the element at index 1 (id 30) -> [20,10]. Used to compute an out-of-bounds index
+    // for struct arrays with more than one element.
+    prop.removeArrayValue(elems[1])
+    @assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
+
+    // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
+    let statArr = findFieldItem(prop, #nameof(PropMoveData.stat))
+    @assert(statArr != null)
+    var statElems: Array'(*PropertiesItem)
+    foreach it in prop.items where it.parent == statArr do
+        statElems.add(it)
+    @assert(statElems.count == 3)
+    prop.moveArrayValue(statElems[0], 1)
+    @assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
 
     host.shutdown()
 }

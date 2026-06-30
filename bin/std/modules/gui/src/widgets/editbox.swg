@@ -157,6 +157,12 @@ impl IWnd for EditBox
         case .isInvalid:
             colorBorder = colors.edit_ErrorBorder
             colorBk     = colors.edit_ErrorBk
+        case .editBoxFlags.has(.ReadOnly):
+            // Shown but not editable: render like a disabled box so it reads as read-only,
+            // while the widget stays focusable (it can be navigated to and copied from).
+            colorBorder = colors.edit_DisabledBorder
+            colorBk     = colors.edit_DisabledBk
+            colorText   = colors.edit_DisabledText
         case .hasFocus():
             colorBorder = colors.edit_FocusBorder
             colorBk     = colors.edit_FocusBk

@@ -32,4 +32,9 @@ impl Properties
 
     // Color edition, keep the original alpha value
     attr KeepAlpha()
+
+    // Mark a field read-only: it is shown but its editor is grayed and non-editable, and the
+    // "Paste" context-menu action is disabled. See also IPropertyNotify.isItemReadOnly for a
+    // dynamic (runtime) equivalent.
+    attr ReadOnly()
 }

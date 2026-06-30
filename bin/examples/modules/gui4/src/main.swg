@@ -149,6 +149,18 @@ struct Gui4Content
 
     #[Category("System"), ReadOnly, Description("Build revision, assigned by the system. Marked read-only with an attribute.")]
     revision: s32 = 7
+
+    #[Category("Quality"), Name("Rating"), Description("Custom editor registered for the Rating type (Properties.registerEditor): click a pip to set 0..5.")]
+    quality: Rating = {4}
+}
+
+// A small value type that gets a bespoke representation in the grid through the editor
+// registry (see buildRatingEditor / addDemoStructs). Rating does NOT implement IPropertyValue:
+// the editor is attached from the outside, which is the whole point of the registry.
+#[Swag.Using(Gui.Properties)]
+struct Rating
+{
+    value: s32 = 3
 }
 
 impl IPropertyNotify for Gui4Content
@@ -431,9 +443,63 @@ func onPropertiesChanged(_list: *Properties, item: *PropertiesItem)
         g_Preview.invalidate()
 }
 
+const RatingMax = 5
+const RatingPipSize = 28'f32
+
+// Custom editor for the Rating type: instead of the default integer editbox/slider, draw
+// RatingMax clickable pips filled up to the current value. Registered per grid via
+// Properties.registerEditor; the factory follows the same recipe as the built-in editors
+// (addItem -> build widgets -> wire hasChanged -> add a sigRefresh handler).
+func buildRatingEditor(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+{
+    let item   = list.addItem(value, data, parent)
+    let rating = cast(*Rating) data
+    let prop   = list
+
+    let line = Wnd.create'Wnd(item.line, {0, 0, RatingMax * RatingPipSize, list.getThemeMetrics().editBox_Height})
+    line.maxSize.x = RatingMax * RatingPipSize
+    if list.isGridLike() do
+        line.dockStyle = .CenterKeepSizeVert
+    else do
+        line.anchorStyle = .X
+
+    for i in RatingMax
+    {
+        let idx = cast(s32) i
+        with let btn = IconButton.create(line, {}, {0, 0, RatingPipSize, item.line.position.height})
+        {
+            .dockStyle = .Left
+            .iconBtnFlags.add(.Flat)     // no background box: paint only the pip
+            .sigPressed += func|prop, item, rating, idx|(b)
+            {
+                // Click the current top pip again to clear back to it; otherwise set to idx+1.
+                rating.value = rating.value == idx + 1 ? idx : idx + 1
+                prop.hasChanged(item)
+            }
+            .sigPaintIcon = func|rating, idx|(b, bc, pos, paintFlags)
+            {
+                bc.painter.setParams(.Antialiased)
+                let on  = idx < rating.value
+                let col = on ? Argb.Goldenrod : Color.fromArgb(70'u8, Argb.Gray)
+                let rad = Math.min(pos.width, pos.height) * 0.28
+                bc.painter.fillCircle(pos.horzCenter(), pos.vertCenter(), rad, col)
+            }
+        }
+    }
+
+    item.sigRefresh += func|line|(item)
+    {
+        foreach c in line.childs do
+            c.invalidate()
+    }
+
+    return item
+}
+
 func addDemoStructs(prop: *Properties)
 {
     prop.sizeEditValue = 300
+    prop.registerEditor(Rating, &buildRatingEditor)
     prop.addStruct(g_Appearance, "Appearance")
     prop.addStruct(g_Content, "Content")
     prop.addStruct(g_Layout, "Layout")
@@ -444,6 +510,7 @@ func addDemoStructs(ctrl: *PropertiesCtrl)
 {
     ctrl.prop.sizeEditValue = 300
     ctrl.prop.setColumnSize(150)
+    ctrl.prop.registerEditor(Rating, &buildRatingEditor)
     ctrl.addStruct(g_Appearance, "Appearance")
     ctrl.addStruct(g_Content, "Content")
     ctrl.addStruct(g_Layout, "Layout")

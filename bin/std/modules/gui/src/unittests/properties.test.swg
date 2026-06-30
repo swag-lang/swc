@@ -1125,3 +1125,85 @@ impl Gui.IPropertyNotify for ValData
 
     host.shutdown()
 }
+
+// --- Custom editor registry -------------------------------------------------
+
+struct PropHeadlessAngle
+{
+    deg: s32 = 45
+}
+
+struct PropHeadlessAngleData
+{
+    rot:  PropHeadlessAngle
+    name: string = "x"
+}
+
+var g_PropAngleEditorCalls: s32
+
+// A custom editor for PropHeadlessAngle: a single editbox showing "<deg> deg" instead of
+// expanding the struct into its 'deg' sub-field. This is the non-intrusive registry path
+// (no IPropertyValue impl on the type).
+fileprivate func buildAngleEditor(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+{
+    g_PropAngleEditorCalls += 1
+
+    let item  = list.addItem(value, data, parent)
+    let angle = cast(*PropHeadlessAngle) data
+
+    with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
+    {
+        // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
+        // writer parses the leading number out of the free text.
+        .sigLoseFocus += func|list, item, angle|(ed)
+        {
+            angle.deg = cast(s32) (catch StrConv.toNum's64(ed.getText()))
+            list.hasChanged(item)
+        }
+    }
+
+    item.editBox = ed
+    item.sigRefresh += func|angle|(item)
+    {
+        item.editBox.setText(Format.toString("% deg", angle.deg))
+    }
+
+    return item
+}
+
+// A custom editor registered for a type overrides the built-in dispatch: the struct is not
+// expanded into its sub-fields, the factory runs once per field of that type, and its
+// item.sigRefresh drives the displayed value.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessAngleData
+
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    g_PropAngleEditorCalls = 0
+    prop.registerEditor(PropHeadlessAngle, &buildAngleEditor)
+    prop.addStruct(data)
+
+    // Factory ran once for 'rot'; the struct was NOT expanded into a 'deg' child row, so
+    // items = [section, rot, name].
+    @assert(g_PropAngleEditorCalls == 1)
+    @assert(prop.items.count == 3)
+
+    let rot = findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
+    @assert(rot != null)
+    @assert(rot.editBox != null)
+    @assert(rot.numChilds == 0)
+    @assert(rot.editBox.getText() == "45 deg")
+
+    // A plain field next to it still uses the built-in editor.
+    let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
+    @assert(name != null and name.editBox != null)
+
+    // Re-registering the same type replaces the editor (no duplicate entries).
+    prop.registerEditor(PropHeadlessAngle, &buildAngleEditor)
+    @assert(prop.editors.count == 1)
+
+    host.shutdown()
+}

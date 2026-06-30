@@ -91,6 +91,10 @@ struct Properties
     resizingColumn:           bool
     aniBar:                   BlendColor
     editPopup:                *Wnd
+
+    // Per-grid custom editor registry (type -> factory). Checked before the built-in
+    // editors, so a registered type gets a bespoke representation. See registerEditor.
+    editors:                  Array'PropertyEditorEntry
 }
 
 #[Swag.EnumFlags]
@@ -739,7 +743,10 @@ fileprivate impl Properties
         }
     }
 
-    mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->*PropertiesItem
+    // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
+    // Public so custom editors registered with registerEditor (possibly authored in another
+    // module) can build their row the same way the built-in editors do.
+    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->*PropertiesItem
     {
         var line: *Wnd
 
@@ -865,6 +872,19 @@ fileprivate impl Properties
 
     mtd addValue(value: Swag.TypeValue, data: [*] u8, parentItem: *PropertiesItem)
     {
+        // A custom editor registered for this exact type overrides the built-in editors (and
+        // any IPropertyValue impl), letting any type get a bespoke representation without
+        // implementing an interface on it. The factory wires its own item.sigRefresh, which
+        // refreshItem then drives, exactly like the IPropertyValue path below.
+        let factory = .findEditor(value.pointedType)
+        if factory
+        {
+            let item = factory(me, value, data, parentItem)
+            Debug.assert(item != null)
+            item.sigRefresh.call(item)
+            return
+        }
+
         // Value
         switch
         {

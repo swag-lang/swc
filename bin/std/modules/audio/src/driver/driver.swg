@@ -157,6 +157,14 @@ impl Driver
 
     mtd updateVoice(voice: *Voice, cmd: UpdateCommand)
     {
+        // The no-sound driver has no real-time buffer feeding: its playback is advanced
+        // deterministically by explicit updateNoSound() calls (used by tests). Letting the
+        // background thread feed its buffers would consume the whole stream instantly and
+        // race those checks (e.g. flip isPlaying to false right after play()). Registration
+        // and destruction still go through the thread.
+        if .kind == .NoSound and cmd == .UpdateBuffers do
+            return
+
         .mutexVoicesToUpdate.lock()
         defer .mutexVoicesToUpdate.unlock()
         if .driverIsClosing do

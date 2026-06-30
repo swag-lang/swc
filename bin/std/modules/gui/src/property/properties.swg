@@ -53,7 +53,8 @@ struct Properties
     listDescMarginAfter:      s32 = 5
 
     // Inline validation message bar (info/warning/error)
-    valBarGlyphWidth:         f32 = 22   // left room reserved for the severity glyph
+    valBarGlyphWidth:         f32 = 26   // left room reserved for the severity icon
+    valBarIconSize:           f32 = 18   // size of the severity icon
     valBarPaddingX:           f32 = 8    // horizontal text inset from the colored background
     valBarPaddingY:           f32 = 3    // vertical breathing room added around the text
     valBarGap:                f32 = 4    // gap between the row editor and the bar

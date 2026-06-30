@@ -53,6 +53,22 @@ moduleprivate impl Properties
         return colors.label_Text
     }
 
+    // Theme icon for a validation state (matches the embedded-info control).
+    mtd validationIcon(state: PropValidation)->Icon
+    {
+        let theme = .getTheme()
+        switch state
+        {
+        case Error:
+            return theme.getIcon64(.Critical, .valBarIconSize)
+        case Warning:
+            return theme.getIcon64(.Warning, .valBarIconSize)
+        case Info:
+            return theme.getIcon64(.Information, .valBarIconSize)
+        }
+        return theme.getIcon64(.Information, .valBarIconSize)
+    }
+
     // Recompute the validation state of every item (called on build and after a change).
     // Returns true when any row's bar appeared, disappeared or changed text, so the
     // caller can re-run the layout (the bar adds/removes height to the row).
@@ -115,9 +131,12 @@ moduleprivate impl Properties
         bar.height += 2 * .valBarPaddingY
         painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, .validationColor(item.validation))
 
-        let glyph = item.validation == .Info ? "i" : "!"
-        let font  = .getTheme().createDefaultFont(13, .Bold)
-        painter.drawStringCenter(bar.x + .valBarGlyphWidth * 0.5, bar.vertCenter(), glyph, font, .validationTextColor(item.validation))
+        // Severity icon (tinted with the theme text color), centered in the reserved glyph
+        // column on the left of the bar.
+        let icon = .validationIcon(item.validation)
+        let ix   = bar.x + (.valBarGlyphWidth - icon.sizeX) * 0.5
+        let iy   = bar.vertCenter() - icon.sizeY * 0.5
+        icon.paint(painter, Math.round(ix), Math.round(iy), .validationTextColor(item.validation))
     }
 }
 

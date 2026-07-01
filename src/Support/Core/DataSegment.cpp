@@ -241,17 +241,9 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
     if (!size)
         return;
 
-    {
-        const std::shared_lock lock(relocationsMutex_);
-        if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
-        {
-            copyRelocationsLocked(outRelocations, offset, size);
-            return;
-        }
-    }
-
-    const std::unique_lock lock(relocationsMutex_);
-    rebuildRelocationsByOffsetLocked();
+    // Readers only ever take a shared lock: the query walks the sorted prefix plus the unsorted tail, so
+    // no exclusive index rebuild is needed. This keeps concurrent readers off the writer's critical path.
+    const std::shared_lock lock(relocationsMutex_);
     copyRelocationsLocked(outRelocations, offset, size);
 }
 
@@ -259,14 +251,7 @@ bool DataSegment::findRelocation(DataSegmentRelocation& outRelocation, const uin
 {
     outRelocation = {};
 
-    {
-        const std::shared_lock lock(relocationsMutex_);
-        if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
-            return findRelocationLocked(outRelocation, offset, kind);
-    }
-
-    const std::unique_lock lock(relocationsMutex_);
-    rebuildRelocationsByOffsetLocked();
+    const std::shared_lock lock(relocationsMutex_);
     return findRelocationLocked(outRelocation, offset, kind);
 }
 
@@ -275,14 +260,7 @@ bool DataSegment::hasRelocations(const uint32_t offset, const uint32_t size) con
     if (!size)
         return false;
 
-    {
-        const std::shared_lock lock(relocationsMutex_);
-        if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
-            return hasRelocationsLocked(offset, size);
-    }
-
-    const std::unique_lock lock(relocationsMutex_);
-    rebuildRelocationsByOffsetLocked();
+    const std::shared_lock lock(relocationsMutex_);
     return hasRelocationsLocked(offset, size);
 }
 
@@ -299,6 +277,17 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
 
         outRelocations.push_back(relocation);
     }
+
+    // Scan the unsorted tail (relocations appended since the sorted index was last built).
+    for (uint32_t index = relocationsIndexedCount_; index < relocations_.size(); ++index)
+    {
+        const DataSegmentRelocation& relocation = relocations_[index];
+        if (relocation.offset - offset < size)
+            outRelocations.push_back(relocation);
+    }
+
+    // Preserve the historical offset-sorted output regardless of prefix/tail split.
+    std::ranges::sort(outRelocations, {}, &DataSegmentRelocation::offset);
 }
 
 bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const
@@ -318,6 +307,16 @@ bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, con
         ++it;
     }
 
+    for (uint32_t index = relocationsIndexedCount_; index < relocations_.size(); ++index)
+    {
+        const DataSegmentRelocation& relocation = relocations_[index];
+        if (relocation.offset == offset && relocation.kind == kind)
+        {
+            outRelocation = relocation;
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -325,11 +324,16 @@ bool DataSegment::hasRelocationsLocked(const uint32_t offset, const uint32_t siz
 {
     const RelocationOffsetProjection projection{.relocations = &relocations_};
     const auto                       it = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
-    if (it == relocationsByOffset_.end())
-        return false;
+    if (it != relocationsByOffset_.end() && relocations_[*it].offset - offset < size)
+        return true;
 
-    const DataSegmentRelocation& relocation = relocations_[*it];
-    return relocation.offset - offset < size;
+    for (uint32_t index = relocationsIndexedCount_; index < relocations_.size(); ++index)
+    {
+        if (relocations_[index].offset - offset < size)
+            return true;
+    }
+
+    return false;
 }
 
 std::mutex& DataSegment::allocationMutex(const uint32_t allocationOffset) const
@@ -452,34 +456,40 @@ Ref DataSegment::findLargeBlockRefLocked(const void* ptr) const noexcept
 
 void DataSegment::rebuildRelocationsByOffsetLocked() const
 {
-    if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
+    if (relocationsIndexedCount_ == relocations_.size())
         return;
 
     relocationsByOffset_.resize(relocations_.size());
     std::ranges::iota(relocationsByOffset_, 0u);
     const RelocationIndexLess sortRelocations{.relocations = &relocations_};
     std::ranges::sort(relocationsByOffset_, sortRelocations);
-    relocationsByOffsetDirty_ = false;
+    relocationsIndexedCount_ = static_cast<uint32_t>(relocations_.size());
 }
 
 void DataSegment::recordRelocationIndexLocked(uint32_t index)
 {
     SWC_ASSERT(index + 1 == relocations_.size());
 
-    if (relocationsByOffsetDirty_ || relocationsByOffset_.size() + 1 != relocations_.size())
+    // Common case: relocations arrive in non-decreasing offset order (bump allocation), so the new one
+    // simply extends the sorted prefix in O(1).
+    if (relocationsIndexedCount_ == index)
     {
-        relocationsByOffsetDirty_ = true;
-        return;
+        const RelocationIndexLess sortRelocations{.relocations = &relocations_};
+        if (relocationsByOffset_.empty() || !sortRelocations(index, relocationsByOffset_.back()))
+        {
+            relocationsByOffset_.push_back(index);
+            relocationsIndexedCount_ = index + 1;
+            return;
+        }
     }
 
-    const RelocationIndexLess sortRelocations{.relocations = &relocations_};
-    if (!relocationsByOffset_.empty() && sortRelocations(index, relocationsByOffset_.back()))
-    {
-        relocationsByOffsetDirty_ = true;
-        return;
-    }
-
-    relocationsByOffset_.push_back(index);
+    // Otherwise the relocation joins the unsorted tail. Readers scan that tail linearly, so keep it
+    // bounded by folding it back into the sorted index once it grows past a threshold. The threshold
+    // scales with the indexed size to keep the amortized rebuild cost near O(n log n) overall.
+    const uint32_t tailCount = static_cast<uint32_t>(relocations_.size()) - relocationsIndexedCount_;
+    const uint32_t threshold = std::max<uint32_t>(64, relocationsIndexedCount_ / 8);
+    if (tailCount > threshold)
+        rebuildRelocationsByOffsetLocked();
 }
 
 void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, uint32_t align)

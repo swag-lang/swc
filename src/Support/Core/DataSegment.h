@@ -160,8 +160,12 @@ private:
     std::map<uintptr_t, LargeBlockRange>                                   largeBlockRanges_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
+    // Sorted-by-offset index over the first `relocationsIndexedCount_` relocations. Relocations beyond
+    // that count form an unsorted tail. Readers query the sorted prefix (binary search) plus the tail
+    // (linear scan) under a shared lock, so they never need to escalate to an exclusive rebuild; the
+    // tail is merged into the index on the writer side once it grows past a threshold.
     mutable std::vector<uint32_t>                                          relocationsByOffset_;
-    mutable bool                                                           relocationsByOffsetDirty_ = false;
+    mutable uint32_t                                                       relocationsIndexedCount_ = 0;
     std::vector<DataSegmentAllocation>                                     allocations_;
     std::atomic<bool>                                                      hasLargeBlocks_{false};
     mutable std::shared_mutex                                              mutex_;

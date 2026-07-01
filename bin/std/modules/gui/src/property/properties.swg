@@ -1,16 +1,18 @@
 #global public
 using Core, Pixel
 
-// The property control. This file holds the Properties struct and its lifecycle/state API; the
-// rest of the control is split across sibling files by concern, the same way richedit is:
-//   propertiesitem     — the PropertiesItem row struct + item flags
-//   propertiesbuild    — reflection -> rows (addItem/addValue/addStructInternal)
-//   propertieslayout   — grid/condensed modes + resizable label column
-//   propertiespaint    — row background/border/separator/disclosure rendering
-//   propertiesinput    — hit-testing, mouse hook, per-row events
-//   propertiesmenu     — the right-click context menu
-//   propertiesaction   — ActionProperties: the built-in commands (IActionUI)
-//   propertiesattributes / propertieseditors / propertieskeyboard / validation / multi / values
+// The property control. This file holds the Properties struct and its lifecycle/state API. Its
+// pure theme-split extensions (only `impl Properties`, no new type) use the dotted form
+// `properties.<subpart>.swg`, the same way the compiler names `Pass.<subpart>.cpp`:
+//   properties.build       — reflection -> rows (addItem/addValue/addStructInternal)
+//   properties.layout      — grid/condensed modes + resizable label column
+//   properties.paint       — row background/border/separator/disclosure rendering
+//   properties.input       — hit-testing, mouse hook, per-row events
+//   properties.menu        — the right-click context menu
+//   properties.attributes / properties.keyboard / properties.multi
+// Files that declare their own type keep a concatenated name after that type: propertiesitem
+// (PropertiesItem), actionproperties (ActionProperties), propertiesctrl, propertiesview,
+// propertieseditors (IPropertyEditor), validation (PropValidation), + values/.
 
 // To notify a struct about properties changes
 #[Swag.Warning("Wrn0006", .Disable)]
@@ -105,7 +107,7 @@ struct Properties
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points
 // live here; the heavy logic they reach into is in the concern files (paintBackItem in
-// propertiespaint, the notify dispatch below refreshes via refreshItem).
+// properties.paint, the notify dispatch below refreshes via refreshItem).
 impl IWnd for Properties
 {
     mtd impl onPaintEvent(evt: *PaintEvent)
@@ -273,7 +275,7 @@ impl Properties
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }
 
             // Built-in context-menu commands (Copy/Paste/array ops) go through the shared gui
-            // action system instead of a hardcoded id switch. See propertiesaction.swg.
+            // action system instead of a hardcoded id switch. See actionproperties.swg.
             .registerAction'ActionProperties()
         }
 

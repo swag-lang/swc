@@ -3,7 +3,7 @@ using Core, Pixel
 
 // Grid/Condensed layout of the property control: mode predicates, the resizable label column,
 // and the condensed-cell adaptations. Split out of properties.swg so the geometry lives in one
-// place. See also propertiespaint.swg (which draws the column separator) and the two-pass
+// place. See also properties.paint.swg (which draws the column separator) and the two-pass
 // resize loop in propertiesview.swg.
 impl Properties
 {

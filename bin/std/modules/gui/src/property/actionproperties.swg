@@ -3,7 +3,7 @@ using Core, Pixel
 
 // The property grid's built-in context-menu commands, exposed through the shared gui action
 // system (IActionUI) rather than a hardcoded addItem+doModal+switch(result). Registered on every
-// Properties control in create(); the context menu (propertiesmenu.swg) just declares item ids,
+// Properties control in create(); the context menu (properties.menu.swg) just declares item ids,
 // and doModal dispatches update()/execute() here. The target row is read from Properties.menuItem,
 // so the very same commands could also be driven by a toolbar button or a keyboard shortcut
 // (same WndId).

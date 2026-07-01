@@ -3,7 +3,7 @@ using Core, Pixel
 
 // Right-click context menu of the property control. The menu only declares which command ids are
 // relevant for the clicked row; label/icon/enabled state and execution go through the shared gui
-// action system (IActionUI) via ActionProperties (propertiesaction.swg). Custom items contributed
+// action system (IActionUI) via ActionProperties (actionproperties.swg). Custom items contributed
 // by IPropertyNotify.fillPopupMenu are dispatched back through Properties.onCommandEvent (in
 // properties.swg) -> onPopupCommand.
 moduleprivate impl Properties

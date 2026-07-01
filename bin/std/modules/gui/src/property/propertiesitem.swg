@@ -24,7 +24,7 @@ enum ItemFlags
 
 // One row of the property grid: its window, the bound field (typeinfo + address, plus one
 // address per instance for multi-selection), the editor sub-widgets, validation state and the
-// tree bookkeeping. Rows are created by Properties.addItem (propertiesbuild.swg) and stored flat
+// tree bookkeeping. Rows are created by Properties.addItem (properties.build.swg) and stored flat
 // in Properties.items, with the hierarchy tracked through the `parent` pointer.
 struct PropertiesItem
 {

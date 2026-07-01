@@ -4,8 +4,8 @@ using Core, Pixel
 // Input handling for the property control: hit-testing, the container-level child-event hook
 // (mouse wheel routing, column resize, hover/tooltip, keyboard-nav interception), and the
 // per-row event handler that opens the context menu and drives the row background paint.
-// Keyboard navigation/edition itself lives in propertieskeyboard.swg; the context menu in
-// propertiesmenu.swg; the row painting in propertiespaint.swg.
+// Keyboard navigation/edition itself lives in properties.keyboard.swg; the context menu in
+// properties.menu.swg; the row painting in properties.paint.swg.
 moduleprivate impl Properties
 {
     mtd hitTest(ptLoc: Math.Point)->#null *PropertiesItem

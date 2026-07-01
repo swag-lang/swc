@@ -142,6 +142,20 @@ impl IWnd for Properties
         .freeDefaultRoots()
     }
 
+    // The validation bar's icon + colors are manually-set Label fields (not theme styles), so they
+    // do not follow a theme switch on their own. Re-apply them from the current theme here (exactly
+    // like EmbInfoCtrl re-runs setColors on ThemeChanged) — otherwise a bar built under one theme
+    // keeps stale colors under the next (e.g. dark-theme light text nearly invisible on the light
+    // pastel background).
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        foreach it in .items
+        {
+            if it.validationLabel and it.validation != .None do
+                .applyValidationVisual(it)
+        }
+    }
+
     // Built-in commands are handled by ActionProperties (registered in create). A command id
     // that no action claims comes from a custom fillPopupMenu item: dispatch it to the notify
     // interface(s) along the clicked row's parent chain, then refresh — the same contract the

@@ -727,14 +727,14 @@ impl ThemeColors
 
         .imageRect_Fg = White
 
-        // Soft, desaturated "pastel" notice backgrounds with dark, readable text. The
-        // status icons keep their native colors and stand out against the muted fill.
-        .embInfo_CriticalBk      = 0xFFE7C0C0
-        .embInfo_CriticalText    = 0xFF7E2020
-        .embInfo_InformationBk   = 0xFFC6D4EC
-        .embInfo_InformationText = 0xFF2A3C63
-        .embInfo_MessageBk       = 0xFFE9D8A2
-        .embInfo_MessageText     = 0xFF6A5210
+        // Dark theme: deep, desaturated notice backgrounds with soft, light text — so a chip reads
+        // as a muted tint of the dark UI, not a loud light block. Status icons keep native colors.
+        .embInfo_CriticalBk      = 0xFF4A2E2E
+        .embInfo_CriticalText    = 0xFFE6ADAD
+        .embInfo_InformationBk   = 0xFF2B3A4C
+        .embInfo_InformationText = 0xFFAEC8E6
+        .embInfo_MessageBk       = 0xFF46402A
+        .embInfo_MessageText     = 0xFFE6D2A2
 
         .prop_FocusBk     = Color.getLighter(Color.fromArgb(Gray5), 0.05)
         .prop_FocusBorder = Gray3
@@ -1114,14 +1114,15 @@ impl ThemeColors
 
         .imageRect_Fg = White
 
-        // Soft, desaturated "pastel" notice backgrounds with dark, readable text. The
-        // status icons keep their native colors and stand out against the muted fill.
-        .embInfo_CriticalBk      = 0xFFF2D0D0
-        .embInfo_CriticalText    = 0xFF8A2626
-        .embInfo_InformationBk   = 0xFFD4DFF3
-        .embInfo_InformationText = 0xFF2F4068
-        .embInfo_MessageBk       = 0xFFF1E2AE
-        .embInfo_MessageText     = 0xFF6E5612
+        // Light theme: gentle, desaturated pastel backgrounds with soft (not fully saturated)
+        // readable text, so the chips read as a light tint rather than a loud block. Status icons
+        // keep their native colors and stand out against the muted fill.
+        .embInfo_CriticalBk      = 0xFFF5DEDE
+        .embInfo_CriticalText    = 0xFF9C4A4A
+        .embInfo_InformationBk   = 0xFFDEE7F6
+        .embInfo_InformationText = 0xFF45597E
+        .embInfo_MessageBk       = 0xFFF4EACB
+        .embInfo_MessageText     = 0xFF7C6636
 
         .prop_FocusBk     = AccentPressedBk
         .prop_FocusBorder = Blue

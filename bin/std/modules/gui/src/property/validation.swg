@@ -116,8 +116,9 @@ moduleprivate impl Properties
         return .applyItemValidation(item, state, message)
     }
 
-    // Draw the colored background and severity glyph of a row's validation bar, in the
-    // row line's client space (the message text is painted by the label itself on top).
+    // Draw the colored background of a row's validation bar, in the row line's client space. The
+    // severity icon and the message text are drawn by the Label itself (like EmbInfoCtrl), so they
+    // stay vertically centered together — see applyValidationVisual for the icon/colors.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
         let lbl = item.validationLabel
@@ -130,14 +131,27 @@ moduleprivate impl Properties
         bar.y      -= .valBarPaddingY
         bar.height += 2 * .valBarPaddingY
         painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, .validationColor(item.validation))
+    }
 
-        // Severity icon, drawn with its native colors (White = no tint) so it stays vivid
-        // and readable against the soft background, centered in the reserved glyph column
-        // on the left of the bar.
-        let icon = .validationIcon(item.validation)
-        let ix   = bar.x + (.valBarGlyphWidth - icon.sizeX) * 0.5
-        let iy   = bar.vertCenter() - icon.sizeY * 0.5
-        icon.paint(painter, Math.round(ix), Math.round(iy), Argb.White)
+    // Apply the bar's theme visuals to the Label: the severity icon (getIcon64, native White tint,
+    // like EmbInfoCtrl) plus the embInfo_* text color. Split out so it can be re-run on a theme
+    // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
+    mtd applyValidationVisual(item: *PropertiesItem)
+    {
+        let lbl = item.validationLabel
+        if !lbl or item.validation == .None do
+            return
+        lbl.icon      = .validationIcon(item.validation)
+        lbl.iconColor = Argb.White
+        lbl.textColor = .validationTextColor(item.validation)
+        .syncValidationTextOffset(lbl)
+    }
+
+    mtd syncValidationTextOffset(lbl: *Label)
+    {
+        let font = lbl.getFont().regular
+        if font do
+            lbl.paddingText = {me.valBarGlyphWidth, -font.descent * 0.5, me.valBarPaddingX, font.descent * 0.5}
     }
 
     // Match the validation bar to the editor column and size the row to host it. Called once
@@ -161,6 +175,7 @@ moduleprivate impl Properties
             var consume = 0'f32
             if visible
             {
+                .syncValidationTextOffset(lbl)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
                 let cw     = item.line.getClientRect().width
@@ -192,6 +207,7 @@ moduleprivate impl Properties
             lbl.maxSize.x      = w
             lbl.position.width = w
         }
+        .syncValidationTextOffset(lbl)
         lbl.autoHeight()
         return true
     }
@@ -245,7 +261,7 @@ fileprivate impl Properties
         else
         {
             .ensureValidationLabel(item)
-            item.validationLabel.textColor = .validationTextColor(state)
+            .applyValidationVisual(item)
             item.validationLabel.setText(message)
             item.validationLabel.show(true)
         }
@@ -267,6 +283,10 @@ fileprivate impl Properties
             .horzAlignmentText = .Left
             .vertAlignmentText = .Center
             .focusStrategy     = .None
+            // The Label draws the severity icon on the left and the text after it (both vertically
+            // centered by the Label — vertAlignmentIcon defaults to Center), like EmbInfoCtrl.
+            .horzAlignmentIcon = .Left
+            .paddingIcon.x     = (me.valBarGlyphWidth - me.valBarIconSize) * 0.5
             // Reserve room for the glyph on the left and inset the text from the colored
             // background edges (vertical breathing room is added when painting the bar).
             .paddingText = {me.valBarGlyphWidth, 0, me.valBarPaddingX, 0}

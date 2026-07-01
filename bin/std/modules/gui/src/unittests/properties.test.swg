@@ -990,6 +990,9 @@ impl Gui.IPropertyNotify for ValData
     @assert(nameItem.validation == .Error)                 // empty name flagged on build
     @assert(nameItem.validationMsg == "Name is required.")
     @assert(countItem.validation == .None)
+    @assert(nameItem.validationLabel != null and nameItem.validationLabel.isVisible())
+    @assert(nameItem.validationLabel.paddingText.y > 0)
+    @assert(Math.abs(nameItem.validationLabel.paddingText.y + nameItem.validationLabel.paddingText.w) < 0.01)
 
     // Editing into an invalid range raises a warning.
     countItem.editBox.setText("150")

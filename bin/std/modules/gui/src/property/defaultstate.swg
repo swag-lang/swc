@@ -255,10 +255,11 @@ impl Properties
         return true
     }
 
-    // Create the revert arrow in the row's trailing action margin — a spacious, square Overlay icon
-    // button (translucent hover, no opaque box that would clash with a pastel/selected row), docked
-    // to the right. Grid buttons start hidden-but-present (empty icon + disabled) so the reserved
-    // column keeps the editor from resizing when the arrow toggles; list buttons start hidden.
+    // Create the revert arrow in the row's trailing action margin — a square Overlay icon button
+    // (translucent hover, no opaque box that would clash with a pastel/selected row). Grid docks it
+    // to the right of the row and starts it hidden-but-present (empty icon + disabled) so the
+    // reserved column keeps the editor from resizing when the arrow toggles; list positions it by
+    // hand at the right of the edit column (positionListRevert) and starts it hidden.
     mtd ensureRevertButton(item: *PropertiesItem)
     {
         if item.revertButton do
@@ -268,30 +269,70 @@ impl Properties
         if !host do
             return
 
+        let grid = .isGridLike()
         let h    = .getThemeMetrics().editBox_Height
         let prop = me
         with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, PropRevertIconSize), {0, 0, h, h})
         {
             .setForm(.Round)
             .iconBtnFlags.add(.Overlay)      // elegant translucent hover, no opaque box
-            .dockStyle     = .Right
-            .maxSize.y     = h               // square, editBox-tall: airy, not packed
-            .margin.x      = PropRevertGap   // breathing room from the editor / previous action
-            .margin.z      = PropRevertGap
-            .toolTip       = "Reset to default value"
+            .maxSize       = {h, h}          // square: symmetric horizontally and vertically
+            .minSize       = {h, h}
             .focusStrategy = .None           // stays out of the keyboard nav order
+
+            if grid
+            {
+                .dockStyle = .Right
+                .margin.x  = PropRevertGap   // breathing room from the editor / previous action
+                .margin.z  = PropRevertGap
+            }
+            else do
+                .dockStyle = .None           // placed by positionListRevert, at the edit column
+
             .sigPressed += func|prop, item|(b)
             {
                 prop.resetItemDefault(item)
             }
         }
 
-        if .isGridLike()
+        if grid
         {
             item.revertButton.icon.clear()   // reserved column, arrow hidden until modified
             item.revertButton.enable(false)
         }
-        else do
+        else
+        {
+            // The arrow is a child of the name label; let it paint beyond the label's short
+            // single-line bounds so it is never clipped (it is sized + centered on the title line
+            // by positionListRevert).
+            item.label.wndFlags.remove(.ClipChildren)
             item.revertButton.show(false)
+        }
+    }
+
+    // List mode: line the revert arrow up with the right edge of the edit column (the value
+    // widgets) and center it on the name's title line, instead of leaving it stranded at the far
+    // right of the full-width row. Called from the resize loop once the value widgets are
+    // positioned. The button is a child of the name label, so its geometry is in the label's local
+    // space; it is sized to the title line height so a big square does not overrun the row below.
+    mtd positionListRevert(item: *PropertiesItem)
+    {
+        let btn = item.revertButton
+        if .isGridLike() or !btn or !item.label do
+            return
+
+        // Fit the arrow to the title line (a single-line name is shorter than the grid button).
+        let sz = Math.min(item.label.position.height, me.getThemeMetrics().editBox_Height)
+        btn.position.width  = sz
+        btn.position.height = sz
+        btn.maxSize         = {sz, sz}
+        btn.minSize         = {sz, sz}
+        btn.icon.sizeX      = Math.max(sz - 4, 8.0)
+        btn.icon.sizeY      = btn.icon.sizeX
+
+        let span = .valueWidgetsSpan(item)             // [left, right] in line space
+        let lx   = item.label.position.x               // label origin in line space
+        btn.position.x = Math.round(span.right - lx - sz)
+        btn.position.y = Math.round((item.label.position.height - sz) * 0.5)
     }
 }

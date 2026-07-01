@@ -45,8 +45,13 @@ moduleprivate impl Properties
         }
         else
         {
+            // The row background/selection hugs the edit column (name + editor), not the full view
+            // width: it stays consistent when the window is wider, and — since it no longer paints
+            // a huge band outside the actual content — it repaints cleanly (no stale strip on the
+            // right when the selection or hover moves). A left/right margin keeps the content (and
+            // the revert arrow) off the highlight border.
             r.x     = -.leftMargin + 1
-            r.width = .edView.position.width - 1
+            r.width = cast(f32) .sizeEditValue + .leftMargin + .rightMargin - 1
         }
 
         // When a validation bar grows the grid row, the row chrome (background, border, focus

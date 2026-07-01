@@ -95,6 +95,9 @@ moduleprivate impl Properties
             painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
         }
 
+        // "Not at its default value" accent bar on the far left of the row (grid mode).
+        .paintModifiedMark(painter, item, r)
+
         // Validation feedback: an inline colored message bar stacked under the value cell,
         // in both list and grid modes.
         .paintValidationBar(painter, item)

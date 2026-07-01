@@ -39,6 +39,18 @@ interface IPropertyNotify
     // change; the row shows an accent bar + badge in the state color and the message as a
     // tooltip. The most severe result along the item's parent chain wins.
     mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult { return {}; }
+
+    // Customize the "is this field still at its default value?" test, used to decide whether the
+    // row shows the revert marker. Return .Auto (the default) to let the grid compare the current
+    // value against the value the field is initialized to in the struct declaration; return
+    // .AtDefault / .Modified to force the answer when the test is more involved than a plain
+    // comparison. The first non-Auto result along the item's parent chain wins.
+    mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState { return .Auto; }
+
+    // Reset 'item' to its default value yourself; return true once handled. Return false (the
+    // default) to let the grid restore the value declared in the struct. Called by the "Reset to
+    // default" action and the revert marker. Checked along the item's parent chain.
+    mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool { return false; }
 }
 
 enum PropertiesKind
@@ -99,6 +111,12 @@ struct Properties
     aniBar:                   BlendColor
     editPopup:                *Wnd
 
+    // "Reset to default" feature (defaults.swg). defaultRoots owns one default-constructed
+    // instance per added struct, freed on destroy; every row's defaultData points into it.
+    // showReverts is the master switch for the revert markers.
+    defaultRoots:             Array'PropDefaultRoot
+    showReverts:              bool = true
+
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
@@ -114,6 +132,14 @@ impl IWnd for Properties
     {
         let colorBar = .cursorSet ? .getThemeColors().splitView_BarHot : .getThemeColors().prop_GridColumn
         .aniBar.apply(me, colorBar)
+    }
+
+    // Free the default-constructed instances backing the "reset to default" feature. They are
+    // heap-allocated per added struct (assignDefaults), so their drop+free is not covered by the
+    // struct's automatic field drop.
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        .freeDefaultRoots()
     }
 
     // Built-in commands are handled by ActionProperties (registered in create). A command id
@@ -331,6 +357,7 @@ impl Properties
         item.numChilds = cast(u32) (.items.count - numItemsBefore)
 
         .assignInstances(firstItemIdx, bases)
+        .assignDefaults(firstItemIdx, typeof, cast([*] u8) bases[0])
 
         // Editors were first filled from instance 0 before the instance addresses existed;
         // refresh so any field that differs across instances now shows as "mixed".
@@ -389,9 +416,13 @@ impl Properties
 
         .refresh()
 
-        // A change can add or remove a validation bar, which changes the row height: relay
-        // out the grid so the rows below shift and the scroll size stays correct.
-        if .updateValidation()
+        // A change can add/remove a validation bar (row height) or flip a row's revert marker
+        // (row layout): relay out the grid so the rows below shift and the scroll size stays
+        // correct.
+        var relayout = .updateValidation()
+        if .updateDefaults() do
+            relayout = true
+        if relayout
         {
             .applyLayout()
             .scrollWnd.view.sendResizeEvent()
@@ -540,6 +571,7 @@ impl Properties
         foreach it in .items do
             .updateItemState(it)
         .updateValidation()
+        .updateDefaults()
         .applyLayout()
         .scrollWnd.view.sendResizeEvent()
     }

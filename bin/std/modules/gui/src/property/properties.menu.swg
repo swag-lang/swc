@@ -58,6 +58,14 @@ moduleprivate impl Properties
             menu.addItem(ActionProperties.Paste)
         }
 
+        // Reset-to-default: only for rows that carry a comparable declared default (grayed by
+        // ActionProperties.update when the value already matches that default).
+        if .canReset(item)
+        {
+            menu.addSeparator()
+            menu.addItem(ActionProperties.ResetDefault)
+        }
+
         if arr.arrItem
         {
             if arr.arrElem

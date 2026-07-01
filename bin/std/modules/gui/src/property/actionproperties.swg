@@ -13,6 +13,7 @@ impl ActionProperties
 {
     newCmdId("Copy")
     newCmdId("Paste")
+    newCmdId("ResetDefault")
     newCmdId("MoveUp")
     newCmdId("MoveDown")
     newCmdId("Remove")
@@ -25,7 +26,7 @@ impl IActionUI for ActionProperties
     {
         switch cxt.id
         {
-        case Copy, Paste, MoveUp, MoveDown, Remove, RemoveAll:
+        case Copy, Paste, ResetDefault, MoveUp, MoveDown, Remove, RemoveAll:
             return true
         }
 
@@ -56,6 +57,12 @@ impl IActionUI for ActionProperties
             evt.name     = "Paste"
             evt.icon     = theme.getIcon24(.Paste)
             evt.disabled = !prop.canChangeItem(item) or !Clipboard.hasTypedValue(item.type)
+
+        case ResetDefault:
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.name     = "Reset to default"
+            evt.icon     = theme.getIcon24(.Undo)
+            evt.disabled = !item.isModified
 
         case MoveUp:
             evt.setFlags |= .Name | .Icon | .Disabled
@@ -117,6 +124,9 @@ impl IActionUI for ActionProperties
                 prop.refreshItem(item)
                 prop.hasChanged(item)
             }
+
+        case ResetDefault:
+            prop.resetItemDefault(item)
 
         case MoveUp:
             if arr.arrElem do

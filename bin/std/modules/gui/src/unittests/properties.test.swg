@@ -1269,3 +1269,210 @@ impl IPropertyEditor for PropAngleEditor
 
     host.shutdown()
 }
+
+// --- Reset to default -------------------------------------------------------
+
+struct PropDefaultData
+{
+    count:   s32 = 42
+    name:    string = "hello"          // static string: read-only, never resettable
+    enabled: bool = true
+}
+
+var g_PropDefResetCalls: s32
+var g_PropDefForceModified: bool
+
+struct PropDefaultCustom
+{
+    val: s32 = 5
+}
+
+impl IPropertyNotify for PropDefaultCustom
+{
+    // Force the modified state regardless of the actual value (the customizable test).
+    mtd impl isItemAtDefault(_list: *Properties, item: *PropertiesItem)->PropDefaultState
+    {
+        if item.typeValue.name == #nameof(PropDefaultCustom.val) do
+            return g_PropDefForceModified ? .Modified : .AtDefault
+        return .Auto
+    }
+
+    // Take over the reset itself.
+    mtd impl resetItemToDefault(_list: *Properties, item: *PropertiesItem)->bool
+    {
+        if item.typeValue.name == #nameof(PropDefaultCustom.val)
+        {
+            g_PropDefResetCalls += 1
+            return true
+        }
+        return false
+    }
+}
+
+// Built-in detection: a field equal to its declared default is not modified; editing it flags the
+// row (isModified + a visible revert button) and Properties.resetItemDefault restores the value.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 320)
+
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
+    @assert(countItem != null)
+
+    // The default value comes from a real default-constructed instance of the struct.
+    @assert(countItem.defaultData != null)
+    @assert(dref cast(*s32) countItem.defaultData == 42)
+
+    // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
+    @assert(!countItem.isModified)
+    @assert(prop.canReset(countItem))
+    @assert(countItem.revertButton == null or !countItem.revertButton.isVisible())
+
+    // Static string field is read-only -> never resettable and never modified.
+    let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))
+    @assert(nameItem != null)
+    @assert(!prop.canReset(nameItem))
+    @assert(!nameItem.isModified)
+
+    // Edit the value away from its default: the row becomes modified and shows the revert arrow.
+    countItem.editBox.setText("99")
+    prop.validateNative(countItem)
+    @assert(data.count == 99)
+    @assert(countItem.isModified)
+    @assert(countItem.revertButton != null and countItem.revertButton.isVisible())
+
+    // Reset restores the declared default and clears the modified state / hides the arrow.
+    prop.resetItemDefault(countItem)
+    @assert(data.count == 42)
+    @assert(!countItem.isModified)
+    @assert(!countItem.revertButton.isVisible())
+
+    host.shutdown()
+}
+
+// The "Reset to default" context-menu command goes through the shared action system: update()
+// disables it while the value is at its default and enables it once modified; execute() resets.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 320)
+
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
+    prop.menuItem = countItem
+
+    // At default: the command exists but is disabled.
+    var st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
+    @assert(st.setFlags.has(.Disabled) and st.disabled)
+
+    // After a change: enabled, and executing it restores the default.
+    data.count = 7
+    prop.updateStates()
+    @assert(countItem.isModified)
+    st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
+    @assert(st.setFlags.has(.Disabled) and !st.disabled)
+
+    prop.sendCommandEvent(ActionProperties.ResetDefault)
+    @assert(data.count == 42 and !countItem.isModified)
+
+    host.shutdown()
+}
+
+// The test and the reset are both customizable through IPropertyNotify: isItemAtDefault forces the
+// modified state (even though the value equals the default), and resetItemToDefault handles reset.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 320)
+
+    g_PropDefResetCalls   = 0
+    g_PropDefForceModified = true
+
+    var data: PropDefaultCustom
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))
+    @assert(valItem != null)
+
+    // Value equals the declared default (5), but the override forces "modified".
+    @assert(dref cast(*s32) valItem.data == 5)
+    @assert(valItem.isModified)
+
+    // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
+    prop.resetItemDefault(valItem)
+    @assert(g_PropDefResetCalls == 1)
+
+    // Flipping the override back reports "at default".
+    g_PropDefForceModified = false
+    prop.updateStates()
+    @assert(!valItem.isModified)
+
+    host.shutdown()
+}
+
+// Grid mode: the revert arrow docks to the right of the row and does not overlap the value editor
+// (the layout reserves its space), and it disappears again once the value is reset.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(360, 320)
+
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    prop.addStruct(data)
+
+    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
+    @assert(countItem != null and countItem.editBox != null)
+
+    data.count = 5
+    prop.updateStates()
+    @assert(countItem.isModified)
+
+    let btn = countItem.revertButton
+    @assert(btn != null and btn.isVisible())
+
+    // The arrow sits at the right edge of the row, and the value editor stops before it.
+    @assert(btn.position.right() <= countItem.line.getClientRect().right() + 0.5)
+    @assert(countItem.editBox.position.right() <= btn.position.x + 0.5)
+
+    prop.resetItemDefault(countItem)
+    @assert(!countItem.isModified and !btn.isVisible())
+
+    host.shutdown()
+}
+
+// Multi-selection: a field is "modified" when it differs from the default in ANY edited instance,
+// and reset writes the declared default into every instance.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0, t1: PropDefaultData
+    t0.count = 42                                          // at default
+    t1.count = 7                                           // differs
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
+
+    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
+    @assert(countItem != null)
+    @assert(countItem.isModified)                         // one instance differs
+
+    prop.resetItemDefault(countItem)
+    @assert(t0.count == 42 and t1.count == 42)
+    @assert(!countItem.isModified)
+
+    host.shutdown()
+}

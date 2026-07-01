@@ -39,6 +39,17 @@ struct PropertiesItem
     // enum-flags bit), so hasChanged must not blindly copy the whole field over the
     // others — that would clobber the components/bits the user did not touch.
     selfPropagate:      bool
+
+    // "Reset to default" tracking (defaults.swg). defaultData points into the default-
+    // constructed root instance at this field's fixed offset, i.e. the value the field is
+    // initialized to in the struct declaration; it is null when there is no comparable default
+    // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
+    // current value differs from that default (recomputed on build and after every change);
+    // revertButton is the lazily-created revert affordance shown while the row is modified.
+    defaultData:        #null *u8
+    isModified:         bool
+    revertButton:       *IconButton
+
     type:               typeinfo
     typeValue:          Swag.TypeValue
     parent:             *PropertiesItem

@@ -206,7 +206,7 @@ namespace
             return Result::Continue;
 
         std::vector valueBytes(valueSize, std::byte{0});
-        SWC_RESULT(lowerConstantToBytes(sema, std::span<std::byte>{valueBytes.data(), valueBytes.size()}, valueTypeRef, cstRef));
+        SWC_RESULT(lowerConstantToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, valueTypeRef, cstRef));
 
         const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
         outData                             = rawValueData.data();

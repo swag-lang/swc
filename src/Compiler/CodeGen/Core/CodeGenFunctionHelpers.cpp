@@ -154,7 +154,7 @@ namespace
                 for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
                 {
                     const uint64_t elementOffset = idx * elementSize;
-                    SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span<std::byte>{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                    SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
                 }
             }
 
@@ -182,7 +182,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span<std::byte>{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, std::span{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, std::span{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -203,7 +203,7 @@ namespace
                 if (fieldOffset + fieldSize > dstBytes.size())
                     return Result::Error;
 
-                SWC_RESULT(persistCompilerRunValueRec(sema, segment, fieldTypeRef, std::span<std::byte>{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(sema, segment, fieldTypeRef, std::span{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, std::span{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -655,7 +655,7 @@ namespace
         const uint32_t         size     = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         SmallVector<std::byte> payloadBytes;
         payloadBytes.resize(size);
-        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{payloadBytes.data(), payloadBytes.size()}, valueRef, typeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{payloadBytes.data(), payloadBytes.size()}, valueRef, typeRef));
         const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeRef);
         if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, std::span{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
             return Result::Continue;

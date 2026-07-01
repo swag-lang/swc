@@ -202,7 +202,7 @@ namespace
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
         if (storageSize)
-            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef));
 
         emitPayloadBytesToAddress(codeGen, storageReg, std::span{storageBytes.data(), storageBytes.size()});
         payload.reg     = storageReg;
@@ -505,7 +505,7 @@ namespace
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
         if (storageSize)
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef) == Result::Continue);
 
         return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, std::span{storageBytes.data(), storageBytes.size()});
     }
@@ -625,7 +625,7 @@ namespace
                         SmallVector<std::byte> typedNullBytes;
                         typedNullBytes.resize(sizeOfType);
                         std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
-                        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef));
+                        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, cstRef, targetTypeRef));
 
                         const ConstantRef    typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
                         const ConstantValue& typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);
@@ -939,7 +939,7 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
             SmallVector<std::byte> typedNullBytes;
             typedNullBytes.resize(sizeOfType);
             std::memset(typedNullBytes.data(), 0, typedNullBytes.size());
-            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, codeGen.cstMgr().cstNull(), targetTypeRef));
 
             const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);

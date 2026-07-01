@@ -847,7 +847,7 @@ namespace
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 argStorage.resize(argStorageSize);
@@ -872,7 +872,7 @@ namespace
             auto& argStorage = outArgStorage.emplace_back();
             argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;
@@ -934,7 +934,7 @@ namespace
                 pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
                 if (receiverInitCstRef.isValid())
-                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{pointeeStorage.data(), pointeeStorage.size()}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
+                    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeStorage.size()}, receiverInitCstRef, receiverTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 argStorage.resize(argStorageSize);
@@ -988,7 +988,7 @@ namespace
                 auto& pointeeStorage = outArgStorage.emplace_back();
                 pointeeStorage.resize(pointeeByteSize);
                 std::memset(pointeeStorage.data(), 0, pointeeStorage.size());
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
+                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeStorage.size()}, argCstRef, pointeeTypeRef) == Result::Continue);
 
                 auto& argStorage = outArgStorage.emplace_back();
                 argStorage.resize(argStorageSize);
@@ -1010,7 +1010,7 @@ namespace
             auto& argStorage = outArgStorage.emplace_back();
             argStorage.resize(argStorageSize);
             std::memset(argStorage.data(), 0, argStorage.size());
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span<std::byte>{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorage.size()}, argCstRef, argValueTypeRef) == Result::Continue);
 
             JITArgument arg;
             arg.typeRef  = argValueTypeRef;

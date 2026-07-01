@@ -1,5 +1,8 @@
 #pragma once
+#if SWC_DEV_MODE
 #include "Support/Core/Utf8.h"
+#endif
+
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;

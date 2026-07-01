@@ -190,7 +190,7 @@ void DataSegment::copyTo(std::span<std::byte> dst) const
         std::memset(dst.data(), 0, dst.size_bytes());
         const uint32_t storeExtent = store_.extentSize();
         if (storeExtent)
-            store_.copyToPreserveOffsets(std::span<std::byte>{dst.data(), storeExtent});
+            store_.copyToPreserveOffsets(std::span{dst.data(), storeExtent});
         for (const LargeBlock& block : largeBlocks_)
         {
             SWC_ASSERT(block.offset + block.size <= dst.size_bytes());
@@ -208,7 +208,7 @@ void DataSegment::copyToPreserveOffsets(std::span<std::byte> dst) const
     const uint32_t         storeExtent = store_.extentSize();
     std::memset(dst.data(), 0, dst.size_bytes());
     if (storeExtent)
-        store_.copyToPreserveOffsets(std::span<std::byte>{dst.data(), storeExtent});
+        store_.copyToPreserveOffsets(std::span{dst.data(), storeExtent});
     for (const LargeBlock& block : largeBlocks_)
     {
         SWC_ASSERT(block.offset + block.size <= dst.size_bytes());

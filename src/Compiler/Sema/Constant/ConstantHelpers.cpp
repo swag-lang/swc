@@ -387,8 +387,8 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
     if (!sizeOf)
         return 0;
 
-    SmallVector<std::byte>     storage(sizeOf);
-    const std::span<std::byte> storageSpan{storage.data(), storage.size()};
+    SmallVector<std::byte> storage(sizeOf);
+    const std::span        storageSpan{storage.data(), storage.size()};
     std::memset(storageSpan.data(), 0, storageSpan.size());
     SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
 

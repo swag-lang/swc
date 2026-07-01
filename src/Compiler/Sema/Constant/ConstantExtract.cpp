@@ -259,9 +259,9 @@ namespace
 
             const TypeRef nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
-            const uint64_t                   nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
-            const std::span<const std::byte> nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
-            const ConstantRef                nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
+            const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
+            const std::span   nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
+            const ConstantRef nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
             if (nextCstRef.isInvalid())
                 return Result::Continue;
 
@@ -292,9 +292,9 @@ namespace
 
         if (typeInfo.isCString())
         {
-            const auto*                      ptr   = reinterpret_cast<const char*>(ptrValue);
-            const uint64_t                   count = std::strlen(ptr);
-            const std::span<const std::byte> bytes{reinterpret_cast<const std::byte*>(ptr), count};
+            const auto*     ptr   = reinterpret_cast<const char*>(ptrValue);
+            const uint64_t  count = std::strlen(ptr);
+            const std::span bytes{reinterpret_cast<const std::byte*>(ptr), count};
             return extractAtIndexBytes(sema, bytes, sema.typeMgr().typeU8(), constIndex, count, nodeArgRef, outCstRef);
         }
 
@@ -303,9 +303,9 @@ namespace
         const uint64_t elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
         SWC_ASSERT(elemSize);
 
-        const uint64_t                   byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
-        const auto*                      elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);
-        const std::span<const std::byte> elemBytes{elemPtr, elemSize};
+        const uint64_t  byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
+        const auto*     elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);
+        const std::span elemBytes{elemPtr, elemSize};
         return extractAtIndexBytes(sema, elemBytes, elemType, 0, 1, nodeArgRef, outCstRef);
     }
 }

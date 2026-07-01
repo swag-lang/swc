@@ -151,7 +151,7 @@ namespace
         if (valueSize)
         {
             std::vector valueBytes(valueSize, std::byte{0});
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span<std::byte>{valueBytes.data(), valueBytes.size()}, srcCstRef, srcTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, srcCstRef, srcTypeRef));
             const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
             ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
         }
@@ -656,11 +656,11 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         {
             if (castRequest.isConstantFolding())
             {
-                const ConstantValue&             cst = sema.cstMgr().get(castRequest.srcConstRef);
-                const std::string_view           str = cst.getString();
-                const std::span<const std::byte> span{reinterpret_cast<const std::byte*>(str.data()), str.size()};
-                const ConstantValue              cv = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
-                castRequest.outConstRef             = sema.cstMgr().addConstant(sema.ctx(), cv);
+                const ConstantValue&   cst = sema.cstMgr().get(castRequest.srcConstRef);
+                const std::string_view str = cst.getString();
+                const std::span        span{reinterpret_cast<const std::byte*>(str.data()), str.size()};
+                const ConstantValue    cv = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
+                castRequest.outConstRef   = sema.cstMgr().addConstant(sema.ctx(), cv);
             }
 
             return Result::Continue;
@@ -1053,8 +1053,8 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             if (boxedAsTypeInfo)
             {
                 SWC_ASSERT(srcCst.isValuePointer());
-                const uint64_t                   ptrValue = srcCst.getValuePointer();
-                const std::span<const std::byte> ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
+                const uint64_t  ptrValue = srcCst.getValuePointer();
+                const std::span ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
                 SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ptrBytes));
             }
             else

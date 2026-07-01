@@ -1263,7 +1263,7 @@ namespace
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
         std::memset(storageBytes.data(), 0, storageBytes.size());
-        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{storageBytes.data(), storageBytes.size()}, initCstRef, dstTypeRef));
+        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, initCstRef, dstTypeRef));
 
         const ConstantRef    initPayloadCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, std::span{storageBytes.data(), storageBytes.size()});
         const ConstantValue& initPayloadCst    = codeGen.cstMgr().get(initPayloadCstRef);
@@ -1420,7 +1420,7 @@ namespace
 
             const SemaNodeView srcConstView = codeGen.viewTypeConstant(srcNodeRef);
             const ConstantRef  nullCstRef   = srcConstView.cstRef().isValid() ? srcConstView.cstRef() : codeGen.cstMgr().cstNull();
-            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span<std::byte>{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef));
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{typedNullBytes.data(), typedNullBytes.size()}, nullCstRef, dstTypeRef));
 
             const ConstantRef         typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, dstTypeRef, std::span{typedNullBytes.data(), typedNullBytes.size()});
             const ConstantValue&      typedNullCst    = codeGen.cstMgr().get(typedNullCstRef);

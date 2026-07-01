@@ -242,7 +242,7 @@ namespace
                 const ArrayElemLocation location = arrayElemLocation(args, i);
                 ConstantRef             castedRef;
                 SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, (*srcValues)[i], castedRef));
-                const std::span<std::byte> dstChunk{bytes.data() + (i * subArraySize), subArraySize};
+                const std::span dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
             }
 

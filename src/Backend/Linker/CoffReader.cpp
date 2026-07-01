@@ -89,9 +89,9 @@ namespace
     }
 }
 
-bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& inputBytes)
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const ByteArray& bytes)
 {
-    return readCoffObject(outObject, outDiag, inputBytes.span());
+    return readCoffObject(outObject, outDiag, bytes.span());
 }
 
 bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, const std::span<const std::byte> bytes)

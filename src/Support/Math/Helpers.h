@@ -1,7 +1,6 @@
 #pragma once
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
-#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -20,7 +19,6 @@ namespace Math
 
     static constexpr uint32_t integerLog2(uint64_t value) noexcept
     {
-        SWC_ASSERT(isPowerOfTwo(value));
         uint32_t index = 0;
         while (value > 1)
         {

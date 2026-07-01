@@ -8,7 +8,6 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 #include "Support/Report/ScopedTimedLog.h"
-#include "Unittest/Unittest.h"
 
 namespace
 {

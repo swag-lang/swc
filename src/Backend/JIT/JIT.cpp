@@ -1042,7 +1042,7 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(!executableMemory.empty());
-    const std::span<std::byte> writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size()};
+    const std::span writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size()};
     return patchRelocations(ctx, ownerFunction, writableCode, relocations);
 }
 

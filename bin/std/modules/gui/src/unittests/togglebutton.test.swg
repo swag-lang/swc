@@ -61,3 +61,27 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 
     host.shutdown()
 }
+
+// Hiding a toggle button resets its transient pointer and animated paint state.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 120)
+
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
+    toggle.isHot = true
+    toggle.isPressed = true
+    toggle.aniBk.themeCrc = 42'u32
+    toggle.aniBorder.themeCrc = 43'u32
+    toggle.aniMark.themeCrc = 44'u32
+
+    toggle.hide()
+
+    @assert(!toggle.isHot)
+    @assert(!toggle.isPressed)
+    @assert(toggle.aniBk.themeCrc == Swag.U32.Max)
+    @assert(toggle.aniBorder.themeCrc == Swag.U32.Max)
+    @assert(toggle.aniMark.themeCrc == Swag.U32.Max)
+
+    host.shutdown()
+}

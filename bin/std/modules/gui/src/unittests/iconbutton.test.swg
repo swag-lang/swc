@@ -79,3 +79,51 @@ func iconButtonHeadlessReset()
 
     host.shutdown()
 }
+
+// Hiding a button resets both its pointer state and its animated overlay state.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(120, 120)
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
+    btn.isHot = true
+    btn.isPressed = true
+    btn.aniBk.themeCrc = 42'u32
+
+    btn.hide()
+
+    @assert(!btn.isHot)
+    @assert(!btn.isPressed)
+    @assert(btn.aniBk.themeCrc == Swag.U32.Max)
+
+    host.shutdown()
+}
+
+// Disabling a button keeps it in the layout, but still drops transient input/paint state.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(120, 120)
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
+    btn.isHot = true
+    btn.isIn = true
+    btn.isPressed = true
+    btn.isPressing = true
+    btn.aniBk.themeCrc = 42'u32
+    host.app.mouseEnterWnd = btn
+    host.app.mouseCaptureWnd = btn
+
+    btn.disable()
+
+    @assert(!btn.isHot)
+    @assert(!btn.isIn)
+    @assert(!btn.isPressed)
+    @assert(!btn.isPressing)
+    @assert(btn.aniBk.themeCrc == Swag.U32.Max)
+    @assert(host.app.mouseEnterWnd == null)
+    @assert(host.app.mouseCaptureWnd == null)
+
+    host.shutdown()
+}

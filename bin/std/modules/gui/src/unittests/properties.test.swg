@@ -1476,9 +1476,24 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(countItem.editBox.position.width == editWidthClean)
 
     // Reset hides the arrow again; the editor width is still unchanged.
+    btn.isHot = true
+    btn.isIn = true
+    btn.isPressed = true
+    btn.isPressing = true
+    btn.aniBk.themeCrc = 42'u32
+    host.app.mouseEnterWnd = btn
+    host.app.mouseCaptureWnd = btn
     prop.resetItemDefault(countItem)
     @assert(!countItem.isModified and btn.isDisabled())
     @assert(countItem.editBox.position.width == editWidthClean)
+    @assert(!btn.icon.isValid())
+    @assert(!btn.isHot)
+    @assert(!btn.isIn)
+    @assert(!btn.isPressed)
+    @assert(!btn.isPressing)
+    @assert(btn.aniBk.themeCrc == Swag.U32.Max)
+    @assert(host.app.mouseEnterWnd == null)
+    @assert(host.app.mouseCaptureWnd == null)
 
     host.shutdown()
 }

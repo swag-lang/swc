@@ -556,6 +556,16 @@ impl Application
         mtd const getDt() => .timing.dt
     }
 
+    mtd clearWndInputState(wnd: *Wnd)
+    {
+        if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
+            .mouseEnterWnd = null
+        if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
+            .mouseCaptureWnd = null
+        if wnd == .keybFocusWnd or wnd.isOwnerOf(.keybFocusWnd) do
+            .keybFocusWnd = null
+    }
+
     // When launched with the 'swag.test' argument, auto-exit after 'testFrames' frames.
     // Useful when the surface is created manually instead of through 'runSurface'.
     mtd applyTestArgs(testFrames: u32 = 50)

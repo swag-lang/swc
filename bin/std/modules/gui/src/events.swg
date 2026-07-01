@@ -129,6 +129,7 @@ struct StateEvent
         Init
         Show
         Hide
+        Disable
     }
 
     using base:     Event

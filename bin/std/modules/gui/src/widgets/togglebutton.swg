@@ -15,6 +15,17 @@ struct ToggleButton
 
 impl IWnd for ToggleButton
 {
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        .button.IWnd.onStateEvent(evt)
+        if evt.kind == .Hide or evt.kind == .Disable
+        {
+            .aniBk.reset()
+            .aniBorder.reset()
+            .aniMark.reset()
+        }
+    }
+
     mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc     = evt.bc

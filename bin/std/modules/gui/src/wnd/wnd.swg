@@ -437,11 +437,13 @@ impl Wnd
         {
             if .wndFlags.has(.Disabled) do
                 return
+            .sendDisableStateEvent()
             .wndFlags.add(.Disabled)
 
             // Check global state
             if .getApp().keybFocusWnd == me do
                 .getTopView().setFocus()
+            .getApp().clearWndInputState(me)
         }
 
         .invalidate()
@@ -1381,6 +1383,16 @@ impl Wnd
         {
             if c.isVisibleState() do
                 c.sendHideStateEvent()
+        }
+    }
+
+    mtd sendDisableStateEvent()
+    {
+        .sendStateEvent(.Disable)
+        foreach c in .childs
+        {
+            if c.isVisibleState() do
+                c.sendDisableStateEvent()
         }
     }
 

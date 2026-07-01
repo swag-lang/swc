@@ -92,6 +92,9 @@ func pushButtonHeadlessResetCounters()
 
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessHideOnPressed
+    button.aniBk.themeCrc = 42'u32
+    button.aniBorder.themeCrc = 43'u32
+    button.aniText.themeCrc = 44'u32
 
     host.click({40, 30})
 
@@ -101,6 +104,9 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isIn)
     @assert(!button.isPressed)
     @assert(!button.isPressing)
+    @assert(button.aniBk.themeCrc == Swag.U32.Max)
+    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseCaptureWnd == null)
     @assert(host.app.mouseEnterWnd == null)
 
@@ -116,6 +122,9 @@ func pushButtonHeadlessResetCounters()
 
     let panel = Wnd.create'Wnd(&host.root, {0, 0, 160, 80})
     let button = PushButton.create(panel, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
+    button.aniBk.themeCrc = 42'u32
+    button.aniBorder.themeCrc = 43'u32
+    button.aniText.themeCrc = 44'u32
     button.sigPressed += func|panel|(btn)
     {
         panel.hide()
@@ -130,6 +139,9 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isIn)
     @assert(!button.isPressed)
     @assert(!button.isPressing)
+    @assert(button.aniBk.themeCrc == Swag.U32.Max)
+    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseCaptureWnd == null)
     @assert(host.app.mouseEnterWnd == null)
 
@@ -229,6 +241,13 @@ func pushButtonHeadlessResetCounters()
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
+    host.moveMouse({40, 30})
+    @assert(button.isHot)
+    @assert(button.isIn)
+    @assert(host.app.mouseEnterWnd == button)
+    button.aniBk.themeCrc = 42'u32
+    button.aniBorder.themeCrc = 43'u32
+    button.aniText.themeCrc = 44'u32
     button.disable()
     host.click({40, 30})
 
@@ -236,6 +255,10 @@ func pushButtonHeadlessResetCounters()
     @assert(PushButtonHeadlessPressedCount == 0)
     @assert(!button.isHot)
     @assert(!button.isIn)
+    @assert(button.aniBk.themeCrc == Swag.U32.Max)
+    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    @assert(button.aniText.themeCrc == Swag.U32.Max)
+    @assert(host.app.mouseEnterWnd == null)
     @assert(host.app.mouseCaptureWnd == null)
 
     host.shutdown()
@@ -251,6 +274,9 @@ func pushButtonHeadlessResetCounters()
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
+    button.aniBk.themeCrc = 42'u32
+    button.aniBorder.themeCrc = 43'u32
+    button.aniText.themeCrc = 44'u32
     button.hide()
     host.click({40, 30})
 
@@ -258,6 +284,9 @@ func pushButtonHeadlessResetCounters()
     @assert(PushButtonHeadlessPressedCount == 0)
     @assert(!button.isHot)
     @assert(!button.isIn)
+    @assert(button.aniBk.themeCrc == Swag.U32.Max)
+    @assert(button.aniBorder.themeCrc == Swag.U32.Max)
+    @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseCaptureWnd == null)
 
     host.shutdown()

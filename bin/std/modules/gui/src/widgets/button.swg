@@ -17,7 +17,7 @@ impl IWnd for Button
 {
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Hide do
+        if evt.kind == .Hide or evt.kind == .Disable do
             .clearPointerState()
     }
 

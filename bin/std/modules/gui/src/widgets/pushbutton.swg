@@ -22,6 +22,17 @@ struct PushButton
 
 impl IWnd for PushButton
 {
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        .button.IWnd.onStateEvent(evt)
+        if evt.kind == .Hide or evt.kind == .Disable
+        {
+            .aniBk.reset()
+            .aniBorder.reset()
+            .aniText.reset()
+        }
+    }
+
     mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc

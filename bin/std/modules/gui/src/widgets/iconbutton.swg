@@ -109,6 +109,13 @@ impl IWnd for IconButton
         .hidePopup()
     }
 
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        .button.IWnd.onStateEvent(evt)
+        if evt.kind == .Hide or evt.kind == .Disable do
+            .aniBk.reset()
+    }
+
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
         if evt.id != .id do

@@ -85,6 +85,11 @@ struct Properties
     resizingColumn:           bool
     aniBar:                   BlendColor
     editPopup:                *Wnd
+
+    // Row the context menu currently operates on. Read by the ActionProperties commands (and
+    // any keyboard/toolbar trigger of the same commands); kept set across the async command
+    // dispatch that follows doModal.
+    menuItem:                 #null *PropertiesItem
 }
 
 #[Swag.EnumFlags]
@@ -164,6 +169,32 @@ impl IWnd for Properties
     {
         let colorBar = .cursorSet ? .getThemeColors().splitView_BarHot : .getThemeColors().prop_GridColumn
         .aniBar.apply(me, colorBar)
+    }
+
+    // Built-in commands are handled by ActionProperties (registered in create). A command id
+    // that no action claims comes from a custom fillPopupMenu item: dispatch it to the notify
+    // interface(s) along the clicked row's parent chain, then refresh — the same contract the
+    // old inline `default:` switch case had.
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        evt.accepted = false
+
+        let item = .menuItem
+        if !item do
+            return
+
+        var scan = cast(#null *PropertiesItem) item
+        while scan
+        {
+            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item, evt.id)
+            {
+                .refreshItem(item)
+                .hasChanged(item)
+                evt.accepted = true
+                return
+            }
+            scan = scan.parent
+        }
     }
 }
 
@@ -276,11 +307,31 @@ fileprivate impl Properties
         return null
     }
 
+    // Resolve, for the current context-menu row (.menuItem), the enclosing array item and the
+    // clicked element row (either may be null). Right-clicking an element's field still targets
+    // the element, via resolveArrayElement walking ancestors.
+    mtd menuArrayContext()->{ arrItem: #null *PropertiesItem, arrElem: #null *PropertiesItem }
+    {
+        var result: retval
+        if !.menuItem do
+            return result
+
+        result.arrElem = .resolveArrayElement(.menuItem)
+        if .isArrayItem(.menuItem) do
+            result.arrItem = .menuItem
+        elif result.arrElem do
+            result.arrItem = result.arrElem.parent
+
+        return result
+    }
+
     mtd popupMenu(item: *PropertiesItem, pt: Math.Point)
     {
         ToolTip.hide(item.line)
 
         let menu = MenuCtrl.createPopup(me)
+
+        // Custom items first, contributed by the notify interface(s) along the parent chain.
         var scan = item
         while scan
         {
@@ -289,48 +340,38 @@ fileprivate impl Properties
             scan = scan.parent
         }
 
-        let canChange     = .canChangeItem(item)
-        var itemDisabled: bool
+        // The row the commands operate on. Set before building/showing so ActionProperties.update
+        // can compute each item's label/icon/enabled state, and before doModal since the command
+        // is dispatched asynchronously afterwards.
+        .menuItem = item
 
-        // Array actions. Resolve the array (and the clicked element row) from the item or one
-        // of its ancestors, so the actions also work when right-clicking an element's field.
-        // Reordering works for static and dynamic arrays; add/remove are dynamic only.
-        let arrElem = .resolveArrayElement(item)
-        var arrItem: #null *PropertiesItem
-        if .isArrayItem(item) do
-            arrItem = item
-        elif arrElem do
-            arrItem = arrElem.parent
+        // Built-in items: we only declare WHICH commands are relevant for this row by id. Their
+        // label, icon and enabled state come from ActionProperties.update, and choosing one runs
+        // ActionProperties.execute via the shared action system — no inline state, no result switch.
+        let arr = .menuArrayContext()
 
         if item.data and item.type
         {
             menu.addSeparator()
-            menu.addItem("Copy", "Copy", .getTheme().getIcon24(.Copy))
-            itemDisabled = !canChange or !Clipboard.hasTypedValue(item.type)
-            menu.addItem("Paste", "Paste", .getTheme().getIcon24(.Paste), disabled: itemDisabled)
+            menu.addItem(ActionProperties.Copy)
+            menu.addItem(ActionProperties.Paste)
         }
 
-        if arrItem
+        if arr.arrItem
         {
-            let dynamic = Reflection.isStructArray(arrItem.type)
-            let canArr  = .canChangeItem(arrItem)
-
-            if arrElem
+            if arr.arrElem
             {
-                let info = .arrayElementInfo(arrItem)
-                let idx  = .arrayElementIndex(arrElem)
                 menu.addSeparator()
-                menu.addItem("Move Up", "MoveUp", .getTheme().getIcon24(.SortArrowUp), disabled: !canArr or idx == 0)
-                menu.addItem("Move Down", "MoveDown", .getTheme().getIcon24(.SortArrowDown), disabled: !canArr or idx + 1 >= info.count)
+                menu.addItem(ActionProperties.MoveUp)
+                menu.addItem(ActionProperties.MoveDown)
             }
 
-            if dynamic
+            if Reflection.isStructArray(arr.arrItem.type)
             {
                 menu.addSeparator()
-                if arrElem do
-                    menu.addItem("Remove", "ClearElementArray", .getTheme().getIcon24(.Remove), disabled: !canArr)
-                let arrData = cast(*Array'u8) arrItem.data
-                menu.addItem("Remove All", "ClearArray", .getTheme().getIcon24(.RemoveAll), disabled: !canArr or arrData.isEmpty())
+                if arr.arrElem do
+                    menu.addItem(ActionProperties.Remove)
+                menu.addItem(ActionProperties.RemoveAll)
             }
         }
 
@@ -341,65 +382,8 @@ fileprivate impl Properties
         }
 
         .editPopup = menu
-        let result = menu.doModal(pt)
+        discard menu.doModal(pt)
         .editPopup = null
-
-        switch result
-        {
-        case "MoveUp":
-            if arrElem do
-                .moveArrayValue(arrElem, -1)
-
-        case "MoveDown":
-            if arrElem do
-                .moveArrayValue(arrElem, 1)
-
-        case "ClearArray":
-            if !arrItem do
-                break
-            if MessageDlg.confirm(.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
-                break
-            .clearArray(arrItem)
-
-        case "ClearElementArray":
-            if !arrElem do
-                break
-            if MessageDlg.confirm(.wnd.surface, "This will remove the element") != Dialog.BtnYes do
-                break
-            .removeArrayValue(arrElem)
-
-        case "Copy":
-            Clipboard.addTypedValue(item.data, item.type)
-
-        case "Paste":
-            if Clipboard.getTypedValue(item.data, item.type)
-            {
-                .refreshItem(item)
-                .hasChanged(item)
-            }
-
-        default:
-            // Not a built-in action: hand the command to the notify interface(s) along the
-            // parent chain so custom fillPopupMenu items get executed. When one handles it we
-            // assume it may have changed the value and refresh the row, as for Paste.
-            var scan    = cast(#null *PropertiesItem) item
-            var handled = false
-            while scan
-            {
-                if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item, result)
-                {
-                    handled = true
-                    break
-                }
-                scan = scan.parent
-            }
-
-            if handled
-            {
-                .refreshItem(item)
-                .hasChanged(item)
-            }
-        }
     }
 
     func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
@@ -1027,6 +1011,10 @@ impl Properties
             }
 
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }
+
+            // Built-in context-menu commands (Copy/Paste/array ops) go through the shared gui
+            // action system instead of a hardcoded id switch. See ActionProperties.
+            .registerAction'ActionProperties()
         }
 
         return ed
@@ -1314,5 +1302,148 @@ impl Properties
 
         .gridColumnSize = .clampColumnSize(.gridColumnSizeReq)
         .syncColumnLabels()
+    }
+}
+
+// The property grid's built-in context-menu commands, exposed through the shared gui action
+// system (IActionUI) rather than a hardcoded addItem+doModal+switch(result). Registered on every
+// Properties control in create(); the context menu just declares item ids, and doModal dispatches
+// update()/execute() here. The target row is read from Properties.menuItem, so the very same
+// commands could also be driven by a toolbar button or a keyboard shortcut (same WndId).
+struct ActionProperties {}
+
+impl ActionProperties
+{
+    newCmdId("Copy")
+    newCmdId("Paste")
+    newCmdId("MoveUp")
+    newCmdId("MoveDown")
+    newCmdId("Remove")
+    newCmdId("RemoveAll")
+}
+
+impl IActionUI for ActionProperties
+{
+    mtd impl accept(cxt: ActionContext)->bool
+    {
+        switch cxt.id
+        {
+        case Copy, Paste, MoveUp, MoveDown, Remove, RemoveAll:
+            return true
+        }
+
+        return false
+    }
+
+    // Provide each item's label, icon and enabled state from the current target row. This is the
+    // logic that used to live inline in popupMenu next to each addItem.
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    {
+        let prop = cast(*Properties) cxt.wnd
+        let item = prop.menuItem
+        if !item do
+            return false
+
+        let theme = prop.getTheme()
+        let arr   = prop.menuArrayContext()
+
+        switch cxt.id
+        {
+        case Copy:
+            evt.setFlags |= .Name | .Icon
+            evt.name = "Copy"
+            evt.icon = theme.getIcon24(.Copy)
+
+        case Paste:
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.name     = "Paste"
+            evt.icon     = theme.getIcon24(.Paste)
+            evt.disabled = !prop.canChangeItem(item) or !Clipboard.hasTypedValue(item.type)
+
+        case MoveUp:
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.name     = "Move Up"
+            evt.icon     = theme.getIcon24(.SortArrowUp)
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem) or prop.arrayElementIndex(arr.arrElem) == 0
+
+        case MoveDown:
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.name = "Move Down"
+            evt.icon = theme.getIcon24(.SortArrowDown)
+            var atEnd = true
+            if arr.arrElem
+            {
+                let info = prop.arrayElementInfo(arr.arrItem)
+                atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
+            }
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem) or atEnd
+
+        case Remove:
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.name     = "Remove"
+            evt.icon     = theme.getIcon24(.Remove)
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem)
+
+        case RemoveAll:
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.name = "Remove All"
+            evt.icon = theme.getIcon24(.RemoveAll)
+            var empty = true
+            if arr.arrItem
+            {
+                let arrData = cast(*Array'u8) arr.arrItem.data
+                empty = arrData.isEmpty()
+            }
+            evt.disabled = !arr.arrItem or !prop.canChangeItem(arr.arrItem) or empty
+        }
+
+        return true
+    }
+
+    mtd impl execute(cxt: ActionContext)->bool
+    {
+        let prop = cast(*Properties) cxt.wnd
+        let item = prop.menuItem
+        if !item do
+            return false
+
+        let arr = prop.menuArrayContext()
+
+        switch cxt.id
+        {
+        case Copy:
+            Clipboard.addTypedValue(item.data, item.type)
+
+        case Paste:
+            if Clipboard.getTypedValue(item.data, item.type)
+            {
+                prop.refreshItem(item)
+                prop.hasChanged(item)
+            }
+
+        case MoveUp:
+            if arr.arrElem do
+                prop.moveArrayValue(arr.arrElem, -1)
+
+        case MoveDown:
+            if arr.arrElem do
+                prop.moveArrayValue(arr.arrElem, 1)
+
+        case Remove:
+            if !arr.arrElem do
+                break
+            if MessageDlg.confirm(prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
+                break
+            prop.removeArrayValue(arr.arrElem)
+
+        case RemoveAll:
+            if !arr.arrItem do
+                break
+            if MessageDlg.confirm(prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
+                break
+            prop.clearArray(arr.arrItem)
+        }
+
+        return true
     }
 }

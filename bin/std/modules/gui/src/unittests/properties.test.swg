@@ -1126,6 +1126,53 @@ impl Gui.IPropertyNotify for ValData
     host.shutdown()
 }
 
+// The context-menu commands run through the shared gui action system (ActionProperties /
+// IActionUI): update() computes each item's enabled state, execute() performs the change via a
+// real CommandEvent — no hardcoded result-string switch.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 520)
+
+    var data: PropMoveData
+    data.dyn.resize(3)
+    data.dyn[0].id = 10
+    data.dyn[1].id = 20
+    data.dyn[2].id = 30
+
+    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
+    prop.addStruct(data)
+
+    // Copy the first element's 'id' field (value 10) and read it back from the clipboard.
+    let idField = findFieldItem(prop, #nameof(PropMoveElem.id))
+    @assert(idField != null)
+    prop.menuItem = idField
+    prop.sendCommandEvent(ActionProperties.Copy)
+    var got: s32
+    @assert(Clipboard.getTypedValue(&got, idField.type) and got == 10)
+
+    let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
+    var elems: Array'(*PropertiesItem)
+    foreach it in prop.items where it.parent == dynArr do
+        elems.add(it)
+    @assert(elems.count == 3)
+
+    // update(): Move Up is disabled on the first element, enabled on the second.
+    prop.menuItem = elems[0]
+    var st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
+    @assert(st.setFlags.has(.Disabled) and st.disabled)
+    prop.menuItem = elems[1]
+    st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
+    @assert(st.setFlags.has(.Disabled) and !st.disabled)
+
+    // execute(): Move Up on element 1 reorders the underlying array, dispatched through the real
+    // CommandEvent path (sendCommandEvent updates state first, then sends the command).
+    prop.sendCommandEvent(ActionProperties.MoveUp)
+    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
+
+    host.shutdown()
+}
+
 // --- Custom editor registry -------------------------------------------------
 
 struct PropHeadlessAngle

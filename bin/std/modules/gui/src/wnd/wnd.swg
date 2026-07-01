@@ -418,6 +418,7 @@ impl Wnd
     {
         if .wndFlags.has(.Hidden) do
             return
+        .sendHideStateEvent()
         .wndFlags.add(.Hidden)
         .getApp().unregisterWnd(me)
         .parent.invalidate()
@@ -1371,6 +1372,16 @@ impl Wnd
     {
         var evt = StateEvent{kind: kind}
         .sendEvent(&evt)
+    }
+
+    mtd sendHideStateEvent()
+    {
+        .sendStateEvent(.Hide)
+        foreach c in .childs
+        {
+            if c.isVisibleState() do
+                c.sendHideStateEvent()
+        }
     }
 
     mtd sendResizeEvent()

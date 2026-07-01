@@ -15,6 +15,12 @@ public struct Button
 
 impl IWnd for Button
 {
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        if evt.kind == .Hide do
+            .clearPointerState()
+    }
+
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
         if evt.id != .id do
@@ -44,6 +50,15 @@ impl IWnd for Button
 
 impl Button
 {
+    mtd clearPointerState()
+    {
+        if !.isHot and !.isIn and !.isPressed and !.isPressing do
+            return
+        .isHot, .isIn = false
+        .isPressed, .isPressing = false
+        .invalidate()
+    }
+
     mtd processMouseEvent(evt: *MouseEvent)->bool
     {
         let pos = .surfaceToLocal(evt.surfacePos)

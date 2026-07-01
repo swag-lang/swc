@@ -19,6 +19,12 @@ func pushButtonHeadlessRightPressed(btn: *Button)
     PushButtonHeadlessRightPressedCount += 1
 }
 
+func pushButtonHeadlessHideOnPressed(btn: *Button)
+{
+    btn.hide()
+    PushButtonHeadlessPressedCount += 1
+}
+
 func pushButtonHeadlessResetCounters()
 {
     PushButtonHeadlessPressedCount = 0
@@ -73,6 +79,59 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isPressing)
     @assert(button.isIn)
     @assert(host.app.mouseCaptureWnd == null)
+
+    host.shutdown()
+}
+
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    pushButtonHeadlessResetCounters()
+
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
+    button.sigPressed += &pushButtonHeadlessHideOnPressed
+
+    host.click({40, 30})
+
+    @assert(PushButtonHeadlessPressedCount == 1)
+    @assert(button.wndFlags.has(.Hidden))
+    @assert(!button.isHot)
+    @assert(!button.isIn)
+    @assert(!button.isPressed)
+    @assert(!button.isPressing)
+    @assert(host.app.mouseCaptureWnd == null)
+    @assert(host.app.mouseEnterWnd == null)
+
+    host.shutdown()
+}
+
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    pushButtonHeadlessResetCounters()
+
+    let panel = Wnd.create'Wnd(&host.root, {0, 0, 160, 80})
+    let button = PushButton.create(panel, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
+    button.sigPressed += func|panel|(btn)
+    {
+        panel.hide()
+        PushButtonHeadlessPressedCount += 1
+    }
+
+    host.click({40, 30})
+
+    @assert(PushButtonHeadlessPressedCount == 1)
+    @assert(panel.wndFlags.has(.Hidden))
+    @assert(!button.isHot)
+    @assert(!button.isIn)
+    @assert(!button.isPressed)
+    @assert(!button.isPressing)
+    @assert(host.app.mouseCaptureWnd == null)
+    @assert(host.app.mouseEnterWnd == null)
 
     host.shutdown()
 }

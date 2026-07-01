@@ -8,6 +8,9 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 #include "Support/Report/ScopedTimedLog.h"
+#if SWC_HAS_UNITTEST
+#include "Unittest/Unittest.h"
+#endif
 
 namespace
 {

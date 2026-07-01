@@ -128,8 +128,8 @@ namespace
             SWC_ASSERT(offset + elemSize <= srcBytes.size());
             const std::span   elemBytes{srcBytes.data() + offset, elemSize};
             const ConstantRef el = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
-            SWC_INTERNAL_CHECK(elemCstRef.isValid());
-            outValues.push_back(elemCstRef);
+            SWC_INTERNAL_CHECK(el.isValid());
+            outValues.push_back(el);
             offset += elemSize;
         }
 

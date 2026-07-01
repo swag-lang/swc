@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 

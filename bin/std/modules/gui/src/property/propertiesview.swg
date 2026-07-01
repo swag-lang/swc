@@ -27,12 +27,12 @@ impl IWnd for PropertiesView
 
         .ed.refreshGridColumnLayout()
 
-        // List mode: confine every row to the edit column (edit size + margins), left-aligned. The
-        // editors already cap there; capping the row makes the name and description wrap to the
-        // same width and the trailing revert arrow line up with it, so the whole row is coherent.
+        // List mode: every row owns the complete useful width (selection/hot/hit-test). Children
+        // add the internal content margins, so labels, editors, validation bars and action buttons
+        // all derive from the same rectangle.
         if !.ed.isGridLike()
         {
-            let cw = cast(f32) .ed.sizeEditValue + .ed.leftMargin + .ed.rightMargin
+            let cw = .ed.listUsefulWidth()
             foreach item in .ed.items do
                 item.line.maxSize.x = cw
         }
@@ -49,9 +49,10 @@ impl IWnd for PropertiesView
             item.sigResize.call(item)
             item.line.applyLayout()
 
-            // Line the list-mode revert arrow up with the right edge of the edit column now that
-            // the value widgets are positioned (grid docks it, so this is a no-op there).
+            // Line list-mode row action buttons up with the right edge of the selected useful
+            // area now that the row label has its final size (grid docks them, so this is a no-op).
             .ed.positionListRevert(item)
+            .ed.positionListActionButton(item, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass

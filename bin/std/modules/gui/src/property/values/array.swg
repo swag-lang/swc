@@ -179,8 +179,11 @@ impl Properties
 
         let parentForBtn = .isGridLike() ? item.line : cast(*Wnd) item.label
         let addBtn       = IconButton.create(parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
-        addBtn.dockStyle = .Right
+        addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Round)
+        item.arrayAddButton = addBtn
+        if !.isGridLike() do
+            item.label.wndFlags.remove(.ClipChildren)
         let prop = me
         addBtn.sigPressed += func|prop, item|(btn)
         {
@@ -194,8 +197,10 @@ impl Properties
             // docking would overlap the label — anchor the width instead.
             if me.isGridLike() do
                 .dockStyle = .Left
-            else do
+            else
+            {
                 .anchorStyle = .X
+            }
             .setForm(.Transparent)
             .enable(false)
         }

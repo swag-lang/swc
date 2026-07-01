@@ -12,13 +12,18 @@ impl Properties
     {
         let item = .addItem(value, data, parentItem)
         let prop = me
+        var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        if !me.isGridLike() do
+            editWidth = me.listContentWidthFromUseful(editWidth)
         with let ed = EditBox.create(item.line, dref cast(*String) data)
         {
-            .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            .maxSize.x = editWidth
             if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else do
+            else
+            {
                 .anchorStyle = .X
+            }
             .sigLoseFocus += func|prop, item|(ed) { prop.validateDynamicString(item); }
         }
 
@@ -30,14 +35,19 @@ impl Properties
     mtd constructStaticString(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
+        var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        if !me.isGridLike() do
+            editWidth = me.listContentWidthFromUseful(editWidth)
 
         with let ed = EditBox.create(item.line, dref cast(*string) data)
         {
-            .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            .maxSize.x = editWidth
             if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else do
+            else
+            {
                 .anchorStyle = .X
+            }
             .editBoxFlags = .ReadOnly
         }
 

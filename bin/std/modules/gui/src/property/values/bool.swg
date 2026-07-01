@@ -26,7 +26,9 @@ impl Properties
         let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
         let item     = .addItem(value, data, parentItem, flags: AddItemFlags.Name)
 
-        let editWidth  = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        var editWidth  = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        if !.isGridLike() do
+            editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
         line.maxSize.x = editWidth
@@ -37,8 +39,10 @@ impl Properties
         // width instead and let the stack own the vertical placement.
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
-        else do
+        else
+        {
             line.anchorStyle = .X
+        }
 
         if !item.label
         {
@@ -53,7 +57,7 @@ impl Properties
 
         if .kind == .List
         {
-            with let label = Label.create(line, "", {lineHeight, 0, me.position.width - lineHeight})
+            with let label = Label.create(line, "", {lineHeight, 0, Math.max(editWidth - lineHeight, 1.0)})
             {
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
@@ -75,6 +79,7 @@ impl Properties
 
                 label.autoHeight()
                 line.position.height = Math.max(lineHeight, label.position.height)
+                line.preferredSize.y = line.position.height
             }
         }
 

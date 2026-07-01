@@ -1,18 +1,14 @@
 #global public
 using Core, Pixel
 
-// Grid/Condensed layout of the property control: mode predicates, the resizable label column,
-// and the condensed-cell adaptations. Split out of properties.swg so the geometry lives in one
-// place. See also properties.paint.swg (which draws the column separator) and the two-pass
-// resize loop in propertiesview.swg.
+// Layout geometry of the property control: grid/condensed column metrics, list useful/content
+// widths, and the condensed-cell adaptations. Split out of properties.swg so the geometry lives
+// in one place. See also properties.paint.swg and the two-pass resize loop in propertiesview.swg.
 impl Properties
 {
-    // The window into which a row's trailing action widgets are docked (dockStyle .Right, which
-    // stacks them right-to-left). The built-in "reset to default" arrow lives here; a host can add
-    // its own (a "pick", "open", "clear" button, ...) the same way — the right of the value side is
-    // a small action margin. Grid docks on the row cell (reserving a column so the editor stays put
-    // when the arrow toggles); list docks on the name label, aligned with the edit column, since
-    // the vertical row stack does not honour docking. Null for rows with no label in list mode.
+    // The window into which a row's trailing action widgets are placed. Grid docks them on the row
+    // cell; list places them on the name label in local content coordinates. Null for rows with no
+    // label in list mode.
     mtd rowActionArea(item: *PropertiesItem)->#null *Wnd
     {
         return .isGridLike() ? item.line : cast(#null *Wnd) item.label
@@ -76,6 +72,48 @@ impl Properties
 
 moduleprivate impl Properties
 {
+    // List-only geometry: in list mode sizeEditValue is the complete useful row width
+    // (selection/hot/hit-test). Content and wrapping are inset from that row by the
+    // property margins. Grid/condensed keep using their column metrics directly.
+    mtd listUsefulWidth()->f32
+    {
+        Debug.assert(!.isGridLike())
+        return Math.max(cast(f32) .sizeEditValue, cast(f32) (.leftMargin + .rightMargin) + 1.0)
+    }
+
+    mtd listContentWidthFromUseful(width: f32)->f32
+    {
+        Debug.assert(!.isGridLike())
+        return Math.max(width - .leftMargin - .rightMargin, 1.0)
+    }
+
+    mtd listContentWidth()->f32
+    {
+        return .listContentWidthFromUseful(.listUsefulWidth())
+    }
+
+    mtd setListContentPadding(wnd: *Wnd)
+    {
+        if .isGridLike() or !wnd do
+            return
+        wnd.padding.x = .leftMargin
+        wnd.padding.z = .rightMargin
+    }
+
+    mtd listActionRight()->f32
+    {
+        return .listContentWidth() - PropRevertGap
+    }
+
+    mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton)
+    {
+        if .isGridLike() or !btn or !item.label do
+            return
+
+        btn.position.x = Math.round(.listActionRight() - btn.position.width)
+        btn.position.y = Math.round((item.label.position.height - btn.position.height) * 0.5)
+    }
+
     mtd clampColumnSize(size: s32)->s32
     {
         let maxSize = cast(s32) .position.width - .gridMarginColumn - .leftMargin - .rightMargin

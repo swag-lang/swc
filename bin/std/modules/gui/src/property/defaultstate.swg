@@ -259,6 +259,8 @@ impl Properties
             .ensureRevertButton(item)
         if !item.revertButton do
             return false
+        if item.isModified do
+            .positionListRevert(item)
         if item.revertButton.isVisible() == item.isModified do
             return false
         item.revertButton.show(item.isModified)
@@ -320,11 +322,9 @@ impl Properties
         }
     }
 
-    // List mode: line the revert arrow up with the right edge of the edit column (the value
-    // widgets) and center it on the name's title line, instead of leaving it stranded at the far
-    // right of the full-width row. Called from the resize loop once the value widgets are
-    // positioned. The button is a child of the name label, so its geometry is in the label's local
-    // space; it is sized to the title line height so a big square does not overrun the row below.
+    // List mode: line the revert arrow up with the right edge of the selected row's useful area.
+    // The button is a child of the name label, so its geometry is in the label's local space; it is
+    // sized to the title line height so a big square does not overrun the row below.
     mtd positionListRevert(item: *PropertiesItem)
     {
         let btn = item.revertButton
@@ -332,7 +332,7 @@ impl Properties
             return
 
         // Fit the arrow to the title line (a single-line name is shorter than the grid button).
-        let sz = Math.min(item.label.position.height, me.getThemeMetrics().editBox_Height)
+        let sz = Math.round(Math.min(item.label.position.height, me.getThemeMetrics().editBox_Height))
         btn.position.width  = sz
         btn.position.height = sz
         btn.maxSize         = {sz, sz}
@@ -340,9 +340,6 @@ impl Properties
         btn.icon.sizeX      = .revertIconSize(sz)
         btn.icon.sizeY      = btn.icon.sizeX
 
-        let span = .valueWidgetsSpan(item)             // [left, right] in line space
-        let lx   = item.label.position.x               // label origin in line space
-        btn.position.x = Math.round(span.right - lx - sz)
-        btn.position.y = Math.round((item.label.position.height - sz) * 0.5)
+        .positionListActionButton(item, btn)
     }
 }

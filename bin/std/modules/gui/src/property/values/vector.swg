@@ -10,7 +10,15 @@ impl Properties
 
         let item = .addItem(value, data, parentItem)
         item.selfPropagate = true       // each component box writes every instance itself
-        let line = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
+        var width = .position.width
+        if !.isGridLike()
+        {
+            width = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
+            width = .listContentWidthFromUseful(width)
+        }
+        let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
+        if !.isGridLike() do
+            line.maxSize.x = width
         let prop = me
 
         // Grid rows center the field row vertically in the cell; list rows stack it
@@ -18,8 +26,10 @@ impl Properties
         // would overlap the label — anchor the width and let the stack place it.
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
-        else do
+        else
+        {
             line.anchorStyle = .X
+        }
 
         .adaptCondensedControl(line)
 

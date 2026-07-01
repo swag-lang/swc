@@ -161,14 +161,19 @@ impl Properties
 
         if Reflection.hasAttribute(value, .SliderMinMax)
         {
+            var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            if !me.isGridLike() do
+                editWidth = me.listContentWidthFromUseful(editWidth)
             with let slider = SliderCtrl.create(item.line, null)
             {
                 .labelSize = 0
-                .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+                .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                else
+                {
                     .anchorStyle = .X
+                }
             }
 
             me.adaptCondensedControl(slider)
@@ -191,16 +196,21 @@ impl Properties
         else
         {
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
+            var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            if !me.isGridLike() do
+                editWidth = me.listContentWidthFromUseful(editWidth)
 
             with let ed = EditBox.create(item.line, value.name)
             {
                 if unit != null do
                     .unit = cast(string) unit
-                .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+                .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                else
+                {
                     .anchorStyle = .X
+                }
             }
 
             me.adaptCondensedControl(ed)

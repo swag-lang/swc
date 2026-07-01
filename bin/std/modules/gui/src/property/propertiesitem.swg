@@ -49,6 +49,7 @@ struct PropertiesItem
     defaultData:        #null *u8
     isModified:         bool
     revertButton:       *IconButton
+    arrayAddButton:     *IconButton
 
     type:               typeinfo
     typeValue:          Swag.TypeValue

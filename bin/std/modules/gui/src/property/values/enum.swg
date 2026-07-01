@@ -146,9 +146,13 @@ impl Properties
             {
                 .wndFlags.set(.PreChildsPaint)
                 .focusStrategy = .None     // navigation lives on edView, edition on the checkbox
-                if me.kind == .List do
-                    .margin.x = me.leftMargin
-                .margin.z = me.rightMargin
+                if me.isGridLike() do
+                    .margin.z = me.rightMargin
+                else
+                {
+                    .maxSize.x = me.listUsefulWidth()
+                    me.setListContentPadding(line)
+                }
                 .margin.y = me.listNameMarginAfter
                 .margin.w = me.listNameMarginAfter
             }
@@ -185,7 +189,10 @@ impl Properties
             let dispDescStr = dispDesc == null ? "" : cast(string) dispDesc
             itemB.filter += dispDescStr
 
-            with let label1 = Label.create(line, "", {item.line.position.height, 0, me.position.width - item.line.position.height})
+            var labelWidth = me.position.width - item.line.position.height
+            if !me.isGridLike() do
+                labelWidth = me.listContentWidth() - me.gridLineHeight
+            with let label1 = Label.create(line, "", {item.line.position.height, 0, Math.max(labelWidth, 1.0)})
             {
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
@@ -223,13 +230,18 @@ impl Properties
 
         let item = .addItem(value, data, parentItem)
         let prop = me
+        var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        if !me.isGridLike() do
+            editWidth = me.listContentWidthFromUseful(editWidth)
         with let ed = ComboBox.create(item.line, kind: .CheckBox)
         {
-            .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            .maxSize.x = editWidth
             if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else do
+            else
+            {
                 .anchorStyle = .X
+            }
             if me.kind == .Condensed do
                 .comboBoxFlags.add(.Flat)
         }

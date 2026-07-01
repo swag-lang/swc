@@ -15,7 +15,9 @@ impl Properties
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
         let editAlpha = !opaque and !keepAlpha
 
-        let width       = cast() Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
+        var width       = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
+        if !.isGridLike() do
+            width = .listContentWidthFromUseful(width)
         const MarginBtn = 4
         const WidthBtn  = 60
         let prop        = me
@@ -27,8 +29,10 @@ impl Properties
         line.maxSize.x = width
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
-        else do
+        else
+        {
             line.anchorStyle = .X
+        }
         .adaptCondensedControl(line)
 
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})

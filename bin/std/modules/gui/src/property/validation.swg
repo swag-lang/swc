@@ -198,47 +198,17 @@ moduleprivate impl Properties
         if !visible do
             return false
 
-        // List: cap the bar to the right edge of the value editor column so it lines up with
-        // the editors above instead of running the full row width.
-        let span = .valueWidgetsSpan(item)
-        let w    = span.right - lbl.position.x
-        if w > 0
-        {
-            lbl.maxSize.x      = w
-            lbl.position.width = w
-        }
+        // List rows use the same content width as labels and editors: the useful row width
+        // minus its internal margins. Do not infer this from child widgets, since custom editors
+        // can be narrower than the row while messages still need the row wrap width.
+        let w = .listContentWidth()
+        lbl.maxSize.x      = w
+        lbl.position.width = w
         .syncValidationTextOffset(lbl)
         lbl.autoHeight()
         return true
     }
 
-    // Horizontal extent [left, right] of an item's value widgets (the editor column): every
-    // line child except the name/description labels and the validation bar itself. Falls back
-    // to the value cell bounds when the row has no editor (e.g. a pure parent row).
-    mtd valueWidgetsSpan(item: *PropertiesItem)->{ left, right: f32 }
-    {
-        var left  = Swag.F32.Max
-        var right = 0'f32
-        var found = false
-        foreach c in item.line.childs
-        {
-            if c == item.label or c == item.labelDesc or c == item.validationLabel do
-                continue
-            if !c.isVisibleState() do
-                continue
-            left  = Math.min(left, c.position.x)
-            right = Math.max(right, c.position.right())
-            found = true
-        }
-
-        if !found
-        {
-            left  = me.getColumnX()
-            right = Math.max(item.line.getClientRect().width - me.rightMargin, left + 1.0)
-        }
-
-        return {left, right}
-    }
 }
 
 fileprivate impl Properties
@@ -293,9 +263,8 @@ fileprivate impl Properties
             // Gap above the bar + the painted vertical breathing room top and bottom.
             .margin.y = me.valBarGap + me.valBarPaddingY
             .margin.w = me.valBarPaddingY
-            // Left edge stays flush with the row name/description/editor (no extra indent),
-            // so the bar reads as belonging to the field above it.
-            .margin.z = me.rightMargin
+            if me.isGridLike() do
+                .margin.z = me.rightMargin
         }
 
         item.validationLabel = lbl

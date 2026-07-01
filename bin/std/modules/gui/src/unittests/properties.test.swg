@@ -278,6 +278,16 @@ struct PropHeadlessArrayData
     assertBelowLabel(prop.items[2])     // array count editor
     assertBelowLabel(prop.items[4])     // bool
 
+    let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
+    @assert(Math.isEqualEpsilon(prop.items[1].line.position.width, cast(f32) prop.sizeEditValue, 0.01))
+    @assert(Math.isEqualEpsilon(prop.items[1].label.position.x, cast(f32) prop.leftMargin, 0.01))
+    @assert(Math.isEqualEpsilon(prop.items[1].label.position.width, contentWidth, 0.01))
+
+    let actionsItem = prop.items[2]
+    let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
+    @assert(actionsItem.arrayAddButton != null)
+    @assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
+
     // The bool description is nudged down to optically center on the box: it carries a
     // positive top text padding derived from the font descent (never a hard-coded value).
     let chk  = prop.items[4].checkBox
@@ -288,6 +298,7 @@ struct PropHeadlessArrayData
     @assert(desc != null)
     @assert(desc.paddingText.y > 0)
     @assert(Math.abs(desc.paddingText.y + desc.paddingText.w) < 0.01)   // pure translation, no height loss
+    @assert(chk.parent.position.height >= desc.position.bottom())        // wrapped info text is not clipped
 
     host.shutdown()
 }
@@ -1349,8 +1360,10 @@ impl IPropertyNotify for PropDefaultCustom
     prop.updateStates()
     @assert(enabledItem.isModified)
     @assert(enabledItem.revertButton != null and enabledItem.revertButton.isVisible())
-    @assert(enabledItem.checkBox.parent.position.width <= cast(f32) prop.sizeEditValue)
-    @assert(enabledItem.revertButton.position.right() <= cast(f32) prop.sizeEditValue)
+    let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
+    @assert(enabledItem.checkBox.parent.position.width <= contentWidth)
+    let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
+    @assert(Math.isEqualEpsilon(enabledItem.label.position.x + enabledItem.revertButton.position.right(), actionRight, 0.01))
 
     // Edit the value away from its default: the row becomes modified and shows the revert arrow.
     countItem.editBox.setText("99")
@@ -1358,6 +1371,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(data.count == 99)
     @assert(countItem.isModified)
     @assert(countItem.revertButton != null and countItem.revertButton.isVisible())
+    @assert(Math.isEqualEpsilon(countItem.label.position.x + countItem.revertButton.position.right(), actionRight, 0.01))
 
     // Reset restores the declared default and clears the modified state / hides the arrow.
     prop.resetItemDefault(countItem)

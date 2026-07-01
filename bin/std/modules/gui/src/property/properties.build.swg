@@ -25,7 +25,6 @@ moduleprivate impl Properties
 
         with line
         {
-            .margin.z = me.rightMargin
             .wndFlags.add(.PreChildsPaint)
 
             // Lines never take the keyboard focus themselves: navigation lives on
@@ -35,11 +34,12 @@ moduleprivate impl Properties
 
             if me.isGridLike()
             {
+                .margin.z = me.rightMargin
                 .margin.y = me.gridLineMargin * 0.5
                 .margin.w = me.gridLineMargin * 0.5
             }
             else do
-                .margin.x = me.leftMargin
+                me.setListContentPadding(line)
         }
 
         with let item = me.items.addNewPtr()
@@ -72,7 +72,10 @@ moduleprivate impl Properties
 
             if !dispName.isEmpty()
             {
-                with let label = Label.create(line, dispName, {0, 0, me.gridColumnSize, item.line.position.height})
+                var labelWidth = cast(f32) me.gridColumnSize
+                if !me.isGridLike() do
+                    labelWidth = me.listContentWidth()
+                with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
                 {
                     if me.isGridLike()
                     {
@@ -118,7 +121,7 @@ moduleprivate impl Properties
             {
                 if !.isGridLike()
                 {
-                    with let labelDesc = Label.create(line, "", {0, 0, me.position.width, 0})
+                    with let labelDesc = Label.create(line, "", {0, 0, me.listContentWidth(), 0})
                     {
                         .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top

@@ -1,10 +1,9 @@
-#global public
 using Core, Pixel
 
 // "Reset to default" feature of the property grid, modeled on the inspectors of Unity/Godot/
 // Unreal: a field that no longer holds the value declared in its struct is flagged as "modified"
-// (a left accent bar + a revert arrow), and the revert arrow — or the "Reset to default" context
-// menu action — restores it.
+// and shows a revert button that restores it (also available as a "Reset to default" context menu
+// action).
 //
 // The default value a field is compared against is a real, default-constructed instance of the
 // edited struct (one per addStruct, owned by the grid, see Properties.defaultRoots). Every row's
@@ -18,7 +17,7 @@ using Core, Pixel
 // over the reset itself.
 
 // Result of IPropertyNotify.isItemAtDefault. Auto lets the grid run its built-in comparison.
-enum PropDefaultState
+public enum PropDefaultState
 {
     Auto
     AtDefault
@@ -26,13 +25,13 @@ enum PropDefaultState
 }
 
 // One default-constructed instance backing a struct added to the grid (owned; freed on destroy).
-struct PropDefaultRoot
+public struct PropDefaultRoot
 {
     base:   *u8
     type:   typeinfo
 }
 
-moduleprivate impl Properties
+impl Properties
 {
     // Build the default-constructed instance for the struct whose rows start at 'fromIdx', and
     // point every such row's defaultData into it. Called right after assignInstances, so it uses
@@ -189,20 +188,9 @@ moduleprivate impl Properties
         }
         return changed
     }
-
-    // Draw the "not at its default" accent bar on the far left of a modified grid row (the
-    // at-a-glance override indicator, Unity-style). List mode relies on the revert arrow alone.
-    mtd paintModifiedMark(painter: *Painter, item: *PropertiesItem, r: Math.Rectangle)
-    {
-        if !item.isModified or !.isGridLike() do
-            return
-
-        let bar = Math.Rectangle{r.x + 1, r.y + 3, 3, Math.max(r.height - 6, 1.0)}
-        painter.fillRoundRect(bar, 1.5, 1.5, .getThemeColors().prop_ModifiedMark)
-    }
 }
 
-fileprivate impl Properties
+impl Properties
 {
     // Types the grid knows how to compare and copy back for the default feature: dynamic strings
     // (compared/assigned by content) and any POD value (native, enum, bool, color, vector, a POD
@@ -236,32 +224,45 @@ fileprivate impl Properties
         return true
     }
 
-    // Lazily create the revert arrow for a row. Mirrors the array "+" button placement: docked to
-    // the right of the row cell in grid mode, and to the right of the name label in list mode
-    // (where the row is a vertical stack that ignores docking).
+    // Lazily create the revert button for a row — a normal hot-tracking icon button.
+    //  - Grid: placed in the LEFT gutter (absolutely, not docked), so it never eats into the value
+    //    editor's width (the editor keeps a constant size whether or not the row is modified).
+    //  - List: docked to the right of the name label (the row is a vertical stack that ignores
+    //    docking), like the array "+" button; the stacked editor below is untouched.
     mtd ensureRevertButton(item: *PropertiesItem)
     {
         if item.revertButton do
             return
 
-        // Grid rows dock the arrow to the right of the cell; list rows are a vertical stack that
-        // ignores docking, so (like the array "+" button) it goes to the right of the name label.
-        if !.isGridLike() and !item.label do
+        let grid = .isGridLike()
+        if !grid and !item.label do
             return
-        let parentForBtn = .isGridLike() ? item.line : cast(*Wnd) item.label
+        let parentForBtn = grid ? item.line : cast(*Wnd) item.label
 
-        let h    = .getThemeMetrics().editBox_Height
-        let prop = me
-
+        let h = .getThemeMetrics().editBox_Height
         with item.revertButton = IconButton.create(parentForBtn, .getTheme().getIcon24(.Undo, 16), {0, 0, 22, h})
         {
-            .dockStyle    = .Right
-            .maxSize.y    = h
-            .margin.z     = 2
-            .iconBtnFlags.add(.Flat)                       // no box: just the accent arrow
-            .iconColor    = me.getThemeColors().prop_ModifiedMark
-            .toolTip      = "Reset to default value"
-            .focusStrategy = .None                          // stays out of the keyboard nav order
+            .setForm(.Round)                 // a real button: hover/pressed tracking
+            .toolTip       = "Reset to default value"
+            .focusStrategy = .None           // stays out of the keyboard nav order
+
+            if grid
+            {
+                // Sit in the left gutter, centered on the value cell. Absolute (dockStyle .None,
+                // anchorStyle .None) so the row's arrange never repositions it or reserves room
+                // for it in the editor column.
+                let sz = Math.min(item.valueCellHeight - 4, 22.0)
+                .dockStyle = .None
+                .setPosition({2, (item.valueCellHeight - sz) * 0.5, sz, sz}, false)
+            }
+            else
+            {
+                .dockStyle = .Right
+                .maxSize.y = h
+                .margin.z  = 2
+            }
+
+            let prop = me
             .sigPressed += func|prop, item|(b)
             {
                 prop.resetItemDefault(item)

@@ -40,7 +40,7 @@ struct PropertiesItem
     // others — that would clobber the components/bits the user did not touch.
     selfPropagate:      bool
 
-    // "Reset to default" tracking (defaults.swg). defaultData points into the default-
+    // "Reset to default" tracking (defaultstate.swg). defaultData points into the default-
     // constructed root instance at this field's fixed offset, i.e. the value the field is
     // initialized to in the struct declaration; it is null when there is no comparable default
     // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the

@@ -361,7 +361,6 @@ struct ThemeColors
     prop_SectionBk:                       Color
     prop_CategBk:                         Color
     prop_Bk1:                             Color
-    prop_ModifiedMark:                    Color   // Accent of the "not at its default value" marker/revert
 }
 
 impl ThemeColors
@@ -746,7 +745,6 @@ impl ThemeColors
         .prop_SectionBk   = Gray6
         .prop_CategBk     = Transparent
         .prop_Bk1         = Color.getDarker(Color.fromArgb(Gray5), 0.06)
-        .prop_ModifiedMark = Blue
     }
 
     mtd setLight()
@@ -1134,6 +1132,5 @@ impl ThemeColors
         .prop_SectionBk   = Gray8
         .prop_CategBk     = Transparent
         .prop_Bk1         = Color.getDarker(Color.fromArgb(Gray8), 0.06)
-        .prop_ModifiedMark = Blue
     }
 }

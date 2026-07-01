@@ -111,7 +111,7 @@ struct Properties
     aniBar:                   BlendColor
     editPopup:                *Wnd
 
-    // "Reset to default" feature (defaults.swg). defaultRoots owns one default-constructed
+    // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
     // instance per added struct, freed on destroy; every row's defaultData points into it.
     // showReverts is the master switch for the revert markers.
     defaultRoots:             Array'PropDefaultRoot

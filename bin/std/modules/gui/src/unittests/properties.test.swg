@@ -1418,8 +1418,8 @@ impl IPropertyNotify for PropDefaultCustom
     host.shutdown()
 }
 
-// Grid mode: the revert arrow docks to the right of the row and does not overlap the value editor
-// (the layout reserves its space), and it disappears again once the value is reset.
+// Grid mode: the revert arrow sits in the LEFT gutter (absolutely positioned, not docked), so it
+// never overlaps or shrinks the value editor. It appears when modified and hides again on reset.
 #test
 {
     var host: GuiHeadlessHost
@@ -1432,6 +1432,9 @@ impl IPropertyNotify for PropDefaultCustom
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
     @assert(countItem != null and countItem.editBox != null)
 
+    // Editor width while the row is at its default (no button yet).
+    let editWidthClean = countItem.editBox.position.width
+
     data.count = 5
     prop.updateStates()
     @assert(countItem.isModified)
@@ -1439,9 +1442,12 @@ impl IPropertyNotify for PropDefaultCustom
     let btn = countItem.revertButton
     @assert(btn != null and btn.isVisible())
 
-    // The arrow sits at the right edge of the row, and the value editor stops before it.
-    @assert(btn.position.right() <= countItem.line.getClientRect().right() + 0.5)
-    @assert(countItem.editBox.position.right() <= btn.position.x + 0.5)
+    // The arrow is a free-standing (non-docked) button in the left gutter, entirely left of the
+    // value editor — and the editor keeps the exact width it had before the arrow appeared.
+    @assert(btn.dockStyle == .None)
+    @assert(btn.position.x < prop.leftMargin)
+    @assert(btn.position.right() <= countItem.editBox.position.x + 0.5)
+    @assert(countItem.editBox.position.width == editWidthClean)
 
     prop.resetItemDefault(countItem)
     @assert(!countItem.isModified and !btn.isVisible())

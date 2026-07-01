@@ -1341,6 +1341,17 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(!prop.canReset(nameItem))
     @assert(!nameItem.isModified)
 
+    // Bool list rows use a composite check line; its edit width must stay capped so the
+    // revert arrow aligns with the value column instead of the full row.
+    let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))
+    @assert(enabledItem != null and enabledItem.checkBox != null)
+    data.enabled = false
+    prop.updateStates()
+    @assert(enabledItem.isModified)
+    @assert(enabledItem.revertButton != null and enabledItem.revertButton.isVisible())
+    @assert(enabledItem.checkBox.parent.position.width <= cast(f32) prop.sizeEditValue)
+    @assert(enabledItem.revertButton.position.right() <= cast(f32) prop.sizeEditValue)
+
     // Edit the value away from its default: the row becomes modified and shows the revert arrow.
     countItem.editBox.setText("99")
     prop.validateNative(countItem)
@@ -1454,6 +1465,33 @@ impl IPropertyNotify for PropDefaultCustom
     prop.resetItemDefault(countItem)
     @assert(!countItem.isModified and btn.isDisabled())
     @assert(countItem.editBox.position.width == editWidthClean)
+
+    host.shutdown()
+}
+
+// Condensed grid mode: the revert button is sized to the condensed editor height, then docked
+// right; this keeps it vertically centered in the thin row instead of overflowing from the top.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(360, 320)
+
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
+    prop.addStruct(data)
+
+    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
+    @assert(countItem != null and countItem.revertButton != null)
+
+    let btn = countItem.revertButton
+    @assert(btn.position.height == PropCondensedControlHeight)
+    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.getClientRect().vertCenter(), 0.01))
+
+    data.count = 5
+    prop.updateStates()
+    @assert(countItem.isModified and !btn.isDisabled())
+    @assert(btn.position.height == PropCondensedControlHeight)
+    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.getClientRect().vertCenter(), 0.01))
 
     host.shutdown()
 }

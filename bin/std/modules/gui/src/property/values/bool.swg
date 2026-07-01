@@ -26,8 +26,10 @@ impl Properties
         let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
         let item     = .addItem(value, data, parentItem, flags: AddItemFlags.Name)
 
+        let editWidth  = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
-        let line       = Wnd.create'Wnd(item.line, {0, 0, .position.width, lineHeight})
+        let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
+        line.maxSize.x = editWidth
 
         // Grid rows are single-line: center the editor vertically in the cell. List
         // rows stack the editor under the name label (the row is a StackLayoutCtrl),

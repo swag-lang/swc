@@ -38,6 +38,16 @@ const PropRevertGap      = 4'f32
 
 impl Properties
 {
+    mtd revertButtonSize()->f32
+    {
+        return .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().editBox_Height
+    }
+
+    mtd revertIconSize(buttonSize: f32)->f32
+    {
+        return Math.max(Math.min(PropRevertIconSize, buttonSize - 4), 8.0)
+    }
+
     // Build the default-constructed instance for the struct whose rows start at 'fromIdx', and
     // point every such row's defaultData into it. Called right after assignInstances, so it uses
     // the same fixed-offset trick: a field at offset O from the struct base sits at defBase + O.
@@ -233,7 +243,7 @@ impl Properties
             if item.isModified
             {
                 if !btn.icon.isValid() do
-                    btn.icon = .getTheme().getIcon24(.Undo, 16)
+                    btn.icon = .getTheme().getIcon24(.Undo, .revertIconSize(btn.position.height))
                 btn.enable(true)
             }
             else
@@ -270,9 +280,9 @@ impl Properties
             return
 
         let grid = .isGridLike()
-        let h    = .getThemeMetrics().editBox_Height
+        let h    = .revertButtonSize()
         let prop = me
-        with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, PropRevertIconSize), {0, 0, h, h})
+        with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Round)
             .iconBtnFlags.add(.Overlay)      // elegant translucent hover, no opaque box
@@ -327,7 +337,7 @@ impl Properties
         btn.position.height = sz
         btn.maxSize         = {sz, sz}
         btn.minSize         = {sz, sz}
-        btn.icon.sizeX      = Math.max(sz - 4, 8.0)
+        btn.icon.sizeX      = .revertIconSize(sz)
         btn.icon.sizeY      = btn.icon.sizeX
 
         let span = .valueWidgetsSpan(item)             // [left, right] in line space

@@ -7,6 +7,20 @@ using Core, Pixel
 // resize loop in propertiesview.swg.
 impl Properties
 {
+    // The window into which a row's trailing action widgets are docked (dockStyle .Right, which
+    // stacks them right-to-left). The built-in "reset to default" arrow lives here; a host can add
+    // its own (a "pick", "open", "clear" button, ...) the same way — the right of the value side is
+    // a small action margin. Grid docks on the row cell (reserving a column so the editor stays put
+    // when the arrow toggles); list docks on the name label, aligned with the edit column, since
+    // the vertical row stack does not honour docking. Null for rows with no label in list mode.
+    mtd rowActionArea(item: *PropertiesItem)->#null *Wnd
+    {
+        return .isGridLike() ? item.line : cast(#null *Wnd) item.label
+    }
+}
+
+impl Properties
+{
     // True for the grid-family modes (Grid and Condensed). They share the same
     // column-based layout, expand/collapse behavior and column separator; only
     // their metrics (row height, margins, control size) differ.

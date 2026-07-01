@@ -18,6 +18,9 @@ enum IconButtonFlags
     Center
     HideName
     Flat            // No background box (and no checked fill): paint only the icon/swatch and arrow
+    Overlay         // No opaque box: hot/pressed/checked is a translucent state layer (Material-
+                    // style) drawn over the content, so it blends with whatever is underneath
+                    // (a pastel accent row, a color swatch) instead of clashing as a solid fill.
 }
 
 enum IconButtonArrowPos
@@ -196,18 +199,21 @@ impl IWnd for IconButton
         if .textColor.a do
             colorText = .textColor
 
-        // Background. A flat button paints no box in any state: useful for inline
-        // swatches (e.g. the color editor) where a contrasting hot/checked fill would
-        // clash with the row background, especially over a selected (accent) row.
+        // Background. A flat button paints no box in any state; an overlay button paints its
+        // hot/pressed/checked state as a translucent layer over the content instead (drawn at the
+        // end of this method). Both are useful for inline affordances (a color swatch, the reset
+        // arrow) where a solid themed fill would clash with the row background, especially over a
+        // selected (accent) row.
         let clientRect = .getClientRect()
         let flat       = .iconBtnFlags.has(.Flat)
-        if !flat
+        let overlay    = .iconBtnFlags.has(.Overlay)
+        if !flat and !overlay
         {
             .aniBk.apply(me, colorBk)
             theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
         }
 
-        if !flat and .isChecked and .checkedForm != .None
+        if !flat and !overlay and .isChecked and .checkedForm != .None
         {
             switch .checkedForm
             {
@@ -467,6 +473,50 @@ impl IWnd for IconButton
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
             }
         }
+
+        // Overlay state layer: a translucent wash of the foreground color drawn over everything,
+        // so hover/press/checked reads elegantly on ANY background (it darkens on light themes and
+        // lightens on dark ones) instead of an opaque box that clashes with a pastel accent row or
+        // tints a color swatch with a hard fill.
+        if overlay and !bc.isDisabled
+        {
+            var a = 0'f32
+            switch
+            {
+            case .isPressed:
+                a = 0.14
+            case .isChecked:
+                a = 0.10
+            case .isHot:
+                a = 0.07
+            }
+
+            // Animate the alpha in/out for a smooth fade (aniBk is unused in overlay mode).
+            .aniBk.apply(me, colorText.withAlpha(cast(u8) (a * 255)))
+            let cur = .aniBk.cur()
+            if cur.a
+            {
+                bc.painter.setParams(.Antialiased)
+                let rad = .overlayRadius(clientRect)
+                bc.painter.fillRoundRect(clientRect, rad, rad, cur)
+            }
+        }
+    }
+
+    // Corner radius of the overlay state layer, matching the button's form.
+    mtd overlayRadius(r: Math.Rectangle)->f32
+    {
+        let m = Math.min(r.width, r.height)
+        switch .form
+        {
+        case Round:
+            return m * 0.5
+        case RoundSquare:
+            return Math.min(m * 0.28, 8.0)
+        case Square:
+            return 3
+        }
+        return 4
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

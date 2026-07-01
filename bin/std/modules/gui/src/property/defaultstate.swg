@@ -31,6 +31,11 @@ public struct PropDefaultRoot
     type:   typeinfo
 }
 
+// Size of the revert arrow icon inside its (square, editBox-height) button, and the gap kept on
+// each side of the button so it reads as an airy action, not packed against the editor.
+const PropRevertIconSize = 18'f32
+const PropRevertGap      = 4'f32
+
 impl Properties
 {
     // Build the default-constructed instance for the struct whose rows start at 'fromIdx', and
@@ -205,70 +210,88 @@ impl Properties
         return Reflection.isPod(type)
     }
 
-    // Update one row: refresh its cached modified state and show/hide its revert button. Returns
-    // true when the button's visibility changed.
+    // Update one row: refresh its cached modified state and sync its revert arrow.
+    //  - Grid (like the Godot/Unreal inspectors): the arrow lives in a revert column docked to the
+    //    right of the row, reserved on EVERY resettable row so the value editor never resizes when
+    //    the arrow toggles. Toggling only swaps the icon in/out, so it needs no relayout.
+    //  - List: the row is a vertical stack, so the arrow is shown/hidden on the name label instead
+    //    (the stacked editor below is unaffected either way).
+    // Returns true only when a list row's arrow visibility changed (grid never triggers relayout).
     mtd updateItemDefaultState(item: *PropertiesItem)->bool
     {
         item.isModified = .computeItemModified(item)
+        let grid = .isGridLike()
+
+        if grid
+        {
+            if .canReset(item) do
+                .ensureRevertButton(item)
+            if !item.revertButton do
+                return false
+
+            let btn = item.revertButton
+            if item.isModified
+            {
+                if !btn.icon.isValid() do
+                    btn.icon = .getTheme().getIcon24(.Undo, 16)
+                btn.enable(true)
+            }
+            else
+            {
+                btn.icon.clear()             // hide the arrow; the docked button still holds the column
+                btn.enable(false)
+            }
+            btn.invalidate()
+            return false
+        }
 
         if item.isModified do
             .ensureRevertButton(item)
-
         if !item.revertButton do
             return false
-
         if item.revertButton.isVisible() == item.isModified do
             return false
-
         item.revertButton.show(item.isModified)
         return true
     }
 
-    // Lazily create the revert button for a row — a normal hot-tracking icon button.
-    //  - Grid: placed in the LEFT gutter (absolutely, not docked), so it never eats into the value
-    //    editor's width (the editor keeps a constant size whether or not the row is modified).
-    //  - List: docked to the right of the name label (the row is a vertical stack that ignores
-    //    docking), like the array "+" button; the stacked editor below is untouched.
+    // Create the revert arrow in the row's trailing action margin — a spacious, square Overlay icon
+    // button (translucent hover, no opaque box that would clash with a pastel/selected row), docked
+    // to the right. Grid buttons start hidden-but-present (empty icon + disabled) so the reserved
+    // column keeps the editor from resizing when the arrow toggles; list buttons start hidden.
     mtd ensureRevertButton(item: *PropertiesItem)
     {
         if item.revertButton do
             return
 
-        let grid = .isGridLike()
-        if !grid and !item.label do
+        let host = .rowActionArea(item)
+        if !host do
             return
-        let parentForBtn = grid ? item.line : cast(*Wnd) item.label
 
-        let h = .getThemeMetrics().editBox_Height
-        with item.revertButton = IconButton.create(parentForBtn, .getTheme().getIcon24(.Undo, 16), {0, 0, 22, h})
+        let h    = .getThemeMetrics().editBox_Height
+        let prop = me
+        with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, PropRevertIconSize), {0, 0, h, h})
         {
-            .setForm(.Round)                 // a real button: hover/pressed tracking
+            .setForm(.Round)
+            .iconBtnFlags.add(.Overlay)      // elegant translucent hover, no opaque box
+            .dockStyle     = .Right
+            .maxSize.y     = h               // square, editBox-tall: airy, not packed
+            .margin.x      = PropRevertGap   // breathing room from the editor / previous action
+            .margin.z      = PropRevertGap
             .toolTip       = "Reset to default value"
             .focusStrategy = .None           // stays out of the keyboard nav order
-
-            if grid
-            {
-                // Sit in the left gutter, centered on the value cell. Absolute (dockStyle .None,
-                // anchorStyle .None) so the row's arrange never repositions it or reserves room
-                // for it in the editor column.
-                let sz = Math.min(item.valueCellHeight - 4, 22.0)
-                .dockStyle = .None
-                .setPosition({2, (item.valueCellHeight - sz) * 0.5, sz, sz}, false)
-            }
-            else
-            {
-                .dockStyle = .Right
-                .maxSize.y = h
-                .margin.z  = 2
-            }
-
-            let prop = me
             .sigPressed += func|prop, item|(b)
             {
                 prop.resetItemDefault(item)
             }
         }
 
-        item.revertButton.show(false)
+        if .isGridLike()
+        {
+            item.revertButton.icon.clear()   // reserved column, arrow hidden until modified
+            item.revertButton.enable(false)
+        }
+        else do
+            item.revertButton.show(false)
     }
 }

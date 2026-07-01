@@ -545,6 +545,10 @@ impl Properties
                 continue
             if item.editBox and c == cast(*Wnd) item.editBox do
                 continue
+            // The revert arrow manages its own enabled state (enabled only while modified), so it
+            // must not be swept along with the row's read-only state here.
+            if item.revertButton and c == cast(*Wnd) item.revertButton do
+                continue
             c.enable(!readOnly)
         }
 

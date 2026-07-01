@@ -37,9 +37,10 @@ impl Properties
             .arrowPos    = .RightDown
             .checkedForm = .None
             .setForm(.RoundSquare)
-            // Flat: the swatch itself is the affordance, so no hot/checked background box
-            // (which would otherwise show up as a white fill over a selected accent row).
-            .iconBtnFlags.add(.Popup | .CheckableToggle | .Flat)
+            // Overlay: the swatch itself is the affordance, so no opaque hot/checked box (which
+            // would show up as a white fill over a selected accent row). Hover/checked is instead
+            // a subtle translucent state layer that blends over the swatch and the row.
+            .iconBtnFlags.add(.Popup | .CheckableToggle | .Overlay)
         }
 
         with let ed = EditBox.create(line, "", {0, 0, width - MarginBtn - WidthBtn, item.line.position.height})

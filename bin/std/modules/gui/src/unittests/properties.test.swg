@@ -1418,8 +1418,9 @@ impl IPropertyNotify for PropDefaultCustom
     host.shutdown()
 }
 
-// Grid mode: the revert arrow sits in the LEFT gutter (absolutely positioned, not docked), so it
-// never overlaps or shrinks the value editor. It appears when modified and hides again on reset.
+// Grid mode: the revert column is reserved on the right of every resettable row (docked, present
+// even while at default), so the value editor keeps a constant width; toggling the arrow on/off
+// never resizes it. Mirrors the Godot/Unreal revert column.
 #test
 {
     var host: GuiHeadlessHost
@@ -1432,25 +1433,24 @@ impl IPropertyNotify for PropDefaultCustom
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
     @assert(countItem != null and countItem.editBox != null)
 
-    // Editor width while the row is at its default (no button yet).
+    // The revert arrow is docked to the right of the row (the trailing action margin) and present
+    // from the start; while at its default the arrow is hidden (disabled) but the column stays
+    // reserved so the editor keeps a constant width.
+    let btn = countItem.revertButton
+    @assert(btn != null and btn.dockStyle == .Right)
+    @assert(btn.isDisabled())
     let editWidthClean = countItem.editBox.position.width
 
+    // Change the value: the arrow becomes active WITHOUT resizing the editor.
     data.count = 5
     prop.updateStates()
-    @assert(countItem.isModified)
-
-    let btn = countItem.revertButton
-    @assert(btn != null and btn.isVisible())
-
-    // The arrow is a free-standing (non-docked) button in the left gutter, entirely left of the
-    // value editor — and the editor keeps the exact width it had before the arrow appeared.
-    @assert(btn.dockStyle == .None)
-    @assert(btn.position.x < prop.leftMargin)
-    @assert(btn.position.right() <= countItem.editBox.position.x + 0.5)
+    @assert(countItem.isModified and !btn.isDisabled())
     @assert(countItem.editBox.position.width == editWidthClean)
 
+    // Reset hides the arrow again; the editor width is still unchanged.
     prop.resetItemDefault(countItem)
-    @assert(!countItem.isModified and !btn.isVisible())
+    @assert(!countItem.isModified and btn.isDisabled())
+    @assert(countItem.editBox.position.width == editWidthClean)
 
     host.shutdown()
 }

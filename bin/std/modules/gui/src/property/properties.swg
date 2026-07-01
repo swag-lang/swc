@@ -1,12 +1,6 @@
 #global public
 using Core, Pixel
 
-// To specialize the edition of a given struct.
-interface IPropertyValue
-{
-    mtd construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem;
-}
-
 // To notify a struct about properties changes
 #[Swag.Warning("Wrn0006", .Disable)]
 interface IPropertyNotify
@@ -91,10 +85,6 @@ struct Properties
     resizingColumn:           bool
     aniBar:                   BlendColor
     editPopup:                *Wnd
-
-    // Per-grid custom editor registry (type -> factory). Checked before the built-in
-    // editors, so a registered type gets a bespoke representation. See registerEditor.
-    editors:                  Array'PropertyEditorEntry
 }
 
 #[Swag.EnumFlags]
@@ -872,14 +862,14 @@ fileprivate impl Properties
 
     mtd addValue(value: Swag.TypeValue, data: [*] u8, parentItem: *PropertiesItem)
     {
-        // A custom editor registered for this exact type overrides the built-in editors (and
-        // any IPropertyValue impl), letting any type get a bespoke representation without
-        // implementing an interface on it. The factory wires its own item.sigRefresh, which
-        // refreshItem then drives, exactly like the IPropertyValue path below.
-        let factory = .findEditor(value.pointedType)
-        if factory
+        // The editor registry is the single dispatch for custom representations: the built-in
+        // struct editors (Color, the vector family) register here too, and a later registration
+        // for the same type overrides them. The matched editor wires its own item.sigRefresh,
+        // which refreshItem then drives.
+        let reg = findEditor(value.pointedType)
+        if reg
         {
-            let item = factory(me, value, data, parentItem)
+            let item = reg.itf.construct(me, value, data, parentItem)
             Debug.assert(item != null)
             item.sigRefresh.call(item)
             return
@@ -933,21 +923,14 @@ fileprivate impl Properties
                 break
             }
 
+            // A plain (non-registered) struct expands inline into one row per field. Custom
+            // struct editors (Color, the vector family, ...) are handled by the editor registry
+            // at the top of this method and never reach here.
             parentItem.flags.add(.NoSeparator | .NoFocus)
-            let iprop = @mkinterface(data, value.pointedType, IPropertyValue)
-            if iprop != null
-            {
-                let item = iprop.construct(me, value, data, parentItem)
-                Debug.assert(item != null)
-                item.sigRefresh.call(item)
-            }
-            else
-            {
-                let item           = .addItem(value, data, parentItem)
-                let numItemsBefore = .items.count
-                .addStructInternal(typeSubStruct, data, item)
-                item.numChilds = cast(u32) (.items.count - numItemsBefore)
-            }
+            let item           = .addItem(value, data, parentItem)
+            let numItemsBefore = .items.count
+            .addStructInternal(typeSubStruct, data, item)
+            item.numChilds = cast(u32) (.items.count - numItemsBefore)
         }
     }
 

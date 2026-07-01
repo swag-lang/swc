@@ -4,6 +4,10 @@ impl Properties
 {
     mtd constructVector(value: Swag.TypeValue, typeStruct: const *Swag.TypeInfoStruct, data: [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
+        // Custom struct editors keep the container row separator-less, like the inline-struct
+        // path in addValue does (the registry path bypasses that, so replicate it here).
+        parentItem.flags.add(.NoSeparator | .NoFocus)
+
         let item = .addItem(value, data, parentItem)
         item.selfPropagate = true       // each component box writes every instance itself
         let line = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
@@ -55,42 +59,30 @@ impl Properties
     }
 }
 
-public impl IPropertyValue for Math.Vector2
+// The built-in editor for the whole vector family. A single IPropertyEditor whose canEdit
+// claims five related types — exactly the family-matching a type-keyed map could not express.
+// constructVector only needs the field type's struct layout, which is value.pointedType, so the
+// same editor serves them all.
+struct VectorEditor {}
+
+impl IPropertyEditor for VectorEditor
 {
+    mtd impl canEdit(type: typeinfo)->bool
+    {
+        return type == Math.Vector2 or
+               type == Math.Vector3 or
+               type == Math.Vector4 or
+               type == Math.Point or
+               type == Math.Rectangle
+    }
+
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
     {
-        return list.constructVector(value, Math.Vector2, data, parent)
+        return list.constructVector(value, cast(const *Swag.TypeInfoStruct) value.pointedType, data, parent)
     }
 }
 
-public impl IPropertyValue for Math.Vector3
+#init
 {
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
-    {
-        return list.constructVector(value, Math.Vector3, data, parent)
-    }
-}
-
-public impl IPropertyValue for Math.Vector4
-{
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
-    {
-        return list.constructVector(value, Math.Vector4, data, parent)
-    }
-}
-
-public impl IPropertyValue for Math.Point
-{
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
-    {
-        return list.constructVector(value, Math.Point, data, parent)
-    }
-}
-
-public impl IPropertyValue for Math.Rectangle
-{
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
-    {
-        return list.constructVector(value, Math.Rectangle, data, parent)
-    }
+    Properties.registerEditor'(VectorEditor)()
 }

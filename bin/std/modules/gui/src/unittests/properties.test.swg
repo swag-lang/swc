@@ -916,7 +916,7 @@ fileprivate func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
     host.shutdown()
 }
 
-// A color (struct via IPropertyValue) reports mixed and propagates as a whole value.
+// A color (struct via the built-in ColorEditor) reports mixed and propagates as a whole value.
 #test
 {
     var host: GuiHeadlessHost
@@ -1142,38 +1142,54 @@ struct PropHeadlessAngleData
 var g_PropAngleEditorCalls: s32
 
 // A custom editor for PropHeadlessAngle: a single editbox showing "<deg> deg" instead of
-// expanding the struct into its 'deg' sub-field. This is the non-intrusive registry path
-// (no IPropertyValue impl on the type).
-fileprivate func buildAngleEditor(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+// expanding the struct into its 'deg' sub-field. Implemented as an IPropertyEditor and
+// registered globally at #init (below) — the non-intrusive, interface-based registry path
+// (the type itself stays untouched).
+struct PropAngleEditor {}
+
+impl IPropertyEditor for PropAngleEditor
 {
-    g_PropAngleEditorCalls += 1
-
-    let item  = list.addItem(value, data, parent)
-    let angle = cast(*PropHeadlessAngle) data
-
-    with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
+    mtd impl canEdit(type: typeinfo)->bool
     {
-        // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
-        // writer parses the leading number out of the free text.
-        .sigLoseFocus += func|list, item, angle|(ed)
+        return type == PropHeadlessAngle
+    }
+
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+    {
+        g_PropAngleEditorCalls += 1
+
+        let item  = list.addItem(value, data, parent)
+        let angle = cast(*PropHeadlessAngle) data
+
+        with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
         {
-            angle.deg = cast(s32) (catch StrConv.toNum's64(ed.getText()))
-            list.hasChanged(item)
+            // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
+            // writer parses the leading number out of the free text.
+            .sigLoseFocus += func|list, item, angle|(ed)
+            {
+                angle.deg = cast(s32) (catch StrConv.toNum's64(ed.getText()))
+                list.hasChanged(item)
+            }
         }
-    }
 
-    item.editBox = ed
-    item.sigRefresh += func|angle|(item)
-    {
-        item.editBox.setText(Format.toString("% deg", angle.deg))
-    }
+        item.editBox = ed
+        item.sigRefresh += func|angle|(item)
+        {
+            item.editBox.setText(Format.toString("% deg", angle.deg))
+        }
 
-    return item
+        return item
+    }
 }
 
-// A custom editor registered for a type overrides the built-in dispatch: the struct is not
-// expanded into its sub-fields, the factory runs once per field of that type, and its
-// item.sigRefresh drives the displayed value.
+#init
+{
+    Properties.registerEditor'(PropAngleEditor)()
+}
+
+// A registered IPropertyEditor that claims a type overrides the built-in dispatch: the struct
+// is not expanded into its sub-fields, the editor's construct runs once per field of that type,
+// and its item.sigRefresh drives the displayed value.
 #test
 {
     var host: GuiHeadlessHost
@@ -1183,10 +1199,9 @@ fileprivate func buildAngleEditor(list: *Properties, value: Swag.TypeValue, data
 
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     g_PropAngleEditorCalls = 0
-    prop.registerEditor(PropHeadlessAngle, &buildAngleEditor)
     prop.addStruct(data)
 
-    // Factory ran once for 'rot'; the struct was NOT expanded into a 'deg' child row, so
+    // The editor ran once for 'rot'; the struct was NOT expanded into a 'deg' child row, so
     // items = [section, rot, name].
     @assert(g_PropAngleEditorCalls == 1)
     @assert(prop.items.count == 3)
@@ -1201,9 +1216,9 @@ fileprivate func buildAngleEditor(list: *Properties, value: Swag.TypeValue, data
     let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
     @assert(name != null and name.editBox != null)
 
-    // Re-registering the same type replaces the editor (no duplicate entries).
-    prop.registerEditor(PropHeadlessAngle, &buildAngleEditor)
-    @assert(prop.editors.count == 1)
+    // The registry resolves the editor for the angle type, but not for an unrelated one.
+    @assert(Properties.findEditor(PropHeadlessAngle) != null)
+    @assert(Properties.findEditor(string) == null)
 
     host.shutdown()
 }

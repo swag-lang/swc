@@ -4,6 +4,10 @@ impl Properties
 {
     mtd constructColor(value: Swag.TypeValue, data: [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
+        // Custom struct editors keep the container row separator-less, like the inline-struct
+        // path in addValue does (the registry path bypasses that, so replicate it here).
+        parentItem.flags.add(.NoSeparator | .NoFocus)
+
         let item  = .addItem(value, data, parentItem)
         let color = cast(*Color) data
 
@@ -113,10 +117,23 @@ impl Properties
     }
 }
 
-public impl IPropertyValue for Color
+// The built-in color editor, registered in the same editor registry as user editors.
+struct ColorEditor {}
+
+impl IPropertyEditor for ColorEditor
 {
+    mtd impl canEdit(type: typeinfo)->bool
+    {
+        return type == Color
+    }
+
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
     {
         return list.constructColor(value, data, parent)
     }
+}
+
+#init
+{
+    Properties.registerEditor'(ColorEditor)()
 }

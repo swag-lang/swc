@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -344,14 +345,15 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (!resolveStaticPayloadRequiredShardIndex(shardIndex, hasRequiredShard, codeGen, typeRef, payload))
         return ConstantRef::invalid();
 
-    DataSegment& segment = codeGen.cstMgr().shardDataSegment(hasRequiredShard ? shardIndex : 0);
+    const uint32_t placementShardIndex = ConstantHelpers::staticPayloadPlacementShardIndex(ctx, typeRef, payload, hasRequiredShard, shardIndex);
+    DataSegment&   segment             = codeGen.cstMgr().shardDataSegment(placementShardIndex);
     uint32_t     offset  = INVALID_REF;
     if (ConstantLower::materializeStaticPayload(offset, codeGen.sema(), segment, typeRef, payload) != Result::Continue)
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const std::span<const std::byte> storedBytes = sizeOf ? std::span{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
-    const DataSegmentRef             dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
+    const DataSegmentRef             dataRef{.shardIndex = placementShardIndex, .offset = offset};
     const ConstantValue              value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
     if (!value.isValid())
         return ConstantRef::invalid();

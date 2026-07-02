@@ -44,6 +44,16 @@ moduleprivate impl Properties
         return false
     }
 
+    // True when 'item' belongs to the currently hovered block (the anchor row itself or any of its
+    // descendants), so its background gets the subtle branch wash.
+    mtd isInHoverBranch(item: *PropertiesItem)->bool
+    {
+        let anchor = .hoverBranchAnchor()
+        if !anchor do
+            return false
+        return item == anchor or .isDescendantOf(item, anchor)
+    }
+
     mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)
     {
         var colBkBk, colBk, colBorder: Color
@@ -86,13 +96,16 @@ moduleprivate impl Properties
         if .isGridLike() and item.validationLabel and item.validationLabel.isVisible() do
             valueCellBottom = item.validationLabel.position.y - .valBarPaddingY
 
-        // Background. Group headers (section/category) get a band; data rows stay transparent —
-        // nesting depth is carried by the label indent + the hover tree guide, not a per-level
-        // background tint (which turns muddy past a couple of levels).
+        // Background. Group headers (section/category) get a band. Persistent nesting depth is
+        // carried by the label indent, not a per-level tint (which turns muddy fast). While a row
+        // is hovered, its whole block (the hovered container and all its descendants) gets a subtle
+        // wash so the branch reads as one unit — an active-state color, not a depth color.
         if .isGridLike() and item.flags.has(.Section) do
             colBkBk = colors.prop_SectionBk
         elif .isGridLike() and item.flags.has(.Category) do
             colBkBk = colors.prop_CategBk
+        elif .isGridLike() and .isInHoverBranch(item) do
+            colBkBk = colors.prop_TreeBranchBk
         painter.fillRect(r, colBkBk)
 
         // Hot and focus box background
@@ -123,22 +136,6 @@ moduleprivate impl Properties
             var r1 = r
             r1.inflate(-2)
             painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
-        }
-
-        // Active-branch tree guide: while a row is hovered, drop a faint vertical line under the
-        // hovered block's parent triangle through all of its descendants, so the nesting reads at
-        // a glance (VS Code / Godot style). Only the hovered branch is drawn — persistent guides
-        // on every level would just be noise. Rows share the same 0-based local origin as the
-        // disclosure icon (r.x == 0 in grid), so the guide lands exactly on the triangle center.
-        if .isGridLike()
-        {
-            let anchor = .hoverBranchAnchor()
-            if anchor and .isDescendantOf(item, anchor)
-            {
-                let gx   = .disclosureGuideX(anchor)
-                let rect = Math.Rectangle{gx - 0.5, r.y, 1, r.height}
-                painter.fillRect(rect, colors.prop_TreeGuide)
-            }
         }
 
         // Validation feedback: an inline colored message bar stacked under the value cell,

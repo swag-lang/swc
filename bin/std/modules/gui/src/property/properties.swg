@@ -103,6 +103,9 @@ struct Properties
     edView:                   *PropertiesView
     items:                    ArrayPtr'PropertiesItem
     sections:                 Array'{ item: *PropertiesItem, lvl: s32 }
+    // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
+    // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
+    gridLevelHasMark:         Array'bool
     hotItem:                  *PropertiesItem
     selItem:                  *PropertiesItem
     currentSectionIndex:      u32 = Swag.U32.Max
@@ -607,6 +610,10 @@ impl Properties
     // Update the show/hide state of all content
     mtd updateStates()
     {
+        // Refresh which depths reserve a triangle slot before the layout below re-syncs the label
+        // paddings (syncColumnLabels, via applyLayout -> resize) that depend on it.
+        .computeLevelMarks()
+
         foreach it in .items do
             .updateItemState(it)
         .updateValidation()

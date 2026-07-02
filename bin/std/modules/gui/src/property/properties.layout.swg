@@ -141,20 +141,55 @@ moduleprivate impl Properties
     // carried by indentation (the primary hierarchy cue) rather than by a per-level background
     // tint. Headers (section/category) span the full width and are never indented. Depth 0 is a
     // top-level field (level 1); every nested struct/array level adds one gridIndentSize step.
+    // Data-column depth of a row: 0 for a top-level field (level 1), +1 per nested struct/array.
+    mtd itemDepth(item: *PropertiesItem)->u32
+    {
+        return item.level > 0 ? item.level - 1 : 0'u32
+    }
+
     mtd itemIndent(item: *PropertiesItem)->f32
     {
         if !.isGridLike() or .isGridHeader(item) do
             return 0
-        let depth = item.level > 0 ? item.level - 1 : 0'u32
-        return cast(f32) depth * cast(f32) .gridIndentSize
+        return cast(f32) .itemDepth(item) * cast(f32) .gridIndentSize
     }
 
-    // Local-x of the vertical tree guide dropped under 'item's disclosure triangle. It matches the
-    // triangle center, and since every row shares the same local origin the per-row segments stack
-    // into one continuous line down a branch.
-    mtd disclosureGuideX(item: *PropertiesItem)->f32
+    // Does the given data-column depth show any disclosure triangle? An ancestor depth always does
+    // (a parent has children), so in practice only the deepest, all-leaf levels come back false.
+    // Recomputed by computeLevelMarks on every structural change.
+    mtd levelReservesMark(depth: u32)->bool
     {
-        return .itemIndent(item) + cast(f32) .leftMargin * 0.5
+        return depth < .gridLevelHasMark.count ? .gridLevelHasMark[depth] : false
+    }
+
+    // Width of the disclosure-triangle slot in front of a data row's label. Full leftMargin when
+    // the row's depth has any expandable item (so leaf rows stay aligned with their expandable
+    // siblings); shrunk when the whole depth is mark-less, reclaiming that horizontal room so a
+    // group of pure-leaf fields tucks in closer under its parent instead of leaving an empty slot.
+    mtd itemLabelGutter(item: *PropertiesItem)->f32
+    {
+        if !.isGridLike() or .isGridHeader(item) do
+            return cast(f32) .leftMargin
+        return .levelReservesMark(.itemDepth(item)) ? cast(f32) .leftMargin : cast(f32) .leftMargin * 0.5
+    }
+
+    // Recompute, per data-column depth, whether any row at that depth is expandable. Drives
+    // itemLabelGutter so mark-less depths don't reserve triangle room. Cheap (one pass, tiny
+    // depths), so it just runs on every structural update.
+    mtd computeLevelMarks()
+    {
+        .gridLevelHasMark.clear()
+        if !.isGridLike() do
+            return
+        foreach item in .items
+        {
+            if .isGridHeader(item) or !item.numChilds do
+                continue
+            let depth = .itemDepth(item)
+            while .gridLevelHasMark.count <= depth do
+                .gridLevelHasMark.add(false)
+            .gridLevelHasMark[depth] = true
+        }
     }
 
     mtd syncColumnLabel(item: *PropertiesItem)
@@ -170,7 +205,7 @@ moduleprivate impl Properties
         }
         else
         {
-            item.label.paddingText.x  = cast(f32) .leftMargin + .itemIndent(item)
+            item.label.paddingText.x  = .itemIndent(item) + .itemLabelGutter(item)
             item.label.position.width = .gridColumnSize
         }
     }

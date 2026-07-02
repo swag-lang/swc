@@ -213,7 +213,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     const auto* payloadBytes = segment.ptr<std::byte>(baseOffset);
     SWC_ASSERT(payloadBytes != nullptr);
 
-    const std::span<const std::byte> payloadSpan{payloadBytes, sizeOf};
+    const std::span payloadSpan{payloadBytes, sizeOf};
     validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payloadSpan);
 }
 
@@ -283,7 +283,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const auto* payloadBytes = valueSegment.ptr<std::byte>(valueRef.offset);
         SWC_ASSERT(payloadBytes != nullptr);
 
-        const std::span<const std::byte> payloadSpan{payloadBytes, valueSize};
+        const std::span payloadSpan{payloadBytes, valueSize};
         validateNativeStaticPayload(valueTypeRef, valueRef.shardIndex, valueRef.offset, payloadSpan);
         return;
     }

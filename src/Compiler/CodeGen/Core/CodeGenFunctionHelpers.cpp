@@ -231,7 +231,7 @@ namespace
             return;
 
         DataSegment& segment = sema->compiler().compilerSegment();
-        const Result result  = persistCompilerRunValueRec(*sema, segment, typeRef, std::span<std::byte>{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
+        const Result result  = persistCompilerRunValueRec(*sema, segment, typeRef, std::span{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, std::span{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
         SWC_ASSERT(result == Result::Continue);
     }
 

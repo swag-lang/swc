@@ -213,7 +213,7 @@ bool ByteArray::containsRange(const size_t offset, const size_t byteCount) const
 uint16_t ByteArray::readLe16(const size_t offset) const noexcept
 {
     SWC_ASSERT(containsRange(offset, sizeof(uint16_t)));
-    return std::to_integer<uint16_t>((*this)[offset + 0]) | (std::to_integer<uint16_t>((*this)[offset + 1]) << 8);
+    return static_cast<uint16_t>(std::to_integer<uint16_t>((*this)[offset + 0]) | (std::to_integer<uint16_t>((*this)[offset + 1]) << 8));
 }
 
 uint32_t ByteArray::readLe32(const size_t offset) const noexcept

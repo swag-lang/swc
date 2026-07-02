@@ -37,7 +37,7 @@ namespace
     uint16_t readLe16(const std::span<const std::byte> bytes, const size_t offset) noexcept
     {
         SWC_ASSERT(offset <= bytes.size() && sizeof(uint16_t) <= bytes.size() - offset);
-        return std::to_integer<uint16_t>(bytes[offset + 0]) | (std::to_integer<uint16_t>(bytes[offset + 1]) << 8);
+        return static_cast<uint16_t>(std::to_integer<uint16_t>(bytes[offset + 0]) | (std::to_integer<uint16_t>(bytes[offset + 1]) << 8));
     }
 
     size_t archiveAlignedSize(size_t size)

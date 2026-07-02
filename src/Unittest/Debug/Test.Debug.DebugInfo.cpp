@@ -89,7 +89,7 @@ namespace
 
     bool bytesContainString(const std::span<const std::byte> bytes, const Utf8& value)
     {
-        const std::span<const std::byte> needle{reinterpret_cast<const std::byte*>(value.data()), value.size()};
+        const std::span needle{reinterpret_cast<const std::byte*>(value.data()), value.size()};
         if (needle.empty())
             return true;
         if (needle.size() > bytes.size())

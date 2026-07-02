@@ -170,8 +170,8 @@ namespace
         segment.addRelocation(runtimeStringOffset + offsetof(Runtime::String, ptr), stringOffset);
         outStorage = runtimeStringStorage;
 
-        const std::span<const std::byte> bytes{reinterpret_cast<const std::byte*>(runtimeStringStorage), sizeof(Runtime::String)};
-        auto                             makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
+        const std::span bytes{reinterpret_cast<const std::byte*>(runtimeStringStorage), sizeof(Runtime::String)};
+        auto            makeStructBorrowed = ConstantValue::makeStructBorrowed(ctx, compiler.typeMgr().typeString(), bytes);
         makeStructBorrowed.setDataSegmentRef({.shardIndex = 0, .offset = runtimeStringOffset});
         return compiler.cstMgr().addConstant(ctx, makeStructBorrowed);
     }

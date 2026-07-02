@@ -29,7 +29,7 @@ SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
 
     std::array<std::byte, 48> out;
     out.fill(std::byte{0xCC});
-    store.copyToPreserveOffsets(std::span<std::byte>{out.data(), out.size()});
+    store.copyToPreserveOffsets(std::span{out.data(), out.size()});
 
     for (size_t i = 0; i < first.size(); ++i)
     {
@@ -167,7 +167,7 @@ SWC_TEST_BEGIN(PagedStore_ReserveRangeSupportsOversizedZeroedBlocks)
 
     std::array<std::byte, 88> out;
     out.fill(std::byte{0xCC});
-    store.copyToPreserveOffsets(std::span<std::byte>{out.data(), out.size()});
+    store.copyToPreserveOffsets(std::span{out.data(), out.size()});
 
     for (size_t i = 0; i < prefix.size(); ++i)
     {

@@ -1,14 +1,62 @@
 using Core, Gui, Pixel
 using Properties
 
-func createGridPage(parent: *Wnd)
+// (Re)create the grid inspector inside the host at the current density. Comfortable is the roomy
+// grid, Compact the dense classic grid — a density toggle instead of two near-identical pages.
+func rebuildGridInspector()
 {
-    g_Inspector = PropertiesCtrl.create(parent, {0, 0, InspectorWidth, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
-    g_Inspector.dockStyle  = .Left
-    g_Inspector.margin.z   = SplitGap
+    if !g_GridHost do
+        return
+
+    if g_Inspector do
+        g_Inspector.destroy()
+
+    let kind = g_GridCondensed ? PropertiesKind.Condensed : PropertiesKind.Grid
+    g_Inspector = PropertiesCtrl.create(g_GridHost, {}, kind, .SectionFilter | .SectionPane | .FindBar)
+    g_Inspector.dockStyle = .Center
     addDemoStructs(g_Inspector)
     g_Inspector.splitter.setPaneSize(0, 160)
     g_Inspector.splitter.items[0].tryPreserveSize = true
+    g_GridHost.applyLayout()
+}
+
+func setGridDensity(condensed: bool)
+{
+    if g_GridCondensed == condensed do
+        return
+    g_GridCondensed = condensed
+
+    // RadioButtons don't group on their own, so keep the pair mutually exclusive by hand.
+    if g_GridRadios[0] do
+        g_GridRadios[0].setChecked(!condensed)
+    if g_GridRadios[1] do
+        g_GridRadios[1].setChecked(condensed)
+
+    rebuildGridInspector()
+}
+
+func createGridPage(parent: *Wnd)
+{
+    // Left column: a density toggle on top, the grid inspector below.
+    g_GridHost           = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
+    g_GridHost.dockStyle = .Left
+    g_GridHost.margin.z  = SplitGap
+
+    let toggleRow        = Wnd.create'Wnd(g_GridHost, {0, 0, 0, 40})
+    toggleRow.dockStyle  = .Top
+    toggleRow.margin.w   = 10
+
+    discard createText(toggleRow, "Density:", {0, 0, 72, 40})
+
+    g_GridRadios[0] = RadioButton.create(toggleRow, "Comfortable", {80, 0, 140, 40})
+    g_GridRadios[0].setChecked(!g_GridCondensed)
+    g_GridRadios[0].sigChanged += func(_rb) { setGridDensity(false); }
+
+    g_GridRadios[1] = RadioButton.create(toggleRow, "Compact", {224, 0, 120, 40})
+    g_GridRadios[1].setChecked(g_GridCondensed)
+    g_GridRadios[1].sigChanged += func(_rb) { setGridDensity(true); }
+
+    rebuildGridInspector()
 
     let frame = createPanel(parent, "Live preview", "Every value comes from the property editor, including colors, numbers, enum flags and arrays.", {})
     frame.dockStyle = .Center

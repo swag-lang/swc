@@ -1,8 +1,8 @@
 using Core, Gui, Pixel
 using Properties
 
-const W = 1240
-const H = 820
+const W = 1320
+const H = 900
 const MaxPages = 4
 const TestFramesPerPage = 60
 const RootMargin = 24.0
@@ -268,6 +268,14 @@ var g_Appearance: Gui4Appearance
 var g_Content: Gui4Content
 var g_Layout: Gui4Layout
 
+// Grid page: merges the former "grid" and "condensed" pages behind a density toggle.
+var g_GridCondensed: bool
+var g_GridHost: *Wnd
+var g_GridRadios: [2] *RadioButton   // [0]=Comfortable, [1]=Compact (RadioButton has no auto-grouping)
+
+// Grouping & decorators page (nested subgroups + Heading/Gap/HelpBox). Defined in page.organized.swg.
+var g_Organized: Gui4Organized
+
 // Multi-selection page: three tiles, the grid edits the first g_TileCount of them.
 var g_Tiles: [3] TileData
 var g_TileCount: s32 = 1
@@ -378,9 +386,9 @@ func pageTitle(page: s32)->string
     case 1:
         return "Option list"
     case 2:
-        return "Condensed grid"
-    case 3:
         return "Multi-selection"
+    case 3:
+        return "Grouping & decorators"
     }
 
     unreachable
@@ -391,13 +399,13 @@ func pageSubtitle(page: s32)->string
     switch page
     {
     case 0:
-        return "Edit reflected data with the grid inspector beside the live preview, including colors, numbers, enum flags and arrays."
+        return "Edit reflected data with the grid inspector beside the live preview. Toggle Comfortable / Compact to switch between the roomy grid and the dense, classic grid."
     case 1:
         return "The same data in the flat, option-style list mode, with a find filter at the top to narrow down the visible rows."
     case 2:
-        return "The dense, classic property grid: thin rows, tighter margins and compact inline editors that adapt to the reduced row height."
-    case 3:
         return "Edit 1, 2 or 3 tiles at once. Pick the count with the radio buttons; a field that differs between tiles shows as mixed (—), and editing it writes every selected tile."
+    case 3:
+        return "Slash-separated categories nest into subgroups (Transform / Advanced), and fields carry decorators: Heading adds a bold divider, Gap inserts spacing, and HelpBox shows an inline note."
     }
 
     unreachable
@@ -654,6 +662,8 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 func clearPage()
 {
     g_Inspector  = null
+    g_GridHost   = null
+    g_GridRadios[0], g_GridRadios[1] = null
     g_ListProps  = null
     g_Preview    = null
     g_MultiProps = null
@@ -676,9 +686,9 @@ func buildPage()
     case 1:
         createListPage(g_PageView)
     case 2:
-        createCondensedPage(g_PageView)
-    case 3:
         createMultiPage(g_PageView)
+    case 3:
+        createOrganizedPage(g_PageView)
     default:
         unreachable
     }

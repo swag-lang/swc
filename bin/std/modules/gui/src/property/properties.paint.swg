@@ -16,44 +16,6 @@ moduleprivate impl Properties
         return {iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
     }
 
-    // The row whose child block the tree guide should highlight while hovering: the hovered row
-    // itself when it is an expanded parent, otherwise the hovered row's parent. Null when there is
-    // no hovered row, in list mode, or when the block is a top-level header group (nothing nested
-    // worth drawing).
-    mtd hoverBranchAnchor()->#null *PropertiesItem
-    {
-        if !.isGridLike() or !.hotItem do
-            return null
-        var anchor: #null *PropertiesItem = .hotItem
-        if !(anchor.numChilds and anchor.flags.has(.Expanded)) do
-            anchor = anchor.parent
-        if !anchor or .isGridHeader(anchor) do
-            return null
-        return anchor
-    }
-
-    mtd isDescendantOf(item: *PropertiesItem, ancestor: *PropertiesItem)->bool
-    {
-        var scan = item.parent
-        while scan
-        {
-            if scan == ancestor do
-                return true
-            scan = scan.parent
-        }
-        return false
-    }
-
-    // True when 'item' belongs to the currently hovered block (the anchor row itself or any of its
-    // descendants), so its background gets the subtle branch wash.
-    mtd isInHoverBranch(item: *PropertiesItem)->bool
-    {
-        let anchor = .hoverBranchAnchor()
-        if !anchor do
-            return false
-        return item == anchor or .isDescendantOf(item, anchor)
-    }
-
     mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)
     {
         var colBkBk, colBk, colBorder: Color
@@ -96,16 +58,13 @@ moduleprivate impl Properties
         if .isGridLike() and item.validationLabel and item.validationLabel.isVisible() do
             valueCellBottom = item.validationLabel.position.y - .valBarPaddingY
 
-        // Background. Group headers (section/category) get a band. Persistent nesting depth is
-        // carried by the label indent, not a per-level tint (which turns muddy fast). While a row
-        // is hovered, its whole block (the hovered container and all its descendants) gets a subtle
-        // wash so the branch reads as one unit — an active-state color, not a depth color.
+        // Background. Group headers (section/category) get a band; data rows stay transparent —
+        // nesting depth is carried by the label indent, not a per-level tint (which turns muddy
+        // past a couple of levels). The hovered branch is marked by the guide bar drawn below.
         if .isGridLike() and item.flags.has(.Section) do
             colBkBk = colors.prop_SectionBk
         elif .isGridLike() and item.flags.has(.Category) do
             colBkBk = colors.prop_CategBk
-        elif .isGridLike() and .isInHoverBranch(item) do
-            colBkBk = colors.prop_TreeBranchBk
         painter.fillRect(r, colBkBk)
 
         // Hot and focus box background

@@ -360,7 +360,6 @@ struct ThemeColors
     prop_GridColumn:                      Color
     prop_SectionBk:                       Color
     prop_CategBk:                         Color
-    prop_TreeBranchBk:                    Color
 }
 
 impl ThemeColors
@@ -744,7 +743,6 @@ impl ThemeColors
         .prop_GridColumn  = Gray7
         .prop_SectionBk   = Gray6
         .prop_CategBk     = Gray6
-        .prop_TreeBranchBk = 0x1A2483F6   // ~10% accent wash for the hovered branch block
     }
 
     mtd setLight()
@@ -1132,6 +1130,5 @@ impl ThemeColors
         .prop_GridColumn  = Gray7
         .prop_SectionBk   = Gray8
         .prop_CategBk     = Gray8
-        .prop_TreeBranchBk = 0x141473E6   // ~8% accent wash for the hovered branch block
     }
 }

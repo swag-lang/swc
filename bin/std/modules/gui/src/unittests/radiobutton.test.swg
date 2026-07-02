@@ -61,7 +61,8 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     host.shutdown()
 }
 
-// Two radios are independent windows; the framework leaves grouping to the caller.
+// Two radios are independent windows; without a group id the framework leaves grouping to the
+// caller (unchanged default).
 #test
 {
     var host: GuiHeadlessHost
@@ -77,6 +78,42 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     host.click({40, 35})
     @assert(a.checked)
     @assert(!b.checked)
+
+    // Ungrouped: both can be checked at once (grouping stays opt-in).
+    b.setChecked(true)
+    @assert(a.checked and b.checked)
+
+    host.shutdown()
+}
+
+// Radios sharing a group id auto-uncheck each other, on both setChecked and a real click; a second
+// group under the same parent stays independent.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 280)
+
+    let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
+    let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
+    let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})
+    a.group, b.group, c.group = "density"
+
+    a.setChecked(true)
+    @assert(a.checked and !b.checked and !c.checked)
+
+    // Clicking b checks it and unchecks a automatically.
+    host.click({40, 75})
+    @assert(!a.checked and b.checked and !c.checked)
+
+    // A separate group under the same parent is not disturbed.
+    let d = RadioButton.create(&host.root, "D", {20, 140, 160, 30})
+    let e = RadioButton.create(&host.root, "E", {20, 180, 160, 30})
+    d.group, e.group = "align"
+
+    d.setChecked(true)
+    @assert(d.checked and b.checked)
+    e.setChecked(true)
+    @assert(!d.checked and e.checked and b.checked)
 
     host.shutdown()
 }

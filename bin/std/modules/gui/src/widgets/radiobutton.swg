@@ -5,6 +5,12 @@ struct RadioButton
 {
     using button:        Button
     checked:             bool
+    // Auto-grouping: radios sharing the same (parent, group) uncheck each other when one is
+    // checked, so a group keeps a single selection. 'group' is a string id, like a command id; an
+    // empty/unset group means "ungrouped" — grouping is then left to the caller (backward
+    // compatible; several radios under one parent stay independent). Give the radios you want
+    // mutually exclusive the same non-empty id.
+    group:               WndId
     radioButtonFlags     = RadioButtonFlags.Zero
     sigChanged:          SigArray'func||(*RadioButton)
 }
@@ -108,7 +114,7 @@ impl IWnd for RadioButton
     {
         if .processMouseEvent(evt) and !.checked
         {
-            .checked = true
+            .setChecked(true)           // also unchecks the group siblings when grouped
             .sigChanged.call(me)
             .postCommandEvent(.id)
         }
@@ -129,12 +135,34 @@ impl RadioButton
         return Wnd.create'RadioButton(parent, name, pos, id)
     }
 
-    // Set the checked state
+    // Set the checked state. Checking a grouped radio (non-empty group) unchecks the others sharing
+    // its (parent, group). Unchecking is silent either way (no signal), like before.
     mtd setChecked(checked: bool)
     {
         if .checked == checked do
             return
         .checked = checked
+        if checked do
+            .uncheckGroupSiblings()
         .invalidate()
+    }
+
+    // Uncheck the sibling radios that share this one's (parent, group). No-op when this radio's
+    // group is empty, so opting out keeps the old "grouping is the caller's job" behavior (and two
+    // ungrouped radios never match each other). Recursion is bounded: it only unchecks, and
+    // setChecked(false) never re-enters this.
+    mtd uncheckGroupSiblings()
+    {
+        if @countof(.group) == 0 or !.parent do
+            return
+
+        foreach c in .parent.childs
+        {
+            if c == cast(*Wnd) me or c.type != RadioButton do
+                continue
+            let other = cast(*RadioButton) c
+            if other.group == .group do
+                other.setChecked(false)
+        }
     }
 }

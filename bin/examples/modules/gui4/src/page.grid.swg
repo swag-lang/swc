@@ -25,13 +25,6 @@ func setGridDensity(condensed: bool)
     if g_GridCondensed == condensed do
         return
     g_GridCondensed = condensed
-
-    // RadioButtons don't group on their own, so keep the pair mutually exclusive by hand.
-    if g_GridRadios[0] do
-        g_GridRadios[0].setChecked(!condensed)
-    if g_GridRadios[1] do
-        g_GridRadios[1].setChecked(condensed)
-
     rebuildGridInspector()
 }
 
@@ -48,13 +41,19 @@ func createGridPage(parent: *Wnd)
 
     discard createText(toggleRow, "Density:", {0, 0, 72, 40})
 
-    g_GridRadios[0] = RadioButton.create(toggleRow, "Comfortable", {80, 0, 140, 40})
-    g_GridRadios[0].setChecked(!g_GridCondensed)
-    g_GridRadios[0].sigChanged += func(_rb) { setGridDensity(false); }
-
-    g_GridRadios[1] = RadioButton.create(toggleRow, "Compact", {224, 0, 120, 40})
-    g_GridRadios[1].setChecked(g_GridCondensed)
-    g_GridRadios[1].sigChanged += func(_rb) { setGridDensity(true); }
+    // Same group id -> the toolkit keeps the pair mutually exclusive automatically.
+    with let rbComfort = RadioButton.create(toggleRow, "Comfortable", {80, 0, 140, 40})
+    {
+        .group = "density"
+        .setChecked(!g_GridCondensed)
+        .sigChanged += func(_rb) { setGridDensity(false); }
+    }
+    with let rbCompact = RadioButton.create(toggleRow, "Compact", {224, 0, 120, 40})
+    {
+        .group = "density"
+        .setChecked(g_GridCondensed)
+        .sigChanged += func(_rb) { setGridDensity(true); }
+    }
 
     rebuildGridInspector()
 

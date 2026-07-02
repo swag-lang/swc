@@ -271,7 +271,6 @@ var g_Layout: Gui4Layout
 // Grid page: merges the former "grid" and "condensed" pages behind a density toggle.
 var g_GridCondensed: bool
 var g_GridHost: *Wnd
-var g_GridRadios: [2] *RadioButton   // [0]=Comfortable, [1]=Compact (RadioButton has no auto-grouping)
 
 // Grouping & decorators page (nested subgroups + Heading/Gap/HelpBox). Defined in page.organized.swg.
 var g_Organized: Gui4Organized
@@ -663,7 +662,6 @@ func clearPage()
 {
     g_Inspector  = null
     g_GridHost   = null
-    g_GridRadios[0], g_GridRadios[1] = null
     g_ListProps  = null
     g_Preview    = null
     g_MultiProps = null

@@ -135,12 +135,6 @@ namespace
         }
     }
 
-    struct LibrarySearch
-    {
-        std::set<Utf8>        libNames;
-        std::vector<fs::path> dirs;
-    };
-
     struct ArchiveLoadItem
     {
         fs::path path;
@@ -449,110 +443,6 @@ namespace
     bool   shouldCollectLinkDebugInfo(const NativeBackendBuilder& builder);
     void   collectLinkDebugInfo(NativeBackendBuilder& builder, LinkJob& outJob);
 
-    Result buildNativeImageFragment(NativeBackendBuilder& builder, LinkImage& outImage, const NativeObjDescription& description)
-    {
-        outImage = {};
-        NativeImageLowering lowering(builder, outImage);
-        return lowering.appendDescription(description);
-    }
-
-    class LinkImageFragmentMerger
-    {
-    public:
-        explicit LinkImageFragmentMerger(LinkImage& image) :
-            image_(&image)
-        {
-            for (uint32_t i = 0; i < image.sections.size(); ++i)
-                sectionByName_[image.sections[i].name] = i;
-            for (const LinkSymbol& symbol : image.symbols)
-                definedNames_.insert(symbol.name);
-        }
-
-        void append(const LinkImage& fragment)
-        {
-            std::vector<SectionPlacement> placements(fragment.sections.size());
-            for (uint32_t i = 0; i < fragment.sections.size(); ++i)
-                appendSection(placements[i], fragment.sections[i]);
-
-            for (const LinkSymbol& symbol : fragment.symbols)
-            {
-                SWC_ASSERT(symbol.sectionIndex < placements.size());
-                if (symbol.sectionIndex >= placements.size())
-                    continue;
-
-                const SectionPlacement& placement = placements[symbol.sectionIndex];
-                if (!placement.valid)
-                    continue;
-                if (!definedNames_.insert(symbol.name).second)
-                    continue;
-
-                LinkSymbol out;
-                out.name         = symbol.name;
-                out.sectionIndex = placement.index;
-                out.value        = placement.base + symbol.value;
-                image_->symbols.push_back(std::move(out));
-            }
-        }
-
-    private:
-        void appendSection(SectionPlacement& outPlacement, const LinkSection& section)
-        {
-            outPlacement = {};
-
-            uint32_t   sectionIndex = 0;
-            const auto it           = sectionByName_.find(section.name);
-            if (it == sectionByName_.end())
-            {
-                LinkSection outSection;
-                outSection.name  = section.name;
-                outSection.align = 1;
-                sectionIndex     = static_cast<uint32_t>(image_->sections.size());
-                image_->sections.push_back(std::move(outSection));
-                sectionByName_.emplace(section.name, sectionIndex);
-            }
-            else
-            {
-                sectionIndex = it->second;
-            }
-
-            LinkSection&   outSection = image_->sections[sectionIndex];
-            const uint32_t align      = std::max<uint32_t>(section.align, 1);
-            outSection.align          = std::max(outSection.align, align);
-            outSection.flags.add(section.flags);
-
-            uint32_t base = 0;
-            if (section.isUninit())
-            {
-                outSection.bssSize = Math::alignUpU32(outSection.bssSize, align);
-                base               = outSection.bssSize;
-                outSection.bssSize += section.bssSize;
-                outSection.flags.add(LinkSectionFlagsE::Uninit);
-            }
-            else
-            {
-                base = Math::alignUpU32(static_cast<uint32_t>(outSection.bytes.size()), align);
-                outSection.bytes.resize(base, std::byte{0});
-                outSection.bytes.insert(outSection.bytes.end(), section.bytes.begin(), section.bytes.end());
-            }
-
-            outPlacement.index = sectionIndex;
-            outPlacement.base  = base;
-            outPlacement.valid = true;
-
-            for (const LinkReloc& reloc : section.relocs)
-            {
-                LinkReloc outReloc = reloc;
-                outReloc.sectionIndex = sectionIndex;
-                outReloc.offset += base;
-                outSection.relocs.push_back(std::move(outReloc));
-            }
-        }
-
-        LinkImage*                         image_ = nullptr;
-        std::unordered_map<Utf8, uint32_t> sectionByName_;
-        std::unordered_set<Utf8>           definedNames_;
-    };
-
     class LinkPrepareJobBase : public Job
     {
     public:
@@ -568,57 +458,6 @@ namespace
 
     private:
         std::atomic<Result> result_ = Result::Continue;
-    };
-
-    class NativeImageFragmentJob final : public LinkPrepareJobBase
-    {
-    public:
-        NativeImageFragmentJob(const TaskContext& ctx, NativeBackendBuilder& builder, const NativeObjDescription& description, LinkImage& outImage) :
-            LinkPrepareJobBase(ctx),
-            builder_(&builder),
-            description_(&description),
-            outImage_(&outImage)
-        {
-        }
-
-        JobResult exec() override
-        {
-            ctx().state().setNone();
-            SWC_ASSERT(builder_ != nullptr);
-            SWC_ASSERT(description_ != nullptr);
-            SWC_ASSERT(outImage_ != nullptr);
-            setResult(buildNativeImageFragment(*builder_, *outImage_, *description_));
-            return JobResult::Done;
-        }
-
-    private:
-        NativeBackendBuilder*        builder_     = nullptr;
-        const NativeObjDescription*  description_ = nullptr;
-        LinkImage*                   outImage_    = nullptr;
-    };
-
-    class LibrarySearchJob final : public LinkPrepareJobBase
-    {
-    public:
-        LibrarySearchJob(const TaskContext& ctx, NativeBackendBuilder& builder, LibrarySearch& outSearch) :
-            LinkPrepareJobBase(ctx),
-            builder_(&builder),
-            outSearch_(&outSearch)
-        {
-        }
-
-        JobResult exec() override
-        {
-            ctx().state().setNone();
-            SWC_ASSERT(builder_ != nullptr);
-            SWC_ASSERT(outSearch_ != nullptr);
-            collectPeLibrarySearch(*builder_, outSearch_->libNames, outSearch_->dirs);
-            return JobResult::Done;
-        }
-
-    private:
-        NativeBackendBuilder* builder_   = nullptr;
-        LibrarySearch*        outSearch_ = nullptr;
     };
 
     class ArchiveLoadJob final : public LinkPrepareJobBase
@@ -664,30 +503,6 @@ namespace
     private:
         NativeBackendBuilder* builder_       = nullptr;
         DebugTableBuild*      outDebugTable_ = nullptr;
-    };
-
-    class Win32ConfigJob final : public LinkPrepareJobBase
-    {
-    public:
-        Win32ConfigJob(const TaskContext& ctx, NativeBackendBuilder& builder, LinkWin32ApplicationConfig& outConfig) :
-            LinkPrepareJobBase(ctx),
-            builder_(&builder),
-            outConfig_(&outConfig)
-        {
-        }
-
-        JobResult exec() override
-        {
-            ctx().state().setNone();
-            SWC_ASSERT(builder_ != nullptr);
-            SWC_ASSERT(outConfig_ != nullptr);
-            setResult(collectLinkWin32ApplicationConfig(*builder_, *outConfig_));
-            return JobResult::Done;
-        }
-
-    private:
-        NativeBackendBuilder*        builder_   = nullptr;
-        LinkWin32ApplicationConfig*  outConfig_ = nullptr;
     };
 
     class StaticArchiveMemberJob final : public LinkPrepareJobBase
@@ -1092,51 +907,37 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
-    JobManager& jobMgr       = builder_->ctx().global().jobMgr();
-    const auto  searchClient = jobMgr.newClientId();
-    const auto  prepClient   = jobMgr.newClientId();
+    JobManager&       jobMgr   = builder_->ctx().global().jobMgr();
+    const JobClientId clientId = jobMgr.newClientId();
 
-    LibrarySearch   librarySearch;
-    LibrarySearchJob librarySearchJob(builder_->ctx(), *builder_, librarySearch);
-    jobMgr.enqueue(librarySearchJob, JobPriority::Normal, searchClient);
+    std::set<Utf8>        libNames;
+    std::vector<fs::path> dirs;
+    collectLibrarySearch(libNames, dirs);
+    std::vector<ArchiveLoadItem> archiveItems;
+    collectArchiveLoadItems(archiveItems, libNames, dirs);
 
-    std::vector<LinkImage> fragments(builder_->objectDescriptions.size());
-    DebugTableBuild        debugTable;
-    LinkWin32ApplicationConfig win32Config;
-
-    std::vector<std::unique_ptr<LinkPrepareJobBase>> prepJobs;
-    prepJobs.reserve(builder_->objectDescriptions.size() + 8);
-    auto enqueuePrepJob = [&](std::unique_ptr<LinkPrepareJobBase> job) {
+    std::vector<std::unique_ptr<LinkPrepareJobBase>> jobs;
+    jobs.reserve(archiveItems.size() + 1);
+    auto enqueueJob = [&](std::unique_ptr<LinkPrepareJobBase> job) {
         LinkPrepareJobBase& ref = *job;
-        prepJobs.push_back(std::move(job));
-        jobMgr.enqueue(ref, JobPriority::Normal, prepClient);
+        jobs.push_back(std::move(job));
+        jobMgr.enqueue(ref, JobPriority::Normal, clientId);
     };
 
-    for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
-        enqueuePrepJob(std::make_unique<NativeImageFragmentJob>(builder_->ctx(), *builder_, builder_->objectDescriptions[i], fragments[i]));
-    enqueuePrepJob(std::make_unique<DebugTableJob>(builder_->ctx(), *builder_, debugTable));
-    enqueuePrepJob(std::make_unique<Win32ConfigJob>(builder_->ctx(), *builder_, win32Config));
+    for (ArchiveLoadItem& item : archiveItems)
+        enqueueJob(std::make_unique<ArchiveLoadJob>(builder_->ctx(), item));
 
-    jobMgr.waitAll(searchClient);
-    const Result librarySearchResult = librarySearchJob.result();
+    SWC_RESULT(buildNativeImage(outJob.image));
 
-    std::vector<ArchiveLoadItem> archiveItems;
-    if (librarySearchResult == Result::Continue)
-    {
-        collectArchiveLoadItems(archiveItems, librarySearch.libNames, librarySearch.dirs);
-        prepJobs.reserve(prepJobs.size() + archiveItems.size());
-        for (ArchiveLoadItem& item : archiveItems)
-            enqueuePrepJob(std::make_unique<ArchiveLoadJob>(builder_->ctx(), item));
-    }
+    DebugTableBuild debugTable;
+    enqueueJob(std::make_unique<DebugTableJob>(builder_->ctx(), *builder_, debugTable));
 
-    jobMgr.waitAll(prepClient);
-    SWC_RESULT(librarySearchResult);
-    for (const std::unique_ptr<LinkPrepareJobBase>& job : prepJobs)
+    LinkWin32ApplicationConfig win32Config;
+    SWC_RESULT(collectWin32ApplicationConfig(win32Config));
+
+    jobMgr.waitAll(clientId);
+    for (const std::unique_ptr<LinkPrepareJobBase>& job : jobs)
         SWC_RESULT(job->result());
-
-    LinkImageFragmentMerger merger(outJob.image);
-    for (const LinkImage& fragment : fragments)
-        merger.append(fragment);
 
     std::vector<Archive> archives;
     archives.reserve(archiveItems.size());

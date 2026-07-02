@@ -1552,3 +1552,137 @@ impl IPropertyNotify for PropDefaultCustom
 
     host.shutdown()
 }
+
+// Undo/redo of a scalar field edit: each commit records one step; undo/redo walk the timeline;
+// canUndo/canRedo track the edges; a no-op change records nothing; a new edit after undo drops
+// the redo tail.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
+    @assert(it != null)
+    @assert(!prop.canUndo() and !prop.canRedo())
+
+    // Writing the same value back records nothing.
+    dref cast(*s32) it.data = 42
+    prop.hasChanged(it)
+    @assert(!prop.canUndo())
+
+    // Two real edits.
+    dref cast(*s32) it.data = 100
+    prop.hasChanged(it)
+    @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
+
+    dref cast(*s32) it.data = 7
+    prop.hasChanged(it)
+    @assert(data.count == 7)
+
+    prop.undo()
+    @assert(data.count == 100 and prop.canUndo() and prop.canRedo())
+    prop.undo()
+    @assert(data.count == 42 and !prop.canUndo())
+
+    prop.redo()
+    @assert(data.count == 100)
+    prop.redo()
+    @assert(data.count == 7 and !prop.canRedo())
+
+    // New edit after undo truncates the redo tail.
+    prop.undo()                                  // -> 100
+    prop.undo()                                  // -> 42
+    dref cast(*s32) it.data = 55
+    prop.hasChanged(it)
+    @assert(data.count == 55 and !prop.canRedo())
+    prop.undo()
+    @assert(data.count == 42)
+
+    host.shutdown()
+}
+
+// Undo/redo of a dynamic String field (copied by content, not by raw bytes).
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(300, 360)
+
+    var data: MultiTile
+    data.name = "alpha"
+    let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
+    prop.addStruct(data)
+
+    let it = findFieldItem(prop, #nameof(MultiTile.name))
+    @assert(it != null)
+
+    dref cast(*String) it.data = "beta"
+    prop.hasChanged(it)
+    @assert(data.name == "beta")
+
+    prop.undo()
+    @assert(data.name == "alpha")
+    prop.redo()
+    @assert(data.name == "beta")
+
+    host.shutdown()
+}
+
+// Undo/redo across a multi-selection edit restores every edited instance.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 360)
+
+    var t0, t1: PropHeadlessData                 // both count = 42
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
+
+    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
+    @assert(it != null)
+
+    dref cast(*s32) it.data = 100                 // edit instance 0; hasChanged propagates
+    prop.hasChanged(it)
+    @assert(t0.count == 100 and t1.count == 100)
+
+    prop.undo()
+    @assert(t0.count == 42 and t1.count == 42)
+    prop.redo()
+    @assert(t0.count == 100 and t1.count == 100)
+
+    host.shutdown()
+}
+
+// Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) drive undo/redo while the grid is in navigation mode.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+    prop.focusNav()
+
+    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
+    dref cast(*s32) it.data = 100
+    prop.hasChanged(it)
+    @assert(data.count == 100)
+
+    host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
+    @assert(data.count == 42)
+    host.keyPress(Input.Key.Y, Input.KeyModifiers.Control)
+    @assert(data.count == 100)
+    host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
+    @assert(data.count == 42)
+    host.keyPress(Input.Key.Z, Input.KeyModifiers.Control | Input.KeyModifiers.Shift)
+    @assert(data.count == 100)
+
+    host.shutdown()
+}

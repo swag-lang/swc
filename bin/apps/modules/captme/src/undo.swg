@@ -66,6 +66,21 @@ struct Undo
     fontStyle:       FontFamilyStyle
 }
 
+// Undo is a command of the generic gui UndoManager (owned by Capture): redo re-applies the
+// action, undo reverts it. The per-kind logic lives in doIt/undoIt below.
+impl IUndoCommand for Undo
+{
+    mtd impl redo()
+    {
+        .doIt()
+    }
+
+    mtd impl undo()
+    {
+        .undoIt()
+    }
+}
+
 impl Undo
 {
     mtd opDrop()

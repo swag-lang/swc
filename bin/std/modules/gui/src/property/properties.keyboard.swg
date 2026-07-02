@@ -47,6 +47,27 @@ moduleprivate impl Properties
         if evt.kind != .KeyPressed do
             return
 
+        // Undo/redo shortcuts, available in navigation mode (an editor with the focus keeps
+        // its own Ctrl+Z for in-place text editing). Ctrl+Y and Ctrl+Shift+Z both redo.
+        if cast(bool) (evt.modifiers & .Control)
+        {
+            let shift = cast(bool) (evt.modifiers & .Shift)
+            switch evt.key
+            {
+            case Z:
+                if shift do
+                    .redo()
+                else do
+                    .undo()
+                evt.accepted = true
+                return
+            case Y:
+                .redo()
+                evt.accepted = true
+                return
+            }
+        }
+
         // An open combo drop-down is driven here (the grid keeps the focus), so the
         // arrows move the popup selection instead of the grid rows or the page.
         if .selItem and .selItem.comboBox and .selItem.comboBox.popup

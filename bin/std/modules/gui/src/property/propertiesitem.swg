@@ -51,6 +51,12 @@ struct PropertiesItem
     revertButton:       *IconButton
     arrayAddButton:     *IconButton
 
+    // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
+    // field, kept per row so hasChanged can diff the new value against it and record one undo
+    // command. Captured at build for every snapshot-able row (POD or String); left invalid for
+    // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
+    undoValue:          PropFieldValue
+
     type:               typeinfo
     typeValue:          Swag.TypeValue
     parent:             *PropertiesItem

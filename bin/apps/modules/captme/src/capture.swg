@@ -38,8 +38,7 @@ struct Capture
         mouseMode:             MouseMode = None
         editView:              *EditView
         gizmo:                 GizmoRect
-        undos:                 ArrayPtr'Undo
-        nextUndo:              u64
+        undoMgr:               UndoManager
         hotForm:               u64 = Swag.U64.Max
         selection:             Array'u64
         paintRect:             Math.Rectangle
@@ -1318,9 +1317,12 @@ impl Capture
     // UNDO
     //////////////////////////////
 
+    // Allocate a new (not yet pushed) Undo command. Commands sharing a non-zero 'serial' are
+    // undone/redone together as one step (pass capture.serialUndo, bumped by the caller); 0 gives
+    // the command its own fresh group.
     mtd newUndo(kind: UndoKind, serial: u32 = 0)->*Undo
     {
-        let ptr = .undos.newPtr()
+        let ptr = Memory.new'Undo()
         ptr.kind = kind
         if serial do
             ptr.serial = serial
@@ -1335,25 +1337,17 @@ impl Capture
 
     mtd canUndo()->bool
     {
-        return .nextUndo != 0
+        return .undoMgr.canUndo()
     }
 
     mtd canRedo()->bool
     {
-        return .nextUndo != .undos.count
+        return .undoMgr.canRedo()
     }
 
     mtd undo()
     {
-        if !.canUndo() do
-            return
-
-        let serial = .undos[.nextUndo - 1].serial
-        while .nextUndo and .undos[.nextUndo - 1].serial == serial
-        {
-            .nextUndo -= 1
-            .undos[.nextUndo].undoIt()
-        }
+        .undoMgr.undo()
 
         // During an interactive drag, apply() calls undo() every move to re-apply the
         // move from scratch; the per-form partial invalidate handles the repaint.
@@ -1363,15 +1357,7 @@ impl Capture
 
     mtd redo()
     {
-        if !.canRedo() do
-            return
-
-        let serial = .undos[.nextUndo].serial
-        while .nextUndo != .undos.count and .undos[.nextUndo].serial == serial
-        {
-            .undos[.nextUndo].doIt()
-            .nextUndo += 1
-        }
+        .undoMgr.redo()
 
         if !.interactiveMove do
             .editView.invalidate()
@@ -1381,21 +1367,9 @@ impl Capture
     {
         u.capture = me
 
-        // Remove no more relevant undos
-        let countUndo = .nextUndo
-        while .nextUndo != .undos.count
-        {
-            Memory.delete(.undos[.nextUndo])
-            .nextUndo += 1
-        }
-
-        // Add that one
-        .undos.resize(countUndo)
-        .undos.add(u)
-        .nextUndo = .undos.count
-
-        // Do it
+        // Capture the "before" state, then hand the command to the generic manager which
+        // discards the redo tail (freeing those commands) and applies this one via redo()/doIt().
         u.init()
-        u.doIt()
+        .undoMgr.pushCmd(cast(IUndoCommand) u, cast(u64) u.serial, apply: true)
     }
 }

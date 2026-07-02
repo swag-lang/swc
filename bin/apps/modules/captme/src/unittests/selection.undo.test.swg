@@ -168,15 +168,15 @@ using Swag, Core
     @assert(a.y == 17)
     @assert(b.x == 35)
     @assert(b.y == 37)
-    @assert(f.capture.undos.count == 2)
-    @assert(f.capture.nextUndo == 2)
+    @assert(f.capture.undoMgr.count() == 2)
+    @assert(f.capture.undoMgr.next == 2)
 
     f.capture.undo()
     @assert(a.x == 10)
     @assert(a.y == 10)
     @assert(b.x == 30)
     @assert(b.y == 30)
-    @assert(f.capture.nextUndo == 0)
+    @assert(f.capture.undoMgr.next == 0)
 
     f.capture.redo()
     @assert(a.x == 15)
@@ -188,7 +188,7 @@ using Swag, Core
     var u2 = f.capture.newUndo(.OffsetSelection)
     u2.newPosX = -2
     f.capture.pushUndo(u2)
-    @assert(f.capture.undos.count == 1)
+    @assert(f.capture.undoMgr.count() == 1)
     @assert(a.x == 8)
     @assert(b.x == 28)
 

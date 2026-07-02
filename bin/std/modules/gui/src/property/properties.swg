@@ -121,6 +121,13 @@ struct Properties
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
     menuItem:                 #null *PropertiesItem
+
+    // Undo/redo (propertiesundo.swg). Every field edit that goes through hasChanged records one
+    // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
+    // while a command is restoring a value.
+    undoMgr:                  UndoManager
+    undoEnabled:              bool = true
+    applyingUndo:             bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points
@@ -372,6 +379,7 @@ impl Properties
 
         .assignInstances(firstItemIdx, bases)
         .assignDefaults(firstItemIdx, typeof, cast([*] u8) bases[0])
+        .assignUndoSnapshots(firstItemIdx)
 
         // Editors were first filled from instance 0 before the instance addresses existed;
         // refresh so any field that differs across instances now shows as "mixed".
@@ -428,6 +436,18 @@ impl Properties
         if !item.selfPropagate do
             .propagateField(item)
 
+        // Record the edit for undo/redo (diff against the row's snapshot). Skipped while a
+        // command is itself restoring a value (applyingUndo), so undo/redo don't re-record.
+        if !.applyingUndo do
+            .recordUndo(item)
+
+        .postChange(item)
+    }
+
+    // The refresh/relayout/notify tail shared by a user edit (hasChanged) and by an undo/redo
+    // restore (applyUndoValue) — everything except propagation and undo recording.
+    mtd postChange(item: *PropertiesItem)
+    {
         .refresh()
 
         // A change can add/remove a validation bar (row height) or flip a row's revert marker

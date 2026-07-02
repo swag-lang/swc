@@ -360,7 +360,7 @@ struct ThemeColors
     prop_GridColumn:                      Color
     prop_SectionBk:                       Color
     prop_CategBk:                         Color
-    prop_Bk1:                             Color
+    prop_TreeGuide:                       Color
 }
 
 impl ThemeColors
@@ -743,8 +743,8 @@ impl ThemeColors
         .prop_GridBorder  = Gray7
         .prop_GridColumn  = Gray7
         .prop_SectionBk   = Gray6
-        .prop_CategBk     = Transparent
-        .prop_Bk1         = Color.getDarker(Color.fromArgb(Gray5), 0.06)
+        .prop_CategBk     = Gray6
+        .prop_TreeGuide   = Gray3
     }
 
     mtd setLight()
@@ -1131,7 +1131,7 @@ impl ThemeColors
         .prop_GridBorder  = Gray7
         .prop_GridColumn  = Gray7
         .prop_SectionBk   = Gray8
-        .prop_CategBk     = Transparent
-        .prop_Bk1         = Color.getDarker(Color.fromArgb(Gray8), 0.06)
+        .prop_CategBk     = Gray8
+        .prop_TreeGuide   = Gray5
     }
 }

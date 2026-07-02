@@ -89,7 +89,7 @@ moduleprivate impl Properties
             if prop.isGridLike() and
                prop.selItem and
                prop.selItem.numChilds and
-               pt.x < prop.leftMargin
+               pt.x < cast(f32) prop.leftMargin + prop.itemIndent(prop.selItem)
             {
                 prop.selItem.flags.toggle(.Expanded)
                 prop.updateStates()

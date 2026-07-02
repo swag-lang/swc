@@ -77,6 +77,7 @@ struct Properties
     gridColumnSize:       s32 = 150
     gridColumnSizeReq:    s32 = 150   // Requested column size, re-clamped to the current width on resize
     gridMarginColumn:     s32 = 16
+    gridIndentSize:       s32 = 14   // Per-nesting-level indent of the name label + disclosure triangle
 
     // For list kind
     listNameMarginBefore:     s32 = 20

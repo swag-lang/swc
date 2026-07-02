@@ -137,6 +137,26 @@ moduleprivate impl Properties
         return Math.max(width - item.line.margin.x - item.line.margin.z - item.label.margin.x - item.label.margin.z, 1.0)
     }
 
+    // Horizontal indent (px) of a data row's name label + disclosure triangle. Nesting depth is
+    // carried by indentation (the primary hierarchy cue) rather than by a per-level background
+    // tint. Headers (section/category) span the full width and are never indented. Depth 0 is a
+    // top-level field (level 1); every nested struct/array level adds one gridIndentSize step.
+    mtd itemIndent(item: *PropertiesItem)->f32
+    {
+        if !.isGridLike() or .isGridHeader(item) do
+            return 0
+        let depth = item.level > 0 ? item.level - 1 : 0'u32
+        return cast(f32) depth * cast(f32) .gridIndentSize
+    }
+
+    // Local-x of the vertical tree guide dropped under 'item's disclosure triangle. It matches the
+    // triangle center, and since every row shares the same local origin the per-row segments stack
+    // into one continuous line down a branch.
+    mtd disclosureGuideX(item: *PropertiesItem)->f32
+    {
+        return .itemIndent(item) + cast(f32) .leftMargin * 0.5
+    }
+
     mtd syncColumnLabel(item: *PropertiesItem)
     {
         if !item.label do
@@ -148,8 +168,11 @@ moduleprivate impl Properties
             item.label.paddingText.x = .leftMargin
             item.label.position.width = .getGridHeaderLabelWidth(item)
         }
-        else do
+        else
+        {
+            item.label.paddingText.x  = cast(f32) .leftMargin + .itemIndent(item)
             item.label.position.width = .gridColumnSize
+        }
     }
 
     mtd syncColumnLabels()

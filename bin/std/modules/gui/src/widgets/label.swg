@@ -123,6 +123,19 @@ impl IWnd for Label
             var posText = pos
             posText.applyPadding(.paddingText)
 
+            // Optically center the text against a vertically-centered icon. A glyph line box is
+            // descent-heavy, so geometric centering leaves the visible text sitting slightly high of
+            // a centered icon. When an icon is present, the text is vertically centered, and the
+            // caller has not already nudged it by hand (paddingText.y == 0), shift the text down by
+            // half the (negative) descent. This is the general fix for the recurring icon+text
+            // vertical-alignment mismatch — callers no longer need to hand-tune paddingText.
+            if .icon.isValid() and .vertAlignmentText == .Center and .paddingText.y == 0
+            {
+                let font = .getFont().regular
+                if font do
+                    posText.y -= font.descent * 0.5
+            }
+
             let sf = .getStringFormat(bc.isDisabled)
             painter.drawRichString(posText, &.name, sf)
         }

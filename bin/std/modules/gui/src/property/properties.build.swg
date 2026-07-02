@@ -285,25 +285,23 @@ moduleprivate impl Properties
         if !.isGridLike() do
             return
 
-        let space = Reflection.getAttributeValue(value, .Gap, "size")
-        if space != null do
+        if let space = Reflection.getAttributeValue(value, .Gap, "size") do
             .addSpacerRow(parentItem, cast(s32) assume space)
-
-        let header = Reflection.getAttributeValue(value, .Heading, "text")
-        if header != null do
+        if let header = Reflection.getAttributeValue(value, .Heading, "text") do
             .addHeaderRow(cast(string) header, parentItem)
-
-        let help = Reflection.getAttributeValue(value, .HelpBox, "text")
-        if help != null do
+        if let help = Reflection.getAttributeValue(value, .HelpBox, "text") do
             .addNoteRow(cast(string) help, parentItem)
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
     mtd addSpacerRow(parentItem: *PropertiesItem, size: s32)->*PropertiesItem
     {
-        let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
-        item.level = parentItem.level
-        item.flags.add(.Spacer | .NoSeparator | .NoFocus)
+        with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
+        {
+            .level = parentItem.level
+            .flags.add(.Spacer | .NoSeparator | .NoFocus)
+        }
+
         return item
     }
 
@@ -312,11 +310,13 @@ moduleprivate impl Properties
     mtd addHeaderRow(text: string, parentItem: *PropertiesItem)->*PropertiesItem
     {
         let v: Swag.TypeValue{name: text}
-        let item = .addItem(v, null, parentItem)
-        if item.label do
-            item.label.style.setFont(&.fontCategory)
-        item.level = parentItem.level
-        item.flags.add(.Header | .NoSeparator | .NoFocus)
+        with let item = .addItem(v, null, parentItem)
+        {
+            if .label do
+                .label.style.setFont(&.fontCategory)
+            .level = parentItem.level
+            .flags.add(.Header | .NoSeparator | .NoFocus)
+        }
         return item
     }
 
@@ -329,21 +329,23 @@ moduleprivate impl Properties
         item.level = parentItem.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
-        let colors = .getThemeColors()
         with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
         {
             .focusStrategy     = .None
             .horzAlignmentText = .Left
             .vertAlignmentText = .Center
             .horzAlignmentIcon = .Left
-            .icon              = .getTheme().getIcon64(.Information, .valBarIconSize)
-            .iconColor         = Argb.White
-            .textColor         = colors.embInfo_InformationText
             .paddingIcon.x     = (.valBarGlyphWidth - .valBarIconSize) * 0.5
             .paddingText       = {.valBarGlyphWidth, 0, .valBarPaddingX, 0}
             .dockStyle         = .Center
         }
         item.label = lbl
+
+        // Icon + colors come from the theme and are re-applied on a theme switch (applyNoteVisual),
+        // exactly like the validation bar — a plain Label color field does not follow the theme, so
+        // baking it here would keep the build-time theme's color (wrong on the first paint / after a
+        // theme change).
+        .applyNoteVisual(item)
         return item
     }
 }

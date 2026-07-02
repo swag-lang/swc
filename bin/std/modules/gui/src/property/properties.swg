@@ -164,6 +164,8 @@ impl IWnd for Properties
         {
             if it.validationLabel and it.validation != .None do
                 .applyValidationVisual(it)
+            if it.flags.has(.Note) do
+                .applyNoteVisual(it)
         }
     }
 

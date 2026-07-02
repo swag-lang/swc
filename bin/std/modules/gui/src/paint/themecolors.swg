@@ -1118,7 +1118,7 @@ impl ThemeColors
         .embInfo_CriticalBk      = 0xFFF5DEDE
         .embInfo_CriticalText    = 0xFF9C4A4A
         .embInfo_InformationBk   = 0xFFDEE7F6
-        .embInfo_InformationText = 0xFF45597E
+        .embInfo_InformationText = 0xFF2E4270
         .embInfo_MessageBk       = 0xFFF4EACB
         .embInfo_MessageText     = 0xFF7C6636
 

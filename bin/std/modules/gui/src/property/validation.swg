@@ -147,6 +147,20 @@ moduleprivate impl Properties
         .syncValidationTextOffset(lbl)
     }
 
+    // Apply an info note's visuals to its label from the CURRENT theme: the info icon (native White
+    // tint, like the validation bar) plus the embInfo info text color. Split out so it can be re-run
+    // on a theme switch (see onThemeEvent) — a Label's icon/textColor are plain fields, not theme
+    // styles, so a note built under one theme would otherwise keep stale colors under the next.
+    mtd applyNoteVisual(item: *PropertiesItem)
+    {
+        let lbl = item.label
+        if !lbl do
+            return
+        lbl.icon      = .getTheme().getIcon64(.Information, .valBarIconSize)
+        lbl.iconColor = Argb.White
+        lbl.textColor = .getThemeColors().embInfo_InformationText
+    }
+
     mtd syncValidationTextOffset(lbl: *Label)
     {
         let font = lbl.getFont().regular

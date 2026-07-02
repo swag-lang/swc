@@ -689,6 +689,15 @@ struct MultiTile
     pos:    Math.Point = {0, 0}
 }
 
+// Direct element rows of an array item, in order (their nested field rows are skipped).
+fileprivate func arrElemRows(prop: *Properties, arr: *PropertiesItem)->Array'(*PropertiesItem)
+{
+    var res: Array'(*PropertiesItem)
+    foreach it in prop.items where it.parent == arr do
+        res.add(it)
+    return res
+}
+
 fileprivate func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
 {
     foreach it in prop.items
@@ -1136,6 +1145,70 @@ impl Gui.IPropertyNotify for ValData
     @assert(statElems.count == 3)
     prop.moveArrayValue(statElems[0], 1)
     @assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
+
+    host.shutdown()
+}
+
+// Arbitrary-slot reorder (moveArrayValueTo) for dynamic + static arrays, plus the drag-drop gap
+// -> element-index conversion done by dragDrop (an insertion gap after the dragged element must
+// account for the element being lifted out first).
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(300, 520)
+
+    var data: PropMoveData
+    data.dyn.resize(3)
+    data.dyn[0].id = 10
+    data.dyn[1].id = 20
+    data.dyn[2].id = 30
+    data.stat[0]   = 1
+    data.stat[1]   = 2
+    data.stat[2]   = 3
+
+    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .Grid)
+    prop.addStruct(data)
+
+    let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
+    @assert(dynArr != null)
+
+    // Move the first element (id 10) to the last slot -> [20,30,10].
+    var elems = arrElemRows(prop, dynArr)
+    prop.moveArrayValueTo(elems[0], 2)
+    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
+
+    // Move it back to the front -> [10,20,30].
+    elems = arrElemRows(prop, dynArr)
+    prop.moveArrayValueTo(elems[2], 0)
+    @assert(data.dyn[0].id == 10 and data.dyn[1].id == 20 and data.dyn[2].id == 30)
+
+    // dragDrop math: dragging element 0 to the trailing gap (gap == count == 3) must land it at
+    // index 2, not clamp to the wrong slot (gap > idx => target = gap - 1).
+    elems             = arrElemRows(prop, dynArr)
+    prop.dragElem     = elems[0]
+    prop.dragArray    = dynArr
+    prop.dragActive   = true
+    prop.dragTargetGap = 3
+    @assert(prop.dragDrop())
+    @assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
+    @assert(prop.dragElem == null and !prop.dragActive)
+
+    // Dragging the last element to gap 0 lands it at the front.
+    elems             = arrElemRows(prop, dynArr)
+    prop.dragElem     = elems[2]
+    prop.dragArray    = dynArr
+    prop.dragActive   = true
+    prop.dragTargetGap = 0
+    @assert(prop.dragDrop())
+    @assert(data.dyn[0].id == 10 and data.dyn[1].id == 20 and data.dyn[2].id == 30)
+
+    // Static array reorder to an arbitrary slot: move index 2 to the front -> [3,1,2].
+    let statArr = findFieldItem(prop, #nameof(PropMoveData.stat))
+    @assert(statArr != null)
+    let statElems = arrElemRows(prop, statArr)
+    @assert(statElems.count == 3)
+    prop.moveArrayValueTo(statElems[2], 0)
+    @assert(data.stat[0] == 3 and data.stat[1] == 1 and data.stat[2] == 2)
 
     host.shutdown()
 }

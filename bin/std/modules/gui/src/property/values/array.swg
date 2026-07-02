@@ -134,6 +134,38 @@ impl Properties
         .hasChanged(arrayItem)
     }
 
+    // Reorder an array element to an arbitrary 0-based slot (static or dynamic). Implemented as a
+    // run of adjacent swaps so it reuses Reflection.swapValues (which fixes up self-referencing
+    // structs after their bytes move); the element count never changes.
+    mtd moveArrayValueTo(elemItem: *PropertiesItem, target: u64)
+    {
+        let arrayItem = elemItem.parent
+        let info      = .arrayElementInfo(arrayItem)
+        if info.count == 0 do
+            return
+
+        var dst = target
+        if dst >= info.count do
+            dst = info.count - 1
+
+        var idx = .arrayElementIndex(elemItem)
+        if idx == dst do
+            return
+
+        while idx < dst
+        {
+            Reflection.swapValues(info.base, info.valueType, idx, idx + 1)
+            idx += 1
+        }
+        while idx > dst
+        {
+            Reflection.swapValues(info.base, info.valueType, idx, idx - 1)
+            idx -= 1
+        }
+
+        .hasChanged(arrayItem)
+    }
+
     mtd removeArrayValue(item: *PropertiesItem)
     {
         let parentItem = item.parent

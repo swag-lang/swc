@@ -1686,3 +1686,77 @@ impl IPropertyNotify for PropDefaultCustom
 
     host.shutdown()
 }
+
+// --- Nested subgroups (#3) and decorators (#5) ------------------------------
+
+struct PropDecorData
+{
+    #[Category("Transform")]
+    px: s32 = 1
+
+    #[Category("Transform/Advanced")]
+    shear: s32 = 2
+
+    #[Category("Physics")]
+    #[Heading("Body")]
+    #[Gap(16)]
+    #[HelpBox("Affects simulation")]
+    mass: s32 = 3
+}
+
+// A "/"-separated Category opens nested subgroups (the shared prefix is reused across siblings),
+// and the Heading / Gap / HelpBox decorators inject header / spacer / note rows above the field.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(360, 480)
+
+    var data: PropDecorData
+    let prop = Properties.create(&host.root, {0, 0, 340, 460}, .Grid)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    // Nested categories: Transform is a top-level group (level 0); Advanced is nested under it
+    // (level 1, reusing the same Transform header); Physics is a second top-level group (level 0).
+    let transform = findFieldItem(prop, "Transform")
+    let advanced  = findFieldItem(prop, "Advanced")
+    let physics   = findFieldItem(prop, "Physics")
+    @assert(transform != null and advanced != null and physics != null)
+    @assert(transform.flags.has(.Category) and transform.level == 0)
+    @assert(advanced.flags.has(.Category)  and advanced.level == 1)
+    @assert(physics.flags.has(.Category)   and physics.level == 0)
+    @assert(advanced.parent == transform)                          // subgroup nested under its prefix
+
+    // Fields indent with their group depth: a top-level field is at indent 0, a subgroup field one
+    // step further, and the subgroup header lines up with the fields it groups.
+    let px    = findFieldItem(prop, #nameof(PropDecorData.px))
+    let shear = findFieldItem(prop, #nameof(PropDecorData.shear))
+    @assert(px != null and shear != null)
+    @assert(prop.itemIndent(px) == 0)
+    @assert(prop.itemIndent(transform) == 0)
+    @assert(prop.itemIndent(shear) > prop.itemIndent(px))
+    @assert(prop.itemIndent(advanced) == prop.itemIndent(shear))   // subgroup header aligns with its field
+
+    // The three decorators on 'mass' produced three extra rows before it, all under Physics.
+    var spacer, heading, note: *PropertiesItem
+    foreach it in prop.items
+    {
+        if it.flags.has(.Spacer) do
+            spacer = it
+        if it.flags.has(.Header) do
+            heading = it
+        if it.flags.has(.Note) do
+            note = it
+    }
+    @assert(spacer != null and heading != null and note != null)
+    @assert(heading.parent == physics and spacer.parent == physics and note.parent == physics)
+    @assert(heading.typeValue.name == "Body")
+    @assert(spacer.line.position.height == 16)                     // Gap(16)
+    @assert(note.label != null)                                    // the info bar label
+
+    // Decorators are inert: not focusable and never expandable.
+    @assert(heading.flags.has(.NoFocus) and spacer.flags.has(.NoFocus) and note.flags.has(.NoFocus))
+    @assert(heading.numChilds == 0 and spacer.numChilds == 0 and note.numChilds == 0)
+
+    host.shutdown()
+}

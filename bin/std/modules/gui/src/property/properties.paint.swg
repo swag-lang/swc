@@ -18,6 +18,10 @@ moduleprivate impl Properties
 
     mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)
     {
+        // Spacer decorator: a pure vertical gap — no background, border or content.
+        if item.flags.has(.Spacer) do
+            return
+
         var colBkBk, colBk, colBorder: Color
 
         let colors = .wnd.getThemeColors()
@@ -51,6 +55,16 @@ moduleprivate impl Properties
             r.width = .listUsefulWidth() - 1
         }
 
+        // HelpBox note decorator: a soft info bar spanning the row. The styled label (built with the
+        // info icon + text color) paints on top; no grid border, separator or disclosure.
+        if item.flags.has(.Note)
+        {
+            var bar = r
+            bar.inflate(-3)
+            painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, colors.embInfo_InformationBk)
+            return
+        }
+
         // When a validation bar grows the grid row, the row chrome (background, border, focus
         // box) wraps the whole thing so the bar reads as part of the row. The column separator
         // is the exception: it must stop at the value cell, since the bar spans full width.
@@ -63,7 +77,7 @@ moduleprivate impl Properties
         // past a couple of levels). The hovered branch is marked by the guide bar drawn below.
         if .isGridLike() and item.flags.has(.Section) do
             colBkBk = colors.prop_SectionBk
-        elif .isGridLike() and item.flags.has(.Category) do
+        elif .isGridLike() and item.flags.has(.Category | .Header) do
             colBkBk = colors.prop_CategBk
         painter.fillRect(r, colBkBk)
 

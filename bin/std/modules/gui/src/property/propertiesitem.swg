@@ -20,6 +20,11 @@ enum ItemFlags
     Section
     Category
     Expanded
+    // Decorator rows injected from field attributes (properties.build.swg): a non-collapsible
+    // divider label (Header), a blank vertical gap (Spacer) and an informational bar (Note).
+    Header
+    Spacer
+    Note
 }
 
 // One row of the property grid: its window, the bound field (typeinfo + address, plus one

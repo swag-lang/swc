@@ -124,7 +124,7 @@ moduleprivate impl Properties
 
     mtd isGridHeader(item: *PropertiesItem)->bool
     {
-        return .isGridLike() and item.flags.has(.Section | .Category)
+        return .isGridLike() and item.flags.has(.Section | .Category | .Header)
     }
 
     mtd getGridHeaderLabelWidth(item: *PropertiesItem)->f32
@@ -149,8 +149,13 @@ moduleprivate impl Properties
 
     mtd itemIndent(item: *PropertiesItem)->f32
     {
-        if !.isGridLike() or .isGridHeader(item) do
+        if !.isGridLike() do
             return 0
+        // Headers (section/category/subgroup/decorator) indent by their own level: a top-level
+        // header is at 0, a nested subgroup one step in — so its band label lines up with the
+        // (level-1)-based indent of the fields it groups.
+        if .isGridHeader(item) do
+            return cast(f32) item.level * cast(f32) .gridIndentSize
         return cast(f32) .itemDepth(item) * cast(f32) .gridIndentSize
     }
 
@@ -197,10 +202,14 @@ moduleprivate impl Properties
         if !item.label do
             return
 
+        // Note rows own their layout (a full-width info bar with custom paddings), so leave them be.
+        if item.flags.has(.Note) do
+            return
+
         if .isGridHeader(item)
         {
             item.label.margin.z      = 0
-            item.label.paddingText.x = .leftMargin
+            item.label.paddingText.x = cast(f32) .leftMargin + .itemIndent(item)
             item.label.position.width = .getGridHeaderLabelWidth(item)
         }
         else

@@ -3,8 +3,21 @@ using Core, Pixel
 
 impl Properties
 {
-    // Start a new category
+    // Start a new category. A "/"-separated name opens nested subgroups: Category("Transform/Advanced")
+    // creates a "Transform" group with an "Advanced" subgroup indented under it. Consecutive fields
+    // sharing a common prefix reuse the same headers.
     attr Category(name: string)
+
+    // Decorator: insert a bold, non-collapsible divider label above the field (like Unity's [Header]).
+    // Named 'Heading' to avoid clashing with the existing Header widget type.
+    attr Heading(text: string)
+
+    // Decorator: insert an empty vertical gap ('size' px) above the field (like Unity's [Space]).
+    // Named 'Gap' to avoid clashing with the Key.Space enum used inside impl Properties.
+    attr Gap(size: s32)
+
+    // Decorator: insert an informational note bar above the field (like Unity's HelpBox).
+    attr HelpBox(text: string)
 
     // Change the field display name
     attr Name(name: string)

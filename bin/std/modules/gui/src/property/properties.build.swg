@@ -219,27 +219,131 @@ moduleprivate impl Properties
         if parentItem do
             parentItem.ntfyItf = @mkinterface(addr, typeStruct, IPropertyNotify)
 
-        var categItem: *PropertiesItem
+        // Currently open category path (nested subgroups). Each entry pairs a "/"-split name segment
+        // with the header row created for it, so consecutive fields sharing a common prefix reuse the
+        // same headers instead of recreating them.
+        var categPath: Array'{ name: string, item: *PropertiesItem }
+
         foreach value in typeStruct.fields
         {
-            // Category
+            // Category / nested subgroups
             let subCateg = Reflection.getAttributeValue(value, Properties.Category, "name")
             if subCateg != null
             {
-                let v:   Swag.TypeValue{name: cast(string) subCateg}
-                let item = .addItem(v, null, parentItem)
-                item.label.style.setFont(&.fontCategory)
-                item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
-                item.level = 0
-                .sections.add({item, 1})
-                newParent = item
-                categItem = item
+                let segs = Tokenize.split(cast(string) subCateg, "/")
+
+                // Keep the headers shared with the previously open path (longest common prefix),
+                // drop the diverging tail, then create only the new segments.
+                var common = 0'u64
+                while common < categPath.count and common < segs.count and categPath[common].name == segs[common] do
+                    common += 1
+
+                categPath.count = common
+                for i in common until segs.count
+                {
+                    let parentForCateg = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
+                    let citem          = .addCategoryHeader(segs[i], parentForCateg)
+                    categPath.add({segs[i], citem})
+                }
+
+                newParent = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
             }
 
+            // Decorators (Space / Header / HelpBox) go above the field, under the same parent so
+            // they collapse with their category. Count them together with the field's own rows so
+            // every open category shows a disclosure and hides its whole block when collapsed.
             let numItemsBefore = .items.count
+            .addDecorators(value, newParent)
             .addValue(value, addr + value.offset, newParent)
-            if categItem do
-                categItem.numChilds += cast(u32) (.items.count - numItemsBefore)
+
+            let added = cast(u32) (.items.count - numItemsBefore)
+            foreach c in categPath do
+                c.item.numChilds += added
         }
+    }
+
+    // Create one category/subgroup header row under 'parentForCateg'. A top-level category (whose
+    // parent is the section, not another category) stays at level 0 like a full-width divider; a
+    // category nested under another keeps addItem's level (parent + 1) so it and its fields indent
+    // one step further.
+    mtd addCategoryHeader(name: string, parentForCateg: *PropertiesItem)->*PropertiesItem
+    {
+        let v: Swag.TypeValue{name: name}
+        let item = .addItem(v, null, parentForCateg)
+        item.label.style.setFont(&.fontCategory)
+        item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
+        if !parentForCateg.flags.has(.Category) do
+            item.level = 0
+        .sections.add({item, 1})
+        return item
+    }
+
+    // Inject the decorator rows declared on 'value' (Space, Header, HelpBox) above the field, in a
+    // fixed visual order. Grid modes only — list mode already stacks its own per-row description.
+    mtd addDecorators(value: Swag.TypeValue, parentItem: *PropertiesItem)
+    {
+        if !.isGridLike() do
+            return
+
+        let space = Reflection.getAttributeValue(value, me.Gap, "size")
+        if space != null do
+            .addSpacerRow(parentItem, cast(s32) assume space)
+
+        let header = Reflection.getAttributeValue(value, me.Heading, "text")
+        if header != null do
+            .addHeaderRow(cast(string) header, parentItem)
+
+        let help = Reflection.getAttributeValue(value, me.HelpBox, "text")
+        if help != null do
+            .addNoteRow(cast(string) help, parentItem)
+    }
+
+    // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
+    mtd addSpacerRow(parentItem: *PropertiesItem, size: s32)->*PropertiesItem
+    {
+        let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
+        item.level = parentItem.level
+        item.flags.add(.Spacer | .NoSeparator | .NoFocus)
+        return item
+    }
+
+    // A non-collapsible bold divider label spanning the row (Unity [Header]-style), aligned with the
+    // sibling fields it introduces.
+    mtd addHeaderRow(text: string, parentItem: *PropertiesItem)->*PropertiesItem
+    {
+        let v: Swag.TypeValue{name: text}
+        let item = .addItem(v, null, parentItem)
+        if item.label do
+            item.label.style.setFont(&.fontCategory)
+        item.level = parentItem.level
+        item.flags.add(.Header | .NoSeparator | .NoFocus)
+        return item
+    }
+
+    // An informational note spanning the row, styled like the info validation bar (icon + text on a
+    // soft info background). The bar is painted by paintBackItem on the .Note flag; the label drawn
+    // on top carries the icon and text.
+    mtd addNoteRow(text: string, parentItem: *PropertiesItem)->*PropertiesItem
+    {
+        let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .Zero)
+        item.level = parentItem.level
+        item.flags.add(.Note | .NoSeparator | .NoFocus)
+
+        let colors = .getThemeColors()
+        with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
+        {
+            .focusStrategy     = .None
+            .horzAlignmentText = .Left
+            .vertAlignmentText = .Center
+            .horzAlignmentIcon = .Left
+            .icon              = me.getTheme().getIcon64(.Information, me.valBarIconSize)
+            .iconColor         = Argb.White
+            .textColor         = colors.embInfo_InformationText
+            .paddingIcon.x     = (me.valBarGlyphWidth - me.valBarIconSize) * 0.5
+            .paddingText       = {me.valBarGlyphWidth, 0, me.valBarPaddingX, 0}
+            .dockStyle         = .Center
+        }
+        item.label = lbl
+        return item
     }
 }

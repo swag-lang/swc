@@ -47,7 +47,6 @@ struct Capture
         snapX:                 f32 = -1
         snapY:                 f32 = -1
 
-        serialUndo:            u32
         serialBackTexture:     u32
         movingStart:           Math.Point
         movingEnd:             Math.Point
@@ -1317,21 +1316,12 @@ impl Capture
     // UNDO
     //////////////////////////////
 
-    // Allocate a new (not yet pushed) Undo command. Commands sharing a non-zero 'serial' are
-    // undone/redone together as one step (pass capture.serialUndo, bumped by the caller); 0 gives
-    // the command its own fresh group.
-    mtd newUndo(kind: UndoKind, serial: u32 = 0)->*Undo
+    // Allocate a new (not yet pushed) Undo command. To group several commands into one
+    // undo/redo step, mint a shared id with .undoMgr.newSerial() and pass it to pushUndo.
+    mtd newUndo(kind: UndoKind)->*Undo
     {
         let ptr = Memory.new'Undo()
         ptr.kind = kind
-        if serial do
-            ptr.serial = serial
-        else
-        {
-            .serialUndo += 1
-            ptr.serial = .serialUndo
-        }
-
         return ptr
     }
 
@@ -1363,13 +1353,16 @@ impl Capture
             .editView.invalidate()
     }
 
-    mtd pushUndo(u: *Undo)
+    // Push a command onto the undo timeline. A non-zero 'serial' groups this command with the
+    // others sharing that value into one undo/redo step (0 = its own fresh group); get a shared
+    // id from .undoMgr.newSerial().
+    mtd pushUndo(u: *Undo, serial: u64 = 0)
     {
         u.capture = me
 
         // Capture the "before" state, then hand the command to the generic manager which
         // discards the redo tail (freeing those commands) and applies this one via redo()/doIt().
         u.init()
-        .undoMgr.pushCmd(cast(IUndoCommand) u, cast(u64) u.serial, apply: true)
+        .undoMgr.pushCmd(cast(IUndoCommand) u, serial, apply: true)
     }
 }

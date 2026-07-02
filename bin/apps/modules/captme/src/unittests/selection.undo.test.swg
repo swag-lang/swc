@@ -153,16 +153,15 @@ using Swag, Core
     f.capture.selection.add(0)
     f.capture.selection.add(1)
 
-    f.capture.serialUndo += 1
-    let serial = f.capture.serialUndo
+    let serial = f.capture.undoMgr.newSerial()
 
-    var u0 = f.capture.newUndo(.OffsetSelection, serial)
+    var u0 = f.capture.newUndo(.OffsetSelection)
     u0.newPosX = 5
-    f.capture.pushUndo(u0)
+    f.capture.pushUndo(u0, serial)
 
-    var u1 = f.capture.newUndo(.OffsetSelection, serial)
+    var u1 = f.capture.newUndo(.OffsetSelection)
     u1.newPosY = 7
-    f.capture.pushUndo(u1)
+    f.capture.pushUndo(u1, serial)
 
     @assert(a.x == 15)
     @assert(a.y == 17)

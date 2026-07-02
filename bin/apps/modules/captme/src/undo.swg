@@ -34,7 +34,6 @@ struct Undo
     kind:            UndoKind
     capture:         *Capture
     baseForm:        IForm
-    serial:          u32
 
     selection:       Array'u64
 

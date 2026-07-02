@@ -182,14 +182,14 @@ impl MainWnd
         capture.pushUndo(undo)
     }
 
-    mtd pixSelSmartFill(serial: u32 = 0, masks: *Array'Image = null)
+    mtd pixSelSmartFill(serial: u64 = 0, masks: *Array'Image = null)
     {
         var forms = .getPixSels()
         if forms.count == 0 do
             return
 
         let capture = assume .getCapture()
-        let undo    = capture.newUndo(.SetImage, serial)
+        let undo    = capture.newUndo(.SetImage)
         undo.newImagePos = capture.backImagePos
         undo.newImg      = capture.backImg
 
@@ -304,7 +304,7 @@ impl MainWnd
             }
         }
 
-        capture.pushUndo(undo)
+        capture.pushUndo(undo, serial)
     }
 
     mtd pixSelSmartMove()
@@ -315,10 +315,9 @@ impl MainWnd
 
         let capture = assume .getCapture()
 
-        capture.serialUndo += 1
-        let serial = capture.serialUndo
+        let serial = capture.undoMgr.newSerial()
 
-        var undo = capture.newUndo(.CreateForm, serial)
+        var undo = capture.newUndo(.CreateForm)
 
         let startCount = capture.forms.count - forms.count
         foreach f in forms
@@ -343,7 +342,7 @@ impl MainWnd
             undo.oldForms.add(cast(IForm) nf)
         }
 
-        capture.pushUndo(undo)
+        capture.pushUndo(undo, serial)
 
         var masks: Array'Image
         .pixSelSmartFill(serial, &masks)
@@ -354,8 +353,8 @@ impl MainWnd
             nf.backCaptureMask(masks.buffer + idx)
         }
 
-        undo = capture.newUndo(.DeleteSelection, serial)
-        capture.pushUndo(undo)
+        undo = capture.newUndo(.DeleteSelection)
+        capture.pushUndo(undo, serial)
 
         capture.selection.clear()
         for i in startCount until capture.forms.count do

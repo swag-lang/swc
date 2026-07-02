@@ -135,8 +135,7 @@ impl MainWnd
     {
         let capture = assume .getCapture()
 
-        capture.serialUndo += 1
-        let serial = capture.serialUndo
+        let serial = capture.undoMgr.newSerial()
 
         var img  = capture.backImg
         let oldW = img.width
@@ -158,25 +157,25 @@ impl MainWnd
             img.turn(.T270)
         }
 
-        let undo1 = capture.newUndo(.SetImage, serial)
+        let undo1 = capture.newUndo(.SetImage)
         undo1.newImg = img
-        capture.pushUndo(undo1)
+        capture.pushUndo(undo1, serial)
 
         switch cmdId
         {
         case ActionImage.ResizeImage:
-            let undo2 = capture.newUndo(.MoveCapture, serial)
+            let undo2 = capture.newUndo(.MoveCapture)
             undo2.newImg   = img
             undo2.newSizeX = w - capture.width
             undo2.newSizeY = h - capture.height
-            capture.pushUndo(undo2)
+            capture.pushUndo(undo2, serial)
 
         case ActionImage.RotateImageRight, ActionImage.RotateImageLeft:
-            let undo2 = capture.newUndo(.MoveCapture, serial)
+            let undo2 = capture.newUndo(.MoveCapture)
             undo2.newImg   = img
             undo2.newSizeX = img.width - oldW
             undo2.newSizeY = img.height - oldH
-            capture.pushUndo(undo2)
+            capture.pushUndo(undo2, serial)
         }
     }
 
@@ -510,13 +509,12 @@ impl MainWnd
             }
         }
 
-        capture.serialUndo += 1
-        let serial = capture.serialUndo
+        let serial = capture.undoMgr.newSerial()
 
         // Resize capture
         if minX or minY or maxX != capture.width or maxY != capture.height
         {
-            with let undo = capture.newUndo(.MoveCapture, serial)
+            with let undo = capture.newUndo(.MoveCapture)
             {
                 .newPosX -= cast(s32) minX
                 .newSizeX -= cast(s32) minX
@@ -525,14 +523,14 @@ impl MainWnd
                 .newSizeX -= cast(s32) (capture.width - maxX)
                 .newSizeY -= cast(s32) (capture.height - maxY)
             }
-            capture.pushUndo(undo)
+            capture.pushUndo(undo, serial)
         }
 
         // Remove forms outside the cavenas
         if capture.selection.count
         {
-            let undo = capture.newUndo(.DeleteSelection, serial)
-            capture.pushUndo(undo)
+            let undo = capture.newUndo(.DeleteSelection)
+            capture.pushUndo(undo, serial)
         }
 
         // Crop image
@@ -552,9 +550,9 @@ impl MainWnd
             cropRect.width -= dw
             cropRect.height -= dh
 
-            let undo = capture.newUndo(.SetImage, serial)
+            let undo = capture.newUndo(.SetImage)
             undo.newImg = capture.backImg.toCrop(cropRect)
-            capture.pushUndo(undo)
+            capture.pushUndo(undo, serial)
         }
 
         capture.selectionHasChanged()

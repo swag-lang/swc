@@ -128,20 +128,6 @@ struct Properties
     undoMgr:                  UndoManager
     undoEnabled:              bool = true
     applyingUndo:             bool
-
-    // Drag-and-drop reorder of an array element (grid mode only, values/arraydrag.swg). Armed on a
-    // left press over an element row and promoted to an actual drag once the pointer crosses a small
-    // threshold. dragElem is the dragged element row (a direct child of dragArray); dragActive is set
-    // once the threshold is crossed; dragStart is the content-space press position. dragLineItem +
-    // dragLineAtBottom locate the insertion indicator drawn by paintBackItem, and dragTargetGap is the
-    // 0..count insertion slot the drop will move the element to.
-    dragElem:                 #null *PropertiesItem
-    dragArray:                #null *PropertiesItem
-    dragActive:               bool
-    dragStart:                Math.Point
-    dragLineItem:             #null *PropertiesItem
-    dragLineAtBottom:         bool
-    dragTargetGap:            s32
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points

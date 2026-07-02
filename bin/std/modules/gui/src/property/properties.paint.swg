@@ -109,16 +109,5 @@ moduleprivate impl Properties
             let iconPos = .getDisclosureIconPosition(item, r, expand)
             expand.paint(painter, iconPos.x, iconPos.y, iconColor)
         }
-
-        // Drag-reorder insertion indicator: a horizontal accent bar marking where the dragged
-        // array element would drop (values/arraydrag.swg positions dragLineItem/dragLineAtBottom).
-        if .isDragging() and item == .dragLineItem
-        {
-            let y   = .dragLineAtBottom ? r.bottom() : r.y
-            let bar = Math.Rectangle{r.x + 2, y - 1.5, r.width - 4, 3}
-            painter.fillRoundRect(bar, 1.5, 1.5, colors.prop_FocusBorder)
-            painter.fillCircle(bar.x + 2, y, 3.5, colors.prop_FocusBorder)
-            painter.fillCircle(bar.right() - 2, y, 3.5, colors.prop_FocusBorder)
-        }
     }
 }

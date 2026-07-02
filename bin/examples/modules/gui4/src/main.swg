@@ -245,11 +245,8 @@ struct Gui4Layout
     #[Description("Inset used by the title, subtitle and completion bar.")]
     contentInset: Math.Rectangle = {28, 24, 28, 22}
 
-    #[Description("Dynamic array of structs. Use the plus button to add; right-click an element to remove it, or (grid mode) drag a row by its handle to reorder.")]
+    #[Description("Editable array. Use the plus button to add; right-click an element to move it up/down or remove it.")]
     actions: Array'ActionBinding
-
-    #[Category("Guides"), Description("Static array (fixed size): the four values are always present, so there is no add/remove. In grid mode, drag a row to reorder the ticks; right-click also offers Move Up/Down.")]
-    columnGuides: [4] f32 = [0.15, 0.40, 0.65, 0.90]
 }
 
 var app: Application
@@ -570,19 +567,6 @@ func drawActionLabels(painter: *Painter, rect: Math.Rectangle)
     }
 }
 
-// Thin vertical ticks from the static columnGuides array. Reordering the array (drag or Move
-// Up/Down) changes which fraction each tick uses, so the effect of editing a static array is visible.
-func drawColumnGuides(painter: *Painter, rect: Math.Rectangle)
-{
-    let color = g_Appearance.text.withAlpha(70'u8)
-    foreach g, i in g_Layout.columnGuides
-    {
-        let x = rect.x + rect.width * Math.clamp(g, 0.0, 1.0)
-        let y = rect.y + 10 + cast(f32) i * 4      // stagger the top so equal values stay legible
-        painter.drawLine(x, y, x, rect.bottom() - 10, color, 1)
-    }
-}
-
 func drawCompletion(painter: *Painter, rect: Math.Rectangle)
 {
     if !g_Content.showCompletion do
@@ -648,7 +632,6 @@ func drawPreviewBody(painter: *Painter, canvas: Math.Rectangle)
     drawPreviewText(painter, {x, y, Math.max(contentWidth - stateReserve, 1.0), 34 * g_Content.textScale}, g_Content.title.toString(), titleFont, g_Appearance.text)
     drawPreviewText(painter, {x, y + 40 * g_Content.textScale, contentWidth, 42 * g_Content.textScale}, g_Content.subtitle.toString(), bodyFont, g_Appearance.text.withAlpha(220'u8), 2)
 
-    drawColumnGuides(painter, body)
     drawCompletion(painter, body)
     drawActionLabels(painter, body)
     drawStateTag(painter, body)

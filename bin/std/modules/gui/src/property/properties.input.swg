@@ -96,13 +96,9 @@ moduleprivate impl Properties
             }
 
             // Clicking a row (but not its editor) puts the keyboard focus on the
-            // grid in navigation mode, so the arrows work right after a click, and
-            // arms a potential drag-reorder when the row is an editable array element.
-            if !prop.isEditorWnd(mouseEvt.target)
-            {
+            // grid in navigation mode, so the arrows work right after a click.
+            if !prop.isEditorWnd(mouseEvt.target) do
                 prop.focusNav()
-                prop.dragArm(prop.selItem, pt + prop.scrollWnd.getScrollPos())
-            }
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseDoubleClick and mouseEvt.button == .Left:
 
@@ -123,8 +119,6 @@ moduleprivate impl Properties
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseReleased:
             prop.resizingColumn = false
-            if prop.dragDrop() do
-                return true
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseLeave:
             if prop.hotItem and prop.isGridLike() do
@@ -140,11 +134,6 @@ moduleprivate impl Properties
                 prop.setColumnSize(cast() (pt.x - prop.gridMarginColumn * 0.5))
                 return true
             }
-
-            // Drag-reorder of an array element (grid mode): once past the threshold this owns the
-            // pointer until release, so swallow the move and skip the hover/tooltip handling below.
-            if mouseEvt.kind == .MouseMove and prop.dragUpdate(pt + prop.scrollWnd.getScrollPos()) do
-                return true
 
             // Hot item
             let hit = prop.hitTest(pt)

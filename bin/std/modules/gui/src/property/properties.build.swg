@@ -32,17 +32,17 @@ moduleprivate impl Properties
             // row label from stealing focus away from the navigation surface.
             .focusStrategy = .None
 
-            if me.isGridLike()
+            if .isGridLike()
             {
-                .margin.z = me.rightMargin
-                .margin.y = me.gridLineMargin * 0.5
-                .margin.w = me.gridLineMargin * 0.5
+                .margin.z = .rightMargin
+                .margin.y = .gridLineMargin * 0.5
+                .margin.w = .gridLineMargin * 0.5
             }
             else do
-                me.setListContentPadding(line)
+                .setListContentPadding(line)
         }
 
-        with let item = me.items.addNewPtr()
+        with let item = .items.addNewPtr()
         {
             .line      = line
             .type      = value.pointedType
@@ -51,9 +51,9 @@ moduleprivate impl Properties
             .parent    = parentItem
             .level     = parentItem ? parentItem.level + 1 : 0
             .section   = parentItem ? parentItem.section : 0
-            .valueCellHeight = height orelse me.gridLineHeight
-            if me.isGridLike() do
-                .extendFocus = me.gridLineMargin * 0.5
+            .valueCellHeight = height orelse .gridLineHeight
+            if .isGridLike() do
+                .extendFocus = .gridLineMargin * 0.5
         }
 
         let prop = me
@@ -72,29 +72,29 @@ moduleprivate impl Properties
 
             if !dispName.isEmpty()
             {
-                var labelWidth = cast(f32) me.gridColumnSize
-                if !me.isGridLike() do
-                    labelWidth = me.listContentWidth()
+                var labelWidth = cast(f32) .gridColumnSize
+                if !.isGridLike() do
+                    labelWidth = .listContentWidth()
                 with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
                 {
-                    if me.isGridLike()
+                    if .isGridLike()
                     {
                         .vertAlignmentText = .Center
                         .horzAlignmentText = .Left
                         .dockStyle         = .Left
-                        .margin.z          = me.gridMarginColumn
-                        .paddingText.x     = me.leftMargin
+                        .margin.z          = .gridMarginColumn
+                        .paddingText.x     = .leftMargin
                     }
                     else
                     {
                         .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top
                         .horzAlignmentText = .Left
-                        .margin.y          = me.listNameMarginBefore
-                        .margin.w          = me.listNameMarginAfter
+                        .margin.y          = .listNameMarginBefore
+                        .margin.w          = .listNameMarginAfter
                     }
 
-                    .style.setFont(me.fontName)
+                    .style.setFont(.fontName)
                 }
 
                 item.label = label
@@ -121,12 +121,12 @@ moduleprivate impl Properties
             {
                 if !.isGridLike()
                 {
-                    with let labelDesc = Label.create(line, "", {0, 0, me.listContentWidth(), 0})
+                    with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
                         .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top
                         .horzAlignmentText = .Left
-                        .margin.w          = me.listDescMarginAfter
+                        .margin.w          = .listDescMarginAfter
                         .setText(cast(string) dispDesc)
                         item.labelDesc = labelDesc
                     }
@@ -285,15 +285,15 @@ moduleprivate impl Properties
         if !.isGridLike() do
             return
 
-        let space = Reflection.getAttributeValue(value, me.Gap, "size")
+        let space = Reflection.getAttributeValue(value, .Gap, "size")
         if space != null do
             .addSpacerRow(parentItem, cast(s32) assume space)
 
-        let header = Reflection.getAttributeValue(value, me.Heading, "text")
+        let header = Reflection.getAttributeValue(value, .Heading, "text")
         if header != null do
             .addHeaderRow(cast(string) header, parentItem)
 
-        let help = Reflection.getAttributeValue(value, me.HelpBox, "text")
+        let help = Reflection.getAttributeValue(value, .HelpBox, "text")
         if help != null do
             .addNoteRow(cast(string) help, parentItem)
     }
@@ -336,11 +336,11 @@ moduleprivate impl Properties
             .horzAlignmentText = .Left
             .vertAlignmentText = .Center
             .horzAlignmentIcon = .Left
-            .icon              = me.getTheme().getIcon64(.Information, me.valBarIconSize)
+            .icon              = .getTheme().getIcon64(.Information, .valBarIconSize)
             .iconColor         = Argb.White
             .textColor         = colors.embInfo_InformationText
-            .paddingIcon.x     = (me.valBarGlyphWidth - me.valBarIconSize) * 0.5
-            .paddingText       = {me.valBarGlyphWidth, 0, me.valBarPaddingX, 0}
+            .paddingIcon.x     = (.valBarGlyphWidth - .valBarIconSize) * 0.5
+            .paddingText       = {.valBarGlyphWidth, 0, .valBarPaddingX, 0}
             .dockStyle         = .Center
         }
         item.label = lbl

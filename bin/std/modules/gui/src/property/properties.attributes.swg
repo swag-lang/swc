@@ -8,15 +8,15 @@ impl Properties
     // sharing a common prefix reuse the same headers.
     attr Category(name: string)
 
-    // Decorator: insert a bold, non-collapsible divider label above the field (like Unity's [Header]).
+    // Decorator: insert a bold, non-collapsible divider label above the field.
     // Named 'Heading' to avoid clashing with the existing Header widget type.
     attr Heading(text: string)
 
-    // Decorator: insert an empty vertical gap ('size' px) above the field (like Unity's [Space]).
+    // Decorator: insert an empty vertical gap ('size' px) above the field.
     // Named 'Gap' to avoid clashing with the Key.Space enum used inside impl Properties.
     attr Gap(size: s32)
 
-    // Decorator: insert an informational note bar above the field (like Unity's HelpBox).
+    // Decorator: insert an informational note bar above the field.
     attr HelpBox(text: string)
 
     // Change the field display name

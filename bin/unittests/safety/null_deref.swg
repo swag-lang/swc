@@ -70,9 +70,55 @@ func nullSafetyEnabled()->bool
     @assert(p.x == 0) // swc-expected-error {{safety_err_null_deref}}
 }
 
+// Path-sensitive: the dereference is inside the branch where the guard proves the
+// pointer is null, so it is still reported.
+#test
+{
+    var p: #null *NullDerefItem = null
+    if p == null
+    {
+        p.x = 4 // swc-expected-error {{safety_err_null_deref}}
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Valid programs: none of these must be flagged.
 // ---------------------------------------------------------------------------
+
+// Path-sensitive: the guard makes the dereferencing branch unreachable when the
+// pointer is null, so it must NOT be flagged.
+#test
+{
+    var v: NullDerefItem
+    var p: #null *NullDerefItem = null
+    if p != null
+    {
+        p.x = 1
+    }
+    @assert(v.x == 0)
+}
+
+// Correlated conditions: the same guard controls both the assignment and the use,
+// so the use is only reached when the pointer is non-null. Must NOT be flagged.
+func correlatedGuard(cond: bool)
+{
+    var v: NullDerefItem
+    var p: #null *NullDerefItem = null
+    if cond
+    {
+        p = &v
+    }
+    if cond
+    {
+        p.x = 5
+    }
+}
+
+#test
+{
+    correlatedGuard(true)
+    correlatedGuard(false)
+}
 
 // Real pointer to a local.
 #test

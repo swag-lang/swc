@@ -152,10 +152,10 @@ namespace
                     if (resolveStackSlot(ops[1].reg, ops[3].valueU64, slot))
                         setReg(ops[0].reg, SanityValue::makeStackAddr(slot));
                     else if (baseValue.isProvableNull())
-                        // `&p.field` on a null `p` was already reported by checkDereference;
-                        // drop the null so the eventual store through this address does not
-                        // report the same dereference a second time.
-                        setReg(ops[0].reg, {});
+                        // The address of a field/element of a null pointer stays null-
+                        // derived (the `lea` itself is never reported — only an actual
+                        // load/store through this address is), whatever the field offset.
+                        setReg(ops[0].reg, SanityValue::makeConstant(0));
                     else if (baseValue.kind == SanityKind::GlobalAddr)
                         setReg(ops[0].reg, SanityValue::makeGlobalAddr());
                     else if (baseValue.kind == SanityKind::Constant)
@@ -203,10 +203,14 @@ namespace
                     // how the front end forms the address of a local (`stackBase + off`) and
                     // does pointer/offset arithmetic, so it must be tracked to follow values
                     // through stack slots.
-                    const MicroReg    reg = ops[0].reg;
-                    const SanityValue cur = getReg(reg);
-                    const uint64_t    imm = ops[3].valueU64;
-                    if (ops[2].microOp == MicroOp::Add)
+                    const MicroReg    reg      = ops[0].reg;
+                    const SanityValue cur      = getReg(reg);
+                    const uint64_t    imm      = ops[3].valueU64;
+                    const bool        isAddSub = ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract;
+                    if (isAddSub && cur.isProvableNull())
+                        // Offsetting a null-derived pointer keeps it null-derived.
+                        setReg(reg, SanityValue::makeConstant(0));
+                    else if (ops[2].microOp == MicroOp::Add)
                     {
                         if (cur.isStackAddr())
                             setReg(reg, SanityValue::makeStackAddr(cur.stackOffset + static_cast<int64_t>(imm)));
@@ -263,10 +267,12 @@ namespace
         {
             if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
                 return;
-            // Note: a `lea` (LoadAddrRegMem) computes an address without touching memory,
-            // but forming the address of a field/element of a null pointer (`&p.field`)
-            // still requires `p` to be a valid object, so it is reported like a real
-            // dereference.
+            // A `lea` only computes an address; it touches no memory and never faults.
+            // Real code legitimately forms addresses from a null base (e.g. the data
+            // pointer of an empty, zero-length slice `s[0 to 0]`), so only an actual
+            // load/store through a null pointer is a dereference worth reporting.
+            if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+                return;
 
             const MicroReg    base      = ops[def.memBaseOperandIndex].reg;
             const SanityValue baseValue = getReg(base);
@@ -278,6 +284,17 @@ namespace
 
         void reportNullDeref(const MicroInstr& inst)
         {
+            const SourceCodeRef& codeRef = inst.debugSourceInfo.sourceCodeRef;
+
+            // The same source dereference can lower to several instructions (e.g. a lea
+            // then a store); report each source location at most once.
+            const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 32) | codeRef.tokRef.get();
+            if (!reportedLocations_.insert(key).second)
+            {
+                reported_ = true;
+                return;
+            }
+
             ResolvedDebugSourceInfo resolved;
             if (!tryResolveDebugSourceInfo(*context_.taskContext, resolved, inst.debugSourceInfo))
                 return;
@@ -289,11 +306,12 @@ namespace
             reported_ = true;
         }
 
-        MicroPassContext&                        context_;
-        MicroReg                                 stackBaseReg_;
-        bool                                     reported_ = false;
+        MicroPassContext&                         context_;
+        MicroReg                                  stackBaseReg_;
+        bool                                      reported_ = false;
         std::unordered_map<uint32_t, SanityValue> regs_;  // key: MicroReg.packed
         std::unordered_map<int64_t, SanityValue>  stack_; // key: stack slot offset
+        std::unordered_set<uint64_t>              reportedLocations_;
     };
 
     // The analysis runs only when the `Null` safety guard is enabled for this build

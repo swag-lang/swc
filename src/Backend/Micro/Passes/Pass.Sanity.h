@@ -12,12 +12,13 @@ SWC_BEGIN_NAMESPACE();
 //
 // It is a read-only analysis: it never mutates the IR. It self-gates on the build
 // configuration safety mask (`SafetyWhat::Null`), so it is ON for debug/fast-debug
-// and OFF for release/fast-compile, and can be toggled per scope with
-// `#[Swag.Safety(SafetyWhat.Null, ...)]`.
+// and OFF for release/fast-compile.
 //
-// Runs as a start pass: in debug builds (optimize=false) local variables still live
-// in stack slots (mem2reg has not run), which is exactly the model this interpreter
-// needs to track null values flowing through locals.
+// Runs once, before the pre-RA optimization loop, on the unoptimized virtual-register
+// IR: dead dereferences have not been eliminated, field offsets are not folded into
+// bogus small constants, and control flow / guards keep their source shape — all of
+// which the analysis relies on. Locals live in stack slots (addressed against
+// `debugStackBaseVirtualReg`).
 class MicroSanityPass final : public MicroPass
 {
 public:

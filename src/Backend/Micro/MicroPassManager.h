@@ -51,6 +51,7 @@ public:
     void configureDefaultPipeline(bool optimize);
     void addStartPass(MicroPass& pass) { startPasses_.push_back(&pass); }
     void addPreRaLoopPass(MicroPass& pass) { preRaLoopPasses_.push_back(&pass); }
+    void addPreRaAnalysisPass(MicroPass& pass) { preRaAnalysisPasses_.push_back(&pass); }
     void addRaLoopPass(MicroPass& pass) { raLoopPasses_.push_back(&pass); }
     void addPostRaSetupPass(MicroPass& pass) { postRaSetupPasses_.push_back(&pass); }
     void addPostRaOptimPass(MicroPass& pass) { postRaOptimPasses_.push_back(&pass); }
@@ -64,6 +65,7 @@ public:
 private:
     std::vector<MicroPass*> startPasses_;
     std::vector<MicroPass*> preRaLoopPasses_;
+    std::vector<MicroPass*> preRaAnalysisPasses_;
     std::vector<MicroPass*> raLoopPasses_;
     std::vector<MicroPass*> postRaSetupPasses_;
     std::vector<MicroPass*> postRaOptimPasses_;

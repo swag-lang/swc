@@ -429,6 +429,7 @@ void MicroPassManager::clear()
     startPasses_.clear();
     preRaLoopPasses_.clear();
     raLoopPasses_.clear();
+    preRaAnalysisPasses_.clear();
     postRaSetupPasses_.clear();
     postRaOptimPasses_.clear();
     finalPasses_.clear();
@@ -443,12 +444,6 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // pre-RA optimization passes work on unconstrained virtual-register IR and
     // shouldn't see encoder-specific rewrites.
     addStartPass(*stackAdjustNormalizePass_);
-
-    // Static null-dereference sanity analysis (read-only). Self-gates on the build
-    // config safety mask, so it is a no-op in release/fast-compile. Runs here, before
-    // the pre-RA optimization loop, so it sees the unoptimized IR where local
-    // variables still live in stack slots (mem2reg has not run yet).
-    addStartPass(*sanityPass_);
 
     // Phase 2 — Pre-RA optimization loop (operates on virtual registers only).
     // Iterates until fixed point before touching register allocation.
@@ -472,6 +467,12 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*deadCodeEliminationPass_);
         addPreRaLoopPass(*branchSimplifyPass_);
     }
+
+    // Static null-dereference sanity analysis (read-only). Runs once, before the
+    // pre-RA optimization loop, on the unoptimized IR (no dead-code elimination or
+    // offset folding has hidden a dereference yet). It self-gates on the build-config
+    // safety mask, so it is a no-op in release and fast-compile.
+    addPreRaAnalysisPass(*sanityPass_);
 
     // Phase 3 — Register allocation loop.
     // Legalize can introduce new virtual registers; RegAlloc can introduce spills that
@@ -505,6 +506,12 @@ Result MicroPassManager::run(MicroPassContext& context) const
 #if SWC_HAS_STATS
     context.statsInstrAfterStart = context.instructions->count();
 #endif
+
+    // Read-only analyses over the unoptimized virtual-register IR (run once, before
+    // any optimization). Running before the optimization loop keeps the IR faithful
+    // to the source — dead code, address computations and unfolded offsets are all
+    // still present — which the null-dereference sanity analysis relies on.
+    SWC_RESULT(runLinearPasses(context, preRaAnalysisPasses_, verifyCache));
 
     // Pre-RA optimization loop — converges on the virtual-register IR.
     SWC_ASSERT(context.builder);

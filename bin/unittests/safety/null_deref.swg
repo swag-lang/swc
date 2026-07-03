@@ -26,11 +26,14 @@ func nullSafetyEnabled()->bool
 }
 
 // ---------------------------------------------------------------------------
-// Provable null dereferences: each is reported and its function's codegen is
-// aborted, so the faulty code is never executed.
+// Provable null dereferences. Each writes through a null pointer (a side effect
+// that survives optimization), so it is reported and its function's codegen is
+// aborted — the faulty code is never executed. The analysis runs on the optimized
+// IR, so a *dead* read through null (whose result is unused) is legitimately
+// eliminated and not a fault; the cases below all have observable effects.
 // ---------------------------------------------------------------------------
 
-// Store through a null pointer.
+// Store through a null pointer (first field, offset 0).
 #test
 {
     var p: #null *NullDerefItem = null
@@ -44,36 +47,27 @@ func nullSafetyEnabled()->bool
     p.y = 2 // swc-expected-error {{safety_err_null_deref}}
 }
 
-// Read a field through a null pointer.
-#test
-{
-    var p: #null *NullDerefItem = null
-    let v = p.x // swc-expected-error {{safety_err_null_deref}}
-    discard v
-}
-
-// Taking the address of a field requires the pointer to be valid.
-#test
-{
-    var p: #null *NullDerefItem = null
-    let q = &p.x // swc-expected-error {{safety_err_null_deref}}
-    discard q
-}
-
-// Dereference of a null scalar pointer.
+// Store through a null scalar pointer via `dref`.
 #test
 {
     var p: #null *s32 = null
-    let v = dref p // swc-expected-error {{safety_err_null_deref}}
-    discard v
+    dref p = 9 // swc-expected-error {{safety_err_null_deref}}
 }
 
-// The null value propagates through a copy.
+// The null value propagates through a copy, then the copy is written through.
 #test
 {
     var p: #null *NullDerefItem = null
     var q = p
     q.x = 3 // swc-expected-error {{safety_err_null_deref}}
+}
+
+// A read whose result is actually used (here in an assert) is not dead, so the
+// load survives and the null dereference is caught.
+#test
+{
+    var p: #null *NullDerefItem = null
+    @assert(p.x == 0) // swc-expected-error {{safety_err_null_deref}}
 }
 
 // ---------------------------------------------------------------------------

@@ -311,7 +311,11 @@ Result SymbolFunction::emit(TaskContext& ctx)
 #if SWC_HAS_STATS
     Timer timeMicroLower(Stats::timedMetric(Stats::get().timeMicroLower));
 #endif
-    const Result emitResult = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg());
+    // The static null-dereference sanitizer runs for this function according to its
+    // effective `SafetyWhat::Null` guard: the build-config default combined with any
+    // `#[Swag.Safety(.Null, ...)]` override on the function.
+    const bool   nullSanitizerEnabled = attributes().hasRuntimeSafety(ctx.compiler().buildCfg().safetyGuards, Runtime::SafetyWhat::Null);
+    const Result emitResult           = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg(), nullSanitizerEnabled);
     if (emitResult != Result::Continue)
     {
         ctx.state().jitEmissionError = true;

@@ -26,14 +26,15 @@ func nullSafetyEnabled()->bool
 }
 
 // ---------------------------------------------------------------------------
-// Provable null dereferences. Each writes through a null pointer (a side effect
-// that survives optimization), so it is reported and its function's codegen is
-// aborted — the faulty code is never executed. The analysis runs on the optimized
-// IR, so a *dead* read through null (whose result is unused) is legitimately
-// eliminated and not a fault; the cases below all have observable effects.
+// Provable null dereferences. Each writes through a null pointer, so it is reported
+// and its function's codegen is aborted — the faulty code is never executed. Each is
+// marked `#[Swag.Safety(.Null, true)]` so the sanitizer runs (and catches it) in
+// every build config; without that the dereference would actually run and crash in
+// release, where the sanitizer is off by default.
 // ---------------------------------------------------------------------------
 
 // Store through a null pointer (first field, offset 0).
+#[Swag.Safety(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -41,6 +42,7 @@ func nullSafetyEnabled()->bool
 }
 
 // Store into a non-first field (non-zero offset) of a null pointer.
+#[Swag.Safety(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -48,6 +50,7 @@ func nullSafetyEnabled()->bool
 }
 
 // Store through a null scalar pointer via `dref`.
+#[Swag.Safety(.Null, true)]
 #test
 {
     var p: #null *s32 = null
@@ -55,6 +58,7 @@ func nullSafetyEnabled()->bool
 }
 
 // The null value propagates through a copy, then the copy is written through.
+#[Swag.Safety(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -64,6 +68,7 @@ func nullSafetyEnabled()->bool
 
 // A read whose result is actually used (here in an assert) is not dead, so the
 // load survives and the null dereference is caught.
+#[Swag.Safety(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -72,6 +77,7 @@ func nullSafetyEnabled()->bool
 
 // Path-sensitive: the dereference is inside the branch where the guard proves the
 // pointer is null, so it is still reported.
+#[Swag.Safety(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null

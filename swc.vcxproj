@@ -260,6 +260,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Sanity.cpp"/>
+        <ClCompile Include="src\Backend\\Sanitizer\NullDerefAnalysis.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroSsaState.cpp"/>
@@ -542,6 +543,9 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Sanity.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\NullDerefAnalysis.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\SanitizerState.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\SanitizerValue.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroPassManager.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
         <ClInclude Include="src\Backend\JIT\JITExecManager.h"/>

@@ -31,6 +31,12 @@ struct MicroPassContext
     bool                  usesIntReturnRegOnRet   = true;
     bool                  usesFloatReturnRegOnRet = true;
 
+    // Whether the static null-dereference sanitizer should run for this function. It is
+    // the function's effective `SafetyWhat::Null` guard (build-config default combined
+    // with any `#[Swag.Safety(.Null, ...)]` override), so the analysis honours per-scope
+    // safety, not just the global build configuration.
+    bool nullSanitizerEnabled = false;
+
     // Debug info: the virtual register that holds the local-stack base (the value all local
     // variables are addressed against). Set by the caller before the pass pipeline runs.
     // Register allocation records the physical register it resolves to in debugStackBasePhysReg,

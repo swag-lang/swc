@@ -20,6 +20,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
@@ -395,6 +396,7 @@ namespace
 MicroPassManager::MicroPassManager()
 {
     // Structural passes
+    sanityPass_               = std::make_unique<MicroSanityPass>();
     stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
     memToRegPass_             = std::make_unique<MicroMemToRegPass>();
     legalizePass_             = std::make_unique<MicroLegalizePass>();
@@ -441,6 +443,12 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // pre-RA optimization passes work on unconstrained virtual-register IR and
     // shouldn't see encoder-specific rewrites.
     addStartPass(*stackAdjustNormalizePass_);
+
+    // Static null-dereference sanity analysis (read-only). Self-gates on the build
+    // config safety mask, so it is a no-op in release/fast-compile. Runs here, before
+    // the pre-RA optimization loop, so it sees the unoptimized IR where local
+    // variables still live in stack slots (mem2reg has not run yet).
+    addStartPass(*sanityPass_);
 
     // Phase 2 — Pre-RA optimization loop (operates on virtual registers only).
     // Iterates until fixed point before touching register allocation.

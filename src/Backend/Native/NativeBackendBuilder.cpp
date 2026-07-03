@@ -478,6 +478,17 @@ namespace
         {
             if (!info.machineCode || info.machineCode->bytes.empty())
             {
+                // A function that reported an error during codegen (e.g. the static null
+                // dereference analysis) legitimately produces no machine code. Don't
+                // re-report it as missing — the primary error already failed the build
+                // (or was matched by a test's expected-error marker).
+                if (info.symbol)
+                {
+                    const SourceFile* file = builder.compiler().ownerSourceFile(info.symbol->srcViewRef());
+                    if (file && file->hasError())
+                        continue;
+                }
+
                 const Utf8& reportedName = info.debugName.empty() ? info.symbolName : info.debugName;
                 return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, reportedName);
             }

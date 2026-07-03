@@ -10,6 +10,9 @@ class TaskContext;
 struct MicroInstr;
 struct MicroInstrOperand;
 
+// Analysis passes
+class MicroSanityPass;
+
 // Structural passes
 class MicroStackAdjustNormalizePass;
 class MicroMemToRegPass;
@@ -65,6 +68,9 @@ private:
     std::vector<MicroPass*> postRaSetupPasses_;
     std::vector<MicroPass*> postRaOptimPasses_;
     std::vector<MicroPass*> finalPasses_;
+
+    // Analysis passes
+    std::unique_ptr<MicroSanityPass> sanityPass_;
 
     // Structural passes
     std::unique_ptr<MicroStackAdjustNormalizePass> stackAdjustNormalizePass_;

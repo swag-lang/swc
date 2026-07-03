@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 23: find cliques in a LAN party graph.
 // Part 1: count triangles where at least one node starts with 't'.

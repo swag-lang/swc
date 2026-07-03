@@ -218,7 +218,7 @@ impl IWnd for PopupListView
     }
 }
 
-fileprivate impl PopupListView
+private impl PopupListView
 {
     // Close the popup, optionally committing the highlighted item.
     mtd close(idx: u32)

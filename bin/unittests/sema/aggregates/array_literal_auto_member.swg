@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 enum PieceKind: u8 { Rook, Knight, Bishop, Queen, King, Pawn }
 

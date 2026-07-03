@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert(cast(s8) 1 == 1)
 #assert(cast(s8) -1 == -1)

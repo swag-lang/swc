@@ -8,7 +8,7 @@
 // down (a regression previously crashed/garbled Image.save, which reads the
 // `encoders` static from a method).
 
-#global fileprivate
+#global private
 
 struct Bag { dummy: s32 }
 impl Bag

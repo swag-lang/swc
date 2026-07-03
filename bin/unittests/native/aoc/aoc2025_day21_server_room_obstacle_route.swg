@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: find the shortest route through a server room grid as
 // more maintenance obstacles appear, then report the first obstacle that blocks

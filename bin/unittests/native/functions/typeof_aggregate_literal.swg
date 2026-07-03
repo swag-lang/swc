@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func typeofStructLiteralField(valueIndex: u64)->s32
 {

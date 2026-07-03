@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func for_c_control_flow_ok()
 {

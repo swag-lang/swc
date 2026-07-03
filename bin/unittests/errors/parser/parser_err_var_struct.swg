@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Struct and union field declarations must not use 'var'; the field name and type are enough.
 struct A

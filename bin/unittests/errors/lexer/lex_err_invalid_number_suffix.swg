@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Any identifier glued to a numeric literal is reported as an unexpected suffix.
 123abc         // swc-expected-error {{lex_err_invalid_number_suffix}}

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func directRegular(n: s32)->s32
 {

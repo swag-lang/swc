@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool

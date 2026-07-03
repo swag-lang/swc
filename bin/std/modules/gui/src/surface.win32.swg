@@ -37,7 +37,7 @@ struct NativeSurface
 // Fixed notification-area icon id. A surface owns at most one tray icon.
 const TrayIconID = 1
 
-fileprivate func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
+private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
 {
     if surface.wnd.isPendingDestroy do
         return
@@ -47,7 +47,7 @@ fileprivate func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.
     surface.wnd.view.postEvent(evt)
 }
 
-fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     // Associate pointer to surface with 'hWnd'
     if msg == WM_CREATE
@@ -237,7 +237,7 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
     return DefWindowProcW(hWnd, msg, wParam, lParam)
 }
 
-fileprivate impl Surface
+private impl Surface
 {
     mtd setFocus()
     {
@@ -312,7 +312,7 @@ fileprivate impl Surface
 
 impl Surface
 {
-    fileprivate mtd applyNativeDwmStyle()
+    private mtd applyNativeDwmStyle()
     {
         var cornerPreference = .getCornerRadius() > 0 ? DWMWCP_ROUND : DWMWCP_DONOTROUND
         discard DwmSetWindowAttribute(.hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, cast(LPCVOID) &cornerPreference, #sizeof(cornerPreference))

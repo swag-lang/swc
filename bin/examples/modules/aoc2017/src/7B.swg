@@ -18,13 +18,13 @@ Given that exactly one program is the wrong weight, what would its weight need t
 
 using Core
 
-moduleprivate struct Pile
+internal struct Pile
 {
     val:        s32
     childs:     Array'string
 }
 
-moduleprivate struct ChildTotal
+internal struct ChildTotal
 {
     rank:  u64
     total: s64

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 func semaTest001()
 {
     var _ok = 10

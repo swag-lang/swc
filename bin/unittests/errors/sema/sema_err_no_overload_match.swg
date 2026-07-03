@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func A() {}
 func A(a: s32) {}

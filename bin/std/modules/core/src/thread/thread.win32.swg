@@ -3,7 +3,7 @@
 #global namespace Threading
 using Win32
 
-fileprivate func threadEntry(param: *void)->DWORD
+private func threadEntry(param: *void)->DWORD
 {
     let th = cast(*Thread) param
     @setcontext(th.context)

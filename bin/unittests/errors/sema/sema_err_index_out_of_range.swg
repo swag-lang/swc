@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const A = "hello world"
 #assert(A[100] == '\0') // swc-expected-error {{sema_err_index_out_of_range}}

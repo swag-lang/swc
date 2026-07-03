@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func inlineConst()->s32 => 42

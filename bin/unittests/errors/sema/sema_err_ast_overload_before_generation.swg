@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func select(value: s32)->string
 {

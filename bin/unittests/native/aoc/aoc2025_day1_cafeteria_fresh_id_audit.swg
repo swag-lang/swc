@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: audit a cafeteria inventory sheet to determine how many
 // available ingredient IDs are still fresh.

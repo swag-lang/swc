@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Regression for the inline-receiver auto-member resolution fix (Sema.Member.Auto.cpp).
 //

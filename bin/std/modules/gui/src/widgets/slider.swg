@@ -353,7 +353,7 @@ impl IWnd for Slider
     }
 }
 
-fileprivate impl Slider
+private impl Slider
 {
     // Normalized step used by keyboard control: the configured step, one integer
     // unit, or 5% of the range as a fallback.

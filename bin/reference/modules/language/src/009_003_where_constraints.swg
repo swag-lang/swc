@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # 'where' Constraints
 The `where` clause constrains generic functions and generic structs. It is

@@ -1,5 +1,5 @@
 // 
-#global fileprivate
+#global private
 
 #[Swag.Mixin]
 func mixinFromCallerScope()

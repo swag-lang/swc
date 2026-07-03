@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Generic Structs
 Structs in Swag can also be made generic, allowing them to operate with different types and constants.

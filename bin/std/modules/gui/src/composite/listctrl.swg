@@ -570,7 +570,7 @@ impl IWnd for ListView
     }
 }
 
-fileprivate impl ListView
+private impl ListView
 {
     mtd getXPos(column: u32)->f32
     {
@@ -1171,14 +1171,14 @@ impl ListCtrl
         return .lines[idx]
     }
 
-    fileprivate mtd mapIndexes()
+    private mtd mapIndexes()
     {
         .idxLineToIdxList.clear()
         foreach l, idx in .lines do
             .idxLineToIdxList.add(l.index, cast(u32) idx)
     }
 
-    fileprivate mtd collectVisibleLines(result: *Array'(*ListLine), lines: [..] *ListLine)
+    private mtd collectVisibleLines(result: *Array'(*ListLine), lines: [..] *ListLine)
     {
         foreach l in lines
         {
@@ -1188,7 +1188,7 @@ impl ListCtrl
         }
     }
 
-    fileprivate mtd sort(column: u32, descentOrder: bool, toSort: *Array'*ListLine)
+    private mtd sort(column: u32, descentOrder: bool, toSort: *Array'*ListLine)
     {
         func sortFunc(column: u32, descentOrder: bool, a, b: *ListLine)->s32
         {

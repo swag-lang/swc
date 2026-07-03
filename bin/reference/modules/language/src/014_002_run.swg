@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # 'Force Compile-Time Execution with #run'
 

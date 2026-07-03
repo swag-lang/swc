@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func autocastTempArrayToSliceConsume(values: const [..] u16) -> u16
 {

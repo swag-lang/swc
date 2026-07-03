@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 19: match towel designs against available patterns.
 // Part 1: count how many designs can be formed by concatenating patterns.

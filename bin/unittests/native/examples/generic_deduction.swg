@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Test: generic type argument deduction from enclosing context.
 // When a generic struct is used bare (without explicit type arguments)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias ExactArrayParamJitDigest = [16] u8
 

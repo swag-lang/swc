@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct NoGenericCompare {} // swc-expected-help {{sema_help_missing_spec_op}}
 

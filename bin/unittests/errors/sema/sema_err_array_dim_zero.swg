@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A zero-sized array is rejected in every type context.
 var a: [0] s32                   // swc-expected-error {{sema_err_array_dim_zero}}

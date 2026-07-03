@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func if_control_flow_ok()
 {

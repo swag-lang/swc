@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a heap-backed dynamic string that drives every
 // lifecycle hook — opSet to build from a string literal, opPostCopy to

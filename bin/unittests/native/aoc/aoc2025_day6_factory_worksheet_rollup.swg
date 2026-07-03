@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: roll up a wide factory worksheet where each vertical
 // column group describes one batch operation to validate.

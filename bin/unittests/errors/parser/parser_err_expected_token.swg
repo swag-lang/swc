@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Inside an intrinsic argument list, a missing ',' between arguments is reported.
 func bad()

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: plan the shortest multi-stage keypad entry sequence for a
 // set of secured door panel codes.

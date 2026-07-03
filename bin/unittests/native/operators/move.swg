@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 struct Vec { x: s32 }
 
 func assign(a: &Vec, b: &&Vec)

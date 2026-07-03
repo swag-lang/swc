@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: audit gift shop product ID ranges and flag IDs whose
 // decimal form is exactly one digit sequence repeated twice.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Every indexing expression must contain at least one bound or expression.
 func bad()

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // Generic single-value box with +, -, ~ unary ops

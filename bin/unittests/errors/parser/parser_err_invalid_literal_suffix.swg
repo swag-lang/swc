@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Literal suffixes must be scalar numeric types, 'bool', or 'rune'.
 enum A { B = 1'any }                     // swc-expected-error {{parser_err_invalid_literal_suffix}}

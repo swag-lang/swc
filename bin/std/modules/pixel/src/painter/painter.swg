@@ -217,7 +217,7 @@ struct Painter
 
 impl Painter
 {
-    fileprivate func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
+    private func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
     {
         var result: retval
 
@@ -235,7 +235,7 @@ impl Painter
         return result
     }
 
-    fileprivate mtd resetTexture0()
+    private mtd resetTexture0()
     {
         if .texture0Dirty or .lastTexture0Handle or .lastTexture0Type != .SolidColor
         {
@@ -246,7 +246,7 @@ impl Painter
         }
     }
 
-    fileprivate mtd setTexture0(bvMin, bvMax: Vector2, brush: Brush)
+    private mtd setTexture0(bvMin, bvMax: Vector2, brush: Brush)
     {
         if !.canSetTexture0 do
             return
@@ -307,7 +307,7 @@ impl Painter
         .texture0Dirty      = false
     }
 
-    fileprivate mtd startFont()
+    private mtd startFont()
     {
         if .curTextProgram != 1
         {
@@ -317,7 +317,7 @@ impl Painter
         discard .newCommand(.StartFont, true)
     }
 
-    fileprivate mtd startMsdfFont()
+    private mtd startMsdfFont()
     {
         if .curTextProgram != 2
         {
@@ -327,7 +327,7 @@ impl Painter
         discard .newCommand(.StartMsdfFont, true)
     }
 
-    fileprivate mtd endFont()
+    private mtd endFont()
     {
         if .curTextProgram != 0
         {
@@ -340,7 +340,7 @@ impl Painter
     // Set the MSDF font-effect uniforms for the following glyph runs. Emitted only
     // when the effect changes (most runs share the same one), and must follow a
     // StartMsdfFont so the uniforms land on the MSDF font program.
-    fileprivate mtd setFontEffect(fx: FontEffectParams)
+    private mtd setFontEffect(fx: FontEffectParams)
     {
         if .hasFontEffect
            and .lastFontEffect.enabled      == fx.enabled
@@ -363,7 +363,7 @@ impl Painter
         cmd.fontEffect = fx
     }
 
-    fileprivate mtd resetTextureFont()
+    private mtd resetTextureFont()
     {
         .curTextureFont      = null
         .curTextureFontAtlas = -1
@@ -373,7 +373,7 @@ impl Painter
         discard .newCommand(.ResetTextureFont, true)
     }
 
-    fileprivate mtd setTextureFont(font: *Font, atlasIndex: s32)
+    private mtd setTextureFont(font: *Font, atlasIndex: s32)
     {
         // Already bound to this atlas: nothing to emit, so the following glyph
         // triangles extend the current DrawTriangles batch instead of starting a new one.
@@ -389,7 +389,7 @@ impl Painter
         .curTextureFontAtlas = atlasIndex
     }
 
-    fileprivate mtd pushTriangleCmd()->*Command
+    private mtd pushTriangleCmd()->*Command
     {
         var cmd: *Command
         if .commandBuffer.count
@@ -409,7 +409,7 @@ impl Painter
         return cmd
     }
 
-    fileprivate mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
+    private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
@@ -433,7 +433,7 @@ impl Painter
         return .vertexBuffer.count - 3
     }
 
-    fileprivate mtd pushTriangle(p1, p2, p3: Vector2, color: Color)->u64
+    private mtd pushTriangle(p1, p2, p3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
@@ -458,7 +458,7 @@ impl Painter
     // (outerA, outerB) edge fades to zero. Two triangles are appended to the
     // current draw command, reusing the given color.
     #[Swag.Safety(.All, false)]
-    fileprivate mtd pushFringeQuad(innerA, outerA, innerB, outerB: Vector2, color: u32)
+    private mtd pushFringeQuad(innerA, outerA, innerB, outerB: Vector2, color: u32)
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 6
@@ -505,7 +505,7 @@ impl Painter
     // triangle centroid. Used by stroke geometry, where overlap on the inner half
     // is handled by the no-overlap blending pass.
     #[Swag.Safety(.All, false)]
-    fileprivate mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
+    private mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
         let v0 = .vertexBuffer.buffer + tri
         let p  = Vector2{startx, starty}
@@ -524,13 +524,13 @@ impl Painter
     }
 
     #[Swag.Inline]
-    fileprivate mtd addEdgeAA(tri: u64, start, end: Vector2)
+    private mtd addEdgeAA(tri: u64, start, end: Vector2)
     {
         .addEdgeAA(tri, start.x, start.y, end.x, end.y)
     }
 
     #[Swag.Inline]
-    fileprivate mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
+    private mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
     {
         Debug.assert(.drawingBegin, "begin() not called before")
 
@@ -543,7 +543,7 @@ impl Painter
         return ptr
     }
 
-    fileprivate mtd updateFont(fontRef: *Font)
+    private mtd updateFont(fontRef: *Font)
     {
         if !fontRef.cache.dirty do
             return
@@ -551,7 +551,7 @@ impl Painter
         cmd.font.fontRef = fontRef
     }
 
-    fileprivate mtd startOverlapMode(pen: Pen)
+    private mtd startOverlapMode(pen: Pen)
     {
         var alpha = false
         if .curState.paintParams & .Antialiased do
@@ -567,7 +567,7 @@ impl Painter
         }
     }
 
-    fileprivate mtd stopOverlapMode()
+    private mtd stopOverlapMode()
     {
         if .overlapMode
         {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 25: Code Chronicle
 // Part 1: count lock/key pairs that fit without overlapping.

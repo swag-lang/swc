@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Any identifier beginning with two underscores is reserved, regardless of the declaration kind.
 var __a = 0                // swc-expected-error {{lex_err_reserved_identifier}}

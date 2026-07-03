@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: plan the shortest junction-box cable runs in a service
 // corridor and measure how large the biggest connected circuits become.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // '@countof' requires a non-negative integer argument.
 #test

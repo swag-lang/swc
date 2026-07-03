@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func pickAbove(arr: [*] u8, count: u32, limit: u8)->s32

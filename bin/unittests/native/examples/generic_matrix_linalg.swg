@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A generic 2x2 matrix toolkit with vector transforms and affine maps.
 // Demonstrates non-commutative matrix multiplication, determinants,

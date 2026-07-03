@@ -1,5 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows // 
-#global fileprivate
+#global private
 
 struct Pair32
 {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // An empty switch body (no 'case' or 'default') is not allowed.
 func bad1(a: s32)

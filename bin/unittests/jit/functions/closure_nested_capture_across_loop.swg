@@ -11,7 +11,7 @@
 // register pressure once made the register allocator reload a stale capture
 // context and corrupt the captured pointers.
 
-#global fileprivate
+#global private
 
 struct Box { v: u32; a: u8 }
 

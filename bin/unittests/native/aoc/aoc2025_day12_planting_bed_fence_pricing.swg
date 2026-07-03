@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: price fencing for contiguous planting beds using both raw
 // perimeter length and a discounted side-count estimate.

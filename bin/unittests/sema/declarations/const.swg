@@ -1,16 +1,16 @@
-#global fileprivate
+#global private
 
 const A = 52
 const B = A
 #assert(B == 52)
 
-fileprivate
+private
 {
     const C = A + 10
     #assert(C == 62)
 }
 
-fileprivate const D = A * 2
+private const D = A * 2
 #assert(D == 104)
 
 const V0 = 1

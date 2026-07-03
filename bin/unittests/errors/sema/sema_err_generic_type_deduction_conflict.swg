@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(var T) genericPair(value: T, other: T) {}
 

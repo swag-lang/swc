@@ -3,7 +3,7 @@
 #global namespace Time
 using Win32
 
-fileprivate func timerEntry(param: *void, _timerOrWaitFired: BOOL)
+private func timerEntry(param: *void, _timerOrWaitFired: BOOL)
 {
     let t = cast(*Timer) param
     if !@getcontext() do

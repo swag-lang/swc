@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 func runtimeSetupWorks()->bool
 {
     let cxt = @getcontext()

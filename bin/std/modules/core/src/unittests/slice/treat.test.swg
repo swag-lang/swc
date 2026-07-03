@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func sameValues(values: const [..] s32, expected: const [..] s32)->bool

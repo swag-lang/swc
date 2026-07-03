@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 const Cfg = #run dref @compiler.getBuildCfg()
 
 func pureAdd(a: s32, b: s32)->s32

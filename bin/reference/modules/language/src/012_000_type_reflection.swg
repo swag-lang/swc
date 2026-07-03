@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # 'Types as Values in Swag'
 

@@ -30,13 +30,13 @@ Process all of the original and copied scratchcards until no more scratchcards a
 
 using Core
 
-fileprivate struct Card
+private struct Card
 {
     win:     s32
     num:     s32
 }
 
-fileprivate var cards: Array'Card
+private var cards: Array'Card
 
 func day4B()
 {

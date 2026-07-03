@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A function-typed struct field (`func(...)`) holds a code address that is not resolved until
 // link time, so it cannot be const-folded from a constant container's bytes. Accessing such a

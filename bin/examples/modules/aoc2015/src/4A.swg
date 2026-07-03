@@ -13,14 +13,14 @@ Your puzzle input is yzbqklnj.
 
 using Core
 
-moduleprivate const DAY4_SECRET = "yzbqklnj"
+internal const DAY4_SECRET = "yzbqklnj"
 
-moduleprivate func day4InitBuffer(buffer: &[16] u8)
+internal func day4InitBuffer(buffer: &[16] u8)
 {
     Memory.copy(&buffer[0], @dataof(DAY4_SECRET), @countof(DAY4_SECRET))
 }
 
-moduleprivate func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
+internal func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
 {
     var digits: [20] u8
     var digitCount = 0'u64

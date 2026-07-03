@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 interface I {
     mtd A() -> s32;

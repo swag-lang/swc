@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Array dimensions must be integer; floats and other non-integer types are rejected.
 var a: [2.0] s32                 // swc-expected-error {{sema_err_array_dim_not_int}}

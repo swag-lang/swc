@@ -352,7 +352,7 @@ impl SurfaceWnd
         btn.surface.requestClose()
     }
 
-    fileprivate mtd applySurfaceFlags()
+    private mtd applySurfaceFlags()
     {
         let theme = .surface.app.theme
         if !theme.intialized do

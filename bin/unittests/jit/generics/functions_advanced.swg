@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) identity(value: T)->T => value
 func(T) double(value: T)->T => value + value

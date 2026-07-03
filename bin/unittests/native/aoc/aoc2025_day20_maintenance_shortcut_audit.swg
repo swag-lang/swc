@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: audit how many maintenance tunnel shortcuts would save a
 // meaningful amount of time with either short hops or long emergency passes.

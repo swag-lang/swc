@@ -783,7 +783,7 @@ namespace
     }
 
     // A materialized inline body is cloned and re-sema'd in the caller's scope. Identifier symbols
-    // are pinned (PreResolvedSymbol) so file-private references survive, but a nested `CallExpr`
+    // are pinned (PreResolvedSymbol) so private references survive, but a nested `CallExpr`
     // re-runs overload selection AND drives re-resolution/coercion in downstream subsystems that the
     // clone does not reproduce faithfully: a lambda argument loses the contextual parameter-type
     // inference it took from the callee signature, a const `typeinfo` member access const-folds a
@@ -2239,7 +2239,7 @@ namespace
         // Exclude bodies containing constructs whose materialization is not yet reproduced
         // faithfully when moved into the caller (any nested call — see bodyHasNestedCallExpr — and
         // nested local functions that re-bind their outer-scope access). Preserving resolved
-        // identifier symbols (above) already lets a body reference the callee's file-private
+        // identifier symbols (above) already lets a body reference the callee's private
         // globals/helpers safely; this guard keeps the remaining, not-yet-handled re-resolution
         // cases out of line. Leaf computational callees (member access, indexing, arithmetic,
         // casts, assignments, control flow over params/`me`/locals/globals) still inline.
@@ -2363,7 +2363,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
     // Regular inline relies on the body's identifiers already carrying their resolved symbols
     // so cloning can preserve them (PreResolvedSymbol) instead of re-resolving by name in the
-    // caller's scope (which can't see the callee's file/module-private symbols, picks wrong
+    // caller's scope (which can't see the callee's private/internal symbols, picks wrong
     // overloads, and trips shadowing). That resolution only exists once the callee has been
     // sema-completed, so wait for it before proceeding.
     // Generic functions instantiated cross-Ast still re-bind their generic parameters and
@@ -2438,7 +2438,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
     SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     // An auto-selected inline body resolves in the callee's context: pin its already-resolved
-    // identifier symbols so a same-Ast inline does not re-resolve the callee's file-private
+    // identifier symbols so a same-Ast inline does not re-resolve the callee's private
     // references by name in the caller. Marked / macro / mixin inlines keep their established
     // (re-resolving) behavior to avoid regressing intrinsic-argument and overload handling.
     cloneContext.preserveResolvedSymbols = isAutoSelected;

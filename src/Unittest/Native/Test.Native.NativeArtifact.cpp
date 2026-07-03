@@ -708,7 +708,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 var GValue: s32 = 0
 #test
 {
@@ -806,7 +806,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 
 alias UnaryFn = func(s32)->s32
 

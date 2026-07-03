@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-world error management scenario: a mini bank ledger with atomic
 // transfers. Exercises the whole toolbox: typed throw errors carrying

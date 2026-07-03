@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: generate API PATCH payloads from settings structs. The
 // compile-time code emits per-field change flags, payload storage, merge

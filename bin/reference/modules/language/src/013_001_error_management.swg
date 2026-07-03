@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Error Management
 Swag models errors as values. A function marked with 'throw' can either return

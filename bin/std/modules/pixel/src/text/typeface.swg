@@ -123,7 +123,7 @@ public impl TypeFace
         return tf
     }
 
-    fileprivate mtd transform(size, embolden: u32 = 0, forceBold, forceItalic = false) throw
+    private mtd transform(size, embolden: u32 = 0, forceBold, forceItalic = false) throw
     {
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
@@ -135,7 +135,7 @@ public impl TypeFace
 
     // Sub-pixel outline dilation that offsets the anti-aliasing thinning of small
     // text (stem darkening). Per-side strength in 26.6, fading out as the size grows.
-    fileprivate func stemDarkenStrength(size: u32)->s32
+    private func stemDarkenStrength(size: u32)->s32
     {
         const FadePx = 24.0'f32     // no darkening at or above this size
         const MaxPx  = 0.12'f32     // per-side dilation in pixels at the smallest sizes

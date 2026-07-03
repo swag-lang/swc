@@ -19,7 +19,7 @@ struct Polygon
 
 impl Polygon
 {
-    moduleprivate mtd appendClipperPath(path: *Clipper.ClipperPath)
+    internal mtd appendClipperPath(path: *Clipper.ClipperPath)
     {
         var count = .points.count
         if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
@@ -32,7 +32,7 @@ impl Polygon
         }
     }
 
-    moduleprivate func setupGeneratedPath(path: *LinePath)
+    internal func setupGeneratedPath(path: *LinePath)
     {
         path.isPolyOnly = true
         path.isClosed   = true
@@ -139,7 +139,7 @@ impl Polygon
         .points.add(v)
     }
 
-    fileprivate mtd computeIsSimple(count: u64)->bool
+    private mtd computeIsSimple(count: u64)->bool
     {
         if count < 4 do
             return true
@@ -257,7 +257,7 @@ impl Polygon
         .points = #move copy
     }
 
-    moduleprivate mtd storeClipperResult(res: Clipper.ClipperPath)
+    internal mtd storeClipperResult(res: Clipper.ClipperPath)
     {
         .clear()
         if !res.count do
@@ -278,7 +278,7 @@ impl Polygon
         .compute(knownSimple: true)
     }
 
-    moduleprivate mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
+    internal mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
     {
         if .isSimple
         {
@@ -298,7 +298,7 @@ impl Polygon
         }
     }
 
-    fileprivate mtd offset(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
+    private mtd offset(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
     {
         if Math.isZeroEpsilon(value) do
             return
@@ -355,7 +355,7 @@ impl Polygon
         return result
     }
 
-    fileprivate mtd clean(res: *Clipper.ClipperPaths)
+    private mtd clean(res: *Clipper.ClipperPaths)
     {
         if !.points.count do
             return
@@ -405,7 +405,7 @@ impl Polygon
         return result
     }
 
-    // Compute fileprivate values, like convex/clockwise
+    // Compute private values, like convex/clockwise
     // Call it once the polygon contains all its points.
     // 'knownSimple' lets a caller that already guarantees the polygon does not
     // self-intersect (e.g. the output of a Clipper union/clean/offset) skip the

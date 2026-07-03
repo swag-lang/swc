@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func inlineTypedVariadicSum(base: s32, values: s32...)->s32

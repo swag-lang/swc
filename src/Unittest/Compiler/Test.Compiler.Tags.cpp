@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 #assert(#hastag("User.Flag"))
 #assert(#gettag("User.Flag", bool, false))
 #assert(#gettag("User.Count", u64, 0) == 42)
@@ -57,7 +57,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_InternalTagPrecedesUserOverride)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 #assert(#gettag("Swag.Endian", string, "big") == "little")
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InternalTagPrecedesUserOverride");
@@ -108,7 +108,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_TestCommandRegistersSwagTestCompilerTag)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 #assert(#hastag("swag.test"))
 #assert(#gettag("swag.test", bool, false))
 )";

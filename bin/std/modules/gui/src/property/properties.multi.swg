@@ -18,7 +18,7 @@ const PropMixedText = "—"
 // Items inside a dynamic array are left single-instance (their element addresses are
 // not at a fixed offset from the struct base).
 
-moduleprivate impl Properties
+internal impl Properties
 {
     // Number of edited instances (always >= 1).
     mtd instanceCount(item: *PropertiesItem)->u64
@@ -202,7 +202,7 @@ moduleprivate impl Properties
     }
 }
 
-fileprivate impl Properties
+private impl Properties
 {
     func readEnumBits(addr: *u8, sz: u64)->u64
     {
@@ -236,7 +236,7 @@ fileprivate impl Properties
     }
 }
 
-fileprivate impl Properties
+private impl Properties
 {
     // The field's byte size (the pointed type of the value).
     mtd fieldSize(item: *PropertiesItem)->u64

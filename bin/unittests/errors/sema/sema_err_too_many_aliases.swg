@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Macro]
 func macroPair(value: s32, stmt: #code void)

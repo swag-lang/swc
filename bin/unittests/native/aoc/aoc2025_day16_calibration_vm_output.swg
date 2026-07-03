@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: execute a tiny calibration controller program and verify
 // the emitted digit stream after register transformations.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 10: find hiking trails on a topographic map where
 // each step increases height by exactly 1 from 0 to 9.

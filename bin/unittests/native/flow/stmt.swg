@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 func compute(v: s32)->s32
 {

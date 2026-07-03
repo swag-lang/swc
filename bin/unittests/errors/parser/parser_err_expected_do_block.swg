@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // 'if', 'while', 'for', 'switch', '#if' and similar control headers must be followed by 'do' or '{'.
 func bad1()->s32

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Array dimensions must be positive integers; negative values are rejected in every type context.
 var a: [-1] s32                   // swc-expected-error {{sema_err_array_dim_negative}}

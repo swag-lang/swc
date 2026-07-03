@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Each type qualifier ('const', '#null') can appear at most once.
 enum A1: const const *s32 { Z }        // swc-expected-error {{parser_err_duplicate_type_qualifier}}

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A declaration needs ':' <type> or '=' <value>; missing both is an error.
 const A 0                              // swc-expected-error {{parser_err_empty_var_decl}}

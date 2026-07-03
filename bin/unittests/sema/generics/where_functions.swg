@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var runtimeFlag: bool
 alias Real32 = f32

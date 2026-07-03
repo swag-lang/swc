@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #error(B)
 #warning(B)

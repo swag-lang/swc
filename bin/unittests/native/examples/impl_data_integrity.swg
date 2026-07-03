@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: data integrity toolkit combining Adler-32 checksums with
 // bit manipulation utilities. Exercises struct+impl, const lookup tables,

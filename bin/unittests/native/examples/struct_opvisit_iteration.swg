@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: track inventory across four front-of-house bins and expose
 // a custom foreach over the struct itself through opVisit.

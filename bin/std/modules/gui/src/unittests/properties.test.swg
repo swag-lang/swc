@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag, Core
 
 struct PropHeadlessData
@@ -353,7 +353,7 @@ struct PropHeadlessColorData
     host.shutdown()
 }
 
-fileprivate func findIconButton(w: *Wnd)->#null *IconButton
+private func findIconButton(w: *Wnd)->#null *IconButton
 {
     foreach c in w.childs
     {
@@ -689,7 +689,7 @@ struct MultiTile
     pos:    Math.Point = {0, 0}
 }
 
-fileprivate func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
+private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
 {
     foreach it in prop.items
     {
@@ -802,7 +802,7 @@ fileprivate func findFieldItem(prop: *Properties, name: string)->#null *Properti
     host.shutdown()
 }
 
-fileprivate func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
+private func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 {
     foreach c in w.childs
     {

@@ -75,7 +75,7 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdConst:
             return parseVarDecl();
 
-        case TokenId::KwdModulePrivate:
+        case TokenId::KwdInternal:
             return parseAggregateAccessModifier();
 
         case TokenId::Identifier:

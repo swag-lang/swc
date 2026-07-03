@@ -121,8 +121,8 @@ public struct Font
     drawResolveFont:   *Font
 }
 
-fileprivate var g_HashFont:       HashTable'(String, *Font)
-fileprivate var g_HashGlyphCache: HashTable'(String, *GlyphCache)
+private var g_HashFont:       HashTable'(String, *Font)
+private var g_HashGlyphCache: HashTable'(String, *GlyphCache)
 
 #drop
 {
@@ -135,13 +135,13 @@ fileprivate var g_HashGlyphCache: HashTable'(String, *GlyphCache)
     g_HashGlyphCache.free()
 }
 
-fileprivate func mulFix(a, b: s32)->s32
+private func mulFix(a, b: s32)->s32
 {
     let ab = cast(s64) a * cast(s64) b
     return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
 }
 
-fileprivate func renderModeName(mode: FontRenderMode)->string
+private func renderModeName(mode: FontRenderMode)->string
 {
     switch mode
     {
@@ -154,11 +154,11 @@ fileprivate func renderModeName(mode: FontRenderMode)->string
     return "bitmap"
 }
 
-fileprivate var g_FontLock: Sync.Mutex
+private var g_FontLock: Sync.Mutex
 
 // Get or create the shared glyph cache for a (typeface, style, mode, refSize, spread).
 // Assumes g_FontLock is held.
-fileprivate func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
+private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
 {
     let key = Format.toString("%_%_%_%_%_%", typeFace.fullname, refSize, forceBold, forceItalic, renderModeName(renderMode), spread)
 
@@ -223,7 +223,7 @@ public impl Font
         return .cache.typeFace.face.glyphIndex(c)
     }
 
-    // Clear fileprivate caches
+    // Clear private caches
     func clearCaches()
     {
         foreach a, b in g_HashFont do
@@ -249,7 +249,7 @@ public impl Font
     // 'atlasMode' is the concrete glyph cache mode; 'intent' is the creation mode
     // stored on the Font (may be .Auto). Both take part in the Font key so an auto
     // Font and an explicit MSDF Font of the same size do not collide.
-    fileprivate func createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
+    private func createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         Debug.assert(typeFace != null)
         Debug.assert(size > 0)
@@ -284,7 +284,7 @@ public impl Font
     }
 
     // Builds a Font for the requested creation mode (spread is internal).
-    fileprivate func createMode(typeFace: *TypeFace, size: u32, mode: FontRenderMode, forceBold, forceItalic: bool)->*Font
+    private func createMode(typeFace: *TypeFace, size: u32, mode: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         switch mode
         {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) mixinTypeInfoValueArg()->bool
 {

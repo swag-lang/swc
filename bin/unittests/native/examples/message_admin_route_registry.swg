@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: discover internal admin API handlers with `#message` and
 // generate a strongly typed registry from attributes. Adding one annotated

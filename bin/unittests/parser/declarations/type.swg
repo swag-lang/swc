@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 enum TOTO: const [..] s32
 {

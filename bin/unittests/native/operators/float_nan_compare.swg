@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 #global #[Swag.Safety(.All, false)]
 
 func eqF32(a: f32, b: f32)->bool

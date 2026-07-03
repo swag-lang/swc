@@ -54,7 +54,7 @@ public struct MenuCtrl
 
 public impl IWnd for MenuCtrl
 {
-    fileprivate mtd paintBar(painter: *Painter)
+    private mtd paintBar(painter: *Painter)
     {
         let theme   = .getTheme()
         let colors  = .getThemeColors()
@@ -136,7 +136,7 @@ public impl IWnd for MenuCtrl
         }
     }
 
-    fileprivate mtd paintPopup(painter: *Painter)
+    private mtd paintPopup(painter: *Painter)
     {
         let theme   = .getTheme()
         let colors  = .getThemeColors()
@@ -375,29 +375,29 @@ public impl IWnd for MenuCtrl
 
 impl MenuCtrl
 {
-    fileprivate mtd hasPopupBarAnchor()->bool
+    private mtd hasPopupBarAnchor()->bool
     {
         return .popupBarItemIdx != Swag.U32.Max and .ownerMenu and .ownerMenu.bar
     }
 
-    fileprivate mtd clearPopupBarAnchor()
+    private mtd clearPopupBarAnchor()
     {
         .popupBarItemIdx = Swag.U32.Max
         .popupBarItemSurfaceRect.clear()
     }
 
-    fileprivate mtd setPopupBarAnchor(itemIdx: u32, itemSurfaceRect: Math.Rectangle)
+    private mtd setPopupBarAnchor(itemIdx: u32, itemSurfaceRect: Math.Rectangle)
     {
         .popupBarItemIdx         = itemIdx
         .popupBarItemSurfaceRect = itemSurfaceRect
     }
 
-    fileprivate mtd getPopupBarAnchorHeight()->f32
+    private mtd getPopupBarAnchorHeight()->f32
     {
         return .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
     }
 
-    fileprivate mtd getPopupBarAnchorLocalRect()->Math.Rectangle
+    private mtd getPopupBarAnchorLocalRect()->Math.Rectangle
     {
         var result: retval = .popupBarItemSurfaceRect
         let surfaceRect = .getSurfaceRect()
@@ -406,12 +406,12 @@ impl MenuCtrl
         return result
     }
 
-    fileprivate mtd getBarItemHeight()->f32
+    private mtd getBarItemHeight()->f32
     {
         return Math.min(.getClientRect().height, .getThemeMetrics().menuBar_Height)
     }
 
-    fileprivate mtd getBarLabelRect(item: *PopupMenuItem)->Math.Rectangle
+    private mtd getBarLabelRect(item: *PopupMenuItem)->Math.Rectangle
     {
         let clientRect = .getClientRect()
         let height     = .getBarItemHeight()
@@ -423,7 +423,7 @@ impl MenuCtrl
         }
     }
 
-    fileprivate mtd getBarItemRect(item: *PopupMenuItem)->Math.Rectangle
+    private mtd getBarItemRect(item: *PopupMenuItem)->Math.Rectangle
     {
         let metrics = .getThemeMetrics()
         var result  = .getBarLabelRect(item)
@@ -432,7 +432,7 @@ impl MenuCtrl
         return result
     }
 
-    fileprivate mtd getPopupBodyRect()->Math.Rectangle
+    private mtd getPopupBodyRect()->Math.Rectangle
     {
         let metrics = .getThemeMetrics()
         var result: retval = .getClientRect()
@@ -448,7 +448,7 @@ impl MenuCtrl
         return result
     }
 
-    fileprivate mtd paintPopupBarAnchor(painter: *Painter, bodyRect: Math.Rectangle)
+    private mtd paintPopupBarAnchor(painter: *Painter, bodyRect: Math.Rectangle)
     {
         if !.hasPopupBarAnchor() do
             return

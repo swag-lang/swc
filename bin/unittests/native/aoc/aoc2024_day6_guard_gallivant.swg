@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 6: simulate the guard path with heap-allocated
 // storage and explicit cleanup through defer.

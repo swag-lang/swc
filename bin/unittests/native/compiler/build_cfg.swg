@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 const Cfg = #run dref @compiler.getBuildCfg()
 
 #assert(#typeof(Cfg) == Swag.BuildCfg)

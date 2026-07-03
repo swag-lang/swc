@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func expectDate(ticks: Time.Ticks, year, month, day: u16)

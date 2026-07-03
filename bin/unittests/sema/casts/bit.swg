@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Strict]
 alias BitCastStrictU32 = u32

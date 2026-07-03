@@ -1047,7 +1047,7 @@ namespace
             sema.setSymbol(nodeRef, storedView->sym);
             // When pinning resolved symbols (a cross-Ast clone, or a same-Ast inline that opted
             // in) the cloned identifier must not be re-resolved by name in the destination
-            // scope: the source symbol may be file/module-private, an overload that name-lookup
+            // scope: the source symbol may be private/internal, an overload that name-lookup
             // would pick wrong, or shadowed there. Mark it pre-resolved so sema honors the
             // carried symbol. Rebindable local symbols are excluded above so they still bind to
             // the cloned decls / substituted arguments.

@@ -49,7 +49,7 @@ impl IWnd for FileDlg
     }
 }
 
-fileprivate impl FileDlg
+private impl FileDlg
 {
     mtd onNewFolder()
     {

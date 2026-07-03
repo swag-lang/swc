@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // Generic Vec3 with arithmetic + scalar overload

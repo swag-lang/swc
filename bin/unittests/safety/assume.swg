@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func mayThrowValue(v: s32)->s32 throw
 {

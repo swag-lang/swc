@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert(12's8 == 12's8)
 #assert(12's16 == 12's16)

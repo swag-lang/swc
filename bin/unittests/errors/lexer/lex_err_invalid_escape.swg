@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Invalid escapes in strings and character literals; uppercase letters trigger did-you-mean.
 "\c"           // swc-expected-error {{lex_err_invalid_escape}}

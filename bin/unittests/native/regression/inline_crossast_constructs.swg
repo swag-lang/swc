@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Cross-Ast inline of a cast expression.
 //

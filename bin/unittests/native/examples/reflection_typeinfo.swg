@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Reflection-driven struct "serializer": iterate struct fields at compile-time
 // and runtime to compute checksums, validate field counts, and build

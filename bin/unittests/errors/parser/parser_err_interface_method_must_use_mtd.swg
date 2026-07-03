@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Interfaces only accept 'mtd' methods; using 'func' is reported for each occurrence.
 interface I

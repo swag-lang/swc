@@ -58,7 +58,7 @@ public impl MessageDlg
         return Dialog.doModal(me)
     }
 
-    fileprivate mtd adaptSizeToMessage()
+    private mtd adaptSizeToMessage()
     {
         let metrics = .getThemeMetrics()
 

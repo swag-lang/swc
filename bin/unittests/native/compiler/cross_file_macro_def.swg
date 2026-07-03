@@ -1,4 +1,4 @@
-#global moduleprivate
+#global internal
 
 namespace CrossFileMacroRegression
 {

@@ -144,7 +144,7 @@ impl IWnd for Label
 
 impl Label
 {
-    fileprivate mtd getStringFormat(isDisabled: bool)->RichStringFormat
+    private mtd getStringFormat(isDisabled: bool)->RichStringFormat
     {
         let theme = .getTheme()
 

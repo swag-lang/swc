@@ -1,4 +1,4 @@
-#global fileprivate //
+#global private //
 
 const A: [5] s32 = [1's32, 2, 3, 4, 5]
 #assert(#typeof(A) == #type [5] s32)
@@ -127,7 +127,7 @@ const AB2: [?] u32 = [[1], [2]]
     @assert(a[1, 2] == 1.5)
 }
 
-fileprivate
+private
 {
     const HexFill = 0xF0
 }

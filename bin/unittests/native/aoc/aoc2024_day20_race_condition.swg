@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 20: find shortcuts (cheats) in a racetrack maze.
 // Part 1: cheats up to 2 picoseconds, count those saving >= threshold.

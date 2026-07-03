@@ -19,7 +19,7 @@ struct PropValidationResult
     message: string
 }
 
-moduleprivate impl Properties
+internal impl Properties
 {
     // Background color of the validation bar (reuses the embedded-info palette).
     mtd validationColor(state: PropValidation)->Color
@@ -225,7 +225,7 @@ moduleprivate impl Properties
 
 }
 
-fileprivate impl Properties
+private impl Properties
 {
     // Apply a validation state + message to an item: create/show/hide its message bar.
     // Returns true when the bar's presence or text changed (a relayout is then needed).

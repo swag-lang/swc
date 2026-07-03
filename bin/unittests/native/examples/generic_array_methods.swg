@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a generic dynamic array backed by @alloc, @free, @realloc.
 // Same as dynamic_generic_array.swg but using methods instead of global functions.

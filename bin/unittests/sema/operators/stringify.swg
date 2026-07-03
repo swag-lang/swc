@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert("truetrue" == "true" ++ "true")
 #assert("truetrue" == "true" ++ true)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var LastInlineBufferTextDropAddr: [*] void
 var LastInlineBufferTextDropBuffer: [*] u8

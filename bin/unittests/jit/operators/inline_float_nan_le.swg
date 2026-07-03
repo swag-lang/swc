@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 #global #[Swag.Safety(.All, false)]
 
 #[Swag.Inline]

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // This #test is NOT in the InlineGeo namespace, and lives in a different file (=> different Ast)
 // than GeoMaker.corner. When corner() is inlined here, its body's `GeoPoint{...}` must keep the

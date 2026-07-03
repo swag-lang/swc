@@ -475,7 +475,7 @@ public impl ScrollWnd
         return .view.scrollPos
     }
 
-    fileprivate mtd getScrollPosPrivate(x, y: f32)->Math.Point
+    private mtd getScrollPosPrivate(x, y: f32)->Math.Point
     {
         var newSP: Math.Point = undefined
 
@@ -492,7 +492,7 @@ public impl ScrollWnd
         return newSP
     }
 
-    fileprivate mtd setScrollPosPrivate(x, y: f32)->Math.Point
+    private mtd setScrollPosPrivate(x, y: f32)->Math.Point
     {
         let newSP = .getScrollPosPrivate(x, y)
         if newSP == .view.scrollPos do

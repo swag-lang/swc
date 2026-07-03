@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a delivery workload forecast exposes several traversal
 // modes over weekday fields. Forward iteration sums the week, a named pair

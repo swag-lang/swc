@@ -102,7 +102,7 @@ impl XAudio2DriverNative
 // XAUDIO2 CALLBACKS
 ///////////////////////////////////////////////////////////////
 
-moduleprivate
+internal
 {
     var g_ThreadCxt: Swag.Context
     var g_Cb:        IXAudio2VoiceCallback

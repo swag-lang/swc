@@ -5,7 +5,7 @@ using Core, Pixel
 // and column separator, the disclosure icon. The control-level onPaintEvent (separator-color
 // animation) is in properties.swg with the other IWnd events; the inline validation bar this
 // draws lives in validation.swg (paintValidationBar).
-moduleprivate impl Properties
+internal impl Properties
 {
     mtd getDisclosureIconPosition(item: *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
     {

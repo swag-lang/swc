@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Enum with impl: associated functions and enum patterns.
 

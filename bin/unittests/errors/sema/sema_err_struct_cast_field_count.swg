@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct Vec3I {x, y, z: s32}
 struct Simple2 {x: s32, y: s32}

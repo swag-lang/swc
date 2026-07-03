@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var B: s32
 var C: f32 = 1

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // Non-generic struct with overloaded opBinary (original tests)

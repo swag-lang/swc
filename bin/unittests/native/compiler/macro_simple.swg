@@ -1,5 +1,5 @@
 // 
-#global fileprivate
+#global private
 
 #[Swag.Macro]
 func macroAdd(a: s32, b: s32)->s32 => a + b

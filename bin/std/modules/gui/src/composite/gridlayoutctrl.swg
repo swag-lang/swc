@@ -52,7 +52,7 @@ impl IWnd for GridLayoutCtrl
     }
 }
 
-fileprivate impl GridLayoutCtrl
+private impl GridLayoutCtrl
 {
     mtd ensureStorage()
     {

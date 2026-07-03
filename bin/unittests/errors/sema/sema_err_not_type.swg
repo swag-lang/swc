@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 #global namespace TOTO
 
 const B = true

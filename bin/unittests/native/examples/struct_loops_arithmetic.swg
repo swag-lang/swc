@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: plan a bakery oven shift with tray capacity, temperature
 // setups, steam batches, and cooling time before the storefront opens.

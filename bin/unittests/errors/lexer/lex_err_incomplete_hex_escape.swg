@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Fewer hex digits than required by the escape form.
 '\x1'          // swc-expected-error {{lex_err_incomplete_hex_escape}}

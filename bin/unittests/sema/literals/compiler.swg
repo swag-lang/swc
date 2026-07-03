@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert(#file == #file)
 #assert(#line == 4)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: evaluate a small crossed-signal control board and flag
 // outputs that clearly violate the expected ripple-carry wiring rules.

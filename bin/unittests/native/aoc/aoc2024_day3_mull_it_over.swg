@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 3: scan corrupted memory for mul(X,Y) instructions,
 // then cross-check a clean state-machine parser with a macro/mixin flavored one.

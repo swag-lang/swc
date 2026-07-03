@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 // Built-in attributes that the compiler turns into fast-lookup rt-flags must also stay

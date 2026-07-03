@@ -56,8 +56,8 @@ impl FastNoise
         .fractalBounding = 1.0 / ampFractal
     }
 
-    // Update fileprivate values.
-    // Should be called each time an fileprivate parameter has been changed.
+    // Update private values.
+    // Should be called each time an private parameter has been changed.
     public mtd update()
     {
         .calculateFractalBounding()

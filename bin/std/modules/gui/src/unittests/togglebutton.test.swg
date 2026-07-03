@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag, Core
 
 const ToggleButtonHeadless_Command = "ToggleButtonHeadless.Command"

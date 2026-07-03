@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Declaring the same name twice in the same scope is an error.
 #test

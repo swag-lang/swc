@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Safety(.Switch, false)]
 func switchSafetyDisabled()->bool

@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 func stringEq(a: string, b: string)->bool
 {

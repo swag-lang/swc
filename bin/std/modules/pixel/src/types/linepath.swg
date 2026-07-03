@@ -48,7 +48,7 @@ public impl LinePath
         .triangles.clear()
     }
 
-    // Clear fileprivate cache
+    // Clear private cache
     mtd clearCache()
     {
         .triangles.release()
@@ -179,7 +179,7 @@ public impl LinePath
         .isClosed = true
     }
 
-    fileprivate mtd setRectRaw(l, t, w, h: f32)
+    private mtd setRectRaw(l, t, w, h: f32)
     {
         let r = l + w
         let b = t + h
@@ -230,7 +230,7 @@ public impl LinePath
         .close()
     }
 
-    fileprivate mtd setEllipseRaw(cX, cY: f32, rX, rY: f32)
+    private mtd setEllipseRaw(cX, cY: f32, rX, rY: f32)
     {
         .start(cX, cY - rY)
         .arcTo(cX, cY, rX, rY, 0'deg, 90'deg)

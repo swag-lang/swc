@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Static Arrays in Swag
 

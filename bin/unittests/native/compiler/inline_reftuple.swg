@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A reference parameter to an anonymous aggregate (`const &{x, y}`) is excluded from the
 // auto-inline heuristic: resolving a member access on that ephemeral tuple type in the

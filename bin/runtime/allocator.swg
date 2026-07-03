@@ -64,7 +64,7 @@ struct AllocatorThreadHeap
 }
 
 #[Swag.Tls]
-fileprivate var g_AllocatorThreadHeap: *AllocatorThreadHeap
+private var g_AllocatorThreadHeap: *AllocatorThreadHeap
 
 struct Allocator
 {
@@ -99,27 +99,27 @@ struct Allocator
     electricMode:        bool
 }
 
-fileprivate var g_DefaultAllocator: Allocator
+private var g_DefaultAllocator: Allocator
 
-fileprivate func atomicLoadHeader(slot: **AllocatorHeader)->*AllocatorHeader
+private func atomicLoadHeader(slot: **AllocatorHeader)->*AllocatorHeader
 {
     return cast(*AllocatorHeader) @atomcmpxchg(cast(*u64) slot, 0'u64, 0'u64)
 }
 
-fileprivate func atomicExchangeHeader(slot: **AllocatorHeader, value: *AllocatorHeader)->*AllocatorHeader
+private func atomicExchangeHeader(slot: **AllocatorHeader, value: *AllocatorHeader)->*AllocatorHeader
 {
     return cast(*AllocatorHeader) @atomxchg(cast(*u64) slot, cast(u64) value)
 }
 
-fileprivate func atomicCompareExchangeHeader(slot: **AllocatorHeader, compareTo, exchangeWith: *AllocatorHeader)->*AllocatorHeader
+private func atomicCompareExchangeHeader(slot: **AllocatorHeader, compareTo, exchangeWith: *AllocatorHeader)->*AllocatorHeader
 {
     return cast(*AllocatorHeader) @atomcmpxchg(cast(*u64) slot, cast(u64) compareTo, cast(u64) exchangeWith)
 }
 
-fileprivate func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
-fileprivate func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
+private func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
+private func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
 
-fileprivate func currentThreadId()->u64
+private func currentThreadId()->u64
 {
     #if #os == Swag.TargetOs.Windows do
         return __Win32RT.GetCurrentThreadId()

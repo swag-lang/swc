@@ -364,7 +364,7 @@ impl ConcatBuffer
     }
 
     #[Swag.Inline]
-    fileprivate mtd setIsAtEnd()
+    private mtd setIsAtEnd()
     {
         .isAtEnd = .currentSP == .lastBucket.datas + .lastBucket.count
     }
@@ -449,7 +449,7 @@ impl ConcatBuffer
         return result
     }
 
-    fileprivate mtd eatBuffer()->{ data: [*] u8, size: u64, capacity: u64 }
+    private mtd eatBuffer()->{ data: [*] u8, size: u64, capacity: u64 }
     {
         // Must be linear ?
         Debug.assert(.lastBucket == .firstBucket)

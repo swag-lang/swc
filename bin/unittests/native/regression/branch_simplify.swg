@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Optimize(true)]
 func branchSimplifyKnownTrue()->s32

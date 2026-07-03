@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias Real64 = f64
 

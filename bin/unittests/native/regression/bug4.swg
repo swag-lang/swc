@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func addShadowedInlineArg(value: s32)->s32

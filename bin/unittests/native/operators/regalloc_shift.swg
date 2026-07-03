@@ -1,4 +1,4 @@
-#global fileprivate //
+#global private //
 
 // Stress tests for shift register allocation in the native backend.
 //

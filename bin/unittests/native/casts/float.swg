@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var gFloatF32: f32
 var gFloatF64: f64

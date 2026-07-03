@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Nested namespaces, qualified access, and using.
 

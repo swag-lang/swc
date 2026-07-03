@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert(#typeof(#module) == string)
 #assert(#module == "Sema")

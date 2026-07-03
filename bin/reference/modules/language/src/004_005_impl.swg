@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Implementing Methods for Enums in Swag
 

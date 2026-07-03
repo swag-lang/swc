@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #if #os == Swag.TargetOs.Windows
 {

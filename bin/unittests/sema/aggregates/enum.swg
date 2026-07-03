@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias EnumAliasU32 = u32
 

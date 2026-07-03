@@ -20,7 +20,7 @@ using Core
         foreach l in File.readAllLines(dataPath)
         {
             l.makeUpper()
-            result += "moduleprivate const "
+            result += "internal const "
             if r.match(#"(\w+) -> B"#, l)
             {
                 result += "B = 46065"

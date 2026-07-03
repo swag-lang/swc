@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const CannotCastSwitchPointerValues = [11, 22]
 const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]

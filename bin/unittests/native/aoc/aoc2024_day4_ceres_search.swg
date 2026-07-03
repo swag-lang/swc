@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 4: count XMAS occurrences in a word search grid,
 // then cross-check a direct scanner with a method/lambda/inline flavored one.

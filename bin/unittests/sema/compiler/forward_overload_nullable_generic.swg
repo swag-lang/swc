@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 func getValue(type: typeinfo, attribute: typeinfo, value: string)->#null any

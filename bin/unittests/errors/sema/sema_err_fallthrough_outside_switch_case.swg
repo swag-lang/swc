@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // 'fallthrough' is only valid inside a switch case.
 #test

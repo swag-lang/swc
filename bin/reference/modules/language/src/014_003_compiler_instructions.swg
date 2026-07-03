@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # '#assert'
 The '#assert' directive performs a static assertion during compilation.
@@ -61,7 +61,7 @@ Examples (write these as top-level directives):
   #global #if #command == Swag.CompilerCommand.Format // Include this file only when formatting.
   #global #if #command == Swag.CompilerCommand.Test   // Include this file only when running tests.
   #global public                      // All symbols become public.
-  #global fileprivate                    // All symbols are fileprivate to the module.
+  #global private                    // All symbols are private to the module.
   #global namespace Toto              // Place all symbols in namespace 'Toto'.
   #global #if DEBUG == true           // Conditional compilation for the file.
   #global #[Swag.Safety('', true)]    // Apply an attribute to all declarations.

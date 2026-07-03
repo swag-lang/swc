@@ -6,7 +6,7 @@ func mixinInjectVoid(stmt: #code void)
     #inject(stmt)
 }
 
-fileprivate func semaTest001()
+private func semaTest001()
 {
     var value = 0
     mixinInjectVoid(#code
@@ -24,7 +24,7 @@ func mixinInjectValue(value: s32, stmt: #code void)
     #inject(stmt)
 }
 
-fileprivate func semaTest002()
+private func semaTest002()
 {
     var total = 0
     mixinInjectValue(4, #code

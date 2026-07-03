@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 8: find antinode positions created by same-frequency
 // antenna pairs, using heap-allocated storage and reference types for mutation.

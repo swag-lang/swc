@@ -1,4 +1,4 @@
-fileprivate func semaTest001()
+private func semaTest001()
 {
     var value: f32 = 1.5
     let sum = crossFileAddRefValue(&value, 2.5'f32)
@@ -8,7 +8,7 @@ fileprivate func semaTest001()
     #assert(#typeof(temp) == f32)
 }
 
-fileprivate func semaTest002()
+private func semaTest002()
 {
     var box: CrossFileRefFloatBox = {value: 1.5}
     let sum = crossFileAddRefValue(&box.value, 2.5'f32)

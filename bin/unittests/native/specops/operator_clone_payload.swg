@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var gClonePayloadOpCastCalls: s32 = 0
 var gClonePayloadOpSetCalls: s32 = 0

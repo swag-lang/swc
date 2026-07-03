@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // This #test is NOT in the InlineSw namespace and lives in a different file (=> different Ast)
 // than SwClassifier.classify. When classify() is inlined here, its switch's case labels (the bare

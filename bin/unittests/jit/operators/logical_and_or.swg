@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 var LogCounter: s32
 
 func sideEffect(flag: bool, delta: s32)->bool

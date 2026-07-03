@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Expected a token family (e.g. an identifier), found the wrong family or a reserved word.
 impl A.B. { }                     // swc-expected-error {{parser_err_expected_token_fam}}

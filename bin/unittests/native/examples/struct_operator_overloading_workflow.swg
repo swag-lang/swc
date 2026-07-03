@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a workflow combines three structs that customize direct
 // assignment, compound assignment, and indexed access.

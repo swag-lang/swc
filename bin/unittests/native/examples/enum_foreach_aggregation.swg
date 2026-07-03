@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: prepare a warehouse restock plan from the current inventory.
 

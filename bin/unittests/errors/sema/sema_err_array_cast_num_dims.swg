@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func TakeMatrix2(v: [2, 2] s32) {}
 

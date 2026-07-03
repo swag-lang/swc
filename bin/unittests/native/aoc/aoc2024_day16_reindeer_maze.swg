@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 16: find cheapest path through a maze where
 // moving forward costs 1 and turning 90° costs 1000.

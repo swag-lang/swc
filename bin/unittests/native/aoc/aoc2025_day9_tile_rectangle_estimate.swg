@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: estimate the largest rectangular tile replacement zone
 // using any two marked corner tiles from a floor survey.

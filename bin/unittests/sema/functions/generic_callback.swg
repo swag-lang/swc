@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) comparePair(values: [2] T, cb: func||(T, T)->s32)->bool
 {

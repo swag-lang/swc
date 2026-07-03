@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func inlineGcdShadow(a0, b0: s64)->s64

@@ -59,7 +59,7 @@ struct Circular
     sigChanged:         SigArray'func||(*Circular)     // Fired when value changes
     sigEndChange:       SigArray'func||(*Circular)     // Fired when user finishes changing value
 
-    moduleprivate
+    internal
     {
         // Internal state tracking
         isMoving:       bool     // True when user is dragging a marker
@@ -242,7 +242,7 @@ impl IWnd for Circular
     }
 }
 
-fileprivate impl Circular
+private impl Circular
 {
     mtd updateGeometry()
     {

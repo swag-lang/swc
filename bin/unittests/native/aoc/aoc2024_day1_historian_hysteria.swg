@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 1: keep one solution close to the direct puzzle
 // mechanics, then cross-check it with a compile-time/interface-heavy variant.

@@ -1,8 +1,8 @@
 using Threading, Time
 
-moduleprivate var g_UpdatingLib: bool
-moduleprivate var g_DirtyList: bool = true
-moduleprivate const ItemMargin = 8.0
+internal var g_UpdatingLib: bool
+internal var g_DirtyList: bool = true
+internal const ItemMargin = 8.0
 
 struct LibraryItem
 {

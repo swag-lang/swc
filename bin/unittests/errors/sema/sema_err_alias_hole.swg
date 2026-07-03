@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Mixin]
 func badMixinHole(value: s32)

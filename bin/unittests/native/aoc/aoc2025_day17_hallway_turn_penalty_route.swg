@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: route a cart through a hallway network where moving
 // forward is cheap but every turn is expensive.

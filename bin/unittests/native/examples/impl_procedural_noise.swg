@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: combine seeded randomness and procedural noise to build a
 // reproducible community-garden layout.

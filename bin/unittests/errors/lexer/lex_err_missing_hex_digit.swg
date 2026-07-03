@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // '0x' and '0X' require at least one hex digit, even when a separator follows.
 0x             // swc-expected-error {{lex_err_missing_hex_digit}}

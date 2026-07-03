@@ -67,7 +67,7 @@ impl Surface
         .applySurfaceFlags()
     }
 
-    fileprivate mtd applySurfaceFlags()
+    private mtd applySurfaceFlags()
     {
         if .flags.has(.BigCaption) do
             .wnd.padding.y = .app.theme.metrics.wnd_BigCaptionCY
@@ -210,7 +210,7 @@ impl Surface
         .setPosition(np)
     }
 
-    fileprivate mtd createRT()
+    private mtd createRT()
     {
         if !.rt.colorBuffer.valid or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
         {
@@ -304,7 +304,7 @@ impl Surface
         cxt.renderer.end()
     }
 
-    fileprivate mtd sendResizeEvent(width, height: f32)
+    private mtd sendResizeEvent(width, height: f32)
     {
         .rc.width        = cast(s32) width
         .rc.height       = cast(s32) height
@@ -322,7 +322,7 @@ impl Surface
         return .app.theme.metrics.surfaceWnd_CornerRadius
     }
 
-    fileprivate mtd paintShadow()
+    private mtd paintShadow()
     {
         if .flags.has(.NoShadow) do
             return
@@ -352,7 +352,7 @@ impl Surface
         }
     }
 
-    fileprivate mtd paintShadowOutsideBody()
+    private mtd paintShadowOutsideBody()
     {
         if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
             return
@@ -372,7 +372,7 @@ impl Surface
         .painter.resetClippingRegion()
     }
 
-    fileprivate mtd paintAlphaMask()
+    private mtd paintAlphaMask()
     {
         let rect   = .wnd.getSurfaceRect()
 
@@ -399,7 +399,7 @@ impl Surface
         .wnd.sendResizeEvent()
     }
 
-    fileprivate mtd serializeState(ser: *Serializer) throw
+    private mtd serializeState(ser: *Serializer) throw
     {
         // Save position and surface state
         if .wnd.view != null and .wnd.view.id != null

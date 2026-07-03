@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const A: *s32 = null
 #assert(A == null)

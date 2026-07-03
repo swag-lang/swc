@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # 'defer' Statement
 The 'defer' statement registers an expression that executes automatically

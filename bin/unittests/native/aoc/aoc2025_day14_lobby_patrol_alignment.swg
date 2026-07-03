@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: track lobby patrol robots on a wrapping floor plan,
 // compute the quadrant safety factor after a fixed interval, and locate the

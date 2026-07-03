@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Regression: `is` on an interface must work for an *empty* derived struct
 // (same memory layout/size as its base), mirroring Gui's DestroyEvent.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // 'break' is only valid inside a loop, scope, or switch case.
 #test

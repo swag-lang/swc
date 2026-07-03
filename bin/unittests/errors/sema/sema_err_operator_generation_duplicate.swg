@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Operators(opEquals)] // swc-expected-error {{sema_err_operator_generation_duplicate}}
 struct DuplicateGeneratedEquals

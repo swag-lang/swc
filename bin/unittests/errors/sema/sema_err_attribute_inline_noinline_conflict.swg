@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 #[Swag.NoInline] // swc-expected-error {{sema_err_attribute_inline_noinline_conflict}}

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[A]
 enum B { Z }

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: audit a safe-opening rotation sheet and count how many
 // times the dial lands on zero during the sequence.

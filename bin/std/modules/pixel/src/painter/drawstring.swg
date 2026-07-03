@@ -172,7 +172,7 @@ struct RichStringFormat
     maxLines:          u32
 }
 
-fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
+private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
@@ -212,7 +212,7 @@ fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32
     run.glyphs.add(glyph)
 }
 
-fileprivate func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize: u32)
+private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize: u32)
 {
     let spaceGlyphIndex = font.glyphIndex(' ')
     let spaceDesc       = font.getGlyphDescByIndex(spaceGlyphIndex)
@@ -230,7 +230,7 @@ fileprivate func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tab
     appendShapedGlyph(run, font, spaceGlyphIndex, cluster, 0, tabAdvance, true)
 }
 
-fileprivate func finishShapedRun(run: *ShapedRun, font: *Font)
+private func finishShapedRun(run: *ShapedRun, font: *Font)
 {
     if run.glyphs.isEmpty() do
         return
@@ -249,7 +249,7 @@ fileprivate func finishShapedRun(run: *ShapedRun, font: *Font)
     }
 }
 
-fileprivate func snapTextPosition(value: f32, snapPixels: bool)->f32
+private func snapTextPosition(value: f32, snapPixels: bool)->f32
 {
     return snapPixels ? Math.round(value) : value
 }
@@ -491,7 +491,7 @@ impl Painter
     // Emit the glyph quads of a shaped run, translated by (dx, dy) and tinted with
     // 'color'. The offset is applied after pixel snapping so a sub-pixel shadow
     // offset survives. Shared by the face pass and the drop-shadow pass.
-    fileprivate mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
+    private mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
     {
         var x = startLeft
         foreach glyph, idx in runToDraw.glyphs
@@ -947,7 +947,7 @@ impl Painter
     }
 
     // Draw a rich string.
-    // A rich string can be multiline, and accepts fileprivate formats.
+    // A rich string can be multiline, and accepts private formats.
     // The layout will be computed at the first call, and each time 'pos' has changed.
     mtd drawRichString(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, forceCompute = false)
     {

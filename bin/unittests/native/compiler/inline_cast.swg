@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Inlining a callee whose body contains a cast must materialize the cast faithfully.
 // The tricky case: a value-to-`any` box. When the callee is sema-completed on its own,

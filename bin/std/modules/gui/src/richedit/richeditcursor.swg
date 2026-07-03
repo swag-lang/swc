@@ -116,7 +116,7 @@ impl RichEditCtrl
         return result
     }
 
-    fileprivate mtd ensureCaretIsVisibleInternal(center: bool)
+    private mtd ensureCaretIsVisibleInternal(center: bool)
     {
         .checkSelection()
         .ensureCursorIsVisible(.cursorPos, center)
@@ -303,7 +303,7 @@ impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    fileprivate mtd moveCursorUp(cp: *RichEditCursor, posPrev: Math.Point)->bool
+    private mtd moveCursorUp(cp: *RichEditCursor, posPrev: Math.Point)->bool
     {
         let prev = .getPreviousVisibleLine(cp.lineIndex)
         if prev == cp.lineIndex do
@@ -345,7 +345,7 @@ impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    fileprivate mtd moveCursorDown(cp: *RichEditCursor, posPrev: Math.Point)->bool
+    private mtd moveCursorDown(cp: *RichEditCursor, posPrev: Math.Point)->bool
     {
         let next = .getNextVisibleLine(cp.lineIndex)
         if next == cp.lineIndex do

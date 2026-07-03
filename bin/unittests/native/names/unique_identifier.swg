@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 #[Swag.Mixin]
 func mixinUniq(value: s32)

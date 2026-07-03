@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 The `swag-lang/swag/bin/reference/modules/language` module provides a foundational introduction to the syntax and essential features of the Swag programming language. It is designed to offer insight into core language elements, separate from the more extensive [Swag standard modules](std.php) (`Std`).
 

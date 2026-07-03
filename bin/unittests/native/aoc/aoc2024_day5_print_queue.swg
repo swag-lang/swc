@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 5: validate page ordering rules and repair invalid
 // updates through mutable/const references only, on fixed storage.

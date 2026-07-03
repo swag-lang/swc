@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var LeakLastDropAddr: [*] void
 var LeakLastDropSelf: [*] u8

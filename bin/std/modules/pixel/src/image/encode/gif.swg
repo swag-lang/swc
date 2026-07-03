@@ -1,7 +1,7 @@
 #global namespace Gif
 using Swag, Core, Core.Errors
 
-fileprivate
+private
 {
     const MaxPaletteColors = 128'u32
 

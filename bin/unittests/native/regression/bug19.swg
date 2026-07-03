@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func inlineZeroLiteralOrelseReturn(value: u8)->u8

@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag, Core
 
 // Parenting, child enumeration and lookup by id.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 17: 3-bit computer with 8 opcodes, 3 registers
 // (A, B, C) and a combo-operand scheme. Run the program, collect outputs.

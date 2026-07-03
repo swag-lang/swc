@@ -145,8 +145,8 @@ SWC_TOKEN_DEF(KwdUndefined, "undefined",  TokenIdKindE::Keyword)
 // ACCESS MODIFIERS
 
 SWC_TOKEN_DEF(KwdPublic, "public",  TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdFilePrivate, "fileprivate",  TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdModulePrivate, "moduleprivate",  TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdPrivate, "private",  TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdInternal, "internal",  TokenIdKindE::Keyword)
 
 // TYPE DEFINITIONS
 

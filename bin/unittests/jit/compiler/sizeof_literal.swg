@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var SIZEOF_INT = #sizeof(1)
 var ALIGNOF_INT = #alignof(1)

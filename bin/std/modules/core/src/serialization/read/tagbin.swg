@@ -63,7 +63,7 @@ struct TagBinOptions
     tryForward: bool // Accept to try to read a newest version, otherwise error
 }
 
-fileprivate impl TagBin
+private impl TagBin
 {
     // Create a new section for the deserialization stack.
     // Returns a pointer to a section object, either reused from the free pool or newly allocated.
@@ -277,7 +277,7 @@ impl TagBin
     }
 
     // Initialize the deserializer with the given input byte array.
-    // Sets up the fileprivate byte stream for reading from the provided data buffer.
+    // Sets up the private byte stream for reading from the provided data buffer.
     mtd startRead(input: const [..] u8) throw
     {
         .stream = ByteStream.openRead(input)

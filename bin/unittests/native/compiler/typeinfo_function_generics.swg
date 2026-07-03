@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 func(T, N: s32) makeRepeated(value: T)->[N] T

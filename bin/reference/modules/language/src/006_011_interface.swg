@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 Interfaces in Swag are virtual tables (lists of function pointers) that can be associated with a struct.
 

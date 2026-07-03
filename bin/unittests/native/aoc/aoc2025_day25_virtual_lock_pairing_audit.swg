@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: screen a batch of virtual five-pin lock schematics against
 // key schematics and count how many combinations can fit without overlap.

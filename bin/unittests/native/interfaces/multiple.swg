@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Test multiple interfaces implemented by the same struct,
 // interface reassignment, and interface as return value.

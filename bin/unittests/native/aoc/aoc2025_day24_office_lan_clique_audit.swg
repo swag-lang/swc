@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: audit a small office LAN for trusted triplets touching a
 // team-lead workstation and identify the largest fully connected admin group.

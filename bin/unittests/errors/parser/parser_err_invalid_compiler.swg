@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Unknown compiler instructions; close spellings trigger a did-you-mean hint, wild ones fall back.
 var a = #toto                            // swc-expected-error {{parser_err_invalid_compiler}}

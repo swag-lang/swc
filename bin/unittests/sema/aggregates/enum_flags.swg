@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias FlagsAliasU32 = u32
 

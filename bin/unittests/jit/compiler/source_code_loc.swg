@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func jitCaptureLoc(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 

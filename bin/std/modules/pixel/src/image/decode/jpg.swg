@@ -1,7 +1,7 @@
 #global namespace Jpg
 using Swag, Core, Core.Errors
 
-fileprivate
+private
 {
     const InBufSize       = 4096
     const MaxHeight       = 8192

@@ -5,7 +5,7 @@ using Core, Pixel
 // field to the right editor (the editor registry first, then the built-in kinds); addStructInternal
 // walks a struct's fields (handling categories and the notify interface). The refresh side of each
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
-moduleprivate impl Properties
+internal impl Properties
 {
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
     // Public so custom editors registered with registerEditor (possibly authored in another

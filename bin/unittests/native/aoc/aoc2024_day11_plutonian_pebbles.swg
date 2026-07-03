@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 11: stones with numbers transform each "blink".
 // If 0 → becomes 1. If even digits → splits into two halves. Otherwise × 2024.

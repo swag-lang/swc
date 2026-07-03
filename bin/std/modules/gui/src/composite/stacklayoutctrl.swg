@@ -32,7 +32,7 @@ impl IWnd for StackLayoutCtrl
     }
 }
 
-fileprivate impl StackLayoutCtrl
+private impl StackLayoutCtrl
 {
     mtd isHorizontal()->bool
     {

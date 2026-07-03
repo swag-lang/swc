@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert(#sizeof(u8) == 1)
 #assert(#sizeof(u16) == 2)

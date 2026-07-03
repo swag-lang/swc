@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a small-vector with inline storage that exercises every
 // lifecycle hook in a non-trivial way. When the element count fits in a fixed

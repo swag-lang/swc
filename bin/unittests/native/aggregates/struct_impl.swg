@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Struct with impl: methods, chaining via pointer return, multiple impl blocks.
 

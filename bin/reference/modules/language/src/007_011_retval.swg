@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # The `retval` Special Type
 In Swag, `retval` represents the current function’s return type.

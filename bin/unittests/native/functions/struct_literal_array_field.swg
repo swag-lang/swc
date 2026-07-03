@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func freeStructLiteralLookup(valueIndex: u64) -> s32
 {

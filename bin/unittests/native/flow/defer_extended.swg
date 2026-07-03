@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var Trace: s64 = 0
 

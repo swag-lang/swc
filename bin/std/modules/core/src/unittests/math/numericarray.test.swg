@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func expectNumericArray4(values: const &Math.NumericArray'(s32, 4'u32), expected: const [..] s32)

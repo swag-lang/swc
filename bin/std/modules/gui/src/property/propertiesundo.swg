@@ -155,7 +155,7 @@ impl IUndoCommand for PropUndoCommand
     }
 }
 
-moduleprivate impl Properties
+internal impl Properties
 {
     // Capture the undo snapshot of every row created since 'fromIdx' (called at build time,
     // after the instance addresses are assigned).

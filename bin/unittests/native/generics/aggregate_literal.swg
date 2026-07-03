@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) genericIdentity(value: T)->T => value
 

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A 'let' binding cannot be reassigned, regardless of the operator used.
 #test

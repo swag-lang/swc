@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct(T, Count: s32) Sample
 {

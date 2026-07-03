@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: generate a strongly typed audit diff from an existing
 // schema. Unlike call-site macros or mixins, #ast can materialize a brand new

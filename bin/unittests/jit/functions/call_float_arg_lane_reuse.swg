@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func sum4f(a, b, c, d: f32)->f32
 {

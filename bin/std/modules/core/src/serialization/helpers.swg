@@ -1,13 +1,13 @@
 #global namespace Serialization
 
-moduleprivate func getTypeValueCrc(val: Swag.TypeValue)->u32
+internal func getTypeValueCrc(val: Swag.TypeValue)->u32
 {
     if val.crc do
         return val.crc
     return Hash.Crc32.compute(val.name)
 }
 
-moduleprivate func getTypeInfoCrc(type: typeinfo)->u32
+internal func getTypeInfoCrc(type: typeinfo)->u32
 {
     if type.crc do
         return type.crc

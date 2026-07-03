@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 const GlobalValue = 0
 
 enum Color

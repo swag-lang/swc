@@ -133,7 +133,7 @@ impl TimeSpan
     mtd const totalMilliSeconds()->f64 => .ticks * (1.0'f64 / TicksPerMilliSecond)
 
     // Adds a time interval to the current TimeSpan
-    fileprivate mtd add(value: u32, scale: u64)
+    private mtd add(value: u32, scale: u64)
     {
         var millis = value * scale
         Debug.assert(millis <= MaxMillis, "overflow")
@@ -143,7 +143,7 @@ impl TimeSpan
     }
 
     // Subtracts a time interval from the current TimeSpan
-    fileprivate mtd remove(value: u32, scale: u64)
+    private mtd remove(value: u32, scale: u64)
     {
         var millis = value * scale
         Debug.assert(millis <= MaxMillis, "overflow")

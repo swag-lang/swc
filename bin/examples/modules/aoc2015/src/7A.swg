@@ -62,7 +62,7 @@ using Core
             l.replace("do", "_do")
             l.replace("in", "_in")
 
-            result += "moduleprivate const "
+            result += "internal const "
             if r.match(#"(\w+) -> (\w+)"#, l)
             {
                 result += r[2]

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Opaque]
 struct BigOpaque

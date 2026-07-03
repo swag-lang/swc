@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Strategy pattern: a pipeline of pricing rules implemented as interfaces.
 // Demonstrates dynamic dispatch, interface arrays, state mutation, and

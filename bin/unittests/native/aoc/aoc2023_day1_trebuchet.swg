@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2023 Day 1: extract calibration values from lines that
 // contain digits (part 1) or digits and spelled-out words (part 2), then

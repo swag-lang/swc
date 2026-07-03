@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 var X: u32 = undefined

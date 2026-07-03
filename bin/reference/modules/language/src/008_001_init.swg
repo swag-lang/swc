@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # '@init' Intrinsic
 Reinitializes a variable or memory region to either its type default value

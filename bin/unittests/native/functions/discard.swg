@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var gMustUseCalls: s32
 var gCanDiscardCalls: s32

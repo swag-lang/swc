@@ -1110,7 +1110,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func EnumWindows(lpEnumFunc: WNDENUMPROC, lParam: LPARAM)->BOOL;
 }
 
-moduleprivate namespace User32Priv
+internal namespace User32Priv
 {
     #[Foreign("user32")]
     {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias ClosureUnary = func||(s32)->s32
 alias ClosureNullary = func||()->s32

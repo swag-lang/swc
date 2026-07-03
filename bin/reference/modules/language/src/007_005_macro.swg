@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Introduction to Swag Macros
 Macros in Swag are declared like functions, but with the '#[Swag.Macro]' attribute.

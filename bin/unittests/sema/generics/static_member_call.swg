@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct(T) Vector3
 {

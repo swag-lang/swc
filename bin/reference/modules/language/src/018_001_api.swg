@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Documentation Generation in Swag
 

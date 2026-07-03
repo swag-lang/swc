@@ -34,7 +34,7 @@ What is the sum of all metadata entries?
 
 using Core
 
-moduleprivate var metadataTotal = 0
+internal var metadataTotal = 0
 
 func day8A()
 {

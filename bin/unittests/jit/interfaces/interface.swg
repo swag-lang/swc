@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 interface I1 { mtd toto(); }
 struct T {}

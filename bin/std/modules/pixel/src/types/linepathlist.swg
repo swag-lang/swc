@@ -28,7 +28,7 @@ impl LinePathList
     #[Swag.Inline]
     mtd count() => .paths.count
 
-    // Remove all fileprivate line paths
+    // Remove all private line paths
     mtd clear()
     {
         foreach p in .paths do

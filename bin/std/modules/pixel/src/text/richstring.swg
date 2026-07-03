@@ -57,7 +57,7 @@ impl RichString
     }
 
     #[Swag.Mixin]
-    fileprivate mtd addChunk(idx: u64, space, eol, url: bool = false)
+    private mtd addChunk(idx: u64, space, eol, url: bool = false)
     {
         if idx - startChunk == 0 do
             return

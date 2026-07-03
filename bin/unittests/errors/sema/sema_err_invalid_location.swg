@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // '#location' requires a symbol reference, not an expression or literal.
 #test

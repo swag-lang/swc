@@ -31,7 +31,7 @@ namespace
         }
     };
 
-    constexpr std::string_view GENERIC_UNION_DEDUCTION_SOURCE = R"(#global fileprivate
+    constexpr std::string_view GENERIC_UNION_DEDUCTION_SOURCE = R"(#global private
 
 union(T) ValueOrPtr
 {

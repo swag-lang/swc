@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Introduction to 'while' Loops
 

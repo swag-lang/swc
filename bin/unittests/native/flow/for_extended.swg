@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // For with 0 iterations
 #test

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct Single1 {x: s32}
 struct Single2 {x: f32}

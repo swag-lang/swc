@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func assertStringSetHas(values: const &HashSet'String, expected: string)->bool

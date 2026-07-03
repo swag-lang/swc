@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const A = "hello world"
 #assert(A[0] == 'h')

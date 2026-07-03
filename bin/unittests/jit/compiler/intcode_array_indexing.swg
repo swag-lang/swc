@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) swapValues(a, b: *T)
 {
@@ -40,7 +40,7 @@ func nextPermutation5(values: &[5] s32)->bool
     return true
 }
 
-moduleprivate func(N: s32) runIntcodeProgram(prg: [N] s32, input: const [2] s32)->s32
+internal func(N: s32) runIntcodeProgram(prg: [N] s32, input: const [2] s32)->s32
 {
     var op = prg
     var ip, output, inputIndex = 0

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 
 // Operator & punctuation lexing coverage

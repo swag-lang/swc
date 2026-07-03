@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Character literals hold exactly one character: raw chars, escapes, or both.
 'ab'           // swc-expected-error {{lex_err_too_many_char_char}}

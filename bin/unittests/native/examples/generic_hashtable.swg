@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a generic hash table with open addressing and injected
 // hash/equality callbacks so the storage stays reusable across key types.

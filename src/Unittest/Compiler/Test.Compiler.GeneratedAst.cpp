@@ -128,7 +128,7 @@ namespace
 
     Result runLifecycleInitWrapperStressCompile(const TaskContext& ctx, uint32_t seed)
     {
-        static constexpr std::string_view SOURCE = R"(#global fileprivate
+        static constexpr std::string_view SOURCE = R"(#global private
 struct(T) Wrapper
 {
     value: T
@@ -200,7 +200,7 @@ func touch()
 
     Result runGeneratedSpecOpStressCompile(const TaskContext& ctx, uint32_t seed)
     {
-        static constexpr std::string_view SOURCE = R"(#global fileprivate
+        static constexpr std::string_view SOURCE = R"(#global private
 using Swag
 
 struct Tracked
@@ -327,7 +327,7 @@ func touch()
 
 SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 #ast "const GeneratedA = 1"
 #ast
 {
@@ -537,7 +537,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_LifecycleInitWrapperStaysOutOfGeneratedThreadFiles)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 struct GeneratedInitNoise
 {
     value: s32
@@ -611,7 +611,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_GeneratedSpecOpsStayOutOfGeneratedThreadFiles)
 {
-    static constexpr std::string_view SOURCE = R"(#global fileprivate
+    static constexpr std::string_view SOURCE = R"(#global private
 using Swag
 
 struct Tracked
@@ -733,7 +733,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 #ast "const BrokenValue: UnknownType"
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "GeneratedAstDiagnosticsUseMaterializedSourceFile");

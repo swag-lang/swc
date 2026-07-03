@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert((A))
 #assert((A and B))

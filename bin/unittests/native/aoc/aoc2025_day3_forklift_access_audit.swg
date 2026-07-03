@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: audit which paper rolls in a warehouse print area can be
 // picked by a forklift without squeezing into dense clusters.

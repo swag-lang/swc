@@ -70,7 +70,7 @@ impl Properties
     }
 }
 
-moduleprivate impl Properties
+internal impl Properties
 {
     // List-only geometry: in list mode sizeEditValue is the complete useful row width
     // (selection/hot/hit-test). Content and wrapping are inset from that row by the

@@ -90,7 +90,7 @@ You need to get the guard stuck in a loop by adding a single new obstruction. Ho
 
 using Core
 
-moduleprivate var w, h: s32
+internal var w, h: s32
 
 func day6B()
 {

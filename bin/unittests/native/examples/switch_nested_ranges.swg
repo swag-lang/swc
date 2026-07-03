@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: route SaaS support tickets with nested switches on plan,
 // priority, product area, subject tags, and impact ranges.

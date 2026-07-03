@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Closure created in a loop captures by value correctly
 #test

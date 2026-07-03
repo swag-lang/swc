@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Statement Termination in Swag
 

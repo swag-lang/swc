@@ -1,11 +1,11 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global #if WINDOWS
-#global fileprivate
+#global private
 using Win32
 
-fileprivate const WaitManyThreadCount       = cast(u64) MAXIMUM_WAIT_OBJECTS + 1'u64
-fileprivate const WaitManyExpectedDoneCount = cast(s32) WaitManyThreadCount
-fileprivate const WaitManyDelayedSleepMs    = 1000'u32
+private const WaitManyThreadCount       = cast(u64) MAXIMUM_WAIT_OBJECTS + 1'u64
+private const WaitManyExpectedDoneCount = cast(s32) WaitManyThreadCount
+private const WaitManyDelayedSleepMs    = 1000'u32
 
 struct WaitManyPayload
 {

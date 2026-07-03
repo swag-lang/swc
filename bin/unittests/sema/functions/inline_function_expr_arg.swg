@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias InlineFunctionExprUnary = func||(s32)->s32
 

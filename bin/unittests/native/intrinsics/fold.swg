@@ -1,4 +1,4 @@
-#global fileprivate //
+#global private //
 
 // ============================================================
 // Compile-time constant folding — f32 inputs

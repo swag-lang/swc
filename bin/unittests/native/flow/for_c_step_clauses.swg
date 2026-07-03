@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 #test
 {

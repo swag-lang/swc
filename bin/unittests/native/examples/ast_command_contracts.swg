@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: compile ordinary service handlers into a typed command
 // layer. One #ast pass generates named request records, validators, redactors,

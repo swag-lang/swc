@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct A { R, G, B: s32 }
 #assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)

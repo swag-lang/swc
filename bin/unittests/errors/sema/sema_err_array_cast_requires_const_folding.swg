@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func TakeArrayU32(v: [2] u32) {}
 

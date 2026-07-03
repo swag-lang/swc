@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A named argument that does not match any parameter name is rejected.
 func Sum3(a: s32, b: s32, c: s32)->s32

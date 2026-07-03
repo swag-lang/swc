@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 7: determine which calibration equations can be
 // satisfied by inserting operators, using heap-allocated equation storage

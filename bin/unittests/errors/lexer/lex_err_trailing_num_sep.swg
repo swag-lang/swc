@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A trailing '_' is rejected in every part of every numeric literal.
 0b0_           // swc-expected-error {{lex_err_trailing_num_sep}}

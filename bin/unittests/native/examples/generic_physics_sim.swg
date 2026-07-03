@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A small 2D physics simulation toolkit built entirely on generic structs.
 // Demonstrates heavy use of generic argument deduction: inside impl blocks,

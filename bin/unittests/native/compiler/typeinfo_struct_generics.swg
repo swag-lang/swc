@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 struct(T, N: s32) GenericBuffer

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var gVariadicAnyTotal: u64
 var gVariadicTypedTotal: u64

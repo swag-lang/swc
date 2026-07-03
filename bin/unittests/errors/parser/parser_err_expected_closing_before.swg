@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A delimiter left unclosed before an unrelated token points at the unexpected token.
 func bad1()

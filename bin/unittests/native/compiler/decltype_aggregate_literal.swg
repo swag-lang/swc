@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var wide: #decltype([1, 5_000_000_000]) = [1, 5_000_000_000]
 

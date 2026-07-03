@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) echo(value: T)->T => value
 func(T) doubleLeftLiteral(value: T) => 2 * value

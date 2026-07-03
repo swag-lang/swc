@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 
 func pushContextRestoresAfterContinue()->bool
 {

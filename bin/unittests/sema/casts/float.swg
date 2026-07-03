@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func takes_f32(v: f32) {}
 func takes_f64(v: f64) {}

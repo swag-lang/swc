@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var InlineForeachMoveDropCount: u32 = 0
 var InlineForeachMoveDropTrace: s64 = 0

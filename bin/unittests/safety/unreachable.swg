@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Safety(.Unreachable, false)]
 func unreachableSafetyDisabled()->bool

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A named argument cannot be specified more than once in the same call.
 func Sum3(a: s32, b: s32, c: s32)->s32

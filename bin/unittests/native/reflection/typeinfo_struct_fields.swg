@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Runtime struct field iteration: walk fields by index, check name/type/offset.
 

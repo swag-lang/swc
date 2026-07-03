@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Empty '[]' in a type position requires an explicit specifier ('*', '..', '?') or a dimension.
 enum A: [] s32 { Z }                     // swc-expected-error {{parser_err_expected_array_dim}}

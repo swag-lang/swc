@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Expressions
 var c = @countof("foo")

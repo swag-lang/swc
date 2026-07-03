@@ -228,7 +228,7 @@ impl IWnd for ComboBox
     }
 }
 
-fileprivate impl ComboBox
+private impl ComboBox
 {
     // Move the selection by 'dir' (+1/-1), skipping separators and clamping at the
     // ends (no wrap-around, matching native combo boxes).

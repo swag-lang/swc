@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 
 attr TypeMeta(label: string, priority: s32 = 0)
 attr FieldMeta(fieldAlias: string, rank: s32 = 0)

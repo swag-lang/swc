@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var WIDE_ARRAY_SIZE = #sizeof([1, 5_000_000_000])
 var WIDE_ARRAY_ALIGN = #alignof([1, 5_000_000_000])

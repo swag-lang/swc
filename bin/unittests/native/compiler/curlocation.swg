@@ -1,5 +1,5 @@
 // Migrated from the former native/legit suite (_compiler3279.swg).
-#global fileprivate
+#global private
 using Swag
 
 func legitCurLocationEntry()

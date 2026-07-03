@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.EnumFlags]
 enum DD: f32 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_type}}

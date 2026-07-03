@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // Generic 3-component vector with +, -, ~ unary ops

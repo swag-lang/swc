@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const Latin = #runes("hello")
 const Mixed = #runes("hé😀")

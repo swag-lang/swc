@@ -19,7 +19,7 @@ What is the value of the root node?
 
 using Core
 
-moduleprivate var rootNodeTotal = 0
+internal var rootNodeTotal = 0
 
 //#[Swag.Sanity(false)]
 //#[Swag.PrintGenBc]

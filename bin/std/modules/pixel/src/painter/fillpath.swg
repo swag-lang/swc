@@ -15,7 +15,7 @@ public impl Painter
     // centered band there leaves the hard solid edge exposed at full coverage, which
     // survives intact when alpha is later extracted via the MAX pass of a paintAlpha
     // render target — producing visibly aliased text.
-    fileprivate mtd fillContourAA(polygon: *Polygon, color: Color, innerOff: f32, outerOff: f32)
+    private mtd fillContourAA(polygon: *Polygon, color: Color, innerOff: f32, outerOff: f32)
     {
         let count = polygon.points.count - 1
         if count < 2 do
@@ -33,7 +33,7 @@ public impl Painter
         }
     }
 
-    fileprivate mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
+    private mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
     {
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()

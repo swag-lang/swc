@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const DegreesToRadians: f32 = 0.017453292519943295
 

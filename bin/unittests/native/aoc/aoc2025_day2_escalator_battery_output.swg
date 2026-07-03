@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: choose two batteries from each emergency bank to maximize
 // the joltage that can be delivered to an escalator control panel.

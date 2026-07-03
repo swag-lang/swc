@@ -1,6 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global #if WINDOWS
-#global fileprivate
+#global private
 using Swag
 
 func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)

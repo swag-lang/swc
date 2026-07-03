@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Strict]
 alias AtomicStrictS32 = s32

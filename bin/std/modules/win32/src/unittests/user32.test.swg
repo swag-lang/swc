@@ -1,8 +1,8 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
-fileprivate func makeWheelWParam(delta: u32)->u64
+private func makeWheelWParam(delta: u32)->u64
 {
     return cast(u64) delta << 16
 }

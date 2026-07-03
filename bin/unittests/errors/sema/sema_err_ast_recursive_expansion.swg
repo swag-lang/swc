@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Compiler]
 func recursiveAst()->string

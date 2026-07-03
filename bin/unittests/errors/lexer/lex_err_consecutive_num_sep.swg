@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Consecutive '_' separators are forbidden in every numeric-literal shape.
 // The fraction/exponent variants need a digit before the run so the leading-sep check does not pre-empt us.

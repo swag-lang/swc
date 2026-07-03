@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a generic 3D vector with overloaded unary and binary operators.
 

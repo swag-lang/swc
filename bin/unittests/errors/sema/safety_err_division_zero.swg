@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const DivZero0 = 1 / 0                   // swc-expected-error {{safety_err_division_zero}}
 const DivZeroS8 = 1's8 / 0               // swc-expected-error {{safety_err_division_zero}}

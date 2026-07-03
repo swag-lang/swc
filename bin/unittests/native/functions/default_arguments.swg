@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 var defaultCounter: s32 = 0
 

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 enum A { R, G, B }
 #assert(@countof(A) == 3)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var DropCount: u32 = 0
 var DropTrace: s64 = 0

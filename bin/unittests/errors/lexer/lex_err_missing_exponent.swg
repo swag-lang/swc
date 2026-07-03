@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // The exponent marker must be followed by digits, optionally preceded by a sign.
 1e             // swc-expected-error {{lex_err_missing_exponent}}

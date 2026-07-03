@@ -59,7 +59,7 @@ struct EditBox
     sigEscapePressed:     SigArray'func||(*EditBox)                // Emitted when Escape is pressed
     sigCheckContent:      func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
 
-    moduleprivate
+    internal
     {
         originalText: String // Text captured when focus was gained
 
@@ -357,7 +357,7 @@ impl IWnd for EditBox
     }
 }
 
-fileprivate impl EditBox
+private impl EditBox
 {
     // Keeps the optional clear button in sync with the current flags and text.
     mtd syncClearButton()
@@ -949,7 +949,7 @@ fileprivate impl EditBox
     }
 }
 
-moduleprivate impl EditBox
+internal impl EditBox
 {
     // Recomputes the horizontal scroll offset so the caret stays inside the visible
     // edit rectangle. Driven by onPaintEvent (it mirrors the exact clientRect paint

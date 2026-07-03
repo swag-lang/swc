@@ -34,7 +34,7 @@ impl BitArray
         Memory.free(.buffer, .capacity, .allocator)
     }
 
-    // Reallocates the fileprivate buffer to a new capacity.
+    // Reallocates the private buffer to a new capacity.
     // This is a low-level memory operation.
     mtd realloc(newCapacity: u64)
     {

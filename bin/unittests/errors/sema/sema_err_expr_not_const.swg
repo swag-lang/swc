@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func pureAdd(a: s32, b: s32)->s32
 {

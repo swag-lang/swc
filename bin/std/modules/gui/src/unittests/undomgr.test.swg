@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag, Core
 
 // A trivial command that adds/subtracts a delta from a shared counter, to exercise the

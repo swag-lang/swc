@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // opIndex: mutation through returned reference

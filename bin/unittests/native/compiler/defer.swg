@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var DeferTrace: s64 = 0
 var MacroState: s32 = 0

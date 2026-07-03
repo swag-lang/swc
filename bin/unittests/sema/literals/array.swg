@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const A: [5] s32 = [1's32, 2, 3, 4, 5]
 #assert(#typeof(A) == #type [5] s32)
@@ -83,7 +83,7 @@ const SemaLitArr4 = [[0'u16, 31], [59, 90]]
 #assert(SemaLitArr4[0][1] == 31'u16)
 #assert(SemaLitArr4[1][1] == 90'u16)
 
-fileprivate
+private
 {
     const HexFill = 0xF0
 }

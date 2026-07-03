@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: build a SaaS team subscription quote with a discount closure
 // and a plain lambda for optional priority support pricing.

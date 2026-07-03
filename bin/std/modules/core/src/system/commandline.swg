@@ -62,13 +62,13 @@ func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
     return true
 }
 
-fileprivate struct SplitArgument
+private struct SplitArgument
 {
     value:         string
     attachedValue: bool
 }
 
-fileprivate func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
+private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
 {
     var allArgs: retval
 

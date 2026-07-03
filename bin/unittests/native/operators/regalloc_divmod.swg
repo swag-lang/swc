@@ -1,4 +1,4 @@
-#global fileprivate //
+#global private //
 
 // Stress tests for division / modulo / multiply register allocation in the
 // native backend.

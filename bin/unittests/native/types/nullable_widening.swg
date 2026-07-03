@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func widenNullablePointer(value: *s32)->#null *s32 => value
 func widenNullableString(value: string)->#null string => value

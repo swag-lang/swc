@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 21: control a chain of robots pressing keypads.
 // Part 1: 2 directional robots between you and the numeric keypad.

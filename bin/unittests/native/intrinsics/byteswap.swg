@@ -1,4 +1,4 @@
-#global fileprivate //
+#global private //
 
 #[Swag.Strict]
 alias ByteSwapStrictU32 = u32

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.ConstExpr]
 func constMul(a: s32, b: s32)->s32

@@ -9,5 +9,5 @@ namespace DepTools
     const DEP_NAMESPACE_B = 37
 }
 
-fileprivate const DEP_FILE_PRIVATE = 23
-moduleprivate const DEP_MODULE_PRIVATE = 29
+private const DEP_PRIVATE = 23
+internal const DEP_INTERNAL = 29

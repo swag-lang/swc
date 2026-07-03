@@ -341,7 +341,7 @@ impl Wnd
             .parent.applyLayout()
     }
 
-    fileprivate mtd firstTopMostIndex()->u64
+    private mtd firstTopMostIndex()->u64
     {
         foreach c, i in .childs
         {
@@ -708,7 +708,7 @@ impl Wnd
         .dumpLayoutTreeNode(0)
     }
 
-    fileprivate mtd dumpLayoutTreeNode(depth: u32)
+    private mtd dumpLayoutTreeNode(depth: u32)
     {
         for depth do
             Console.print("  ")
@@ -940,7 +940,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    fileprivate mtd clampSize(pos: *Math.Rectangle)
+    private mtd clampSize(pos: *Math.Rectangle)
     {
         if .minSize.x > 0 do
             pos.width = Math.max(pos.width, .minSize.x)
@@ -1538,7 +1538,7 @@ impl Wnd
         .actions.add(itfAct)
     }
 
-    fileprivate mtd updateAction(evt: *CommandStateEvent)->bool
+    private mtd updateAction(evt: *CommandStateEvent)->bool
     {
         var cxt: ActionContext
         cxt.wnd = me
@@ -1557,7 +1557,7 @@ impl Wnd
         return false
     }
 
-    fileprivate mtd executeAction(evt: *CommandEvent)->bool
+    private mtd executeAction(evt: *CommandEvent)->bool
     {
         var cxt: ActionContext
         cxt.wnd = me

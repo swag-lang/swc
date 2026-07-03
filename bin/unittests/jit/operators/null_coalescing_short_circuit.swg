@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var GNullCoercCounter: s32
 var GNullCoercValue:   s32 = 33

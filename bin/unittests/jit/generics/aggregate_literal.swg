@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T, N: s32) genericArrayIdentity(values: [N] T)->[N] T => values
 

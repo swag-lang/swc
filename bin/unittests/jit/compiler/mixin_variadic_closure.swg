@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Mixin]
 func mixinTypedVariadicClosure(values: s32...)->s32

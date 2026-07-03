@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Special operator functions (opDrop, opAssign, etc.) must live inside an 'impl' block.
 struct A

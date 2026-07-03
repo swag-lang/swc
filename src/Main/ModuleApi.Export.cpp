@@ -1704,7 +1704,7 @@ namespace
             result += ' ';
         result += "{";
         result += eol;
-        result += "    moduleprivate swagOpaqueStorage: [";
+        result += "    internal swagOpaqueStorage: [";
         result += std::format("{}", symbolStruct->sizeOf());
         result += "] u8";
         result += eol;

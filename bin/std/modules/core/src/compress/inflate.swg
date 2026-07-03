@@ -8,7 +8,7 @@
 #global namespace Compress
 using Core.Errors
 
-moduleprivate
+internal
 {
     const FastBits        = 9
     const FastMask        = (1 << FastBits) - 1

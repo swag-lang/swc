@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Grouped const declarations must not trip JIT codegen.
 #test

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: simulate a vertical optical splitter rack and count how
 // many times an incoming beam is divided while moving through the manifold.

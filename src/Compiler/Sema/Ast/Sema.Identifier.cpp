@@ -784,7 +784,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             // The type-name (`what`) of a typed struct literal `T{...}`. A cross-Ast inline clone
             // carries its already-resolved type here (the symbol can't survive the clone because a
             // node payload holds a type OR a symbol, not both); re-resolving the bare name `T` in
-            // the destination scope would fail when `T` is namespace/file-private to the callee
+            // the destination scope would fail when `T` is namespace-private to the callee
             // (e.g. Math.Rectangle.topLeft returning `Point{.x, .y}`). The carried type is enough
             // for the struct initializer, so do not look the name up again.
             if (const auto* structInit = parentNode.safeCast<AstStructInitializerList>();

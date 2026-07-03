@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: a generic dynamic array backed by @alloc, @free, @realloc.
 

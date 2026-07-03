@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Generic with control flow (if/else)
 func(T) clampPositive(value: T)->T

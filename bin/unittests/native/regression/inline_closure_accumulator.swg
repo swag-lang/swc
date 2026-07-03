@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func inlineClosureAccumulator(start: s32)->func||(s32)->s32

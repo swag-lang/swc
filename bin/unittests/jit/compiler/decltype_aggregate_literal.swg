@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var mixed: #decltype([1, 2.5]) = [1, 2.5]
 

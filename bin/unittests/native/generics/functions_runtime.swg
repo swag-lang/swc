@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(N: s32) constSquare()->s32 => N * N
 func(N: s32, M: s32) constSum()->s32 => N + M

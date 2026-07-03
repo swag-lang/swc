@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // An array literal must carry at least one element so its element type can be inferred.
 #test

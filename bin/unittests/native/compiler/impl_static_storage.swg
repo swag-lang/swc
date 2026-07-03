@@ -1,5 +1,5 @@
 // impl-scoped variables need standalone storage even when accessed from compiler functions.
-#global fileprivate
+#global private
 using Swag
 
 namespace compiler_impl_static_storage

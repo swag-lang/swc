@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Functional pipeline using closures: demonstrates capture semantics,
 // higher-order functions, and closure chaining on fixed-size arrays.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias ExactArrayParamNativeHistogram = [8] u16
 

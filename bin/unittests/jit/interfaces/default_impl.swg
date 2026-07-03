@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct Point2 {}
 struct Point3 {}

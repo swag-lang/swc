@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A 'let' binding must be initialized at declaration.
 #test

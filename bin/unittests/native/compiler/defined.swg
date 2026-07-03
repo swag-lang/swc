@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 const GlobalValue = 1
 
 namespace Scope

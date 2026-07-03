@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 18: bytes corrupt grid cells over time.
 // Part 1: BFS shortest path from (0,0) to (size-1,size-1) after N corruptions.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // In a flag enum, a non-power-of-two explicit value prevents deducing the next flag.
 #[Swag.EnumFlags]

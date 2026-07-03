@@ -32,10 +32,10 @@ Of course, the actual engine schematic is much larger. What is the sum of all of
 // Restored after the anonymous-struct equality promotion fix.
 using Core
 
-fileprivate var symbols: Array'{ x, y: s32 }
-fileprivate var nums: Array'{ num, x, lx, y: s32 }
+private var symbols: Array'{ x, y: s32 }
+private var nums: Array'{ num, x, lx, y: s32 }
 
-fileprivate func hasSymbol(x, y: s32)->bool
+private func hasSymbol(x, y: s32)->bool
 {
     return symbols.contains({x, y})
 }

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var gReturnVoidCallValue: s32 = 0
 

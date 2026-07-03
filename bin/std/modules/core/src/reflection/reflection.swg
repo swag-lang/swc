@@ -129,25 +129,25 @@ using Swag
     }
 }
 
-fileprivate var g_HashCrcToType: HashTable'(u32, typeinfo)
-fileprivate var g_HashNameToType: HashTable'(string, typeinfo)
-fileprivate var g_HashLock: Sync.RWLock
+private var g_HashCrcToType: HashTable'(u32, typeinfo)
+private var g_HashNameToType: HashTable'(string, typeinfo)
+private var g_HashLock: Sync.RWLock
 
-fileprivate func typeValueCrc(val: Swag.TypeValue)->u32
+private func typeValueCrc(val: Swag.TypeValue)->u32
 {
     if val.crc do
         return val.crc
     return Hash.Crc32.compute(val.name)
 }
 
-fileprivate func addCrcToTypeAlias(crc: u32, type: typeinfo)
+private func addCrcToTypeAlias(crc: u32, type: typeinfo)
 {
     if !crc or g_HashCrcToType.contains(crc) do
         return
     g_HashCrcToType.add(crc, type)
 }
 
-fileprivate func registerTypeNoLock(type: typeinfo)->bool
+private func registerTypeNoLock(type: typeinfo)->bool
 {
     if type == null do
         return false
@@ -178,7 +178,7 @@ fileprivate func registerTypeNoLock(type: typeinfo)->bool
     return true
 }
 
-fileprivate func registerTypeGraphNoLock(type: typeinfo)
+private func registerTypeGraphNoLock(type: typeinfo)
 {
     if !registerTypeNoLock(type) do
         return

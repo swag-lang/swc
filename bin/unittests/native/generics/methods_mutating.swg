@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Mutable container with full mutation API
 struct(T) MutBox

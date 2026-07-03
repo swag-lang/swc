@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 alias SimplePingFn = func(const &SimpleMethodProbe)->s32

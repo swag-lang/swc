@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # 'Namespaces in Swag'
 
@@ -47,25 +47,25 @@ namespace A.B.C
 Symbols from a namespace are accessed through their qualified name.
 */
 
-namespace Private
+namespace QualifiedExample
 {
-    const FileSymbol = 0 // Constant defined within namespace 'Private'
+    const Symbol = 0 // Constant defined within namespace 'QualifiedExample'
 }
 
-const B = Private.FileSymbol     // Access via fully qualified name
+const B = QualifiedExample.Symbol // Access via fully qualified name
 
 /**
-# 'Private' Scopes
+# 'Internal' Scopes
 
-In addition to named namespaces, Swag provides 'moduleprivate' scopes. A moduleprivate
+In addition to named namespaces, Swag provides 'internal' scopes. An internal
 scope creates a unique, unnamed namespace restricted to the current file.
 Symbols defined in such a scope are inaccessible outside it, making this
-useful for isolating fileprivate details.
+useful for isolating private details.
 */
 
-moduleprivate
+internal
 {
-    const OtherSymbol = 0 // Constant defined in a file-local moduleprivate scope
+    const OtherSymbol = 0 // Constant defined in an internal scope
 }
 
 const D = OtherSymbol // Accessible within this file only
@@ -74,6 +74,6 @@ const D = OtherSymbol // Accessible within this file only
 # 'Exporting Symbols'
 
 By default, all symbols in a Swag file are exported to other files within
-the same module. Using explicit namespaces or moduleprivate scopes provides
+the same module. Using explicit namespaces or internal scopes provides
 protection against accidental symbol conflicts across files.
 */

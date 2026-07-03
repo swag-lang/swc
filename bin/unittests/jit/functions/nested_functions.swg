@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias NestedUnary = func(s32)->s32
 

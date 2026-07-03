@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A single-line string cannot cross a line boundary; each unterminated line is flagged.
 // swc-expected-error@+ {{lex_err_string_eol}}

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T, U) freeAccepts(first: T, second: U)->bool
 {

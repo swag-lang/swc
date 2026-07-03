@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Letters and decimal digits 2-9 are both rejected after a binary literal.
 0b01G          // swc-expected-error {{lex_err_invalid_bin_digit}}

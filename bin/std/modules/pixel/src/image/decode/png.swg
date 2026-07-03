@@ -8,7 +8,7 @@
 #global namespace Png
 using Swag, Core, Core.Errors
 
-fileprivate
+private
 {
     enum ChunkType: u32
     {

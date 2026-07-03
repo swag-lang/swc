@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 14: robots on a toroidal grid move with constant
 // velocity. Part 1: multiply quadrant populations after 100 steps.

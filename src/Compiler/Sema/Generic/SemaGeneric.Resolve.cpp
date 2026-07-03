@@ -117,10 +117,10 @@ namespace
         for (const SymbolMap* current = symMap; current; current = namespacePathOwner(current))
         {
             if (current->isModule())
-                return SymbolAccess::ModulePrivate;
+                return SymbolAccess::Internal;
         }
 
-        return SymbolAccess::FilePrivate;
+        return SymbolAccess::Private;
     }
 
     void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<SemaGeneric::GenericParamDesc>& outParams)

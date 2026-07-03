@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 9: compact a fragmented disk map by moving file
 // blocks into free gaps, then compute a position-weighted checksum.

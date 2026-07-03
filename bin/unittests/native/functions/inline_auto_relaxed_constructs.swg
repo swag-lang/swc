@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias RelaxedInlineS32 = s32
 

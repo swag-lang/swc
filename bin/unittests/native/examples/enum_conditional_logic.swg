@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: compute the summary of a small online order.
 

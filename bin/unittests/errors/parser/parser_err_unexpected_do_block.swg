@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // 'do' introduces a single statement; following it with '{ ... }' is an error in every control header.
 func bad1()

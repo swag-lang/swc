@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func Sum3(a: s32, b: s32, c: s32)->s32
 {

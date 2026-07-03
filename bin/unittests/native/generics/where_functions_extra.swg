@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias Real32 = f32
 

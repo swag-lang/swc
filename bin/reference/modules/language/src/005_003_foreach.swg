@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Introduction to 'foreach'
 The 'foreach' statement iterates over all elements of a collection (arrays, slices, strings, and even structs),

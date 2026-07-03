@@ -37,7 +37,7 @@ public impl Properties
     }
 }
 
-moduleprivate impl Properties
+internal impl Properties
 {
     // Navigation-mode key handling, driven by PropertiesView.onKeyEvent (the
     // edView owns the focus while navigating).
@@ -206,7 +206,7 @@ moduleprivate impl Properties
     }
 }
 
-fileprivate impl Properties
+private impl Properties
 {
     // True when the grid currently has a focused row editor.
     mtd isEditing()->bool

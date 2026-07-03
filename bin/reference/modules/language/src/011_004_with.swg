@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # 'with' Statement
 The 'with' statement reduces repetition by letting you access fields and methods

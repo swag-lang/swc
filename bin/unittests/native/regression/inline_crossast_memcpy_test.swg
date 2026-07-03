@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Cross-file (=> cross-Ast) inline of blockCopy/@memcpy from inside a METHOD that copies its own
 // member array, exactly like Hash.Sha1.final:

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var ExprEvalCount    = 0
 var StmtEvalCount    = 0

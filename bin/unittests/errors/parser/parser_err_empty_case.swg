@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A case or default section must contain at least one statement (or 'fallthrough').
 func bad1(a: s32)

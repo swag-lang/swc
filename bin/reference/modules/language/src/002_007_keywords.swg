@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Special Keywords
 
@@ -51,8 +51,8 @@ throw
 discard
 
 public
-fileprivate
-moduleprivate
+private
+internal
 
 enum
 struct
@@ -201,7 +201,7 @@ User-defined identifiers cannot start with '#', ensuring there are no naming con
 # Intrinsic Values
 
 Intrinsic values begin with '@' and are provided by the compiler for introspection
-or fileprivate state access.
+or private state access.
 
 ```swag
 @err

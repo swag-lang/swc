@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: inspect a CSV import preview before ingesting it.
 

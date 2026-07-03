@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const OverflowAddS8 = 127's8 + 1's8         // swc-expected-error {{safety_err_integer_overflow}}
 const OverflowAddU8 = 255'u8 + 1'u8         // swc-expected-error {{safety_err_integer_overflow}}

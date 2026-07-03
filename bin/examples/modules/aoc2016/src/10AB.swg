@@ -30,7 +30,7 @@ What: you get if you multiply together the values of one chip in each of outputs
 
 using Core
 
-moduleprivate struct Bot
+internal struct Bot
 {
     id:          s32
     count:       s32
@@ -39,12 +39,12 @@ moduleprivate struct Bot
     pending:     Array'String
 }
 
-moduleprivate var result = 0
-moduleprivate var bots: Array'Bot
-moduleprivate var r0: Parser.RegExp
-moduleprivate var r1: Parser.RegExp
+internal var result = 0
+internal var bots: Array'Bot
+internal var r0: Parser.RegExp
+internal var r1: Parser.RegExp
 
-moduleprivate impl Bot
+internal impl Bot
 {
     mtd add(v: s32)
     {
@@ -85,14 +85,14 @@ moduleprivate impl Bot
     }
 }
 
-moduleprivate func getBot(x: s32)->&Bot
+internal func getBot(x: s32)->&Bot
 {
     bots.growResize(x + 1)
     bots[x].id = x
     return bots.ref1(x)
 }
 
-moduleprivate func execute(lines: Array'String)
+internal func execute(lines: Array'String)
 {
     foreach l in lines
     {

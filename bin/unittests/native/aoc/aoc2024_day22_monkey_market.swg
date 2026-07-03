@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 22: pseudorandom secret number evolution.
 // Part 1: sum of 2000th secret numbers.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 const MarkerValue = 0
 
 func markerFunction()->s32

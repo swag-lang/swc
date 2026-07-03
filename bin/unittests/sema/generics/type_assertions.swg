@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // --- Basic generic type assertions ---
 

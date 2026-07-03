@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: compute the cheapest token spend for prize-booth machines
 // whose two button vectors must land exactly on a target position.

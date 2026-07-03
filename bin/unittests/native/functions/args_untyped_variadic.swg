@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func variadicAnyOnly(values: ...)->u64
 {

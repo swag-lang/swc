@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const A: s32 = 10
 #assert(#typeof(A) == s32)

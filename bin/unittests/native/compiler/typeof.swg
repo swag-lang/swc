@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 const TypedValue: s32 = 10
 
 #assert(#typeof(TypedValue) == s32)

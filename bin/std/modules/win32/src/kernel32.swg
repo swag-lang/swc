@@ -420,7 +420,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL;
 }
 
-moduleprivate namespace Win32Priv
+internal namespace Win32Priv
 {
     #[Foreign("kernel32")]
     {

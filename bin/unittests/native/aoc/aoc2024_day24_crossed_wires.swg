@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 24: Crossed Wires
 // Part 1: simulate logic gates (AND, OR, XOR), read z-wires as a binary number.

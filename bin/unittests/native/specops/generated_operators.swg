@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Operators(opEquals, opCompare)]
 struct GeneratedPair

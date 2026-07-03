@@ -175,7 +175,7 @@ public:
     SymbolFlags       flagsForCurrentAccess() const;
 
 private:
-    SymbolAccess                        access_                  = SymbolAccess::ModulePrivate;
+    SymbolAccess                        access_                  = SymbolAccess::Internal;
     bool                                globalCompilerIfEnabled_ = true;
     AttributeList                       attributes_;
     SmallVector8<IdentifierRef>         nsPath_;

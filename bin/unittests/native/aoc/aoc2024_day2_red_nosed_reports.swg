@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 2: keep one solver direct and data-oriented,
 // then cross-check it with a caller-scope macro/mixin flavored variant.

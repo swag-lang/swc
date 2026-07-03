@@ -1,5 +1,5 @@
 #global #if true // 
-#global fileprivate
+#global private
 #global namespace GIf
 
 func makeValue()->s32

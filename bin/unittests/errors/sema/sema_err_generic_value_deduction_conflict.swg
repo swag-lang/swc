@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(const N: s32) genericZip(lhs: [N] s32, rhs: [N] s32) {}
 

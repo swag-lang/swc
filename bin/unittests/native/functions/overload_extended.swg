@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Overload with different parameter counts (0, 1, 2)
 var gArityResult: s32 = 0

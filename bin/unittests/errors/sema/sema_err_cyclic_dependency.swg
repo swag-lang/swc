@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // swc-expected-error@(+1,+2,+3) {{sema_err_cyclic_dependency}}
 const first: s32 = second + 1

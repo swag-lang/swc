@@ -50,7 +50,7 @@ public struct Voice
     decodedBufferIdx:           u32
 }
 
-fileprivate impl Voice
+private impl Voice
 {
     mtd recycle()
     {

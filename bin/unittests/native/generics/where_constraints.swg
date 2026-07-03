@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct(T) Range
     where T == f32 or T == f64

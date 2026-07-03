@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) identity(value: T)->T => value
 func(T = s32) withDefault()->T => 42

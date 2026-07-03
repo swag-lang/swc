@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // Generic bool box with ! unary op

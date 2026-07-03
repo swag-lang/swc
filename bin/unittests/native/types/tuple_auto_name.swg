@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func readAutoNamedTupleThroughDecltype(seed: s32)->s32
 {

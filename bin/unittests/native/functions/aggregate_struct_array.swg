@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func aggregateStructArrayDigits(payloadIndex: u64) -> s32
 {

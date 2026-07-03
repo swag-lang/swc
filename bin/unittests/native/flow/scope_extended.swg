@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Break to scope from deeply nested loop
 #test

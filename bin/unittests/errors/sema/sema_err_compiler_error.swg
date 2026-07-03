@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func raiseCompilerError()->s32
 {

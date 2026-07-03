@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Custom Assignment Behavior with 'opSet'
 

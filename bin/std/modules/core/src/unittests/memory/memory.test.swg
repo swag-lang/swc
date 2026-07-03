@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func assertBytesEqual(lhs, rhs: const [..] u8)->bool

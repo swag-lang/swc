@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Taking the address of a constant expression is not allowed; only lvalues are addressable.
 #test

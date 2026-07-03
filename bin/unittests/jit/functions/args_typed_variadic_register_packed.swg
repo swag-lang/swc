@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Pack(1)]
 struct Packed3

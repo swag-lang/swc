@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 func inlineArrayLiteralDigits(values: [4] s32) -> s32

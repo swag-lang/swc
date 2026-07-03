@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct(T, N: s32) Buffer
 {

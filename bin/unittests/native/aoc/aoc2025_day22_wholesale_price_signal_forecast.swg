@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: forecast wholesale price signals by evolving a set of
 // obscured vendor seeds and identifying the most profitable repeated pattern.

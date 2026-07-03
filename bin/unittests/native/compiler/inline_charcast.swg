@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A `character`/`bool` literal argument is a coercible constant: a real call coerces it to the
 // parameter type. When the callee is inlined, the binding must adopt the parameter type too,

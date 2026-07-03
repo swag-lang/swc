@@ -6,7 +6,7 @@ using Core, Pixel
 // action system (IActionUI) via ActionProperties (actionproperties.swg). Custom items contributed
 // by IPropertyNotify.fillPopupMenu are dispatched back through Properties.onCommandEvent (in
 // properties.swg) -> onPopupCommand.
-moduleprivate impl Properties
+internal impl Properties
 {
     // Resolve, for the current context-menu row (.menuItem), the enclosing array item and the
     // clicked element row (either may be null). Right-clicking an element's field still targets

@@ -51,9 +51,9 @@ func day3A()
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
-moduleprivate const S = 20000
-moduleprivate var grid: [S, S] bool
-moduleprivate var total = Swag.S32.Max
+internal const S = 20000
+internal var grid: [S, S] bool
+internal var total = Swag.S32.Max
 func day3A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")

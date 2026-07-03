@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 #test // 
 {
     let ok = 10

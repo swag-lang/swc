@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: nested generic structs with operator overloads.
 // A 2D geometry toolkit where higher-level types compose lower-level ones

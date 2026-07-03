@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.NoInline]
 func maybeText(flag: bool)->#null string

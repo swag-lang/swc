@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // opAssign: subtraction and division operators

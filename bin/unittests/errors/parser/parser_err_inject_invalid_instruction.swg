@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Only 'break' and 'continue' can be replaced in '#inject'; anything else is invalid.
 func bad1()

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Casting a negative value to an unsigned type is rejected for every unsigned width.
 #assert(-10'u32 == -10)                  // swc-expected-error {{sema_err_signed_unsigned}}

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.EnumFlags]
 enum TestFlags: u32

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Every enum must declare at least one value, regardless of its underlying type.
 enum A: u8 {}                    // swc-expected-error {{sema_err_empty_enum}}

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Macro]
 func badInject(expr: #code s32)

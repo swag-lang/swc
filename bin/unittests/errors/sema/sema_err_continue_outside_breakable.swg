@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // 'continue' is only valid inside a loop or scope.
 #test

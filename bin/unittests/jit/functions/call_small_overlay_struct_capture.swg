@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 struct OverlayColor

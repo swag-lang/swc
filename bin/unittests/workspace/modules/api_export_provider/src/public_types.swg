@@ -51,7 +51,7 @@ struct DepPublicWithPrivateField
 {
     publicValue: s32
 
-    moduleprivate
+    internal
     {
         hiddenValue: s32
     }
@@ -61,7 +61,7 @@ struct DepPublicWithPrivateInlineUnion
 {
     publicValue: s32
 
-    moduleprivate
+    internal
     {
         using bounds: union
         {
@@ -97,7 +97,7 @@ struct DepOpaque
 #[Swag.Opaque]
 struct DepOpaqueGenericBox
 {
-    moduleprivate seed: s32
+    internal seed: s32
 }
 
 impl DepOpaqueGenericBox

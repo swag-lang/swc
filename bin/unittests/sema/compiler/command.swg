@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 #global #if #command == Swag.CompilerCommand.Test
 
 #assert(#typeof(#command) == Swag.CompilerCommand)

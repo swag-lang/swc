@@ -58,7 +58,7 @@ impl Painter
     // antialiasing fringe. The caller must guarantee the rect is already rounded
     // and the current transform is a pure translation, so the edges land on pixel
     // boundaries and need no fringe.
-    fileprivate mtd fillRectRaw(l, t, w, h: f32, brush: Brush)
+    private mtd fillRectRaw(l, t, w, h: f32, brush: Brush)
     {
         .setTexture0({l, t}, {l + w, t + h}, brush)
         .resetTextureFont()

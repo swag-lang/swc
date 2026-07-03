@@ -642,7 +642,7 @@ namespace
     void appendGeneratedInitWrapper(Utf8& source)
     {
         source += "    #[Implicit]\n";
-        source += "    fileprivate mtd ";
+        source += "    private mtd ";
         source += SemaSpecOp::generatedInitWrapperName();
         source += "()\n";
         source += "    {\n";
@@ -656,7 +656,7 @@ namespace
         SWC_ASSERT(!wrapperName.empty());
 
         source += "    #[Implicit]\n";
-        source += "    fileprivate mtd ";
+        source += "    private mtd ";
         source += wrapperName;
         source += "()\n";
         source += "    {\n";

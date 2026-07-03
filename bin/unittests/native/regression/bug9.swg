@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 enum InlineBug9Content: u8
 {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var A: [?] s32
 #assert(#nameof(#typeof(A)) == "[?] s32")

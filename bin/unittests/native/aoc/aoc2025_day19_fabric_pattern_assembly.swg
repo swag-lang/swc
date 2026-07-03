@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: count how many requested fabric badges can be assembled
 // from a fixed set of stripe patterns and sum all possible assemblies.

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: count how many valid control-signal routes can move through
 // a reactor rack and measure how deep the longest route becomes.

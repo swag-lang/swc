@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Predefined Attributes
 This is the list of predefined attributes.

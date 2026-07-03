@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Switch with negative values
 #test

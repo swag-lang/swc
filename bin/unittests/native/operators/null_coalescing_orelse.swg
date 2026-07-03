@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var GNullOrelse: s32 = 56
 

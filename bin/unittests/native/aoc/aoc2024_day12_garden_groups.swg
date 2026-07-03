@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 12: flood-fill garden regions, compute fencing.
 // Part 1: total cost = area × perimeter.  Part 2: area × number of sides.

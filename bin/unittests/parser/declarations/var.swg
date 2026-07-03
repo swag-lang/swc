@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 var a: s32
 var a, b: *s32

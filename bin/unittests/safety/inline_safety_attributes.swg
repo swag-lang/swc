@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline, Swag.Safety(.BoundCheck, true)]
 func inlineSafetyBoundCheckEnabled()->bool

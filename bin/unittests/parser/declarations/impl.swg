@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 impl A for B { }
 impl A.B for B { }

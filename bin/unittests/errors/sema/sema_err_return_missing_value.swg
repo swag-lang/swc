@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func test3() -> s32
 {

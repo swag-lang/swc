@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Regression: equality of aggregate (struct/array) operands wider than a machine
 // register must compare the FULL value, not just the first machine word.

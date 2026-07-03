@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2022 - Day 3: Rucksack Reorganization
 //

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Declaring a name that shadows a function parameter is flagged.
 func shadowed1(value: s32)

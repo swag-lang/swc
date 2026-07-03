@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 enum OverA { A, B }
 enum OverB { A, B }

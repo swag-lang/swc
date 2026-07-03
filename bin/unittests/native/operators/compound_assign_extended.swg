@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Compound assignment on array elements
 #test

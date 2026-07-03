@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 struct MyStruct
 {
     x: s32 = 10

@@ -97,7 +97,7 @@ What is the lowest location number that corresponds to any of the initial seed n
 
 using Core
 
-fileprivate enum Mode
+private enum Mode
 {
     ToSoil
     ToFertilizer
@@ -109,14 +109,14 @@ fileprivate enum Mode
     Invalid
 }
 
-fileprivate struct Range
+private struct Range
 {
     src, dst:     u64
     range:        u64
 }
 
-fileprivate var seeds: Array'u64
-fileprivate var convert: [7] Array'Range
+private var seeds: Array'u64
+private var convert: [7] Array'Range
 
 func day5A()
 {

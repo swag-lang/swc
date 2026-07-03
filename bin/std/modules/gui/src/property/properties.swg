@@ -196,9 +196,9 @@ impl IWnd for Properties
     }
 }
 
-// Internal helpers shared across the control's files. Moduleprivate so the sibling concern files
-// (and the value editors) can call them, but not part of the public API.
-moduleprivate impl Properties
+// Internal helpers shared across the control's files. Sibling concern files and
+// value editors can call them, but they are not part of the public API.
+internal impl Properties
 {
     mtd getItemState(item: *PropertiesItem)->{ visible, enable: bool }
     {

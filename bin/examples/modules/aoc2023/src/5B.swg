@@ -16,7 +16,7 @@ Consider all of the initial seed numbers listed in the ranges on the first line 
 
 using Core
 
-fileprivate enum Mode
+private enum Mode
 {
     ToSoil
     ToFertilizer
@@ -28,19 +28,19 @@ fileprivate enum Mode
     Invalid
 }
 
-fileprivate struct Range
+private struct Range
 {
     src, srcE:     u64
     dst:           u64
 }
 
-fileprivate struct SeedRange
+private struct SeedRange
 {
     start, end:    u64
 }
 
-fileprivate var seeds: Array'u64
-fileprivate var convert: [7] Array'Range
+private var seeds: Array'u64
+private var convert: [7] Array'Range
 
 func day5B()
 {

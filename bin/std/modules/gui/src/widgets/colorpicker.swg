@@ -35,7 +35,7 @@ struct ColorPicker
     mode               = ColorPickerMode.SaturationLightness
     sigChanged:        SigArray'func||(*ColorPicker)
 
-    moduleprivate
+    internal
     {
         dirty:          bool = true
         isMoving:       bool
@@ -265,13 +265,13 @@ impl IWnd for ColorPicker
         theme.drawSubRect(painter, clientRect, &rects.colorPicker_Border, colors.colorPicker_Border)
     }
 
-    fileprivate mtd computeRGB()
+    private mtd computeRGB()
     {
         let c = Color.fromHsl(.hue, .sat, .lum)
         (.r, .g, .b) = c.toRgbf()
     }
 
-    fileprivate mtd computeHsl()
+    private mtd computeHsl()
     {
         let c = Color.fromRgbf(.r, .g, .b)
         (.hue, .sat, .lum) = c.toHsl()

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Intrinsics reject too-many-arguments calls.
 var v1 = @countof(1, 2)                          // swc-expected-error {{parser_err_too_many_arguments}}

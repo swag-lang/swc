@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Any literal followed by a lone "'" is an empty suffix.
 enum A { B = 1' }                      // swc-expected-error {{parser_err_empty_literal_suffix}}

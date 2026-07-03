@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func mixedNumericArraySum() -> f64
 {

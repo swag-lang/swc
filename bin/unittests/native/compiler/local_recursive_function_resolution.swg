@@ -1,4 +1,4 @@
-#global moduleprivate
+#global internal
 
 func appendDigits(lhs, rhs: u64)->u64
 {

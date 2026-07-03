@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 alias UnaryFn = func(s32)->s32
 

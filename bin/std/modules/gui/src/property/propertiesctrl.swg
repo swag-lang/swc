@@ -88,7 +88,7 @@ impl PropertiesCtrl
         return ed
     }
 
-    fileprivate mtd fillSections()
+    private mtd fillSections()
     {
         .list.clear()
 

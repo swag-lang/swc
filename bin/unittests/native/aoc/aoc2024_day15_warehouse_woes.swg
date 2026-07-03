@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 15: a robot pushes boxes around a warehouse grid
 // following a move sequence (^v<>). Compute the sum of GPS coordinates

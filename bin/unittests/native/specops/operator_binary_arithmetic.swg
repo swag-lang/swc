@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // Generic struct(T) with func(op: string) opBinary -- arithmetic ops

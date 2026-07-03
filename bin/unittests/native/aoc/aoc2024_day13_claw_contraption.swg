@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2024 Day 13: find minimum token cost to reach prizes by
 // pressing two claw-machine buttons (A costs 3, B costs 1). Each button

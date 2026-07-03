@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: simulate a warehouse robot that pushes chains of narrow
 // crates and compute the final GPS-style stock location sum.

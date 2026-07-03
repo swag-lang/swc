@@ -1,6 +1,6 @@
 // 
 
-#global fileprivate
+#global private
 
 func anyToS64(v: any)->s64
 {

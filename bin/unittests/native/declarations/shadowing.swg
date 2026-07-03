@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Variable shadowing in nested scopes.
 

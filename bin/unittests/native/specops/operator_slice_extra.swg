@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // ============================================================================
 // opSlice: single-element slice, empty slice, boundary cases

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Inline]
 #[Swag.Macro] // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}

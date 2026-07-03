@@ -20,8 +20,8 @@ AstNodeRef Parser::parseAccessModifier()
     switch (id())
     {
         case TokenId::KwdPublic:
-        case TokenId::KwdModulePrivate:
-        case TokenId::KwdFilePrivate:
+        case TokenId::KwdInternal:
+        case TokenId::KwdPrivate:
         {
             const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
             diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
@@ -785,8 +785,8 @@ AstNodeRef Parser::parseTopLevelStmt()
             return parseCompilerDependencies();
 
         case TokenId::KwdPublic:
-        case TokenId::KwdFilePrivate:
-        case TokenId::KwdModulePrivate:
+        case TokenId::KwdPrivate:
+        case TokenId::KwdInternal:
             return parseAccessModifier();
 
         case TokenId::KwdUsing:

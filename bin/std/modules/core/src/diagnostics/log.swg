@@ -35,7 +35,7 @@ struct Log
 impl Log
 {
     // Build the formatted log message header based on the current flags.
-    fileprivate mtd buildHeader(loc: Swag.SourceCodeLocation)
+    private mtd buildHeader(loc: Swag.SourceCodeLocation)
     {
         if .flags & .Prefix and @countof(.prefix)
         {

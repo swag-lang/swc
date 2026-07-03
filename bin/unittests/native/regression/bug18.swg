@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Macro]
 func inlineLocalMacroInject(count: s32, contextData: *void = null, stmt: #code void)

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: verify artifact checksums before accepting an import.
 

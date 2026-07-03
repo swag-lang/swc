@@ -1,5 +1,5 @@
 // Regression test for @mkinterface during front-end analysis.
-#global fileprivate
+#global private
 
 interface IAction
 {

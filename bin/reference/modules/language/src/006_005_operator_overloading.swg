@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 A struct in Swag can define operator overloads within the 'impl' block. These hooks are
 predefined and recognized by the compiler, which lets a struct customize operators and

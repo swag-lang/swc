@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Generic struct with using (embedded field)
 struct(T) Base

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Interface composition: multiple interfaces on one struct,
 // interface stored in struct fields, iteration over interface arrays,

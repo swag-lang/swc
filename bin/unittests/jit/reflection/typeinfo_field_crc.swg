@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 // The compiler exports TypeValue.crc as the standard CRC-32 of the value name (field,

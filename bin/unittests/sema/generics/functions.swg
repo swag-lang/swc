@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(T) identity(value: T)->T => value
 func(T) keepDeducedType(value, low, high: T)->T => value

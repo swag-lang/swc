@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #assert(A())
 #assert(A(1, 2, 3))

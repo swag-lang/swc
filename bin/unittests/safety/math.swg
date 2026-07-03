@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 #[Swag.Safety(.Math, false)]
 func mathSafetyDisabled()->bool

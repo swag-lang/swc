@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Real-life example: compile-time helpers shape an invoice pipeline with
 // caller-scope mixins and macros that inject line-item processing.

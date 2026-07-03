@@ -18,10 +18,10 @@ Your puzzle input is 1113122113.
 
 using Core
 
-moduleprivate var day10LengthsReady = false
-moduleprivate var day10Length40, day10Length50: u64
+internal var day10LengthsReady = false
+internal var day10Length40, day10Length50: u64
 
-moduleprivate func day10WriteCount(write: [*] u8, count: u64)->[*] u8
+internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
 {
     if count < 10
     {
@@ -52,7 +52,7 @@ moduleprivate func day10WriteCount(write: [*] u8, count: u64)->[*] u8
     return scan
 }
 
-moduleprivate func day10RunStep(input: string, output: &String)
+internal func day10RunStep(input: string, output: &String)
 {
     output.clear()
     output.reserve((@countof(input) * 2) + 1)
@@ -80,7 +80,7 @@ moduleprivate func day10RunStep(input: string, output: &String)
     output.buffer[output.length] = 0
 }
 
-moduleprivate func day10EnsureLengths()
+internal func day10EnsureLengths()
 {
     if day10LengthsReady do
         return

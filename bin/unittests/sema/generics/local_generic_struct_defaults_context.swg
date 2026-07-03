@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func(U) localGenericStructDefaultType()->bool
 {

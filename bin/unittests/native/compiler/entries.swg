@@ -1,5 +1,5 @@
 // 
-#global fileprivate
+#global private
 
 var state: s32
 

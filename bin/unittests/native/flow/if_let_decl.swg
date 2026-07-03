@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func nativeRetNothing()->#null string => null
 

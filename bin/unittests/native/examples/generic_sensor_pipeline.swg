@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // A telemetry pipeline where `where` constraints keep math on floating-point
 // channels, gate fixed-size algorithms by compile-time window sizes, and make

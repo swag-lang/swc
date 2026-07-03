@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Each '#inject' instruction can be replaced at most once.
 func bad1()

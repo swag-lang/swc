@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Switch bodies must start with 'case' or 'default'; stray statements are flagged.
 func bad1(a: s32)

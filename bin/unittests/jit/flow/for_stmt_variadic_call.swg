@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func touch(params: ...)->u32
 {

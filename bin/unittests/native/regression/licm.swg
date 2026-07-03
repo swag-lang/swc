@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 using Swag
 
 // Loop-invariant code motion regression coverage. Every function is forced to

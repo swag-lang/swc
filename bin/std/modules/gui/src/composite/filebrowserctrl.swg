@@ -49,7 +49,7 @@ impl IWnd for FileBrowserCtrl
     }
 }
 
-fileprivate impl FileBrowserCtrl
+private impl FileBrowserCtrl
 {
     mtd folderUp()
     {

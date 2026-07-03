@@ -310,12 +310,12 @@ public struct WindowLoop
     testFrames:        u32
 }
 
-fileprivate func getWindowFromHandle(hWnd: HWND)->*Window
+private func getWindowFromHandle(hWnd: HWND)->*Window
 {
     return cast(*Window) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
 }
 
-fileprivate func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     if msg == WM_CREATE
     {

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Inlining a callee whose body contains a `foreach` must keep an early `return` inside
 // the loop routed to the inlined callee's result. A custom `opVisit` lowers the loop body

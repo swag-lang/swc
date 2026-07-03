@@ -13,17 +13,17 @@ All numbers in the elves' list are in feet. How many total square feet of wrappi
 
 using Core
 
-moduleprivate struct Day2Present
+internal struct Day2Present
 {
     x: u32
     y: u32
     z: u32
 }
 
-moduleprivate var day2PresentsLoaded = false
-moduleprivate var day2Presents: Array'Day2Present
+internal var day2PresentsLoaded = false
+internal var day2Presents: Array'Day2Present
 
-moduleprivate func day2ParseNumber(line: string, cursor: &u64)->u32
+internal func day2ParseNumber(line: string, cursor: &u64)->u32
 {
     var result = 0'u32
     while cursor < @countof(line) and line[cursor] >= '0' and line[cursor] <= '9'
@@ -39,7 +39,7 @@ moduleprivate func day2ParseNumber(line: string, cursor: &u64)->u32
     return result
 }
 
-moduleprivate func day2EnsurePresents()
+internal func day2EnsurePresents()
 {
     if day2PresentsLoaded do
         return

@@ -1,7 +1,7 @@
-#global fileprivate
+#global private
 using Swag
 
-moduleprivate var MessageStageValue = 0
+internal var MessageStageValue = 0
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {

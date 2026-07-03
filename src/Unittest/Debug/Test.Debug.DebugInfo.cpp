@@ -1493,22 +1493,22 @@ func debugInfoRuntimeStorageRead(value: const &DebugInfoRuntimeStoragePair)->s32
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(DebugInfo_CompilerFilePrivateGlobalsReachCodeViewDataSymbols)
+SWC_TEST_BEGIN(DebugInfo_CompilerPrivateGlobalsReachCodeViewDataSymbols)
 {
-    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+    static constexpr std::string_view SOURCE     = R"(#global private
 var GValue: s32 = 7
 #test
 {
     @assert(GValue == 7)
 }
 )";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerFilePrivateGlobalsReachCodeViewDataSymbols");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerPrivateGlobalsReachCodeViewDataSymbols");
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
     cmdLine.buildCfg    = "debug";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
-    cmdLine.name        = "compiler_fileprivate_global_debug";
+    cmdLine.name        = "compiler_private_global_debug";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -1545,7 +1545,7 @@ var GValue: s32 = 7
     if (sectionName.empty())
         return Result::Error;
 
-    const DebugInfoDataRecord global = makeDebugDataRecord("GValue", globalVar->typeRef(), "__swc_dbg_fileprivate_global", sectionName, globalVar->offset(), globalVar->isPublic());
+    const DebugInfoDataRecord global = makeDebugDataRecord("GValue", globalVar->typeRef(), "__swc_dbg_private_global", sectionName, globalVar->offset(), globalVar->isPublic());
 
     const std::array globals = {global};
 
@@ -1553,7 +1553,7 @@ var GValue: s32 = 7
     const DebugInfoObjectRequest request = {
         .ctx          = &compilerCtx,
         .targetOs     = Runtime::TargetOs::Windows,
-        .objectPath   = fs::path("C:\\swc\\debug-info-fileprivate-global.obj"),
+        .objectPath   = fs::path("C:\\swc\\debug-info-private-global.obj"),
         .globals      = globals,
         .emitCodeView = true,
     };

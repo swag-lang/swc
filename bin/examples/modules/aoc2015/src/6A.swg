@@ -18,17 +18,17 @@ After following the instructions, how many lights are lit?
 
 using Core
 
-moduleprivate const DAY6_GRID_SIZE = 1000'u64
-moduleprivate const DAY6_GRID_SIZE32 = 1000'u32
+internal const DAY6_GRID_SIZE = 1000'u64
+internal const DAY6_GRID_SIZE32 = 1000'u32
 
-moduleprivate enum Day6Action
+internal enum Day6Action
 {
     TurnOn
     TurnOff
     Toggle
 }
 
-moduleprivate struct Day6Instruction
+internal struct Day6Instruction
 {
     action:       Day6Action
     x0:           u16
@@ -37,10 +37,10 @@ moduleprivate struct Day6Instruction
     y1:           u16
 }
 
-moduleprivate var day6InstructionsLoaded = false
-moduleprivate var day6Instructions: Array'Day6Instruction
+internal var day6InstructionsLoaded = false
+internal var day6Instructions: Array'Day6Instruction
 
-moduleprivate func day6ParseNumber(line: string, cursor: &u64)->u16
+internal func day6ParseNumber(line: string, cursor: &u64)->u16
 {
     while cursor < @countof(line) and (line[cursor] < '0' or line[cursor] > '9') do
         cursor += 1
@@ -56,7 +56,7 @@ moduleprivate func day6ParseNumber(line: string, cursor: &u64)->u16
     return result
 }
 
-moduleprivate func day6EnsureInstructions()
+internal func day6EnsureInstructions()
 {
     if day6InstructionsLoaded do
         return

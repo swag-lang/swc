@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // Advent of Code 2023 - Day 3: Gear Ratios
 //

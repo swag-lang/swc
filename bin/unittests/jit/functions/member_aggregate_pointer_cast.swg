@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func readAggregatePointerMember(flag: bool)->u16
 {

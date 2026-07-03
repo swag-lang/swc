@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 // While with false condition - body never executes
 #test

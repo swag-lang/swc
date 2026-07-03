@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const Input = """2-4,6-8
                  2-3,4-5

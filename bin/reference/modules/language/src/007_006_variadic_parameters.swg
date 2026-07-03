@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 /**
 # Introduction to Variadic Functions
 Variadic functions accept a variable number of arguments using '...'.
@@ -88,7 +88,7 @@ Variadic parameters can be forwarded between functions while preserving their ty
 # Combining Fixed and Variadic Parameters
 You can mix fixed parameters with variadic ones to make function calls more expressive.
 */
-moduleprivate func print()
+internal func print()
 {
     func logMessage(prefix: string, messages: ...)
     {

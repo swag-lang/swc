@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global fileprivate
+#global private
 using Swag
 
 func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool

@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func makeArrayInfo() => #typeof(#type [3] u16)
 func makeSliceInfo() => #typeof(#type [..] bool)

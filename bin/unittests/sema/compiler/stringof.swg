@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 const A = 0
 #assert(#stringof(A) == "0")

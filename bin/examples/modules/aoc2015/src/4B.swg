@@ -5,7 +5,7 @@ Now find one that starts with six zeroes.
 
 using Core
 
-moduleprivate var best: u64 = Swag.U64.Max
+internal var best: u64 = Swag.U64.Max
 
 func day4B()
 {

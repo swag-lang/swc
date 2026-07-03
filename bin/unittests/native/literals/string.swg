@@ -1,5 +1,5 @@
 // Migrated from the former native/legit suite.
-#global fileprivate
+#global private
 using Swag
 
 // _compiler1643.swg

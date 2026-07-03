@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 struct AllUndefined {x: s32 = undefined, y: s32 = undefined}
 struct NestedAllUndefined {inner: AllUndefined, z: s32 = undefined}

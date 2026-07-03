@@ -1,4 +1,4 @@
-#global fileprivate
+#global private
 
 func choose(value: bool, other: f32)->s32
 {

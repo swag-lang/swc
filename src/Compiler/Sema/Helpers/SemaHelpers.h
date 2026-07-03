@@ -26,12 +26,6 @@ namespace SemaHelpers
         SymbolFunction* calledFn = nullptr;
     };
 
-    struct NullableGuardInfo
-    {
-        const Symbol* symbol          = nullptr;
-        bool          nonNullWhenTrue = true;
-    };
-
     CodeGenLoweringPayload&  ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef);
     Result                   declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result                   ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef);
@@ -47,7 +41,6 @@ namespace SemaHelpers
     bool                     isTransparentExprNode(const AstNode& node);
     AstNodeRef               resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     AstNodeRef               resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);
-    NullableGuardInfo        nullableGuardInfo(Sema& sema, AstNodeRef exprRef);
     void                     preferContextualAutoMemberBindingType(Sema& sema, AstNodeRef exprRef);
     TypeRef                  unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
     TypeRef                  ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);

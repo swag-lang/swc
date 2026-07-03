@@ -8,27 +8,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    TypeRef nonNullTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return TypeRef::invalid();
-
-        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (nullableTypeRef.isInvalid())
-            nullableTypeRef = typeRef;
-
-        const TypeInfo& nullableType = sema.typeMgr().get(nullableTypeRef);
-        if (!nullableType.isNullable())
-            return TypeRef::invalid();
-
-        TypeInfo resultType = nullableType;
-        resultType.removeFlag(TypeInfoFlagsE::Nullable);
-        return sema.typeMgr().addType(resultType);
-    }
-}
-
 SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
     compute(sema, ref, part, mode);
@@ -97,20 +76,13 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
             typeRef_ = sym->typeRef();
         }
 
-        if (mode_ != SemaNodeViewResolveE::Stored && sema.frame().hasNonNullSymbol(sym))
-        {
-            const TypeRef narrowedTypeRef = nonNullTypeRef(sema, typeRef_);
-            if (narrowedTypeRef.isValid())
-                typeRef_ = narrowedTypeRef;
-        }
-
         if (!typeRef_.isValid())
             return;
 
         type_ = &sema.typeMgr().get(typeRef_);
     };
 
-    const bool needsResolvedSymbol = part.has(SemaNodeViewPartE::Symbol) || (part.has(SemaNodeViewPartE::Type) && mode != SemaNodeViewResolveE::Stored && sema.frame().hasNonNullSymbols());
+    const bool needsResolvedSymbol = part.has(SemaNodeViewPartE::Symbol);
     if (!needsResolvedSymbol)
         return;
 

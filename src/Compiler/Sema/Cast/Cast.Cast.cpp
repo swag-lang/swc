@@ -1296,7 +1296,10 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     // Pointer to ref
     if (srcType.isAnyPointer())
     {
-        if (srcType.isNullable())
+        // A nullable pointer cannot silently bind to a non-null reference (e.g. `var q: &T = nullableP`).
+        // The only exception is a UFCS receiver: calling a method on a `#null` pointer just dereferences it
+        // (C-like, may fault at runtime if actually null), so it is allowed without a guard.
+        if (srcType.isNullable() && !castRequest.flags.has(CastFlagsE::UfcsArgument))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))

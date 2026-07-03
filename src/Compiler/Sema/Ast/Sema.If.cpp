@@ -24,22 +24,6 @@ namespace
         ConstantRef maskedConditionCstRef = ConstantRef::invalid();
     };
 
-    struct IfStmtNonNullGuardPayload
-    {
-        const Symbol* thenSymbol = nullptr;
-        const Symbol* elseSymbol = nullptr;
-    };
-
-    IfStmtNonNullGuardPayload& ensureIfStmtNonNullGuardPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<IfStmtNonNullGuardPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<IfStmtNonNullGuardPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
-    }
-
     IfVarDeclWhereSemaPayload& ensureIfVarDeclWhereSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<IfVarDeclWhereSemaPayload>(nodeRef))
@@ -165,95 +149,6 @@ namespace
         payload.maskedConditionSymbol = conditionSym;
         payload.maskedConditionCstRef = conditionCstRef;
         setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
-    }
-
-    void storeIfStmtNonNullGuard(Sema& sema, AstNodeRef ifRef, AstNodeRef conditionRef)
-    {
-        const SemaHelpers::NullableGuardInfo guard = SemaHelpers::nullableGuardInfo(sema, conditionRef);
-        if (!guard.symbol)
-            return;
-
-        auto& payload = ensureIfStmtNonNullGuardPayload(sema, ifRef);
-        if (guard.nonNullWhenTrue)
-            payload.thenSymbol = guard.symbol;
-        else
-            payload.elseSymbol = guard.symbol;
-    }
-
-    const Symbol* ifStmtNonNullGuardSymbol(const Sema& sema, AstNodeRef ifRef, AstNodeRef childRef, AstNodeRef thenRef, AstNodeRef elseRef)
-    {
-        const auto* payload = sema.semaPayload<IfStmtNonNullGuardPayload>(ifRef);
-        if (!payload)
-            return nullptr;
-        if (childRef == thenRef)
-            return payload->thenSymbol;
-        if (childRef == elseRef)
-            return payload->elseSymbol;
-        return nullptr;
-    }
-
-    bool nodeStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return false;
-
-        const AstNode& node = sema.node(nodeRef);
-        switch (node.id())
-        {
-            case AstNodeId::ReturnStmt:
-            case AstNodeId::BreakStmt:
-            case AstNodeId::ContinueStmt:
-            case AstNodeId::FallThroughStmt:
-            case AstNodeId::UnreachableStmt:
-            case AstNodeId::ThrowExpr:
-                return true;
-
-            case AstNodeId::IfStmt:
-            {
-                const auto& ifStmt = node.cast<AstIfStmt>();
-                return ifStmt.nodeElseBlockRef.isValid() && nodeStopsLocalFlow(sema, ifStmt.nodeIfBlockRef) && nodeStopsLocalFlow(sema, ifStmt.nodeElseBlockRef);
-            }
-
-            case AstNodeId::IfVarDecl:
-            {
-                const auto& ifVarDecl = node.cast<AstIfVarDecl>();
-                return ifVarDecl.nodeElseBlockRef.isValid() && nodeStopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef) && nodeStopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef);
-            }
-
-            case AstNodeId::EmbeddedBlock:
-            case AstNodeId::FunctionBody:
-            case AstNodeId::SwitchCaseBody:
-            case AstNodeId::ElseStmt:
-            case AstNodeId::ElseIfStmt:
-            {
-                SmallVector<AstNodeRef> children;
-                node.collectChildrenFromAst(children, sema.ast());
-                if (children.empty())
-                    return false;
-                return nodeStopsLocalFlow(sema, children.back());
-            }
-
-            default:
-                return false;
-        }
-    }
-
-    void maybePropagateIfStmtFallthroughNonNullGuard(Sema& sema, const AstIfStmt& node)
-    {
-        if (node.nodeElseBlockRef.isValid() || !nodeStopsLocalFlow(sema, node.nodeIfBlockRef))
-            return;
-
-        const auto* payload = sema.semaPayload<IfStmtNonNullGuardPayload>(sema.curNodeRef());
-        if (!payload || !payload->elseSymbol)
-            return;
-
-        const AstNodeRef parentRef = sema.visit().parentNodeRef();
-        if (parentRef.isInvalid())
-            return;
-
-        auto frame = sema.frame();
-        frame.addNonNullSymbol(payload->elseSymbol);
-        sema.pushFramePopOnPostNode(frame, parentRef);
     }
 
     TypeRef normalizeWithBindingType(TaskContext& ctx, TypeRef typeRef)
@@ -428,16 +323,7 @@ namespace
 Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
-    {
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
-
-        if (const Symbol* nonNullSymbol = ifStmtNonNullGuardSymbol(sema, sema.curNodeRef(), childRef, nodeIfBlockRef, nodeElseBlockRef))
-        {
-            auto scopedFrame = sema.frame();
-            scopedFrame.addNonNullSymbol(nonNullSymbol);
-            sema.pushFramePopOnPostChild(scopedFrame, childRef);
-        }
-    }
 
     return Result::Continue;
 }
@@ -446,17 +332,10 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 {
     if (childRef == nodeConditionRef)
     {
-        storeIfStmtNonNullGuard(sema, sema.curNodeRef(), nodeConditionRef);
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
-    return Result::Continue;
-}
-
-Result AstIfStmt::semaPostNode(Sema& sema) const
-{
-    maybePropagateIfStmtFallthroughNonNullGuard(sema, *this);
     return Result::Continue;
 }
 

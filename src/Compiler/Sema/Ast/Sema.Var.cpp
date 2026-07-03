@@ -806,16 +806,10 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef deduceVarStorageTypeRef(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef fallbackTypeRef)
+    TypeRef deduceVarStorageTypeRef(TypeRef explicitTypeRef, TypeRef fallbackTypeRef)
     {
         if (explicitTypeRef.isValid())
             return explicitTypeRef;
-        if (context.nodeInitRef.isInvalid())
-            return fallbackTypeRef;
-
-        const SemaNodeView storedInitView = sema.viewStored(context.nodeInitRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-        if (storedInitView.typeRef().isValid() && storedInitView.sym() && sema.frame().hasNonNullSymbol(storedInitView.sym()))
-            return storedInitView.typeRef();
 
         return fallbackTypeRef;
     }
@@ -952,7 +946,7 @@ namespace
         if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid() && !allowGlobalFunctionAddressInit)
             SWC_RESULT(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
 
-        TypeRef finalTypeRef = deduceVarStorageTypeRef(sema, context, explicitTypeRef, nodeInitView.typeRef());
+        TypeRef finalTypeRef = deduceVarStorageTypeRef(explicitTypeRef, nodeInitView.typeRef());
 
         SWC_RESULT(concretizeAggregateLiteralType(sema, context, explicitTypeRef, finalTypeRef, nodeInitView));
 

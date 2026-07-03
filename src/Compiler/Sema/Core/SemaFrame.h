@@ -167,9 +167,6 @@ public:
     void                             popBindingVar();
     void                             hideLookupSymbol(const Symbol* sym);
     bool                             isLookupSymbolHidden(const Symbol* sym) const;
-    void                             addNonNullSymbol(const Symbol* sym);
-    bool                             hasNonNullSymbol(const Symbol* sym) const;
-    bool                             hasNonNullSymbols() const { return !nonNullSymbols_.empty(); }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -207,7 +204,6 @@ private:
     SmallVector2<TypeRef>               bindingTypes_;
     SmallVector2<SymbolVariable*>       bindingVars_;
     SmallVector4<const Symbol*>         hiddenLookupSymbols_;
-    SmallVector2<const Symbol*>         nonNullSymbols_;
 };
 
 SWC_END_NAMESPACE();

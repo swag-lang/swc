@@ -12,16 +12,12 @@ namespace Math
         {
             case FoldStatus::DivisionByZero:
                 return DiagnosticId::safety_err_division_zero;
-
             case FoldStatus::Overflow:
                 return DiagnosticId::safety_err_integer_overflow;
-
             case FoldStatus::NegativeShift:
                 return DiagnosticId::safety_err_negative_shift;
-
             case FoldStatus::InvalidArgument:
                 return DiagnosticId::safety_err_invalid_argument;
-
             default:
                 return DiagnosticId::None;
         }

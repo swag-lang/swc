@@ -1,26 +1,26 @@
 #include "pch.h"
-#include "Backend/Sanitizer/NullDerefAnalysis.h"
+#include "Backend/Sanitizer/Sanitizer.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Main/TaskContext.h"
+#include "Backend/Sanitizer/SanitizerCheck.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
-NullDerefAnalysis::NullDerefAnalysis(MicroPassContext& context) :
+Sanitizer::Sanitizer(MicroPassContext& context) :
     context_(context),
     stackBaseReg_(context.debugStackBaseVirtualReg)
 {
 }
 
-bool NullDerefAnalysis::run()
+bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
 {
     const MicroControlFlowGraph& cfg = context_.builder->controlFlowGraph();
     const uint32_t               n   = cfg.instructionCount();
-    if (n == 0 || n > K_MAX_INSTRUCTIONS)
+    if (n == 0 || n > K_MAX_INSTRUCTIONS || checks.empty())
         return reported_;
 
     cfg_ = &cfg;
@@ -56,18 +56,18 @@ bool NullDerefAnalysis::run()
         else if (isModelledSingleEdge(def, succs))
             propagate(cur, succs[0], worklist);
         else
+        {
             for (const uint32_t s : succs)
             {
                 SanitizerState edge = cur;
-                dropNulls(edge);
+                dropZeros(edge);
                 edge.flagsSubject = MicroReg::invalid();
                 propagate(edge, s, worklist);
             }
+        }
     }
 
-    // Report only on the converged states: a dereference is flagged only if its incoming
-    // state proves the base is null on every path. Checking during the fixpoint would
-    // report on a transient pre-join state that a later merge widens back to Unknown.
+    // Apply the checks only on the converged states.
     for (uint32_t i = 0; i < n; i++)
     {
         if (!reached_[i])
@@ -75,23 +75,21 @@ bool NullDerefAnalysis::run()
         const MicroInstr&        inst = *context_.instructions->ptr(cfg.instructionRefs()[i]);
         const MicroInstrDef&     def  = MicroInstr::info(inst.op);
         const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
-        checkDereference(inState_[i], inst, def, ops);
+        for (SanitizerCheck* check : checks)
+            check->run(*this, inState_[i], inst, def, ops);
     }
 
     return reported_;
 }
 
-bool NullDerefAnalysis::isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs)
+bool Sanitizer::isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs)
 {
     // A plain fall-through or an unconditional direct jump: the state flows unchanged to
     // the single successor.
     return succs.size() == 1 && !def.flags.has(MicroInstrFlagsE::ConditionalJump);
 }
 
-// ---------------------------------------------------------------------------
-// Register / slot access
-// ---------------------------------------------------------------------------
-SanitizerValue NullDerefAnalysis::getReg(const SanitizerState& state, MicroReg reg) const
+SanitizerValue Sanitizer::getReg(const SanitizerState& state, MicroReg reg) const
 {
     if (stackBaseReg_.isValid() && reg == stackBaseReg_)
         return SanitizerValue::makeStackAddr(0);
@@ -99,25 +97,25 @@ SanitizerValue NullDerefAnalysis::getReg(const SanitizerState& state, MicroReg r
     return it == state.regs.end() ? SanitizerValue{} : it->second.value;
 }
 
-const SanitizerRegInfo* NullDerefAnalysis::findReg(const SanitizerState& state, MicroReg reg)
+const SanitizerRegInfo* Sanitizer::findReg(const SanitizerState& state, MicroReg reg)
 {
     const auto it = state.regs.find(reg.packed);
     return it == state.regs.end() ? nullptr : &it->second;
 }
 
-void NullDerefAnalysis::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info)
+void Sanitizer::setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info)
 {
     if (reg.isValid())
         state.regs[reg.packed] = info;
 }
 
-void NullDerefAnalysis::setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
+void Sanitizer::setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
 {
     if (reg.isValid())
         state.regs[reg.packed] = SanitizerRegInfo{value};
 }
 
-bool NullDerefAnalysis::resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const
+bool Sanitizer::resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const
 {
     const SanitizerValue baseValue = getReg(state, base);
     if (!baseValue.isStackAddr())
@@ -126,10 +124,7 @@ bool NullDerefAnalysis::resolveStackSlot(const SanitizerState& state, MicroReg b
     return true;
 }
 
-// ---------------------------------------------------------------------------
-// Join + propagation
-// ---------------------------------------------------------------------------
-void NullDerefAnalysis::propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist)
+void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist)
 {
     bool changed;
     if (!reached_[index])
@@ -150,7 +145,7 @@ void NullDerefAnalysis::propagate(const SanitizerState& edge, uint32_t index, st
     }
 }
 
-bool NullDerefAnalysis::joinInto(SanitizerState& into, const SanitizerState& from)
+bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 {
     bool changed = false;
 
@@ -187,10 +182,7 @@ bool NullDerefAnalysis::joinInto(SanitizerState& into, const SanitizerState& fro
     return changed;
 }
 
-// ---------------------------------------------------------------------------
-// Value effects
-// ---------------------------------------------------------------------------
-void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
+void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
 {
     switch (inst.op)
     {
@@ -214,7 +206,7 @@ void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInst
         case MicroInstrOpcode::LoadZeroExtRegReg:
         case MicroInstrOpcode::LoadSignedExtRegReg:
         {
-            // A move/extension propagates the whole tracked info (value + origin + null-
+            // A move/extension propagates the whole tracked info (value + origin + zero-
             // test fact). The value goes through getReg so the special stack-base register
             // is resolved even though it is not stored in the map.
             SanitizerRegInfo info;
@@ -231,8 +223,8 @@ void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInst
             int64_t              slot      = 0;
             if (resolveStackSlot(state, ops[1].reg, ops[3].valueU64, slot))
                 setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(slot));
-            else if (baseValue.isProvableNull())
-                setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(0)); // null-derived
+            else if (baseValue.isZero())
+                setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(0)); // zero-derived
             else if (baseValue.kind == SanitizerValueKind::GlobalAddr)
                 setRegValue(state, ops[0].reg, SanitizerValue::makeGlobalAddr());
             else
@@ -279,7 +271,7 @@ void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInst
             const SanitizerValue cur      = getReg(state, reg);
             const uint64_t       imm      = ops[3].valueU64;
             const bool           isAddSub = ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract;
-            if (isAddSub && cur.isProvableNull())
+            if (isAddSub && cur.isZero())
                 setRegValue(state, reg, SanitizerValue::makeConstant(0));
             else if (ops[2].microOp == MicroOp::Add && cur.isStackAddr())
                 setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset + static_cast<int64_t>(imm)));
@@ -299,9 +291,9 @@ void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInst
             return;
 
         case MicroInstrOpcode::CmpRegReg:
-            if (getReg(state, ops[1].reg).isProvableNull())
+            if (getReg(state, ops[1].reg).isZero())
                 state.flagsSubject = ops[0].reg;
-            else if (getReg(state, ops[0].reg).isProvableNull())
+            else if (getReg(state, ops[0].reg).isZero())
                 state.flagsSubject = ops[1].reg;
             else
                 state.flagsSubject = MicroReg::invalid();
@@ -309,14 +301,14 @@ void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInst
 
         case MicroInstrOpcode::SetCondReg:
         {
-            SanitizerRegInfo        info; // value stays Unknown (a 0/1 bool, not a pointer)
+            SanitizerRegInfo        info; // value stays Unknown (a 0/1 bool)
             const SanitizerRegInfo* subject    = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
             bool                    trueIfZero = false;
             if (subject && subject->hasOriginSlot && condIsZeroTest(ops[1].cpuCond, trueIfZero))
             {
-                info.hasNullTest        = true;
-                info.nullTestSlot       = subject->originSlot;
-                info.nullTestTrueIfNull = trueIfZero;
+                info.hasZeroTest        = true;
+                info.zeroTestSlot       = subject->originSlot;
+                info.zeroTestTrueIfZero = trueIfZero;
             }
             setReg(state, ops[0].reg, info);
             return;
@@ -340,7 +332,7 @@ void NullDerefAnalysis::applyValueEffects(SanitizerState& state, const MicroInst
     invalidateDefs(state, inst, def, ops);
 }
 
-void NullDerefAnalysis::invalidateDefs(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
+void Sanitizer::invalidateDefs(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
 {
     const uint32_t regCount = std::min<uint32_t>(inst.numOperands, def.regModes.size());
     for (uint32_t i = 0; i < regCount; i++)
@@ -348,7 +340,7 @@ void NullDerefAnalysis::invalidateDefs(SanitizerState& state, const MicroInstr& 
             setRegValue(state, ops[i].reg, {});
 }
 
-bool NullDerefAnalysis::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
+bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 {
     switch (cond)
     {
@@ -365,106 +357,93 @@ bool NullDerefAnalysis::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
     }
 }
 
-// ---------------------------------------------------------------------------
 // Conditional branch: narrow the tested slot on each edge, prune infeasible edges,
-// and fall back to dropping nulls when it cannot be modelled.
-// ---------------------------------------------------------------------------
-void NullDerefAnalysis::propagateConditionalBranch(const SanitizerState& state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist)
+// and fall back to dropping provable zeros when it cannot be modelled.
+void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, std::vector<uint32_t>& worklist)
 {
     const SanitizerRegInfo* subject = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
 
     bool    condTrueIfSubjectZero = false;
     int64_t slot                  = 0;
-    bool    slotNullIfSubjectZero = false;
+    bool    slotZeroIfSubjectZero = false;
     if (subject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero) &&
-        resolveGuardSlot(*subject, slot, slotNullIfSubjectZero))
+        resolveGuardSlot(*subject, slot, slotZeroIfSubjectZero))
     {
         // successors = [taken (cond true), fallthrough (cond false)].
-        queueRefined(state, succs[0], slot, condTrueIfSubjectZero == slotNullIfSubjectZero, worklist);
-        queueRefined(state, succs[1], slot, (!condTrueIfSubjectZero) == slotNullIfSubjectZero, worklist);
+        queueRefined(state, succs[0], slot, condTrueIfSubjectZero == slotZeroIfSubjectZero, worklist);
+        queueRefined(state, succs[1], slot, (!condTrueIfSubjectZero) == slotZeroIfSubjectZero, worklist);
         return;
     }
 
-    // Unmodellable guard: keep exploring but drop provable nulls so nothing is reported
-    // past a guard we did not understand.
+    // Unmodellable branch: keep exploring, but drop provable zeros only if the branch
+    // actually tested a value against zero (the flags encode a zero-comparison), so
+    // nothing is reported past a zero-guard we could not attribute to a slot (e.g.
+    // `assume`). A comparison against a non-zero constant — such as the INT_MIN/-1
+    // overflow checks the front end wraps every integer division in — does not constrain
+    // zero-ness, so provable zeros must survive it (else no division-by-zero is caught).
+    const bool dropAcrossEdge = state.flagsSubject.isValid();
     for (const uint32_t s : succs)
     {
         SanitizerState edge = state;
-        dropNulls(edge);
+        if (dropAcrossEdge)
+            dropZeros(edge);
         edge.flagsSubject = MicroReg::invalid();
         propagate(edge, s, worklist);
     }
 }
 
-bool NullDerefAnalysis::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotNullIfSubjectZero)
+bool Sanitizer::resolveGuardSlot(const SanitizerRegInfo& subject, int64_t& outSlot, bool& outSlotZeroIfSubjectZero)
 {
-    if (subject.hasNullTest)
+    if (subject.hasZeroTest)
     {
-        // subject is a bool == (slot is null) when nullTestTrueIfNull.
-        // subject == 0 (false) ⇒ slot is null iff !nullTestTrueIfNull.
-        outSlot                  = subject.nullTestSlot;
-        outSlotNullIfSubjectZero = !subject.nullTestTrueIfNull;
+        // subject is a bool == (slot is zero) when zeroTestTrueIfZero.
+        // subject == 0 (false) ⇒ slot is zero iff !zeroTestTrueIfZero.
+        outSlot                  = subject.zeroTestSlot;
+        outSlotZeroIfSubjectZero = !subject.zeroTestTrueIfZero;
         return true;
     }
     if (subject.hasOriginSlot)
     {
         outSlot                  = subject.originSlot;
-        outSlotNullIfSubjectZero = true; // subject IS the pointer: subject==0 ⇒ slot null
+        outSlotZeroIfSubjectZero = true; // subject IS the value: subject==0 ⇒ slot zero
         return true;
     }
     return false;
 }
 
-void NullDerefAnalysis::queueRefined(const SanitizerState& state, uint32_t index, int64_t slot, bool slotIsNull, std::vector<uint32_t>& worklist)
+void Sanitizer::queueRefined(const SanitizerState& state, uint32_t index, int64_t slot, bool slotIsZero, std::vector<uint32_t>& worklist)
 {
     const auto           it      = state.stack.find(slot);
     const SanitizerValue current = it != state.stack.end() ? it->second : SanitizerValue{};
 
-    if (slotIsNull && current.isKnownNonZero())
+    if (slotIsZero && current.isKnownNonZero())
         return; // infeasible
-    if (!slotIsNull && current.isProvableNull())
+    if (!slotIsZero && current.isZero())
         return; // infeasible
 
     SanitizerState edge = state;
-    edge.stack[slot]    = slotIsNull ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
+    edge.stack[slot]    = slotIsZero ? SanitizerValue::makeConstant(0) : SanitizerValue::makeNonZero();
     edge.flagsSubject   = MicroReg::invalid();
     propagate(edge, index, worklist);
 }
 
-void NullDerefAnalysis::dropNulls(SanitizerState& state)
+void Sanitizer::dropZeros(SanitizerState& state)
 {
     for (auto& info : state.regs | std::views::values)
-        if (info.value.isProvableNull())
+        if (info.value.isZero())
             info.value = {};
     for (auto& value : state.stack | std::views::values)
-        if (value.isProvableNull())
+        if (value.isZero())
             value = {};
 }
 
-// ---------------------------------------------------------------------------
-// Dereference check + reporting
-// ---------------------------------------------------------------------------
-void NullDerefAnalysis::checkDereference(const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
-{
-    if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
-        return;
-    // A `lea` only computes an address; it never faults. Real code legitimately forms
-    // addresses from a null base (e.g. the data pointer of an empty, zero-length slice),
-    // so only an actual load/store is a dereference.
-    if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
-        return;
-
-    if (getReg(state, ops[def.memBaseOperandIndex].reg).isProvableNull())
-        reportNullDeref(inst);
-}
-
-void NullDerefAnalysis::reportNullDeref(const MicroInstr& inst)
+void Sanitizer::report(const MicroInstr& inst, DiagnosticId id)
 {
     const SourceCodeRef& codeRef = inst.debugSourceInfo.sourceCodeRef;
 
-    // The same source dereference is reached by several paths / fixpoint passes and can
-    // lower to several instructions; report each location at most once.
-    const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 32) | codeRef.tokRef.get();
+    // The same source location can be reached by several paths and can lower to several
+    // instructions; report each (location, diagnostic) pair at most once.
+    const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 40) ^ (static_cast<uint64_t>(codeRef.tokRef.get()) << 8) ^ static_cast<uint64_t>(id);
     reported_          = true;
     if (!reportedLocations_.insert(key).second)
         return;
@@ -474,7 +453,7 @@ void NullDerefAnalysis::reportNullDeref(const MicroInstr& inst)
         return;
 
     const FileRef    fileRef = resolved.sourceFile ? resolved.sourceFile->ref() : FileRef::invalid();
-    const Diagnostic diag    = Diagnostic::get(DiagnosticId::safety_err_null_deref, fileRef);
+    const Diagnostic diag    = Diagnostic::get(id, fileRef);
     diag.last().addSpan(resolved.codeRange, "", DiagnosticSeverity::Error);
     diag.report(*context_.taskContext);
 }

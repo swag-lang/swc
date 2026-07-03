@@ -2,17 +2,18 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Abstract value tracked for a register or a stack slot by the null-dereference
-// analysis. `Constant 0` is a provable null; `NonZero`, `StackAddr` and `GlobalAddr`
-// are known non-null; `Unknown` is anything else and is never flagged, so the
-// analysis only ever reports pointers it can prove are null on every path.
+// Abstract value tracked for a register or a stack slot by the sanitizer.
+// `Constant 0` is a provable zero (a null pointer, or a zero divisor). `NonZero`,
+// `StackAddr` and `GlobalAddr` are known non-zero. `Unknown` is anything else and is
+// never flagged, so a check only ever fires on values it can prove are zero on every
+// path — no false positives.
 enum class SanitizerValueKind : uint8_t
 {
     Unknown,
     Constant,
-    NonZero,    // known non-null, exact value unknown (e.g. narrowed by a guard)
-    StackAddr,  // address of a local stack slot (non-null)
-    GlobalAddr, // address of a global / function (non-null)
+    NonZero,    // known non-zero, exact value unknown (e.g. narrowed by a guard)
+    StackAddr,  // address of a local stack slot (non-zero)
+    GlobalAddr, // address of a global / function (non-zero)
 };
 
 struct SanitizerValue
@@ -26,7 +27,11 @@ struct SanitizerValue
     static SanitizerValue makeStackAddr(int64_t offset) { return {SanitizerValueKind::StackAddr, 0, offset}; }
     static SanitizerValue makeGlobalAddr() { return {SanitizerValueKind::GlobalAddr, 0, 0}; }
 
-    bool isProvableNull() const { return kind == SanitizerValueKind::Constant && constant == 0; }
+    bool isZero() const
+    {
+        return kind == SanitizerValueKind::Constant && constant == 0;
+    }
+
     bool isKnownNonZero() const
     {
         return kind == SanitizerValueKind::NonZero ||
@@ -34,9 +39,16 @@ struct SanitizerValue
                kind == SanitizerValueKind::GlobalAddr ||
                (kind == SanitizerValueKind::Constant && constant != 0);
     }
-    bool isStackAddr() const { return kind == SanitizerValueKind::StackAddr; }
 
-    bool operator==(const SanitizerValue& o) const { return kind == o.kind && constant == o.constant && stackOffset == o.stackOffset; }
+    bool isStackAddr() const
+    {
+        return kind == SanitizerValueKind::StackAddr;
+    }
+
+    bool operator==(const SanitizerValue& o) const
+    {
+        return kind == o.kind && constant == o.constant && stackOffset == o.stackOffset;
+    }
 };
 
 SWC_END_NAMESPACE();

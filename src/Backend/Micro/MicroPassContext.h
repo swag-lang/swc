@@ -31,11 +31,11 @@ struct MicroPassContext
     bool                  usesIntReturnRegOnRet   = true;
     bool                  usesFloatReturnRegOnRet = true;
 
-    // Whether the static null-dereference sanitizer should run for this function. It is
-    // the function's effective `SafetyWhat::Null` guard (build-config default combined
-    // with any `#[Swag.Safety(.Null, ...)]` override), so the analysis honours per-scope
-    // safety, not just the global build configuration.
-    bool nullSanitizerEnabled = false;
+    // The function's effective runtime-safety mask (build-config default combined with
+    // any `#[Swag.Safety(...)]` overrides). The static sanitizer runs the checks whose
+    // safety guard is set here, so it honours per-scope safety, not just the global
+    // build configuration. 0 (the default, used for compiler-generated code) disables it.
+    uint16_t sanitizerSafetyMask = 0;
 
     // Debug info: the virtual register that holds the local-stack base (the value all local
     // variables are addressed against). Set by the caller before the pass pipeline runs.

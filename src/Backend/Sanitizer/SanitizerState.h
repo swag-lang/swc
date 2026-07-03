@@ -11,21 +11,21 @@ struct SanitizerRegInfo
 
     // If the register was loaded from a local stack slot, remember which, so a guard
     // testing this register can narrow the slot it came from (in unoptimized IR the
-    // guarded block reloads the pointer from the same slot).
+    // guarded block reloads the value from the same slot).
     bool    hasOriginSlot = false;
     int64_t originSlot    = 0;
 
-    // If the register is a boolean produced by a null test (`setcc` after `cmp x,0`),
+    // If the register is a boolean produced by a zero test (`setcc` after `cmp x,0`),
     // remember which slot was tested and whether the bool is true when that slot is
-    // null. A branch on the bool then narrows the underlying pointer's slot.
-    bool    hasNullTest        = false;
-    int64_t nullTestSlot       = 0;
-    bool    nullTestTrueIfNull = false;
+    // zero. A branch on the bool then narrows the underlying slot.
+    bool    hasZeroTest        = false;
+    int64_t zeroTestSlot       = 0;
+    bool    zeroTestTrueIfZero = false;
 
     bool operator==(const SanitizerRegInfo& o) const
     {
         return value == o.value && hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot &&
-               hasNullTest == o.hasNullTest && nullTestSlot == o.nullTestSlot && nullTestTrueIfNull == o.nullTestTrueIfNull;
+               hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestTrueIfZero == o.zeroTestTrueIfZero;
     }
 };
 

@@ -8,6 +8,15 @@ SWC_BEGIN_NAMESPACE();
 
 void NullDerefCheck::run(Sanitizer& sanitizer, const SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
 {
+    // Calling through a null function pointer (a never-assigned lambda/closure) faults
+    // just like a data dereference.
+    if (inst.op == MicroInstrOpcode::CallIndirect)
+    {
+        if (ops && sanitizer.getReg(state, ops[0].reg).isZero())
+            sanitizer.report(inst, DiagnosticId::safety_err_null_call);
+        return;
+    }
+
     if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
         return;
 

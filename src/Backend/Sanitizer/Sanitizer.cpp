@@ -232,9 +232,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         case MicroInstrOpcode::LoadZeroExtRegReg:
         case MicroInstrOpcode::LoadSignedExtRegReg:
         {
-            // A move/extension propagates the whole tracked info (value + origin + zero-
-            // test fact). The value goes through getReg so the special stack-base register
-            // is resolved even though it is not stored in the map.
+            // A move or a widening extension propagates the whole tracked info (value +
+            // origin + zero-test fact). Extensions only widen (bool/narrow int -> wider),
+            // so zero-ness and the guard facts are preserved: `dst == 0` iff the source
+            // (and its origin slot) is zero. The value goes through getReg so the special
+            // stack-base register is resolved even though it is not stored in the map.
             SanitizerRegInfo info;
             if (const SanitizerRegInfo* src = findReg(state, ops[1].reg))
                 info = *src;

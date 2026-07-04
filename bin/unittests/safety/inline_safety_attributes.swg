@@ -87,6 +87,19 @@ func inlineSafetyModOverflowS16(a, b: s16)->s16
     return a % b // swc-expected-error {{safety_err_runtime}}
 }
 
+// Launders a compile-time constant through a non-inline call so the static sanitizer
+// cannot prove the operand values: these tests target the RUNTIME overflow guard
+// inherited from the inline callee's safety attribute.
+func opaqueS8(v: s8)->s8
+{
+    return v
+}
+
+func opaqueS16(v: s16)->s16
+{
+    return v
+}
+
 #[Swag.Inline, Swag.CanOverflow(true)]
 func inlineSafetyWrapAdd(value, delta: u8)->u8
 {
@@ -136,13 +149,13 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
 
 #test
 {
-    const Value = #run inlineSafetyDivOverflowS8(-128's8, -1)
+    const Value = #run inlineSafetyDivOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
     @assert(Value == 0)
 }
 
 #test
 {
-    const Value = #run inlineSafetyModOverflowS16(-32768's16, -1)
+    const Value = #run inlineSafetyModOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
     @assert(Value == 0)
 }
 

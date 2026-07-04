@@ -314,7 +314,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     // The static sanitizer runs the checks whose safety guard is on for this function:
     // the build-config default combined with any `#[Swag.Safety(...)]` override on it.
     const uint16_t sanitizerSafetyMask = attributes().effectiveRuntimeSafetyMask(ctx.compiler().buildCfg().safetyGuards);
-    const Result   emitResult          = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg(), sanitizerSafetyMask);
+    const Result   emitResult          = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg(), sanitizerSafetyMask, this);
     if (emitResult != Result::Continue)
     {
         ctx.state().jitEmissionError = true;

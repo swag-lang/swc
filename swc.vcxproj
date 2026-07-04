@@ -264,6 +264,8 @@
         <ClCompile Include="src\Backend\\Sanitizer\NullDerefCheck.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\DivByZeroCheck.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\FloatDomainCheck.cpp"/>
+        <ClCompile Include="src\Backend\\Sanitizer\IntOverflowCheck.cpp"/>
+        <ClCompile Include="src\Backend\\Sanitizer\StackEscapeCheck.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroSsaState.cpp"/>
@@ -551,6 +553,8 @@
         <ClInclude Include="src\Backend\\Sanitizer\NullDerefCheck.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\DivByZeroCheck.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\FloatDomainCheck.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\IntOverflowCheck.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\StackEscapeCheck.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\SanitizerState.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\SanitizerValue.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroPassManager.h"/>

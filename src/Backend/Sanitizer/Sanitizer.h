@@ -37,8 +37,9 @@ public:
     bool run(std::span<SanitizerCheck* const> checks);
 
     // Queries usable by checks against a converged state.
-    SanitizerValue getReg(const SanitizerState& state, MicroReg reg) const;
-    TaskContext&   ctx() const;
+    SanitizerValue          getReg(const SanitizerState& state, MicroReg reg) const;
+    TaskContext&            ctx() const;
+    const MicroPassContext& passContext() const { return context_; }
 
     // The function called by the current instruction, when the check is invoked on a
     // call instruction (resolved from the builder's relocations). Null otherwise.

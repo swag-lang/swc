@@ -27,6 +27,11 @@ struct SanitizerValue
     static SanitizerValue makeStackAddr(int64_t offset) { return {SanitizerValueKind::StackAddr, 0, offset}; }
     static SanitizerValue makeGlobalAddr() { return {SanitizerValueKind::GlobalAddr, 0, 0}; }
 
+    bool isConstant() const
+    {
+        return kind == SanitizerValueKind::Constant;
+    }
+
     bool isZero() const
     {
         return kind == SanitizerValueKind::Constant && constant == 0;

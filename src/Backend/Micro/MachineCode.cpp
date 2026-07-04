@@ -40,7 +40,7 @@ bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, Res
     return tryResolveDebugSourceRange(ctx, outResolvedRange, *range);
 }
 
-Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask)
+Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debugStackBaseVirtualReg, uint16_t sanitizerSafetyMask, const SymbolFunction* sanitizerFunction)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg   = ctx.compiler().buildCfg().backend;
     const bool                      computeUnwindInfo = backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
@@ -51,6 +51,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     passContext.forceFramePointer        = computeUnwindInfo;
     passContext.debugStackBaseVirtualReg = debugStackBaseVirtualReg;
     passContext.sanitizerSafetyMask      = sanitizerSafetyMask;
+    passContext.sanitizerFunction        = sanitizerFunction;
 
 #ifdef _M_X64
     X64Encoder encoder(ctx);

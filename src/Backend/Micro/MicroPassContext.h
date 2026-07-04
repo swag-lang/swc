@@ -12,6 +12,7 @@ class MicroUseDefMap;
 class MicroSsaState;
 class TaskContext;
 class Encoder;
+class SymbolFunction;
 
 struct MicroPassContext
 {
@@ -36,6 +37,10 @@ struct MicroPassContext
     // safety guard is set here, so it honours per-scope safety, not just the global
     // build configuration. 0 (the default, used for compiler-generated code) disables it.
     uint16_t sanitizerSafetyMask = 0;
+
+    // The function being lowered, for sanitizer checks that need its signature (return
+    // type nullability, ...). Null for compiler-generated code.
+    const SymbolFunction* sanitizerFunction = nullptr;
 
     // Debug info: the virtual register that holds the local-stack base (the value all local
     // variables are addressed against). Set by the caller before the pass pipeline runs.

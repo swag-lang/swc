@@ -3,8 +3,10 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Sanitizer/DivByZeroCheck.h"
 #include "Backend/Sanitizer/FloatDomainCheck.h"
+#include "Backend/Sanitizer/IntOverflowCheck.h"
 #include "Backend/Sanitizer/NullDerefCheck.h"
 #include "Backend/Sanitizer/Sanitizer.h"
+#include "Backend/Sanitizer/StackEscapeCheck.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -23,7 +25,9 @@ Result MicroSanityPass::run(MicroPassContext& context)
     NullDerefCheck   nullDerefCheck;
     DivByZeroCheck   divByZeroCheck;
     FloatDomainCheck floatDomainCheck;
-    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck};
+    IntOverflowCheck intOverflowCheck;
+    StackEscapeCheck stackEscapeCheck;
+    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck};
 
     SmallVector<SanitizerCheck*> enabledChecks;
     for (SanitizerCheck* check : allChecks)

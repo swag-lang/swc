@@ -211,7 +211,7 @@ impl MainWnd
             if masks
             {
                 var img = Image.create(1 + cast(s32) br.width, 1 + cast(s32) br.height, .RGBA8)
-                masks.add(moveref &img)
+                masks.add(#move img)
             }
 
             // Compute colors at the start and at the end of the column, to interpolate
@@ -254,7 +254,7 @@ impl MainWnd
                 i.boundCols.add({y1, y2, col1, col2})
             }
 
-            infos.add(moveref &i)
+            infos.add(#move i)
         }
 
         var params = {capture: capture, infos: infos.buffer, forms: &forms, masks: masks}

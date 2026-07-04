@@ -59,7 +59,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     var table: HashTable'(s32, s32)
 
     var movedValue: s32 = 20
-    table.add(2, moveref &movedValue)
+    table.add(2, #move movedValue)
 
     let slot4 = table.findOrAdd(4)
     slot4.value = 40

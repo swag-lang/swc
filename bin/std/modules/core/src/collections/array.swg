@@ -473,7 +473,7 @@ impl Array
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
         if index == .count do
-            return .add(moveref value)
+            return .add(#move value)
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)

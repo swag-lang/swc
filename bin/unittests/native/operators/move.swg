@@ -16,9 +16,9 @@ func assign(a: &Vec, b: Vec)
 {
     var v = Vec{1}
     var out: Vec
-    assign(&out, moveref &v)
-    out = #move moveref &v
-    var rr: &&Vec = moveref &v
+    assign(&out, #move v)
+    out = #move v
+    var rr: &&Vec = (#move v)
     out = #move rr
     @assert(out.x == 1)
 }

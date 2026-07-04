@@ -235,7 +235,7 @@ func moveRefAssignInfo()->LifecycleInfo
     resetLifecycleHooks()
     var dst = Tracked{6}
     var src = Tracked{4}
-    var rr: &&Tracked = moveref &src
+    var rr: &&Tracked = (#move src)
     dst = #move rr
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -246,7 +246,7 @@ func sliceMoveRefAssignInfo()->LifecycleInfo
     var dst: Tracked
     var src: [2] Tracked = [Tracked{1}, Tracked{2}]
     let slice = @mkslice(&src[0], 2)
-    var rr: &&Tracked = moveref &slice[0]
+    var rr: &&Tracked = (#move slice[0])
     dst = #move rr
     return {dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -265,7 +265,7 @@ func overloadMoveInfo()->LifecycleInfo
     resetLifecycleHooks()
     var dst: Tracked
     var src = Tracked{9}
-    assignTracked(&dst, moveref &src)
+    assignTracked(&dst, #move src)
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -285,7 +285,7 @@ func foreachOverloadMoveInfo()->LifecycleInfo
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
     foreach value in values do
-        assignTracked(&dst, moveref value)
+        assignTracked(&dst, #move value)
     return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 

@@ -163,7 +163,6 @@ SWC_TOKEN_DEF(KwdAttr, "attr",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdVar, "var",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdLet, "let",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdConst, "const",  TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdMoveRef, "moveref",  TokenIdKindE::Keyword)
 
 // RESERVED
 

@@ -30,6 +30,15 @@
 
 #test
 {
+    // '#move' on a raw pointer is ambiguous (move the pointer or the pointee?): use 'dref'.
+    func takeMove(v: &&s32) {}
+    var value: s32
+    var p = &value
+    takeMove(#move p) // swc-expected-error {{sema_err_unary_operand_type}}
+}
+
+#test
+{
     func unaryTildeU64(a: u64)->u64 { return ~a }
     const V = #run unaryTildeU64(0xFFFF_FFFF_FFFF_FFD5'u64)
     #assert(#typeof(V) == u64)

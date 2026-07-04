@@ -102,7 +102,7 @@ func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 
     values.add(2)
 
     var moved: s32 = 3
-    values.insertAt(values.count, moveref &moved)
+    values.insertAt(values.count, #move moved)
 
     let expected: [3] s32 = [1, 2, 3]
     @assert(assertStaticIntArray(values, expected))

@@ -74,7 +74,7 @@ func inlineForeachMoveInfo()->InlineForeachMoveInfo
     var values = InlineForeachMoveValues{InlineForeachMoveTracked{9}}
     resetInlineForeachMoveLifecycleHooks()
     foreach value in values do
-        inlineForeachMoveAssign(&dst, moveref value)
+        inlineForeachMoveAssign(&dst, #move value)
     return {dst.value, values.item.value, InlineForeachMoveDropCount, InlineForeachMoveDropTrace, InlineForeachMovePostMoveCount}
 }
 

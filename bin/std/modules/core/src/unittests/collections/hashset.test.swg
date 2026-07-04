@@ -94,7 +94,7 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
 
     var values: HashSet'String
     values.add("alpha")
-    values.add(moveref &moved)
+    values.add(#move moved)
 
     @assert(values.count == 2)
     @assert(values.contains("alpha"))

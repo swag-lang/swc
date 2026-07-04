@@ -287,8 +287,8 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 
     var movedFront: s32 = 4
     var movedBack: s32 = 8
-    values.insertAt(0, moveref &movedFront)
-    values.add(moveref &movedBack)
+    values.insertAt(0, #move movedFront)
+    values.add(#move movedBack)
 
     let expectedMoved: [6] s32 = [4, 5, 9, 5, 3, 8]
     @assert(assertIntArray(values, expectedMoved))

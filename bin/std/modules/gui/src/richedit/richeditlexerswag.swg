@@ -122,7 +122,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("with", State.Keyword)
         .mapWords.add("cast", State.Keyword)
         .mapWords.add("dref", State.Keyword)
-        .mapWords.add("moveref", State.Declaration)
         .mapWords.add("retval", State.Keyword)
         .mapWords.add("try", State.Keyword)
         .mapWords.add("catch", State.Keyword)

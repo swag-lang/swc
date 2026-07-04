@@ -244,7 +244,7 @@ impl CopyGate
 
     var gate: CopyGate'string
     gate.add("alpha")
-    gate.add(moveref &moved)
+    gate.add(#move moved)
 
     @assert(gate.count == 2)
     @assert(gate.values[0] == "alpha")

@@ -74,7 +74,7 @@ func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String 
     var result: retval
     var res:    String
     while textReader.readLine(&res) do
-        result.add(moveref &res)
+        result.add(#move res)
     return result
 }
 

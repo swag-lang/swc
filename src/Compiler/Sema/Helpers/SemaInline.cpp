@@ -538,22 +538,10 @@ namespace
                 if (op == TokenId::SymAmpersand)
                     return unary.nodeExprRef;
 
-                if (op == TokenId::KwdMoveRef && unary.nodeExprRef.isValid())
+                if (op == TokenId::ModifierMove && unary.nodeExprRef.isValid())
                 {
                     const AstNodeRef moveSourceRef = SemaHelpers::resolveTransparentExprSourceRef(sema, unary.nodeExprRef);
-                    if (moveSourceRef.isValid())
-                    {
-                        const AstNode& moveNode = sema.node(moveSourceRef);
-                        if (moveNode.is(AstNodeId::UnaryExpr) && moveNode.codeRef().isValid())
-                        {
-                            const auto&   moveUnary = moveNode.cast<AstUnaryExpr>();
-                            const TokenId moveOp    = sema.token(moveNode.codeRef()).id;
-                            if (moveOp == TokenId::SymAmpersand)
-                                return moveUnary.nodeExprRef;
-                        }
-                    }
-
-                    return unary.nodeExprRef;
+                    return moveSourceRef.isValid() ? moveSourceRef : unary.nodeExprRef;
                 }
             }
         }
@@ -571,16 +559,10 @@ namespace
         if (op == TokenId::SymAmpersand)
             return unary.nodeExprRef;
 
-        if (op != TokenId::KwdMoveRef || unary.nodeExprRef.isInvalid())
+        if (op != TokenId::ModifierMove || unary.nodeExprRef.isInvalid())
             return valueRef;
 
-        const AstNode& moveExpr = sema.node(unary.nodeExprRef);
-        if (!moveExpr.is(AstNodeId::UnaryExpr) || !moveExpr.codeRef().isValid())
-            return valueRef;
-
-        const auto&   moveUnary = moveExpr.cast<AstUnaryExpr>();
-        const TokenId moveOp    = sema.token(moveExpr.codeRef()).id;
-        return moveOp == TokenId::SymAmpersand ? moveUnary.nodeExprRef : unary.nodeExprRef;
+        return unary.nodeExprRef;
     }
 
     AstNodeRef moveReferenceBindingArgumentRef(Sema& sema, AstNodeRef argRef)
@@ -592,7 +574,7 @@ namespace
             if (sourceNode.is(AstNodeId::UnaryExpr) && sourceNode.codeRef().isValid())
             {
                 const TokenId op = sema.token(sourceNode.codeRef()).id;
-                if (op == TokenId::KwdMoveRef)
+                if (op == TokenId::ModifierMove)
                     return sourceRef;
             }
         }

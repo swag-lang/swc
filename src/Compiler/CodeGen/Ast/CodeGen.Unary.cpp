@@ -160,10 +160,15 @@ namespace
     {
         MicroBuilder&             builder      = codeGen.builder();
         const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+        const SemaNodeView        childView    = codeGen.viewType(nodeExprRef);
 
         const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
-        if (childPayload.isAddress())
+
+        // A reference operand holds the target address in its storage: load it.
+        // A value lvalue operand: its address IS the move reference.
+        const bool childIsRef = childView.type() && childView.type()->isReference();
+        if (childIsRef && childPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
         else
             builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
@@ -207,7 +212,7 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenUnaryDeref(codeGen, nodeExprRef);
         case TokenId::SymAmpersand:
             return codeGenUnaryTakeAddress(codeGen, nodeExprRef);
-        case TokenId::KwdMoveRef:
+        case TokenId::ModifierMove:
             return codeGenUnaryMoveRef(codeGen, nodeExprRef);
 
         default:

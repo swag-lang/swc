@@ -438,23 +438,48 @@ namespace
 
     Result checkMoveRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
-        SWC_UNUSED(node);
         const TypeInfo& type = aliasEnumType(sema, view);
-        if (type.isPointerOrReference())
+        if (type.isReference())
             return Result::Continue;
-        return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
+
+        // A raw pointer operand is ambiguous (move the pointer or the pointee?): require 'dref'.
+        if (type.isAnyPointer())
+            return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
+
+        // A value operand must be an addressable lvalue, like the operand of '&'.
+        return checkTakeAddress(sema, node, view);
     }
 
     Result semaMoveRef(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& type  = aliasEnumType(sema, view);
         TypeInfoFlags   flags = TypeInfoFlagsE::Zero;
-        if (type.isConst())
-            flags.add(TypeInfoFlagsE::Const);
+        TypeRef         pointeeTypeRef;
 
-        TypeRef pointeeTypeRef = TypeRef::invalid();
-        if (type.isReference() || type.isAnyPointer())
+        if (type.isReference())
+        {
+            if (type.isConst())
+                flags.add(TypeInfoFlagsE::Const);
             pointeeTypeRef = type.payloadTypeRef();
+        }
+        else
+        {
+            if (view.sym() && view.sym()->isVariable())
+            {
+                auto& symVar = view.sym()->cast<SymbolVariable>();
+                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                    symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                    symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            }
+
+            if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
+                flags.add(TypeInfoFlagsE::Const);
+            if ((view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant())) ||
+                (view.node() && sema.isLValue(*view.node()) && view.cstRef().isValid()))
+                flags.add(TypeInfoFlagsE::Const);
+
+            pointeeTypeRef = view.typeRef();
+        }
 
         SWC_ASSERT(pointeeTypeRef.isValid());
         const TypeInfo ty      = TypeInfo::makeMoveReference(pointeeTypeRef, flags);
@@ -494,7 +519,7 @@ namespace
                 return checkTakeAddress(sema, node, view);
             case TokenId::KwdDRef:
                 return checkDRef(sema, view);
-            case TokenId::KwdMoveRef:
+            case TokenId::ModifierMove:
                 return checkMoveRef(sema, node, view);
             default:
                 SWC_INTERNAL_ERROR();
@@ -548,8 +573,8 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    // Constant folding
-    if (view.cstRef().isValid())
+    // Constant folding ('#move' never folds: it needs the operand's storage address)
+    if (view.cstRef().isValid() && tok.id != TokenId::ModifierMove)
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, tok.id, *this, view));
@@ -565,7 +590,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             return semaTakeAddress(sema, *this, view);
         case TokenId::SymBang:
             return semaBang(sema, *this, view);
-        case TokenId::KwdMoveRef:
+        case TokenId::ModifierMove:
             return semaMoveRef(sema, view);
         case TokenId::SymPlus:
         case TokenId::SymMinus:

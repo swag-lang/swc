@@ -68,7 +68,7 @@ func enumerate(dirName: string, options: EnumerationOptions)->Array'(File.FileIn
                     if options.recurse
                     {
                         var newPath = Path.combine(toScan.toString(), filename.toString())
-                        stackPath.add(moveref &newPath)
+                        stackPath.add(#move newPath)
                     }
                 }
                 else do
@@ -105,7 +105,7 @@ func enumerate(dirName: string, options: EnumerationOptions)->Array'(File.FileIn
                     {
                         if !options.filterLambda or options.filterLambda(fi)
                         {
-                            result.add(moveref &fi)
+                            result.add(#move fi)
                         }
                     }
                 }

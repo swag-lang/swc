@@ -1029,7 +1029,7 @@ AstNodeRef Parser::parsePrefixExpr()
             return parseCast();
 
         case TokenId::KwdDRef:
-        case TokenId::KwdMoveRef:
+        case TokenId::ModifierMove:
         case TokenId::SymAmpersand:
         {
             const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());

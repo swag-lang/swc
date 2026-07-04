@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Sanitizer/Checks/DivByZeroCheck.h"
+#include "Backend/Sanitizer/Checks/Check.DivByZero.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Support/Report/Diagnostic.h"

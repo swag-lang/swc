@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Sanitizer/Checks/FloatDomainCheck.h"
+#include "Backend/Sanitizer/Checks/Check.FloatDomain.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Sanitizer/Sanitizer.h"

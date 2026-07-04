@@ -18,6 +18,4 @@ func semaTest001()
     var out: Vec
     assign(&out, #move v)
     out = #move v
-    var rr: &&Vec = (#move v)
-    out = #move rr
 }

@@ -831,6 +831,9 @@ namespace
 
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
 
+        if (!isParameter)
+            SWC_RESULT(SemaCheck::noMoveRefType(sema, storageTypeRef, finalTypeErrorRef(sema, context)));
+
         if (isConst && finalType.isReference())
             return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 

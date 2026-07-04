@@ -6,6 +6,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct SemaNodeView;
+struct SourceCodeRef;
 class SymbolVariable;
 
 namespace SemaCheck
@@ -21,6 +22,7 @@ namespace SemaCheck
     bool   isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
     Result isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef leftExprRef, const SemaNodeView& leftView, bool allowLetReferenceWriteThrough = false);
     Result isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);
+    Result noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef& errorRef);
 }
 
 SWC_END_NAMESPACE();

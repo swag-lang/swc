@@ -188,12 +188,13 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     }
 
     // Right reference
-    if (consumeIf(TokenId::SymAmpersandAmpersand).isValid())
+    const TokenRef tokMoveRef = consumeIf(TokenId::SymAmpersandAmpersand);
+    if (tokMoveRef.isValid())
     {
         const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(tokMoveRef);
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }

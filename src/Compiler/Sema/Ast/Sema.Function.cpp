@@ -956,7 +956,9 @@ namespace
 
         if (node.nodeReturnTypeRef.isValid())
         {
-            sym.setReturnTypeRef(sema.viewType(node.nodeReturnTypeRef).typeRef());
+            const TypeRef returnTypeRef = sema.viewType(node.nodeReturnTypeRef).typeRef();
+            SWC_RESULT(SemaCheck::noMoveRefType(sema, returnTypeRef, sema.node(node.nodeReturnTypeRef).codeRef()));
+            sym.setReturnTypeRef(returnTypeRef);
             return Result::Continue;
         }
 
@@ -983,6 +985,7 @@ namespace
             {
                 TypeRef returnTypeRef = sema.viewType(node.nodeBodyRef).typeRef();
                 SWC_RESULT(concretizeImplicitReturnTypeIfNeeded(sema, node.nodeBodyRef, returnTypeRef));
+                SWC_RESULT(SemaCheck::noMoveRefType(sema, returnTypeRef, sema.node(node.nodeBodyRef).codeRef()));
                 sym.setReturnTypeRef(returnTypeRef);
             }
             else
@@ -1464,6 +1467,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         if (sym.returnTypeRef().isValid() && sema.typeMgr().get(sym.returnTypeRef()).isCodeBlock())
             return SemaError::raiseCodeTypeRestricted(sema, nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef, sym.returnTypeRef());
+        SWC_RESULT(SemaCheck::noMoveRefType(sema, sym.returnTypeRef(), sema.node(nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef).codeRef()));
 
         sym.setVariadicParamFlag(sema.ctx());
 

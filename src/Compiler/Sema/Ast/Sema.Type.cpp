@@ -637,7 +637,10 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
     TypeRef returnType = ctx.typeMgr().typeVoid();
     if (nodeReturnTypeRef.isValid())
+    {
         returnType = sema.viewType(nodeReturnTypeRef).typeRef();
+        SWC_RESULT(SemaCheck::noMoveRefType(sema, returnType, sema.node(nodeReturnTypeRef).codeRef()));
+    }
     symFunc->setReturnTypeRef(returnType);
     symFunc->setExtraFlags(flags());
 

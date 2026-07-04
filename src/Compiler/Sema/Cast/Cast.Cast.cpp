@@ -1263,13 +1263,15 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     const auto      dstPointeeTypeRef = dstType.payloadTypeRef();
     const TypeInfo& dstPointeeType    = typeMgr.get(dstPointeeTypeRef);
 
+    // A move reference can only bind another move reference, formed explicitly with '#move'.
+    if (dstType.isMoveReference() && !srcType.isMoveReference())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
     // Ref to ref
     if (srcType.isReference())
     {
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-        if (dstType.isMoveReference() && !srcType.isMoveReference())
-            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         const auto      srcPointeeTypeRef = srcType.payloadTypeRef();
         const TypeInfo& srcPointeeType    = typeMgr.get(srcPointeeTypeRef);

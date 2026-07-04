@@ -351,6 +351,13 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
     return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
 }
 
+Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef& errorRef)
+{
+    if (!typeRef.isValid() || !sema.typeMgr().get(typeRef).isMoveReference())
+        return Result::Continue;
+    return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_ref_type_context, errorRef, typeRef);
+}
+
 Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& view)
 {
     if (sema.isValue(view.nodeRef()))

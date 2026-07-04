@@ -104,9 +104,7 @@ func semaTest010()
     }
 
     var x: s32
-    var y: s32
     var r: &s32 = &x
-    r = #ref &y
     let p = &r
     #assert(#typeof(p) == *s32)
 

@@ -32,10 +32,11 @@ Assigning a value to a reference (after initialization) updates the **referenced
 }
 
 /**
-# Reassigning References
+# References Bind Once
 
-Unlike in C++, Swag allows **reassigning** a reference to point to a different variable.
-Use the `#ref` modifier to perform this operation safely.
+A reference is bound to its variable at initialization, and stays bound to it for its whole
+lifetime. Assigning to the reference always updates the referenced variable, never the
+reference itself.
 */
 
 #test
@@ -44,11 +45,9 @@ Use the `#ref` modifier to perform this operation safely.
     var y = 1000
     var myRef: &s32 = &x
     @assert(myRef == 1)
-    myRef = #ref &y     // Reassign the reference to point to 'y' instead of 'x'
-    @assert(myRef == 1000)
     myRef = 33
-    @assert(x == 1)
-    @assert(y == 33)
+    @assert(x == 33)
+    @assert(y == 1000)
 }
 
 /**

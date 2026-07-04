@@ -16,17 +16,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView, const bool rebindReference)
+    TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView)
     {
-        if (!rebindReference && leftView.type() && leftView.type()->isReference())
+        if (leftView.type() && leftView.type()->isReference())
             return leftView.type()->payloadTypeRef();
         return leftView.typeRef();
     }
 
-    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView, const bool rebindReference)
+    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView)
     {
         SemaNodeView  targetView    = leftView;
-        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
+        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
         if (targetTypeRef != leftView.typeRef())
         {
             targetView.typeRef() = targetTypeRef;
@@ -35,31 +35,11 @@ namespace
         return targetView;
     }
 
-    bool hasReferenceRebindModifier(const AstModifierFlags modifierFlags)
-    {
-        return modifierFlags.hasAny({AstModifierFlagsE::Ref, AstModifierFlagsE::ConstRef});
-    }
-
-    bool isReferenceRebindAssignment(const Sema& sema, TokenId op, const SemaNodeView& leftView)
-    {
-        if (op != TokenId::SymEqual)
-            return false;
-        if (!leftView.type() || !leftView.type()->isReference())
-            return false;
-
-        const auto& assignNode = sema.node(sema.curNodeRef()).cast<AstAssignStmt>();
-
-        // `refVar = #ref rhs` rebinds the reference slot instead of assigning through it.
-        return hasReferenceRebindModifier(assignNode.modifierFlags);
-    }
-
     Result checkAssignModifiers(Sema& sema, const AstAssignStmt& node)
     {
         const TokenId tokId = sema.token(node.codeRef()).id;
         auto          allowed =
             AstModifierFlagsE::NoDrop |
-            AstModifierFlagsE::Ref |
-            AstModifierFlagsE::ConstRef |
             AstModifierFlagsE::Move |
             AstModifierFlagsE::MoveRaw;
 
@@ -124,7 +104,7 @@ namespace
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
             return Result::Continue;
 
-        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView, false);
+        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
         if (aliasType(sema, targetLeftView).isIntLike())
             return Result::Continue;
 
@@ -141,7 +121,7 @@ namespace
         if (op == TokenId::SymEqual)
             return false;
 
-        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView, false);
+        const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
         if (!targetLeftView.type() || !nodeRightView.type())
             return false;
         if (!aliasType(sema, targetLeftView).isIntLike() || !aliasType(sema, nodeRightView).isIntLike())
@@ -149,11 +129,11 @@ namespace
         return SemaHelpers::binaryOpNeedsOverflowSafety(Token::canonicalBinary(op), node.modifierFlags);
     }
 
-    void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView, const bool rebindReference)
+    void markAssignmentTargetAddressableStorage(const SemaNodeView& leftView)
     {
         if (!leftView.sym() || !leftView.sym()->isVariable() || !leftView.type())
             return;
-        if (leftView.type()->isReference() && !rebindReference)
+        if (leftView.type()->isReference())
             return;
 
         auto& symVar = leftView.sym()->cast<SymbolVariable>();
@@ -173,11 +153,11 @@ namespace
         return Cast::emitCastFailure(sema, castRequest.failure);
     }
 
-    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, bool rebindReference, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
+    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
     {
         CastRequest castRequest(CastKind::Assignment);
         castRequest.errorNodeRef    = errorNodeRef.isValid() ? errorNodeRef : leftRef;
-        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView, rebindReference);
+        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
         if (Cast::castAllowed(sema, castRequest, srcTypeRef, targetTypeRef) != Result::Continue)
             return emitAssignmentCastFailure(sema, castRequest, leftRef, noteId);
         return Result::Continue;
@@ -220,15 +200,15 @@ namespace
         return TypeRef::invalid();
     }
 
-    Result tryCompoundAssignmentCast(Sema& sema, TokenId op, AstNodeRef leftRef, const SemaNodeView& leftView, const SemaNodeView& rightView, bool rebindReference, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
+    Result tryCompoundAssignmentCast(Sema& sema, TokenId op, AstNodeRef leftRef, const SemaNodeView& leftView, const SemaNodeView& rightView, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
     {
-        const auto    targetLeftView = assignmentTargetView(sema, leftView, rebindReference);
+        const auto    targetLeftView = assignmentTargetView(sema, leftView);
         const TokenId binOp          = Token::assignToBinary(op);
 
         const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, rightView);
         if (pointerResultTypeRef.isValid())
         {
-            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, pointerResultTypeRef, rebindReference, errorNodeRef, noteId));
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, pointerResultTypeRef, errorNodeRef, noteId));
             if (aliasEnumType(sema, targetLeftView).isBlockPointer() && aliasType(sema, rightView).isIntLike() && rightView.type()->isScalarNumeric())
             {
                 CastRequest castRequest(CastKind::Assignment);
@@ -239,7 +219,7 @@ namespace
             return Result::Continue;
         }
 
-        return tryAssignmentCast(sema, leftRef, leftView, rightView.typeRef(), rebindReference, errorNodeRef, noteId);
+        return tryAssignmentCast(sema, leftRef, leftView, rightView.typeRef(), errorNodeRef, noteId);
     }
 
     void applyMoveAssignmentModifiers(Sema& sema, AstModifierFlags modifierFlags, SemaNodeView& rightView)
@@ -289,13 +269,13 @@ namespace
         return Result::Continue;
     }
 
-    Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, const bool rebindReference)
+    Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const TokenId binOp                = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
-        const auto    targetLeftView       = assignmentTargetView(sema, nodeLeftView, rebindReference);
+        const auto    targetLeftView       = assignmentTargetView(sema, nodeLeftView);
         const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, nodeRightView);
         if (pointerResultTypeRef.isValid())
-            SWC_RESULT(tryAssignmentCast(sema, nodeLeftView.nodeRef(), nodeLeftView, pointerResultTypeRef, rebindReference, sema.curNodeRef(), DiagnosticId::sema_note_assignment_target_here));
+            SWC_RESULT(tryAssignmentCast(sema, nodeLeftView.nodeRef(), nodeLeftView, pointerResultTypeRef, sema.curNodeRef(), DiagnosticId::sema_note_assignment_target_here));
 
         SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), targetLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
@@ -381,9 +361,9 @@ namespace
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
             SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, true));
-            markAssignmentTargetAddressableStorage(leftView, false);
+            markAssignmentTargetAddressableStorage(leftView);
 
-            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef(), false));
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef()));
         }
 
         return Result::Continue;
@@ -414,22 +394,21 @@ namespace
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const SemaNodeView leftView        = sema.viewNodeTypeSymbol(leftRef);
-            const bool         rebindReference = isReferenceRebindAssignment(sema, tok.id, leftView);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, !rebindReference));
-            markAssignmentTargetAddressableStorage(leftView, rebindReference);
+            const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
+            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, true));
+            markAssignmentTargetAddressableStorage(leftView);
 
             if (tok.id != TokenId::SymEqual)
             {
                 const TokenId binOp          = Token::assignToBinary(tok.id);
-                const auto    targetLeftView = assignmentTargetView(sema, leftView, rebindReference);
+                const auto    targetLeftView = assignmentTargetView(sema, leftView);
                 SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef(), targetLeftView, nodeRightView));
             }
 
             if (tok.id == TokenId::SymEqual)
-                SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), rebindReference, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
+                SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
             else
-                SWC_RESULT(tryCompoundAssignmentCast(sema, tok.id, leftRef, leftView, nodeRightView, rebindReference, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
+                SWC_RESULT(tryCompoundAssignmentCast(sema, tok.id, leftRef, leftView, nodeRightView, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
         }
 
         return Result::Continue;
@@ -484,9 +463,8 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (handled)
         return Result::Continue;
 
-    const bool rebindReference = isReferenceRebindAssignment(sema, tok.id, nodeLeftView);
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView, !rebindReference));
-    markAssignmentTargetAddressableStorage(nodeLeftView, rebindReference);
+    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView, true));
+    markAssignmentTargetAddressableStorage(nodeLeftView);
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)
         return Result::Continue;
@@ -505,12 +483,12 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         SWC_RESULT(readReferenceValue(sema, nodeRightView));
         SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
         const TokenId binOp          = Token::assignToBinary(tok.id);
-        const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView, rebindReference);
+        const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
         SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));
     }
 
     SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
-    SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView, rebindReference));
+    SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     return Result::Continue;

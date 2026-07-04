@@ -35,7 +35,7 @@ impl RefRangeModel
 {
     mtd split(idx: u32)
     {
-        let range = #ref .selection[0]
+        let range: &RefRange = &.selection[0]
         #assert(#typeof(range) == #type &RefRange)
         let end   = range.end
 

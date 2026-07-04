@@ -127,7 +127,7 @@ func day10B()
     {
         foreach #Bytes c, col in l
         {
-            let one = #ref mp(cast(s64) col, cast(s64) line)
+            let one: &Dir = &mp(cast(s64) col, cast(s64) line)
             switch c
             {
             case '-':
@@ -150,7 +150,7 @@ func day10B()
     }
 
     // Determin the shape of the start 'S'
-    let start = #ref mp(startX, startY)
+    let start: &Dir = &mp(startX, startY)
     if mp(startX - 1, startY) & .East do
         start |= .West
     if mp(startX + 1, startY) & .West do
@@ -165,7 +165,7 @@ func day10B()
     var visitY = startY
     for
     {
-        let one = #ref mp(visitX, visitY)
+        let one: &Dir = &mp(visitX, visitY)
         one |= .Edge
         var moved = false
 

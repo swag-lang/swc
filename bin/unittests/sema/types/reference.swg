@@ -177,7 +177,7 @@ func semaTest013()
     var total = 1's32
     var index = 0's64
 
-    let valueRef = #ref values.ref1(index)
+    let valueRef: &s32 = &values.ref1(index)
     total += valueRef
     valueRef += 5
 

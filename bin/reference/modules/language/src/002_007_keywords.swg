@@ -328,8 +328,6 @@ They give developers finer control over how code is interpreted or executed.
 #move
 #moveraw
 #reverse
-#ref
-#constref
 #err
 #noerr
 #null

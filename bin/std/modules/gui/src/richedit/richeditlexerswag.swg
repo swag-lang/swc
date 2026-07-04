@@ -374,8 +374,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#move", State.Modifier)
         .mapWords.add("#moveraw", State.Modifier)
         .mapWords.add("#reverse", State.Modifier)
-        .mapWords.add("#ref", State.Modifier)
-        .mapWords.add("#constref", State.Modifier)
         .mapWords.add("#null", State.Modifier)
     }
 

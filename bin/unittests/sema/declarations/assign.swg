@@ -35,15 +35,6 @@ func semaTest005()
     valueRef += 1
 }
 
-func semaTest006()
-{
-    var left: s32
-    var right: s32
-    var valueRef: &s32 = &left
-    valueRef = #ref &right
-    valueRef = 42
-}
-
 struct AssignRefValue
 {
     x: s32
@@ -56,15 +47,6 @@ func semaTest007()
     var valueRef: &AssignRefValue = &value
     let other: AssignRefValue = {x: 4, y: 5}
     valueRef = other
-}
-
-func semaTest008()
-{
-    var left: AssignRefValue
-    var right: AssignRefValue
-    var valueRef: &AssignRefValue = &left
-    valueRef = #ref &right
-    valueRef = {x: 4, y: 5}
 }
 
 func semaTest009()

@@ -814,30 +814,6 @@ namespace
         return fallbackTypeRef;
     }
 
-    TypeRef makeInitializerReferenceTypeRef(Sema& sema, const SemaNodeView& exprView, AstModifierFlags modifierFlags)
-    {
-        const TypeRef exprTypeRef = exprView.typeRef();
-        if (!exprTypeRef.isValid())
-            return exprTypeRef;
-
-        const TypeInfo& exprType = sema.typeMgr().get(exprTypeRef);
-        if (exprType.isReference())
-        {
-            if (!modifierFlags.has(AstModifierFlagsE::ConstRef) || exprType.isConst())
-                return exprTypeRef;
-
-            TypeInfoFlags flags = exprType.flags();
-            flags.add(TypeInfoFlagsE::Const);
-            return sema.typeMgr().addType(TypeInfo::makeReference(exprType.payloadTypeRef(), flags));
-        }
-
-        TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (modifierFlags.has(AstModifierFlagsE::ConstRef))
-            flags.add(TypeInfoFlagsE::Const);
-
-        return sema.typeMgr().addType(TypeInfo::makeReference(exprTypeRef, flags));
-    }
-
     Result validateFinalType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef finalTypeRef, bool isConst, bool isParameter, bool isUsing)
     {
         if (finalTypeRef.isInvalid())
@@ -1356,8 +1332,6 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 Result AstInitializerExpr::semaPostNode(Sema& sema)
 {
     constexpr AstModifierFlags allowed = AstModifierFlagsE::NoDrop |
-                                         AstModifierFlagsE::Ref |
-                                         AstModifierFlagsE::ConstRef |
                                          AstModifierFlagsE::Move |
                                          AstModifierFlagsE::MoveRaw;
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
@@ -1367,10 +1341,7 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
     if (exprView.typeRef().isValid())
     {
         sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
-        TypeRef typeRef = exprView.typeRef();
-        if (modifierFlags.hasAny({AstModifierFlagsE::Ref, AstModifierFlagsE::ConstRef}))
-            typeRef = makeInitializerReferenceTypeRef(sema, exprView, modifierFlags);
-        sema.setType(sema.curNodeRef(), typeRef);
+        sema.setType(sema.curNodeRef(), exprView.typeRef());
         if (exprView.cstRef().isValid())
             sema.setConstant(sema.curNodeRef(), exprView.cstRef());
     }

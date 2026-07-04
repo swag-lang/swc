@@ -188,8 +188,7 @@ alias StrictAddressArray = [3] s32
     inspectConstRefPtr(2 + 5, 7)
 
     var y: s32 = 91
-    var r: &s32 = &x
-    r = #ref &y
+    var r: &s32 = &y
     let rebound = &r
     #assert(#typeof(rebound) == *s32)
     dref rebound = 123

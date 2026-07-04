@@ -86,7 +86,7 @@ func day7A()
 
     for i in lines
     {
-        let l = #ref lines[i]
+        let l: &String = &lines[i]
         if l[0] == '$' do
             l.remove(0, 1)
 

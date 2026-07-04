@@ -32,8 +32,6 @@ enum class AstModifierFlagsE : uint32_t
     Promote  = 1 << 4,
     Wrap     = 1 << 5,
     NoDrop   = 1 << 6,
-    Ref      = 1 << 7,
-    ConstRef = 1 << 8,
     Reverse  = 1 << 9,
     Move     = 1 << 10,
     MoveRaw  = 1 << 11,

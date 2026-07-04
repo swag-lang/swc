@@ -168,7 +168,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 #test
 {
     var values: RefTestFlagBuffer
-    let firstRef = #ref values.refAt(0)
+    let firstRef: &RefTestFlags = &values.refAt(0)
     firstRef = RefTestFlags.A | RefTestFlags.B
     values.values[0] = RefTestFlags.A | RefTestFlags.B
     values.values[1] = RefTestFlags.B | RefTestFlags.C
@@ -176,7 +176,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     values.refAt(0) &= ~RefTestFlags.A
     @assert(values.values[0] == RefTestFlags.B)
 
-    let valueRef = #ref values.refAt(1)
+    let valueRef: &RefTestFlags = &values.refAt(1)
     valueRef |= RefTestFlags.D
     @assert(values.values[1] == (RefTestFlags.B | RefTestFlags.C | RefTestFlags.D))
 }
@@ -188,7 +188,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     #[Swag.Mixin]
     func refAt(index: u64)->&RefTestFlags => &values[index]
 
-    let firstRef = #ref refAt(0)
+    let firstRef: &RefTestFlags = &refAt(0)
     firstRef = RefTestFlags.A | RefTestFlags.B
     @assert(values[0] == (RefTestFlags.A | RefTestFlags.B))
 }

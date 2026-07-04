@@ -75,7 +75,7 @@ func day5A()
             let yy0 = cast(u64) y0
             for x in cast(u64) x0 to cast(u64) x1
             {
-                let c = #ref m.ref2(x, yy0, W)
+                let c: &s32 = &m.ref2(x, yy0, W)
                 total += (c == 1 ? 1 : 0)
                 c += 1
             }
@@ -85,7 +85,7 @@ func day5A()
             let xx0 = cast(u64) x0
             for y in cast(u64) y0 to cast(u64) y1
             {
-                let c = #ref m.ref2(xx0, y, W)
+                let c: &s32 = &m.ref2(xx0, y, W)
                 total += (c == 1 ? 1 : 0)
                 c += 1
             }

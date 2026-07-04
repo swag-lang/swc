@@ -1,9 +1,15 @@
 #global public
 using Core
 
+struct SelRange
+{
+    start: u32
+    end:   u32
+}
+
 struct SelModel
 {
-    selection: Array'{ start: u32, end: u32 }
+    selection: Array'SelRange
 }
 
 impl SelModel
@@ -77,7 +83,7 @@ impl SelModel
         }
         else
         {
-            let range = #ref .selection[isSelectedRange]
+            let range: &SelRange = &.selection[isSelectedRange]
             if range.start == range.end do
                 .selection.removeAt(cast(u64) isSelectedRange)
             elif range.start == idx do

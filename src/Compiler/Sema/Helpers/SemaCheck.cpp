@@ -309,8 +309,6 @@ namespace
             case AstModifierFlagsE::Promote: return TokenId::ModifierPromote;
             case AstModifierFlagsE::Wrap: return TokenId::ModifierWrap;
             case AstModifierFlagsE::NoDrop: return TokenId::ModifierNoDrop;
-            case AstModifierFlagsE::Ref: return TokenId::ModifierRef;
-            case AstModifierFlagsE::ConstRef: return TokenId::ModifierConstRef;
             case AstModifierFlagsE::Reverse: return TokenId::ModifierReverse;
             case AstModifierFlagsE::Move: return TokenId::ModifierMove;
             case AstModifierFlagsE::MoveRaw: return TokenId::ModifierMoveRaw;

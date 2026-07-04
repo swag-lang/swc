@@ -160,7 +160,7 @@ func day6B()
                 continue
             }
 
-            let r = #ref arr.ref2(sx, sy, w)
+            let r: &u8 = &arr.ref2(sx, sy, w)
 
             if first do
                 what = 'O'

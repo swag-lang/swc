@@ -51,6 +51,8 @@ What is the size of the largest area that isn't infinite?
 
 using Core
 
+internal struct Claim { d, who: s32 }
+
 func day6A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
@@ -67,7 +69,7 @@ func day6A()
 
     const W = 300
 
-    var arr:     Array'{ d, who: s32 }
+    var arr:     Array'Claim
     var count:   Array's32
     var borders: Array's32
 
@@ -83,7 +85,7 @@ func day6A()
             let y = i / W
             let d = Math.abs(c.x - x) + Math.abs(c.y - y)
 
-            var r = #ref arr.ref2(x, y, W)
+            var r: &Claim = &arr.ref2(x, y, W)
             if d < r.d or !r.who
             {
                 let border = cast(s32) (!x or !y or x == W - 1 or y == W - 1)

@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Sanitizer/DivByZeroCheck.h"
-#include "Backend/Sanitizer/FloatDomainCheck.h"
-#include "Backend/Sanitizer/IntOverflowCheck.h"
-#include "Backend/Sanitizer/NullDerefCheck.h"
+#include "Backend/Sanitizer/Checks/DivByZeroCheck.h"
+#include "Backend/Sanitizer/Checks/FloatDomainCheck.h"
+#include "Backend/Sanitizer/Checks/IntOverflowCheck.h"
+#include "Backend/Sanitizer/Checks/NullDerefCheck.h"
+#include "Backend/Sanitizer/Checks/StackEscapeCheck.h"
 #include "Backend/Sanitizer/Sanitizer.h"
-#include "Backend/Sanitizer/StackEscapeCheck.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();

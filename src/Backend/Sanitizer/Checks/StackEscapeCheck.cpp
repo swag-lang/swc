@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Sanitizer/StackEscapeCheck.h"
+#include "Backend/Sanitizer/Checks/StackEscapeCheck.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"

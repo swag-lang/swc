@@ -10,7 +10,7 @@ void NullDerefCheck::run(Sanitizer& sanitizer, const SanitizerState& state, cons
 {
     if (!def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
         return;
-    
+
     // A `lea` only computes an address; it never faults. Real code legitimately forms
     // addresses from a null base (e.g. the data pointer of an empty, zero-length slice),
     // so only an actual load/store is a dereference.

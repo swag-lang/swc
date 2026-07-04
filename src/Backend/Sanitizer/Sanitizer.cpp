@@ -6,6 +6,8 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Sanitizer/SanitizerCheck.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -67,19 +69,43 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         }
     }
 
+    // Resolve call targets so checks can identify what a call instruction invokes.
+    std::unordered_map<uint32_t, const Symbol*> callTargets;
+    for (const MicroRelocation& rel : context_.builder->codeRelocations())
+    {
+        if (rel.targetSymbol &&
+            (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
+            callTargets[rel.instructionRef.get()] = rel.targetSymbol;
+    }
+
     // Apply the checks only on the converged states.
     for (uint32_t i = 0; i < n; i++)
     {
         if (!reached_[i])
             continue;
-        const MicroInstr&        inst = *context_.instructions->ptr(cfg.instructionRefs()[i]);
-        const MicroInstrDef&     def  = MicroInstr::info(inst.op);
-        const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+        const MicroInstrRef      instRef = cfg.instructionRefs()[i];
+        const MicroInstr&        inst    = *context_.instructions->ptr(instRef);
+        const MicroInstrDef&     def     = MicroInstr::info(inst.op);
+        const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+
+        currentCallTarget_ = nullptr;
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            const auto it = callTargets.find(instRef.get());
+            if (it != callTargets.end())
+                currentCallTarget_ = it->second;
+        }
+
         for (SanitizerCheck* check : checks)
             check->run(*this, inState_[i], inst, def, ops);
     }
 
     return reported_;
+}
+
+TaskContext& Sanitizer::ctx() const
+{
+    return *context_.taskContext;
 }
 
 bool Sanitizer::isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs)
@@ -283,6 +309,44 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant - imm));
             else
                 setRegValue(state, reg, {});
+            return;
+        }
+
+        case MicroInstrOpcode::OpBinaryRegReg:
+        {
+            // ops: [dst (use+def), src, opBits, microOp]. The instruction defines the CPU
+            // flags, so the compare-subject tracking is reset like the default path does.
+            state.flagsSubject = MicroReg::invalid();
+
+            if (ops[3].microOp == MicroOp::ConvertFloatToFloat)
+            {
+                // Float width conversion (cvtss2sd / cvtsd2ss); opBits is the SOURCE
+                // width. A tracked constant is converted so float constants keep flowing
+                // (this is how a float literal reaches its use: LoadRegImm f64 bits, then
+                // a convert to the destination width).
+                const SanitizerValue src = getReg(state, ops[1].reg);
+                if (src.kind == SanitizerValueKind::Constant && ops[2].opBits == MicroOpBits::B64)
+                {
+                    const auto narrowed = static_cast<float>(std::bit_cast<double>(src.constant));
+                    setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(std::bit_cast<uint32_t>(narrowed)));
+                }
+                else if (src.kind == SanitizerValueKind::Constant && ops[2].opBits == MicroOpBits::B32)
+                {
+                    const auto widened = static_cast<double>(std::bit_cast<float>(static_cast<uint32_t>(src.constant)));
+                    setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(std::bit_cast<uint64_t>(widened)));
+                }
+                else
+                    setRegValue(state, ops[0].reg, {});
+                return;
+            }
+
+            if (ops[3].microOp == MicroOp::Move)
+            {
+                setRegValue(state, ops[0].reg, getReg(state, ops[1].reg));
+                return;
+            }
+
+            setRegValue(state, ops[0].reg, {});
             return;
         }
 

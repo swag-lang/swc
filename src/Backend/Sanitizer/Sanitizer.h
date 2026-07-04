@@ -11,6 +11,8 @@ struct MicroInstrOperand;
 enum class MicroCond : uint8_t;
 enum class DiagnosticId;
 class SanitizerCheck;
+class Symbol;
+class TaskContext;
 
 // The sanitizer engine: a path-sensitive "must-be-zero" abstract-interpretation
 // data-flow over the Micro control-flow graph, shared by all checks.
@@ -36,6 +38,11 @@ public:
 
     // Queries usable by checks against a converged state.
     SanitizerValue getReg(const SanitizerState& state, MicroReg reg) const;
+    TaskContext&   ctx() const;
+
+    // The function called by the current instruction, when the check is invoked on a
+    // call instruction (resolved from the builder's relocations). Null otherwise.
+    const Symbol* currentCallTarget() const { return currentCallTarget_; }
 
     // Reports a diagnostic at an instruction's source location (deduplicated). Marks the
     // run as having found something so the pass can abort codegen.
@@ -69,8 +76,9 @@ private:
 
     MicroPassContext&            context_;
     MicroReg                     stackBaseReg_;
-    const MicroControlFlowGraph* cfg_      = nullptr;
-    bool                         reported_ = false;
+    const MicroControlFlowGraph* cfg_               = nullptr;
+    const Symbol*                currentCallTarget_ = nullptr;
+    bool                         reported_          = false;
     std::vector<SanitizerState>  inState_;
     std::vector<char>            reached_;
     std::vector<char>            inWorklist_;

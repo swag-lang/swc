@@ -272,7 +272,7 @@ impl HashSet
     // Adds a new key to the set by moving it.
     // If the key already exists, does nothing. Returns a pointer to the entry.
     #[Discardable]
-    mtd add(key: &&K)->*HashSetEntry
+    mtd add(key: #move K)->*HashSetEntry
     {
         .grow()
 

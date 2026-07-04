@@ -187,8 +187,8 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         return nodeRef;
     }
 
-    // Right reference
-    const TokenRef tokMoveRef = consumeIf(TokenId::SymAmpersandAmpersand);
+    // Move parameter type
+    const TokenRef tokMoveRef = consumeIf(TokenId::ModifierMove);
     if (tokMoveRef.isValid())
     {
         const AstNodeRef child = parseSubType();

@@ -21,7 +21,7 @@ enum A : [5][10] A { Z }
 enum A : [5][10] ****A { Z }
 enum A : [5][..] ****A { Z }
 enum A : &A { Z }
-enum A : &&A { Z }
+enum A : #move A { Z }
 enum A : *const *A { Z }
 
 enum A : [/* toto */ * ] s32 { Z }
@@ -37,7 +37,7 @@ enum A : [5][10]*const A { Z }
 enum A : [/* c */5] A { Z }
 enum A : [5] /* c */ [10] A { Z }
 enum A : &*A { Z }
-enum A : &&*A { Z }
+enum A : #move *A { Z }
 enum A : [5][..] *const *A { Z }
 enum A : [*] *A { Z }
 enum A : [..] &A { Z }

@@ -239,7 +239,7 @@ impl StaticArray
 
     // Moves an element to the end of the array.
     // Asserts if the array is full.
-    mtd add(value: &&T)
+    mtd add(value: #move T)
     {
         Debug.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #move value
@@ -292,7 +292,7 @@ impl StaticArray
 
     // Inserts a moved value at a specific index, shifting existing elements to the right.
     // Asserts if the array is full. Order is preserved.
-    mtd insertAt(index: u64, value: &&T)
+    mtd insertAt(index: u64, value: #move T)
     {
         Debug.assert(index <= .count, "index out of range")
         if index == .count do

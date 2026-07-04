@@ -322,7 +322,7 @@ impl HashTable
     // Adds a new key-value pair to the me.table, moving the value.
     // If the key already exists, the value is updated if 'updateValue' is true.
     #[Discardable]
-    mtd add(key: K, value: &&V, updateValue = true)->*HashTableEntry
+    mtd add(key: K, value: #move V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()

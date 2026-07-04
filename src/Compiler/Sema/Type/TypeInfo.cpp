@@ -625,7 +625,7 @@ namespace
             case TypeInfoKind::MoveReference:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("&&{}", renderTypeName(type, ctx, mode));
+                out += std::format("#move {}", renderTypeName(type, ctx, mode));
                 break;
             }
 

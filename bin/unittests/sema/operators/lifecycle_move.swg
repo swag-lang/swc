@@ -130,7 +130,7 @@ impl ForeachTrackedValues
     }
 }
 
-func assignTracked(dst: &Tracked, src: &&Tracked)
+func assignTracked(dst: &Tracked, src: #move Tracked)
 {
     dst = #move src
 }

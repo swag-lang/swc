@@ -3,7 +3,7 @@
 struct MoveCtxVec { x: s32 }
 
 // A move reference is allowed as a function parameter type.
-func takeMoveCtx(v: &&MoveCtxVec) {}
+func takeMoveCtx(v: #move MoveCtxVec) {}
 
 #test
 {
@@ -14,20 +14,20 @@ func takeMoveCtx(v: &&MoveCtxVec) {}
 #test
 {
     var v = MoveCtxVec{1}
-    var rr: &&MoveCtxVec = (#move v) // swc-expected-error {{sema_err_move_ref_type_context}}
+    var rr: #move MoveCtxVec = (#move v) // swc-expected-error {{sema_err_move_ref_type_context}}
 }
 
 #test
 {
     struct BadField
     {
-        r: &&MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
+        r: #move MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
     }
 }
 
 #test
 {
-    func badReturn(v: &&MoveCtxVec)->&&MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
+    func badReturn(v: #move MoveCtxVec)->#move MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
     {
         return v
     }
@@ -35,5 +35,5 @@ func takeMoveCtx(v: &&MoveCtxVec) {}
 
 #test
 {
-    var cb: func(v: &&MoveCtxVec)->&&MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
+    var cb: func(v: #move MoveCtxVec)->#move MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
 }

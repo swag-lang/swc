@@ -157,7 +157,7 @@ impl CopyGate
         .count += 1
     }
 
-    mtd add(value: &&T)
+    mtd add(value: #move T)
     {
         .values[.count] = #move value
         .count += 1

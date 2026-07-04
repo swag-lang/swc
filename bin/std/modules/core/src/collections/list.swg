@@ -124,7 +124,7 @@ impl List
     // Adds a new element to the front of the list by moving the value.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addFront(value: &&T)->*ListEntry
+    mtd addFront(value: #move T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #move value
@@ -168,7 +168,7 @@ impl List
     // Adds a new element to the back of the list by moving the value.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addBack(value: &&T)->*ListEntry
+    mtd addBack(value: #move T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #move value
@@ -209,7 +209,7 @@ impl List
     // Inserts a new element before a specified node by moving the value.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertBefore(node: *ListEntry, value: &&T)->*ListEntry
+    mtd insertBefore(node: *ListEntry, value: #move T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #move value
@@ -247,7 +247,7 @@ impl List
     // Inserts a new element after a specified node by moving the value.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertAfter(node: *ListEntry, value: &&T)->*ListEntry
+    mtd insertAfter(node: *ListEntry, value: #move T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #move value

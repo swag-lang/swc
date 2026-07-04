@@ -120,9 +120,9 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16)
 
 #test
 {
-    // A '&&' parameter only binds a move reference formed with '#move': a plain address must not match.
+    // A '#move' parameter only binds a move reference formed with '#move': a plain address must not match.
     struct MoveBindVec { x: s32 }
-    func takeMoveBind(v: &&MoveBindVec) {}
+    func takeMoveBind(v: #move MoveBindVec) {}
     var value: MoveBindVec
     takeMoveBind(&value) // swc-expected-error {{sema_err_cannot_cast}}
 }

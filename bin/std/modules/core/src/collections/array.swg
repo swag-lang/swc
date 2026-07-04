@@ -414,7 +414,7 @@ impl Array
     }
 
     // Moves an element to the end of the array.
-    mtd add(value: &&T)
+    mtd add(value: #move T)
     {
         .grow(.count + 1)
         .initNewSlots(.count, 1)
@@ -469,7 +469,7 @@ impl Array
 
     // Inserts a moved value at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    mtd insertAt(index: u64, value: &&T)
+    mtd insertAt(index: u64, value: #move T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
         if index == .count do

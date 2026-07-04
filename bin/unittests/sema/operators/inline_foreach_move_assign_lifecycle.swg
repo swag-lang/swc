@@ -63,7 +63,7 @@ impl InlineForeachMoveValues
 }
 
 #[Swag.Inline]
-func inlineForeachMoveAssign(dst: &InlineForeachMoveTracked, src: &&InlineForeachMoveTracked)
+func inlineForeachMoveAssign(dst: &InlineForeachMoveTracked, src: #move InlineForeachMoveTracked)
 {
     dst = #move src
 }

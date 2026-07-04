@@ -17,7 +17,7 @@ struct(T) InferBox
 impl InferBox
 {
     mtd add(value: T) {}
-    mtd add(value: &&T) {}
+    mtd add(value: #move T) {}
 }
 
 // An enum auto-member (`.A`) nested inside an aggregate literal that is itself a call

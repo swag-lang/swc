@@ -54,14 +54,14 @@ impl Vector3
 /**
 # Move Semantics in Functions
 
-Move semantics can be expressed in function parameters using '&&' instead of '&'.
+Move semantics can be expressed in function parameters by prefixing the parameter type with '#move'.
 At the call site, prefix the argument with '#move' to pass it as a move reference.
 */
 
 #test
 {
     // Move overload: takes ownership of 'from' and moves into 'assignTo'.
-    func assign(assignTo: &Vector3, from: &&Vector3)
+    func assign(assignTo: &Vector3, from: #move Vector3)
     {
         assignTo = #move from
     }
@@ -80,7 +80,7 @@ At the call site, prefix the argument with '#move' to pass it as a move referenc
     @assert(b.x == 2 and b.y == 3 and b.z == 4) // +1 via 'opPostCopy'.
     @assert(a.x == 1 and a.y == 2 and a.z == 3) // 'a' unchanged.
 
-    // Move path: '#move' passes 'a' as a move reference ('&&').
+    // Move path: '#move' passes 'a' as a move reference.
     assign(&b, #move a)
     @assert(b.x == 3 and b.y == 4 and b.z == 5) // +2 via 'opPostMove'.
     @assert(a.x == 666 and a.y == 666 and a.z == 666) // 'a' reset to defaults after move.

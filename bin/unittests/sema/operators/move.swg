@@ -2,7 +2,7 @@
 
 struct Vec { x: s32 }
 
-func assign(a: &Vec, b: &&Vec)
+func assign(a: &Vec, b: #move Vec)
 {
     a = #move b
 }

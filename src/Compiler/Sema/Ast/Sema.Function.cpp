@@ -20,6 +20,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -1148,6 +1149,29 @@ namespace
                 diag.addArgument(Diagnostic::ARG_SYM, sourceVar.name(sema.ctx()));
                 diag.report(sema.ctx());
                 return Result::Error;
+            }
+
+            // A by-value capture is a raw byte copy into the closure buffer: the environment never
+            // runs 'opPostCopy' on the way in and never drops the captured value on the way out, so
+            // only types without lifecycle operations can be captured by value.
+            if (!captureByRef && !typeInfo.isAnyVariadic())
+            {
+                const TypeRef   unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(ctx, typeRef);
+                const TypeRef   checkTypeRef     = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+                const TypeInfo& checkType        = sema.typeMgr().get(checkTypeRef);
+                SWC_RESULT(sema.waitSemaCompleted(&checkType, captureArg.nodeIdentifierRef));
+
+                const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(ctx, checkTypeRef);
+                if (lifecycle.hasDrop || lifecycle.hasPostCopy || lifecycle.hasPostMove || !lifecycle.canCopy)
+                {
+                    const DiagnosticId diagId = !lifecycle.canCopy ? DiagnosticId::sema_err_closure_capture_nocopy
+                                                                   : DiagnosticId::sema_err_closure_capture_lifecycle;
+
+                    auto diag = SemaError::report(sema, diagId, captureArg.nodeIdentifierRef);
+                    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+                    diag.report(ctx);
+                    return Result::Error;
+                }
             }
 
             uint32_t storageSize  = static_cast<uint32_t>(typeInfo.sizeOf(ctx));

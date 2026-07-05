@@ -1265,12 +1265,15 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     const TypeInfo& dstPointeeType    = typeMgr.get(dstPointeeTypeRef);
 
     // A move reference normally binds only another move reference, formed explicitly with
-    // '#move'. As a call argument, a plain copyable struct value is also accepted: the
-    // caller materializes a temporary deep copy and passes it as the move reference, so a
-    // single '#move' function serves both the copy and the move call styles.
+    // '#move'. As a call argument, a plain copyable value is also accepted: the caller
+    // materializes a temporary copy and passes it as the move reference, so a single
+    // '#move' function serves both the copy and the move call styles. Structs go through
+    // the copy-to-move materializer; scalar-like values go through the scalar reference
+    // binding, so pointer sources stay rejected (moving the pointer or the pointee would
+    // be ambiguous, like '#move' on a raw pointer).
     if (dstType.isMoveReference() && !srcType.isMoveReference())
     {
-        if (!castRequest.flags.has(CastFlagsE::AllowCopyToMoveRef) || !srcType.isStruct())
+        if (!castRequest.flags.has(CastFlagsE::AllowCopyToMoveRef))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         const TypeRef resolvedSrcTypeRef     = typeMgr.unwrapAliasEnum(sema.ctx(), srcTypeRef);
@@ -1278,6 +1281,10 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         const TypeRef resolvedPointeeTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), dstPointeeTypeRef);
         const TypeRef pointeeToCheck         = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : dstPointeeTypeRef;
         if (srcToCheck != pointeeToCheck)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+        const TypeInfo& srcCheckType = typeMgr.get(srcToCheck);
+        if (!srcCheckType.isStruct() && !srcCheckType.isScalarNumeric() && !srcCheckType.isBool() && !srcCheckType.isRune())
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         if (!TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), srcToCheck).canCopy)
@@ -1288,7 +1295,8 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (castRequest.materializeConstantResult())
         {
             const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-            SWC_ASSERT(srcCst.isStruct());
+            if (!srcCst.isStruct())
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             const uint64_t ptr = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
             castRequest.setConstantFoldingResult(addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
         }

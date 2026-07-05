@@ -167,3 +167,25 @@ func makeNested(base: s32)->func||()->s32
     @assert(fct(5) == 110)
     @assert(fct(0) == 100)
 }
+
+struct LifecycleCounter
+{
+    value: s32
+}
+
+impl LifecycleCounter
+{
+    mtd opPostCopy() { .value += 100 }
+    mtd opDrop() {}
+}
+
+// A type with lifecycle operations can be captured by reference: the closure stores
+// a pointer, so no hidden copy or drop is involved.
+#test
+{
+    var tracked = LifecycleCounter{value: 5}
+    let read: func||()->s32 = func|&tracked|()->s32 { return tracked.value }
+    @assert(read() == 5)
+    tracked.value = 9
+    @assert(read() == 9)
+}

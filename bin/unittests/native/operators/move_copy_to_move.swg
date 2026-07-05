@@ -144,3 +144,43 @@ func sinkMoveOnly(v: #move MoveOnly)
     sinkMoveOnly(#move m)
     @assert(g_moveOnly.x == 8)
 }
+
+// Copy-to-move also works for scalar types: a plain scalar variable binds a
+// '#move' scalar parameter through a call-site temporary.
+var g_scalar: s32
+
+func sinkScalar(v: #move s32)
+{
+    g_scalar = v
+}
+
+#test
+{
+    g_scalar = 0
+    var n = 42
+    sinkScalar(n)
+    @assert(g_scalar == 42)
+    @assert(n == 42) // source untouched
+
+    var p = 43
+    sinkScalar(#move p)
+    @assert(g_scalar == 43)
+}
+
+enum Color { Red, Green, Blue }
+
+var g_color: Color = .Red
+
+func sinkColor(v: #move Color)
+{
+    g_color = v
+}
+
+#test
+{
+    var c = Color.Blue
+    sinkColor(c)
+    @assert(g_color == .Blue)
+    sinkColor(#move c)
+    @assert(g_color == .Blue)
+}

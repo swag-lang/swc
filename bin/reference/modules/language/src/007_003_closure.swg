@@ -3,8 +3,13 @@
 # Introduction to Closures in Swag
 
 Swag supports limited closures, allowing functions to capture variables from
-their surrounding scope. Up to 48 bytes can be captured without heap allocation.
-Only simple types (without 'opDrop', 'opPostCopy', or 'opPostMove') can be captured.
+their surrounding scope. Up to 64 bytes can be captured without heap allocation.
+
+A by-value capture is a plain byte copy into the closure: the closure never runs
+'opPostCopy' on the way in and never drops the captured value. Only simple types
+(without 'opDrop', 'opPostCopy', or 'opPostMove', and not marked '#[Swag.NoCopy]')
+can therefore be captured by value; other types must be captured by reference
+with '&'.
 */
 
 /**

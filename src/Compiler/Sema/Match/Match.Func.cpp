@@ -436,6 +436,23 @@ namespace
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
 
+    // True when the argument expression is an explicit '#move expr' (or the move variant of
+    // '#fwd expr'), i.e. a freshly formed move reference, as opposed to reading a variable
+    // whose type happens to be a move reference (a documented copy).
+    bool isExplicitMoveArgument(Sema& sema, AstNodeRef argRef)
+    {
+        AstNodeRef valueRef = argRef;
+        if (sema.node(valueRef).is(AstNodeId::NamedArgument))
+            valueRef = sema.node(valueRef).cast<AstNamedArgument>().nodeArgRef;
+
+        const auto* unary = sema.node(valueRef).safeCast<AstUnaryExpr>();
+        if (!unary)
+            return false;
+
+        const TokenId tokId = sema.token(unary->codeRef()).id;
+        return tokId == TokenId::ModifierMove || tokId == TokenId::ModifierFwd;
+    }
+
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
     {
         VariadicInfo vi;
@@ -775,6 +792,13 @@ namespace
                     if (const SymbolVariable* param = failedParameter(fn, fail))
                         return std::format("its '#move' parameter '{}' cannot take a copy of non-copyable type '{}'; pass the value with '#move'", param->name(ctx), typeName);
                     return std::format("its '#move' parameter cannot take a copy of non-copyable type '{}'; pass the value with '#move'", typeName);
+                }
+
+                if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_param_not_move)
+                {
+                    if (const SymbolVariable* param = failedParameter(fn, fail))
+                        return std::format("its parameter '{}' is not declared '#move' and cannot take a '#move' argument", param->name(ctx));
+                    return Utf8{"its parameter is not declared '#move' and cannot take a '#move' argument"};
                 }
 
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? failedParameter(fn, fail) : nullptr)
@@ -1803,6 +1827,20 @@ namespace
                 }
             }
 
+            // An explicit '#move' argument transfers ownership: it only binds a '#move'
+            // parameter. This also discards the copy variant of a '#fwd' function, so a
+            // mixed call selects the move variant instead of silently copying the moved
+            // argument.
+            if (isExplicitMoveArgument(sema, argRef) &&
+                !sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTy)).isMoveReference())
+            {
+                CastFailure cf{};
+                cf.diagId     = DiagnosticId::sema_err_move_arg_param_not_move;
+                cf.dstTypeRef = paramTy;
+                failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
+                return Result::Continue;
+            }
+
             CastFailure        cf{};
             const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Type);
             TypeRef            argTy = argNodeView.typeRef();
@@ -2392,6 +2430,12 @@ namespace
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castTypeRef, argView));
             if (isIntrinsicAliasStorageMatch(sema, mode, selectedFn, argView.typeRef(), castTypeRef))
                 continue;
+
+            // Backstop for call paths that skip candidate probing (e.g. calls through a
+            // function value): an explicit '#move' argument only binds a '#move' parameter.
+            if (isExplicitMoveArgument(sema, argRef) &&
+                !sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef)).isMoveReference())
+                return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_param_not_move, argValueRef);
 
             // Copy-to-move binding: a plain value bound to a '#move' parameter stays a plain
             // value (no cast node); the call site materializes the temporary copy and passes

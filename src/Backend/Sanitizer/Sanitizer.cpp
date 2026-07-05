@@ -7,7 +7,6 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Sanitizer/SanitizerCheck.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

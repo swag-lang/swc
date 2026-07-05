@@ -52,6 +52,18 @@ impl Vector3
 }
 
 /**
+# Drop Elision
+
+When the source of a '#move' is a plain local that is provably never used again — no
+read or write after the move, no taken address, no capture, and a move that always
+executes when its scope exits — the compiler elides both the reset of the source and
+its scope-exit drop: 'opDrop' is then NOT called on the reset value. A program can
+therefore not rely on counting the drops of fully consumed locals. Any use after the
+move (or any use the compiler cannot prove harmless) keeps the documented
+reset-then-drop behavior.
+*/
+
+/**
 # Lifecycle Safety
 
 Reading a value abandoned by '#relocate' — or by '#move' when the type has no 'opDrop',

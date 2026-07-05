@@ -84,6 +84,16 @@ struct CodeGenDeferScope
     SmallVector<CodeGenDeferredAction, 4> actions;
 };
 
+// Per-local facts gathered by the move-elision pre-walk (see CodeGenMoveElision): the
+// lexically-last use, the block owning the declaration, and whether any use can leak
+// the local's address (which forbids eliding its reset and scope-exit drop).
+struct CodeGenMoveElisionVar
+{
+    AstNodeRef lastUseRef   = AstNodeRef::invalid();
+    AstNodeRef declBlockRef = AstNodeRef::invalid();
+    bool       escaped      = false;
+};
+
 struct CodeGenDeferredEmissionCursor
 {
     size_t scopeIndex      = 0;
@@ -357,6 +367,14 @@ public:
     bool                      currentInstructionBlocksFallthrough() const;
     bool                      inDeferredEmission() const { return deferredEmitDepth_ != 0; }
 
+    // Move elision (see CodeGenMoveElision): per-function analysis cache and the set of
+    // locals whose scope-exit drop has been elided by a consuming '#move'.
+    bool                                                              moveElisionAnalyzed() const { return moveElisionAnalyzed_; }
+    void                                                              setMoveElisionAnalyzed() { moveElisionAnalyzed_ = true; }
+    std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar>& moveElisionVars() { return moveElisionVars_; }
+    void                                                              markImplicitDropElided(const SymbolVariable& symVar) { elidedImplicitDrops_.insert(&symVar); }
+    bool                                                              isImplicitDropElided(const SymbolVariable& symVar) const { return elidedImplicitDrops_.contains(&symVar); }
+
     void                              clearGvtdScratchLayout();
     void                              setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries);
     bool                              hasGvtdScratchLayout() const { return gvtdScratchSize_ != 0; }
@@ -397,6 +415,9 @@ private:
     std::unordered_map<AstNodeRef, void*>                           nodePayloads_;
     std::unordered_map<AstNodeRef, void*>                           auxNodePayloads_;
     std::unordered_map<const SymbolVariable*, VariablePayloadState> variablePayloads_;
+    std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar> moveElisionVars_;
+    std::unordered_set<const SymbolVariable*>                        elidedImplicitDrops_;
+    bool                                                             moveElisionAnalyzed_ = false;
     SymbolFunction*                                                 function_            = nullptr;
     MicroBuilder*                                                   builder_             = nullptr;
     uint32_t                                                        nextVirtualRegister_ = 1;

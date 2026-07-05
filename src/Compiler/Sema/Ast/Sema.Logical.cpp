@@ -6,7 +6,6 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

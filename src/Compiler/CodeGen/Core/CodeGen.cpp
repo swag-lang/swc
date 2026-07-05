@@ -463,6 +463,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         nextDeferredAddressGeneration_    = 1;
         hasDeferredStatements_            = containsNodeId(root, AstNodeId::DeferStmt) || functionHasImplicitDrops(*this, symbolFunc);
         variablePayloads_.clear();
+        moveElisionVars_.clear();
+        elidedImplicitDrops_.clear();
+        moveElisionAnalyzed_ = false;
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
@@ -1121,6 +1124,10 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
         case CodeGenDeferredAction::Kind::ImplicitDrop:
         {
             if (!action.variable || action.lifecycleTypeRef.isInvalid())
+                return Result::Continue;
+
+            // The local was consumed by a '#move' that proved it dead: no drop.
+            if (isImplicitDropElided(*action.variable))
                 return Result::Continue;
 
             CodeGenNodePayload variablePayload;

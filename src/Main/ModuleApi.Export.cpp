@@ -2923,7 +2923,7 @@ namespace
             while (lineEnd < ioContent.size() && ioContent[lineEnd] != '\r' && ioContent[lineEnd] != '\n')
                 ++lineEnd;
 
-            const std::string_view line = ioContent.substr(lineStart, lineEnd - lineStart);
+            const std::string_view line = ioContent.subView(lineStart, lineEnd - lineStart);
             if (line.empty())
             {
                 pos = lineEnd;

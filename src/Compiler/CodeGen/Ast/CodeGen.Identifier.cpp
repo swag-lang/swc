@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -539,7 +540,20 @@ namespace
             {
                 const bool shouldResetSource = !isRelocate && codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop);
                 if (shouldResetSource)
-                    SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+                {
+                    // Drop elision: a provably dead source skips both its reset and its
+                    // scope-exit drop; under lifecycle safety it is poisoned instead.
+                    AstNodeRef            resolvedSourceRef = AstNodeRef::invalid();
+                    const SymbolVariable* sourceVar         = CodeGenMoveElision::directStructVariable(codeGen, initRef, &resolvedSourceRef);
+                    if (sourceVar && CodeGenMoveElision::canElideMoveSource(codeGen, *sourceVar, resolvedSourceRef))
+                    {
+                        codeGen.markImplicitDropElided(*sourceVar);
+                        if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+                            SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
+                    }
+                    else
+                        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+                }
                 else if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
                     SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
             }

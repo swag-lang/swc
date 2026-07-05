@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -398,31 +399,6 @@ namespace
         return codeGen.sema().isLValue(codeGen.node(rightRef));
     }
 
-    // The variable a node directly names, when its frame slot holds the struct itself
-    // (not a reference/pointer to it). Two DIFFERENT such variables can never overlap,
-    // which makes the runtime self-assignment guard statically dead.
-    const SymbolVariable* directStructVariable(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return nullptr;
-
-        const AstNodeRef resolvedRef = codeGen.viewZero(nodeRef).nodeRef();
-        if (resolvedRef.isInvalid())
-            return nullptr;
-
-        const Symbol* sym = codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol).sym();
-        if (!sym || !sym->isVariable())
-            return nullptr;
-
-        const auto&   symVar           = sym->cast<SymbolVariable>();
-        const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
-        const TypeRef storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : symVar.typeRef();
-        if (!codeGen.typeMgr().get(storageTypeRef).isStruct())
-            return nullptr;
-
-        return &symVar;
-    }
-
     Result emitAssignStructLifecycle(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& originalRightPayload, TypeRef rightTypeRef, TypeRef originalRightTypeRef, TokenId assignOp, AstModifierFlags modifierFlags, AstNodeRef rightRef)
     {
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp);
@@ -447,6 +423,17 @@ namespace
         // A '#relocate' source, or a '#move' source without a drop lifecycle, is abandoned
         // with its stale bits: under lifecycle safety it is poisoned and marked moved-from.
         const bool shouldInvalidateSource = canTouchSource && !shouldResetSource && CodeGenSafety::hasLifecycleRuntimeSafety(codeGen);
+
+        // Drop elision: a '#move' source that is provably dead afterwards skips both its
+        // reset and its scope-exit drop; under lifecycle safety it is poisoned instead.
+        AstNodeRef            resolvedRightRef = AstNodeRef::invalid();
+        const SymbolVariable* rightVar         = CodeGenMoveElision::directStructVariable(codeGen, rightRef, &resolvedRightRef);
+        const bool            elideSource      = shouldResetSource && rightVar &&
+                                       CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
+        if (elideSource)
+            codeGen.markImplicitDropElided(*rightVar);
+
+        const bool wantInvalidateSource = shouldInvalidateSource || (elideSource && CodeGenSafety::hasLifecycleRuntimeSafety(codeGen));
 
         if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource && !shouldInvalidateSource)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
@@ -493,22 +480,21 @@ namespace
         // Otherwise it stays inside the guarded region (a real self-assignment must not
         // poison the value it just kept), where the marker dies at the join.
         bool invalidateAfterGuard = false;
-        if (shouldInvalidateSource && doneLabel.isValid())
+        if (wantInvalidateSource && doneLabel.isValid())
         {
-            const SymbolVariable* leftVar  = directStructVariable(codeGen, leftRef);
-            const SymbolVariable* rightVar = directStructVariable(codeGen, rightRef);
-            invalidateAfterGuard           = leftVar && rightVar && leftVar != rightVar;
+            const SymbolVariable* leftVar = CodeGenMoveElision::directStructVariable(codeGen, leftRef);
+            invalidateAfterGuard          = leftVar && rightVar && leftVar != rightVar;
         }
 
-        if (shouldResetSource)
+        if (shouldResetSource && !elideSource)
             SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
-        else if (shouldInvalidateSource && !invalidateAfterGuard)
+        else if (wantInvalidateSource && !invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 
         if (doneLabel.isValid())
             builder.placeLabel(doneLabel);
 
-        if (shouldInvalidateSource && invalidateAfterGuard)
+        if (wantInvalidateSource && invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 
         return Result::Continue;

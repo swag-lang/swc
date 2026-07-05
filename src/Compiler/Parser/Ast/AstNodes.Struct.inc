@@ -350,6 +350,7 @@ enum class AstClosureArgumentFlagsE : AstNode::ParserFlags
 
 struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument, AstClosureArgumentFlagsE>
 {
+    TokenRef   tokAliasNameRef;
     AstNodeRef nodeIdentifierRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentifierRef}); }

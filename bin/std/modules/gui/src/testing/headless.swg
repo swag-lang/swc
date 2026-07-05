@@ -70,8 +70,7 @@ impl GuiHeadlessHost
 
     mtd recordCommands()
     {
-        let host = me
-        .root.hookOnEvent = func|host|(wnd, evt)
+        .root.hookOnEvent = func|host = me|(wnd, evt)
         {
             switch evt
             {
@@ -88,8 +87,7 @@ impl GuiHeadlessHost
 
     mtd closeOnCommand(cmdId: WndId)
     {
-        let host = me
-        .root.hookOnEvent = func|host, cmdId|(wnd, evt)
+        .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
         {
             switch evt
             {

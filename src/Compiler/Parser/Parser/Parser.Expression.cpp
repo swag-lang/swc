@@ -212,6 +212,45 @@ namespace
     }
 }
 
+bool Parser::isClosureCaptureEndPipe() const
+{
+    if (!is(TokenId::SymPipe) ||
+        !hasContextFlag(ParserContextFlagsE::InClosureCapture) ||
+        depthParen_ != closureCaptureStopDepthParen_ ||
+        depthBracket_ != closureCaptureStopDepthBracket_ ||
+        depthCurly_ != closureCaptureStopDepthCurly_ ||
+        !nextIs(TokenId::SymLeftParen))
+        return false;
+
+    const Token* cursor     = curToken_ + 1;
+    uint32_t     parenDepth = 0;
+    while (cursor <= lastToken_)
+    {
+        if (cursor->id == TokenId::SymLeftParen)
+        {
+            parenDepth++;
+        }
+        else if (cursor->id == TokenId::SymRightParen)
+        {
+            SWC_ASSERT(parenDepth);
+            parenDepth--;
+            if (!parenDepth)
+                break;
+        }
+
+        cursor++;
+    }
+
+    if (cursor >= lastToken_)
+        return false;
+
+    const TokenId afterParamListId = (cursor + 1)->id;
+    return afterParamListId == TokenId::SymMinusGreater ||
+           afterParamListId == TokenId::KwdThrow ||
+           afterParamListId == TokenId::SymEqualGreater ||
+           afterParamListId == TokenId::SymLeftCurly;
+}
+
 AstModifierFlags Parser::parseModifiers()
 {
     AstModifierFlags                     result = AstModifierFlagsE::Zero;
@@ -302,6 +341,9 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
+        if (isClosureCaptureEndPipe())
+            break;
+
         if (!isBinaryOperator(opId))
             break;
 

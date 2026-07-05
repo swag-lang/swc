@@ -76,17 +76,16 @@ impl IconBar
         b.setForm(.RoundSquare)
         .computeLayout()
 
-        let bar = me
         if iconBtnFlags.has(.Checkable | .CheckableToggle)
         {
-            b.sigCheckChanged += func|bar|(btn)
+            b.sigCheckChanged += func|bar = me|(btn)
             {
                 bar.sigCheckChanged.call(btn)
             }
         }
         else
         {
-            b.sigPressed += func|bar|(btn)
+            b.sigPressed += func|bar = me|(btn)
             {
                 bar.sigPressed.call(cast(*IconButton) btn)
             }

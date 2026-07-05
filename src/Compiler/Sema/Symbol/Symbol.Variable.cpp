@@ -87,6 +87,12 @@ void SymbolVariable::setClosureCaptureByRef(bool value) noexcept
         removeExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef);
 }
 
+void SymbolVariable::setClosureCapturedSource(SymbolVariable* source) noexcept
+{
+    addExtraFlag(SymbolVariableFlagsE::ClosureCapture);
+    closureCapturedSource_ = source;
+}
+
 void SymbolVariable::setGlobalStorage(DataSegmentKind kind, uint32_t offset)
 {
     globalStorageKind_ = kind;

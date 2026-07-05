@@ -159,8 +159,7 @@ impl LibraryWnd
 
         if .listCtrl.getLineCount() do
             return
-        let libWnd = me
-        g_Library.onDeleteFile += func|libWnd|(file)
+        g_Library.onDeleteFile += func|libWnd = me|(file)
         {
             foreach it, i in libWnd.view.items
             {

@@ -257,8 +257,7 @@ impl IForm for FormStep
             .paintBigBorder    = true
         }
 
-        let form = me
-        .gizmo.sigChanged = func|form|(g, first, hitMove)
+        .gizmo.sigChanged = func|form = me|(g, first, hitMove)
         {
             g.apply(form, first, hitMove)
         }

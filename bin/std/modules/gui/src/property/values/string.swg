@@ -11,7 +11,6 @@ impl Properties
     mtd constructDynamicString(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
-        let prop = me
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
@@ -24,7 +23,7 @@ impl Properties
             {
                 .anchorStyle = .X
             }
-            .sigLoseFocus += func|prop, item|(ed) { prop.validateDynamicString(item); }
+            .sigLoseFocus += func|prop = me, item|(ed) { prop.validateDynamicString(item); }
         }
 
         me.adaptCondensedControl(ed)

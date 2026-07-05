@@ -146,12 +146,11 @@ impl Dialog
     #[Swag.Discardable]
     mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {
-        let dlg = me
         with let btn = PushButton.create(me.wndBottom, str, {}, id)
         {
             .form = isDefault ? .Default : .Strong
 
-            .sigPressed += func|dlg|(btn)
+            .sigPressed += func|dlg = me|(btn)
             {
                 if !dlg.sigPressedButton or dlg.sigPressedButton(dlg, btn.id) do
                     btn.getApp().exitModal(btn.id)

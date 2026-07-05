@@ -12,8 +12,30 @@ AstNodeRef Parser::parseClosureArg()
         flags.add(AstClosureArgumentFlagsE::Address);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
-    nodePtr->flags()        = flags;
-    PushContextFlags pushContext(this, ParserContextFlagsE::InClosureCapture);
+    nodePtr->flags()            = flags;
+    nodePtr->tokAliasNameRef    = TokenRef::invalid();
+    nodePtr->nodeIdentifierRef  = AstNodeRef::invalid();
+
+    if (is(TokenId::Identifier) && nextIs(TokenId::SymEqual))
+    {
+        nodePtr->tokAliasNameRef = consume();
+        consumeAssert(TokenId::SymEqual);
+        const PushContextFlags pushContext(this, ParserContextFlagsE::InClosureCapture);
+
+        const uint32_t savedStopDepthParen   = closureCaptureStopDepthParen_;
+        const uint32_t savedStopDepthBracket = closureCaptureStopDepthBracket_;
+        const uint32_t savedStopDepthCurly   = closureCaptureStopDepthCurly_;
+        closureCaptureStopDepthParen_        = depthParen_;
+        closureCaptureStopDepthBracket_      = depthBracket_;
+        closureCaptureStopDepthCurly_        = depthCurly_;
+        nodePtr->nodeIdentifierRef = parseExpression();
+        closureCaptureStopDepthParen_   = savedStopDepthParen;
+        closureCaptureStopDepthBracket_ = savedStopDepthBracket;
+        closureCaptureStopDepthCurly_   = savedStopDepthCurly;
+        return nodeRef;
+    }
+
+    const PushContextFlags pushContext(this, ParserContextFlagsE::InClosureCapture);
     nodePtr->nodeIdentifierRef = parseQualifiedIdentifier();
 
     return nodeRef;

@@ -283,7 +283,6 @@ impl Properties
 
         let grid = .isGridLike()
         let h    = .revertButtonSize()
-        let prop = me
         with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Round)
@@ -301,7 +300,7 @@ impl Properties
             else do
                 .dockStyle = .None           // placed by positionListRevert, at the edit column
 
-            .sigPressed += func|prop, item|(b)
+            .sigPressed += func|prop = me, item|(b)
             {
                 prop.resetItemDefault(item)
             }

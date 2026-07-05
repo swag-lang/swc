@@ -392,7 +392,7 @@ impl LibraryView
 
     mtd sortFiles()
     {
-        .items.sort(func|me.libWnd|(a, b)
+        .items.sort(func|libWnd = me.libWnd|(a, b)
         {
             var value: s32
 
@@ -470,8 +470,7 @@ impl LibraryView
         // Launch thread to read all captures
         try
         {
-            let view = me
-            .thread.init(func|view|(th: Thread) { view.loadFiles(th); })
+            .thread.init(func|view = me|(th: Thread) { view.loadFiles(th); })
             .thread.start()
         }
 

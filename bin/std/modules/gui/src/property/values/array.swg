@@ -184,8 +184,7 @@ impl Properties
         item.arrayAddButton = addBtn
         if !.isGridLike() do
             item.label.wndFlags.remove(.ClipChildren)
-        let prop = me
-        addBtn.sigPressed += func|prop, item|(btn)
+        addBtn.sigPressed += func|prop = me, item|(btn)
         {
             prop.appendArrayValue(item)
         }

@@ -1093,6 +1093,17 @@ namespace
         return IdentifierRef::invalid();
     }
 
+    IdentifierRef closureCaptureExplicitAliasIdentifier(Sema& sema, const AstClosureArgument& captureArg)
+    {
+        if (captureArg.tokAliasNameRef.isInvalid())
+            return IdentifierRef::invalid();
+
+        SourceCodeRef codeRef;
+        codeRef.srcViewRef = captureArg.codeRef().srcViewRef;
+        codeRef.tokRef     = captureArg.tokAliasNameRef;
+        return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+    }
+
     Result resolveClosureCaptureSourceSymbol(Sema& sema, AstNodeRef identifierRef, Symbol*& outSymbol)
     {
         outSymbol = sema.viewSymbol(identifierRef).sym();
@@ -1126,30 +1137,50 @@ namespace
         {
             const AstClosureArgument& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
             Symbol*                   sourceSym  = nullptr;
-            SWC_RESULT(resolveClosureCaptureSourceSymbol(sema, captureArg.nodeIdentifierRef, sourceSym));
-            if (!sourceSym)
-                return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+            SymbolVariable*           sourceVar  = nullptr;
+            TypeRef                   typeRef    = TypeRef::invalid();
+            const bool                hasExplicitAlias = captureArg.tokAliasNameRef.isValid();
 
-            if (!sourceSym->isVariable())
+            if (hasExplicitAlias)
             {
-                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
-                diag.report(sema.ctx());
-                return Result::Error;
+                sourceSym = sema.viewSymbol(captureArg.nodeIdentifierRef).sym();
+                if (sourceSym && sourceSym->isVariable())
+                    sourceVar = &sourceSym->cast<SymbolVariable>();
+
+                typeRef = sema.viewType(captureArg.nodeIdentifierRef).typeRef();
+                SWC_ASSERT(typeRef.isValid());
+            }
+            else
+            {
+                SWC_RESULT(resolveClosureCaptureSourceSymbol(sema, captureArg.nodeIdentifierRef, sourceSym));
+                if (!sourceSym)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+
+                if (!sourceSym->isVariable())
+                {
+                    const auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
+
+                sourceVar = &sourceSym->cast<SymbolVariable>();
+                typeRef   = sourceVar->typeRef();
             }
 
-            auto&           sourceVar = sourceSym->cast<SymbolVariable>();
-            const TypeRef   typeRef   = sourceVar.typeRef();
             const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, captureArg.nodeIdentifierRef));
 
             const bool captureByRef = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);
-            if (captureByRef && sourceVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+            if (captureByRef && sourceVar && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_let_by_ref, captureArg.nodeIdentifierRef);
-                diag.addArgument(Diagnostic::ARG_SYM, sourceVar.name(sema.ctx()));
+                diag.addArgument(Diagnostic::ARG_SYM, sourceVar->name(sema.ctx()));
                 diag.report(sema.ctx());
                 return Result::Error;
             }
+
+            if (captureByRef && hasExplicitAlias && !sema.isLValue(captureArg.nodeIdentifierRef))
+                return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, captureArg.nodeIdentifierRef);
 
             // A by-value capture is a raw byte copy into the closure buffer: the environment never
             // runs 'opPostCopy' on the way in and never drops the captured value on the way out, so
@@ -1186,12 +1217,15 @@ namespace
                 storageAlign = 1;
 
             captureOffset = Math::alignUpU64(captureOffset, storageAlign);
-            if (const SymbolVariable* existingCapture = findClosureCaptureSymbol(sym, sourceVar))
+            if (!hasExplicitAlias && sourceVar)
             {
-                if (existingCapture->decl() == &captureArg)
+                if (const SymbolVariable* existingCapture = findClosureCaptureSymbol(sym, *sourceVar))
                 {
-                    captureOffset += storageSize;
-                    continue;
+                    if (existingCapture->decl() == &captureArg)
+                    {
+                        captureOffset += storageSize;
+                        continue;
+                    }
                 }
             }
 
@@ -1204,18 +1238,21 @@ namespace
                 return Result::Error;
             }
 
-            IdentifierRef captureIdRef = closureCaptureAliasIdentifier(sema, captureArg.nodeIdentifierRef);
+            IdentifierRef captureIdRef = hasExplicitAlias ? closureCaptureExplicitAliasIdentifier(sema, captureArg) : closureCaptureAliasIdentifier(sema, captureArg.nodeIdentifierRef);
             if (!captureIdRef.isValid())
-                captureIdRef = sourceVar.idRef();
+            {
+                SWC_ASSERT(sourceVar != nullptr);
+                captureIdRef = sourceVar->idRef();
+            }
 
             auto* captureSym = Symbol::make<SymbolVariable>(ctx, &captureArg, captureArg.tokRef(), captureIdRef, SymbolFlagsE::Zero);
             captureSym->setTypeRef(typeRef);
-            captureSym->setClosureCapturedSource(&sourceVar);
+            captureSym->setClosureCapturedSource(sourceVar);
             captureSym->setClosureCaptureOffset(static_cast<uint32_t>(captureOffset));
             captureSym->setClosureCaptureByRef(captureByRef);
 
-            if (captureByRef && sourceVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                sourceVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+            if (captureByRef && sourceVar && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                sourceVar->addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
 
             if (captureIdRef.isValid())
             {
@@ -1223,7 +1260,7 @@ namespace
                 if (inserted != captureSym)
                 {
                     auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_duplicate, captureArg.nodeIdentifierRef);
-                    diag.addArgument(Diagnostic::ARG_SYM, sourceVar.name(ctx));
+                    diag.addArgument(Diagnostic::ARG_SYM, captureIdRef);
                     diag.addNote(DiagnosticId::sema_note_previous_capture);
                     diag.last().addSpan(inserted->codeRange(ctx));
                     diag.report(ctx);

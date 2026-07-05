@@ -19,7 +19,6 @@ impl Properties
         let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
         if !.isGridLike() do
             line.maxSize.x = width
-        let prop = me
 
         // Grid rows center the field row vertically in the cell; list rows stack it
         // under the name label (the row is a StackLayoutCtrl), where dock-centering
@@ -48,7 +47,7 @@ impl Properties
             {
                 .dockStyle = .Left
                 .setInputF64()
-                .sigLoseFocus += func|prop, item, fieldOffset|(ed)
+                .sigLoseFocus += func|prop = me, item, fieldOffset|(ed)
                 {
                     // Write this component into every edited instance, leaving the others.
                     prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text))
@@ -58,7 +57,7 @@ impl Properties
 
             me.flattenCondensedEdit(ed)
 
-            item.sigRefresh += func|prop, ed, dataField, fieldOffset|(item)
+            item.sigRefresh += func|prop = me, ed, dataField, fieldOffset|(item)
             {
                 ed.setText(Format.toString("%", dref dataField))
                 prop.setEditMixedSub(item, ed, fieldOffset, #sizeof(f32))

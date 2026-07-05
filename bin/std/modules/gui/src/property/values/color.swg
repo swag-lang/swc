@@ -20,7 +20,6 @@ impl Properties
             width = .listContentWidthFromUseful(width)
         const MarginBtn = 4
         const WidthBtn  = 60
-        let prop        = me
 
         // Match the other value editors: fill the value column in grid mode, but
         // stay left-aligned at its edit size in list mode (otherwise the color row
@@ -52,7 +51,7 @@ impl Properties
             .dockStyle = .Center
             .margin.x  = MarginBtn
             .setInputX64(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
-            .sigLoseFocus += func|prop, color, item, opaque, keepAlpha|(ed)
+            .sigLoseFocus += func|prop = me, color, item, opaque, keepAlpha|(ed)
             {
                 var result = cast(u32) (catch StrConv.parseX64(ed.text).value & 0xFFFFFFFF)
                 if opaque do
@@ -74,7 +73,7 @@ impl Properties
             bc.painter.fillRoundRect(pos, 5, 5, dref color)
         }
 
-        btn.sigShowPopup += func|prop, color, item, opaque, keepAlpha|(btn)
+        btn.sigShowPopup += func|prop = me, color, item, opaque, keepAlpha|(btn)
         {
             if !btn do
                 return
@@ -103,12 +102,12 @@ impl Properties
             }
         }
 
-        btn.sigHidePopup += func|prop|(btn)
+        btn.sigHidePopup += func|prop = me|(btn)
         {
             prop.editPopup = null
         }
 
-        item.sigRefresh += func|prop, ed, btn, color, editAlpha|(item)
+        item.sigRefresh += func|prop = me, ed, btn, color, editAlpha|(item)
         {
             if editAlpha do
                 ed.setText(Format.toString("%{X08}", color.argb))

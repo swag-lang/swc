@@ -114,8 +114,7 @@ private impl FileBrowserCtrl
             .treePathStr.add(v)
         }
 
-        let fileBrowser = me
-        .treeCtrl.sigSelChanged += func|fileBrowser|(list)
+        .treeCtrl.sigSelChanged += func|fileBrowser = me|(list)
         {
             var line = list.getSelectedLine()
             if !line do
@@ -127,7 +126,6 @@ private impl FileBrowserCtrl
 
     mtd createFileList(view: *Wnd)
     {
-        let fileBrowser = me
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
             .selectionMode = me.options.mode == .SelectMultiFiles ? .Multi : .Single
@@ -143,7 +141,7 @@ private impl FileBrowserCtrl
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
-            .sigKeyPressed += func|fileBrowser|(list, evt)
+            .sigKeyPressed += func|fileBrowser = me|(list, evt)
             {
                 switch evt.key
                 {
@@ -166,7 +164,7 @@ private impl FileBrowserCtrl
                     }
                 }
             }
-            .sigLeftDoubleClick += func|fileBrowser|(list, pt)
+            .sigLeftDoubleClick += func|fileBrowser = me|(list, pt)
             {
                 var l = list.getSelectedLine()
                 if !l do
@@ -182,7 +180,7 @@ private impl FileBrowserCtrl
                     list.setFocus()
                 }
             }
-            .sigSelChanged += func|fileBrowser|(list)
+            .sigSelChanged += func|fileBrowser = me|(list)
             {
                 var sel  = list.getSelectedLines()
                 var txt: String

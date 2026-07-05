@@ -485,12 +485,11 @@ impl IForm for FormImage
             .paintBigBorder    = true
         }
 
-        let form = me
-        .gizmo.sigChanged = func|form|(g, first, hitMove)
+        .gizmo.sigChanged = func|form = me|(g, first, hitMove)
         {
             g.apply(form, first, hitMove)
         }
-        .gizmo.sigRotate = func|form|(g, first, last, angle)
+        .gizmo.sigRotate = func|form = me|(g, first, last, angle)
         {
             g.applyRotate(form, first, last, angle)
         }

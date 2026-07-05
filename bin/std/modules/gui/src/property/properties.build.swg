@@ -56,8 +56,7 @@ internal impl Properties
                 .extendFocus = .gridLineMargin * 0.5
         }
 
-        let prop = me
-        line.hookOnEvent = func|prop, item|(wnd, evt) { return prop.onItemEvent(item, wnd, evt); }
+        line.hookOnEvent = func|prop = me, item|(wnd, evt) { return prop.onItemEvent(item, wnd, evt); }
 
         // Name
         if flags.has(.Name)

@@ -136,7 +136,6 @@ impl Properties
     mtd constructEnumFlags(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: *u8, parentItem: *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
-        let prop = me
         item.flags.add(.NoSeparator | .Expanded)
         var numChilds: u32
 
@@ -172,7 +171,7 @@ impl Properties
                 .flags.add(.NoSeparator)
             }
 
-            line.hookOnEvent = func|prop, itemB|(hwnd, evt) { return prop.onItemEvent(itemB, hwnd, evt); }
+            line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) { return prop.onItemEvent(itemB, hwnd, evt); }
 
             with let ed = CheckButton.create(line, "", {0, 0, me.gridLineHeight, 0})
             {
@@ -209,7 +208,7 @@ impl Properties
             }
 
             .refreshEnumFlags(itemB)
-            itemB.checkBox.sigChanged += func|prop, itemB|(ed)
+            itemB.checkBox.sigChanged += func|prop = me, itemB|(ed)
             {
                 prop.validateEnumFlags(itemB)
             }
@@ -229,7 +228,6 @@ impl Properties
         }
 
         let item = .addItem(value, data, parentItem)
-        let prop = me
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
@@ -253,7 +251,7 @@ impl Properties
             ed.addItem(v.name)
 
         .refreshEnum(item)
-        item.comboBox.sigChanged += func|prop, item|(ed, n)
+        item.comboBox.sigChanged += func|prop = me, item|(ed, n)
         {
             prop.validateEnum(item)
         }

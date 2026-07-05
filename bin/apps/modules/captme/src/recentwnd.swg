@@ -300,11 +300,10 @@ impl RecentWnd
         if .loadDone do
             return
         .loadDone = true
-        let self = me
 
         if !g_Library.loaded do
             g_Library.fill()
-        g_Library.onDeleteFile += func|self|(file)
+        g_Library.onDeleteFile += func|self = me|(file)
         {
             foreach it, i in self.recentView.items
             {

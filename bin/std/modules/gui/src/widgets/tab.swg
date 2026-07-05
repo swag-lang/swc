@@ -321,12 +321,11 @@ private impl Tab
 {
     mtd showPopup(x, y: f32)
     {
-        let tab = me
         .popup = PopupListCtrl.create(me)
         foreach item in .views do
             .popup.addItem(item.name.raw, item.id, item.icon, item.userData0)
 
-        .popup.sigSelected = func|tab|(list, idx)
+        .popup.sigSelected = func|tab = me|(list, idx)
         {
             if idx != Swag.U32.Max do
                 tab.select(idx)
@@ -438,8 +437,7 @@ private impl Tab
             {
                 .buttonPopup      = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.SortArrowDown), {})
                 .buttonPopup.form = .Round
-                let tab = me
-                .buttonPopup.sigPressed += func|tab|(btn)
+                .buttonPopup.sigPressed += func|tab = me|(btn)
                 {
                     var rect = btn.getSurfaceRect()
                     tab.showPopup(rect.x, rect.y + btn.position.height)

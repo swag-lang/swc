@@ -67,6 +67,9 @@ private:
     uint32_t           depthParen_     = 0;
     uint32_t           depthBracket_   = 0;
     uint32_t           depthCurly_     = 0;
+    uint32_t           closureCaptureStopDepthParen_ = 0xFFFFFFFFu;
+    uint32_t           closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
+    uint32_t           closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
     TokenRef           lastErrorToken_ = TokenRef::invalid();
 
     FwdParseMode fwdPassMode_     = FwdParseMode::Copy; // variant emitted by the current statement pass
@@ -84,6 +87,7 @@ private:
     bool         nextIs(TokenId id0) const { return atEnd() ? false : curToken_[1].id == id0; }
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
+    bool         isClosureCaptureEndPipe() const;
 
     TokenRef ref() const
     {

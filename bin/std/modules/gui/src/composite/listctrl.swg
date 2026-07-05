@@ -848,7 +848,7 @@ impl ListCtrl
             .scrollWnd.focusStrategy   = .None
             .scrollWnd.backgroundStyle = .Transparent
             .scrollWnd.setAllPaddings(.getThemeMetrics().list_Padding)
-            .scrollWnd.sigScrollPosChanged += func|list.header|(scrollWnd, op, np)
+            .scrollWnd.sigScrollPosChanged += func|header = list.header|(scrollWnd, op, np)
             {
                 header.scrollPos.x = np.x
                 header.invalidate()
@@ -1202,8 +1202,7 @@ impl ListCtrl
             return res
         }
 
-        let list = me
-        let cb = func|list, column, descentOrder|(a, b: *ListLine)->s32
+        let cb = func|list = me, column, descentOrder|(a, b: *ListLine)->s32
         {
             if list.sigSort do
                 return list.sigSort(a, b, column, descentOrder)

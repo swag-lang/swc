@@ -24,6 +24,7 @@ enum class SymbolVariableFlagsE : uint16_t
     ClosureCaptureByRef     = 1 << 11,
     GlobalStorage           = 1 << 12,
     FwdCopy                 = 1 << 13, // copy variant of a '#fwd' parameter: requires a copyable type at match time
+    ClosureCapture          = 1 << 14,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 
@@ -52,9 +53,9 @@ public:
     void                  setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
     uint32_t              debugStackSlotSize() const { return debugStackSlotSize_; }
     void                  setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
-    bool                  isClosureCapture() const noexcept { return closureCapturedSource_ != nullptr; }
+    bool                  isClosureCapture() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCapture); }
     SymbolVariable*       closureCapturedSource() const noexcept { return closureCapturedSource_; }
-    void                  setClosureCapturedSource(SymbolVariable* source) noexcept { closureCapturedSource_ = source; }
+    void                  setClosureCapturedSource(SymbolVariable* source) noexcept;
     uint32_t              closureCaptureOffset() const noexcept { return closureCaptureOffset_; }
     void                  setClosureCaptureOffset(uint32_t offset) noexcept { closureCaptureOffset_ = offset; }
     bool                  closureCaptureByRef() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCaptureByRef); }

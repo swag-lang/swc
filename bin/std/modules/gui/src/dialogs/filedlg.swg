@@ -64,8 +64,7 @@ private impl FileDlg
             .surface.center(me.surface)
         }
 
-        let browser = .browser
-        dlg.sigPressedButton = func|dlg, browser|(fdlg, btnid)
+        dlg.sigPressedButton = func|dlg, browser = me.browser|(fdlg, btnid)
         {
             if btnid != Dialog.BtnOk do
                 return true
@@ -146,15 +145,14 @@ impl FileDlg
         srf.setSurfaceFlags(remove: .CloseBtn)
 
         // Host the reusable browser composite.
-        let fileDlg = dlg
         with dlg.browser = FileBrowserCtrl.create(srf.getView(), opt)
         {
             .dockStyle = .Center
-            .sigAccept += func|fileDlg|(b)
+            .sigAccept += func|fileDlg = dlg|(b)
             {
                 fileDlg.validateId(Dialog.BtnOk)
             }
-            .sigNewFolder += func|fileDlg|(b)
+            .sigNewFolder += func|fileDlg = dlg|(b)
             {
                 fileDlg.onNewFolder()
             }

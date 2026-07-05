@@ -33,6 +33,31 @@ before the parameter list. The type uses 'func||(...)'.
 }
 
 /**
+# Init-Capture and Aliases
+
+Use 'name = expr' to capture the value of an expression under a chosen name.
+This is useful when capturing a member path, a computed value, or 'me' under a
+clear callback-local name.
+*/
+#test
+{
+    struct Box
+    {
+        value: s32
+    }
+
+    let leftBox  = Box{2}
+    let rightBox = Box{7}
+
+    let fct: func||()->s32 = func|left = leftBox.value, right = rightBox.value|()->s32
+    {
+        return left * 10 + right
+    }
+
+    @assert(fct() == 27)
+}
+
+/**
 # Capturing Variables by Reference
 
 Use '&' to capture by reference; otherwise, capture is by value.
@@ -51,6 +76,26 @@ Use '&' to capture by reference; otherwise, capture is by value.
 
     fct()
     @assert(a == 127)
+}
+
+/**
+# Aliased Reference Capture
+
+The '&' form can also be used with an alias when the captured expression is
+addressable.
+*/
+#test
+{
+    var a = 125
+
+    let fct: func||()->s32 = func|&current = a|()->s32
+    {
+        current += 1
+        return current
+    }
+
+    @assert(fct() == 126)
+    @assert(a == 126)
 }
 
 /**

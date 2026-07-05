@@ -831,8 +831,7 @@ impl QuickWnd
             .layout.sendResizeEvent()
             .setScrollSize(0, .layout.resultHeight)
 
-            let quickWnd = me
-            btn1.sigPressed += func|quickWnd|(btn)
+            btn1.sigPressed += func|quickWnd = me|(btn)
             {
                 let main = quickWnd.main
                 let mdl = main.newFormFromModel(main.getEditMode())

@@ -84,8 +84,7 @@ impl Properties
         }
 
         item.checkBox = ed
-        let prop = me
-        ed.sigChanged += func|prop, item|(ed)
+        ed.sigChanged += func|prop = me, item|(ed)
         {
             prop.validateBool(item)
         }

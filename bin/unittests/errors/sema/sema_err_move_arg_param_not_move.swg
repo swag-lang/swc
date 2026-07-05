@@ -12,19 +12,19 @@ impl Vec
     mtd opDrop() {}
 }
 
-func plainStore(v: Vec) {}
-func plainScalar(v: s32) {}
+func refStore(v: &Vec) {}
+func ptrStore(v: *Vec) {}
 
-// An explicit '#move' argument requires a '#move' parameter: it is not silently
-// degraded to a copy.
+// An explicit '#move' argument requires a parameter that can receive the transfer: a
+// reference or pointer parameter would silently ignore it.
 #test
 {
     var t = Vec{1}
-    plainStore(#move t) // swc-expected-error {{sema_err_move_arg_param_not_move}}
+    refStore(#move t) // swc-expected-error {{sema_err_move_arg_param_not_move}}
 }
 
 #test
 {
-    var n = 3
-    plainScalar(#move n) // swc-expected-error {{sema_err_move_arg_param_not_move}}
+    var t = Vec{2}
+    ptrStore(#move t) // swc-expected-error {{sema_err_move_arg_param_not_move}}
 }

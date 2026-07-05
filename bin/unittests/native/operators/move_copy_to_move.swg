@@ -167,6 +167,51 @@ func sinkScalar(v: #move s32)
     @assert(g_scalar == 43)
 }
 
+// An untyped literal also binds a '#move' scalar parameter: it is materialized into
+// the call-site temporary like a plain variable.
+#test
+{
+    g_scalar = 0
+    sinkScalar(7)
+    @assert(g_scalar == 7)
+    sinkScalar(40 + 5)
+    @assert(g_scalar == 45)
+}
+
+// An explicit '#move' argument to a BY-VALUE parameter moves the source into a
+// call-site temporary that the callee borrows: the caller drops the temporary right
+// after the call, and the source is consumed.
+func plainSink(v: Tracked)
+{
+    g_slot = #nodrop v
+}
+
+#test
+{
+    g_copies, g_moves, g_drops = 0
+    var a = Tracked{9}
+    plainSink(#move a)
+    @assert(g_slot.x == 9)
+    @assert(g_moves == 1)  // move into the temporary
+    @assert(g_copies == 1) // the callee copies the borrowed temporary
+    @assert(g_drops == 1)  // the caller drops the temporary
+    @assert(a.x == 0)      // source consumed (reset to defaults)
+}
+
+// On a by-value scalar parameter, '#move' is accepted and equivalent to a plain pass.
+func plainScalarSink(v: s32)
+{
+    g_scalar = v
+}
+
+#test
+{
+    g_scalar = 0
+    var n = 51
+    plainScalarSink(#move n)
+    @assert(g_scalar == 51)
+}
+
 enum Color { Red, Green, Blue }
 
 var g_color: Color = .Red

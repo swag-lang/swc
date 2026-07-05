@@ -106,9 +106,9 @@ func storeBoth(a: #fwd Tracked, b: #fwd Tracked)
     g_b = #nodrop #fwd b
 }
 
-// A mixed call (one plain, one '#move' argument) selects the move variant: the
-// '#move' argument is honored, and the plain argument goes through a call-site
-// temporary copy.
+// A mixed call (one plain, one '#move' argument) selects the copy variant (exact match
+// on the plain argument), and the '#move' argument is still honored: its source is
+// moved into a call-site temporary that the parameter borrows, then consumed.
 #test
 {
     g_copies, g_moves = 0
@@ -117,10 +117,10 @@ func storeBoth(a: #fwd Tracked, b: #fwd Tracked)
     storeBoth(t, #move u)
     @assert(g_a.x == 80)
     @assert(g_b.x == 81)
-    @assert(g_copies == 1)
-    @assert(g_moves == 2)
-    @assert(t.x == 80) // plain argument copied
-    @assert(u.x == 0)  // '#move' argument honored: source reset to defaults
+    @assert(g_copies == 2) // both parameters are copied by the body
+    @assert(g_moves == 1)  // the '#move' argument moved into its temporary
+    @assert(t.x == 80)     // plain argument untouched
+    @assert(u.x == 0)      // '#move' argument honored: source reset to defaults
 }
 
 #[Swag.NoCopy]

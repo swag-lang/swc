@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -865,6 +866,63 @@ namespace
         return Result::Continue;
     }
 
+    // An explicit '#move' argument bound to a by-value struct parameter: move the source
+    // into a call-site temporary (bitwise copy + 'opPostMove'), consume the source (reset
+    // when it has a drop lifecycle, poisoned under lifecycle safety otherwise), and pass
+    // the temporary's address as the borrowed argument. The temporary belongs to the
+    // caller — the callee only borrows it — so it is dropped right after the call.
+    Result materializePreparedMovedValueArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
+    {
+        if (argRef.isInvalid() || normalizedTypeRef.isInvalid() || !resolvedArg.movesValueToParam)
+            return Result::Continue;
+        if (argPayload.hasMaterializedPointerLikeValue())
+            return Result::Continue;
+
+        TaskContext&    ctx              = codeGen.ctx();
+        const TypeRef   unwrappedTypeRef = ctx.typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : normalizedTypeRef;
+        const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
+        if (!storageType.isStruct())
+            return Result::Continue;
+
+        const uint64_t rawSize = storageType.sizeOf(ctx);
+        SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
+
+        // The argument is the freshly formed move reference: resolve the source address
+        // (an address-backed moveref payload holds the address of the reference cell).
+        MicroBuilder&      builder       = codeGen.builder();
+        const SemaNodeView argView       = codeGen.viewType(argRef);
+        CodeGenNodePayload sourcePayload = argPayload;
+        if (argView.type() && argView.type()->isMoveReference() && sourcePayload.isAddress())
+        {
+            const MicroReg pointeeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(pointeeReg, sourcePayload.reg, 0, MicroOpBits::B64);
+            sourcePayload.reg = pointeeReg;
+        }
+        sourcePayload.typeRef = storageTypeRef;
+        sourcePayload.setIsAddress();
+
+        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, sourcePayload, static_cast<uint32_t>(rawSize));
+        if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::PostMove))
+            SWC_RESULT(codeGen.emitLifecycle(storageTypeRef, CodeGenLifecycleKind::PostMove, storageReg));
+
+        if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::Drop))
+        {
+            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
+            outPostCallDrops.push_back({storageTypeRef, storageReg});
+        }
+        else if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+        {
+            SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, sourcePayload.reg, storageTypeRef, resolvePreparedArgSourceRef(codeGen, argRef)));
+        }
+
+        argPayload.reg     = storageReg;
+        argPayload.typeRef = normalizedTypeRef;
+        argPayload.setIsAddress();
+        return Result::Continue;
+    }
+
     Result appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg, uint32_t& outTransientStackSize, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
         CodeGenNodePayload argPayload;
@@ -949,6 +1007,7 @@ namespace
             }
 
             SWC_RESULT(materializePreparedCopyToMoveArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, outPostCallDrops));
+            SWC_RESULT(materializePreparedMovedValueArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, outPostCallDrops));
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);

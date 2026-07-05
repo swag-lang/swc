@@ -2319,21 +2319,24 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (isDynamicInterfaceDispatchCall(sema, fn, ufcsArg, resolvedArgs.span()))
         return Result::Continue;
 
-    // A plain value bound to a '#move' parameter is materialized as a temporary deep copy
-    // by the real call path; the inline binder has no equivalent, so keep those calls out
-    // of inlining. Macros and mixins cannot fall back to a real call: require '#move'.
+    // A plain value bound to a '#move' parameter (copy-to-move), and an explicit '#move'
+    // argument bound to a by-value parameter (move-to-value), are materialized as call-site
+    // temporaries by the real call path; the inline binder has no equivalent, so keep those
+    // calls out of inlining. Macros and mixins cannot fall back to a real call.
     {
         const auto& params = fn.parameters();
         for (size_t i = 0; i < resolvedArgs.size() && i < params.size(); ++i)
         {
             const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
-            if (!resolvedArg.bindsReferenceToValue || resolvedArg.argRef.isInvalid())
+            if (resolvedArg.argRef.isInvalid())
                 continue;
             SWC_ASSERT(params[i] != nullptr);
-            if (!params[i]->type(sema.ctx()).isMoveReference())
+
+            const bool bindsCopyToMove = resolvedArg.bindsReferenceToValue && params[i]->type(sema.ctx()).isMoveReference();
+            if (!bindsCopyToMove && !resolvedArg.movesValueToParam)
                 continue;
             if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_macro, resolvedArg.argRef);
+                return SemaError::raise(sema, bindsCopyToMove ? DiagnosticId::sema_err_move_arg_macro : DiagnosticId::sema_err_move_arg_macro_value, resolvedArg.argRef);
             return Result::Continue;
         }
     }

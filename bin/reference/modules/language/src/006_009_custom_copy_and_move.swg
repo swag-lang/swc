@@ -84,20 +84,23 @@ At the call site, prefix the argument with '#move' to pass it as a move referenc
 A '#move' parameter also accepts a plain (copyable) value: the compiler then materializes a
 temporary copy at the call site and passes it as the move reference. A single '#move' function
 therefore serves both call styles — including through lambdas, function pointers and interface
-methods — at the price of one extra copy on the copy path. This works for structs and for
-plain scalar values (integers, floats, bool, rune, enums) alike.
+methods — at the price of one extra copy on the copy path. This works for structs, for plain
+scalar values (integers, floats, bool, rune, enums), and for untyped literals alike.
 
-The reverse is not allowed: an explicit '#move' argument only binds a '#move' parameter. It is
-a compile-time error to pass '#move x' to a parameter declared without '#move' — the request
-to transfer ownership is never silently degraded to a copy.
+Conversely, an explicit '#move' argument is always honored. Passed to a '#move' parameter, it
+is the zero-cost transfer above. Passed to a BY-VALUE parameter, the source is moved into a
+call-site temporary that the callee borrows: the caller drops the temporary right after the
+call, and the source is consumed. Passed to a reference or pointer parameter, it is a
+compile-time error — the transfer would be silently ignored. On by-value scalars, '#move' is
+accepted and equivalent to a plain pass.
 
 A named function can avoid that extra copy by declaring the parameter with '#fwd' instead: the
 compiler emits two overloads, a copy variant (the parameter behaves like a plain value) and a
 move variant (the parameter behaves like '#move'). Inside the body, '#fwd' forwards the
 parameter with the mode of the selected variant. Calls without '#move' then pick the dedicated
-copy variant, with no temporary. With several '#fwd' parameters, a mixed call (at least one
-'#move' argument) selects the move variant: the '#move' arguments are honored, and the plain
-arguments go through a call-site temporary copy.
+copy variant, with no temporary. With several '#fwd' parameters, a mixed call picks whichever
+variant matches best; the '#move' arguments are honored either way — through the move
+variant's parameter, or through a by-value move into the copy variant's parameter.
 
 If the type is not copyable (marked with '#[Swag.NoCopy]'), the copy paths are
 automatically discarded at overload resolution: only a '#move' call is accepted.

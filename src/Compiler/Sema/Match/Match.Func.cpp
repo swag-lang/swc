@@ -63,7 +63,11 @@ namespace
             return TypeRef::invalid();
 
         const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
-        if (!paramType.isReference() || !paramType.isConst())
+        if (!paramType.isReference())
+            return TypeRef::invalid();
+
+        const bool isMoveRefParam = paramType.isMoveReference();
+        if (!isMoveRefParam && !paramType.isConst())
             return TypeRef::invalid();
 
         const TypeRef pointeeTypeRef = paramType.payloadTypeRef();
@@ -76,6 +80,13 @@ namespace
         const TypeRef   unwrappedSourceTypeRef = sema.typeMgr().get(sourceTypeRef).unwrap(sema.ctx(), sourceTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeRef   resolvedSourceTypeRef  = unwrappedSourceTypeRef.isValid() ? unwrappedSourceTypeRef : sourceTypeRef;
         const TypeInfo& sourceType             = sema.typeMgr().get(resolvedSourceTypeRef);
+
+        // A '#move' parameter accepts an UNSIZED literal: the argument is cast to the
+        // pointee value and materialized into the call-site temporary like a plain
+        // variable. Typed sources keep going through the copy-to-move cast path.
+        if (isMoveRefParam)
+            return sourceType.isScalarUnsized() ? pointeeTypeRef : TypeRef::invalid();
+
         if (sourceType.isPointerOrReference())
             return TypeRef::invalid();
         if (sourceType.isStruct())
@@ -231,10 +242,11 @@ namespace
 
     enum class ConvRank
     {
-        Exact,      // same type (or identical canonical type)
-        Standard,   // safe numeric, pointer decay, etc.
-        CopyToMove, // plain value bound to a '#move' parameter via a temporary copy
-        Ellipsis,   // varargs fallback (if you support it)
+        Exact,       // same type (or identical canonical type)
+        Standard,    // safe numeric, pointer decay, etc.
+        CopyToMove,  // plain value bound to a '#move' parameter via a temporary copy
+        MoveToValue, // explicit '#move' argument consumed into a by-value parameter
+        Ellipsis,    // varargs fallback (if you support it)
         Bad,
     };
 
@@ -439,7 +451,7 @@ namespace
     // True when the argument expression is an explicit '#move expr' (or the move variant of
     // '#fwd expr'), i.e. a freshly formed move reference, as opposed to reading a variable
     // whose type happens to be a move reference (a documented copy).
-    bool isExplicitMoveArgument(Sema& sema, AstNodeRef argRef)
+    bool isExplicitMoveArgumentNode(Sema& sema, AstNodeRef argRef)
     {
         AstNodeRef valueRef = argRef;
         if (sema.node(valueRef).is(AstNodeId::NamedArgument))
@@ -797,8 +809,8 @@ namespace
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_param_not_move)
                 {
                     if (const SymbolVariable* param = failedParameter(fn, fail))
-                        return std::format("its parameter '{}' is not declared '#move' and cannot take a '#move' argument", param->name(ctx));
-                    return Utf8{"its parameter is not declared '#move' and cannot take a '#move' argument"};
+                        return std::format("its reference parameter '{}' cannot take a '#move' argument", param->name(ctx));
+                    return Utf8{"its reference parameter cannot take a '#move' argument"};
                 }
 
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? failedParameter(fn, fail) : nullptr)
@@ -1140,7 +1152,11 @@ namespace
             return Result::Pause;
         if (castResult == Result::Continue)
         {
-            outRank = castRequest.usedCopyToMoveRef ? ConvRank::CopyToMove : ConvRank::Standard;
+            // An untyped literal binding a '#move' parameter through its pointee value is a
+            // copy-to-move as well: a dedicated copy overload ('#fwd') must stay preferred.
+            const bool bindsValueToMoveRef = bindValueTypeRef.isValid() && sema.typeMgr().get(to).isMoveReference();
+
+            outRank = (castRequest.usedCopyToMoveRef || bindsValueToMoveRef) ? ConvRank::CopyToMove : ConvRank::Standard;
             return Result::Continue;
         }
 
@@ -1827,18 +1843,21 @@ namespace
                 }
             }
 
-            // An explicit '#move' argument transfers ownership: it only binds a '#move'
-            // parameter. This also discards the copy variant of a '#fwd' function, so a
-            // mixed call selects the move variant instead of silently copying the moved
-            // argument.
-            if (isExplicitMoveArgument(sema, argRef) &&
-                !sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTy)).isMoveReference())
+            // An explicit '#move' argument binds a '#move' parameter, or a by-value
+            // parameter (the source is then consumed into a call-site temporary). A
+            // reference/pointer parameter would silently ignore the transfer: rejected.
+            const bool argIsExplicitMove = isExplicitMoveArgumentNode(sema, argRef);
+            if (argIsExplicitMove)
             {
-                CastFailure cf{};
-                cf.diagId     = DiagnosticId::sema_err_move_arg_param_not_move;
-                cf.dstTypeRef = paramTy;
-                failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
-                return Result::Continue;
+                const TypeInfo& paramCheck = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTy));
+                if (!paramCheck.isMoveReference() && paramCheck.isPointerOrReference())
+                {
+                    CastFailure cf{};
+                    cf.diagId     = DiagnosticId::sema_err_move_arg_param_not_move;
+                    cf.dstTypeRef = paramTy;
+                    failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
+                    return Result::Continue;
+                }
             }
 
             CastFailure        cf{};
@@ -1887,6 +1906,12 @@ namespace
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
+
+            // An explicit '#move' argument consumed by a by-value parameter ranks below
+            // copy-to-move: an overload with a real '#move' parameter stays preferred.
+            if (argIsExplicitMove && !sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTy)).isMoveReference())
+                r = ConvRank::MoveToValue;
+
             outCandidate.perArg.push_back(r);
         }
 
@@ -2218,6 +2243,7 @@ namespace
 namespace
 {
     bool bindsReferenceToValue(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef);
+    bool movesValueToParam(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef);
 
     void gatherViableAttempts(const SmallVector<Attempt>& attempts, SmallVector<const Attempt*>& outViable)
     {
@@ -2432,17 +2458,30 @@ namespace
                 continue;
 
             // Backstop for call paths that skip candidate probing (e.g. calls through a
-            // function value): an explicit '#move' argument only binds a '#move' parameter.
-            if (isExplicitMoveArgument(sema, argRef) &&
-                !sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef)).isMoveReference())
-                return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_param_not_move, argValueRef);
+            // function value): an explicit '#move' argument binds a '#move' or a by-value
+            // parameter, never a reference/pointer one (the transfer would be ignored).
+            if (isExplicitMoveArgumentNode(sema, argRef))
+            {
+                const TypeInfo& paramCheck = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef));
+                if (!paramCheck.isMoveReference() && paramCheck.isPointerOrReference())
+                    return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_param_not_move, argValueRef);
+            }
 
             // Copy-to-move binding: a plain value bound to a '#move' parameter stays a plain
             // value (no cast node); the call site materializes the temporary copy and passes
-            // its address as the move reference.
-            if (sema.typeMgr().get(paramTypeRef).isMoveReference() &&
+            // its address as the move reference. When a value conversion is pending (an
+            // untyped literal binding the pointee), the cast below must still run.
+            if (castTypeRef == paramTypeRef &&
+                sema.typeMgr().get(paramTypeRef).isMoveReference() &&
                 argView.type() && !argView.type()->isMoveReference() &&
                 bindsReferenceToValue(sema, paramTypeRef, argValueRef))
+                continue;
+
+            // Move-to-value binding: an explicit '#move' argument bound to a by-value
+            // struct parameter also keeps its raw form (a read-through cast node would
+            // detour the payload); the call site moves the source into a temporary and
+            // passes its address as the borrowed argument.
+            if (movesValueToParam(sema, paramTypeRef, argRef))
                 continue;
 
             CastFlags flags = CastFlagsE::AllowCopyToMoveRef;
@@ -2703,6 +2742,26 @@ namespace
         return SemaHelpers::attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
     }
 
+    // An explicit '#move' argument bound to a by-value STRUCT parameter: the source is
+    // consumed into a call-site temporary that the callee borrows.
+    bool movesValueToParam(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid() || !isExplicitMoveArgumentNode(sema, argRef))
+            return false;
+
+        const TypeInfo& paramType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef));
+        return !paramType.isMoveReference() && paramType.isStruct();
+    }
+
+    Result attachMovedValueRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid() || sema.isGlobalScope())
+            return Result::Continue;
+
+        const TypeRef storageTypeRef = unwrapAliasEnumOrSelf(sema, paramTypeRef);
+        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_move_storage");
+    }
+
     Result buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         outResolvedArgs.clear();
@@ -2770,11 +2829,14 @@ namespace
                 .argRef                   = finalArgRef,
                 .passKind                 = passKind,
                 .bindsReferenceToValue    = i < numParams && bindsReferenceToValue(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef),
+                .movesValueToParam        = i < numParams && movesValueToParam(sema, selectedFn.parameters()[i]->typeRef(), entry.argRef),
                 .passUfcsAddressAsPointer = i < numParams && passUfcsAddressAsPointer(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef, appliedUfcsArg),
             };
 
             if (resolvedArg.bindsReferenceToValue)
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
+            if (resolvedArg.movesValueToParam)
+                SWC_RESULT(attachMovedValueRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
             if (i < numParams)
                 SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, selectedFn, selectedFn.parameters()[i]->typeRef(), finalArgRef));
 
@@ -2839,6 +2901,11 @@ AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
     if (finalRef.isInvalid())
         finalRef = argRef;
     return finalRef;
+}
+
+bool Match::isExplicitMoveArgument(Sema& sema, const AstNodeRef argRef)
+{
+    return isExplicitMoveArgumentNode(sema, argRef);
 }
 
 AstNodeRef Match::resolveCallArgumentValueRef(Sema& sema, AstNodeRef argRef)

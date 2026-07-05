@@ -194,8 +194,19 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     else
         nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
-    // Parameters
+    // Parameters. A '#fwd' parameter makes this declaration dual-instantiated: the
+    // enclosing statement is re-parsed to emit a copy variant and a move variant.
+    const bool         savedFwdSeen   = fwdSeenParam_;
+    const bool         savedFwdActive = fwdDeclActive_;
+    const FwdParseMode savedFwdMode   = fwdCurMode_;
+    fwdSeenParam_          = false;
     nodePtr->nodeParamsRef = parseFunctionParamList();
+    if (fwdSeenParam_)
+    {
+        fwdDeclActive_  = true;
+        fwdCurMode_     = fwdPassMode_;
+        fwdStmtTrigger_ = true;
+    }
 
     // Return type
     if (consumeIf(TokenId::SymMinusGreater).isValid())
@@ -235,6 +246,10 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     }
     else
         nodePtr->nodeBodyRef = parseFunctionBody();
+
+    fwdSeenParam_  = savedFwdSeen;
+    fwdDeclActive_ = savedFwdActive;
+    fwdCurMode_    = savedFwdMode;
     return nodeRef;
 }
 
@@ -242,7 +257,13 @@ AstNodeRef Parser::parseAttrDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AttrDecl>(consume());
     nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+
+    const bool savedFwdSeen = fwdSeenParam_;
+    fwdSeenParam_           = false;
     nodePtr->nodeParamsRef  = parseFunctionParamList();
+    if (fwdSeenParam_)
+        raiseError(DiagnosticId::parser_err_fwd_param_only, nodePtr->tokNameRef);
+    fwdSeenParam_ = savedFwdSeen;
     return nodeRef;
 }
 

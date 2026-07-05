@@ -428,6 +428,56 @@ namespace
         argPayload.setIsValue();
     }
 
+    struct PostCallTemporaryDrop
+    {
+        TypeRef  typeRef;
+        MicroReg addressReg;
+    };
+
+    // A plain struct value bound to a '#move' parameter is passed as a temporary deep copy:
+    // copy the value into the call-site storage, run 'opPostCopy', and pass the storage
+    // address as the move reference. The temporary is dropped right after the call: a no-op
+    // when the callee consumed it (the move-assign reset it), a real drop when it did not.
+    Result materializePreparedCopyToMoveArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
+    {
+        if (argRef.isInvalid() || normalizedTypeRef.isInvalid() || !resolvedArg.bindsReferenceToValue)
+            return Result::Continue;
+
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isMoveReference())
+            return Result::Continue;
+        if (argPayload.hasMaterializedPointerLikeValue())
+            return Result::Continue;
+
+        const TypeRef   pointeeTypeRef   = normalizedType.payloadTypeRef();
+        const TypeRef   unwrappedTypeRef = ctx.typeMgr().get(pointeeTypeRef).unwrap(ctx, pointeeTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : pointeeTypeRef;
+        const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
+        if (!storageType.isStruct())
+            return Result::Continue;
+
+        const CodeGenNodePayload* storedPayload = codeGen.safePayload(argRef);
+        SWC_ASSERT(storedPayload != nullptr && storedPayload->runtimeStorageSym != nullptr);
+        SWC_UNUSED(storedPayload);
+
+        const uint64_t rawSize = storageType.sizeOf(ctx);
+        SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
+
+        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, argPayload, static_cast<uint32_t>(rawSize));
+        if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::PostCopy))
+            SWC_RESULT(codeGen.emitLifecycle(storageTypeRef, CodeGenLifecycleKind::PostCopy, storageReg));
+        if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::Drop))
+            outPostCallDrops.push_back({storageTypeRef, storageReg});
+
+        argPayload.reg     = storageReg;
+        argPayload.typeRef = normalizedTypeRef;
+        argPayload.setIsValue();
+        argPayload.markMaterializedPointerLikeValue();
+        return Result::Continue;
+    }
+
     uint32_t alignTransientCallStackSize(const CallConv& callConv, uint64_t size)
     {
         if (!size)
@@ -815,7 +865,7 @@ namespace
         return Result::Continue;
     }
 
-    Result appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg, uint32_t& outTransientStackSize)
+    Result appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg, uint32_t& outTransientStackSize, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
         CodeGenNodePayload argPayload;
         TypeRef            normalizedTypeRef = TypeRef::invalid();
@@ -898,6 +948,7 @@ namespace
                 argPayload.setIsValue();
             }
 
+            SWC_RESULT(materializePreparedCopyToMoveArg(codeGen, argPayload, normalizedTypeRef, arg, argRef, outPostCallDrops));
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
@@ -1328,7 +1379,7 @@ namespace
         outPreparedArg.isAddressed = false;
     }
 
-    Result buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
+    Result buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
@@ -1377,7 +1428,7 @@ namespace
             {
                 // Interface dispatch prepends the runtime receiver object, but the selected
                 // interface method symbol only exposes the explicit user parameters.
-                SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg, outTransientStackSize));
+                SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg, outTransientStackSize, outPostCallDrops));
                 ++argIndex;
                 continue;
             }
@@ -1386,7 +1437,7 @@ namespace
                 break;
 
             const SymbolVariable* param = paramIndex < params.size() ? params[paramIndex] : nullptr;
-            SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg, outTransientStackSize));
+            SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg, outTransientStackSize, outPostCallDrops));
             ++argIndex;
             ++paramIndex;
         }
@@ -1491,11 +1542,12 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     if (calleePayload)
         callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, *calledFunction, callConv, closureContextReg);
 
-    SmallVector<ResolvedCallArgument> args;
-    SmallVector<ABICall::PreparedArg> preparedArgs;
+    SmallVector<ResolvedCallArgument>  args;
+    SmallVector<ABICall::PreparedArg>  preparedArgs;
+    SmallVector<PostCallTemporaryDrop> postCallDrops;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     uint32_t transientStackSize = 0;
-    SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
+    SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args, preparedArgs, transientStackSize, postCallDrops));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     MicroReg        hiddenRetStorageReg              = MicroReg::invalid();
     SymbolVariable* directVarInitStorageSym          = nullptr;
@@ -1537,6 +1589,11 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
+
+    // Drop the '#move' argument temporaries: a no-op when the callee consumed them.
+    for (const PostCallTemporaryDrop& drop : postCallDrops)
+        SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));
+
     if (calledFunction->isThrowable())
         SWC_RESULT(emitThrowableFailureJumpIfHasError(codeGen));
 
@@ -1553,9 +1610,10 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
     SWC_ASSERT(!normalizedRet.isVoid);
     SWC_ASSERT(!normalizedRet.isIndirect);
 
-    SmallVector<ABICall::PreparedArg> preparedArgs;
-    uint32_t                          transientStackSize = 0;
-    SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize));
+    SmallVector<ABICall::PreparedArg>  preparedArgs;
+    SmallVector<PostCallTemporaryDrop> postCallDrops;
+    uint32_t                           transientStackSize = 0;
+    SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize, postCallDrops));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
 
     MicroBuilder&               builder      = codeGen.builder();
@@ -1569,6 +1627,11 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
 
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+
+    // Drop the '#move' argument temporaries: a no-op when the callee consumed them.
+    for (const PostCallTemporaryDrop& drop : postCallDrops)
+        SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));
+
     return Result::Continue;
 }
 
@@ -1581,9 +1644,10 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(normalizedRet.isVoid);
 
-    SmallVector<ABICall::PreparedArg> preparedArgs;
-    uint32_t                          transientStackSize = 0;
-    SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize));
+    SmallVector<ABICall::PreparedArg>  preparedArgs;
+    SmallVector<PostCallTemporaryDrop> postCallDrops;
+    uint32_t                           transientStackSize = 0;
+    SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize, postCallDrops));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
 
     MicroBuilder&               builder      = codeGen.builder();
@@ -1595,6 +1659,10 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef
 
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
+
+    // Drop the '#move' argument temporaries: a no-op when the callee consumed them.
+    for (const PostCallTemporaryDrop& drop : postCallDrops)
+        SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));
 
     return Result::Continue;
 }

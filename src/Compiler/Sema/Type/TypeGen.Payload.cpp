@@ -247,7 +247,9 @@ namespace
         flags.hasDrop                = flags.hasDrop || hasDirectDrop;
         flags.hasPostCopy            = flags.hasPostCopy || hasDirectPostCopy;
         flags.hasPostMove            = flags.hasPostMove || hasDirectPostMove;
-        flags.canCopy                = hasDirectPostCopy || (!hasDirectDrop && flags.canCopy);
+        // A struct is copyable unless explicitly marked with #[Swag.NoCopy] (or it contains
+        // a non-copyable field): 'opPostCopy' only customizes the copy, it does not gate it.
+        flags.canCopy = !symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy) && flags.canCopy;
         return flags;
     }
 

@@ -21,6 +21,8 @@ SWC_DIAG_DEF(parser_err_gen_param_type, Error, "generic type parameter cannot us
 SWC_DIAG_DEF(parser_err_var_struct, Error, "field declarations in structs and unions do not use 'var' before '{next-tok}'; [help] remove 'var' and keep the field name and type")
 SWC_DIAG_DEF(parser_err_var_struct, Error, "field declarations in structs and unions do not use 'var'; [help] remove 'var' and keep the field name and type")
 SWC_DIAG_DEF(parser_err_interface_method_must_use_mtd, Error, "interface methods must use 'mtd' instead of 'func'; [help] replace 'func' with 'mtd'")
+SWC_DIAG_DEF(parser_err_fwd_param_only, Error, "'#fwd' is only allowed on a function parameter type; [help] declare the parameter type as '#fwd <type>' in a function declaration")
+SWC_DIAG_DEF(parser_err_fwd_outside, Error, "'#fwd' can only be used inside a function that declares a '#fwd' parameter; [help] declare a parameter with '#fwd', or use '#move'")
 SWC_DIAG_DEF(parser_err_mtd_missing_capture, Error, "expected a capture list after 'mtd'; [help] write 'mtd||(...)' for no captures, or 'mtd|a, b|(...)' to capture values")
 SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: '{tok}'; [help] did you mean '{value}'?")
 SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: '{tok}'; [help] check the spelling of the instruction name")

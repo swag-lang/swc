@@ -74,3 +74,27 @@ func takesNonNullRef(r: &NullableRefNode) {}
     var p: #null *NullableRefNode = &storage
     takesNonNullRef(p) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+// A struct marked with '#[Swag.NoCopy]' is non-copyable: the copy variant of a
+// '#fwd' function is discarded at overload resolution, so calling it without '#move'
+// finds no viable overload.
+#[Swag.NoCopy]
+struct FwdMoveOnly { x: s32 }
+impl FwdMoveOnly
+{
+    mtd opDrop() {}
+    mtd opPostMove() {}
+}
+
+var g_fwdTarget: FwdMoveOnly
+
+func storeFwd(v: #fwd FwdMoveOnly)
+{
+    g_fwdTarget = #nodrop #fwd v
+}
+
+#test
+{
+    var m = FwdMoveOnly{1}
+    storeFwd(m) // swc-expected-error {{sema_err_no_overload_match}}
+}

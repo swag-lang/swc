@@ -392,33 +392,24 @@ impl Array
 
     // Adds an element to the end of the array, but only if it's not already present.
     // This is slower than 'add' due to the containment check.
-    mtd addOnce(value: T)
-        where Reflection.canCopy(T)
+    // The value is copied; pass it with '#move' to move it instead.
+    mtd addOnce(value: #fwd T)
     {
         if .contains(value) do
             return
         .grow(.count + 1)
         .initNewSlots(.count, 1)
-        .buffer[.count] = #nodrop value
+        .buffer[.count] = #nodrop #fwd value
         .count += 1
     }
 
-    // Adds a copy of an element to the end of the array.
-    mtd add(value: T)
-        where Reflection.canCopy(T)
+    // Adds an element to the end of the array.
+    // The value is copied; pass it with '#move' to move it instead.
+    mtd add(value: #fwd T)
     {
         .grow(.count + 1)
         .initNewSlots(.count, 1)
-        .buffer[.count] = #nodrop value
-        .count += 1
-    }
-
-    // Moves an element to the end of the array.
-    mtd add(value: #move T)
-    {
-        .grow(.count + 1)
-        .initNewSlots(.count, 1)
-        .buffer[.count] = #nodrop #move value
+        .buffer[.count] = #nodrop #fwd value
         .count += 1
     }
 
@@ -442,14 +433,13 @@ impl Array
         return res
     }
 
-    // Inserts a copy of a value at a specific index, shifting existing elements to the right.
-    // Order is preserved.
-    mtd insertAt(index: u64, value: T)
-        where Reflection.canCopy(T)
+    // Inserts a value at a specific index, shifting existing elements to the right.
+    // Order is preserved. The value is copied; pass it with '#move' to move it instead.
+    mtd insertAt(index: u64, value: #fwd T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
         if index == .count do
-            return .add(value)
+            return .add(#fwd value)
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)
@@ -464,31 +454,7 @@ impl Array
             Memory.copyOver(.buffer + index + 1, .buffer + index, #sizeof(T) * (.count - 1 - index))
         }
 
-        .buffer[index] = #nodrop value
-    }
-
-    // Inserts a moved value at a specific index, shifting existing elements to the right.
-    // Order is preserved.
-    mtd insertAt(index: u64, value: #move T)
-    {
-        Debug.safetyBoundCheck(index <= .count, "index out of range")
-        if index == .count do
-            return .add(#move value)
-        .grow(.count + 1)
-        .count += 1
-        .initNewSlots(.count - 1, 1)
-
-        #if Reflection.hasPostMove(T)
-        {
-            for var idx = .count - 1; idx > index; idx -= 1 do
-                .buffer[idx] = #nodrop #moveraw .buffer[idx - 1]
-        }
-        #else
-        {
-            Memory.copyOver(.buffer + index + 1, .buffer + index, #sizeof(T) * (.count - 1 - index))
-        }
-
-        .buffer[index] = #nodrop #move value
+        .buffer[index] = #nodrop #fwd value
     }
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.

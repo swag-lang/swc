@@ -199,6 +199,30 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         return nodeRef;
     }
 
+    // Forwarding parameter type: '#fwd T' declares a parameter emitted in two variants,
+    // one taking a copy ('T') and one taking a move reference ('#move T').
+    const TokenRef tokFwd = consumeIf(TokenId::ModifierFwd);
+    if (tokFwd.isValid())
+    {
+        const bool inParam = hasContextFlag(ParserContextFlagsE::InFunctionParam);
+        if (!inParam)
+            raiseError(DiagnosticId::parser_err_fwd_param_only, tokFwd);
+        else
+            fwdSeenParam_ = true;
+
+        const AstNodeRef child = parseSubType();
+        if (child.isInvalid())
+            return AstNodeRef::invalid();
+
+        if (inParam && fwdPassMode_ == FwdParseMode::Move)
+        {
+            auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(tokFwd);
+            nodePtr->nodePointeeTypeRef = child;
+            return nodeRef;
+        }
+        return child;
+    }
+
     // Value pointer
     if (consumeIf(TokenId::SymAsterisk).isValid())
     {

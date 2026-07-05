@@ -252,6 +252,22 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierMoveRaw:
                 toSet = AstModifierFlagsE::MoveRaw;
                 break;
+            case TokenId::ModifierFwd:
+                // '#fwd' forwards the enclosing function's '#fwd' parameter: it means
+                // '#move' in the move variant and erases to nothing in the copy variant.
+                if (!fwdDeclActive_)
+                {
+                    raiseError(DiagnosticId::parser_err_fwd_outside, ref());
+                    consume();
+                    continue;
+                }
+                if (fwdCurMode_ == FwdParseMode::Move)
+                {
+                    toSet = AstModifierFlagsE::Move;
+                    break;
+                }
+                consume();
+                continue;
             case TokenId::ModifierNullable:
                 toSet = AstModifierFlagsE::Nullable;
                 break;
@@ -1035,6 +1051,26 @@ AstNodeRef Parser::parsePrefixExpr()
             const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
             nodePtr->nodeExprRef            = parsePrefixExpr();
             return nodeParen;
+        }
+
+        case TokenId::ModifierFwd:
+        {
+            // '#fwd expr' forwards a '#fwd' parameter: '#move expr' in the move variant,
+            // plain 'expr' in the copy variant.
+            if (!fwdDeclActive_)
+            {
+                raiseError(DiagnosticId::parser_err_fwd_outside, ref());
+                consume();
+                return parsePrefixExpr();
+            }
+            if (fwdCurMode_ == FwdParseMode::Move)
+            {
+                const auto [nodeParen, nodePtr] = ast_->makeNode<AstNodeId::UnaryExpr>(consume());
+                nodePtr->nodeExprRef            = parsePrefixExpr();
+                return nodeParen;
+            }
+            consume();
+            return parsePrefixExpr();
         }
 
         case TokenId::SymPlus:

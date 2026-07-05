@@ -661,6 +661,13 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
         if (sema.curScope().isParameters())
         {
             symVar.addExtraFlag(SymbolVariableFlagsE::Parameter);
+
+            const AstNode* decl = sym->decl();
+            if (decl && decl->is(AstNodeId::SingleVarDecl) && decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::FwdCopy))
+                symVar.addExtraFlag(SymbolVariableFlagsE::FwdCopy);
+            else if (decl && decl->is(AstNodeId::MultiVarDecl) && decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::FwdCopy))
+                symVar.addExtraFlag(SymbolVariableFlagsE::FwdCopy);
+
             if (symbolMap->isFunction())
                 symbolMap->cast<SymbolFunction>().addParameter(&symVar);
         }

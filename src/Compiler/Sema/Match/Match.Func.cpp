@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/Assert.h"
 
@@ -230,9 +231,10 @@ namespace
 
     enum class ConvRank
     {
-        Exact,    // same type (or identical canonical type)
-        Standard, // safe numeric, pointer decay, etc.
-        Ellipsis, // varargs fallback (if you support it)
+        Exact,      // same type (or identical canonical type)
+        Standard,   // safe numeric, pointer decay, etc.
+        CopyToMove, // plain value bound to a '#move' parameter via a temporary copy
+        Ellipsis,   // varargs fallback (if you support it)
         Bad,
     };
 
@@ -759,6 +761,22 @@ namespace
                     }
                 }
 
+                if (fail.castFailure.diagId == DiagnosticId::sema_err_fwd_not_copyable)
+                {
+                    const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
+                    if (const SymbolVariable* param = failedParameter(fn, fail))
+                        return std::format("its '#fwd' parameter '{}' cannot take a copy of non-copyable type '{}'; pass the value with '#move'", param->name(ctx), typeName);
+                    return std::format("its '#fwd' parameter cannot take a copy of non-copyable type '{}'; pass the value with '#move'", typeName);
+                }
+
+                if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_not_copyable)
+                {
+                    const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
+                    if (const SymbolVariable* param = failedParameter(fn, fail))
+                        return std::format("its '#move' parameter '{}' cannot take a copy of non-copyable type '{}'; pass the value with '#move'", param->name(ctx), typeName);
+                    return std::format("its '#move' parameter cannot take a copy of non-copyable type '{}'; pass the value with '#move'", typeName);
+                }
+
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? failedParameter(fn, fail) : nullptr)
                     return std::format("parameter '{}' cannot accept argument {}: {}", param->name(ctx), fail.argIndex + 1, Diagnostic::diagIdMessage(fail.castFailure.diagId));
                 return Utf8{Diagnostic::diagIdMessage(fail.castFailure.diagId)};
@@ -1082,6 +1100,8 @@ namespace
         CastRequest castRequest(castKind);
         castRequest.flags        = castFlags;
         castRequest.errorNodeRef = argValueRef;
+        if (castKind == CastKind::Parameter)
+            castRequest.flags.add(CastFlagsE::AllowCopyToMoveRef);
         // Overload probing only needs the allow/deny + rank decision; the selected overload
         // re-runs the real cast (with folding) in applyParameterCasts. Skip throwaway
         // fold-result materialization (whole-value lowering, aggregate/array fold interning).
@@ -1096,7 +1116,7 @@ namespace
             return Result::Pause;
         if (castResult == Result::Continue)
         {
-            outRank = ConvRank::Standard;
+            outRank = castRequest.usedCopyToMoveRef ? ConvRank::CopyToMove : ConvRank::Standard;
             return Result::Continue;
         }
 
@@ -1762,6 +1782,27 @@ namespace
                 continue;
             }
 
+            // The copy variant of a '#fwd' parameter only accepts copyable types: for a
+            // non-copyable type the candidate is discarded (like an implicit 'where'
+            // constraint), leaving only the move variant.
+            if (params[i]->hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
+            {
+                const TypeRef   fwdTypeRef = unwrapAliasEnumOrSelf(sema, paramTy);
+                const TypeInfo& fwdType    = sema.typeMgr().get(fwdTypeRef);
+                if (fwdType.isStruct())
+                {
+                    SWC_RESULT(sema.waitSemaCompleted(&fwdType, argRef));
+                    if (!TypeGen::lifecycleFlagsOfTypeRef(ctx, fwdTypeRef).canCopy)
+                    {
+                        CastFailure cf{};
+                        cf.diagId     = DiagnosticId::sema_err_fwd_not_copyable;
+                        cf.srcTypeRef = fwdTypeRef;
+                        failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
+                        return Result::Continue;
+                    }
+                }
+            }
+
             CastFailure        cf{};
             const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Type);
             TypeRef            argTy = argNodeView.typeRef();
@@ -2138,6 +2179,8 @@ namespace
 
 namespace
 {
+    bool bindsReferenceToValue(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef);
+
     void gatherViableAttempts(const SmallVector<Attempt>& attempts, SmallVector<const Attempt*>& outViable)
     {
         outViable.clear();
@@ -2350,7 +2393,15 @@ namespace
             if (isIntrinsicAliasStorageMatch(sema, mode, selectedFn, argView.typeRef(), castTypeRef))
                 continue;
 
-            CastFlags flags = CastFlagsE::Zero;
+            // Copy-to-move binding: a plain value bound to a '#move' parameter stays a plain
+            // value (no cast node); the call site materializes the temporary copy and passes
+            // its address as the move reference.
+            if (sema.typeMgr().get(paramTypeRef).isMoveReference() &&
+                argView.type() && !argView.type()->isMoveReference() &&
+                bindsReferenceToValue(sema, paramTypeRef, argValueRef))
+                continue;
+
+            CastFlags flags = CastFlagsE::AllowCopyToMoveRef;
             if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))

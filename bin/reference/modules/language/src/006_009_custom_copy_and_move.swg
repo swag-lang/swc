@@ -56,20 +56,28 @@ impl Vector3
 
 Move semantics can be expressed in function parameters by prefixing the parameter type with '#move'.
 At the call site, prefix the argument with '#move' to pass it as a move reference.
+
+A '#move' parameter also accepts a plain (copyable) value: the compiler then materializes a
+temporary copy at the call site and passes it as the move reference. A single '#move' function
+therefore serves both call styles — including through lambdas, function pointers and interface
+methods — at the price of one extra copy on the copy path.
+
+A named function can avoid that extra copy by declaring the parameter with '#fwd' instead: the
+compiler emits two overloads, a copy variant (the parameter behaves like a plain value) and a
+move variant (the parameter behaves like '#move'). Inside the body, '#fwd' forwards the
+parameter with the mode of the selected variant. Calls without '#move' then pick the dedicated
+copy variant, with no temporary.
+
+If the type is not copyable (marked with '#[Swag.NoCopy]'), the copy paths are
+automatically discarded at overload resolution: only a '#move' call is accepted.
 */
 
 #test
 {
-    // Move overload: takes ownership of 'from' and moves into 'assignTo'.
-    func assign(assignTo: &Vector3, from: #move Vector3)
+    // One declaration, two variants: 'assign(&v, x)' copies, 'assign(&v, #move x)' moves.
+    func assign(assignTo: &Vector3, from: #fwd Vector3)
     {
-        assignTo = #move from
-    }
-
-    // Copy overload: copies 'from' into 'assignTo'.
-    func assign(assignTo: &Vector3, from: Vector3)
-    {
-        assignTo = from
+        assignTo = #fwd from
     }
 
     var a  = Vector3{1, 2, 3}
@@ -84,4 +92,27 @@ At the call site, prefix the argument with '#move' to pass it as a move referenc
     assign(&b, #move a)
     @assert(b.x == 3 and b.y == 4 and b.z == 5) // +2 via 'opPostMove'.
     @assert(a.x == 666 and a.y == 666 and a.z == 666) // 'a' reset to defaults after move.
+}
+
+#test
+{
+    // A single '#move' function also accepts both call styles: a plain argument is
+    // copied into a call-site temporary, then moved from it.
+    func assign(assignTo: &Vector3, from: #move Vector3)
+    {
+        assignTo = #move from
+    }
+
+    var a  = Vector3{1, 2, 3}
+    var b: Vector3
+
+    // Copy call style: 'a' is copied into a temporary (+1), the temporary is moved (+2).
+    assign(&b, a)
+    @assert(b.x == 4 and b.y == 5 and b.z == 6)
+    @assert(a.x == 1 and a.y == 2 and a.z == 3) // 'a' unchanged.
+
+    // Move call style: zero extra cost.
+    assign(&b, #move a)
+    @assert(b.x == 3 and b.y == 4 and b.z == 5)
+    @assert(a.x == 666 and a.y == 666 and a.z == 666)
 }

@@ -143,15 +143,73 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
 {
     const TokenId tokenEndId = Token::toRelated(tokenStartId);
 
+    // Only blocks whose elements are declarations/statements can host a function
+    // declaration, and thus a '#fwd' dual parse. Other compounds (parameter lists,
+    // argument lists…) must not disturb the current '#fwd' pass state.
+    const bool isStatementBlock = blockNodeId == AstNodeId::TopLevelBlock ||
+                                  blockNodeId == AstNodeId::EmbeddedBlock ||
+                                  blockNodeId == AstNodeId::AggregateBody ||
+                                  blockNodeId == AstNodeId::InterfaceBody;
+
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
         const Token* loopStartToken = curToken_;
 
-        // One block element
+        // One block element. A statement declaring a function with a '#fwd' parameter is
+        // parsed twice: the first pass emits the copy variant ('#fwd' erased), the second
+        // pass re-parses the same tokens to emit the move variant ('#fwd' behaves like
+        // '#move'). Both variants become ordinary overloads.
+        const uint32_t     savedDepthParen   = depthParen_;
+        const uint32_t     savedDepthBracket = depthBracket_;
+        const uint32_t     savedDepthCurly   = depthCurly_;
+        const FwdParseMode savedPassMode     = fwdPassMode_;
+        const bool         savedStmtTrigger  = fwdStmtTrigger_;
+        if (isStatementBlock)
+        {
+            fwdPassMode_    = FwdParseMode::Copy;
+            fwdStmtTrigger_ = false;
+        }
+
         const AstNodeRef childRef = parseCompoundValue(blockNodeId);
         if (childRef.isValid())
             childrenRefs.push_back(childRef);
+
+        if (isStatementBlock && fwdStmtTrigger_ && childRef.isValid() && curToken_ != loopStartToken)
+        {
+            const Token*   afterStmtToken    = curToken_;
+            const uint32_t afterDepthParen   = depthParen_;
+            const uint32_t afterDepthBracket = depthBracket_;
+            const uint32_t afterDepthCurly   = depthCurly_;
+
+            curToken_       = loopStartToken;
+            depthParen_     = savedDepthParen;
+            depthBracket_   = savedDepthBracket;
+            depthCurly_     = savedDepthCurly;
+            fwdPassMode_    = FwdParseMode::Move;
+            fwdStmtTrigger_ = false;
+
+            ++fwdReparseDepth_;
+            const AstNodeRef moveVariantRef = parseCompoundValue(blockNodeId);
+            --fwdReparseDepth_;
+            if (moveVariantRef.isValid())
+                childrenRefs.push_back(moveVariantRef);
+
+            // Both passes read the same tokens; realign in case error recovery diverged.
+            if (curToken_ != afterStmtToken)
+            {
+                curToken_     = afterStmtToken;
+                depthParen_   = afterDepthParen;
+                depthBracket_ = afterDepthBracket;
+                depthCurly_   = afterDepthCurly;
+            }
+        }
+
+        if (isStatementBlock)
+        {
+            fwdPassMode_    = savedPassMode;
+            fwdStmtTrigger_ = savedStmtTrigger;
+        }
 
         // Separator between statements
         if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Error)

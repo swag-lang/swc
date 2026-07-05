@@ -23,6 +23,7 @@ enum class SymbolVariableFlagsE : uint16_t
     RuntimeStorage          = 1 << 10,
     ClosureCaptureByRef     = 1 << 11,
     GlobalStorage           = 1 << 12,
+    FwdCopy                 = 1 << 13, // copy variant of a '#fwd' parameter: requires a copyable type at match time
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

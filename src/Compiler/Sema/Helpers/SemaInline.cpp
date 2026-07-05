@@ -538,7 +538,7 @@ namespace
                 if (op == TokenId::SymAmpersand)
                     return unary.nodeExprRef;
 
-                if (op == TokenId::ModifierMove && unary.nodeExprRef.isValid())
+                if ((op == TokenId::ModifierMove || op == TokenId::ModifierFwd) && unary.nodeExprRef.isValid())
                 {
                     const AstNodeRef moveSourceRef = SemaHelpers::resolveTransparentExprSourceRef(sema, unary.nodeExprRef);
                     return moveSourceRef.isValid() ? moveSourceRef : unary.nodeExprRef;
@@ -559,7 +559,7 @@ namespace
         if (op == TokenId::SymAmpersand)
             return unary.nodeExprRef;
 
-        if (op != TokenId::ModifierMove || unary.nodeExprRef.isInvalid())
+        if ((op != TokenId::ModifierMove && op != TokenId::ModifierFwd) || unary.nodeExprRef.isInvalid())
             return valueRef;
 
         return unary.nodeExprRef;
@@ -574,7 +574,7 @@ namespace
             if (sourceNode.is(AstNodeId::UnaryExpr) && sourceNode.codeRef().isValid())
             {
                 const TokenId op = sema.token(sourceNode.codeRef()).id;
-                if (op == TokenId::ModifierMove)
+                if (op == TokenId::ModifierMove || op == TokenId::ModifierFwd)
                     return sourceRef;
             }
         }
@@ -2318,6 +2318,25 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     sema.appendResolvedCallArguments(callRef, resolvedArgs);
     if (isDynamicInterfaceDispatchCall(sema, fn, ufcsArg, resolvedArgs.span()))
         return Result::Continue;
+
+    // A plain value bound to a '#move' parameter is materialized as a temporary deep copy
+    // by the real call path; the inline binder has no equivalent, so keep those calls out
+    // of inlining. Macros and mixins cannot fall back to a real call: require '#move'.
+    {
+        const auto& params = fn.parameters();
+        for (size_t i = 0; i < resolvedArgs.size() && i < params.size(); ++i)
+        {
+            const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
+            if (!resolvedArg.bindsReferenceToValue || resolvedArg.argRef.isInvalid())
+                continue;
+            SWC_ASSERT(params[i] != nullptr);
+            if (!params[i]->type(sema.ctx()).isMoveReference())
+                continue;
+            if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_macro, resolvedArg.argRef);
+            return Result::Continue;
+        }
+    }
 
     const AstFunctionDecl* decl    = nullptr;
     const Ast*             declAst = nullptr;

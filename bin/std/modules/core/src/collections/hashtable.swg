@@ -282,47 +282,11 @@ impl HashTable
         }
     }
 
-    // Adds a new key-value pair to the me.table by copying them.
+    // Adds a new key-value pair to the me.table. The key is always copied.
+    // The value is copied; pass it with '#move' to move it instead.
     // If the key already exists, the value is updated if 'updateValue' is true.
     #[Discardable]
-    mtd add(key: K, value: V, updateValue = true)->*HashTableEntry
-        where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
-    {
-        .grow()
-
-        let hashVal = hashKey(key)
-        var index   = cast(u64) hashVal & (.capacity - 1)
-
-        index = .getNewIndex(key, index, hashVal)
-        if .table[index].hash >= HashTable.HASH_FIRST
-        {
-            if updateValue do
-                .table[index].value = value
-            return .table + index
-        }
-
-        if .table[index].hash == HashTable.HASH_FREE
-        {
-            .table[index].key   = #nodrop key
-            .table[index].value = #nodrop value
-        }
-        else
-        {
-            if .table[index].hash == HashTable.HASH_DELETED do
-                .deleted -= 1
-            .table[index].key   = key
-            .table[index].value = value
-        }
-
-        .table[index].hash = hashVal
-        .count += 1
-        return .table + index
-    }
-
-    // Adds a new key-value pair to the me.table, moving the value.
-    // If the key already exists, the value is updated if 'updateValue' is true.
-    #[Discardable]
-    mtd add(key: K, value: #move V, updateValue = true)->*HashTableEntry
+    mtd add(key: K, value: #fwd V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()
@@ -334,21 +298,21 @@ impl HashTable
         if .table[index].hash >= HashTable.HASH_FIRST
         {
             if updateValue do
-                .table[index].value = #move value
+                .table[index].value = #fwd value
             return .table + index
         }
 
         if .table[index].hash == HashTable.HASH_FREE
         {
             .table[index].key   = #nodrop key
-            .table[index].value = #nodrop #move value
+            .table[index].value = #nodrop #fwd value
         }
         else
         {
             if .table[index].hash == HashTable.HASH_DELETED do
                 .deleted -= 1
             .table[index].key   = key
-            .table[index].value = #move value
+            .table[index].value = #fwd value
         }
 
         .table[index].hash = hashVal

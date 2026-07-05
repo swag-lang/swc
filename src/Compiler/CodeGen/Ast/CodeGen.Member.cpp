@@ -311,8 +311,24 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
 
-        const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*      methodSym = rightView.sym();
+        // Interface methods can be overloaded ('#fwd' variants): the right identifier may
+        // still reference the first homonym, so prefer the overload selected by the call
+        // resolution, stored on the enclosing call node.
+        const Symbol* methodSym = nullptr;
+
+        const AstNodeRef parentRef = codeGen.visit().parentNodeRef(0);
+        if (parentRef.isValid())
+        {
+            const SemaNodeView parentStored = codeGen.sema().viewStored(parentRef, SemaNodeViewPartE::Symbol);
+            if (parentStored.sym() && parentStored.sym()->isFunction() && parentStored.sym()->cast<SymbolFunction>().hasInterfaceMethodSlot())
+                methodSym = parentStored.sym();
+        }
+
+        if (!methodSym)
+        {
+            const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
+            methodSym = rightView.sym();
+        }
         if (!methodSym)
             methodSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);
         SWC_ASSERT(methodSym != nullptr);

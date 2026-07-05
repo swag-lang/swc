@@ -60,7 +60,7 @@ namespace
 
     const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
     {
-        if (const SymbolFunction* implMethod = impl.findFunction(interfaceMethod.idRef()))
+        if (const SymbolFunction* implMethod = impl.findFunctionForInterfaceMethod(ctx, interfaceMethod))
             return implMethod;
 
         if (!interfaceMethod.isEmpty())
@@ -124,6 +124,55 @@ const SymbolFunction* SymbolImpl::findFunction(IdentifierRef functionIdRef) cons
     }
 
     return nullptr;
+}
+
+namespace
+{
+    // Interface methods may share a name ('#fwd' variants, overloads). Parameters are
+    // compared positionally, skipping the receiver (the interface method sees an
+    // interface 'me', the implementation a concrete struct 'me'); a parameter matches
+    // on move-reference-ness, so the copy and move variants land in their own slots
+    // even when the interface types are still generic.
+    bool implMethodMatchesInterfaceMethod(const TaskContext& ctx, const SymbolFunction& implMethod, const SymbolFunction& interfaceMethod)
+    {
+        // An implementation method carries its receiver as a leading parameter; an
+        // interface prototype does not.
+        const auto&  implParams = implMethod.parameters();
+        const auto&  itfParams  = interfaceMethod.parameters();
+        const size_t implOffset = implParams.size() == itfParams.size() + 1 ? 1 : 0;
+        if (implParams.size() != itfParams.size() + implOffset)
+            return false;
+
+        for (size_t i = 0; i < itfParams.size(); ++i)
+        {
+            SWC_ASSERT(implParams[i + implOffset] != nullptr && itfParams[i] != nullptr);
+            const TypeInfo& implType = ctx.typeMgr().get(implParams[i + implOffset]->typeRef());
+            const TypeInfo& itfType  = ctx.typeMgr().get(itfParams[i]->typeRef());
+            if (implType.isMoveReference() != itfType.isMoveReference())
+                return false;
+        }
+
+        return true;
+    }
+}
+
+const SymbolFunction* SymbolImpl::findFunctionForInterfaceMethod(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const
+{
+    const SymbolFunction* firstByName = nullptr;
+    for (const Symbol* symbol = findFirstSymbol(interfaceMethod.idRef()); symbol; symbol = symbol->nextHomonym())
+    {
+        if (!symbol->isFunction())
+            continue;
+
+        const auto& implMethod = symbol->cast<SymbolFunction>();
+        if (!firstByName)
+            firstByName = &implMethod;
+        if (implMethodMatchesInterfaceMethod(ctx, implMethod, interfaceMethod))
+            return &implMethod;
+    }
+
+    // Legacy fallback: with no signature match, keep the name-only binding.
+    return firstByName;
 }
 
 const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const

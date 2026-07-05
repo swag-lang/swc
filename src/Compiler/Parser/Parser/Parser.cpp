@@ -100,13 +100,19 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     // AST, so concurrent #ast parses for the same source file must serialize here.
     const std::scoped_lock generatedParseLock(ast_->generatedParseMutex());
 
-    firstToken_     = &srcView.tokens().front();
-    lastToken_      = &srcView.tokens().back();
-    curToken_       = startTokRef.isValid() ? &srcView.tokens()[startTokRef.get()] : firstToken_;
-    depthParen_     = 0;
-    depthBracket_   = 0;
-    depthCurly_     = 0;
-    lastErrorToken_ = TokenRef::invalid();
+    firstToken_      = &srcView.tokens().front();
+    lastToken_       = &srcView.tokens().back();
+    curToken_        = startTokRef.isValid() ? &srcView.tokens()[startTokRef.get()] : firstToken_;
+    depthParen_      = 0;
+    depthBracket_    = 0;
+    depthCurly_      = 0;
+    lastErrorToken_  = TokenRef::invalid();
+    fwdPassMode_     = FwdParseMode::Copy;
+    fwdCurMode_      = FwdParseMode::Copy;
+    fwdDeclActive_   = false;
+    fwdSeenParam_    = false;
+    fwdStmtTrigger_  = false;
+    fwdReparseDepth_ = 0;
 
     SourceView*      previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
     const AstNodeRef result          = parseGeneratedContent(mode);
@@ -268,7 +274,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
             diag.addArgument(Diagnostic::ARG_VALUE, "or");
     }
 
-    if (tknRef == lastErrorToken_)
+    if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
         diag.setSilent(true);
     lastErrorToken_ = tknRef;
 
@@ -284,7 +290,7 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
         setReportArguments(diag, tknRef);
         diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
 
-        if (tknRef == lastErrorToken_)
+        if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
             diag.setSilent(true);
         lastErrorToken_ = tknRef;
         return diag;
@@ -305,7 +311,7 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
             diag.addArgument(Diagnostic::ARG_VALUE, "or");
     }
 
-    if (tknRef == lastErrorToken_)
+    if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
         diag.setSilent(true);
     lastErrorToken_ = tknRef;
 

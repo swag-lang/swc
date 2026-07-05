@@ -142,11 +142,14 @@ AstNodeRef Parser::parseVarDecl()
             raiseError(DiagnosticId::parser_err_empty_var_decl, ref().offset(-1));
 
         // Type
-        AstNodeRef nodeType = AstNodeRef::invalid();
+        AstNodeRef nodeType     = AstNodeRef::invalid();
+        bool       fwdCopyParam = false;
         if (consumeIf(TokenId::SymColon).isValid())
         {
             const PushContextFlags scopedContext{this, ParserContextFlagsE::InVarDeclType};
-            nodeType = parseType();
+            const bool             prevFwdSeen = fwdSeenParam_;
+            nodeType                           = parseType();
+            fwdCopyParam                       = fwdSeenParam_ && !prevFwdSeen && fwdPassMode_ == FwdParseMode::Copy;
         }
 
         // Initialization
@@ -162,6 +165,8 @@ AstNodeRef Parser::parseVarDecl()
             nodePtr->flags()        = flags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
+            if (fwdCopyParam)
+                nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
             nodePtr->tokNameRef  = tokNames[0];
             nodePtr->nodeTypeRef = nodeType;
             nodePtr->nodeInitRef = nodeInit;
@@ -173,6 +178,8 @@ AstNodeRef Parser::parseVarDecl()
             nodePtr->flags()        = flags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
+            if (fwdCopyParam)
+                nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
             nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
             nodePtr->nodeTypeRef  = nodeType;
             nodePtr->nodeInitRef  = nodeInit;

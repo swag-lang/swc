@@ -99,13 +99,14 @@ impl List
         .count = 0
     }
 
-    // Adds a new element to the front of the list by copying the value.
+    // Adds a new element to the front of the list.
+    // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addFront(value: T)->*ListEntry
+    mtd addFront(value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
-        n.value = value
+        n.value = #fwd value
         .count += 1
 
         if .head
@@ -121,35 +122,14 @@ impl List
         return n
     }
 
-    // Adds a new element to the front of the list by moving the value.
+    // Adds a new element to the back of the list.
+    // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addFront(value: #move T)->*ListEntry
+    mtd addBack(value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
-        n.value = #move value
-        .count += 1
-
-        if .head
-        {
-            n.next = .head
-            .head.prev, .head = n
-        }
-        else
-        {
-            .head, .tail = n
-        }
-
-        return n
-    }
-
-    // Adds a new element to the back of the list by copying the value.
-    // Returns a pointer to the newly created list node.
-    #[Discardable]
-    mtd addBack(value: T)->*ListEntry
-    {
-        let n = Memory.new'ListEntry()
-        n.value = value
+        n.value = #fwd value
         .count += 1
 
         if .tail
@@ -165,35 +145,14 @@ impl List
         return n
     }
 
-    // Adds a new element to the back of the list by moving the value.
+    // Inserts a new element before a specified node.
+    // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addBack(value: #move T)->*ListEntry
+    mtd insertBefore(node: *ListEntry, value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
-        n.value = #move value
-        .count += 1
-
-        if .tail
-        {
-            n.prev = .tail
-            .tail.next, .tail = n
-        }
-        else
-        {
-            .head, .tail = n
-        }
-
-        return n
-    }
-
-    // Inserts a new element before a specified node by copying the value.
-    // Returns a pointer to the newly created list node.
-    #[Discardable]
-    mtd insertBefore(node: *ListEntry, value: T)->*ListEntry
-    {
-        let n = Memory.new'ListEntry()
-        n.value = value
+        n.value = #fwd value
         .count += 1
 
         n.next = node
@@ -206,51 +165,14 @@ impl List
         return n
     }
 
-    // Inserts a new element before a specified node by moving the value.
+    // Inserts a new element after a specified node.
+    // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertBefore(node: *ListEntry, value: #move T)->*ListEntry
+    mtd insertAfter(node: *ListEntry, value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
-        n.value = #move value
-        .count += 1
-
-        n.next = node
-        n.prev = node.prev
-        if !n.prev do
-            .head = n
-        else do
-            n.prev.next = n
-        node.prev = n
-        return n
-    }
-
-    // Inserts a new element after a specified node by copying the value.
-    // Returns a pointer to the newly created list node.
-    #[Discardable]
-    mtd insertAfter(node: *ListEntry, value: T)->*ListEntry
-    {
-        let n = Memory.new'ListEntry()
-        n.value = value
-        .count += 1
-
-        n.prev = node
-        n.next = node.next
-        if !n.next do
-            .tail = n
-        else do
-            n.next.prev = n
-        node.next = n
-        return n
-    }
-
-    // Inserts a new element after a specified node by moving the value.
-    // Returns a pointer to the newly created list node.
-    #[Discardable]
-    mtd insertAfter(node: *ListEntry, value: #move T)->*ListEntry
-    {
-        let n = Memory.new'ListEntry()
-        n.value = #move value
+        n.value = #fwd value
         .count += 1
 
         n.prev = node

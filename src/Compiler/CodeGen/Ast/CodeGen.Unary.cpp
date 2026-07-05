@@ -213,6 +213,7 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::SymAmpersand:
             return codeGenUnaryTakeAddress(codeGen, nodeExprRef);
         case TokenId::ModifierMove:
+        case TokenId::ModifierFwd:
             return codeGenUnaryMoveRef(codeGen, nodeExprRef);
 
         default:

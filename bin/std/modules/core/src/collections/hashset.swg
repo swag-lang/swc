@@ -238,11 +238,10 @@ impl HashSet
         }
     }
 
-    // Adds a new key to the set by copying it.
+    // Adds a new key to the set. The key is copied; pass it with '#move' to move it instead.
     // If the key already exists, does nothing. Returns a pointer to the entry.
     #[Discardable]
-    mtd add(key: K)->*HashSetEntry
-        where Reflection.canCopy(#typeof(K))
+    mtd add(key: #fwd K)->*HashSetEntry
     {
         .grow()
 
@@ -255,43 +254,13 @@ impl HashSet
 
         if .table[index].hash == HashSet.HASH_FREE
         {
-            .table[index].key = #nodrop key
+            .table[index].key = #nodrop #fwd key
         }
         else
         {
             if .table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
-            .table[index].key = key
-        }
-
-        .table[index].hash = hashVal
-        .count += 1
-        return .table + index
-    }
-
-    // Adds a new key to the set by moving it.
-    // If the key already exists, does nothing. Returns a pointer to the entry.
-    #[Discardable]
-    mtd add(key: #move K)->*HashSetEntry
-    {
-        .grow()
-
-        let hashVal = hashKey(key)
-        var index   = cast(u64) hashVal & (.capacity - 1)
-
-        index = .getNewIndex(key, index, hashVal)
-        if .table[index].hash >= HASH_FIRST do
-            return .table + index
-
-        if .table[index].hash == HASH_FREE
-        {
-            .table[index].key = #nodrop #move key
-        }
-        else
-        {
-            if .table[index].hash == HASH_DELETED do
-                .deleted -= 1
-            .table[index].key = #move key
+            .table[index].key = #fwd key
         }
 
         .table[index].hash = hashVal
@@ -329,10 +298,10 @@ impl HashSet
     }
 
     // Toggles the presence of a key in the set.
+    // The key is copied when inserted; pass it with '#move' to move it instead.
     // Returns 'true' if the key is present after the operation, or 'false' if it was removed.
     #[Discardable]
-    public mtd toggleKey(key: K)->bool
-        where Reflection.canCopy(#typeof(K))
+    public mtd toggleKey(key: #fwd K)->bool
     {
         .grow()
 
@@ -349,12 +318,12 @@ impl HashSet
                 let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
                 if .table[targetIndex].hash == HashSet.HASH_FREE
                 {
-                    .table[targetIndex].key = #nodrop key
+                    .table[targetIndex].key = #nodrop #fwd key
                 }
                 else
                 {
                     .deleted -= 1
-                    .table[targetIndex].key = key
+                    .table[targetIndex].key = #fwd key
                 }
 
                 .table[targetIndex].hash = hashVal

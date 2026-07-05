@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -1263,9 +1264,37 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     const auto      dstPointeeTypeRef = dstType.payloadTypeRef();
     const TypeInfo& dstPointeeType    = typeMgr.get(dstPointeeTypeRef);
 
-    // A move reference can only bind another move reference, formed explicitly with '#move'.
+    // A move reference normally binds only another move reference, formed explicitly with
+    // '#move'. As a call argument, a plain copyable struct value is also accepted: the
+    // caller materializes a temporary deep copy and passes it as the move reference, so a
+    // single '#move' function serves both the copy and the move call styles.
     if (dstType.isMoveReference() && !srcType.isMoveReference())
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    {
+        if (!castRequest.flags.has(CastFlagsE::AllowCopyToMoveRef) || !srcType.isStruct())
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+        const TypeRef resolvedSrcTypeRef     = typeMgr.unwrapAliasEnum(sema.ctx(), srcTypeRef);
+        const TypeRef srcToCheck             = resolvedSrcTypeRef.isValid() ? resolvedSrcTypeRef : srcTypeRef;
+        const TypeRef resolvedPointeeTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), dstPointeeTypeRef);
+        const TypeRef pointeeToCheck         = resolvedPointeeTypeRef.isValid() ? resolvedPointeeTypeRef : dstPointeeTypeRef;
+        if (srcToCheck != pointeeToCheck)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+        if (!TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), srcToCheck).canCopy)
+            return castRequest.fail(DiagnosticId::sema_err_move_arg_not_copyable, srcTypeRef, dstTypeRef);
+
+        castRequest.usedCopyToMoveRef = true;
+
+        if (castRequest.materializeConstantResult())
+        {
+            const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            SWC_ASSERT(srcCst.isStruct());
+            const uint64_t ptr = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
+            castRequest.setConstantFoldingResult(addValuePointerConstant(sema, dstPointeeTypeRef, dstType.flags(), ptr));
+        }
+
+        return Result::Continue;
+    }
 
     // Ref to ref
     if (srcType.isReference())

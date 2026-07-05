@@ -520,6 +520,7 @@ namespace
             case TokenId::KwdDRef:
                 return checkDRef(sema, view);
             case TokenId::ModifierMove:
+            case TokenId::ModifierFwd:
                 return checkMoveRef(sema, node, view);
             default:
                 SWC_INTERNAL_ERROR();
@@ -574,7 +575,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     }
 
     // Constant folding ('#move' never folds: it needs the operand's storage address)
-    if (view.cstRef().isValid() && tok.id != TokenId::ModifierMove)
+    if (view.cstRef().isValid() && tok.id != TokenId::ModifierMove && tok.id != TokenId::ModifierFwd)
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, tok.id, *this, view));
@@ -591,6 +592,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         case TokenId::SymBang:
             return semaBang(sema, *this, view);
         case TokenId::ModifierMove:
+        case TokenId::ModifierFwd:
             return semaMoveRef(sema, view);
         case TokenId::SymPlus:
         case TokenId::SymMinus:

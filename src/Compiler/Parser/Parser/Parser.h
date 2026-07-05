@@ -43,6 +43,14 @@ enum class ParserGeneratedMode : uint8_t
     Enum,
 };
 
+// A function with a '#fwd' parameter is parsed twice: once as the copy variant
+// ('#fwd' erased) and once as the move variant ('#fwd' behaves like '#move').
+enum class FwdParseMode : uint8_t
+{
+    Copy,
+    Move,
+};
+
 class Parser
 {
 public:
@@ -60,6 +68,13 @@ private:
     uint32_t           depthBracket_   = 0;
     uint32_t           depthCurly_     = 0;
     TokenRef           lastErrorToken_ = TokenRef::invalid();
+
+    FwdParseMode fwdPassMode_     = FwdParseMode::Copy; // variant emitted by the current statement pass
+    FwdParseMode fwdCurMode_      = FwdParseMode::Copy; // mode of the innermost '#fwd'-declaring function
+    bool         fwdDeclActive_   = false;              // inside a function that declares a '#fwd' parameter
+    bool         fwdSeenParam_    = false;              // a '#fwd' parameter was seen in the current parameter list
+    bool         fwdStmtTrigger_  = false;              // current statement declared a '#fwd' function (re-parse trigger)
+    uint32_t     fwdReparseDepth_ = 0;                  // >0 while re-parsing a move variant (silences duplicate diagnostics)
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *(curToken_); }

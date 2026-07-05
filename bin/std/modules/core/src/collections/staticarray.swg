@@ -217,32 +217,22 @@ impl StaticArray
 
     // Adds an element to the end of the array, but only if it's not already present.
     // Asserts if the array is full.
-    mtd addOnce(value: T)
-        where Reflection.canCopy(T)
+    // The value is copied; pass it with '#move' to move it instead.
+    mtd addOnce(value: #fwd T)
     {
         if .contains(value) do
             return
         Debug.assert(.count != N, "the array is full")
-        .buffer[.count] = #nodrop value
+        .buffer[.count] = #nodrop #fwd value
         .count += 1
     }
 
-    // Adds a copy of an element to the end of the array.
-    // Asserts if the array is full.
-    mtd add(value: T)
-        where Reflection.canCopy(T)
+    // Adds an element to the end of the array.
+    // Asserts if the array is full. The value is copied; pass it with '#move' to move it instead.
+    mtd add(value: #fwd T)
     {
         Debug.assert(.count != N, "the array is full")
-        .buffer[.count] = #nodrop value
-        .count += 1
-    }
-
-    // Moves an element to the end of the array.
-    // Asserts if the array is full.
-    mtd add(value: #move T)
-    {
-        Debug.assert(.count != N, "the array is full")
-        .buffer[.count] = #nodrop #move value
+        .buffer[.count] = #nodrop #fwd value
         .count += 1
     }
 
@@ -266,14 +256,14 @@ impl StaticArray
         return res
     }
 
-    // Inserts a copy of a value at a specific index, shifting existing elements to the right.
+    // Inserts a value at a specific index, shifting existing elements to the right.
     // Asserts if the array is full. Order is preserved.
-    mtd insertAt(index: u64, value: T)
-        where Reflection.canCopy(T)
+    // The value is copied; pass it with '#move' to move it instead.
+    mtd insertAt(index: u64, value: #fwd T)
     {
         Debug.assert(index <= .count, "index out of range")
         if index == .count do
-            return .add(value)
+            return .add(#fwd value)
         Debug.assert(.count != N, "the array is full")
         .count += 1
 
@@ -287,30 +277,7 @@ impl StaticArray
             Memory.copyOver(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
         }
 
-        .buffer[index] = #nodrop value
-    }
-
-    // Inserts a moved value at a specific index, shifting existing elements to the right.
-    // Asserts if the array is full. Order is preserved.
-    mtd insertAt(index: u64, value: #move T)
-    {
-        Debug.assert(index <= .count, "index out of range")
-        if index == .count do
-            return .add(#move value)
-        Debug.assert(.count != N, "the array is full")
-        .count += 1
-
-        #if Reflection.hasPostMove(T)
-        {
-            for var idx = .count - 1; idx > index; idx -= 1 do
-                .buffer[idx] = #nodrop #moveraw .buffer[idx - 1]
-        }
-        #else
-        {
-            Memory.copyOver(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
-        }
-
-        .buffer[index] = #nodrop #move value
+        .buffer[index] = #nodrop #fwd value
     }
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.

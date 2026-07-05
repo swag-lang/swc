@@ -33,6 +33,7 @@ enum class CastFlagsE : uint32_t
     LiteralSuffixConsume = 1 << 6,
     ConstSource          = 1 << 7,
     ForceConstEval       = 1 << 8,
+    AllowCopyToMoveRef   = 1 << 9, // call argument: a plain value may bind a '#move' parameter via a temporary copy
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 
@@ -53,6 +54,10 @@ struct CastRequest
     // overload re-runs the real cast afterwards. Constant-value-dependent *decisions* still
     // run, because srcConstRef stays set (isConstantFolding() is unaffected).
     bool probing = false;
+
+    // Set when the cast succeeded by binding a plain value to a '#move' parameter through a
+    // call-site temporary copy: overload resolution ranks this below an exact match.
+    bool usedCopyToMoveRef = false;
 
     CastRequest() = delete;
     explicit CastRequest(CastKind kind);

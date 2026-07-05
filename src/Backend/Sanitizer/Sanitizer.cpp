@@ -400,7 +400,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
 void Sanitizer::invalidateDefs(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops)
 {
-    const uint32_t regCount = std::min<uint32_t>(inst.numOperands, def.regModes.size());
+    const auto regCount = std::min(static_cast<size_t>(inst.numOperands), def.regModes.size());
     for (uint32_t i = 0; i < regCount; i++)
         if (def.regModes[i] == MicroInstrRegMode::Def || def.regModes[i] == MicroInstrRegMode::UseDef)
             setRegValue(state, ops[i].reg, {});

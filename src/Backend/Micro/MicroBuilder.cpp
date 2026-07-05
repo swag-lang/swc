@@ -320,6 +320,14 @@ void MicroBuilder::emitBreakpoint()
     addInstruction(MicroInstrOpcode::Breakpoint, 0);
 }
 
+void MicroBuilder::emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::SanityInvalidate, 2);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = addrReg;
+    ops[1].valueU64         = sizeInBytes;
+}
+
 MicroLabelRef MicroBuilder::createLabel()
 {
     const MicroLabelRef labelRef(static_cast<uint32_t>(labels_.size()));

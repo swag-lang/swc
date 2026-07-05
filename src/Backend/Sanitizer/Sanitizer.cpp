@@ -199,6 +199,18 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
+    for (auto it = into.movedFrom.begin(); it != into.movedFrom.end();)
+    {
+        const auto f = from.movedFrom.find(it->first);
+        if (f == from.movedFrom.end() || f->second != it->second)
+        {
+            it      = into.movedFrom.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+
     if (into.flagsSubject.isValid() && into.flagsSubject != from.flagsSubject)
     {
         into.flagsSubject = MicroReg::invalid();
@@ -208,10 +220,57 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
     return changed;
 }
 
+namespace
+{
+    // Moved-from ranges must never survive a write they could alias, or the analysis
+    // would report a false positive after a legitimate re-initialization. The store
+    // width is not always recoverable from the operands, so overlap is tested against a
+    // conservative maximal store size.
+    constexpr uint64_t K_ASSUMED_STORE_SIZE = 16;
+
+    void clearMovedFromOverlaps(SanitizerState& state, const int64_t slot)
+    {
+        for (auto it = state.movedFrom.begin(); it != state.movedFrom.end();)
+        {
+            const int64_t rangeStart = it->first;
+            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second);
+            if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > rangeStart && slot < rangeEnd)
+                it = state.movedFrom.erase(it);
+            else
+                ++it;
+        }
+    }
+}
+
 void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
 {
+    if (!state.movedFrom.empty() && inst.op != MicroInstrOpcode::SanityInvalidate)
+    {
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            // A call can write through any escaped pointer: forget every moved-from range.
+            state.movedFrom.clear();
+        }
+        else if (def.flags.has(MicroInstrFlagsE::WritesMemory))
+        {
+            int64_t slot = 0;
+            if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+                clearMovedFromOverlaps(state, slot);
+            else
+                state.movedFrom.clear();
+        }
+    }
+
     switch (inst.op)
     {
+        case MicroInstrOpcode::SanityInvalidate:
+        {
+            int64_t slot = 0;
+            if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
+                state.movedFrom[slot] = ops[1].valueU64;
+            return;
+        }
         case MicroInstrOpcode::LoadRegImm:
             setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(ops[2].valueU64));
             return;

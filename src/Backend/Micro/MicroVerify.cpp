@@ -194,6 +194,7 @@ namespace
             case MicroInstrOpcode::CallIndirect:
             case MicroInstrOpcode::SetCondReg:
             case MicroInstrOpcode::ClearReg:
+            case MicroInstrOpcode::SanityInvalidate:
                 return 2;
 
             case MicroInstrOpcode::JumpCond:

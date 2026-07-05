@@ -38,6 +38,7 @@ public:
 
     // Queries usable by checks against a converged state.
     SanitizerValue          getReg(const SanitizerState& state, MicroReg reg) const;
+    bool                    resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const;
     TaskContext&            ctx() const;
     const MicroPassContext& passContext() const { return context_; }
 
@@ -54,7 +55,6 @@ private:
     static const SanitizerRegInfo* findReg(const SanitizerState& state, MicroReg reg);
     static void                    setReg(SanitizerState& state, MicroReg reg, const SanitizerRegInfo& info);
     static void                    setRegValue(SanitizerState& state, MicroReg reg, const SanitizerValue& value);
-    bool                           resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const;
 
     // Join + propagation.
     void        propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist);

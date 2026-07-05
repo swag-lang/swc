@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -447,13 +448,43 @@ namespace
         if (!addressReg.isValid())
             return Result::Continue;
 
+        // Under lifecycle safety, '@drop' poisons the dropped storage: the caller is
+        // expected to re-initialize or overwrite it before any further use.
+        const bool poisonAfterDrop = lifecycleKind == CodeGen::LifecycleKind::Drop &&
+                                     CodeGenSafety::hasLifecycleRuntimeSafety(codeGen);
+
         if (countRef.isValid())
         {
             const MicroReg countReg = materializeIntrinsicLifecycleCountReg(codeGen, countRef);
-            return codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg, countReg);
+
+            MicroReg stableAddrReg  = addressReg;
+            MicroReg stableCountReg = countReg;
+            if (poisonAfterDrop)
+            {
+                MicroBuilder& builder = codeGen.builder();
+                stableAddrReg         = codeGen.nextVirtualIntRegister();
+                stableCountReg        = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(stableAddrReg, addressReg, MicroOpBits::B64);
+                builder.emitLoadRegReg(stableCountReg, countReg, MicroOpBits::B64);
+            }
+
+            SWC_RESULT(codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg, countReg));
+            if (poisonAfterDrop)
+                SWC_RESULT(CodeGenSafety::emitLifecyclePoisonLoop(codeGen, stableAddrReg, stableCountReg, codeGen.typeMgr().get(targetTypeRef).sizeOf(codeGen.ctx())));
+            return Result::Continue;
         }
 
-        return codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg);
+        MicroReg stableAddrReg = addressReg;
+        if (poisonAfterDrop)
+        {
+            stableAddrReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegReg(stableAddrReg, addressReg, MicroOpBits::B64);
+        }
+
+        SWC_RESULT(codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg));
+        if (poisonAfterDrop)
+            SWC_RESULT(CodeGenSafety::emitLifecyclePoison(codeGen, stableAddrReg, codeGen.typeMgr().get(targetTypeRef).sizeOf(codeGen.ctx())));
+        return Result::Continue;
     }
 
     MicroReg materializeCountLikeBaseReg(const CodeGen& codeGen, const CodeGenNodePayload& payload)

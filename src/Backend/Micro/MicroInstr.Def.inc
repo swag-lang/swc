@@ -65,6 +65,19 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+// Sanitizer marker: the storage at [op0.reg .. op0.reg+op1.valueU64) was abandoned by a
+// '#move'/'#relocate' (moved-from, not reset). Consumed by the sanity pass; encodes to nothing.
+SWC_MICRO_INSTR_DEF(
+    SanityInvalidate,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
 SWC_MICRO_INSTR_DEF(
     Ret,
     MicroInstrDef{

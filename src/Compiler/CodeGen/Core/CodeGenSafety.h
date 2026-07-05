@@ -21,6 +21,11 @@ namespace CodeGenSafety
 
     bool hasMathRuntimeSafety(const CodeGen& codeGen);
     bool hasOverflowRuntimeSafety(const CodeGen& codeGen);
+    bool hasLifecycleRuntimeSafety(const CodeGen& codeGen);
+
+    Result emitLifecyclePoison(CodeGen& codeGen, MicroReg addrReg, uint64_t sizeInBytes);
+    Result emitLifecyclePoisonLoop(CodeGen& codeGen, MicroReg addrReg, MicroReg countReg, uint64_t elementSizeInBytes);
+    Result emitLifecycleInvalidate(CodeGen& codeGen, MicroReg addrReg, TypeRef typeRef, AstNodeRef sourceRef);
 
     Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg);
     Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool inclusive);

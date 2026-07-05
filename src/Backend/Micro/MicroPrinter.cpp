@@ -1479,6 +1479,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 break;
 
+            case MicroInstrOpcode::SanityInvalidate:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendColored(out, ctx, SyntaxColor::Number, std::format("{}", ops[1].valueU64));
+                break;
+
             case MicroInstrOpcode::CallIndirect:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);

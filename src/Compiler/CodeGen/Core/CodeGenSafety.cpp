@@ -8,9 +8,12 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -24,6 +27,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Byte pattern stored into storage abandoned by '#move'/'#relocate' or freed by a drop,
+    // when 'SafetyWhat::Lifecycle' is active. Mirrors the allocator's AllocByte/FreeByte.
+    constexpr uint64_t K_LIFECYCLE_POISON_BYTE = 0xDD;
+
     bool hasRuntimeSafety(const CodeGen& codeGen, const Runtime::SafetyWhat what)
     {
         const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
@@ -251,6 +258,97 @@ namespace
 bool CodeGenSafety::hasMathRuntimeSafety(const CodeGen& codeGen)
 {
     return hasRuntimeSafety(codeGen, Runtime::SafetyWhat::Math);
+}
+
+bool CodeGenSafety::hasLifecycleRuntimeSafety(const CodeGen& codeGen)
+{
+    // Lifecycle checks are function-scoped (like the sanity pass): poison stores and
+    // sanitizer markers have no dedicated AST node to carry a per-node payload.
+    const uint16_t mask = codeGen.function().attributes().effectiveRuntimeSafetyMask(codeGen.buildCfg().safetyGuards);
+    return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
+}
+
+Result CodeGenSafety::emitLifecyclePoison(CodeGen& codeGen, const MicroReg addrReg, const uint64_t sizeInBytes)
+{
+    if (sizeInBytes == 0 || sizeInBytes > UINT32_MAX || !addrReg.isValid())
+        return Result::Continue;
+
+    MicroBuilder&  builder = codeGen.builder();
+    const MicroReg fillReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegImm(fillReg, ApInt(K_LIFECYCLE_POISON_BYTE, 64), MicroOpBits::B64);
+    CodeGenMemoryHelpers::emitMemSet(codeGen, addrReg, fillReg, static_cast<uint32_t>(sizeInBytes));
+    return Result::Continue;
+}
+
+Result CodeGenSafety::emitLifecyclePoisonLoop(CodeGen& codeGen, const MicroReg addrReg, const MicroReg countReg, const uint64_t elementSizeInBytes)
+{
+    if (elementSizeInBytes == 0 || elementSizeInBytes > UINT32_MAX || !addrReg.isValid() || !countReg.isValid())
+        return Result::Continue;
+
+    MicroBuilder&  builder = codeGen.builder();
+    const MicroReg fillReg = codeGen.nextVirtualIntRegister();
+    const MicroReg ptrReg  = codeGen.nextVirtualIntRegister();
+    const MicroReg cntReg  = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegImm(fillReg, ApInt(K_LIFECYCLE_POISON_BYTE, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(ptrReg, addrReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(cntReg, countReg, MicroOpBits::B64);
+
+    const MicroLabelRef loopLabel = builder.createLabel();
+    const MicroLabelRef doneLabel = builder.createLabel();
+    builder.placeLabel(loopLabel);
+    builder.emitCmpRegImm(cntReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    CodeGenMemoryHelpers::emitMemSet(codeGen, ptrReg, fillReg, static_cast<uint32_t>(elementSizeInBytes));
+    builder.emitOpBinaryRegImm(ptrReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(cntReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+    builder.placeLabel(doneLabel);
+    return Result::Continue;
+}
+
+Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg addrReg, const TypeRef typeRef, const AstNodeRef sourceRef)
+{
+    const uint64_t sizeInBytes = codeGen.typeMgr().get(typeRef).sizeOf(codeGen.ctx());
+    SWC_RESULT(emitLifecyclePoison(codeGen, addrReg, sizeInBytes));
+
+    // The sanitizer only tracks frame slots: mark the source storage as moved-from when it
+    // is a plain local. The address is re-materialized here so the marker stays resolvable
+    // even when a lifecycle call was emitted in between (calls clear the sanitizer state).
+    if (sourceRef.isInvalid() || !codeGen.localStackBaseReg().isValid())
+        return Result::Continue;
+
+    AstNodeRef resolvedRef = codeGen.viewZero(sourceRef).nodeRef();
+    if (resolvedRef.isValid())
+    {
+        if (const auto* initExpr = codeGen.node(resolvedRef).safeCast<AstInitializerExpr>())
+            resolvedRef = codeGen.viewZero(initExpr->nodeExprRef).nodeRef();
+    }
+
+    if (resolvedRef.isInvalid())
+        return Result::Continue;
+
+    const SemaNodeView storedView = codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol);
+    const Symbol*      sym        = storedView.sym();
+    if (!sym || !sym->isVariable())
+        return Result::Continue;
+
+    const auto& symVar = sym->cast<SymbolVariable>();
+    if (symVar.hasGlobalStorage() || !symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+        return Result::Continue;
+    if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+        return Result::Continue;
+
+    // The local's storage must be the struct itself: for a reference-like variable the
+    // frame slot holds a pointer, and marking it would flag legitimate reads of the
+    // reference on the way to its (correctly poisoned) pointee.
+    const TypeRef unwrappedVarTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
+    const TypeRef varTypeRef          = unwrappedVarTypeRef.isValid() ? unwrappedVarTypeRef : symVar.typeRef();
+    if (!codeGen.typeMgr().get(varTypeRef).isStruct())
+        return Result::Continue;
+
+    const CodeGenNodePayload localPayload = codeGen.resolveLocalStackPayload(symVar, false);
+    codeGen.builder().emitSanityInvalidate(localPayload.reg, sizeInBytes);
+    return Result::Continue;
 }
 
 bool CodeGenSafety::hasOverflowRuntimeSafety(const CodeGen& codeGen)

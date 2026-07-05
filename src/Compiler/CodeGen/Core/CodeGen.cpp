@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -1126,7 +1127,14 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             if (!resolveDeferredVariableAddress(*this, *action.variable, variablePayload))
                 return Result::Continue;
 
-            return emitLifecycle(action.lifecycleTypeRef, action.lifecycleKind, variablePayload.reg);
+            SWC_RESULT(emitLifecycle(action.lifecycleTypeRef, action.lifecycleKind, variablePayload.reg));
+
+            // Under lifecycle safety, poison the dropped storage so a dangling access to
+            // the dead local fails deterministically instead of reading stale bits.
+            if (CodeGenSafety::hasLifecycleRuntimeSafety(*this))
+                SWC_RESULT(CodeGenSafety::emitLifecyclePoison(*this, variablePayload.reg, typeMgr().get(action.lifecycleTypeRef).sizeOf(ctx())));
+
+            return Result::Continue;
         }
     }
 

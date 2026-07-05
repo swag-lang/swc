@@ -6,6 +6,7 @@
 #include "Backend/Sanitizer/Checks/Check.IntOverflow.h"
 #include "Backend/Sanitizer/Checks/Check.NullDeref.h"
 #include "Backend/Sanitizer/Checks/Check.StackEscape.h"
+#include "Backend/Sanitizer/Checks/Check.UseAfterMove.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Support/Core/SmallVector.h"
 
@@ -22,12 +23,13 @@ Result MicroSanityPass::run(MicroPassContext& context)
 
     // Register every available check, then keep only those whose safety guard is enabled
     // for this function. Adding a check is: subclass SanitizerCheck and list it here.
-    NullDerefCheck   nullDerefCheck;
-    DivByZeroCheck   divByZeroCheck;
-    FloatDomainCheck floatDomainCheck;
-    IntOverflowCheck intOverflowCheck;
-    StackEscapeCheck stackEscapeCheck;
-    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck};
+    NullDerefCheck    nullDerefCheck;
+    DivByZeroCheck    divByZeroCheck;
+    FloatDomainCheck  floatDomainCheck;
+    IntOverflowCheck  intOverflowCheck;
+    StackEscapeCheck  stackEscapeCheck;
+    UseAfterMoveCheck useAfterMoveCheck;
+    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck};
 
     SmallVector<SanitizerCheck*> enabledChecks;
     for (SanitizerCheck* check : allChecks)

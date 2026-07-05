@@ -186,6 +186,7 @@ namespace Swag
         Null        = 0x0100     // Check on dereferencing some null pointers
         Memory      = 0x0200     // Check some memory things (mostly in sanity pass)
         Assume      = 0x0400     // Check if 'assume' must panic on an unexpected runtime error
+        Lifecycle   = 0x0800     // Check use of moved-from values, and poison abandoned/dropped storage
         None        = 0x0000
         All         = 0xFFFF
     }

@@ -52,6 +52,18 @@ impl Vector3
 }
 
 /**
+# Lifecycle Safety
+
+Reading a value abandoned by '#relocate' — or by '#move' when the type has no 'opDrop',
+which leaves the source unreset — reads stale bits. Under the 'Swag.SafetyWhat.Lifecycle'
+safety guard (part of 'All', so enabled by default in debug configurations), the compiler
+reports proven reads of moved-from locals at compile time, and poisons abandoned or
+dropped storage with '0xDD' bytes at runtime so hidden violations fail deterministically
+instead of silently reading stale data. A '#move' of a type with 'opDrop' is not
+concerned: the source is reset to its defaults, which is defined behavior.
+*/
+
+/**
 # Move Semantics in Functions
 
 Move semantics can be expressed in function parameters by prefixing the parameter type with '#move'.

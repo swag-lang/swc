@@ -1,4 +1,9 @@
 #global private
+// This file asserts the RAW copy/move/drop mechanics, including reading storage
+// abandoned by '#relocate': lifecycle safety (use-after-move check + poisoning) is
+// disabled for the whole file. See bin/unittests/safety/use_after_move.swg for the
+// lifecycle-safety behavior itself.
+#global #[Swag.Safety(.Lifecycle, false)]
 
 var DropCount: u32 = 0
 var DropTrace: s64 = 0

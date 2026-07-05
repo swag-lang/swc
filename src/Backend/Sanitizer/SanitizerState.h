@@ -36,7 +36,14 @@ struct SanitizerState
 {
     std::unordered_map<uint32_t, SanitizerRegInfo> regs;  // key: MicroReg.packed
     std::unordered_map<int64_t, SanitizerValue>    stack; // key: stack slot offset
-    MicroReg                                       flagsSubject = MicroReg::invalid();
+
+    // Frame ranges abandoned by a '#move'/'#relocate' (moved-from, not reset), set by a
+    // 'SanityInvalidate' marker: key = slot offset, value = size in bytes. A range is
+    // moved-from only when it is on *every* path (join = intersection); any store into
+    // the range revalidates it, and calls conservatively clear the whole set.
+    std::unordered_map<int64_t, uint64_t> movedFrom;
+
+    MicroReg flagsSubject = MicroReg::invalid();
 };
 
 SWC_END_NAMESPACE();

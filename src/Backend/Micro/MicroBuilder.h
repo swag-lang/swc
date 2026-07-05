@@ -125,6 +125,7 @@ public:
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
+    void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
     void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);

@@ -7,4 +7,5 @@ SWC_DIAG_DEF(safety_err_dyn_cast, Error, "cast from 'any' does not match the und
 SWC_DIAG_DEF(safety_err_null_deref, Error, "dereferencing a null pointer")
 SWC_DIAG_DEF(safety_err_null_call, Error, "calling a null function pointer")
 SWC_DIAG_DEF(safety_err_return_local_address, Error, "returning the address of a local variable")
+SWC_DIAG_DEF(safety_err_use_after_move, Error, "use of a moved-from value; [help] the value was given away with '#move' or '#relocate': reassign it before reading it")
 SWC_DIAG_DEF(safety_err_runtime, Error, "{because}")

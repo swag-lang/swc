@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -530,12 +531,18 @@ namespace
         if (codeGen.hasLifecycle(symVar.typeRef(), postKind))
             SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), postKind, symbolPayload.reg));
 
-        if (isMove && !isRelocate && initPayload.isAddress() &&
-            codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop))
+        if (isMove && initPayload.isAddress())
         {
             const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-            if (resolvedInitRef.isValid() && codeGen.sema().isLValue(codeGen.node(resolvedInitRef)))
-                SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+            const bool       sourceIsLValue  = resolvedInitRef.isValid() && codeGen.sema().isLValue(codeGen.node(resolvedInitRef));
+            if (sourceIsLValue)
+            {
+                const bool shouldResetSource = !isRelocate && codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop);
+                if (shouldResetSource)
+                    SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+                else if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+                    SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
+            }
         }
 
         return Result::Continue;

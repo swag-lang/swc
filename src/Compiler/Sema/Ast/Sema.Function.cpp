@@ -1135,10 +1135,10 @@ namespace
         uint64_t captureOffset = 0;
         for (const AstNodeRef captureRef : captures)
         {
-            const AstClosureArgument& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
-            Symbol*                   sourceSym  = nullptr;
-            SymbolVariable*           sourceVar  = nullptr;
-            TypeRef                   typeRef    = TypeRef::invalid();
+            const AstClosureArgument& captureArg       = sema.node(captureRef).cast<AstClosureArgument>();
+            Symbol*                   sourceSym        = nullptr;
+            SymbolVariable*           sourceVar        = nullptr;
+            TypeRef                   typeRef          = TypeRef::invalid();
             const bool                hasExplicitAlias = captureArg.tokAliasNameRef.isValid();
 
             if (hasExplicitAlias)
@@ -1167,7 +1167,7 @@ namespace
                 typeRef   = sourceVar->typeRef();
             }
 
-            const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
+            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, captureArg.nodeIdentifierRef));
 
             const bool captureByRef = captureArg.hasFlag(AstClosureArgumentFlagsE::Address);

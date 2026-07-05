@@ -414,9 +414,9 @@ namespace
         if (!sym || !sym->isVariable())
             return nullptr;
 
-        const auto&   symVar            = sym->cast<SymbolVariable>();
-        const TypeRef unwrappedTypeRef  = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
-        const TypeRef storageTypeRef    = unwrappedTypeRef.isValid() ? unwrappedTypeRef : symVar.typeRef();
+        const auto&   symVar           = sym->cast<SymbolVariable>();
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), symVar.typeRef());
+        const TypeRef storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : symVar.typeRef();
         if (!codeGen.typeMgr().get(storageTypeRef).isStruct())
             return nullptr;
 

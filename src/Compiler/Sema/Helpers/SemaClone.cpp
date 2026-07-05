@@ -1903,10 +1903,10 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
 
 AstNodeRef AstClosureArgument::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr]      = sema.ast().makeNode<AstNodeId::ClosureArgument>(tokRef());
-    newPtr->flags()            = flags();
-    newPtr->tokAliasNameRef    = tokAliasNameRef;
-    newPtr->nodeIdentifierRef  = SemaClone::cloneAst(sema, nodeIdentifierRef, cloneContextAsInline(cloneContext));
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::ClosureArgument>(tokRef());
+    newPtr->flags()           = flags();
+    newPtr->tokAliasNameRef   = tokAliasNameRef;
+    newPtr->nodeIdentifierRef = SemaClone::cloneAst(sema, nodeIdentifierRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

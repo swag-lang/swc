@@ -23,12 +23,12 @@ Result MicroSanityPass::run(MicroPassContext& context)
 
     // Register every available check, then keep only those whose safety guard is enabled
     // for this function. Adding a check is: subclass SanitizerCheck and list it here.
-    NullDerefCheck    nullDerefCheck;
-    DivByZeroCheck    divByZeroCheck;
-    FloatDomainCheck  floatDomainCheck;
-    IntOverflowCheck  intOverflowCheck;
-    StackEscapeCheck  stackEscapeCheck;
-    UseAfterMoveCheck useAfterMoveCheck;
+    NullDerefCheck        nullDerefCheck;
+    DivByZeroCheck        divByZeroCheck;
+    FloatDomainCheck      floatDomainCheck;
+    IntOverflowCheck      intOverflowCheck;
+    StackEscapeCheck      stackEscapeCheck;
+    UseAfterMoveCheck     useAfterMoveCheck;
     SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck};
 
     SmallVector<SanitizerCheck*> enabledChecks;

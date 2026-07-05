@@ -11,10 +11,10 @@ AstNodeRef Parser::parseClosureArg()
     if (consumeIf(TokenId::SymAmpersand).isValid())
         flags.add(AstClosureArgumentFlagsE::Address);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
-    nodePtr->flags()            = flags;
-    nodePtr->tokAliasNameRef    = TokenRef::invalid();
-    nodePtr->nodeIdentifierRef  = AstNodeRef::invalid();
+    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::ClosureArgument>(tokStart);
+    nodePtr->flags()           = flags;
+    nodePtr->tokAliasNameRef   = TokenRef::invalid();
+    nodePtr->nodeIdentifierRef = AstNodeRef::invalid();
 
     if (is(TokenId::Identifier) && nextIs(TokenId::SymEqual))
     {
@@ -28,10 +28,10 @@ AstNodeRef Parser::parseClosureArg()
         closureCaptureStopDepthParen_        = depthParen_;
         closureCaptureStopDepthBracket_      = depthBracket_;
         closureCaptureStopDepthCurly_        = depthCurly_;
-        nodePtr->nodeIdentifierRef = parseExpression();
-        closureCaptureStopDepthParen_   = savedStopDepthParen;
-        closureCaptureStopDepthBracket_ = savedStopDepthBracket;
-        closureCaptureStopDepthCurly_   = savedStopDepthCurly;
+        nodePtr->nodeIdentifierRef           = parseExpression();
+        closureCaptureStopDepthParen_        = savedStopDepthParen;
+        closureCaptureStopDepthBracket_      = savedStopDepthBracket;
+        closureCaptureStopDepthCurly_        = savedStopDepthCurly;
         return nodeRef;
     }
 
@@ -221,8 +221,8 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     const bool         savedFwdSeen   = fwdSeenParam_;
     const bool         savedFwdActive = fwdDeclActive_;
     const FwdParseMode savedFwdMode   = fwdCurMode_;
-    fwdSeenParam_          = false;
-    nodePtr->nodeParamsRef = parseFunctionParamList();
+    fwdSeenParam_                     = false;
+    nodePtr->nodeParamsRef            = parseFunctionParamList();
     if (fwdSeenParam_)
     {
         fwdDeclActive_  = true;

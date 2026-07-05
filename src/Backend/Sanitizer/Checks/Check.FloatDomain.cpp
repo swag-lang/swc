@@ -23,13 +23,13 @@ namespace
             outValue = static_cast<double>(std::bit_cast<float>(static_cast<uint32_t>(bits)));
             return true;
         }
-        
+
         if (floatBits == 64)
         {
             outValue = std::bit_cast<double>(bits);
             return true;
         }
-        
+
         return false;
     }
 

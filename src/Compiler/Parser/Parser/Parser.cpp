@@ -100,19 +100,19 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     // AST, so concurrent #ast parses for the same source file must serialize here.
     const std::scoped_lock generatedParseLock(ast_->generatedParseMutex());
 
-    firstToken_      = &srcView.tokens().front();
-    lastToken_       = &srcView.tokens().back();
-    curToken_        = startTokRef.isValid() ? &srcView.tokens()[startTokRef.get()] : firstToken_;
-    depthParen_      = 0;
-    depthBracket_    = 0;
-    depthCurly_      = 0;
-    lastErrorToken_  = TokenRef::invalid();
-    fwdPassMode_     = FwdParseMode::Copy;
-    fwdCurMode_      = FwdParseMode::Copy;
-    fwdDeclActive_   = false;
-    fwdSeenParam_    = false;
-    fwdStmtTrigger_  = false;
-    fwdReparseDepth_ = 0;
+    firstToken_                     = &srcView.tokens().front();
+    lastToken_                      = &srcView.tokens().back();
+    curToken_                       = startTokRef.isValid() ? &srcView.tokens()[startTokRef.get()] : firstToken_;
+    depthParen_                     = 0;
+    depthBracket_                   = 0;
+    depthCurly_                     = 0;
+    lastErrorToken_                 = TokenRef::invalid();
+    fwdPassMode_                    = FwdParseMode::Copy;
+    fwdCurMode_                     = FwdParseMode::Copy;
+    fwdDeclActive_                  = false;
+    fwdSeenParam_                   = false;
+    fwdStmtTrigger_                 = false;
+    fwdReparseDepth_                = 0;
     closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
     closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
     closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
@@ -534,9 +534,9 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
     ctx_ = &ctx;
     ast_ = &ast;
 
-    firstToken_ = &ast_->srcView().tokens().front();
-    lastToken_  = &ast_->srcView().tokens().back();
-    curToken_   = firstToken_;
+    firstToken_                     = &ast_->srcView().tokens().front();
+    lastToken_                      = &ast_->srcView().tokens().back();
+    curToken_                       = firstToken_;
     closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
     closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
     closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;

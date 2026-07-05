@@ -327,7 +327,7 @@ namespace
         if (!methodSym)
         {
             const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
-            methodSym = rightView.sym();
+            methodSym                    = rightView.sym();
         }
         if (!methodSym)
             methodSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);

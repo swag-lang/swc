@@ -164,15 +164,15 @@ private:
     // that count form an unsorted tail. Readers query the sorted prefix (binary search) plus the tail
     // (linear scan) under a shared lock, so they never need to escalate to an exclusive rebuild; the
     // tail is merged into the index on the writer side once it grows past a threshold.
-    mutable std::vector<uint32_t>                                          relocationsByOffset_;
-    mutable uint32_t                                                       relocationsIndexedCount_ = 0;
-    std::vector<DataSegmentAllocation>                                     allocations_;
-    std::atomic<bool>                                                      hasLargeBlocks_{false};
-    mutable std::shared_mutex                                              mutex_;
-    mutable std::shared_mutex                                              relocationsMutex_;
-    mutable std::shared_mutex                                              allocationsMutex_;
-    mutable std::mutex                                                     allocationMutexesMutex_;
-    mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>>      allocationMutexes_;
+    mutable std::vector<uint32_t>                                     relocationsByOffset_;
+    mutable uint32_t                                                  relocationsIndexedCount_ = 0;
+    std::vector<DataSegmentAllocation>                                allocations_;
+    std::atomic<bool>                                                 hasLargeBlocks_{false};
+    mutable std::shared_mutex                                         mutex_;
+    mutable std::shared_mutex                                         relocationsMutex_;
+    mutable std::shared_mutex                                         allocationsMutex_;
+    mutable std::mutex                                                allocationMutexesMutex_;
+    mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>> allocationMutexes_;
 };
 
 SWC_END_NAMESPACE();

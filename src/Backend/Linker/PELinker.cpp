@@ -801,7 +801,7 @@ namespace
 {
     Result collectLinkWin32ApplicationConfig(NativeBackendBuilder& builder, LinkWin32ApplicationConfig& outConfig)
     {
-        outConfig = {};
+        outConfig                         = {};
         const Runtime::BuildCfg& buildCfg = builder.compiler().buildCfg();
 
         if (buildCfg.backendSubKind == Runtime::BuildCfgBackendSubKind::Default)
@@ -1177,7 +1177,7 @@ Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
         for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
         {
             const NativeObjDescription& description = builder_->objectDescriptions[i];
-            outJob.archiveMembers[i] = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
+            outJob.archiveMembers[i]                = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
         }
         return Result::Continue;
     }
@@ -1189,7 +1189,7 @@ Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
     jobs.reserve(builder_->objectDescriptions.size());
     for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
     {
-        auto job = std::make_unique<StaticArchiveMemberJob>(builder_->ctx(), builder_->objectDescriptions[i], outJob.archiveMembers[i]);
+        auto                    job = std::make_unique<StaticArchiveMemberJob>(builder_->ctx(), builder_->objectDescriptions[i], outJob.archiveMembers[i]);
         StaticArchiveMemberJob& ref = *job;
         jobs.push_back(std::move(job));
         jobMgr.enqueue(ref, JobPriority::Normal, clientId);

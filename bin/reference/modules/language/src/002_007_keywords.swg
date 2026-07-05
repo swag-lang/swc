@@ -325,7 +325,8 @@ They give developers finer control over how code is interpreted or executed.
 #wrap
 #nodrop
 #move
-#moveraw
+#relocate
+#fwd
 #reverse
 #err
 #noerr

@@ -371,7 +371,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#wrap", State.Modifier)
         .mapWords.add("#nodrop", State.Modifier)
         .mapWords.add("#move", State.Modifier)
-        .mapWords.add("#moveraw", State.Modifier)
+        .mapWords.add("#relocate", State.Modifier)
         .mapWords.add("#fwd", State.Modifier)
         .mapWords.add("#reverse", State.Modifier)
         .mapWords.add("#null", State.Modifier)

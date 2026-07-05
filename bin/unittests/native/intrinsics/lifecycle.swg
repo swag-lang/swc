@@ -272,10 +272,15 @@ impl RemoveBuffer
     mtd removeAt(index: u64)
     {
         .count -= 1
-        if index == .count do
+        if index == .count
+        {
             @drop(.buffer + .count)
-        else do
-            .buffer[index] = #moveraw .buffer[.count]
+        }
+        else
+        {
+            @drop(.buffer + index)
+            .buffer[index] = #relocate .buffer[.count]
+        }
     }
 }
 
@@ -548,13 +553,11 @@ impl MemoryAllocatorGenericBuffer
         if !num do
             return
 
+        // Drop the removed elements, then relocate the survivors into the freed slots.
+        @drop(.buffer + index, num)
         let shiftCount = .count - (index + num)
         for i in shiftCount do
-            .buffer[index + i] = #moveraw .buffer[index + num + i]
-
-        let droppedTail = num - shiftCount
-        if droppedTail do
-            @drop(.buffer + .count - droppedTail, droppedTail)
+            .buffer[index + i] = #relocate .buffer[index + num + i]
 
         .count -= num
     }
@@ -1328,7 +1331,8 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
     for i in 3 do
         ptr[i].value = cast(s32) (i + 1)
 
-    ptr[1] = #moveraw ptr[2]
+    @drop(ptr + 1)
+    ptr[1] = #relocate ptr[2]
     let first = ptr[0].value
     let second = ptr[1].value
     @drop(ptr, 2)

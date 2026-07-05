@@ -270,7 +270,7 @@ impl StaticArray
         #if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx > index; idx -= 1 do
-                .buffer[idx] = #nodrop #moveraw .buffer[idx - 1]
+                .buffer[idx] = #relocate .buffer[idx - 1]
         }
         #else
         {
@@ -306,7 +306,7 @@ impl StaticArray
         #if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
-                .buffer[idx] = #nodrop #moveraw .buffer[idx - sliceCount]
+                .buffer[idx] = #relocate .buffer[idx - sliceCount]
         }
         #else
         {
@@ -350,7 +350,7 @@ impl StaticArray
         #if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
-                .buffer[idx] = #nodrop #moveraw .buffer[idx - sliceCount]
+                .buffer[idx] = #relocate .buffer[idx - sliceCount]
         }
         #else
         {
@@ -419,15 +419,15 @@ impl StaticArray
         }
         #else
         {
-            for i in shiftCount
-            {
-                .buffer[index + i] = #moveraw .buffer[index + num + i]
-            }
-
+            // Drop the removed elements, then relocate the survivors into the freed slots.
             #if Reflection.hasDrop(T)
             {
-                if num > shiftCount do
-                    @drop(&.buffer[index + shiftCount], num - shiftCount)
+                @drop(&.buffer[index], num)
+            }
+
+            for i in shiftCount
+            {
+                .buffer[index + i] = #relocate .buffer[index + num + i]
             }
         }
 
@@ -456,10 +456,15 @@ impl StaticArray
         Debug.assert(index < .count, "index out of range")
         let oldCount = .count
         .count -= 1
-        if index == .count do
+        if index == .count
+        {
             @drop(&.buffer[.count])
-        else do
-            .buffer[index] = #moveraw .buffer[.count]
+        }
+        else
+        {
+            @drop(&.buffer[index])
+            .buffer[index] = #relocate .buffer[.count]
+        }
 
         #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
@@ -497,7 +502,7 @@ impl StaticArray
             var idx = index
             for .count - index
             {
-                .buffer[idx] = #nodrop #moveraw .buffer[idx + numValues]
+                .buffer[idx] = #relocate .buffer[idx + numValues]
                 idx += 1
             }
         }
@@ -590,7 +595,7 @@ impl StaticArray
         Debug.assert(.count > 0, "array is empty")
         var result: retval = undefined
         let backIndex = .count - 1
-        result = #nodrop #moveraw .buffer[backIndex]
+        result = #relocate .buffer[backIndex]
         #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(&.buffer[backIndex], 1)

@@ -520,8 +520,8 @@ namespace
         // 'var a = #move b' runs 'opPostMove' and resets the moved-from source (so its
         // later drop is a no-op); a plain init from an lvalue runs 'opPostCopy'.
         const AstModifierFlags initModifiers = varInitModifierFlags(codeGen, initRef);
-        const bool             isMove        = initModifiers.has(AstModifierFlagsE::Move) || initModifiers.has(AstModifierFlagsE::MoveRaw);
-        const bool             isMoveRaw     = initModifiers.has(AstModifierFlagsE::MoveRaw);
+        const bool             isMove        = initModifiers.has(AstModifierFlagsE::Move) || initModifiers.has(AstModifierFlagsE::Relocate);
+        const bool             isRelocate    = initModifiers.has(AstModifierFlagsE::Relocate);
 
         if (!isMove && !varInitNeedsPostCopy(codeGen, initRef, initPayload))
             return Result::Continue;
@@ -530,7 +530,7 @@ namespace
         if (codeGen.hasLifecycle(symVar.typeRef(), postKind))
             SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), postKind, symbolPayload.reg));
 
-        if (isMove && !isMoveRaw && initPayload.isAddress() &&
+        if (isMove && !isRelocate && initPayload.isAddress() &&
             codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop))
         {
             const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();

@@ -181,21 +181,22 @@ func noDropMoveInfo()->LifecycleInfo
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-func moveRawInfo()->LifecycleInfo
+func dropRelocateInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     var dst = Tracked{8}
     var src = Tracked{3}
-    dst = #moveraw src
+    @drop(&dst)
+    dst = #relocate src
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-func noDropMoveRawInfo()->LifecycleInfo
+func relocateInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     var dst = Tracked{8}
     var src = Tracked{3}
-    dst = #nodrop #moveraw src
+    dst = #relocate src
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -385,7 +386,7 @@ func semaTest004()
 
 func semaTest005()
 {
-    const V = #run moveRawInfo()
+    const V = #run dropRelocateInfo()
     #assert(V.dst == 23)
     #assert(V.src == 3)
     #assert(V.drops == 1)
@@ -396,7 +397,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    const V = #run noDropMoveRawInfo()
+    const V = #run relocateInfo()
     #assert(V.dst == 23)
     #assert(V.src == 3)
     #assert(V.drops == 0)

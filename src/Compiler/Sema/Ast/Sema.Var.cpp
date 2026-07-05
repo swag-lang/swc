@@ -1347,8 +1347,13 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
 {
     constexpr AstModifierFlags allowed = AstModifierFlagsE::NoDrop |
                                          AstModifierFlagsE::Move |
-                                         AstModifierFlagsE::MoveRaw;
+                                         AstModifierFlagsE::Relocate;
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
+
+    // '#relocate' already implies an uninitialized target and an abandoned source.
+    if (modifierFlags.has(AstModifierFlagsE::Relocate) &&
+        (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::NoDrop)))
+        return SemaError::raise(sema, DiagnosticId::sema_err_relocate_modifier_conflict, sema.curNodeRef());
 
     const AstNodeRef   resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);

@@ -332,21 +332,24 @@ impl HashTable
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HashTable.HASH_FIRST
         {
-            .table[index].value = #moveraw value
+            @drop(&.table[index].value)
+            .table[index].value = #relocate value
             return .table + index
         }
 
         if .table[index].hash == HashTable.HASH_FREE
         {
-            .table[index].key   = #nodrop #moveraw key
-            .table[index].value = #nodrop #moveraw value
+            .table[index].key   = #relocate key
+            .table[index].value = #relocate value
         }
         else
         {
             if .table[index].hash == HashTable.HASH_DELETED do
                 .deleted -= 1
-            .table[index].key   = #moveraw key
-            .table[index].value = #moveraw value
+            @drop(&.table[index].key)
+            @drop(&.table[index].value)
+            .table[index].key   = #relocate key
+            .table[index].value = #relocate value
         }
 
         .table[index].hash = hashVal

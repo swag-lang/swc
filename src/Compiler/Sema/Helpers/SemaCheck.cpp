@@ -312,7 +312,7 @@ namespace
             case AstModifierFlagsE::NoDrop: return TokenId::ModifierNoDrop;
             case AstModifierFlagsE::Reverse: return TokenId::ModifierReverse;
             case AstModifierFlagsE::Move: return TokenId::ModifierMove;
-            case AstModifierFlagsE::MoveRaw: return TokenId::ModifierMoveRaw;
+            case AstModifierFlagsE::Relocate: return TokenId::ModifierRelocate;
             case AstModifierFlagsE::Nullable: return TokenId::ModifierNullable;
             default:
                 SWC_UNREACHABLE();
@@ -361,8 +361,8 @@ Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef
 
 Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds)
 {
-    // '#move'/'#moveraw' transfer ownership: not a copy.
-    if (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::MoveRaw))
+    // '#move'/'#relocate' transfer ownership: not a copy.
+    if (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::Relocate))
         return Result::Continue;
     if (srcRef.isInvalid() || srcTypeRef.isInvalid() || destTypeRef.isInvalid())
         return Result::Continue;

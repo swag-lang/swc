@@ -221,7 +221,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|moveraw|fwd|bit|unconst|reverse|null|err|noerr)\\b"
+          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|err|noerr)\\b"
         }
       ]
     },

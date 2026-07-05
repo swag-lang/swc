@@ -196,21 +196,22 @@ func noDropMoveInfo()->LifecycleInfo
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-func moveRawInfo()->LifecycleInfo
+func dropRelocateInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     var dst = Tracked{8}
     var src = Tracked{3}
-    dst = #moveraw src
+    @drop(&dst)
+    dst = #relocate src
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-func noDropMoveRawInfo()->LifecycleInfo
+func relocateInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     var dst = Tracked{8}
     var src = Tracked{3}
-    dst = #nodrop #moveraw src
+    dst = #relocate src
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -408,7 +409,7 @@ func returnCopyInfo()->LifecycleInfo
 
 #test
 {
-    let v = moveRawInfo()
+    let v = dropRelocateInfo()
     @assert(v.dst == 23)
     @assert(v.src == 3)
     @assert(v.drops == 1)
@@ -419,7 +420,7 @@ func returnCopyInfo()->LifecycleInfo
 
 #test
 {
-    let v = noDropMoveRawInfo()
+    let v = relocateInfo()
     @assert(v.dst == 23)
     @assert(v.src == 3)
     @assert(v.drops == 0)
@@ -601,7 +602,7 @@ func returnCopyInfo()->LifecycleInfo
 }
 
 // A struct exposing a user `opSet` reachable from its own type through an implicit `opCast`, just like
-// core.String (`opCast->string` + `opSet(string)`). The raw-storage modifiers `#moveraw` and `#nodrop`
+// core.String (`opCast->string` + `opSet(string)`). The raw-storage modifiers `#relocate` and `#nodrop`
 // (without `#move`) must bypass `opSet` and write the storage bitwise: routing them through `opSet`
 // reads the uninitialized target (its buffer/allocator), which crashed Array.popBack of a heap string.
 var SetCount: u32 = 0
@@ -669,13 +670,13 @@ func settableNoDropCopy()->SettableInfo
     return {dst.value, SetCount, PostCopyCount, PostMoveCount}
 }
 
-func settableMoveRaw()->SettableInfo
+func settableRelocate()->SettableInfo
 {
     resetLifecycleHooks()
     SetCount = 0
     var dst = Settable{8}
     var src = Settable{3}
-    dst = #nodrop #moveraw src
+    dst = #relocate src
     return {dst.value, SetCount, PostCopyCount, PostMoveCount}
 }
 
@@ -700,8 +701,8 @@ func settableMoveRaw()->SettableInfo
 
 #test
 {
-    // `#nodrop #moveraw` bypasses `opSet`: raw bitwise move + opPostMove, no read of the target.
-    let v = settableMoveRaw()
+    // `#relocate` bypasses `opSet`: raw bitwise move + opPostMove, no read of the target.
+    let v = settableRelocate()
     @assert(v.sets == 0)
     @assert(v.dst == 23)
     @assert(v.postCopy == 0)

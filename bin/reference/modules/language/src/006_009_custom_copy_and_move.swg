@@ -46,9 +46,9 @@ impl Vector3
     a = #nodrop b // Copy without dropping 'a' first.
     a = #nodrop #move b // Move without dropping 'a' first.
 
-    // '#moveraw' prevents reinitialization of the source after move. Use with care.
-    a = #moveraw b
-    a = #nodrop #moveraw b
+    // '#relocate' is the raw relocation used by container internals: the target is treated
+    // as uninitialized (no drop) and the source is abandoned (no reinitialization). Use with care.
+    a = #relocate b
 }
 
 /**

@@ -41,7 +41,7 @@ namespace
         auto          allowed =
             AstModifierFlagsE::NoDrop |
             AstModifierFlagsE::Move |
-            AstModifierFlagsE::MoveRaw;
+            AstModifierFlagsE::Relocate;
 
         switch (tokId)
         {
@@ -65,7 +65,14 @@ namespace
                 break;
         }
 
-        return SemaCheck::modifiers(sema, node, node.modifierFlags, allowed);
+        SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, allowed));
+
+        // '#relocate' already implies an uninitialized target and an abandoned source.
+        if (node.modifierFlags.has(AstModifierFlagsE::Relocate) &&
+            (node.modifierFlags.has(AstModifierFlagsE::Move) || node.modifierFlags.has(AstModifierFlagsE::NoDrop)))
+            return SemaError::raise(sema, DiagnosticId::sema_err_relocate_modifier_conflict, sema.curNodeRef());
+
+        return Result::Continue;
     }
 
     const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
@@ -224,7 +231,7 @@ namespace
 
     void applyMoveAssignmentModifiers(Sema& sema, AstModifierFlags modifierFlags, SemaNodeView& rightView)
     {
-        if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw}))
+        if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate}))
             return;
         if (!rightView.type() || !rightView.type()->isMoveReference())
             return;
@@ -236,7 +243,7 @@ namespace
 
     void markMoveAssignmentSourceAddressableStorage(AstModifierFlags modifierFlags, const SemaNodeView& rightView)
     {
-        if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw}))
+        if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate}))
             return;
         if (!rightView.sym() || !rightView.sym()->isVariable() || !rightView.type())
             return;

@@ -283,13 +283,14 @@ impl HashSet
 
         if .table[index].hash == HashSet.HASH_FREE
         {
-            .table[index].key = #nodrop #moveraw key
+            .table[index].key = #relocate key
         }
         else
         {
             if .table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
-            .table[index].key = #moveraw key
+            @drop(&.table[index].key)
+            .table[index].key = #relocate key
         }
 
         .table[index].hash = hashVal

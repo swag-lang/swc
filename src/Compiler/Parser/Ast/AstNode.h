@@ -34,7 +34,7 @@ enum class AstModifierFlagsE : uint32_t
     NoDrop   = 1 << 6,
     Reverse  = 1 << 9,
     Move     = 1 << 10,
-    MoveRaw  = 1 << 11,
+    Relocate = 1 << 11, // raw relocation: uninitialized target, abandoned source (no reset)
     Nullable = 1 << 12,
     Count,
 };

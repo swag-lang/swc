@@ -249,8 +249,8 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierMove:
                 toSet = AstModifierFlagsE::Move;
                 break;
-            case TokenId::ModifierMoveRaw:
-                toSet = AstModifierFlagsE::MoveRaw;
+            case TokenId::ModifierRelocate:
+                toSet = AstModifierFlagsE::Relocate;
                 break;
             case TokenId::ModifierFwd:
                 // '#fwd' forwards the enclosing function's '#fwd' parameter: it means

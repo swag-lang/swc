@@ -912,7 +912,18 @@ namespace
         if (!isExplicitUndefinedInit)
             SWC_RESULT(tryResolveVarDeclSetInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, setInitInfo));
         if (!setInitInfo.handled)
+        {
+            if (context.nodeInitRef.isValid() && !isExplicitUndefinedInit)
+            {
+                AstModifierFlags initModifiers = AstModifierFlagsE::Zero;
+                if (const auto* initExpr = sema.node(context.nodeInitRef).safeCast<AstInitializerExpr>())
+                    initModifiers = initExpr->modifierFlags;
+
+                const TypeRef declTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
+                SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeInitView.nodeRef(), nodeInitView.typeRef(), declTypeRef, initModifiers, true));
+            }
             SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
+        }
 
         if (context.nodeInitRef.isValid() && !setInitInfo.handled)
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());

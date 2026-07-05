@@ -406,7 +406,10 @@ namespace
             }
 
             if (tok.id == TokenId::SymEqual)
+            {
+                SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), leftView.typeRef(), modifierFlags, false));
                 SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
+            }
             else
                 SWC_RESULT(tryCompoundAssignmentCast(sema, tok.id, leftRef, leftView, nodeRightView, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
         }
@@ -475,6 +478,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (tok.id == TokenId::SymEqual)
     {
         SWC_RESULT(SemaCheck::isValueOrType(sema, nodeRightView));
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), nodeLeftView.typeRef(), modifierFlags, false));
         SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
     }
     else

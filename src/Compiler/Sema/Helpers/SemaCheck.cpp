@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -356,6 +357,56 @@ Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef
     if (!typeRef.isValid() || !sema.typeMgr().get(typeRef).isMoveReference())
         return Result::Continue;
     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_ref_type_context, errorRef, typeRef);
+}
+
+Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds)
+{
+    // '#move'/'#moveraw' transfer ownership: not a copy.
+    if (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::MoveRaw))
+        return Result::Continue;
+    if (srcRef.isInvalid() || srcTypeRef.isInvalid() || destTypeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeManager& typeMgr = sema.typeMgr();
+
+    // The destination decides whether a copy happens: a value slot of struct type, or an
+    // assignment writing through a reference. Reference declarations bind (no copy), and
+    // pointer-typed destinations store an address.
+    TypeRef         destPayloadTypeRef = destTypeRef;
+    const TypeInfo* destType           = &typeMgr.get(destTypeRef);
+    if (destType->isReference())
+    {
+        if (destReferenceBinds)
+            return Result::Continue;
+        destPayloadTypeRef = destType->payloadTypeRef();
+    }
+
+    const TypeRef unwrappedDestTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), destPayloadTypeRef);
+    const TypeRef checkTypeRef         = unwrappedDestTypeRef.isValid() ? unwrappedDestTypeRef : destPayloadTypeRef;
+    if (!typeMgr.get(checkTypeRef).isStruct())
+        return Result::Continue;
+
+    // Rvalue sources (call results, literals, constants) construct or move; a copy only
+    // happens when reading an existing storage location, directly (lvalue) or through a
+    // reference (including a '#move' parameter used without '#move').
+    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    if (!srcType.isReference() && !sema.isLValueStored(srcRef))
+        return Result::Continue;
+
+    // The copy variant generated from a '#fwd' parameter is discarded by overload
+    // resolution for non-copyable types: copies from the parameter itself are dead
+    // code there and must not error.
+    const SemaNodeView srcSymView = sema.viewSymbol(srcRef);
+    if (srcSymView.sym() && srcSymView.sym()->isVariable() && srcSymView.sym()->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
+        return Result::Continue;
+
+    if (TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), checkTypeRef).canCopy)
+        return Result::Continue;
+
+    auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_copy_nocopy, srcRef);
+    diag.addArgument(Diagnostic::ARG_TYPE, checkTypeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& view)

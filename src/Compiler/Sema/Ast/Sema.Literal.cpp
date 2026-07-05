@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Main/CompilerInstance.h"
@@ -712,6 +713,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     {
         SemaNodeView view = sema.viewTypeConstant(child);
         SWC_ASSERT(view.typeRef().isValid());
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
         values.push_back(view.cstRef());
         elemTypes.push_back(view.typeRef());
         allConstant = allConstant && view.cstRef().isValid();

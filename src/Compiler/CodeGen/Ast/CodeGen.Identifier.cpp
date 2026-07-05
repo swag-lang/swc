@@ -499,6 +499,15 @@ namespace
         return initPayload.runtimeStorageSym != nullptr;
     }
 
+    AstModifierFlags varInitModifierFlags(const CodeGen& codeGen, AstNodeRef initRef)
+    {
+        if (initRef.isInvalid())
+            return AstModifierFlagsE::Zero;
+        if (const auto* initExpr = codeGen.node(initRef).safeCast<AstInitializerExpr>())
+            return initExpr->modifierFlags;
+        return AstModifierFlagsE::Zero;
+    }
+
     Result emitVarInitPostCopy(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef, const CodeGenNodePayload& initPayload, const CodeGenNodePayload& symbolPayload)
     {
         if (!symbolPayload.isAddress())
@@ -507,11 +516,29 @@ namespace
             return Result::Continue;
         if (initPayload.isAddress() && initPayload.reg == symbolPayload.reg)
             return Result::Continue;
-        if (!varInitNeedsPostCopy(codeGen, initRef, initPayload))
+
+        // 'var a = #move b' runs 'opPostMove' and resets the moved-from source (so its
+        // later drop is a no-op); a plain init from an lvalue runs 'opPostCopy'.
+        const AstModifierFlags initModifiers = varInitModifierFlags(codeGen, initRef);
+        const bool             isMove        = initModifiers.has(AstModifierFlagsE::Move) || initModifiers.has(AstModifierFlagsE::MoveRaw);
+        const bool             isMoveRaw     = initModifiers.has(AstModifierFlagsE::MoveRaw);
+
+        if (!isMove && !varInitNeedsPostCopy(codeGen, initRef, initPayload))
             return Result::Continue;
-        if (!codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostCopy))
-            return Result::Continue;
-        return codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostCopy, symbolPayload.reg);
+
+        const CodeGen::LifecycleKind postKind = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        if (codeGen.hasLifecycle(symVar.typeRef(), postKind))
+            SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), postKind, symbolPayload.reg));
+
+        if (isMove && !isMoveRaw && initPayload.isAddress() &&
+            codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop))
+        {
+            const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+            if (resolvedInitRef.isValid() && codeGen.sema().isLValue(codeGen.node(resolvedInitRef)))
+                SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+        }
+
+        return Result::Continue;
     }
 
     Result materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)

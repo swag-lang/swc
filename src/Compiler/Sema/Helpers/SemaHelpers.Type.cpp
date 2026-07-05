@@ -947,6 +947,8 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_cannot_infer_aggregate_field_type, child);
 
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
+
         memberTypes.push_back(view.typeRef());
         allConstant = allConstant && view.cstRef().isValid();
         values.push_back(view.cstRef());

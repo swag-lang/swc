@@ -245,7 +245,8 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
     frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
-    variableEscapeInfos_ = parent.variableEscapeInfos_;
+    variableEscapeInfos_  = parent.variableEscapeInfos_;
+    variableScopeDepths_  = parent.variableScopeDepths_;
 }
 
 Sema::~Sema() = default;
@@ -272,6 +273,26 @@ void Sema::setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeI
 void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
 {
     variableEscapeInfos_.erase(&symVar);
+}
+
+uint32_t Sema::variableScopeDepth(const SymbolVariable& symVar) const
+{
+    const auto it = variableScopeDepths_.find(&symVar);
+    return it == variableScopeDepths_.end() ? 0 : it->second;
+}
+
+void Sema::setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth)
+{
+    if (depth)
+        variableScopeDepths_[&symVar] = depth;
+}
+
+uint32_t Sema::currentScopeDepth() const
+{
+    uint32_t depth = 0;
+    for (const SemaScope* scope = curScopePtr(); scope; scope = scope->parent())
+        depth++;
+    return depth;
 }
 
 ConstantManager& Sema::cstMgr()

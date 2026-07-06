@@ -96,7 +96,7 @@ private
 #[Opaque]
 public struct Decoder
 {
-    decOptions:        const *DecodeOptions
+    decOptions:        DecodeOptions
     stream:            Compress.BitStream
     header:            Header
     inChannels:        s32

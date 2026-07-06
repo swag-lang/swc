@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -72,6 +73,7 @@ namespace
                type.isAnyPointer() ||
                type.isReference() ||
                type.isInterface() ||
+               type.isAny() ||
                type.isLambdaClosure();
     }
 
@@ -143,6 +145,8 @@ namespace
     {
         switch (kind)
         {
+            case SemaEscapeKind::Temporary:
+                return 5;
             case SemaEscapeKind::Local:
                 return 4;
             case SemaEscapeKind::Parameter:
@@ -163,13 +167,30 @@ namespace
         return escapeRank(right.kind) > escapeRank(left.kind) ? right : left;
     }
 
+    // A by-value parameter is a copy living in the callee frame: its storage behaves
+    // exactly like a local. Only pointer/reference parameters reach caller-owned data.
+    bool isByValueParameterStorage(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return false;
+
+        const TypeRef paramTypeRef = unwrapAliasEnum(sema, symVar.typeRef());
+        if (!paramTypeRef.isValid())
+            return false;
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        return !paramType.isAnyPointer() && !paramType.isReference() && !paramType.isAnyVariadic();
+    }
+
     bool isLocalVariableStorage(Sema& sema, const SymbolVariable& symVar)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
             symVar.hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) ||
-            symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
-            symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
             return false;
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return isByValueParameterStorage(sema, symVar);
 
         if (const SymbolFunction* currentFn = sema.currentFunction())
         {
@@ -200,7 +221,7 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
             info.kind = SemaEscapeKind::Static;
         else if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-            info.kind = SemaEscapeKind::Parameter;
+            info.kind = isByValueParameterStorage(sema, symVar) ? SemaEscapeKind::Local : SemaEscapeKind::Parameter;
         else if (isLocalVariableStorage(sema, symVar))
             info.kind = SemaEscapeKind::Local;
         else
@@ -211,10 +232,34 @@ namespace
 
     const SymbolVariable* identifierVariable(Sema& sema, AstNodeRef nodeRef)
     {
-        const SemaNodeView view = sema.viewSymbol(nodeRef);
+        SemaNodeView view = sema.viewSymbol(nodeRef);
+        if (!view.hasSymbol() || !view.sym())
+        {
+            // A substituted node (an implicit cast wrapper, ...) has no symbol of its own:
+            // fall back to the symbol stored on the original node.
+            view = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol);
+        }
+
         if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
             return nullptr;
         return &view.sym()->cast<SymbolVariable>();
+    }
+
+    // 'Cast::createCast' substitutes the source node with the cast wrapper itself, so
+    // resolved views on the operand loop back to the cast. Such operands must be analyzed
+    // through their stored (pre-substitution) node and type.
+    bool castOperandSelfSubstituted(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef)
+    {
+        return operandRef.isValid() && sema.viewZero(operandRef).nodeRef() == castRef;
+    }
+
+    TypeRef castOperandTypeRef(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef)
+    {
+        if (operandRef.isInvalid())
+            return TypeRef::invalid();
+        if (castOperandSelfSubstituted(sema, castRef, operandRef))
+            return sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef();
+        return expressionTypeRef(sema, operandRef);
     }
 
     bool isArrayStorageExpr(Sema& sema, AstNodeRef nodeRef)
@@ -222,6 +267,8 @@ namespace
         const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, nodeRef));
         return typeRef.isValid() && sema.typeMgr().get(typeRef).isArray();
     }
+
+    const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable);
 
     const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef, bool forAssignment, bool& outWholeVariable)
     {
@@ -232,6 +279,13 @@ namespace
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isInvalid())
             return nullptr;
+
+        return storageRootVariableAt(sema, resolvedRef, forAssignment, outWholeVariable);
+    }
+
+    const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable)
+    {
+        outWholeVariable = false;
 
         const AstNode& node = sema.node(resolvedRef);
         switch (node.id())
@@ -253,7 +307,12 @@ namespace
                 return storageRootVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, outWholeVariable);
 
             case AstNodeId::CastExpr:
-                return storageRootVariable(sema, node.cast<AstCastExpr>().nodeExprRef, forAssignment, outWholeVariable);
+            {
+                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
+                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                    return storageRootVariableAt(sema, operandRef, forAssignment, outWholeVariable);
+                return storageRootVariable(sema, operandRef, forAssignment, outWholeVariable);
+            }
 
             case AstNodeId::MemberAccessExpr:
             {
@@ -388,6 +447,7 @@ namespace
     }
 
     SemaEscapeInfo expressionEscapeInfoRec(Sema& sema, AstNodeRef nodeRef, uint32_t& budget);
+    SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget);
     SemaEscapeInfo expressionEscapeInfoWithTarget(Sema& sema, AstNodeRef nodeRef, TypeRef targetTypeRef, uint32_t& budget);
 
     AstNodeRef argumentValueRef(Sema& sema, AstNodeRef argRef)
@@ -535,7 +595,15 @@ namespace
             return false;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
-        return type.isStruct() || type.isArray() || type.isAggregate();
+        if (type.isArray() || type.isAggregate())
+            return true;
+
+        if (!type.isStruct())
+            return false;
+
+        // Owner structs such as Core.String manage their payload through their lifecycle:
+        // a view of their storage is an ownership question, not a frame borrow.
+        return !hasOwningLifecycle(sema, typeRef);
     }
 
     bool expressionMayExposeStorageBorrow(Sema& sema, AstNodeRef exprRef)
@@ -596,6 +664,17 @@ namespace
         if (!payload || payload->kind != CastSpecialOpPayloadKind::OpCast || !payload->calledFn)
             return {};
 
+        // An implicit conversion substitutes its source node with this wrapper: the resolved
+        // 'self' argument loops back here, so analyze the stored operand instead.
+        if (castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef))
+        {
+            const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
+            if (!operandTypeRef.isValid() || isDirectBorrowCarrier(sema, operandTypeRef) || !typeHasBorrowableStorage(sema, operandTypeRef))
+                return {};
+
+            return storageBorrowInfo(sema, cast.nodeExprRef, resultTypeRef, true);
+        }
+
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(castRef, args);
         if (!args.empty() && args.front().argRef.isValid())
@@ -609,8 +688,11 @@ namespace
 
     SemaEscapeInfo castEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, uint32_t& budget)
     {
-        const TypeRef resultTypeRef = expressionTypeRef(sema, castRef);
-        SemaEscapeInfo info         = expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
+        const TypeRef resultTypeRef        = expressionTypeRef(sema, castRef);
+        const bool    operandSelfSubst     = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
+        SemaEscapeInfo info                = operandSelfSubst
+                                                 ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
+                                                 : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
@@ -624,9 +706,51 @@ namespace
         if (info.hasBorrow())
             return info;
 
-        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, cast.nodeExprRef));
-        if (sourceTypeRef.isValid() && sema.typeMgr().get(sourceTypeRef).isArray())
-            return storageBorrowInfo(sema, cast.nodeExprRef, resultTypeRef);
+        // Casting composite storage to a carrier aliases that storage: array decay to a
+        // slice, boxing a value into 'any', building an interface from a struct, ...
+        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, castRef, cast.nodeExprRef));
+        if (sourceTypeRef.isValid() &&
+            isDirectBorrowCarrier(sema, resultTypeRef) &&
+            !isDirectBorrowCarrier(sema, sourceTypeRef) &&
+            typeHasBorrowableStorage(sema, sourceTypeRef))
+        {
+            info = storageBorrowInfo(sema, cast.nodeExprRef, resultTypeRef, operandSelfSubst);
+            if (info.hasBorrow())
+                return info;
+
+            // No variable roots the storage: an rvalue produced by a call or materialized
+            // from a literal is a temporary destroyed at the end of the statement.
+            const AstNodeRef operandRef = operandSelfSubst ? cast.nodeExprRef : sema.viewZero(cast.nodeExprRef).nodeRef();
+            if (operandRef.isValid())
+            {
+                const AstNode& operandNode = sema.node(operandRef);
+                if (operandNode.is(AstNodeId::CallExpr) ||
+                    operandNode.is(AstNodeId::IntrinsicCallExpr) ||
+                    operandNode.is(AstNodeId::StructLiteral) ||
+                    operandNode.is(AstNodeId::StructInitializerList))
+                {
+                    // A structural cast of an rvalue is materialized by the compiler into
+                    // a frame-lifetime runtime storage: nothing dies at end of statement.
+                    // A user 'opCast' storage only holds the RESULT of the call; the
+                    // borrowed source temporary still dies.
+                    const auto* specOp   = sema.semaPayload<CastSpecOpPayload>(castRef);
+                    const bool  isOpCast = specOp && specOp->kind == CastSpecialOpPayloadKind::OpCast && specOp->calledFn;
+                    if (!isOpCast)
+                    {
+                        const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(castRef);
+                        if (lowering && lowering->runtimeStorageSym)
+                            return {};
+                    }
+
+                    info.kind      = SemaEscapeKind::Temporary;
+                    info.sourceRef = operandRef;
+                    info.typeRef   = resultTypeRef;
+                    return info;
+                }
+            }
+
+            return {};
+        }
 
         return {};
     }
@@ -644,10 +768,17 @@ namespace
         if (!isDirectBorrowCarrier(sema, resultTypeRef))
             return {};
 
-        if (isArrayStorageExpr(sema, indexedRef))
-            return storageBorrowInfo(sema, indexedRef, resultTypeRef);
+        if (!isArrayStorageExpr(sema, indexedRef))
+            return {};
 
-        return {};
+        // Reading a carrier ELEMENT by value copies it: the copy does not alias the array
+        // storage. Only slicing (the result aliases the elements themselves) borrows it.
+        const TypeRef arrayTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, indexedRef));
+        const TypeRef elemTypeRef  = arrayTypeRef.isValid() ? sema.typeMgr().get(arrayTypeRef).payloadArrayElemTypeRef() : TypeRef::invalid();
+        if (elemTypeRef.isValid() && unwrapAliasEnum(sema, elemTypeRef) == unwrapAliasEnum(sema, resultTypeRef))
+            return {};
+
+        return storageBorrowInfo(sema, indexedRef, resultTypeRef);
     }
 
     SemaEscapeInfo unaryEscapeInfo(Sema& sema, AstNodeRef unaryRef, const AstUnaryExpr& unary, uint32_t& budget)
@@ -705,6 +836,14 @@ namespace
         if (resolvedRef.isInvalid())
             return {};
 
+        return expressionEscapeInfoAt(sema, resolvedRef, budget);
+    }
+
+    SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget)
+    {
+        if (!budget)
+            return {};
+
         const AstNode& node = sema.node(resolvedRef);
         switch (node.id())
         {
@@ -757,7 +896,17 @@ namespace
             {
                 SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, budget);
                 if (info.hasBorrow())
+                {
+                    // Reading a carrier member copies its value: the copy does not alias
+                    // the borrowed storage. Only a composite member designates storage
+                    // inside it and keeps the borrow alive.
+                    const TypeRef memberTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef));
+                    if (isDirectBorrowCarrier(sema, memberTypeRef))
+                        return {};
+
                     info.typeRef = expressionTypeRef(sema, resolvedRef);
+                }
+
                 return info;
             }
 
@@ -848,14 +997,29 @@ namespace
 
             case AstNodeId::CastExpr:
             {
-                SemaEscapeInfo info = castEscapeInfo(sema, resolvedRef, node.cast<AstCastExpr>(), budget);
+                const auto&    castNode = node.cast<AstCastExpr>();
+                SemaEscapeInfo info     = castEscapeInfo(sema, resolvedRef, castNode, budget);
                 if (info.hasBorrow())
                 {
                     info.typeRef = targetTypeRef;
                     return info;
                 }
 
-                return expressionEscapeInfoWithTarget(sema, node.cast<AstCastExpr>().nodeExprRef, targetTypeRef, budget);
+                // A self-substituted operand resolves back to this wrapper: recursing would
+                // loop. castEscapeInfo already analyzed the stored operand, except for the
+                // literal shapes the raw switch above handles directly.
+                if (castOperandSelfSubstituted(sema, resolvedRef, castNode.nodeExprRef))
+                {
+                    const AstNode& rawOperand = sema.node(castNode.nodeExprRef);
+                    if (rawOperand.isNot(AstNodeId::InitializerExpr) &&
+                        rawOperand.isNot(AstNodeId::ClosureExpr) &&
+                        rawOperand.isNot(AstNodeId::NamedArgument) &&
+                        rawOperand.isNot(AstNodeId::StructLiteral) &&
+                        rawOperand.isNot(AstNodeId::StructInitializerList))
+                        return {};
+                }
+
+                return expressionEscapeInfoWithTarget(sema, castNode.nodeExprRef, targetTypeRef, budget);
             }
 
             case AstNodeId::NamedArgument:
@@ -908,6 +1072,23 @@ namespace
 
     void reportBorrowEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
     {
+        if (info.isTemporaryBorrow())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_warn_borrow_temporary, atNodeRef);
+            diag.addArgument(Diagnostic::ARG_WHAT, what);
+            if (info.typeRef.isValid())
+                diag.addArgument(Diagnostic::ARG_TYPE, info.typeRef);
+
+            if (info.sourceRef.isValid())
+            {
+                diag.addNote(DiagnosticId::sema_note_borrow_temporary_here);
+                diag.last().addSpan(sema.node(info.sourceRef).codeRange(sema.ctx()));
+            }
+
+            diag.report(sema.ctx());
+            return;
+        }
+
         if (!info.isLocalBorrow())
             return;
 
@@ -923,8 +1104,27 @@ namespace
         diag.report(sema.ctx());
     }
 
+    void reportBorrowScopeEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, const SymbolVariable& dstVar)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_warn_borrow_scope_escape, atNodeRef);
+        diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_VALUE, dstVar.name(sema.ctx()));
+
+        diag.addNote(DiagnosticId::sema_note_borrow_source_declared_here);
+        diag.last().addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
+        diag.last().addSpan(info.sourceVar->codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+    }
+
     void storeOrReportDestinationInfo(Sema& sema, const SymbolVariable& dstVar, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
     {
+        // A borrow of a temporary outlives it as soon as it is bound anywhere.
+        if (info.isTemporaryBorrow())
+        {
+            reportBorrowEscape(sema, atNodeRef, info, what);
+            return;
+        }
+
         if (info.sourceVar == &dstVar)
         {
             sema.clearVariableEscapeInfo(dstVar);
@@ -933,6 +1133,19 @@ namespace
 
         if (info.hasBorrow() && isLocalVariableStorage(sema, dstVar))
         {
+            // Storing a borrow of a variable declared in a DEEPER scope: the destination
+            // outlives the borrowed storage even though both live in the same frame.
+            if (info.isLocalBorrow())
+            {
+                const uint32_t srcDepth = sema.variableScopeDepth(*info.sourceVar);
+                const uint32_t dstDepth = sema.variableScopeDepth(dstVar);
+                if (srcDepth && dstDepth && srcDepth > dstDepth)
+                {
+                    reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
+                    return;
+                }
+            }
+
             sema.setVariableEscapeInfo(dstVar, info);
             return;
         }
@@ -977,6 +1190,17 @@ namespace SemaEscape
             return Result::Continue;
         }
 
+        // A borrow of a temporary outlives it as soon as it is bound to a variable.
+        // Bindings materialized by an inline expansion live within the enclosing
+        // statement, exactly like the temporary itself: nothing escapes there.
+        if (info.isTemporaryBorrow())
+        {
+            if (!SemaHelpers::effectiveInlinePayload(sema))
+                reportBorrowEscape(sema, initRef, info, "an initializer");
+            sema.clearVariableEscapeInfo(symVar);
+            return Result::Continue;
+        }
+
         if (info.sourceVar == &symVar)
             sema.clearVariableEscapeInfo(symVar);
         else if (isLocalVariableStorage(sema, symVar))
@@ -1012,7 +1236,7 @@ namespace SemaEscape
 
         if (dstVar)
             storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment");
-        else if (info.isLocalBorrow())
+        else if (info.isLocalBorrow() || info.isTemporaryBorrow())
             reportBorrowEscape(sema, leftRef, info, "an assignment");
 
         return Result::Continue;
@@ -1025,6 +1249,17 @@ namespace SemaEscape
 
         uint32_t                 budget = K_EXPR_BUDGET;
         const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
+
+        // A temporary lives until the end of the enclosing statement. An inline-expanded
+        // return hands it to the call site within that same statement, so only a real
+        // function return outlives it; bindings at the call site handle the rest.
+        if (info.isTemporaryBorrow())
+        {
+            if (!inlineSourceFn)
+                reportBorrowEscape(sema, returnRef, info, "a return value");
+            return Result::Continue;
+        }
+
         if (!info.isLocalBorrow())
             return Result::Continue;
 

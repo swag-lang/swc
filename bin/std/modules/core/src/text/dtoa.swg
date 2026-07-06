@@ -388,8 +388,6 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
 
     exp += Swag.F64.Bias
 
-    var digs: DecimalSlice
-
     var ok       = false
     let shortest = prec < 0
     if shortest
@@ -398,6 +396,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         var f: FloatExt
         var (lower, upper) = f.assignComputeBounds(mant, exp, neg)
         var tmp: [32] u8
+        var digs: DecimalSlice
         digs.d = tmp
 
         ok = f.shortestDecimal(&digs, &lower, &upper)
@@ -435,6 +434,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         if digits <= 15
         {
             var tmp: [24] u8
+            var digs: DecimalSlice
             digs.d = tmp
             var f = FloatExt{mant, exp - cast(s64) Swag.F64.MantBits, neg}
             ok = f.fixedDecimal(&digs, digits)

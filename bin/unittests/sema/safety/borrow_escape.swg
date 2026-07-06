@@ -41,6 +41,149 @@ func borrowEscapeArrayCast()->string
     return cast(string) buf // swc-expected-warning {{sema_warn_borrow_escape}}
 }
 
+// Implicit conversions borrow exactly like their explicit spelling: through a user
+// 'opCast' on return and assignment, and through array-to-slice decay.
+func borrowEscapeImplicitOpCastReturn()->string
+{
+    var owner: BorrowEscapeOwner
+    owner.buffer[0] = 'x''u8
+    owner.length = 1
+    return owner // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+var borrowEscapeGlobalText: string
+
+func borrowEscapeImplicitOpCastAssign()
+{
+    var owner: BorrowEscapeOwner
+    owner.buffer[0] = 'x''u8
+    owner.length = 1
+    borrowEscapeGlobalText = owner // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+func borrowEscapeImplicitArrayDecay()->[..] u8
+{
+    var buf: [4] u8
+    buf[0] = 1
+    return buf // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+// The same implicit conversions bound to a local stay tracked, not reported.
+func borrowEscapeImplicitLocalOnly()->u64
+{
+    var owner: BorrowEscapeOwner
+    owner.buffer[0] = 'x''u8
+    owner.length = 1
+    let s: string = owner
+
+    var buf: [4] u8
+    buf[0] = 1
+    let sl: [..] u8 = buf
+    return @countof(s) + @countof(sl)
+}
+
+// Boxing a local value into 'any' borrows the frame storage holding the value.
+func borrowEscapeAnyReturn()->any
+{
+    var value: BorrowEscapePayload
+    value.text = "x"
+    return value // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+// An 'any' pointing to caller-owned data or kept local must stay silent.
+func borrowEscapeAnyLocalOnly(param: *BorrowEscapePayload)->any
+{
+    var value: BorrowEscapePayload
+    value.text = "x"
+    let boxed: any = value
+    @assert(@dataof(boxed) != null)
+    return dref param
+}
+
+// A by-value parameter is a copy living in the callee frame: borrowing its storage
+// dangles exactly like borrowing a local.
+func borrowEscapeByValueParamAddress(v: s32)->*s32
+{
+    return &v // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+func borrowEscapeByValueParamCast(o: BorrowEscapeOwner)->string
+{
+    return o // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+// An inner-scope local does not live as long as an outer destination, even
+// within the same frame.
+func borrowEscapeInnerScope()->s32
+{
+    var p: *s32
+    {
+        var v: s32 = 42
+        p = &v // swc-expected-warning {{sema_warn_borrow_scope_escape}}
+    }
+    return 0
+}
+
+// Same-scope borrows stay tracked, not reported.
+func borrowEscapeSameScope()->s32
+{
+    var v: s32 = 42
+    var p = &v
+    return dref p
+}
+
+// Borrowing a temporary (destroyed at the end of the statement) is reported at
+// the binding; naming the owner first is the fix and stays silent locally.
+func borrowEscapeMakeOwner()->BorrowEscapeOwner
+{
+    var o: BorrowEscapeOwner
+    o.buffer[0] = 'x''u8
+    o.length = 1
+    return o
+}
+
+func borrowEscapeTemporary()->u64
+{
+    let s: string = borrowEscapeMakeOwner() // swc-expected-warning {{sema_warn_borrow_temporary}}
+    return @countof(s)
+}
+
+func borrowEscapeNamedOwner()->u64
+{
+    var o = borrowEscapeMakeOwner()
+    let s: string = o
+    return @countof(s)
+}
+
+// Reading a carrier element by value copies it: no borrow of the array storage.
+func borrowEscapeElementRead()->string
+{
+    var arr: [2] string
+    arr[0] = "hi"
+    return arr[0]
+}
+
+// Reading a carrier member through a borrowing pointer copies the member value:
+// the copy does not alias the borrowed storage (Swag.Interface.obj pattern).
+func borrowEscapeMemberRead(itf: Swag.Interface)->*void
+{
+    let p = &itf
+    return p.obj
+}
+
+// A structural cast of an rvalue is materialized into a frame-lifetime runtime
+// storage: binding it locally is supported and must stay silent.
+func borrowEscapeMakeArray()->[4] u16
+{
+    return [10'u16, 20, 30, 40]
+}
+
+func borrowEscapeMaterializedTemp()->u16
+{
+    let view = cast(const [..] u16) borrowEscapeMakeArray()
+    return view[0]
+}
+
 // Casting a scalar value to a pointer reinterprets the value: it does not
 // borrow the variable storage and must not warn.
 var borrowEscapeScalarSink: *void

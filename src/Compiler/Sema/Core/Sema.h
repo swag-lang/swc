@@ -43,6 +43,7 @@ enum class SemaEscapeKind : uint8_t
     Static,
     Parameter,
     Local,
+    Temporary,
     Unknown,
 };
 
@@ -55,6 +56,7 @@ struct SemaEscapeInfo
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
+    bool isTemporaryBorrow() const { return kind == SemaEscapeKind::Temporary; }
 };
 
 class Sema
@@ -302,6 +304,11 @@ public:
     void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
 
+    // Lexical depth of the scope a local variable is declared in (0 = unknown).
+    uint32_t variableScopeDepth(const SymbolVariable& symVar) const;
+    void     setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth);
+    uint32_t currentScopeDepth() const;
+
     bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
     bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
     bool isLValueStored(AstNodeRef ref) const;
@@ -455,6 +462,7 @@ private:
     NodePayload*                                           nodePayloadContext_ = nullptr;
     std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
     std::unordered_map<const SymbolVariable*, SemaEscapeInfo> variableEscapeInfos_;
+    std::unordered_map<const SymbolVariable*, uint32_t>       variableScopeDepths_;
     AstVisit                                               visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

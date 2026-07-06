@@ -181,7 +181,8 @@ impl LibraryWnd
             return b.lastWriteTime <=> a.lastWriteTime
         })
 
-        var lastDateTime:  const *DateTime
+        var lastDateTime:    DateTime
+        var hasLastDateTime: bool
         var lastLine:      *ListLine
         var lastLineYear:  *ListLine
         var lastLineMonth: *ListLine
@@ -226,7 +227,7 @@ impl LibraryWnd
 
         foreach fi in g_Library.files
         {
-            if !lastDateTime or (fi.lastWriteTime.year != lastDateTime.year)
+            if !hasLastDateTime or (fi.lastWriteTime.year != lastDateTime.year)
             {
                 fillLastYear()
                 lastLine           = .listCtrl.createLine(Format.toString("%", fi.lastWriteTime.year), icon1)
@@ -234,7 +235,7 @@ impl LibraryWnd
                 lastLineYear       = lastLine
             }
 
-            if !lastDateTime or (fi.lastWriteTime.month != lastDateTime.month)
+            if !hasLastDateTime or (fi.lastWriteTime.month != lastDateTime.month)
             {
                 fillLastMonth()
                 lastLine           = .listCtrl.createLine(Format.toString("%", DateTime.monthName(fi.lastWriteTime.month)), icon1, lastLineYear)
@@ -243,7 +244,7 @@ impl LibraryWnd
                 lastLineMonth      = lastLine
             }
 
-            if !lastDateTime or (fi.lastWriteTime.day != lastDateTime.day)
+            if !hasLastDateTime or (fi.lastWriteTime.day != lastDateTime.day)
             {
                 fillLastDay()
                 lastLine           = .listCtrl.createLine(Format.toString("%, %", DateTime.dayOfWeekName(fi.lastWriteTime.dayOfWeek()), fi.lastWriteTime.day), icon1, lastLineMonth)
@@ -253,7 +254,8 @@ impl LibraryWnd
                 lastLineDay        = lastLine
             }
 
-            lastDateTime = &fi.lastWriteTime
+            lastDateTime    = fi.lastWriteTime
+            hasLastDateTime = true
             cptYear, cptMonth, cptDay += 1
         }
 

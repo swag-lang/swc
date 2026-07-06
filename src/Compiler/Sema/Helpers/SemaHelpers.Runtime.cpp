@@ -439,6 +439,7 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
     const TypeInfo& symType = sema.typeMgr().get(typeRef);
     SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
     sema.currentFunction()->addLocalVariable(sema.ctx(), &symVar);
+    sema.setVariableScopeDepth(symVar, sema.currentScopeDepth());
 
     if (auto* inlinePayload = const_cast<SemaInlinePayload*>(effectiveInlinePayload(sema)))
     {

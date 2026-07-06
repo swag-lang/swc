@@ -185,7 +185,6 @@ public struct Encoder
     bufferRGB:         Array'ColorRGB
 
     stream:            *ConcatBuffer
-    srcImage:          const *Image
 
     bytenew:           u8
     bytepos:           s8
@@ -467,9 +466,9 @@ impl Encoder
         }
     }
 
-    mtd writeMetaDatas()
+    mtd writeMetaDatas(image: const *Image)
     {
-        foreach md in .srcImage.metaDatas
+        foreach md in image.metaDatas
         {
             .writeWord(0xFFE0'u16 + cast(u16) md.sig)
             .writeWord(3 + cast(u16) md.tag.count + cast(u16) md.value.count)
@@ -489,13 +488,13 @@ impl Encoder
         .writeBytes(.dqtInfo.tableCb)
     }
 
-    mtd writeSOF0info()
+    mtd writeSOF0info(image: const *Image)
     {
         .writeWord(SOF0info.marker)
         .writeWord(SOF0info.length)
         .writeByte(SOF0info.precision)
-        .writeWord(cast(u16) .srcImage.height)
-        .writeWord(cast(u16) .srcImage.width)
+        .writeWord(cast(u16) image.height)
+        .writeWord(cast(u16) image.width)
         .writeByte(SOF0info.numComponents)
         .writeByte(SOF0info.idy)
         .writeByte(SOF0info.hvy)
@@ -759,7 +758,6 @@ public impl IImageEncoder for Encoder
         }
 
         .stream      = result
-        .srcImage    = &image
         .scaleFactor = cast(u8) (100 - Math.clamp(opt.quality, 1'u8, 100'u8))
 
         .loadBitmap(image)
@@ -772,9 +770,9 @@ public impl IImageEncoder for Encoder
 
         .writeWord(0xFFD8) // SOI
 
-        .writeMetaDatas()
+        .writeMetaDatas(&image)
         .writeDQTinfo()
-        .writeSOF0info()
+        .writeSOF0info(&image)
         .writeDHTinfo()
         .writeSOSinfo()
 

@@ -1,5 +1,7 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compiler warning: {because}")
 SWC_DIAG_DEF(sema_warn_borrow_escape, Warning, "borrowed data from local variable '{sym}' may escape through {what}; [help] copy the data or keep the owner alive longer")
+SWC_DIAG_DEF(sema_warn_borrow_scope_escape, Warning, "borrowed data from local variable '{sym}' does not live as long as '{value}'; [help] declare '{sym}' in the same scope or copy the data")
+SWC_DIAG_DEF(sema_warn_borrow_temporary, Warning, "borrowed data from a temporary value may escape through {what}; [help] the temporary is destroyed at the end of the statement; store it in a variable first")
 
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression must be a compile-time constant")
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "type mismatch: expected '{requested-type}', found '{type}'")

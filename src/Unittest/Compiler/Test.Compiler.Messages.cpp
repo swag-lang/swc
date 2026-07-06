@@ -11,6 +11,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticBuilder.h"
+#include "Support/Report/LogColor.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -74,6 +75,13 @@ SWC_TEST_BEGIN(Compiler_MessageAliasPayloadUsesUnderlyingType)
 
     const TypeInfo& aliasType = ctx.typeMgr().get(aliasTypeRef);
     if (aliasType.payloadTypeRef() != ctx.typeMgr().typeConstValuePtrVoid())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DiagnosticWarningSeverityColorIsMagenta)
+{
+    if (LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning) != LogColor::BrightMagenta)
         return Result::Error;
 }
 SWC_TEST_END()

@@ -5,6 +5,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -272,9 +273,9 @@ void Logger::printAction(const TaskContext& ctx, std::string_view left, std::str
 {
     auto rightColor = LogColor::White;
     if (right.contains("error"))
-        rightColor = LogColor::BrightRed;
+        rightColor = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Error);
     else if (right.contains("warning"))
-        rightColor = LogColor::Magenta;
+        rightColor = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning);
 
     printHeaderCentered(ctx, LogColor::Green, left, rightColor, right);
 }

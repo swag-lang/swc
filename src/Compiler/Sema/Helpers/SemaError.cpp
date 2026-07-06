@@ -146,7 +146,7 @@ namespace
     Diagnostic buildDiagnostic(DiagnosticId id, FileRef fileRef, const SourceCodeRange& codeRange)
     {
         Diagnostic diag = Diagnostic::get(id, fileRef);
-        diag.last().addSpan(codeRange, "", DiagnosticSeverity::Error);
+        diag.last().addSpan(codeRange);
         return diag;
     }
 }

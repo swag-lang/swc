@@ -4,6 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+enum class DiagnosticSeverity;
 
 struct RgbColor
 {
@@ -37,6 +38,7 @@ namespace LogColorHelper
 {
     Utf8     colorToAnsi(uint32_t r, uint32_t g, uint32_t b);
     Utf8     toAnsi(const TaskContext& ctx, LogColor c);
+    LogColor diagnosticSeverityColor(DiagnosticSeverity severity);
     void     rgbToHsl(const RgbColor& color, float* h, float* s, float* l);
     float    hueToRgb(float p, float q, float t);
     RgbColor hslToRgb(float h, float s, float l);

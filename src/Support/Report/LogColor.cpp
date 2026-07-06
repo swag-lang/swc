@@ -3,6 +3,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -58,6 +59,25 @@ Utf8 LogColorHelper::toAnsi(const TaskContext& ctx, LogColor c)
         case BrightCyan:
             return "\x1b[96m";
     }
+}
+
+LogColor LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity severity)
+{
+    switch (severity)
+    {
+        case DiagnosticSeverity::Error:
+            return LogColor::BrightRed;
+        case DiagnosticSeverity::Warning:
+            return LogColor::BrightMagenta;
+        case DiagnosticSeverity::Note:
+            return LogColor::BrightCyan;
+        case DiagnosticSeverity::Help:
+            return LogColor::BrightGreen;
+        case DiagnosticSeverity::Zero:
+            break;
+    }
+
+    return LogColor::White;
 }
 
 void LogColorHelper::rgbToHsl(const RgbColor& color, float* h, float* s, float* l)

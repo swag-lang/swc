@@ -6,6 +6,7 @@
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/LogSymbol.h"
 #include "Support/Report/Logger.h"
@@ -89,7 +90,7 @@ namespace
         if (outcome == ScopedTimedLog::StageOutcome::Error)
             return {.color = LogColor::BrightRed, .symbol = LogSymbol::Error};
         if (outcome == ScopedTimedLog::StageOutcome::Warning)
-            return {.color = LogColor::BrightYellow, .symbol = LogSymbol::Warning};
+            return {.color = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning), .symbol = LogSymbol::Warning};
         if (upToDate)
             return {.color = LogColor::BrightBlue, .symbol = LogSymbol::UpToDate};
         return {.color = LogColor::BrightGreen, .symbol = LogSymbol::Check};

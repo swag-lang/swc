@@ -382,9 +382,8 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
             switch (*sev)
             {
                 case DiagnosticSeverity::Error:
-                    return {BrightRed};
                 case DiagnosticSeverity::Warning:
-                    return {BrightMagenta};
+                    return {LogColorHelper::diagnosticSeverityColor(*sev)};
                 case DiagnosticSeverity::Note:
                 case DiagnosticSeverity::Help:
                     return {White};
@@ -396,19 +395,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagPart::Severity:
             if (!sev)
                 return {White};
-            switch (*sev)
-            {
-                case DiagnosticSeverity::Error:
-                    return {BrightRed};
-                case DiagnosticSeverity::Warning:
-                    return {BrightMagenta};
-                case DiagnosticSeverity::Note:
-                    return {BrightCyan};
-                case DiagnosticSeverity::Help:
-                    return {BrightGreen};
-                default:
-                    SWC_UNREACHABLE();
-            }
+            return {LogColorHelper::diagnosticSeverityColor(*sev)};
 
         case DiagPart::QuoteText:
             if (!sev)

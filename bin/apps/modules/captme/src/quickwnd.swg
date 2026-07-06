@@ -74,6 +74,68 @@ struct QuickButton
     quickWnd:          *QuickWnd
 }
 
+struct QuickStylePaintForm
+{
+    itf:       IForm
+    title:     string
+}
+
+func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
+{
+    if paint.itf do
+        Memory.delete(@dataof(paint.itf), @kindof(paint.itf))
+    paint.itf = null
+}
+
+func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
+{
+    // Icon painting normalizes geometry/text/points, so work on a disposable copy.
+    let paintBase = MainWnd.newFormFromForm(srcItf)
+    let paintItf  = @mkinterface(paintBase, @kindof(srcItf), IForm)
+
+    var cxt: FormPaintContext
+    cxt.z         = 1
+    cxt.quickMode = true
+
+    let sel  = cast(*BaseForm) @dataof(paintItf)
+    let s    = cast(s32) BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
+    let rect = Math.Rectangle{8 + s, 8 + s, 48 - 2 * s, 48 - 2 * s}
+
+    var result: QuickStylePaintForm
+    result.itf = paintItf
+
+    switch paintItf
+    {
+    case FormPolygon:
+        let poly = cast(*FormPolygon) @dataof(paintItf)
+        poly.setDefaultShape()
+    case FormDraw:
+        let poly = cast(*FormDraw) @dataof(paintItf)
+        poly.setDefaultShape()
+    case FormText:
+        let txt = cast(*FormText) @dataof(paintItf)
+        txt.text = "A"
+    case FormImage:
+        let img = cast(*FormImage) @dataof(paintItf)
+        switch img.kind
+        {
+        case Image:
+            result.title = "image"
+        case Blur:
+            result.title = "blur"
+        case Pixelate:
+            result.title = "pixelate"
+        case Zoom:
+            result.title = "zoom"
+        case Capture:
+            result.title = "capture"
+        }
+    }
+
+    paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
+    return result
+}
+
 struct QuickWnd
 {
     using scrollWnd:     ScrollWnd
@@ -629,52 +691,17 @@ impl QuickWnd
     {
         func paintForm(painter: *Painter, btnp: *QuickButton)
         {
-            var cxt: FormPaintContext
-            cxt.z         = 1
-            cxt.quickMode = true
-
             painter.setParams(.Antialiased)
-            let sel  = cast(*BaseForm) @dataof(btnp.formItf)
-            let s    = cast(s32) BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
-            let rect = Math.Rectangle{8 + s, 8 + s, 48 - 2 * s, 48 - 2 * s}
+            var paintForm = quickStyleNewPaintForm(btnp.formItf)
+            defer quickStyleReleasePaintForm(&paintForm)
 
-            var title = ""
+            Capture.paintForm(painter, {}, {0, 0, 64, 64}, paintForm.itf, zoom: 1, quickMode: true)
 
-            switch btnp.formItf
-            {
-            case FormPolygon:
-                let poly = cast(*FormPolygon) @dataof(btnp.formItf)
-                poly.setDefaultShape()
-            case FormDraw:
-                let poly = cast(*FormDraw) @dataof(btnp.formItf)
-                poly.setDefaultShape()
-            case FormText:
-                let txt = cast(*FormText) @dataof(btnp.formItf)
-                txt.text = "A"
-            case FormImage:
-                let img = cast(*FormImage) @dataof(btnp.formItf)
-                switch img.kind
-                {
-                case Image:
-                    title = "image"
-                case Blur:
-                    title = "blur"
-                case Pixelate:
-                    title = "pixelate"
-                case Zoom:
-                    title = "zoom"
-                case Capture:
-                    title = "capture"
-                }
-            }
-
-            btnp.formItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
-            Capture.paintForm(painter, {}, {0, 0, 64, 64}, btnp.formItf, zoom: 1, quickMode: true)
-
-            if @countof(title)
+            if @countof(paintForm.title)
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
-                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), title, btnp.getFont().regular, textColor)
+                let rect = paintForm.itf.boundRect()
+                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, btnp.getFont().regular, textColor)
             }
         }
 

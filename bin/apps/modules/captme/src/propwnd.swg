@@ -129,7 +129,7 @@ impl PropWnd
         with let ctrl = SliderCtrl.create(me.mainLayout, name)
         {
             .setMinMaxS64(minv, maxv)
-            .dockStyle    = .Top
+            // mainLayout owns row placement; a dock style would be applied again by generic relayouts.
             .autoEditSize = false
             .editSize     = me.sliderEditSize()
             .setValue(val)

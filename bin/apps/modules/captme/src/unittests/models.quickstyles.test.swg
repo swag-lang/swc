@@ -38,6 +38,122 @@ using Swag, Core
     f.shutdown()
 }
 
+// QuickStyle icon previews must never mutate the live model shown by the Properties pane.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    let textItf = f.main.editModeToModel(.Text)
+    textItf.setBaseForm(111, 112, 113, 114)
+    f.main.mdlFormText.text = "Keep me"
+    let textRectBefore = textItf.boundRect()
+
+    var textPaint = quickStyleNewPaintForm(textItf)
+    @assert(@dataof(textPaint.itf) != @dataof(textItf))
+    @assert(f.main.mdlFormText.text == "Keep me")
+    @assert(textItf.boundRect() == textRectBefore)
+    @assert((cast(*FormText) @dataof(textPaint.itf)).text == "A")
+    quickStyleReleasePaintForm(&textPaint)
+
+    f.main.mdlFormPolygon.points.add({10, 10})
+    f.main.mdlFormPolygon.points.add({40, 20})
+    f.main.mdlFormPolygon.points.add({20, 50})
+    let polyItf = f.main.editModeToModel(.Polygon)
+    let pointBefore = f.main.mdlFormPolygon.points[0]
+
+    var polyPaint = quickStyleNewPaintForm(polyItf)
+    @assert(@dataof(polyPaint.itf) != @dataof(polyItf))
+    @assert(f.main.mdlFormPolygon.points.count == 3)
+    @assert(f.main.mdlFormPolygon.points[0] == pointBefore)
+    @assert((cast(*FormPolygon) @dataof(polyPaint.itf)).points.count == 6)
+    quickStyleReleasePaintForm(&polyPaint)
+
+    f.shutdown()
+}
+
+// Dismissing the QuickStyle context menu must not disturb the right-side Properties pane.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+    f.gui.surfaceWnd.view = f.main
+
+    with f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
+    {
+        .splitterFlags.add(.HideBars)
+    }
+
+    f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar, f.main)
+    f.main.propWnd  = PropWnd.create(f.main.quickStyleBar, f.main)
+    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
+    {
+        .tryPreserveSize = true
+    }
+    discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
+    f.main.quickStyleBar.setPaneSize(0, 300)
+
+    f.main.quickWnd.setDefault()
+    f.main.propWnd.selectionHasChanged()
+    f.gui.pump()
+
+    let propRectBefore       = f.main.propWnd.position
+    let mainLayoutPosBefore  = f.main.propWnd.mainLayout.position
+    let propScrollBefore     = f.main.propWnd.scrollSize
+    let propScrollBarBefore  = Math.Rectangle{0, f.main.propWnd.posBoxV, 0, f.main.propWnd.sizeBoxV}
+    let quickPaneSizeBefore  = f.main.quickStyleBar.items[0].size
+    var sliderCtrlBefore: *SliderCtrl
+    foreach child in f.main.propWnd.mainLayout.childs
+    {
+        if child.type == SliderCtrl
+        {
+            sliderCtrlBefore = cast(*SliderCtrl) child
+            break
+        }
+    }
+    @assert(sliderCtrlBefore != null)
+    let sliderCtrlPosBefore = sliderCtrlBefore.position
+    let sliderTrackPosBefore = sliderCtrlBefore.slider.position
+    let sliderEditPosBefore = sliderCtrlBefore.edit.position
+    let propChildCountBefore = f.main.propWnd.mainLayout.childs.count
+    var didDismiss = false
+
+    f.gui.app.sigFrame += func|main = f.main, dismissed = &didDismiss|(app)
+    {
+        if dref dismissed do
+            return
+
+        foreach child in main.childs
+        {
+            if child.type != MenuCtrl do
+                continue
+
+            var evt = MouseEvent{kind: .MouseReleased}
+            evt.button     = .Left
+            evt.surfacePos = {1, 1}
+            child.sendEvent(&evt)
+            dref dismissed = true
+            return
+        }
+    }
+
+    f.main.quickWnd.btnPopup(null, {620, 20})
+    f.gui.pump()
+
+    @assert(didDismiss)
+    @assert(f.main.propWnd.position == propRectBefore)
+    @assert(f.main.propWnd.scrollSize == propScrollBefore)
+    @assert(Math.Rectangle{0, f.main.propWnd.posBoxV, 0, f.main.propWnd.sizeBoxV} == propScrollBarBefore)
+    @assert(f.main.quickStyleBar.items[0].size == quickPaneSizeBefore)
+    @assert(f.main.propWnd.mainLayout.position == mainLayoutPosBefore)
+    @assert(sliderCtrlBefore.position == sliderCtrlPosBefore)
+    @assert(sliderCtrlBefore.slider.position == sliderTrackPosBefore)
+    @assert(sliderCtrlBefore.edit.position == sliderEditPosBefore)
+    @assert(f.main.propWnd.mainLayout.childs.count == propChildCountBefore)
+
+    f.shutdown()
+}
+
 // newFormFromModel clones every standard model and clears point/image payloads when requested.
 #test
 {

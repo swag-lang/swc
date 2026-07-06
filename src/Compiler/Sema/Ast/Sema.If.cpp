@@ -325,6 +325,9 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
+    if (childRef == nodeIfBlockRef)
+        sema.pushEscapeBranch();
+
     return Result::Continue;
 }
 
@@ -335,6 +338,18 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
+
+    if (childRef == nodeIfBlockRef)
+    {
+        // Each alternative starts from the entry borrow state; without an 'else' the
+        // fall-through entry state is one of the alternatives.
+        if (nodeElseBlockRef.isValid())
+            sema.nextEscapeBranchAlternative();
+        else
+            sema.popEscapeBranch(true);
+    }
+    else if (childRef.isValid() && childRef == nodeElseBlockRef)
+        sema.popEscapeBranch(false);
 
     return Result::Continue;
 }

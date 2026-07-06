@@ -247,6 +247,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
     variableEscapeInfos_  = parent.variableEscapeInfos_;
     variableScopeDepths_  = parent.variableScopeDepths_;
+    escapeBranchStack_    = parent.escapeBranchStack_;
 }
 
 Sema::~Sema() = default;
@@ -293,6 +294,53 @@ uint32_t Sema::currentScopeDepth() const
     for (const SemaScope* scope = curScopePtr(); scope; scope = scope->parent())
         depth++;
     return depth;
+}
+
+namespace
+{
+    void mergeEscapeStates(std::unordered_map<const SymbolVariable*, SemaEscapeInfo>&       dst,
+                           const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& src)
+    {
+        for (const auto& [symVar, info] : src)
+        {
+            auto [it, inserted] = dst.try_emplace(symVar, info);
+            if (!inserted && info.rank() > it->second.rank())
+                it->second = info;
+        }
+    }
+}
+
+void Sema::pushEscapeBranch()
+{
+    EscapeBranchState state;
+    state.entryState = variableEscapeInfos_;
+    escapeBranchStack_.push_back(std::move(state));
+}
+
+void Sema::nextEscapeBranchAlternative()
+{
+    SWC_ASSERT(!escapeBranchStack_.empty());
+    if (escapeBranchStack_.empty())
+        return;
+
+    EscapeBranchState& state = escapeBranchStack_.back();
+    mergeEscapeStates(state.mergedState, variableEscapeInfos_);
+    variableEscapeInfos_ = state.entryState;
+}
+
+void Sema::popEscapeBranch(bool mergeEntryState)
+{
+    SWC_ASSERT(!escapeBranchStack_.empty());
+    if (escapeBranchStack_.empty())
+        return;
+
+    EscapeBranchState& state = escapeBranchStack_.back();
+    mergeEscapeStates(state.mergedState, variableEscapeInfos_);
+    if (mergeEntryState)
+        mergeEscapeStates(state.mergedState, state.entryState);
+
+    variableEscapeInfos_ = std::move(state.mergedState);
+    escapeBranchStack_.pop_back();
 }
 
 ConstantManager& Sema::cstMgr()

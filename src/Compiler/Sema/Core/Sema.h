@@ -57,6 +57,28 @@ struct SemaEscapeInfo
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
     bool isTemporaryBorrow() const { return kind == SemaEscapeKind::Temporary; }
+
+    // Severity order used when two may-borrow facts merge (flow joins, aggregates).
+    int rank() const
+    {
+        switch (kind)
+        {
+            case SemaEscapeKind::Temporary:
+                return 5;
+            case SemaEscapeKind::Local:
+                return 4;
+            case SemaEscapeKind::Parameter:
+                return 3;
+            case SemaEscapeKind::Unknown:
+                return 2;
+            case SemaEscapeKind::Static:
+                return 1;
+            case SemaEscapeKind::None:
+                return 0;
+        }
+
+        return 0;
+    }
 };
 
 class Sema
@@ -309,6 +331,13 @@ public:
     void     setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth);
     uint32_t currentScopeDepth() const;
 
+    // Flow joins for the borrow-escape state: a branch alternative starts from the entry
+    // state, and alternatives UNION at the merge point (may-borrow), so a borrow cleared
+    // in only one path survives the join.
+    void pushEscapeBranch();
+    void nextEscapeBranchAlternative();
+    void popEscapeBranch(bool mergeEntryState);
+
     bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
     bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
     bool isLValueStored(AstNodeRef ref) const;
@@ -461,8 +490,15 @@ private:
     TaskContext*                                           ctx_                = nullptr;
     NodePayload*                                           nodePayloadContext_ = nullptr;
     std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
+    struct EscapeBranchState
+    {
+        std::unordered_map<const SymbolVariable*, SemaEscapeInfo> entryState;
+        std::unordered_map<const SymbolVariable*, SemaEscapeInfo> mergedState;
+    };
+
     std::unordered_map<const SymbolVariable*, SemaEscapeInfo> variableEscapeInfos_;
     std::unordered_map<const SymbolVariable*, uint32_t>       variableScopeDepths_;
+    std::vector<EscapeBranchState>                            escapeBranchStack_;
     AstVisit                                               visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

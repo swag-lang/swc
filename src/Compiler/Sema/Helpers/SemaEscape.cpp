@@ -141,30 +141,9 @@ namespace
         return typeCanCarryBorrowRec(sema, typeRef, visiting, budget);
     }
 
-    int escapeRank(SemaEscapeKind kind)
-    {
-        switch (kind)
-        {
-            case SemaEscapeKind::Temporary:
-                return 5;
-            case SemaEscapeKind::Local:
-                return 4;
-            case SemaEscapeKind::Parameter:
-                return 3;
-            case SemaEscapeKind::Unknown:
-                return 2;
-            case SemaEscapeKind::Static:
-                return 1;
-            case SemaEscapeKind::None:
-                return 0;
-        }
-
-        SWC_UNREACHABLE();
-    }
-
     SemaEscapeInfo mergeEscapeInfo(const SemaEscapeInfo& left, const SemaEscapeInfo& right)
     {
-        return escapeRank(right.kind) > escapeRank(left.kind) ? right : left;
+        return right.rank() > left.rank() ? right : left;
     }
 
     // A by-value parameter is a copy living in the callee frame: its storage behaves
@@ -225,7 +204,21 @@ namespace
         else if (isLocalVariableStorage(sema, symVar))
             info.kind = SemaEscapeKind::Local;
         else
-            info.kind = SemaEscapeKind::Unknown;
+        {
+            // Inside a method, a symbol that is neither a parameter, a local nor a global
+            // is a struct field reached through the implicit 'me' receiver: caller-owned
+            // data, rooted at the receiver so returns feed the borrow summary.
+            const SymbolFunction* currentFn = sema.currentFunction();
+            if (currentFn &&
+                currentFn->hasExtraFlag(SymbolFunctionFlagsE::Method) &&
+                !currentFn->parameters().empty())
+            {
+                info.sourceVar = currentFn->parameters().front();
+                info.kind      = SemaEscapeKind::Parameter;
+            }
+            else
+                info.kind = SemaEscapeKind::Unknown;
+        }
 
         return info;
     }
@@ -341,6 +334,19 @@ namespace
                             outWholeVariable = false;
                             return leftVar;
                         }
+
+                        // Data reached through a pointer/reference parameter (including the
+                        // body 'me' binding) belongs to the caller: root at the parameter so
+                        // returns feed the borrow summary.
+                        if (!forAssignment)
+                        {
+                            const SemaEscapeInfo leftStorage = variableStorageInfo(sema, *leftVar, leftRef, TypeRef::invalid());
+                            if (leftStorage.kind == SemaEscapeKind::Parameter && leftStorage.sourceVar)
+                            {
+                                outWholeVariable = false;
+                                return leftStorage.sourceVar;
+                            }
+                        }
                     }
 
                     return nullptr;
@@ -399,6 +405,19 @@ namespace
                         {
                             outWholeVariable = false;
                             return operandVar;
+                        }
+
+                        // Data reached through a pointer/reference parameter (including the
+                        // body 'me' binding) belongs to the caller: root at the parameter so
+                        // returns feed the borrow summary.
+                        if (!forAssignment)
+                        {
+                            const SemaEscapeInfo operandStorage = variableStorageInfo(sema, *operandVar, unary.nodeExprRef, TypeRef::invalid());
+                            if (operandStorage.kind == SemaEscapeKind::Parameter && operandStorage.sourceVar)
+                            {
+                                outWholeVariable = false;
+                                return operandStorage.sourceVar;
+                            }
                         }
                     }
 
@@ -839,6 +858,45 @@ namespace
         return expressionEscapeInfoAt(sema, resolvedRef, budget);
     }
 
+    const SymbolFunction* resolvedCallFunction(Sema& sema, AstNodeRef callRef, AstNodeRef calleeRef)
+    {
+        const auto singleFunction = [](const SemaNodeView& view) -> const SymbolFunction* {
+            Symbol* symbol = view.singleSymbol();
+            if (!symbol || !symbol->isFunction())
+                return nullptr;
+            return &symbol->cast<SymbolFunction>();
+        };
+
+        if (const SymbolFunction* fn = singleFunction(sema.viewSymbol(callRef)))
+            return fn;
+        if (calleeRef.isValid())
+        {
+            if (const SymbolFunction* fn = singleFunction(sema.viewSymbol(calleeRef)))
+                return fn;
+        }
+
+        return nullptr;
+    }
+
+    // The per-function summary recorded by checkReturn: when the callee's returned value
+    // may borrow one of its parameters, the call result borrows the matching arguments.
+    //
+    // NOT CONSUMED YET: sema jobs run in a non-deterministic order, so an intra-module
+    // callee may or may not be sema-completed when its call site is analyzed — and
+    // waiting for a function body from another function body turns legal mutual
+    // recursion into a stalled-dependency error (SemaCycle). Consuming the mask here
+    // would make the warnings flicker between otherwise identical builds. Activation
+    // needs either an end-of-module recheck pass or the mask serialized in the module
+    // API plus topological gating.
+    SemaEscapeInfo callResultEscapeInfo(Sema& sema, AstNodeRef callRef, const AstCallExpr& call, uint32_t& budget)
+    {
+        SWC_UNUSED(call);
+        SWC_UNUSED(callRef);
+        SWC_UNUSED(sema);
+        SWC_UNUSED(budget);
+        return {};
+    }
+
     SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget)
     {
         if (!budget)
@@ -854,6 +912,23 @@ namespace
                     return {};
                 if (const SemaEscapeInfo* info = sema.variableEscapeInfo(*symVar))
                     return *info;
+
+                // A carrier-typed parameter value transports caller-owned data: synthesize
+                // its borrow so copies and returns feed the per-function borrow summaries.
+                if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                {
+                    const TypeRef paramTypeRef = unwrapAliasEnum(sema, symVar->typeRef());
+                    if (paramTypeRef.isValid() && isDirectBorrowCarrier(sema, paramTypeRef))
+                    {
+                        SemaEscapeInfo info;
+                        info.kind      = SemaEscapeKind::Parameter;
+                        info.sourceVar = symVar;
+                        info.sourceRef = resolvedRef;
+                        info.typeRef   = symVar->typeRef();
+                        return info;
+                    }
+                }
+
                 return {};
             }
 
@@ -886,6 +961,8 @@ namespace
                 return intrinsicCallEscapeInfo(sema, resolvedRef, node.cast<AstIntrinsicCall>(), budget);
 
             case AstNodeId::CallExpr:
+                return callResultEscapeInfo(sema, resolvedRef, node.cast<AstCallExpr>(), budget);
+
             case AstNodeId::IntrinsicCallExpr:
                 return {};
 
@@ -1258,6 +1335,24 @@ namespace SemaEscape
             if (!inlineSourceFn)
                 reportBorrowEscape(sema, returnRef, info, "a return value");
             return Result::Continue;
+        }
+
+        // Returning a borrow of caller-owned data is fine for THIS function, but feeds
+        // the per-function summary consumed at call sites (callResultEscapeInfo).
+        if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+        {
+            if (SymbolFunction* currentFn = sema.currentFunction())
+            {
+                const auto& params = currentFn->parameters();
+                for (size_t i = 0; i < params.size(); ++i)
+                {
+                    if (params[i] == info.sourceVar)
+                    {
+                        currentFn->addReturnBorrowsParam(i);
+                        break;
+                    }
+                }
+            }
         }
 
         if (!info.isLocalBorrow())

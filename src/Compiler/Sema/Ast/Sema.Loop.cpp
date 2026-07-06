@@ -367,6 +367,9 @@ Result AstForCStyleStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     if (childRef == nodePostStmtRef || (childRef == nodeBodyRef && nodePostStmtRef.isInvalid()))
         pushLoopFrame(sema, sema.curNodeRef(), sema.typeMgr().typeU64());
 
+    if (childRef == nodeBodyRef)
+        sema.pushEscapeBranch();
+
     return Result::Continue;
 }
 
@@ -377,6 +380,10 @@ Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
+
+    // The body runs zero or more times: union its borrow effects with the entry state.
+    if (childRef == nodeBodyRef)
+        sema.popEscapeBranch(true);
 
     return Result::Continue;
 }
@@ -428,6 +435,9 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         sema.setSymbolList(sema.curNodeRef(), pl.localSymbols.span());
     }
 
+    if (childRef == nodeBodyRef)
+        sema.pushEscapeBranch();
+
     return Result::Continue;
 }
 
@@ -462,6 +472,15 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
+    }
+
+    // The body runs zero or more times: union its borrow effects with the entry state.
+    // Mirror the custom-visit skip from semaPreNodeChild (no branch was pushed there).
+    if (childRef == nodeBodyRef)
+    {
+        const auto* pl = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef());
+        if (!pl || !pl->usesCustomVisit)
+            sema.popEscapeBranch(true);
     }
 
     return Result::Continue;
@@ -503,11 +522,18 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         }
     }
 
+    if (childRef == nodeBodyRef)
+        sema.pushEscapeBranch();
+
     return Result::Continue;
 }
 
 Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    // The body runs zero or more times: union its borrow effects with the entry state.
+    if (childRef == nodeBodyRef)
+        sema.popEscapeBranch(true);
+
     if (childRef == nodeExprRef)
     {
         const SemaNodeView view = sema.viewNodeType(nodeExprRef);
@@ -584,6 +610,7 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+        sema.pushEscapeBranch();
     }
 
     return Result::Continue;
@@ -606,7 +633,18 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
         symbols.push_back(&stateSym);
         sema.setSymbolList(sema.curNodeRef(), symbols.span());
+
+        sema.pushEscapeBranch();
     }
+
+    return Result::Continue;
+}
+
+Result AstInfiniteLoopStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    // A break can leave the body at any point: union its borrow effects with the entry state.
+    if (childRef == nodeBodyRef)
+        sema.popEscapeBranch(true);
 
     return Result::Continue;
 }
@@ -619,6 +657,10 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
+
+    // The body runs zero or more times: union its borrow effects with the entry state.
+    if (childRef == nodeBodyRef)
+        sema.popEscapeBranch(true);
 
     return Result::Continue;
 }

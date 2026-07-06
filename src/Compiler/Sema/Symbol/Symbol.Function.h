@@ -60,6 +60,15 @@ public:
     void                                setRtAttributeFlags(RtAttributeFlags attr);
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
+
+    // Bit i set = the returned value may borrow parameter #i. Written during the body
+    // sema (before setSemaCompleted); callers must gate reads on isSemaCompleted().
+    uint64_t returnBorrowsParamsMask() const noexcept { return returnBorrowsParamsMask_; }
+    void     addReturnBorrowsParam(size_t paramIndex) noexcept
+    {
+        if (paramIndex < 64)
+            returnBorrowsParamsMask_ |= 1ULL << paramIndex;
+    }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
     void                                addParameter(SymbolVariable* sym);
@@ -195,6 +204,7 @@ private:
     std::unordered_set<SymbolFunction*>       callDependencySet_;
     uint32_t                                  numComputedLocals_   = 0;
     uint32_t                                  localStackOffset_    = 0;
+    uint64_t                                  returnBorrowsParamsMask_ = 0;
     TypeRef                                   returnType_          = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                                specOpKind_          = SpecOpKind::None;

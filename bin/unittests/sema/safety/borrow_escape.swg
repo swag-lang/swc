@@ -132,6 +132,57 @@ func borrowEscapeSameScope()->s32
     return dref p
 }
 
+// Flow joins: clearing the borrow on only one path does not erase it.
+func borrowEscapeConditionalClear(cond: bool)->*s32
+{
+    var v: s32
+    var p = &v
+    if cond do
+        p = null
+    return p // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+// A borrow created in only one branch survives the join.
+func borrowEscapeConditionalBorrow(cond: bool)->*s32
+{
+    var v: s32
+    var p: *s32
+    if cond do
+        p = &v
+    return p // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
+// An unconditional clear does erase the borrow.
+func borrowEscapeUnconditionalClear()->*s32
+{
+    var v: s32
+    var p = &v
+    p = null
+    return p
+}
+
+// Clearing on both branches erases it too.
+func borrowEscapeBothBranchesClear(cond: bool)->*s32
+{
+    var v: s32
+    var p = &v
+    if cond do
+        p = null
+    else do
+        p = null
+    return p
+}
+
+// A borrow created inside a loop body survives the loop.
+func borrowEscapeLoopBorrow()->*s32
+{
+    var v: s32
+    var p: *s32
+    for i in 4 do
+        p = &v
+    return p // swc-expected-warning {{sema_warn_borrow_escape}}
+}
+
 // Borrowing a temporary (destroyed at the end of the statement) is reported at
 // the binding; naming the owner first is the fix and stays silent locally.
 func borrowEscapeMakeOwner()->BorrowEscapeOwner

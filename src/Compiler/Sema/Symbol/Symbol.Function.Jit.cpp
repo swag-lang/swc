@@ -311,9 +311,9 @@ Result SymbolFunction::emit(TaskContext& ctx)
 #if SWC_HAS_STATS
     Timer timeMicroLower(Stats::timedMetric(Stats::get().timeMicroLower));
 #endif
-    // The static sanitizer runs the checks whose safety guard is on for this function:
-    // the build-config default combined with any `#[Swag.Safety(...)]` override on it.
-    const uint16_t sanitizerSafetyMask = attributes().effectiveRuntimeSafetyMask(ctx.compiler().buildCfg().safetyGuards);
+    // The static sanitizer runs the checks whose sanity guard is on for this function:
+    // the build-config default combined with any `#[Swag.Sanity(...)]` override on it.
+    const uint16_t sanitizerSafetyMask = attributes().effectiveSanityMask(ctx.compiler().buildCfg().sanityGuards);
     const Result   emitResult          = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg(), sanitizerSafetyMask, this);
     if (emitResult != Result::Continue)
     {

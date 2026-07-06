@@ -1,10 +1,11 @@
 #global private
 
-// 'SafetyWhat.Lifecycle' has two halves:
-// - a static sanitizer check: a PROVEN read of a local abandoned by '#move'/'#relocate'
-//   (moved-from and not reset) is reported at compile time;
-// - runtime poisoning: abandoned or dropped storage is filled with 0xDD, so an access
-//   the static check cannot prove fails deterministically instead of reading stale bits.
+// 'SafetyWhat.Lifecycle' has two halves, each behind its own attribute:
+// - 'Swag.Sanity(.Lifecycle)', the static sanitizer check: a PROVEN read of a local
+//   abandoned by '#move'/'#relocate' (moved-from and not reset) is a compile-time error;
+// - 'Swag.Safety(.Lifecycle)', the runtime poisoning: abandoned or dropped storage is
+//   filled with 0xDD, so an access the static check cannot prove fails
+//   deterministically instead of reading stale bits.
 // A '#move' of a type with 'opDrop' is NOT concerned: the source is reset to its
 // default value, which is defined behavior.
 
@@ -56,45 +57,45 @@ func lifecycleSafetyEnabled()->bool
 // ---------------------------------------------------------------------------
 
 // Reading a local abandoned by '#relocate'.
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamItem{x: 1}
     var b: UamItem
     b = #relocate a
-    @assert(a.x == 1) // swc-expected-error {{safety_err_use_after_move}}
+    @assert(a.x == 1) // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a non-first field of the abandoned local.
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamItem{x: 1, y: 2}
     var b: UamItem
     b = #relocate a
-    @assert(a.y == 2) // swc-expected-error {{safety_err_use_after_move}}
+    @assert(a.y == 2) // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a local given away with '#move' when the type has no 'opDrop': the source is
 // not reset, its stale bits are abandoned.
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamItem{x: 4}
     var b = #move a
-    @assert(a.x == 4) // swc-expected-error {{safety_err_use_after_move}}
+    @assert(a.x == 4) // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading the moved-from local THROUGH a pointer taken before the move: the lattice
 // tracks the stack address across the pointer slot and still proves the stale read.
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamItem{x: 4}
     let p = &a.x
     var b = #move a
     discard b
-    @assert(dref p == 4) // swc-expected-error {{safety_err_use_after_move}}
+    @assert(dref p == 4) // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +103,7 @@ func lifecycleSafetyEnabled()->bool
 // ---------------------------------------------------------------------------
 
 // Reassigning the moved-from local makes it readable again.
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamItem{x: 1}
@@ -115,7 +116,7 @@ func lifecycleSafetyEnabled()->bool
 
 // '#move' of a type with 'opDrop' resets the source to its defaults: reading it is
 // defined behavior and is not flagged.
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamDropped{x: 3}
@@ -127,7 +128,7 @@ func lifecycleSafetyEnabled()->bool
 // A move on only one path is not a proven use-after-move at the join.
 var g_takeBranch = false
 
-#[Swag.Safety(.Lifecycle, true)]
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     var a = UamItem{x: 1}
@@ -179,7 +180,7 @@ var g_takeBranch = false
 // Disabled: raw abandonment semantics, no poison, no static check.
 // ---------------------------------------------------------------------------
 
-#[Swag.Safety(.Lifecycle, false)]
+#[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 #test
 {
     var a = UamItem{x: 3}

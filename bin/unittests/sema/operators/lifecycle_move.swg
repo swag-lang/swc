@@ -3,7 +3,7 @@
 // abandoned by '#relocate': lifecycle safety (use-after-move check + poisoning) is
 // disabled for the whole file. See bin/unittests/safety/use_after_move.swg for the
 // lifecycle-safety behavior itself.
-#global #[Swag.Safety(.Lifecycle, false)]
+#global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 
 var DropCount: u32 = 0
 var DropTrace: s64 = 0

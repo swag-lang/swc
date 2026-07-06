@@ -13,7 +13,7 @@ void NullDerefCheck::run(Sanitizer& sanitizer, const SanitizerState& state, cons
     if (inst.op == MicroInstrOpcode::CallIndirect)
     {
         if (ops && sanitizer.getReg(state, ops[0].reg).isZero())
-            sanitizer.report(inst, DiagnosticId::safety_err_null_call);
+            sanitizer.report(inst, DiagnosticId::sanity_err_null_call);
         return;
     }
 
@@ -27,7 +27,7 @@ void NullDerefCheck::run(Sanitizer& sanitizer, const SanitizerState& state, cons
         return;
 
     if (sanitizer.getReg(state, ops[def.memBaseOperandIndex].reg).isZero())
-        sanitizer.report(inst, DiagnosticId::safety_err_null_deref);
+        sanitizer.report(inst, DiagnosticId::sanity_err_null_deref);
 }
 
 SWC_END_NAMESPACE();

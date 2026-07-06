@@ -28,62 +28,62 @@ func nullSafetyEnabled()->bool
 // ---------------------------------------------------------------------------
 // Provable null dereferences. Each writes through a null pointer, so it is reported
 // and its function's codegen is aborted — the faulty code is never executed. Each is
-// marked `#[Swag.Safety(.Null, true)]` so the sanitizer runs (and catches it) in
-// every build config; without that the dereference would actually run and crash in
-// release, where the sanitizer is off by default.
+// marked `#[Swag.Sanity(.Null, true)]` so the sanitizer runs (and catches it) in
+// every build config, including fast-compile where the sanity checks are off by
+// default.
 // ---------------------------------------------------------------------------
 
 // Store through a null pointer (first field, offset 0).
-#[Swag.Safety(.Null, true)]
+#[Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
-    p.x = 1 // swc-expected-error {{safety_err_null_deref}}
+    p.x = 1 // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Store into a non-first field (non-zero offset) of a null pointer.
-#[Swag.Safety(.Null, true)]
+#[Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
-    p.y = 2 // swc-expected-error {{safety_err_null_deref}}
+    p.y = 2 // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Store through a null scalar pointer via `dref`.
-#[Swag.Safety(.Null, true)]
+#[Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *s32 = null
-    dref p = 9 // swc-expected-error {{safety_err_null_deref}}
+    dref p = 9 // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // The null value propagates through a copy, then the copy is written through.
-#[Swag.Safety(.Null, true)]
+#[Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
     var q = p
-    q.x = 3 // swc-expected-error {{safety_err_null_deref}}
+    q.x = 3 // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // A read whose result is actually used (here in an assert) is not dead, so the
 // load survives and the null dereference is caught.
-#[Swag.Safety(.Null, true)]
+#[Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
-    @assert(p.x == 0) // swc-expected-error {{safety_err_null_deref}}
+    @assert(p.x == 0) // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Path-sensitive: the dereference is inside the branch where the guard proves the
 // pointer is null, so it is still reported.
-#[Swag.Safety(.Null, true)]
+#[Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
     if p == null
     {
-        p.x = 4 // swc-expected-error {{safety_err_null_deref}}
+        p.x = 4 // swc-expected-error {{sanity_err_null_deref}}
     }
 }
 

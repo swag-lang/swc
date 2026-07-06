@@ -325,6 +325,19 @@ namespace
         return Result::Continue;
     }
 
+    Result collectSanityOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    {
+        SWC_ASSERT(args.size() >= 2);
+
+        uint64_t whatValue = 0;
+        bool     enabled   = false;
+        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], whatValue));
+        SWC_RESULT(collectResolvedBoolValue(sema, args[1], enabled));
+
+        outAttributes.addSanityOverride(static_cast<Runtime::SafetyWhat>(whatValue), enabled);
+        return Result::Continue;
+    }
+
     Result collectCanOverflowOption(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
         SWC_ASSERT(!args.empty());
@@ -465,6 +478,7 @@ namespace
         const IdentifierManager& idMgr            = sema.idMgr();
         const IdentifierRef      idRef            = attrSym.idRef();
         const IdentifierRef      safetyIdRef      = sema.idMgr().addIdentifier("Safety");
+        const IdentifierRef      sanityIdRef      = sema.idMgr().addIdentifier("Sanity");
         const IdentifierRef      canOverflowIdRef = idMgr.predefined(IdentifierManager::PredefinedName::CanOverflow);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
@@ -474,6 +488,8 @@ namespace
             return collectPrintAstOptions(sema, args, outAttributes);
         if (idRef == safetyIdRef)
             return collectSafetyOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == sanityIdRef)
+            return collectSanityOptions(sema, resolvedArgs, outAttributes);
         if (idRef == canOverflowIdRef)
             return collectCanOverflowOption(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))

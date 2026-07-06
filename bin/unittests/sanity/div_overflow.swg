@@ -2,34 +2,34 @@
 
 // ---------------------------------------------------------------------------
 // `INT_MIN / -1` (and `INT_MIN % -1`) overflows and faults on x64. Marked
-// `#[Swag.Safety(.Overflow, true)]` so the sanitizer runs (and catches it) in every
+// `#[Swag.Sanity(.Overflow, true)]` so the sanitizer runs (and catches it) in every
 // build config.
 // ---------------------------------------------------------------------------
 
-#[Swag.Safety(.Overflow, true)]
+#[Swag.Sanity(.Overflow, true)]
 #test
 {
     var a = -2147483648's32
     var d = -1's32
-    let x = a / d // swc-expected-error {{safety_err_integer_overflow}}
+    let x = a / d // swc-expected-error {{sanity_err_integer_overflow}}
     discard x
 }
 
-#[Swag.Safety(.Overflow, true)]
+#[Swag.Sanity(.Overflow, true)]
 #test
 {
     var a = -2147483648's32
     var d = -1's32
-    let x = a % d // swc-expected-error {{safety_err_integer_overflow}}
+    let x = a % d // swc-expected-error {{sanity_err_integer_overflow}}
     discard x
 }
 
-#[Swag.Safety(.Overflow, true)]
+#[Swag.Sanity(.Overflow, true)]
 #test
 {
     var a = -9223372036854775808's64
     var d = -1's64
-    let x = a / d // swc-expected-error {{safety_err_integer_overflow}}
+    let x = a / d // swc-expected-error {{sanity_err_integer_overflow}}
     discard x
 }
 
@@ -38,7 +38,7 @@
 // ---------------------------------------------------------------------------
 
 // INT_MIN divided by anything other than -1.
-#[Swag.Safety(.Overflow, true)]
+#[Swag.Sanity(.Overflow, true)]
 #test
 {
     var a = -2147483648's32
@@ -47,7 +47,7 @@
 }
 
 // -1 divisor with a non-INT_MIN dividend.
-#[Swag.Safety(.Overflow, true)]
+#[Swag.Sanity(.Overflow, true)]
 #test
 {
     var a = 100's32

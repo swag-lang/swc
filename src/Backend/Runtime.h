@@ -509,7 +509,7 @@ namespace Runtime
         uint32_t   tempAllocatorCapacity     = 4u * 1024u * 1024u;
         uint32_t   errorAllocatorCapacity    = 16u * 1024u;
         SafetyWhat safetyGuards              = SafetyWhat::All;
-        bool       sanity                    = true;
+        SafetyWhat sanityGuards              = SafetyWhat::All;
         bool       allocatorCaptureStack     = false;
         bool       allocatorLeaks            = true;
         bool       allocatorTrackAllocations = false;

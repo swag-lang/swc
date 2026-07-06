@@ -52,6 +52,7 @@ call :run_source_test "unittests\sema" "Sema" "sema-only" "--sema-only" || exit 
 call :run_source_test "unittests\errors\sema" "Sema" "sema-only" "--sema-only" || exit /b 1
 call :run_source_test "unittests\jit" "Jit" "no-output" "--no-output" || exit /b 1
 call :run_source_test "unittests\safety" "Safety" "no-output" "--no-output" || exit /b 1
+call :run_source_test "unittests\sanity" "Sanity" "no-output" "--no-output" || exit /b 1
 call :run_native_test "executable" || exit /b 1
 call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%ROOT%\bin\unittests\workspace" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 

@@ -22,6 +22,8 @@ namespace CodeGenSafety
     bool hasMathRuntimeSafety(const CodeGen& codeGen);
     bool hasOverflowRuntimeSafety(const CodeGen& codeGen);
     bool hasLifecycleRuntimeSafety(const CodeGen& codeGen);
+    bool hasLifecycleSanity(const CodeGen& codeGen);
+    bool hasLifecycleInvalidate(const CodeGen& codeGen);
 
     Result emitLifecyclePoison(CodeGen& codeGen, MicroReg addrReg, uint64_t sizeInBytes);
     Result emitLifecyclePoisonLoop(CodeGen& codeGen, MicroReg addrReg, MicroReg countReg, uint64_t elementSizeInBytes);

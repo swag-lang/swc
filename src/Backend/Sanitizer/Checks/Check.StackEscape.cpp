@@ -35,7 +35,7 @@ void StackEscapeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
 
     const CallConv& callConv = CallConv::get(sanitizer.passContext().callConvKind);
     if (sanitizer.getReg(state, callConv.intReturn).isStackAddr())
-        sanitizer.report(inst, DiagnosticId::safety_err_return_local_address);
+        sanitizer.report(inst, DiagnosticId::sanity_err_return_local_address);
 }
 
 SWC_END_NAMESPACE();

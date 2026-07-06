@@ -36,7 +36,7 @@ void IntOverflowCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
         const SanitizerValue divisor  = sanitizer.getReg(state, ops[1].reg);
         if (dividend.isConstant() && divisor.isConstant() &&
             isMinDividedByMinusOne(dividend.constant, divisor.constant, ops[2].opBits))
-            sanitizer.report(inst, DiagnosticId::safety_err_integer_overflow);
+            sanitizer.report(inst, DiagnosticId::sanity_err_integer_overflow);
         return;
     }
 
@@ -45,7 +45,7 @@ void IntOverflowCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
         const SanitizerValue dividend = sanitizer.getReg(state, ops[0].reg);
         if (dividend.isConstant() &&
             isMinDividedByMinusOne(dividend.constant, ops[3].valueU64, ops[1].opBits))
-            sanitizer.report(inst, DiagnosticId::safety_err_integer_overflow);
+            sanitizer.report(inst, DiagnosticId::sanity_err_integer_overflow);
     }
 }
 

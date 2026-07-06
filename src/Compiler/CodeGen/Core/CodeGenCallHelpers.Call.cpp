@@ -912,7 +912,7 @@ namespace
             SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
             outPostCallDrops.push_back({storageTypeRef, storageReg});
         }
-        else if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+        else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
         {
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, sourcePayload.reg, storageTypeRef, resolvePreparedArgSourceRef(codeGen, argRef)));
         }

@@ -2,7 +2,7 @@
 // This file asserts the RAW '@drop'/'@postcopy'/'@postmove'/'@init' mechanics,
 // including reading storage after '@drop': lifecycle safety (use-after-move check +
 // poisoning) is disabled for the whole file.
-#global #[Swag.Safety(.Lifecycle, false)]
+#global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 
 var DropCount: u32 = 0
 var DropTrace: s64 = 0

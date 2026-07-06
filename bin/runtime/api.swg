@@ -167,9 +167,13 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
     attr NoDoc()
 
-    // Do not make a sanity pass.
-    #[AttrUsage(AttributeUsage.Function)]
-    attr Sanity(what: bool)
+    // Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow
+    // analysis, and the proven-fault sanitizer (use-after-move, stack escapes, proven
+    // null dereferences, ...). Reuses the [[SafetyWhat]] flags. Unlike [[Safety]], these
+    // checks add no runtime cost and are enabled by default in every build configuration
+    // except 'fast-compile'.
+    #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
+    attr Sanity(what: SafetyWhat, value: bool)
 
     // All safety checks
     #[Swag.EnumFlags]
@@ -839,8 +843,8 @@ namespace Swag
 
         tempAllocatorCapacity          = 4'u32 * 1024 * 1024                // Default capacity of the 'temp' allocator (in bytes)
         errorAllocatorCapacity         = 16'u32 * 1024                      // Default capacity of the 'error' allocator (in bytes)
-        safetyGuards                   = SafetyWhat.All                     // Activate specific safety checks
-        sanity                         = true                               // Make a sanity pass
+        safetyGuards                   = SafetyWhat.All                     // Activate specific RUNTIME safety checks (guards, panics, poisoning)
+        sanityGuards                   = SafetyWhat.All                     // Activate specific STATIC (compile-time) sanity checks
         allocatorCaptureStack          = false                              // Capture a call stack for each tracked allocation
         allocatorLeaks                 = true                               // Report memory leaks at runtime shutdown
         allocatorTrackAllocations      = false                              // Keep an exact allocation list for detailed leak reporting

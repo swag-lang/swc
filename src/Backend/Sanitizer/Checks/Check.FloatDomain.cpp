@@ -82,7 +82,7 @@ namespace
             return;
 
         if ((isLog && violatesLogDomain(value)) || (isArc && violatesArcDomain(value)))
-            sanitizer.report(inst, DiagnosticId::safety_err_invalid_argument);
+            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument);
     }
 }
 
@@ -99,7 +99,7 @@ void FloatDomainCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
         if (operand.kind == SanitizerValueKind::Constant &&
             constantAsDouble(value, operand.constant, static_cast<uint32_t>(ops[2].opBits)) &&
             value < 0.0)
-            sanitizer.report(inst, DiagnosticId::safety_err_invalid_argument);
+            sanitizer.report(inst, DiagnosticId::sanity_err_invalid_argument);
         return;
     }
 

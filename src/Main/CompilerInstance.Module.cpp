@@ -56,7 +56,7 @@ namespace
     void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
     {
         buildCfg.safetyGuards               = explicitBuildCfg.safetyGuards;
-        buildCfg.sanity                     = explicitBuildCfg.sanity;
+        buildCfg.sanityGuards               = explicitBuildCfg.sanityGuards;
         buildCfg.allocatorCaptureStack      = explicitBuildCfg.allocatorCaptureStack;
         buildCfg.allocatorLeaks             = explicitBuildCfg.allocatorLeaks;
         buildCfg.allocatorTrackAllocations  = explicitBuildCfg.allocatorTrackAllocations;

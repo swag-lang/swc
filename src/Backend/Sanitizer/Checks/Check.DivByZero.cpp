@@ -26,13 +26,13 @@ void DivByZeroCheck::run(Sanitizer& sanitizer, const SanitizerState& state, cons
         case MicroInstrOpcode::OpBinaryRegImm:
             // ops: [dst, opBits, microOp, imm-divisor]
             if (isIntegerDivOrModulo(ops[2].microOp) && ops[3].valueU64 == 0)
-                sanitizer.report(inst, DiagnosticId::safety_err_division_zero);
+                sanitizer.report(inst, DiagnosticId::sanity_err_division_zero);
             return;
 
         case MicroInstrOpcode::OpBinaryRegReg:
             // ops: [dst, src-divisor, opBits, microOp]
             if (isIntegerDivOrModulo(ops[3].microOp) && sanitizer.getReg(state, ops[1].reg).isZero())
-                sanitizer.report(inst, DiagnosticId::safety_err_division_zero);
+                sanitizer.report(inst, DiagnosticId::sanity_err_division_zero);
             return;
 
         default:

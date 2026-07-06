@@ -2,39 +2,38 @@
 
 // ---------------------------------------------------------------------------
 // Provable integer division / modulo by zero. Each is marked
-// `#[Swag.Safety(.Math, true)]` so the sanitizer runs (and catches it) in every build
-// config; without that the division would actually run and fault in release, where the
-// sanitizer is off by default.
+// `#[Swag.Sanity(.Math, true)]` so the sanitizer runs (and catches it) in every build
+// config, including fast-compile where the sanity checks are off by default.
 // ---------------------------------------------------------------------------
 
 // Division by a variable proven to be zero.
-#[Swag.Safety(.Math, true)]
+#[Swag.Sanity(.Math, true)]
 #test
 {
     var d = 0
     var a = 10
-    let x = a / d // swc-expected-error {{safety_err_division_zero}}
+    let x = a / d // swc-expected-error {{sanity_err_division_zero}}
     discard x
 }
 
 // Modulo by a variable proven to be zero.
-#[Swag.Safety(.Math, true)]
+#[Swag.Sanity(.Math, true)]
 #test
 {
     var d = 0
     var a = 10
-    let x = a % d // swc-expected-error {{safety_err_division_zero}}
+    let x = a % d // swc-expected-error {{sanity_err_division_zero}}
     discard x
 }
 
 // The zero value propagates through a copy.
-#[Swag.Safety(.Math, true)]
+#[Swag.Sanity(.Math, true)]
 #test
 {
     var d = 0
     var e = d
     var a = 10
-    let x = a / e // swc-expected-error {{safety_err_division_zero}}
+    let x = a / e // swc-expected-error {{sanity_err_division_zero}}
     discard x
 }
 

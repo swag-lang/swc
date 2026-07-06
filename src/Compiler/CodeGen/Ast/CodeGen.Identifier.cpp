@@ -548,13 +548,13 @@ namespace
                     if (sourceVar && CodeGenMoveElision::canElideMoveSource(codeGen, *sourceVar, resolvedSourceRef))
                     {
                         codeGen.markImplicitDropElided(*sourceVar);
-                        if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+                        if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
                             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
                     }
                     else
                         SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
                 }
-                else if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+                else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
                     SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
             }
         }

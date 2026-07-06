@@ -208,10 +208,8 @@ namespace
     {
         if (cfgName == "fast-compile")
         {
-            // Lifecycle stays on in every configuration: it carries the static borrow
-            // checks, which are part of the language's safety story even in release.
-            buildCfg.safetyGuards              = Runtime::SafetyWhat::Lifecycle;
-            buildCfg.sanity                    = false;
+            buildCfg.safetyGuards              = Runtime::SafetyWhat::None;
+            buildCfg.sanityGuards              = Runtime::SafetyWhat::None;
             buildCfg.allocatorCaptureStack     = false;
             buildCfg.allocatorLeaks            = false;
             buildCfg.allocatorTrackAllocations = false;
@@ -225,7 +223,7 @@ namespace
         else if (cfgName == "debug")
         {
             buildCfg.safetyGuards              = Runtime::SafetyWhat::All;
-            buildCfg.sanity                    = true;
+            buildCfg.sanityGuards              = Runtime::SafetyWhat::All;
             buildCfg.allocatorCaptureStack     = true;
             buildCfg.allocatorLeaks            = true;
             buildCfg.allocatorTrackAllocations = true;
@@ -239,7 +237,7 @@ namespace
         else if (cfgName == "fast-debug")
         {
             buildCfg.safetyGuards              = Runtime::SafetyWhat::All;
-            buildCfg.sanity                    = true;
+            buildCfg.sanityGuards              = Runtime::SafetyWhat::All;
             buildCfg.allocatorCaptureStack     = false;
             buildCfg.allocatorLeaks            = true;
             buildCfg.allocatorTrackAllocations = false;
@@ -252,8 +250,10 @@ namespace
         }
         else if (cfgName == "release")
         {
-            buildCfg.safetyGuards               = Runtime::SafetyWhat::Lifecycle;
-            buildCfg.sanity                     = false;
+            // Runtime safety guards cost cycles and stay off in release; the static
+            // sanity checks are free at runtime and stay on.
+            buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
+            buildCfg.sanityGuards               = Runtime::SafetyWhat::All;
             buildCfg.allocatorCaptureStack      = false;
             buildCfg.allocatorLeaks             = false;
             buildCfg.allocatorTrackAllocations  = false;

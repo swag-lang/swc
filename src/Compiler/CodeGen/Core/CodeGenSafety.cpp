@@ -268,6 +268,22 @@ bool CodeGenSafety::hasLifecycleRuntimeSafety(const CodeGen& codeGen)
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
 }
 
+bool CodeGenSafety::hasLifecycleSanity(const CodeGen& codeGen)
+{
+    // The STATIC use-after-move analysis needs the moved-from markers: it follows the
+    // 'Swag.Sanity' attribute, not the runtime safety guards.
+    const uint16_t mask = codeGen.function().attributes().effectiveSanityMask(codeGen.buildCfg().sanityGuards);
+    return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
+}
+
+bool CodeGenSafety::hasLifecycleInvalidate(const CodeGen& codeGen)
+{
+    // Invalidation serves both worlds: the runtime poison (Safety) and the static
+    // moved-from marker (Sanity). Emit it when either one is active; the emitter
+    // gates each part on its own flag.
+    return hasLifecycleRuntimeSafety(codeGen) || hasLifecycleSanity(codeGen);
+}
+
 Result CodeGenSafety::emitLifecyclePoison(CodeGen& codeGen, const MicroReg addrReg, const uint64_t sizeInBytes)
 {
     if (sizeInBytes == 0 || sizeInBytes > UINT32_MAX || !addrReg.isValid())
@@ -309,7 +325,14 @@ Result CodeGenSafety::emitLifecyclePoisonLoop(CodeGen& codeGen, const MicroReg a
 Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg addrReg, const TypeRef typeRef, const AstNodeRef sourceRef)
 {
     const uint64_t sizeInBytes = codeGen.typeMgr().get(typeRef).sizeOf(codeGen.ctx());
-    SWC_RESULT(emitLifecyclePoison(codeGen, addrReg, sizeInBytes));
+
+    // The 0xDD poison is a RUNTIME mitigation: it belongs to Swag.Safety(.Lifecycle).
+    if (hasLifecycleRuntimeSafety(codeGen))
+        SWC_RESULT(emitLifecyclePoison(codeGen, addrReg, sizeInBytes));
+
+    // The moved-from marker feeds the STATIC sanitizer: it belongs to Swag.Sanity(.Lifecycle).
+    if (!hasLifecycleSanity(codeGen))
+        return Result::Continue;
 
     // The sanitizer only tracks frame slots: mark the source storage as moved-from when it
     // is a plain local. The address is re-materialized here so the marker stays resolvable

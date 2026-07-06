@@ -2,17 +2,17 @@
 
 // ---------------------------------------------------------------------------
 // Returning the address of a local: the frame dies with the return, so the pointer is
-// always dangling. Marked `#[Swag.Safety(.Memory, true)]` so the sanitizer runs (and
-// catches it) in every build config.
+// always dangling. Marked `#[Swag.Sanity(.Memory, true)]` so the static sanitizer runs
+// (and catches it) in every build config.
 // ---------------------------------------------------------------------------
 
-// Lifecycle safety is disabled so the borrow analysis is skipped and the function
+// Lifecycle sanity is disabled so the borrow analysis is skipped and the function
 // still reaches codegen, where the Memory sanitizer must catch the escape.
-#[Swag.Safety(.Memory, true), Swag.Safety(.Lifecycle, false)]
+#[Swag.Sanity(.Memory, true), Swag.Sanity(.Lifecycle, false)]
 func escapeLocal()->*s32
 {
     var v: s32
-    return &v // swc-expected-error {{safety_err_return_local_address}}
+    return &v // swc-expected-error {{sanity_err_return_local_address}}
 }
 
 #test
@@ -22,12 +22,12 @@ func escapeLocal()->*s32
 }
 
 // The address survives a copy before being returned.
-#[Swag.Safety(.Memory, true), Swag.Safety(.Lifecycle, false)]
+#[Swag.Sanity(.Memory, true), Swag.Sanity(.Lifecycle, false)]
 func escapeLocalViaCopy()->*s32
 {
     var v: s32
     var p = &v
-    return p // swc-expected-error {{safety_err_return_local_address}}
+    return p // swc-expected-error {{sanity_err_return_local_address}}
 }
 
 #test
@@ -43,7 +43,7 @@ func escapeLocalViaCopy()->*s32
 var GlobalValue: s32
 
 // Address of a global outlives the call.
-#[Swag.Safety(.Memory, true)]
+#[Swag.Sanity(.Memory, true)]
 func globalAddress()->*s32
 {
     return &GlobalValue
@@ -56,7 +56,7 @@ func globalAddress()->*s32
 }
 
 // A pointer received as a parameter is not a frame address.
-#[Swag.Safety(.Memory, true)]
+#[Swag.Sanity(.Memory, true)]
 func passThrough(p: *s32)->*s32
 {
     return p

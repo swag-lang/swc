@@ -21,7 +21,7 @@ using Core
 
 internal var rootNodeTotal = 0
 
-//#[Swag.Sanity(false)]
+//#[Swag.Sanity(Swag.SafetyWhat.All, false)]
 //#[Swag.PrintGenBc]
 func day8B()
 {

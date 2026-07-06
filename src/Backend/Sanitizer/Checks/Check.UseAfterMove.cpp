@@ -32,7 +32,7 @@ void UseAfterMoveCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
     {
         if (slot >= rangeStart && slot < rangeStart + static_cast<int64_t>(rangeSize))
         {
-            sanitizer.report(inst, DiagnosticId::safety_err_use_after_move);
+            sanitizer.report(inst, DiagnosticId::sanity_err_use_after_move);
             return;
         }
     }

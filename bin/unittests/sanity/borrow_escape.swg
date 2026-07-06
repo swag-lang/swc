@@ -28,7 +28,7 @@ func borrowEscapePayload()->BorrowEscapePayload
     owner.length = 1
 
     var payload = BorrowEscapePayload{text: owner}
-    return payload // swc-expected-error {{safety_err_borrow_escape}}
+    return payload // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Returning stack-borrowed array data from a runtime function must warn.
@@ -38,7 +38,7 @@ func borrowEscapeArrayCast()->string
     buf[0] = 'a''u8
     buf[1] = 'b''u8
     buf[2] = 'c''u8
-    return cast(string) buf // swc-expected-error {{safety_err_borrow_escape}}
+    return cast(string) buf // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Implicit conversions borrow exactly like their explicit spelling: through a user
@@ -48,7 +48,7 @@ func borrowEscapeImplicitOpCastReturn()->string
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x''u8
     owner.length = 1
-    return owner // swc-expected-error {{safety_err_borrow_escape}}
+    return owner // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var borrowEscapeGlobalText: string
@@ -58,14 +58,14 @@ func borrowEscapeImplicitOpCastAssign()
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x''u8
     owner.length = 1
-    borrowEscapeGlobalText = owner // swc-expected-error {{safety_err_borrow_escape}}
+    borrowEscapeGlobalText = owner // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeImplicitArrayDecay()->[..] u8
 {
     var buf: [4] u8
     buf[0] = 1
-    return buf // swc-expected-error {{safety_err_borrow_escape}}
+    return buf // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // The same implicit conversions bound to a local stay tracked, not reported.
@@ -87,7 +87,7 @@ func borrowEscapeAnyReturn()->any
 {
     var value: BorrowEscapePayload
     value.text = "x"
-    return value // swc-expected-error {{safety_err_borrow_escape}}
+    return value // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An 'any' pointing to caller-owned data or kept local must stay silent.
@@ -104,12 +104,12 @@ func borrowEscapeAnyLocalOnly(param: *BorrowEscapePayload)->any
 // dangles exactly like borrowing a local.
 func borrowEscapeByValueParamAddress(v: s32)->*s32
 {
-    return &v // swc-expected-error {{safety_err_borrow_escape}}
+    return &v // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeByValueParamCast(o: BorrowEscapeOwner)->string
 {
-    return o // swc-expected-error {{safety_err_borrow_escape}}
+    return o // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An inner-scope local does not live as long as an outer destination, even
@@ -119,7 +119,7 @@ func borrowEscapeInnerScope()->s32
     var p: *s32
     {
         var v: s32 = 42
-        p = &v // swc-expected-error {{safety_err_borrow_scope_escape}}
+        p = &v // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
     return 0
 }
@@ -139,7 +139,7 @@ func borrowEscapeConditionalClear(cond: bool)->*s32
     var p = &v
     if cond do
         p = null
-    return p // swc-expected-error {{safety_err_borrow_escape}}
+    return p // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A borrow created in only one branch survives the join.
@@ -149,7 +149,7 @@ func borrowEscapeConditionalBorrow(cond: bool)->*s32
     var p: *s32
     if cond do
         p = &v
-    return p // swc-expected-error {{safety_err_borrow_escape}}
+    return p // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An unconditional clear does erase the borrow.
@@ -180,7 +180,7 @@ func borrowEscapeLoopBorrow()->*s32
     var p: *s32
     for i in 4 do
         p = &v
-    return p // swc-expected-error {{safety_err_borrow_escape}}
+    return p // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Borrowing a temporary (destroyed at the end of the statement) is reported at
@@ -195,7 +195,7 @@ func borrowEscapeMakeOwner()->BorrowEscapeOwner
 
 func borrowEscapeTemporary()->u64
 {
-    let s: string = borrowEscapeMakeOwner() // swc-expected-error {{safety_err_borrow_temporary}}
+    let s: string = borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(s)
 }
 
@@ -239,26 +239,26 @@ func borrowEscapeMaterializedTemp()->u16
 // global is an escape.
 func borrowEscapeMaterializedReturn()->const [..] u16
 {
-    return cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{safety_err_borrow_materialized}}
+    return cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 func borrowEscapeMaterializedTracked()->const [..] u16
 {
     let view = cast(const [..] u16) borrowEscapeMakeArray()
-    return view // swc-expected-error {{safety_err_borrow_materialized}}
+    return view // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 var borrowEscapeGlobalSlice: const [..] u16
 
 func borrowEscapeMaterializedGlobal()
 {
-    borrowEscapeGlobalSlice = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{safety_err_borrow_materialized}}
+    borrowEscapeGlobalSlice = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // Boxing an rvalue into a returned 'any' leaks the frame-local box.
 func borrowEscapeMaterializedAnyReturn()->any
 {
-    return borrowEscapeMakeOwner() // swc-expected-error {{safety_err_borrow_materialized}}
+    return borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // Casting a scalar value to a pointer reinterprets the value: it does not
@@ -302,14 +302,14 @@ func borrowEscapeClosureReturn()->BorrowEscapeVisitor
 {
     var total: s32 = 7
     let pTotal = &total
-    return func|pTotal|()->s32 { return dref pTotal } // swc-expected-error {{safety_err_borrow_escape}}
+    return func|pTotal|()->s32 { return dref pTotal } // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Capturing by reference borrows the source storage itself.
 func borrowEscapeClosureByRef()->BorrowEscapeVisitor
 {
     var total: s32 = 7
-    return func|&total|()->s32 { return total } // swc-expected-error {{safety_err_borrow_escape}}
+    return func|&total|()->s32 { return total } // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Storing borrowed data through a pointer that itself borrows a local writes into
@@ -355,7 +355,7 @@ func borrowEscapeThroughParamPointer(node: *BorrowEscapeNode)
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x''u8
     owner.length = 1
-    node.text = @mkstring(&owner.buffer[0], owner.length) // swc-expected-error {{safety_err_borrow_escape}}
+    node.text = @mkstring(&owner.buffer[0], owner.length) // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A return inside an inline expansion hands the value back to the calling frame:
@@ -374,17 +374,18 @@ func borrowEscapeInlineCaller()->u64
     return cast(u64) dref p
 }
 
-// Disabling the Lifecycle safety turns the whole borrow analysis off: the same
-// escapes compile without any diagnostic.
-#[Swag.Safety(.Lifecycle, false)]
-func borrowEscapeSafetyOff()->*s32
+// Disabling the Lifecycle sanity turns the whole borrow analysis off: the same
+// escapes compile without any diagnostic. The Memory sanity is disabled too, so the
+// codegen sanitizer does not catch the escape in its place.
+#[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]
+func borrowEscapeSanityOff()->*s32
 {
     var v: s32
     return &v
 }
 
-#[Swag.Safety(.Lifecycle, false)]
-func borrowEscapeSafetyOffTemporary()->u64
+#[Swag.Sanity(.Lifecycle, false)]
+func borrowEscapeSanityOffTemporary()->u64
 {
     let s: string = borrowEscapeMakeOwner()
     return @countof(s)

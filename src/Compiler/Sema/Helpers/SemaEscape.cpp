@@ -1142,18 +1142,18 @@ namespace
         return type.isReference() ? type.payloadTypeRef() : typeRef;
     }
 
-    // The borrow checks belong to the Lifecycle safety: when it is disabled, the whole
-    // analysis is skipped (no tracking, no reports).
-    bool lifecycleSafetyEnabled(Sema& sema)
+    // The borrow checks are STATIC sanity checks under the Lifecycle flag: when the
+    // sanity is disabled, the whole analysis is skipped (no tracking, no reports).
+    bool lifecycleSanityEnabled(Sema& sema)
     {
-        return sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Lifecycle);
+        return sema.frame().currentAttributes().hasSanity(sema.buildCfg().sanityGuards, Runtime::SafetyWhat::Lifecycle);
     }
 
     Result reportBorrowEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
     {
         if (info.isTemporaryBorrow() || info.isMaterializedBorrow())
         {
-            const DiagnosticId diagId = info.isTemporaryBorrow() ? DiagnosticId::safety_err_borrow_temporary : DiagnosticId::safety_err_borrow_materialized;
+            const DiagnosticId diagId = info.isTemporaryBorrow() ? DiagnosticId::sanity_err_borrow_temporary : DiagnosticId::sanity_err_borrow_materialized;
 
             auto diag = SemaError::report(sema, diagId, atNodeRef);
             diag.addArgument(Diagnostic::ARG_WHAT, what);
@@ -1173,7 +1173,7 @@ namespace
         if (!info.isLocalBorrow())
             return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::safety_err_borrow_escape, atNodeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sanity_err_borrow_escape, atNodeRef);
         diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_WHAT, what);
         if (info.typeRef.isValid())
@@ -1188,7 +1188,7 @@ namespace
 
     Result reportBorrowScopeEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, const SymbolVariable& dstVar)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::safety_err_borrow_scope_escape, atNodeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sanity_err_borrow_scope_escape, atNodeRef);
         diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_VALUE, dstVar.name(sema.ctx()));
 
@@ -1249,7 +1249,7 @@ namespace SemaEscape
 
     Result checkVariableInitializer(Sema& sema, const SymbolVariable& symVar, AstNodeRef initRef, TypeRef targetTypeRef)
     {
-        if (!lifecycleSafetyEnabled(sema))
+        if (!lifecycleSanityEnabled(sema))
             return Result::Continue;
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.isClosureCapture())
@@ -1297,7 +1297,7 @@ namespace SemaEscape
 
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef)
     {
-        if (!lifecycleSafetyEnabled(sema))
+        if (!lifecycleSanityEnabled(sema))
             return Result::Continue;
 
         const TypeRef targetTypeRef = destinationTypeRef(sema, leftRef);
@@ -1332,7 +1332,7 @@ namespace SemaEscape
     // storage's borrow so uses of 'it' escaping the loop are tracked like any pointer.
     void bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef)
     {
-        if (!lifecycleSafetyEnabled(sema))
+        if (!lifecycleSanityEnabled(sema))
             return;
 
         uint32_t       budget = K_EXPR_BUDGET;
@@ -1348,7 +1348,7 @@ namespace SemaEscape
 
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn)
     {
-        if (!lifecycleSafetyEnabled(sema))
+        if (!lifecycleSanityEnabled(sema))
             return Result::Continue;
 
         if (!typeCanCarryBorrowImpl(sema, returnTypeRef))

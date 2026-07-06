@@ -77,6 +77,7 @@ struct AttributeList
     SmallVector4<AttributeInstance>     attributes;
     RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<RuntimeSafetyOverride> runtimeSafetyOverrides;
+    SmallVector4<RuntimeSafetyOverride> sanityOverrides;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
     std::optional<bool>                 backendOptimize;
@@ -93,6 +94,7 @@ struct AttributeList
         return attributes.empty() &&
                rtFlags.none() &&
                runtimeSafetyOverrides.empty() &&
+               sanityOverrides.empty() &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                !backendOptimize.has_value() &&
@@ -136,6 +138,33 @@ struct AttributeList
     bool hasRuntimeSafety(Runtime::SafetyWhat buildCfgMask, Runtime::SafetyWhat what) const
     {
         const uint16_t effectiveMask = effectiveRuntimeSafetyMask(buildCfgMask);
+        return SemaSafety::hasMask(effectiveMask, what);
+    }
+
+    // The STATIC (compile-time) sanity checks reuse the SafetyWhat flags but are
+    // controlled by their own attribute ('Swag.Sanity') and build-config mask.
+    void addSanityOverride(Runtime::SafetyWhat what, bool value)
+    {
+        sanityOverrides.push_back({.whatMask = SemaSafety::mask(what), .value = value});
+    }
+
+    uint16_t effectiveSanityMask(Runtime::SafetyWhat buildCfgMask) const
+    {
+        uint16_t result = SemaSafety::mask(buildCfgMask);
+        for (const auto& overrideValue : sanityOverrides)
+        {
+            if (overrideValue.value)
+                result |= overrideValue.whatMask;
+            else
+                result &= ~overrideValue.whatMask;
+        }
+
+        return result;
+    }
+
+    bool hasSanity(Runtime::SafetyWhat buildCfgMask, Runtime::SafetyWhat what) const
+    {
+        const uint16_t effectiveMask = effectiveSanityMask(buildCfgMask);
         return SemaSafety::hasMask(effectiveMask, what);
     }
 

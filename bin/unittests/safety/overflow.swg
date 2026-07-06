@@ -824,11 +824,11 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
 
 #test
 {
-    #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
+    #[Swag.Optimize(false), Swag.Sanity(.Overflow, true)]
     func divAssignOverflowS8()->s8
     {
         var v: s8 = -128
-        v /= -1 // swc-expected-error {{safety_err_integer_overflow}}
+        v /= -1 // swc-expected-error {{sanity_err_integer_overflow}}
         return v
     }
 
@@ -837,11 +837,11 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
 
 #test
 {
-    #[Swag.Optimize(false), Swag.Safety(.Overflow, true)]
+    #[Swag.Optimize(false), Swag.Sanity(.Overflow, true)]
     func modAssignOverflowS16()->s16
     {
         var v: s16 = -32768
-        v %= -1 // swc-expected-error {{safety_err_integer_overflow}}
+        v %= -1 // swc-expected-error {{sanity_err_integer_overflow}}
         return v
     }
 

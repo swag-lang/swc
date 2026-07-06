@@ -94,7 +94,7 @@ use `[*]` instead of `*`.
 This type of pointer behaves like a view over multiple elements,
 allowing indexed access and pointer movement through memory.
 */
-#[Swag.Sanity(false)]
+#[Swag.Sanity(Swag.SafetyWhat.All, false)]
 #test
 {
     var ptr: [*] u8 // Pointer to a block of 'u8' values

@@ -422,7 +422,7 @@ namespace
 
         // A '#relocate' source, or a '#move' source without a drop lifecycle, is abandoned
         // with its stale bits: under lifecycle safety it is poisoned and marked moved-from.
-        const bool shouldInvalidateSource = canTouchSource && !shouldResetSource && CodeGenSafety::hasLifecycleRuntimeSafety(codeGen);
+        const bool shouldInvalidateSource = canTouchSource && !shouldResetSource && CodeGenSafety::hasLifecycleInvalidate(codeGen);
 
         // Drop elision: a '#move' source that is provably dead afterwards skips both its
         // reset and its scope-exit drop; under lifecycle safety it is poisoned instead.
@@ -433,7 +433,7 @@ namespace
         if (elideSource)
             codeGen.markImplicitDropElided(*rightVar);
 
-        const bool wantInvalidateSource = shouldInvalidateSource || (elideSource && CodeGenSafety::hasLifecycleRuntimeSafety(codeGen));
+        const bool wantInvalidateSource = shouldInvalidateSource || (elideSource && CodeGenSafety::hasLifecycleInvalidate(codeGen));
 
         if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource && !shouldInvalidateSource)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);

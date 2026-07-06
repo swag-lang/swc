@@ -731,13 +731,20 @@ namespace
         return false;
     }
 
-    bool isCompilerAstFunction(const Sema& sema, const SymbolFunction& sym)
+    // Compile-time evaluated functions never leak borrowed locals through their return
+    // value: '#ast' returns are cloned as source code, and '#run' blocks and compiler
+    // functions persist return payloads pointing into the local stack frame into the
+    // compiler segment (persistCompilerRunValue) before the frame dies.
+    bool returnValueIsMaterializedByCompiler(const Sema& sema, const SymbolFunction& sym)
     {
         const AstNode* declNode = sym.decl();
         if (!declNode)
             return false;
 
-        if (declNode->is(AstNodeId::CompilerFunc) || declNode->is(AstNodeId::CompilerShortFunc))
+        if (declNode->is(AstNodeId::CompilerRunBlock) || declNode->is(AstNodeId::CompilerFunc))
+            return true;
+
+        if (declNode->is(AstNodeId::CompilerShortFunc))
             return sema.token(declNode->codeRef()).id == TokenId::CompilerAst;
 
         return false;
@@ -781,13 +788,13 @@ namespace
         }
     }
 
-    bool returnValueIsCompilerAstCloned(Sema& sema)
+    bool returnValueIsCompilerMaterialized(Sema& sema)
     {
         if (const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema))
-            return inlinePayload->sourceFunction && isCompilerAstFunction(sema, *inlinePayload->sourceFunction);
+            return inlinePayload->sourceFunction && returnValueIsMaterializedByCompiler(sema, *inlinePayload->sourceFunction);
 
         const SymbolFunction* currentFn = sema.currentFunction();
-        return currentFn && isCompilerAstFunction(sema, *currentFn);
+        return currentFn && returnValueIsMaterializedByCompiler(sema, *currentFn);
     }
 
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
@@ -843,7 +850,7 @@ namespace
             if (returnType.isAnyTypeInfo(sema.ctx()))
                 SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, view));
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
-            if (!returnValueIsCompilerAstCloned(sema))
+            if (!returnValueIsCompilerMaterialized(sema))
                 SWC_RESULT(SemaEscape::checkReturn(sema, exprRef, returnTypeRef));
             return Result::Continue;
         }

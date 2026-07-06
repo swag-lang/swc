@@ -469,10 +469,23 @@ namespace
         return expressionEscapeInfoRec(sema, argumentValueRef(sema, argRef), budget);
     }
 
+    // Only composite storage can be aliased by an implicit carrier binding (array decay,
+    // opCast borrowing 'self', interface creation, ...). Scalars convert by value: casting
+    // a 'u64' to a pointer reinterprets the value and never borrows the variable storage.
+    bool typeHasBorrowableStorage(Sema& sema, TypeRef typeRef)
+    {
+        typeRef = unwrapAliasEnum(sema, typeRef);
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        return type.isStruct() || type.isArray() || type.isAggregate();
+    }
+
     bool expressionMayExposeStorageBorrow(Sema& sema, AstNodeRef exprRef)
     {
         const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, exprRef));
-        return typeRef.isValid() && !isDirectBorrowCarrier(sema, typeRef);
+        return typeRef.isValid() && !isDirectBorrowCarrier(sema, typeRef) && typeHasBorrowableStorage(sema, typeRef);
     }
 
     SemaEscapeInfo borrowInfoFromCallArgument(Sema& sema, const ResolvedCallArgument& arg, TypeRef resultTypeRef, uint32_t& budget)

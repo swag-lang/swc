@@ -30,30 +30,18 @@ impl IForm for FormShape
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormShape) ptr
-        return .borderColor == other.borderColor and
-               .borderSize == other.borderSize and
-               .backColor == other.backColor and
-               .alpha == other.alpha and
+        return .isSameBase(ptr) and
                .kind == other.kind and
-               .subKind == other.subKind and
-               .dashStyle == other.dashStyle and
-               .roundSize == other.roundSize and
-               .paintShadow == other.paintShadow
+               .roundSize == other.roundSize
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
+        BaseForm.copyBase(dst, src)
         let dstf = cast(*FormShape) dst
         let srcf = cast(*FormShape) src
-        dstf.borderColor = srcf.borderColor
-        dstf.borderSize  = srcf.borderSize
-        dstf.roundSize   = srcf.roundSize
-        dstf.backColor   = srcf.backColor
-        dstf.alpha       = srcf.alpha
-        dstf.kind        = srcf.kind
-        dstf.subKind     = srcf.subKind
-        dstf.dashStyle   = srcf.dashStyle
-        dstf.paintShadow = srcf.paintShadow
+        dstf.kind      = srcf.kind
+        dstf.roundSize = srcf.roundSize
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -91,43 +79,20 @@ impl IForm for FormShape
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        .x += newPosX
-        .y += newPosY
-        .w += newSizeX
-        .h += newSizeY
+        .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
-    mtd impl scaleBaseForm(val: f32)
+    mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * val)
-        .y = cast(s32) (.y * val)
-        .w = cast(s32) (.w * val)
-        .h = cast(s32) (.h * val)
+        .x = cast(s32) (.x * scale)
+        .y = cast(s32) (.y * scale)
+        .w = cast(s32) (.w * scale)
+        .h = cast(s32) (.h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        if newSizeX < 0
-        {
-            .x = newPosX + newSizeX
-            .w = -newSizeX
-        }
-        else
-        {
-            .x = newPosX
-            .w = newSizeX
-        }
-
-        if newSizeY < 0
-        {
-            .y = newPosY + newSizeY
-            .h = -newSizeY
-        }
-        else
-        {
-            .y = newPosY
-            .h = newSizeY
-        }
+        .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
@@ -140,7 +105,7 @@ impl IForm for FormShape
 
     mtd impl boundRect()->Math.Rectangle
     {
-        return Math.Rectangle{.x, .y, .w, .h}
+        return .rectFormBound()
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
@@ -189,20 +154,8 @@ impl IForm for FormShape
 
         if .subKind == .PixSel
         {
-            if cxt.hitTest
-            {
-                bSize = 10
-                dash  = .None
-            }
-            else
-            {
-                bSize = 2
-                dash  = .Dash
-            }
-
-            bk.a         = 5
-            .borderColor = g_App.theme.colors.btnIcon_Icon
-            painter.setAntialiased(false)
+            (bSize, dash) = .applyPixSelStyle(painter, cxt)
+            bk.a = 5
         }
 
         let z   = cxt.z
@@ -212,7 +165,7 @@ impl IForm for FormShape
         let backBrush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
 
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
-            bk.a = cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
+            bk.a = .highlightAlpha()
 
         #[Swag.Complete]
         switch .kind
@@ -249,22 +202,6 @@ impl IForm for FormShape
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-
-        with me.gizmo
-        {
-            .roundShape        = true
-            .trackChange       = true
-            .paintSimpleBorder = false
-            .paintBigBorder    = true
-        }
-
-        .gizmo.sigChanged = func|form = me|(g, first, hitMove)
-        {
-            g.apply(form, first, hitMove)
-        }
-        .gizmo.sigRotate = func|form = me|(g, first, last, angle)
-        {
-            g.applyRotate(form, first, last, angle)
-        }
+        .gizmo.setupForForm(cast(IForm) me)
     }
 }

@@ -14,17 +14,7 @@ impl ActionLibSel
 
 impl IActionUI for ActionLibSel
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Left, Up, Right, Down,
-             Home, End:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

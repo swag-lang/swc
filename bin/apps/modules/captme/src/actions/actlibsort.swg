@@ -12,16 +12,7 @@ impl ActionLibSort
 
 impl IActionUI for ActionLibSort
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Recent, FileSize, Invert, Similar:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

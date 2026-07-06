@@ -78,10 +78,3 @@ var g_App: Application
 
     g_App.run()
 }
-
-#message(Swag.CompilerMsgMask.PassBeforeOutput)
-{
-    let itf = @compiler
-    let cfg = itf.getBuildCfg()
-    cfg.resAppIcoFileName = Core.Path.getDirectoryName(#file) ++ "/datas/appicon.ico"
-}

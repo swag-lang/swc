@@ -18,7 +18,7 @@ struct CaptureRectWnd
 
     main:              *MainWnd
     startGrab:         bool
-    cancelGrag:        bool
+    cancelGrab:        bool
     tryStartGrab:      bool
     autoGrab:          bool
     lerpGrab:          Math.Rectangle
@@ -55,7 +55,7 @@ impl IWnd for CaptureRectWnd
         case MousePressed where evt.button == .Right:
             .startGrab    = false
             .tryStartGrab = false
-            .cancelGrag   = true
+            .cancelGrab   = true
             .autoGrab     = true // Return to auto grab mode
 
         case MousePressed where evt.button == .Left:
@@ -64,9 +64,9 @@ impl IWnd for CaptureRectWnd
             .clickStartPos.y = evt.surfacePos.y
 
         case MouseReleased where evt.button == .Left:
-            if .cancelGrag
+            if .cancelGrab
             {
-                .cancelGrag = false
+                .cancelGrab = false
                 break
             }
 
@@ -89,7 +89,7 @@ impl IWnd for CaptureRectWnd
             g_EndGrabY = evt.surfacePos.y
 
             // Check if mouse moved significantly from click start position
-            if Math.abs(evt.surfacePos.x - .clickStartPos.x) > 1 and
+            if Math.abs(evt.surfacePos.x - .clickStartPos.x) > 1 or
                Math.abs(evt.surfacePos.y - .clickStartPos.y) > 1
             {
                 // Switch to manual rectangle selection mode

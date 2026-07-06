@@ -3,6 +3,17 @@
 
 using Swag, Core
 
+// accept() is generated from the newCmdId scope prefix (see acceptOwnCmdIds): an
+// action must accept its own ids and reject those of every other action.
+#test
+{
+    let act = @mkinterface(null, #typeof(ActionSelection), IActionUI)
+    @assert(act.accept({null, ActionSelection.SelectAll}))
+    @assert(act.accept({null, ActionSelection.Freeze}))
+    @assert(!act.accept({null, ActionCapture.Area}))
+    @assert(!act.accept({null, ActionZoom.ZoomFit}))
+}
+
 // Tool-mode actions update checked state and switch every safe editor mode.
 #test
 {
@@ -220,23 +231,23 @@ using Swag, Core
     let a = captmeTestAddShape(f.capture, 10, 10, 10, 10)
     let b = captmeTestAddShape(f.capture, 50, 40, 20, 20)
 
-    var evt = captmeTestState(ActionAlign.Right1)
-    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.Right1, &evt))
+    var evt = captmeTestState(ActionMoveSel.Right1)
+    @assert(captmeTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
     @assert(evt.disabled)
 
     f.capture.selection.add(0)
     f.capture.selection.add(1)
-    evt = captmeTestState(ActionAlign.Right1)
-    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.Right1, &evt))
+    evt = captmeTestState(ActionMoveSel.Right1)
+    @assert(captmeTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
     @assert(!evt.disabled)
-    @assert(captmeTestActionExecute'ActionAlign(f.main, ActionAlign.Right1))
+    @assert(captmeTestActionExecute'ActionMoveSel(f.main, ActionMoveSel.Right1))
     @assert(a.x == 11)
     @assert(b.x == 51)
 
-    evt = captmeTestState(ActionMoveSel.AlignTop)
-    @assert(captmeTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.AlignTop, &evt))
+    evt = captmeTestState(ActionAlign.AlignTop)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
     @assert(!evt.disabled)
-    @assert(captmeTestActionExecute'ActionMoveSel(f.main, ActionMoveSel.AlignTop))
+    @assert(captmeTestActionExecute'ActionAlign(f.main, ActionAlign.AlignTop))
     @assert(a.y == 10)
     @assert(b.y == 10)
 
@@ -246,8 +257,8 @@ using Swag, Core
 
     f.capture.selection.clear()
     f.capture.selection.add(1)
-    evt = captmeTestState(ActionMoveSel.AlignTop)
-    @assert(captmeTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.AlignTop, &evt))
+    evt = captmeTestState(ActionAlign.AlignTop)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
     @assert(evt.disabled)
 
     f.shutdown()

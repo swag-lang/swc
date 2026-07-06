@@ -19,19 +19,7 @@ impl ActionImage
 
 impl IActionUI for ActionImage
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case TrimCapture, ResizeImage, ExpandImage,
-             ExpandCapture, RestoreOrg,
-             FlipImage, MirrorImage,
-             RotateImageRight, RotateImageLeft:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

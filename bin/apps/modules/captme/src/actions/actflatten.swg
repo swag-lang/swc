@@ -10,16 +10,7 @@ impl ActionFlatten
 
 impl IActionUI for ActionFlatten
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Flatten, FlattenAll:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

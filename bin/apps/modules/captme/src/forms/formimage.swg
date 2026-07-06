@@ -95,27 +95,20 @@ impl IForm for FormImage
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormImage) ptr
-        if .kind == .Image and .backColor != other.backColor do
-            return false
-        return .borderColor == other.borderColor and
-               .borderSize == other.borderSize and
-               .alpha == other.alpha and
+        // backColor only matters for the plain image kind; the processed kinds
+        // (blur, pixelate, zoom, capture) have no fill.
+        return .isSameBase(ptr, compareBackColor: .kind == .Image) and
                .kind == other.kind and
-               .paintShadow == other.paintShadow and
                .strength == other.strength
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
+        BaseForm.copyBase(dst, src)
         let dstf = cast(*FormImage) dst
         let srcf = cast(*FormImage) src
-        dstf.borderColor = srcf.borderColor
-        dstf.borderSize  = srcf.borderSize
-        dstf.backColor   = srcf.backColor
-        dstf.alpha       = srcf.alpha
-        dstf.kind        = srcf.kind
-        dstf.paintShadow = srcf.paintShadow
-        dstf.strength    = srcf.strength
+        dstf.kind     = srcf.kind
+        dstf.strength = srcf.strength
         if srcf.image.isValid() do
             dstf.image = srcf.image
     }
@@ -147,21 +140,16 @@ impl IForm for FormImage
             .freePos.width += newSizeX
             .freePos.height += newSizeY
         }
-        else
-        {
-            .x += newPosX
-            .y += newPosY
-            .w += newSizeX
-            .h += newSizeY
-        }
+        else do
+            .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
-    mtd impl scaleBaseForm(val: f32)
+    mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * val)
-        .y = cast(s32) (.y * val)
-        .w = cast(s32) (.w * val)
-        .h = cast(s32) (.h * val)
+        .x = cast(s32) (.x * scale)
+        .y = cast(s32) (.y * scale)
+        .w = cast(s32) (.w * scale)
+        .h = cast(s32) (.h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
@@ -190,30 +178,8 @@ impl IForm for FormImage
                 .freePos.height = newSizeY
             }
         }
-        else
-        {
-            if newSizeX < 0
-            {
-                .x = newPosX + newSizeX
-                .w = -newSizeX
-            }
-            else
-            {
-                .x = newPosX
-                .w = newSizeX
-            }
-
-            if newSizeY < 0
-            {
-                .y = newPosY + newSizeY
-                .h = -newSizeY
-            }
-            else
-            {
-                .y = newPosY
-                .h = newSizeY
-            }
-        }
+        else do
+            .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
@@ -234,7 +200,7 @@ impl IForm for FormImage
 
     mtd impl boundRect()->Math.Rectangle
     {
-        return Math.Rectangle{.x, .y, .w, .h}
+        return .rectFormBound()
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
@@ -475,23 +441,6 @@ impl IForm for FormImage
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-
-        with me.gizmo
-        {
-            .roundShape        = true
-            .anchorSize        = 10
-            .trackChange       = true
-            .paintSimpleBorder = false
-            .paintBigBorder    = true
-        }
-
-        .gizmo.sigChanged = func|form = me|(g, first, hitMove)
-        {
-            g.apply(form, first, hitMove)
-        }
-        .gizmo.sigRotate = func|form = me|(g, first, last, angle)
-        {
-            g.applyRotate(form, first, last, angle)
-        }
+        .gizmo.setupForForm(cast(IForm) me)
     }
 }

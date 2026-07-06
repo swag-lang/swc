@@ -476,6 +476,31 @@ impl GizmoRect
         capture.invalidateAfterMove(iform, oldRect)
     }
 
+    // Standard gizmo configuration shared by the axis-aligned box forms (image,
+    // shape, step, text): same look, resize/move wired to apply(), and rotation
+    // wired to applyRotate() when the form supports it.
+    mtd setupForForm(iform: IForm)
+    {
+        .roundShape        = true
+        .anchorSize        = 10
+        .trackChange       = true
+        .paintSimpleBorder = false
+        .paintBigBorder    = true
+
+        .sigChanged = func|form = iform|(g, first, hitMove)
+        {
+            g.apply(form, first, hitMove)
+        }
+
+        if iform.canRotate()
+        {
+            .sigRotate = func|form = iform|(g, first, last, angle)
+            {
+                g.applyRotate(form, first, last, angle)
+            }
+        }
+    }
+
     // Apply a rotation (in degrees) to the selected form(s), mirroring the
     // Rotate slider in the property window so undo/redo stays consistent.
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)

@@ -10,16 +10,7 @@ impl ActionPixSel
 
 impl IActionUI for ActionPixSel
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Clear, Fill, SmartFill, SmartMove:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

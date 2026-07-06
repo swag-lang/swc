@@ -1,8 +1,8 @@
 using Gui
 
-struct ActionMoveSel {}
+struct ActionAlign {}
 
-impl ActionMoveSel
+impl ActionAlign
 {
     newCmdId("AlignLeft")
     newCmdId("AlignCenter")
@@ -16,20 +16,9 @@ impl ActionMoveSel
     newCmdId("MoveBackward")
 }
 
-impl IActionUI for ActionMoveSel
+impl IActionUI for ActionAlign
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case AlignLeft, AlignCenter, AlignRight,
-             AlignTop, AlignMiddle, AlignBottom,
-             SendToFront, SendToBack, MoveForward, MoveBackward:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

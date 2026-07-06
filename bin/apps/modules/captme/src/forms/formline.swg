@@ -23,36 +23,26 @@ impl IForm for FormLine
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormLine) ptr
-        return .borderColor == other.borderColor and
-               .borderSize == other.borderSize and
-               .alpha == other.alpha and
+        return .isSameBase(ptr) and
                .beginCap == other.beginCap and
                .endCap == other.endCap and
-               .dashStyle == other.dashStyle and
                .startSize == other.startSize and
                .endSize == other.endSize and
                .dashCap == other.dashCap and
-               .subKind == other.subKind and
-               .bezier == other.bezier and
-               .paintShadow == other.paintShadow
+               .bezier == other.bezier
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
+        BaseForm.copyBase(dst, src)
         let dstf = cast(*FormLine) dst
         let srcf = cast(*FormLine) src
-        dstf.borderColor = srcf.borderColor
-        dstf.borderSize  = srcf.borderSize
-        dstf.alpha       = srcf.alpha
-        dstf.beginCap    = srcf.beginCap
-        dstf.endCap      = srcf.endCap
-        dstf.dashStyle   = srcf.dashStyle
-        dstf.startSize   = srcf.startSize
-        dstf.endSize     = srcf.endSize
-        dstf.dashCap     = srcf.dashCap
-        dstf.subKind     = srcf.subKind
-        dstf.bezier      = srcf.bezier
-        dstf.paintShadow = srcf.paintShadow
+        dstf.beginCap  = srcf.beginCap
+        dstf.endCap    = srcf.endCap
+        dstf.startSize = srcf.startSize
+        dstf.endSize   = srcf.endSize
+        dstf.dashCap   = srcf.dashCap
+        dstf.bezier    = srcf.bezier
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -174,7 +164,7 @@ impl IForm for FormLine
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
-        bSize = BaseForm.adaptSize(.borderSize, MinBorderSize, MaxBorderSize, cxt, 8, 12)
+        bSize = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 8, 12)
         let sSize = cxt.quickMode ? BaseForm.adaptSize(.startSize, MinCapSize, MaxCapSize, cxt, 1, 4) : .startSize
         let eSize = cxt.quickMode ? BaseForm.adaptSize(.endSize, MinCapSize, MaxCapSize, cxt, 1, 4) : .endSize
 

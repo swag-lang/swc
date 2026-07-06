@@ -14,16 +14,7 @@ impl ActionCaptureDelay
 
 impl IActionUI for ActionCaptureDelay
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Delay, Delay0, Delay1, Delay2, Delay5, Delay9:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

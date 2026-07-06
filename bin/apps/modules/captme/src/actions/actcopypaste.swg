@@ -13,17 +13,7 @@ impl ActionCopyPaste
 
 impl IActionUI for ActionCopyPaste
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Copy, Cut, Paste, PasteImageInside,
-             CopyAsImage:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

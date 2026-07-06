@@ -58,6 +58,15 @@ impl QuickStyle
     }
 }
 
+// Register a freshly built default form into a quick style set (see the
+// defaultQuickStyle* builders below).
+func(T) addStyleForm(qs: *QuickStyle, form: *T)
+{
+    let it = cast(IForm) form
+    it.setup(null)
+    qs.forms.add(it)
+}
+
 struct QuickButton
 {
     using iconBtn:     IconButton
@@ -160,7 +169,7 @@ impl QuickWnd
         if .qsPixSel.forms.isEmpty() do
             .defaultQuickStylePixSel()
 
-        .updateQuickStyles()
+        .updateQuickStyles(forceRebuild: true)
 
         .main.updateModel(.qsArrow.forms[0])
         .main.updateModel(.qsLine.forms[0])
@@ -185,7 +194,7 @@ impl QuickWnd
             let qbtn = cast(*QuickButton) btn
             .currentStyle.remove(qbtn.formItf)
             qbtn.destroy()
-            .updateQuickStyles()
+            .updateQuickStyles(forceRebuild: true)
         }
     }
 
@@ -221,9 +230,7 @@ impl QuickWnd
             if endSize != 0 do
                 form.endCap = .ArrowAnchor
             form.borderColor = color
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsArrow.forms.add(it)
+            addStyleForm(&.qsArrow, form)
         }
 
         const BorderSize = 10.0
@@ -252,9 +259,7 @@ impl QuickWnd
             let form = Memory.new'FormLine()
             form.borderSize  = borderSize
             form.borderColor = color
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsLine.forms.add(it)
+            addStyleForm(&.qsLine, form)
         }
 
         const BorderSize = 10.0
@@ -277,9 +282,7 @@ impl QuickWnd
             form.borderColor = color
             form.backColor   = backColor
             form.kind        = kind
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsShape.forms.add(it)
+            addStyleForm(&.qsShape, form)
         }
 
         const BorderSize = 10.0
@@ -317,9 +320,7 @@ impl QuickWnd
             form.kind        = kind
             if borderSize == 0 do
                 form.paintShadow = false
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsImage.forms.add(it)
+            addStyleForm(&.qsImage, form)
         }
 
         .add(2, .Image, Argb.White)
@@ -331,15 +332,13 @@ impl QuickWnd
 
     mtd defaultQuickStyleStep()
     {
-        mtd add(kind: FormStepKind, color: Color, backColor: Color)
+        mtd add(kind: FormShapeKind, color: Color, backColor: Color)
         {
             let form = Memory.new'FormStep()
             form.borderColor = color
             form.backColor   = backColor
             form.kind        = kind
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsStep.forms.add(it)
+            addStyleForm(&.qsStep, form)
         }
 
         .add(.Ellipse, Argb.White, ColorRed)
@@ -362,9 +361,7 @@ impl QuickWnd
             form.borderColor = color
             form.backColor   = 0
             form.bezier      = bezier
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsPolygon.forms.add(it)
+            addStyleForm(&.qsPolygon, form)
         }
 
         const BorderSize = 5.0
@@ -393,9 +390,7 @@ impl QuickWnd
             form.backColor   = bkColor
             form.fontSize    = fontSize
             form.text        = "A"
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsText.forms.add(it)
+            addStyleForm(&.qsText, form)
         }
 
         .add(4, 24, Argb.White, ColorRed)
@@ -424,9 +419,7 @@ impl QuickWnd
             let form = Memory.new'FormDraw()
             form.borderSize  = borderSize
             form.borderColor = color
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsDraw.forms.add(it)
+            addStyleForm(&.qsDraw, form)
         }
 
         const BorderSize = 10.0
@@ -450,9 +443,7 @@ impl QuickWnd
             form.borderColor = color
             form.alpha       = 30
             form.subKind     = .Highlight
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsHighlight.forms.add(it)
+            addStyleForm(&.qsHighlight, form)
         }
 
         mtd addShape(kind: FormShapeKind, backColor: Color)
@@ -464,9 +455,7 @@ impl QuickWnd
             form.alpha       = 30
             form.kind        = kind
             form.subKind     = .Highlight
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsHighlight.forms.add(it)
+            addStyleForm(&.qsHighlight, form)
         }
 
         mtd addPoly(backColor: Color)
@@ -477,9 +466,7 @@ impl QuickWnd
             form.backColor   = backColor
             form.alpha       = 30
             form.subKind     = .Highlight
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsHighlight.forms.add(it)
+            addStyleForm(&.qsHighlight, form)
         }
 
         const BorderSize = 20.0
@@ -507,9 +494,7 @@ impl QuickWnd
             let form = Memory.new'FormDraw()
             form.subKind     = .PixSel
             form.paintShadow = false
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsPixSel.forms.add(it)
+            addStyleForm(&.qsPixSel, form)
         }
 
         mtd addShape(kind: FormShapeKind)
@@ -518,9 +503,7 @@ impl QuickWnd
             form.kind        = kind
             form.subKind     = .PixSel
             form.paintShadow = false
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsPixSel.forms.add(it)
+            addStyleForm(&.qsPixSel, form)
         }
 
         mtd addPoly()
@@ -528,9 +511,7 @@ impl QuickWnd
             let form = Memory.new'FormPolygon()
             form.subKind     = .PixSel
             form.paintShadow = false
-            let it = cast(IForm) form
-            it.setup(null)
-            .qsPixSel.forms.add(it)
+            addStyleForm(&.qsPixSel, form)
         }
 
         with me
@@ -610,6 +591,8 @@ impl QuickWnd
 
         .currentStyle.clear()
 
+        // The style set was recreated in place: the existing buttons hold pointers to
+        // the freed forms, so a full rebuild is mandatory (see updateQuickStyles).
         #[Swag.Complete]
         switch .main.editMode
         {
@@ -639,10 +622,10 @@ impl QuickWnd
             break
         }
 
-        .updateQuickStyles()
+        .updateQuickStyles(forceRebuild: true)
     }
 
-    mtd updateQuickStyles()
+    mtd updateQuickStyles(forceRebuild = false)
     {
         func paintForm(painter: *Painter, btnp: *QuickButton)
         {
@@ -696,6 +679,7 @@ impl QuickWnd
         }
 
         let edMode = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
+        let prevStyle = .currentStyle
         #[Swag.Complete]
         switch edMode
         {
@@ -725,10 +709,42 @@ impl QuickWnd
             return
         }
 
-        foreach c in .layout.childs do
-            c.destroy()
         if !.currentStyle do
             return
+
+        let formItf     = .main.editModeToModel(.main.getEditMode())
+        let baseForm    = cast(*BaseForm) @dataof(formItf)
+        var canAddModel = false
+        if baseForm
+        {
+            canAddModel = true
+            if .main.editMode == .Highlight
+            {
+                if baseForm.subKind != .Highlight do
+                    canAddModel = false
+            }
+            elif .main.editMode == .PixSel
+            {
+                canAddModel = false
+            }
+            elif baseForm.subKind == .Highlight or baseForm.subKind == .PixSel
+            {
+                canAddModel = false
+            }
+        }
+
+        // Light path: same style target and same button population. Destroying and
+        // recreating every button is only needed when the style set itself changed;
+        // check states and the model button repaint from live data.
+        let wantBtns = .currentStyle.forms.count + (canAddModel ? 1 : 0)
+        if !forceRebuild and .currentStyle == prevStyle and .layout.childs.count == wantBtns
+        {
+            .updateSelection()
+            return
+        }
+
+        foreach c in .layout.childs do
+            c.destroy()
 
         foreach it in .currentStyle.forms
         {
@@ -775,27 +791,6 @@ impl QuickWnd
 
                 quick.updateSelection()
                 quick.main.updateState()
-            }
-        }
-
-        let formItf     = .main.editModeToModel(.main.getEditMode())
-        let baseForm    = cast(*BaseForm) @dataof(formItf)
-        var canAddModel = false
-        if baseForm
-        {
-            canAddModel = true
-            if .main.editMode == .Highlight
-            {
-                if baseForm.subKind != .Highlight do
-                    canAddModel = false
-            }
-            elif .main.editMode == .PixSel
-            {
-                canAddModel = false
-            }
-            elif baseForm.subKind == .Highlight or baseForm.subKind == .PixSel
-            {
-                canAddModel = false
             }
         }
 

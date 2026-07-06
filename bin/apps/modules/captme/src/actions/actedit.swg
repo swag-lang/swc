@@ -11,16 +11,7 @@ impl ActionEdit
 
 impl IActionUI for ActionEdit
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case EditText, ClearImageInside, ResetRotation:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

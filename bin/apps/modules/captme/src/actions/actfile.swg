@@ -20,18 +20,7 @@ impl ActionFile
 
 impl IActionUI for ActionFile
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case SaveAsImage, SaveAsLinkedImage, OpenImage, FileDetails,
-             UpdateLinkedImage, UnlinkImage, DupCapture, DeleteCapture,
-             CaptureFileLocation, LinkedFileLocation, NewImage, NewFromClipboard:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
@@ -145,7 +134,7 @@ impl IActionUI for ActionFile
                 capture.linkedImage.clear()
                 capture.changed        = true
                 capture.linkedUpToDate = false
-                catch capture.save()
+                main.saveCapture(capture)
                 main.recentWnd.updateRecent()
             }
 
@@ -154,7 +143,7 @@ impl IActionUI for ActionFile
             {
                 main.saveAsImage(linked: true)
                 capture.linkedUpToDate = true
-                catch capture.save()
+                main.saveCapture(capture)
                 main.recentWnd.updateRecent()
                 break
             }
@@ -195,7 +184,7 @@ impl IActionUI for ActionFile
 
         case DupCapture:
             Cursor.wait()
-            catch capture.save()
+            main.saveCapture(capture)
 
             let file = Library.newFileName()
             trycatch File.duplicate(file, capture.file)
@@ -313,7 +302,7 @@ impl MainWnd
 
         capture.changed        = true
         capture.linkedUpToDate = true
-        catch capture.save()
+        .saveCapture(capture)
         if .recentWnd do
             .recentWnd.updateRecent()
 

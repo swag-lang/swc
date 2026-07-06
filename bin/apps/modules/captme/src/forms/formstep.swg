@@ -1,10 +1,3 @@
-enum FormStepKind
-{
-    Ellipse
-    Rectangle
-    RoundRectangle
-}
-
 enum FormStepType
 {
     Number
@@ -15,7 +8,7 @@ enum FormStepType
 struct FormStep
 {
     using base:     BaseForm
-    kind:           FormStepKind = Ellipse
+    kind:           FormShapeKind = Ellipse
     index:          u32 = 1
     typeIndex       = FormStepType.Number
 
@@ -35,26 +28,20 @@ impl IForm for FormStep
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormStep) ptr
-        return .borderColor == other.borderColor and
-               .backColor == other.backColor and
-               .alpha == other.alpha and
+        return .isSameBase(ptr) and
                .kind == other.kind and
-               .paintShadow == other.paintShadow and
                .typeIndex == other.typeIndex
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
+        BaseForm.copyBase(dst, src)
         let dstf = cast(*FormStep) dst
         let srcf = cast(*FormStep) src
-        dstf.borderColor = srcf.borderColor
-        dstf.backColor   = srcf.backColor
-        dstf.alpha       = srcf.alpha
-        dstf.kind        = srcf.kind
-        dstf.paintShadow = srcf.paintShadow
-        dstf.typeIndex   = srcf.typeIndex
-        dstf.ws          = srcf.ws
-        dstf.hs          = srcf.hs
+        dstf.kind      = srcf.kind
+        dstf.typeIndex = srcf.typeIndex
+        dstf.ws        = srcf.ws
+        dstf.hs        = srcf.hs
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -81,43 +68,20 @@ impl IForm for FormStep
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        .x += newPosX
-        .y += newPosY
-        .w += newSizeX
-        .h += newSizeY
+        .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
-    mtd impl scaleBaseForm(val: f32)
+    mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * val)
-        .y = cast(s32) (.y * val)
-        .w = cast(s32) (.w * val)
-        .h = cast(s32) (.h * val)
+        .x = cast(s32) (.x * scale)
+        .y = cast(s32) (.y * scale)
+        .w = cast(s32) (.w * scale)
+        .h = cast(s32) (.h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        if newSizeX < 0
-        {
-            .x = newPosX + newSizeX
-            .w = -newSizeX
-        }
-        else
-        {
-            .x = newPosX
-            .w = newSizeX
-        }
-
-        if newSizeY < 0
-        {
-            .y = newPosY + newSizeY
-            .h = -newSizeY
-        }
-        else
-        {
-            .y = newPosY
-            .h = newSizeY
-        }
+        .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
@@ -130,7 +94,7 @@ impl IForm for FormStep
 
     mtd impl boundRect()->Math.Rectangle
     {
-        return Math.Rectangle{.x, .y, .w, .h}
+        return .rectFormBound()
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
@@ -198,7 +162,7 @@ impl IForm for FormStep
 
         var bk = .backColor
         if cxt.quickMode and .alpha != 100 do
-            bk.a = cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
+            bk.a = .highlightAlpha()
 
         let pp = .boundRect() * z
 
@@ -247,19 +211,6 @@ impl IForm for FormStep
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-
-        with me.gizmo
-        {
-            .roundShape        = true
-            .anchorSize        = 10
-            .trackChange       = true
-            .paintSimpleBorder = false
-            .paintBigBorder    = true
-        }
-
-        .gizmo.sigChanged = func|form = me|(g, first, hitMove)
-        {
-            g.apply(form, first, hitMove)
-        }
+        .gizmo.setupForForm(cast(IForm) me)
     }
 }

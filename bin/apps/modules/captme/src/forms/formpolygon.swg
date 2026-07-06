@@ -29,26 +29,15 @@ impl IForm for FormPolygon
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormPolygon) ptr
-        return .borderColor == other.borderColor and
-               .borderSize == other.borderSize and
-               .backColor == other.backColor and
-               .alpha == other.alpha and
-               .subKind == other.subKind and
-               .bezier == other.bezier and
-               .paintShadow == other.paintShadow
+        return .isSameBase(ptr) and .bezier == other.bezier
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
+        BaseForm.copyBase(dst, src)
         let dstf = cast(*FormPolygon) dst
         let srcf = cast(*FormPolygon) src
-        dstf.borderColor = srcf.borderColor
-        dstf.borderSize  = srcf.borderSize
-        dstf.backColor   = srcf.backColor
-        dstf.alpha       = srcf.alpha
-        dstf.subKind     = srcf.subKind
-        dstf.paintShadow = srcf.paintShadow
-        dstf.bezier      = srcf.bezier
+        dstf.bezier = srcf.bezier
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -92,11 +81,11 @@ impl IForm for FormPolygon
         }
     }
 
-    mtd impl scaleBaseForm(val: f32)
+    mtd impl scaleBaseForm(scale: f32)
     {
         foreach &pt in .points
         {
-            pt.x, pt.y *= val
+            pt.x, pt.y *= scale
         }
     }
 
@@ -190,29 +179,17 @@ impl IForm for FormPolygon
     {
         var dash  = .dashStyle
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
-        bSize = BaseForm.adaptSize(.borderSize, MinBorderSize, MaxBorderSize, cxt)
+        bSize = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt)
 
         let backBrush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
         var bk        = .backColor
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
-            bk.a = cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
+            bk.a = .highlightAlpha()
 
         if .subKind == .PixSel
         {
-            if cxt.hitTest
-            {
-                bSize = 10
-                dash  = .None
-            }
-            else
-            {
-                bSize = 2
-                dash  = .Dash
-            }
-
-            bk.a         = 5
-            .borderColor = g_App.theme.colors.btnIcon_Icon
-            painter.removeParams(.Antialiased)
+            (bSize, dash) = .applyPixSelStyle(painter, cxt)
+            bk.a = 5
         }
 
         var pen = Pen.createDash(dash, .borderColor, bSize)

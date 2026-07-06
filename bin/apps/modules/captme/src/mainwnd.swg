@@ -225,6 +225,13 @@ impl MainWnd
             catch g_App.saveState()
     }
 
+    mtd saveCapture(capture: *Capture)
+    {
+        catch capture.save()
+        if @err != null do
+            MessageDlg.error(.surface, Format.toString("Failed to save capture file: %", capture.file))
+    }
+
     mtd loadExternalImage(arg: string)
     {
         let imgToLoad = catch Image.load(arg)
@@ -360,12 +367,12 @@ impl MainWnd
 
     mtd registerActions()
     {
-        .registerAction'ActionAlign()
+        .registerAction'ActionMoveSel()
         .registerAction'ActionUndo()
         .registerAction'ActionCaptureDelay()
         .registerAction'ActionPixSel()
         .registerAction'ActionCapture()
-        .registerAction'ActionMoveSel()
+        .registerAction'ActionAlign()
         .registerAction'ActionToolMode()
         .registerAction'ActionCopyPaste()
         .registerAction'ActionFile()
@@ -408,18 +415,18 @@ impl MainWnd
         .registerKeyShortcut(.Control, .O, ActionFile.OpenImage)
         .registerKeyShortcut(.Zero, .F2, ActionEdit.EditText)
         .registerKeyShortcut(.CtrlAlt, .O, ActionOptions.Options)
-        .registerKeyShortcut(.Zero, .Home, ActionMoveSel.SendToFront)
-        .registerKeyShortcut(.Zero, .End, ActionMoveSel.SendToBack)
-        .registerKeyShortcut(.Zero, .PageUp, ActionMoveSel.MoveForward)
-        .registerKeyShortcut(.Zero, .PageDown, ActionMoveSel.MoveBackward)
-        .registerKeyShortcut(.Shift, .Left, ActionAlign.Left1)
-        .registerKeyShortcut(.Shift, .Up, ActionAlign.Top1)
-        .registerKeyShortcut(.Shift, .Right, ActionAlign.Right1)
-        .registerKeyShortcut(.Shift, .Down, ActionAlign.Bottom1)
-        .registerKeyShortcut(.Zero, .Left, ActionAlign.Left)
-        .registerKeyShortcut(.Zero, .Up, ActionAlign.Top)
-        .registerKeyShortcut(.Zero, .Right, ActionAlign.Right)
-        .registerKeyShortcut(.Zero, .Down, ActionAlign.Bottom)
+        .registerKeyShortcut(.Zero, .Home, ActionAlign.SendToFront)
+        .registerKeyShortcut(.Zero, .End, ActionAlign.SendToBack)
+        .registerKeyShortcut(.Zero, .PageUp, ActionAlign.MoveForward)
+        .registerKeyShortcut(.Zero, .PageDown, ActionAlign.MoveBackward)
+        .registerKeyShortcut(.Shift, .Left, ActionMoveSel.Left1)
+        .registerKeyShortcut(.Shift, .Up, ActionMoveSel.Top1)
+        .registerKeyShortcut(.Shift, .Right, ActionMoveSel.Right1)
+        .registerKeyShortcut(.Shift, .Down, ActionMoveSel.Bottom1)
+        .registerKeyShortcut(.Zero, .Left, ActionMoveSel.Left)
+        .registerKeyShortcut(.Zero, .Up, ActionMoveSel.Top)
+        .registerKeyShortcut(.Zero, .Right, ActionMoveSel.Right)
+        .registerKeyShortcut(.Zero, .Down, ActionMoveSel.Bottom)
         .registerKeyShortcut(.Control, .Add, ActionZoom.ZoomIn)
         .registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
         .registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)

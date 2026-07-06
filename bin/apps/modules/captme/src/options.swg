@@ -1,26 +1,23 @@
 #[Swag.Using(Properties)]
 struct CaptureOptions
 {
-    //#[Name("")]
-    {
-        #[Description("Show a large cross at the mouse position during capture")]
-        drawCross = true
+    #[Description("Show a large cross at the mouse position during capture")]
+    drawCross = true
 
-        #[Description("Include the mouse cursor in the captured image")]
-        captureCursor = false
+    #[Description("Include the mouse cursor in the captured image")]
+    captureCursor = false
 
-        #[Description("Temporarily hide the editor before starting the capture")]
-        hideEditorBefore = true
+    #[Description("Temporarily hide the editor before starting the capture")]
+    hideEditorBefore = true
 
-        #[Description("Send the captured image to the editor")]
-        sendToEditor = true
+    #[Description("Send the captured image to the editor")]
+    sendToEditor = true
 
-        #[Description("Copy the captured image to the clipboard")]
-        sendToClipboard = true
+    #[Description("Copy the captured image to the clipboard")]
+    sendToClipboard = true
 
-        #[Description("Edit captured area in place")]
-        inPlaceEdit = true
-    }
+    #[Description("Edit captured area in place")]
+    inPlaceEdit = true
 
     #[Description("Set the delay time, in seconds, before capturing"), Unit("s")]
     delay = 0

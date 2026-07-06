@@ -22,19 +22,7 @@ impl ActionCapture
 
 impl IActionUI for ActionCapture
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case DoIt, Area, LastArea, FullScreen,
-             Screen0, Screen1, Screen2, Screen3,
-             ActiveWnd, HideEditor, CaptureCursor, ToInPlace, ToEditor,
-             ToClipboard:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
@@ -182,7 +170,7 @@ impl MainWnd
         .recentWnd.addRecent(capture.file, capture.preview, linked: linked)
         .recentWnd.recentView.selected = 0
 
-        catch capture.save()
+        .saveCapture(capture)
         g_Library.addFile(capture.file)
 
         // Force edition mode

@@ -61,7 +61,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface } throw
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
-    result.sf = catch g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
+    result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
     let captureWnd = Wnd.create'CaptureRectWnd(result.sf.wnd)
     captureWnd.main   = main
     captureWnd.cursor = Cursor.from(CursorShape.Cross)

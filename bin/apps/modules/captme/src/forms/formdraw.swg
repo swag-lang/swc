@@ -21,23 +21,12 @@ impl IForm for FormDraw
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(*FormDraw) ptr
-        return .borderColor == other.borderColor and
-               .borderSize == other.borderSize and
-               .alpha == other.alpha and
-               .subKind == other.subKind and
-               .paintShadow == other.paintShadow
+        return .isSameBase(ptr)
     }
 
     mtd impl copy(dst, src: *BaseForm)
     {
-        let dstf = cast(*FormDraw) dst
-        let srcf = cast(*FormDraw) src
-        dstf.borderColor = srcf.borderColor
-        dstf.borderSize  = srcf.borderSize
-        dstf.alpha       = srcf.alpha
-        dstf.subKind     = srcf.subKind
-        dstf.paintShadow = srcf.paintShadow
+        BaseForm.copyBase(dst, src)
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -79,12 +68,12 @@ impl IForm for FormDraw
         }
     }
 
-    mtd impl scaleBaseForm(val: f32)
+    mtd impl scaleBaseForm(scale: f32)
     {
         foreach &pt in .points
         {
-            pt.x *= val
-            pt.y *= val
+            pt.x *= scale
+            pt.y *= scale
         }
     }
 
@@ -196,20 +185,7 @@ impl IForm for FormDraw
         if .subKind == .PixSel
         {
             pl.close()
-
-            if cxt.hitTest
-            {
-                bSize = 10
-                dash  = .None
-            }
-            else
-            {
-                bSize = 2
-                dash  = .Dash
-            }
-
-            .borderColor = g_App.theme.colors.btnIcon_Icon
-            painter.removeParams(.Antialiased)
+            (bSize, dash) = .applyPixSelStyle(painter, cxt)
             .backColor.a = 5
             painter.fillPath(&pl, .backColor)
         }
@@ -222,7 +198,7 @@ impl IForm for FormDraw
             var pen1 = pen
             pen1.brush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
             painter.drawPath(&pl, pen1)
-            pen.brush.color.a = cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
+            pen.brush.color.a = .highlightAlpha()
         }
 
         painter.drawPath(&pl, pen)

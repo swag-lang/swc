@@ -10,16 +10,7 @@ impl ActionUndo
 
 impl IActionUI for ActionUndo
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case DoUndo, DoRedo:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

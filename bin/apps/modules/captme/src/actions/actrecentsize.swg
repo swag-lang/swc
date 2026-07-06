@@ -14,18 +14,7 @@ impl ActionRecentSize
 
 impl IActionUI for ActionRecentSize
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case RecentSmall, RecentMedium, RecentBig:
-            return true
-        case LibSmall, LibMedium, LibBig:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

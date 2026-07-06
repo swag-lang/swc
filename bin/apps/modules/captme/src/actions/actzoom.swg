@@ -12,16 +12,7 @@ impl ActionZoom
 
 impl IActionUI for ActionZoom
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Zoom1, ZoomFit, ZoomIn, ZoomOut:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

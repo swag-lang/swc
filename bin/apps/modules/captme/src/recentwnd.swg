@@ -58,7 +58,7 @@ impl RecentView
         {
             let previousCapture = .main.getCapture()
             if previousCapture do
-                catch (assume previousCapture).save()
+                .main.saveCapture(assume previousCapture)
             view.setCapture(capture)
             if item.zoom == 0 do
                 view.zoomToFit(false)
@@ -258,7 +258,7 @@ impl IWnd for RecentWnd
 
             .main.libWnd.view.updateRecent(capture)
 
-            catch capture.save()
+            .main.saveCapture(capture)
         }
 
         .getApp().deleteTimer(evt.timer)

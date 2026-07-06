@@ -12,16 +12,7 @@ impl ActionLibFilter
 
 impl IActionUI for ActionLibFilter
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case UpToDateLinkedImage, LinkedImage, UnSavedLinkedImage, UnLinkedImage:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

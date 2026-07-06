@@ -12,16 +12,7 @@ impl ActionGlobal
 
 impl IActionUI for ActionGlobal
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case ShowEditor, ShowLibrary, Exit, Minimize:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

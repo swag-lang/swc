@@ -9,6 +9,10 @@ const MaxFontSize       = 150.0
 const MinBoldSize       = 0.0
 const MaxBoldSize       = 20.0
 
+// Screen-space margin around a form bound covering everything painted outside it:
+// stroke width, line caps, arrow heads and shadows.
+const FormPaintOverdraw = 200.0
+
 const ColorRed:    Color = 0xFFE80808
 const ColorGreen:  Color = 0xFF60C447
 const ColorBlue:   Color = 0xFF199CF4

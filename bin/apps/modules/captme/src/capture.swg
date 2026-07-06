@@ -237,9 +237,6 @@ impl Capture
         foreach itf in capture.forms do
             itf.setup(capture)
 
-        //capture.changed = true
-        //capture.save()
-
         return capture
     }
 
@@ -292,7 +289,7 @@ impl Capture
             return
 
         let undo = .newUndo(.SetImageInside)
-        undo.oldImg = img
+        undo.newImg = img
         .pushUndo(undo)
         .selectionHasChanged()
     }
@@ -381,7 +378,7 @@ impl Capture
         var boundRect = f.boundRect()
         boundRect.width  = Math.max(boundRect.width, 1)
         boundRect.height = Math.max(boundRect.height, 1)
-        boundRect.inflate(200)
+        boundRect.inflate(FormPaintOverdraw)
 
         var clipOffset: Math.Vector2
         var savePaintPos: Math.Rectangle
@@ -606,7 +603,7 @@ impl Capture
             var cull = f.boundRect()
             cull.width  = Math.max(cull.width, 1)
             cull.height = Math.max(cull.height, 1)
-            cull.inflate(200)
+            cull.inflate(FormPaintOverdraw)
             cull = cull * zoom
             cull.offset(rect.x, rect.y)
             if !cull.intersectWith(cullClip) do
@@ -818,12 +815,13 @@ impl Capture
         var bestCoordX = 0.0
         var bestCoordY = 0.0
 
+        let pMoved = .getSnapPoint(bound, right, bottom, nx, ny, idxPt, editForm)
+
         if x
         {
             foreach ax in arrX
             {
-                let p   = .getSnapPoint(bound, right, bottom, nx, ny, idxPt, editForm)
-                let nbX = Math.abs(p.x - ax)
+                let nbX = Math.abs(pMoved.x - ax)
                 if nbX < bestX
                 {
                     bestX      = nbX
@@ -836,8 +834,7 @@ impl Capture
         {
             foreach ay in arrY
             {
-                let p   = .getSnapPoint(bound, right, bottom, nx, ny, idxPt, editForm)
-                let nbY = Math.abs(p.y - ay)
+                let nbY = Math.abs(pMoved.y - ay)
                 if nbY < bestY
                 {
                     bestY      = nbY
@@ -846,18 +843,18 @@ impl Capture
             }
         }
 
+        let pOrg = .getSnapPoint(bound, right, bottom, 0, 0, idxPt, editForm)
+
         if x and bestX < SnapToler
         {
             .snapX = bestCoordX
-            let p = .getSnapPoint(bound, right, bottom, 0, 0, idxPt, editForm)
-            nx = cast(s32) (bestCoordX - p.x)
+            nx     = cast(s32) (bestCoordX - pOrg.x)
         }
 
         if y and bestY < SnapToler
         {
             .snapY = bestCoordY
-            let p = .getSnapPoint(bound, right, bottom, 0, 0, idxPt, editForm)
-            ny = cast(s32) (bestCoordY - p.y)
+            ny     = cast(s32) (bestCoordY - pOrg.y)
         }
 
         if x do
@@ -894,22 +891,22 @@ impl Capture
 
         with let popup0 = MenuCtrl.createPopup(view)
         {
-            .addItem(ActionMoveSel.AlignLeft)
-            .addItem(ActionMoveSel.AlignCenter)
-            .addItem(ActionMoveSel.AlignRight)
+            .addItem(ActionAlign.AlignLeft)
+            .addItem(ActionAlign.AlignCenter)
+            .addItem(ActionAlign.AlignRight)
             .addSeparator()
-            .addItem(ActionMoveSel.AlignTop)
-            .addItem(ActionMoveSel.AlignMiddle)
-            .addItem(ActionMoveSel.AlignBottom)
+            .addItem(ActionAlign.AlignTop)
+            .addItem(ActionAlign.AlignMiddle)
+            .addItem(ActionAlign.AlignBottom)
             menu.addPopup("Align", popup0)
         }
 
         with let popup1 = MenuCtrl.createPopup(view)
         {
-            .addItem(ActionMoveSel.SendToFront)
-            .addItem(ActionMoveSel.SendToBack)
-            .addItem(ActionMoveSel.MoveForward)
-            .addItem(ActionMoveSel.MoveBackward)
+            .addItem(ActionAlign.SendToFront)
+            .addItem(ActionAlign.SendToBack)
+            .addItem(ActionAlign.MoveForward)
+            .addItem(ActionAlign.MoveBackward)
             menu.addPopup("Arrange", popup1)
         }
 
@@ -1119,22 +1116,44 @@ impl Capture
         case Selecting:
             var r: Math.Rectangle
 
-            if !ctrlPressed do
-                .selection.clear()
             .movingEnd = localPos
-
             r.set(.movingStart, .movingEnd)
+
+            // Rebuild the selection from scratch, then notify only if the set actually
+            // changed: selectionHasChanged() triggers a full rebuild of the Properties
+            // and QuickStyles panels, far too heavy to run on every mouse move.
+            var newSel: Array'u64
+            if ctrlPressed do
+                newSel = .selection
 
             foreach f, idx in .forms
             {
                 let pp = f.boundRect() * view.zoom
-                if pp.intersectWith(r) and !.selection.contains(idx) do
-                    .selection.add(idx)
+                if pp.intersectWith(r) and !newSel.contains(idx) do
+                    newSel.add(idx)
+            }
+
+            var selChanged = newSel.count != .selection.count
+            if !selChanged
+            {
+                for i in newSel.count
+                {
+                    if newSel[i] != .selection[i]
+                    {
+                        selChanged = true
+                        break
+                    }
+                }
             }
 
             .firstMouseMove = false
             view.invalidate()
-            .selectionHasChanged()
+            if selChanged
+            {
+                .selection = newSel
+                .selectionHasChanged()
+            }
+
             return true
 
         case Moving:
@@ -1229,6 +1248,8 @@ impl Capture
 
     mtd hitTest(localPos: Math.Point)->u64
     {
+        // Holding 'O' makes the mouse ignore every form, so a click can start a
+        // lasso or create a new form on top of existing ones.
         if g_App.keyb.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
         let res = .hitTests(localPos, true)

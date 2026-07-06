@@ -190,7 +190,8 @@ impl Undo
                 .oldForm.add(save)
             }
 
-        case AlignLeft, AlignCenter, AlignRight:
+        case AlignLeft, AlignCenter, AlignRight, AlignTop, AlignMiddle, AlignBottom:
+            let horz = .kind == .AlignLeft or .kind == .AlignCenter or .kind == .AlignRight
             .selection = .capture.selection
             .minP      = Swag.S32.Max
             .maxP      = Swag.S32.Min
@@ -199,23 +200,22 @@ impl Undo
             {
                 let f = .capture.forms[s]
                 let r = f.boundRect()
-                .oldS32.add(cast(s32) r.x)
-                .minP = Math.min(.minP, cast(s32) r.x)
-                .maxP = Math.max(.maxP, cast(s32) (r.x + r.width))
-            }
 
-        case AlignTop, AlignMiddle, AlignBottom:
-            .selection = .capture.selection
-            .minP      = Swag.S32.Max
-            .maxP      = Swag.S32.Min
-            .oldS32.reserve(.selection.count)
-            foreach s in .selection
-            {
-                let f = .capture.forms[s]
-                let r = f.boundRect()
-                .oldS32.add(cast(s32) r.y)
-                .minP = Math.min(.minP, cast(s32) r.y)
-                .maxP = Math.max(.maxP, cast(s32) (r.y + r.height))
+                var pos, size: s32
+                if horz
+                {
+                    pos  = cast(s32) r.x
+                    size = cast(s32) r.width
+                }
+                else
+                {
+                    pos  = cast(s32) r.y
+                    size = cast(s32) r.height
+                }
+
+                .oldS32.add(pos)
+                .minP = Math.min(.minP, pos)
+                .maxP = Math.max(.maxP, pos + size)
             }
 
         case OffsetSelection:
@@ -274,6 +274,19 @@ impl Undo
             .capture.selectionHasChanged()
         }
 
+        // Move one form to another z-order slot, keeping the selection in sync.
+        // Shared by the four MoveToFront/MoveToBack/MoveForward/MoveBackward cases.
+        mtd reorderForm(srcIdx, dstIdx: u64)
+        {
+            if srcIdx == dstIdx do
+                return
+            let form = .capture.forms[srcIdx]
+            .capture.forms.removeAtOrdered(srcIdx)
+            .capture.forms.insertAt(dstIdx, form)
+            .capture.selection.remove(srcIdx)
+            .capture.selection.add(dstIdx)
+        }
+
         #[Swag.Complete]
         switch .kind
         {
@@ -324,7 +337,7 @@ impl Undo
                 let b = cast(*FormImage) @dataof(f)
                 if b.kind != .Image do
                     continue
-                b.image = .oldImg
+                b.image = .newImg
                 b.dirty = true
             }
 
@@ -397,52 +410,28 @@ impl Undo
 
             .capture.updateModelFromSelection()
 
-        case AlignLeft:
+        case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
             foreach s in .selection
             {
                 let f = .capture.forms[s]
                 let r = f.boundRect()
-                f.moveBaseForm(.minP - cast(s32) r.x, 0, 0, 0)
-            }
 
-        case AlignRight:
-            foreach s in .selection
-            {
-                let f = .capture.forms[s]
-                let r = f.boundRect()
-                f.moveBaseForm((.maxP - cast(s32) r.width) - cast(s32) r.x, 0, 0, 0)
-            }
+                var delta: s32
+                if .kind == .AlignLeft or .kind == .AlignTop do
+                    delta = .minP
+                elif .kind == .AlignRight do
+                    delta = .maxP - cast(s32) r.width
+                elif .kind == .AlignBottom do
+                    delta = .maxP - cast(s32) r.height
+                elif .kind == .AlignCenter do
+                    delta = (.maxP + .minP) / 2 - (cast(s32) r.width / 2)
+                else do
+                    delta = (.maxP + .minP) / 2 - (cast(s32) r.height / 2)
 
-        case AlignCenter:
-            foreach s in .selection
-            {
-                let f = .capture.forms[s]
-                let r = f.boundRect()
-                f.moveBaseForm(((.maxP + .minP) / 2 - (cast(s32) r.width / 2)) - cast(s32) r.x, 0, 0, 0)
-            }
-
-        case AlignTop:
-            foreach s in .selection
-            {
-                let f = .capture.forms[s]
-                let r = f.boundRect()
-                f.moveBaseForm(0, .minP - cast(s32) r.y, 0, 0)
-            }
-
-        case AlignBottom:
-            foreach s in .selection
-            {
-                let f = .capture.forms[s]
-                let r = f.boundRect()
-                f.moveBaseForm(0, (.maxP - cast(s32) r.height) - cast(s32) r.y, 0, 0)
-            }
-
-        case AlignMiddle:
-            foreach s in .selection
-            {
-                let f = .capture.forms[s]
-                let r = f.boundRect()
-                f.moveBaseForm(0, ((.maxP + .minP) / 2 - (cast(s32) r.height / 2)) - cast(s32) r.y, 0, 0)
+                if .kind == .AlignLeft or .kind == .AlignRight or .kind == .AlignCenter do
+                    f.moveBaseForm(delta - cast(s32) r.x, 0, 0, 0)
+                else do
+                    f.moveBaseForm(0, delta - cast(s32) r.y, 0, 0)
             }
 
         case MovePoint:
@@ -470,37 +459,19 @@ impl Undo
 
         case MoveToFront:
             .capture.hotForm = Swag.U64.Max
-            var dstIdx = cast(s32) (.capture.forms.count - 1)
+            var dstIdx = .capture.forms.count - 1
             for #reverse i in .selection
             {
-                let srcIdx = .selection[i]
-                if srcIdx != dstIdx
-                {
-                    let form = .capture.forms[srcIdx]
-                    .capture.forms.removeAtOrdered(srcIdx)
-                    .capture.forms.insertAt(cast() dstIdx, form)
-                    .capture.selection.remove(srcIdx)
-                    .capture.selection.add(cast() dstIdx)
-                }
-
+                .reorderForm(.selection[i], dstIdx)
                 dstIdx -= 1
             }
 
         case MoveToBack:
             .capture.hotForm = Swag.U64.Max
-            var dstIdx = 0
+            var dstIdx = 0'u64
             for i in .selection
             {
-                let srcIdx = .selection[i]
-                if srcIdx != dstIdx
-                {
-                    let form = .capture.forms[srcIdx]
-                    .capture.forms.removeAtOrdered(srcIdx)
-                    .capture.forms.insertAt(cast() dstIdx, form)
-                    .capture.selection.remove(srcIdx)
-                    .capture.selection.add(cast() dstIdx)
-                }
-
+                .reorderForm(.selection[i], dstIdx)
                 dstIdx += 1
             }
 
@@ -509,14 +480,8 @@ impl Undo
             for #reverse i in .selection
             {
                 let srcIdx = .selection[i]
-                if srcIdx != .capture.forms.count - 1
-                {
-                    let form = .capture.forms[srcIdx]
-                    .capture.forms.removeAtOrdered(srcIdx)
-                    .capture.forms.insertAt(srcIdx + 1, form)
-                    .capture.selection.remove(srcIdx)
-                    .capture.selection.add(srcIdx + 1)
-                }
+                if srcIdx != .capture.forms.count - 1 do
+                    .reorderForm(srcIdx, srcIdx + 1)
             }
 
         case MoveBackward:
@@ -524,14 +489,8 @@ impl Undo
             for i in .selection
             {
                 let srcIdx = .selection[i]
-                if srcIdx != 0
-                {
-                    let form = .capture.forms[srcIdx]
-                    .capture.forms.removeAtOrdered(srcIdx)
-                    .capture.forms.insertAt(srcIdx - 1, form)
-                    .capture.selection.remove(srcIdx)
-                    .capture.selection.add(srcIdx - 1)
-                }
+                if srcIdx != 0 do
+                    .reorderForm(srcIdx, srcIdx - 1)
             }
 
         case DeleteSelection:
@@ -581,7 +540,8 @@ impl Undo
             .capture.dirtyBackImg = true
 
         case SetImageInside:
-            foreach s, i in .selection
+            var idx = 0
+            foreach s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormImage do
@@ -589,64 +549,74 @@ impl Undo
                 let b = cast(*FormImage) @dataof(f)
                 if b.kind != .Image do
                     continue
-                b.image = .oldImage[i]
+                b.image = .oldImage[idx]
                 b.dirty = true
+                idx += 1
             }
 
         case SetText:
-            foreach s, i in .selection
+            var idx = 0
+            foreach s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
                     continue
                 let b = cast(*FormText) @dataof(f)
-                b.text    = .oldText[i]
+                b.text    = .oldText[idx]
                 b.isDirty = true
+                idx += 1
             }
 
         case SetFont:
-            foreach s, i in .selection
+            var idx = 0
+            foreach s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
                     continue
                 let b = cast(*FormText) @dataof(f)
-                b.fontName    = .oldText[i]
-                b.fontStyle   = cast() .oldU32[i]
+                b.fontName    = .oldText[idx]
+                b.fontStyle   = cast() .oldU32[idx]
                 b.isDirtyFont = true
+                idx += 1
             }
 
         case SetFontStyle:
-            foreach s, i in .selection
+            var idx = 0
+            foreach s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
                     continue
                 let b = cast(*FormText) @dataof(f)
-                b.fontStyle   = cast() .oldU32[i]
+                b.fontStyle   = cast() .oldU32[idx]
                 b.isDirtyFont = true
+                idx += 1
             }
 
         case SetFormFromModel:
-            foreach s, i in .selection
+            var idx = 0
+            foreach s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
                     continue
                 let bf = cast(*BaseForm) @dataof(f)
-                if bf.subKind != .mdlValue.subKind do
-                    continue
-                f.copy(cast(*BaseForm) @dataof(f), .oldForm[i])
+                if bf.subKind == .mdlValue.subKind do
+                    f.copy(cast(*BaseForm) @dataof(f), .oldForm[idx])
+                idx += 1
             }
 
         case SetTypedValue:
-            foreach s, i in .selection
+            var idx = 0
+            foreach s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
                     continue
-                var val = .oldU32[i]
+                var val = .oldU32[idx]
                 Reflection.setFieldValue(@dataof(f), .valRef, &val, true)
+                idx += 1
             }
             .capture.updateModelFromSelection()
 
@@ -663,18 +633,19 @@ impl Undo
             }
             .capture.updateModelFromSelection()
 
-        case AlignLeft, AlignRight, AlignCenter:
+        case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
+            // Restore through moveBaseForm: writing BaseForm.x/y directly would be a
+            // no-op for the point-based forms (line, polygon, draw) whose geometry
+            // lives in their points.
+            let horz = .kind == .AlignLeft or .kind == .AlignRight or .kind == .AlignCenter
             foreach s, i in .selection
             {
-                let b = cast(*BaseForm) @dataof(.capture.forms[s])
-                b.x = .oldS32[i]
-            }
-
-        case AlignTop, AlignBottom, AlignMiddle:
-            foreach s, i in .selection
-            {
-                let b = cast(*BaseForm) @dataof(.capture.forms[s])
-                b.y = .oldS32[i]
+                let f = .capture.forms[s]
+                let r = f.boundRect()
+                if horz do
+                    f.moveBaseForm(.oldS32[i] - cast(s32) r.x, 0, 0, 0)
+                else do
+                    f.moveBaseForm(0, .oldS32[i] - cast(s32) r.y, 0, 0)
             }
 
         case MovePoint:

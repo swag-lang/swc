@@ -15,16 +15,7 @@ impl ActionSelection
 
 impl IActionUI for ActionSelection
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case SelectAll, SelectSameAll, DeSelectAll, InvertSelection, DeleteSelection, Snap, Freeze:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

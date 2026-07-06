@@ -20,16 +20,7 @@ impl ActionToolMode
 
 impl IActionUI for ActionToolMode
 {
-    mtd impl accept(cxt: ActionContext)->bool
-    {
-        switch cxt.id
-        {
-        case Shape, Line, Arrow, Poly, Text, Favorites, Selection, Draw, Highlight, Step, Img, PixSel:
-            return true
-        }
-
-        return false
-    }
+    acceptOwnCmdIds()
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {

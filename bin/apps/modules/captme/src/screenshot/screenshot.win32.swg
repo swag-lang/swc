@@ -3,10 +3,9 @@ using Core, Win32, Gdi32
 
 internal
 {
-    var g_HitTest:   POINT
-    var g_Hit:       HWND
-    var g_Ignore:    HWND
-    var g_Awareness: DPI_AWARENESS_CONTEXT
+    var g_HitTest: POINT
+    var g_Hit:     HWND
+    var g_Ignore:  HWND
 
     func enumProc(hWnd: HWND, _lParam: LPARAM)->BOOL
     {

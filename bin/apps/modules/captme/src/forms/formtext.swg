@@ -44,13 +44,9 @@ impl IForm for FormText
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormText) ptr
-        return .borderColor == other.borderColor and
-               .borderSize == other.borderSize and
-               .backColor == other.backColor and
-               .alpha == other.alpha and
+        return .isSameBase(ptr) and
                .fontSize == other.fontSize and
                .boldSize == other.boldSize and
-               .paintShadow == other.paintShadow and
                .fontName == other.fontName and
                .fontStyle == other.fontStyle and
                .joinStyle == other.joinStyle
@@ -58,19 +54,15 @@ impl IForm for FormText
 
     mtd impl copy(dst, src: *BaseForm)
     {
+        BaseForm.copyBase(dst, src)
         let dstf = cast(*FormText) dst
         let srcf = cast(*FormText) src
-        dstf.borderColor = srcf.borderColor
-        dstf.borderSize  = srcf.borderSize
-        dstf.backColor   = srcf.backColor
-        dstf.alpha       = srcf.alpha
-        dstf.fontSize    = srcf.fontSize
-        dstf.boldSize    = srcf.boldSize
-        dstf.paintShadow = srcf.paintShadow
-        dstf.joinStyle   = srcf.joinStyle
-        dstf.fontName    = srcf.fontName
-        dstf.fontStyle   = srcf.fontStyle
-        dstf.scale       = srcf.scale
+        dstf.fontSize  = srcf.fontSize
+        dstf.boldSize  = srcf.boldSize
+        dstf.joinStyle = srcf.joinStyle
+        dstf.fontName  = srcf.fontName
+        dstf.fontStyle = srcf.fontStyle
+        dstf.scale     = srcf.scale
     }
 
     mtd impl mustClipToBound()->bool
@@ -97,43 +89,20 @@ impl IForm for FormText
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        .x += newPosX
-        .y += newPosY
-        .w += newSizeX
-        .h += newSizeY
+        .moveRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
-    mtd impl scaleBaseForm(val: f32)
+    mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * val)
-        .y = cast(s32) (.y * val)
-        .w = cast(s32) (.w * val)
-        .h = cast(s32) (.h * val)
+        .x = cast(s32) (.x * scale)
+        .y = cast(s32) (.y * scale)
+        .w = cast(s32) (.w * scale)
+        .h = cast(s32) (.h * scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        if newSizeX < 0
-        {
-            .x = newPosX + newSizeX
-            .w = -newSizeX
-        }
-        else
-        {
-            .x = newPosX
-            .w = newSizeX
-        }
-
-        if newSizeY < 0
-        {
-            .y = newPosY + newSizeY
-            .h = -newSizeY
-        }
-        else
-        {
-            .y = newPosY
-            .h = newSizeY
-        }
+        .setRectForm(newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
@@ -146,7 +115,7 @@ impl IForm for FormText
 
     mtd impl boundRect()->Math.Rectangle
     {
-        return Math.Rectangle{.x, .y, .w, .h}
+        return .rectFormBound()
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
@@ -360,23 +329,6 @@ impl IForm for FormText
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-
-        with me.gizmo
-        {
-            .roundShape        = true
-            .anchorSize        = 10
-            .trackChange       = true
-            .paintSimpleBorder = false
-            .paintBigBorder    = true
-        }
-
-        .gizmo.sigChanged = func|form = me|(g, first, hitMove)
-        {
-            g.apply(form, first, hitMove)
-        }
-        .gizmo.sigRotate = func|form = me|(g, first, last, angle)
-        {
-            g.applyRotate(form, first, last, angle)
-        }
+        .gizmo.setupForForm(cast(IForm) me)
     }
 }

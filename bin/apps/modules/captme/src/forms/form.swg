@@ -54,6 +54,8 @@ struct BaseForm
     borderColor:         Color = Argb.White
     backColor:           Color = Argb.Red
     dashStyle:           DashStyle = None
+    // Unused, kept because it is serialized: removing it would fail the decoding of
+    // existing capture files and of the quick styles saved in the application config.
     quickModeOpaque:     bool
     bezier:              bool
     paintShadow:         bool = true
@@ -79,18 +81,102 @@ impl BaseForm
         return Math.map(size * cxt.z, minSize, maxSize, dstMin, dstMax)
     }
 
+    // Style fields shared by every form type. Each form's isSame/copy compares and
+    // copies these through the two helpers below, then handles its own fields.
+    // FormImage opts out of the backColor comparison for its processed kinds.
+    mtd isSameBase(other: *BaseForm, compareBackColor = true)->bool
+    {
+        if compareBackColor and .backColor != other.backColor do
+            return false
+        return .borderColor == other.borderColor and
+               .borderSize == other.borderSize and
+               .alpha == other.alpha and
+               .subKind == other.subKind and
+               .dashStyle == other.dashStyle and
+               .paintShadow == other.paintShadow
+    }
+
+    func copyBase(dst, src: *BaseForm)
+    {
+        dst.borderColor = src.borderColor
+        dst.borderSize  = src.borderSize
+        dst.backColor   = src.backColor
+        dst.alpha       = src.alpha
+        dst.subKind     = src.subKind
+        dst.dashStyle   = src.dashStyle
+        dst.paintShadow = src.paintShadow
+    }
+
+    // Default geometry of the axis-aligned box forms (shape, step, text, image).
+    mtd moveRectForm(newPosX, newPosY, newSizeX, newSizeY: s32)
+    {
+        .x += newPosX
+        .y += newPosY
+        .w += newSizeX
+        .h += newSizeY
+    }
+
+    // Assign the box, normalizing a negative size so width/height stay positive.
+    mtd setRectForm(newPosX, newPosY, newSizeX, newSizeY: s32)
+    {
+        if newSizeX < 0
+        {
+            .x = newPosX + newSizeX
+            .w = -newSizeX
+        }
+        else
+        {
+            .x = newPosX
+            .w = newSizeX
+        }
+
+        if newSizeY < 0
+        {
+            .y = newPosY + newSizeY
+            .h = -newSizeY
+        }
+        else
+        {
+            .y = newPosY
+            .h = newSizeY
+        }
+    }
+
+    mtd rectFormBound()->Math.Rectangle
+    {
+        return Math.Rectangle{.x, .y, .w, .h}
+    }
+
+    // PixSel forms share one look: an almost transparent fill and a thin dashed
+    // outline, widened when hit-testing so the outline stays clickable.
+    mtd applyPixSelStyle(painter: *Painter, cxt: FormPaintContext)->{ bSize: f32, dash: DashStyle }
+    {
+        var result: retval
+        if cxt.hitTest
+        {
+            result.bSize = 10
+            result.dash  = .None
+        }
+        else
+        {
+            result.bSize = 2
+            result.dash  = .Dash
+        }
+
+        .borderColor = g_App.theme.colors.btnIcon_Icon
+        painter.removeParams(.Antialiased)
+        return result
+    }
+
+    // In quick mode a translucent highlight is previewed by remapping its alpha to
+    // the full range (a checkerboard brush behind it shows the transparency).
+    mtd highlightAlpha()->u8
+    {
+        return cast(u8) Math.map(cast(f32) .alpha, 0, 100, 0, 255)
+    }
+
     func drawHitTest(itf: IForm, pt: Math.Point, z: f32)->bool
     {
-        var painter: Painter{fake: true}
-        painter.begin()
-
-        var cxt: FormPaintContext
-        cxt.z       = z
-        cxt.hitTest = true
-        itf.paint(&painter, cxt)
-
-        painter.end()
-
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
         let base = cast(*BaseForm) @dataof(itf)
@@ -108,6 +194,23 @@ impl BaseForm
             pos.x = cx + (c * dx - s * dy)
             pos.y = cy + (s * dx + c * dy)
         }
+
+        // Cheap rejection before tessellating the whole form: nothing is painted
+        // beyond the overdraw pad around the bound (strokes, caps, shadows).
+        var bound = itf.boundRect() * z
+        bound.inflate(FormPaintOverdraw)
+        if !bound.contains(pos.x, pos.y) do
+            return false
+
+        var painter: Painter{fake: true}
+        painter.begin()
+
+        var cxt: FormPaintContext
+        cxt.z       = z
+        cxt.hitTest = true
+        itf.paint(&painter, cxt)
+
+        painter.end()
 
         foreach cmd in painter.commandBuffer
         {

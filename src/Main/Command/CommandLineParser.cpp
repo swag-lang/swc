@@ -208,7 +208,9 @@ namespace
     {
         if (cfgName == "fast-compile")
         {
-            buildCfg.safetyGuards              = Runtime::SafetyWhat::None;
+            // Lifecycle stays on in every configuration: it carries the static borrow
+            // checks, which are part of the language's safety story even in release.
+            buildCfg.safetyGuards              = Runtime::SafetyWhat::Lifecycle;
             buildCfg.sanity                    = false;
             buildCfg.allocatorCaptureStack     = false;
             buildCfg.allocatorLeaks            = false;
@@ -250,7 +252,7 @@ namespace
         }
         else if (cfgName == "release")
         {
-            buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
+            buildCfg.safetyGuards               = Runtime::SafetyWhat::Lifecycle;
             buildCfg.sanity                     = false;
             buildCfg.allocatorCaptureStack      = false;
             buildCfg.allocatorLeaks             = false;

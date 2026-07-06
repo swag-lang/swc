@@ -1,12 +1,4 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning)
-SWC_DIAG_DEF(sema_warn_borrow_escape)
-SWC_DIAG_DEF(sema_warn_borrow_scope_escape)
-SWC_DIAG_DEF(sema_warn_borrow_temporary)
-SWC_DIAG_DEF(sema_warn_borrow_materialized)
-SWC_DIAG_DEF(sema_err_borrow_materialized)
-SWC_DIAG_DEF(sema_err_borrow_escape)
-SWC_DIAG_DEF(sema_err_borrow_scope_escape)
-SWC_DIAG_DEF(sema_err_borrow_temporary)
 
 SWC_DIAG_DEF(sema_err_expr_not_const)
 SWC_DIAG_DEF(sema_err_invalid_type)

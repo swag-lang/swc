@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -748,18 +747,15 @@ namespace
                     operandNode.is(AstNodeId::StructLiteral) ||
                     operandNode.is(AstNodeId::StructInitializerList))
                 {
-                    // A structural cast of an rvalue is materialized by the compiler into
-                    // a frame-lifetime runtime storage: nothing dies at end of statement.
-                    // A user 'opCast' storage only holds the RESULT of the call; the
-                    // borrowed source temporary still dies.
+                    // A structural cast of an rvalue is ALWAYS materialized by the compiler
+                    // into a frame-lifetime runtime storage (Cast::runtimeStorageTypeRef:
+                    // array→slice/string, value→any, struct→interface, ...): nothing dies at
+                    // end of statement. Only a user 'opCast' borrows the rvalue itself — its
+                    // runtime storage holds the call RESULT, not the source.
                     const auto* specOp   = sema.semaPayload<CastSpecOpPayload>(castRef);
                     const bool  isOpCast = specOp && specOp->kind == CastSpecialOpPayloadKind::OpCast && specOp->calledFn;
                     if (!isOpCast)
-                    {
-                        const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(castRef);
-                        if (lowering && lowering->runtimeStorageSym)
-                            return {};
-                    }
+                        return {};
 
                     info.kind      = SemaEscapeKind::Temporary;
                     info.sourceRef = operandRef;
@@ -1147,11 +1143,19 @@ namespace
         return type.isReference() ? type.payloadTypeRef() : typeRef;
     }
 
-    void reportBorrowEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
+    // Under the Lifecycle safety contract a dangling borrow is a hard error, not advice.
+    bool lifecycleSafetyEnabled(Sema& sema)
     {
+        return sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Lifecycle);
+    }
+
+    Result reportBorrowEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
+    {
+        const bool asError = lifecycleSafetyEnabled(sema);
+
         if (info.isTemporaryBorrow())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_warn_borrow_temporary, atNodeRef);
+            auto diag = SemaError::report(sema, asError ? DiagnosticId::sema_err_borrow_temporary : DiagnosticId::sema_warn_borrow_temporary, atNodeRef);
             diag.addArgument(Diagnostic::ARG_WHAT, what);
             if (info.typeRef.isValid())
                 diag.addArgument(Diagnostic::ARG_TYPE, info.typeRef);
@@ -1163,13 +1167,13 @@ namespace
             }
 
             diag.report(sema.ctx());
-            return;
+            return asError ? Result::Error : Result::Continue;
         }
 
         if (!info.isLocalBorrow())
-            return;
+            return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_warn_borrow_escape, atNodeRef);
+        auto diag = SemaError::report(sema, asError ? DiagnosticId::sema_err_borrow_escape : DiagnosticId::sema_warn_borrow_escape, atNodeRef);
         diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_WHAT, what);
         if (info.typeRef.isValid())
@@ -1179,11 +1183,14 @@ namespace
         diag.last().addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.last().addSpan(info.sourceVar->codeRange(sema.ctx()));
         diag.report(sema.ctx());
+        return asError ? Result::Error : Result::Continue;
     }
 
-    void reportBorrowScopeEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, const SymbolVariable& dstVar)
+    Result reportBorrowScopeEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, const SymbolVariable& dstVar)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_warn_borrow_scope_escape, atNodeRef);
+        const bool asError = lifecycleSafetyEnabled(sema);
+
+        auto diag = SemaError::report(sema, asError ? DiagnosticId::sema_err_borrow_scope_escape : DiagnosticId::sema_warn_borrow_scope_escape, atNodeRef);
         diag.addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_VALUE, dstVar.name(sema.ctx()));
 
@@ -1191,21 +1198,19 @@ namespace
         diag.last().addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.last().addSpan(info.sourceVar->codeRange(sema.ctx()));
         diag.report(sema.ctx());
+        return asError ? Result::Error : Result::Continue;
     }
 
-    void storeOrReportDestinationInfo(Sema& sema, const SymbolVariable& dstVar, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
+    Result storeOrReportDestinationInfo(Sema& sema, const SymbolVariable& dstVar, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
     {
         // A borrow of a temporary outlives it as soon as it is bound anywhere.
         if (info.isTemporaryBorrow())
-        {
-            reportBorrowEscape(sema, atNodeRef, info, what);
-            return;
-        }
+            return reportBorrowEscape(sema, atNodeRef, info, what);
 
         if (info.sourceVar == &dstVar)
         {
             sema.clearVariableEscapeInfo(dstVar);
-            return;
+            return Result::Continue;
         }
 
         if (info.hasBorrow() && isLocalVariableStorage(sema, dstVar))
@@ -1217,18 +1222,17 @@ namespace
                 const uint32_t srcDepth = sema.variableScopeDepth(*info.sourceVar);
                 const uint32_t dstDepth = sema.variableScopeDepth(dstVar);
                 if (srcDepth && dstDepth && srcDepth > dstDepth)
-                {
-                    reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
-                    return;
-                }
+                    return reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
             }
 
             sema.setVariableEscapeInfo(dstVar, info);
-            return;
+            return Result::Continue;
         }
 
         if (info.isLocalBorrow())
-            reportBorrowEscape(sema, atNodeRef, info, what);
+            return reportBorrowEscape(sema, atNodeRef, info, what);
+
+        return Result::Continue;
     }
 
     bool variableInitializerCanEscape(const SymbolVariable& symVar)
@@ -1272,10 +1276,11 @@ namespace SemaEscape
         // statement, exactly like the temporary itself: nothing escapes there.
         if (info.isTemporaryBorrow())
         {
+            Result reportResult = Result::Continue;
             if (!SemaHelpers::effectiveInlinePayload(sema))
-                reportBorrowEscape(sema, initRef, info, "an initializer");
+                reportResult = reportBorrowEscape(sema, initRef, info, "an initializer");
             sema.clearVariableEscapeInfo(symVar);
-            return Result::Continue;
+            return reportResult;
         }
 
         if (info.sourceVar == &symVar)
@@ -1283,7 +1288,7 @@ namespace SemaEscape
         else if (isLocalVariableStorage(sema, symVar))
             sema.setVariableEscapeInfo(symVar, info);
         else if (info.isLocalBorrow() && variableInitializerCanEscape(symVar))
-            reportBorrowEscape(sema, initRef, info, "an initializer");
+            return reportBorrowEscape(sema, initRef, info, "an initializer");
         else
             sema.clearVariableEscapeInfo(symVar);
         return Result::Continue;
@@ -1312,11 +1317,26 @@ namespace SemaEscape
         }
 
         if (dstVar)
-            storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment");
-        else if (info.isLocalBorrow() || info.isTemporaryBorrow())
-            reportBorrowEscape(sema, leftRef, info, "an assignment");
+            return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment");
+        if (info.isLocalBorrow() || info.isTemporaryBorrow())
+            return reportBorrowEscape(sema, leftRef, info, "an assignment");
 
         return Result::Continue;
+    }
+
+    // A 'foreach &it' alias points into the iterated storage: bind the alias to that
+    // storage's borrow so uses of 'it' escaping the loop are tracked like any pointer.
+    void bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef)
+    {
+        uint32_t       budget = K_EXPR_BUDGET;
+        SemaEscapeInfo info   = expressionEscapeInfoRec(sema, exprRef, budget);
+        if (!info.hasBorrow() && expressionMayExposeStorageBorrow(sema, exprRef))
+            info = storageBorrowInfo(sema, exprRef, symVar.typeRef());
+
+        if (info.hasBorrow())
+            sema.setVariableEscapeInfo(symVar, info);
+        else
+            sema.clearVariableEscapeInfo(symVar);
     }
 
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn)
@@ -1333,7 +1353,7 @@ namespace SemaEscape
         if (info.isTemporaryBorrow())
         {
             if (!inlineSourceFn)
-                reportBorrowEscape(sema, returnRef, info, "a return value");
+                return reportBorrowEscape(sema, returnRef, info, "a return value");
             return Result::Continue;
         }
 
@@ -1366,8 +1386,7 @@ namespace SemaEscape
             !inlineSourceFn->containsLocalVariable(*info.sourceVar))
             return Result::Continue;
 
-        reportBorrowEscape(sema, returnRef, info, "a return value");
-        return Result::Continue;
+        return reportBorrowEscape(sema, returnRef, info, "a return value");
     }
 }
 

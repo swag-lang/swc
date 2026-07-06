@@ -5,6 +5,9 @@ struct PtrHolder
     value: *u8
 }
 
+// Lifecycle safety is disabled so the borrow stays a warning: this function must
+// still compile and run at compile time to exercise the const-extraction error below.
+#[Swag.Safety(.Lifecycle, false)]
 func makePtrHolder()->PtrHolder
 {
     var local: u8 = 1

@@ -17,6 +17,7 @@ struct SwitchPayload
     SymbolFunction* runtimePanicSymbol     = nullptr;
     bool            isComplete             = false;
     bool            hasRuntimeSwitchSafety = false;
+    bool            escapeBranchPushed     = false;
 };
 
 struct DynamicStructSwitchCaseExpr

@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -421,6 +422,10 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
         SWC_RESULT(appendForeachAliasSymbols(sema, symbols, pl, *this, valueTypeRef, indexTypeRef));
+
+        // A '&it' value alias points into the iterated storage.
+        if (hasFlag(AstForeachStmtFlagsE::ByAddress) && !symbols.empty() && symbols.front()->isVariable())
+            SemaEscape::bindForeachAddressAlias(sema, symbols.front()->cast<SymbolVariable>(), nodeExprRef);
 
         const size_t stateIndex = symbols.size();
         auto&        stateSym   = getOrCreateLoopLocalSymbol(pl, stateIndex, [&]() -> SymbolVariable& { return registerUniqueLoopScopeSymbol<SymbolVariable>(sema, *this, "foreach_state"); });

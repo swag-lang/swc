@@ -6,7 +6,9 @@
 // catches it) in every build config.
 // ---------------------------------------------------------------------------
 
-#[Swag.Safety(.Memory, true)]
+// Lifecycle safety is disabled so the sema borrow diagnostic stays a warning and the
+// function still reaches codegen, where the Memory sanitizer must catch the escape.
+#[Swag.Safety(.Memory, true), Swag.Safety(.Lifecycle, false)]
 func escapeLocal()->*s32
 {
     var v: s32
@@ -21,7 +23,7 @@ func escapeLocal()->*s32
 }
 
 // The address survives a copy before being returned.
-#[Swag.Safety(.Memory, true)]
+#[Swag.Safety(.Memory, true), Swag.Safety(.Lifecycle, false)]
 func escapeLocalViaCopy()->*s32
 {
     var v: s32

@@ -467,6 +467,12 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
     const SwitchPayload* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
     SWC_ASSERT(payload != nullptr);
+
+    // Close the borrow-flow alternatives; the entry state joins them (a switch may
+    // fall through every case).
+    if (payload->escapeBranchPushed)
+        sema.popEscapeBranch(true);
+
     if (!payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
 
@@ -516,6 +522,14 @@ Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         frame.setCurrentSwitchCase(childRef);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+
+        // Every case is a borrow-flow alternative starting from the switch entry state.
+        auto* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
+        if (payload && !payload->escapeBranchPushed)
+        {
+            payload->escapeBranchPushed = true;
+            sema.pushEscapeBranch();
+        }
     }
 
     return Result::Continue;
@@ -541,6 +555,14 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
             frame.pushBindingType(enumTypeRef);
             sema.pushFramePopOnPostNode(frame);
         }
+    }
+
+    // Each completed case restarts the borrow flow from the switch entry state.
+    if (sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
+    {
+        const auto* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
+        if (payload && payload->escapeBranchPushed)
+            sema.nextEscapeBranchAlternative();
     }
 
     return Result::Continue;

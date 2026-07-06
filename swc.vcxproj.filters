@@ -564,6 +564,9 @@
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaEscape.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
@@ -1683,6 +1686,9 @@
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaEscape.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaPurity.h">

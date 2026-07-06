@@ -1,4 +1,5 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning)
+SWC_DIAG_DEF(sema_warn_borrow_escape)
 
 SWC_DIAG_DEF(sema_err_expr_not_const)
 SWC_DIAG_DEF(sema_err_invalid_type)

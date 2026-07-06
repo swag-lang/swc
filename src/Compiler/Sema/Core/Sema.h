@@ -19,6 +19,7 @@ SWC_BEGIN_NAMESPACE();
 struct CastRequest;
 class SymbolNamespace;
 class SymbolFunction;
+class SymbolVariable;
 class SymbolImpl;
 class SymbolInterface;
 class MatchContext;
@@ -35,6 +36,26 @@ namespace SemaGeneric
 {
     void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 }
+
+enum class SemaEscapeKind : uint8_t
+{
+    None,
+    Static,
+    Parameter,
+    Local,
+    Unknown,
+};
+
+struct SemaEscapeInfo
+{
+    SemaEscapeKind       kind      = SemaEscapeKind::None;
+    const SymbolVariable* sourceVar = nullptr;
+    AstNodeRef           sourceRef = AstNodeRef::invalid();
+    TypeRef              typeRef   = TypeRef::invalid();
+
+    bool hasBorrow() const { return kind != SemaEscapeKind::None; }
+    bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
+};
 
 class Sema
 {
@@ -277,6 +298,10 @@ public:
     void markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef);
     bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
 
+    const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
+    void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
+    void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
+
     bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
     bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
     bool isLValueStored(AstNodeRef ref) const;
@@ -429,6 +454,7 @@ private:
     TaskContext*                                           ctx_                = nullptr;
     NodePayload*                                           nodePayloadContext_ = nullptr;
     std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
+    std::unordered_map<const SymbolVariable*, SemaEscapeInfo> variableEscapeInfos_;
     AstVisit                                               visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

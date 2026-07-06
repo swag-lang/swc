@@ -245,9 +245,34 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
     frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
+    variableEscapeInfos_ = parent.variableEscapeInfos_;
 }
 
 Sema::~Sema() = default;
+
+const SemaEscapeInfo* Sema::variableEscapeInfo(const SymbolVariable& symVar) const
+{
+    const auto it = variableEscapeInfos_.find(&symVar);
+    if (it == variableEscapeInfos_.end())
+        return nullptr;
+    return &it->second;
+}
+
+void Sema::setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info)
+{
+    if (!info.hasBorrow())
+    {
+        clearVariableEscapeInfo(symVar);
+        return;
+    }
+
+    variableEscapeInfos_[&symVar] = info;
+}
+
+void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
+{
+    variableEscapeInfos_.erase(&symVar);
+}
 
 ConstantManager& Sema::cstMgr()
 {

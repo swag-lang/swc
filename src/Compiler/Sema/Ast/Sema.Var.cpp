@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
@@ -1047,6 +1048,14 @@ namespace
         }
 
         SWC_RESULT(completeVar(sema, symbols, finalTypeRef));
+        if (context.nodeInitRef.isValid() && !setInitInfo.handled)
+        {
+            for (Symbol* s : symbols)
+            {
+                if (auto* symVar = getVariableSymbol(s))
+                    SWC_RESULT(SemaEscape::checkVariableInitializer(sema, *symVar, context.nodeInitRef, finalTypeRef));
+            }
+        }
         return Result::Continue;
     }
 

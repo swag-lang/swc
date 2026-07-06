@@ -25,6 +25,7 @@ SWC_DIAG_DEF(sema_note_available_struct_fields, Note, "available fields: {values
 SWC_DIAG_DEF(sema_note_available_enum_values, Note, "available enum values: {values}")
 SWC_DIAG_DEF(sema_note_required_struct_field_declared_here, Note, "required field '{value}' is declared here")
 SWC_DIAG_DEF(sema_note_capture_source_declared_here, Note, "outer-scope variable '{sym}' is declared here")
+SWC_DIAG_DEF(sema_note_borrow_source_declared_here, Note, "borrow source '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_constant_declared_here, Note, "constant '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_let_variable_declared_here, Note, "'let' variable '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_function_declared_here, Note, "function '{sym}' is declared here")

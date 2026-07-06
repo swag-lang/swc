@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -416,6 +417,7 @@ namespace
             {
                 SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), leftView.typeRef(), modifierFlags, false));
                 SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
+                SWC_RESULT(SemaEscape::applyAssignment(sema, leftRef, nodeRightView.nodeRef()));
             }
             else
                 SWC_RESULT(tryCompoundAssignmentCast(sema, tok.id, leftRef, leftView, nodeRightView, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
@@ -500,6 +502,8 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
 
     SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
     SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
+    if (tok.id == TokenId::SymEqual)
+        SWC_RESULT(SemaEscape::applyAssignment(sema, nodeLeftRef, nodeRightView.nodeRef()));
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     return Result::Continue;

@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaPurity.h"
@@ -730,6 +731,18 @@ namespace
         return false;
     }
 
+    bool isCompilerAstFunction(const Sema& sema, const SymbolFunction& sym)
+    {
+        const AstNode* declNode = sym.decl();
+        if (!declNode)
+            return false;
+
+        if (declNode->is(AstNodeId::CompilerFunc) || declNode->is(AstNodeId::CompilerShortFunc))
+            return sema.token(declNode->codeRef()).id == TokenId::CompilerAst;
+
+        return false;
+    }
+
     bool payloadUsesCallerScope(const SemaInlinePayload* payload)
     {
         return payload &&
@@ -766,6 +779,15 @@ namespace
             if (frameInlinePayload && sema.inlinePayload(parentRef) == frameInlinePayload)
                 return resolveReturnContextPayload(frameInlinePayload, true);
         }
+    }
+
+    bool returnValueIsCompilerAstCloned(Sema& sema)
+    {
+        if (const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema))
+            return inlinePayload->sourceFunction && isCompilerAstFunction(sema, *inlinePayload->sourceFunction);
+
+        const SymbolFunction* currentFn = sema.currentFunction();
+        return currentFn && isCompilerAstFunction(sema, *currentFn);
     }
 
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
@@ -821,6 +843,8 @@ namespace
             if (returnType.isAnyTypeInfo(sema.ctx()))
                 SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, view));
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
+            if (!returnValueIsCompilerAstCloned(sema))
+                SWC_RESULT(SemaEscape::checkReturn(sema, exprRef, returnTypeRef));
             return Result::Continue;
         }
 
@@ -1181,6 +1205,8 @@ namespace
 
             if (captureByRef && hasExplicitAlias && !sema.isLValue(captureArg.nodeIdentifierRef))
                 return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, captureArg.nodeIdentifierRef);
+            if (sourceVar)
+                SWC_RESULT(SemaEscape::checkClosureCapture(sema, captureArg.nodeIdentifierRef, *sourceVar, captureByRef));
 
             // A by-value capture is a raw byte copy into the closure buffer: the environment never
             // runs 'opPostCopy' on the way in and never drops the captured value on the way out, so

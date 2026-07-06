@@ -85,6 +85,18 @@ func lifecycleSafetyEnabled()->bool
     @assert(a.x == 4) // swc-expected-error {{safety_err_use_after_move}}
 }
 
+// Reading the moved-from local THROUGH a pointer taken before the move: the lattice
+// tracks the stack address across the pointer slot and still proves the stale read.
+#[Swag.Safety(.Lifecycle, true)]
+#test
+{
+    var a = UamItem{x: 4}
+    let p = &a.x
+    var b = #move a
+    discard b
+    @assert(dref p == 4) // swc-expected-error {{safety_err_use_after_move}}
+}
+
 // ---------------------------------------------------------------------------
 // Valid programs: must NOT be flagged.
 // ---------------------------------------------------------------------------

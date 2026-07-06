@@ -43,6 +43,7 @@ enum class SemaEscapeKind : uint8_t
     Static,
     Parameter,
     Local,
+    Materialized, // compiler-materialized cast storage: frame lifetime, no named variable
     Temporary,
     Unknown,
 };
@@ -56,6 +57,7 @@ struct SemaEscapeInfo
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
+    bool isMaterializedBorrow() const { return kind == SemaEscapeKind::Materialized; }
     bool isTemporaryBorrow() const { return kind == SemaEscapeKind::Temporary; }
 
     // Severity order used when two may-borrow facts merge (flow joins, aggregates).
@@ -64,6 +66,8 @@ struct SemaEscapeInfo
         switch (kind)
         {
             case SemaEscapeKind::Temporary:
+                return 6;
+            case SemaEscapeKind::Materialized:
                 return 5;
             case SemaEscapeKind::Local:
                 return 4;

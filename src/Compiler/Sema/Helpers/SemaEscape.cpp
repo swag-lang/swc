@@ -749,15 +749,14 @@ namespace
                 {
                     // A structural cast of an rvalue is ALWAYS materialized by the compiler
                     // into a frame-lifetime runtime storage (Cast::runtimeStorageTypeRef:
-                    // array→slice/string, value→any, struct→interface, ...): nothing dies at
-                    // end of statement. Only a user 'opCast' borrows the rvalue itself — its
-                    // runtime storage holds the call RESULT, not the source.
+                    // array→slice/string, value→any, struct→interface, ...): local bindings
+                    // are safe, but the storage still dies with the frame. Only a user
+                    // 'opCast' borrows the rvalue itself — its runtime storage holds the
+                    // call RESULT, not the source, and the source dies at end of statement.
                     const auto* specOp   = sema.semaPayload<CastSpecOpPayload>(castRef);
                     const bool  isOpCast = specOp && specOp->kind == CastSpecialOpPayloadKind::OpCast && specOp->calledFn;
-                    if (!isOpCast)
-                        return {};
 
-                    info.kind      = SemaEscapeKind::Temporary;
+                    info.kind      = isOpCast ? SemaEscapeKind::Temporary : SemaEscapeKind::Materialized;
                     info.sourceRef = operandRef;
                     info.typeRef   = resultTypeRef;
                     return info;
@@ -1170,6 +1169,23 @@ namespace
             return asError ? Result::Error : Result::Continue;
         }
 
+        if (info.isMaterializedBorrow())
+        {
+            auto diag = SemaError::report(sema, asError ? DiagnosticId::sema_err_borrow_materialized : DiagnosticId::sema_warn_borrow_materialized, atNodeRef);
+            diag.addArgument(Diagnostic::ARG_WHAT, what);
+            if (info.typeRef.isValid())
+                diag.addArgument(Diagnostic::ARG_TYPE, info.typeRef);
+
+            if (info.sourceRef.isValid())
+            {
+                diag.addNote(DiagnosticId::sema_note_borrow_temporary_here);
+                diag.last().addSpan(sema.node(info.sourceRef).codeRange(sema.ctx()));
+            }
+
+            diag.report(sema.ctx());
+            return asError ? Result::Error : Result::Continue;
+        }
+
         if (!info.isLocalBorrow())
             return Result::Continue;
 
@@ -1229,7 +1245,7 @@ namespace
             return Result::Continue;
         }
 
-        if (info.isLocalBorrow())
+        if (info.isLocalBorrow() || info.isMaterializedBorrow())
             return reportBorrowEscape(sema, atNodeRef, info, what);
 
         return Result::Continue;
@@ -1287,7 +1303,7 @@ namespace SemaEscape
             sema.clearVariableEscapeInfo(symVar);
         else if (isLocalVariableStorage(sema, symVar))
             sema.setVariableEscapeInfo(symVar, info);
-        else if (info.isLocalBorrow() && variableInitializerCanEscape(symVar))
+        else if ((info.isLocalBorrow() || info.isMaterializedBorrow()) && variableInitializerCanEscape(symVar))
             return reportBorrowEscape(sema, initRef, info, "an initializer");
         else
             sema.clearVariableEscapeInfo(symVar);
@@ -1318,7 +1334,7 @@ namespace SemaEscape
 
         if (dstVar)
             return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment");
-        if (info.isLocalBorrow() || info.isTemporaryBorrow())
+        if (info.isLocalBorrow() || info.isMaterializedBorrow() || info.isTemporaryBorrow())
             return reportBorrowEscape(sema, leftRef, info, "an assignment");
 
         return Result::Continue;
@@ -1347,10 +1363,10 @@ namespace SemaEscape
         uint32_t                 budget = K_EXPR_BUDGET;
         const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
 
-        // A temporary lives until the end of the enclosing statement. An inline-expanded
-        // return hands it to the call site within that same statement, so only a real
-        // function return outlives it; bindings at the call site handle the rest.
-        if (info.isTemporaryBorrow())
+        // A temporary lives until the end of the enclosing statement, and materialized
+        // cast storage lives with the frame. An inline-expanded return hands both back
+        // within the calling frame, so only a real function return outlives them.
+        if (info.isTemporaryBorrow() || info.isMaterializedBorrow())
         {
             if (!inlineSourceFn)
                 return reportBorrowEscape(sema, returnRef, info, "a return value");

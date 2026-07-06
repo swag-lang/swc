@@ -235,6 +235,32 @@ func borrowEscapeMaterializedTemp()->u16
     return view[0]
 }
 
+// ... but that storage still dies with the frame: returning it or storing it in a
+// global is an escape.
+func borrowEscapeMaterializedReturn()->const [..] u16
+{
+    return cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sema_err_borrow_materialized}}
+}
+
+func borrowEscapeMaterializedTracked()->const [..] u16
+{
+    let view = cast(const [..] u16) borrowEscapeMakeArray()
+    return view // swc-expected-error {{sema_err_borrow_materialized}}
+}
+
+var borrowEscapeGlobalSlice: const [..] u16
+
+func borrowEscapeMaterializedGlobal()
+{
+    borrowEscapeGlobalSlice = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sema_err_borrow_materialized}}
+}
+
+// Boxing an rvalue into a returned 'any' leaks the frame-local box.
+func borrowEscapeMaterializedAnyReturn()->any
+{
+    return borrowEscapeMakeOwner() // swc-expected-error {{sema_err_borrow_materialized}}
+}
+
 // Casting a scalar value to a pointer reinterprets the value: it does not
 // borrow the variable storage and must not warn.
 var borrowEscapeScalarSink: *void

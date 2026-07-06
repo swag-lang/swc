@@ -11,7 +11,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerMessageTypeInfoJob.h"
 #include "Main/Global.h"
-#include "Main/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Main/TaskContext.h"
 #include "Main/TaskState.h"
 #include "Support/Memory/Heap.h"

@@ -18,7 +18,7 @@
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
-#include "Main/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"

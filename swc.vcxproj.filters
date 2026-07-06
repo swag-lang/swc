@@ -49,6 +49,9 @@
     <Filter Include="src\Compiler\Lexer">
       <UniqueIdentifier>{27AFDAE9-FE6D-C728-1DDA-9ECC6F53A144}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Compiler\ModuleApi">
+      <UniqueIdentifier>{8C1E5A0F-4B2D-49E3-9A76-D31F0C6B5E24}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Compiler\Parser">
       <UniqueIdentifier>{4BE4EA94-C59F-8662-63A5-12A11F5C00CC}</UniqueIdentifier>
     </Filter>
@@ -669,14 +672,29 @@
     <ClCompile Include="src\Main\ExternalModuleManager.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="src\Main\ModuleApi.cpp">
-      <Filter>src\Main</Filter>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
     </ClCompile>
-    <ClCompile Include="src\Main\ModuleApi.Export.cpp">
-      <Filter>src\Main</Filter>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
     </ClCompile>
-    <ClCompile Include="src\Main\ModuleApi.Symbol.cpp">
-      <Filter>src\Main</Filter>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Content.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Generate.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Roots.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Snippet.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Validate.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Symbol.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Stats.cpp">
       <Filter>src\Main</Filter>
@@ -1397,8 +1415,11 @@
     <ClInclude Include="src\Main\ExternalModuleManager.h">
       <Filter>src\Main</Filter>
     </ClInclude>
-    <ClInclude Include="src\Main\ModuleApi.h">
-      <Filter>src\Main</Filter>
+    <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.h">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Export.h">
+      <Filter>src\Compiler\ModuleApi</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Version.h">
       <Filter>src\Main</Filter>

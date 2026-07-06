@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Main/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"

@@ -4,7 +4,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
-#include "Main/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/LookupTable.h"
 #include "Support/Core/RefTypes.h"

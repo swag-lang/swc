@@ -120,7 +120,10 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     const SemaNodeView resultView = codeGen.curViewType();
     SWC_ASSERT(resultView.type() != nullptr);
 
-    const TypeRef resultTypeRef = resultView.typeRef();
+    // When the conditional was wrapped by an implicit cast, the wrapper's type shows
+    // through the resolved view. The selection must produce its own stored type; the
+    // wrapping cast then converts the joined value.
+    const TypeRef resultTypeRef = codeGen.transparentPayloadTypeRef();
     const bool    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
     MicroBuilder& builder       = codeGen.builder();
 
@@ -160,9 +163,13 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         }
         else
         {
-            const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits         resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
-            const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
+            const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
+            CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            // The join register must match the result type's register class: a float
+            // selection materialized in an integer register would turn the branch
+            // moves into bit reinterprets and break every float consumer downstream.
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
             emitSelectedOperand(codeGen, resultPayload, truePayload, resultBits);
         }
 
@@ -208,10 +215,10 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
 
-    const SemaNodeView resultView    = codeGen.curViewType();
-    const TypeRef      resultTypeRef = resultView.typeRef();
-    const bool         addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
-    MicroBuilder&      builder       = codeGen.builder();
+    // Same stored-type rule as the conditional expression above.
+    const TypeRef resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const bool    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    MicroBuilder& builder       = codeGen.builder();
 
     if (resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef)
     {
@@ -239,9 +246,11 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         }
         else
         {
-            const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits         resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
-            const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
+            const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
+            CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            // Same register-class constraint as the conditional expression above.
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
             emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
         }
 

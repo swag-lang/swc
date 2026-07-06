@@ -175,3 +175,60 @@ struct CondPair
     #assert(V1.a == 3)
     #assert(V1.b == 4)
 }
+
+// A float selection consumed by an int conversion. The join register must be
+// float-classed: an integer join used to bit-reinterpret the branches and to
+// crash the x64 encoder on the conversion (int-int ConvertFloatToInt).
+var g_CondTrue       = true
+var g_Float15: f32   = 1.5
+var g_Float25: f32   = 2.5
+var g_Int42:   s32   = 42
+
+#test
+{
+    let v = cast(s32) (g_CondTrue ? g_Float15 : g_Float25)
+    @assert(v == 1)
+    let w = cast(s32) (!g_CondTrue ? g_Float15 : g_Float25)
+    @assert(w == 2)
+
+    let f = g_CondTrue ? g_Float15 : g_Float25
+    @assert(f == 1.5)
+    @assert(f + g_Float25 == 4.0)
+}
+
+// A conditional wrapped by an implicit cast keeps its own result type; the
+// wrapping cast converts the joined value. The s32 selection used to be
+// bit-reinterpreted into the f32 binding instead of converted.
+#test
+{
+    let x: f32 = g_CondTrue ? g_Int42 : 200
+    @assert(x == 42.0)
+    let y: f32 = !g_CondTrue ? g_Int42 : 200
+    @assert(y == 200.0)
+    let z: f64 = g_CondTrue ? g_Int42 : 200
+    @assert(z == 42.0)
+}
+
+// Every consumer shape of a cast-wrapped integer selection: variable init with a
+// pointer condition and a field branch, call argument, explicit cast, and return.
+struct CondSt { col: s32 = 200 }
+
+var g_CondSt: CondSt
+
+#test
+{
+    func takeF(x: f32)->f32 { return x }
+    func retF(c: bool, i: s32)->f32 { return c ? i : 200 }
+
+    let p = &g_CondSt
+    let f: f32 = p ? p.col : 200
+    @assert(f == 200.0)
+
+    @assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)
+
+    let a = cast(f32) (g_CondTrue ? g_Int42 : 200)
+    @assert(a == 42.0)
+
+    @assert(retF(true, 7) == 7.0)
+    @assert(retF(false, 7) == 200.0)
+}

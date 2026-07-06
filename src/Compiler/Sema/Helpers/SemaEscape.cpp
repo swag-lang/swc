@@ -260,7 +260,32 @@ namespace
                 const AstNodeRef leftRef      = node.cast<AstMemberAccessExpr>().nodeLeftRef;
                 const TypeRef    leftTypeRef  = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
                 if (isDirectBorrowCarrier(sema, leftTypeRef))
+                {
+                    // Accessing storage through a pointer that itself borrows a known local
+                    // stays inside that local's storage: keep tracking on the borrowed root.
+                    bool leftWholeVariable = false;
+                    if (const SymbolVariable* leftVar = storageRootVariable(sema, leftRef, false, leftWholeVariable); leftVar && leftWholeVariable)
+                    {
+                        const SemaEscapeInfo* leftInfo = sema.variableEscapeInfo(*leftVar);
+                        if (leftInfo && leftInfo->isLocalBorrow())
+                        {
+                            outWholeVariable = false;
+                            return leftInfo->sourceVar;
+                        }
+
+                        // Writing through a local pointer reaches storage only known to this
+                        // frame so far: track the borrow on the pointer variable and report
+                        // later if that pointer itself escapes. Writing through a parameter
+                        // or global pointer reaches caller-visible storage and must report.
+                        if (forAssignment && isLocalVariableStorage(sema, *leftVar))
+                        {
+                            outWholeVariable = false;
+                            return leftVar;
+                        }
+                    }
+
                     return nullptr;
+                }
 
                 outWholeVariable = false;
                 return storageRootVariable(sema, leftRef, forAssignment, outWholeVariable);
@@ -291,7 +316,38 @@ namespace
             }
 
             case AstNodeId::UnaryExpr:
-                return forAssignment ? nullptr : storageRootVariable(sema, node.cast<AstUnaryExpr>().nodeExprRef, forAssignment, outWholeVariable);
+            {
+                const auto& unary = node.cast<AstUnaryExpr>();
+
+                // 'dref ptr' designates the pointee storage, not the pointer variable: it is
+                // a borrow root only when the pointer itself borrows a tracked local. A heap
+                // or caller-owned pointee is not a borrow root.
+                if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
+                {
+                    bool operandWholeVariable = false;
+                    if (const SymbolVariable* operandVar = storageRootVariable(sema, unary.nodeExprRef, false, operandWholeVariable); operandVar && operandWholeVariable)
+                    {
+                        const SemaEscapeInfo* operandInfo = sema.variableEscapeInfo(*operandVar);
+                        if (operandInfo && operandInfo->isLocalBorrow())
+                        {
+                            outWholeVariable = false;
+                            return operandInfo->sourceVar;
+                        }
+
+                        // Same rule as member access through a pointer: assigning through a
+                        // local pointer tracks the borrow on that pointer instead of reporting.
+                        if (forAssignment && isLocalVariableStorage(sema, *operandVar))
+                        {
+                            outWholeVariable = false;
+                            return operandVar;
+                        }
+                    }
+
+                    return nullptr;
+                }
+
+                return forAssignment ? nullptr : storageRootVariable(sema, unary.nodeExprRef, forAssignment, outWholeVariable);
+            }
 
             default:
                 return nullptr;
@@ -606,11 +662,44 @@ namespace
         return info;
     }
 
+    // A closure value carries the borrows of its captures: capturing by reference borrows
+    // the source storage itself, and capturing a borrowing value (a pointer to a local, ...)
+    // by value propagates that borrow. The borrow is reported only when the closure value
+    // escapes (return, assignment to escaping storage, ...), not at the capture itself.
+    SemaEscapeInfo closureEscapeInfo(Sema& sema, AstNodeRef closureRef, const AstClosureExpr& closure)
+    {
+        SmallVector<AstNodeRef> captures;
+        sema.ast().appendNodes(captures, closure.nodeCaptureArgsRef);
+
+        const TypeRef  closureTypeRef = expressionTypeRef(sema, closureRef);
+        SemaEscapeInfo result;
+        for (const AstNodeRef captureRef : captures)
+        {
+            const auto*           captureArg = sema.node(captureRef).safeCast<AstClosureArgument>();
+            const SymbolVariable* sourceVar  = captureArg ? identifierVariable(sema, captureArg->nodeIdentifierRef) : nullptr;
+            if (!sourceVar)
+                continue;
+
+            if (captureArg->hasFlag(AstClosureArgumentFlagsE::Address))
+                result = mergeEscapeInfo(result, variableStorageInfo(sema, *sourceVar, captureArg->nodeIdentifierRef, closureTypeRef));
+            else if (const SemaEscapeInfo* info = sema.variableEscapeInfo(*sourceVar))
+                result = mergeEscapeInfo(result, *info);
+        }
+
+        if (result.hasBorrow())
+            result.typeRef = closureTypeRef;
+        return result;
+    }
+
     SemaEscapeInfo expressionEscapeInfoRec(Sema& sema, AstNodeRef nodeRef, uint32_t& budget)
     {
         if (!budget || nodeRef.isInvalid())
             return {};
         budget--;
+
+        const AstNode& rawNode = sema.node(nodeRef);
+        if (rawNode.is(AstNodeId::ClosureExpr))
+            return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>());
 
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isInvalid())
@@ -681,6 +770,9 @@ namespace
             case AstNodeId::UnaryExpr:
                 return unaryEscapeInfo(sema, resolvedRef, node.cast<AstUnaryExpr>(), budget);
 
+            case AstNodeId::ClosureExpr:
+                return closureEscapeInfo(sema, resolvedRef, node.cast<AstClosureExpr>());
+
             default:
                 if (typeCanCarryBorrowImpl(sema, expressionTypeRef(sema, resolvedRef)))
                     return childrenEscapeInfo(sema, node, budget);
@@ -719,6 +811,9 @@ namespace
         {
             case AstNodeId::InitializerExpr:
                 return expressionEscapeInfoWithTarget(sema, rawNode.cast<AstInitializerExpr>().nodeExprRef, targetTypeRef, budget);
+
+            case AstNodeId::ClosureExpr:
+                return closureEscapeInfo(sema, nodeRef, rawNode.cast<AstClosureExpr>());
 
             case AstNodeId::NamedArgument:
                 return expressionEscapeInfoWithTarget(sema, rawNode.cast<AstNamedArgument>().nodeArgRef, targetTypeRef, budget);
@@ -923,28 +1018,25 @@ namespace SemaEscape
         return Result::Continue;
     }
 
-    Result checkReturn(Sema& sema, AstNodeRef exprRef, TypeRef returnTypeRef)
+    Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn)
     {
         if (!typeCanCarryBorrowImpl(sema, returnTypeRef))
             return Result::Continue;
 
         uint32_t                 budget = K_EXPR_BUDGET;
         const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
-        if (info.isLocalBorrow())
-            reportBorrowEscape(sema, exprRef, info, "a return value");
-
-        return Result::Continue;
-    }
-
-    Result checkClosureCapture(Sema& sema, AstNodeRef captureRef, const SymbolVariable& sourceVar, bool captureByRef)
-    {
-        if (captureByRef)
+        if (!info.isLocalBorrow())
             return Result::Continue;
 
-        const SemaEscapeInfo* info = sema.variableEscapeInfo(sourceVar);
-        if (info && info->isLocalBorrow())
-            reportBorrowEscape(sema, captureRef, *info, "a closure capture");
+        // A return inside an inline expansion hands the value back to the calling frame:
+        // borrowing the caller's own storage does not escape anything. Only storage the
+        // inlined callee owns dies with the expansion.
+        if (inlineSourceFn && info.sourceVar &&
+            !info.sourceVar->isFunctionLocalVariable(*inlineSourceFn) &&
+            !inlineSourceFn->containsLocalVariable(*info.sourceVar))
+            return Result::Continue;
 
+        reportBorrowEscape(sema, returnRef, info, "a return value");
         return Result::Continue;
     }
 }

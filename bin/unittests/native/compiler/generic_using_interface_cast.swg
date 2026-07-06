@@ -38,16 +38,18 @@ struct GenericUsingWrapper
     other:      s32
 }
 
-func(T) makeInterface(value: s32)->IGenericUsingCast
+// The returned interface borrows the storage it was created from, so the caller
+// provides storage that outlives the call.
+func(T) makeInterface(object: *T, value: s32)->IGenericUsingCast
 {
-    var object: T
     object.valueField = value
-    return cast(IGenericUsingCast) object
+    return cast(IGenericUsingCast) dref object
 }
 
 #test
 {
-    let itf = makeInterface'GenericUsingWrapper(91)
+    var wrapper: GenericUsingWrapper
+    let itf = makeInterface(&wrapper, 91)
     @assert(itf.baseValue() == 91)
     @assert(itf.partialValue() == 101)
 }

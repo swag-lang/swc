@@ -55,10 +55,13 @@ func runReassignment()->bool
     return f.foo() == 99
 }
 
+// The returned interface borrows the storage it was created from, so that
+// storage must outlive the call: use module storage, not a local.
+var FooStorage: Multi
+
 func makeFoo()->IFoo
 {
-    var m: Multi
-    return cast(IFoo) m
+    return cast(IFoo) FooStorage
 }
 
 func runReturnValue()->bool

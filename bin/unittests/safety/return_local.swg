@@ -11,6 +11,7 @@ func escapeLocal()->*s32
 {
     var v: s32
     return &v // swc-expected-error {{safety_err_return_local_address}}
+    // swc-expected-warning@-1 {{sema_warn_borrow_escape}}
 }
 
 #test
@@ -26,6 +27,7 @@ func escapeLocalViaCopy()->*s32
     var v: s32
     var p = &v
     return p // swc-expected-error {{safety_err_return_local_address}}
+    // swc-expected-warning@-1 {{sema_warn_borrow_escape}}
 }
 
 #test

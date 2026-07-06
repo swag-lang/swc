@@ -29,17 +29,19 @@ impl IBar for Multi
     mtd impl bar()->s32 => .y
 }
 
-// Interface as function return value.
+// Interface as function return value. The returned interface borrows the storage
+// it was created from, so that storage must outlive the call: use module storage,
+// not a local.
+var FooBarStorage: Multi
+
 func makeFoo()->IFoo
 {
-    var m: Multi
-    return cast(IFoo) m
+    return cast(IFoo) FooBarStorage
 }
 
 func makeBar()->IBar
 {
-    var m: Multi
-    return cast(IBar) m
+    return cast(IBar) FooBarStorage
 }
 
 // Multiple interfaces on the same struct.

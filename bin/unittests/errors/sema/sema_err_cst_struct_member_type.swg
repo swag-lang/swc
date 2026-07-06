@@ -8,7 +8,7 @@ struct PtrHolder
 func makePtrHolder()->PtrHolder
 {
     var local: u8 = 1
-    return {value: &local}
+    return {value: &local} // swc-expected-warning {{sema_warn_borrow_escape}}
 }
 
 struct FnHolder

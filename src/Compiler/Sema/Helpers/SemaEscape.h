@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class Sema;
+class SymbolFunction;
 class SymbolVariable;
 
 namespace SemaEscape
@@ -12,8 +13,7 @@ namespace SemaEscape
     bool   typeCanCarryBorrow(Sema& sema, TypeRef typeRef);
     Result checkVariableInitializer(Sema& sema, const SymbolVariable& symVar, AstNodeRef initRef, TypeRef targetTypeRef);
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef);
-    Result checkReturn(Sema& sema, AstNodeRef exprRef, TypeRef returnTypeRef);
-    Result checkClosureCapture(Sema& sema, AstNodeRef captureRef, const SymbolVariable& sourceVar, bool captureByRef);
+    Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn);
 }
 
 SWC_END_NAMESPACE();

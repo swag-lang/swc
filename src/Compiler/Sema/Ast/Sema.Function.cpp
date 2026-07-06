@@ -851,7 +851,10 @@ namespace
                 SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, view));
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
             if (!returnValueIsCompilerMaterialized(sema))
-                SWC_RESULT(SemaEscape::checkReturn(sema, exprRef, returnTypeRef));
+            {
+                const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema);
+                SWC_RESULT(SemaEscape::checkReturn(sema, returnRef, exprRef, returnTypeRef, inlinePayload ? inlinePayload->sourceFunction : nullptr));
+            }
             return Result::Continue;
         }
 
@@ -1212,8 +1215,6 @@ namespace
 
             if (captureByRef && hasExplicitAlias && !sema.isLValue(captureArg.nodeIdentifierRef))
                 return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, captureArg.nodeIdentifierRef);
-            if (sourceVar)
-                SWC_RESULT(SemaEscape::checkClosureCapture(sema, captureArg.nodeIdentifierRef, *sourceVar, captureByRef));
 
             // A by-value capture is a raw byte copy into the closure buffer: the environment never
             // runs 'opPostCopy' on the way in and never drops the captured value on the way out, so

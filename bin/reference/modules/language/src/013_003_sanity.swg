@@ -55,7 +55,9 @@ func sanityGlobalAddress()->*s32
 Views that borrow function-local storage — pointers, slices, strings, 'any',
 interfaces, closures capturing by address — must not outlive that storage
 ('.Lifecycle'). Returning them, storing them into a global, or writing them through
-a caller-visible pointer is a compile-time error.
+a caller-visible pointer is a compile-time error. This includes views of an OWNER's
+heap payload (a 'string' view of a local 'Core.String', for example): the payload is
+freed when the owner drops, and a local owner drops with its scope.
 */
 var sanityGlobalBuffer: [4] u8
 

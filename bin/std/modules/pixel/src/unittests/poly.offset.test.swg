@@ -1,7 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func getOutlineFontPath()->string
+func getOutlineFontPath()->String
 {
     return getTestDataPath("segoeui.ttf")
 }

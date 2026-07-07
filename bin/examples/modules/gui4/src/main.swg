@@ -534,7 +534,9 @@ impl IPropertyEditor for RatingEditor
 
 func updateStatus(item: *PropertiesItem)
 {
-    var name = item.typeValue.name
+    // Owned: 'RichString.getNaked' returns a 'String' whose view would dangle once
+    // the temporary is dropped at the end of the statement.
+    var name: String = item.typeValue.name
     if name == "" and item.label do
         name = RichString.getNaked(item.label.getText())
     if name == "" do

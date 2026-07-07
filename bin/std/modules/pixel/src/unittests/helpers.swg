@@ -1,11 +1,12 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func getTestDataPath(fileName: string, loc = #callerlocation)->string
+// Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
+// 'Path.combine' results are dropped (caught by the owner-view escape analysis).
+func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    var path = Path.getDirectoryName(loc.fileName)
-    path = Path.combine(path, "datas")
-    path = Path.combine(path, fileName)
+    let dir  = Path.getDirectoryName(loc.fileName)
+    var path = Path.combine(dir, "datas", fileName)
     @assert(File.exists(path))
     return path
 }

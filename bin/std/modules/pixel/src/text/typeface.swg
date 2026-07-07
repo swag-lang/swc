@@ -2,7 +2,7 @@ using Core, TrueType
 
 public struct TypeFace
 {
-    fullname:         string
+    fullname:         String
     buffer:           Array'u8
     face:             *Face
     forceBoldDiv:     u32 = 11

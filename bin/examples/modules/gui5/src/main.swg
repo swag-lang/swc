@@ -126,7 +126,7 @@ func pageSubtitle(page: s32)->string
     unreachable
 }
 
-func colorSummary()->string
+func colorSummary()->String
 {
     let hsl = g_Color.toHsl()
     return Format.toString("#%{X08}  A:% R:% G:% B:%  H:% S:% L:%", g_Color.argb, g_Color.a, g_Color.r, g_Color.g, g_Color.b, cast(s32) (hsl.h * 360), cast(s32) (hsl.s * 100), cast(s32) (hsl.l * 100))

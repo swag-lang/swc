@@ -743,3 +743,88 @@ func borrowEscapeMaterializedScope()->u16
     }
     return 0
 }
+
+// ---------------------------------------------------------------------------
+// Owner structs (heap payload freed by 'opDrop', like Core.String): a view of a
+// LOCAL owner's payload dies with the owner's drop at scope end — same report
+// sites as a frame borrow.
+// ---------------------------------------------------------------------------
+
+struct BorrowEscapeOwned
+{
+    buffer: [*] u8
+    length: u64
+}
+
+impl BorrowEscapeOwned
+{
+    mtd opDrop() {}
+
+    #[Swag.Implicit, Swag.Inline]
+    mtd const opCast()->string
+    {
+        return @mkstring(.buffer, .length)
+    }
+}
+
+func borrowEscapeOwnedReturn()->string
+{
+    var str: BorrowEscapeOwned
+    return str // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeOwnedGlobal()
+{
+    var str: BorrowEscapeOwned
+    borrowEscapeGlobalText = str // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A view kept local is fine while the owner lives.
+func borrowEscapeOwnedLocalOnly()->u64
+{
+    var str: BorrowEscapeOwned
+    let view: string = str
+    return @countof(view)
+}
+
+// The view bound to a local and returned later.
+func borrowEscapeOwnedChained()->string
+{
+    var str: BorrowEscapeOwned
+    let view: string = str
+    return view // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A pointed-to owner belongs to the caller: returning its view is fine HERE and
+// feeds the summary, so call sites are judged against what was really passed.
+func borrowEscapeOwnedParamView(str: *BorrowEscapeOwned)->string
+{
+    return dref str
+}
+
+func borrowEscapeOwnedThroughParam()->string
+{
+    var str: BorrowEscapeOwned
+    return borrowEscapeOwnedParamView(&str) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+var borrowEscapeGlobalOwned: BorrowEscapeOwned
+
+func borrowEscapeOwnedGlobalSource()->string
+{
+    return borrowEscapeGlobalOwned
+}
+
+// An rvalue owner is dropped at the end of the statement: its view dangles as
+// soon as it is bound.
+func borrowEscapeMakeOwned()->BorrowEscapeOwned
+{
+    var o: BorrowEscapeOwned
+    return o
+}
+
+func borrowEscapeOwnedTemporary()->u64
+{
+    let view: string = borrowEscapeMakeOwned() // swc-expected-error {{sanity_err_borrow_temporary}}
+    return @countof(view)
+}

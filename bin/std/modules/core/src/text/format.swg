@@ -90,6 +90,10 @@ func toString(fmt: string, values: ...)->String
 }
 
 // Returns a formatted string stored in the temporary allocator.
+// The payload lives in the TEMP allocator: dropping the local 'String' does not free
+// it, so the returned view intentionally outlives the owner (valid until the temp
+// allocator resets). Opt out of the owner-view escape check.
+#[Swag.Sanity(.Lifecycle, false)]
 func toStringTemp(fmt: string, values: ...)->string
     verify
     {

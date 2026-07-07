@@ -605,6 +605,10 @@ namespace
     // Only composite storage can be aliased by an implicit carrier binding (array decay,
     // opCast borrowing 'self', interface creation, ...). Scalars convert by value: casting
     // a 'u64' to a pointer reinterprets the value and never borrows the variable storage.
+    // Owner structs (Core.String, ...) qualify too: their heap payload is freed when the
+    // owner drops, and for a LOCAL owner the drop coincides with scope death — rooting a
+    // view at the owner variable reports exactly the escapes that dangle. Parameter and
+    // global owners yield Parameter/Static kinds and stay silent locally.
     bool typeHasBorrowableStorage(Sema& sema, TypeRef typeRef)
     {
         typeRef = unwrapAliasEnum(sema, typeRef);
@@ -612,15 +616,7 @@ namespace
             return false;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isArray() || type.isAggregate())
-            return true;
-
-        if (!type.isStruct())
-            return false;
-
-        // Owner structs such as Core.String manage their payload through their lifecycle:
-        // a view of their storage is an ownership question, not a frame borrow.
-        return !hasOwningLifecycle(sema, typeRef);
+        return type.isArray() || type.isAggregate() || type.isStruct();
     }
 
     bool expressionMayExposeStorageBorrow(Sema& sema, AstNodeRef exprRef)

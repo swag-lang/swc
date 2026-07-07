@@ -10,7 +10,6 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
-#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -309,8 +308,8 @@ namespace
 
             case AstNodeId::MemberAccessExpr:
             {
-                const AstNodeRef leftRef      = node.cast<AstMemberAccessExpr>().nodeLeftRef;
-                const TypeRef    leftTypeRef  = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
+                const AstNodeRef leftRef     = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+                const TypeRef    leftTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
                 if (isDirectBorrowCarrier(sema, leftTypeRef))
                 {
                     // Accessing storage through a pointer that itself borrows a known local
@@ -430,12 +429,6 @@ namespace
             default:
                 return nullptr;
         }
-    }
-
-    const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef)
-    {
-        bool wholeVariable = false;
-        return storageRootVariable(sema, nodeRef, false, wholeVariable);
     }
 
     SemaEscapeInfo storageBorrowInfo(Sema& sema, AstNodeRef sourceRef, TypeRef typeRef, bool allowDirectCarrier = false)
@@ -560,8 +553,8 @@ namespace
 
         if (targetType.isStruct())
         {
-            const SymbolStruct& targetStruct = targetType.payloadSymStruct();
-            const auto&         fields       = targetStruct.fields();
+            const SymbolStruct& targetStruct   = targetType.payloadSymStruct();
+            const auto&         fields         = targetStruct.fields();
             const auto          findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) {
                 return targetStruct.tryGetFieldIndexByName(outIndex, idRef);
             };
@@ -576,7 +569,7 @@ namespace
         if (!targetType.isAggregateStruct())
             return TypeRef::invalid();
 
-        const auto& aggregate = targetType.payloadAggregate();
+        const auto& aggregate          = targetType.payloadAggregate();
         const auto  resolveMemberIndex = [&](IdentifierRef idRef, size_t& outIndex) {
             return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
         };
@@ -707,11 +700,11 @@ namespace
 
     SemaEscapeInfo castEscapeInfo(Sema& sema, AstNodeRef castRef, const AstCastExpr& cast, uint32_t& budget)
     {
-        const TypeRef resultTypeRef        = expressionTypeRef(sema, castRef);
-        const bool    operandSelfSubst     = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
-        SemaEscapeInfo info                = operandSelfSubst
-                                                 ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
-                                                 : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
+        const TypeRef  resultTypeRef    = expressionTypeRef(sema, castRef);
+        const bool     operandSelfSubst = castOperandSelfSubstituted(sema, castRef, cast.nodeExprRef);
+        SemaEscapeInfo info             = operandSelfSubst
+                                              ? expressionEscapeInfoAt(sema, cast.nodeExprRef, budget)
+                                              : expressionEscapeInfoRec(sema, cast.nodeExprRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
@@ -884,7 +877,7 @@ namespace
     // would make the errors flicker between otherwise identical builds. Instead, call
     // sites in escaping positions snapshot their argument borrows into deferred records
     // (recordDeferredCallBorrow below), judged once the module has no pending sema job.
-    SemaEscapeInfo callResultEscapeInfo(Sema& sema, AstNodeRef callRef, const AstCallExpr& call, uint32_t& budget)
+    SemaEscapeInfo callResultEscapeInfo(const Sema& sema, AstNodeRef callRef, const AstCallExpr& call, const uint32_t& budget)
     {
         SWC_UNUSED(call);
         SWC_UNUSED(callRef);
@@ -1131,12 +1124,6 @@ namespace
         }
     }
 
-    SemaEscapeInfo expressionEscapeInfo(Sema& sema, AstNodeRef nodeRef)
-    {
-        uint32_t budget = K_EXPR_BUDGET;
-        return expressionEscapeInfoRec(sema, nodeRef, budget);
-    }
-
     SemaEscapeInfo aggregateChildrenEscapeInfoWithTarget(Sema& sema, std::span<const AstNodeRef> children, TypeRef targetTypeRef, uint32_t& budget)
     {
         SemaEscapeInfo result;
@@ -1264,7 +1251,7 @@ namespace
     TypeRef destinationTypeRef(Sema& sema, AstNodeRef leftRef)
     {
         const SemaNodeView leftView = sema.viewType(leftRef);
-        TypeRef            typeRef  = leftView.typeRef();
+        const TypeRef      typeRef  = leftView.typeRef();
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
@@ -1394,8 +1381,8 @@ namespace SemaEscape
             return Result::Continue;
         }
 
-        uint32_t                 budget = K_EXPR_BUDGET;
-        const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget);
+        uint32_t             budget = K_EXPR_BUDGET;
+        const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget);
         if (!info.hasBorrow())
         {
             if (variableInitializerCanEscape(symVar))
@@ -1409,7 +1396,7 @@ namespace SemaEscape
         // statement, exactly like the temporary itself: nothing escapes there.
         if (info.isTemporaryBorrow())
         {
-            Result reportResult = Result::Continue;
+            auto reportResult = Result::Continue;
             if (!SemaHelpers::effectiveInlinePayload(sema))
                 reportResult = reportBorrowEscape(sema, initRef, info, "an initializer");
             sema.clearVariableEscapeInfo(symVar);
@@ -1443,8 +1430,8 @@ namespace SemaEscape
             return Result::Continue;
         }
 
-        uint32_t                 budget = K_EXPR_BUDGET;
-        const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
+        uint32_t             budget = K_EXPR_BUDGET;
+        const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
         if (!info.hasBorrow())
         {
             // A destination outside the local frame turns a callee-borrowed argument
@@ -1490,8 +1477,8 @@ namespace SemaEscape
         if (!typeCanCarryBorrowImpl(sema, returnTypeRef))
             return Result::Continue;
 
-        uint32_t                 budget = K_EXPR_BUDGET;
-        const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
+        uint32_t             budget = K_EXPR_BUDGET;
+        const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
 
         // A returned call result may borrow the arguments handed to the callee: defer
         // the judgement to the per-function summaries.
@@ -1542,8 +1529,8 @@ namespace SemaEscape
 
     void reportDeferredChecks(TaskContext& ctx)
     {
-        std::vector<SemaEscapeDeferredCheck> checks = ctx.compiler().takeDeferredEscapeChecks();
-        std::vector<SemaEscapeSummaryEdge>   edges  = ctx.compiler().takeEscapeSummaryEdges();
+        std::vector<SemaEscapeDeferredCheck>     checks = ctx.compiler().takeDeferredEscapeChecks();
+        const std::vector<SemaEscapeSummaryEdge> edges  = ctx.compiler().takeEscapeSummaryEdges();
 
         // Chain the per-function summaries across opaque calls before judging: a
         // wrapper that returns 'g(p)' borrows whatever 'g' says it borrows. Masks only

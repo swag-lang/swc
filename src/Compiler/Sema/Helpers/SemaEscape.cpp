@@ -1495,12 +1495,15 @@ namespace
 
         // A deferred opaque-call borrow reaching storage that outlives the frame:
         // stamp this site and judge against the callee's (final) summaries. Summary
-        // edges only propagate for GLOBAL destinations (see applyAssignment).
+        // edges only propagate for destinations that provably hand the borrow onward:
+        // globals (the caller stores it) and retval storage (the caller returns it).
         if (info.isDeferredCallBorrow())
         {
             std::optional<SemaEscapeSummaryEdgeKind> edgeKind;
             if (dstVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
                 edgeKind = SemaEscapeSummaryEdgeKind::ReturnToStores;
+            else if (dstVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+                edgeKind = SemaEscapeSummaryEdgeKind::ReturnToReturn;
             emitDeferredCallEscape(sema, info, atNodeRef, what, edgeKind);
             return Result::Continue;
         }
@@ -1548,7 +1551,9 @@ namespace SemaEscape
         {
             if (variableInitializerCanEscape(symVar))
             {
-                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer", DeferredCallUse::Store, true);
+                // A retval initializer hands the result back to the caller: RETURN use.
+                const DeferredCallUse use = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? DeferredCallUse::Return : DeferredCallUse::Store;
+                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer", use, true);
                 sema.clearVariableEscapeInfo(symVar);
             }
             else if (isLocalVariableStorage(sema, symVar))
@@ -1575,6 +1580,19 @@ namespace SemaEscape
                 reportResult = reportBorrowEscape(sema, initRef, info, "an initializer");
             sema.clearVariableEscapeInfo(symVar);
             return reportResult;
+        }
+
+        // Initializing the RETVAL storage with a parameter borrow hands it back to the
+        // caller: feeds the RETURN summary like 'return param'.
+        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar && symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        {
+            SymbolFunction* currentFn = sema.currentFunction();
+            if (currentFn)
+            {
+                size_t paramIndex = 0;
+                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
+                    currentFn->addReturnBorrowsParam(paramIndex);
+            }
         }
 
         if (info.sourceVar == &symVar)
@@ -1612,10 +1630,12 @@ namespace SemaEscape
             // into an escape: defer the judgement to the per-function summaries. Only a
             // GLOBAL destination provably outlives the frame ('durableDest'): pointer
             // dereferences and parameter-rooted destinations may target caller-frame
-            // storage.
+            // storage. A RETVAL destination hands the result back to the caller: that
+            // is a RETURN use (edges chain into the caller's return summary).
             if (!dstVar || !isLocalVariableStorage(sema, *dstVar))
             {
-                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment", DeferredCallUse::Store, dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage));
+                const DeferredCallUse use = dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ? DeferredCallUse::Return : DeferredCallUse::Store;
+                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment", use, dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage));
                 if (dstVar && wholeVariable)
                     sema.clearVariableEscapeInfo(*dstVar);
             }
@@ -1642,6 +1662,20 @@ namespace SemaEscape
                 size_t paramIndex = 0;
                 if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
                     currentFn->addStoresParam(paramIndex);
+            }
+        }
+
+        // Storing a parameter borrow into the RETVAL storage hands it back through the
+        // return value ('result.field = param; return result'): feeds the RETURN
+        // summary exactly like 'return param'.
+        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        {
+            SymbolFunction* currentFn = sema.currentFunction();
+            if (currentFn)
+            {
+                size_t paramIndex = 0;
+                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
+                    currentFn->addReturnBorrowsParam(paramIndex);
             }
         }
 

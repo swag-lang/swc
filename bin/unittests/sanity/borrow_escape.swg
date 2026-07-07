@@ -828,3 +828,61 @@ func borrowEscapeOwnedTemporary()->u64
     let view: string = borrowEscapeMakeOwned() // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(view)
 }
+
+// ---------------------------------------------------------------------------
+// Retval fields: storing a parameter borrow into the named return value hands
+// it back to the caller — it feeds the RETURN summary like a plain 'return'.
+// ---------------------------------------------------------------------------
+
+struct BorrowEscapeBox
+{
+    text: string
+}
+
+var borrowEscapeGlobalBytes: [4] u8
+
+func borrowEscapeRetvalBox(s: string)->BorrowEscapeBox
+{
+    var result: retval
+    result.text = s
+    return result
+}
+
+func borrowEscapeThroughRetvalBox()->BorrowEscapeBox
+{
+    var buf: [3] u8
+    buf[0] = 'a''u8
+    return borrowEscapeRetvalBox(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Caller-independent data flows through the retval untouched.
+func borrowEscapeThroughRetvalBoxGlobal()->BorrowEscapeBox
+{
+    return borrowEscapeRetvalBox(cast(string) borrowEscapeGlobalBytes)
+}
+
+// The summary chains when the retval field is filled through an opaque call.
+func borrowEscapeRetvalBoxCall(s: string)->BorrowEscapeBox
+{
+    var result: retval
+    result.text = borrowEscapeIdentity(s)
+    return result
+}
+
+func borrowEscapeThroughRetvalBoxCall()->BorrowEscapeBox
+{
+    var buf: [3] u8
+    buf[0] = 'a''u8
+    return borrowEscapeRetvalBoxCall(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A LOCAL borrow stored into the retval escapes right away (already covered by
+// the destination rules): regression-pinned here.
+func borrowEscapeRetvalLocal()->BorrowEscapeBox
+{
+    var buf: [3] u8
+    buf[0] = 'a''u8
+    var result: retval
+    result.text = cast(string) buf // swc-expected-error {{sanity_err_borrow_escape}}
+    return result
+}

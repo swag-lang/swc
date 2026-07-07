@@ -741,7 +741,8 @@ impl Capture
         if y do
             .snapY = -1
 
-        let ctrlPressed = Input.Keyboard.isKeyPressed(.Control) or Input.Keyboard.isKeyPressed(.RControl)
+        let keyb        = &.editView.getApp().keyb
+        let ctrlPressed = keyb.isKeyPressed(.Control) or keyb.isKeyPressed(.RControl) or keyb.isKeyPressed(.LControl)
         if !.editView.main.snap and !ctrlPressed do
             return
 
@@ -1005,8 +1006,8 @@ impl Capture
         if .hotForm != Swag.U64.Max do
             app.setFrameCursor(Cursor.from(.SizeAll))
 
-        let shiftPressed = Input.Keyboard.isKeyPressed(.Shift) or Input.Keyboard.isKeyPressed(.RShift)
-        let ctrlPressed  = Input.Keyboard.isKeyPressed(.Control) or Input.Keyboard.isKeyPressed(.RControl)
+        let shiftPressed = cast(bool) (evt.modifiers & .Shift)
+        let ctrlPressed  = cast(bool) (evt.modifiers & .Control)
 
         // Start of mode
         ///////////////////////
@@ -1250,7 +1251,7 @@ impl Capture
     {
         // Holding 'O' makes the mouse ignore every form, so a click can start a
         // lasso or create a new form on top of existing ones.
-        if g_App.keyb.isKeyPressed(Input.Key.O) do
+        if .editView.getApp().keyb.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
         let res = .hitTests(localPos, true)
         if res.isEmpty() do

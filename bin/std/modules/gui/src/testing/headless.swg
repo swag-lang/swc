@@ -118,8 +118,46 @@ impl GuiHeadlessHost
         .deleteQueuedObjects()
     }
 
+    mtd runFrames(count: u32)
+    {
+        for count
+        {
+            .app.sendFrameEvents()
+            .pump()
+        }
+    }
+
+    mtd setKeyState(key: Input.Key, pressed: bool)
+    {
+        .app.keyb.currentState.pressed[key] = pressed
+    }
+
+    mtd setModifierKeys(modifiers: Input.KeyModifiers, pressed: bool)
+    {
+        if modifiers & .Shift
+        {
+            .setKeyState(.Shift, pressed)
+            .setKeyState(.LShift, pressed)
+        }
+
+        if modifiers & .Control
+        {
+            .setKeyState(.Control, pressed)
+            .setKeyState(.LControl, pressed)
+        }
+
+        if modifiers & .Alt
+        {
+            .setKeyState(.MenuCtrl, pressed)
+            .setKeyState(.LMenu, pressed)
+        }
+    }
+
     mtd moveMouse(pt: Math.Point, modifiers: Input.KeyModifiers = Zero)
     {
+        .app.mouse.previousState.position = .app.mouse.currentState.position
+        .app.mouse.currentState.position  = pt
+
         let target = .getMouseTarget(pt)
 
         if target != .app.mouseEnterWnd
@@ -140,6 +178,7 @@ impl GuiHeadlessHost
     {
         .moveMouse(pt, modifiers)
 
+        .app.mouse.currentState.pressed[button] = true
         let target = .getMouseTarget(pt)
         if target do
             .sendMouseEvent(target, .MousePressed, pt, button, modifiers)
@@ -147,6 +186,7 @@ impl GuiHeadlessHost
 
     mtd mouseUp(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
     {
+        .app.mouse.currentState.pressed[button] = false
         let target = .getMouseTarget(pt)
         if target do
             .sendMouseEvent(target, .MouseReleased, pt, button, modifiers)
@@ -159,6 +199,43 @@ impl GuiHeadlessHost
         .mouseUp(pt, button, modifiers)
     }
 
+    mtd doubleClick(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    {
+        .moveMouse(pt, modifiers)
+
+        let target = .getMouseTarget(pt)
+        if target do
+            .sendMouseEvent(target, .MouseDoubleClick, pt, button, modifiers)
+        .pump()
+    }
+
+    mtd drag(fromPt, toPt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    {
+        .mouseDown(fromPt, button, modifiers)
+        .moveMouse(toPt, modifiers)
+        .mouseUp(toPt, button, modifiers)
+    }
+
+    mtd mouseWheel(pt: Math.Point, delta: s32, modifiers: Input.KeyModifiers = Zero)
+    {
+        .moveMouse(pt, modifiers)
+
+        let target = .getMouseTarget(pt)
+        if !target do
+            return
+
+        .setModifierKeys(modifiers, true)
+        defer { me.setModifierKeys(modifiers, false) }
+
+        var evt = MouseEvent{kind: .MouseWheel}
+        evt.button = Input.MouseButton.Left
+        evt.surfacePos = pt
+        evt.move.y = delta
+        evt.modifiers = modifiers
+        target.sendEvent(&evt)
+        .pump()
+    }
+
     mtd focus(wnd: *Wnd)
     {
         .app.keybFocusWnd = wnd
@@ -169,14 +246,31 @@ impl GuiHeadlessHost
         let target = .app.keybFocusWnd
         Debug.assert(target != null)
 
+        .setModifierKeys(modifiers, true)
+        .setKeyState(key, true)
+
         var evt = KeyEvent{kind: .KeyPressed}
         evt.key = key
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
+        if !evt.accepted
+        {
+            let cmdId = target.getKeyShortcut(modifiers, key)
+            if cmdId != null do
+                target.sendCommandEvent(cmdId)
+        }
+
+        .setKeyState(key, false)
         evt.kind = .KeyReleased
         target.sendEvent(&evt)
+        .setModifierKeys(modifiers, false)
         .pump()
+    }
+
+    mtd shortcut(key: Input.Key, modifiers: Input.KeyModifiers)
+    {
+        .keyPress(key, modifiers)
     }
 
     mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = Zero)
@@ -184,11 +278,17 @@ impl GuiHeadlessHost
         let target = .app.keybFocusWnd
         Debug.assert(target != null)
 
+        .setModifierKeys(modifiers, true)
+        .setKeyState(key, true)
+
         var evt = KeyEvent{kind: .Rune}
         evt.key = key
         evt.char = char
         evt.modifiers = modifiers
         target.sendEvent(&evt)
+
+        .setKeyState(key, false)
+        .setModifierKeys(modifiers, false)
         .pump()
     }
 
@@ -206,6 +306,9 @@ impl GuiHeadlessHost
 
     mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
     {
+        .setModifierKeys(modifiers, true)
+        defer { me.setModifierKeys(modifiers, false) }
+
         var evt = MouseEvent{kind: kind}
         evt.button = button
         evt.surfacePos = pt

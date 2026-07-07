@@ -75,8 +75,8 @@ impl IWnd for LibraryView
             .hotItem = ht
         }
 
-        let shiftPressed = Input.Keyboard.isKeyPressed(.Shift) or Input.Keyboard.isKeyPressed(.RShift)
-        let ctrlPressed  = Input.Keyboard.isKeyPressed(.Control) or Input.Keyboard.isKeyPressed(.RControl)
+        let shiftPressed = cast(bool) (evt.modifiers & .Shift)
+        let ctrlPressed  = cast(bool) (evt.modifiers & .Control)
 
         if evt.kind == .MouseReleased and .hotItem != Swag.U32.Max and evt.button == .Left
         {

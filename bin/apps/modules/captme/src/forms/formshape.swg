@@ -59,7 +59,7 @@ impl IForm for FormShape
         yb += ybu
 
         // Same size
-        let shiftPressed = Input.Keyboard.isKeyPressed(.Shift) or Input.Keyboard.isKeyPressed(.RShift)
+        let shiftPressed = cast(bool) (evt.modifiers & .Shift)
         if shiftPressed
         {
             let ww = xb - xa

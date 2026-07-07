@@ -34,3 +34,17 @@ func depBorrowRead(p: *s32)->s32
 {
     return dref p
 }
+
+// Pair summary: the item is stored into storage reachable from 'me'.
+struct DepBorrowContainer
+{
+    slot: *s32
+}
+
+impl DepBorrowContainer
+{
+    mtd add(item: *s32)
+    {
+        .slot = item
+    }
+}

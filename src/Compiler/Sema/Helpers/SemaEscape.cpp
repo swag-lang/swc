@@ -900,6 +900,24 @@ namespace
         Argument,
     };
 
+    // Resolves a variable to the signature parameter it stands for: the variable
+    // itself when flagged Parameter, or the receiver when it is the body 'me' binding
+    // of a method (which carries no Parameter flag).
+    const SymbolVariable* signatureParameterFor(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return &symVar;
+
+        if (symVar.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+        {
+            const SymbolFunction* currentFn = sema.currentFunction();
+            if (currentFn && currentFn->hasExtraFlag(SymbolFunctionFlagsE::Method) && !currentFn->parameters().empty())
+                return currentFn->parameters().front();
+        }
+
+        return nullptr;
+    }
+
     // Maps a Parameter-kind borrow source to its index in the function's signature.
     bool findCallerParameterIndex(const SymbolFunction& fn, const SymbolVariable& sourceVar, size_t& outIndex)
     {
@@ -916,12 +934,39 @@ namespace
         return false;
     }
 
+    // Fills the diagnostic payload of a check template from the borrowed argument's
+    // info (identity of the borrowed source; site and wording are stamped at commit).
+    void fillDeferredCheckDiag(Sema& sema, SemaEscapeDeferredCheck& check, const SemaEscapeInfo& info)
+    {
+        check.typeRef = info.typeRef;
+
+        if (info.isLocalBorrow())
+        {
+            check.diagId      = DiagnosticId::sanity_err_borrow_escape;
+            check.symName     = info.sourceVar->name(sema.ctx());
+            check.noteId      = DiagnosticId::sema_note_borrow_source_declared_here;
+            check.noteSymName = check.symName;
+            check.noteRange   = info.sourceVar->codeRange(sema.ctx());
+            return;
+        }
+
+        check.diagId = info.isTemporaryBorrow() ? DiagnosticId::sanity_err_borrow_temporary : DiagnosticId::sanity_err_borrow_materialized;
+        if (info.sourceRef.isValid())
+        {
+            check.noteId    = DiagnosticId::sema_note_borrow_temporary_here;
+            check.noteRange = sema.node(info.sourceRef).codeRange(sema.ctx());
+        }
+    }
+
     // Snapshots the borrows carried by the arguments of an opaque call into check
     // templates (escaping borrows) and proto-edges (caller-parameter arguments). The
     // flow state is only valid NOW, so the argument side is captured eagerly; the
     // callee's summaries are read later, when they are final regardless of the sema
-    // job order. Returns false when nothing borrows or the call is not summarizable.
-    bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, SemaEscapeDeferredCallSnapshot& outCapture)
+    // job order. 'collectPairs' additionally crosses the arguments against the
+    // callee's stores-into-parameter pairs ('g_container.add(&local)') — only wanted
+    // from the once-per-call Argument hook. Returns false when nothing borrows or the
+    // call is not summarizable.
+    bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, bool collectPairs, SemaEscapeDeferredCallSnapshot& outCapture)
     {
         if (exprRef.isInvalid())
             return false;
@@ -963,6 +1008,8 @@ namespace
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(resolvedRef, args);
 
+        SmallVector<std::pair<uint32_t, SemaEscapeInfo>> argBorrows;
+
         size_t paramIndex = 0;
         for (const ResolvedCallArgument& arg : args)
         {
@@ -990,6 +1037,8 @@ namespace
 
             uint32_t             budget = K_EXPR_BUDGET;
             const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, arg, param->typeRef(), budget);
+            if (collectPairs && info.hasBorrow())
+                argBorrows.push_back({static_cast<uint32_t>(thisParam), info});
 
             // Handing the callee one of the caller's own parameters chains the
             // summaries: judged by fixpoint, not here — the callee's masks are not
@@ -1010,6 +1059,33 @@ namespace
                 continue;
             }
 
+            // A local bound to another opaque call handed onward ('let p = f(&v);
+            // g(p)'): compose the two summaries. Each borrow captured at 'f' becomes a
+            // GUARDED template — it escapes only if 'f' returns it (the guard) AND
+            // this callee keeps or returns its argument (the main judge). Templates
+            // that already carry a guard are not re-composed (depth-two limit).
+            if (info.isDeferredCallBorrow())
+            {
+                const SemaEscapeDeferredCallSnapshot* snapshot = sema.escapeDeferredCallSnapshot(info.deferredCallRef);
+                if (snapshot)
+                {
+                    for (const SemaEscapeDeferredCheck& inner : snapshot->checks)
+                    {
+                        if (inner.guardCallee)
+                            continue;
+
+                        SemaEscapeDeferredCheck check = inner;
+                        check.guardCallee             = inner.callee;
+                        check.guardParamIndex         = inner.paramIndex;
+                        check.callee                  = fn;
+                        check.paramIndex              = static_cast<uint32_t>(thisParam);
+                        outCapture.checks.push_back(std::move(check));
+                    }
+                }
+
+                continue;
+            }
+
             if (!info.isLocalBorrow() && !info.isTemporaryBorrow() && !info.isMaterializedBorrow())
                 continue;
 
@@ -1018,27 +1094,37 @@ namespace
             SemaEscapeDeferredCheck check;
             check.callee     = fn;
             check.paramIndex = static_cast<uint32_t>(thisParam);
-            check.typeRef    = info.typeRef;
+            fillDeferredCheckDiag(sema, check, info);
+            outCapture.checks.push_back(std::move(check));
+        }
 
-            if (info.isLocalBorrow())
+        // Cross-argument pairs: 'g_container.add(&local)' escapes when the callee
+        // stores the borrowed argument into storage reachable from the container
+        // argument. Only a GLOBAL destination argument provably outlives the borrow;
+        // caller-parameter destinations would need pair transitivity (future).
+        if (collectPairs)
+        {
+            for (const auto& [intoParam, intoInfo] : argBorrows)
             {
-                check.diagId      = DiagnosticId::sanity_err_borrow_escape;
-                check.symName     = info.sourceVar->name(sema.ctx());
-                check.noteId      = DiagnosticId::sema_note_borrow_source_declared_here;
-                check.noteSymName = check.symName;
-                check.noteRange   = info.sourceVar->codeRange(sema.ctx());
-            }
-            else
-            {
-                check.diagId = info.isTemporaryBorrow() ? DiagnosticId::sanity_err_borrow_temporary : DiagnosticId::sanity_err_borrow_materialized;
-                if (info.sourceRef.isValid())
+                if (intoInfo.kind != SemaEscapeKind::Static || intoParam >= 8)
+                    continue;
+
+                for (const auto& [storedParam, storedInfo] : argBorrows)
                 {
-                    check.noteId    = DiagnosticId::sema_note_borrow_temporary_here;
-                    check.noteRange = sema.node(info.sourceRef).codeRange(sema.ctx());
+                    if (storedParam == intoParam || storedParam >= 8)
+                        continue;
+                    if (!storedInfo.isLocalBorrow() && !storedInfo.isTemporaryBorrow() && !storedInfo.isMaterializedBorrow())
+                        continue;
+
+                    SemaEscapeDeferredCheck check;
+                    check.callee         = fn;
+                    check.paramIndex     = storedParam;
+                    check.judgePairs     = true;
+                    check.intoParamIndex = intoParam;
+                    fillDeferredCheckDiag(sema, check, storedInfo);
+                    outCapture.checks.push_back(std::move(check));
                 }
             }
-
-            outCapture.checks.push_back(std::move(check));
         }
 
         return !outCapture.checks.empty() || !outCapture.edges.empty();
@@ -1080,7 +1166,7 @@ namespace
     void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what, DeferredCallUse use, bool durableDest)
     {
         SemaEscapeDeferredCallSnapshot capture;
-        if (!captureOpaqueCallBorrows(sema, exprRef, capture))
+        if (!captureOpaqueCallBorrows(sema, exprRef, use == DeferredCallUse::Argument, capture))
             return;
 
         switch (use)
@@ -1110,7 +1196,7 @@ namespace
     void bindDeferredCallBorrow(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef)
     {
         SemaEscapeDeferredCallSnapshot capture;
-        if (!captureOpaqueCallBorrows(sema, exprRef, capture))
+        if (!captureOpaqueCallBorrows(sema, exprRef, false, capture))
         {
             sema.clearVariableEscapeInfo(symVar);
             return;
@@ -1679,6 +1765,35 @@ namespace SemaEscape
             }
         }
 
+        // Storing a parameter borrow into storage reachable from ANOTHER parameter
+        // ('me.list = item' -> pair item->me): legal here, but judged at call sites
+        // where the destination argument provably outlives the stored one. The
+        // assignment-mode root above bails on parameter-pointer destinations, so walk
+        // the destination in READ mode: it roots member/dref accesses at the signature
+        // receiver. A BARE identifier destination is the parameter being rebound: no
+        // caller-visible store.
+        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+        {
+            bool                  pairWhole       = false;
+            const SymbolVariable* pairRoot        = storageRootVariable(sema, leftRef, false, pairWhole);
+            SymbolFunction*       currentFn       = sema.currentFunction();
+            const AstNodeRef      leftResolvedRef = sema.viewZero(leftRef).nodeRef();
+            const bool            leftIsBareVar   = leftResolvedRef.isValid() && sema.node(leftResolvedRef).is(AstNodeId::Identifier);
+            if (pairRoot && !leftIsBareVar && currentFn)
+            {
+                const SymbolVariable* dstParam = signatureParameterFor(sema, *pairRoot);
+                if (dstParam && !isByValueParameterStorage(sema, *dstParam))
+                {
+                    size_t storedIndex = 0;
+                    size_t intoIndex   = 0;
+                    if (findCallerParameterIndex(*currentFn, *info.sourceVar, storedIndex) &&
+                        findCallerParameterIndex(*currentFn, *dstParam, intoIndex) &&
+                        storedIndex != intoIndex)
+                        currentFn->addStoresIntoParam(intoIndex, storedIndex);
+                }
+            }
+        }
+
         if (dstVar)
             return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment");
         if (info.isLocalBorrow() || info.isMaterializedBorrow() || info.isTemporaryBorrow())
@@ -1834,7 +1949,15 @@ namespace SemaEscape
                 return a.siteRange.offset < b.siteRange.offset;
             if (a.paramIndex != b.paramIndex)
                 return a.paramIndex < b.paramIndex;
-            return a.judgeStores < b.judgeStores;
+            if (a.judgeStores != b.judgeStores)
+                return a.judgeStores < b.judgeStores;
+            if (a.judgePairs != b.judgePairs)
+                return a.judgePairs < b.judgePairs;
+            if (a.intoParamIndex != b.intoParamIndex)
+                return a.intoParamIndex < b.intoParamIndex;
+            if (a.guardParamIndex != b.guardParamIndex)
+                return a.guardParamIndex < b.guardParamIndex;
+            return a.symName < b.symName;
         });
 
         const SemaEscapeDeferredCheck* previous = nullptr;
@@ -1850,12 +1973,30 @@ namespace SemaEscape
                 previous->siteRange.offset == check.siteRange.offset &&
                 previous->paramIndex == check.paramIndex &&
                 previous->judgeStores == check.judgeStores &&
+                previous->judgePairs == check.judgePairs &&
+                previous->intoParamIndex == check.intoParamIndex &&
+                previous->guardCallee == check.guardCallee &&
+                previous->guardParamIndex == check.guardParamIndex &&
+                previous->symName == check.symName &&
                 previous->diagId == check.diagId)
                 continue;
             previous = &check;
 
-            const uint64_t judgeMask = check.judgeStores ? check.callee->storesParamsMask() : check.callee->returnBorrowsParamsMask();
-            if (!(judgeMask & (1ULL << check.paramIndex)))
+            if (check.judgePairs)
+            {
+                if (!SymbolFunction::hasStoresIntoPair(check.callee->storesIntoParamPairs(), check.intoParamIndex, check.paramIndex))
+                    continue;
+            }
+            else
+            {
+                const uint64_t judgeMask = check.judgeStores ? check.callee->storesParamsMask() : check.callee->returnBorrowsParamsMask();
+                if (!(judgeMask & (1ULL << check.paramIndex)))
+                    continue;
+            }
+
+            // Composed chained-local check: the borrow reaches this call only if the
+            // ORIGINAL callee returns it.
+            if (check.guardCallee && !(check.guardCallee->returnBorrowsParamsMask() & (1ULL << check.guardParamIndex)))
                 continue;
 
             Diagnostic diag = Diagnostic::get(check.diagId, check.fileRef);

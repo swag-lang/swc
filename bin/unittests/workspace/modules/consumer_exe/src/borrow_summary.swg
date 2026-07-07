@@ -17,5 +17,11 @@ func verifyImportedBorrowSummaries()
 
     var local: s32 = 5
     @assert(depBorrowRead(&local) == 5)
+
+    // Imported pair summary: caller-owned data into a global container is fine.
+    gConsumerContainer.add(&gConsumerBorrowInt)
+    @assert(gConsumerContainer.slot == &gConsumerBorrowInt)
 }
+
+var gConsumerContainer: DepBorrowContainer
 

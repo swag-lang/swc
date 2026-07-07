@@ -344,11 +344,14 @@ namespace
 
         uint64_t returnsMask = 0;
         uint64_t storesMask  = 0;
+        uint64_t intoPairs   = 0;
         SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], returnsMask));
         if (args.size() >= 2)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], storesMask));
+        if (args.size() >= 3)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[2], intoPairs));
 
-        outAttributes.addBorrowSummary(returnsMask, storesMask);
+        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs);
         return Result::Continue;
     }
 

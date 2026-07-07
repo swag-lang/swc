@@ -209,9 +209,10 @@ namespace
         // transitive bits added by the summary fixpoint.
         const uint64_t returnsMask = symbolFunction.returnBorrowsParamsMask();
         const uint64_t storesMask  = symbolFunction.storesParamsMask();
-        if ((returnsMask != 0 || storesMask != 0) && !ioSnippet.contains("BorrowSummary"))
+        const uint64_t intoPairs   = symbolFunction.storesIntoParamPairs();
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0) && !ioSnippet.contains("BorrowSummary"))
         {
-            prefix += std::format("#[Swag.BorrowSummary({}, {})]", returnsMask, storesMask);
+            prefix += std::format("#[Swag.BorrowSummary({}, {}, {})]", returnsMask, storesMask, intoPairs);
             prefix += eol;
         }
 

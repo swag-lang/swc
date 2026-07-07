@@ -24,7 +24,16 @@ struct SemaEscapeDeferredCheck
     uint32_t              paramIndex = 0;
     // Judged against the callee's STORES summary (the callee keeps its argument beyond
     // the call) instead of its RETURN summary (the call result carries the borrow).
-    bool            judgeStores = false;
+    bool judgeStores = false;
+    // Optional second condition: 'let p = f(&v); g(p)' escapes only if 'f' RETURNS the
+    // borrow of 'v' (the guard) AND 'g' keeps/returns its argument (the main judge).
+    const SymbolFunction* guardCallee     = nullptr;
+    uint32_t              guardParamIndex = 0;
+    // Judged against the callee's PAIR summary instead: parameter #paramIndex stored
+    // into storage reachable from parameter #intoParamIndex, whose argument at this
+    // site is a global.
+    bool     judgePairs     = false;
+    uint32_t intoParamIndex = 0;
     DiagnosticId    diagId      = {};
     FileRef         fileRef;
     SourceCodeRange siteRange;

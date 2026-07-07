@@ -81,6 +81,21 @@ public:
         if (paramIndex < 64)
             storesParamsMask_ |= 1ULL << paramIndex;
     }
+
+    // Bit (into*8 + stored) = parameter #stored may be stored into storage reachable
+    // from parameter #into ('me.list = item' -> pair (item -> me)). Judged at call
+    // sites where the 'into' argument provably outlives the stored one (a global).
+    // Packed 8x8: parameters beyond #7 are not tracked.
+    uint64_t storesIntoParamPairs() const noexcept;
+    void     addStoresIntoParam(size_t intoIndex, size_t storedIndex) noexcept
+    {
+        if (intoIndex < 8 && storedIndex < 8)
+            storesIntoParamPairs_ |= 1ULL << (intoIndex * 8 + storedIndex);
+    }
+    static bool hasStoresIntoPair(uint64_t pairs, size_t intoIndex, size_t storedIndex) noexcept
+    {
+        return intoIndex < 8 && storedIndex < 8 && (pairs & (1ULL << (intoIndex * 8 + storedIndex))) != 0;
+    }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
     void                                addParameter(SymbolVariable* sym);
@@ -218,6 +233,7 @@ private:
     uint32_t                                  localStackOffset_    = 0;
     uint64_t                                  returnBorrowsParamsMask_ = 0;
     uint64_t                                  storesParamsMask_    = 0;
+    uint64_t                                  storesIntoParamPairs_ = 0;
     TypeRef                                   returnType_          = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                                specOpKind_          = SpecOpKind::None;

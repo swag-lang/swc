@@ -110,7 +110,9 @@ borrow, and they cross module boundaries through the generated module API (the
 A callee that stores its parameter into storage that outlives the call (a global)
 makes any borrowed argument escape, whatever happens to the call result. This
 summary is inferred like the return summary, chains through wrappers, and crosses
-module boundaries the same way.
+module boundaries the same way. Storing one parameter into storage reachable from
+ANOTHER ('container.add(&item)') is summarized as a pair: the call site errors when
+the container argument is a global and the stored one borrows a local.
 */
 var sanityGlobalStash: *s32
 

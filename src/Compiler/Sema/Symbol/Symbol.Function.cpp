@@ -801,6 +801,11 @@ uint64_t SymbolFunction::storesParamsMask() const noexcept
     return storesParamsMask_ | (hasAttributes() ? attributes().storesParamsMask : 0);
 }
 
+uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
+{
+    return storesIntoParamPairs_ | (hasAttributes() ? attributes().storesIntoParamPairs : 0);
+}
+
 bool SymbolFunction::tryGetParameterIndexByName(size_t& outIndex, const IdentifierRef name, const size_t startIndex) const noexcept
 {
     for (size_t index = startIndex; index < parameters_.size(); ++index)

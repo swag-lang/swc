@@ -886,3 +886,90 @@ func borrowEscapeRetvalLocal()->BorrowEscapeBox
     result.text = cast(string) buf // swc-expected-error {{sanity_err_borrow_escape}}
     return result
 }
+
+// ---------------------------------------------------------------------------
+// Chained local handed to another call: the deferred borrow composes the two
+// summaries — it escapes only if the FIRST callee returns it AND the second
+// keeps or returns it.
+// ---------------------------------------------------------------------------
+
+func borrowEscapeChainedArgStash()
+{
+    var v: s32
+    let p = borrowEscapePassthrough(&v)
+    borrowEscapeStash(p) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeChainedArgReturn()->*s32
+{
+    var v: s32
+    let p = borrowEscapePassthrough(&v)
+    return borrowEscapePassthrough(p) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Rebinding through a second opaque call keeps the composed borrow alive.
+func borrowEscapeChainedArgRebind()->*s32
+{
+    var v: s32
+    let p = borrowEscapePassthrough(&v)
+    let q = borrowEscapePassthrough(p)
+    return q // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A non-borrowing source stays silent whatever the second callee does.
+func borrowEscapeChainedArgReadOnly()
+{
+    var v: s32
+    let p = borrowEscapeWrapGlobalSource(&v)
+    borrowEscapeStash(p)
+}
+
+// A borrowing source handed to a non-keeping callee stays silent.
+func borrowEscapeChainedArgHarmless()->s32
+{
+    var v: s32 = 4
+    let p = borrowEscapePassthrough(&v)
+    return borrowEscapeReadOnly(p)
+}
+
+// ---------------------------------------------------------------------------
+// Stores-into-parameter pairs: a callee that stores one argument into storage
+// reachable from another ('container.add(&item)') escapes when the container
+// argument is a GLOBAL and the stored one borrows a local.
+// ---------------------------------------------------------------------------
+
+struct BorrowEscapeContainer
+{
+    slot: *s32
+}
+
+impl BorrowEscapeContainer
+{
+    mtd add(item: *s32)
+    {
+        .slot = item
+    }
+}
+
+var borrowEscapeGlobalContainer: BorrowEscapeContainer
+
+func borrowEscapePairGlobal()
+{
+    var v: s32
+    borrowEscapeGlobalContainer.add(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A local container lives as long as the borrow: silent.
+func borrowEscapePairLocal()->s32
+{
+    var v: s32 = 5
+    var c: BorrowEscapeContainer
+    c.add(&v)
+    return dref c.slot
+}
+
+// Caller-owned data can be stored into a global container.
+func borrowEscapePairGlobalSource()
+{
+    borrowEscapeGlobalContainer.add(&borrowEscapeGlobalInt)
+}

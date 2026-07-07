@@ -72,10 +72,13 @@ var sanityGlobalBuffer: [4] u8
 }
 
 /**
-The analysis follows borrows across local bindings, control-flow joins, and even
-opaque calls: a function whose return value may borrow one of its parameters is
-summarized, and the call site is checked against what was really passed in. The
-summaries chain, so wrapping a borrowing function does not hide the borrow.
+The analysis follows borrows across local bindings — including a call result bound
+to a local and returned later ('let p = passthrough(&v); return p') — control-flow
+joins, and even opaque calls: a function whose return value may borrow one of its
+parameters is summarized, and the call site is checked against what was really
+passed in. The summaries chain, so wrapping a borrowing function does not hide the
+borrow, and they cross module boundaries through the generated module API (the
+'Swag.BorrowSummary' attribute).
 */
 #test
 {
@@ -97,6 +100,34 @@ summaries chain, so wrapping a borrowing function does not hide the borrow.
     }
 
     @assert(caller() == &sanityGlobalValue)
+}
+
+/**
+# 'Stored Arguments'
+
+A callee that stores its parameter into storage that outlives the call (a global)
+makes any borrowed argument escape, whatever happens to the call result. This
+summary is inferred like the return summary, chains through wrappers, and crosses
+module boundaries the same way.
+*/
+var sanityGlobalStash: *s32
+
+func sanityStash(p: *s32)
+{
+    sanityGlobalStash = p // Legal here: 'p' is caller-owned. Judged at call sites.
+}
+
+#test
+{
+    func caller()
+    {
+        // var v: s32
+        // sanityStash(&v)  // Uncomment: error, the callee keeps the borrow
+        sanityStash(&sanityGlobalValue) // A global outlives everything
+    }
+
+    caller()
+    @assert(sanityGlobalStash == &sanityGlobalValue)
 }
 
 /**

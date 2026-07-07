@@ -424,4 +424,5 @@ func verifyCrossDllTypeIdentity()
     verifyRuntimeContext()
     verifyEmptyDerivedInterfaceIs()
     verifyCrossDllTypeIdentity()
+    verifyImportedBorrowSummaries()
 }

@@ -441,7 +441,12 @@ namespace
         const SymbolVariable* sourceVar     = storageRootVariable(sema, sourceRef, false, wholeVariable);
         if (sourceVar)
         {
-            if (wholeVariable && rawSourceTypeRef.isValid() && sema.typeMgr().get(rawSourceTypeRef).isReference())
+            // A reference-typed VARIABLE designates the storage it was bound to: return
+            // that binding's borrow. Decided on the declared type — a self-substituted
+            // cast operand (implicit receiver conversion) reports the cast's result
+            // type, not the variable's.
+            const TypeRef varTypeRef = unwrapAliasEnum(sema, sourceVar->typeRef());
+            if (wholeVariable && varTypeRef.isValid() && sema.typeMgr().get(varTypeRef).isReference())
             {
                 if (const SemaEscapeInfo* existing = sema.variableEscapeInfo(*sourceVar))
                 {
@@ -753,6 +758,9 @@ namespace
                     info.kind      = isOpCast ? SemaEscapeKind::Temporary : SemaEscapeKind::Materialized;
                     info.sourceRef = operandRef;
                     info.typeRef   = resultTypeRef;
+                    // The runtime storage behaves like an anonymous local of the
+                    // CURRENT scope: a shallower destination outlives it.
+                    info.sourceScopeDepth = sema.currentScopeDepth();
                     return info;
                 }
             }
@@ -886,17 +894,41 @@ namespace
         return {};
     }
 
-    // Snapshots the borrows carried by the arguments of an opaque call whose result
-    // lands in an escaping position (return, global, caller-visible storage). The flow
-    // state is only valid NOW, so the argument side is captured eagerly; the callee's
-    // 'returnBorrowsParamsMask' is read later, in reportDeferredChecks, when it is
-    // final regardless of the sema job order. 'summaryCaller' is set when the call
-    // result is RETURNED by that function: caller-parameter arguments then record
-    // propagation edges so the summaries chain across opaque calls.
-    void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what, SymbolFunction* summaryCaller)
+    // How the analyzed site uses the opaque call: its result is returned by the
+    // caller, its result is stored outside the local frame, or the call just happens
+    // and only its arguments matter.
+    enum class DeferredCallUse : uint8_t
     {
-        if (exprRef.isInvalid() || atNodeRef.isInvalid())
-            return;
+        Return,
+        Store,
+        Argument,
+    };
+
+    // Maps a Parameter-kind borrow source to its index in the function's signature.
+    bool findCallerParameterIndex(const SymbolFunction& fn, const SymbolVariable& sourceVar, size_t& outIndex)
+    {
+        const auto& params = fn.parameters();
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            if (params[i] == &sourceVar)
+            {
+                outIndex = i;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Snapshots the borrows carried by the arguments of an opaque call into check
+    // templates (escaping borrows) and proto-edges (caller-parameter arguments). The
+    // flow state is only valid NOW, so the argument side is captured eagerly; the
+    // callee's summaries are read later, when they are final regardless of the sema
+    // job order. Returns false when nothing borrows or the call is not summarizable.
+    bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, SemaEscapeDeferredCallSnapshot& outCapture)
+    {
+        if (exprRef.isInvalid())
+            return false;
 
         AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
         uint32_t   unwrapGuard = 8;
@@ -914,23 +946,23 @@ namespace
         }
 
         if (resolvedRef.isInvalid() || !sema.node(resolvedRef).is(AstNodeId::CallExpr))
-            return;
+            return false;
 
         const auto&           call = sema.node(resolvedRef).cast<AstCallExpr>();
         const SymbolFunction* fn   = resolvedCallFunction(sema, resolvedRef, call.nodeExprRef);
         if (!fn)
-            return;
+            return false;
 
         // Inline expansions are analyzed within the caller with exact information: the
         // summary path only covers opaque calls.
         if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Inline) ||
             fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
             fn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-            return;
+            return false;
 
         const auto& params = fn->parameters();
         if (params.empty())
-            return;
+            return false;
 
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(resolvedRef, args);
@@ -956,42 +988,41 @@ namespace
             if (paramTypeRef.isValid() && sema.typeMgr().get(paramTypeRef).isAnyVariadic())
                 break;
 
+            // A parameter that cannot carry a borrow can neither return nor store one.
+            if (paramTypeRef.isValid() && !typeCanCarryBorrowImpl(sema, paramTypeRef))
+                continue;
+
             uint32_t             budget = K_EXPR_BUDGET;
             const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, arg, param->typeRef(), budget);
 
-            // Returning the callee's result while handing it one of the caller's own
-            // parameters chains the summaries: judged by fixpoint, not here — the
-            // callee's mask is not final yet.
-            if (summaryCaller && info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+            // Handing the callee one of the caller's own parameters chains the
+            // summaries: judged by fixpoint, not here — the callee's masks are not
+            // final yet. The edge kind is chosen by the committer.
+            if (info.kind == SemaEscapeKind::Parameter && info.sourceVar)
             {
-                const auto& callerParams = summaryCaller->parameters();
-                for (size_t i = 0; i < callerParams.size(); ++i)
-                {
-                    if (callerParams[i] == info.sourceVar)
-                    {
-                        SemaEscapeSummaryEdge edge;
-                        edge.caller           = summaryCaller;
-                        edge.callee           = fn;
-                        edge.callerParamIndex = static_cast<uint32_t>(i);
-                        edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
-                        sema.ctx().compiler().addEscapeSummaryEdge(edge);
-                        break;
-                    }
-                }
+                SymbolFunction* callerFn         = sema.currentFunction();
+                size_t          callerParamIndex = 0;
+                if (!callerFn || !findCallerParameterIndex(*callerFn, *info.sourceVar, callerParamIndex))
+                    continue;
 
+                SemaEscapeSummaryEdge edge;
+                edge.caller           = callerFn;
+                edge.callee           = fn;
+                edge.callerParamIndex = static_cast<uint32_t>(callerParamIndex);
+                edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
+                outCapture.edges.push_back(edge);
                 continue;
             }
 
             if (!info.isLocalBorrow() && !info.isTemporaryBorrow() && !info.isMaterializedBorrow())
                 continue;
 
+            // Site, wording and judged summary are stamped when the borrow provably
+            // escapes (commitDeferredCallBorrows).
             SemaEscapeDeferredCheck check;
             check.callee     = fn;
             check.paramIndex = static_cast<uint32_t>(thisParam);
-            check.what       = what;
             check.typeRef    = info.typeRef;
-            check.fileRef    = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
-            check.siteRange  = sema.node(atNodeRef).codeRange(sema.ctx());
 
             if (info.isLocalBorrow())
             {
@@ -1011,8 +1042,100 @@ namespace
                 }
             }
 
+            outCapture.checks.push_back(std::move(check));
+        }
+
+        return !outCapture.checks.empty() || !outCapture.edges.empty();
+    }
+
+    // Stamps the escape site on a capture and hands it to the compiler for the final
+    // judgement. 'judgeStores' selects which callee summary the checks are judged
+    // against; 'edgeKind' selects how caller-parameter arguments propagate (empty =
+    // dropped: the destination does not provably outlive the frame).
+    void commitDeferredCallBorrows(Sema& sema, const SemaEscapeDeferredCallSnapshot& capture, AstNodeRef atNodeRef, std::string_view what, bool judgeStores, std::optional<SemaEscapeSummaryEdgeKind> edgeKind)
+    {
+        if (atNodeRef.isInvalid())
+            return;
+
+        const FileRef         fileRef   = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
+        const SourceCodeRange siteRange = sema.node(atNodeRef).codeRange(sema.ctx());
+
+        for (const SemaEscapeDeferredCheck& checkTemplate : capture.checks)
+        {
+            SemaEscapeDeferredCheck check = checkTemplate;
+            check.judgeStores             = judgeStores;
+            check.what                    = what;
+            check.fileRef                 = fileRef;
+            check.siteRange               = siteRange;
             sema.ctx().compiler().addDeferredEscapeCheck(std::move(check));
         }
+
+        if (!edgeKind.has_value())
+            return;
+
+        for (const SemaEscapeSummaryEdge& protoEdge : capture.edges)
+        {
+            SemaEscapeSummaryEdge edge = protoEdge;
+            edge.kind                  = edgeKind.value();
+            sema.ctx().compiler().addEscapeSummaryEdge(edge);
+        }
+    }
+
+    void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what, DeferredCallUse use, bool durableDest)
+    {
+        SemaEscapeDeferredCallSnapshot capture;
+        if (!captureOpaqueCallBorrows(sema, exprRef, capture))
+            return;
+
+        switch (use)
+        {
+            case DeferredCallUse::Return:
+                commitDeferredCallBorrows(sema, capture, atNodeRef, what, false, SemaEscapeSummaryEdgeKind::ReturnToReturn);
+                break;
+
+            case DeferredCallUse::Store:
+            {
+                std::optional<SemaEscapeSummaryEdgeKind> edgeKind;
+                if (durableDest)
+                    edgeKind = SemaEscapeSummaryEdgeKind::ReturnToStores;
+                commitDeferredCallBorrows(sema, capture, atNodeRef, what, false, edgeKind);
+                break;
+            }
+
+            case DeferredCallUse::Argument:
+                commitDeferredCallBorrows(sema, capture, atNodeRef, what, true, SemaEscapeSummaryEdgeKind::StoresToStores);
+                break;
+        }
+    }
+
+    // Binding an opaque call result to a local: capture the argument borrows now (the
+    // flow state dies with the statement) and judge them only if the local later
+    // escapes (return, durable store).
+    void bindDeferredCallBorrow(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef)
+    {
+        SemaEscapeDeferredCallSnapshot capture;
+        if (!captureOpaqueCallBorrows(sema, exprRef, capture))
+        {
+            sema.clearVariableEscapeInfo(symVar);
+            return;
+        }
+
+        SemaEscapeInfo info;
+        info.kind            = SemaEscapeKind::DeferredCall;
+        info.deferredCallRef = sema.addEscapeDeferredCallSnapshot(std::move(capture));
+        info.sourceRef       = exprRef;
+        sema.setVariableEscapeInfo(symVar, info);
+    }
+
+    // A DeferredCall borrow provably escaping: judge its captured checks and edges at
+    // the escape site.
+    void emitDeferredCallEscape(Sema& sema, const SemaEscapeInfo& info, AstNodeRef atNodeRef, std::string_view what, std::optional<SemaEscapeSummaryEdgeKind> edgeKind)
+    {
+        const SemaEscapeDeferredCallSnapshot* snapshot = sema.escapeDeferredCallSnapshot(info.deferredCallRef);
+        if (!snapshot)
+            return;
+
+        commitDeferredCallBorrows(sema, *snapshot, atNodeRef, what, false, edgeKind);
     }
 
     SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget)
@@ -1041,6 +1164,25 @@ namespace
                         SemaEscapeInfo info;
                         info.kind      = SemaEscapeKind::Parameter;
                         info.sourceVar = symVar;
+                        info.sourceRef = resolvedRef;
+                        info.typeRef   = symVar->typeRef();
+                        return info;
+                    }
+                }
+
+                // A method body binds 'me' to a body-local symbol distinct from the
+                // signature receiver: root it at the receiver parameter so 'g(me)'
+                // feeds the summaries like any parameter argument.
+                if (symVar->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+                {
+                    const SymbolFunction* currentFn = sema.currentFunction();
+                    if (currentFn &&
+                        currentFn->hasExtraFlag(SymbolFunctionFlagsE::Method) &&
+                        !currentFn->parameters().empty())
+                    {
+                        SemaEscapeInfo info;
+                        info.kind      = SemaEscapeKind::Parameter;
+                        info.sourceVar = currentFn->parameters().front();
                         info.sourceRef = resolvedRef;
                         info.typeRef   = symVar->typeRef();
                         return info;
@@ -1340,7 +1482,30 @@ namespace
                     return reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
             }
 
+            // Materialized cast storage behaves like an anonymous local of the scope it
+            // was created in: a shallower destination outlives it. Inline expansions
+            // materialize into the enclosing statement and open their own scopes, so
+            // their depths do not compare.
+            if (info.isMaterializedBorrow() && info.sourceScopeDepth && !SemaHelpers::effectiveInlinePayload(sema))
+            {
+                const uint32_t dstDepth = sema.variableScopeDepth(dstVar);
+                if (dstDepth && info.sourceScopeDepth > dstDepth)
+                    return reportBorrowEscape(sema, atNodeRef, info, what);
+            }
+
             sema.setVariableEscapeInfo(dstVar, info);
+            return Result::Continue;
+        }
+
+        // A deferred opaque-call borrow reaching storage that outlives the frame:
+        // stamp this site and judge against the callee's (final) summaries. Summary
+        // edges only propagate for GLOBAL destinations (see applyAssignment).
+        if (info.isDeferredCallBorrow())
+        {
+            std::optional<SemaEscapeSummaryEdgeKind> edgeKind;
+            if (dstVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
+                edgeKind = SemaEscapeSummaryEdgeKind::ReturnToStores;
+            emitDeferredCallEscape(sema, info, atNodeRef, what, edgeKind);
             return Result::Continue;
         }
 
@@ -1386,8 +1551,21 @@ namespace SemaEscape
         if (!info.hasBorrow())
         {
             if (variableInitializerCanEscape(symVar))
-                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer", nullptr);
-            sema.clearVariableEscapeInfo(symVar);
+            {
+                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer", DeferredCallUse::Store, true);
+                sema.clearVariableEscapeInfo(symVar);
+            }
+            else if (isLocalVariableStorage(sema, symVar))
+            {
+                // 'let p = f(&v)': the local may borrow the call's arguments — capture
+                // them now, judge only if 'p' later escapes.
+                bindDeferredCallBorrow(sema, symVar, initRef);
+            }
+            else
+            {
+                sema.clearVariableEscapeInfo(symVar);
+            }
+
             return Result::Continue;
         }
 
@@ -1435,12 +1613,40 @@ namespace SemaEscape
         if (!info.hasBorrow())
         {
             // A destination outside the local frame turns a callee-borrowed argument
-            // into an escape: defer the judgement to the per-function summaries.
+            // into an escape: defer the judgement to the per-function summaries. Only a
+            // GLOBAL destination provably outlives the frame ('durableDest'): pointer
+            // dereferences and parameter-rooted destinations may target caller-frame
+            // storage.
             if (!dstVar || !isLocalVariableStorage(sema, *dstVar))
-                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment", nullptr);
-            if (dstVar && wholeVariable)
-                sema.clearVariableEscapeInfo(*dstVar);
+            {
+                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment", DeferredCallUse::Store, dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage));
+                if (dstVar && wholeVariable)
+                    sema.clearVariableEscapeInfo(*dstVar);
+            }
+            else if (wholeVariable)
+            {
+                // 'p = f(&v)' into a local: same deferred capture as an initializer.
+                bindDeferredCallBorrow(sema, *dstVar, rightRef);
+            }
+
             return Result::Continue;
+        }
+
+        // Storing a parameter borrow into a GLOBAL makes this function "store its
+        // argument": legal for THIS function (the data is caller-owned), but it feeds
+        // the per-function STORES summary judged at every call site against what was
+        // really passed in. Only true globals qualify: a destination rooted at a
+        // parameter (me.list = x) targets caller-owned storage whose relative
+        // lifetime is unknown (the allocator free-lists live in 'me').
+        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
+        {
+            SymbolFunction* currentFn = sema.currentFunction();
+            if (currentFn)
+            {
+                size_t paramIndex = 0;
+                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
+                    currentFn->addStoresParam(paramIndex);
+            }
         }
 
         if (dstVar)
@@ -1483,7 +1689,7 @@ namespace SemaEscape
         // A returned call result may borrow the arguments handed to the callee: defer
         // the judgement to the per-function summaries.
         if (!info.hasBorrow() && !inlineSourceFn)
-            recordDeferredCallBorrow(sema, exprRef, returnRef, "a return value", sema.currentFunction());
+            recordDeferredCallBorrow(sema, exprRef, returnRef, "a return value", DeferredCallUse::Return, false);
 
         // A temporary lives until the end of the enclosing statement, and materialized
         // cast storage lives with the frame. An inline-expanded return hands both back
@@ -1495,21 +1701,25 @@ namespace SemaEscape
             return Result::Continue;
         }
 
+        // A local bound to an opaque call result and returned ('let p = f(&v); return
+        // p'): judge the captured argument borrows against the callee's summaries.
+        if (info.isDeferredCallBorrow())
+        {
+            if (!inlineSourceFn)
+                emitDeferredCallEscape(sema, info, returnRef, "a return value", SemaEscapeSummaryEdgeKind::ReturnToReturn);
+            return Result::Continue;
+        }
+
         // Returning a borrow of caller-owned data is fine for THIS function, but feeds
         // the per-function summary consumed at call sites (callResultEscapeInfo).
         if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter && info.sourceVar)
         {
-            if (SymbolFunction* currentFn = sema.currentFunction())
+            SymbolFunction* currentFn = sema.currentFunction();
+            if (currentFn)
             {
-                const auto& params = currentFn->parameters();
-                for (size_t i = 0; i < params.size(); ++i)
-                {
-                    if (params[i] == info.sourceVar)
-                    {
-                        currentFn->addReturnBorrowsParam(i);
-                        break;
-                    }
-                }
+                size_t paramIndex = 0;
+                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
+                    currentFn->addReturnBorrowsParam(paramIndex);
             }
         }
 
@@ -1527,27 +1737,58 @@ namespace SemaEscape
         return reportBorrowEscape(sema, returnRef, info, "a return value");
     }
 
+    void noteCallArguments(Sema& sema, AstNodeRef callRef)
+    {
+        if (!lifecycleSanityEnabled(sema))
+            return;
+
+        recordDeferredCallBorrow(sema, callRef, callRef, "a stored call argument", DeferredCallUse::Argument, false);
+    }
+
     void reportDeferredChecks(TaskContext& ctx)
     {
         std::vector<SemaEscapeDeferredCheck>     checks = ctx.compiler().takeDeferredEscapeChecks();
         const std::vector<SemaEscapeSummaryEdge> edges  = ctx.compiler().takeEscapeSummaryEdges();
 
         // Chain the per-function summaries across opaque calls before judging: a
-        // wrapper that returns 'g(p)' borrows whatever 'g' says it borrows. Masks only
-        // grow, so the fixpoint terminates; cycles (mutual recursion) just converge.
-        // Sema is fully drained here, so growing the masks is race-free.
+        // wrapper that returns 'g(p)' borrows whatever 'g' says it borrows, and a
+        // function that forwards its parameter to a storing callee stores it too.
+        // Masks only grow, so the fixpoint terminates; cycles (mutual recursion) just
+        // converge. Sema is fully drained here, so growing the masks is race-free.
         bool changed = !edges.empty();
         while (changed)
         {
             changed = false;
             for (const SemaEscapeSummaryEdge& edge : edges)
             {
-                if (!(edge.callee->returnBorrowsParamsMask() & (1ULL << edge.calleeParamIndex)))
-                    continue;
-                if (edge.caller->returnBorrowsParamsMask() & (1ULL << edge.callerParamIndex))
-                    continue;
-                edge.caller->addReturnBorrowsParam(edge.callerParamIndex);
-                changed = true;
+                const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
+                const uint64_t callerBit = 1ULL << edge.callerParamIndex;
+                switch (edge.kind)
+                {
+                    case SemaEscapeSummaryEdgeKind::ReturnToReturn:
+                        if ((edge.callee->returnBorrowsParamsMask() & calleeBit) && !(edge.caller->returnBorrowsParamsMask() & callerBit))
+                        {
+                            edge.caller->addReturnBorrowsParam(edge.callerParamIndex);
+                            changed = true;
+                        }
+                        break;
+
+                    case SemaEscapeSummaryEdgeKind::ReturnToStores:
+                        if ((edge.callee->returnBorrowsParamsMask() & calleeBit) && !(edge.caller->storesParamsMask() & callerBit))
+                        {
+                            edge.caller->addStoresParam(edge.callerParamIndex);
+                            changed = true;
+                        }
+                        break;
+
+                    case SemaEscapeSummaryEdgeKind::StoresToStores:
+                        if ((edge.callee->storesParamsMask() & calleeBit) && !(edge.caller->storesParamsMask() & callerBit))
+                        {
+                            edge.caller->addStoresParam(edge.callerParamIndex);
+                            changed = true;
+                        }
+                        break;
+                }
             }
         }
 
@@ -1561,14 +1802,30 @@ namespace SemaEscape
                 return a.fileRef < b.fileRef;
             if (a.siteRange.offset != b.siteRange.offset)
                 return a.siteRange.offset < b.siteRange.offset;
-            return a.paramIndex < b.paramIndex;
+            if (a.paramIndex != b.paramIndex)
+                return a.paramIndex < b.paramIndex;
+            return a.judgeStores < b.judgeStores;
         });
 
+        const SemaEscapeDeferredCheck* previous = nullptr;
         for (const SemaEscapeDeferredCheck& check : checks)
         {
             if (!check.callee)
                 continue;
-            if (!(check.callee->returnBorrowsParamsMask() & (1ULL << check.paramIndex)))
+
+            // A site can be recorded once per escape route; a re-run sema node must
+            // not report twice.
+            if (previous &&
+                previous->fileRef == check.fileRef &&
+                previous->siteRange.offset == check.siteRange.offset &&
+                previous->paramIndex == check.paramIndex &&
+                previous->judgeStores == check.judgeStores &&
+                previous->diagId == check.diagId)
+                continue;
+            previous = &check;
+
+            const uint64_t judgeMask = check.judgeStores ? check.callee->storesParamsMask() : check.callee->returnBorrowsParamsMask();
+            if (!(judgeMask & (1ULL << check.paramIndex)))
                 continue;
 
             Diagnostic diag = Diagnostic::get(check.diagId, check.fileRef);

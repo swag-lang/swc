@@ -175,6 +175,14 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
     attr Sanity(what: SafetyWhat, value: bool)
 
+    // Computed borrow summary of a function, consumed by the static borrow analysis.
+    // Bit 'i' of 'returns' means the return value may borrow parameter #i; bit 'i' of
+    // 'stores' means parameter #i may be stored in storage that outlives the call.
+    // Emitted automatically in generated module APIs so summaries cross module
+    // boundaries; can also be written manually on a [[Foreign]] function.
+    #[AttrUsage(AttributeUsage.Function)]
+    attr BorrowSummary(returns: u64, stores: u64 = 0)
+
     // All safety checks
     #[Swag.EnumFlags]
     enum SafetyWhat: u16

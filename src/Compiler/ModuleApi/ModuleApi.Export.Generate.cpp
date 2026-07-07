@@ -202,6 +202,19 @@ namespace
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
+
+        // The borrow summaries are computed facts, not source attributes: re-emit them
+        // so importers can judge their call sites against this function's parameters.
+        // The export runs after the final sema drain, so the masks include the
+        // transitive bits added by the summary fixpoint.
+        const uint64_t returnsMask = symbolFunction.returnBorrowsParamsMask();
+        const uint64_t storesMask  = symbolFunction.storesParamsMask();
+        if ((returnsMask != 0 || storesMask != 0) && !ioSnippet.contains("BorrowSummary"))
+        {
+            prefix += std::format("#[Swag.BorrowSummary({}, {})]", returnsMask, storesMask);
+            prefix += eol;
+        }
+
         if (!prefix.empty())
             ioSnippet = prefix + ioSnippet;
     }

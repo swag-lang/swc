@@ -338,6 +338,20 @@ namespace
         return Result::Continue;
     }
 
+    Result collectBorrowSummaryOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    {
+        SWC_ASSERT(!args.empty());
+
+        uint64_t returnsMask = 0;
+        uint64_t storesMask  = 0;
+        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], returnsMask));
+        if (args.size() >= 2)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], storesMask));
+
+        outAttributes.addBorrowSummary(returnsMask, storesMask);
+        return Result::Continue;
+    }
+
     Result collectCanOverflowOption(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
         SWC_ASSERT(!args.empty());
@@ -475,11 +489,12 @@ namespace
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
 
-        const IdentifierManager& idMgr            = sema.idMgr();
-        const IdentifierRef      idRef            = attrSym.idRef();
-        const IdentifierRef      safetyIdRef      = sema.idMgr().addIdentifier("Safety");
-        const IdentifierRef      sanityIdRef      = sema.idMgr().addIdentifier("Sanity");
-        const IdentifierRef      canOverflowIdRef = idMgr.predefined(IdentifierManager::PredefinedName::CanOverflow);
+        const IdentifierManager& idMgr              = sema.idMgr();
+        const IdentifierRef      idRef              = attrSym.idRef();
+        const IdentifierRef      safetyIdRef        = sema.idMgr().addIdentifier("Safety");
+        const IdentifierRef      sanityIdRef        = sema.idMgr().addIdentifier("Sanity");
+        const IdentifierRef      borrowSummaryIdRef = sema.idMgr().addIdentifier("BorrowSummary");
+        const IdentifierRef      canOverflowIdRef   = idMgr.predefined(IdentifierManager::PredefinedName::CanOverflow);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
@@ -490,6 +505,8 @@ namespace
             return collectSafetyOptions(sema, resolvedArgs, outAttributes);
         if (idRef == sanityIdRef)
             return collectSanityOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == borrowSummaryIdRef)
+            return collectBorrowSummaryOptions(sema, resolvedArgs, outAttributes);
         if (idRef == canOverflowIdRef)
             return collectCanOverflowOption(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))

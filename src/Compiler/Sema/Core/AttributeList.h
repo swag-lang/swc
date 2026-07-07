@@ -78,6 +78,8 @@ struct AttributeList
     RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<RuntimeSafetyOverride> runtimeSafetyOverrides;
     SmallVector4<RuntimeSafetyOverride> sanityOverrides;
+    uint64_t                            returnBorrowsParamsMask = 0;
+    uint64_t                            storesParamsMask        = 0;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
     std::optional<bool>                 backendOptimize;
@@ -95,6 +97,8 @@ struct AttributeList
                rtFlags.none() &&
                runtimeSafetyOverrides.empty() &&
                sanityOverrides.empty() &&
+               returnBorrowsParamsMask == 0 &&
+               storesParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                !backendOptimize.has_value() &&
@@ -166,6 +170,15 @@ struct AttributeList
     {
         const uint16_t effectiveMask = effectiveSanityMask(buildCfgMask);
         return SemaSafety::hasMask(effectiveMask, what);
+    }
+
+    // Computed borrow summaries re-imported from a module API ('Swag.BorrowSummary'):
+    // bit i of 'returns' = the return value may borrow parameter #i, bit i of 'stores'
+    // = parameter #i may be stored beyond the call.
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask)
+    {
+        returnBorrowsParamsMask |= returnsMask;
+        storesParamsMask |= storesMask;
     }
 
     void setBackendOptimize(bool value)

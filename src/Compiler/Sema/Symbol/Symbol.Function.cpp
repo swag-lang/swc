@@ -791,6 +791,16 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
     parameters_.push_back(sym);
 }
 
+uint64_t SymbolFunction::returnBorrowsParamsMask() const noexcept
+{
+    return returnBorrowsParamsMask_ | (hasAttributes() ? attributes().returnBorrowsParamsMask : 0);
+}
+
+uint64_t SymbolFunction::storesParamsMask() const noexcept
+{
+    return storesParamsMask_ | (hasAttributes() ? attributes().storesParamsMask : 0);
+}
+
 bool SymbolFunction::tryGetParameterIndexByName(size_t& outIndex, const IdentifierRef name, const size_t startIndex) const noexcept
 {
     for (size_t index = startIndex; index < parameters_.size(); ++index)

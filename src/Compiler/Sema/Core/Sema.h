@@ -5,6 +5,7 @@
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -46,6 +47,7 @@ enum class SemaEscapeKind : uint8_t
     Materialized, // compiler-materialized cast storage: frame lifetime, no named variable
     Temporary,
     Unknown,
+    DeferredCall, // opaque-call result bound to a local: may borrow the call's arguments
 };
 
 struct SemaEscapeInfo
@@ -54,11 +56,16 @@ struct SemaEscapeInfo
     const SymbolVariable* sourceVar = nullptr;
     AstNodeRef           sourceRef = AstNodeRef::invalid();
     TypeRef              typeRef   = TypeRef::invalid();
+    // Index of the per-Sema SemaEscapeDeferredCallSnapshot (kind == DeferredCall).
+    uint32_t deferredCallRef = UINT32_MAX;
+    // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
+    uint32_t sourceScopeDepth = 0;
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
     bool isMaterializedBorrow() const { return kind == SemaEscapeKind::Materialized; }
     bool isTemporaryBorrow() const { return kind == SemaEscapeKind::Temporary; }
+    bool isDeferredCallBorrow() const { return kind == SemaEscapeKind::DeferredCall; }
 
     // Severity order used when two may-borrow facts merge (flow joins, aggregates).
     int rank() const
@@ -72,6 +79,8 @@ struct SemaEscapeInfo
             case SemaEscapeKind::Local:
                 return 4;
             case SemaEscapeKind::Parameter:
+                return 3;
+            case SemaEscapeKind::DeferredCall:
                 return 3;
             case SemaEscapeKind::Unknown:
                 return 2;
@@ -330,6 +339,10 @@ public:
     void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
 
+    // Argument-borrow snapshots of opaque calls bound to locals (SemaEscapeKind::DeferredCall).
+    uint32_t                              addEscapeDeferredCallSnapshot(SemaEscapeDeferredCallSnapshot&& snapshot);
+    const SemaEscapeDeferredCallSnapshot* escapeDeferredCallSnapshot(uint32_t index) const;
+
     // Lexical depth of the scope a local variable is declared in (0 = unknown).
     uint32_t variableScopeDepth(const SymbolVariable& symVar) const;
     void     setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth);
@@ -503,6 +516,7 @@ private:
     std::unordered_map<const SymbolVariable*, SemaEscapeInfo> variableEscapeInfos_;
     std::unordered_map<const SymbolVariable*, uint32_t>       variableScopeDepths_;
     std::vector<EscapeBranchState>                            escapeBranchStack_;
+    std::vector<SemaEscapeDeferredCallSnapshot>               escapeDeferredCallSnapshots_;
     AstVisit                                               visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

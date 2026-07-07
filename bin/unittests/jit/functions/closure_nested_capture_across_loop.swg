@@ -31,6 +31,9 @@ impl Owner
     // - uses captures early, then runs a loop with calls;
     // - builds a nested closure that re-captures everything and writes back
     //   through the captured pointers.
+    // Intentionally stores a closure capturing caller-local pointers into 'g_outer'
+    // (invoked before the owners die): opt out of the stored-argument check.
+    #[Swag.Sanity(.Lifecycle, false)]
     mtd build(color: *Box, item: *Box, opaque: bool, keepAlpha: bool)
     {
         let prop = me

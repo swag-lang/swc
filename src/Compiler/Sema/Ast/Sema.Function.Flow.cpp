@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
@@ -1340,6 +1341,11 @@ namespace
             return Result::Continue;
         if (sema.hasSubstitute(sema.curNodeRef()))
             return Result::Continue;
+
+        // A callee that stores one of its arguments makes any borrowed argument escape
+        // whatever happens to the call result: judged against the callee's summary
+        // once the whole module is analyzed.
+        SemaEscape::noteCallArguments(sema, sema.curNodeRef());
 
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
 

@@ -42,6 +42,9 @@ func leakResetDropProbe()
     LeakDropCount = 0
 }
 
+// The probe intentionally publishes caller-local addresses into the global drop
+// registry (disarmed before the owners die): opt out of the stored-argument check.
+#[Swag.Sanity(.Lifecycle, false)]
 func leakArmExpectedDrop(addr: [*] void, self: [*] u8, tag: s32)
 {
     LeakLastDropAddr = null

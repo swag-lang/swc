@@ -579,3 +579,167 @@ func borrowEscapeThroughSeededCycle()->*s32
     var v: s32
     return borrowEscapeSeededB(&v, 3) // swc-expected-error {{sanity_err_borrow_escape}}
 }
+
+// ---------------------------------------------------------------------------
+// Chained locals: a borrowed call result bound to a local is judged when the
+// LOCAL escapes, not at the binding.
+// ---------------------------------------------------------------------------
+
+func borrowEscapeChainedReturn()->*s32
+{
+    var v: s32
+    let p = borrowEscapePassthrough(&v)
+    return p // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeChainedGlobal()
+{
+    var v: s32
+    let p = borrowEscapePassthrough(&v)
+    borrowEscapeGlobalPtr = p // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Rebinding through a second local keeps the deferred borrow alive.
+func borrowEscapeChainedCopy()->*s32
+{
+    var v: s32
+    let p = borrowEscapePassthrough(&v)
+    let q = p
+    return q // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A local bound to a non-borrowing callee stays silent when returned.
+func borrowEscapeChainedReadOnly()->*s32
+{
+    var v: s32
+    let p = borrowEscapeWrapGlobalSource(&v)
+    return p
+}
+
+// The chained local kept local never escapes: silent.
+func borrowEscapeChainedLocalOnly()->s32
+{
+    var v: s32 = 7
+    let p = borrowEscapePassthrough(&v)
+    return dref p
+}
+
+// Clearing the local erases the deferred borrow.
+func borrowEscapeChainedCleared()->*s32
+{
+    var v: s32
+    var p = borrowEscapePassthrough(&v)
+    p = null
+    return p
+}
+
+// The summary chains through a wrapper that binds the result before returning it.
+func borrowEscapeChainedWrapper(p: *s32)->*s32
+{
+    let q = borrowEscapePassthrough(p)
+    return q
+}
+
+func borrowEscapeThroughChainedWrapper()->*s32
+{
+    var v: s32
+    return borrowEscapeChainedWrapper(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// ---------------------------------------------------------------------------
+// Stored-argument summaries: a callee that stores its parameter into a global
+// makes any borrowed argument escape, whatever happens to the call result.
+// ---------------------------------------------------------------------------
+
+var borrowEscapeGlobalStash: *s32
+
+func borrowEscapeStash(p: *s32)
+{
+    borrowEscapeGlobalStash = p
+}
+
+func borrowEscapeStashLocal()
+{
+    var v: s32
+    borrowEscapeStash(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Caller-owned data can be stashed freely.
+func borrowEscapeStashParam(q: *s32)
+{
+    borrowEscapeStash(q)
+}
+
+func borrowEscapeStashGlobalSource()
+{
+    borrowEscapeStash(&borrowEscapeGlobalInt)
+}
+
+// The stores summary chains through forwarding wrappers.
+func borrowEscapeStashForward(p: *s32)
+{
+    borrowEscapeStash(p)
+}
+
+func borrowEscapeStashForwardLocal()
+{
+    var v: s32
+    borrowEscapeStashForward(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A callee that only reads its parameter leaves call sites silent.
+func borrowEscapeStashReadOnlyLocal()->s32
+{
+    var v: s32 = 3
+    return borrowEscapeReadOnly(&v)
+}
+
+// ---------------------------------------------------------------------------
+// Method receiver: the summaries chain through 'me' like any other parameter.
+// ---------------------------------------------------------------------------
+
+struct BorrowEscapeSelf
+{
+    x: s32
+}
+
+func borrowEscapeSelfPtr(s: *BorrowEscapeSelf)->*s32
+{
+    return &s.x
+}
+
+impl BorrowEscapeSelf
+{
+    mtd xptr()->*s32
+    {
+        return borrowEscapeSelfPtr(me)
+    }
+}
+
+func borrowEscapeMethodChain()->*s32
+{
+    var s: BorrowEscapeSelf
+    return s.xptr() // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+var borrowEscapeGlobalSelf: BorrowEscapeSelf
+
+func borrowEscapeMethodChainGlobal()->*s32
+{
+    return borrowEscapeGlobalSelf.xptr()
+}
+
+// ---------------------------------------------------------------------------
+// Materialized cast storage created in an inner scope dies with it: binding it
+// to an outer variable escapes. Same-scope bindings stay silent (see
+// borrowEscapeMaterializedTemp above).
+// ---------------------------------------------------------------------------
+
+func borrowEscapeMaterializedScope()->u16
+{
+    var view: const [..] u16
+    {
+        view = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+    }
+    return 0
+}

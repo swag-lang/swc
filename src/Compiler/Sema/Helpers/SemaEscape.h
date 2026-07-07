@@ -22,27 +22,51 @@ struct SemaEscapeDeferredCheck
 {
     const SymbolFunction* callee     = nullptr;
     uint32_t              paramIndex = 0;
-    DiagnosticId          diagId     = {};
-    FileRef               fileRef;
-    SourceCodeRange       siteRange;
-    Utf8                  symName;
-    Utf8                  what;
-    TypeRef               typeRef;
-    DiagnosticId          noteId = {};
-    Utf8                  noteSymName;
-    SourceCodeRange       noteRange;
+    // Judged against the callee's STORES summary (the callee keeps its argument beyond
+    // the call) instead of its RETURN summary (the call result carries the borrow).
+    bool            judgeStores = false;
+    DiagnosticId    diagId      = {};
+    FileRef         fileRef;
+    SourceCodeRange siteRange;
+    Utf8            symName;
+    Utf8            what;
+    TypeRef         typeRef;
+    DiagnosticId    noteId = {};
+    Utf8            noteSymName;
+    SourceCodeRange noteRange;
 };
 
-// A return-position call that hands one of the caller's own parameters to the callee:
-// if the callee's return value borrows that parameter, so does the caller's. Resolved
+// How a callee's summary propagates into the caller's when a call receives one of the
+// caller's own parameters as an argument.
+enum class SemaEscapeSummaryEdgeKind : uint8_t
+{
+    ReturnToReturn, // return-position call: callee returns #j -> caller returns #i
+    ReturnToStores, // result stored durably: callee returns #j -> caller stores #i
+    StoresToStores, // any call: callee stores #j -> caller stores #i
+};
+
+// A call that hands one of the caller's own parameters to the callee: whatever the
+// callee's summary says about that parameter flows into the caller's summary. Resolved
 // by a mask fixpoint in reportDeferredChecks, making the per-function summaries
 // transitive across chains of opaque calls (a wrapper level no longer hides a borrow).
 struct SemaEscapeSummaryEdge
 {
-    SymbolFunction*       caller           = nullptr;
-    const SymbolFunction* callee           = nullptr;
-    uint32_t              callerParamIndex = 0;
-    uint32_t              calleeParamIndex = 0;
+    SymbolFunction*           caller           = nullptr;
+    const SymbolFunction*     callee           = nullptr;
+    uint32_t                  callerParamIndex = 0;
+    uint32_t                  calleeParamIndex = 0;
+    SemaEscapeSummaryEdgeKind kind             = SemaEscapeSummaryEdgeKind::ReturnToReturn;
+};
+
+// The captured argument borrows of one opaque call. Checks are templates whose site,
+// wording and judged summary are stamped when the borrow provably escapes; edges are
+// proto-edges whose kind is chosen by the escape flavor. Also stored per-Sema when the
+// call result is bound to a local ('let p = f(&v)'), so the judgement happens only if
+// that local later escapes ('return p').
+struct SemaEscapeDeferredCallSnapshot
+{
+    std::vector<SemaEscapeDeferredCheck> checks;
+    std::vector<SemaEscapeSummaryEdge>   edges;
 };
 
 namespace SemaEscape
@@ -52,6 +76,11 @@ namespace SemaEscape
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef);
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn);
     void   bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef);
+
+    // Called on every resolved opaque call: records the "callee stores its argument"
+    // deferred checks for borrowed arguments, and the stores-propagation edges for
+    // caller-parameter arguments.
+    void noteCallArguments(Sema& sema, AstNodeRef callRef);
 
     // Judges the deferred call-site records against the (now final) per-function borrow
     // summaries. Runs once the module has no pending sema job (Sema::waitDone).

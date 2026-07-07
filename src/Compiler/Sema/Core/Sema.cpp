@@ -277,6 +277,19 @@ void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
     variableEscapeInfos_.erase(&symVar);
 }
 
+uint32_t Sema::addEscapeDeferredCallSnapshot(SemaEscapeDeferredCallSnapshot&& snapshot)
+{
+    escapeDeferredCallSnapshots_.push_back(std::move(snapshot));
+    return static_cast<uint32_t>(escapeDeferredCallSnapshots_.size() - 1);
+}
+
+const SemaEscapeDeferredCallSnapshot* Sema::escapeDeferredCallSnapshot(uint32_t index) const
+{
+    if (index >= escapeDeferredCallSnapshots_.size())
+        return nullptr;
+    return &escapeDeferredCallSnapshots_[index];
+}
+
 uint32_t Sema::variableScopeDepth(const SymbolVariable& symVar) const
 {
     const auto it = variableScopeDepths_.find(&symVar);

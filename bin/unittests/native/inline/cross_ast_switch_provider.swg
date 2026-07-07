@@ -1,6 +1,6 @@
 #global namespace InlineSw
 
-// Provider for inline_crossast_switch_test.swg (separate file => separate Ast).
+// Provider for cross_ast_switch.swg (separate file => separate Ast).
 // classify() is a non-generic #[Inline] method with a switch whose case labels reference enum
 // values UNQUALIFIED within this namespace (resolved against the switched value's enum type).
 // When inlined at a call site outside InlineSw, the case-type/value resolution must be preserved.

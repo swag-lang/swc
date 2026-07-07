@@ -1,4 +1,4 @@
-#global internal
+﻿#global internal
 using Swag
 
 namespace GenericMkSliceLazyCodegen
@@ -9,24 +9,22 @@ namespace GenericMkSliceLazyCodegen
             return
 
         var req: AllocatorRequest
-        req.mode = .Free
         req.size = size
         req.address = buffer
 
         let talloc = allocator orelse @getcontext().allocator
-        talloc.req(&req)
+        talloc.free(&req)
     }
 
     func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->[*] void
     {
         var req: AllocatorRequest
-        req.mode = .Realloc
         req.address = buffer
         req.size = newSize
         req.oldSize = oldSize
 
         let talloc = allocator orelse @getcontext().allocator
-        talloc.req(&req)
+        talloc.realloc(&req)
         return req.address
     }
 

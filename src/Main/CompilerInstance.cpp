@@ -260,52 +260,52 @@ namespace
         return g_RuntimeContextTlsId;
     }
 
-    void runtimeAllocatorReq(const CompilerInstance*, Runtime::AllocatorRequest* request)
+    void runtimeAllocatorAlloc(const CompilerInstance*, Runtime::AllocatorRequest* request)
     {
         if (!request)
             return;
 
-        switch (request->mode)
+        request->address = nullptr;
+        if (request->size == 0)
+            return;
+
+        const size_t alignment = request->alignment ? request->alignment : sizeof(void*);
+        request->address       = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
+    }
+
+    void runtimeAllocatorRealloc(const CompilerInstance*, Runtime::AllocatorRequest* request)
+    {
+        if (!request)
+            return;
+
+        if (request->size == 0)
         {
-            case Runtime::AllocatorMode::Free:
-                mi_free(request->address);
-                request->address = nullptr;
-                return;
-
-            case Runtime::AllocatorMode::Alloc:
-                request->address = nullptr;
-                [[fallthrough]];
-
-            case Runtime::AllocatorMode::Realloc:
-            {
-                if (request->size == 0)
-                {
-                    if (request->mode == Runtime::AllocatorMode::Realloc)
-                        mi_free(request->address);
-                    request->address = nullptr;
-                    return;
-                }
-
-                const size_t alignment = request->alignment ? request->alignment : sizeof(void*);
-                if (request->mode == Runtime::AllocatorMode::Alloc)
-                {
-                    request->address = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
-                }
-                else
-                {
-                    request->address = alignment > sizeof(void*) ? mi_realloc_aligned(request->address, request->size, alignment) : mi_realloc(request->address, request->size);
-                }
-
-                return;
-            }
-
-            case Runtime::AllocatorMode::FreeAll:
-            case Runtime::AllocatorMode::AssertIsAllocated:
-                return;
-
-            default:
-                return;
+            mi_free(request->address);
+            request->address = nullptr;
+            return;
         }
+
+        const size_t alignment = request->alignment ? request->alignment : sizeof(void*);
+        request->address       = alignment > sizeof(void*) ? mi_realloc_aligned(request->address, request->size, alignment) : mi_realloc(request->address, request->size);
+    }
+
+    void runtimeAllocatorFree(const CompilerInstance*, Runtime::AllocatorRequest* request)
+    {
+        if (!request)
+            return;
+
+        mi_free(request->address);
+        request->address = nullptr;
+    }
+
+    void runtimeAllocatorFreeAll(const CompilerInstance*, Runtime::AllocatorRequest*)
+    {
+        // Not supported by the mimalloc-backed host allocator.
+    }
+
+    void runtimeAllocatorAssertAllocated(const CompilerInstance*, Runtime::AllocatorRequest*)
+    {
+        // Not supported by the mimalloc-backed host allocator.
     }
 
 }
@@ -561,9 +561,17 @@ void CompilerInstance::setupRuntimeCompiler()
     // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles.
-    static void* sRuntimeAllocatorITable[2] = {nullptr, reinterpret_cast<void*>(&runtimeAllocatorReq)};
-    runtimeAllocator_.obj                   = this;
-    runtimeAllocator_.itable                = sRuntimeAllocatorITable;
+    // Slot order after the typeinfo entry = IAllocator method DECLARATION order
+    // (bin/runtime/api.swg): alloc, realloc, free, freeAll, assertAllocated.
+    static void* sRuntimeAllocatorITable[6] = {
+        nullptr,
+        reinterpret_cast<void*>(&runtimeAllocatorAlloc),
+        reinterpret_cast<void*>(&runtimeAllocatorRealloc),
+        reinterpret_cast<void*>(&runtimeAllocatorFree),
+        reinterpret_cast<void*>(&runtimeAllocatorFreeAll),
+        reinterpret_cast<void*>(&runtimeAllocatorAssertAllocated)};
+    runtimeAllocator_.obj    = this;
+    runtimeAllocator_.itable = sRuntimeAllocatorITable;
 
     runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;

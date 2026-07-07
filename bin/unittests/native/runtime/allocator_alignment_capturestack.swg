@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 
 using Swag
 
@@ -15,15 +15,13 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     let itf = makeAlignmentCaptureAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 257
     req.alignment = 128
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
     @assert(cast(u64) req.address % 128 == 0)
 
-    req.mode = .Free
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }
@@ -34,15 +32,13 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     let alignedItf = makeAlignmentCaptureAllocator(&alignedAlloc)
 
     var aligned: AllocatorRequest
-    aligned.mode = .Alloc
     aligned.size = 257
     aligned.alignment = 128
-    alignedItf.req(&aligned)
+    alignedItf.alloc(&aligned)
     @assert(aligned.address != null)
     @assert(cast(u64) aligned.address % 128 == 0)
 
-    aligned.mode = .Free
-    alignedItf.req(&aligned)
+    alignedItf.free(&aligned)
     @assert(aligned.address == null)
     alignedAlloc.freeAll()
 
@@ -50,18 +46,16 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     let captureItf = makeAlignmentCaptureAllocator(&captureAlloc, captureStack: true)
 
     var captured: AllocatorRequest
-    captured.mode = .Alloc
     captured.size = 112
     captured.hint = "alignment-then-capture"
-    captureItf.req(&captured)
+    captureItf.alloc(&captured)
     @assert(captured.address != null)
 
     let header = cast(*AllocatorHeader) (cast([*] u8) captured.address - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 
-    captured.mode = .Free
-    captureItf.req(&captured)
+    captureItf.free(&captured)
     @assert(captured.address == null)
     captureAlloc.freeAll()
 }
@@ -74,18 +68,16 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     var reqs: [6] AllocatorRequest
     for i in 6
     {
-        reqs[i].mode = .Alloc
         reqs[i].size = 64 + cast(u64) i * 41
         reqs[i].alignment = 128
-        itf.req(&reqs[i])
+        itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
         @assert(cast(u64) reqs[i].address % 128 == 0)
     }
 
     for i in 6
     {
-        reqs[i].mode = .Free
-        itf.req(&reqs[i])
+        itf.free(&reqs[i])
         @assert(reqs[i].address == null)
     }
 

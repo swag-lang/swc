@@ -1,4 +1,4 @@
-#global public
+﻿#global public
 #global namespace Memory
 using Swag
 
@@ -31,13 +31,12 @@ func assertIsAllocated(buffer: [*] void, size: u64, allocator: IAllocator = null
 
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.mode      = AllocatorMode.AssertIsAllocated
     req.size      = size
     req.address   = buffer
     req.hint      = hint
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.assertAllocated(&req)
 }
 
 // Free the specified memory block
@@ -48,13 +47,12 @@ func free(buffer: [*] void, size: u64, allocator: IAllocator = null, hint: strin
 
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.mode      = AllocatorMode.Free
     req.size      = size
     req.address   = buffer
     req.hint      = hint
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.free(&req)
 }
 
 // Free all allocated memory of the given allocator if possible
@@ -62,11 +60,10 @@ func freeAll(allocator: IAllocator, hint: string = null, loc = #callerlocation)
 {
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.mode      = AllocatorMode.FreeAll
     req.hint      = hint
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.freeAll(&req)
 }
 
 // Reallocate/allocate a given amount of bytes
@@ -78,14 +75,13 @@ func realloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
-    req.mode      = AllocatorMode.Realloc
     req.address   = buffer
     req.size      = newSize
     req.oldSize   = oldSize
     req.alignment = alignment
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.realloc(&req)
 
     return req.address
 }
@@ -99,12 +95,11 @@ func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: st
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
-    req.mode      = AllocatorMode.Alloc
     req.size      = size
     req.alignment = alignment
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.alloc(&req)
 
     return req.address
 }
@@ -118,10 +113,9 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string = null, loc = #caller
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
-    req.mode      = AllocatorMode.Alloc
     req.size      = size
     req.alignment = alignment
-    @getcontext().tempAllocator.IAllocator.req(&req)
+    @getcontext().tempAllocator.IAllocator.alloc(&req)
     return req.address
 }
 

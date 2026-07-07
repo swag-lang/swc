@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 
 using Swag
 
@@ -12,17 +12,15 @@ func makeContextCaptureAllocator(alloc: *Allocator)->IAllocator
 func contextCaptureAlloc(size: u64, alignment: u32 = 0)->AllocatorRequest
 {
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = size
     req.alignment = alignment
-    @getcontext().allocator.req(&req)
+    @getcontext().allocator.alloc(&req)
     return req
 }
 
 func contextCaptureFree(req: *AllocatorRequest)
 {
-    req.mode = .Free
-    @getcontext().allocator.req(req)
+    @getcontext().allocator.free(req)
     @assert(req.address == null)
 }
 
@@ -42,10 +40,9 @@ func contextCaptureFree(req: *AllocatorRequest)
     for i in 80 do
         ptr[i] = cast(u8) (i + 9)
 
-    req.mode = .Realloc
     req.oldSize = 80
     req.size = 4096
-    @getcontext().allocator.req(&req)
+    @getcontext().allocator.realloc(&req)
     @assert(req.address != null)
 
     let grown = cast([*] u8) req.address
@@ -86,18 +83,16 @@ func contextCaptureFree(req: *AllocatorRequest)
     let itf = makeContextCaptureAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 112
     req.hint = "after-context-debug"
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
 
     let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 
-    req.mode = .Free
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }

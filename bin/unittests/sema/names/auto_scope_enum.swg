@@ -9,9 +9,16 @@ const C = A.R | .G
 
 const D = A.R & ~.G
 
+enum AutoScopeMode { Alloc, Free, Realloc }
+
+struct AutoScopeRequest
+{
+    mode = AutoScopeMode.Alloc
+}
+
 func semaTest001()
 {
-    var request: *Swag.AllocatorRequest
+    var request: *AutoScopeRequest
     if request.mode == .Realloc {}
 }
 

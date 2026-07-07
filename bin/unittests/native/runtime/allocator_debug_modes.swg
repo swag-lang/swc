@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 
 using Swag
 
@@ -42,10 +42,9 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     let itf = makeDebugModeAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 144
     req.hint = "debug-no-stack"
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
     @assert(alloc.countAlloc == 1)
     @assert(alloc.firstAlloc != null)
@@ -55,12 +54,10 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(header.stackCount == 0)
 
     var assertReq: AllocatorRequest
-    assertReq.mode = .AssertIsAllocated
     assertReq.address = req.address
-    itf.req(&assertReq)
+    itf.assertAllocated(&assertReq)
 
-    req.mode = .Free
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     @assert(alloc.countAlloc == 0)
     @assert(alloc.countFree == 1)
@@ -80,26 +77,22 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     let itf = makeDebugModeAllocator(&alloc, electricMode: true)
 
     var first: AllocatorRequest
-    first.mode = .Alloc
     first.size = 64
-    itf.req(&first)
+    itf.alloc(&first)
     @assert(first.address != null)
     let firstAddress = first.address
 
-    first.mode = .Free
-    itf.req(&first)
+    itf.free(&first)
     @assert(first.address == null)
 
     var second: AllocatorRequest
-    second.mode = .Alloc
     second.size = 64
-    itf.req(&second)
+    itf.alloc(&second)
     @assert(second.address != null)
     @assert(second.address != firstAddress)
 
     var freeAll: AllocatorRequest
-    freeAll.mode = .FreeAll
-    itf.req(&freeAll)
+    itf.freeAll(&freeAll)
     @assert(alloc.countAlloc == 0)
     @assert(alloc.countFree == 0)
 }
@@ -112,9 +105,8 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     var reqs: [8] AllocatorRequest
     for i in 8
     {
-        reqs[i].mode = .Alloc
         reqs[i].size = 32 + cast(u64) i * 23
-        itf.req(&reqs[i])
+        itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
 
@@ -124,8 +116,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 
     for i in 8
     {
-        reqs[i].mode = .Free
-        itf.req(&reqs[i])
+        itf.free(&reqs[i])
         @assert(reqs[i].address == null)
     }
 
@@ -141,17 +132,15 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     let itf = makeDebugModeAllocator(&alloc, trackAllocations: false, fillMemory: true)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 96
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
 
     let ptr = cast([*] u8) req.address
     for i in 96 do
         @assert(ptr[i] == Allocator.AllocByte)
 
-    req.mode = .Free
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }
@@ -162,9 +151,8 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     let itf = makeDebugModeAllocator(&alloc, trackAllocations: false, fillMemory: true)
 
     var untracked: AllocatorRequest
-    untracked.mode = .Alloc
     untracked.size = 80
-    itf.req(&untracked)
+    itf.alloc(&untracked)
     @assert(untracked.address != null)
     @assert(alloc.countAlloc == 1)
     @assert(alloc.firstAlloc == null)
@@ -172,23 +160,20 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     alloc.configure(false, true, false, true, true)
 
     var tracked: AllocatorRequest
-    tracked.mode = .Alloc
     tracked.size = 96
-    itf.req(&tracked)
+    itf.alloc(&tracked)
     @assert(tracked.address != null)
 
     let trackedHeader = cast(*AllocatorHeader) (cast([*] u8) tracked.address - #sizeof(AllocatorHeader))
     @assert(alloc.firstAlloc == trackedHeader)
     alloc.checkAllMemory()
 
-    untracked.mode = .Free
-    itf.req(&untracked)
+    itf.free(&untracked)
     @assert(untracked.address == null)
     @assert(alloc.firstAlloc == trackedHeader)
     alloc.checkAllMemory()
 
-    tracked.mode = .Free
-    itf.req(&tracked)
+    itf.free(&tracked)
     @assert(tracked.address == null)
     @assert(alloc.firstAlloc == null)
 
@@ -203,9 +188,8 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         let itf = makeDebugModeAllocator(&alloc, trackAllocations: true, fillMemory: false)
 
         var req: AllocatorRequest
-        req.mode = .Alloc
         req.size = 512
-        itf.req(&req)
+        itf.alloc(&req)
         @assert(req.address != null)
         @assert(alloc.countOsAlloc >= 2)
 
@@ -215,13 +199,11 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         @assert(rawBlock.size >= header.allocSize + #sizeof(AllocatorRawBlock))
         @assert(cast(u64) rawBlock.address % 4096 == 0)
 
-        req.mode = .Free
-        itf.req(&req)
+        itf.free(&req)
         @assert(req.address == null)
 
         var freeAll: AllocatorRequest
-        freeAll.mode = .FreeAll
-        itf.req(&freeAll)
+        itf.freeAll(&freeAll)
         @assert(alloc.countOsFree == alloc.countOsAlloc)
         @assert(alloc.sizeOsFree == alloc.sizeOsAlloc)
     }

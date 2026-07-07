@@ -8,10 +8,17 @@ const C = A.R | .G
 
 const D = A.R & ~.G
 
+enum AutoScopeMode { Alloc, Free, Realloc }
+
+struct AutoScopeRequest
+{
+    mode = AutoScopeMode.Alloc
+}
+
 // Auto-scope enum in struct field assignment
 #test
 {
-    var requestStorage: Swag.AllocatorRequest
+    var requestStorage: AutoScopeRequest
     let request = &requestStorage
     request.mode = .Realloc
     if request.mode == .Realloc {}

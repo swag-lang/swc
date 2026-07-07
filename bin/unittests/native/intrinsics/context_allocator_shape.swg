@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 using Swag
 
 func contextPointerIsPresent()->bool
@@ -58,38 +58,33 @@ func returnedContextTempAllocatorPreservesObject()->bool
 func directContextAllocatorRoundtrip()->bool
 {
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 16
 
-    @getcontext().allocator.req(&req)
+    @getcontext().allocator.alloc(&req)
     if !req.address do
         return false
 
-    req.mode = .Free
-    @getcontext().allocator.req(&req)
+    @getcontext().allocator.free(&req)
     return true
 }
 
 func copiedContextAllocatorRoundtrip()->bool
 {
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 16
 
     let allocator = @getcontext().allocator
-    allocator.req(&req)
+    allocator.alloc(&req)
     if !req.address do
         return false
 
-    req.mode = .Free
-    allocator.req(&req)
+    allocator.free(&req)
     return true
 }
 
 func coalescedContextAllocatorRoundtrip()->bool
 {
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 16
 
     let allocator = cast(IAllocator) null orelse @getcontext().allocator
@@ -97,12 +92,11 @@ func coalescedContextAllocatorRoundtrip()->bool
     if runtimeItf == null or runtimeItf.obj == null or runtimeItf.itable == null do
         return false
 
-    allocator.req(&req)
+    allocator.alloc(&req)
     if !req.address do
         return false
 
-    req.mode = .Free
-    allocator.req(&req)
+    allocator.free(&req)
     return true
 }
 

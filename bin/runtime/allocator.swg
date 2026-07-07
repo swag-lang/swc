@@ -1,4 +1,4 @@
-#global namespace Swag
+﻿#global namespace Swag
 
 const AllocatorClassCount   = 28'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
@@ -838,10 +838,10 @@ impl Allocator
 
     mtd allocate(request: *AllocatorRequest)
     {
+        // A zero-size reallocation with a live address never reaches this point:
+        // 'reallocate' frees it before delegating.
         if request.size == 0
         {
-            if request.mode == .Realloc do
-                .free(request)
             request.address = null
             return
         }
@@ -880,7 +880,7 @@ impl Allocator
 
         if request.size == 0
         {
-            .free(request)
+            .freeBlock(request)
             return
         }
 
@@ -909,7 +909,6 @@ impl Allocator
         let copySize = @min(oldHeader.userSize, request.size)
 
         var allocReq = dref request
-        allocReq.mode = .Alloc
         allocReq.address = null
         .allocate(&allocReq)
         if !allocReq.address
@@ -921,15 +920,14 @@ impl Allocator
         @memcpy(allocReq.address, oldAddress, copySize)
 
         var freeReq = dref request
-        freeReq.mode = .Free
         freeReq.address = oldAddress
         freeReq.size = oldHeader.userSize
-        .free(&freeReq)
+        .freeBlock(&freeReq)
 
         request.address = allocReq.address
     }
 
-    mtd free(request: *AllocatorRequest)
+    mtd freeBlock(request: *AllocatorRequest)
     {
         if !request.address do
             return
@@ -1118,37 +1116,60 @@ impl Allocator
 
 impl IAllocator for Allocator
 {
-    mtd impl req(request: *AllocatorRequest)
+    // The diagnostic modes (leak tracking, electric mode, ...) mutate shared state:
+    // every operation takes the mutex when one of them is active.
+    #[Swag.Inline]
+    mtd lockDiagnostic()->bool
     {
         @assert(.installed())
         let useDiagnosticLock = .diagnosticMode()
         if useDiagnosticLock do
             .mutex.lock()
-        defer
-        {
-            if useDiagnosticLock do
-                .mutex.unlock()
-        }
+        return useDiagnosticLock
+    }
 
-        switch request.mode
-        {
-        case Free:
-            .free(request)
+    #[Swag.Inline]
+    mtd unlockDiagnostic(locked: bool)
+    {
+        if locked do
+            .mutex.unlock()
+    }
 
-        case FreeAll:
-            .freeAll()
-            request.address = null
+    mtd impl alloc(request: *AllocatorRequest)
+    {
+        let locked = .lockDiagnostic()
+        defer .unlockDiagnostic(locked)
+        request.address = null
+        .allocate(request)
+    }
 
-        case Realloc:
-            .reallocate(request)
+    mtd impl realloc(request: *AllocatorRequest)
+    {
+        let locked = .lockDiagnostic()
+        defer .unlockDiagnostic(locked)
+        .reallocate(request)
+    }
 
-        case Alloc:
-            request.address = null
-            .allocate(request)
+    mtd impl free(request: *AllocatorRequest)
+    {
+        let locked = .lockDiagnostic()
+        defer .unlockDiagnostic(locked)
+        .freeBlock(request)
+    }
 
-        case AssertIsAllocated:
-            .assertIsAllocated(request.address, request.callerLoc)
-        }
+    mtd impl freeAll(request: *AllocatorRequest)
+    {
+        let locked = .lockDiagnostic()
+        defer .unlockDiagnostic(locked)
+        .freeAll()
+        request.address = null
+    }
+
+    mtd impl assertAllocated(request: *AllocatorRequest)
+    {
+        let locked = .lockDiagnostic()
+        defer .unlockDiagnostic(locked)
+        .assertIsAllocated(request.address, request.callerLoc)
     }
 }
 

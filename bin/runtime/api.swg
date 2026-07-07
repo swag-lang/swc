@@ -358,33 +358,23 @@ namespace Swag
     // Allocators
     // #########################################################
 
-    // The 'mode' of an [[AllocatorRequest]].
-    enum AllocatorMode
-    {
-        Alloc                 // Allocate a block of memory
-        Free                  // Free a block of memory
-        Realloc               // Reallocate a block of memory
-        FreeAll               // Free all memory allocated with the underlying allocator (ff possible).
-        AssertIsAllocated     // The allocator must assert if the address is not currently allocated (if possible).
-    }
-
-    // Represents the request for a given allocator.
+    // Represents the request for a given allocator. The operation itself is carried
+    // by the [[IAllocator]] method being called; the request only transports its
+    // operands and the tracking metadata.
     //
-    // To allocate:
-    // * 'mode' must be **AllocatorMode.Alloc**
+    // For [[IAllocator.alloc]]:
     // * 'size' must be the size in bytes to allocate
     // * 'alignment' must be the alignment constraint in bytes (or 0)
     // * 'address' will be the returned allocated memory address
     //
-    // To free:
-    // * 'mode' must be **AllocatorMode.Free**
+    // For [[IAllocator.free]]:
     // * 'size' must be the original allocated size in bytes of 'address'
     // * 'address' must be the memory address to release
     //
-    // To reallocate:
-    // * 'mode' must be **AllocatorMode.Realloc**
-    // * 'size' must be the original allocated size in bytes of 'address'
-    // * 'address' must be the memory address to reallocate
+    // For [[IAllocator.realloc]]:
+    // * 'size' must be the new size in bytes
+    // * 'oldSize' must be the original allocated size in bytes of 'address'
+    // * 'address' must be the memory address to reallocate, and receives the new one
     //
     // See [[IAllocator]]
     struct AllocatorRequest
@@ -394,13 +384,24 @@ namespace Swag
         address:       *void                     // The returned address or the address to deal with.
         size:          u64                       // The requested size or the size to deal with.
         oldSize:       u64                       // When reallocating.
-        mode           = AllocatorMode.Alloc     // Alloc, free, reallocate...
         alignment:     u32                       // Alignment constraint.
     }
 
+    // Every operation is a distinct method so the semantics are structural: the
+    // compiler (static lifetime analysis) and the reader both know what a call does
+    // without inspecting the request.
     interface IAllocator
     {
-        mtd req(request: *AllocatorRequest);
+        // Allocate a block of memory.
+        mtd alloc(request: *AllocatorRequest);
+        // Reallocate a previously allocated block.
+        mtd realloc(request: *AllocatorRequest);
+        // Free a previously allocated block.
+        mtd free(request: *AllocatorRequest);
+        // Free all memory allocated with this allocator, if supported.
+        mtd freeAll(request: *AllocatorRequest);
+        // Assert that 'request.address' is currently allocated, if supported.
+        mtd assertAllocated(request: *AllocatorRequest);
     }
 
     struct ScratchAllocator

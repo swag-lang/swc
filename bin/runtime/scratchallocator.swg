@@ -24,10 +24,9 @@ impl ScratchAllocator
     {
         @assert(.allocator != null)
         var req: AllocatorRequest
-        req.mode    = .Free
         req.address = addr
         req.size    = size
-        .allocator.req(&req)
+        .allocator.free(&req)
     }
 
     // Allocate a block
@@ -35,10 +34,9 @@ impl ScratchAllocator
     {
         @assert(.allocator != null)
         var req: AllocatorRequest
-        req.mode      = .Alloc
         req.size      = size
         req.alignment = alignment
-        .allocator.req(&req)
+        .allocator.alloc(&req)
         return req.address
     }
 
@@ -77,17 +75,17 @@ impl ScratchAllocator
         .capacity  = newCapacity
 
         var req: AllocatorRequest
-        req.mode = AllocatorMode.Alloc
         req.size = .capacity
-        .allocator.req(&req)
+        .allocator.alloc(&req)
         .block = req.address
     }
 }
 
 impl IAllocator for ScratchAllocator
 {
-    mtd free(request: *AllocatorRequest)
+    mtd impl free(request: *AllocatorRequest)
     {
+        @assert(.block != null)
         if !request.address do
             return
 
@@ -123,17 +121,11 @@ impl IAllocator for ScratchAllocator
         request.address = null
     }
 
-    mtd alloc(request: *AllocatorRequest)
+    // Shared allocation path: in the buffer when there is room, otherwise a tracked
+    // leak allocation. A non-null incoming 'request.address' is a reallocation: the
+    // old payload ('request.oldSize' bytes) is copied into the new block.
+    mtd allocBlock(request: *AllocatorRequest)
     {
-        // Special case
-        if request.size == 0
-        {
-            if request.mode == .Realloc do
-                .free(request)
-            request.address = null
-            return
-        }
-
         // Allocate in the buffer if there is enough room
         let usedAlign = align(.used, request.alignment)
         if usedAlign + request.size <= .capacity
@@ -164,19 +156,41 @@ impl IAllocator for ScratchAllocator
         .maxLeak = @max(.maxLeak, .totalLeak)
     }
 
-    mtd impl req(request: *AllocatorRequest)
+    mtd impl alloc(request: *AllocatorRequest)
     {
         @assert(.block != null)
-        switch request.mode
+        if request.size == 0
         {
-        case Free:
-            .free(request)
-
-        case FreeAll:
-            .freeAll()
-
-        case Realloc, Alloc:
-            .alloc(request)
+            request.address = null
+            return
         }
+
+        request.address = null
+        .allocBlock(request)
+    }
+
+    mtd impl realloc(request: *AllocatorRequest)
+    {
+        @assert(.block != null)
+        if request.size == 0
+        {
+            .free(request)
+            request.address = null
+            return
+        }
+
+        .allocBlock(request)
+    }
+
+    mtd impl freeAll(request: *AllocatorRequest)
+    {
+        @assert(.block != null)
+        .freeAll()
+        request.address = null
+    }
+
+    mtd impl assertAllocated(request: *AllocatorRequest)
+    {
+        // Not supported: the scratch allocator does not track individual blocks.
     }
 }

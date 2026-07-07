@@ -1,4 +1,4 @@
-#global internal
+﻿#global internal
 using Swag
 
 namespace GenericReallocDefaultArgsCodegen
@@ -54,12 +54,11 @@ namespace GenericReallocDefaultArgsCodegen
             var req: AllocatorRequest
             req.callerLoc = loc
             req.hint = hint
-            req.mode = .Free
             req.size = size
             req.address = buffer
 
             let talloc = allocator orelse @getcontext().allocator
-            talloc.req(&req)
+            talloc.free(&req)
         }
 
         func realloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: string = null, loc = #callerlocation)->[*] void
@@ -72,14 +71,13 @@ namespace GenericReallocDefaultArgsCodegen
             var req: AllocatorRequest
             req.callerLoc = loc
             req.hint = hint
-            req.mode = .Realloc
             req.address = buffer
             req.size = newSize
             req.oldSize = oldSize
             req.alignment = alignment
 
             let talloc = allocator orelse @getcontext().allocator
-            talloc.req(&req)
+            talloc.realloc(&req)
             return req.address
         }
     }

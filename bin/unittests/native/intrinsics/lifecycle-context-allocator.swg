@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 using Swag
 
 var DropCount: u32 = 0
@@ -16,24 +16,22 @@ func helperFree(buffer: [*] void, size: u64, allocator: IAllocator = null)
         return
 
     var req: AllocatorRequest
-    req.mode = .Free
     req.size = size
     req.address = buffer
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.free(&req)
 }
 
 func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->[*] void
 {
     var req: AllocatorRequest
-    req.mode = .Realloc
     req.address = buffer
     req.size = newSize
     req.oldSize = oldSize
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.realloc(&req)
     return req.address
 }
 
@@ -44,13 +42,12 @@ func memoryLikeFree(buffer: [*] void, size: u64, allocator: IAllocator = null, h
 
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.mode = .Free
     req.size = size
     req.address = buffer
     req.hint = hint
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.free(&req)
 }
 
 func memoryLikeRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: string = null, loc = #callerlocation)->[*] void
@@ -58,14 +55,13 @@ func memoryLikeRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: 
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint = hint
-    req.mode = .Realloc
     req.address = buffer
     req.size = newSize
     req.oldSize = oldSize
     req.alignment = alignment
 
     let talloc = allocator orelse @getcontext().allocator
-    talloc.req(&req)
+    talloc.realloc(&req)
     return req.address
 }
 
@@ -136,11 +132,10 @@ impl DirectByteBuffer
             .allocator = @getcontext().allocator
 
         var req: AllocatorRequest
-        req.mode = .Realloc
         req.address = .buffer
         req.size = newCapacity
         req.oldSize = .capacity
-        .allocator.req(&req)
+        .allocator.realloc(&req)
         .buffer = cast([*] u8) req.address
         .capacity = newCapacity
     }
@@ -170,10 +165,9 @@ impl DirectByteBuffer
         @drop(.buffer, .count)
 
         var req: AllocatorRequest
-        req.mode = .Free
         req.size = .capacity
         req.address = .buffer
-        .allocator.req(&req)
+        .allocator.free(&req)
         .buffer = null
         .count, .capacity = 0
     }

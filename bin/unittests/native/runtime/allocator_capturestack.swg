@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 
 using Swag
 
@@ -19,8 +19,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     @assert(alloc.fillAlloc)
 
     var req: AllocatorRequest
-    req.mode = .FreeAll
-    itf.req(&req)
+    itf.freeAll(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }
@@ -31,9 +30,8 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     let itf = makeCaptureAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 0
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }
@@ -44,13 +42,11 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     let itf = makeCaptureAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 1
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
 
-    req.mode = .Free
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }
@@ -61,18 +57,16 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     let itf = makeCaptureAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = 112
     req.hint = "capture-stack-minimal"
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
 
     let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 
-    req.mode = .Free
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     alloc.freeAll()
 }

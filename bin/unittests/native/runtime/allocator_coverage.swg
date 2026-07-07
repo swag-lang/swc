@@ -1,4 +1,4 @@
-#global private
+﻿#global private
 
 using Swag
 
@@ -71,9 +71,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         let expected = Allocator.classSize(cast(u32) i)
 
         var req: AllocatorRequest
-        req.mode = .Alloc
         req.size = expected
-        itf.req(&req)
+        itf.alloc(&req)
         @assert(req.address != null)
         @assert(cast(u64) req.address % cast(u64) #sizeof(*void) == 0)
 
@@ -81,9 +80,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         @assert(header.classIndex == cast(u32) i)
         @assert(header.blockSize == expected)
 
-        req.mode = .Free
         req.size = expected
-        itf.req(&req)
+        itf.free(&req)
         @assert(req.address == null)
     }
 
@@ -102,18 +100,16 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     let big = Allocator.classSize(AllocatorClassCount - 1) + 4096
 
     var req: AllocatorRequest
-    req.mode = .Alloc
     req.size = big
-    itf.req(&req)
+    itf.alloc(&req)
     @assert(req.address != null)
 
     let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
     @assert(header.classIndex == AllocatorInvalidClass)
     @assert(header.blockSize == big)
 
-    req.mode = .Free
     req.size = big
-    itf.req(&req)
+    itf.free(&req)
     @assert(req.address == null)
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
@@ -135,16 +131,14 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     var reqs: [Count] AllocatorRequest
     for i in Count
     {
-        reqs[i].mode = .Alloc
         reqs[i].size = 64
-        itf.req(&reqs[i])
+        itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
     for i in Count
     {
-        reqs[i].mode = .Free
         reqs[i].size = 64
-        itf.req(&reqs[i])
+        itf.free(&reqs[i])
     }
 
     // 128 * 64 = 8192 bytes freed, but the cache is trimmed to the budget.
@@ -169,16 +163,14 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     var reqs: [Count] AllocatorRequest
     for i in Count
     {
-        reqs[i].mode = .Alloc
         reqs[i].size = 128
-        itf.req(&reqs[i])
+        itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
     for i in Count
     {
-        reqs[i].mode = .Free
         reqs[i].size = 128
-        itf.req(&reqs[i])
+        itf.free(&reqs[i])
     }
 
     @assert(alloc.sizeFree <= alloc.maxFreeSize + 128)
@@ -196,30 +188,26 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     let itf = makeAllocator(&alloc, trackAllocations: true)
 
     var a: AllocatorRequest
-    a.mode = .Alloc
     a.size = 100
-    itf.req(&a)
+    itf.alloc(&a)
     let addr = a.address
     @assert(addr != null)
 
-    a.mode = .Free
     a.size = 100
-    itf.req(&a)
+    itf.free(&a)
     @assert(alloc.countFree == 1)
     @assert(alloc.sizeCached > 0)
 
     // 110 lands in the same class (<= 128) and reuses the cached header.
     var b: AllocatorRequest
-    b.mode = .Alloc
     b.size = 110
-    itf.req(&b)
+    itf.alloc(&b)
     @assert(b.address == addr)
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
 
-    b.mode = .Free
     b.size = 110
-    itf.req(&b)
+    itf.free(&b)
     alloc.freeAll()
 }
 
@@ -233,21 +221,19 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     let itf = makeAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.mode = .Realloc
     req.address = null
     req.size = 64
-    itf.req(&req)
+    itf.realloc(&req)
     @assert(req.address != null)
 
     let p = cast([*] u8) req.address
     for i in 64 do
         p[i] = cast(u8) (i + 1)
 
-    req.mode = .Realloc
     req.oldSize = 64
     req.size = 64
     req.alignment = 128
-    itf.req(&req)
+    itf.realloc(&req)
     @assert(req.address != null)
     @assert(cast(u64) req.address % 128 == 0)
 
@@ -255,9 +241,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     for i in 64 do
         @assert(moved[i] == cast(u8) (i + 1))
 
-    req.mode = .Free
     req.size = 64
-    itf.req(&req)
+    itf.free(&req)
     alloc.freeAll()
 }
 
@@ -270,9 +255,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     let itf = makeAllocator(&alloc, trackAllocations: true)
 
     var req: AllocatorRequest
-    req.mode = .AssertIsAllocated
     req.address = null
-    itf.req(&req)
+    itf.assertAllocated(&req)
 
     alloc.freeAll()
 }
@@ -289,16 +273,14 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     var reqs: [16] AllocatorRequest
     for i in 16
     {
-        reqs[i].mode = .Alloc
         reqs[i].size = 48
-        itf.req(&reqs[i])
+        itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
     for i in 16
     {
-        reqs[i].mode = .Free
         reqs[i].size = 48
-        itf.req(&reqs[i])
+        itf.free(&reqs[i])
     }
     @assert(alloc.countFree > 0)
     @assert(alloc.sizeCached > 0)
@@ -346,9 +328,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         let p = cast(*AllocRetirePayload) param
 
         var req: AllocatorRequest
-        req.mode = .Alloc
         req.size = p.size
-        p.allocator.req(&req)
+        p.allocator.alloc(&req)
         dref p.out = req.address
 
         releaseAllocatorThreadCache()
@@ -385,10 +366,9 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         @assert(alloc.firstRetiredHeap != null)
 
         var freeReq: AllocatorRequest
-        freeReq.mode    = .Free
         freeReq.address = blockAddr
         freeReq.size    = 64
-        itf.req(&freeReq)
+        itf.free(&freeReq)
         @assert(freeReq.address == null)
         @assert(alloc.countAlloc == 0)
 
@@ -415,9 +395,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         let slot = @atomadd(&s.index, 1)
 
         var req: AllocatorRequest
-        req.mode = .Alloc
         req.size = 64
-        s.itf.req(&req)
+        s.itf.alloc(&req)
         s.slots[slot] = req.address
 
         releaseAllocatorThreadCache()
@@ -430,10 +409,9 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         for i in StressCount
         {
             var req: AllocatorRequest
-            req.mode    = .Free
             req.address = s.slots[i]
             req.size    = 64
-            s.itf.req(&req)
+            s.itf.free(&req)
         }
         @atomadd(&s.freerDone, 1)
         return 0

@@ -82,6 +82,17 @@ public:
             storesParamsMask_ |= 1ULL << paramIndex;
     }
 
+    // Bit i set = the call INVALIDATES what parameter #i points to (it reaches an
+    // 'IAllocator.free/realloc' with that pointer as the request address). Seeded on
+    // the language allocator interface, propagated through wrappers by the summary
+    // fixpoint, serialized like the other summaries.
+    uint64_t freesParamsMask() const noexcept;
+    void     addFreesParam(size_t paramIndex) noexcept
+    {
+        if (paramIndex < 64)
+            freesParamsMask_ |= 1ULL << paramIndex;
+    }
+
     // Bit (into*8 + stored) = parameter #stored may be stored into storage reachable
     // from parameter #into ('me.list = item' -> pair (item -> me)). Judged at call
     // sites where the 'into' argument provably outlives the stored one (a global).
@@ -234,6 +245,7 @@ private:
     uint64_t                                  returnBorrowsParamsMask_ = 0;
     uint64_t                                  storesParamsMask_    = 0;
     uint64_t                                  storesIntoParamPairs_ = 0;
+    uint64_t                                  freesParamsMask_     = 0;
     TypeRef                                   returnType_          = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                                specOpKind_          = SpecOpKind::None;

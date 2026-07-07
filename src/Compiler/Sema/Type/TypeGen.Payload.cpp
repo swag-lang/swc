@@ -235,6 +235,20 @@ namespace
 
         const SymbolStruct&     symStruct = type.payloadSymStruct();
         TypeGen::LifecycleFlags flags;
+
+        // A struct still being analyzed can grow its field vector concurrently:
+        // iterating it would race. Answer from the direct facts only — conservative,
+        // and callers on the sema side only reach here for types complete enough to
+        // be used by value.
+        if (!symStruct.isSemaCompleted())
+        {
+            flags.hasDrop     = symStruct.opDrop() != nullptr;
+            flags.hasPostCopy = symStruct.opPostCopy() != nullptr;
+            flags.hasPostMove = symStruct.opPostMove() != nullptr;
+            flags.canCopy     = !symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy);
+            return flags;
+        }
+
         for (const SymbolVariable* field : symStruct.fields())
         {
             if (field)

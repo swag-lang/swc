@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <ItemGroup Label="ProjectConfigurations">
         <ProjectConfiguration Include="DevMode|x64">
@@ -266,6 +266,7 @@
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.FloatDomain.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.IntOverflow.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.StackEscape.cpp"/>
+        <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.BoundCheck.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.UseAfterMove.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMoveElision.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
@@ -563,6 +564,7 @@
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.FloatDomain.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.IntOverflow.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.StackEscape.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.BoundCheck.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.UseAfterMove.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMoveElision.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\SanitizerState.h"/>

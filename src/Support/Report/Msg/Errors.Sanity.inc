@@ -1,4 +1,5 @@
 SWC_DIAG_DEF(sanity_err_division_zero)
+SWC_DIAG_DEF(sanity_err_out_of_bounds)
 SWC_DIAG_DEF(sanity_err_integer_overflow)
 SWC_DIAG_DEF(sanity_err_invalid_argument)
 SWC_DIAG_DEF(sanity_err_null_deref)

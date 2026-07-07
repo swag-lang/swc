@@ -31,6 +31,13 @@ func boundCheckEnabled()->bool
     #assert(value == true)
 }
 
+// Launders a compile-time-provable index through a non-inline call so the static
+// sanitizer cannot prove it: these tests target the RUNTIME bound-check guard.
+func opaqueIdx(v: u64)->u64
+{
+    return v
+}
+
 #test
 {
     #[Swag.Safety(.BoundCheck, true)]
@@ -39,7 +46,7 @@ func boundCheckEnabled()->bool
         var values: [2] s32
         values[0] = 1
         values[1] = 2
-        return values[2] // swc-expected-error {{safety_err_runtime}}
+        return values[opaqueIdx(2)] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run arrayBoundCheck()
@@ -55,7 +62,7 @@ func boundCheckEnabled()->bool
         values[0] = 1
         values[1] = 2
         var slice: [..] s32 = values
-        return slice[2] // swc-expected-error {{safety_err_runtime}}
+        return slice[opaqueIdx(2)] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceBoundCheck()
@@ -98,7 +105,7 @@ func boundCheckEnabled()->bool
         values[0, 1] = 2
         values[1, 0] = 3
         values[1, 1] = 4
-        return values[1, 2] // swc-expected-error {{safety_err_runtime}}
+        return values[1, opaqueIdx(2)] // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run multiArrayBoundCheck()

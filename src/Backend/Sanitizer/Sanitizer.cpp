@@ -6,6 +6,8 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Sanitizer/SanitizerCheck.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -15,6 +17,40 @@ Sanitizer::Sanitizer(MicroPassContext& context) :
     context_(context),
     stackBaseReg_(context.debugStackBaseVirtualReg)
 {
+    // Extents of the declared variables in the frame, for the bound check. Sorted so
+    // lookups can bisect. Locals carry their slot in offset()/codeGenLocalSize()
+    // (assignLocalStackSlot); by-value parameters spilled to a debug home use the
+    // debugStackSlot pair (only set when debug info is on).
+    if (context.sanitizerFunction)
+    {
+        for (const SymbolVariable* symVar : context.sanitizerFunction->localVariables())
+        {
+            if (symVar && symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && symVar->codeGenLocalSize())
+                localSlots_.push_back({.start = static_cast<int64_t>(symVar->offset()), .size = symVar->codeGenLocalSize()});
+        }
+
+        for (const SymbolVariable* symVar : context.sanitizerFunction->parameters())
+        {
+            if (symVar && symVar->debugStackSlotSize())
+                localSlots_.push_back({.start = static_cast<int64_t>(symVar->debugStackSlotOffset()), .size = symVar->debugStackSlotSize()});
+        }
+
+        std::ranges::sort(localSlots_, [](const LocalSlotExtent& a, const LocalSlotExtent& b) { return a.start < b.start; });
+    }
+}
+
+bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t& outSize) const
+{
+    auto it = std::ranges::upper_bound(localSlots_, offset, {}, [](const LocalSlotExtent& e) { return e.start; });
+    if (it == localSlots_.begin())
+        return false;
+    --it;
+    if (offset >= it->start + static_cast<int64_t>(it->size))
+        return false;
+
+    outStart = it->start;
+    outSize  = it->size;
+    return true;
 }
 
 bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
@@ -28,6 +64,37 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     inState_.assign(n, {});
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
+
+    // Detect in-place mutations of the stack-base register (call-area frame shapes
+    // fold a local's offset into it): every frame offset the engine computes is then
+    // shifted by an unknown amount. Slot-relative facts stay self-consistent, but the
+    // bound check compares against absolute extents and must stand down.
+    if (stackBaseReg_.isValid())
+    {
+        for (uint32_t i = 0; i < n; i++)
+        {
+            const MicroInstr& scanInst = *context_.instructions->ptr(cfg.instructionRefs()[i]);
+            if (scanInst.op != MicroInstrOpcode::OpBinaryRegImm && scanInst.op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+
+            const MicroInstrOperand* scanOps = scanInst.numOperands ? scanInst.ops(*context_.operands) : nullptr;
+            if (scanOps && scanOps[0].reg == stackBaseReg_)
+            {
+                stackBaseStable_ = false;
+                break;
+            }
+        }
+    }
+
+    // Resolve call targets up front: checks identify what a call invokes, and the
+    // fixpoint needs to know which calls never return.
+    callTargets_.clear();
+    for (const MicroRelocation& rel : context_.builder->codeRelocations())
+    {
+        if (rel.targetSymbol &&
+            (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
+            callTargets_[rel.instructionRef.get()] = rel.targetSymbol;
+    }
 
     reached_[0]    = 1;
     inWorklist_[0] = 1;
@@ -52,6 +119,20 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         if (def.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !def.flags.has(MicroInstrFlagsE::JumpInstruction))
             continue; // Ret: no successor
 
+        // A call that never returns (the runtime panic behind a safety guard) has no
+        // fall-through: propagating its cleared state would pollute the join after the
+        // guard and erase the very facts the checks front-run the guard with.
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            const auto itCall = callTargets_.find(cfg.instructionRefs()[index].get());
+            if (itCall != callTargets_.end())
+            {
+                const auto calleeName = itCall->second->name(ctx());
+                if (calleeName == "@safetypanic" || calleeName == "@panic")
+                    continue;
+            }
+        }
+
         if (def.flags.has(MicroInstrFlagsE::ConditionalJump) && succs.size() == 2 && ops)
             propagateConditionalBranch(cur, ops, succs, worklist);
         else if (isModelledSingleEdge(def, succs))
@@ -68,15 +149,6 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         }
     }
 
-    // Resolve call targets so checks can identify what a call instruction invokes.
-    std::unordered_map<uint32_t, const Symbol*> callTargets;
-    for (const MicroRelocation& rel : context_.builder->codeRelocations())
-    {
-        if (rel.targetSymbol &&
-            (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
-            callTargets[rel.instructionRef.get()] = rel.targetSymbol;
-    }
-
     // Apply the checks only on the converged states.
     for (uint32_t i = 0; i < n; i++)
     {
@@ -90,8 +162,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         currentCallTarget_ = nullptr;
         if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
         {
-            const auto it = callTargets.find(instRef.get());
-            if (it != callTargets.end())
+            const auto it = callTargets_.find(instRef.get());
+            if (it != callTargets_.end())
                 currentCallTarget_ = it->second;
         }
 
@@ -308,7 +380,12 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             const SanitizerValue baseValue = getReg(state, ops[1].reg);
             int64_t              slot      = 0;
             if (resolveStackSlot(state, ops[1].reg, ops[3].valueU64, slot))
-                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(slot));
+            {
+                // The formed address starts the object being addressed: that is the
+                // origin, unless the base already carries one (derived pointer).
+                const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : slot;
+                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(slot, origin));
+            }
             else if (baseValue.isZero())
                 setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(0)); // zero-derived
             else if (baseValue.kind == SanitizerValueKind::GlobalAddr)
@@ -318,16 +395,55 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             return;
         }
 
-        case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadAddrAmcRegMem:
         {
+            // ops: [dst, base, mulReg, opBitsDst, opBitsValue, mulValue, addValue].
+            // Indexed addressing 'base + index*scale + disp': with a provable constant
+            // index the resulting frame offset is exact, and the base keeps the origin.
+            const SanitizerValue baseValue = getReg(state, ops[1].reg);
+            const SanitizerValue idxValue  = getReg(state, ops[2].reg);
+            if (baseValue.isStackAddr() && idxValue.isConstant())
+            {
+                const int64_t offset = baseValue.stackOffset + static_cast<int64_t>(idxValue.constant * ops[5].valueU64 + ops[6].valueU64);
+                const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : baseValue.stackOffset;
+                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(offset, origin));
+            }
+            else if (baseValue.isKnownNonZero())
+                setRegValue(state, ops[0].reg, SanitizerValue::makeNonZero());
+            else
+                setRegValue(state, ops[0].reg, {});
+            return;
+        }
+
+        case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadSignedExtRegMem:
+        case MicroInstrOpcode::LoadZeroExtRegMem:
+        {
+            // Widening slot loads keep the tracked value: extensions only widen, so
+            // zero-ness, constants and the slot-origin fact are preserved. A tracked
+            // constant is extended from the source width so signed values stay exact.
             int64_t slot = 0;
-            if (resolveStackSlot(state, ops[1].reg, ops[3].valueU64, slot))
+            if (resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
             {
                 const auto       it = state.stack.find(slot);
                 SanitizerRegInfo info;
                 info.value         = it != state.stack.end() ? it->second : SanitizerValue{};
                 info.hasOriginSlot = true;
                 info.originSlot    = slot;
+
+                if (info.value.isConstant() && inst.op != MicroInstrOpcode::LoadRegMem)
+                {
+                    const uint32_t srcBits = getNumBits(ops[3].opBits);
+                    if (srcBits && srcBits < 64)
+                    {
+                        const uint64_t mask = (1ULL << srcBits) - 1;
+                        uint64_t       v    = info.value.constant & mask;
+                        if (inst.op == MicroInstrOpcode::LoadSignedExtRegMem && (v >> (srcBits - 1)) & 1)
+                            v |= ~mask;
+                        info.value = SanitizerValue::makeConstant(v);
+                    }
+                }
+
                 setReg(state, ops[0].reg, info);
             }
             else
@@ -360,11 +476,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             if (isAddSub && cur.isZero())
                 setRegValue(state, reg, SanitizerValue::makeConstant(0));
             else if (ops[2].microOp == MicroOp::Add && cur.isStackAddr())
-                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset + static_cast<int64_t>(imm)));
+                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset + static_cast<int64_t>(imm), cur.stackOrigin));
             else if (ops[2].microOp == MicroOp::Add && cur.kind == SanitizerValueKind::Constant)
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant + imm));
             else if (ops[2].microOp == MicroOp::Subtract && cur.isStackAddr())
-                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset - static_cast<int64_t>(imm)));
+                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset - static_cast<int64_t>(imm), cur.stackOrigin));
             else if (ops[2].microOp == MicroOp::Subtract && cur.kind == SanitizerValueKind::Constant)
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant - imm));
             else

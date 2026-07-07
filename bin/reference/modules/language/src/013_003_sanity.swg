@@ -25,13 +25,20 @@ You can also configure them globally from the build configuration with
 The compiler proves some runtime faults statically and reports them as errors
 instead of letting the (guaranteed) panic or crash happen at runtime: division by
 a value proven to be zero ('.Math'), proven integer overflow ('.Overflow'),
-dereferencing or calling a pointer proven to be null ('.Null').
+dereferencing or calling a pointer proven to be null ('.Null'), and indexing a
+stack array with a provably out-of-range constant ('.BoundCheck') — free coverage
+in 'release', where the runtime guard is off.
 */
 #test
 {
     var d = 0
     var a = 10
     // var x = a / d  // Uncomment: error, division by zero (proven)
+
+    var arr: [4] s32
+    var i = 5
+    arr[0] = i
+    // let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)
 }
 
 /**

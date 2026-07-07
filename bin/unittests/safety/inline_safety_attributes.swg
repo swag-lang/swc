@@ -95,6 +95,11 @@ func opaqueS8(v: s8)->s8
     return v
 }
 
+func opaqueU64(v: u64)->u64
+{
+    return v
+}
+
 func opaqueS16(v: s16)->s16
 {
     return v
@@ -131,7 +136,7 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
 
 #test
 {
-    const Value = #run inlineSafetyArrayBoundCheck(2)
+    const Value = #run inlineSafetyArrayBoundCheck(opaqueU64(2))
     @assert(Value == 0)
 }
 

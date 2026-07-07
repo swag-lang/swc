@@ -18,14 +18,26 @@ enum class SanitizerValueKind : uint8_t
 
 struct SanitizerValue
 {
-    SanitizerValueKind kind        = SanitizerValueKind::Unknown;
-    uint64_t           constant    = 0; // Constant
-    int64_t            stackOffset = 0; // StackAddr
+    static constexpr int64_t K_NO_ORIGIN = INT64_MIN;
 
-    static SanitizerValue makeConstant(uint64_t value) { return {SanitizerValueKind::Constant, value, 0}; }
-    static SanitizerValue makeNonZero() { return {SanitizerValueKind::NonZero, 0, 0}; }
-    static SanitizerValue makeStackAddr(int64_t offset) { return {SanitizerValueKind::StackAddr, 0, offset}; }
-    static SanitizerValue makeGlobalAddr() { return {SanitizerValueKind::GlobalAddr, 0, 0}; }
+    SanitizerValueKind kind        = SanitizerValueKind::Unknown;
+    uint64_t           constant    = 0;           // Constant
+    int64_t            stackOffset = 0;           // StackAddr
+    // StackAddr only: frame offset the address was FORMED from (the start of the
+    // object an indexing/lea derived it from). K_NO_ORIGIN when not tracked (the raw
+    // stack base register). Lets the bound check compare a derived access against the
+    // extents of the variable it provably indexes.
+    int64_t stackOrigin = K_NO_ORIGIN;
+
+    static SanitizerValue makeConstant(uint64_t value) { return {SanitizerValueKind::Constant, value, 0, K_NO_ORIGIN}; }
+    static SanitizerValue makeNonZero() { return {SanitizerValueKind::NonZero, 0, 0, K_NO_ORIGIN}; }
+    static SanitizerValue makeStackAddr(int64_t offset, int64_t origin = K_NO_ORIGIN) { return {SanitizerValueKind::StackAddr, 0, offset, origin}; }
+    static SanitizerValue makeGlobalAddr() { return {SanitizerValueKind::GlobalAddr, 0, 0, K_NO_ORIGIN}; }
+
+    bool hasStackOrigin() const
+    {
+        return kind == SanitizerValueKind::StackAddr && stackOrigin != K_NO_ORIGIN;
+    }
 
     bool isConstant() const
     {
@@ -52,7 +64,7 @@ struct SanitizerValue
 
     bool operator==(const SanitizerValue& o) const
     {
-        return kind == o.kind && constant == o.constant && stackOffset == o.stackOffset;
+        return kind == o.kind && constant == o.constant && stackOffset == o.stackOffset && stackOrigin == o.stackOrigin;
     }
 };
 

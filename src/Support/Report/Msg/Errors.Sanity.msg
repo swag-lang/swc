@@ -1,4 +1,5 @@
 SWC_DIAG_DEF(sanity_err_division_zero, Error, "division by zero")
+SWC_DIAG_DEF(sanity_err_out_of_bounds, Error, "out-of-bounds access; [help] the index is provably outside the variable's storage")
 SWC_DIAG_DEF(sanity_err_integer_overflow, Error, "integer overflow")
 SWC_DIAG_DEF(sanity_err_invalid_argument, Error, "argument value is out of valid range")
 SWC_DIAG_DEF(sanity_err_null_deref, Error, "dereferencing a null pointer")

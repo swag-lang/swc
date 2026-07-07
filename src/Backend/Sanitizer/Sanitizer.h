@@ -42,6 +42,16 @@ public:
     TaskContext&            ctx() const;
     const MicroPassContext& passContext() const { return context_; }
 
+    // Extents of the declared variable (local or spilled parameter) whose storage
+    // contains 'offset' (relative to the debug stack base). False for compiler
+    // temporaries: no declared variable covers them.
+    bool findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t& outSize) const;
+
+    // False when the codegen mutated the stack-base register in place (call-area
+    // frame shapes): frame offsets then live in a shifted, self-consistent frame of
+    // reference — fine for slot-relative facts, unusable against absolute extents.
+    bool stackBaseStable() const { return stackBaseStable_; }
+
     // The function called by the current instruction, when the check is invoked on a
     // call instruction (resolved from the builder's relocations). Null otherwise.
     const Symbol* currentCallTarget() const { return currentCallTarget_; }
@@ -75,8 +85,16 @@ private:
     static constexpr uint32_t K_MAX_INSTRUCTIONS = 20000;
     static constexpr uint64_t K_ITERATION_CAP    = 400000;
 
+    struct LocalSlotExtent
+    {
+        int64_t  start = 0;
+        uint64_t size  = 0;
+    };
+
     MicroPassContext&            context_;
     MicroReg                     stackBaseReg_;
+    std::vector<LocalSlotExtent> localSlots_;
+    bool                         stackBaseStable_ = true;
     const MicroControlFlowGraph* cfg_               = nullptr;
     const Symbol*                currentCallTarget_ = nullptr;
     bool                         reported_          = false;
@@ -84,6 +102,8 @@ private:
     std::vector<char>            reached_;
     std::vector<char>            inWorklist_;
     std::unordered_set<uint64_t> reportedLocations_;
+
+    std::unordered_map<uint32_t, const Symbol*> callTargets_;
 };
 
 SWC_END_NAMESPACE();

@@ -124,6 +124,12 @@ namespace
         if (hasOwningLifecycle(sema, typeRef))
             return false;
 
+        // A struct still being analyzed can grow its field vector concurrently:
+        // iterating it would race. Conservative no-carrier answer (no tracking, never
+        // a false positive).
+        if (!type.payloadSymStruct().isSemaCompleted())
+            return false;
+
         for (const SymbolVariable* field : type.payloadSymStruct().fields())
         {
             if (field && typeCanCarryBorrowRec(sema, field->typeRef(), visiting, budget))

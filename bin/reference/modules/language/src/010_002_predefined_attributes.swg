@@ -168,6 +168,7 @@ Examples:
 #[Swag.Sanity(.Lifecycle, false)]     // Disable the borrow/use-after-move analysis
 ```
 Checks:
+* '.BoundCheck'  -> Provably out-of-range constant index on a stack array
 * '.Math'        -> Proven division by zero, invalid math intrinsic arguments
 * '.Overflow'    -> Proven integer overflow
 * '.Null'        -> Proven null dereference or null call

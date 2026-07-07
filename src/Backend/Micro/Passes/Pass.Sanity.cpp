@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Sanitizer/Checks/Check.BoundCheck.h"
 #include "Backend/Sanitizer/Checks/Check.DivByZero.h"
 #include "Backend/Sanitizer/Checks/Check.FloatDomain.h"
 #include "Backend/Sanitizer/Checks/Check.IntOverflow.h"
@@ -29,7 +30,8 @@ Result MicroSanityPass::run(MicroPassContext& context)
     IntOverflowCheck      intOverflowCheck;
     StackEscapeCheck      stackEscapeCheck;
     UseAfterMoveCheck     useAfterMoveCheck;
-    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck};
+    BoundCheckCheck       boundCheckCheck;
+    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck, &boundCheckCheck};
 
     SmallVector<SanitizerCheck*> enabledChecks;
     for (SanitizerCheck* check : allChecks)

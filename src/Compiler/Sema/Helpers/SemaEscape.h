@@ -34,6 +34,12 @@ struct SemaEscapeDeferredCheck
     // site is a global.
     bool     judgePairs     = false;
     uint32_t intoParamIndex = 0;
+    // No summary condition at all: the fault is certain from the callee's identity
+    // (a frame borrow handed to 'IAllocator.free' as the request address).
+    bool judgeAlways = false;
+    // The borrowed source is an owner (its payload lives on the heap): freeing it is
+    // legitimate, so a FREES-only match must stay silent.
+    bool ownerSource = false;
     DiagnosticId    diagId      = {};
     FileRef         fileRef;
     SourceCodeRange siteRange;

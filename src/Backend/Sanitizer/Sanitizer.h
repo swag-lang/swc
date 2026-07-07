@@ -38,6 +38,7 @@ public:
 
     // Queries usable by checks against a converged state.
     SanitizerValue          getReg(const SanitizerState& state, MicroReg reg) const;
+    const SanitizerRegInfo* regInfo(const SanitizerState& state, MicroReg reg) const { return findReg(state, reg); }
     bool                    resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const;
     TaskContext&            ctx() const;
     const MicroPassContext& passContext() const { return context_; }
@@ -95,6 +96,9 @@ private:
     MicroReg                     stackBaseReg_;
     std::vector<LocalSlotExtent> localSlots_;
     bool                         stackBaseStable_ = true;
+    // Call target of the instruction currently going through the transfer function
+    // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
+    const Symbol* transferCallTarget_ = nullptr;
     const MicroControlFlowGraph* cfg_               = nullptr;
     const Symbol*                currentCallTarget_ = nullptr;
     bool                         reported_          = false;

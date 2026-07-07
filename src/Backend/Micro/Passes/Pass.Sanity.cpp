@@ -7,6 +7,7 @@
 #include "Backend/Sanitizer/Checks/Check.IntOverflow.h"
 #include "Backend/Sanitizer/Checks/Check.NullDeref.h"
 #include "Backend/Sanitizer/Checks/Check.StackEscape.h"
+#include "Backend/Sanitizer/Checks/Check.UseAfterFree.h"
 #include "Backend/Sanitizer/Checks/Check.UseAfterMove.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Support/Core/SmallVector.h"
@@ -31,7 +32,8 @@ Result MicroSanityPass::run(MicroPassContext& context)
     StackEscapeCheck      stackEscapeCheck;
     UseAfterMoveCheck     useAfterMoveCheck;
     BoundCheckCheck       boundCheckCheck;
-    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck, &boundCheckCheck};
+    UseAfterFreeCheck     useAfterFreeCheck;
+    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck, &boundCheckCheck, &useAfterFreeCheck};
 
     SmallVector<SanitizerCheck*> enabledChecks;
     for (SanitizerCheck* check : allChecks)

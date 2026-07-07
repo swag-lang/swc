@@ -357,8 +357,12 @@ namespace
                     return nullptr;
                 }
 
+                // A member access never designates the WHOLE variable, whatever the
+                // recursion reports for the left side.
+                bool leftWhole = false;
+                const SymbolVariable* leftRoot = storageRootVariable(sema, leftRef, forAssignment, leftWhole);
                 outWholeVariable = false;
-                return storageRootVariable(sema, leftRef, forAssignment, outWholeVariable);
+                return leftRoot;
             }
 
             case AstNodeId::IndexExpr:
@@ -366,8 +370,10 @@ namespace
                 const auto& index = node.cast<AstIndexExpr>();
                 if (isArrayStorageExpr(sema, index.nodeExprRef))
                 {
+                    bool indexedWhole = false;
+                    const SymbolVariable* indexedRoot = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
                     outWholeVariable = false;
-                    return storageRootVariable(sema, index.nodeExprRef, forAssignment, outWholeVariable);
+                    return indexedRoot;
                 }
 
                 return nullptr;
@@ -378,8 +384,10 @@ namespace
                 const auto& index = node.cast<AstIndexListExpr>();
                 if (isArrayStorageExpr(sema, index.nodeExprRef))
                 {
+                    bool indexedWhole = false;
+                    const SymbolVariable* indexedRoot = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
                     outWholeVariable = false;
-                    return storageRootVariable(sema, index.nodeExprRef, forAssignment, outWholeVariable);
+                    return indexedRoot;
                 }
 
                 return nullptr;
@@ -953,6 +961,7 @@ namespace
             check.noteId      = DiagnosticId::sema_note_borrow_source_declared_here;
             check.noteSymName = check.symName;
             check.noteRange   = info.sourceVar->codeRange(sema.ctx());
+            check.ownerSource = hasOwningLifecycle(sema, info.sourceVar->typeRef());
             return;
         }
 
@@ -1011,6 +1020,24 @@ namespace
         if (params.empty())
             return false;
 
+        // The LANGUAGE allocator interface: 'free'/'realloc' invalidate the pointer
+        // carried by the request's 'address' field. Cheap name test first, the
+        // qualified name only on candidates.
+        bool calleeIsAllocFree = false;
+        {
+            const auto calleeName = fn->name(sema.ctx());
+            if (calleeName == "free" || calleeName == "realloc")
+            {
+                // The qualified name is prefixed by the module: match the language
+                // interface by suffix. Interface IMPLEMENTATIONS ('X.IAllocator.free')
+                // do not match — only the declared interface method reached by
+                // dispatch does, which is exactly the semantic anchor.
+                const Utf8             fullName = fn->getFullScopedName(sema.ctx());
+                const std::string_view view{fullName};
+                calleeIsAllocFree = view.ends_with("Swag.IAllocator.free") || view.ends_with("Swag.IAllocator.realloc");
+            }
+        }
+
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(resolvedRef, args);
 
@@ -1045,6 +1072,38 @@ namespace
             const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, arg, param->typeRef(), budget);
             if (collectPairs && info.hasBorrow())
                 argBorrows.push_back({static_cast<uint32_t>(thisParam), info});
+
+            // Allocator-interface free: what the call invalidates is the borrow the
+            // REQUEST variable carries (tracked when 'req.address = x' was analyzed).
+            // A caller parameter seeds this function's FREES summary; a frame-local
+            // borrow (non-owner: an owner's payload lives on the heap and freeing it
+            // is legitimate) is a certain fault.
+            // Interface dispatch pairs the request as the sole non-receiver argument
+            // (the runtime receiver object does not consume a slot).
+            if (calleeIsAllocFree && collectPairs)
+            {
+                const AstNodeRef      reqValueRef = argumentValueRef(sema, arg.argRef);
+                bool                  reqWhole    = false;
+                const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
+                const SemaEscapeInfo* carried     = reqVar ? sema.variableEscapeInfo(*reqVar) : nullptr;
+                if (carried && carried->kind == SemaEscapeKind::Parameter && carried->sourceVar)
+                {
+                    SymbolFunction* callerFn = sema.currentFunction();
+                    size_t          idx      = 0;
+                    if (callerFn && findCallerParameterIndex(*callerFn, *carried->sourceVar, idx))
+                        callerFn->addFreesParam(idx);
+                }
+                else if (carried && carried->isLocalBorrow() && !hasOwningLifecycle(sema, carried->sourceVar->typeRef()))
+                {
+                    SemaEscapeDeferredCheck check;
+                    check.callee      = fn;
+                    check.paramIndex  = static_cast<uint32_t>(thisParam);
+                    check.judgeAlways = true;
+                    fillDeferredCheckDiag(sema, check, *carried);
+                    check.diagId = DiagnosticId::sanity_err_free_borrowed;
+                    outCapture.checks.push_back(std::move(check));
+                }
+            }
 
             // Handing the callee one of the caller's own parameters chains the
             // summaries: judged by fixpoint, not here — the callee's masks are not
@@ -1938,6 +1997,13 @@ namespace SemaEscape
                             edge.caller->addStoresParam(edge.callerParamIndex);
                             changed = true;
                         }
+                        // The same forwarding edge chains the FREES summary: a wrapper
+                        // handing its parameter to a freeing callee frees it too.
+                        if ((edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesParamsMask() & callerBit))
+                        {
+                            edge.caller->addFreesParam(edge.callerParamIndex);
+                            changed = true;
+                        }
                         break;
                 }
             }
@@ -1988,15 +2054,35 @@ namespace SemaEscape
                 continue;
             previous = &check;
 
-            if (check.judgePairs)
+            DiagnosticId diagId = check.diagId;
+            if (check.judgeAlways)
+            {
+                // Certain from the callee's identity: no summary to consult.
+            }
+            else if (check.judgePairs)
             {
                 if (!SymbolFunction::hasStoresIntoPair(check.callee->storesIntoParamPairs(), check.intoParamIndex, check.paramIndex))
                     continue;
             }
+            else if (check.judgeStores)
+            {
+                // An argument handed to a callee escapes when the callee KEEPS it
+                // (stores summary) or is invalidated when the callee FREES it. An
+                // owner's payload lives on the heap: freeing it is legitimate.
+                const bool storesHit = (check.callee->storesParamsMask() >> check.paramIndex) & 1;
+                const bool freesHit  = (check.callee->freesParamsMask() >> check.paramIndex) & 1;
+                if (!storesHit && !freesHit)
+                    continue;
+                if (!storesHit)
+                {
+                    if (check.ownerSource)
+                        continue;
+                    diagId = DiagnosticId::sanity_err_free_borrowed;
+                }
+            }
             else
             {
-                const uint64_t judgeMask = check.judgeStores ? check.callee->storesParamsMask() : check.callee->returnBorrowsParamsMask();
-                if (!(judgeMask & (1ULL << check.paramIndex)))
+                if (!(check.callee->returnBorrowsParamsMask() & (1ULL << check.paramIndex)))
                     continue;
             }
 
@@ -2005,7 +2091,7 @@ namespace SemaEscape
             if (check.guardCallee && !(check.guardCallee->returnBorrowsParamsMask() & (1ULL << check.guardParamIndex)))
                 continue;
 
-            Diagnostic diag = Diagnostic::get(check.diagId, check.fileRef);
+            Diagnostic diag = Diagnostic::get(diagId, check.fileRef);
             diag.last().addSpan(check.siteRange);
             if (!check.symName.empty())
                 diag.addArgument(Diagnostic::ARG_SYM, check.symName);

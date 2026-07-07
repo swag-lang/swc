@@ -81,6 +81,7 @@ struct AttributeList
     uint64_t                            returnBorrowsParamsMask = 0;
     uint64_t                            storesParamsMask        = 0;
     uint64_t                            storesIntoParamPairs    = 0;
+    uint64_t                            freesParamsMask         = 0;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
     std::optional<bool>                 backendOptimize;
@@ -101,6 +102,7 @@ struct AttributeList
                returnBorrowsParamsMask == 0 &&
                storesParamsMask == 0 &&
                storesIntoParamPairs == 0 &&
+               freesParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                !backendOptimize.has_value() &&
@@ -177,12 +179,14 @@ struct AttributeList
     // Computed borrow summaries re-imported from a module API ('Swag.BorrowSummary'):
     // bit i of 'returns' = the return value may borrow parameter #i, bit i of 'stores'
     // = parameter #i may be stored beyond the call, bit (i*8+j) of 'into' = parameter
-    // #j may be stored into storage reachable from parameter #i.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs)
+    // #j may be stored into storage reachable from parameter #i, bit i of 'frees' =
+    // the call invalidates what parameter #i points to.
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
         storesIntoParamPairs |= intoPairs;
+        freesParamsMask |= freesMask;
     }
 
     void setBackendOptimize(bool value)

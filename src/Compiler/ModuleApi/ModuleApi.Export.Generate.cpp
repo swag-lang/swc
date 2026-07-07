@@ -210,9 +210,10 @@ namespace
         const uint64_t returnsMask = symbolFunction.returnBorrowsParamsMask();
         const uint64_t storesMask  = symbolFunction.storesParamsMask();
         const uint64_t intoPairs   = symbolFunction.storesIntoParamPairs();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0) && !ioSnippet.contains("BorrowSummary"))
+        const uint64_t freesMask   = symbolFunction.freesParamsMask();
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0) && !ioSnippet.contains("BorrowSummary"))
         {
-            prefix += std::format("#[Swag.BorrowSummary({}, {}, {})]", returnsMask, storesMask, intoPairs);
+            prefix += std::format("#[Swag.BorrowSummary({}, {}, {}, {})]", returnsMask, storesMask, intoPairs, freesMask);
             prefix += eol;
         }
 

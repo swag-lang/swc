@@ -142,6 +142,42 @@ func sanityStash(p: *s32)
 }
 
 /**
+# 'Use After Free and Double Free'
+
+Every allocation flows through the [[Swag.IAllocator]] interface, whose methods make
+the operation structural: the analysis infers which functions FREE what their
+parameters point to (a 'frees' summary, chained through wrappers and across modules
+like the other summaries). Dereferencing a pointer after it was provably freed — or
+freeing it twice — is a compile-time error ('.Lifecycle'). Aliases and conditional
+frees are misses, never false positives; reassigning the pointer makes it valid
+again.
+*/
+#test
+{
+    func exampleAlloc(size: u64)->*void
+    {
+        var req: Swag.AllocatorRequest
+        req.size = size
+        @getcontext().allocator.alloc(&req)
+        return req.address
+    }
+
+    func exampleFree(ptr: *void, size: u64)
+    {
+        var req: Swag.AllocatorRequest
+        req.address = ptr
+        req.size    = size
+        @getcontext().allocator.free(&req)
+    }
+
+    let p = cast(*s32) exampleAlloc(4)
+    dref p = 1
+    exampleFree(p, 4)
+    // let x = dref p       // Uncomment: error, use of a freed pointer (proven)
+    // exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
+}
+
+/**
 # 'Use of Moved-From Values'
 
 Reading a local abandoned by '#move' or '#relocate' (and not reset) is a proven

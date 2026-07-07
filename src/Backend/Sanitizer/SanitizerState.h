@@ -43,6 +43,13 @@ struct SanitizerState
     // the range revalidates it, and calls conservatively clear the whole set.
     std::unordered_map<int64_t, uint64_t> movedFrom;
 
+    // Slots holding a pointer that was handed to a FREEING callee (freesParamsMask):
+    // dereferencing that pointer again is a use-after-free, freeing it again a double
+    // free. Same discipline as movedFrom: join = intersection, any store that could
+    // alias the slot revalidates it, calls conservatively clear the set (the freeing
+    // call itself re-marks its arguments afterwards).
+    std::unordered_set<int64_t> freedPtrSlots;
+
     MicroReg flagsSubject = MicroReg::invalid();
 };
 

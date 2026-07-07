@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Sanitizer.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -112,6 +113,14 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         const MicroInstr&        inst = *context_.instructions->ptr(cfg.instructionRefs()[index]);
         const MicroInstrDef&     def  = MicroInstr::info(inst.op);
         const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+
+        transferCallTarget_ = nullptr;
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            const auto itTarget = callTargets_.find(cfg.instructionRefs()[index].get());
+            if (itTarget != callTargets_.end())
+                transferCallTarget_ = itTarget->second;
+        }
 
         applyValueEffects(cur, inst, def, ops);
 
@@ -282,6 +291,17 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
+    for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
+    {
+        if (!from.freedPtrSlots.contains(*it))
+        {
+            it      = into.freedPtrSlots.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+
     if (into.flagsSubject.isValid() && into.flagsSubject != from.flagsSubject)
     {
         into.flagsSubject = MicroReg::invalid();
@@ -331,6 +351,27 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             else
                 state.movedFrom.clear();
         }
+    }
+
+    // Freed-pointer slots follow the same aliasing discipline: any write that could
+    // reassign the pointer revalidates it. Calls clear the set below (after marking
+    // the freeing call's own arguments).
+    if (!state.freedPtrSlots.empty() && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
+    {
+        int64_t slot = 0;
+        if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+            resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+        {
+            for (auto it = state.freedPtrSlots.begin(); it != state.freedPtrSlots.end();)
+            {
+                if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > *it && slot < *it + static_cast<int64_t>(sizeof(void*)))
+                    it = state.freedPtrSlots.erase(it);
+                else
+                    ++it;
+            }
+        }
+        else
+            state.freedPtrSlots.clear();
     }
 
     switch (inst.op)
@@ -560,10 +601,32 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
     if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
     {
+        // A callee with a FREES summary invalidates what its marked arguments point
+        // to: remember the slots those pointers were loaded from, BEFORE the clobber
+        // wipe erases the argument registers.
+        SmallVector<int64_t> newlyFreed;
+        const auto*          calleeFn  = transferCallTarget_ ? transferCallTarget_->safeCast<SymbolFunction>() : nullptr;
+        const uint64_t       freesMask = calleeFn ? calleeFn->freesParamsMask() : 0;
+        if (freesMask && ops)
+        {
+            const CallConv& callConv = CallConv::get(ops[0].callConv);
+            for (size_t i = 0; i < callConv.intArgRegs.size() && i < 64; i++)
+            {
+                if (!((freesMask >> i) & 1))
+                    continue;
+                const SanitizerRegInfo* argInfo = findReg(state, callConv.intArgRegs[i]);
+                if (argInfo && argInfo->hasOriginSlot)
+                    newlyFreed.push_back(argInfo->originSlot);
+            }
+        }
+
         // Calls clobber caller-saved registers and may mutate escaped locals.
         state.regs.clear();
         state.stack.clear();
+        state.freedPtrSlots.clear();
         state.flagsSubject = MicroReg::invalid();
+        for (const int64_t slot : newlyFreed)
+            state.freedPtrSlots.insert(slot);
         return;
     }
 

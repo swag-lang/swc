@@ -345,13 +345,16 @@ namespace
         uint64_t returnsMask = 0;
         uint64_t storesMask  = 0;
         uint64_t intoPairs   = 0;
+        uint64_t freesMask   = 0;
         SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], returnsMask));
         if (args.size() >= 2)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], storesMask));
         if (args.size() >= 3)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[2], intoPairs));
+        if (args.size() >= 4)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[3], freesMask));
 
-        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs);
+        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask);
         return Result::Continue;
     }
 

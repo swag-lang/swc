@@ -186,12 +186,14 @@ Computed borrow summary of a function, consumed by the static borrow analysis
 ('.Lifecycle' sanity). Bit 'i' of 'returns' means the return value may borrow
 parameter #i; bit 'i' of 'stores' means parameter #i may be stored in storage that
 outlives the call; bit 'i*8+j' of 'into' means parameter #j may be stored into
-storage reachable from parameter #i (packed 8x8). The compiler emits it
-automatically in generated module APIs so the summaries cross module boundaries; it
-can also be written manually on a 'Swag.Foreign' function whose behavior is known.
+storage reachable from parameter #i (packed 8x8); bit 'i' of 'frees' means the call
+invalidates what parameter #i points to (it reaches 'IAllocator.free' or
+'IAllocator.realloc'). The compiler emits it automatically in generated module APIs
+so the summaries cross module boundaries; it can also be written manually on a
+'Swag.Foreign' function whose behavior is known.
 */
 #[AttrUsage(AttributeUsage.Function)]
-attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0)
+attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0)
 
 /**
 # Optimization Controls

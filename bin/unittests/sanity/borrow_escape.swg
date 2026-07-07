@@ -477,3 +477,105 @@ func borrowEscapeMutualCall()->*s32
     var v: s32
     return borrowEscapeMutualA(&v, 3) // swc-expected-error {{sanity_err_borrow_escape}}
 }
+
+// ---------------------------------------------------------------------------
+// Transitive summaries: a wrapper that returns 'g(p)' borrows whatever 'g' borrows,
+// however deep the chain, resolved by fixpoint once the whole module is analyzed.
+// ---------------------------------------------------------------------------
+
+func borrowEscapeWrapOnce(p: *s32)->*s32
+{
+    return borrowEscapePassthrough(p)
+}
+
+func borrowEscapeWrapTwice(p: *s32)->*s32
+{
+    return borrowEscapeWrapOnce(p)
+}
+
+func borrowEscapeThroughWrapper()->*s32
+{
+    var v: s32
+    return borrowEscapeWrapOnce(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeThroughWrapperChain()->*s32
+{
+    var v: s32
+    return borrowEscapeWrapTwice(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeThroughWrapperGlobal()
+{
+    var v: s32
+    borrowEscapeGlobalPtr = borrowEscapeWrapTwice(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A wrapper whose callee returns caller-independent data borrows nothing: the chain
+// stays silent whatever was passed in.
+func borrowEscapeGlobalSource(p: *s32)->*s32
+{
+    return &borrowEscapeGlobalInt
+}
+
+func borrowEscapeWrapGlobalSource(p: *s32)->*s32
+{
+    return borrowEscapeGlobalSource(p)
+}
+
+func borrowEscapeThroughNonBorrowingWrapper()->*s32
+{
+    var v: s32
+    return borrowEscapeWrapGlobalSource(&v)
+}
+
+// Carrier chain: the string identity summary flows through its wrapper.
+func borrowEscapeWrapIdentity(s: string)->string
+{
+    return borrowEscapeIdentity(s)
+}
+
+func borrowEscapeThroughWrapCarrier()->string
+{
+    var buf: [3] u8
+    buf[0] = 'a''u8
+    return borrowEscapeWrapIdentity(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A pure passthrough cycle has no direct borrow to seed the masks: the fixpoint
+// converges with nothing set and the call site stays silent.
+func borrowEscapeCycleA(p: *s32)->*s32
+{
+    return borrowEscapeCycleB(p)
+}
+
+func borrowEscapeCycleB(p: *s32)->*s32
+{
+    return borrowEscapeCycleA(p)
+}
+
+func borrowEscapeThroughCycle()->*s32
+{
+    var v: s32
+    return borrowEscapeCycleA(&v)
+}
+
+// Only one side of the cycle returns its parameter directly; the other side gets the
+// borrow through the fixpoint, across the cycle.
+func borrowEscapeSeededA(p: *s32, n: s32)->*s32
+{
+    if n <= 0 do
+        return p
+    return borrowEscapeSeededB(p, n - 1)
+}
+
+func borrowEscapeSeededB(p: *s32, n: s32)->*s32
+{
+    return borrowEscapeSeededA(p, n - 1)
+}
+
+func borrowEscapeThroughSeededCycle()->*s32
+{
+    var v: s32
+    return borrowEscapeSeededB(&v, 3) // swc-expected-error {{sanity_err_borrow_escape}}
+}

@@ -74,7 +74,8 @@ var sanityGlobalBuffer: [4] u8
 /**
 The analysis follows borrows across local bindings, control-flow joins, and even
 opaque calls: a function whose return value may borrow one of its parameters is
-summarized, and the call site is checked against what was really passed in.
+summarized, and the call site is checked against what was really passed in. The
+summaries chain, so wrapping a borrowing function does not hide the borrow.
 */
 #test
 {
@@ -83,11 +84,16 @@ summarized, and the call site is checked against what was really passed in.
         return p
     }
 
+    func wrapper(p: *s32)->*s32
+    {
+        return passthrough(p) // Inherits the summary of 'passthrough'
+    }
+
     func caller()->*s32
     {
         // var v: s32
-        // return passthrough(&v)  // Uncomment: error, borrows a local through the call
-        return passthrough(&sanityGlobalValue) // Caller-owned data flows through
+        // return wrapper(&v)  // Uncomment: error, borrows a local through the chain
+        return wrapper(&sanityGlobalValue) // Caller-owned data flows through
     }
 
     @assert(caller() == &sanityGlobalValue)

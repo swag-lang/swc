@@ -33,6 +33,18 @@ struct SemaEscapeDeferredCheck
     SourceCodeRange       noteRange;
 };
 
+// A return-position call that hands one of the caller's own parameters to the callee:
+// if the callee's return value borrows that parameter, so does the caller's. Resolved
+// by a mask fixpoint in reportDeferredChecks, making the per-function summaries
+// transitive across chains of opaque calls (a wrapper level no longer hides a borrow).
+struct SemaEscapeSummaryEdge
+{
+    SymbolFunction*       caller           = nullptr;
+    const SymbolFunction* callee           = nullptr;
+    uint32_t              callerParamIndex = 0;
+    uint32_t              calleeParamIndex = 0;
+};
+
 namespace SemaEscape
 {
     bool   typeCanCarryBorrow(Sema& sema, TypeRef typeRef);

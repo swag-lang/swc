@@ -231,6 +231,8 @@ public:
     bool                            tryRegisterReportedDiagnostic(std::string_view message);
     void                            addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
     std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
+    void                            addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
+    std::vector<SemaEscapeSummaryEdge> takeEscapeSummaryEdges();
     void                            registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
     void                            onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
     Result                          ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
@@ -477,6 +479,7 @@ private:
     std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;
     std::mutex                                                                                                   deferredEscapeChecksMutex_;
     std::vector<SemaEscapeDeferredCheck>                                                                         deferredEscapeChecks_;
+    std::vector<SemaEscapeSummaryEdge>                                                                           escapeSummaryEdges_;
     mutable std::mutex                                                                                           compilerMessageDispatchMutex_;
     std::deque<CompilerMessageListener>                                                                          compilerMessageListeners_;
     std::vector<CompilerMessageEvent>                                                                            compilerMessageLog_;

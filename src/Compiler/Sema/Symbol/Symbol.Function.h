@@ -63,6 +63,8 @@ public:
 
     // Bit i set = the returned value may borrow parameter #i. Written during the body
     // sema (before setSemaCompleted); callers must gate reads on isSemaCompleted().
+    // Grown once more after the final sema drain by the summary fixpoint in
+    // SemaEscape::reportDeferredChecks (transitivity across opaque-call chains).
     uint64_t returnBorrowsParamsMask() const noexcept { return returnBorrowsParamsMask_; }
     void     addReturnBorrowsParam(size_t paramIndex) noexcept
     {

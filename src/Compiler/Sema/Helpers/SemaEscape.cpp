@@ -897,8 +897,10 @@ namespace
     // lands in an escaping position (return, global, caller-visible storage). The flow
     // state is only valid NOW, so the argument side is captured eagerly; the callee's
     // 'returnBorrowsParamsMask' is read later, in reportDeferredChecks, when it is
-    // final regardless of the sema job order.
-    void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what)
+    // final regardless of the sema job order. 'summaryCaller' is set when the call
+    // result is RETURNED by that function: caller-parameter arguments then record
+    // propagation edges so the summaries chain across opaque calls.
+    void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what, SymbolFunction* summaryCaller)
     {
         if (exprRef.isInvalid() || atNodeRef.isInvalid())
             return;
@@ -963,6 +965,30 @@ namespace
 
             uint32_t             budget = K_EXPR_BUDGET;
             const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, arg, param->typeRef(), budget);
+
+            // Returning the callee's result while handing it one of the caller's own
+            // parameters chains the summaries: judged by fixpoint, not here — the
+            // callee's mask is not final yet.
+            if (summaryCaller && info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+            {
+                const auto& callerParams = summaryCaller->parameters();
+                for (size_t i = 0; i < callerParams.size(); ++i)
+                {
+                    if (callerParams[i] == info.sourceVar)
+                    {
+                        SemaEscapeSummaryEdge edge;
+                        edge.caller           = summaryCaller;
+                        edge.callee           = fn;
+                        edge.callerParamIndex = static_cast<uint32_t>(i);
+                        edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
+                        sema.ctx().compiler().addEscapeSummaryEdge(edge);
+                        break;
+                    }
+                }
+
+                continue;
+            }
+
             if (!info.isLocalBorrow() && !info.isTemporaryBorrow() && !info.isMaterializedBorrow())
                 continue;
 
@@ -1373,7 +1399,7 @@ namespace SemaEscape
         if (!info.hasBorrow())
         {
             if (variableInitializerCanEscape(symVar))
-                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer");
+                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer", nullptr);
             sema.clearVariableEscapeInfo(symVar);
             return Result::Continue;
         }
@@ -1424,7 +1450,7 @@ namespace SemaEscape
             // A destination outside the local frame turns a callee-borrowed argument
             // into an escape: defer the judgement to the per-function summaries.
             if (!dstVar || !isLocalVariableStorage(sema, *dstVar))
-                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment");
+                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment", nullptr);
             if (dstVar && wholeVariable)
                 sema.clearVariableEscapeInfo(*dstVar);
             return Result::Continue;
@@ -1470,7 +1496,7 @@ namespace SemaEscape
         // A returned call result may borrow the arguments handed to the callee: defer
         // the judgement to the per-function summaries.
         if (!info.hasBorrow() && !inlineSourceFn)
-            recordDeferredCallBorrow(sema, exprRef, returnRef, "a return value");
+            recordDeferredCallBorrow(sema, exprRef, returnRef, "a return value", sema.currentFunction());
 
         // A temporary lives until the end of the enclosing statement, and materialized
         // cast storage lives with the frame. An inline-expanded return hands both back
@@ -1517,6 +1543,27 @@ namespace SemaEscape
     void reportDeferredChecks(TaskContext& ctx)
     {
         std::vector<SemaEscapeDeferredCheck> checks = ctx.compiler().takeDeferredEscapeChecks();
+        std::vector<SemaEscapeSummaryEdge>   edges  = ctx.compiler().takeEscapeSummaryEdges();
+
+        // Chain the per-function summaries across opaque calls before judging: a
+        // wrapper that returns 'g(p)' borrows whatever 'g' says it borrows. Masks only
+        // grow, so the fixpoint terminates; cycles (mutual recursion) just converge.
+        // Sema is fully drained here, so growing the masks is race-free.
+        bool changed = !edges.empty();
+        while (changed)
+        {
+            changed = false;
+            for (const SemaEscapeSummaryEdge& edge : edges)
+            {
+                if (!(edge.callee->returnBorrowsParamsMask() & (1ULL << edge.calleeParamIndex)))
+                    continue;
+                if (edge.caller->returnBorrowsParamsMask() & (1ULL << edge.callerParamIndex))
+                    continue;
+                edge.caller->addReturnBorrowsParam(edge.callerParamIndex);
+                changed = true;
+            }
+        }
+
         if (checks.empty())
             return;
 

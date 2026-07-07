@@ -1199,6 +1199,18 @@ std::vector<SemaEscapeDeferredCheck> CompilerInstance::takeDeferredEscapeChecks(
     return std::exchange(deferredEscapeChecks_, {});
 }
 
+void CompilerInstance::addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
+{
+    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    escapeSummaryEdges_.push_back(edge);
+}
+
+std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
+{
+    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    return std::exchange(escapeSummaryEdges_, {});
+}
+
 Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const std::string_view sectionText, const uint32_t codeOffsetInSection)
 {
     outResult = {};

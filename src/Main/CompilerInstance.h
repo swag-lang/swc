@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
@@ -228,6 +229,8 @@ public:
     void                            registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*                 runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                            tryRegisterReportedDiagnostic(std::string_view message);
+    void                            addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
+    std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
     void                            registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
     void                            onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
     Result                          ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
@@ -472,6 +475,8 @@ private:
     std::unordered_map<IdentifierRef, uint32_t>                                                                  pendingImplRegistrations_;
     std::mutex                                                                                                   reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;
+    std::mutex                                                                                                   deferredEscapeChecksMutex_;
+    std::vector<SemaEscapeDeferredCheck>                                                                         deferredEscapeChecks_;
     mutable std::mutex                                                                                           compilerMessageDispatchMutex_;
     std::deque<CompilerMessageListener>                                                                          compilerMessageListeners_;
     std::vector<CompilerMessageEvent>                                                                            compilerMessageLog_;

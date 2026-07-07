@@ -1187,6 +1187,18 @@ bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view mess
     return reportedDiagnostics_.insert(std::move(messageUtf8)).second;
 }
 
+void CompilerInstance::addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check)
+{
+    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    deferredEscapeChecks_.push_back(std::move(check));
+}
+
+std::vector<SemaEscapeDeferredCheck> CompilerInstance::takeDeferredEscapeChecks()
+{
+    const std::scoped_lock lock(deferredEscapeChecksMutex_);
+    return std::exchange(deferredEscapeChecks_, {});
+}
+
 Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const std::string_view sectionText, const uint32_t codeOffsetInSection)
 {
     outResult = {};

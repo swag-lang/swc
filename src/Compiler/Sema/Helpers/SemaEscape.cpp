@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -876,13 +877,13 @@ namespace
     // The per-function summary recorded by checkReturn: when the callee's returned value
     // may borrow one of its parameters, the call result borrows the matching arguments.
     //
-    // NOT CONSUMED YET: sema jobs run in a non-deterministic order, so an intra-module
+    // NOT CONSUMED INLINE: sema jobs run in a non-deterministic order, so an intra-module
     // callee may or may not be sema-completed when its call site is analyzed — and
     // waiting for a function body from another function body turns legal mutual
     // recursion into a stalled-dependency error (SemaCycle). Consuming the mask here
-    // would make the warnings flicker between otherwise identical builds. Activation
-    // needs either an end-of-module recheck pass or the mask serialized in the module
-    // API plus topological gating.
+    // would make the errors flicker between otherwise identical builds. Instead, call
+    // sites in escaping positions snapshot their argument borrows into deferred records
+    // (recordDeferredCallBorrow below), judged once the module has no pending sema job.
     SemaEscapeInfo callResultEscapeInfo(Sema& sema, AstNodeRef callRef, const AstCallExpr& call, uint32_t& budget)
     {
         SWC_UNUSED(call);
@@ -890,6 +891,109 @@ namespace
         SWC_UNUSED(sema);
         SWC_UNUSED(budget);
         return {};
+    }
+
+    // Snapshots the borrows carried by the arguments of an opaque call whose result
+    // lands in an escaping position (return, global, caller-visible storage). The flow
+    // state is only valid NOW, so the argument side is captured eagerly; the callee's
+    // 'returnBorrowsParamsMask' is read later, in reportDeferredChecks, when it is
+    // final regardless of the sema job order.
+    void recordDeferredCallBorrow(Sema& sema, AstNodeRef exprRef, AstNodeRef atNodeRef, std::string_view what)
+    {
+        if (exprRef.isInvalid() || atNodeRef.isInvalid())
+            return;
+
+        AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        uint32_t   unwrapGuard = 8;
+        while (resolvedRef.isValid() && unwrapGuard--)
+        {
+            const AstNode& node = sema.node(resolvedRef);
+            if (node.is(AstNodeId::ParenExpr))
+                resolvedRef = sema.viewZero(node.cast<AstParenExpr>().nodeExprRef).nodeRef();
+            else if (node.is(AstNodeId::InitializerExpr))
+                resolvedRef = sema.viewZero(node.cast<AstInitializerExpr>().nodeExprRef).nodeRef();
+            else if (node.is(AstNodeId::NamedArgument))
+                resolvedRef = sema.viewZero(node.cast<AstNamedArgument>().nodeArgRef).nodeRef();
+            else
+                break;
+        }
+
+        if (resolvedRef.isInvalid() || !sema.node(resolvedRef).is(AstNodeId::CallExpr))
+            return;
+
+        const auto&           call = sema.node(resolvedRef).cast<AstCallExpr>();
+        const SymbolFunction* fn   = resolvedCallFunction(sema, resolvedRef, call.nodeExprRef);
+        if (!fn)
+            return;
+
+        // Inline expansions are analyzed within the caller with exact information: the
+        // summary path only covers opaque calls.
+        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Inline) ||
+            fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+            fn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return;
+
+        const auto& params = fn->parameters();
+        if (params.empty())
+            return;
+
+        SmallVector<ResolvedCallArgument> args;
+        sema.appendResolvedCallArguments(resolvedRef, args);
+
+        size_t paramIndex = 0;
+        for (const ResolvedCallArgument& arg : args)
+        {
+            // Interface dispatch prepends the runtime receiver object, which does not
+            // consume a declared parameter slot.
+            if (arg.passKind == CallArgumentPassKind::InterfaceObject)
+                continue;
+            if (paramIndex >= params.size())
+                break;
+
+            const size_t          thisParam = paramIndex++;
+            const SymbolVariable* param     = params[thisParam];
+            if (arg.argRef.isInvalid() || !param || thisParam >= 64)
+                continue;
+
+            // A variadic tail bundles its values into a temporary slice: the pairing
+            // with a single summary bit stops there.
+            const TypeRef paramTypeRef = unwrapAliasEnum(sema, param->typeRef());
+            if (paramTypeRef.isValid() && sema.typeMgr().get(paramTypeRef).isAnyVariadic())
+                break;
+
+            uint32_t             budget = K_EXPR_BUDGET;
+            const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, arg, param->typeRef(), budget);
+            if (!info.isLocalBorrow() && !info.isTemporaryBorrow() && !info.isMaterializedBorrow())
+                continue;
+
+            SemaEscapeDeferredCheck check;
+            check.callee     = fn;
+            check.paramIndex = static_cast<uint32_t>(thisParam);
+            check.what       = what;
+            check.typeRef    = info.typeRef;
+            check.fileRef    = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
+            check.siteRange  = sema.node(atNodeRef).codeRange(sema.ctx());
+
+            if (info.isLocalBorrow())
+            {
+                check.diagId      = DiagnosticId::sanity_err_borrow_escape;
+                check.symName     = info.sourceVar->name(sema.ctx());
+                check.noteId      = DiagnosticId::sema_note_borrow_source_declared_here;
+                check.noteSymName = check.symName;
+                check.noteRange   = info.sourceVar->codeRange(sema.ctx());
+            }
+            else
+            {
+                check.diagId = info.isTemporaryBorrow() ? DiagnosticId::sanity_err_borrow_temporary : DiagnosticId::sanity_err_borrow_materialized;
+                if (info.sourceRef.isValid())
+                {
+                    check.noteId    = DiagnosticId::sema_note_borrow_temporary_here;
+                    check.noteRange = sema.node(info.sourceRef).codeRange(sema.ctx());
+                }
+            }
+
+            sema.ctx().compiler().addDeferredEscapeCheck(std::move(check));
+        }
     }
 
     SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget)
@@ -1268,6 +1372,8 @@ namespace SemaEscape
         const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget);
         if (!info.hasBorrow())
         {
+            if (variableInitializerCanEscape(symVar))
+                recordDeferredCallBorrow(sema, initRef, initRef, "an initializer");
             sema.clearVariableEscapeInfo(symVar);
             return Result::Continue;
         }
@@ -1315,6 +1421,10 @@ namespace SemaEscape
         const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
         if (!info.hasBorrow())
         {
+            // A destination outside the local frame turns a callee-borrowed argument
+            // into an escape: defer the judgement to the per-function summaries.
+            if (!dstVar || !isLocalVariableStorage(sema, *dstVar))
+                recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment");
             if (dstVar && wholeVariable)
                 sema.clearVariableEscapeInfo(*dstVar);
             return Result::Continue;
@@ -1357,6 +1467,11 @@ namespace SemaEscape
         uint32_t                 budget = K_EXPR_BUDGET;
         const SemaEscapeInfo info       = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
 
+        // A returned call result may borrow the arguments handed to the callee: defer
+        // the judgement to the per-function summaries.
+        if (!info.hasBorrow() && !inlineSourceFn)
+            recordDeferredCallBorrow(sema, exprRef, returnRef, "a return value");
+
         // A temporary lives until the end of the enclosing statement, and materialized
         // cast storage lives with the frame. An inline-expanded return hands both back
         // within the calling frame, so only a real function return outlives them.
@@ -1397,6 +1512,49 @@ namespace SemaEscape
             return Result::Continue;
 
         return reportBorrowEscape(sema, returnRef, info, "a return value");
+    }
+
+    void reportDeferredChecks(TaskContext& ctx)
+    {
+        std::vector<SemaEscapeDeferredCheck> checks = ctx.compiler().takeDeferredEscapeChecks();
+        if (checks.empty())
+            return;
+
+        // Records were appended by concurrently running sema jobs: sort them so the
+        // report order is stable whatever thread analyzed what.
+        std::ranges::sort(checks, [](const SemaEscapeDeferredCheck& a, const SemaEscapeDeferredCheck& b) {
+            if (a.fileRef != b.fileRef)
+                return a.fileRef < b.fileRef;
+            if (a.siteRange.offset != b.siteRange.offset)
+                return a.siteRange.offset < b.siteRange.offset;
+            return a.paramIndex < b.paramIndex;
+        });
+
+        for (const SemaEscapeDeferredCheck& check : checks)
+        {
+            if (!check.callee)
+                continue;
+            if (!(check.callee->returnBorrowsParamsMask() & (1ULL << check.paramIndex)))
+                continue;
+
+            Diagnostic diag = Diagnostic::get(check.diagId, check.fileRef);
+            diag.last().addSpan(check.siteRange);
+            if (!check.symName.empty())
+                diag.addArgument(Diagnostic::ARG_SYM, check.symName);
+            diag.addArgument(Diagnostic::ARG_WHAT, check.what);
+            if (check.typeRef.isValid())
+                diag.addArgument(Diagnostic::ARG_TYPE, check.typeRef);
+
+            if (check.noteId != DiagnosticId::None)
+            {
+                diag.addNote(check.noteId);
+                if (!check.noteSymName.empty())
+                    diag.last().addArgument(Diagnostic::ARG_SYM, check.noteSymName);
+                diag.last().addSpan(check.noteRange);
+            }
+
+            diag.report(ctx);
+        }
     }
 }
 

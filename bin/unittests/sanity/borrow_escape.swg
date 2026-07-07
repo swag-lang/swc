@@ -390,3 +390,90 @@ func borrowEscapeSanityOffTemporary()->u64
     let s: string = borrowEscapeMakeOwner()
     return @countof(s)
 }
+
+// ---------------------------------------------------------------------------
+// Opaque-call summaries: the callee records which parameters its return value may
+// borrow; the call site is judged once the whole module is analyzed, so the result
+// does not depend on the sema job order.
+// ---------------------------------------------------------------------------
+
+func borrowEscapePassthrough(p: *s32)->*s32
+{
+    return p
+}
+
+// Handing a local's address to a borrowing callee and returning the result escapes.
+func borrowEscapeThroughCall()->*s32
+{
+    var v: s32
+    return borrowEscapePassthrough(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+var borrowEscapeGlobalPtr: *s32
+
+// Same through a global destination.
+func borrowEscapeThroughCallGlobal()
+{
+    var v: s32
+    borrowEscapeGlobalPtr = borrowEscapePassthrough(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Caller-owned data flows through the same callee untouched.
+func borrowEscapeThroughCallParam(q: *s32)->*s32
+{
+    return borrowEscapePassthrough(q)
+}
+
+var borrowEscapeGlobalInt: s32
+
+func borrowEscapeThroughCallGlobalSource()->*s32
+{
+    return borrowEscapePassthrough(&borrowEscapeGlobalInt)
+}
+
+// Carrier summary: identity on a string borrows its parameter.
+func borrowEscapeIdentity(s: string)->string
+{
+    return s
+}
+
+func borrowEscapeThroughCallCarrier()->string
+{
+    var buf: [3] u8
+    buf[0] = 'a''u8
+    return borrowEscapeIdentity(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A callee that does NOT return its parameter stays silent at the call site.
+func borrowEscapeReadOnly(p: *s32)->s32
+{
+    return dref p
+}
+
+func borrowEscapeThroughCallValue()->s32
+{
+    var v: s32 = 7
+    return borrowEscapeReadOnly(&v)
+}
+
+// Mutual recursion stays legal (no stalled sema dependency) and the summary of the
+// direct-return path is still applied at the call site.
+func borrowEscapeMutualA(p: *s32, n: s32)->*s32
+{
+    if n <= 0 do
+        return p
+    return borrowEscapeMutualB(p, n - 1)
+}
+
+func borrowEscapeMutualB(p: *s32, n: s32)->*s32
+{
+    if n <= 0 do
+        return p
+    return borrowEscapeMutualA(p, n - 1)
+}
+
+func borrowEscapeMutualCall()->*s32
+{
+    var v: s32
+    return borrowEscapeMutualA(&v, 3) // swc-expected-error {{sanity_err_borrow_escape}}
+}

@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -1684,6 +1685,10 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
     if (jobMgr.wakeAll(clientId))
         jobMgr.waitAll(clientId);
+
+    // Every sema job of this wave is done: the per-function borrow summaries are final,
+    // so the call sites that snapshotted their argument borrows can be judged now.
+    SemaEscape::reportDeferredChecks(ctx);
 
     if (!Stats::hasError() && ctx.cmdLine().command != CommandKind::Test)
     {

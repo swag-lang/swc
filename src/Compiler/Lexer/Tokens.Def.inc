@@ -272,6 +272,7 @@ SWC_TOKEN_DEF(CompilerHasTag, "#hastag",  TokenIdKindE::Compiler | TokenIdKindE:
 SWC_TOKEN_DEF(CompilerGetTag, "#gettag",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(CompilerRunes, "#runes",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(CompilerSafety, "#safety",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(CompilerSanity, "#sanity",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - STRING/TYPE
 

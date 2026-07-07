@@ -803,6 +803,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerDefined:
         case TokenId::CompilerInclude:
         case TokenId::CompilerSafety:
+        case TokenId::CompilerSanity:
         case TokenId::CompilerHasTag:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:

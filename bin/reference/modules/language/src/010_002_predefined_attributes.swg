@@ -151,10 +151,33 @@ Checks:
 * '.NaN'         -> Panic if 'NaN' is used in float arithmetic
 * '.Null'        -> Panic on dereferencing null pointers
 * '.Memory'      -> Memory-related runtime checks
+* '.Lifecycle'   -> Poison storage abandoned by '#move'/'#relocate' or freed by a drop
 Use '.All' to affect every safety check.
 */
 #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
 attr Safety(what: SafetyWhat, value: bool)
+
+/**
+# Sanity Controls
+Enable or disable the STATIC (compile-time) sanity checks. They reuse the same
+'SafetyWhat' flags as 'Swag.Safety', but where safety adds runtime guards, sanity
+reports errors at compile time and costs nothing at runtime.
+Examples:
+```
+#[Swag.Sanity(.All, false)]           // Disable every static check
+#[Swag.Sanity(.Lifecycle, false)]     // Disable the borrow/use-after-move analysis
+```
+Checks:
+* '.Math'        -> Proven division by zero, invalid math intrinsic arguments
+* '.Overflow'    -> Proven integer overflow
+* '.Null'        -> Proven null dereference or null call
+* '.Memory'      -> Returning the address of a local
+* '.Lifecycle'   -> Borrow escapes and proven use of moved-from values
+Sanity checks are enabled by default in every build configuration except
+'fast-compile' (runtime safety, by contrast, is off in 'release').
+*/
+#[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
+attr Sanity(what: SafetyWhat, value: bool)
 
 /**
 # Optimization Controls

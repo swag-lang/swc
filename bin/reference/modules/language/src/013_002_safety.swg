@@ -19,6 +19,11 @@ with 'buildCfg.safetyGuards'.
 > 'fast-compile', and 'release'. Safety checks are enabled by default in
 > 'debug' and 'fast-debug', and disabled in 'fast-compile' and 'release'
 > for performance.
+
+> NOTE:
+> Safety covers the RUNTIME guards. Their static, compile-time counterparts are
+> controlled separately with '#[Swag.Sanity]' and stay enabled in 'release';
+> see the dedicated 'Sanity Checks in Swag' section.
 */
 
 /**

@@ -352,8 +352,7 @@ namespace Runtime
         ScratchAllocator          tempAllocator;
         ScratchAllocator          errorAllocator;
         RuntimeFlags              runtimeFlags;
-        uint64_t                  reserved0;
-        uint64_t                  reserved1;
+        Interface                 defaultAllocator;
         uint64_t                  user0;
         uint64_t                  user1;
         uint64_t                  user2;

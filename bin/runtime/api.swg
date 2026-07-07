@@ -469,8 +469,7 @@ namespace Swag
         tempAllocator:       ScratchAllocator                          // A temporary allocator for the user
         errorAllocator:      ScratchAllocator                          // A temporary allocator to store the error values
         runtimeFlags:        RuntimeFlags                              // As initialized by the runtime
-        reserved0:           u64                                       // Reserved for runtime ABI stability
-        reserved1:           u64                                       // Reserved for runtime ABI stability
+        defaultAllocator:    IAllocator                                // The default allocator, to restore after a temporary change of 'allocator'
         user0:               u64                                       // For user usage
         user1:               u64                                       // For user usage
         user2:               u64                                       // For user usage

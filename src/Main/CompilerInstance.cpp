@@ -662,8 +662,9 @@ void CompilerInstance::ensureProcessInfosRunArgs()
 
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
-    PerThreadData& td           = perThreadData_[JobManager::threadIndex()];
-    td.runtimeContext.allocator = runtimeAllocator();
+    PerThreadData& td                  = perThreadData_[JobManager::threadIndex()];
+    td.runtimeContext.allocator        = runtimeAllocator();
+    td.runtimeContext.defaultAllocator = td.runtimeContext.allocator;
     setRuntimeContextForCurrentThread(&td.runtimeContext);
 
     if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)

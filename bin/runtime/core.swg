@@ -248,7 +248,8 @@ func __runtimeAllocator()->IAllocator
             let allocator = defaultAllocator()
             if !allocator.installed() do
                 allocator.setup()
-            cxt.allocator = @mkinterface(allocator, #typeof(dref allocator), IAllocator)
+            cxt.allocator        = @mkinterface(allocator, #typeof(dref allocator), IAllocator)
+            cxt.defaultAllocator = cxt.allocator
         }
     }
     return cxt.allocator
@@ -268,7 +269,8 @@ func __resetRuntimeContext()
     cxt.errorAllocator.release()
 
     @memset(cxt, 0, #sizeof(Swag.Context))
-    cxt.allocator = allocator
+    cxt.allocator        = allocator
+    cxt.defaultAllocator = allocator
 }
 
 func __setupRuntime(flags: RuntimeFlags)

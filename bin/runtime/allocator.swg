@@ -1202,7 +1202,11 @@ func installAllocator(electricMode: bool = false, detectLeaks: bool = true, capt
         alloc.setup()
     alloc.configure(electricMode, detectLeaks, captureStack, trackAllocations, fillMemory)
 
-    if installInContext do
-        cxt.allocator = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+    if installInContext
+    {
+        cxt.allocator        = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
+        cxt.defaultAllocator = cxt.allocator
+    }
+
     return alloc
 }

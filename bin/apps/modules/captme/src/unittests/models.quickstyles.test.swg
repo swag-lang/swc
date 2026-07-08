@@ -295,6 +295,59 @@ using Swag, Core
     f.shutdown()
 }
 
+// The QuickStyle context menu can drive the same reset flow as a user: popup
+// item, posted command and confirmation dialog.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    let quick = QuickWnd.create(f.main, f.main)
+    f.main.quickWnd = quick
+    f.main.editMode = .Shape
+    f.main.registerAction'ActionQuickStyle()
+    quick.setPosition({0, 0, 300, 300})
+    quick.setDefault()
+
+    let extra = Memory.new'FormShape()
+    extra.IForm.setup(f.capture)
+    quick.qsShape.forms.add(cast(IForm) extra)
+    quick.updateQuickStyles(forceRebuild: true)
+    @assert(quick.qsShape.forms.count == 17)
+
+    var frameCount: u32
+    var clickedMenu: bool
+    var clickedConfirm: bool
+    f.gui.app.sigFrame += func|host = &f.gui, frames = &frameCount, clickedMenu = &clickedMenu, clickedConfirm = &clickedConfirm|(app)
+    {
+        dref frames += 1
+        if !dref clickedMenu
+        {
+            @assert(host.clickPopupMenuItem(ActionQuickStyle.Reset))
+            dref clickedMenu = true
+            return
+        }
+
+        if !dref clickedConfirm
+        {
+            @assert(host.clickModalButton(Dialog.BtnYes))
+            dref clickedConfirm = true
+        }
+    }
+
+    f.gui.clickWnd(quick.layout.childs[0], Input.MouseButton.Right)
+
+    @assert(clickedMenu)
+    @assert(clickedConfirm)
+    @assert(frameCount == 2)
+    @assert(f.gui.app.surfaces.count == 0)
+    @assert(quick.qsShape.forms.count == 16)
+
+    quick.destroy()
+    f.gui.pump()
+    f.shutdown()
+}
+
 // QuickStyle.sanitize and clear preserve known Captme forms and release them through the style owner.
 #test
 {

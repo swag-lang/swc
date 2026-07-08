@@ -787,6 +787,30 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 {
+    // A node wrapped in a transparent substitute (an implicit cast the main walk never visits,
+    // e.g. the bool cast of `if !@dataof(s)`) stores its payload on the substitute's slot while
+    // its register still holds the original value. When the caller derived the payload type from
+    // the substitute-resolved view, retype the payload with the node's own stored type: consumers
+    // rely on `payload.typeRef` to pick the real operand width, and keeping the context type would
+    // make them read a 64-bit pointer as a single byte.
+    const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    if (resolvedRef.isValid() && resolvedRef != nodeRef && typeRef.isValid() && typeRef == viewType(nodeRef).typeRef())
+    {
+        // Cast-like nodes are the exception: their own codegen converts the value to the
+        // substitute-resolved context type (e.g. `cast() pow(...)` under a return-context cast),
+        // so for them the register really holds a value of the view type.
+        const AstNode& payloadNode = node(nodeRef);
+        if (payloadNode.isNot(AstNodeId::CastExpr) &&
+            payloadNode.isNot(AstNodeId::AutoCastExpr) &&
+            payloadNode.isNot(AstNodeId::AsCastExpr) &&
+            payloadNode.isNot(AstNodeId::IsTypeExpr))
+        {
+            const TypeRef storedTypeRef = sema().viewStored(nodeRef, SemaNodeViewPartE::Type).typeRef();
+            if (storedTypeRef.isValid())
+                typeRef = storedTypeRef;
+        }
+    }
+
     CodeGenNodePayload& nodePayload = ensureNodePayload<CodeGenNodePayload>(nodeRef);
 
     nodePayload.reg         = nextVirtualRegister();

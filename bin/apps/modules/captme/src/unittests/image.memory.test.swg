@@ -70,6 +70,46 @@ using Swag, Core
     f.shutdown()
 }
 
+// Dialog-backed image actions can now run through a real headless modal surface.
+// The frame callback supplies the dialog result deterministically; no OS dialog or
+// filesystem interaction is involved.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    f.capture.width = 30
+    f.capture.height = 20
+    f.capture.backImg = captmeTestIndexedImage(30, 20)
+
+    g_ResizeMode = 1
+    var modalFrames: u32
+    f.gui.app.sigFrame += func|frames = &modalFrames|(app)
+    {
+        dref frames += 1
+        g_Width = 42
+        g_Height = 27
+        app.exitModal(Dialog.BtnOk)
+    }
+
+    @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.ExpandCapture))
+    f.gui.pump()
+
+    @assert(f.gui.app.surfaces.count == 0)
+    @assert(modalFrames == 1)
+    @assert(f.capture.width == 42)
+    @assert(f.capture.height == 27)
+    @assert(f.capture.backImagePos.x == 0)
+    @assert(f.capture.backImagePos.y == 0)
+    @assert(f.capture.canUndo())
+
+    f.capture.undo()
+    @assert(f.capture.width == 30)
+    @assert(f.capture.height == 20)
+
+    f.shutdown()
+}
+
 // Trim Capture can be exercised entirely in memory: it crops to visible content,
 // removes out-of-canvas forms, crops the backing image and can be undone.
 #test

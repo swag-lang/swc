@@ -22,7 +22,7 @@ impl GuiHeadlessHost
 
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
-        .theme.setupDefaultFonts()
+        .theme.setupDefault(&.app.renderer)
 
         let style = Memory.new'ThemeStyleRef()
         style.theme = .theme
@@ -35,6 +35,7 @@ impl GuiHeadlessHost
         .surface.position = {0, 0, width, height}
         .surface.rc.width = cast(s32) width
         .surface.rc.height = cast(s32) height
+        .app.mainSurface = &.surface
 
         let root = &.root
         root.itf = cast(IWnd) dref root
@@ -129,6 +130,28 @@ impl GuiHeadlessHost
             .app.sendFrameEvents()
             .pump()
         }
+    }
+
+    mtd fireTimer(timer: *Timer)
+    {
+        if !timer or timer.toDelete do
+            return
+
+        .app.duringTimerEvents = true
+        var evt = TimerEvent{}
+        evt.timer = timer
+        timer.target.sendEvent(&evt)
+        .app.duringTimerEvents = false
+
+        .pumpTimerQueues()
+        .pump()
+    }
+
+    mtd fireTimers()
+    {
+        let timers = .app.timers
+        foreach timer in timers do
+            .fireTimer(timer)
     }
 
     mtd setKeyState(key: Input.Key, pressed: bool)
@@ -356,6 +379,20 @@ impl GuiHeadlessHost
 
         foreach wnd in copy do
             .app.destroyWnd(wnd)
+    }
+
+    mtd pumpTimerQueues()
+    {
+        foreach timer in .app.timersToAdd do
+            .app.timers.add(timer)
+        .app.timersToAdd.clear()
+
+        foreach timer in .app.timersToDelete
+        {
+            timer.toDelete = false
+            .app.deleteTimer(timer)
+        }
+        .app.timersToDelete.clear()
     }
 
     mtd deleteQueuedObjects()

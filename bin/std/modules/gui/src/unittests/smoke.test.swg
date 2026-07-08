@@ -3,6 +3,7 @@
 using Swag, Core
 
 const GuiHeadlessSmoke_CloseWindow = "GuiHeadlessSmoke.CloseWindow"
+const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
@@ -41,6 +42,68 @@ const GuiHeadlessSmoke_CloseWindow = "GuiHeadlessSmoke.CloseWindow"
     host.surface.flags.remove(.NoShadow)
     host.surface.isMaximized = true
     @assert(host.surface.getCornerRadius() == 0)
+
+    host.shutdown()
+}
+
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(240, 120)
+
+    var timerCount: u32
+    host.root.hookOnEvent = func|count = &timerCount|(wnd, evt)
+    {
+        switch evt
+        {
+        case TimerEvent:
+            dref count += 1
+        }
+
+        return false
+    }
+
+    let timer = host.root.addTimer(10'ms)
+    host.fireTimer(timer)
+
+    @assert(timerCount == 1)
+    @assert(host.app.timers.count == 1)
+
+    host.app.deleteTimer(timer)
+    host.pumpTimerQueues()
+    @assert(host.app.timers.count == 0)
+
+    host.shutdown()
+}
+
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let surface = assume host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.Border)
+    @assert(surface.app == &host.app)
+    @assert(surface.position.x == 20)
+    @assert(surface.position.y == 30)
+    @assert(surface.isTopMost())
+    @assert(surface.isHidden)
+
+    surface.show()
+    @assert(!surface.isHidden)
+    @assert(surface.isInitialized)
+    @assert(host.app.getSurfaceAt(40, 50) == surface)
+
+    var frameCount: u32
+    let result = host.app.doModalLoop(surface, func|frames = &frameCount|(app)
+    {
+        dref frames += 1
+        app.exitModal(GuiHeadlessSmoke_ModalExit)
+    })
+
+    @assert(result == GuiHeadlessSmoke_ModalExit)
+    @assert(frameCount == 1)
+    host.pump()
+    @assert(host.app.surfaces.count == 0)
 
     host.shutdown()
 }

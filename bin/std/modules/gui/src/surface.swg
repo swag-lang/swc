@@ -113,7 +113,13 @@ impl Surface
         }
 
         let app = surface.app
-        try createNative(app, surface, x, y, width, height, flags, mainSurface)
+        if app.renderer.headless
+        {
+            if flags & .TopMost do
+                surface.topMost = true
+        }
+        else do
+            try createNative(app, surface, x, y, width, height, flags, mainSurface)
 
         surface.minSize = {128, 128}
         let w = cast(f32) Math.max(surface.minSize.x, cast(f32) width)

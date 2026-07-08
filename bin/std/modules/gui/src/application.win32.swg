@@ -85,6 +85,9 @@ impl Application
 
     mtd sendSystemEvents()
     {
+        if .renderer.headless do
+            return
+
         var msg: MSG
         while PeekMessageW(&msg, null, 0, 0, PM_REMOVE) != 0
         {
@@ -100,6 +103,21 @@ impl Application
 
     mtd getSurfaceAt(x, y: f32)->#null *Surface
     {
+        if .renderer.headless
+        {
+            foreach s in .surfaces
+            {
+                if s.isHidden do
+                    continue
+                if .modalSurfaces.count and s != .modalSurfaces.back() do
+                    continue
+                if s.position.contains(Math.Point{x, y}) do
+                    return s
+            }
+
+            return null
+        }
+
         let pt:  POINT{cast(s32) x, cast(s32) y}
         let hWnd = WindowFromPoint(pt)
         if hWnd == null do

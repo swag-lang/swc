@@ -295,6 +295,9 @@ private impl Surface
 
     mtd destroyNative()
     {
+        if .app.renderer.headless do
+            return
+
         if .trayIcon
         {
             var tnid: NOTIFYICONDATAA
@@ -376,6 +379,9 @@ impl Surface
 
     mtd applyNativeSurfaceFlags()
     {
+        if .app.renderer.headless do
+            return
+
         var exStyle = cast(u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
         if .flags & .Secondary do
             exStyle |= WS_EX_TOOLWINDOW
@@ -414,12 +420,24 @@ impl Surface
             clampPos.height = Math.min(clampPos.height, .maxSize.y)
 
         .position = clampPos
+        if .app.renderer.headless
+        {
+            .sendResizeEvent(clampPos.width, clampPos.height)
+            return
+        }
+
         catch SetWindowPos(.hWnd, null, cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, SWP_NOCOPYBITS | SWP_DEFERERASE | SWP_NOREDRAW | SWP_NOSENDCHANGING)
     }
 
     // Set the window as a topmost window (above all non topmost)
     mtd setTopMost()
     {
+        if .app.renderer.headless
+        {
+            .topMost = true
+            return
+        }
+
         catch SetWindowPos(.hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
         .topMost = true
     }
@@ -432,6 +450,9 @@ impl Surface
     // Bring the surface at the top of the Z order
     mtd bringToTop()
     {
+        if .app.renderer.headless do
+            return
+
         BringWindowToTop(.hWnd)
     }
 
@@ -441,6 +462,12 @@ impl Surface
         if !.isDisabled do
             return
         .isDisabled = false
+        if .app.renderer.headless
+        {
+            .invalidate()
+            return
+        }
+
         EnableWindow(.hWnd, TRUE)
     }
 
@@ -450,6 +477,12 @@ impl Surface
         if .isDisabled do
             return
         .isDisabled = true
+        if .app.renderer.headless
+        {
+            .invalidate()
+            return
+        }
+
         EnableWindow(.hWnd, FALSE)
     }
 
@@ -482,6 +515,15 @@ impl Surface
         // window appears already showing correct content.
         .paint()
 
+        if .app.renderer.headless
+        {
+            let curFocus = .wnd.view.getFocus()
+            if !curFocus or !.wnd.isParentOf(curFocus) do
+                .wnd.view.setFocus()
+            .wnd.view.sendStateEvent(.Show)
+            return
+        }
+
         ShowWindow(.hWnd, SW_SHOW)
         .applyNativeDwmStyle()
 
@@ -501,6 +543,12 @@ impl Surface
             return
         .isHidden = true
 
+        if .app.renderer.headless
+        {
+            .wnd.view.sendStateEvent(.Hide)
+            return
+        }
+
         ShowWindow(.hWnd, SW_HIDE)
         .wnd.view.sendStateEvent(.Hide)
     }
@@ -513,6 +561,12 @@ impl Surface
         .isMaximized          = true
         .isMinimized          = false
         .positionNotMaximized = .position
+        if .app.renderer.headless
+        {
+            .invalidate()
+            return
+        }
+
         .applyNativeDwmStyle()
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
@@ -524,6 +578,13 @@ impl Surface
             return
         .isMaximized = false
         .isMinimized = false
+        if .app.renderer.headless
+        {
+            .setPosition(.positionNotMaximized)
+            .invalidate()
+            return
+        }
+
         .applyNativeDwmStyle()
         ShowWindow(.hWnd, SW_RESTORE)
     }
@@ -534,12 +595,25 @@ impl Surface
         if .isMinimized do
             return
         .isMinimized = true
+        if .app.renderer.headless
+        {
+            .invalidate()
+            return
+        }
+
         ShowWindow(.hWnd, SW_SHOWMINIMIZED)
     }
 
     // Transform a point in screen space relative to the surface
     mtd screenToSurface(pt: *Math.Point)
     {
+        if .app.renderer.headless
+        {
+            pt.x -= .position.x
+            pt.y -= .position.y
+            return
+        }
+
         var wpt = POINT{cast(s32) pt.x, cast(s32) pt.y}
         ScreenToClient(.hWnd, &wpt)
         pt.x = wpt.x
@@ -549,6 +623,13 @@ impl Surface
     // Transform a point relative to the surface in screen space
     mtd surfaceToScreen(pt: *Math.Point)
     {
+        if .app.renderer.headless
+        {
+            pt.x += .position.x
+            pt.y += .position.y
+            return
+        }
+
         var wpt = POINT{cast(s32) pt.x, cast(s32) pt.y}
         ClientToScreen(.hWnd, &wpt)
         pt.x = wpt.x

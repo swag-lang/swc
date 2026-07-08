@@ -18,6 +18,22 @@ using Swag, Core
     @assert(!sizeEvt.checked)
     f.main.sendCommandEvent(ActionRecentSize.LibBig)
     @assert(f.main.libWnd.previewSize == .Big)
+    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium))
+    @assert(f.main.libWnd.previewSize == .Medium)
+    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
+    @assert(f.main.libWnd.previewSize == .Small)
+
+    with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
+    {
+        .dockStyle = .Bottom
+    }
+
+    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall))
+    @assert(f.main.bottomSize == .Small)
+    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium))
+    @assert(f.main.bottomSize == .Medium)
+    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig))
+    @assert(f.main.bottomSize == .Big)
 
     var evt = Testing.commandState(ActionLibSort.Recent)
     @assert(Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
@@ -107,6 +123,33 @@ using Swag, Core
     lib.showLinkedImage = true
     view.filter()
     view.sort()
+
+    wnd.sendCommandEvent(ActionLibFilter.UpToDateLinkedImage)
+    @assert(!lib.showUpToDateLinkedImage)
+    @assert(view.items.count == 2)
+    @assert(view.items.contains(old))
+    @assert(!view.items.contains(big))
+    @assert(view.items.contains(dirty))
+
+    wnd.sendCommandEvent(ActionLibFilter.UpToDateLinkedImage)
+    wnd.sendCommandEvent(ActionLibFilter.UnSavedLinkedImage)
+    @assert(!lib.showUnSavedLinkedImage)
+    @assert(view.items.count == 2)
+    @assert(view.items.contains(old))
+    @assert(view.items.contains(big))
+    @assert(!view.items.contains(dirty))
+
+    wnd.sendCommandEvent(ActionLibFilter.UnSavedLinkedImage)
+    wnd.sendCommandEvent(ActionLibFilter.UnLinkedImage)
+    @assert(!lib.showUnLinkedImage)
+    @assert(view.items.count == 2)
+    @assert(!view.items.contains(old))
+    @assert(view.items.contains(big))
+    @assert(view.items.contains(dirty))
+
+    wnd.sendCommandEvent(ActionLibFilter.UnLinkedImage)
+    view.filter()
+    view.sort()
     view.focusItem = 1
     wnd.sendCommandEvent(ActionLibSel.Home)
     @assert(view.focusItem == 0)
@@ -124,6 +167,16 @@ using Swag, Core
     wnd.sendCommandEvent(ActionLibSel.Left)
     @assert(view.focusItem == 1)
 
+    lib.previewSize = .Medium
+    view.setPosition({0, 0, 360, 420})
+    view.focusItem = 0
+    wnd.sendCommandEvent(ActionLibSel.Down)
+    @assert(view.focusItem == 1)
+    @assert(view.selModel.isSelected(1))
+
+    wnd.sendCommandEvent(ActionLibSel.Up)
+    @assert(view.focusItem == 0)
+    @assert(view.selModel.isSelected(0))
+
     f.shutdown()
 }
-

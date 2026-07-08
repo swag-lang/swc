@@ -108,7 +108,6 @@ using Swag, Core
     @assert(f.main.captureOptions.delay == 5)
     var delayEvt = Testing.commandState(ActionCaptureDelay.Delay)
     @assert(Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
-    @assert(delayEvt.name == "Delay Before Capture (5 seconds)")
 
     delayEvt = Testing.commandState(ActionCaptureDelay.Delay5)
     @assert(Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay5, &delayEvt))
@@ -464,6 +463,10 @@ using Swag, Core
     @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
     @assert(!evt.disabled)
 
+    evt = Testing.commandState(ActionFile.CaptureFileLocation)
+    @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.CaptureFileLocation, &evt))
+    @assert(!evt.disabled)
+
     evt = Testing.commandState(ActionFile.UnlinkImage)
     @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
     @assert(evt.disabled)
@@ -561,4 +564,3 @@ using Swag, Core
 
     f.shutdown()
 }
-

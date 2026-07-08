@@ -3,6 +3,12 @@
 
 using Swag, Core
 
+func captmeTestSetClipboardImage(width, height: s32)
+{
+    Clipboard.addImage(Testing.indexedImage(width, height))
+    @assert(Clipboard.hasImage())
+}
+
 func captmeTestResetClipboardToImage()
 {
     var img = Image.create(1, 1, .BGRA8)
@@ -94,6 +100,7 @@ func captmeTestResetClipboardToImage()
     var f: CaptmeHeadlessFixture
     f.setup(registerHeadlessCommands: true)
     captmeTestRegisterIoActions(f.main)
+    captmeTestResetClipboardToImage()
 
     f.capture.width = 40
     f.capture.height = 24
@@ -105,7 +112,7 @@ func captmeTestResetClipboardToImage()
     @assert(copiedImage.width == 40)
     @assert(copiedImage.height == 24)
 
-    Clipboard.addImage(Testing.indexedImage(11, 7))
+    captmeTestSetClipboardImage(11, 7)
     f.capture.paintRect = {0, 0, f.capture.width, f.capture.height}
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
@@ -125,7 +132,7 @@ func captmeTestResetClipboardToImage()
     target.image = Testing.indexedImage(2, 2)
     f.capture.selection.add(0)
 
-    Clipboard.addImage(Testing.indexedImage(6, 5))
+    captmeTestSetClipboardImage(6, 5)
     f.main.sendCommandEvent(ActionCopyPaste.PasteImageInside)
     @assert(target.image.width == 6)
     @assert(target.image.height == 5)
@@ -137,4 +144,3 @@ func captmeTestResetClipboardToImage()
 
     f.shutdown()
 }
-

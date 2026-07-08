@@ -331,7 +331,8 @@ impl MainWnd
         .updateSizeDisplay()
         if .recentWnd
         {
-            .editToolBar.updateCommandState()
+            if .editToolBar do
+                .editToolBar.updateCommandState()
             .updateRecent()
         }
     }

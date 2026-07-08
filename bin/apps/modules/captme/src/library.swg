@@ -26,7 +26,7 @@ impl Library
     func newFileName()->String
     {
         let t        = Time.DateTime.now()
-        let fileName = Format.toString("%_%_%_%_%_%.captme", t.month, t.day, t.year, t.hour, t.minute, t.second)
+        let fileName = Format.toString("%_%_%_%_%_%_%.captme", t.month, t.day, t.year, t.hour, t.minute, t.second, GUID64.getRandom().getString())
         return Path.combine(getFolder(), fileName.toString())
     }
 

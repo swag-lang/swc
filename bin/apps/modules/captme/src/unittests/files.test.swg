@@ -38,6 +38,129 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
     return false
 }
 
+func captmeTestPrepareRecentLibrary(main: *MainWnd)
+{
+    catch Library.init()
+    @assert(@err == null)
+    g_Library.files.clear()
+    g_Library.loaded = true
+
+    if !main.recentWnd do
+        main.recentWnd = RecentWnd.create(main, main)
+}
+
+// New Image uses its real modal dialog, then creates and persists a new capture.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    captmeTestRegisterIoActions(f.main)
+    captmeTestPrepareRecentLibrary(f.main)
+
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    f.gui.withModalEdit("Width", "48")
+    f.gui.withModalEdit("Height", "32")
+
+    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage))
+    f.gui.pump()
+
+    @assert(f.gui.autoHandled)
+    @assert(f.gui.app.surfaces.count == 0)
+
+    let capture = assume f.main.getCapture()
+    let generatedPath = capture.file
+    defer
+    {
+        discard catch File.delete(generatedPath)
+        g_Library.files.clear()
+    }
+
+    @assert(capture.width == 48)
+    @assert(capture.height == 32)
+    @assert(capture.backImg.isValid())
+    @assert(capture.backImg.width == 48)
+    @assert(capture.backImg.height == 32)
+    @assert(File.exists(generatedPath))
+    @assert(f.main.recentWnd.recentView.items.count == 1)
+    @assert(f.main.recentWnd.recentView.selected == 0)
+
+    f.shutdown()
+}
+
+// New From Clipboard consumes the real image clipboard and creates a persisted capture.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    captmeTestRegisterIoActions(f.main)
+    captmeTestPrepareRecentLibrary(f.main)
+
+    Clipboard.addImage(Testing.indexedImage(19, 11))
+
+    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard))
+    f.gui.pump()
+
+    let capture = assume f.main.getCapture()
+    let generatedPath = capture.file
+    defer
+    {
+        discard catch File.delete(generatedPath)
+        g_Library.files.clear()
+    }
+
+    @assert(capture.width == 19)
+    @assert(capture.height == 11)
+    @assert(capture.backImg.isValid())
+    @assert(capture.linkedImage == null)
+    @assert(File.exists(generatedPath))
+    @assert(f.main.recentWnd.recentView.items.count == 1)
+    @assert(f.main.recentWnd.recentView.selected == 0)
+
+    f.shutdown()
+}
+
+// Open Image drives the real file dialog, loads a real PNG, then persists a capture.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    captmeTestRegisterIoActions(f.main)
+    captmeTestPrepareRecentLibrary(f.main)
+
+    let sourcePath = Testing.tempFilePath("captme-", ".png")
+    defer { discard catch File.delete(sourcePath) }
+
+    var source = Testing.indexedImage(21, 13)
+    catch source.save(sourcePath)
+    @assert(@err == null)
+
+    f.gui.acceptModalFileDialog(sourcePath)
+
+    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage))
+    f.gui.pump()
+
+    @assert(f.gui.autoHandled)
+    @assert(f.gui.app.surfaces.count == 0)
+
+    let capture = assume f.main.getCapture()
+    let generatedPath = capture.file
+    defer
+    {
+        discard catch File.delete(generatedPath)
+        g_Library.files.clear()
+    }
+
+    @assert(capture.width == 21)
+    @assert(capture.height == 13)
+    @assert(capture.backImg.isValid())
+    @assert(captmeTestSamePath(capture.linkedImage, sourcePath))
+    @assert(File.exists(generatedPath))
+    @assert(f.main.recentWnd.recentView.items.count == 1)
+    @assert(f.main.recentWnd.recentView.selected == 0)
+
+    f.shutdown()
+}
+
 // Save As Image writes a real PNG that can be loaded back with Captme metadata.
 #test
 {
@@ -355,6 +478,73 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
     f.shutdown()
 }
 
+// Duplicate Capture creates an independent capture file and recent entry.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    captmeTestRegisterIoActions(f.main)
+    captmeTestPrepareRecentLibrary(f.main)
+
+    discard captmeTestAddShape(f.capture, 4, 5, 12, 13)
+    let originalPath = captmeTestPrepareSavedCapture(f.capture)
+    defer { discard catch File.delete(originalPath) }
+
+    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
+    f.gui.pump()
+
+    @assert(f.main.recentWnd.recentView.items.count == 1)
+    @assert(f.main.recentWnd.recentView.selected == 0)
+
+    let duplicatedPath = f.main.recentWnd.recentView.items[0].file
+    defer
+    {
+        discard catch File.delete(duplicatedPath)
+        g_Library.files.clear()
+    }
+
+    @assert(!captmeTestSamePath(duplicatedPath, originalPath))
+    @assert(File.exists(duplicatedPath))
+
+    let duplicated = catch Capture.load(duplicatedPath)
+    @assert(@err == null)
+    defer { Memory.delete(duplicated) }
+
+    @assert(duplicated.forms.count == 1)
+    @assert(duplicated.linkedImage == null)
+
+    f.shutdown()
+}
+
+// Delete Capture confirms through the real modal and removes the selected capture file.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    captmeTestRegisterIoActions(f.main)
+    captmeTestPrepareRecentLibrary(f.main)
+
+    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    g_Library.addFile(capturePath)
+
+    let loaded = catch f.main.recentWnd.addRecent(capturePath, true, true)
+    @assert(@err == null)
+    Memory.delete(loaded)
+    @assert(f.main.recentWnd.recentView.selected == 0)
+
+    f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
+
+    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    f.gui.pump()
+
+    @assert(f.gui.autoHandled)
+    @assert(f.gui.app.surfaces.count == 0)
+    @assert(!File.exists(capturePath))
+    @assert(g_Library.files.count == 0)
+
+    f.shutdown()
+}
+
 // File Details opens a real modal dialog after reading the saved capture size
 // from disk; the headless modal helper closes it through the normal OK button.
 #test
@@ -376,4 +566,3 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.shutdown()
 }
-

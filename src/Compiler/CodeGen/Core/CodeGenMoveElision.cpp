@@ -37,7 +37,7 @@ namespace
     // Whether the use of a local at the walker's current node can leak the local's
     // address (or reach it through a hidden call, like a user operator or an intrinsic).
     // Conservative: anything not provably a plain value read/write escapes.
-    bool useEscapes(CodeGen& codeGen, const AstVisit& walker)
+    bool useEscapes(const CodeGen& codeGen, const AstVisit& walker)
     {
         bool crossedMember = false;
         for (size_t up = 0;; ++up)

@@ -37,11 +37,11 @@ public:
     bool run(std::span<SanitizerCheck* const> checks);
 
     // Queries usable by checks against a converged state.
-    SanitizerValue          getReg(const SanitizerState& state, MicroReg reg) const;
-    const SanitizerRegInfo* regInfo(const SanitizerState& state, MicroReg reg) const { return findReg(state, reg); }
-    bool                    resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const;
-    TaskContext&            ctx() const;
-    const MicroPassContext& passContext() const { return context_; }
+    SanitizerValue                 getReg(const SanitizerState& state, MicroReg reg) const;
+    static const SanitizerRegInfo* regInfo(const SanitizerState& state, MicroReg reg) { return findReg(state, reg); }
+    bool                           resolveStackSlot(const SanitizerState& state, MicroReg base, uint64_t offset, int64_t& outSlot) const;
+    TaskContext&                   ctx() const;
+    const MicroPassContext&        passContext() const { return context_; }
 
     // Extents of the declared variable (local or spilled parameter) whose storage
     // contains 'offset' (relative to the debug stack base). False for compiler

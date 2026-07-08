@@ -138,7 +138,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
             break;
         }
 
-        std::ranges::pop_heap(worklist, std::greater<>());
+        std::ranges::pop_heap(worklist, std::greater());
         const uint32_t head = worklist.back();
         worklist.pop_back();
         inWorklist_[head] = 0;
@@ -302,7 +302,7 @@ void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vecto
     {
         inWorklist_[index] = 1;
         worklist.push_back(index);
-        std::ranges::push_heap(worklist, std::greater<>());
+        std::ranges::push_heap(worklist, std::greater());
     }
 }
 

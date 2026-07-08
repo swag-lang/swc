@@ -74,6 +74,50 @@ using Swag, Core
     f.shutdown()
 }
 
+// Smart move captures a pixel selection into a movable image form, then deletes the
+// original selection as one undoable operation. This exercises renderer-backed
+// texture creation in the GUI headless host.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    f.capture.width = 24
+    f.capture.height = 24
+    f.capture.backImg = captmeTestIndexedImage(24, 24)
+
+    let before = f.capture.backImg.getPixelColor(12, 12)
+    let pixSel = captmeTestAddShape(f.capture, 6, 6, 12, 12, .PixSel)
+    pixSel.kind = .Rectangle
+    f.capture.selection.add(0)
+
+    f.main.pixSelSmartMove()
+
+    @assert(f.capture.forms.count == 1)
+    @assert(f.capture.selection.count == 1)
+    @assert(f.capture.selection[0] == 0)
+    @assert(@kindof(f.capture.forms[0]) == FormImage)
+
+    let imgForm = cast(*FormImage) @dataof(f.capture.forms[0])
+    @assert(imgForm.kind == .Capture)
+    @assert(imgForm.image.isValid())
+    @assert(imgForm.image.width == 12)
+    @assert(imgForm.image.height == 12)
+    @assert(imgForm.texture.isValid())
+    @assert(f.capture.backImg.getPixelColor(12, 12).argb != before.argb)
+
+    f.capture.undo()
+    @assert(f.capture.forms.count == 1)
+    @assert(@kindof(f.capture.forms[0]) == FormShape)
+    @assert(f.capture.backImg.getPixelColor(12, 12).argb == before.argb)
+
+    f.capture.redo()
+    @assert(f.capture.forms.count == 1)
+    @assert(@kindof(f.capture.forms[0]) == FormImage)
+
+    f.shutdown()
+}
+
 // Pixel-selection extraction filters the current selection without rendering.
 #test
 {

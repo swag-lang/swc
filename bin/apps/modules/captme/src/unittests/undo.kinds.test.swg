@@ -4,8 +4,7 @@
 using Swag, Core
 
 // RestoreOrg swaps in the original image and size, clears the forms, and undo brings
-// everything back (Flatten/FlattenAll share the same restore path but need a renderer,
-// so they are not exercised headless).
+// everything back.
 #test
 {
     var f: CaptmeHeadlessFixture
@@ -38,6 +37,65 @@ using Swag, Core
     @assert(f.capture.width == 123)
 
     f.capture.undo()
+    f.shutdown()
+}
+
+// Flatten renders the selected forms into the background and removes only that
+// selection; undo/redo restore the shared Flatten restore path.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    f.capture.backImg.fill(ColorBlue)
+    let shape = captmeTestAddShape(f.capture, 10, 10, 30, 25)
+    let text  = captmeTestAddText(f.capture, 70, 10, 30, 20)
+    f.capture.selection.add(0)
+
+    f.capture.pushUndo(f.capture.newUndo(.Flatten))
+    @assert(f.capture.forms.count == 1)
+    @assert(@dataof(f.capture.forms[0]) == text)
+    @assert(f.capture.selection.count == 0)
+    @assert(f.capture.backImg.isValid())
+    @assert(f.capture.backImg.width == 400)
+    @assert(f.capture.backImg.height == 300)
+
+    f.capture.undo()
+    @assert(f.capture.forms.count == 2)
+    @assert(@dataof(f.capture.forms[0]) == shape)
+    @assert(@dataof(f.capture.forms[1]) == text)
+
+    f.capture.redo()
+    @assert(f.capture.forms.count == 1)
+    @assert(@dataof(f.capture.forms[0]) == text)
+
+    f.shutdown()
+}
+
+// FlattenAll renders every non-pixel-selection form into the background and clears
+// the form list; undo/redo use the same image/form restore data.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    f.capture.backImg.fill(ColorBlue)
+    discard captmeTestAddShape(f.capture, 10, 10, 30, 25)
+    discard captmeTestAddText(f.capture, 70, 10, 30, 20)
+
+    f.capture.pushUndo(f.capture.newUndo(.FlattenAll))
+    @assert(f.capture.forms.count == 0)
+    @assert(f.capture.selection.count == 0)
+    @assert(f.capture.backImg.isValid())
+    @assert(f.capture.backImg.width == 400)
+    @assert(f.capture.backImg.height == 300)
+
+    f.capture.undo()
+    @assert(f.capture.forms.count == 2)
+
+    f.capture.redo()
+    @assert(f.capture.forms.count == 0)
+
     f.shutdown()
 }
 

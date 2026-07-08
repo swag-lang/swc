@@ -18,6 +18,8 @@ impl GuiHeadlessHost
 {
     mtd setup(width, height: f32)
     {
+        .app.renderer.setupHeadless()
+
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
         .theme.setupDefaultFonts()
@@ -31,6 +33,8 @@ impl GuiHeadlessHost
 
         .surface.app = &.app
         .surface.position = {0, 0, width, height}
+        .surface.rc.width = cast(s32) width
+        .surface.rc.height = cast(s32) height
 
         let root = &.root
         root.itf = cast(IWnd) dref root

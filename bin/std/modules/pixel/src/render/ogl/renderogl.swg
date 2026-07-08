@@ -41,6 +41,12 @@ const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0
 alias RenderTargetSurfaceHandle = u64
 const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0
 
+struct HeadlessTexture
+{
+    handle: TextureHandle
+    pixels: Array'u8
+}
+
 #[Swag.NoCopy]
 struct RenderOgl
 {
@@ -64,10 +70,50 @@ struct RenderOgl
     curRT:               *RenderTarget
     curShader:           *ShaderBase
     overlapMode          = false
+    headless:            bool
+    headlessNextHandle:  u64 = 1
+    headlessTextures:    Array'HeadlessTexture
 }
 
 private impl RenderOgl
 {
+    mtd findHeadlessTexture(handle: TextureHandle)->#null *HeadlessTexture
+    {
+        foreach &it in .headlessTextures where it.handle == handle do
+            return it
+        return null
+    }
+
+    mtd addHeadlessTexture(texture: Texture, pixels: const [..] u8)
+    {
+        var storage: HeadlessTexture
+        storage.handle = texture.handle
+        storage.pixels.resize(cast(u64) texture.getByteSize())
+        if pixels do
+            Memory.copy(storage.pixels.buffer, @dataof(pixels), Math.min(@countof(pixels), storage.pixels.count))
+        .headlessTextures.add(#move storage)
+    }
+
+    mtd clearHeadlessTexture(texture: Texture, color: Color)
+    {
+        let storage = .findHeadlessTexture(texture.handle)
+        if !storage do
+            return
+
+        var img = Image.create(texture.width, texture.height, texture.pf)
+        img.fill(color)
+        Memory.copy(storage.pixels.buffer, img.pixels.buffer, Math.min(storage.pixels.count, img.pixels.count))
+    }
+
+    mtd removeHeadlessTexture(handle: TextureHandle)
+    {
+        foreach it, idx in .headlessTextures where it.handle == handle
+        {
+            .headlessTextures.removeAt(idx)
+            return
+        }
+    }
+
     func setShaderCompileError(shaderID: GLuint) throw
     {
         var result:        GLint
@@ -271,10 +317,31 @@ impl RenderOgl
         Memory.delete(.curRT)
     }
 
+    mtd setupHeadless()
+    {
+        foreach rt in .stackReleasedRT do
+            Memory.delete(rt)
+        foreach rt in .stackRT do
+            Memory.delete(rt)
+        Memory.delete(.curRT)
+
+        .stackReleasedRT.clear()
+        .stackRT.clear()
+        .curRT = null
+        .headlessTextures.clear()
+        .headless = true
+        .headlessNextHandle = 1
+    }
+
     // To be called before rendering
     mtd begin(rc: RenderingContext)
     {
         .curRC = rc
+        if .headless
+        {
+            .resetTransform()
+            return
+        }
         .native.setCurrentContext(.curRC)
         .resetTransform()
     }
@@ -282,6 +349,9 @@ impl RenderOgl
     // To be called after rendering
     mtd end()
     {
+        if .headless do
+            return
+
         // The surface renders into a persistent FBO and then samples it to blit
         // onscreen, so the frame must be fully resolved and presented before we
         // return. With on-demand rendering (paint only when dirty) SwapBuffers
@@ -297,6 +367,11 @@ impl RenderOgl
     // Set the current rendering context
     mtd setCurrentContext(rc: RenderingContext)
     {
+        if .headless
+        {
+            .curRC = rc
+            return
+        }
         .native.setCurrentContext(rc)
     }
 
@@ -304,6 +379,13 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd clear()
     {
+        if .headless
+        {
+            if .curRT do
+                .clearHeadlessTexture(.curRT.colorBuffer, Argb.Zero)
+            return
+        }
+
         glClearStencil(0)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
         glClearColor(0, 0, 0, 0)
@@ -321,6 +403,9 @@ impl RenderOgl
     // Force the scissor
     mtd setScissorRect(rect: Math.Rectangle)
     {
+        if .headless do
+            return
+
         glEnable(GL_SCISSOR_TEST)
         let (?, h) = .getTargetSize()
         glScissor(cast(GLint) rect.x, cast(GLint) (h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
@@ -330,6 +415,9 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd resetScissorRect()
     {
+        if .headless do
+            return
+
         glDisable(GL_SCISSOR_TEST)
     }
 
@@ -342,6 +430,11 @@ impl RenderOgl
     // First init
     mtd init()
     {
+        if .headless
+        {
+            return
+        }
+
         Font.clearCaches()
 
         glInitExtensions()
@@ -417,6 +510,10 @@ impl RenderOgl
             .stackRT.add(.curRT)
         .curRT            = rt
         .curRT.paintAlpha = false
+
+        if .headless do
+            return
+
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) .curRT.handle)
         if vp do
             glViewport(cast() vp.x, cast() vp.y, cast() vp.width, cast() vp.height)
@@ -427,6 +524,14 @@ impl RenderOgl
     // Get current render target pixels
     mtd unbindRenderTargetToImage(x, y, w, h: s32)->Image
     {
+        if .headless
+        {
+            var result: retval = Image.create(.curRT.colorBuffer.width, .curRT.colorBuffer.height, .curRT.colorBuffer.pf, .getTexturePixels(.curRT.colorBuffer, .curRT.colorBuffer.pf).toSlice())
+            result.crop(x, y, w, h)
+            .unbindRenderTarget()
+            return result
+        }
+
         var result: retval = Image.create(w, h, .BGRA8)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
         glReadPixels(x, .curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, result.pixels.buffer)
@@ -440,12 +545,16 @@ impl RenderOgl
         if .stackRT.count
         {
             .curRT = .stackRT.popBack()
+            if .headless do
+                return
             glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) .curRT.handle)
             glViewport(0, 0, .curRT.colorBuffer.width, .curRT.colorBuffer.height)
         }
         else
         {
             .curRT = null
+            if .headless do
+                return
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
             glViewport(0, 0, .curRC.width, .curRC.height)
         }
@@ -455,6 +564,21 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createRenderTarget(w, h: s32)->RenderTarget
     {
+        if .headless
+        {
+            var result: retval
+            result.handle             = cast(RenderTargetHandle) .headlessNextHandle
+            .headlessNextHandle += 1
+            result.colorBuffer.handle = cast(TextureHandle) .headlessNextHandle
+            .headlessNextHandle += 1
+            result.colorBuffer.width  = w
+            result.colorBuffer.height = h
+            result.colorBuffer.valid  = true
+            result.colorBuffer.pf     = .BGRA8
+            .addHeadlessTexture(result.colorBuffer, null)
+            return result
+        }
+
         var colorID: GLuint
         glGenTextures(1, &colorID)
         glBindTexture(GL_TEXTURE_2D, colorID)
@@ -492,6 +616,15 @@ impl RenderOgl
         if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.valid do
             return
 
+        if .headless
+        {
+            .removeHeadlessTexture(rt.colorBuffer.handle)
+            rt.handle            = InvalidRenderTargetHandle
+            rt.depthStencil      = InvalidRenderTargetSurfaceHandle
+            rt.colorBuffer.valid = false
+            return
+        }
+
         var cb: GLuint = cast() rt.colorBuffer.handle
         glDeleteTextures(1, &cb)
 
@@ -526,6 +659,20 @@ impl RenderOgl
             result.valid  = false
             return result
         }
+
+        if .headless
+        {
+            var result: retval
+            result.handle = cast(TextureHandle) .headlessNextHandle
+            .headlessNextHandle += 1
+            result.width  = image.width
+            result.height = image.height
+            result.pf     = image.pf
+            result.valid  = true
+            .addHeadlessTexture(result, image.pixels.toSlice())
+            return result
+        }
+
         var fmt:      GLenum = 0
         var tinternal = GL_RGB
 
@@ -581,6 +728,15 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd updateTexture(texture: Texture, pixels: const *u8)
     {
+        if .headless
+        {
+            let storage = .findHeadlessTexture(texture.handle)
+            if !storage do
+                return
+            Memory.copy(storage.pixels.buffer, pixels, Math.min(storage.pixels.count, cast(u64) texture.getByteSize()))
+            return
+        }
+
         let fmt       = pixelFormatToNative(texture.pf)
         let textureID = cast(GLuint) texture.handle
         glBindTexture(GL_TEXTURE_2D, textureID)
@@ -592,6 +748,18 @@ impl RenderOgl
     mtd getTexturePixels(texture: Texture, pf: PixelFormat)->Array'u8
     {
         var result: retval
+        if .headless
+        {
+            if !texture.valid do
+                return result
+
+            result.resize(cast(u64) texture.getByteSize())
+            let storage = .findHeadlessTexture(texture.handle)
+            if storage do
+                Memory.copy(result.buffer, storage.pixels.buffer, Math.min(result.count, storage.pixels.count))
+            return result
+        }
+
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, cast() texture.handle)
         result.resize(cast(u64) texture.getByteSize())
@@ -607,6 +775,12 @@ impl RenderOgl
     {
         if !texture.valid do
             return
+        if .headless
+        {
+            .removeHeadlessTexture(texture.handle)
+            texture.valid = false
+            return
+        }
         glDeleteTextures(1, cast(*GLuint) &texture.handle)
         texture.valid = false
     }
@@ -980,6 +1154,34 @@ impl RenderOgl
     // Draw the given painter
     mtd draw(dc: *Painter)
     {
+        if .headless
+        {
+            foreach cmd in dc.commandBuffer
+            {
+                switch cmd.id
+                {
+                case Clear:
+                    if .curRT do
+                        .clearHeadlessTexture(.curRT.colorBuffer, cmd.clear.color)
+                case BindRenderTarget:
+                    .bindRenderTarget(cmd.renderTgt.tgt)
+                    if .curRT
+                    {
+                        .curRT.paintAlpha    = cmd.renderTgt.paintAlpha
+                        .curRT.paintAlphaIdx = 0
+                    }
+                case UnbindRenderTarget:
+                    if .curRT do
+                        .unbindRenderTarget()
+                case ReleaseRenderTarget:
+                    .releaseRenderTarget(cmd.renderTgt.tgt)
+                default:
+                    continue
+                }
+            }
+            return
+        }
+
         let (width, height) = .getTargetSize()
         if width <= 0 or height <= 0 do
             return
@@ -1023,6 +1225,12 @@ impl RenderOgl
     // Set the current shader
     mtd setShader(shader: *ShaderBase = null)
     {
+        if .headless
+        {
+            .curShader = shader orelse &.shaderAA
+            return
+        }
+
         .curShader = shader orelse &.shaderAA
         glUseProgram(cast(GLuint) .curShader.handle)
         glUniformMatrix4fv(cast(GLint) .curShader.mvp, 1, GL_FALSE, &.orthoMatrix.m[0, 0])

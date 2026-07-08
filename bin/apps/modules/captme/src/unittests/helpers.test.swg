@@ -14,6 +14,7 @@ impl CaptmeHeadlessFixture
     mtd setup(width = 900.0, height = 700.0)
     {
         .gui.setup(width, height)
+        g_App.renderer.setupHeadless()
         g_App.theme = Memory.new'Theme()
         g_App.theme.colors.setDark()
         g_App.theme.setupDefaultFonts()

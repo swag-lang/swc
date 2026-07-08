@@ -988,8 +988,8 @@ impl Wnd
     {
         var clientRect = .getClientRectPadding()
 
-        var centerLayout = Array.createTemp'(*Wnd)()
-        var oldSizes     = Array.createTemp'Math.Point()
+        var centerLayout: Array'(*Wnd)
+        var oldSizes:     Array'Math.Point
 
         foreach c in .childs
         {

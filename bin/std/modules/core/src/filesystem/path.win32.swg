@@ -161,7 +161,6 @@ func getAbsolute(fullname: string)->String throw
     var result: retval
 
     var tmpArr: Array'u16
-    tmpArr.allocator = @getcontext().tempAllocator
     tmpArr.reserve(100)
 
     let winPath = Utf16.toZeroTerminated(fullname)

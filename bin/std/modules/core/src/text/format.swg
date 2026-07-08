@@ -89,29 +89,6 @@ func toString(fmt: string, values: ...)->String
     return buf.toString()
 }
 
-// Returns a formatted string stored in the temporary allocator.
-// The payload lives in the TEMP allocator: dropping the local 'String' does not free
-// it, so the returned view intentionally outlives the owner (valid until the temp
-// allocator resets). Opt out of the owner-view escape check.
-#[Swag.Sanity(.Lifecycle, false)]
-func toStringTemp(fmt: string, values: ...)->string
-    verify
-    {
-        if !#isconstexpr(fmt) or !#isconstexpr(values) do
-            return true
-        checkFormat(#curlocation.funcName, fmt, values)
-        return true
-    }
-{
-    var buf: ConcatBuffer
-
-    #[Match(.Where, false)]
-    append(&buf, fmt, values)
-
-    let str = buf.toString(@getcontext().tempAllocator)
-    return str.toString()
-}
-
 // Format a string and put the result in a ConcatBuffer.
 func append(buf: *ConcatBuffer, fmt: string, values: ...)
     verify

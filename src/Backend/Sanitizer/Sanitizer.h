@@ -71,6 +71,12 @@ private:
     void        propagate(const SanitizerState& edge, uint32_t index, std::vector<uint32_t>& worklist);
     static bool joinInto(SanitizerState& into, const SanitizerState& from);
 
+    // Walks the straight-line chain starting at 'head' with a single mutable state:
+    // states are only stored (and joined) at chain heads, everything in between is
+    // recomputed on the fly. With a worklist it propagates the fixpoint; with checks
+    // it applies them to each instruction's pre-state.
+    void walkChain(uint32_t head, SanitizerState cur, std::span<SanitizerCheck* const> checks, std::vector<uint32_t>* worklist, uint64_t& steps);
+
     // Instruction effects (the transfer function).
     void        applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const;
     static void invalidateDefs(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops);
@@ -102,7 +108,9 @@ private:
     const MicroControlFlowGraph* cfg_               = nullptr;
     const Symbol*                currentCallTarget_ = nullptr;
     bool                         reported_          = false;
-    std::vector<SanitizerState>  inState_;
+    bool                         converged_         = true;
+    std::vector<SanitizerState>  inState_; // populated only at chain heads
+    std::vector<char>            isHead_;
     std::vector<char>            reached_;
     std::vector<char>            inWorklist_;
     std::unordered_set<uint64_t> reportedLocations_;

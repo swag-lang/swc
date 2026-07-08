@@ -261,16 +261,6 @@ impl Array
         .count, .capacity = 0
     }
 
-    // Creates a new array that uses the temporary allocator.
-    // Useful for short-lived arrays to avoid heap fragmentation.
-    #[Inline]
-    func(TA) createTemp()->Array'TA
-    {
-        var result: retval
-        result.allocator = @getcontext().tempAllocator
-        return result
-    }
-
     // Creates a new byte array of a given size.
     // Often used for raw memory me.buffers.
     func createBuffer(size: u64)->Array'u8

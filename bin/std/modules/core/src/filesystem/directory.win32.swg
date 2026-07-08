@@ -129,8 +129,6 @@ func getCurrent()->String throw
     let length  = GetCurrentDirectoryW(0, null)
 
     var arr16: Array'u16
-    arr16.allocator = @getcontext().tempAllocator
-
     arr16.reserve(cast(u64) length + 1)
     arr16.count = GetCurrentDirectoryW(length + 1, @dataof(arr16))
 

@@ -172,9 +172,9 @@ private impl StackLayoutCtrl
         let availableMain = .mainFromRect(client)
         let availableCross = .crossFromRect(client)
 
-        var visible = Array.createTemp'(*Wnd)()
-        var hints = Array.createTemp'SizeHint()
-        var oldSizes = Array.createTemp'Math.Point()
+        var visible:  Array'(*Wnd)
+        var hints:    Array'SizeHint
+        var oldSizes: Array'Math.Point
         foreach c in .childs
         {
             if !c.isVisibleState() do

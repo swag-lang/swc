@@ -191,3 +191,66 @@ func captmeTestCountNonZeroBytes(img: Image)->u64
     }
     return count
 }
+
+func captmeTestPrimeGizmo(form: IForm, z: f32 = 1)
+{
+    var painter: Painter{fake: true}
+    painter.begin()
+    form.paintGizmo(&painter, z, .Selected)
+    painter.end()
+}
+
+func captmeTestPrimeCaptureGizmo(capture: *Capture)
+{
+    capture.gizmo.rect = {0, 0, capture.width, capture.height}
+
+    var painter: Painter{fake: true}
+    painter.begin()
+    capture.gizmo.paint(&painter, false)
+    painter.end()
+}
+
+func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
+{
+    main.registerAction'ActionSelection()
+    main.registerAction'ActionMoveSel()
+    main.registerAction'ActionAlign()
+    main.registerAction'ActionUndo()
+    main.registerAction'ActionZoom()
+
+    main.registerKeyShortcut(.Control, .A, ActionSelection.SelectAll)
+    main.registerKeyShortcut(.Control, .D, ActionSelection.DeSelectAll)
+    main.registerKeyShortcut(.CtrlShift, .I, ActionSelection.InvertSelection)
+    main.registerKeyShortcut(.Control, .Space, ActionSelection.Freeze)
+    main.registerKeyShortcut(.Zero, .Delete, ActionSelection.DeleteSelection)
+    main.registerKeyShortcut(.Control, .Z, ActionUndo.DoUndo)
+    main.registerKeyShortcut(.Control, .Y, ActionUndo.DoRedo)
+    main.registerKeyShortcut(.Shift, .Left, ActionMoveSel.Left1)
+    main.registerKeyShortcut(.Shift, .Up, ActionMoveSel.Top1)
+    main.registerKeyShortcut(.Shift, .Right, ActionMoveSel.Right1)
+    main.registerKeyShortcut(.Shift, .Down, ActionMoveSel.Bottom1)
+    main.registerKeyShortcut(.Zero, .Left, ActionMoveSel.Left)
+    main.registerKeyShortcut(.Zero, .Up, ActionMoveSel.Top)
+    main.registerKeyShortcut(.Zero, .Right, ActionMoveSel.Right)
+    main.registerKeyShortcut(.Zero, .Down, ActionMoveSel.Bottom)
+    main.registerKeyShortcut(.Zero, .Home, ActionAlign.SendToFront)
+    main.registerKeyShortcut(.Zero, .End, ActionAlign.SendToBack)
+    main.registerKeyShortcut(.Zero, .PageUp, ActionAlign.MoveForward)
+    main.registerKeyShortcut(.Zero, .PageDown, ActionAlign.MoveBackward)
+    main.registerKeyShortcut(.Control, .Add, ActionZoom.ZoomIn)
+    main.registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
+    main.registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
+}
+
+func captmeTestIndexedImage(w, h: s32)->Image
+{
+    var result = Image.create(w, h, .BGRA8)
+    result.visitPixels()
+    {
+        let value = cast(u8) ((1 + x + y * 17) % 251)
+        let green = cast(u8) ((cast(u32) value + 3) % 251)
+        let blue  = cast(u8) ((cast(u32) value + 7) % 251)
+        dref cast(*u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
+    }
+    return result
+}

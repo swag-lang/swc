@@ -97,90 +97,144 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
             callTargets_[rel.instructionRef.get()] = rel.targetSymbol;
     }
 
+    // Chain heads are the only points where states are stored and joined: the entry,
+    // any merge point (several predecessors), and any target of a branching
+    // predecessor. Everything between two heads is a straight-line chain whose states
+    // are recomputed on the fly — storing a state per instruction (and copying it on
+    // every worklist iteration) made big loopy functions take minutes.
+    isHead_.assign(n, 0);
+    isHead_[0] = 1;
+    for (uint32_t i = 1; i < n; i++)
+    {
+        const MicroControlFlowGraph::EdgeList& preds = cfg.predecessors(i);
+        if (preds.size() >= 2)
+        {
+            isHead_[i] = 1;
+            continue;
+        }
+        if (preds.size() == 1)
+        {
+            const MicroInstr&    predInst = *context_.instructions->ptr(cfg.instructionRefs()[preds[0]]);
+            const MicroInstrDef& predDef  = MicroInstr::info(predInst.op);
+            if (cfg.successors(preds[0]).size() != 1 || predDef.flags.has(MicroInstrFlagsE::ConditionalJump))
+                isHead_[i] = 1;
+        }
+    }
+
     reached_[0]    = 1;
     inWorklist_[0] = 1;
     std::vector<uint32_t> worklist{0};
 
-    uint64_t iterations = 0;
-    while (!worklist.empty() && iterations < K_ITERATION_CAP)
+    // The worklist is a min-heap on the instruction index: the linear layout is close
+    // to a topological order, so processing lower indices first lets predecessors
+    // settle before their successors and cuts re-iteration dramatically.
+    uint64_t steps = 0;
+    converged_     = true;
+    while (!worklist.empty())
     {
-        iterations++;
-        const uint32_t index = worklist.back();
-        worklist.pop_back();
-        inWorklist_[index] = 0;
+        if (steps >= K_ITERATION_CAP)
+        {
+            converged_ = false;
+            break;
+        }
 
-        SanitizerState           cur  = inState_[index];
-        const MicroInstr&        inst = *context_.instructions->ptr(cfg.instructionRefs()[index]);
-        const MicroInstrDef&     def  = MicroInstr::info(inst.op);
-        const MicroInstrOperand* ops  = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+        std::ranges::pop_heap(worklist, std::greater<>());
+        const uint32_t head = worklist.back();
+        worklist.pop_back();
+        inWorklist_[head] = 0;
+
+        walkChain(head, inState_[head], {}, &worklist, steps);
+    }
+
+    // Apply the checks only on the converged states, walking each reached chain with
+    // the same transfer function. A capped run never reaches this point with checks:
+    // its states are transient pre-join snapshots, and reporting on them would flag
+    // spurious findings a finished join would have widened away.
+    if (!converged_)
+        return reported_;
+
+    uint64_t checkSteps = 0;
+    for (uint32_t i = 0; i < n; i++)
+    {
+        if (isHead_[i] && reached_[i])
+            walkChain(i, inState_[i], checks, nullptr, checkSteps);
+    }
+
+    return reported_;
+}
+
+void Sanitizer::walkChain(uint32_t head, SanitizerState cur, std::span<SanitizerCheck* const> checks, std::vector<uint32_t>* worklist, uint64_t& steps)
+{
+    const MicroControlFlowGraph& cfg   = *cfg_;
+    uint32_t                     index = head;
+
+    for (;;)
+    {
+        steps++;
+        const MicroInstrRef      instRef = cfg.instructionRefs()[index];
+        const MicroInstr&        inst    = *context_.instructions->ptr(instRef);
+        const MicroInstrDef&     def     = MicroInstr::info(inst.op);
+        const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
 
         transferCallTarget_ = nullptr;
         if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
         {
-            const auto itTarget = callTargets_.find(cfg.instructionRefs()[index].get());
+            const auto itTarget = callTargets_.find(instRef.get());
             if (itTarget != callTargets_.end())
                 transferCallTarget_ = itTarget->second;
         }
+        currentCallTarget_ = transferCallTarget_;
+
+        for (SanitizerCheck* check : checks)
+            check->run(*this, cur, inst, def, ops);
 
         applyValueEffects(cur, inst, def, ops);
 
         const MicroControlFlowGraph::EdgeList& succs = cfg.successors(index);
         if (def.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !def.flags.has(MicroInstrFlagsE::JumpInstruction))
-            continue; // Ret: no successor
+            return; // Ret: no successor
 
         // A call that never returns (the runtime panic behind a safety guard) has no
         // fall-through: propagating its cleared state would pollute the join after the
         // guard and erase the very facts the checks front-run the guard with.
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        if (transferCallTarget_ && def.flags.has(MicroInstrFlagsE::IsCallInstruction))
         {
-            const auto itCall = callTargets_.find(cfg.instructionRefs()[index].get());
-            if (itCall != callTargets_.end())
-            {
-                const auto calleeName = itCall->second->name(ctx());
-                if (calleeName == "@safetypanic" || calleeName == "@panic")
-                    continue;
-            }
+            const auto calleeName = transferCallTarget_->name(ctx());
+            if (calleeName == "@safetypanic" || calleeName == "@panic")
+                return;
         }
 
         if (def.flags.has(MicroInstrFlagsE::ConditionalJump) && succs.size() == 2 && ops)
-            propagateConditionalBranch(cur, ops, succs, worklist);
-        else if (isModelledSingleEdge(def, succs))
-            propagate(cur, succs[0], worklist);
-        else
         {
-            for (const uint32_t s : succs)
+            if (worklist)
+                propagateConditionalBranch(cur, ops, succs, *worklist);
+            return;
+        }
+
+        if (isModelledSingleEdge(def, succs))
+        {
+            const uint32_t s = succs[0];
+            if (!isHead_[s])
             {
-                SanitizerState edge = cur;
-                dropZeros(edge);
-                edge.flagsSubject = MicroReg::invalid();
-                propagate(edge, s, worklist);
+                index = s; // straight-line: keep walking with the same state
+                continue;
             }
+            if (worklist)
+                propagate(cur, s, *worklist);
+            return;
         }
-    }
 
-    // Apply the checks only on the converged states.
-    for (uint32_t i = 0; i < n; i++)
-    {
-        if (!reached_[i])
-            continue;
-        const MicroInstrRef      instRef = cfg.instructionRefs()[i];
-        const MicroInstr&        inst    = *context_.instructions->ptr(instRef);
-        const MicroInstrDef&     def     = MicroInstr::info(inst.op);
-        const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
-
-        currentCallTarget_ = nullptr;
-        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        for (const uint32_t s : succs)
         {
-            const auto it = callTargets_.find(instRef.get());
-            if (it != callTargets_.end())
-                currentCallTarget_ = it->second;
+            if (!worklist)
+                continue;
+            SanitizerState edge = cur;
+            dropZeros(edge);
+            edge.flagsSubject = MicroReg::invalid();
+            propagate(edge, s, *worklist);
         }
-
-        for (SanitizerCheck* check : checks)
-            check->run(*this, inState_[i], inst, def, ops);
+        return;
     }
-
-    return reported_;
 }
 
 TaskContext& Sanitizer::ctx() const
@@ -248,6 +302,7 @@ void Sanitizer::propagate(const SanitizerState& edge, uint32_t index, std::vecto
     {
         inWorklist_[index] = 1;
         worklist.push_back(index);
+        std::ranges::push_heap(worklist, std::greater<>());
     }
 }
 

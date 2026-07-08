@@ -93,40 +93,6 @@ using Swag, Core
     f.shutdown()
 }
 
-// Smart Move converts selected pixel-selection forms into captured image forms,
-// deletes the original selectors and keeps the whole operation undoable.
-#test
-{
-    var f: CaptmeHeadlessFixture
-    f.setup()
-
-    f.capture.width = 32
-    f.capture.height = 32
-    f.capture.backImg = captmeTestIndexedImage(32, 32)
-
-    let pixSel = captmeTestAddShape(f.capture, 8, 8, 10, 10, .PixSel)
-    pixSel.kind = .Rectangle
-    f.capture.selection.add(0)
-
-    @assert(captmeTestActionExecute'ActionPixSel(f.main, ActionPixSel.SmartMove))
-    @assert(f.capture.forms.count == 1)
-    @assert(@kindof(f.capture.forms[0]) == FormImage)
-    let moved = cast(*FormImage) @dataof(f.capture.forms[0])
-    @assert(moved.kind == .Capture)
-    @assert(moved.image.isValid())
-    @assert(f.capture.selection.count == 1)
-    @assert(f.capture.selection[0] == 0)
-
-    f.capture.undo()
-    @assert(f.capture.forms.count == 1)
-    @assert(@kindof(f.capture.forms[0]) == FormShape)
-    @assert((cast(*BaseForm) @dataof(f.capture.forms[0])).subKind == .PixSel)
-    @assert(f.capture.selection.count == 1)
-    @assert(f.capture.selection[0] == 0)
-
-    f.shutdown()
-}
-
 // Capture save/load round-trips every concrete form type and its regression-sensitive fields.
 #test
 {

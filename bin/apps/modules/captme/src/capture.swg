@@ -66,6 +66,143 @@ struct Capture
     }
 }
 
+enum CaptureClipboardFormKind
+{
+    None
+    Arrow
+    Draw
+    Image
+    Line
+    Polygon
+    Shape
+    Step
+    Text
+}
+
+struct CaptureClipboardForm
+{
+    kind:      CaptureClipboardFormKind
+    arrow:     FormArrow
+    draw:      FormDraw
+    image:     FormImage
+    line:      FormLine
+    polygon:   FormPolygon
+    shape:     FormShape
+    step:      FormStep
+    text:      FormText
+}
+
+struct CaptureClipboardForms
+{
+    forms: Array'CaptureClipboardForm
+}
+
+impl CaptureClipboardForm
+{
+    mtd add(itf: IForm)
+    {
+        switch itf
+        {
+        case FormArrow as form:
+            .kind = .Arrow
+            .arrow = dref form
+        case FormDraw as form:
+            .kind = .Draw
+            .draw = dref form
+        case FormImage as form:
+            .kind = .Image
+            .image = dref form
+        case FormLine as form:
+            .kind = .Line
+            .line = dref form
+        case FormPolygon as form:
+            .kind = .Polygon
+            .polygon = dref form
+        case FormShape as form:
+            .kind = .Shape
+            .shape = dref form
+        case FormStep as form:
+            .kind = .Step
+            .step = dref form
+        case FormText as form:
+            .kind = .Text
+            .text = dref form
+        default:
+            .kind = .None
+        }
+    }
+
+    mtd toForm(capture: *Capture)->IForm
+    {
+        var result: retval
+
+        switch .kind
+        {
+        case Arrow:
+            let form = Memory.new'FormArrow()
+            dref form = .arrow
+            result = cast(IForm) form
+        case Draw:
+            let form = Memory.new'FormDraw()
+            dref form = .draw
+            result = cast(IForm) form
+        case Image:
+            let form = Memory.new'FormImage()
+            dref form = .image
+            result = cast(IForm) form
+        case Line:
+            let form = Memory.new'FormLine()
+            dref form = .line
+            result = cast(IForm) form
+        case Polygon:
+            let form = Memory.new'FormPolygon()
+            dref form = .polygon
+            result = cast(IForm) form
+        case Shape:
+            let form = Memory.new'FormShape()
+            dref form = .shape
+            result = cast(IForm) form
+        case Step:
+            let form = Memory.new'FormStep()
+            dref form = .step
+            result = cast(IForm) form
+        case Text:
+            let form = Memory.new'FormText()
+            dref form = .text
+            result = cast(IForm) form
+        case None:
+            return result
+        }
+
+        result.setup(capture)
+        return result
+    }
+}
+
+impl CaptureClipboardForms
+{
+    mtd add(itf: IForm)
+    {
+        var item: CaptureClipboardForm
+        item.add(itf)
+        if item.kind != .None do
+            .forms.add(#move item)
+    }
+
+    mtd toForms(capture: *Capture)->Array'IForm
+    {
+        var result: retval
+        foreach &item in .forms
+        {
+            let form = item.toForm(capture)
+            if form do
+                result.add(form)
+        }
+
+        return result
+    }
+}
+
 impl Capture
 {
     func freeForms(forms: Array'IForm)
@@ -252,7 +389,7 @@ impl Capture
 
     mtd copy()
     {
-        var arr: Array'IForm
+        var payload: CaptureClipboardForms
 
         var imgDone = false
         foreach s in .selection
@@ -270,10 +407,10 @@ impl Capture
                 }
             }
 
-            arr.add(itf)
+            payload.add(itf)
         }
 
-        Clipboard.addTypedValue(&arr, #typeof(arr))
+        Clipboard.addTypedValue(&payload, #typeof(payload))
     }
 
     mtd cut()
@@ -304,7 +441,12 @@ impl Capture
     mtd paste()
     {
         var res: Array'IForm
-        if !Clipboard.getTypedValue(&res, #typeof(res))
+        var payload: CaptureClipboardForms
+        if Clipboard.getTypedValue(&payload, #typeof(payload))
+        {
+            res = payload.toForms(me)
+        }
+        else
         {
             let img = Clipboard.getImage()
             if img.isValid()

@@ -186,6 +186,31 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     @assert(!img.isValid())
 }
 
+// PNG text metadata must survive a normal decode with pixels enabled.
+#test
+{
+    let path = makeTempPngPath()
+    defer { discard catch File.delete(path.toString()) }
+
+    var src = Image.create(2, 1, .RGB8)
+    fillSolidPngImage(&src, 1'u8, 2'u8, 3'u8, 255'u8)
+
+    var md: ImageMetaData
+    md.tag = "Captme.File"
+    md.value = "capture.captme"
+    src.metaDatas.add(md)
+
+    catch src.save(path.toString())
+    @assert(@err == null)
+
+    let img = catch Image.load(path.toString())
+    @assert(@err == null)
+    @assert(img.isValid())
+    @assert(img.metaDatas.count == 1)
+    @assert(img.metaDatas[0].isTag("Captme.File"))
+    @assert(cast(string) img.metaDatas[0].toSlice() == "capture.captme")
+}
+
 // Invalid and truncated buffers should fail without producing an image.
 #test
 {

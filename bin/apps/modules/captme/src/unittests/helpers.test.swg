@@ -219,7 +219,19 @@ func captmeTestDeleteForm(itf: IForm)
 func captmeTestTempCapturePath()->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    return Path.combine(tempDir.toString(), "captme-${GUID64.new()}.captme")
+    var fileName: String = "captme-"
+    fileName += GUID64.getRandom().getString()
+    fileName += ".captme"
+    return Path.combine(tempDir.toString(), fileName.toString())
+}
+
+func captmeTestTempFilePath(extension: string)->String
+{
+    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var fileName: String = "captme-"
+    fileName += GUID64.getRandom().getString()
+    fileName += extension
+    return Path.combine(tempDir.toString(), fileName.toString())
 }
 
 func captmeTestCountNonZeroBytes(img: Image)->u64

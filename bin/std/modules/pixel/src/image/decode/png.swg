@@ -574,11 +574,14 @@ impl Decoder
         if .header.colorType & .Paletted and !.seenPLTE do
             throw InvalidFormatError{"missing PLTE chunk"}
 
-        // Initialize image depending on number of wanted channels
+        // Initialize image depending on number of wanted channels. init() resets
+        // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
+        var metaDatas = #move result.metaDatas
         if .outChannels == 4 do
             result.init(cast(s32) .header.width, cast(s32) .header.height, PixelFormat.RGBA8)
         else do
             result.init(cast(s32) .header.width, cast(s32) .header.height, PixelFormat.RGB8)
+        result.metaDatas = #move metaDatas
 
         // We are done if user does not want pixels
         if !.decOptions.decodePixels do

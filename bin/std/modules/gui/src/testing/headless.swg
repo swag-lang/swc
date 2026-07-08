@@ -250,10 +250,20 @@ impl GuiHeadlessHost
         if .app.modalSurfaces.count == 0 do
             return false
 
-        let wnd = .app.modalSurfaces.back().wnd.view.getChildById(id)
+        var wnd: *Wnd
+        foreach #reverse surface in .app.modalSurfaces
+        {
+            let view = surface.getView()
+            if !view do
+                continue
+
+            wnd = view.getChildById(id)
+            if wnd do
+                break
+        }
+
         if !wnd do
             return false
-
         .clickWnd(wnd)
         return true
     }
@@ -287,6 +297,53 @@ impl GuiHeadlessHost
             return false
 
         ctrl.edit.setText(text)
+        .pump()
+        return true
+    }
+
+    mtd findFileBrowserCtrl(wnd: *Wnd)->#null *FileBrowserCtrl
+    {
+        if wnd.type == FileBrowserCtrl do
+            return cast(*FileBrowserCtrl) wnd
+
+        foreach child in wnd.childs
+        {
+            let ctrl = .findFileBrowserCtrl(child)
+            if ctrl do
+                return ctrl
+        }
+
+        return null
+    }
+
+    mtd setModalFileSelection(folder: string, fileName: string)->bool
+    {
+        if .app.modalSurfaces.count == 0 do
+            return false
+
+        var browser: *FileBrowserCtrl
+        foreach surface in .app.modalSurfaces
+        {
+            let view = surface.getView()
+            if !view do
+                continue
+
+            browser = .findFileBrowserCtrl(view)
+            if browser do
+                break
+        }
+
+        if !browser or !browser.editFile do
+            return false
+
+        if folder
+        {
+            if !Directory.exists(folder) do
+                return false
+            browser.setCurFolder(folder)
+        }
+
+        browser.editFile.setText(fileName)
         .pump()
         return true
     }

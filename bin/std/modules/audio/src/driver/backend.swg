@@ -62,6 +62,21 @@ impl DriverNative
         .kind = .Default
     }
 
+    // Synchronously halts the backend's audio processing thread. Called first
+    // during driver teardown so no mixer pass or voice callback can run while the
+    // voices are being destroyed and freed.
+    mtd stopEngineNative()
+    {
+        switch .kind
+        {
+        case XAudio2:
+            #if #os == Swag.TargetOs.Windows
+            {
+                .xAudio2.stopEngineXAudio2()
+            }
+        }
+    }
+
     mtd setOutputVolumeNative(volume: f32) throw
     {
         switch .kind

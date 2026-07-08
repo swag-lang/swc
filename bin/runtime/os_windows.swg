@@ -296,6 +296,8 @@ func __tlsSetValue(id: u64, value: *void) => __Win32RT.TlsSetValue(cast(u32) id,
 func __tlsGetValue(id: u64)->*void        => __Win32RT.TlsGetValue(cast(u32) id)
 
 ////////////////////////////////////////////////////////////
+// Returns the current thread's runtime context, lazily creating it on a thread
+// the runtime has never seen (an OS-owned callback thread, e.g. xaudio2).
 func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void
 {
     using __Win32RT
@@ -305,6 +307,14 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void
     ptr = @alloc(size)
     @memcpy(ptr, init, size)
     TlsSetValue(cast(u32) id, ptr)
+
+    // The lazily-created context starts zeroed, which is unusable: the first
+    // allocation on such a thread would call through a null allocator interface,
+    // and one that "succeeds" through a mismatched allocator corrupts the heap.
+    // Install the default runtime allocator (the TLS slot is set above first, so
+    // the @getcontext() inside __runtimeAllocator resolves to this context).
+    discard __runtimeAllocator()
+
     return ptr
 }
 

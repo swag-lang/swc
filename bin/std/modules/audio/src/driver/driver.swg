@@ -45,10 +45,15 @@ internal func updateThreadProc(th: Threading.Thread)
         driver.mutexRecycleVoices.unlock()
         driver.pendingRecycleVoices.clear()
 
-        // Make a copy of the list of voices to update, to reduce contention
+        // Make a copy of the list of voices to update, to reduce contention.
+        // The #move resets the array, so re-pin its allocator right away: the next
+        // add can come from any thread (main, update, xaudio2 callback), and letting
+        // it cache that thread's context allocator would make the buffer bounce
+        // between different heaps (allocated on one, freed on another).
         driver.mutexVoicesToUpdate.lock()
         let copyVoices = #move driver.voicesToUpdate
         driver.voicesToUpdate.clear()
+        driver.voicesToUpdate.allocator = copyVoices.allocator
         driver.mutexVoicesToUpdate.unlock()
 
         // Update
@@ -96,6 +101,12 @@ impl Driver
     mtd create(kind: DriverKind = .Default) throw
     {
         .driverIsClosing = false
+
+        // Pin the shared command list to the creating context's allocator: its
+        // buffer is reallocated and freed from several threads (main, update
+        // thread, xaudio2 callbacks), and every one of them must use the same heap.
+        .voicesToUpdate.allocator = @getcontext().allocator
+
         .createNative(kind)
 
         .wakeupUpdate.init()
@@ -106,6 +117,12 @@ impl Driver
     mtd destroy()
     {
         .driverIsClosing = true
+
+        // Halt the backend's audio processing thread first: from here on no mixer
+        // pass reads submitted buffers and no voice callback can fire, so the
+        // voices below can be destroyed and freed safely.
+        ////////////////
+        .stopEngineNative()
 
         // Force update thread to end
         ////////////////

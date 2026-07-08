@@ -55,6 +55,14 @@ impl XAudio2DriverNative
     }
 
     // Destroys the xaudio2 engine
+    // Synchronously stops the xaudio2 processing thread: after this returns, no
+    // mixer pass runs and no voice callback can fire.
+    mtd stopEngineXAudio2()
+    {
+        if .xAudio2 do
+            .xAudio2.vtbl.stopEngine(.xAudio2)
+    }
+
     mtd destroyXAudio2()
     {
         if .masteringVoice
@@ -121,8 +129,13 @@ internal
         if voice.hasState(.PendingDestroy) do
             return
 
-        // Called by xaudio2 thread, so we must have a valid Swag context
-        if !@getcontext() do
+        // Called by an xaudio2-owned thread, so we must run under a valid Swag
+        // context. Testing the context pointer alone is not enough: in native
+        // builds @getcontext() never returns null (a fresh foreign thread lazily
+        // gets a default context), so check the allocator to detect a context the
+        // application never configured.
+        let cxt = @getcontext()
+        if cxt == null or @dataof(cxt.allocator) == null do
             @setcontext(&g_ThreadCxt)
 
         g_Driver.updateVoice(voice, .UpdateBuffers)

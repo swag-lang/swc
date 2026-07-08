@@ -264,6 +264,139 @@ using Swag, Core
     f.shutdown()
 }
 
+// File, copy/paste, flatten and small dialog actions expose stable command state
+// without executing OS, clipboard or dialog branches.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    var evt = captmeTestState(ActionFile.SaveAsImage)
+    @assert(captmeTestActionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
+    @assert(!evt.disabled)
+
+    evt = captmeTestState(ActionFile.UnlinkImage)
+    @assert(captmeTestActionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
+    @assert(evt.disabled)
+
+    f.capture.linkedImage = "linked.png"
+    evt = captmeTestState(ActionFile.UnlinkImage)
+    @assert(captmeTestActionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
+    @assert(!evt.disabled)
+
+    evt = captmeTestState(ActionFile.LinkedFileLocation)
+    @assert(captmeTestActionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &evt))
+    @assert(!evt.disabled)
+
+    evt = captmeTestState(ActionCopyPaste.Copy)
+    @assert(captmeTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
+    @assert(evt.disabled)
+
+    let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    f.capture.selection.add(0)
+    evt = captmeTestState(ActionCopyPaste.Copy)
+    @assert(captmeTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
+    @assert(!evt.disabled)
+
+    evt = captmeTestState(ActionFlatten.Flatten)
+    @assert(captmeTestActionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
+    @assert(!evt.disabled)
+
+    f.capture.selection.clear()
+    evt = captmeTestState(ActionFlatten.Flatten)
+    @assert(captmeTestActionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
+    @assert(evt.disabled)
+
+    evt = captmeTestState(ActionFlatten.FlattenAll)
+    @assert(captmeTestActionUpdate'ActionFlatten(f.main, ActionFlatten.FlattenAll, &evt))
+    @assert(!evt.disabled)
+
+    f.capture.selection.add(0)
+    let image = captmeTestAddImage(f.capture, 40, 10, 20, 20)
+    image.kind = .Image
+    f.capture.selection.clear()
+    f.capture.selection.add(1)
+    evt = captmeTestState(ActionCopyPaste.PasteImageInside)
+    @assert(captmeTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.PasteImageInside, &evt))
+    @assert(!evt.hidden)
+
+    f.capture.selection.clear()
+    let pixSel = captmeTestAddShape(f.capture, 70, 10, 20, 20, .PixSel)
+    pixSel.kind = .Rectangle
+    f.capture.selection.add(2)
+    evt = captmeTestState(ActionPixSel.SmartMove)
+    @assert(captmeTestActionUpdate'ActionPixSel(f.main, ActionPixSel.SmartMove, &evt))
+    @assert(!evt.disabled)
+    @assert(!evt.hidden)
+
+    evt = captmeTestState(ActionOptions.Options)
+    @assert(captmeTestActionUpdate'ActionOptions(f.main, ActionOptions.Options, &evt))
+    @assert(evt.name == "Options...")
+
+    evt = captmeTestState(ActionAbout.About)
+    @assert(captmeTestActionUpdate'ActionAbout(f.main, ActionAbout.About, &evt))
+    @assert(evt.name == "About...")
+
+    evt = captmeTestState(ActionQuickStyle.Reset)
+    @assert(captmeTestActionUpdate'ActionQuickStyle(f.main, ActionQuickStyle.Reset, &evt))
+    @assert(evt.name == "Restore Default Styles")
+
+    discard shape
+    f.shutdown()
+}
+
+// Library actions can be exercised against an empty headless library window:
+// sorting/filtering and command states do not require scanning the user's files.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    f.main.libWnd = Wnd.create'LibraryWnd(f.main, {0, 0, 500, 400})
+    f.main.libWnd.main = f.main
+    f.main.libWnd.view = Wnd.create'LibraryView(f.main.libWnd, {0, 0, 500, 400})
+    f.main.libWnd.view.libWnd = f.main.libWnd
+    f.main.libWnd.view.mainWnd = f.main
+    let libWnd = cast(*Wnd) f.main.libWnd
+
+    var evt = captmeTestState(ActionLibSort.Recent)
+    @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
+    @assert(evt.checked)
+
+    @assert(captmeTestActionExecuteWnd'ActionLibSort(libWnd, ActionLibSort.FileSize))
+    @assert(f.main.libWnd.sortMethod == .FileSize)
+
+    evt = captmeTestState(ActionLibSort.Invert)
+    @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    @assert(evt.name == "Smaller First")
+    @assert(!evt.disabled)
+
+    @assert(captmeTestActionExecuteWnd'ActionLibSort(libWnd, ActionLibSort.Invert))
+    @assert(f.main.libWnd.invertSort)
+
+    @assert(captmeTestActionExecuteWnd'ActionLibSort(libWnd, ActionLibSort.Similar))
+    evt = captmeTestState(ActionLibSort.Invert)
+    @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    @assert(evt.disabled)
+
+    evt = captmeTestState(ActionLibFilter.LinkedImage)
+    @assert(captmeTestActionUpdateWnd'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
+    @assert(evt.checked)
+    @assert(captmeTestActionExecuteWnd'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage))
+    @assert(!f.main.libWnd.showLinkedImage)
+
+    evt = captmeTestState(ActionLibSel.Right)
+    @assert(captmeTestActionUpdateWnd'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    @assert(evt.disabled)
+
+    f.main.libWnd.view.focusItem = 0
+    evt = captmeTestState(ActionLibSel.Right)
+    @assert(captmeTestActionUpdateWnd'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    @assert(!evt.disabled)
+
+    f.shutdown()
+}
+
 // Gizmo rotation math stays stable without painting.
 #test
 {

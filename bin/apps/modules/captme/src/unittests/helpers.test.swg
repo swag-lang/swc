@@ -52,6 +52,11 @@ func captmeTestCtx(main: *MainWnd, id: WndId)->ActionContext
     return {wnd: main, id: id}
 }
 
+func captmeTestWndCtx(wnd: *Wnd, id: WndId)->ActionContext
+{
+    return {wnd: wnd, id: id}
+}
+
 func captmeTestState(id: WndId)->CommandStateEvent
 {
     return {id: id}
@@ -88,6 +93,18 @@ func(T) captmeTestActionUpdate(main: *MainWnd, id: WndId, evt: *CommandStateEven
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.update(captmeTestCtx(main, id), evt)
+}
+
+func(T) captmeTestActionExecuteWnd(wnd: *Wnd, id: WndId)->bool
+{
+    let act = @mkinterface(null, #typeof(T), IActionUI)
+    return act.execute(captmeTestWndCtx(wnd, id))
+}
+
+func(T) captmeTestActionUpdateWnd(wnd: *Wnd, id: WndId, evt: *CommandStateEvent)->bool
+{
+    let act = @mkinterface(null, #typeof(T), IActionUI)
+    return act.update(captmeTestWndCtx(wnd, id), evt)
 }
 
 func captmeTestAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape

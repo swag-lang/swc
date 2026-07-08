@@ -113,6 +113,16 @@ impl GuiHeadlessHost
 
     mtd wndAt(pt: Math.Point)->#null *Wnd
     {
+        let surface = .app.getSurfaceAt(pt.x, pt.y)
+        if surface
+        {
+            var surfacePt = pt
+            surface.screenToSurface(&surfacePt)
+            if !surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.Zero do
+                return surface.wnd
+            return surface.wnd.getWndAt(surfacePt.x, surfacePt.y, true)
+        }
+
         return .root.getWndAt(pt.x, pt.y, true)
     }
 
@@ -226,6 +236,28 @@ impl GuiHeadlessHost
         .mouseUp(pt, button, modifiers)
     }
 
+    mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    {
+        Debug.assert(wnd != null)
+
+        var pt = wnd.getSurfaceRect().center()
+        wnd.surface.surfaceToScreen(&pt)
+        .click(pt, button, modifiers)
+    }
+
+    mtd clickModalButton(id: WndId)->bool
+    {
+        if .app.modalSurfaces.count == 0 do
+            return false
+
+        let wnd = .app.modalSurfaces.back().wnd.view.getChildById(id)
+        if !wnd do
+            return false
+
+        .clickWnd(wnd)
+        return true
+    }
+
     mtd doubleClick(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
     {
         .moveMouse(pt, modifiers)
@@ -256,7 +288,7 @@ impl GuiHeadlessHost
 
         var evt = MouseEvent{kind: .MouseWheel}
         evt.button = Input.MouseButton.Left
-        evt.surfacePos = pt
+        evt.surfacePos = target.screenToSurface(pt)
         evt.move.y = delta
         evt.modifiers = modifiers
         target.sendEvent(&evt)
@@ -338,7 +370,7 @@ impl GuiHeadlessHost
 
         var evt = MouseEvent{kind: kind}
         evt.button = button
-        evt.surfacePos = pt
+        evt.surfacePos = target.screenToSurface(pt)
         evt.move.x = pt.x - .mousePos.x
         evt.move.y = pt.y - .mousePos.y
         evt.modifiers = modifiers

@@ -84,12 +84,17 @@ using Swag, Core
 
     g_ResizeMode = 1
     var modalFrames: u32
-    f.gui.app.sigFrame += func|frames = &modalFrames|(app)
+    var didClick: bool
+    f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
     {
         dref frames += 1
         g_Width = 42
         g_Height = 27
-        app.exitModal(Dialog.BtnOk)
+        if !dref didClick
+        {
+            @assert(host.clickModalButton(Dialog.BtnOk))
+            dref didClick = true
+        }
     }
 
     @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.ExpandCapture))
@@ -97,6 +102,7 @@ using Swag, Core
 
     @assert(f.gui.app.surfaces.count == 0)
     @assert(modalFrames == 1)
+    @assert(didClick)
     @assert(f.capture.width == 42)
     @assert(f.capture.height == 27)
     @assert(f.capture.backImagePos.x == 0)

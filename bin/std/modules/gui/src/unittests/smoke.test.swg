@@ -81,7 +81,13 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host: GuiHeadlessHost
     host.setup(320, 200)
 
-    let surface = assume host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.Border)
+    let surface = assume host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
+    let button = PushButton.create(surface.getView(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
+    button.sigPressed += func(btn)
+    {
+        btn.getApp().exitModal(btn.id)
+    }
+
     @assert(surface.app == &host.app)
     @assert(surface.position.x == 20)
     @assert(surface.position.y == 30)
@@ -94,14 +100,20 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(host.app.getSurfaceAt(40, 50) == surface)
 
     var frameCount: u32
-    let result = host.app.doModalLoop(surface, func|frames = &frameCount|(app)
+    var didClick: bool
+    let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
     {
         dref frames += 1
-        app.exitModal(GuiHeadlessSmoke_ModalExit)
+        if !dref didClick
+        {
+            host.clickWnd(button)
+            dref didClick = true
+        }
     })
 
     @assert(result == GuiHeadlessSmoke_ModalExit)
     @assert(frameCount == 1)
+    @assert(didClick)
     host.pump()
     @assert(host.app.surfaces.count == 0)
 

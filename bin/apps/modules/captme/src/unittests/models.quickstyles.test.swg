@@ -260,6 +260,51 @@ using Swag, Core
     f.shutdown()
 }
 
+// Reset quick styles goes through the real confirmation dialog and rebuilds the
+// current style without leaving stale modal surfaces behind.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    let quick = QuickWnd.create(f.main, f.main)
+    f.main.quickWnd = quick
+    f.main.editMode = .Shape
+    quick.setDefault()
+
+    let extra = Memory.new'FormShape()
+    extra.IForm.setup(f.capture)
+    quick.qsShape.forms.add(cast(IForm) extra)
+    quick.updateQuickStyles(forceRebuild: true)
+    @assert(quick.qsShape.forms.count == 17)
+    @assert(quick.currentStyle == &quick.qsShape)
+
+    var modalFrames: u32
+    var didClick: bool
+    f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
+    {
+        dref frames += 1
+        if !dref didClick
+        {
+            @assert(host.clickModalButton(Dialog.BtnYes))
+            dref didClick = true
+        }
+    }
+
+    @assert(captmeTestActionExecute'ActionQuickStyle(f.main, ActionQuickStyle.Reset))
+    f.gui.pump()
+
+    @assert(didClick)
+    @assert(modalFrames == 1)
+    @assert(f.gui.app.surfaces.count == 0)
+    @assert(quick.currentStyle == &quick.qsShape)
+    @assert(quick.qsShape.forms.count == 16)
+
+    quick.destroy()
+    f.gui.pump()
+    f.shutdown()
+}
+
 // QuickStyle.sanitize and clear preserve known Captme forms and release them through the style owner.
 #test
 {

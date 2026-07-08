@@ -83,7 +83,7 @@ impl IPropertyNotify for PropHeadlessRoData
 // Properties.addStruct reflects a struct into one item per field (+ a section item).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -102,7 +102,7 @@ impl IPropertyNotify for PropHeadlessRoData
 // dock into its final parent.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(1240, 820)
 
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
@@ -142,7 +142,7 @@ impl IPropertyNotify for PropHeadlessRoData
 // highlight over the editable rows (clamped), Home/End jump to the ends.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -174,7 +174,7 @@ impl IPropertyNotify for PropHeadlessRoData
 // navigation mode (focus back on the grid).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -195,7 +195,7 @@ impl IPropertyNotify for PropHeadlessRoData
 // mode on the adjacent row.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -216,7 +216,7 @@ impl IPropertyNotify for PropHeadlessRoData
 // Tab commits the current edit and starts editing the next editable row.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -250,7 +250,7 @@ struct PropHeadlessArrayData
 // overlap the name label. This asserts every value child sits fully below its label.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(400, 600)
 
     var data: PropHeadlessArrayData
@@ -315,7 +315,7 @@ struct PropHeadlessColorData
 // popup. Clearing the popup restores scrolling.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 200)
 
     var data: PropHeadlessColorData
@@ -371,7 +371,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // the popup closes. A MouseLeave while the popup is open must still clear the button.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 200)
 
     var data: PropHeadlessColorData
@@ -398,7 +398,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // In navigation mode, Space toggles a bool row's checkbox in place.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData          // enabled = true
@@ -423,7 +423,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // model), a further Right keeps stepping, Down commits and moves to the next row.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 220)
 
     var data: PropHeadlessSliderData        // volume=50, level=5
@@ -458,7 +458,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // inner EditBox and selects its text so the value can be typed over right away.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 220)
 
     var data: PropHeadlessSliderData        // volume=50, level=5
@@ -485,7 +485,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // (reaching the combo, not intercepted) and write back to the data.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 200)
 
     var data: PropHeadlessEnumData          // choice = Mid (index 1)
@@ -533,7 +533,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // activated: Enter focuses the first inner editor, Down auto-commits to the next row.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     var data: PropHeadlessCustomData
@@ -560,7 +560,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // jump the selection to the first item).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     var data: PropHeadlessCustomData
@@ -577,7 +577,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // A named section becomes the first item and is registered.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -594,7 +594,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // PropertiesCtrl grid keeps deterministic line and editor heights.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(360, 180)
 
     var data: PropHeadlessData
@@ -626,7 +626,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 // used by the second page of gui4.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(1240, 820)
 
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
@@ -702,7 +702,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 // Edits applied through the grid write into every selected instance.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0, t1, t2: MultiTile
@@ -742,7 +742,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 // and editing it resolves the field on every instance.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0, t1: MultiTile
@@ -779,7 +779,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 // A single instance behaves exactly like the classic addStruct (no multi state).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0: MultiTile
@@ -816,7 +816,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 // the other components (which may legitimately differ) untouched.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 380)
 
     var t0, t1: MultiTile
@@ -857,7 +857,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 // test-mode build, so the flag rows would not be constructed here (they are in gui4).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 120)
     let prop = Properties.create(&host.root, {0, 0, 180, 100}, .List)
 
@@ -895,7 +895,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 // Dynamic strings are compared and propagated by content (they own a heap buffer).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0, t1: MultiTile
@@ -930,7 +930,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 // A color (struct via the built-in ColorEditor) reports mixed and propagates as a whole value.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0, t1: MultiTile
@@ -986,7 +986,7 @@ impl Gui.IPropertyNotify for ValData
 // Validation is computed from the bound struct on build and after each change.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 240)
 
     var data: ValData                                      // name empty -> error, count ok
@@ -1023,7 +1023,7 @@ impl Gui.IPropertyNotify for ValData
 // A validation set manually (no notify interface) is kept across refreshes.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 220)
 
     var data: PropHeadlessData                             // no IPropertyNotify
@@ -1051,7 +1051,7 @@ impl Gui.IPropertyNotify for ValData
 // ReadOnly attribute and the dynamic isItemReadOnly notify API, including toggling at runtime.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 360)
 
     g_PropRoDynamic = true
@@ -1090,7 +1090,7 @@ impl Gui.IPropertyNotify for ValData
 // index, including struct arrays whose element rows are interleaved with their field rows.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 520)
 
     var data: PropMoveData
@@ -1145,7 +1145,7 @@ impl Gui.IPropertyNotify for ValData
 // real CommandEvent — no hardcoded result-string switch.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 520)
 
     var data: PropMoveData
@@ -1253,7 +1253,7 @@ impl IPropertyEditor for PropAngleEditor
 // and its item.sigRefresh drives the displayed value.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessAngleData
@@ -1327,7 +1327,7 @@ impl IPropertyNotify for PropDefaultCustom
 // row (isModified + a visible revert button) and Properties.resetItemDefault restores the value.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropDefaultData
@@ -1386,7 +1386,7 @@ impl IPropertyNotify for PropDefaultCustom
 // disables it while the value is at its default and enables it once modified; execute() resets.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropDefaultData
@@ -1417,7 +1417,7 @@ impl IPropertyNotify for PropDefaultCustom
 // modified state (even though the value equals the default), and resetItemToDefault handles reset.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     g_PropDefResetCalls   = 0
@@ -1451,7 +1451,7 @@ impl IPropertyNotify for PropDefaultCustom
 // never resizes it. Mirrors the Godot/Unreal revert column.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(360, 320)
 
     var data: PropDefaultData
@@ -1502,7 +1502,7 @@ impl IPropertyNotify for PropDefaultCustom
 // right; this keeps it vertically centered in the thin row instead of overflowing from the top.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(360, 320)
 
     var data: PropDefaultData
@@ -1529,7 +1529,7 @@ impl IPropertyNotify for PropDefaultCustom
 // and reset writes the declared default into every instance.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0, t1: PropDefaultData
@@ -1558,7 +1558,7 @@ impl IPropertyNotify for PropDefaultCustom
 // the redo tail.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -1608,7 +1608,7 @@ impl IPropertyNotify for PropDefaultCustom
 // Undo/redo of a dynamic String field (copied by content, not by raw bytes).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 360)
 
     var data: MultiTile
@@ -1634,7 +1634,7 @@ impl IPropertyNotify for PropDefaultCustom
 // Undo/redo across a multi-selection edit restores every edited instance.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 360)
 
     var t0, t1: PropHeadlessData                 // both count = 42
@@ -1662,7 +1662,7 @@ impl IPropertyNotify for PropDefaultCustom
 // Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) drive undo/redo while the grid is in navigation mode.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 320)
 
     var data: PropHeadlessData
@@ -1708,7 +1708,7 @@ struct PropDecorData
 // and the Heading / Gap / HelpBox decorators inject header / spacer / note rows above the field.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(360, 480)
 
     var data: PropDecorData

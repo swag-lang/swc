@@ -5,7 +5,7 @@ using Swag, Core
 // Header columns are added with a name and width.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 80)
 
     let header = Header.create(&host.root, {10, 10, 300, 24})

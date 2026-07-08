@@ -1,14 +1,15 @@
 #global public
+#global namespace Testing
 using Swag, Core
 
 // One labelled edit box of a modal to fill before accepting it.
-struct GuiHeadlessAutoEdit
+struct AutoEdit
 {
     label:      String
     text:       String
 }
 
-enum GuiHeadlessAutoStageKind
+enum AutoStageKind
 {
     ModalButton         // fill the file browser/edits if any, then click a modal button
     PopupSubMenu        // open a submenu of the captured popup menu by label
@@ -16,17 +17,17 @@ enum GuiHeadlessAutoStageKind
 }
 
 // One step of the auto UI driver (see clickModalButtonWhenShown and friends).
-struct GuiHeadlessAutoStage
+struct AutoStage
 {
-    kind:       GuiHeadlessAutoStageKind = ModalButton
+    kind:       AutoStageKind = ModalButton
     folder:     String
     file:       String
     label:      String
-    edits:      Array'GuiHeadlessAutoEdit
+    edits:      Array'AutoEdit
     button:     WndId
 }
 
-struct GuiHeadlessHost
+struct HeadlessHost
 {
     app:                  Application
     surface:              Surface
@@ -45,11 +46,11 @@ struct GuiHeadlessHost
     autoHookInstalled:    bool
     autoFrames:           u32
     autoMaxFrames:        u32
-    autoStages:           Array'GuiHeadlessAutoStage
+    autoStages:           Array'AutoStage
     autoStage:            u32
 }
 
-impl GuiHeadlessHost
+impl HeadlessHost
 {
     mtd setup(width, height: f32)
     {
@@ -128,7 +129,7 @@ impl GuiHeadlessHost
         }
     }
 
-    private mtd runAutoStage(stage: *GuiHeadlessAutoStage)->bool
+    private mtd runAutoStage(stage: *AutoStage)->bool
     {
         switch stage.kind
         {
@@ -195,9 +196,9 @@ impl GuiHeadlessHost
         .autoArmed     = true
     }
 
-    private mtd addAutoStage(kind: GuiHeadlessAutoStageKind, button: WndId = null, folder, file, label: string = null)->*GuiHeadlessAutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: WndId = null, folder, file, label: string = null)->*AutoStage
     {
-        let stage = cast(*GuiHeadlessAutoStage) .autoStages.emplaceInitAddress()
+        let stage = cast(*AutoStage) .autoStages.emplaceInitAddress()
         stage.kind   = kind
         stage.button = button
         stage.folder = folder
@@ -275,7 +276,7 @@ impl GuiHeadlessHost
     {
         Debug.assert(.autoArmed and .autoStages.count > 0)
         let stage = .autoStages.buffer + .autoStages.count - 1
-        let edit  = cast(*GuiHeadlessAutoEdit) stage.edits.emplaceInitAddress()
+        let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
         edit.text  = text
     }

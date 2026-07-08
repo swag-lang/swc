@@ -3,7 +3,7 @@ using Swag, Core
 
 struct CaptmeHeadlessFixture
 {
-    gui:      GuiHeadlessHost
+    gui:      Testing.HeadlessHost
     main:     *MainWnd
     editView: *EditView
     capture:  *Capture
@@ -158,7 +158,7 @@ func captmeTestDeleteForm(itf: IForm)
 
 func captmeTestTempCapturePath()->String
 {
-    return guiTestTempFilePath("captme-", ".captme")
+    return Testing.tempFilePath("captme-", ".captme")
 }
 
 func captmeTestPrimeGizmo(form: IForm, z: f32 = 1)

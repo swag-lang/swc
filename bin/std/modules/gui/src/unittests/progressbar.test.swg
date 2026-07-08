@@ -5,7 +5,7 @@ using Swag, Core
 // setProgression saturates to the [0..1] range.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let bar = ProgressBar.create(&host.root, {20, 20, 200, 20})

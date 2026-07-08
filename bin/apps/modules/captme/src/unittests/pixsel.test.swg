@@ -20,21 +20,21 @@ using Swag, Core
 
     f.main.pixSelFillCol = ColorRed
     f.main.sendCommandEvent(ActionPixSel.Fill)
-    let filledBytes = guiTestCountNonZeroBytes(f.capture.backImg)
+    let filledBytes = Testing.countNonZeroBytes(f.capture.backImg)
     @assert(filledBytes > 0)
     @assert(f.capture.canUndo())
 
     f.capture.undo()
-    @assert(guiTestCountNonZeroBytes(f.capture.backImg) == 0)
+    @assert(Testing.countNonZeroBytes(f.capture.backImg) == 0)
 
     f.capture.redo()
-    @assert(guiTestCountNonZeroBytes(f.capture.backImg) == filledBytes)
+    @assert(Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
 
     f.main.sendCommandEvent(ActionPixSel.Clear)
-    @assert(guiTestCountNonZeroBytes(f.capture.backImg) == 0)
+    @assert(Testing.countNonZeroBytes(f.capture.backImg) == 0)
 
     f.capture.undo()
-    @assert(guiTestCountNonZeroBytes(f.capture.backImg) == filledBytes)
+    @assert(Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
 
     f.shutdown()
 }
@@ -84,7 +84,7 @@ using Swag, Core
 
     f.capture.width = 24
     f.capture.height = 24
-    f.capture.backImg = guiTestIndexedImage(24, 24)
+    f.capture.backImg = Testing.indexedImage(24, 24)
 
     let before = f.capture.backImg.getPixelColor(12, 12)
     let pixSel = captmeTestAddShape(f.capture, 6, 6, 12, 12, .PixSel)

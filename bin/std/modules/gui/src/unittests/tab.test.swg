@@ -13,7 +13,7 @@ func tabHeadlessSelChanged(tab: *Tab)
 // Adding tabs and selecting one updates the index and fires sigSelChanged.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
     TabHeadlessSelChangedCount = 0
 
@@ -41,7 +41,7 @@ func tabHeadlessSelChanged(tab: *Tab)
 // Tab views are shown/hidden according to the selection.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let tab     = Tab.create(&host.root, {10, 10, 300, 180})

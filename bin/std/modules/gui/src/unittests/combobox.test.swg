@@ -19,7 +19,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 // Selecting an item emits sigChanged + a command carrying the item id.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
     host.recordCommands()
     ComboHeadlessChangedCount = 0
@@ -63,7 +63,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 // clear() empties the item list.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
@@ -80,7 +80,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 // An edit combo embeds an editbox that mirrors the selected item text.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26}, null, ComboBoxKind.Edit)
@@ -99,7 +99,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 // separators); Home/End jump to the first/last item.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
     ComboHeadlessChangedCount = 0
 
@@ -140,7 +140,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 // Enter opens the drop-down popup, Escape closes it.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 200)
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})

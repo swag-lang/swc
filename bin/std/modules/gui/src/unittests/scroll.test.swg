@@ -11,7 +11,7 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point) { discard s; discard o;
 // Scroll position is clamped to [0 .. scrollSize - visibleSize].
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 260)
     ScrollHeadlessPosCount  = 0
     ScrollHeadlessSizeCount = 0
@@ -44,7 +44,7 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point) { discard s; discard o;
 // Content smaller than the view cannot be scrolled.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 260)
 
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})

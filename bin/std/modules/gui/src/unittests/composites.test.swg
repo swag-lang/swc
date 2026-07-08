@@ -13,7 +13,7 @@ func compositeSliderChanged(s: *SliderCtrl)
 // EditCtrl pairs a label with an editbox.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 60)
 
     let ctrl = EditCtrl.create(&host.root, "Name", "Bob", {0, 0, 240, 26})
@@ -30,7 +30,7 @@ func compositeSliderChanged(s: *SliderCtrl)
 // Headless modal helpers can fill an EditCtrl by label before validating.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let dlg = Dialog.createDialog(&host.surface, 260, 150, title: "Edit")
@@ -61,7 +61,7 @@ func compositeSliderChanged(s: *SliderCtrl)
 // SliderCtrl drives an embedded slider and mirrors the value into its editbox.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 60)
     CompositeSliderChangedCount = 0
 
@@ -80,7 +80,7 @@ func compositeSliderChanged(s: *SliderCtrl)
 // SliderCtrl integer range formats the value box without decimals.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 60)
 
     let ctrl = SliderCtrl.create(&host.root, "N", {0, 0, 300, 30})
@@ -96,7 +96,7 @@ func compositeSliderChanged(s: *SliderCtrl)
 // ComboCtrl pairs a label with a combobox.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 60)
 
     let ctrl = ComboCtrl.create(&host.root, "Mode", {0, 0, 240, 26})

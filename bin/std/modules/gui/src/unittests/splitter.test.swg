@@ -5,7 +5,7 @@ using Swag, Core
 // Panes are parented, counted, and fill the client area (panes + bars).
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 220)
 
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
@@ -32,7 +32,7 @@ using Swag, Core
 // A pane can be hidden and shown again, updating the visible-pane count.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 220)
 
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
@@ -57,7 +57,7 @@ using Swag, Core
 // setPaneSize clamps to the pane minimum size.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 220)
 
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})

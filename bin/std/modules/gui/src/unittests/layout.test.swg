@@ -5,7 +5,7 @@ using Swag, Core
 // StackLayoutCtrl Top stacks children vertically with spacing.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(220, 320)
 
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 300})
@@ -27,7 +27,7 @@ using Swag, Core
 // StackLayoutCtrl Left stacks children horizontally with spacing.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 120)
 
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 300, 100})
@@ -49,7 +49,7 @@ using Swag, Core
 // StackLayoutCtrl HorzCenter centers children horizontally as a group.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(220, 120)
 
     let stack = StackLayoutCtrl.create(&host.root, .HorzCenter, {0, 0, 200, 100})
@@ -70,7 +70,7 @@ using Swag, Core
 // StackLayoutCtrl VertCenter centers children vertically as a group.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 220)
 
     let stack = StackLayoutCtrl.create(&host.root, .VertCenter, {0, 0, 100, 200})
@@ -91,7 +91,7 @@ using Swag, Core
 // StackLayoutCtrl distributes remaining space only to expandable children.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(220, 240)
 
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
@@ -113,7 +113,7 @@ using Swag, Core
 // StackLayoutCtrl honors minSize when available space is too small.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 120)
 
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 100, 50})
@@ -131,7 +131,7 @@ using Swag, Core
 // StackLayoutCtrl propagates layout to arranged children.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(160, 160)
 
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 120, 120})
@@ -155,7 +155,7 @@ using Swag, Core
 // WrapLayoutCtrl flows fixed-size items left to right, wrapping to new rows.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(180, 200)
 
     let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 150, 200})
@@ -178,7 +178,7 @@ using Swag, Core
 // GridLayoutCtrl supports content and fractional tracks.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(340, 120)
 
     let grid = GridLayoutCtrl.create(&host.root, 3, 1, {0, 0, 300, 80})
@@ -206,7 +206,7 @@ using Swag, Core
 // GridLayoutCtrl places children in fixed columns/rows with spacing.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 120)
 
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
@@ -236,7 +236,7 @@ using Swag, Core
 // GridLayoutCtrl supports cells spanning multiple columns.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(260, 120)
 
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})

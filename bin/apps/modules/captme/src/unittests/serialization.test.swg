@@ -118,7 +118,7 @@ using Swag, Core
     let lImage = cast(*FormImage) @dataof(loaded.forms[7])
     @assert(lImage.kind == .Image)
     @assert(lImage.place == .Free)
-    guiTestAssertRect(lImage.freePos, 2, 3, 8, 9)
+    Testing.assertRect(lImage.freePos, 2, 3, 8, 9)
     @assert(lImage.image.isValid())
     @assert(lImage.image.width == 4)
     @assert(lImage.image.height == 3)

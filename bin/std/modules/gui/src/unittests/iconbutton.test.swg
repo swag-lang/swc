@@ -19,7 +19,7 @@ func iconButtonHeadlessReset()
 // A plain icon button posts a command and fires sigPressed on click.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 120)
     host.recordCommands()
     iconButtonHeadlessReset()
@@ -37,7 +37,7 @@ func iconButtonHeadlessReset()
 // A CheckableToggle button flips its checked state on every click.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 120)
     host.recordCommands()
     iconButtonHeadlessReset()
@@ -60,7 +60,7 @@ func iconButtonHeadlessReset()
 // A Checkable button can only be set, never unset, by clicking.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 120)
     host.recordCommands()
     iconButtonHeadlessReset()
@@ -83,7 +83,7 @@ func iconButtonHeadlessReset()
 // Hiding a button resets both its pointer state and its animated overlay state.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 120)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
@@ -103,7 +103,7 @@ func iconButtonHeadlessReset()
 // Disabling a button keeps it in the layout, but still drops transient input/paint state.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(120, 120)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})

@@ -5,7 +5,7 @@ using Swag, Core
 // A label stores and returns its text, and is hit-testable.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let label = Label.create(&host.root, "Hello", {20, 20, 200, 20})

@@ -20,7 +20,7 @@ func sliderHeadlessReset()
 // setValue/getValue map through the [min..max] range and clamp.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 80)
     sliderHeadlessReset()
 
@@ -49,7 +49,7 @@ func sliderHeadlessReset()
 // Steps snap the value to the nearest multiple.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 80)
     sliderHeadlessReset()
 
@@ -68,7 +68,7 @@ func sliderHeadlessReset()
 // A mouse press jumps the value to the click position and dragging updates it.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 80)
     sliderHeadlessReset()
 
@@ -100,7 +100,7 @@ func sliderHeadlessReset()
 // A range slider keeps two ordered values.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 80)
     sliderHeadlessReset()
 
@@ -118,7 +118,7 @@ func sliderHeadlessReset()
 // Keyboard control: arrows step the value, Home/End jump to the bounds.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 80)
     sliderHeadlessReset()
 
@@ -152,7 +152,7 @@ func sliderHeadlessReset()
 // Keyboard stepping snaps to integer steps when configured.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(280, 80)
     sliderHeadlessReset()
 

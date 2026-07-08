@@ -7,10 +7,10 @@ using Swag, Core
 // action must accept its own ids and reject those of every other action.
 #test
 {
-    @assert(guiTestActionAccept'ActionSelection(null, ActionSelection.SelectAll))
-    @assert(guiTestActionAccept'ActionSelection(null, ActionSelection.Freeze))
-    @assert(!guiTestActionAccept'ActionSelection(null, ActionCapture.Area))
-    @assert(!guiTestActionAccept'ActionSelection(null, ActionZoom.ZoomFit))
+    @assert(Testing.actionAccept'ActionSelection(null, ActionSelection.SelectAll))
+    @assert(Testing.actionAccept'ActionSelection(null, ActionSelection.Freeze))
+    @assert(!Testing.actionAccept'ActionSelection(null, ActionCapture.Area))
+    @assert(!Testing.actionAccept'ActionSelection(null, ActionZoom.ZoomFit))
 }
 
 // The headless fixture can register safe commands and drive them through the
@@ -86,13 +86,13 @@ using Swag, Core
     f.main.sendCommandEvent(ActionToolMode.Selection)
     @assert(f.main.editMode == .Selection)
 
-    var evt = guiTestCommandState(ActionToolMode.Selection)
-    @assert(guiTestActionUpdate'ActionToolMode(f.main, ActionToolMode.Selection, &evt))
+    var evt = Testing.commandState(ActionToolMode.Selection)
+    @assert(Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Selection, &evt))
     @assert(evt.setFlags.has(CommandStateEvent.SetFlags.Checked))
     @assert(evt.checked)
 
-    evt = guiTestCommandState(ActionToolMode.Text)
-    @assert(guiTestActionUpdate'ActionToolMode(f.main, ActionToolMode.Text, &evt))
+    evt = Testing.commandState(ActionToolMode.Text)
+    @assert(Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Text, &evt))
     @assert(!evt.checked)
 
     f.shutdown()
@@ -106,12 +106,12 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionCaptureDelay.Delay5)
     @assert(f.main.captureOptions.delay == 5)
-    var delayEvt = guiTestCommandState(ActionCaptureDelay.Delay)
-    @assert(guiTestActionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
+    var delayEvt = Testing.commandState(ActionCaptureDelay.Delay)
+    @assert(Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
     @assert(delayEvt.name == "Delay Before Capture (5 seconds)")
 
-    delayEvt = guiTestCommandState(ActionCaptureDelay.Delay5)
-    @assert(guiTestActionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay5, &delayEvt))
+    delayEvt = Testing.commandState(ActionCaptureDelay.Delay5)
+    @assert(Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay5, &delayEvt))
     @assert(delayEvt.checked)
     @assert(delayEvt.renderingHint.has(CommandStateEvent.RenderingHint.ExclusiveGroup))
 
@@ -123,32 +123,32 @@ using Swag, Core
     @assert(f.main.captureOptions.delay == 2)
     f.main.sendCommandEvent(ActionCaptureDelay.Delay9)
     @assert(f.main.captureOptions.delay == 9)
-    delayEvt = guiTestCommandState(ActionCaptureDelay.Delay9)
-    @assert(guiTestActionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay9, &delayEvt))
+    delayEvt = Testing.commandState(ActionCaptureDelay.Delay9)
+    @assert(Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay9, &delayEvt))
     @assert(delayEvt.checked)
 
     let hideEditor = f.main.captureOptions.hideEditorBefore
-    @assert(guiTestActionExecute'ActionCapture(f.main, ActionCapture.HideEditor))
+    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.HideEditor))
     @assert(f.main.captureOptions.hideEditorBefore != hideEditor)
 
     let captureCursor = f.main.captureOptions.captureCursor
-    @assert(guiTestActionExecute'ActionCapture(f.main, ActionCapture.CaptureCursor))
+    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.CaptureCursor))
     @assert(f.main.captureOptions.captureCursor != captureCursor)
 
     let toInPlace = f.main.captureOptions.inPlaceEdit
-    @assert(guiTestActionExecute'ActionCapture(f.main, ActionCapture.ToInPlace))
+    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToInPlace))
     @assert(f.main.captureOptions.inPlaceEdit != toInPlace)
 
     let toEditor = f.main.captureOptions.sendToEditor
-    @assert(guiTestActionExecute'ActionCapture(f.main, ActionCapture.ToEditor))
+    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToEditor))
     @assert(f.main.captureOptions.sendToEditor != toEditor)
 
     let toClipboard = f.main.captureOptions.sendToClipboard
-    @assert(guiTestActionExecute'ActionCapture(f.main, ActionCapture.ToClipboard))
+    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToClipboard))
     @assert(f.main.captureOptions.sendToClipboard != toClipboard)
 
-    var capEvt = guiTestCommandState(ActionCapture.ToClipboard)
-    @assert(guiTestActionUpdate'ActionCapture(f.main, ActionCapture.ToClipboard, &capEvt))
+    var capEvt = Testing.commandState(ActionCapture.ToClipboard)
+    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ToClipboard, &capEvt))
     @assert(capEvt.setFlags.has(CommandStateEvent.SetFlags.Checked))
     @assert(capEvt.checked == f.main.captureOptions.sendToClipboard)
 
@@ -156,8 +156,8 @@ using Swag, Core
     f.main.sendCommandEvent(ActionView.Clip)
     @assert(f.main.editorOptions.clipToSelection != clip)
 
-    var clipEvt = guiTestCommandState(ActionView.Clip)
-    @assert(guiTestActionUpdate'ActionView(f.main, ActionView.Clip, &clipEvt))
+    var clipEvt = Testing.commandState(ActionView.Clip)
+    @assert(Testing.actionUpdate'ActionView(f.main, ActionView.Clip, &clipEvt))
     @assert(clipEvt.checked == f.main.editorOptions.clipToSelection)
 
     f.shutdown()
@@ -186,15 +186,15 @@ using Swag, Core
     f.editView.setZoom(EditView.MaxZoom + 5)
     @assert(Math.abs(f.editView.zoom - EditView.MaxZoom) < 0.001)
     @assert(!f.editView.canZoomIn())
-    var evt = guiTestCommandState(ActionZoom.ZoomIn)
-    @assert(guiTestActionUpdate'ActionZoom(f.main, ActionZoom.ZoomIn, &evt))
+    var evt = Testing.commandState(ActionZoom.ZoomIn)
+    @assert(Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomIn, &evt))
     @assert(evt.disabled)
 
     f.editView.setZoom(EditView.MinZoom - 5)
     @assert(Math.abs(f.editView.zoom - EditView.MinZoom) < 0.001)
     @assert(!f.editView.canZoomOut())
-    evt = guiTestCommandState(ActionZoom.ZoomOut)
-    @assert(guiTestActionUpdate'ActionZoom(f.main, ActionZoom.ZoomOut, &evt))
+    evt = Testing.commandState(ActionZoom.ZoomOut)
+    @assert(Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomOut, &evt))
     @assert(evt.disabled)
 
     f.shutdown()
@@ -211,24 +211,24 @@ using Swag, Core
     let pixSel = captmeTestAddShape(f.capture, 80, 0, 20, 20, .PixSel)
     pixSel.kind = .Rectangle
 
-    var undoEvt = guiTestCommandState(ActionUndo.DoUndo)
-    @assert(guiTestActionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &undoEvt))
+    var undoEvt = Testing.commandState(ActionUndo.DoUndo)
+    @assert(Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &undoEvt))
     @assert(undoEvt.disabled)
 
-    var evt = guiTestCommandState(ActionEdit.EditText)
-    @assert(guiTestActionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
+    var evt = Testing.commandState(ActionEdit.EditText)
+    @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
     @assert(evt.disabled)
     @assert(evt.hidden)
 
     f.capture.selection.add(0)
-    evt = guiTestCommandState(ActionEdit.EditText)
-    @assert(guiTestActionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
+    evt = Testing.commandState(ActionEdit.EditText)
+    @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
     @assert(!evt.disabled)
     @assert(!evt.hidden)
 
     text.rotate = 25
-    evt = guiTestCommandState(ActionEdit.ResetRotation)
-    @assert(guiTestActionUpdate'ActionEdit(f.main, ActionEdit.ResetRotation, &evt))
+    evt = Testing.commandState(ActionEdit.ResetRotation)
+    @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ResetRotation, &evt))
     @assert(!evt.disabled)
     @assert(!evt.hidden)
     f.main.sendCommandEvent(ActionEdit.ResetRotation)
@@ -236,47 +236,47 @@ using Swag, Core
 
     f.capture.selection.clear()
     f.capture.selection.add(1)
-    evt = guiTestCommandState(ActionEdit.ClearImageInside)
-    @assert(guiTestActionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
+    evt = Testing.commandState(ActionEdit.ClearImageInside)
+    @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
     @assert(!evt.hidden)
     @assert(evt.disabled)
 
     image.image = Image.create(2, 2, .BGRA8)
-    evt = guiTestCommandState(ActionEdit.ClearImageInside)
-    @assert(guiTestActionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
+    evt = Testing.commandState(ActionEdit.ClearImageInside)
+    @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionEdit.ClearImageInside)
     @assert(!image.image.isValid())
 
     f.capture.selection.clear()
-    evt = guiTestCommandState(ActionPixSel.Fill)
-    @assert(guiTestActionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
+    evt = Testing.commandState(ActionPixSel.Fill)
+    @assert(Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
     @assert(evt.disabled)
     @assert(evt.hidden)
 
     f.capture.selection.add(2)
-    evt = guiTestCommandState(ActionPixSel.Fill)
-    @assert(guiTestActionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
+    evt = Testing.commandState(ActionPixSel.Fill)
+    @assert(Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
     @assert(!evt.disabled)
     @assert(!evt.hidden)
 
     let undo = f.capture.newUndo(.OffsetSelection)
     undo.newPosX = 1
     f.capture.pushUndo(undo)
-    evt = guiTestCommandState(ActionUndo.DoUndo)
-    @assert(guiTestActionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &evt))
+    evt = Testing.commandState(ActionUndo.DoUndo)
+    @assert(Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionUndo.DoUndo)
-    evt = guiTestCommandState(ActionUndo.DoRedo)
-    @assert(guiTestActionUpdate'ActionUndo(f.main, ActionUndo.DoRedo, &evt))
+    evt = Testing.commandState(ActionUndo.DoRedo)
+    @assert(Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoRedo, &evt))
     @assert(!evt.disabled)
 
-    evt = guiTestCommandState(ActionImage.RestoreOrg)
-    @assert(guiTestActionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
+    evt = Testing.commandState(ActionImage.RestoreOrg)
+    @assert(Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(evt.disabled)
     f.capture.backImgOriginal = Image.create(5, 5, .BGRA8)
-    evt = guiTestCommandState(ActionImage.RestoreOrg)
-    @assert(guiTestActionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
+    evt = Testing.commandState(ActionImage.RestoreOrg)
+    @assert(Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(!evt.disabled)
 
     f.shutdown()
@@ -291,14 +291,14 @@ using Swag, Core
     let a = captmeTestAddShape(f.capture, 10, 10, 10, 10)
     let b = captmeTestAddShape(f.capture, 50, 40, 20, 20)
 
-    var evt = guiTestCommandState(ActionMoveSel.Right1)
-    @assert(guiTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
+    var evt = Testing.commandState(ActionMoveSel.Right1)
+    @assert(Testing.actionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
     @assert(evt.disabled)
 
     f.capture.selection.add(0)
     f.capture.selection.add(1)
-    evt = guiTestCommandState(ActionMoveSel.Right1)
-    @assert(guiTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
+    evt = Testing.commandState(ActionMoveSel.Right1)
+    @assert(Testing.actionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
     @assert(!evt.disabled)
 
     f.main.sendCommandEvent(ActionMoveSel.Left1)
@@ -334,8 +334,8 @@ using Swag, Core
     @assert(a.y == 10)
     @assert(b.y == 40)
 
-    evt = guiTestCommandState(ActionAlign.AlignLeft)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignLeft, &evt))
+    evt = Testing.commandState(ActionAlign.AlignLeft)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignLeft, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignLeft)
     @assert(a.x == 10)
@@ -344,8 +344,8 @@ using Swag, Core
     @assert(a.x == 10)
     @assert(b.x == 50)
 
-    evt = guiTestCommandState(ActionAlign.AlignRight)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignRight, &evt))
+    evt = Testing.commandState(ActionAlign.AlignRight)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignRight, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignRight)
     @assert(a.x == 60)
@@ -354,8 +354,8 @@ using Swag, Core
     @assert(a.x == 10)
     @assert(b.x == 50)
 
-    evt = guiTestCommandState(ActionAlign.AlignCenter)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignCenter, &evt))
+    evt = Testing.commandState(ActionAlign.AlignCenter)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignCenter, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignCenter)
     @assert(a.x == 35)
@@ -364,8 +364,8 @@ using Swag, Core
     @assert(a.x == 10)
     @assert(b.x == 50)
 
-    evt = guiTestCommandState(ActionAlign.AlignTop)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
+    evt = Testing.commandState(ActionAlign.AlignTop)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignTop)
     @assert(a.y == 10)
@@ -375,8 +375,8 @@ using Swag, Core
     @assert(a.y == 10)
     @assert(b.y == 40)
 
-    evt = guiTestCommandState(ActionAlign.AlignBottom)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignBottom, &evt))
+    evt = Testing.commandState(ActionAlign.AlignBottom)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignBottom, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignBottom)
     @assert(a.y == 50)
@@ -385,8 +385,8 @@ using Swag, Core
     @assert(a.y == 10)
     @assert(b.y == 40)
 
-    evt = guiTestCommandState(ActionAlign.AlignMiddle)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignMiddle, &evt))
+    evt = Testing.commandState(ActionAlign.AlignMiddle)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignMiddle, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignMiddle)
     @assert(a.y == 30)
@@ -397,8 +397,8 @@ using Swag, Core
 
     f.capture.selection.clear()
     f.capture.selection.add(1)
-    evt = guiTestCommandState(ActionAlign.AlignTop)
-    @assert(guiTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
+    evt = Testing.commandState(ActionAlign.AlignTop)
+    @assert(Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
     @assert(evt.disabled)
 
     f.shutdown()
@@ -460,36 +460,36 @@ using Swag, Core
     var f: CaptmeHeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    var evt = guiTestCommandState(ActionFile.SaveAsImage)
-    @assert(guiTestActionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
+    var evt = Testing.commandState(ActionFile.SaveAsImage)
+    @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
     @assert(!evt.disabled)
 
-    evt = guiTestCommandState(ActionFile.UnlinkImage)
-    @assert(guiTestActionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
+    evt = Testing.commandState(ActionFile.UnlinkImage)
+    @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
     @assert(evt.disabled)
 
     f.capture.linkedImage = "linked.png"
-    evt = guiTestCommandState(ActionFile.UnlinkImage)
-    @assert(guiTestActionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
+    evt = Testing.commandState(ActionFile.UnlinkImage)
+    @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
     @assert(!evt.disabled)
 
-    evt = guiTestCommandState(ActionFile.LinkedFileLocation)
-    @assert(guiTestActionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &evt))
+    evt = Testing.commandState(ActionFile.LinkedFileLocation)
+    @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &evt))
     @assert(!evt.disabled)
 
-    evt = guiTestCommandState(ActionCopyPaste.Copy)
-    @assert(guiTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
+    evt = Testing.commandState(ActionCopyPaste.Copy)
+    @assert(Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
     @assert(evt.disabled)
 
     let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle
     f.capture.selection.add(0)
-    evt = guiTestCommandState(ActionCopyPaste.Copy)
-    @assert(guiTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
+    evt = Testing.commandState(ActionCopyPaste.Copy)
+    @assert(Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
     @assert(!evt.disabled)
 
-    evt = guiTestCommandState(ActionFlatten.Flatten)
-    @assert(guiTestActionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
+    evt = Testing.commandState(ActionFlatten.Flatten)
+    @assert(Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionFlatten.Flatten)
     @assert(f.capture.forms.count == 0)
@@ -499,12 +499,12 @@ using Swag, Core
     @assert(f.capture.forms.count == 1)
 
     f.capture.selection.clear()
-    evt = guiTestCommandState(ActionFlatten.Flatten)
-    @assert(guiTestActionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
+    evt = Testing.commandState(ActionFlatten.Flatten)
+    @assert(Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
     @assert(evt.disabled)
 
-    evt = guiTestCommandState(ActionFlatten.FlattenAll)
-    @assert(guiTestActionUpdate'ActionFlatten(f.main, ActionFlatten.FlattenAll, &evt))
+    evt = Testing.commandState(ActionFlatten.FlattenAll)
+    @assert(Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.FlattenAll, &evt))
     @assert(!evt.disabled)
 
     f.capture.selection.add(0)
@@ -512,29 +512,29 @@ using Swag, Core
     image.kind = .Image
     f.capture.selection.clear()
     f.capture.selection.add(1)
-    evt = guiTestCommandState(ActionCopyPaste.PasteImageInside)
-    @assert(guiTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.PasteImageInside, &evt))
+    evt = Testing.commandState(ActionCopyPaste.PasteImageInside)
+    @assert(Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.PasteImageInside, &evt))
     @assert(!evt.hidden)
 
     f.capture.selection.clear()
     let pixSel = captmeTestAddShape(f.capture, 70, 10, 20, 20, .PixSel)
     pixSel.kind = .Rectangle
     f.capture.selection.add(2)
-    evt = guiTestCommandState(ActionPixSel.SmartMove)
-    @assert(guiTestActionUpdate'ActionPixSel(f.main, ActionPixSel.SmartMove, &evt))
+    evt = Testing.commandState(ActionPixSel.SmartMove)
+    @assert(Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.SmartMove, &evt))
     @assert(!evt.disabled)
     @assert(!evt.hidden)
 
-    evt = guiTestCommandState(ActionOptions.Options)
-    @assert(guiTestActionUpdate'ActionOptions(f.main, ActionOptions.Options, &evt))
+    evt = Testing.commandState(ActionOptions.Options)
+    @assert(Testing.actionUpdate'ActionOptions(f.main, ActionOptions.Options, &evt))
     @assert(evt.name == "Options...")
 
-    evt = guiTestCommandState(ActionAbout.About)
-    @assert(guiTestActionUpdate'ActionAbout(f.main, ActionAbout.About, &evt))
+    evt = Testing.commandState(ActionAbout.About)
+    @assert(Testing.actionUpdate'ActionAbout(f.main, ActionAbout.About, &evt))
     @assert(evt.name == "About...")
 
-    evt = guiTestCommandState(ActionQuickStyle.Reset)
-    @assert(guiTestActionUpdate'ActionQuickStyle(f.main, ActionQuickStyle.Reset, &evt))
+    evt = Testing.commandState(ActionQuickStyle.Reset)
+    @assert(Testing.actionUpdate'ActionQuickStyle(f.main, ActionQuickStyle.Reset, &evt))
     @assert(evt.name == "Restore Default Styles")
 
     discard shape

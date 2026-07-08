@@ -47,12 +47,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 32
     f.capture.height = 20
-    f.capture.backImg = guiTestIndexedImage(32, 20)
+    f.capture.backImg = Testing.indexedImage(32, 20)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let pngPath = guiTestTempFilePath("captme-", ".png")
+    let pngPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(pngPath) }
 
     f.main.doSaveAsImage(pngPath)
@@ -80,12 +80,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 34
     f.capture.height = 22
-    f.capture.backImg = guiTestIndexedImage(34, 22)
+    f.capture.backImg = Testing.indexedImage(34, 22)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let pngPath = guiTestTempFilePath("captme-", ".png")
+    let pngPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(pngPath) }
 
     f.gui.acceptModalFileDialog(pngPath)
@@ -116,12 +116,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 40
     f.capture.height = 30
-    f.capture.backImg = guiTestIndexedImage(40, 30)
+    f.capture.backImg = Testing.indexedImage(40, 30)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let pngPath = guiTestTempFilePath("captme-", ".png")
+    let pngPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(pngPath) }
 
     var oldImage = Image.create(3, 2, .BGRA8)
@@ -157,12 +157,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 28
     f.capture.height = 18
-    f.capture.backImg = guiTestIndexedImage(28, 18)
+    f.capture.backImg = Testing.indexedImage(28, 18)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = guiTestTempFilePath("captme-", ".png")
+    let linkedPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.main.doSaveAsImage(linkedPath, linked: true)
@@ -191,12 +191,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 36
     f.capture.height = 24
-    f.capture.backImg = guiTestIndexedImage(36, 24)
+    f.capture.backImg = Testing.indexedImage(36, 24)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = guiTestTempFilePath("captme-", ".png")
+    let linkedPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.gui.acceptModalFileDialog(linkedPath)
@@ -230,12 +230,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 26
     f.capture.height = 16
-    f.capture.backImg = guiTestIndexedImage(26, 16)
+    f.capture.backImg = Testing.indexedImage(26, 16)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = guiTestTempFilePath("captme-", ".png")
+    let linkedPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.capture.linkedImage = linkedPath
@@ -274,12 +274,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 38
     f.capture.height = 26
-    f.capture.backImg = guiTestIndexedImage(38, 26)
+    f.capture.backImg = Testing.indexedImage(38, 26)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = guiTestTempFilePath("captme-", ".png")
+    let linkedPath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.capture.linkedImage = linkedPath
@@ -323,12 +323,12 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 
     f.capture.width = 24
     f.capture.height = 18
-    f.capture.backImg = guiTestIndexedImage(24, 18)
+    f.capture.backImg = Testing.indexedImage(24, 18)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = guiTestTempFilePath("captme-", ".png")
+    let linkedPath = Testing.tempFilePath("captme-", ".png")
     f.capture.linkedImage = linkedPath
     f.capture.linkedUpToDate = true
     f.capture.changed = true

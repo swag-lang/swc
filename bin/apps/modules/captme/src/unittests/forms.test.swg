@@ -59,16 +59,16 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 
     let shape = captmeTestAddShape(f.capture, 10, 20, 30, 40)
     shape.IForm.setBaseForm(80, 90, -20, -30)
-    guiTestAssertRect(shape.IForm.boundRect(), 60, 60, 20, 30)
+    Testing.assertRect(shape.IForm.boundRect(), 60, 60, 20, 30)
 
     shape.IForm.moveBaseForm(5, -7, 3, 4)
-    guiTestAssertRect(shape.IForm.boundRect(), 65, 53, 23, 34)
+    Testing.assertRect(shape.IForm.boundRect(), 65, 53, 23, 34)
 
     shape.IForm.moveForm(-2, 3)
-    guiTestAssertRect(shape.IForm.boundRect(), 63, 56, 23, 34)
+    Testing.assertRect(shape.IForm.boundRect(), 63, 56, 23, 34)
 
     shape.IForm.scaleBaseForm(2)
-    guiTestAssertRect(shape.IForm.boundRect(), 126, 112, 46, 68)
+    Testing.assertRect(shape.IForm.boundRect(), 126, 112, 46, 68)
 
     shape.kind = .Ellipse
     @assert(shape.IForm.isInside({149, 146}))
@@ -126,7 +126,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     @assert(image.kind == .Image and image.place == .Free and image.editInside)
     @assert(!image.IForm.canRotate())
     image.IForm.moveBaseForm(7, 8, 9, 10)
-    guiTestAssertRect(image.freePos, 10, 12, 19, 30)
+    Testing.assertRect(image.freePos, 10, 12, 19, 30)
 
     let step = captmeTestAddStep(f.capture, 0, 0, 10, 10)
     step.ws = 30
@@ -134,7 +134,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     f.capture.nextStepIndex = 7
     var evt = captmeTestMouse(.MouseMove)
     @assert(!step.IForm.edit(&evt, {100, 90}, {120, 110}, 1))
-    guiTestAssertRect(step.IForm.boundRect(), 85, 70, 30, 40)
+    Testing.assertRect(step.IForm.boundRect(), 85, 70, 30, 40)
     @assert(step.index == 7)
     @assert(f.capture.nextStepIndex == 8)
     @assert(step.isDirty)
@@ -149,7 +149,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     f.setup()
 
     let line = captmeTestAddLine(f.capture, 10, 60, 40, 20)
-    guiTestAssertRect(line.IForm.boundRect(), 10, 20, 30, 40)
+    Testing.assertRect(line.IForm.boundRect(), 10, 20, 30, 40)
 
     line.IForm.movePoint(0, 5, -10)
     @assert(line.xa == 15)
@@ -187,16 +187,16 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     polyPoints.add({60, 10})
     polyPoints.add({40, 50})
     let polygon = captmeTestAddPolygon(f.capture, polyPoints.toSlice())
-    guiTestAssertRect(polygon.IForm.boundRect(), 10, 10, 50, 40)
+    Testing.assertRect(polygon.IForm.boundRect(), 10, 10, 50, 40)
     @assert(polygon.IForm.isInside({35, 20}))
     @assert(!polygon.IForm.isInside({5, 5}))
 
     polygon.IForm.movePoint(1, 10, 15)
-    guiTestAssertPoint(polygon.points[1], 70, 25)
+    Testing.assertPoint(polygon.points[1], 70, 25)
     polygon.IForm.moveBaseForm(-5, 3, 0, 0)
-    guiTestAssertRect(polygon.IForm.boundRect(), 5, 13, 60, 40)
+    Testing.assertRect(polygon.IForm.boundRect(), 5, 13, 60, 40)
     polygon.IForm.scaleBaseForm(2)
-    guiTestAssertRect(polygon.IForm.boundRect(), 10, 26, 120, 80)
+    Testing.assertRect(polygon.IForm.boundRect(), 10, 26, 120, 80)
 
     var drawPoints: Array'Math.Vector2
     drawPoints.add({100, 100})
@@ -204,13 +204,13 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     drawPoints.add({130, 140})
     let draw = captmeTestAddDraw(f.capture, drawPoints.toSlice())
     draw.borderSize = 10
-    guiTestAssertRect(draw.IForm.boundRect(), 95, 95, 40, 50)
+    Testing.assertRect(draw.IForm.boundRect(), 95, 95, 40, 50)
     @assert(draw.IForm.isInside({118, 112}))
     @assert(!draw.IForm.isInside({80, 80}))
     draw.IForm.movePoint(2, -10, 20)
-    guiTestAssertPoint(draw.points[2], 120, 160)
+    Testing.assertPoint(draw.points[2], 120, 160)
     draw.IForm.moveForm(3, -4)
-    guiTestAssertPoint(draw.points[0], 103, 96)
+    Testing.assertPoint(draw.points[0], 103, 96)
 
     f.shutdown()
 }
@@ -224,7 +224,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     let shape = captmeTestAddShape(f.capture, 0, 0, 1, 1)
     var moveEvt = captmeTestMouse(.MouseMove)
     @assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
-    guiTestAssertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
+    Testing.assertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
     var releaseEvt = captmeTestMouse(.MouseReleased)
     @assert(!shape.IForm.edit(&releaseEvt, {80, 70}, {50, 20}, 1))
 
@@ -259,11 +259,11 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     let polygon = captmeTestAddPolygon(f.capture, emptyPoints.toSlice())
     @assert(polygon.IForm.edit(&moveEvt, {10, 10}, {20, 20}, 1))
     @assert(polygon.points.count == 2)
-    guiTestAssertPoint(polygon.points[0], 10, 10)
-    guiTestAssertPoint(polygon.points[1], 20, 20)
+    Testing.assertPoint(polygon.points[0], 10, 10)
+    Testing.assertPoint(polygon.points[1], 20, 20)
     @assert(polygon.IForm.edit(&releaseEvt, {10, 10}, {40, 50}, 1))
     @assert(polygon.points.count == 3)
-    guiTestAssertPoint(polygon.points[2], 40, 50)
+    Testing.assertPoint(polygon.points[2], 40, 50)
     @assert(!polygon.IForm.edit(&doubleEvt, {10, 10}, {40, 50}, 1))
     @assert(polygon.points.count == 3)
 

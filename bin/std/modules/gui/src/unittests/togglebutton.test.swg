@@ -15,7 +15,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 // Each click flips the toggled state and emits the change signal + command.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
@@ -42,7 +42,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 // Pressing then leaving the button before release cancels the toggle.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
@@ -65,7 +65,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 // Hiding a toggle button resets its transient pointer and animated paint state.
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
 
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})

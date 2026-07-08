@@ -19,7 +19,7 @@ using Swag, Core
     @assert(f.gui.app.mouseCaptureWnd == null)
 
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
-    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
+    Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
     @assert(f.capture.canUndo())
 
     f.shutdown()
@@ -38,7 +38,7 @@ using Swag, Core
     @assert(f.capture.forms.count == 1)
 
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
-    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
+    Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
 
     f.shutdown()
 }
@@ -55,17 +55,17 @@ using Swag, Core
 
     f.gui.drag({15, 15}, {45, 35})
 
-    guiTestAssertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
+    Testing.assertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 0)
     @assert(f.capture.canUndo())
 
     f.gui.shortcut(Input.Key.Z, Input.KeyModifiers.Control)
-    guiTestAssertRect(shape.IForm.boundRect(), 10, 10, 20, 20)
+    Testing.assertRect(shape.IForm.boundRect(), 10, 10, 20, 20)
     @assert(f.capture.canRedo())
 
     f.gui.shortcut(Input.Key.Y, Input.KeyModifiers.Control)
-    guiTestAssertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
+    Testing.assertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
 
     f.shutdown()
 }
@@ -115,7 +115,7 @@ using Swag, Core
     f.main.editMode = .Text
     f.gui.drag({10, 60}, {90, 95})
     @assert(@kindof(f.capture.forms[2]) == FormText)
-    guiTestAssertRect(f.capture.forms[2].boundRect(), 10, 60, 80, 35)
+    Testing.assertRect(f.capture.forms[2].boundRect(), 10, 60, 80, 35)
 
     f.main.editMode = .Image
     f.gui.drag({110, 60}, {160, 105})
@@ -145,7 +145,7 @@ using Swag, Core
     f.gui.drag({310, 90}, {310, 90})
     @assert(@kindof(f.capture.forms[7]) == FormStep)
     let step = cast(*FormStep) @dataof(f.capture.forms[7])
-    guiTestAssertRect(step.IForm.boundRect(), 286, 66, 48, 48)
+    Testing.assertRect(step.IForm.boundRect(), 286, 66, 48, 48)
     @assert(step.index == 1)
     @assert(f.capture.nextStepIndex == 2)
 
@@ -375,11 +375,11 @@ using Swag, Core
     captmeTestPrimeGizmo(cast(IForm) shape)
 
     f.gui.drag({60, 60}, {85, 80})
-    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
+    Testing.assertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
     @assert(f.capture.canUndo())
 
     f.capture.undo()
-    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
+    Testing.assertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
 
     captmeTestPrimeGizmo(cast(IForm) shape)
     f.gui.drag({40, 4}, {95, 45}, modifiers: Input.KeyModifiers.Shift)
@@ -412,11 +412,11 @@ using Swag, Core
     captmeTestPrimeGizmo(cast(IForm) image)
     f.gui.drag({65, 72}, {75, 82})
 
-    guiTestAssertRect(image.freePos, 5, 6, 30, 26)
+    Testing.assertRect(image.freePos, 5, 6, 30, 26)
     @assert(f.capture.canUndo())
 
     f.capture.undo()
-    guiTestAssertRect(image.freePos, 5, 6, 20, 16)
+    Testing.assertRect(image.freePos, 5, 6, 20, 16)
 
     f.gui.doubleClick({60, 70})
     @assert(!image.editInside)

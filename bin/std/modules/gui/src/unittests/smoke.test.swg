@@ -7,7 +7,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
     host.closeOnCommand(GuiHeadlessSmoke_CloseWindow)
 
@@ -28,7 +28,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
 
     host.theme.metrics.surfaceWnd_CornerRadius = 18
@@ -48,7 +48,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
 
     var timerCount: u32
@@ -78,7 +78,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let surface = assume host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
@@ -122,7 +122,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
 #test
 {
-    var host: GuiHeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 120)
 
     host.theme.metrics.surfaceWnd_ShadowSize   = 0

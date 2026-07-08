@@ -483,6 +483,7 @@ using Swag, Core
     @assert(evt.disabled)
 
     let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    shape.kind = .Rectangle
     f.capture.selection.add(0)
     evt = captmeTestState(ActionCopyPaste.Copy)
     @assert(captmeTestActionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
@@ -491,6 +492,12 @@ using Swag, Core
     evt = captmeTestState(ActionFlatten.Flatten)
     @assert(captmeTestActionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
     @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionFlatten.Flatten)
+    @assert(f.capture.forms.count == 0)
+    @assert(f.capture.selection.count == 0)
+    @assert(f.capture.canUndo())
+    f.capture.undo()
+    @assert(f.capture.forms.count == 1)
 
     f.capture.selection.clear()
     evt = captmeTestState(ActionFlatten.Flatten)
@@ -532,6 +539,27 @@ using Swag, Core
     @assert(evt.name == "Restore Default Styles")
 
     discard shape
+    f.shutdown()
+}
+
+// FlattenAll command execution is renderer-backed but stays fully in memory.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    shape.kind = .Rectangle
+    discard captmeTestAddText(f.capture, 40, 10, 20, 20)
+
+    f.main.sendCommandEvent(ActionFlatten.FlattenAll)
+    @assert(f.capture.forms.count == 0)
+    @assert(f.capture.selection.count == 0)
+    @assert(f.capture.canUndo())
+
+    f.capture.undo()
+    @assert(f.capture.forms.count == 2)
+
     f.shutdown()
 }
 

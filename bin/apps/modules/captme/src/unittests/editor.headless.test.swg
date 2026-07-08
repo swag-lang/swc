@@ -366,6 +366,39 @@ using Swag, Core
     f.shutdown()
 }
 
+// Registered headless shortcuts travel through the focused window and global
+// command lookup, not only through direct command ids.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    f.gui.focus(f.editView)
+
+    let a = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    discard captmeTestAddText(f.capture, 50, 10, 20, 20)
+    f.capture.selection.add(0)
+
+    f.gui.shortcut(Input.Key.Left, Input.KeyModifiers.Zero)
+    @assert(a.x == 5)
+
+    f.gui.shortcut(Input.Key.Down, Input.KeyModifiers.Shift)
+    @assert(a.y == 11)
+
+    f.gui.shortcut(Input.Key.PageUp, Input.KeyModifiers.Zero)
+    @assert(@dataof(f.capture.forms[1]) == a)
+    @assert(f.capture.selection.count == 1)
+    @assert(f.capture.selection[0] == 1)
+
+    f.gui.shortcut(Input.Key.Space, Input.KeyModifiers.Control)
+    @assert(f.main.freezeSel)
+
+    f.editView.setZoom(1)
+    f.gui.shortcut(Input.Key.Add, Input.KeyModifiers.Control)
+    @assert(f.editView.zoom > 1)
+
+    f.shutdown()
+}
+
 // Box-form gizmos resize and rotate through real headless mouse events.
 #test
 {

@@ -293,6 +293,7 @@ impl Undo
         case RestoreOrg:
             with me.capture
             {
+                me.toFreeForms = .forms
                 .backImg = .backImgOriginal
                 .width   = .widthOrg
                 .height  = .heightOrg
@@ -317,6 +318,7 @@ impl Undo
             {
                 .backImg = me.capture.toImage()
                 .backImagePos.clear()
+                me.toFreeForms = .forms
                 .selection.clear()
                 .forms.clear()
                 .dirtyBackImg = true
@@ -513,6 +515,7 @@ impl Undo
         case RestoreOrg:
             with me.capture
             {
+                me.toFreeForms.clear()
                 .width   = me.oldS32[0]
                 .height  = me.oldS32[1]
                 .backImg = me.oldImg
@@ -526,6 +529,7 @@ impl Undo
         case Flatten, FlattenAll:
             with me.capture
             {
+                me.toFreeForms.clear()
                 .backImg      = me.oldImg
                 .backImagePos = me.oldImagePos
                 .forms        = me.oldForms

@@ -283,6 +283,40 @@ using Swag, Core
     f.shutdown()
 }
 
+// A free image can be switched into inside-edit mode by double-clicking, then
+// its inner placement rectangle is resized through the same gizmo event path.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+
+    let image = captmeTestAddImage(f.capture, 40, 50, 80, 60)
+    image.kind = .Image
+    image.place = .Free
+    image.image = Image.create(20, 20, .BGRA8)
+    image.freePos = {5, 6, 20, 16}
+    f.capture.selection.add(0)
+
+    @assert(image.IForm.canRotate())
+    f.gui.doubleClick({60, 70})
+    @assert(image.editInside)
+    @assert(!image.IForm.canRotate())
+
+    captmeTestPrimeGizmo(cast(IForm) image)
+    f.gui.drag({65, 72}, {75, 82})
+
+    captmeTestAssertRect(image.freePos, 5, 6, 30, 26)
+    @assert(f.capture.canUndo())
+
+    f.capture.undo()
+    captmeTestAssertRect(image.freePos, 5, 6, 20, 16)
+
+    f.gui.doubleClick({60, 70})
+    @assert(!image.editInside)
+
+    f.shutdown()
+}
+
 // Point-form gizmos move line endpoints through Capture.mouse and create a
 // normal undo record.
 #test

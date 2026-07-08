@@ -352,12 +352,14 @@ using Swag, Core
     var f: CaptmeHeadlessFixture
     f.setup()
 
-    f.main.libWnd = Wnd.create'LibraryWnd(f.main, {0, 0, 500, 400})
-    f.main.libWnd.main = f.main
-    f.main.libWnd.view = Wnd.create'LibraryView(f.main.libWnd, {0, 0, 500, 400})
-    f.main.libWnd.view.libWnd = f.main.libWnd
-    f.main.libWnd.view.mainWnd = f.main
+    discard f.setupLibraryWnd()
     let libWnd = cast(*Wnd) f.main.libWnd
+
+    var sizeEvt = captmeTestState(ActionRecentSize.LibBig)
+    @assert(captmeTestActionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
+    @assert(!sizeEvt.checked)
+    @assert(captmeTestActionExecute'ActionRecentSize(f.main, ActionRecentSize.LibBig))
+    @assert(f.main.libWnd.previewSize == .Big)
 
     var evt = captmeTestState(ActionLibSort.Recent)
     @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
@@ -393,6 +395,75 @@ using Swag, Core
     evt = captmeTestState(ActionLibSel.Right)
     @assert(captmeTestActionUpdateWnd'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(!evt.disabled)
+
+    f.shutdown()
+}
+
+// Library view filtering, sorting and keyboard-style movement operate entirely
+// on in-memory items; no filesystem scan or preview loading is required.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup()
+    let lib = f.setupLibraryWnd()
+    let view = lib.view
+    let wnd = cast(*Wnd) lib
+
+    let old = captmeTestAddLibraryItem(view, "old.captme", 10, 1)
+    let big = captmeTestAddLibraryItem(view, "big-linked.captme", 30, 3, "big.png")
+    let dirty = captmeTestAddLibraryItem(view, "dirty-linked.captme", 20, 2, "dirty.png", linkedUpToDate: false)
+
+    lib.sortMethod = .FileSize
+    lib.invertSort = false
+    view.sort()
+    @assert(view.items[0] == big)
+    @assert(view.items[1] == dirty)
+    @assert(view.items[2] == old)
+
+    lib.invertSort = true
+    view.sort()
+    @assert(view.items[0] == old)
+    @assert(view.items[1] == dirty)
+    @assert(view.items[2] == big)
+
+    lib.sortMethod = .Recent
+    lib.invertSort = false
+    view.sort()
+    @assert(view.items[0] == big)
+    @assert(view.items[1] == dirty)
+    @assert(view.items[2] == old)
+
+    lib.showUnSavedLinkedImage = false
+    view.filter()
+    @assert(view.items.count == 2)
+    @assert(view.items.contains(old))
+    @assert(view.items.contains(big))
+    @assert(!view.items.contains(dirty))
+
+    lib.showUnSavedLinkedImage = true
+    lib.showLinkedImage = false
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == old)
+
+    lib.showLinkedImage = true
+    view.filter()
+    view.sort()
+    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.Home))
+    @assert(view.focusItem == 0)
+    @assert(view.selModel.isSelected(0))
+
+    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.Right))
+    @assert(view.focusItem == 1)
+    @assert(view.selModel.isSelected(1))
+    @assert(!view.selModel.isSelected(0))
+
+    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.End))
+    @assert(view.focusItem == 2)
+    @assert(view.selModel.isSelected(2))
+
+    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.Left))
+    @assert(view.focusItem == 1)
 
     f.shutdown()
 }

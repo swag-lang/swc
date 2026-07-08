@@ -40,6 +40,21 @@ impl CaptmeHeadlessFixture
         .capture         = localCapture
     }
 
+    mtd setupLibraryWnd()->*LibraryWnd
+    {
+        .main.libWnd = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
+        .main.libWnd.main = .main
+
+        let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
+        let view = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
+        view.libWnd = .main.libWnd
+        view.mainWnd = .main
+        view.scrollWnd = scroll
+        scroll.setView(view)
+        .main.libWnd.view = view
+        return .main.libWnd
+    }
+
     mtd shutdown()
     {
         .gui.shutdown()
@@ -270,4 +285,27 @@ func captmeTestIndexedImage(w, h: s32)->Image
         dref cast(*u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
     }
     return result
+}
+
+func captmeTestDate(day: u16)->Time.DateTime
+{
+    return {year: 2026, month: 1, day: day}
+}
+
+func captmeTestAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, linked: string = null, linkedUpToDate = true)->*LibraryItem
+{
+    let it = view.allItems.addNewPtr()
+    it.fi.fullname = name
+    it.fi.size = size
+    it.fi.lastWriteTime = captmeTestDate(day)
+    it.visible = true
+    it.rect = {cast(f32) view.items.count * 60, 0, 50, 50}
+
+    let capture = Memory.new'Capture()
+    capture.linkedImage = linked
+    capture.linkedUpToDate = linkedUpToDate
+    it.capture = capture
+
+    view.items.add(it)
+    return it
 }

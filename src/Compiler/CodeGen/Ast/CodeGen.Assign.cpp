@@ -429,7 +429,7 @@ namespace
         AstNodeRef            resolvedRightRef = AstNodeRef::invalid();
         const SymbolVariable* rightVar         = CodeGenMoveElision::directStructVariable(codeGen, rightRef, &resolvedRightRef);
         const bool            elideSource      = shouldResetSource && rightVar &&
-                                       CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
+                                 CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
         if (elideSource)
             codeGen.markImplicitDropElided(*rightVar);
 

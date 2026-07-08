@@ -1,11 +1,11 @@
 #pragma once
 #include "Backend/Runtime.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
-#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/LookupTable.h"
 #include "Support/Core/RefTypes.h"
@@ -222,23 +222,23 @@ public:
     bool                         setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*             mainFunc() const { return mainFunc_.load(std::memory_order_acquire); }
 
-    bool                            registerForeignLib(std::string_view name);
-    const std::vector<Utf8>&        foreignLibs() const { return foreignLibs_; }
-    const CompilerTag*              findCompilerTag(std::string_view name) const;
-    const std::vector<CompilerTag>& compilerTags() const { return compilerTags_.all(); }
-    void                            registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
-    SymbolFunction*                 runtimeFunctionSymbol(IdentifierRef idRef) const;
-    bool                            tryRegisterReportedDiagnostic(std::string_view message);
-    void                            addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
+    bool                                 registerForeignLib(std::string_view name);
+    const std::vector<Utf8>&             foreignLibs() const { return foreignLibs_; }
+    const CompilerTag*                   findCompilerTag(std::string_view name) const;
+    const std::vector<CompilerTag>&      compilerTags() const { return compilerTags_.all(); }
+    void                                 registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
+    SymbolFunction*                      runtimeFunctionSymbol(IdentifierRef idRef) const;
+    bool                                 tryRegisterReportedDiagnostic(std::string_view message);
+    void                                 addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
     std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
-    void                            addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
-    std::vector<SemaEscapeSummaryEdge> takeEscapeSummaryEdges();
-    void                            registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
-    void                            onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
-    Result                          ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
-    Result                          executePendingCompilerMessages(TaskContext& ctx);
-    bool                            hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
-    Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, std::string_view sectionText, uint32_t codeOffsetInSection);
+    void                                 addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
+    std::vector<SemaEscapeSummaryEdge>   takeEscapeSummaryEdges();
+    void                                 registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
+    void                                 onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
+    Result                               ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
+    Result                               executePendingCompilerMessages(TaskContext& ctx);
+    bool                                 hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
+    Result                               appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, std::string_view sectionText, uint32_t codeOffsetInSection);
     // Full in-memory content of the per-thread generated-source dump at the given path (the bytes that are
     // flushed to the .swgsrc file). Used to checksum generated sources without racing the on-disk flush.
     bool               tryGetGeneratedSourceContent(const fs::path& path, std::string_view& outContent) const;

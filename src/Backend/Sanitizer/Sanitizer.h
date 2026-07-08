@@ -104,11 +104,11 @@ private:
     bool                         stackBaseStable_ = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
-    const Symbol* transferCallTarget_ = nullptr;
-    const MicroControlFlowGraph* cfg_               = nullptr;
-    const Symbol*                currentCallTarget_ = nullptr;
-    bool                         reported_          = false;
-    bool                         converged_         = true;
+    const Symbol*                transferCallTarget_ = nullptr;
+    const MicroControlFlowGraph* cfg_                = nullptr;
+    const Symbol*                currentCallTarget_  = nullptr;
+    bool                         reported_           = false;
+    bool                         converged_          = true;
     std::vector<SanitizerState>  inState_; // populated only at chain heads
     std::vector<char>            isHead_;
     std::vector<char>            reached_;

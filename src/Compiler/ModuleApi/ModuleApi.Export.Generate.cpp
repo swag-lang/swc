@@ -783,7 +783,7 @@ namespace ModuleApi::Export
             return false;
 
         AstNodeRef implRef;
-        if (!ModuleApi::Internal::tryFindNodeRef(implFile->ast(), symImpl->decl(), implRef))
+        if (!Internal::tryFindNodeRef(implFile->ast(), symImpl->decl(), implRef))
             return false;
 
         outImplRef  = implRef;

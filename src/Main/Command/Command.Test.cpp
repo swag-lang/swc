@@ -620,7 +620,7 @@ namespace
                 {
                     TaskContext          ctx(compiler);
                     NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
-                    const Result buildResult = CommandRun::afterPauses(ctx, [&] {
+                    const Result         buildResult = CommandRun::afterPauses(ctx, [&] {
                         return builder.run();
                     });
 

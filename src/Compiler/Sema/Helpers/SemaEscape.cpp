@@ -359,9 +359,9 @@ namespace
 
                 // A member access never designates the WHOLE variable, whatever the
                 // recursion reports for the left side.
-                bool leftWhole = false;
-                const SymbolVariable* leftRoot = storageRootVariable(sema, leftRef, forAssignment, leftWhole);
-                outWholeVariable = false;
+                bool                  leftWhole = false;
+                const SymbolVariable* leftRoot  = storageRootVariable(sema, leftRef, forAssignment, leftWhole);
+                outWholeVariable                = false;
                 return leftRoot;
             }
 
@@ -370,9 +370,9 @@ namespace
                 const auto& index = node.cast<AstIndexExpr>();
                 if (isArrayStorageExpr(sema, index.nodeExprRef))
                 {
-                    bool indexedWhole = false;
-                    const SymbolVariable* indexedRoot = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
-                    outWholeVariable = false;
+                    bool                  indexedWhole = false;
+                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
+                    outWholeVariable                   = false;
                     return indexedRoot;
                 }
 
@@ -384,9 +384,9 @@ namespace
                 const auto& index = node.cast<AstIndexListExpr>();
                 if (isArrayStorageExpr(sema, index.nodeExprRef))
                 {
-                    bool indexedWhole = false;
-                    const SymbolVariable* indexedRoot = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
-                    outWholeVariable = false;
+                    bool                  indexedWhole = false;
+                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
+                    outWholeVariable                   = false;
                     return indexedRoot;
                 }
 

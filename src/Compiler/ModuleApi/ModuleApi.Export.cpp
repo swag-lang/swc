@@ -244,7 +244,7 @@ namespace ModuleApi::Export
         if (!sourceFile)
             return false;
 
-        return ModuleApi::isCurrentModuleSourceFile(*sourceFile);
+        return isCurrentModuleSourceFile(*sourceFile);
     }
 
     bool isModuleApiOpaqueType(const Symbol& symbol)

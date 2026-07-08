@@ -21,8 +21,8 @@ struct SanitizerValue
     static constexpr int64_t K_NO_ORIGIN = INT64_MIN;
 
     SanitizerValueKind kind        = SanitizerValueKind::Unknown;
-    uint64_t           constant    = 0;           // Constant
-    int64_t            stackOffset = 0;           // StackAddr
+    uint64_t           constant    = 0; // Constant
+    int64_t            stackOffset = 0; // StackAddr
     // StackAddr only: frame offset the address was FORMED from (the start of the
     // object an indexing/lea derived it from). K_NO_ORIGIN when not tracked (the raw
     // stack base register). Lets the bound check compare a derived access against the

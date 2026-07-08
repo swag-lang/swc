@@ -52,7 +52,7 @@ namespace Os
 
         // Lines starting with this prefix are captured but not forwarded (used for
         // machine-readable marker lines like the native test tally).
-        std::string_view          suppressForwardLinePrefix;
+        std::string_view suppressForwardLinePrefix;
     };
 
     void initialize();

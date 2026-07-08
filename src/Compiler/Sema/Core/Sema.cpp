@@ -246,9 +246,9 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
     frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
-    variableEscapeInfos_  = parent.variableEscapeInfos_;
-    variableScopeDepths_  = parent.variableScopeDepths_;
-    escapeBranchStack_    = parent.escapeBranchStack_;
+    variableEscapeInfos_ = parent.variableEscapeInfos_;
+    variableScopeDepths_ = parent.variableScopeDepths_;
+    escapeBranchStack_   = parent.escapeBranchStack_;
 }
 
 Sema::~Sema() = default;

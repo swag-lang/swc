@@ -5,9 +5,9 @@
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
-#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
@@ -52,10 +52,10 @@ enum class SemaEscapeKind : uint8_t
 
 struct SemaEscapeInfo
 {
-    SemaEscapeKind       kind      = SemaEscapeKind::None;
+    SemaEscapeKind        kind      = SemaEscapeKind::None;
     const SymbolVariable* sourceVar = nullptr;
-    AstNodeRef           sourceRef = AstNodeRef::invalid();
-    TypeRef              typeRef   = TypeRef::invalid();
+    AstNodeRef            sourceRef = AstNodeRef::invalid();
+    TypeRef               typeRef   = TypeRef::invalid();
     // Index of the per-Sema SemaEscapeDeferredCallSnapshot (kind == DeferredCall).
     uint32_t deferredCallRef = UINT32_MAX;
     // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
@@ -517,7 +517,7 @@ private:
     std::unordered_map<const SymbolVariable*, uint32_t>       variableScopeDepths_;
     std::vector<EscapeBranchState>                            escapeBranchStack_;
     std::vector<SemaEscapeDeferredCallSnapshot>               escapeDeferredCallSnapshots_;
-    AstVisit                                               visit_;
+    AstVisit                                                  visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_   = nullptr;

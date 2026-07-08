@@ -39,7 +39,7 @@ struct SemaEscapeDeferredCheck
     bool judgeAlways = false;
     // The borrowed source is an owner (its payload lives on the heap): freeing it is
     // legitimate, so a FREES-only match must stay silent.
-    bool ownerSource = false;
+    bool            ownerSource = false;
     DiagnosticId    diagId      = {};
     FileRef         fileRef;
     SourceCodeRange siteRange;

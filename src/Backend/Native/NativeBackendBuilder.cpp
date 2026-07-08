@@ -1058,6 +1058,7 @@ Result NativeBackendBuilder::runGeneratedArtifact()
         .capturedOutput            = &artifactOutput,
         .logCtx                    = &ctx_,
         .additionalPathDirectories = runtimePathDirs,
+        .suppressForwardLinePrefix = "[swag.test]",
     };
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(compiler_->cmdLine());
@@ -1074,10 +1075,36 @@ Result NativeBackendBuilder::runGeneratedArtifact()
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
+    parseNativeTestSummary(artifactOutput);
+
+    // Failing tests were already reported one by one by the runtime's panic output;
+    // the executable exits with an error code on purpose, so report the tally
+    // instead of the raw exit code.
+    if (hasNativeTestSummary && nativeTestsFailed)
+        return reportError(DiagnosticId::cmd_err_native_tests_failed, Diagnostic::ARG_COUNT, nativeTestsFailed);
+
     if (exitCode != 0)
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
 
     return Result::Continue;
+}
+
+// Extract the executed/failed tally printed by the runtime's __testsDone on its
+// "[swag.test] <executed> <failed>" marker line.
+void NativeBackendBuilder::parseNativeTestSummary(const std::string& output)
+{
+    const size_t pos = output.rfind("[swag.test] ");
+    if (pos == std::string::npos)
+        return;
+
+    uint32_t executed = 0;
+    uint32_t failed   = 0;
+    if (sscanf_s(output.c_str() + pos, "[swag.test] executed=%u failed=%u", &executed, &failed) != 2)
+        return;
+
+    hasNativeTestSummary = true;
+    nativeTestsExecuted  = executed;
+    nativeTestsFailed    = failed;
 }
 
 SWC_END_NAMESPACE();

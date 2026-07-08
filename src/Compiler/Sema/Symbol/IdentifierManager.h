@@ -41,6 +41,8 @@ public:
         TlsGetValue,
         RaiseException,
         StringCmp,
+        RunTest,
+        TestsDone,
         Count,
     };
 
@@ -155,6 +157,8 @@ public:
         RuntimeTlsGetPtr,
         RuntimeTlsGetValue,
         RuntimeRaiseException,
+        RuntimeRunTest,
+        RuntimeTestsDone,
         Count,
     };
 

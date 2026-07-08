@@ -215,7 +215,14 @@ public:
     fs::path                                                                             pdbPath;
     std::atomic<bool>                                                                    objBuildFailed = false;
 
+    // Test tally parsed from the generated executable's "[swag.test]" marker line
+    // (see the runtime's __testsDone). Valid when hasNativeTestSummary is true.
+    bool     hasNativeTestSummary = false;
+    uint32_t nativeTestsExecuted  = 0;
+    uint32_t nativeTestsFailed    = 0;
+
 private:
+    void   parseNativeTestSummary(const std::string& output);
     Result validateTarget();
     Result buildObjects();
     Result runGeneratedArtifact();

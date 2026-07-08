@@ -122,17 +122,24 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
 
 func getDesktopImage(drawCursor: bool)->Image throw
 {
+    let x = Env.getMetric(.DesktopX)
+    let y = Env.getMetric(.DesktopY)
+    let w = Env.getMetric(.DesktopWidth)
+    let h = Env.getMetric(.DesktopHeight)
+    return getScreenRectImage(drawCursor, x, y, w, h)
+}
+
+// Grab only the requested rectangle (absolute virtual-desktop coordinates). The
+// BitBlt cost is proportional to the copied area, so a small or single-monitor
+// capture must not pay for the whole multi-monitor desktop.
+func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
+{
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
 
     let hDesktopWnd = GetDesktopWindow()
     let hDesktopDC  = GetDC(hDesktopWnd)
     defer discard ReleaseDC(hDesktopWnd, hDesktopDC)
-
-    let x = Env.getMetric(.DesktopX)
-    let y = Env.getMetric(.DesktopY)
-    let w = Env.getMetric(.DesktopWidth)
-    let h = Env.getMetric(.DesktopHeight)
 
     let memDC = CreateCompatibleDC(hDesktopDC)
     defer catch DeleteDC(memDC)

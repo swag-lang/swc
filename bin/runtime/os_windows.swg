@@ -34,6 +34,8 @@ namespace __Win32RT
 
     #[Swag.Foreign("kernel32")]
     {
+        func RtlCaptureContext(contextRecord: *void);
+        func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void);
         func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT;
         func GetModuleHandleA(lpModuleName: #null const *u8)->*void;
         func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: **void)->BOOL;
@@ -41,6 +43,7 @@ namespace __Win32RT
         func WriteFile(hFile: HANDLE, lpBuffer: const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
         func GetCurrentProcess()->HANDLE;
         func GetCurrentThreadId()->DWORD;
+        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->*void;
         func ExitProcess(uExitCode: u32);
         func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void);
         func DebugBreak();
@@ -248,6 +251,29 @@ func __printString(message: string)
 ////////////////////////////////////////////////////////////
 func __raiseException666(message: string, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
+    // In a native binary there is no compiler above us to catch the exception:
+    // route the failure through the panic path (which the native #test runner
+    // hooks), instead of dying silently on an unhandled SEH exception.
+    if !@jit
+    {
+        var msg = message
+        if !@dataof(msg)
+        {
+            switch kind
+            {
+            case Assert:
+                msg = "assertion failed"
+            case Safety:
+                msg = "safety check failed"
+            default:
+                msg = "runtime error"
+            }
+        }
+
+        @panic(msg, loc)
+        return
+    }
+
     let cxt = @getcontext()
     cxt.exceptionLoc       = loc
     cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
@@ -286,6 +312,98 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void
 func __exitError()
 {
     __Win32RT.ExitProcess(cast #bit (u32) -666)
+}
+
+////////////////////////////////////////////////////////////
+// Native #test runner. In test mode the startup thunk calls every #test through
+// __runTest so a failing test (assert/panic) is reported and counted without
+// stopping the remaining tests, then __testsDone prints the tally on a marker line
+// the compiler parses back. A failing test is abandoned by restoring the CPU
+// context captured before the call (no unwinding), which matches the
+// abort-the-process semantics a test panic had before: no destructor runs in the
+// abandoned frames.
+
+var g_TestContextBuf: [1360] u8
+var g_TestFailed:     bool
+var g_TestRunning:    bool
+var g_TestThreadId:   __Win32RT.DWORD
+var g_TestsExecuted:  u32
+var g_TestsFailedCnt: u32
+
+func __testResumeContext()->*void
+{
+    // RtlCaptureContext/RtlRestoreContext require a 16-byte aligned CONTEXT.
+    let addr = cast(u64) &g_TestContextBuf[0]
+    return cast(*void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
+}
+
+func __testPanicHandler(message: string, loc: Swag.SourceCodeLocation)
+{
+    // Drop the hook first so a panic raised while printing takes the default path.
+    @getcontext().panic = null
+    __printPanicReport(message, loc)
+    g_TestFailed = true
+    __Win32RT.RtlRestoreContext(__testResumeContext(), null)
+}
+
+// Last-chance rescue for hardware faults (access violation, division by zero...)
+// raised by the running test on the test thread. Anything else (worker threads,
+// faults outside a test) keeps the default fatal behavior.
+func __testUnhandledFilter(exceptionPointers: *void)->s32
+{
+    if !g_TestRunning or __Win32RT.GetCurrentThreadId() != g_TestThreadId do
+        return 0 // EXCEPTION_CONTINUE_SEARCH
+
+    let record = dref cast(*const *u32) exceptionPointers
+    @print("\nhardware exception ", cast(s64) dref record, " in #test\n")
+    g_TestFailed = true
+    __Win32RT.RtlRestoreContext(__testResumeContext(), null)
+    return 0
+}
+
+// Optimizations stay off: after a panic resume, execution re-enters the middle of
+// this function with the registers captured before the test ran, so every local
+// must live on the stack, not in a register the test call could have recycled.
+#[Swag.Optimize(false)]
+func __runTest(fn: *void)
+{
+    g_TestsExecuted += 1
+    g_TestFailed  = false
+    g_TestThreadId = __Win32RT.GetCurrentThreadId()
+
+    let cxt            = @getcontext()
+    let previousPanic  = cxt.panic
+    let previousFilter = __Win32RT.SetUnhandledExceptionFilter(cast() &__testUnhandledFilter)
+    cxt.panic          = cast() &__testPanicHandler
+
+    __Win32RT.RtlCaptureContext(__testResumeContext())
+
+    // A failing test lands here a second time through the panic handler or the
+    // unhandled-exception filter.
+    if g_TestFailed
+    {
+        g_TestsFailedCnt += 1
+        g_TestRunning = false
+        cxt.panic     = previousPanic
+        discard __Win32RT.SetUnhandledExceptionFilter(previousFilter)
+        return
+    }
+
+    g_TestRunning = true
+    let call = cast(func()) fn
+    call()
+    g_TestRunning = false
+
+    cxt.panic = previousPanic
+    discard __Win32RT.SetUnhandledExceptionFilter(previousFilter)
+}
+
+func __testsDone()
+{
+    // Marker parsed by the compiler's test command to report the native tally.
+    @print("[swag.test] executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, "\n")
+    if g_TestsFailedCnt do
+        __exitError()
 }
 
 func __panicBox(msg, title: string)

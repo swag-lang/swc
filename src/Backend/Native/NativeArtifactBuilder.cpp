@@ -697,9 +697,38 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
     emitLifecycleCalls(builder, builder_->preMainFunctions);
 
-    for (const SymbolFunction* symbol : builder_->testFunctions)
+    // #test functions run through the runtime test runner: __runTest reports and
+    // counts a failing test (assert/panic) without stopping the remaining ones, and
+    // __testsDone prints the executed/failed tally the compiler parses back.
+    if (!builder_->testFunctions.empty())
     {
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+        const IdentifierRef   runTestIdRef   = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::RunTest);
+        const IdentifierRef   testsDoneIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestsDone);
+        const SymbolFunction* runTestFn      = builder_->compiler().runtimeFunctionSymbol(runTestIdRef);
+        const SymbolFunction* testsDoneFn    = builder_->compiler().runtimeFunctionSymbol(testsDoneIdRef);
+        SWC_ASSERT(runTestFn != nullptr && testsDoneFn != nullptr);
+        if (!runTestFn || !testsDoneFn)
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+
+        for (const SymbolFunction* symbol : builder_->testFunctions)
+        {
+            const MicroReg testFnReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+            builder.emitLoadRegPtrReloc(testFnReg, 0, ConstantRef::invalid(), symbol);
+
+            ABICall::PreparedArg testFnArg;
+            testFnArg.srcReg  = testFnReg;
+            testFnArg.kind    = ABICall::PreparedArgKind::Direct;
+            testFnArg.numBits = 64;
+
+            SmallVector<ABICall::PreparedArg> runTestArgs;
+            runTestArgs.push_back(testFnArg);
+
+            const ABICall::PreparedCall preparedRunTest = ABICall::prepareArgs(builder, runTestFn->callConvKind(), runTestArgs);
+            ABICall::callLocal(builder, runTestFn->callConvKind(), runTestFn, preparedRunTest);
+        }
+
+        const ABICall::PreparedCall preparedTestsDone = ABICall::prepareArgs(builder, testsDoneFn->callConvKind(), {});
+        ABICall::callLocal(builder, testsDoneFn->callConvKind(), testsDoneFn, preparedTestsDone);
     }
     emitLifecycleCalls(builder, builder_->mainFunctions);
     emitLifecycleCalls(builder, builder_->dropFunctions);

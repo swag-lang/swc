@@ -197,8 +197,12 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
         let wGrab    = Math.max(grabRect.width, 8)
         let hGrab    = Math.max(grabRect.height, 8)
 
-        var img = getDesktopImage(main.captureOptions.captureCursor)
-        img.crop(cast(s32) grabRect.x, cast(s32) grabRect.y, cast(s32) wGrab, cast(s32) hGrab)
+        // Grab bounds are desktop-relative; blit only that rectangle instead of
+        // capturing the whole virtual desktop and cropping.
+        var img = getScreenRectImage(main.captureOptions.captureCursor,
+                                     g_DesktopX + cast(s32) grabRect.x,
+                                     g_DesktopY + cast(s32) grabRect.y,
+                                     cast(s32) wGrab, cast(s32) hGrab)
 
         with capture = Memory.new'Capture()
         {

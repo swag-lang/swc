@@ -522,12 +522,15 @@ impl Encoder
             }
             elif .swapRB and .bytesPerPixel == 4
             {
-                for var i = 0; i < scanlineWidth - 1; i += 4
+                // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
+                // of a full-desktop capture costs seconds in unoptimized builds.
+                let src   = cast(const [*] u32) sl
+                let dst   = cast([*] u32) .scanline
+                let count = (scanlineWidth - 1) / 4
+                for i in count
                 {
-                    .scanline[i]     = sl[i + 2]
-                    .scanline[i + 1] = sl[i + 1]
-                    .scanline[i + 2] = sl[i]
-                    .scanline[i + 3] = sl[i + 3]
+                    let v = src[i]
+                    dst[i] = (v & 0xFF00FF00) | ((v & 0xFF) << 16) | ((v >> 16) & 0xFF)
                 }
             }
             else

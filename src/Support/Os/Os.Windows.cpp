@@ -283,6 +283,9 @@ namespace
 
     void forwardProcessOutputLine(const Os::ProcessRunOptions* options, std::string_view lineWithEnding)
     {
+        if (options && !options->suppressForwardLinePrefix.empty() && lineWithEnding.starts_with(options->suppressForwardLinePrefix))
+            return;
+
         if (options && options->logCtx)
         {
             Logger::print(*options->logCtx, lineWithEnding);

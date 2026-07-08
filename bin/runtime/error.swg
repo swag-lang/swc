@@ -189,26 +189,12 @@ func @compilerwarning(message: string, loc: SourceCodeLocation)
     }
 }
 
-// Stop the execution and panic
-#[Swag.Safety(.All, false)]
-func @panic(message: string, loc: SourceCodeLocation)
+// Print a full panic report: banner, message, source location and both stack traces.
+// Shared by the default panic path below and by the native #test runner, whose panic
+// hook reports a failing test with the exact same output before resuming the runner.
+func __printPanicReport(message: string, loc: SourceCodeLocation)
 {
     let cxt = @getcontext()
-
-    // User function
-    if cxt.panic
-    {
-        cxt.panic(message, loc)
-        return
-    }
-
-    // If we are running bytecode, then just let the runner deal with the message,
-    // we will have more usefull information
-    if @jit
-    {
-        __raiseException666(message, loc, .Panic)
-        return
-    }
 
     // Print the message first
     @print("\n")
@@ -247,6 +233,30 @@ func @panic(message: string, loc: SourceCodeLocation)
     let nb   = __captureStack(1, arr)
     __logStackTrace(@mkslice(&arr[0], nb))
     @print("\n")
+}
+
+// Stop the execution and panic
+#[Swag.Safety(.All, false)]
+func @panic(message: string, loc: SourceCodeLocation)
+{
+    let cxt = @getcontext()
+
+    // User function
+    if cxt.panic
+    {
+        cxt.panic(message, loc)
+        return
+    }
+
+    // If we are running bytecode, then just let the runner deal with the message,
+    // we will have more usefull information
+    if @jit
+    {
+        __raiseException666(message, loc, .Panic)
+        return
+    }
+
+    __printPanicReport(message, loc)
 
     foreach arg in @args
     {

@@ -14,6 +14,7 @@
 #include "Main/Stats.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Memory/MemoryProfile.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
@@ -26,8 +27,7 @@ namespace
     Utf8 formatTestStageStat(const TaskContext& ctx, const ScopedTimedLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> statParts;
-        if (deltaSnapshot.numTests)
-            statParts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numTests, "test"));
+        ScopedTimedLog::appendTestStats(ctx, statParts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
         return ScopedTimedLog::joinStatItems(ctx, statParts);
     }
 
@@ -438,6 +438,37 @@ namespace
                !Stats::hasError();
     }
 
+    // Like runJitFunction, but success is judged against the error count taken before
+    // the call: once one test has failed, the global error state must not make every
+    // following test look failed too.
+    bool runJitTestFunction(TaskContext& ctx, const SymbolFunction& function)
+    {
+        if (!function.jitEntryAddress())
+            return false;
+
+        JITExecManager::Request request;
+        request.function     = &function;
+        request.nodeRef      = function.declNodeRef();
+        request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
+        request.runImmediate = true;
+
+        const size_t errorsBefore = Stats::getNumErrors();
+        while (true)
+        {
+            const Result result = ctx.compiler().jitExecMgr().submit(ctx, request);
+            if (result == Result::Continue)
+                break;
+            if (result != Result::Pause)
+                return false;
+
+            Sema::waitDone(ctx, ctx.compiler().jobClientId());
+            if (Stats::getNumErrors() != errorsBefore)
+                return false;
+        }
+
+        return Stats::getNumErrors() == errorsBefore;
+    }
+
     bool runJitTests(CompilerInstance& compiler)
     {
         if (!hasJitEligibleInputs(compiler))
@@ -531,17 +562,42 @@ namespace
                 return false;
         }
 
+        // Run every test even when one fails: a failing #test has already reported its
+        // diagnostic through the JIT exception handler, so keep executing the remaining
+        // tests and report a pass/fail tally instead of stopping at the first failure.
         uint32_t executedTestCount = 0;
+        uint32_t failedTestCount   = 0;
+        // With SWC_PROFILE_TESTS set, print how long each #test took: the first tool
+        // to reach for when a test suite gets slow.
+        const bool profileTests = Os::readEnvironmentVariable("SWC_PROFILE_TESTS").has_value();
         for (const SymbolFunction* function : testFunctions)
         {
-            if (!runJitFunction(ctx, *function))
-                return false;
+            const auto startTick = std::chrono::steady_clock::now();
+            if (!runJitTestFunction(ctx, *function))
+                failedTestCount++;
             executedTestCount++;
+            if (profileTests)
+            {
+                const double      ms   = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTick).count()) / 1000.0;
+                const SourceFile* file = ctx.compiler().srcView(function->srcViewRef()).file();
+                uint32_t          line = 0;
+                if (const AstNode* decl = function->decl(); decl && file)
+                {
+                    const SourceView& declView = ctx.compiler().srcView(decl->srcViewRef());
+                    line                       = decl->codeRangeWithChildren(ctx, file->ast(), declView).line + 1;
+                }
+                fprintf(stderr, "[test-profile] %9.1f ms %s:%u\n", ms, file ? file->path().filename().string().c_str() : "?", line);
+            }
         }
 
         if (stage)
-            stage->setStat(ScopedTimedLog::formatStatCount(ctx, executedTestCount, "test"));
+        {
+            std::vector<Utf8> statParts;
+            ScopedTimedLog::appendTestStats(ctx, statParts, executedTestCount, failedTestCount);
+            stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
+        }
         Stats::get().numTests.fetch_add(executedTestCount, std::memory_order_relaxed);
+        Stats::get().numTestsFailed.fetch_add(failedTestCount, std::memory_order_relaxed);
 
         if (executedTestCount != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);
@@ -564,18 +620,24 @@ namespace
                 {
                     TaskContext          ctx(compiler);
                     NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
-                    if (CommandRun::afterPauses(ctx, [&] {
-                            return builder.run();
-                        }) != Result::Continue)
+                    const Result buildResult = CommandRun::afterPauses(ctx, [&] {
+                        return builder.run();
+                    });
+
+                    // The JIT phase already counted the executed tests. When it is disabled the
+                    // native artifact is the one that runs them, so account for them here instead,
+                    // preferring the tally the executable reported over the static function count.
+                    if (!compiler.cmdLine().testJit)
+                    {
+                        Stats::get().numTests.fetch_add(builder.hasNativeTestSummary ? builder.nativeTestsExecuted : builder.testFunctions.size(), std::memory_order_relaxed);
+                        Stats::get().numTestsFailed.fetch_add(builder.nativeTestsFailed, std::memory_order_relaxed);
+                    }
+
+                    if (buildResult != Result::Continue)
                         return false;
 
                     if (Stats::hasError())
                         return false;
-
-                    // The JIT phase already counted the executed tests. When it is disabled the
-                    // native artifact is the one that runs them, so account for them here instead.
-                    if (!compiler.cmdLine().testJit)
-                        Stats::get().numTests.fetch_add(builder.testFunctions.size(), std::memory_order_relaxed);
 
                     std::optional<ScopedTimedLog> stage;
                     if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))

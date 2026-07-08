@@ -49,6 +49,10 @@ namespace Os
         bool                      forwardOutput  = true;
         const TaskContext*        logCtx         = nullptr;
         std::span<const fs::path> additionalPathDirectories;
+
+        // Lines starting with this prefix are captured but not forwarded (used for
+        // machine-readable marker lines like the native test tally).
+        std::string_view          suppressForwardLinePrefix;
     };
 
     void initialize();

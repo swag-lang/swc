@@ -132,6 +132,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
+        {.name = PredefinedName::RuntimeRunTest, .str = "__runTest"},
+        {.name = PredefinedName::RuntimeTestsDone, .str = "__testsDone"},
     };
 
     for (const auto& it : PREDEFINED_NAMES)
@@ -160,6 +162,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]            = predefined(PredefinedName::RuntimeTlsGetValue);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)]         = predefined(PredefinedName::RuntimeRaiseException);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)]              = predefined(PredefinedName::RuntimeStringCmp);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RunTest)]                = predefined(PredefinedName::RuntimeRunTest);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestsDone)]              = predefined(PredefinedName::RuntimeTestsDone);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)

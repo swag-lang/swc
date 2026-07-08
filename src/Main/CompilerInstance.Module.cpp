@@ -689,6 +689,9 @@ namespace
         if (deltaSnapshot.numFiles)
             parts.push_back(ScopedTimedLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
 
+        if (ctx.cmdLine().command == CommandKind::Test)
+            ScopedTimedLog::appendTestStats(ctx, parts, deltaSnapshot.numTests, deltaSnapshot.numTestsFailed);
+
         const Utf8& artifactLabel = compiler.lastArtifactLabel();
         if (!artifactLabel.empty())
             parts.push_back(ScopedTimedLog::formatStatName(ctx, artifactLabel));

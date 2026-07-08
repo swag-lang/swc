@@ -166,9 +166,19 @@ StatsSnapshot StatsSnapshot::capture()
     result.numWarnings             = stats.numWarnings.load(std::memory_order_relaxed);
     result.numFiles                = stats.numFiles.load(std::memory_order_relaxed);
     result.numTests                = stats.numTests.load(std::memory_order_relaxed);
+    result.numTestsFailed          = stats.numTestsFailed.load(std::memory_order_relaxed);
     result.numTokens               = stats.numTokens.load(std::memory_order_relaxed);
     result.numFormatRewrittenFiles = stats.numFormatRewrittenFiles.load(std::memory_order_relaxed);
     return result;
+}
+
+// "N tests [• M failed]" parts of a test-command stage line. The executed count is
+// always shown, even when zero: in test mode, "no test ran" is a result in itself.
+void ScopedTimedLog::appendTestStats(const TaskContext& ctx, std::vector<Utf8>& parts, const size_t executed, const size_t failed)
+{
+    parts.push_back(formatStatCount(ctx, executed, "test"));
+    if (failed)
+        parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " failed"));
 }
 
 Utf8 ScopedTimedLog::formatStatCount(const TaskContext& ctx, const size_t value, const std::string_view singular, const char* pluralForm)
@@ -265,7 +275,18 @@ ScopedTimedLog::~ScopedTimedLog()
     const uint64_t durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - startTick_).count();
     const Utf8     time       = colorize(*ctx_, LogColor::Gray, Utf8Helper::toNiceTime(Timer::toSeconds(durationNs)));
 
-    printLine(*ctx_, 0, glyph.color, glyph.symbol, stageLabel(stage_), {detail_, stat_, time});
+    // The workspace line covers every module of a test run, so its test tally has to
+    // be computed at print time from the stage delta: the caller-provided stat is
+    // refreshed per module and would be stale when a module fails mid-run.
+    Utf8 testStat;
+    if (stage_ == Stage::Workspace && ctx_->cmdLine().command == CommandKind::Test)
+    {
+        std::vector<Utf8> parts;
+        appendTestStats(*ctx_, parts, d.numTests, d.numTestsFailed);
+        testStat = joinStatItems(*ctx_, parts);
+    }
+
+    printLine(*ctx_, 0, glyph.color, glyph.symbol, stageLabel(stage_), {detail_, stat_, testStat, time});
 }
 
 StatsSnapshot ScopedTimedLog::delta() const
@@ -277,6 +298,7 @@ StatsSnapshot ScopedTimedLog::delta() const
     result.numWarnings             = now.numWarnings - std::min(now.numWarnings, startSnapshot_.numWarnings);
     result.numFiles                = now.numFiles - std::min(now.numFiles, startSnapshot_.numFiles);
     result.numTests                = now.numTests - std::min(now.numTests, startSnapshot_.numTests);
+    result.numTestsFailed          = now.numTestsFailed - std::min(now.numTestsFailed, startSnapshot_.numTestsFailed);
     result.numTokens               = now.numTokens - std::min(now.numTokens, startSnapshot_.numTokens);
     result.numFormatRewrittenFiles = now.numFormatRewrittenFiles - std::min(now.numFormatRewrittenFiles, startSnapshot_.numFormatRewrittenFiles);
     return result;

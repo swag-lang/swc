@@ -10,6 +10,7 @@ struct Stats
     std::atomic<size_t>   numWarnings             = 0;
     std::atomic<size_t>   numFiles                = 0;
     std::atomic<size_t>   numTests                = 0;
+    std::atomic<size_t>   numTestsFailed          = 0;
     std::atomic<size_t>   numTokens               = 0;
     std::atomic<size_t>   numFormatRewrittenFiles = 0;
 

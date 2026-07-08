@@ -1008,6 +1008,14 @@ namespace
         if (!tryGetWorkspacePathWriteTime(compilerTime, compilerPath))
             return false;
 
+        // The embedded runtime sources (<resource root>/runtime/*.swg) are compiled
+        // into every module: a change there must invalidate builds exactly like a
+        // new compiler binary. Fold their latest write time into the compiler time.
+        fs::file_time_type runtimeTime{};
+        if (!tryCollectLatestWorkspaceTreeWriteTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
+            return false;
+        compilerTime = std::max(compilerTime, runtimeTime);
+
         fs::file_time_type latestDependencyTime{};
         bool               hasDependencyTime = false;
         for (const fs::path& dependencyDir : currentDependencyDirs)

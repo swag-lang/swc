@@ -314,6 +314,13 @@ func captmeTestRegisterHeadlessCommands(main: *MainWnd)
     captmeTestRegisterHeadlessShortcuts(main)
 }
 
+func captmeTestRegisterIoActions(main: *MainWnd)
+{
+    main.registerAction'ActionCopyPaste()
+    main.registerAction'ActionFile()
+    main.registerAction'ActionCapture()
+}
+
 func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
 {
     captmeTestRegisterHeadlessCommands(main)

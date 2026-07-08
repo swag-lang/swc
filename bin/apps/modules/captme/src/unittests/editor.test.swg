@@ -6,7 +6,7 @@ using Swag, Core
 // Editor drags should create forms through the real EditView/Capture mouse path.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.main.editMode = .Shape
@@ -29,7 +29,7 @@ using Swag, Core
 // creation follows the same path as an interactive square/ellipse drag.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.main.editMode = .Shape
@@ -47,10 +47,10 @@ using Swag, Core
 // keyboard shortcuts reach MainWnd through normal command bubbling.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    let shape = testAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle
 
     f.gui.drag({15, 15}, {45, 35})
@@ -74,12 +74,12 @@ using Swag, Core
 // events and final updateState all need to cooperate.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    discard captmeTestAddShape(f.capture, 10, 10, 20, 20)
-    discard captmeTestAddShape(f.capture, 70, 70, 20, 20)
-    discard captmeTestAddShape(f.capture, 180, 180, 20, 20)
+    discard testAddShape(f.capture, 10, 10, 20, 20)
+    discard testAddShape(f.capture, 70, 70, 20, 20)
+    discard testAddShape(f.capture, 180, 180, 20, 20)
 
     f.main.editMode = .Selection
     f.gui.drag({0, 0}, {120, 120})
@@ -98,7 +98,7 @@ using Swag, Core
 // expected concrete form through the real mouse path.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.main.editMode = .Line
@@ -155,7 +155,7 @@ using Swag, Core
 // Polygon creation remains captured across clicks and finishes on double-click.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.main.editMode = .Polygon
@@ -182,12 +182,12 @@ using Swag, Core
 // creation even over an existing form.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    discard captmeTestAddShape(f.capture, 10, 10, 40, 40)
-    discard captmeTestAddShape(f.capture, 80, 10, 40, 40)
-    discard captmeTestAddShape(f.capture, 150, 10, 40, 40)
+    discard testAddShape(f.capture, 10, 10, 40, 40)
+    discard testAddShape(f.capture, 80, 10, 40, 40)
+    discard testAddShape(f.capture, 150, 10, 40, 40)
 
     f.gui.click({30, 30})
     @assert(f.capture.selection.count == 1)
@@ -219,11 +219,11 @@ using Swag, Core
 // popup/menu dispatch path.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
-    discard captmeTestAddText(f.capture, 50, 10, 20, 20)
+    let shape = testAddShape(f.capture, 10, 10, 20, 20)
+    discard testAddText(f.capture, 50, 10, 20, 20)
     f.capture.selection.add(0)
 
     f.gui.clickPopupMenuItemWhenShown(ActionSelection.DeleteSelection)
@@ -243,11 +243,11 @@ using Swag, Core
 // Context menu submenus are driven through real hover/timer popup behavior.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    let a = captmeTestAddShape(f.capture, 10, 30, 20, 20)
-    let b = captmeTestAddShape(f.capture, 50, 70, 20, 20)
+    let a = testAddShape(f.capture, 10, 30, 20, 20)
+    let b = testAddShape(f.capture, 50, 70, 20, 20)
     f.capture.selection.add(0)
     f.capture.selection.add(1)
 
@@ -268,12 +268,12 @@ using Swag, Core
 // The Arrange submenu follows the same popup path and updates z-order/selection.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    let a = captmeTestAddShape(f.capture, 10, 10, 20, 20)
-    let b = captmeTestAddShape(f.capture, 50, 10, 20, 20)
-    let c = captmeTestAddText(f.capture, 90, 10, 20, 20)
+    let a = testAddShape(f.capture, 10, 10, 20, 20)
+    let b = testAddShape(f.capture, 50, 10, 20, 20)
+    let c = testAddText(f.capture, 90, 10, 20, 20)
     f.capture.selection.add(0)
 
     f.gui.openPopupSubMenuWhenShown("Arrange")
@@ -297,14 +297,14 @@ using Swag, Core
 // bubbling, without registering global hotkeys.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
-    captmeTestRegisterLocalEditorShortcuts(f.main)
+    testRegisterLocalEditorShortcuts(f.main)
     f.gui.focus(f.editView)
 
-    let a = captmeTestAddShape(f.capture, 10, 10, 20, 20)
-    discard captmeTestAddText(f.capture, 50, 10, 20, 20)
-    discard captmeTestAddShape(f.capture, 90, 10, 20, 20)
+    let a = testAddShape(f.capture, 10, 10, 20, 20)
+    discard testAddText(f.capture, 50, 10, 20, 20)
+    discard testAddShape(f.capture, 90, 10, 20, 20)
 
     f.gui.shortcut(Input.Key.A, Input.KeyModifiers.Control)
     @assert(f.capture.selection.count == 3)
@@ -334,12 +334,12 @@ using Swag, Core
 // command lookup, not only through direct command ids.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
     f.gui.focus(f.editView)
 
-    let a = captmeTestAddShape(f.capture, 10, 10, 20, 20)
-    discard captmeTestAddText(f.capture, 50, 10, 20, 20)
+    let a = testAddShape(f.capture, 10, 10, 20, 20)
+    discard testAddText(f.capture, 50, 10, 20, 20)
     f.capture.selection.add(0)
 
     f.gui.shortcut(Input.Key.Left, Input.KeyModifiers.Zero)
@@ -366,13 +366,13 @@ using Swag, Core
 // Box-form gizmos resize and rotate through real headless mouse events.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let shape = captmeTestAddShape(f.capture, 20, 30, 40, 30)
+    let shape = testAddShape(f.capture, 20, 30, 40, 30)
     shape.kind = .Rectangle
     f.capture.selection.add(0)
-    captmeTestPrimeGizmo(cast(IForm) shape)
+    testPrimeGizmo(cast(IForm) shape)
 
     f.gui.drag({60, 60}, {85, 80})
     Testing.assertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
@@ -381,7 +381,7 @@ using Swag, Core
     f.capture.undo()
     Testing.assertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
 
-    captmeTestPrimeGizmo(cast(IForm) shape)
+    testPrimeGizmo(cast(IForm) shape)
     f.gui.drag({40, 4}, {95, 45}, modifiers: Input.KeyModifiers.Shift)
     @assert(Math.abs(shape.rotate - 90) < 0.001)
     f.capture.undo()
@@ -394,10 +394,10 @@ using Swag, Core
 // its inner placement rectangle is resized through the same gizmo event path.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let image = captmeTestAddImage(f.capture, 40, 50, 80, 60)
+    let image = testAddImage(f.capture, 40, 50, 80, 60)
     image.kind = .Image
     image.place = .Free
     image.image = Image.create(20, 20, .BGRA8)
@@ -409,7 +409,7 @@ using Swag, Core
     @assert(image.editInside)
     @assert(!image.IForm.canRotate())
 
-    captmeTestPrimeGizmo(cast(IForm) image)
+    testPrimeGizmo(cast(IForm) image)
     f.gui.drag({65, 72}, {75, 82})
 
     Testing.assertRect(image.freePos, 5, 6, 30, 26)
@@ -428,12 +428,12 @@ using Swag, Core
 // normal undo record.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let line = captmeTestAddLine(f.capture, 20, 30, 70, 45)
+    let line = testAddLine(f.capture, 20, 30, 70, 45)
     f.capture.selection.add(0)
-    captmeTestPrimeGizmo(cast(IForm) line)
+    testPrimeGizmo(cast(IForm) line)
 
     f.gui.drag({70, 45}, {95, 80})
     @assert(line.xb == 95)
@@ -451,10 +451,10 @@ using Swag, Core
 // paint pass or OS capture.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    captmeTestPrimeCaptureGizmo(f.capture)
+    testPrimeCaptureGizmo(f.capture)
     f.gui.drag({400, 300}, {430, 320})
 
     @assert(f.capture.width == 430)

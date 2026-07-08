@@ -3,9 +3,9 @@
 
 using Swag, Core, File
 
-func captmeTestPrepareSavedCapture(capture: *Capture)->String
+func testPrepareSavedCapture(capture: *Capture)->String
 {
-    let path = captmeTestTempCapturePath()
+    let path = testTempCapturePath()
     capture.file    = path
     capture.changed = true
 
@@ -15,7 +15,7 @@ func captmeTestPrepareSavedCapture(capture: *Capture)->String
     return path
 }
 
-func captmeTestSamePath(left: string, right: string)->bool
+func testSamePath(left: string, right: string)->bool
 {
     var l = String.from(left)
     var r = String.from(right)
@@ -24,13 +24,13 @@ func captmeTestSamePath(left: string, right: string)->bool
     return Path.equals(l.toString(), r.toString())
 }
 
-func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
+func testHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 {
     foreach md in img.metaDatas
     {
         if md.isTag("Captme.File")
         {
-            if captmeTestSamePath(cast(string) md.toSlice(), captureFile) do
+            if testSamePath(cast(string) md.toSlice(), captureFile) do
                 return true
         }
     }
@@ -38,7 +38,7 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
     return false
 }
 
-func captmeTestPrepareRecentLibrary(main: *MainWnd)
+func testPrepareRecentLibrary(main: *MainWnd)
 {
     catch Library.init()
     @assert(@err == null)
@@ -52,10 +52,10 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // New Image uses its real modal dialog, then creates and persists a new capture.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestPrepareRecentLibrary(f.main)
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
     f.gui.withModalEdit("Width", "48")
@@ -90,10 +90,10 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // New From Clipboard consumes the real image clipboard and creates a persisted capture.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestPrepareRecentLibrary(f.main)
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
 
     Clipboard.addImage(Testing.indexedImage(19, 11))
 
@@ -122,10 +122,10 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Open Image drives the real file dialog, loads a real PNG, then persists a capture.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestPrepareRecentLibrary(f.main)
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
 
     let sourcePath = Testing.tempFilePath("captme-", ".png")
     defer { discard catch File.delete(sourcePath) }
@@ -153,7 +153,7 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(capture.width == 21)
     @assert(capture.height == 13)
     @assert(capture.backImg.isValid())
-    @assert(captmeTestSamePath(capture.linkedImage, sourcePath))
+    @assert(testSamePath(capture.linkedImage, sourcePath))
     @assert(File.exists(generatedPath))
     @assert(f.main.recentWnd.recentView.items.count == 1)
     @assert(f.main.recentWnd.recentView.selected == 0)
@@ -164,15 +164,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Save As Image writes a real PNG that can be loaded back with Captme metadata.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 32
     f.capture.height = 20
     f.capture.backImg = Testing.indexedImage(32, 20)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let pngPath = Testing.tempFilePath("captme-", ".png")
@@ -189,7 +189,7 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(saved.width == 32)
     @assert(saved.height == 20)
     @assert(saved.metaDatas.count > 0)
-    @assert(captmeTestHasCaptmeFileMetadata(saved, capturePath))
+    @assert(testHasCaptmeFileMetadata(saved, capturePath))
 
     f.shutdown()
 }
@@ -197,15 +197,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // The Save As Image command drives the real file dialog before writing the PNG.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 34
     f.capture.height = 22
     f.capture.backImg = Testing.indexedImage(34, 22)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let pngPath = Testing.tempFilePath("captme-", ".png")
@@ -225,7 +225,7 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(saved.isValid())
     @assert(saved.width == 34)
     @assert(saved.height == 22)
-    @assert(captmeTestHasCaptmeFileMetadata(saved, capturePath))
+    @assert(testHasCaptmeFileMetadata(saved, capturePath))
 
     f.shutdown()
 }
@@ -233,15 +233,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Existing file targets exercise the nested overwrite confirmation from FileDlg.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 40
     f.capture.height = 30
     f.capture.backImg = Testing.indexedImage(40, 30)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let pngPath = Testing.tempFilePath("captme-", ".png")
@@ -266,7 +266,7 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(saved.isValid())
     @assert(saved.width == 40)
     @assert(saved.height == 30)
-    @assert(captmeTestHasCaptmeFileMetadata(saved, capturePath))
+    @assert(testHasCaptmeFileMetadata(saved, capturePath))
 
     f.shutdown()
 }
@@ -274,15 +274,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Save As Linked Image persists the linked file association into the capture file.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 28
     f.capture.height = 18
     f.capture.backImg = Testing.indexedImage(28, 18)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
@@ -308,15 +308,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // The linked-image variant uses the same real file dialog and persists the chosen path.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 36
     f.capture.height = 24
     f.capture.backImg = Testing.indexedImage(36, 24)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
@@ -330,14 +330,14 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(File.exists(linkedPath))
-    @assert(captmeTestSamePath(f.capture.linkedImage, linkedPath))
+    @assert(testSamePath(f.capture.linkedImage, linkedPath))
     @assert(f.capture.linkedUpToDate)
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
     defer { Memory.delete(loaded) }
 
-    @assert(captmeTestSamePath(loaded.linkedImage, linkedPath))
+    @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
 
     f.shutdown()
@@ -347,15 +347,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // real PNG output plus capture-file persistence.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 26
     f.capture.height = 16
     f.capture.backImg = Testing.indexedImage(26, 16)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
@@ -376,7 +376,7 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(linked.isValid())
     @assert(linked.width == 26)
     @assert(linked.height == 16)
-    @assert(captmeTestHasCaptmeFileMetadata(linked, capturePath))
+    @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
@@ -391,15 +391,15 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Updating a linked image also works through the real overwrite confirmation dialog.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
     f.capture.width = 38
     f.capture.height = 26
     f.capture.backImg = Testing.indexedImage(38, 26)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
@@ -424,13 +424,13 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
     @assert(linked.isValid())
     @assert(linked.width == 38)
     @assert(linked.height == 26)
-    @assert(captmeTestHasCaptmeFileMetadata(linked, capturePath))
+    @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
     defer { Memory.delete(loaded) }
 
-    @assert(captmeTestSamePath(loaded.linkedImage, linkedPath))
+    @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
 
     f.shutdown()
@@ -439,16 +439,16 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Unlinking an image goes through the confirmation dialog and persists the capture.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
 
     f.capture.width = 24
     f.capture.height = 18
     f.capture.backImg = Testing.indexedImage(24, 18)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
@@ -481,13 +481,13 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Duplicate Capture creates an independent capture file and recent entry.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestPrepareRecentLibrary(f.main)
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
 
-    discard captmeTestAddShape(f.capture, 4, 5, 12, 13)
-    let originalPath = captmeTestPrepareSavedCapture(f.capture)
+    discard testAddShape(f.capture, 4, 5, 12, 13)
+    let originalPath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(originalPath) }
 
     @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
@@ -503,7 +503,7 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
         g_Library.files.clear()
     }
 
-    @assert(!captmeTestSamePath(duplicatedPath, originalPath))
+    @assert(!testSamePath(duplicatedPath, originalPath))
     @assert(File.exists(duplicatedPath))
 
     let duplicated = catch Capture.load(duplicatedPath)
@@ -519,12 +519,12 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // Delete Capture confirms through the real modal and removes the selected capture file.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestPrepareRecentLibrary(f.main)
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     g_Library.addFile(capturePath)
 
     let loaded = catch f.main.recentWnd.addRecent(capturePath, true, true)
@@ -549,11 +549,11 @@ func captmeTestPrepareRecentLibrary(main: *MainWnd)
 // from disk; the headless modal helper closes it through the normal OK button.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
+    testRegisterIoActions(f.main)
 
-    let capturePath = captmeTestPrepareSavedCapture(f.capture)
+    let capturePath = testPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnOk)

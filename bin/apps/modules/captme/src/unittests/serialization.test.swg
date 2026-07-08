@@ -6,7 +6,7 @@ using Swag, Core
 // Capture save/load round-trips every concrete form type and its regression-sensitive fields.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.capture.width = 64
@@ -16,17 +16,17 @@ using Swag, Core
     f.capture.backImg = Image.create(64, 48, .BGRA8)
     f.capture.backImg.fill(ColorBlue)
 
-    let shape = captmeTestAddShape(f.capture, 1, 2, 10, 11, .Highlight)
+    let shape = testAddShape(f.capture, 1, 2, 10, 11, .Highlight)
     shape.kind = .RoundRectangle
     shape.roundSize = 18
 
-    let line = captmeTestAddLine(f.capture, 3, 4, 20, 21, .PixSel)
+    let line = testAddLine(f.capture, 3, 4, 20, 21, .PixSel)
     line.bezier = true
     line.xc = 6
     line.yc = 7
     line.paintShadow = false
 
-    let arrow = captmeTestAddArrow(f.capture, 5, 6, 30, 31)
+    let arrow = testAddArrow(f.capture, 5, 6, 30, 31)
     arrow.endSize = 9
 
     var points: Array'Math.Vector2
@@ -34,32 +34,32 @@ using Swag, Core
     points.add({22, 8})
     points.add({18, 25})
 
-    let polygon = captmeTestAddPolygon(f.capture, points.toSlice(), .Highlight)
+    let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
     polygon.bezier = true
     polygon.paintShadow = false
 
-    let draw = captmeTestAddDraw(f.capture, points.toSlice(), .PixSel)
+    let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
     draw.paintShadow = false
 
-    let text = captmeTestAddText(f.capture, 9, 10, 30, 12)
+    let text = testAddText(f.capture, 9, 10, 30, 12)
     text.text = "roundtrip"
     text.fontSize = 32
     text.alignHorz = .RightBottom
     text.alignVert = .LeftTop
 
-    let step = captmeTestAddStep(f.capture, 11, 12, 20, 20)
+    let step = testAddStep(f.capture, 11, 12, 20, 20)
     step.index = 5
     step.kind = .Rectangle
     step.typeIndex = .LetterUp
 
-    let image = captmeTestAddImage(f.capture, 13, 14, 16, 17)
+    let image = testAddImage(f.capture, 13, 14, 16, 17)
     image.kind = .Image
     image.place = .Free
     image.freePos = {2, 3, 8, 9}
     image.image = Image.create(4, 3, .BGRA8)
     image.image.fill(ColorYellow)
 
-    let path = captmeTestTempCapturePath()
+    let path = testTempCapturePath()
     defer { discard catch File.delete(path) }
     f.capture.file = path
     f.capture.changed = true
@@ -129,16 +129,16 @@ using Swag, Core
 // Preview loading ignores heavy images while preserving form metadata.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.capture.width = 32
     f.capture.height = 32
     f.capture.backImg = Image.create(32, 32, .BGRA8)
     f.capture.backImg.fill(ColorRed)
-    discard captmeTestAddShape(f.capture, 2, 3, 4, 5)
+    discard testAddShape(f.capture, 2, 3, 4, 5)
 
-    let path = captmeTestTempCapturePath()
+    let path = testTempCapturePath()
     defer { discard catch File.delete(path) }
     f.capture.file = path
     f.capture.changed = true

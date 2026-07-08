@@ -3,13 +3,13 @@
 
 using Swag, Core
 
-struct CaptmeTextPaintTransform
+struct TextPaintTransform
 {
     tr:       Math.Transform2
     found:    bool
 }
 
-func captmeTestTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->CaptmeTextPaintTransform
+func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextPaintTransform
 {
     var result: retval
 
@@ -42,7 +42,7 @@ func captmeTestTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)-
     return result
 }
 
-func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, scale: f32)
+func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     @assert(base.found and scaled.found)
     @assert(Math.abs(base.tr.m11 - scaled.tr.m11 / scale) < 0.001)
@@ -54,10 +54,10 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Rectangle-like forms normalize negative sizes and keep their base geometry coherent.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let shape = captmeTestAddShape(f.capture, 10, 20, 30, 40)
+    let shape = testAddShape(f.capture, 10, 20, 30, 40)
     shape.IForm.setBaseForm(80, 90, -20, -30)
     Testing.assertRect(shape.IForm.boundRect(), 60, 60, 20, 30)
 
@@ -83,10 +83,10 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Text supersampling must only increase raster resolution, never logical layout.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let text = captmeTestAddText(f.capture, 20, 30, 180, 90)
+    let text = testAddText(f.capture, 20, 30, 180, 90)
     text.text        = "780"
     text.fontSize    = 48
     text.borderSize  = 7
@@ -94,9 +94,9 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     text.backColor   = Argb.Black
     text.borderColor = Argb.White
 
-    let base   = captmeTestTextPaintTransform(text, 17, -9, 1, 1)
-    let scaled = captmeTestTextPaintTransform(text, 17, -9, 1, 3)
-    captmeTestAssertScaledTransform(base, scaled, 3)
+    let base   = testTextPaintTransform(text, 17, -9, 1, 1)
+    let scaled = testTextPaintTransform(text, 17, -9, 1, 3)
+    testAssertScaledTransform(base, scaled, 3)
 
     f.shutdown()
 }
@@ -104,10 +104,10 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Text, image and step forms expose the expected non-painting interaction contracts.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let text = captmeTestAddText(f.capture, 20, 30, 120, 50)
+    let text = testAddText(f.capture, 20, 30, 120, 50)
     @assert(text.IForm.mustClipToBound())
     @assert(text.IForm.canRotate())
     @assert(text.IForm.hitTest({30, 40}, 1))
@@ -115,7 +115,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     text.subKind = .Highlight
     @assert(!text.IForm.canRotate())
 
-    let image = captmeTestAddImage(f.capture, 40, 50, 80, 90)
+    let image = testAddImage(f.capture, 40, 50, 80, 90)
     @assert(image.IForm.canRotate())
     @assert(image.IForm.hitTest({50, 60}, 1))
     @assert(!image.IForm.hitTest({5, 5}, 1))
@@ -128,11 +128,11 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     image.IForm.moveBaseForm(7, 8, 9, 10)
     Testing.assertRect(image.freePos, 10, 12, 19, 30)
 
-    let step = captmeTestAddStep(f.capture, 0, 0, 10, 10)
+    let step = testAddStep(f.capture, 0, 0, 10, 10)
     step.ws = 30
     step.hs = 40
     f.capture.nextStepIndex = 7
-    var evt = captmeTestMouse(.MouseMove)
+    var evt = testMouse(.MouseMove)
     @assert(!step.IForm.edit(&evt, {100, 90}, {120, 110}, 1))
     Testing.assertRect(step.IForm.boundRect(), 85, 70, 30, 40)
     @assert(step.index == 7)
@@ -145,10 +145,10 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Line-like forms keep endpoint, control-point and bound-rect state consistent.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let line = captmeTestAddLine(f.capture, 10, 60, 40, 20)
+    let line = testAddLine(f.capture, 10, 60, 40, 20)
     Testing.assertRect(line.IForm.boundRect(), 10, 20, 30, 40)
 
     line.IForm.movePoint(0, 5, -10)
@@ -166,7 +166,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     let br1 = line.IForm.boundRect()
     @assert(br0 == br1)
 
-    let arrow = captmeTestAddArrow(f.capture, 100, 120, 140, 150)
+    let arrow = testAddArrow(f.capture, 100, 120, 140, 150)
     arrow.IForm.moveBaseForm(-10, 5, 0, 0)
     @assert(arrow.xa == 90)
     @assert(arrow.ya == 125)
@@ -179,14 +179,14 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Polygon and draw forms share point-list movement, scaling and inside tests.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     var polyPoints: Array'Math.Vector2
     polyPoints.add({10, 10})
     polyPoints.add({60, 10})
     polyPoints.add({40, 50})
-    let polygon = captmeTestAddPolygon(f.capture, polyPoints.toSlice())
+    let polygon = testAddPolygon(f.capture, polyPoints.toSlice())
     Testing.assertRect(polygon.IForm.boundRect(), 10, 10, 50, 40)
     @assert(polygon.IForm.isInside({35, 20}))
     @assert(!polygon.IForm.isInside({5, 5}))
@@ -202,7 +202,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     drawPoints.add({100, 100})
     drawPoints.add({120, 110})
     drawPoints.add({130, 140})
-    let draw = captmeTestAddDraw(f.capture, drawPoints.toSlice())
+    let draw = testAddDraw(f.capture, drawPoints.toSlice())
     draw.borderSize = 10
     Testing.assertRect(draw.IForm.boundRect(), 95, 95, 40, 50)
     @assert(draw.IForm.isInside({118, 112}))
@@ -218,17 +218,17 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Form edit methods produce deterministic geometry and completion flags.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let shape = captmeTestAddShape(f.capture, 0, 0, 1, 1)
-    var moveEvt = captmeTestMouse(.MouseMove)
+    let shape = testAddShape(f.capture, 0, 0, 1, 1)
+    var moveEvt = testMouse(.MouseMove)
     @assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
     Testing.assertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
-    var releaseEvt = captmeTestMouse(.MouseReleased)
+    var releaseEvt = testMouse(.MouseReleased)
     @assert(!shape.IForm.edit(&releaseEvt, {80, 70}, {50, 20}, 1))
 
-    let line = captmeTestAddLine(f.capture, 0, 0, 1, 1)
+    let line = testAddLine(f.capture, 0, 0, 1, 1)
     @assert(line.IForm.edit(&moveEvt, {10, 20}, {70, 90}, 2))
     @assert(line.xa == 5)
     @assert(line.ya == 10)
@@ -236,7 +236,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     @assert(line.yb == 45)
     @assert(!line.IForm.edit(&releaseEvt, {10, 20}, {70, 90}, 2))
 
-    let image = captmeTestAddImage(f.capture, 0, 0, 1, 1)
+    let image = testAddImage(f.capture, 0, 0, 1, 1)
     @assert(image.IForm.edit(&moveEvt, {20, 30}, {60, 100}, 1))
     @assert(!image.isReadyToCapture)
     @assert(!image.IForm.edit(&releaseEvt, {20, 30}, {60, 100}, 1))
@@ -248,15 +248,15 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Point-list edit methods add, update and finish without relying on painting.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    var moveEvt = captmeTestMouse(.MouseMove)
-    var releaseEvt = captmeTestMouse(.MouseReleased)
-    var doubleEvt = captmeTestMouse(.MouseDoubleClick)
+    var moveEvt = testMouse(.MouseMove)
+    var releaseEvt = testMouse(.MouseReleased)
+    var doubleEvt = testMouse(.MouseDoubleClick)
 
     var emptyPoints: Array'Math.Vector2
-    let polygon = captmeTestAddPolygon(f.capture, emptyPoints.toSlice())
+    let polygon = testAddPolygon(f.capture, emptyPoints.toSlice())
     @assert(polygon.IForm.edit(&moveEvt, {10, 10}, {20, 20}, 1))
     @assert(polygon.points.count == 2)
     Testing.assertPoint(polygon.points[0], 10, 10)
@@ -267,7 +267,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     @assert(!polygon.IForm.edit(&doubleEvt, {10, 10}, {40, 50}, 1))
     @assert(polygon.points.count == 3)
 
-    let draw = captmeTestAddDraw(f.capture, emptyPoints.toSlice())
+    let draw = testAddDraw(f.capture, emptyPoints.toSlice())
     @assert(draw.IForm.edit(&moveEvt, {5, 5}, {8, 8}, 1))
     @assert(draw.points.count == 2)
     @assert(draw.IForm.edit(&moveEvt, {5, 5}, {14, 8}, 1))
@@ -282,10 +282,10 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
 // Copy/isSame covers every concrete form family and the regression-sensitive subKind fields.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let shape = captmeTestAddShape(f.capture, 1, 2, 30, 40, .Highlight)
+    let shape = testAddShape(f.capture, 1, 2, 30, 40, .Highlight)
     shape.kind = .RoundRectangle
     shape.roundSize = 25
     var shapeCopy: FormShape
@@ -295,7 +295,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     shapeCopy.roundSize += 1
     @assert(!shape.IForm.isSame(&shapeCopy))
 
-    let text = captmeTestAddText(f.capture, 0, 0, 50, 60)
+    let text = testAddText(f.capture, 0, 0, 50, 60)
     text.fontSize = 34
     text.boldSize = 2
     text.joinStyle = .Bevel
@@ -305,7 +305,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     textCopy.fontSize += 1
     @assert(!text.IForm.isSame(&textCopy))
 
-    let step = captmeTestAddStep(f.capture, 0, 0, 20, 30)
+    let step = testAddStep(f.capture, 0, 0, 20, 30)
     step.kind = .RoundRectangle
     step.typeIndex = .LetterDown
     step.ws = 36
@@ -318,7 +318,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     stepCopy.typeIndex = .LetterUp
     @assert(!step.IForm.isSame(&stepCopy))
 
-    let line = captmeTestAddLine(f.capture, 0, 0, 10, 10, .PixSel)
+    let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
     line.dashCap = .Round
     line.bezier = true
     line.paintShadow = false
@@ -335,7 +335,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     points.add({20, 1})
     points.add({10, 20})
 
-    let polygon = captmeTestAddPolygon(f.capture, points.toSlice(), .Highlight)
+    let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
     polygon.paintShadow = false
     polygon.bezier = true
     var polygonCopy: FormPolygon
@@ -346,7 +346,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     polygonCopy.subKind = .PixSel
     @assert(!polygon.IForm.isSame(&polygonCopy))
 
-    let draw = captmeTestAddDraw(f.capture, points.toSlice(), .PixSel)
+    let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
     draw.paintShadow = false
     var drawCopy: FormDraw
     draw.IForm.copy(&drawCopy, draw)
@@ -356,7 +356,7 @@ func captmeTestAssertScaledTransform(base, scaled: CaptmeTextPaintTransform, sca
     drawCopy.paintShadow = true
     @assert(!draw.IForm.isSame(&drawCopy))
 
-    let image = captmeTestAddImage(f.capture, 0, 0, 40, 50)
+    let image = testAddImage(f.capture, 0, 0, 40, 50)
     image.kind = .Image
     image.strength = 77
     image.backColor = ColorRed

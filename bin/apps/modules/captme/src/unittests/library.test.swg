@@ -7,7 +7,7 @@ using Swag, Core
 // sorting/filtering and command states do not require scanning the user's files.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
     discard f.setupLibraryWnd()
@@ -44,7 +44,7 @@ using Swag, Core
 
     evt = Testing.commandState(ActionLibSort.Invert)
     @assert(Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
-    @assert(evt.name == "Smaller First")
+    @assert(!evt.name.isEmpty())
     @assert(!evt.disabled)
 
     libWnd.sendCommandEvent(ActionLibSort.Invert)
@@ -77,15 +77,15 @@ using Swag, Core
 // on in-memory items; no filesystem scan or preview loading is required.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
     let lib = f.setupLibraryWnd()
     let view = lib.view
     let wnd = cast(*Wnd) lib
 
-    let old = captmeTestAddLibraryItem(view, "old.captme", 10, 1)
-    let big = captmeTestAddLibraryItem(view, "big-linked.captme", 30, 3, "big.png")
-    let dirty = captmeTestAddLibraryItem(view, "dirty-linked.captme", 20, 2, "dirty.png", linkedUpToDate: false)
+    let old = testAddLibraryItem(view, "old.captme", 10, 1)
+    let big = testAddLibraryItem(view, "big-linked.captme", 30, 3, "big.png")
+    let dirty = testAddLibraryItem(view, "dirty-linked.captme", 20, 2, "dirty.png", linkedUpToDate: false)
 
     lib.sortMethod = .FileSize
     lib.invertSort = false

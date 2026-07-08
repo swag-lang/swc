@@ -7,7 +7,7 @@ using Swag, Core
 // remain undoable through the normal action path.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 4
@@ -35,7 +35,7 @@ using Swag, Core
 // through serial undo groups.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 30
@@ -96,7 +96,7 @@ using Swag, Core
 // filesystem interaction is involved.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 30
@@ -141,7 +141,7 @@ using Swag, Core
 // bitmap; the capture canvas dimensions stay unchanged.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 30
@@ -184,7 +184,7 @@ using Swag, Core
 // removes out-of-canvas forms, crops the backing image and can be undone.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 100
@@ -192,8 +192,8 @@ using Swag, Core
     f.capture.backImg = Image.create(100, 80, .BGRA8)
     f.capture.backImg.fill(Argb.Zero)
 
-    let inside = captmeTestAddShape(f.capture, 10, 15, 30, 25)
-    discard captmeTestAddShape(f.capture, 150, 150, 20, 20)
+    let inside = testAddShape(f.capture, 10, 15, 30, 25)
+    discard testAddShape(f.capture, 150, 150, 20, 20)
 
     f.main.sendCommandEvent(ActionImage.TrimCapture)
     @assert(f.capture.forms.count == 1)

@@ -3,13 +3,13 @@
 
 using Swag, Core
 
-func captmeTestSetClipboardImage(width, height: s32)
+func testSetClipboardImage(width, height: s32)
 {
     Clipboard.addImage(Testing.indexedImage(width, height))
     @assert(Clipboard.hasImage())
 }
 
-func captmeTestResetClipboardToImage()
+func testResetClipboardToImage()
 {
     var img = Image.create(1, 1, .BGRA8)
     img.clear()
@@ -20,12 +20,12 @@ func captmeTestResetClipboardToImage()
 // keep the capture undoable after the selected form is removed.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestResetClipboardToImage()
+    testRegisterIoActions(f.main)
+    testResetClipboardToImage()
 
-    let shape = captmeTestAddShape(f.capture, 10, 20, 30, 40)
+    let shape = testAddShape(f.capture, 10, 20, 30, 40)
     shape.kind = .Rectangle
     f.capture.selection.add(0)
     @assert(@kindof(f.capture.forms[0]) == FormShape)
@@ -64,12 +64,12 @@ func captmeTestResetClipboardToImage()
 // the normal CreateForm undo command.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestResetClipboardToImage()
+    testRegisterIoActions(f.main)
+    testResetClipboardToImage()
 
-    let shape = captmeTestAddShape(f.capture, 12, 14, 20, 18)
+    let shape = testAddShape(f.capture, 12, 14, 20, 18)
     shape.kind = .RoundRectangle
     f.capture.selection.add(0)
     f.main.sendCommandEvent(ActionCopyPaste.Copy)
@@ -97,10 +97,10 @@ func captmeTestResetClipboardToImage()
 // targets: a new image form, then replacing the inside image of an existing one.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-    captmeTestRegisterIoActions(f.main)
-    captmeTestResetClipboardToImage()
+    testRegisterIoActions(f.main)
+    testResetClipboardToImage()
 
     f.capture.width = 40
     f.capture.height = 24
@@ -112,7 +112,7 @@ func captmeTestResetClipboardToImage()
     @assert(copiedImage.width == 40)
     @assert(copiedImage.height == 24)
 
-    captmeTestSetClipboardImage(11, 7)
+    testSetClipboardImage(11, 7)
     f.capture.paintRect = {0, 0, f.capture.width, f.capture.height}
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
@@ -127,12 +127,12 @@ func captmeTestResetClipboardToImage()
     f.capture.undo()
     @assert(f.capture.forms.count == 0)
 
-    let target = captmeTestAddImage(f.capture, 3, 4, 12, 10)
+    let target = testAddImage(f.capture, 3, 4, 12, 10)
     target.kind = .Image
     target.image = Testing.indexedImage(2, 2)
     f.capture.selection.add(0)
 
-    captmeTestSetClipboardImage(6, 5)
+    testSetClipboardImage(6, 5)
     f.main.sendCommandEvent(ActionCopyPaste.PasteImageInside)
     @assert(target.image.width == 6)
     @assert(target.image.height == 5)

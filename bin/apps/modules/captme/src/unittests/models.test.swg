@@ -6,10 +6,10 @@ using Swag, Core
 // Selection/model synchronization keeps normal, highlight and pixel-selection modes distinct.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let shape = captmeTestAddShape(f.capture, 10, 10, 40, 30, .Highlight)
+    let shape = testAddShape(f.capture, 10, 10, 40, 30, .Highlight)
     shape.kind = .Rectangle
     shape.alpha = 35
     f.main.updateModel(cast(IForm) shape)
@@ -23,7 +23,7 @@ using Swag, Core
     @assert(@kindof(f.main.editModeToModel(.Highlight)) == FormShape)
 
     var emptyPoints: Array'Math.Vector2
-    let draw = captmeTestAddDraw(f.capture, emptyPoints.toSlice())
+    let draw = testAddDraw(f.capture, emptyPoints.toSlice())
     draw.subKind = .PixSel
     draw.paintShadow = false
     f.main.updateModel(cast(IForm) draw)
@@ -42,44 +42,44 @@ using Swag, Core
 // newFormFromModel clones every standard model and clears point/image payloads when requested.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
     f.main.mdlFormShape.kind = .RoundRectangle
     let shape = f.main.newFormFromModel(.Shape)
     @assert(@kindof(shape) == FormShape)
     @assert((cast(*FormShape) @dataof(shape)).kind == .RoundRectangle)
-    captmeTestDeleteForm(shape)
+    testDeleteForm(shape)
 
     f.main.mdlFormLine.borderSize = 9
     let line = f.main.newFormFromModel(.Line)
     @assert(@kindof(line) == FormLine)
     @assert((cast(*FormLine) @dataof(line)).borderSize == 9)
-    captmeTestDeleteForm(line)
+    testDeleteForm(line)
 
     f.main.mdlFormArrow.endSize = 8
     let arrow = f.main.newFormFromModel(.Arrow)
     @assert(@kindof(arrow) == FormArrow)
     @assert((cast(*FormArrow) @dataof(arrow)).endSize == 8)
-    captmeTestDeleteForm(arrow)
+    testDeleteForm(arrow)
 
     f.main.mdlFormPolygon.points.add({1, 1})
     let polygon = f.main.newFormFromModel(.Polygon, clear: true)
     @assert(@kindof(polygon) == FormPolygon)
     @assert((cast(*FormPolygon) @dataof(polygon)).points.count == 0)
-    captmeTestDeleteForm(polygon)
+    testDeleteForm(polygon)
 
     f.main.mdlFormDraw.points.add({1, 1})
     let draw = f.main.newFormFromModel(.Draw, clear: true)
     @assert(@kindof(draw) == FormDraw)
     @assert((cast(*FormDraw) @dataof(draw)).points.count == 0)
-    captmeTestDeleteForm(draw)
+    testDeleteForm(draw)
 
     f.main.mdlFormText.fontSize = 72
     let text = f.main.newFormFromModel(.Text)
     @assert(@kindof(text) == FormText)
     @assert((cast(*FormText) @dataof(text)).fontSize == 72)
-    captmeTestDeleteForm(text)
+    testDeleteForm(text)
 
     f.main.mdlFormStep.ws = 33
     f.main.mdlFormStep.hs = 44
@@ -87,14 +87,14 @@ using Swag, Core
     @assert(@kindof(step) == FormStep)
     @assert((cast(*FormStep) @dataof(step)).ws == 33)
     @assert((cast(*FormStep) @dataof(step)).hs == 44)
-    captmeTestDeleteForm(step)
+    testDeleteForm(step)
 
     f.main.mdlFormImage.kind = .Pixelate
     let image = f.main.newFormFromModel(.Image, clear: true)
     @assert(@kindof(image) == FormImage)
     @assert((cast(*FormImage) @dataof(image)).kind == .Pixelate)
     @assert(!(cast(*FormImage) @dataof(image)).image.isValid())
-    captmeTestDeleteForm(image)
+    testDeleteForm(image)
 
     f.shutdown()
 }

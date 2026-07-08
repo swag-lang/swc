@@ -1,7 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-struct CaptmeHeadlessFixture
+struct HeadlessFixture
 {
     gui:      Testing.HeadlessHost
     main:     *MainWnd
@@ -9,7 +9,7 @@ struct CaptmeHeadlessFixture
     capture:  *Capture
 }
 
-impl CaptmeHeadlessFixture
+impl HeadlessFixture
 {
     mtd setup(width = 900.0, height = 700.0, registerHeadlessCommands = false)
     {
@@ -39,7 +39,7 @@ impl CaptmeHeadlessFixture
 
     mtd registerHeadlessCommands()
     {
-        captmeTestRegisterHeadlessCommands(.main)
+        testRegisterHeadlessCommands(.main)
     }
 
     mtd setupLibraryWnd()->*LibraryWnd
@@ -65,14 +65,14 @@ impl CaptmeHeadlessFixture
     }
 }
 
-func captmeTestMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEvent
+func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEvent
 {
     var evt  = MouseEvent{kind: kind}
     evt.button = button
     return evt
 }
 
-func captmeTestAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape
+func testAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape
 {
     let form = Memory.new'FormShape()
     form.IForm.setup(capture)
@@ -82,7 +82,7 @@ func captmeTestAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f
     return form
 }
 
-func captmeTestAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormText
+func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormText
 {
     let form = Memory.new'FormText()
     form.IForm.setup(capture)
@@ -91,7 +91,7 @@ func captmeTestAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f3
     return form
 }
 
-func captmeTestAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormStep
+func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormStep
 {
     let form = Memory.new'FormStep()
     form.IForm.setup(capture)
@@ -100,7 +100,7 @@ func captmeTestAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f3
     return form
 }
 
-func captmeTestAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormLine
+func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormLine
 {
     let form = Memory.new'FormLine()
     form.IForm.setup(capture)
@@ -110,7 +110,7 @@ func captmeTestAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, su
     return form
 }
 
-func captmeTestAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormArrow
+func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormArrow
 {
     let form = Memory.new'FormArrow()
     form.IForm.setup(capture)
@@ -120,7 +120,7 @@ func captmeTestAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, s
     return form
 }
 
-func captmeTestAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormPolygon
+func testAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormPolygon
 {
     let form = Memory.new'FormPolygon()
     form.IForm.setup(capture)
@@ -131,7 +131,7 @@ func captmeTestAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind 
     return form
 }
 
-func captmeTestAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormDraw
+func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormDraw
 {
     let form = Memory.new'FormDraw()
     form.IForm.setup(capture)
@@ -142,7 +142,7 @@ func captmeTestAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = F
     return form
 }
 
-func captmeTestAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormImage
+func testAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormImage
 {
     let form = Memory.new'FormImage()
     form.IForm.setup(capture)
@@ -151,17 +151,17 @@ func captmeTestAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f
     return form
 }
 
-func captmeTestDeleteForm(itf: IForm)
+func testDeleteForm(itf: IForm)
 {
     Memory.delete(@dataof(itf), @kindof(itf))
 }
 
-func captmeTestTempCapturePath()->String
+func testTempCapturePath()->String
 {
     return Testing.tempFilePath("captme-", ".captme")
 }
 
-func captmeTestPrimeGizmo(form: IForm, z: f32 = 1)
+func testPrimeGizmo(form: IForm, z: f32 = 1)
 {
     var painter: Painter{fake: true}
     painter.begin()
@@ -169,7 +169,7 @@ func captmeTestPrimeGizmo(form: IForm, z: f32 = 1)
     painter.end()
 }
 
-func captmeTestPrimeCaptureGizmo(capture: *Capture)
+func testPrimeCaptureGizmo(capture: *Capture)
 {
     capture.gizmo.rect = {0, 0, capture.width, capture.height}
 
@@ -179,7 +179,7 @@ func captmeTestPrimeCaptureGizmo(capture: *Capture)
     painter.end()
 }
 
-func captmeTestRegisterHeadlessActions(main: *MainWnd)
+func testRegisterHeadlessActions(main: *MainWnd)
 {
     main.registerAction'ActionSelection()
     main.registerAction'ActionMoveSel()
@@ -197,7 +197,7 @@ func captmeTestRegisterHeadlessActions(main: *MainWnd)
     main.registerAction'ActionRecentSize()
 }
 
-func captmeTestRegisterHeadlessShortcuts(main: *MainWnd)
+func testRegisterHeadlessShortcuts(main: *MainWnd)
 {
     main.registerKeyShortcut(.Control, .A, ActionSelection.SelectAll)
     main.registerKeyShortcut(.Control, .D, ActionSelection.DeSelectAll)
@@ -223,35 +223,35 @@ func captmeTestRegisterHeadlessShortcuts(main: *MainWnd)
     main.registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
 }
 
-func captmeTestRegisterHeadlessCommands(main: *MainWnd)
+func testRegisterHeadlessCommands(main: *MainWnd)
 {
-    captmeTestRegisterHeadlessActions(main)
-    captmeTestRegisterHeadlessShortcuts(main)
+    testRegisterHeadlessActions(main)
+    testRegisterHeadlessShortcuts(main)
 }
 
-func captmeTestRegisterIoActions(main: *MainWnd)
+func testRegisterIoActions(main: *MainWnd)
 {
     main.registerAction'ActionCopyPaste()
     main.registerAction'ActionFile()
     main.registerAction'ActionCapture()
 }
 
-func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
+func testRegisterLocalEditorShortcuts(main: *MainWnd)
 {
-    captmeTestRegisterHeadlessCommands(main)
+    testRegisterHeadlessCommands(main)
 }
 
-func captmeTestDate(day: u16)->Time.DateTime
+func testDate(day: u16)->Time.DateTime
 {
     return {year: 2026, month: 1, day: day}
 }
 
-func captmeTestAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, linked: string = null, linkedUpToDate = true)->*LibraryItem
+func testAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, linked: string = null, linkedUpToDate = true)->*LibraryItem
 {
     let it = view.allItems.addNewPtr()
     it.fi.fullname = name
     it.fi.size = size
-    it.fi.lastWriteTime = captmeTestDate(day)
+    it.fi.lastWriteTime = testDate(day)
     it.visible = true
     it.rect = {cast(f32) view.items.count * 60, 0, 50, 50}
 

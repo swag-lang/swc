@@ -6,12 +6,12 @@ using Swag, Core
 // Selection commands cover all, same type, invert and deselect behavior.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    discard captmeTestAddShape(f.capture, 10, 10, 10, 10)
-    discard captmeTestAddText(f.capture, 30, 10, 10, 10)
-    discard captmeTestAddShape(f.capture, 50, 10, 10, 10)
+    discard testAddShape(f.capture, 10, 10, 10, 10)
+    discard testAddText(f.capture, 30, 10, 10, 10)
+    discard testAddShape(f.capture, 50, 10, 10, 10)
 
     f.main.sendCommandEvent(ActionSelection.SelectAll)
     @assert(f.capture.selection.count == 3)
@@ -40,11 +40,11 @@ using Swag, Core
 // Alignment undo stores the correct axis for every horizontal and vertical variant.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let a = captmeTestAddShape(f.capture, 20, 50, 20, 20)
-    let b = captmeTestAddShape(f.capture, 80, 10, 40, 60)
+    let a = testAddShape(f.capture, 20, 50, 20, 20)
+    let b = testAddShape(f.capture, 80, 10, 40, 60)
     f.capture.selection.add(0)
     f.capture.selection.add(1)
 
@@ -96,12 +96,12 @@ using Swag, Core
 // Arrange commands reorder forms and restore both order and selection on undo.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let a = captmeTestAddShape(f.capture, 0, 0, 10, 10)
-    let b = captmeTestAddShape(f.capture, 20, 0, 10, 10)
-    let c = captmeTestAddText(f.capture, 40, 0, 10, 10)
+    let a = testAddShape(f.capture, 0, 0, 10, 10)
+    let b = testAddShape(f.capture, 20, 0, 10, 10)
+    let c = testAddText(f.capture, 40, 0, 10, 10)
 
     f.capture.selection.add(0)
     f.capture.pushUndo(f.capture.newUndo(.MoveToFront))
@@ -145,11 +145,11 @@ using Swag, Core
 // Offset commands group by serial, undo/redo together and truncate redo after a new edit.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let a = captmeTestAddShape(f.capture, 10, 10, 10, 10)
-    let b = captmeTestAddShape(f.capture, 30, 30, 10, 10)
+    let a = testAddShape(f.capture, 10, 10, 10, 10)
+    let b = testAddShape(f.capture, 30, 30, 10, 10)
     f.capture.selection.add(0)
     f.capture.selection.add(1)
 
@@ -197,11 +197,11 @@ using Swag, Core
 // Create and delete selection undo records own form lifetime and selection state.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let a = captmeTestAddShape(f.capture, 0, 0, 10, 10)
-    discard captmeTestAddText(f.capture, 20, 0, 10, 10)
+    let a = testAddShape(f.capture, 0, 0, 10, 10)
+    discard testAddText(f.capture, 20, 0, 10, 10)
     f.capture.selection.add(0)
 
     f.capture.pushUndo(f.capture.newUndo(.DeleteSelection))
@@ -238,11 +238,11 @@ using Swag, Core
 // MoveBaseForm, MovePoint and MoveCapture undo records cover geometry edits beyond selection moves.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let shape = captmeTestAddShape(f.capture, 10, 20, 30, 40)
-    let line = captmeTestAddLine(f.capture, 100, 120, 150, 170)
+    let shape = testAddShape(f.capture, 10, 20, 30, 40)
+    let line = testAddLine(f.capture, 100, 120, 150, 170)
 
     var moveBase = f.capture.newUndo(.MoveBaseForm)
     moveBase.baseForm = cast(IForm) shape
@@ -294,16 +294,16 @@ using Swag, Core
 // Text, font, rotation and style-model undo records restore user-editable form state.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    let text = captmeTestAddText(f.capture, 0, 0, 120, 60)
+    let text = testAddText(f.capture, 0, 0, 120, 60)
     text.text = "before"
     text.fontName = "font-a"
     text.fontStyle = .Regular
     text.rotate = 45
 
-    let shape = captmeTestAddShape(f.capture, 150, 0, 50, 50)
+    let shape = testAddShape(f.capture, 150, 0, 50, 50)
     shape.borderSize = 3
     shape.rotate = 30
 
@@ -365,11 +365,11 @@ using Swag, Core
 // Snap computes x/y offsets against capture bounds and neighboring form edges.
 #test
 {
-    var f: CaptmeHeadlessFixture
+    var f: HeadlessFixture
     f.setup()
 
-    discard captmeTestAddShape(f.capture, 20, 20, 40, 40)
-    let moving = captmeTestAddShape(f.capture, 100, 100, 20, 20)
+    discard testAddShape(f.capture, 20, 20, 40, 40)
+    let moving = testAddShape(f.capture, 100, 100, 20, 20)
     f.capture.selection.add(1)
     f.main.snap = true
 

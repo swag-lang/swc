@@ -14,6 +14,31 @@ using Swag, Core
     @assert(!act.accept({null, ActionZoom.ZoomFit}))
 }
 
+// The headless fixture can register safe commands and drive them through the
+// same command dispatch path as menus, buttons and shortcuts.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    discard captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    discard captmeTestAddText(f.capture, 50, 10, 20, 20)
+
+    f.main.sendCommandEvent(ActionSelection.SelectAll)
+    @assert(f.capture.selection.count == 2)
+
+    f.main.sendCommandEvent(ActionSelection.DeSelectAll)
+    @assert(f.capture.selection.count == 0)
+
+    f.main.sendCommandEvent(ActionToolMode.Text)
+    @assert(f.main.editMode == .Text)
+
+    f.main.sendCommandEvent(ActionView.Clip)
+    @assert(f.main.editorOptions.clipToSelection)
+
+    f.shutdown()
+}
+
 // Tool-mode actions update checked state and switch every safe editor mode.
 #test
 {

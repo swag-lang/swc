@@ -11,7 +11,7 @@ struct CaptmeHeadlessFixture
 
 impl CaptmeHeadlessFixture
 {
-    mtd setup(width = 900.0, height = 700.0)
+    mtd setup(width = 900.0, height = 700.0, registerHeadlessCommands = false)
     {
         .gui.setup(width, height)
         g_App.renderer.setupHeadless()
@@ -39,6 +39,14 @@ impl CaptmeHeadlessFixture
         localCapture.backImg = Image.create(400, 300, .BGRA8)
         .editView.setCapture(localCapture)
         .capture         = localCapture
+
+        if registerHeadlessCommands do
+            .registerHeadlessCommands()
+    }
+
+    mtd registerHeadlessCommands()
+    {
+        captmeTestRegisterHeadlessCommands(.main)
     }
 
     mtd setupLibraryWnd()->*LibraryWnd
@@ -243,14 +251,26 @@ func captmeTestPrimeCaptureGizmo(capture: *Capture)
     painter.end()
 }
 
-func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
+func captmeTestRegisterHeadlessActions(main: *MainWnd)
 {
     main.registerAction'ActionSelection()
     main.registerAction'ActionMoveSel()
     main.registerAction'ActionAlign()
     main.registerAction'ActionUndo()
     main.registerAction'ActionZoom()
+    main.registerAction'ActionPixSel()
+    main.registerAction'ActionToolMode()
+    main.registerAction'ActionImage()
+    main.registerAction'ActionFlatten()
+    main.registerAction'ActionQuickStyle()
+    main.registerAction'ActionEdit()
+    main.registerAction'ActionView()
+    main.registerAction'ActionCaptureDelay()
+    main.registerAction'ActionRecentSize()
+}
 
+func captmeTestRegisterHeadlessShortcuts(main: *MainWnd)
+{
     main.registerKeyShortcut(.Control, .A, ActionSelection.SelectAll)
     main.registerKeyShortcut(.Control, .D, ActionSelection.DeSelectAll)
     main.registerKeyShortcut(.CtrlShift, .I, ActionSelection.InvertSelection)
@@ -273,6 +293,17 @@ func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
     main.registerKeyShortcut(.Control, .Add, ActionZoom.ZoomIn)
     main.registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
     main.registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
+}
+
+func captmeTestRegisterHeadlessCommands(main: *MainWnd)
+{
+    captmeTestRegisterHeadlessActions(main)
+    captmeTestRegisterHeadlessShortcuts(main)
+}
+
+func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
+{
+    captmeTestRegisterHeadlessCommands(main)
 }
 
 func captmeTestIndexedImage(w, h: s32)->Image

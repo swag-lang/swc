@@ -300,12 +300,11 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     let quick = QuickWnd.create(f.main, f.main)
     f.main.quickWnd = quick
     f.main.editMode = .Shape
-    f.main.registerAction'ActionQuickStyle()
     quick.setPosition({0, 0, 300, 300})
     quick.setDefault()
 

@@ -258,6 +258,55 @@ impl GuiHeadlessHost
         return true
     }
 
+    mtd getCapturedPopupMenu()->#null *MenuCtrl
+    {
+        if !.app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
+            return null
+
+        let menu = cast(*MenuCtrl) .app.mouseCaptureWnd
+        if menu.bar do
+            return null
+
+        return menu
+    }
+
+    mtd clickPopupMenuItem(id: WndId)->bool
+    {
+        let menu = .getCapturedPopupMenu()
+        if !menu do
+            return false
+
+        foreach item in menu.items
+        {
+            if item.id != id do
+                continue
+            if item.hidden or item.separator or item.disabled do
+                return false
+
+            let clientRect = menu.getClientRect()
+            var pt = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
+            pt = menu.localToSurface(pt)
+            menu.surface.surfaceToScreen(&pt)
+            .click(pt)
+            return true
+        }
+
+        return false
+    }
+
+    mtd dismissPopupMenu()->bool
+    {
+        let menu = .getCapturedPopupMenu()
+        if !menu do
+            return false
+
+        let rect = menu.getSurfaceRect()
+        var pt = Math.Point{rect.right() + 4, rect.bottom() + 4}
+        menu.surface.surfaceToScreen(&pt)
+        .click(pt)
+        return true
+    }
+
     mtd doubleClick(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
     {
         .moveMouse(pt, modifiers)

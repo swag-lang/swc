@@ -118,23 +118,13 @@ using Swag, Core
     let propChildCountBefore = f.main.propWnd.mainLayout.childs.count
     var didDismiss = false
 
-    f.gui.app.sigFrame += func|main = f.main, dismissed = &didDismiss|(app)
+    f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(app)
     {
         if dref dismissed do
             return
 
-        foreach child in main.childs
-        {
-            if child.type != MenuCtrl do
-                continue
-
-            var evt = MouseEvent{kind: .MouseReleased}
-            evt.button     = .Left
-            evt.surfacePos = {1, 1}
-            child.sendEvent(&evt)
-            dref dismissed = true
-            return
-        }
+        @assert(host.dismissPopupMenu())
+        dref dismissed = true
     }
 
     f.main.quickWnd.btnPopup(null, {620, 20})

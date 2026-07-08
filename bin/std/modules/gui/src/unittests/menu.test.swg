@@ -32,6 +32,69 @@ const Menu_Quit = "Menu.Quit"
     host.shutdown()
 }
 
+// Headless tests can drive modal popup menus through the normal mouse pipeline.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Open", Menu_Open)
+    popup.addItem("Quit", Menu_Quit)
+
+    var frameCount: u32
+    var didClick: bool
+    host.app.sigFrame += func|host = &host, popup, frames = &frameCount, didClick = &didClick|(app)
+    {
+        dref frames += 1
+        if !dref didClick
+        {
+            @assert(host.getCapturedPopupMenu() == popup)
+            @assert(host.clickPopupMenuItem(Menu_Open))
+            dref didClick = true
+        }
+    }
+
+    let result = popup.doModal({40, 40}, autoDestroy: true)
+
+    @assert(result == Menu_Open)
+    @assert(frameCount == 1)
+    @assert(didClick)
+    @assert(host.app.mouseCaptureWnd == null)
+
+    host.pump()
+    host.shutdown()
+}
+
+// Clicking outside a captured popup dismisses it without selecting an item.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Open", Menu_Open)
+
+    var didDismiss: bool
+    host.app.sigFrame += func|host = &host, dismissed = &didDismiss|(app)
+    {
+        if !dref dismissed
+        {
+            @assert(host.dismissPopupMenu())
+            dref dismissed = true
+        }
+    }
+
+    let result = popup.doModal({40, 40}, autoDestroy: true)
+
+    @assert(result == null)
+    @assert(didDismiss)
+    @assert(host.app.mouseCaptureWnd == null)
+
+    host.pump()
+    host.shutdown()
+}
+
 // Hidden popup rows keep their previous layout values, but they must not
 // intercept the row now visible under the mouse.
 #test
@@ -100,17 +163,12 @@ const Menu_Quit = "Menu.Quit"
     let itemX = bar.items[0].pos + bar.items[0].size * 0.5
     let itemY = bar.position.height * 0.5
 
-    var evt = MouseEvent{kind: .MousePressed}
-    evt.button     = .Left
-    evt.surfacePos = {itemX, itemY}
-    bar.sendEvent(&evt)
+    host.mouseDown({itemX, itemY})
 
     @assert(bar.subVisible == sub)
     @assert(sub.ignoreNextRelease)
 
-    evt.kind       = .MouseReleased
-    evt.surfacePos = {0, 0}
-    sub.sendEvent(&evt)
+    host.mouseUp({0, 0})
 
     @assert(bar.subVisible == sub)
     @assert(!sub.ignoreNextRelease)
@@ -138,15 +196,13 @@ const Menu_Quit = "Menu.Quit"
     @assert(bar.hitTestBar({itemX, 1}) == Swag.U32.Max)
     @assert(bar.hitTestBar({itemX, expectedItemY + 1}) == 0)
 
-    var evt = MouseEvent{kind: .MouseReleased}
-    evt.button     = .Left
-    evt.surfacePos = {itemX, expectedItemY + 1}
-    bar.sendEvent(&evt)
+    host.mouseDown({itemX, expectedItemY + 1})
 
     @assert(sub.popupBarItemSurfaceRect.y == expectedItemY)
     @assert(sub.popupBarItemSurfaceRect.height == metrics.menuBar_Height)
     @assert(sub.position.y == expectedItemY - metrics.menuPopup_ShadowSize)
 
+    host.mouseUp({0, 0})
     host.shutdown()
 }
 

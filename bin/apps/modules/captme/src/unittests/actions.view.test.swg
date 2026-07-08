@@ -46,6 +46,13 @@ using Swag, Core
     f.main.sendCommandEvent(ActionView.Clip)
     @assert(f.main.editorOptions.clipToSelection)
 
+    f.main.sendCommandEvent(ActionSelection.Freeze)
+    @assert(f.main.freezeSel)
+    @assert(f.main.embInfoFreeze != null)
+    f.main.sendCommandEvent(ActionSelection.Freeze)
+    @assert(!f.main.freezeSel)
+    @assert(f.main.embInfoFreeze == null)
+
     f.shutdown()
 }
 
@@ -53,31 +60,31 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Shape))
+    f.main.sendCommandEvent(ActionToolMode.Shape)
     @assert(f.main.editMode == .Shape)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Line))
+    f.main.sendCommandEvent(ActionToolMode.Line)
     @assert(f.main.editMode == .Line)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Arrow))
+    f.main.sendCommandEvent(ActionToolMode.Arrow)
     @assert(f.main.editMode == .Arrow)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Poly))
+    f.main.sendCommandEvent(ActionToolMode.Poly)
     @assert(f.main.editMode == .Polygon)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Text))
+    f.main.sendCommandEvent(ActionToolMode.Text)
     @assert(f.main.editMode == .Text)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Draw))
+    f.main.sendCommandEvent(ActionToolMode.Draw)
     @assert(f.main.editMode == .Draw)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Highlight))
+    f.main.sendCommandEvent(ActionToolMode.Highlight)
     @assert(f.main.editMode == .Highlight)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Step))
+    f.main.sendCommandEvent(ActionToolMode.Step)
     @assert(f.main.editMode == .Step)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Img))
+    f.main.sendCommandEvent(ActionToolMode.Img)
     @assert(f.main.editMode == .Image)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.PixSel))
+    f.main.sendCommandEvent(ActionToolMode.PixSel)
     @assert(f.main.editMode == .PixSel)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Favorites))
+    f.main.sendCommandEvent(ActionToolMode.Favorites)
     @assert(f.main.editMode == .Favorites)
-    @assert(captmeTestActionExecute'ActionToolMode(f.main, ActionToolMode.Selection))
+    f.main.sendCommandEvent(ActionToolMode.Selection)
     @assert(f.main.editMode == .Selection)
 
     var evt = captmeTestState(ActionToolMode.Selection)
@@ -96,9 +103,9 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
-    @assert(captmeTestActionExecute'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay5))
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay5)
     @assert(f.main.captureOptions.delay == 5)
     var delayEvt = captmeTestState(ActionCaptureDelay.Delay)
     @assert(captmeTestActionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
@@ -108,6 +115,18 @@ using Swag, Core
     @assert(captmeTestActionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay5, &delayEvt))
     @assert(delayEvt.checked)
     @assert(delayEvt.renderingHint.has(CommandStateEvent.RenderingHint.ExclusiveGroup))
+
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay0)
+    @assert(f.main.captureOptions.delay == 0)
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay1)
+    @assert(f.main.captureOptions.delay == 1)
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay2)
+    @assert(f.main.captureOptions.delay == 2)
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay9)
+    @assert(f.main.captureOptions.delay == 9)
+    delayEvt = captmeTestState(ActionCaptureDelay.Delay9)
+    @assert(captmeTestActionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay9, &delayEvt))
+    @assert(delayEvt.checked)
 
     let hideEditor = f.main.captureOptions.hideEditorBefore
     @assert(captmeTestActionExecute'ActionCapture(f.main, ActionCapture.HideEditor))
@@ -135,7 +154,7 @@ using Swag, Core
     @assert(capEvt.checked == f.main.captureOptions.sendToClipboard)
 
     let clip = f.main.editorOptions.clipToSelection
-    @assert(captmeTestActionExecute'ActionView(f.main, ActionView.Clip))
+    f.main.sendCommandEvent(ActionView.Clip)
     @assert(f.main.editorOptions.clipToSelection != clip)
 
     var clipEvt = captmeTestState(ActionView.Clip)
@@ -149,15 +168,20 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.editView.setZoom(1)
-    @assert(captmeTestActionExecute'ActionZoom(f.main, ActionZoom.ZoomIn))
+    f.main.sendCommandEvent(ActionZoom.ZoomIn)
     @assert(f.editView.zoom > 1)
-    @assert(captmeTestActionExecute'ActionZoom(f.main, ActionZoom.ZoomOut))
+    f.main.sendCommandEvent(ActionZoom.ZoomOut)
     @assert(Math.abs(f.editView.zoom - 1) < 0.001)
 
-    @assert(captmeTestActionExecute'ActionZoom(f.main, ActionZoom.Zoom1))
+    f.main.sendCommandEvent(ActionZoom.Zoom1)
+    @assert(Math.abs(f.editView.zoom - 1) < 0.001)
+
+    f.main.sendCommandEvent(ActionZoom.ZoomFit)
+    @assert(f.editView.zoom > 1)
+    f.main.sendCommandEvent(ActionZoom.Zoom1)
     @assert(Math.abs(f.editView.zoom - 1) < 0.001)
 
     f.editView.setZoom(EditView.MaxZoom + 5)
@@ -181,7 +205,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     let text = captmeTestAddText(f.capture, 0, 0, 40, 20)
     let image = captmeTestAddImage(f.capture, 50, 0, 20, 20)
@@ -208,7 +232,7 @@ using Swag, Core
     @assert(captmeTestActionUpdate'ActionEdit(f.main, ActionEdit.ResetRotation, &evt))
     @assert(!evt.disabled)
     @assert(!evt.hidden)
-    @assert(captmeTestActionExecute'ActionEdit(f.main, ActionEdit.ResetRotation))
+    f.main.sendCommandEvent(ActionEdit.ResetRotation)
     @assert(text.rotate == 0)
 
     f.capture.selection.clear()
@@ -222,6 +246,8 @@ using Swag, Core
     evt = captmeTestState(ActionEdit.ClearImageInside)
     @assert(captmeTestActionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
     @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionEdit.ClearImageInside)
+    @assert(!image.image.isValid())
 
     f.capture.selection.clear()
     evt = captmeTestState(ActionPixSel.Fill)
@@ -241,7 +267,7 @@ using Swag, Core
     evt = captmeTestState(ActionUndo.DoUndo)
     @assert(captmeTestActionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &evt))
     @assert(!evt.disabled)
-    @assert(captmeTestActionExecute'ActionUndo(f.main, ActionUndo.DoUndo))
+    f.main.sendCommandEvent(ActionUndo.DoUndo)
     evt = captmeTestState(ActionUndo.DoRedo)
     @assert(captmeTestActionUpdate'ActionUndo(f.main, ActionUndo.DoRedo, &evt))
     @assert(!evt.disabled)
@@ -257,11 +283,11 @@ using Swag, Core
     f.shutdown()
 }
 
-// Nudge and move-selection command actions integrate with undo and command-state disabling.
+// Nudge, align and arrange command actions integrate with undo and command-state disabling.
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     let a = captmeTestAddShape(f.capture, 10, 10, 10, 10)
     let b = captmeTestAddShape(f.capture, 50, 40, 20, 20)
@@ -275,17 +301,97 @@ using Swag, Core
     evt = captmeTestState(ActionMoveSel.Right1)
     @assert(captmeTestActionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
     @assert(!evt.disabled)
-    @assert(captmeTestActionExecute'ActionMoveSel(f.main, ActionMoveSel.Right1))
-    @assert(a.x == 11)
-    @assert(b.x == 51)
+
+    f.main.sendCommandEvent(ActionMoveSel.Left1)
+    @assert(a.x == 9)
+    @assert(b.x == 49)
+    f.main.sendCommandEvent(ActionMoveSel.Top1)
+    @assert(a.y == 9)
+    @assert(b.y == 39)
+    f.main.sendCommandEvent(ActionMoveSel.Right1)
+    @assert(a.x == 10)
+    @assert(b.x == 50)
+    f.main.sendCommandEvent(ActionMoveSel.Bottom1)
+    @assert(a.y == 10)
+    @assert(b.y == 40)
+    f.main.sendCommandEvent(ActionMoveSel.Left)
+    @assert(a.x == 5)
+    @assert(b.x == 45)
+    f.main.sendCommandEvent(ActionMoveSel.Top)
+    @assert(a.y == 5)
+    @assert(b.y == 35)
+    f.main.sendCommandEvent(ActionMoveSel.Right)
+    @assert(a.x == 10)
+    @assert(b.x == 50)
+    f.main.sendCommandEvent(ActionMoveSel.Bottom)
+    @assert(a.y == 10)
+    @assert(b.y == 40)
+
+    f.capture.undo()
+    @assert(a.y == 5)
+    @assert(b.y == 35)
+
+    f.capture.redo()
+    @assert(a.y == 10)
+    @assert(b.y == 40)
+
+    evt = captmeTestState(ActionAlign.AlignLeft)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignLeft, &evt))
+    @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionAlign.AlignLeft)
+    @assert(a.x == 10)
+    @assert(b.x == 10)
+    f.capture.undo()
+    @assert(a.x == 10)
+    @assert(b.x == 50)
+
+    evt = captmeTestState(ActionAlign.AlignRight)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignRight, &evt))
+    @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionAlign.AlignRight)
+    @assert(a.x == 60)
+    @assert(b.x == 50)
+    f.capture.undo()
+    @assert(a.x == 10)
+    @assert(b.x == 50)
+
+    evt = captmeTestState(ActionAlign.AlignCenter)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignCenter, &evt))
+    @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionAlign.AlignCenter)
+    @assert(a.x == 35)
+    @assert(b.x == 30)
+    f.capture.undo()
+    @assert(a.x == 10)
+    @assert(b.x == 50)
 
     evt = captmeTestState(ActionAlign.AlignTop)
     @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
     @assert(!evt.disabled)
-    @assert(captmeTestActionExecute'ActionAlign(f.main, ActionAlign.AlignTop))
+    f.main.sendCommandEvent(ActionAlign.AlignTop)
     @assert(a.y == 10)
     @assert(b.y == 10)
 
+    f.capture.undo()
+    @assert(a.y == 10)
+    @assert(b.y == 40)
+
+    evt = captmeTestState(ActionAlign.AlignBottom)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignBottom, &evt))
+    @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionAlign.AlignBottom)
+    @assert(a.y == 50)
+    @assert(b.y == 40)
+    f.capture.undo()
+    @assert(a.y == 10)
+    @assert(b.y == 40)
+
+    evt = captmeTestState(ActionAlign.AlignMiddle)
+    @assert(captmeTestActionUpdate'ActionAlign(f.main, ActionAlign.AlignMiddle, &evt))
+    @assert(!evt.disabled)
+    f.main.sendCommandEvent(ActionAlign.AlignMiddle)
+    @assert(a.y == 30)
+    @assert(b.y == 25)
     f.capture.undo()
     @assert(a.y == 10)
     @assert(b.y == 40)
@@ -299,12 +405,61 @@ using Swag, Core
     f.shutdown()
 }
 
+// Arrange command variants reorder forms through the command dispatcher, not
+// only through direct Undo construction.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    let a = captmeTestAddShape(f.capture, 0, 0, 10, 10)
+    let b = captmeTestAddShape(f.capture, 20, 0, 10, 10)
+    let c = captmeTestAddText(f.capture, 40, 0, 10, 10)
+
+    f.capture.selection.add(0)
+    f.main.sendCommandEvent(ActionAlign.MoveForward)
+    @assert(@dataof(f.capture.forms[0]) == b)
+    @assert(@dataof(f.capture.forms[1]) == a)
+    @assert(@dataof(f.capture.forms[2]) == c)
+    @assert(f.capture.selection[0] == 1)
+    f.capture.undo()
+
+    f.capture.selection.clear()
+    f.capture.selection.add(2)
+    f.main.sendCommandEvent(ActionAlign.MoveBackward)
+    @assert(@dataof(f.capture.forms[0]) == a)
+    @assert(@dataof(f.capture.forms[1]) == c)
+    @assert(@dataof(f.capture.forms[2]) == b)
+    @assert(f.capture.selection[0] == 1)
+    f.capture.undo()
+
+    f.capture.selection.clear()
+    f.capture.selection.add(0)
+    f.main.sendCommandEvent(ActionAlign.SendToFront)
+    @assert(@dataof(f.capture.forms[0]) == b)
+    @assert(@dataof(f.capture.forms[1]) == c)
+    @assert(@dataof(f.capture.forms[2]) == a)
+    @assert(f.capture.selection[0] == 2)
+    f.capture.undo()
+
+    f.capture.selection.clear()
+    f.capture.selection.add(2)
+    f.main.sendCommandEvent(ActionAlign.SendToBack)
+    @assert(@dataof(f.capture.forms[0]) == c)
+    @assert(@dataof(f.capture.forms[1]) == a)
+    @assert(@dataof(f.capture.forms[2]) == b)
+    @assert(f.capture.selection[0] == 0)
+    f.capture.undo()
+
+    f.shutdown()
+}
+
 // File, copy/paste, flatten and small dialog actions expose stable command state
 // without executing OS, clipboard or dialog branches.
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     var evt = captmeTestState(ActionFile.SaveAsImage)
     @assert(captmeTestActionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
@@ -385,7 +540,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     discard f.setupLibraryWnd()
     let libWnd = cast(*Wnd) f.main.libWnd
@@ -393,14 +548,14 @@ using Swag, Core
     var sizeEvt = captmeTestState(ActionRecentSize.LibBig)
     @assert(captmeTestActionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
     @assert(!sizeEvt.checked)
-    @assert(captmeTestActionExecute'ActionRecentSize(f.main, ActionRecentSize.LibBig))
+    f.main.sendCommandEvent(ActionRecentSize.LibBig)
     @assert(f.main.libWnd.previewSize == .Big)
 
     var evt = captmeTestState(ActionLibSort.Recent)
     @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
     @assert(evt.checked)
 
-    @assert(captmeTestActionExecuteWnd'ActionLibSort(libWnd, ActionLibSort.FileSize))
+    libWnd.sendCommandEvent(ActionLibSort.FileSize)
     @assert(f.main.libWnd.sortMethod == .FileSize)
 
     evt = captmeTestState(ActionLibSort.Invert)
@@ -408,10 +563,10 @@ using Swag, Core
     @assert(evt.name == "Smaller First")
     @assert(!evt.disabled)
 
-    @assert(captmeTestActionExecuteWnd'ActionLibSort(libWnd, ActionLibSort.Invert))
+    libWnd.sendCommandEvent(ActionLibSort.Invert)
     @assert(f.main.libWnd.invertSort)
 
-    @assert(captmeTestActionExecuteWnd'ActionLibSort(libWnd, ActionLibSort.Similar))
+    libWnd.sendCommandEvent(ActionLibSort.Similar)
     evt = captmeTestState(ActionLibSort.Invert)
     @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
     @assert(evt.disabled)
@@ -419,7 +574,7 @@ using Swag, Core
     evt = captmeTestState(ActionLibFilter.LinkedImage)
     @assert(captmeTestActionUpdateWnd'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
     @assert(evt.checked)
-    @assert(captmeTestActionExecuteWnd'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage))
+    libWnd.sendCommandEvent(ActionLibFilter.LinkedImage)
     @assert(!f.main.libWnd.showLinkedImage)
 
     evt = captmeTestState(ActionLibSel.Right)
@@ -484,20 +639,21 @@ using Swag, Core
     lib.showLinkedImage = true
     view.filter()
     view.sort()
-    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.Home))
+    view.focusItem = 1
+    wnd.sendCommandEvent(ActionLibSel.Home)
     @assert(view.focusItem == 0)
     @assert(view.selModel.isSelected(0))
 
-    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.Right))
+    wnd.sendCommandEvent(ActionLibSel.Right)
     @assert(view.focusItem == 1)
     @assert(view.selModel.isSelected(1))
     @assert(!view.selModel.isSelected(0))
 
-    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.End))
+    wnd.sendCommandEvent(ActionLibSel.End)
     @assert(view.focusItem == 2)
     @assert(view.selModel.isSelected(2))
 
-    @assert(captmeTestActionExecuteWnd'ActionLibSel(wnd, ActionLibSel.Left))
+    wnd.sendCommandEvent(ActionLibSel.Left)
     @assert(view.focusItem == 1)
 
     f.shutdown()

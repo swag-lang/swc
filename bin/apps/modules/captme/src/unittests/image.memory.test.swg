@@ -55,7 +55,36 @@ using Swag, Core
     @assert(f.capture.width == 30)
     @assert(f.capture.height == 20)
 
-    f.main.doProcessImage(ActionImage.ResizeImage, w: 40, h: 28)
+    f.main.sendCommandEvent(ActionImage.RotateImageLeft)
+    @assert(f.capture.backImg.width == 20)
+    @assert(f.capture.backImg.height == 30)
+    @assert(f.capture.width == 20)
+    @assert(f.capture.height == 30)
+    @assert(f.capture.canUndo())
+
+    f.capture.undo()
+    @assert(f.capture.backImg.width == 30)
+    @assert(f.capture.backImg.height == 20)
+    @assert(f.capture.width == 30)
+    @assert(f.capture.height == 20)
+
+    g_KeepRatio = false
+    var didResize: bool
+    f.gui.app.sigFrame += func|host = &f.gui, didResize = &didResize|(app)
+    {
+        if !dref didResize
+        {
+            @assert(host.setModalEditText("Width", "40"))
+            @assert(host.setModalEditText("Height", "28"))
+            @assert(host.clickModalButton(Dialog.BtnOk))
+            dref didResize = true
+        }
+    }
+
+    f.main.sendCommandEvent(ActionImage.ResizeImage)
+    f.gui.pump()
+
+    @assert(didResize)
     @assert(f.capture.backImg.width == 40)
     @assert(f.capture.backImg.height == 28)
     @assert(f.capture.width == 40)
@@ -110,6 +139,49 @@ using Swag, Core
     @assert(f.capture.canUndo())
 
     f.capture.undo()
+    @assert(f.capture.width == 30)
+    @assert(f.capture.height == 20)
+
+    f.shutdown()
+}
+
+// Expand Image uses the same modal resize dialog but only grows the backing
+// bitmap; the capture canvas dimensions stay unchanged.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    f.capture.width = 30
+    f.capture.height = 20
+    f.capture.backImg = captmeTestIndexedImage(30, 20)
+
+    g_ResizeMode = 1
+    var didClick: bool
+    f.gui.app.sigFrame += func|host = &f.gui, didClick = &didClick|(app)
+    {
+        g_Width = 42
+        g_Height = 27
+        if !dref didClick
+        {
+            @assert(host.clickModalButton(Dialog.BtnOk))
+            dref didClick = true
+        }
+    }
+
+    f.main.sendCommandEvent(ActionImage.ExpandImage)
+    f.gui.pump()
+
+    @assert(didClick)
+    @assert(f.capture.backImg.width == 42)
+    @assert(f.capture.backImg.height == 27)
+    @assert(f.capture.width == 30)
+    @assert(f.capture.height == 20)
+    @assert(f.capture.canUndo())
+
+    f.capture.undo()
+    @assert(f.capture.backImg.width == 30)
+    @assert(f.capture.backImg.height == 20)
     @assert(f.capture.width == 30)
     @assert(f.capture.height == 20)
 

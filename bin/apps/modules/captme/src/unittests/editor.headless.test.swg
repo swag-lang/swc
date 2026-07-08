@@ -215,6 +215,120 @@ using Swag, Core
     f.shutdown()
 }
 
+// The edit view context menu posts real commands back to MainWnd through the
+// popup/menu dispatch path.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    discard captmeTestAddText(f.capture, 50, 10, 20, 20)
+    f.capture.selection.add(0)
+
+    var didClick: bool
+    f.gui.app.sigFrame += func|host = &f.gui, clicked = &didClick|(app)
+    {
+        if !dref clicked
+        {
+            @assert(host.clickPopupMenuItem(ActionSelection.DeleteSelection))
+            dref clicked = true
+        }
+    }
+
+    f.gui.click({200, 200}, Input.MouseButton.Right)
+    f.gui.pump()
+
+    @assert(didClick)
+    @assert(f.capture.forms.count == 1)
+    @assert(@dataof(f.capture.forms[0]) != shape)
+    @assert(f.capture.selection.count == 0)
+    @assert(f.capture.canUndo())
+
+    f.shutdown()
+}
+
+// Context menu submenus are driven through real hover/timer popup behavior.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    let a = captmeTestAddShape(f.capture, 10, 30, 20, 20)
+    let b = captmeTestAddShape(f.capture, 50, 70, 20, 20)
+    f.capture.selection.add(0)
+    f.capture.selection.add(1)
+
+    var didOpen: bool
+    var didClick: bool
+    f.gui.app.sigFrame += func|host = &f.gui, opened = &didOpen, clicked = &didClick|(app)
+    {
+        if !dref opened
+        {
+            @assert(host.openPopupSubMenu("Align"))
+            dref opened = true
+        }
+        elif !dref clicked
+        {
+            @assert(host.clickPopupMenuItem(ActionAlign.AlignTop))
+            dref clicked = true
+        }
+    }
+
+    f.gui.click({200, 200}, Input.MouseButton.Right)
+    f.gui.pump()
+
+    @assert(didOpen)
+    @assert(didClick)
+    @assert(a.y == 30)
+    @assert(b.y == 30)
+    @assert(f.capture.canUndo())
+
+    f.shutdown()
+}
+
+// The Arrange submenu follows the same popup path and updates z-order/selection.
+#test
+{
+    var f: CaptmeHeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    let a = captmeTestAddShape(f.capture, 10, 10, 20, 20)
+    let b = captmeTestAddShape(f.capture, 50, 10, 20, 20)
+    let c = captmeTestAddText(f.capture, 90, 10, 20, 20)
+    f.capture.selection.add(0)
+
+    var didOpen: bool
+    var didClick: bool
+    f.gui.app.sigFrame += func|host = &f.gui, opened = &didOpen, clicked = &didClick|(app)
+    {
+        if !dref opened
+        {
+            @assert(host.openPopupSubMenu("Arrange"))
+            dref opened = true
+        }
+        elif !dref clicked
+        {
+            @assert(host.clickPopupMenuItem(ActionAlign.SendToFront))
+            dref clicked = true
+        }
+    }
+
+    f.gui.click({200, 200}, Input.MouseButton.Right)
+    f.gui.pump()
+
+    @assert(didOpen)
+    @assert(didClick)
+    @assert(@dataof(f.capture.forms[0]) == b)
+    @assert(@dataof(f.capture.forms[1]) == c)
+    @assert(@dataof(f.capture.forms[2]) == a)
+    @assert(f.capture.selection.count == 1)
+    @assert(f.capture.selection[0] == 2)
+    @assert(f.capture.canUndo())
+
+    f.shutdown()
+}
+
 // Local editor shortcuts dispatch through the focused window and command
 // bubbling, without registering global hotkeys.
 #test

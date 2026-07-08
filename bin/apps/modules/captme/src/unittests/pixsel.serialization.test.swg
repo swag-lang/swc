@@ -7,7 +7,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 30
     f.capture.height = 30
@@ -19,7 +19,7 @@ using Swag, Core
     f.capture.selection.add(0)
 
     f.main.pixSelFillCol = ColorRed
-    f.main.pixSelFill()
+    f.main.sendCommandEvent(ActionPixSel.Fill)
     let filledBytes = captmeTestCountNonZeroBytes(f.capture.backImg)
     @assert(filledBytes > 0)
     @assert(f.capture.canUndo())
@@ -30,7 +30,7 @@ using Swag, Core
     f.capture.redo()
     @assert(captmeTestCountNonZeroBytes(f.capture.backImg) == filledBytes)
 
-    f.main.pixSelClear()
+    f.main.sendCommandEvent(ActionPixSel.Clear)
     @assert(captmeTestCountNonZeroBytes(f.capture.backImg) == 0)
 
     f.capture.undo()
@@ -43,7 +43,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 24
     f.capture.height = 24
@@ -61,7 +61,7 @@ using Swag, Core
     pixSel.kind = .Rectangle
     f.capture.selection.add(0)
 
-    f.main.pixSelSmartFill()
+    f.main.sendCommandEvent(ActionPixSel.SmartFill)
     let after = f.capture.backImg.getPixelColor(12, 12)
     @assert(after.argb != before.argb)
 
@@ -80,7 +80,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 24
     f.capture.height = 24
@@ -91,7 +91,7 @@ using Swag, Core
     pixSel.kind = .Rectangle
     f.capture.selection.add(0)
 
-    f.main.pixSelSmartMove()
+    f.main.sendCommandEvent(ActionPixSel.SmartMove)
 
     @assert(f.capture.forms.count == 1)
     @assert(f.capture.selection.count == 1)

@@ -27,6 +27,37 @@ func compositeSliderChanged(s: *SliderCtrl)
     host.shutdown()
 }
 
+// Headless modal helpers can fill an EditCtrl by label before validating.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let dlg = Dialog.createDialog(&host.surface, 260, 150, title: "Edit")
+    dlg.addButton("OK", Dialog.BtnOk, true)
+    let ctrl = EditCtrl.create(dlg, "Name", "Bob", {20, 20, 210, 26})
+
+    var didSet: bool
+    host.app.sigFrame += func|host = &host, ctrl, didSet = &didSet|(app)
+    {
+        if !dref didSet
+        {
+            @assert(host.setModalEditText("Name", "Alice"))
+            @assert(ctrl.edit.getText() == "Alice")
+            @assert(host.clickModalButton(Dialog.BtnOk))
+            dref didSet = true
+        }
+    }
+
+    let result = dlg.doModal()
+
+    @assert(result == Dialog.BtnOk)
+    @assert(didSet)
+    @assert(ctrl.edit.getText() == "Alice")
+
+    host.shutdown()
+}
+
 // SliderCtrl drives an embedded slider and mirrors the value into its editbox.
 #test
 {

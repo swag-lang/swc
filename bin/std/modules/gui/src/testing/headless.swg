@@ -258,6 +258,39 @@ impl GuiHeadlessHost
         return true
     }
 
+    mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->#null *EditCtrl
+    {
+        if wnd.type == EditCtrl
+        {
+            let ctrl = cast(*EditCtrl) wnd
+            if ctrl.label and ctrl.label.name.raw == label do
+                return ctrl
+        }
+
+        foreach child in wnd.childs
+        {
+            let ctrl = .findEditCtrlByLabel(child, label)
+            if ctrl do
+                return ctrl
+        }
+
+        return null
+    }
+
+    mtd setModalEditText(label: string, text: string)->bool
+    {
+        if .app.modalSurfaces.count == 0 do
+            return false
+
+        let ctrl = .findEditCtrlByLabel(.app.modalSurfaces.back().wnd.view, label)
+        if !ctrl do
+            return false
+
+        ctrl.edit.setText(text)
+        .pump()
+        return true
+    }
+
     mtd getCapturedPopupMenu()->#null *MenuCtrl
     {
         if !.app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
@@ -292,6 +325,48 @@ impl GuiHeadlessHost
         }
 
         return false
+    }
+
+    mtd moveToPopupMenuItem(label: string)->bool
+    {
+        let menu = .getCapturedPopupMenu()
+        if !menu do
+            return false
+
+        foreach item in menu.items
+        {
+            if item.name.raw != label do
+                continue
+            if item.hidden or item.separator or item.disabled do
+                return false
+
+            let clientRect = menu.getClientRect()
+            var pt = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
+            pt = menu.localToSurface(pt)
+            menu.surface.surfaceToScreen(&pt)
+            .moveMouse(pt)
+            return true
+        }
+
+        return false
+    }
+
+    mtd openPopupSubMenu(label: string)->bool
+    {
+        let menu = .getCapturedPopupMenu()
+        if !menu do
+            return false
+
+        if !.moveToPopupMenuItem(label) do
+            return false
+
+        .pumpTimerQueues()
+        let timer = menu.timer
+        if timer do
+            .fireTimer(timer)
+
+        let subMenu = .getCapturedPopupMenu()
+        return subMenu != null and subMenu != menu
     }
 
     mtd dismissPopupMenu()->bool

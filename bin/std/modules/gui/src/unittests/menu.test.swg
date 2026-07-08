@@ -66,6 +66,44 @@ const Menu_Quit = "Menu.Quit"
     host.shutdown()
 }
 
+// Headless popup menus can drive nested submenus through hover/timer behavior.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(320, 200)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let sub   = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Open", Menu_Open)
+    popup.addPopup("More", sub)
+
+    var didOpen: bool
+    var didClick: bool
+    host.app.sigFrame += func|host = &host, opened = &didOpen, clicked = &didClick|(app)
+    {
+        if !dref opened
+        {
+            @assert(host.openPopupSubMenu("More"))
+            dref opened = true
+        }
+        elif !dref clicked
+        {
+            @assert(host.clickPopupMenuItem(Menu_Open))
+            dref clicked = true
+        }
+    }
+
+    let result = popup.doModal({40, 40}, autoDestroy: true)
+
+    @assert(result == Menu_Open)
+    @assert(didOpen)
+    @assert(didClick)
+    @assert(host.app.mouseCaptureWnd == null)
+
+    host.pump()
+    host.shutdown()
+}
+
 // Clicking outside a captured popup dismisses it without selecting an item.
 #test
 {

@@ -127,7 +127,7 @@ using Swag, Core
         dref dismissed = true
     }
 
-    f.main.quickWnd.btnPopup(null, {620, 20})
+    f.gui.clickWnd(f.main.quickWnd.layout.childs[0], Input.MouseButton.Right)
     f.gui.pump()
 
     @assert(didDismiss)

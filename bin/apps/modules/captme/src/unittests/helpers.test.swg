@@ -53,6 +53,7 @@ impl CaptmeHeadlessFixture
     {
         .main.libWnd = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
         .main.libWnd.main = .main
+        .main.libWnd.registerActions()
 
         let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
         let view = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})

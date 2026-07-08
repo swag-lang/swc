@@ -1,17 +1,52 @@
 #global public
 using Swag, Core
 
+// One labelled edit box of a modal to fill before accepting it.
+struct GuiHeadlessAutoEdit
+{
+    label:      String
+    text:       String
+}
+
+enum GuiHeadlessAutoStageKind
+{
+    ModalButton         // fill the file browser/edits if any, then click a modal button
+    PopupSubMenu        // open a submenu of the captured popup menu by label
+    PopupItem           // click an item of the captured popup menu by id
+}
+
+// One step of the auto UI driver (see clickModalButtonWhenShown and friends).
+struct GuiHeadlessAutoStage
+{
+    kind:       GuiHeadlessAutoStageKind = ModalButton
+    folder:     String
+    file:       String
+    label:      String
+    edits:      Array'GuiHeadlessAutoEdit
+    button:     WndId
+}
+
 struct GuiHeadlessHost
 {
-    app:             Application
-    surface:         Surface
-    surfaceWnd:      SurfaceWnd
-    root:            Wnd
-    theme:           *Theme
-    mousePos:        Math.Point
-    closed:          bool
-    commandCount:    u32
-    lastCommand:     WndId
+    app:                  Application
+    surface:              Surface
+    surfaceWnd:           SurfaceWnd
+    root:                 Wnd
+    theme:                *Theme
+    mousePos:             Math.Point
+    closed:               bool
+    commandCount:         u32
+    lastCommand:          WndId
+
+    // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
+    // is true once every armed stage has completed.
+    autoHandled:          bool
+    autoArmed:            bool
+    autoHookInstalled:    bool
+    autoFrames:           u32
+    autoMaxFrames:        u32
+    autoStages:           Array'GuiHeadlessAutoStage
+    autoStage:            u32
 }
 
 impl GuiHeadlessHost
@@ -65,6 +100,184 @@ impl GuiHeadlessHost
         if !.root.isPendingDestroy do
             .root.destroy()
         .pump()
+    }
+
+    // Binds another Application instance to this host: the code under test may read
+    // its own module-global Application (theme, renderer, options) while events flow
+    // through the host. The renderer goes headless and the host's theme and style
+    // are shared instead of being rebuilt.
+    mtd bindApplication(app: *Application)
+    {
+        app.renderer.setupHeadless()
+        app.theme = .theme
+
+        let style = .app.style.refr
+        style.count += 1
+        app.style.refr = style
+    }
+
+    private mtd installAutoHook()
+    {
+        if .autoHookInstalled do
+            return
+        .autoHookInstalled = true
+
+        .app.sigFrame += func|host = me|(app)
+        {
+            host.driveAutoStages(app)
+        }
+    }
+
+    private mtd runAutoStage(stage: *GuiHeadlessAutoStage)->bool
+    {
+        switch stage.kind
+        {
+        case PopupSubMenu:
+            return .openPopupSubMenu(stage.label.toString())
+
+        case PopupItem:
+            return .clickPopupMenuItem(stage.button)
+        }
+
+        if !stage.file.isEmpty()
+        {
+            if !.setModalFileSelection(stage.folder.toString(), stage.file.toString()) do
+                return false
+        }
+
+        foreach &edit in stage.edits
+        {
+            if !.setModalEditText(edit.label.toString(), edit.text.toString()) do
+                return false
+        }
+
+        return .clickModalButton(stage.button)
+    }
+
+    private mtd driveAutoStages(app: *Application)
+    {
+        if !.autoArmed do
+            return
+
+        .autoFrames += 1
+
+        let stage = .autoStages.buffer + .autoStage
+        if .runAutoStage(stage)
+        {
+            .autoStage += 1
+            .autoFrames = 0
+            if .autoStage == .autoStages.count
+            {
+                .autoArmed   = false
+                .autoHandled = true
+            }
+        }
+        elif .autoFrames > .autoMaxFrames
+        {
+            // The expected UI never showed up: unblock the pumping loop so the test
+            // can fail on 'autoHandled' instead of hanging.
+            .autoArmed = false
+            if stage.kind == .ModalButton do
+                app.exitModal(Dialog.BtnCancel)
+            else do
+                discard .dismissPopupMenu()
+        }
+    }
+
+    private mtd armAutoDriver(maxFrames: u32)
+    {
+        .installAutoHook()
+        .autoStages.clear()
+        .autoStage     = 0
+        .autoMaxFrames = maxFrames
+        .autoFrames    = 0
+        .autoHandled   = false
+        .autoArmed     = true
+    }
+
+    private mtd addAutoStage(kind: GuiHeadlessAutoStageKind, button: WndId = null, folder, file, label: string = null)->*GuiHeadlessAutoStage
+    {
+        let stage = cast(*GuiHeadlessAutoStage) .autoStages.emplaceInitAddress()
+        stage.kind   = kind
+        stage.button = button
+        stage.folder = folder
+        stage.file   = file
+        stage.label  = label
+        return stage
+    }
+
+    // Arms the auto UI driver to click 'button' in the topmost modal surface as soon
+    // as it exists. Modal loops pump sigFrame every frame, so this drives dialogs
+    // opened by the code under test without any test-side closure. If the expected
+    // UI never shows up within 'maxFrames' frames, the pending loop is cancelled and
+    // 'autoHandled' stays false.
+    mtd clickModalButtonWhenShown(button: WndId, maxFrames: u32 = 60)
+    {
+        .armAutoDriver(maxFrames)
+        discard .addAutoStage(.ModalButton, button)
+    }
+
+    // Same auto-driver as clickModalButtonWhenShown for a file dialog: fills the
+    // modal file browser with 'fileName' (folder + name), then accepts it with
+    // 'button'. The folder part must exist.
+    mtd acceptModalFileDialog(fileName: string, button: WndId = Dialog.BtnOk, maxFrames: u32 = 60)
+    {
+        .armAutoDriver(maxFrames)
+        let stage = .addAutoStage(.ModalButton, button)
+        stage.folder = Path.getDirectoryName(fileName) orelse ""
+        stage.file   = Path.getFileName(fileName) orelse fileName
+    }
+
+    // Arms the auto UI driver to click item 'id' of the captured popup menu as soon
+    // as the popup exists (e.g. after a right-click opening a context menu).
+    mtd clickPopupMenuItemWhenShown(id: WndId, maxFrames: u32 = 60)
+    {
+        .armAutoDriver(maxFrames)
+        discard .addAutoStage(.PopupItem, id)
+    }
+
+    // Arms the auto UI driver to open the submenu labelled 'label' of the captured
+    // popup menu as soon as the popup exists.
+    mtd openPopupSubMenuWhenShown(label: string, maxFrames: u32 = 60)
+    {
+        .armAutoDriver(maxFrames)
+        discard .addAutoStage(.PopupSubMenu, label: label)
+    }
+
+    // Appends one more step to the armed sequence: once the previous step succeeded,
+    // click 'button' in the next modal that shows up (e.g. a nested overwrite
+    // confirmation after accepting a file dialog).
+    mtd thenClickModalButton(button: WndId)
+    {
+        Debug.assert(.autoArmed)
+        discard .addAutoStage(.ModalButton, button)
+    }
+
+    // Appends one more step to the armed sequence: click item 'id' of the captured
+    // popup menu (e.g. inside a submenu opened by the previous step).
+    mtd thenClickPopupMenuItem(id: WndId)
+    {
+        Debug.assert(.autoArmed)
+        discard .addAutoStage(.PopupItem, id)
+    }
+
+    // Appends one more step to the armed sequence: open the submenu labelled 'label'
+    // of the captured popup menu.
+    mtd thenOpenPopupSubMenu(label: string)
+    {
+        Debug.assert(.autoArmed)
+        discard .addAutoStage(.PopupSubMenu, label: label)
+    }
+
+    // Fills the labelled edit box of the modal with 'text' before the last armed
+    // stage's button is clicked. May be called several times for several edits.
+    mtd withModalEdit(label, text: string)
+    {
+        Debug.assert(.autoArmed and .autoStages.count > 0)
+        let stage = .autoStages.buffer + .autoStages.count - 1
+        let edit  = cast(*GuiHeadlessAutoEdit) stage.edits.emplaceInitAddress()
+        edit.label = label
+        edit.text  = text
     }
 
     mtd close()

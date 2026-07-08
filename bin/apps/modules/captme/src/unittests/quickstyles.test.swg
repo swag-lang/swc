@@ -175,23 +175,12 @@ using Swag, Core
     @assert(quick.qsShape.forms.count == 17)
     @assert(quick.currentStyle == &quick.qsShape)
 
-    var modalFrames: u32
-    var didClick: bool
-    f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
-    {
-        dref frames += 1
-        if !dref didClick
-        {
-            @assert(host.clickModalButton(Dialog.BtnYes))
-            dref didClick = true
-        }
-    }
+    f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionQuickStyle.Reset)
     f.gui.pump()
 
-    @assert(didClick)
-    @assert(modalFrames == 1)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(quick.currentStyle == &quick.qsShape)
     @assert(quick.qsShape.forms.count == 16)
@@ -220,31 +209,12 @@ using Swag, Core
     quick.updateQuickStyles(forceRebuild: true)
     @assert(quick.qsShape.forms.count == 17)
 
-    var frameCount: u32
-    var clickedMenu: bool
-    var clickedConfirm: bool
-    f.gui.app.sigFrame += func|host = &f.gui, frames = &frameCount, clickedMenu = &clickedMenu, clickedConfirm = &clickedConfirm|(app)
-    {
-        dref frames += 1
-        if !dref clickedMenu
-        {
-            @assert(host.clickPopupMenuItem(ActionQuickStyle.Reset))
-            dref clickedMenu = true
-            return
-        }
-
-        if !dref clickedConfirm
-        {
-            @assert(host.clickModalButton(Dialog.BtnYes))
-            dref clickedConfirm = true
-        }
-    }
+    f.gui.clickPopupMenuItemWhenShown(ActionQuickStyle.Reset)
+    f.gui.thenClickModalButton(Dialog.BtnYes)
 
     f.gui.clickWnd(quick.layout.childs[0], Input.MouseButton.Right)
 
-    @assert(clickedMenu)
-    @assert(clickedConfirm)
-    @assert(frameCount == 2)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(quick.qsShape.forms.count == 16)
 

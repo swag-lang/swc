@@ -13,21 +13,21 @@ using Swag, Core
     discard f.setupLibraryWnd()
     let libWnd = cast(*Wnd) f.main.libWnd
 
-    var sizeEvt = captmeTestState(ActionRecentSize.LibBig)
-    @assert(captmeTestActionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
+    var sizeEvt = guiTestCommandState(ActionRecentSize.LibBig)
+    @assert(guiTestActionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
     @assert(!sizeEvt.checked)
     f.main.sendCommandEvent(ActionRecentSize.LibBig)
     @assert(f.main.libWnd.previewSize == .Big)
 
-    var evt = captmeTestState(ActionLibSort.Recent)
-    @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
+    var evt = guiTestCommandState(ActionLibSort.Recent)
+    @assert(guiTestActionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
     @assert(evt.checked)
 
     libWnd.sendCommandEvent(ActionLibSort.FileSize)
     @assert(f.main.libWnd.sortMethod == .FileSize)
 
-    evt = captmeTestState(ActionLibSort.Invert)
-    @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    evt = guiTestCommandState(ActionLibSort.Invert)
+    @assert(guiTestActionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
     @assert(evt.name == "Smaller First")
     @assert(!evt.disabled)
 
@@ -35,23 +35,23 @@ using Swag, Core
     @assert(f.main.libWnd.invertSort)
 
     libWnd.sendCommandEvent(ActionLibSort.Similar)
-    evt = captmeTestState(ActionLibSort.Invert)
-    @assert(captmeTestActionUpdateWnd'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    evt = guiTestCommandState(ActionLibSort.Invert)
+    @assert(guiTestActionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
     @assert(evt.disabled)
 
-    evt = captmeTestState(ActionLibFilter.LinkedImage)
-    @assert(captmeTestActionUpdateWnd'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
+    evt = guiTestCommandState(ActionLibFilter.LinkedImage)
+    @assert(guiTestActionUpdate'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
     @assert(evt.checked)
     libWnd.sendCommandEvent(ActionLibFilter.LinkedImage)
     @assert(!f.main.libWnd.showLinkedImage)
 
-    evt = captmeTestState(ActionLibSel.Right)
-    @assert(captmeTestActionUpdateWnd'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    evt = guiTestCommandState(ActionLibSel.Right)
+    @assert(guiTestActionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(evt.disabled)
 
     f.main.libWnd.view.focusItem = 0
-    evt = captmeTestState(ActionLibSel.Right)
-    @assert(captmeTestActionUpdateWnd'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    evt = guiTestCommandState(ActionLibSel.Right)
+    @assert(guiTestActionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(!evt.disabled)
 
     f.shutdown()

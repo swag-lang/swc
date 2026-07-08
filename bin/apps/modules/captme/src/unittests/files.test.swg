@@ -38,22 +38,6 @@ func captmeTestHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
     return false
 }
 
-func captmeTestSelectModalFile(host: *GuiHeadlessHost, fileName: string)->bool
-{
-    let folder = Path.getDirectoryName(fileName) orelse ""
-    let name   = Path.getFileName(fileName) orelse fileName
-    return host.setModalFileSelection(folder, name)
-}
-
-func captmeTestModalFilePath(extension: string)->String
-{
-    let folder = Path.getDirectoryName(#file) orelse ""
-    var fileName: String = "captme-"
-    fileName += GUID64.getRandom().getString()
-    fileName += extension
-    return Path.combine(folder, fileName.toString())
-}
-
 // Save As Image writes a real PNG that can be loaded back with Captme metadata.
 #test
 {
@@ -63,12 +47,12 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 32
     f.capture.height = 20
-    f.capture.backImg = captmeTestIndexedImage(32, 20)
+    f.capture.backImg = guiTestIndexedImage(32, 20)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let pngPath = captmeTestTempFilePath(".png")
+    let pngPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(pngPath) }
 
     f.main.doSaveAsImage(pngPath)
@@ -96,32 +80,20 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 34
     f.capture.height = 22
-    f.capture.backImg = captmeTestIndexedImage(34, 22)
+    f.capture.backImg = guiTestIndexedImage(34, 22)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let pngPath = captmeTestModalFilePath(".png")
+    let pngPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(pngPath) }
 
-    var modalFrames: u32
-    var didAccept: bool
-    f.gui.app.sigFrame += func|host = &f.gui, target = &pngPath, frames = &modalFrames, didAccept = &didAccept|(app)
-    {
-        dref frames += 1
-        if !dref didAccept
-        {
-            if captmeTestSelectModalFile(host, dref target) and host.clickModalButton(Dialog.BtnOk) do
-                dref didAccept = true
-            elif dref frames > 20 do
-                app.exitModal(Dialog.BtnCancel)
-        }
-    }
+    f.gui.acceptModalFileDialog(pngPath)
 
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
     f.gui.pump()
 
-    @assert(didAccept)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(File.exists(pngPath))
 
@@ -144,12 +116,12 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 40
     f.capture.height = 30
-    f.capture.backImg = captmeTestIndexedImage(40, 30)
+    f.capture.backImg = guiTestIndexedImage(40, 30)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let pngPath = captmeTestModalFilePath(".png")
+    let pngPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(pngPath) }
 
     var oldImage = Image.create(3, 2, .BGRA8)
@@ -157,38 +129,13 @@ func captmeTestModalFilePath(extension: string)->String
     catch oldImage.save(pngPath)
     @assert(@err == null)
 
-    var modalFrames: u32
-    var didSelect: bool
-    var didOverwrite: bool
-    f.gui.app.sigFrame += func|host = &f.gui, target = &pngPath, frames = &modalFrames, didSelect = &didSelect, didOverwrite = &didOverwrite|(app)
-    {
-        dref frames += 1
-        if !dref didSelect
-        {
-            if captmeTestSelectModalFile(host, dref target)
-            {
-                dref didSelect = true
-                discard host.clickModalButton(Dialog.BtnOk)
-            }
-            elif dref frames > 20 do
-                app.exitModal(Dialog.BtnCancel)
-            return
-        }
-
-        if !dref didOverwrite
-        {
-            if host.clickModalButton(Dialog.BtnYes) do
-                dref didOverwrite = true
-            elif dref frames > 40 do
-                app.exitModal(Dialog.BtnCancel)
-        }
-    }
+    f.gui.acceptModalFileDialog(pngPath)
+    f.gui.thenClickModalButton(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
     f.gui.pump()
 
-    @assert(didSelect)
-    @assert(didOverwrite)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
     let saved = catch Image.load(pngPath)
@@ -210,12 +157,12 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 28
     f.capture.height = 18
-    f.capture.backImg = captmeTestIndexedImage(28, 18)
+    f.capture.backImg = guiTestIndexedImage(28, 18)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = captmeTestTempFilePath(".png")
+    let linkedPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.main.doSaveAsImage(linkedPath, linked: true)
@@ -244,32 +191,20 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 36
     f.capture.height = 24
-    f.capture.backImg = captmeTestIndexedImage(36, 24)
+    f.capture.backImg = guiTestIndexedImage(36, 24)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = captmeTestModalFilePath(".png")
+    let linkedPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
-    var modalFrames: u32
-    var didAccept: bool
-    f.gui.app.sigFrame += func|host = &f.gui, target = &linkedPath, frames = &modalFrames, didAccept = &didAccept|(app)
-    {
-        dref frames += 1
-        if !dref didAccept
-        {
-            if captmeTestSelectModalFile(host, dref target) and host.clickModalButton(Dialog.BtnOk) do
-                dref didAccept = true
-            elif dref frames > 20 do
-                app.exitModal(Dialog.BtnCancel)
-        }
-    }
+    f.gui.acceptModalFileDialog(linkedPath)
 
     f.main.sendCommandEvent(ActionFile.SaveAsLinkedImage)
     f.gui.pump()
 
-    @assert(didAccept)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(File.exists(linkedPath))
     @assert(captmeTestSamePath(f.capture.linkedImage, linkedPath))
@@ -295,12 +230,12 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 26
     f.capture.height = 16
-    f.capture.backImg = captmeTestIndexedImage(26, 16)
+    f.capture.backImg = guiTestIndexedImage(26, 16)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = captmeTestTempFilePath(".png")
+    let linkedPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.capture.linkedImage = linkedPath
@@ -339,32 +274,24 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 38
     f.capture.height = 26
-    f.capture.backImg = captmeTestIndexedImage(38, 26)
+    f.capture.backImg = guiTestIndexedImage(38, 26)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = captmeTestTempFilePath(".png")
+    let linkedPath = guiTestTempFilePath("captme-", ".png")
     defer { discard catch File.delete(linkedPath) }
 
     f.capture.linkedImage = linkedPath
     f.capture.linkedUpToDate = false
     f.main.editorOptions.confirmLinkedOverwrite = true
 
-    var didConfirm: bool
-    f.gui.app.sigFrame += func|host = &f.gui, didConfirm = &didConfirm|(app)
-    {
-        if !dref didConfirm
-        {
-            @assert(host.clickModalButton(Dialog.BtnYes))
-            dref didConfirm = true
-        }
-    }
+    f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionFile.UpdateLinkedImage)
     f.gui.pump()
 
-    @assert(didConfirm)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(File.exists(linkedPath))
     @assert(f.capture.linkedUpToDate)
@@ -396,32 +323,24 @@ func captmeTestModalFilePath(extension: string)->String
 
     f.capture.width = 24
     f.capture.height = 18
-    f.capture.backImg = captmeTestIndexedImage(24, 18)
+    f.capture.backImg = guiTestIndexedImage(24, 18)
 
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    let linkedPath = captmeTestTempFilePath(".png")
+    let linkedPath = guiTestTempFilePath("captme-", ".png")
     f.capture.linkedImage = linkedPath
     f.capture.linkedUpToDate = true
     f.capture.changed = true
     catch f.capture.save()
     @assert(@err == null)
 
-    var didConfirm: bool
-    f.gui.app.sigFrame += func|host = &f.gui, didConfirm = &didConfirm|(app)
-    {
-        if !dref didConfirm
-        {
-            @assert(host.clickModalButton(Dialog.BtnYes))
-            dref didConfirm = true
-        }
-    }
+    f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionFile.UnlinkImage)
     f.gui.pump()
 
-    @assert(didConfirm)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(f.capture.linkedImage.isEmpty())
     @assert(!f.capture.linkedUpToDate)
@@ -447,20 +366,12 @@ func captmeTestModalFilePath(extension: string)->String
     let capturePath = captmeTestPrepareSavedCapture(f.capture)
     defer { discard catch File.delete(capturePath) }
 
-    var didClick: bool
-    f.gui.app.sigFrame += func|host = &f.gui, didClick = &didClick|(app)
-    {
-        if !dref didClick
-        {
-            @assert(host.clickModalButton(Dialog.BtnOk))
-            dref didClick = true
-        }
-    }
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
 
     f.main.sendCommandEvent(ActionFile.FileDetails)
     f.gui.pump()
 
-    @assert(didClick)
+    @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
     f.shutdown()

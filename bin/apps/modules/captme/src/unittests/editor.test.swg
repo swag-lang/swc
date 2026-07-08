@@ -19,7 +19,7 @@ using Swag, Core
     @assert(f.gui.app.mouseCaptureWnd == null)
 
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
-    captmeTestAssertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
+    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
     @assert(f.capture.canUndo())
 
     f.shutdown()
@@ -38,7 +38,7 @@ using Swag, Core
     @assert(f.capture.forms.count == 1)
 
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
-    captmeTestAssertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
+    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
 
     f.shutdown()
 }
@@ -55,17 +55,17 @@ using Swag, Core
 
     f.gui.drag({15, 15}, {45, 35})
 
-    captmeTestAssertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
+    guiTestAssertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 0)
     @assert(f.capture.canUndo())
 
     f.gui.shortcut(Input.Key.Z, Input.KeyModifiers.Control)
-    captmeTestAssertRect(shape.IForm.boundRect(), 10, 10, 20, 20)
+    guiTestAssertRect(shape.IForm.boundRect(), 10, 10, 20, 20)
     @assert(f.capture.canRedo())
 
     f.gui.shortcut(Input.Key.Y, Input.KeyModifiers.Control)
-    captmeTestAssertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
+    guiTestAssertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
 
     f.shutdown()
 }
@@ -115,7 +115,7 @@ using Swag, Core
     f.main.editMode = .Text
     f.gui.drag({10, 60}, {90, 95})
     @assert(@kindof(f.capture.forms[2]) == FormText)
-    captmeTestAssertRect(f.capture.forms[2].boundRect(), 10, 60, 80, 35)
+    guiTestAssertRect(f.capture.forms[2].boundRect(), 10, 60, 80, 35)
 
     f.main.editMode = .Image
     f.gui.drag({110, 60}, {160, 105})
@@ -145,7 +145,7 @@ using Swag, Core
     f.gui.drag({310, 90}, {310, 90})
     @assert(@kindof(f.capture.forms[7]) == FormStep)
     let step = cast(*FormStep) @dataof(f.capture.forms[7])
-    captmeTestAssertRect(step.IForm.boundRect(), 286, 66, 48, 48)
+    guiTestAssertRect(step.IForm.boundRect(), 286, 66, 48, 48)
     @assert(step.index == 1)
     @assert(f.capture.nextStepIndex == 2)
 
@@ -226,20 +226,12 @@ using Swag, Core
     discard captmeTestAddText(f.capture, 50, 10, 20, 20)
     f.capture.selection.add(0)
 
-    var didClick: bool
-    f.gui.app.sigFrame += func|host = &f.gui, clicked = &didClick|(app)
-    {
-        if !dref clicked
-        {
-            @assert(host.clickPopupMenuItem(ActionSelection.DeleteSelection))
-            dref clicked = true
-        }
-    }
+    f.gui.clickPopupMenuItemWhenShown(ActionSelection.DeleteSelection)
 
     f.gui.click({200, 200}, Input.MouseButton.Right)
     f.gui.pump()
 
-    @assert(didClick)
+    @assert(f.gui.autoHandled)
     @assert(f.capture.forms.count == 1)
     @assert(@dataof(f.capture.forms[0]) != shape)
     @assert(f.capture.selection.count == 0)
@@ -259,27 +251,13 @@ using Swag, Core
     f.capture.selection.add(0)
     f.capture.selection.add(1)
 
-    var didOpen: bool
-    var didClick: bool
-    f.gui.app.sigFrame += func|host = &f.gui, opened = &didOpen, clicked = &didClick|(app)
-    {
-        if !dref opened
-        {
-            @assert(host.openPopupSubMenu("Align"))
-            dref opened = true
-        }
-        elif !dref clicked
-        {
-            @assert(host.clickPopupMenuItem(ActionAlign.AlignTop))
-            dref clicked = true
-        }
-    }
+    f.gui.openPopupSubMenuWhenShown("Align")
+    f.gui.thenClickPopupMenuItem(ActionAlign.AlignTop)
 
     f.gui.click({200, 200}, Input.MouseButton.Right)
     f.gui.pump()
 
-    @assert(didOpen)
-    @assert(didClick)
+    @assert(f.gui.autoHandled)
     @assert(a.y == 30)
     @assert(b.y == 30)
     @assert(f.capture.canUndo())
@@ -298,27 +276,13 @@ using Swag, Core
     let c = captmeTestAddText(f.capture, 90, 10, 20, 20)
     f.capture.selection.add(0)
 
-    var didOpen: bool
-    var didClick: bool
-    f.gui.app.sigFrame += func|host = &f.gui, opened = &didOpen, clicked = &didClick|(app)
-    {
-        if !dref opened
-        {
-            @assert(host.openPopupSubMenu("Arrange"))
-            dref opened = true
-        }
-        elif !dref clicked
-        {
-            @assert(host.clickPopupMenuItem(ActionAlign.SendToFront))
-            dref clicked = true
-        }
-    }
+    f.gui.openPopupSubMenuWhenShown("Arrange")
+    f.gui.thenClickPopupMenuItem(ActionAlign.SendToFront)
 
     f.gui.click({200, 200}, Input.MouseButton.Right)
     f.gui.pump()
 
-    @assert(didOpen)
-    @assert(didClick)
+    @assert(f.gui.autoHandled)
     @assert(@dataof(f.capture.forms[0]) == b)
     @assert(@dataof(f.capture.forms[1]) == c)
     @assert(@dataof(f.capture.forms[2]) == a)
@@ -411,11 +375,11 @@ using Swag, Core
     captmeTestPrimeGizmo(cast(IForm) shape)
 
     f.gui.drag({60, 60}, {85, 80})
-    captmeTestAssertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
+    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
     @assert(f.capture.canUndo())
 
     f.capture.undo()
-    captmeTestAssertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
+    guiTestAssertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
 
     captmeTestPrimeGizmo(cast(IForm) shape)
     f.gui.drag({40, 4}, {95, 45}, modifiers: Input.KeyModifiers.Shift)
@@ -448,11 +412,11 @@ using Swag, Core
     captmeTestPrimeGizmo(cast(IForm) image)
     f.gui.drag({65, 72}, {75, 82})
 
-    captmeTestAssertRect(image.freePos, 5, 6, 30, 26)
+    guiTestAssertRect(image.freePos, 5, 6, 30, 26)
     @assert(f.capture.canUndo())
 
     f.capture.undo()
-    captmeTestAssertRect(image.freePos, 5, 6, 20, 16)
+    guiTestAssertRect(image.freePos, 5, 6, 20, 16)
 
     f.gui.doubleClick({60, 70})
     @assert(!image.editInside)

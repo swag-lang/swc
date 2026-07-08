@@ -30,6 +30,37 @@ private const DefaultIcons24 = #include(DefaultIcons24Name)
 private const DefaultIcons64 = #include(DefaultIcons64Name)
 private const DefaultSpin = #include(DefaultSpinName)
 
+// Decoded default theme images, shared by every Theme instance. Decoding the
+// embedded PNGs is pure CPU work whose result never changes, so it is done once
+// per process (same policy as the TypeFace/Font caches).
+private struct DefaultThemeImages
+{
+    lock:        Sync.Mutex
+    decoded:     bool
+    widgets:     Image
+    icons24:     Image
+    icons64:     Image
+    spin:        Image
+}
+
+private var g_DefaultThemeImages: DefaultThemeImages
+
+private func defaultThemeImages()->*DefaultThemeImages
+{
+    let cache = &g_DefaultThemeImages
+    Sync.scopedLock(&cache.lock)
+    if !cache.decoded
+    {
+        cache.widgets = assume Image.decode(DefaultImageName, DefaultImage)
+        cache.icons24 = assume Image.decode(DefaultIcons24Name, DefaultIcons24)
+        cache.icons64 = assume Image.decode(DefaultIcons64Name, DefaultIcons64)
+        cache.spin    = assume Image.decode(DefaultSpinName, DefaultSpin)
+        cache.decoded = true
+    }
+
+    return cache
+}
+
 struct ThemeResources
 {
     imgWidgets:              Texture
@@ -71,22 +102,19 @@ impl Theme
         .intialized = true
         .colors.setDark()
 
+        let images = defaultThemeImages()
         with me.res
         {
-            var img = assume Image.decode(DefaultImageName, DefaultImage)
-            .imgWidgets = renderer.addImage(img)
+            .imgWidgets = renderer.addImage(images.widgets)
 
-            img      = assume Image.decode(DefaultIcons24Name, DefaultIcons24)
             .icons24 = Memory.new'ImageList()
-            .icons24.set(renderer.addImage(img), 24, 24)
+            .icons24.set(renderer.addImage(images.icons24), 24, 24)
 
-            img      = assume Image.decode(DefaultIcons64Name, DefaultIcons64)
             .icons64 = Memory.new'ImageList()
-            .icons64.set(renderer.addImage(img), 64, 64)
+            .icons64.set(renderer.addImage(images.icons64), 64, 64)
 
-            img   = assume Image.decode(DefaultSpinName, DefaultSpin)
             .spin = Memory.new'ImageList()
-            .spin.set(renderer.addImage(img), 48, 48)
+            .spin.set(renderer.addImage(images.spin), 48, 48)
         }
 
         .setupDefaultFonts()

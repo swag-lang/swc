@@ -251,9 +251,9 @@ using Swag, Core
     moveBase.newSizeX = 7
     moveBase.newSizeY = 8
     f.capture.pushUndo(moveBase)
-    captmeTestAssertRect(shape.IForm.boundRect(), 15, 26, 37, 48)
+    guiTestAssertRect(shape.IForm.boundRect(), 15, 26, 37, 48)
     f.capture.undo()
-    captmeTestAssertRect(shape.IForm.boundRect(), 10, 20, 30, 40)
+    guiTestAssertRect(shape.IForm.boundRect(), 10, 20, 30, 40)
 
     var movePoint = f.capture.newUndo(.MovePoint)
     movePoint.baseForm = cast(IForm) line

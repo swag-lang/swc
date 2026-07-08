@@ -12,7 +12,7 @@ using Swag, Core
 
     f.capture.width = 4
     f.capture.height = 3
-    f.capture.backImg = captmeTestIndexedImage(4, 3)
+    f.capture.backImg = guiTestIndexedImage(4, 3)
 
     let before00 = f.capture.backImg.getPixelColor(0, 0)
     let before30 = f.capture.backImg.getPixelColor(3, 0)
@@ -40,7 +40,7 @@ using Swag, Core
 
     f.capture.width = 30
     f.capture.height = 20
-    f.capture.backImg = captmeTestIndexedImage(30, 20)
+    f.capture.backImg = guiTestIndexedImage(30, 20)
 
     f.main.sendCommandEvent(ActionImage.RotateImageRight)
     @assert(f.capture.backImg.width == 20)
@@ -69,22 +69,14 @@ using Swag, Core
     @assert(f.capture.height == 20)
 
     g_KeepRatio = false
-    var didResize: bool
-    f.gui.app.sigFrame += func|host = &f.gui, didResize = &didResize|(app)
-    {
-        if !dref didResize
-        {
-            @assert(host.setModalEditText("Width", "40"))
-            @assert(host.setModalEditText("Height", "28"))
-            @assert(host.clickModalButton(Dialog.BtnOk))
-            dref didResize = true
-        }
-    }
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    f.gui.withModalEdit("Width", "40")
+    f.gui.withModalEdit("Height", "28")
 
     f.main.sendCommandEvent(ActionImage.ResizeImage)
     f.gui.pump()
 
-    @assert(didResize)
+    @assert(f.gui.autoHandled)
     @assert(f.capture.backImg.width == 40)
     @assert(f.capture.backImg.height == 28)
     @assert(f.capture.width == 40)
@@ -109,7 +101,7 @@ using Swag, Core
 
     f.capture.width = 30
     f.capture.height = 20
-    f.capture.backImg = captmeTestIndexedImage(30, 20)
+    f.capture.backImg = guiTestIndexedImage(30, 20)
 
     g_ResizeMode = 1
     var modalFrames: u32
@@ -154,7 +146,7 @@ using Swag, Core
 
     f.capture.width = 30
     f.capture.height = 20
-    f.capture.backImg = captmeTestIndexedImage(30, 20)
+    f.capture.backImg = guiTestIndexedImage(30, 20)
 
     g_ResizeMode = 1
     var didClick: bool
@@ -208,7 +200,7 @@ using Swag, Core
     @assert(@dataof(f.capture.forms[0]) == inside)
     @assert(f.capture.width == 30)
     @assert(f.capture.height == 25)
-    captmeTestAssertRect(inside.IForm.boundRect(), 0, 0, 30, 25)
+    guiTestAssertRect(inside.IForm.boundRect(), 0, 0, 30, 25)
     @assert(f.capture.backImg.width == 30)
     @assert(f.capture.backImg.height == 25)
 
@@ -216,7 +208,7 @@ using Swag, Core
     @assert(f.capture.forms.count == 2)
     @assert(f.capture.width == 100)
     @assert(f.capture.height == 80)
-    captmeTestAssertRect(inside.IForm.boundRect(), 10, 15, 30, 25)
+    guiTestAssertRect(inside.IForm.boundRect(), 10, 15, 30, 25)
     @assert(f.capture.backImg.width == 100)
     @assert(f.capture.backImg.height == 80)
 

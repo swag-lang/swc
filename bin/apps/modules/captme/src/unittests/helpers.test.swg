@@ -14,14 +14,7 @@ impl CaptmeHeadlessFixture
     mtd setup(width = 900.0, height = 700.0, registerHeadlessCommands = false)
     {
         .gui.setup(width, height)
-        g_App.renderer.setupHeadless()
-        g_App.theme = Memory.new'Theme()
-        g_App.theme.colors.setDark()
-        g_App.theme.setupDefaultFonts()
-        let style = Memory.new'ThemeStyleRef()
-        style.theme = g_App.theme
-        style.count = 2
-        g_App.style.refr = style
+        .gui.bindApplication(&g_App)
 
         .main             = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
         g_Main            = .main
@@ -72,64 +65,11 @@ impl CaptmeHeadlessFixture
     }
 }
 
-func captmeTestCtx(main: *MainWnd, id: WndId)->ActionContext
-{
-    return {wnd: main, id: id}
-}
-
-func captmeTestWndCtx(wnd: *Wnd, id: WndId)->ActionContext
-{
-    return {wnd: wnd, id: id}
-}
-
-func captmeTestState(id: WndId)->CommandStateEvent
-{
-    return {id: id}
-}
-
-func captmeTestAssertRect(rect: Math.Rectangle, x: f32, y: f32, width: f32, height: f32)
-{
-    @assert(Math.abs(rect.x - x) < 0.001)
-    @assert(Math.abs(rect.y - y) < 0.001)
-    @assert(Math.abs(rect.width - width) < 0.001)
-    @assert(Math.abs(rect.height - height) < 0.001)
-}
-
-func captmeTestAssertPoint(pt: Math.Vector2, x: f32, y: f32)
-{
-    @assert(Math.abs(pt.x - x) < 0.001)
-    @assert(Math.abs(pt.y - y) < 0.001)
-}
-
 func captmeTestMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEvent
 {
     var evt  = MouseEvent{kind: kind}
     evt.button = button
     return evt
-}
-
-func(T) captmeTestActionExecute(main: *MainWnd, id: WndId)->bool
-{
-    let act = @mkinterface(null, #typeof(T), IActionUI)
-    return act.execute(captmeTestCtx(main, id))
-}
-
-func(T) captmeTestActionUpdate(main: *MainWnd, id: WndId, evt: *CommandStateEvent)->bool
-{
-    let act = @mkinterface(null, #typeof(T), IActionUI)
-    return act.update(captmeTestCtx(main, id), evt)
-}
-
-func(T) captmeTestActionExecuteWnd(wnd: *Wnd, id: WndId)->bool
-{
-    let act = @mkinterface(null, #typeof(T), IActionUI)
-    return act.execute(captmeTestWndCtx(wnd, id))
-}
-
-func(T) captmeTestActionUpdateWnd(wnd: *Wnd, id: WndId, evt: *CommandStateEvent)->bool
-{
-    let act = @mkinterface(null, #typeof(T), IActionUI)
-    return act.update(captmeTestWndCtx(wnd, id), evt)
 }
 
 func captmeTestAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape
@@ -218,32 +158,7 @@ func captmeTestDeleteForm(itf: IForm)
 
 func captmeTestTempCapturePath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var fileName: String = "captme-"
-    fileName += GUID64.getRandom().getString()
-    fileName += ".captme"
-    return Path.combine(tempDir.toString(), fileName.toString())
-}
-
-func captmeTestTempFilePath(extension: string)->String
-{
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var fileName: String = "captme-"
-    fileName += GUID64.getRandom().getString()
-    fileName += extension
-    return Path.combine(tempDir.toString(), fileName.toString())
-}
-
-func captmeTestCountNonZeroBytes(img: Image)->u64
-{
-    var count: u64
-    let bytes = img.pixels.toSlice()
-    foreach b in bytes
-    {
-        if b != 0 do
-            count += 1
-    }
-    return count
+    return guiTestTempFilePath("captme-", ".captme")
 }
 
 func captmeTestPrimeGizmo(form: IForm, z: f32 = 1)
@@ -324,19 +239,6 @@ func captmeTestRegisterIoActions(main: *MainWnd)
 func captmeTestRegisterLocalEditorShortcuts(main: *MainWnd)
 {
     captmeTestRegisterHeadlessCommands(main)
-}
-
-func captmeTestIndexedImage(w, h: s32)->Image
-{
-    var result = Image.create(w, h, .BGRA8)
-    result.visitPixels()
-    {
-        let value = cast(u8) ((1 + x + y * 17) % 251)
-        let green = cast(u8) ((cast(u32) value + 3) % 251)
-        let blue  = cast(u8) ((cast(u32) value + 7) % 251)
-        dref cast(*u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
-    }
-    return result
 }
 
 func captmeTestDate(day: u16)->Time.DateTime

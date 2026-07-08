@@ -209,8 +209,11 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
 
         if main.captureOptions.sendToClipboard do
             Clipboard.addImage(capture.backImg)
-        if !main.captureOptions.sendToEditor do
+        if !main.captureOptions.sendToEditor
+        {
+            Memory.delete(capture)
             capture = null
+        }
     }
 
     if (capture or !wasHidden)

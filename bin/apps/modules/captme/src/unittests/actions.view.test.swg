@@ -30,6 +30,16 @@ using Swag, Core
     f.main.sendCommandEvent(ActionSelection.DeSelectAll)
     @assert(f.capture.selection.count == 0)
 
+    f.main.sendCommandEvent(ActionSelection.DeleteSelection)
+    @assert(f.capture.forms.count == 2)
+    @assert(!f.capture.canUndo())
+
+    f.capture.selection.add(0)
+    f.main.sendCommandEvent(ActionSelection.DeleteSelection)
+    @assert(f.capture.forms.count == 1)
+    @assert(f.capture.selection.count == 0)
+    @assert(f.capture.canUndo())
+
     f.main.sendCommandEvent(ActionToolMode.Text)
     @assert(f.main.editMode == .Text)
 

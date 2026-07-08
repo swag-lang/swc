@@ -8,7 +8,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 4
     f.capture.height = 3
@@ -18,12 +18,12 @@ using Swag, Core
     let before30 = f.capture.backImg.getPixelColor(3, 0)
     let before02 = f.capture.backImg.getPixelColor(0, 2)
 
-    @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.MirrorImage))
+    f.main.sendCommandEvent(ActionImage.MirrorImage)
     @assert(f.capture.backImg.getPixelColor(0, 0).argb == before30.argb)
     f.capture.undo()
     @assert(f.capture.backImg.getPixelColor(0, 0).argb == before00.argb)
 
-    @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.FlipImage))
+    f.main.sendCommandEvent(ActionImage.FlipImage)
     @assert(f.capture.backImg.getPixelColor(0, 0).argb == before02.argb)
     f.capture.undo()
     @assert(f.capture.backImg.getPixelColor(0, 0).argb == before00.argb)
@@ -36,13 +36,13 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 30
     f.capture.height = 20
     f.capture.backImg = captmeTestIndexedImage(30, 20)
 
-    @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.RotateImageRight))
+    f.main.sendCommandEvent(ActionImage.RotateImageRight)
     @assert(f.capture.backImg.width == 20)
     @assert(f.capture.backImg.height == 30)
     @assert(f.capture.width == 20)
@@ -76,7 +76,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 30
     f.capture.height = 20
@@ -97,7 +97,7 @@ using Swag, Core
         }
     }
 
-    @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.ExpandCapture))
+    f.main.sendCommandEvent(ActionImage.ExpandCapture)
     f.gui.pump()
 
     @assert(f.gui.app.surfaces.count == 0)
@@ -121,7 +121,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     f.capture.width = 100
     f.capture.height = 80
@@ -131,7 +131,7 @@ using Swag, Core
     let inside = captmeTestAddShape(f.capture, 10, 15, 30, 25)
     discard captmeTestAddShape(f.capture, 150, 150, 20, 20)
 
-    @assert(captmeTestActionExecute'ActionImage(f.main, ActionImage.TrimCapture))
+    f.main.sendCommandEvent(ActionImage.TrimCapture)
     @assert(f.capture.forms.count == 1)
     @assert(@dataof(f.capture.forms[0]) == inside)
     @assert(f.capture.width == 30)

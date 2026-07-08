@@ -7,31 +7,31 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
+    f.setup(registerHeadlessCommands: true)
 
     discard captmeTestAddShape(f.capture, 10, 10, 10, 10)
     discard captmeTestAddText(f.capture, 30, 10, 10, 10)
     discard captmeTestAddShape(f.capture, 50, 10, 10, 10)
 
-    @assert(captmeTestActionExecute'ActionSelection(f.main, ActionSelection.SelectAll))
+    f.main.sendCommandEvent(ActionSelection.SelectAll)
     @assert(f.capture.selection.count == 3)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
-    @assert(captmeTestActionExecute'ActionSelection(f.main, ActionSelection.SelectSameAll))
+    f.main.sendCommandEvent(ActionSelection.SelectSameAll)
     @assert(f.capture.selection.count == 2)
     @assert(f.capture.selection.contains(0))
     @assert(f.capture.selection.contains(2))
 
-    @assert(captmeTestActionExecute'ActionSelection(f.main, ActionSelection.InvertSelection))
+    f.main.sendCommandEvent(ActionSelection.InvertSelection)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 1)
 
-    @assert(captmeTestActionExecute'ActionSelection(f.main, ActionSelection.DeSelectAll))
+    f.main.sendCommandEvent(ActionSelection.DeSelectAll)
     @assert(f.capture.selection.count == 0)
 
     let snap = f.main.snap
-    @assert(captmeTestActionExecute'ActionSelection(f.main, ActionSelection.Snap))
+    f.main.sendCommandEvent(ActionSelection.Snap)
     @assert(f.main.snap != snap)
 
     f.shutdown()

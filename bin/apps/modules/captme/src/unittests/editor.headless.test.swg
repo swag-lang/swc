@@ -48,11 +48,7 @@ using Swag, Core
 #test
 {
     var f: CaptmeHeadlessFixture
-    f.setup()
-
-    f.main.registerAction'ActionUndo()
-    f.main.registerKeyShortcut(Input.KeyModifiers.Control, Input.Key.Z, ActionUndo.DoUndo)
-    f.main.registerKeyShortcut(Input.KeyModifiers.Control, Input.Key.Y, ActionUndo.DoRedo)
+    f.setup(registerHeadlessCommands: true)
 
     let shape = captmeTestAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle

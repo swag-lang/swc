@@ -11,10 +11,7 @@ func appendTrace(value: s64)
 func macroWithDefer(stmt: #code)
 {
     defer appendTrace(9)
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }
 
 func runMacroDeferContinue()->s64

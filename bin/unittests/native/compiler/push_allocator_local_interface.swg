@@ -11,10 +11,7 @@ func pushAllocatorMacro(allocator: IAllocator, stmt: #code)
     cxt.allocator = allocator
     @setcontext(cxt)
 
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }
 
 func allocatorObject(allocator: IAllocator)->*void

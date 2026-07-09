@@ -911,8 +911,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
 
         case TokenId::CompilerScope:
             return parseCompilerScope();
-        case TokenId::CompilerMacro:
-            return parseCompilerMacro();
         case TokenId::CompilerInject:
             return parseCompilerInject();
         case TokenId::CompilerCode:
@@ -960,7 +958,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdDiscard:
             return parseDiscard();
 
-        case TokenId::CompilerUp:
         case TokenId::Identifier:
         case TokenId::SymDot:
         case TokenId::SymLeftParen:

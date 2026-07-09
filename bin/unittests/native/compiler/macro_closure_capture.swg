@@ -20,10 +20,10 @@ func macroInjectClosureCapture(stmt: #code)
 #[Swag.Macro]
 func macroInjectCallerScopeClosureCapture(stmt: #code)
 {
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    // Macro-local 'total': injection hygiene must keep it invisible to the
+    // closure code injected below, which captures its own 'total'.
+    var total = 666
+    #inject(stmt)
 }
 
 #[Swag.Macro]

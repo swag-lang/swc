@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseIdentifierType()
 {
     const TokenRef   tokRef = ref();
-    const AstNodeRef idRef  = is(TokenId::CompilerUp) ? parseCompilerUp() : parseQualifiedIdentifier();
+    const AstNodeRef idRef  = parseQualifiedIdentifier();
 
     // Outside an explicit variable type, `Foo{...}` is an initializer expression
     // glued to a named type. A blank before `{` keeps it as a standalone block.
@@ -53,7 +53,6 @@ AstNodeRef Parser::parseSingleType()
     switch (id())
     {
         case TokenId::Identifier:
-        case TokenId::CompilerUp:
             return parseIdentifierType();
 
         case TokenId::KwdStruct:

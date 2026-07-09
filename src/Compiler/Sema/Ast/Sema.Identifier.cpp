@@ -672,48 +672,6 @@ namespace
 
 }
 
-Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
-{
-    if (nodeValueRef.isValid() || nodeIdentRef.isInvalid())
-        return Result::Continue;
-
-    AstNodeRef  targetRef         = nodeIdentRef;
-    bool        usedInlineBinding = false;
-    const auto* inlinePayload     = sema.inlinePayload(sema.curNodeRef());
-    if (!inlinePayload)
-        inlinePayload = sema.frame().currentInlinePayload();
-    if (!inlinePayload)
-        inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
-    if (inlinePayload)
-    {
-        SmallVector<SemaClone::ParamBinding> bindings;
-        appendInlineBindingChain(bindings, inlinePayload);
-        const auto bindingIds = collectInlineBindingIdentifiers(bindings.span());
-        if (containsInlineBindingUse(sema, nodeIdentRef, bindingIds))
-        {
-            const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, nullptr, true};
-            targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
-            if (targetRef.isInvalid())
-                return Result::Error;
-            usedInlineBinding = true;
-        }
-    }
-
-    auto* lookupScope = usedInlineBinding ? sema.lookupScope() : sema.resolvedUpLookupScope();
-    if (lookupScope)
-    {
-        auto frame = sema.frame();
-        Sema::configureLookupFrame(frame, lookupScope, true);
-        if (!usedInlineBinding && scopeUsesRedirectedLookupChain(lookupScope))
-            frame.setIgnoreRedirectedLookupSymMaps(true);
-        sema.pushFramePopOnPostNode(frame, targetRef);
-    }
-
-    sema.setSubstitute(sema.curNodeRef(), targetRef);
-    sema.restartCurrentNode(targetRef);
-    return Result::Continue;
-}
-
 Result AstIdentifier::semaPostNode(Sema& sema) const
 {
     // Can be forced to false in case of an identifier inside a #defined

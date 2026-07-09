@@ -164,7 +164,9 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
 // String interpolation.
 // Format is `{<value to interpolate>:format}`
-#[Macro]
+// A mixin: the interpolated expressions are caller-side names, so the generated
+// code must resolve in the caller scope; the internal locals use "#uniq?".
+#[Mixin]
 func toInterp(buf: *ConcatBuffer, exp: string)
     verify
     {
@@ -176,7 +178,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
     #ast
     {
         var sb: StrConv.StringBuilder
-        sb.appendString("var convFmt: StrConv.ConvertFormat\n")
+        sb.appendString("var #uniq1: StrConv.ConvertFormat\n")
 
         var idx = 0'u64
         while idx != @countof(exp)
@@ -216,7 +218,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
                 }
             }
 
-            sb.appendFormat("StrConv.convert(buf, #up %, convFmt, \"%\")\n", value, format)
+            sb.appendFormat("StrConv.convert(buf, %, #uniq1, \"%\")\n", value, format)
         }
 
         let generated = sb.moveToString()

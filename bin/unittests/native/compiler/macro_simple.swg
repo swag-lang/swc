@@ -11,10 +11,11 @@ func macroCompute(a: s32, b: s32 = 1, c: s32 = 1)->s32
     return tmp + c
 }
 
-#[Swag.Macro]
-func macroBumpCaller()
+// A mixin body expands in the caller's scope, so it can name caller locals directly.
+#[Swag.Mixin]
+func mixinBumpCaller()
 {
-    #up total += 1
+    total += 1
 }
 
 // Macro add and compute with defaults
@@ -27,11 +28,11 @@ func macroBumpCaller()
     @assert(macroCompute(a: 20, c: 20, b: 2) == 42)
 }
 
-// Macro #up resolves caller locals at expansion time
+// Mixin resolves caller locals at expansion time
 #test
 {
     var total = 0
-    macroBumpCaller()
-    macroBumpCaller()
+    mixinBumpCaller()
+    mixinBumpCaller()
     @assert(total == 2)
 }

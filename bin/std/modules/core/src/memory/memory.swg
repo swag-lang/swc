@@ -82,10 +82,7 @@ func pushAllocator(allocator: Swag.IAllocator, stmt: #code)
     cxt.allocator = allocator
     @setcontext(cxt)
 
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }
 
 // Push the temporary allocator for the given block of code
@@ -99,8 +96,5 @@ func pushTempAllocator(stmt: #code)
     cxt.allocator = @getcontext().tempAllocator
     @setcontext(cxt)
 
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }

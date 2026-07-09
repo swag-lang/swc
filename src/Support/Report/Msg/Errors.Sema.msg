@@ -44,7 +44,6 @@ SWC_DIAG_DEF(sema_err_ast_requires_string, Error, "'#ast' must produce a string,
 SWC_DIAG_DEF(sema_err_ast_file_write_failed, Error, "cannot materialize generated '#ast' source at '{path}': {because}")
 SWC_DIAG_DEF(sema_err_ast_recursive_expansion, Error, "recursive '#ast' expansion detected; [help] make sure nested '#ast' generation eventually stops")
 SWC_DIAG_DEF(sema_err_ast_expansion_too_deep, Error, "generated '#ast' expansion nesting exceeded {count}; [help] check for recursive '#ast' generation")
-SWC_DIAG_DEF(sema_err_macro_requires_macro_fn, Error, "'#macro' can only be used inside a #[Swag.Macro] function; [help] mark the enclosing function with '#[Swag.Macro]'")
 SWC_DIAG_DEF(sema_err_module_setup_only_directive, Error, "'{tok}' can only be used in the module setup file; [help] move it to the file passed with '--module-file'")
 SWC_DIAG_DEF(sema_err_import_invalid_constraint_value, Error, "invalid value '{value}' for import constraint '{arg}'; expected one of '{values}'")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion failed: {because}")

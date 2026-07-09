@@ -9,8 +9,5 @@ func pushContext(cxt: Swag.Context, stmt: #code)
     defer @setcontext(prev)
 
     @setcontext(cxt)
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }

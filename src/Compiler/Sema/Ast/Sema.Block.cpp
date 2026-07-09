@@ -245,8 +245,6 @@ Result AstParenExpr::semaPostNode(Sema& sema)
 Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 {
     const auto& node = sema.curNode().cast<AstEmbeddedBlock>();
-    if (node.hasFlag(AstEmbeddedBlockFlagsE::CompilerMacroBody))
-        return Result::Continue;
     if (isTransparentAssumeBlock(sema))
         return Result::Continue;
 

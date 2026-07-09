@@ -183,7 +183,6 @@ namespace
             switch (node.id())
             {
                 case AstNodeId::Identifier:
-                case AstNodeId::AncestorIdentifier:
                     recordUse(codeGen, walker, escapeDepth);
                     break;
 

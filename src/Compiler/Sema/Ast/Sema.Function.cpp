@@ -1121,8 +1121,6 @@ namespace
             return SemaHelpers::resolveIdentifier(sema, identifier->codeRef());
         if (const auto* memberAccess = node.safeCast<AstMemberAccessExpr>())
             return closureCaptureAliasIdentifier(sema, memberAccess->nodeRightRef);
-        if (const auto* ancestor = node.safeCast<AstAncestorIdentifier>())
-            return closureCaptureAliasIdentifier(sema, ancestor->nodeIdentRef);
 
         return IdentifierRef::invalid();
     }

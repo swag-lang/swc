@@ -62,12 +62,9 @@ func macroRun(stmt: #code)
 #[Swag.Macro]
 func macroScope(stmt: #code)
 {
-    #macro
-    {
-        var x = 0's64
-        defer appendDeferTrace(7)
-        #inject(#up stmt)
-    }
+    var x = 0's64
+    defer appendDeferTrace(7)
+    #inject(stmt)
 }
 
 #[Swag.Macro]

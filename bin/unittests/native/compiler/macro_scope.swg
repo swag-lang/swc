@@ -8,75 +8,56 @@ struct MacroScopeConfig
 #[Swag.Macro]
 func doItTwice(stmt: #code)
 {
-    #macro
-    {
-        #inject(#up stmt)
-        #inject(#up stmt)
-    }
+    #inject(stmt)
+    #inject(stmt)
 }
 
 #[Swag.Macro]
 func preferCallerScope(stmt: #code)
 {
+    // Macro-local 'a': injection hygiene keeps it invisible to the injected code.
     var a = 100
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }
 
 #[Swag.Macro]
 func injectPlain(stmt: #code)
 {
+    // Macro-local 'a': must never shadow the caller's 'a' inside the injected code.
+    var a = 666
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func repeatWithIndex(count: s32, stmt: #code)
+func repeatWithIndex(count: s32, stmt: #code(index: s32))
 {
     var i = 0
     while i < count
     {
-        #macro
-        {
-            let index = #up i
-            #inject(#up stmt)
-        }
+        #inject(stmt, index = i)
         i += 1
     }
 }
 
 #[Swag.Macro]
-func applyConfig(cfg: MacroScopeConfig, stmt: #code)
+func applyConfig(cfg: MacroScopeConfig, stmt: #code(amount: s32))
 {
-    #macro
-    {
-        let amount = #up cfg.delta
-        #inject(#up stmt)
-    }
+    #inject(stmt, amount = cfg.delta)
 }
 
 #[Swag.Macro]
-func bindTypedAlias(stmt: #code)
+func bindTypedAlias(stmt: #code(typed: s32))
 {
     alias ScopeValue = s32
     var value: ScopeValue = 41
-    #macro
-    {
-        var typed: #up ScopeValue = #up value
-        #inject(#up stmt)
-    }
+    #inject(stmt, typed = value)
 }
 
 #[Swag.Macro]
-func nestedBlock(seed: s32, stmt: #code)
+func nestedBlock(seed: s32, stmt: #code(value: s32))
 {
-    #macro
     {
-        {
-            let value = #up seed + 1
-            #inject(#up stmt)
-        }
+        #inject(stmt, value = seed + 1)
     }
 }
 
@@ -141,31 +122,22 @@ struct MemberMacroWalker
 impl MemberMacroWalker
 {
     #[Swag.Macro]
-    mtd visit(scale: s32 = 1, stmt: #code)
+    mtd visit(scale: s32 = 1, stmt: #code(item: s32))
     {
         let values = .values
         for @countof(values)
         {
-            #macro
-            {
-                let item = #up values[@index] * #up scale
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = values[@index] * scale)
         }
     }
 
     #[Swag.Macro]
-    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code)
+    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code(item: s32, out: *s32))
     {
         let values = .values
         for @countof(values)
         {
-            #macro
-            {
-                let item = #up values[@index] * #up scale
-                let out  = #up userData
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = values[@index] * scale, out = userData)
         }
     }
 }
@@ -173,21 +145,16 @@ impl MemberMacroWalker
 namespace QualifiedMacroScope
 {
     #[Swag.Macro]
-    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code)
+    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(item, out))
     {
         for @countof(values)
         {
-            #macro
-            {
-                let item = #up values[@index] + #up delta
-                let out  = #up sumPtr
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = values[@index] + delta, out = sumPtr)
         }
     }
 }
 
-// #macro injects statement twice
+// Macro injects the statement twice
 #test
 {
     var a = 1
@@ -199,7 +166,7 @@ namespace QualifiedMacroScope
     @assert(a == 3)
 }
 
-// #macro prefers caller scope for variables
+// Injection hygiene: the macro-local 'a' never shadows the caller's 'a'
 #test
 {
     var a = 1
@@ -211,20 +178,21 @@ namespace QualifiedMacroScope
     @assert(a == 3)
 }
 
-// Plain macro #inject keeps #up bound to the macro caller
+// Injection hygiene with an inline '#code' argument: injected code resolves
+// in the caller scope, with no escape marker needed
 #test
 {
     var a = 0
-    injectPlain(#code { #up a += 1; })
+    injectPlain(#code { a += 1; })
     injectPlain()
     {
-        #up a += 2
+        a += 2
     }
 
     @assert(a == 3)
 }
 
-// #macro exposes loop index via #up
+// Block parameter exposes the loop index to the injected code
 #test
 {
     var sum = 0
@@ -236,7 +204,7 @@ namespace QualifiedMacroScope
     @assert(sum == 6)
 }
 
-// #macro passes struct config into scope
+// Block parameter bound from a struct config field
 #test
 {
     var cfg: MacroScopeConfig
@@ -251,7 +219,8 @@ namespace QualifiedMacroScope
     @assert(total == 7)
 }
 
-// #macro binds typed alias from outer scope
+// Block parameter typed through a macro-local alias; the binding initializer
+// evaluates in the macro's own scope
 #test
 {
     var result = 0
@@ -263,7 +232,7 @@ namespace QualifiedMacroScope
     @assert(result == 42)
 }
 
-// #macro nested block exposes value via #up
+// Block parameter bound from inside a nested block of the macro
 #test
 {
     var result = 0
@@ -412,21 +381,19 @@ namespace QualifiedMacroScope
     @assert(sum == 36)
 }
 
-// #[Swag.Macro] variadic [..] T parameter with for @countof + #up values[@index].
-// Fixed two bugs:
+// #[Swag.Macro] variadic [..] T parameter with for @countof + values[@index]:
+// the macro body must resolve its own 'values' parameter even when the caller
+// has a same-named local. Regression coverage for two clone bugs:
 //   1. copyImplicitCastPayload lost the type on constant-cast clones (hit by let/const arrays).
 //   2. cloneAstPreservingResolvedIdentifierSymbols prevents circular substitute chains that
 //      caused wrong JIT runtime values (hit by any typed-variadic clone).
 #[Swag.Macro]
-func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
+func(T) variadicSameName(values: [..] T, sumPtr: *T)
 {
     for @countof(values)
     {
-        #macro
-        {
-            let item = #up values[@index]
-            dref #up sumPtr += item
-        }
+        let item = values[@index]
+        dref sumPtr += item
     }
 }
 
@@ -435,7 +402,7 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
     let values: [3] s32 = [1, 2, 3]
     var sum: s32         = 0
-    variadicUpSameName(values, &sum)
+    variadicSameName(values, &sum)
     @assert(sum == 6)
 }
 
@@ -444,7 +411,7 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
     var sum: s32   = 0
     let values     = [1's32, 2, 3]
-    variadicUpSameName(values, &sum)
+    variadicSameName(values, &sum)
     @assert(sum == 6)
 }
 
@@ -453,7 +420,7 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
     let arr: [3] s32 = [1, 2, 3]
     var sum: s32      = 0
-    variadicUpSameName(arr, &sum)
+    variadicSameName(arr, &sum)
     @assert(sum == 6)
 }
 
@@ -462,7 +429,7 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
     let values: [3] s32 = [10, 20, 30]
     var sum: s32         = 0
-    variadicUpSameName(values, &sum)
+    variadicSameName(values, &sum)
     @assert(sum == 60)
 }
 
@@ -471,7 +438,7 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
     let values: [3] s64 = [10, 20, 30]
     var sum: s64         = 0
-    variadicUpSameName(values, &sum)
+    variadicSameName(values, &sum)
     @assert(sum == 60)
 }
 
@@ -480,6 +447,6 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
     let values: [1] s32 = [42]
     var sum: s32         = 0
-    variadicUpSameName(values, &sum)
+    variadicSameName(values, &sum)
     @assert(sum == 42)
 }

@@ -785,9 +785,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::SymDot:
             return parseAutoMemberAccessExpr();
 
-        case TokenId::CompilerUp:
-            return parseCompilerUp();
-
         case TokenId::CompilerTypeOf:
         case TokenId::CompilerKindOf:
             return parseCompilerTypeOf();

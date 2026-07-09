@@ -32,31 +32,15 @@ the caller unless explicitly elevated.
 }
 
 /**
-# Resolving Identifiers Outside the Macro Scope
-Use '#up' to explicitly reference and modify variables from the caller's scope.
-*/
-
-#test
-{
-    #[Swag.Macro]
-    func myMacro()
-    {
-        #up a += 1 // increments the caller's 'a'
-    }
-    var a = 0
-    myMacro()
-    myMacro()
-    @assert(a == 2)
-}
-
-/**
 # Macros with '#code' Parameters
 A '#code' parameter declares like a function, with 'func' replaced by '#code':
 - '#code' alone is a statement block.
 - '#code->T' is an expression block of type T.
 - '#code(a, b: T)' declares named block parameters (types are optional).
 
-'#inject' inserts the caller-provided code at the injection point.
+'#inject' inserts the caller-provided code at the injection point. Injected code
+is hygienic: it resolves in the caller's scope, and cannot see the macro's own
+locals.
 */
 #test
 {
@@ -69,13 +53,13 @@ A '#code' parameter declares like a function, with 'func' replaced by '#code':
     var a = 0
 
     // Use '#code' to pass a block as code (not evaluated at call site)
-    myMacro(#code { #up a += 1; })
+    myMacro(#code { a += 1; })
 
     // If the last parameter is a '#code' statement block, the following statement
     // becomes the last argument
     myMacro()
     {
-        #up a += 1
+        a += 1
     }
 
     @assert(a == 2)
@@ -105,28 +89,24 @@ explicit expression literal, mirroring the short function form 'func() => expr'.
 }
 
 /**
-# Forcing Code into the Caller's Scope with '#macro'
-Use '#macro' to run macro code as if it were in the caller's scope,
-avoiding the need for '#up' inside the injected block.
+# Injection Hygiene
+Injected code always resolves in the caller's scope: a macro-local variable
+never shadows a caller variable used by the injected block.
 */
 #test
 {
     #[Swag.Macro]
     func myMacro(what: #code)
     {
-        var a = 666 // macro-local 'a'
+        var a = 666 // macro-local 'a', invisible to the injected code
 
-        #macro
-        {
-            // references the caller's scope
-            #inject(#up what)
-        }
+        #inject(what)
     }
 
     var a = 1
     myMacro()
     {
-        a += 2 // operates on caller's 'a' due to '#macro'
+        a += 2 // operates on the caller's 'a'
     }
 
     @assert(a == 3)

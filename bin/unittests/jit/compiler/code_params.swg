@@ -26,7 +26,7 @@ func withNames(value: s32, stmt: #code(v: s32, dbl: s32))
     #inject(stmt, v = value, dbl = value * 2)
 }
 
-// Declared parameter names bound at '#inject' time: no '#macro', no '#up'.
+// Declared parameter names bound at '#inject' time.
 #[Swag.Macro]
 func withBindings(value: s32, stmt: #code(v: s32, dbl: s32))
 {

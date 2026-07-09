@@ -279,7 +279,6 @@ namespace
     bool isFunctionDesignatorNode(const AstNode& node)
     {
         return node.is(AstNodeId::Identifier) ||
-               node.is(AstNodeId::AncestorIdentifier) ||
                node.is(AstNodeId::MemberAccessExpr) ||
                node.is(AstNodeId::AutoMemberAccessExpr);
     }

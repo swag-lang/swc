@@ -617,9 +617,22 @@ namespace
         const bool                               isMixinInject = inlinePayload &&
                                    inlinePayload->sourceFunction &&
                                    inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-        const bool isMacroInject = inlinePayload &&
-                                   inlinePayload->sourceFunction &&
-                                   inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+        bool isMacroInject = inlinePayload &&
+                             inlinePayload->sourceFunction &&
+                             inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+
+        // A macro '#inject' re-executed from a cloned, already-expanded body (e.g. an
+        // inlined function wrapping a macro call) sees the wrapping function's payload
+        // as the nearest one: walk the chain back to the owning macro payload so the
+        // macro machinery (caller scope, bindings, pre-resolution) stays in effect.
+        if (!isMacroInject && !isMixinInject)
+        {
+            if (const SemaInlinePayload* macroPayload = macroInlinePayload(sema))
+            {
+                inlinePayload = macroPayload;
+                isMacroInject = true;
+            }
+        }
         bool injectsVoidCode = false;
         if (const TypeRef exprTypeRef = sema.viewType(exprRef).typeRef(); exprTypeRef.isValid())
         {
@@ -656,20 +669,23 @@ namespace
             return Result::Error;
 
 
-        // Named value bindings: wrap the injected code in a block whose leading
-        // declarations bind the '#code' parameter values. Initializers resolve at the
-        // '#inject' site (macro scope); the injected code, right after them in the same
-        // block, sees the declarations through the lexical scope chain.
+        // Macro injects are hygienic by default: the injected code lives in a block
+        // whose scope is parented to the caller, so user code cannot see the macro's
+        // internals. The leading declarations of the block bind the '#code' parameter
+        // values; their initializers resolve at the '#inject' site (macro scope).
+        // Expression injects cannot be wrapped in a block and rely on caller
+        // pre-resolution only.
         AstNodeRef substituteRef = clonedRef;
         const auto* injectNode   = sema.node(ownerRef).safeCast<AstCompilerInject>();
-        if (injectNode && injectNode->spanBindingNameRef.isValid())
+        if (injectNode && (injectNode->spanBindingNameRef.isValid() || (isMacroInject && injectsVoidCode)))
         {
             auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(sema.node(ownerRef).tokRef());
             blockPtr->setCodeRef(sema.node(ownerRef).codeRef());
             blockPtr->addFlag(AstEmbeddedBlockFlagsE::InjectBindings);
 
             SmallVector<AstNodeRef> stmts;
-            SWC_RESULT(makeInjectBindingDecls(sema, *injectNode, blockRef, stmts));
+            if (injectNode->spanBindingNameRef.isValid())
+                SWC_RESULT(makeInjectBindingDecls(sema, *injectNode, blockRef, stmts));
             stmts.push_back(clonedRef);
 
             sema.node(blockRef).cast<AstEmbeddedBlock>().spanChildrenRef = sema.ast().pushSpan(stmts.span());
@@ -1728,44 +1744,6 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
         tok.id == TokenId::CompilerDeclType)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
 
-    return Result::Continue;
-}
-
-Result AstCompilerMacro::semaPreNode(Sema& sema)
-{
-    if (isMacroInlineContext(sema))
-        return Result::Continue;
-
-    if (isMacroFunction(sema.currentFunction()))
-        return Result::Continue;
-
-    return SemaError::raise(sema, DiagnosticId::sema_err_macro_requires_macro_fn, sema.curNodeRef());
-}
-
-Result AstCompilerMacro::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    if (childRef != nodeBodyRef)
-        return Result::Continue;
-
-    if (!isMacroInlineContext(sema))
-        return Result::SkipChildren;
-
-    auto& bodyNode = sema.node(childRef).cast<AstEmbeddedBlock>();
-    bodyNode.addFlag(AstEmbeddedBlockFlagsE::CompilerMacroBody);
-
-    auto* hiddenScope = sema.curScopePtr();
-    auto* callerScope = sema.resolvedUpLookupScope();
-    if (const auto* inlinePayload = macroInlinePayload(sema); inlinePayload && inlinePayload->callerScope)
-    {
-        callerScope = inlinePayload->callerScope;
-    }
-
-    auto* macroScope = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
-    macroScope->setLookupParent(callerScope);
-
-    auto frame = sema.frame();
-    frame.setUpLookupScope(hiddenScope);
-    sema.pushFramePopOnPostChild(frame, childRef);
     return Result::Continue;
 }
 

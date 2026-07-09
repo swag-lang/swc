@@ -332,7 +332,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#warning", State.CompilerStatement)
         .mapWords.add("#import", State.CompilerStatement)
         .mapWords.add("#inject", State.CompilerStatement)
-        .mapWords.add("#macro", State.CompilerStatement)
         .mapWords.add("#if", State.CompilerStatement)
         .mapWords.add("#else", State.CompilerStatement)
         .mapWords.add("#elif", State.CompilerStatement)
@@ -355,7 +354,6 @@ impl IRichEditLexer for RichEditLexerSwag
 
         .mapWords.add("#code", State.Intrinsic)
         .mapWords.add("#type", State.Intrinsic)
-        .mapWords.add("#up", State.Intrinsic)
 
         .mapWords.add("#prom", State.Modifier)
         .mapWords.add("#wrap", State.Modifier)

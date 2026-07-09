@@ -147,7 +147,6 @@ User-defined identifiers cannot start with '#', ensuring there are no naming con
 #else
 #elif
 #inject
-#macro
 #scope
 
 #defined
@@ -183,7 +182,6 @@ User-defined identifiers cannot start with '#', ensuring there are no naming con
 
 #code
 #type
-#up
 
 #uniq0
 #uniq1

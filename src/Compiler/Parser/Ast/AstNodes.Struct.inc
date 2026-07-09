@@ -37,7 +37,6 @@ enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
 {
     Zero                 = 0,
     ImplicitCodeBlockArg = 1 << 0,
-    CompilerMacroBody    = 1 << 1,
     // Sema-synthesized block holding the '#inject' value bindings and the injected code.
     InjectBindings = 1 << 2,
 };
@@ -477,17 +476,6 @@ struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
     static Result codeGenPostNode(CodeGen& codeGen);
     Result        semaPostNode(Sema& sema) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
-struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
-{
-    AstNodeRef nodeValueRef;
-    AstNodeRef nodeIdentRef;
-
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeValueRef, nodeIdentRef}); }
-    Result     semaPreNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1743,17 +1731,6 @@ struct AstSwitchCaseStmt : AstNodeT<AstNodeId::SwitchCaseStmt>
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
-struct AstCompilerMacro : AstNodeT<AstNodeId::CompilerMacro>
-{
-    AstNodeRef nodeBodyRef;
-
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    static Result semaPreNode(Sema& sema);
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

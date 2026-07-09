@@ -8,69 +8,48 @@ struct MacroScopeConfig
 #[Swag.Macro]
 func doItTwice(stmt: #code)
 {
-    #macro
-    {
-        #inject(#up stmt)
-        #inject(#up stmt)
-    }
+    #inject(stmt)
+    #inject(stmt)
 }
 
 #[Swag.Macro]
 func preferCallerScope(stmt: #code)
 {
+    // Macro-local 'a': injection hygiene keeps it invisible to the injected code.
     var a = 100
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }
 
 #[Swag.Macro]
-func repeatWithIndex(count: s32, stmt: #code)
+func repeatWithIndex(count: s32, stmt: #code(index: s32))
 {
     var i = 0
     while i < count
     {
-        #macro
-        {
-            let index = #up i
-            #inject(#up stmt)
-        }
+        #inject(stmt, index = i)
         i += 1
     }
 }
 
 #[Swag.Macro]
-func applyConfig(cfg: MacroScopeConfig, stmt: #code)
+func applyConfig(cfg: MacroScopeConfig, stmt: #code(amount: s32))
 {
-    #macro
-    {
-        let amount = #up cfg.delta
-        #inject(#up stmt)
-    }
+    #inject(stmt, amount = cfg.delta)
 }
 
 #[Swag.Macro]
-func bindTypedAlias(stmt: #code)
+func bindTypedAlias(stmt: #code(typed: s32))
 {
     alias ScopeValue = s32
     var value: ScopeValue = 41
-    #macro
-    {
-        var typed: #up ScopeValue = #up value
-        #inject(#up stmt)
-    }
+    #inject(stmt, typed = value)
 }
 
 #[Swag.Macro]
-func nestedBlock(seed: s32, stmt: #code)
+func nestedBlock(seed: s32, stmt: #code(value: s32))
 {
-    #macro
     {
-        {
-            let value = #up seed + 1
-            #inject(#up stmt)
-        }
+        #inject(stmt, value = seed + 1)
     }
 }
 
@@ -91,31 +70,22 @@ struct MemberMacroWalker
 impl MemberMacroWalker
 {
     #[Swag.Macro]
-    mtd visit(scale: s32 = 1, stmt: #code)
+    mtd visit(scale: s32 = 1, stmt: #code(item: s32))
     {
         let values = .values
         for @countof(values)
         {
-            #macro
-            {
-                let item = #up values[@index] * #up scale
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = values[@index] * scale)
         }
     }
 
     #[Swag.Macro]
-    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code)
+    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code(item: s32, out: *s32))
     {
         let values = .values
         for @countof(values)
         {
-            #macro
-            {
-                let item = #up values[@index] * #up scale
-                let out  = #up userData
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = values[@index] * scale, out = userData)
         }
     }
 }
@@ -123,16 +93,11 @@ impl MemberMacroWalker
 namespace QualifiedMacroScope
 {
     #[Swag.Macro]
-    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code)
+    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(item, out))
     {
         for @countof(values)
         {
-            #macro
-            {
-                let item = #up values[@index] + #up delta
-                let out  = #up sumPtr
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = values[@index] + delta, out = sumPtr)
         }
     }
 }

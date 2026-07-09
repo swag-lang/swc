@@ -140,10 +140,7 @@ func forwardGenericExpr(expr: #code->bool)
 #[Swag.Macro]
 func injectFromMacroBlock(stmt: #code)
 {
-    #macro
-    {
-        #inject(stmt)
-    }
+    #inject(stmt)
 }
 
 #[Swag.Inline]
@@ -297,7 +294,7 @@ struct InlineJobProbe
 }
 
 #[Swag.Macro]
-func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code)
+func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code(var buffer, data))
 {
     func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
@@ -305,12 +302,7 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *v
         let countof = @countof(sliceBuffer)
         for countof / sliceOffset
         {
-            #macro
-            {
-                var buffer = cast #unconst (*#up T) #up scan
-                let data   = #up sliceContextData
-                #inject(#up stmt)
-            }
+            #inject(stmt, buffer = cast #unconst (*T) scan, data = sliceContextData)
 
             scan += sliceOffset
         }
@@ -325,58 +317,35 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *v
 impl InlinePixelProbe
 {
     #[Swag.Macro]
-    mtd visit(stmt: #code)
+    mtd visit(stmt: #code(x: s32, y: s32))
     {
-        #macro
-        {
-            let x = 1
-            let y = 1
-            #inject(#up stmt)
-        }
+        #inject(stmt, x = 1, y = 1)
     }
 
     #[Swag.Macro]
-    mtd visitWithUserData(userDataArg: *void, stmt: #code)
+    mtd visitWithUserData(userDataArg: *void, stmt: #code(userData, x: s32, y: s32))
     {
         var p = {userData: userDataArg}
-        #macro
-        {
-            let userData = #up p.userData
-            let x        = 1
-            let y        = 1
-            #inject(#up stmt)
-        }
+        #inject(stmt, userData = p.userData, x = 1, y = 1)
     }
 
     #[Swag.Macro]
-    mtd visitParallelLike(contextData: *void, stmt: #code)
+    mtd visitParallelLike(contextData: *void, stmt: #code(userData, x: s32, y: s32))
     {
         var j: InlineCrossAstCall.InlineJobProbe
-        #macro
-        {
-            let userData = #up contextData
-            let x        = 1
-            let y        = 1
-            #inject(#up stmt)
-        }
+        #inject(stmt, userData = contextData, x = 1, y = 1)
 
         j.contextData = contextData
     }
 
     #[Swag.Macro]
-    mtd visitParallelLocalLike(contextData: *void, stmt: #code)
+    mtd visitParallelLocalLike(contextData: *void, stmt: #code(userData, x: s32, y: s32))
     {
         func visitSlice(sliceContextData: *void)
         {
             for 1
             {
-                #macro
-                {
-                    let userData = #up sliceContextData
-                    let x        = 1
-                    let y        = 1
-                    #inject(#up stmt)
-                }
+                #inject(stmt, userData = sliceContextData, x = 1, y = 1)
             }
         }
 

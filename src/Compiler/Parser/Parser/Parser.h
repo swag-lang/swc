@@ -155,7 +155,6 @@ private:
     AstNodeRef parseAnonymousAggregateTypeBody();
     AstNodeRef parseAggregateValue();
     AstNodeRef parseAlias();
-    AstNodeRef parseCompilerUp();
     AstNodeRef parseAttrDecl();
     AstNodeRef parseAttributeValue();
     AstNodeRef parseBinaryExpr();
@@ -176,7 +175,6 @@ private:
     AstNodeRef parseCompilerGlobal();
     AstNodeRef parseCompilerImport();
     AstNodeRef parseCompilerInject();
-    AstNodeRef parseCompilerMacro();
     AstNodeRef parseCompilerMessageFunc();
     AstNodeRef parseCompilerScope();
     AstNodeRef parseCompilerTypeExpr();

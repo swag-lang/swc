@@ -22,10 +22,7 @@ func pushAllocatorLike(allocator: IAllocator, stmt: #code)
     cxt.allocator = allocator
     @setcontext(cxt)
 
-    #macro
-    {
-        #inject(#up stmt)
-    }
+    #inject(stmt)
 }
 
 func pushNullAllocatorMacroContext()->bool

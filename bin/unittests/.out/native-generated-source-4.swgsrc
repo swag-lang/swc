@@ -1,3 +1,0 @@
-// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\compiler\ast_variadic_foreach_callback.swg
-// #ast line: 90
-fn(cast(*s32) params[0])

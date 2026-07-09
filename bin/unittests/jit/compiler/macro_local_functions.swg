@@ -16,10 +16,7 @@ func localMacroRelay(seed: s32)->s32
 {
     func emit(value: s32)->s32
     {
-        #macro
-        {
-            return #up value * 2
-        }
+        return value * 2
     }
 
     return emit(seed)
@@ -28,20 +25,18 @@ func localMacroRelay(seed: s32)->s32
 #[Swag.Macro]
 func aliasBounce(value: s32)->s32
 {
-    #macro
-    {
-        return #up value + 1
-    }
+    return value + 1
 }
 
 #[Swag.Macro]
-func localNestedUpShadow(seed: s32)->s32
+func localNestedShadow(seed: s32)->s32
 {
-    // 'pick' has its own 'value' parameter: '#up value' inside 'aliasBounce'
-    // must resolve to the macro's parameter, not to this caller-scope local.
+    // 'pick' has its own 'value' parameter: 'value' inside 'aliasBounce'
+    // must resolve to that macro's own parameter, not to this local function's
+    // same-named parameter at the expansion site.
     func pick(seed: s32, value: s32)->s32
     {
-        return aliasBounce(#up seed)
+        return aliasBounce(seed)
     }
 
     return pick(seed, 1000)
@@ -52,10 +47,7 @@ func forcedLocalMacroRelay(seed: s32)->s32
     #[Swag.Macro]
     func emit(value: s32)->s32
     {
-        #macro
-        {
-            return #up value * 3
-        }
+        return value * 3
     }
 
     return emit(seed)
@@ -73,7 +65,7 @@ func forcedLocalMacroRelay(seed: s32)->s32
 
 #test
 {
-    @assert(localNestedUpShadow(41) == 42)
+    @assert(localNestedShadow(41) == 42)
 }
 
 #test
@@ -129,7 +121,9 @@ func outerMacroDoubleInject(ctxData: *void = null, stmt: #code(data: *void))
 {
     parallelVisitLike(ctxData)
     {
-        #inject(#up stmt, data = ctx)
+        // Hygiene: this block resolves in the outer macro's scope, so 'stmt'
+        // is the outer macro's parameter; 'ctx' is the bound block parameter.
+        #inject(stmt, data = ctx)
     }
 }
 

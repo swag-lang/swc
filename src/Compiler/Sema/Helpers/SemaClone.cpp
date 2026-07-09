@@ -1667,14 +1667,6 @@ AstNodeRef AstCompilerMessageFunc::semaClone(Sema& sema, const CloneContext& clo
     return newRef;
 }
 
-AstNodeRef AstCompilerMacro::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerMacro>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstCompilerMacro>();
-    cloned.nodeBodyRef      = cloneNodeRefWithoutBindings(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
-    return newRef;
-}
-
 AstNodeRef AstCompilerInject::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef          = cloneNodeCopy<AstNodeId::CompilerInject>(sema, *this);
@@ -1880,14 +1872,6 @@ AstNodeRef AstThrowExpr::semaClone(Sema& sema, const CloneContext& cloneContext)
 AstNodeRef AstIdentifier::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     return cloneIdentifier(sema, *this, cloneContextAsInline(cloneContext));
-}
-
-AstNodeRef AstAncestorIdentifier::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AncestorIdentifier>(tokRef());
-    newPtr->nodeValueRef  = cloneNodeRef(sema, nodeValueRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeIdentRef  = cloneNodeRef(sema, nodeIdentRef, cloneContextAsInline(cloneContext));
-    return newRef;
 }
 
 AstNodeRef AstFunctionExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const

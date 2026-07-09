@@ -519,13 +519,6 @@ AstNodeRef Parser::parseCompilerScope()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerMacro()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMacro>(consume());
-    nodePtr->nodeBodyRef    = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseCompilerInject()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerInject>(consume());
@@ -590,22 +583,6 @@ AstNodeRef Parser::parseCompilerInject()
         nodePtr->spanBindingNodeRef = ast_->pushSpan(bindingNodeRefs.span());
     }
 
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseCompilerUp()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>(consume());
-    const TokenRef openRef  = ref();
-    if (consumeIf(TokenId::SymLeftParen).isValid())
-    {
-        nodePtr->nodeValueRef = parseExpression();
-        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-    }
-    else
-        nodePtr->nodeValueRef.setInvalid();
-
-    nodePtr->nodeIdentRef = parseQualifiedIdentifier();
     return nodeRef;
 }
 

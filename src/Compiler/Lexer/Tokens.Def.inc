@@ -189,13 +189,11 @@ SWC_TOKEN_DEF(CompilerWarning, "#warning",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerForeignLib, "#foreignlib",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerImport, "#import",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerInject, "#inject",  TokenIdKindE::Compiler)
-SWC_TOKEN_DEF(CompilerMacro, "#macro",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerIf, "#if",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerElse, "#else",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerElseIf, "#elif",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerCode, "#code",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(CompilerScope, "#scope",  TokenIdKindE::Compiler)
-SWC_TOKEN_DEF(CompilerUp, "#up",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(CompilerType, "#type",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic)
 
 // MODIFIERS

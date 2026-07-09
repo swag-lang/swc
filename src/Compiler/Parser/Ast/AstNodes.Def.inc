@@ -22,7 +22,6 @@ SWC_NODE_DEF(AliasDecl, AstNodeIdFlagsE::SemaJob)
 //  Identifiers & Name Resolution
 // ============================================================================
 SWC_NODE_DEF(Identifier, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(AncestorIdentifier, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(QuotedExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(QuotedListExpr, AstNodeIdFlagsE::Zero)
 
@@ -178,7 +177,6 @@ SWC_NODE_DEF(CompilerTypeExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerGlobal, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerImport, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerScope, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(CompilerMacro, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerInject, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(CompilerIf, AstNodeIdFlagsE::SemaJob)

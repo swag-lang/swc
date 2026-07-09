@@ -64,7 +64,7 @@ enum class FormatSpaceBeforeParens : uint8_t
     Preserve,
     Never,
     Always,
-    ControlStatements, // Only for `if` / `while` / `for` / `foreach` / `switch`
+    ControlStatements, // Only for `if` / `while` / `for` / `switch`
     Functions,         // Only for function declarations / calls
     NonEmpty,          // Only when the parenthesized list is non-empty
 };
@@ -153,7 +153,7 @@ struct FormatOptions
     FormatShortBlockStyle allowShortEnumsOnSingleLine     = FormatShortBlockStyle::Preserve; // @TODO When to keep `enum` bodies on one line
     FormatShortBlockStyle allowShortStructsOnSingleLine   = FormatShortBlockStyle::Preserve; // @TODO When to keep `struct` bodies on one line
     std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // @TODO Allow `if cond do stmt` on one line
-    std::optional<bool>   allowShortLoopsOnSingleLine;                                       // @TODO Allow short `while`/`for`/`foreach` bodies on one line
+    std::optional<bool>   allowShortLoopsOnSingleLine;                                       // @TODO Allow short `while`/`for` bodies on one line
     std::optional<bool>   allowShortCaseOnSingleLine;                                        // @TODO Allow single-statement `case` arms on one line
 
     // -----------------------------------------------------------------------

@@ -48,7 +48,7 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
     var result: SafeAudit
     var current = startPosition
 
-    foreach line in lines
+    for line in lines
     {
         let rotation = parseRotation(line)
         result.totalClicks += rotation.clicks

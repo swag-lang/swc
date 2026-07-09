@@ -120,7 +120,7 @@ func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
 
 func hasConsumerOp(gates: const [..] LogicGate, wireName: string, op: GateOp)->bool
 {
-    foreach gate in gates
+    for gate in gates
     {
         if gate.op == op and (gate.left == wireName or gate.right == wireName) do
             return true
@@ -133,7 +133,7 @@ func highestOutputBit(gates: const [..] LogicGate)->u32
 {
     var result: u32
 
-    foreach gate in gates
+    for gate in gates
     {
         if isOutputWire(gate.output)
         {
@@ -192,7 +192,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     var suspectSlice: [..] string = result.suspects
     var wireCount: u32
 
-    foreach wire in initialWires
+    for wire in initialWires
     {
         @assert(wireCount < MaxWires)
         wireNames[wireCount] = wire.name
@@ -209,7 +209,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     {
         var progress = false
 
-        foreach gate, gateIndex in gates
+        for gate, gateIndex in gates
         {
             if gateResolved[gateIndex] do
                 continue
@@ -251,7 +251,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     }
 
     let highestZ = highestOutputBit(gates)
-    foreach gate in gates
+    for gate in gates
     {
         if isOutputWire(gate.output) and parseWireIndex(gate.output) != highestZ and gate.op != GateOp.Xor do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)

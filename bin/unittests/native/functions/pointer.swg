@@ -27,7 +27,7 @@ func scaleTransform(data: FuncData, extra: s32)->s32
 func sumReducer(values: s32...)->s32
 {
     var result = 0
-    foreach value in values do
+    for value in values do
         result += value
     return result
 }
@@ -35,7 +35,7 @@ func sumReducer(values: s32...)->s32
 func weightedReducer(values: s32...)->s32
 {
     var result = 0
-    foreach value, index in values do
+    for value, index in values do
         result += value * (cast(s32) index + 1)
     return result
 }

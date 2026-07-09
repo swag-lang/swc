@@ -20,7 +20,7 @@ impl Mouse
         .currentState.update()
 
         // Dbl click
-        foreach v in MouseButton
+        for v in MouseButton
         {
             .dblClk[v] = false
             if .currentState.pressed[v] and !.previousState.pressed[v] and .previousState.pressedTime[v]

@@ -34,7 +34,7 @@ var InlineDefaultSelfItems: InlineDefaultSelfCells
 #[Swag.Inline]
 func inlineDefaultSelfPtr(x, y: s32, self: *InlineDefaultSelfCell = null)->bool
 {
-    foreach &c in InlineDefaultSelfItems
+    for &c in InlineDefaultSelfItems
     {
         if c == self do
             return false

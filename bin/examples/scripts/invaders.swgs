@@ -92,7 +92,7 @@ func updatePlayer()
 
 func updateLasers()
 {
-    foreach laser in g_Lasers where !laser.dead
+    for laser in g_Lasers where !laser.dead
     {
         // Laser shot by the player
         if laser.player
@@ -120,7 +120,7 @@ func udpateAliens()
     var moveY: f32
 
     // Change of direction
-    foreach alien in g_Aliens where !alien.dead
+    for alien in g_Aliens where !alien.dead
     {
         if (g_MoveAlienDirection > 0 and alien.x + alien.type.width > g_Rect.width - 40) or
            (g_MoveAlienDirection < 0 and alien.x < 40)
@@ -131,7 +131,7 @@ func udpateAliens()
     }
 
     // Move all aliens
-    foreach alien in g_Aliens where !alien.dead
+    for alien in g_Aliens where !alien.dead
     {
         alien.x += SPEED_ALIEN_X * g_Dt * g_MoveAlienDirection
         alien.y += moveY
@@ -147,10 +147,10 @@ func udpateAliens()
 
 func checkCollisions()
 {
-    foreach laser in g_Lasers where !laser.dead
+    for laser in g_Lasers where !laser.dead
     {
         // Against obstacles
-        foreach obs in g_Obstacles where !obs.dead
+        for obs in g_Obstacles where !obs.dead
         {
             let r = Math.Rectangle{obs.x, obs.y, OBS_SIZE, OBS_SIZE}
             if r.contains(Math.Point{laser.x, laser.y})
@@ -167,7 +167,7 @@ func checkCollisions()
         // Player laser against aliens
         if laser.player
         {
-            foreach alien in g_Aliens where !alien.dead
+            for alien in g_Aliens where !alien.dead
             {
                 let r = Math.Rectangle{alien.x, alien.y, alien.type.width, alien.type.height}
                 if r.contains(Math.Point{laser.x, laser.y})
@@ -234,10 +234,10 @@ func addObstacle(xi, yi: f32)
         "xx       xx"]
 
     var y = yi
-    foreach line in shape
+    for line in shape
     {
         var x = xi
-        foreach c in line
+        for c in line
         {
             if c == 'x' do
                 g_Obstacles.add({x, y})
@@ -269,18 +269,18 @@ func startGame()
 func display()
 {
     // Aliens
-    foreach alien in g_Aliens where !alien.dead do
+    for alien in g_Aliens where !alien.dead do
         g_Painter.drawTexture(alien.x, alien.y, dref alien.type)
 
     // Player
     g_Painter.drawTexture(g_Player.x, g_Player.y, g_PlayerImg)
 
     // Obstacles
-    foreach obs in g_Obstacles where !obs.dead do
+    for obs in g_Obstacles where !obs.dead do
         g_Painter.fillRect(obs.x, obs.y, OBS_SIZE, OBS_SIZE, Argb.White)
 
     // Lasers
-    foreach laser in g_Lasers where !laser.dead
+    for laser in g_Lasers where !laser.dead
     {
         let color = laser.player ? Argb.Green : Argb.Red
         g_Painter.drawLine(laser.x, laser.y, laser.x, laser.y + LASER_LENGTH, color, 2)

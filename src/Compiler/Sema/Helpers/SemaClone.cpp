@@ -1519,6 +1519,7 @@ AstNodeRef AstForStmt::semaClone(Sema& sema, const CloneContext& cloneContext) c
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ForStmt>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstForStmt>();
+    cloned.spanNamesRef     = cloneTokenSpan(sema, spanNamesRef, cloneContextAsInline(cloneContext));
     cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     cloned.nodeWhereRef     = cloneNodeRef(sema, nodeWhereRef, cloneContextAsInline(cloneContext));
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));

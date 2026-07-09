@@ -9,7 +9,7 @@ func aggregateStructArrayDigits(payloadIndex: u64) -> s32
 
     let payload = payloads[payloadIndex]
     var digits: s32 = 0
-    foreach value in payload.values
+    for value in payload.values
     {
         digits = digits * 10 + value
     }

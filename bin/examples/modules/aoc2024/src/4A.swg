@@ -57,9 +57,9 @@ func day4A()
     }
 
     var total = 0
-    for y in lines
+    for y in @countof(lines)
     {
-        for x in lines[y]
+        for x in @countof(lines[y])
         {
             if x <= lines[y].length - 4 and
                test(lines[y][x], lines[y][x + 1], lines[y][x + 2], lines[y][x + 3]) do

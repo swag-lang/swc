@@ -225,7 +225,7 @@ private impl TagBin
             {
                 // Alias
                 let aliases = Reflection.getAttributes(toType, Serialization.Alias)
-                foreach al in aliases
+                for al in aliases
                 {
                     let value = Reflection.getAttributeValue(al, "name")
                     if cast(string) value == fromType.name
@@ -452,7 +452,7 @@ impl TagBin
             {
                 // So check for aliases
                 let aliases = Reflection.getAttributes(val, Serialization.Alias)
-                foreach al in aliases
+                for al in aliases
                 {
                     let value = Reflection.getAttributeValue(al, "name")
                     Debug.assert(value != null)

@@ -31,7 +31,7 @@ impl Image
     func getDecoder(fileName: string)->#null *ImageDecoder
     {
         var found: *ImageDecoder
-        foreach &decoder in decoders
+        for &decoder in decoders
         {
             if decoder.itf.canDecode(fileName)
             {
@@ -78,7 +78,7 @@ public impl Image
     // Returns 'true' if the given filename has a corresponding decoder
     func canLoad(fileName: string)->bool
     {
-        foreach &decoder in decoders
+        for &decoder in decoders
         {
             if decoder.itf.canDecode(fileName) do
                 return true

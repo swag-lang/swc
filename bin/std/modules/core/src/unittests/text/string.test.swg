@@ -27,7 +27,7 @@ func makePatternString(count: u64)->String
 
 func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 {
-    foreach #reverse byte, index in value
+    for #reverse byte, index in value
     {
         if byte < minByte do
             continue
@@ -108,7 +108,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
     var sumBytes: u32
     var sumIndexes: u64
-    foreach byte, index in value
+    for byte, index in value
     {
         sumBytes += cast(u32) byte
         sumIndexes += index
@@ -117,7 +117,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(sumBytes == cast(u32) 'a''u8 + cast(u32) 'Z''u8 + cast(u32) 'c''u8 + cast(u32) 'd''u8 + cast(u32) 'e''u8 + cast(u32) 'f''u8)
     @assert(sumIndexes == 15)
 
-    foreach &byte in value do
+    for &byte in value do
         dref byte += 1'u8
 
     @assert(assertString(value, "b[defg"))

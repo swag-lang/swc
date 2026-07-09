@@ -95,7 +95,7 @@ func getSlotImpl(slot: *GlyphSlot)->*FaceImpl throw
 
 func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord
 {
-    foreach it in faceData.tables
+    for it in faceData.tables
     {
         if it.tag == tag do
             return &it

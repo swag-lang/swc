@@ -72,7 +72,7 @@ impl IWnd for MainWnd
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
 
-            for idx in me.monitors
+            for idx in @countof(me.monitors)
             {
                 switch idx
                 {
@@ -242,7 +242,7 @@ impl MainWnd
         }
 
         var done = false
-        foreach md in imgToLoad.metaDatas
+        for md in imgToLoad.metaDatas
         {
             if md.isTag("Captme.File")
             {
@@ -309,7 +309,7 @@ impl MainWnd
             capture.selectionHasChanged()
             .freezeSel = true
 
-            foreach it in capture.forms
+            for it in capture.forms
             {
                 let p = cast(*BaseForm) @dataof(it)
                 p.freeze = true
@@ -484,7 +484,7 @@ impl MainWnd
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
             let screenActions = [ActionCapture.Screen0, ActionCapture.Screen1, ActionCapture.Screen2, ActionCapture.Screen3]
-            foreach m, idx in me.monitors do
+            for m, idx in me.monitors do
                 .addItem(screenActions[idx])
 
             .addSeparator()
@@ -561,7 +561,7 @@ impl MainWnd
             ActionToolMode.Text, ActionToolMode.Draw, ActionToolMode.Highlight,
             ActionToolMode.Step, ActionToolMode.Img, ActionToolMode.PixSel]
 
-        foreach id in toolButtons
+        for id in toolButtons
         {
             with let b = IconButton.create(me.editToolBar, {}, position: {0, 0, 60, 64})
             {
@@ -597,18 +597,18 @@ impl MainWnd
     mtd setTopBarHeight()
     {
         var icons: Array'(*IconButton)
-        foreach c in .topBar.childs
+        for c in .topBar.childs
         {
             if c.type == IconButton do
                 icons.add(cast(*IconButton) c)
         }
-        foreach c in .editToolBar.childs
+        for c in .editToolBar.childs
         {
             if c.type == IconButton do
                 icons.add(cast(*IconButton) c)
         }
 
-        foreach c in icons
+        for c in icons
         {
             if .editorOptions.showToolBarLabels
             {

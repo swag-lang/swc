@@ -80,7 +80,7 @@ impl LibraryWnd
 
     mtd removeSelected()
     {
-        foreach it, i in .view.items
+        for it, i in .view.items
         {
             if it.filtered do
                 continue
@@ -161,7 +161,7 @@ impl LibraryWnd
             return
         g_Library.onDeleteFile += func|libWnd = me|(file)
         {
-            foreach it, i in libWnd.view.items
+            for it, i in libWnd.view.items
             {
                 if it.fi.fullname == file
                 {
@@ -225,7 +225,7 @@ impl LibraryWnd
             }
         }
 
-        foreach fi in g_Library.files
+        for fi in g_Library.files
         {
             if !hasLastDateTime or (fi.lastWriteTime.year != lastDateTime.year)
             {

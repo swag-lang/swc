@@ -15,7 +15,7 @@ func countActive(flags: const [..] bool)->u32
 {
     var result: u32
 
-    foreach flag in flags
+    for flag in flags
     {
         if flag do
             result += 1
@@ -47,7 +47,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     @assert(width <= 96)
 
-    foreach line in plan
+    for line in plan
     {
         @assert(@countof(cast(const [..] u8) line) == width)
     }

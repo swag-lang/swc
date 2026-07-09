@@ -26,7 +26,7 @@ func testSamePath(left: string, right: string)->bool
 
 func testHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
 {
-    foreach md in img.metaDatas
+    for md in img.metaDatas
     {
         if md.isTag("Captme.File")
         {

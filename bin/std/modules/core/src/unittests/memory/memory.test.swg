@@ -7,7 +7,7 @@ func assertBytesEqual(lhs, rhs: const [..] u8)->bool
     if @countof(lhs) != @countof(rhs) do
         return false
 
-    foreach value, index in lhs
+    for value, index in lhs
     {
         if value != rhs[index] do
             return false

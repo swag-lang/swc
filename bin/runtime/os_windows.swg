@@ -549,7 +549,7 @@ func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null
 {
     var hasStarted = false
 
-    for i in wh
+    for i in @countof(wh)
     {
         let info = __symbolize(wh[i])
         if !info.hasLine and !printNoLine do

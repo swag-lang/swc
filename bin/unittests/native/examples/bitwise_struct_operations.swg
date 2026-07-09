@@ -15,7 +15,7 @@ struct ArtifactDigest
 func computeCrc32(bytes: const [..] u8)->u32
 {
     var crc = 0xFFFF_FFFF'u32
-    foreach ch in bytes
+    for ch in bytes
     {
         crc ^= cast(u32) ch
         for 8
@@ -36,7 +36,7 @@ func computeCrc64(bytes: const [..] u8)->u64
     const Polynomial = 0x42F0_E1EB_A9EA_3693'u64
 
     var crc: u64
-    foreach ch in bytes
+    for ch in bytes
     {
         crc ^= cast(u64) ch << 56
         for 8

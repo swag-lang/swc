@@ -197,7 +197,7 @@ func auditLan(connections: const [..] string)->LanAudit
     var adjacencySlice: [..] bool = adjacency
     var computerCount: u32
 
-    foreach line in connections
+    for line in connections
     {
         let bytes = cast(const [..] u8) line
         @assert(@countof(bytes) == 5)

@@ -56,7 +56,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     var foundDefaulted = false
     var foundVariadic  = false
 
-    foreach attribute in REFLECTED_FUNCTION_INFO.attributes
+    for attribute in REFLECTED_FUNCTION_INFO.attributes
     {
         if attribute.type == #typeof(ReflectionTypeAttr)
         {
@@ -111,7 +111,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     @assert(@countof(REFLECTED_FUNCTION_INFO.parameters) == 1)
 
     var foundParamAttribute = false
-    foreach attribute in REFLECTED_FUNCTION_INFO.parameters[0].attributes
+    for attribute in REFLECTED_FUNCTION_INFO.parameters[0].attributes
     {
         if attribute.type != #typeof(ParamReflectionAttr) do
             continue
@@ -138,7 +138,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     @assert(@countof(REFLECTED_STRUCT_INFO.fields) == 1)
 
     var foundFieldAttribute = false
-    foreach fieldAttribute in REFLECTED_STRUCT_INFO.fields[0].attributes
+    for fieldAttribute in REFLECTED_STRUCT_INFO.fields[0].attributes
     {
         if fieldAttribute.type != #typeof(FieldReflectionAttr) do
             continue
@@ -165,9 +165,9 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
 
     var foundFirstValueAttribute  = false
     var foundSecondValueAttribute = false
-    foreach enumValue in REFLECTED_ENUM_INFO.values
+    for enumValue in REFLECTED_ENUM_INFO.values
     {
-        foreach enumValueAttribute in enumValue.attributes
+        for enumValueAttribute in enumValue.attributes
         {
             if enumValueAttribute.type != #typeof(EnumValueReflectionAttr) do
                 continue

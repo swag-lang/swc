@@ -74,12 +74,12 @@ func day9A()
 
     var total: s64
 
-    foreach l in lines
+    for l in lines
     {
         let vals = Tokenize.split(l, ' ''u8)
 
         var values: Array's64
-        foreach v in vals do
+        for v in vals do
             values.add(assume StrConv.toS64(v))
         total += values.back()
 

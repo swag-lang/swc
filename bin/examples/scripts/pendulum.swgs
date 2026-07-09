@@ -163,7 +163,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         {
             var lp: LinePath
             lp.start(linePath[0].x, linePath[0].y)
-            foreach v in linePath do
+            for v in linePath do
                 lp.curveTo(v.x, v.y)
             painter.drawPath(&lp, Argb.Red, 2)
         }

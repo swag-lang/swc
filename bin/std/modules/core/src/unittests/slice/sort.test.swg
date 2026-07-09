@@ -7,7 +7,7 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
     if @countof(values) != @countof(expected) do
         return false
 
-    foreach value, index in values
+    for value, index in values
     {
         if value != expected[index] do
             return false

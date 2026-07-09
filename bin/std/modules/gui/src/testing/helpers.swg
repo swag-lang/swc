@@ -57,7 +57,7 @@ func countNonZeroBytes(img: Image)->u64
 {
     var count: u64
     let bytes = img.pixels.toSlice()
-    foreach b in bytes
+    for b in bytes
     {
         if b != 0 do
             count += 1

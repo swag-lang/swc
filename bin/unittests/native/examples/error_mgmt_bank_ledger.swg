@@ -51,7 +51,7 @@ impl Ledger
 {
     mtd reset()
     {
-        foreach &a, idx in .accounts
+        for &a, idx in .accounts
         {
             a.id      = cast(s32) idx
             a.balance = 0
@@ -159,7 +159,7 @@ impl Ledger
     mtd runBatch(ops: const [..] Transfer)->s32
     {
         var successes: s32 = 0
-        foreach op in ops
+        for op in ops
         {
             catch .transfer(op.from, op.dest, op.amount)
             if @err == null do

@@ -20,7 +20,7 @@ func day4A()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         let s    = Tokenize.split(l, " ")
         let set: HashSet'string = s[ to ]

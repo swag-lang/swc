@@ -35,7 +35,7 @@ impl InlineBug10VisitBytes
 #[Swag.Inline]
 func inlineBug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minValue: u8)->u64
 {
-    foreach #reverse value, index in values
+    for #reverse value, index in values
     {
         if value < minValue do
             continue
@@ -48,7 +48,7 @@ func inlineBug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes,
 
 func bug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minValue: u8)->u64
 {
-    foreach #reverse value, index in values
+    for #reverse value, index in values
     {
         if value < minValue do
             continue

@@ -1101,7 +1101,7 @@ namespace
         else if (const auto* destructuring = node.safeCast<AstVarDeclDestructuring>())
             appendInlineLocalIdentifiers(sema, *nodeAst, node, destructuring->spanNamesRef, outIdentifiers);
         else if (const auto* forStmt = node.safeCast<AstForStmt>())
-            appendInlineLocalIdentifier(sema, node, forStmt->tokNameRef, outIdentifiers);
+            appendInlineLocalIdentifiers(sema, *nodeAst, node, forStmt->spanNamesRef, outIdentifiers);
         else if (const auto* foreachStmt = node.safeCast<AstForeachStmt>())
             appendInlineLocalIdentifiers(sema, *nodeAst, node, foreachStmt->spanNamesRef, outIdentifiers);
 

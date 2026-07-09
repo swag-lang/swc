@@ -157,7 +157,7 @@ func __printF64(value: f64)
 // Basic print to console function
 func @print(params: ...)
 {
-    foreach it in params
+    for it in params
     {
         var v  = it
         var ko = @kindof(v)

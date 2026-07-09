@@ -22,7 +22,7 @@ func getEnumValue(type: typeinfo, name: string)->#null const *TypeValue
         return null
 
     let typeEnum = cast(const *TypeInfoEnum) type
-    foreach &it in typeEnum.values where it.name == name do
+    for &it in typeEnum.values where it.name == name do
         return it
     return null
 }
@@ -59,7 +59,7 @@ func getEnumName(type: typeinfo, valueAddr: const *void, fullname = true)->Strin
 
     let simpleName = type.name
 
-    foreach it in typeEnum.values
+    for it in typeEnum.values
     {
         // Get the enum value, as an 'u64' or a string
         var val2:  u64

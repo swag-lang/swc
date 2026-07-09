@@ -161,7 +161,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
     @assert(cast(string) Reflection.getAttributeValue(type, TypeMeta, "label") == "probe")
     @assert(cast(s32) Reflection.getAttributeValue(type, TypeMeta, "priority") == 3)
-    foreach &it in typeStruct.fields where it.name == "x"
+    for &it in typeStruct.fields where it.name == "x"
     {
         @assert(Reflection.hasAttribute(it, FieldMeta))
         let attrib = Reflection.getAttribute(it, FieldMeta)

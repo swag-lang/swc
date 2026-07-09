@@ -19,9 +19,9 @@ func day6B()
     var freq: [8, 26] u32
     var pwd:  String = "        "
 
-    foreach l in lines
+    for l in lines
     {
-        foreach c, i in l
+        for c, i in l
         {
             freq[i, c - 'a'] += 1
         }

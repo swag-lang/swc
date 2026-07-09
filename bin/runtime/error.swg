@@ -258,7 +258,7 @@ func @panic(message: string, loc: SourceCodeLocation)
 
     __printPanicReport(message, loc)
 
-    foreach arg in @args
+    for arg in @args
     {
         if @stringcmp(arg, "swag.test") do
             __exitError()

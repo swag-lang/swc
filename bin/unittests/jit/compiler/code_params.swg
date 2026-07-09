@@ -115,7 +115,7 @@ func runBinderInline()->bool
 
 func runPartialBinder()->bool
 {
-    // Binder arity can be lower than the declared arity, like foreach.
+    // Binder arity can be lower than the declared arity, like for-element iteration.
     var total = 0
     withNames(10) #code(a) { total = a + dbl }
     return total == 30

@@ -8,14 +8,14 @@ func pick(values: const [..] s32, idx: s32)->s32
 func byteChecksum(values: const [..] u8)->u32
 {
     var result: u32
-    foreach value in values do
+    for value in values do
         result += cast(u32) value
     return result
 }
 
 func containsRune(values: const [..] rune, what: rune)->bool
 {
-    foreach value in values where value == what do
+    for value in values where value == what do
         return true
     return false
 }
@@ -34,7 +34,7 @@ struct ProductLine
 func totalQty(lines: const [..] ProductLine)->s32
 {
     var result: s32
-    foreach line in lines do
+    for line in lines do
         result += line.qty
     return result
 }

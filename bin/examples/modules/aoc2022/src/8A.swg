@@ -43,14 +43,14 @@ func day8A()
     total += lines.count * 2
     total += (lines[0].length - 2) * 2
 
-    foreach l, line in lines
+    for l, line in lines
     {
         if line == 0 or line == lines.count - 1 do
             continue
 
         var maxLeft: u8
 
-        foreach #Bytes c, col in l
+        for #Bytes c, col in l
         {
             if col == 0 or col == l.length - 1 do
                 continue

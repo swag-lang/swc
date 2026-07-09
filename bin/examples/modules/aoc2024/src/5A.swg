@@ -86,7 +86,7 @@ func day5A()
     var order: HashTable'(s32, Array's32)
     var total = 0
 
-    foreach f in lines
+    for f in lines
     {
         if @countof(f) == 0
         {

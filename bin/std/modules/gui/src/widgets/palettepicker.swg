@@ -28,7 +28,7 @@ impl IWnd for PalettePicker
 
         var x = clientRect.x
         var y = clientRect.y
-        foreach c, i in .pal
+        for c, i in .pal
         {
             if .hotIdx == i do
                 colorBorder = colors.palPicker_HotBorder
@@ -62,7 +62,7 @@ impl IWnd for PalettePicker
 
         // Hit test
         var newHotIdx = Swag.S32.Max
-        for i in .palPos
+        for i in @countof(.palPos)
         {
             if .palPos[i].contains(pos)
             {

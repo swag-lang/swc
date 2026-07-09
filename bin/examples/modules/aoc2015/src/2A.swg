@@ -48,7 +48,7 @@ internal func day2EnsurePresents()
     let lines    = assume File.readAllLines(dataPath)
 
     day2Presents.reserve(lines.count)
-    foreach line in lines
+    for line in lines
     {
         var cursor = 0'u64
         var x = day2ParseNumber(line, &cursor)
@@ -68,7 +68,7 @@ func day2A()
     day2EnsurePresents()
 
     var total: u64
-    foreach gift in day2Presents do
+    for gift in day2Presents do
         total += 3 * gift.x * gift.y + 2 * gift.y * gift.z + 2 * gift.z * gift.x
 
     //Console.print("total: ", total)

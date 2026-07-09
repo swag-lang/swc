@@ -12,6 +12,7 @@ SWC_DIAG_DEF(parser_err_expected_sep_stmt, Error, "expected ';' to separate stat
 SWC_DIAG_DEF(parser_err_empty_literal_suffix, Error, "empty literal suffix after the quote; [help] remove the quote, or add a suffix such as 's32', 'u64', 'f64', 'bool', or 'rune'")
 SWC_DIAG_DEF(parser_err_invalid_literal_suffix, Error, "invalid literal suffix: '{tok}'; [help] literal suffixes must be scalar numeric types, 'bool', or 'rune'")
 SWC_DIAG_DEF(parser_err_unexpected_and_or, Error, "unexpected C-style boolean operator '{tok}'; [help] use '{value}' instead")
+SWC_DIAG_DEF(parser_err_foreach_removed, Error, "'foreach' has been replaced by 'for'; [help] bind a name to iterate the values: 'for value in expression'")
 SWC_DIAG_DEF(parser_err_unexpected_and_or, Error, "unexpected C-style boolean operator '{tok}'; [help] use 'and' or 'or' instead")
 SWC_DIAG_DEF(parser_err_duplicated_modifier, Error, "modifier '{tok}' is already specified; [help] remove the repeated modifier")
 SWC_DIAG_DEF(parser_err_unexpected_do_block, Error, "unexpected '{' after 'do'; [help] use either 'do <statement>' or '{ ... }', but not both")

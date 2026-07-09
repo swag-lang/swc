@@ -548,12 +548,9 @@ Result AstForStmt::codeGenPreNode(CodeGen& codeGen) const
     loopState.doneLabel     = builder.createLabel();
     loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
 
-    if (tokNameRef.isValid())
-    {
-        const SemaNodeView symbolView = codeGen.curViewSymbol();
-        if (symbolView.sym() != nullptr)
-            loopState.indexSym = &symbolView.sym()->cast<SymbolVariable>();
-    }
+    const SemaNodeView symbolView = codeGen.curViewSymbol();
+    if (symbolView.sym() != nullptr && symbolView.sym()->isVariable())
+        loopState.indexSym = &symbolView.sym()->cast<SymbolVariable>();
 
     setForStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;

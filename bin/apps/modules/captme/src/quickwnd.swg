@@ -52,7 +52,7 @@ impl QuickStyle
 
     mtd clear()
     {
-        foreach i in .forms do
+        for i in .forms do
             deleteOne(i)
         .forms.clear()
     }
@@ -593,14 +593,14 @@ impl QuickWnd
         let mode = .main.getEditMode()
 
         var firstVisible = 0's32
-        foreach c in .layout.childs
+        for c in .layout.childs
         {
             if c.isVisible() do
                 break
             firstVisible += 1
         }
 
-        foreach it, i in .currentStyle.forms
+        for it, i in .currentStyle.forms
         {
             let btn = cast(*IconButton) .layout.childs[i + firstVisible]
             btn.isChecked = false
@@ -770,10 +770,10 @@ impl QuickWnd
             return
         }
 
-        foreach c in .layout.childs do
+        for c in .layout.childs do
             c.destroy()
 
-        foreach it in .currentStyle.forms
+        for it in .currentStyle.forms
         {
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
             btn.iconBtnFlags.add(.Checkable)

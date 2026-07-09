@@ -7,7 +7,7 @@ func pick(values: const [..] s32, idx: s32)->s32
 
 func containsRune(values: const [..] rune, what: rune)->bool
 {
-    foreach value in values where value == what do
+    for value in values where value == what do
         return true
     return false
 }

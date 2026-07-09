@@ -131,7 +131,7 @@ var MessageUnknownCountArrayCount = 0
         @assert(@countof(typeFunc.parameters) == 0)
         @assert(typeFunc.returnType.name == "u32")
         var foundMarker = false
-        foreach attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker) do
+        for attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker) do
             foundMarker = true
         @assert(foundMarker)
     }
@@ -143,7 +143,7 @@ var MessageUnknownCountArrayCount = 0
         let typeFunc = cast(const *TypeInfoFunc) msg.type
         @assert(@countof(typeFunc.parameters) == 0)
         @assert(typeFunc.returnType.name == "u32")
-        foreach attribute in typeFunc.attributes do
+        for attribute in typeFunc.attributes do
             @assert(attribute.type != #typeof(MessageMarker))
     }
 }

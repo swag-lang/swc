@@ -38,7 +38,7 @@ using Swag, Core
 
     var counter: OutlineCounter
     let commands = scope.face.glyph.outline.decompose()
-    foreach cmd in commands
+    for cmd in commands
     {
         switch cmd.kind
         {

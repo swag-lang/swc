@@ -76,7 +76,7 @@ internal impl Properties
     mtd updateValidation()->bool
     {
         var changed = false
-        foreach it in .items do
+        for it in .items do
             if .updateItemValidation(it) do
                 changed = true
         return changed

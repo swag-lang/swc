@@ -4,7 +4,7 @@ using Swag
 
 func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
 {
-    foreach value in values
+    for value in values
     {
         if value.toString() == expected do
             return true
@@ -16,11 +16,11 @@ func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
 func assertReverseIntSetIteration(values: const &HashSet's32)->bool
 {
     var forward: Array's32
-    foreach value in values do
+    for value in values do
         forward.add(value)
 
     var reverse: Array's32
-    foreach #reverse value in values do
+    for #reverse value in values do
         reverse.add(value)
 
     if forward.count != reverse.count do
@@ -50,7 +50,7 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
     @assert(values.contains(3))
 
     var sum = 0
-    foreach value in values do
+    for value in values do
         sum += value
     @assert(sum == 4)
 }

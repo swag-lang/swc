@@ -7,7 +7,7 @@ func crc32Reference(buffer: const [..] u8, seed: u32 = 0)->u32
 {
     var crc = ~seed
 
-    foreach value in buffer
+    for value in buffer
     {
         crc ^= cast(u32) value
         for bit in 8

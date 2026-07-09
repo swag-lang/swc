@@ -28,7 +28,7 @@ func day3A()
     var r     = assume Parser.RegExp.create(#"mul\(\d+,\d+\)"#)
     let d     = r.grepAll(line)
     var total = 0
-    foreach v in d
+    for v in d
     {
         var cpy: String = v
         cpy.replace("mul(", "")

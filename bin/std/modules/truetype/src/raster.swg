@@ -63,7 +63,7 @@ func buildEdges(outline: const *Outline)->Array'Edge
     var havePos  = false
     let tolerance = 0.20 / OVERSAMPLE
 
-    foreach cmd in commands
+    for cmd in commands
     {
         switch cmd.kind
         {
@@ -102,7 +102,7 @@ func buildEdges(outline: const *Outline)->Array'Edge
 func isInside(edges: const [..] Edge, x, y: f64)->bool
 {
     var winding = 0
-    foreach edge in edges
+    for edge in edges
     {
         if y < edge.minY or y >= edge.maxY do
             continue
@@ -239,7 +239,7 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
         let bandHi = topF - cast(f64) py
         let bandLo = bandHi - 1.0
 
-        foreach edge in edges
+        for edge in edges
         {
             // Horizontal edges carry no winding; skip non-overlapping ones.
             if edge.y0 == edge.y1 do

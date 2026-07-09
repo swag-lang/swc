@@ -92,7 +92,7 @@ impl WorkloadForecast
 func totalStops(forecast: WorkloadForecast)->s32
 {
     var total: s32
-    foreach stops in forecast do
+    for stops in forecast do
         total += stops
     return total
 }
@@ -100,7 +100,7 @@ func totalStops(forecast: WorkloadForecast)->s32
 func adjacentSignature(forecast: WorkloadForecast)->s32
 {
     var signature: s32
-    foreach #Pairs today, nextDay in forecast do
+    for #Pairs today, nextDay in forecast do
         signature = signature * 100 + (nextDay - today + 50)
     return signature
 }
@@ -108,7 +108,7 @@ func adjacentSignature(forecast: WorkloadForecast)->s32
 func maxAdjacentRise(forecast: WorkloadForecast)->s32
 {
     var best = -1000
-    foreach #Pairs today, nextDay in forecast
+    for #Pairs today, nextDay in forecast
     {
         let delta = nextDay - today
         if delta > best do
@@ -118,7 +118,7 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
 }
 
 // Forecast operations over a struct-backed week with forward, named, and
-// by-address custom foreach passes.
+// by-address custom element-iteration passes.
 #test
 {
     var forecast = WorkloadForecast{
@@ -133,7 +133,7 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
     @assert(adjacentSignature(forecast) == 54544756)
     @assert(maxAdjacentRise(forecast) == 6)
 
-    foreach &stops, day in forecast
+    for &stops, day in forecast
     {
         if day == 2'u64 do
             dref stops -= 3

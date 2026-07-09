@@ -213,7 +213,7 @@ impl Polygon
             {
                 for cx in cx0 to cx1
                 {
-                    foreach j in grid[cast(u64) (cy * res + cx)]
+                    for j in grid[cast(u64) (cy * res + cx)]
                     {
                         let nextJ = (j + 1) % count
                         if nextI == j or nextJ == i do
@@ -263,7 +263,7 @@ impl Polygon
         if !res.count do
             return
 
-        foreach pt in res
+        for pt in res
         {
             let vec = Math.Vector2{cast(f32) (pt.x / ClipperScaleCoords), cast(f32) (pt.y / ClipperScaleCoords)}
             .add(vec)
@@ -293,7 +293,7 @@ impl Polygon
             // inner contours into many tiny loops.
             var paths: Clipper.ClipperPaths
             .clean(&paths)
-            foreach path in paths do
+            for path in paths do
                 off.addPath(path, joinType)
         }
     }
@@ -345,7 +345,7 @@ impl Polygon
         var res: Clipper.ClipperPaths
         .offset(&res, value, joinStyle, toler)
 
-        foreach p in res
+        for p in res
         {
             let np = result.newPath()
             np.polygon.storeClipperResult(p)
@@ -393,7 +393,7 @@ impl Polygon
         var res: Clipper.ClipperPaths
         .clean(&res)
 
-        foreach p in res
+        for p in res
         {
             let np = result.newPath()
             np.polygon.storeClipperResult(p)

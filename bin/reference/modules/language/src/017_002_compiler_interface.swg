@@ -88,14 +88,14 @@ Once semantic analysis finishes, generate code for all registered functions.
 
     builderInit.appendString("public func glInitExtensions()\n{\n")
 
-    foreach e in g_Functions
+    for e in g_Functions
     {
         let typeFunc = cast(const *TypeInfoFunc) e.type
 
         builderVars.appendFormat("var ext_%: %\n", e.name, typeFunc.name)
         builderVars.appendFormat("public func %(", e.name)
 
-        foreach p, i in typeFunc.parameters
+        for p, i in typeFunc.parameters
         {
             if i != 0 builderVars.appendString(", ")
             builderVars.appendFormat("p%: %", i, p.pointedType.name)
@@ -108,7 +108,7 @@ Once semantic analysis finishes, generate code for all registered functions.
 
         builderVars.appendFormat("\treturn ext_%(", e.name)
 
-        foreach p, i in typeFunc.parameters
+        for p, i in typeFunc.parameters
         {
             if i != 0 builderVars.appendString(", ")
             builderVars.appendFormat("p%", i)

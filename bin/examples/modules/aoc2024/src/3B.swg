@@ -30,7 +30,7 @@ func day3B()
     var total  = 0
     var enable = true
 
-    foreach v in d
+    for v in d
     {
         var cpy: String = v
         if cpy == "do()" do

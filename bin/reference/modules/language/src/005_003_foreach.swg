@@ -1,13 +1,13 @@
 #global private
 /**
-# Introduction to 'foreach'
-The 'foreach' statement iterates over all elements of a collection (arrays, slices, strings, and even structs),
+# Element Iteration with 'for'
+Binding a name in a 'for' statement iterates over all elements of a collection (arrays, slices, strings, and even structs),
 providing a streamlined and efficient way to process each item.
 */
 
 #test
 {
-    foreach value in "ABC"
+    for value in "ABC"
     {
         let a = @index
         switch a
@@ -30,7 +30,7 @@ especially in nested loops or with complex data structures.
 
 #test
 {
-    foreach value, index in "ABC"
+    for value, index in "ABC"
     {
         let a = index
         switch a
@@ -53,7 +53,7 @@ Iterate from the last element to the first by adding the '#reverse' modifier.
 #test
 {
     var cpt = 0
-    foreach #reverse value in "ABC"
+    for #reverse value in "ABC"
     {
         switch cpt
         {
@@ -73,28 +73,28 @@ Iterate from the last element to the first by adding the '#reverse' modifier.
 
 /**
 # Visiting Arrays and Slices
-Use 'foreach' to traverse arrays or slices and process each element.
+Use 'for' with a binding to traverse arrays or slices and process each element.
 */
 
 #test
 {
     var array  = [10, 20, 30]
     var result = 0
-    foreach it in array do
+    for it in array do
         result += it
     @assert(result == 10 + 20 + 30)
 }
 
 /**
 # Multi-dimensional Arrays
-'foreach' works with multi-dimensional arrays and visits each element in row-major order.
+Element iteration works with multi-dimensional arrays and visits each element in row-major order.
 */
 
 #test
 {
     var array: [2, 2] s32 = [[10, 20], [30, 40]]
     var result = 0
-    foreach it in array do
+    for it in array do
         result += it
     @assert(result == 10 + 20 + 30 + 40)
 }
@@ -109,7 +109,7 @@ Prefix the element name with '&' to visit elements by address and modify them in
     var array: [2, 2] s32 = [[1, 2], [3, 4]]
     var result = 0
 
-    foreach &it in array
+    for &it in array
     {
         result += dref it
         dref it = 555
@@ -133,20 +133,20 @@ This avoids explicit branching inside the loop.
     var array: [?] s32 = [1, 2, 3, 4]
     var result = 0
 
-    foreach value in array where value & 1 == 0 do
+    for value in array where value & 1 == 0 do
         result += value
     @assert(result == 6)
 
     // Equivalent with an 'if' guard:
     result = 0
-    foreach value in array do
+    for value in array do
         if value & 1 == 0 do
             result += value
     @assert(result == 6)
 
     // Equivalent using 'continue' to skip odd values:
     result = 0
-    foreach value in array
+    for value in array
     {
         if (value & 1) != 0 do
             continue

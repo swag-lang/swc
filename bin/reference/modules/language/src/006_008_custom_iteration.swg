@@ -56,7 +56,7 @@ impl MyStruct
 /**
 # Iterating Over Struct Fields
 
-Example usage of 'opVisit' to traverse fields of a struct. The 'foreach' names
+Example usage of 'opVisit' to traverse fields of a struct. The 'for' names
 rename the block parameters positionally.
 */
 #test
@@ -64,7 +64,7 @@ rename the block parameters positionally.
     var myStruct = MyStruct{}
     var cpt = 0
 
-    foreach v, i in myStruct
+    for v, i in myStruct
     {
         switch i
         {
@@ -113,7 +113,7 @@ Using 'opVisitReverse' to iterate fields from last to first.
     var myStruct = MyStruct{}
     var cpt = 0
 
-    foreach #Reverse v, i in myStruct
+    for #Reverse v, i in myStruct
     {
         switch i
         {
@@ -172,7 +172,7 @@ Sum elements of a slice via 'opVisit'.
     var arrStruct = SliceStruct{}
     var sum = 0
 
-    foreach v, i in arrStruct do
+    for v, i in arrStruct do
         sum += v
 
     @assert(sum == 1 + 2 + 3 + 4 + 5)
@@ -188,7 +188,7 @@ can update the underlying storage.
 {
     var arrStruct = SliceStruct{}
 
-    foreach &v, i in arrStruct do
+    for &v, i in arrStruct do
         dref v += cast(s32) i
 
     @assert(arrStruct.buffer[0] == 1)
@@ -201,7 +201,7 @@ can update the underlying storage.
 /**
 # Named Variants of 'opVisit'
 
-A specialization such as 'foreach #Pairs ...' resolves to 'opVisitPairs'.
+A specialization such as 'for #Pairs ...' resolves to 'opVisitPairs'.
 This is useful when a type wants to expose multiple traversal strategies.
 */
 struct WindowStruct
@@ -228,7 +228,7 @@ impl WindowStruct
 # Iterating Over Adjacent Pairs
 
 Named variants can expose completely custom block parameters; '@index' still
-tracks the foreach ordinal.
+tracks the iteration ordinal.
 */
 #test
 {
@@ -236,7 +236,7 @@ tracks the foreach ordinal.
     var code = 0
     var ordinals: u64
 
-    foreach #Pairs left, right in windows
+    for #Pairs left, right in windows
     {
         code = code * 100 + left * 10 + right
         ordinals += @index

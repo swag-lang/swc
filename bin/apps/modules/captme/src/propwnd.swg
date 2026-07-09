@@ -216,7 +216,7 @@ impl PropWnd
         func updateBtnState(prop: *PropWnd, layout: *Wnd, type: typeinfo, fieldName: string)
         {
             let cur = selectedKind(prop, type, fieldName)
-            foreach c in layout.childs
+            for c in layout.childs
             {
                 let btn  = cast(*IconButton) c
                 let kind = enumFromUserData'FormShapeKind(btn.userData)
@@ -272,7 +272,7 @@ impl PropWnd
         func updateBtnState(prop: *PropWnd, layout: *Wnd, begin: bool)
         {
             let cur = selectedCap(prop, begin)
-            foreach c in layout.childs
+            for c in layout.childs
             {
                 let btn = cast(*IconButton) c
                 let cap = enumFromUserData'LineCapStyle(btn.userData)
@@ -282,7 +282,7 @@ impl PropWnd
         }
 
         let cur = selectedCap(me, begin)
-        foreach i in LineCapStyle
+        for i in LineCapStyle
         {
             let btn0 = IconButton.create(layout, {}, {0, 0, 0, 40})
             btn0.userData = enumToUserData(i)
@@ -335,7 +335,7 @@ impl PropWnd
         func updateBtnState(prop: *PropWnd, layout: *Wnd)
         {
             let curSel = prop.getSelectedBaseForm()
-            foreach c in layout.childs
+            for c in layout.childs
             {
                 let btn  = cast(*IconButton) c
                 let dash = enumFromUserData'DashStyle(btn.userData)
@@ -345,7 +345,7 @@ impl PropWnd
         }
 
         let curSel = .getSelectedBaseForm()
-        foreach i in DashStyle
+        for i in DashStyle
         {
             if i == .Pattern do
                 continue
@@ -692,7 +692,7 @@ impl PropWnd
 
         if .sysFonts.isEmpty() do
             .sysFonts = FontFamily.enumerateFromOs()
-        foreach &fnt in .sysFonts
+        for &fnt in .sysFonts
         {
             combo.addItem(fnt.name, userData0: fnt)
             if curSel.fontName == fnt.name do
@@ -1095,7 +1095,7 @@ impl PropWnd
         ctrl.comboSize = 210
         with ctrl.combo
         {
-            foreach v in #typeof(FormImageKind).values do
+            for v in #typeof(FormImageKind).values do
                 .addItem(v.name)
             .selectItem(cast(u32) curSel.kind)
             .sigChanged += func|prop = me|(combo, val)
@@ -1109,7 +1109,7 @@ impl PropWnd
         ctrl1.comboSize = 210
         with ctrl1.combo
         {
-            foreach v in #typeof(FormImagePlacement).values do
+            for v in #typeof(FormImagePlacement).values do
                 .addItem(v.name)
             .selectItem(cast(u32) curSel.place)
             .sigChanged += func|prop = me|(combo, val)
@@ -1180,7 +1180,7 @@ impl PropWnd
 
     mtd selectionHasChanged()
     {
-        foreach it in .mainLayout.childs do
+        for it in .mainLayout.childs do
             it.destroy()
         if !.getSelectedBaseForm() do
             return

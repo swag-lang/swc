@@ -32,7 +32,7 @@ func captureUIScale(capture: *Capture)->f32
 {
     let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
     let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
-    foreach m in Env.getMonitors()
+    for m in Env.getMonitors()
     {
         let r = m.rectReal
         if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
@@ -100,7 +100,7 @@ impl InPlaceEditWnd
             {"close", ThemeIcons24.WndClose, "Cancel and discard capture"}]
 
         let theme = .getTheme()
-        foreach action in actions do
+        for action in actions do
             .actionBar.addItem(theme.getIcon24(action.item1), action.item0).toolTip = action.item2
 
         .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id); }
@@ -121,7 +121,7 @@ impl InPlaceEditWnd
             {"text", 4, "Add text annotation"},
             {"marker", 9, "Highlight with marker"}]
 
-        foreach tool in editTools do
+        for tool in editTools do
             .editBar.addCheckableItem(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2
 
         .editBar.sigCheckChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id); }
@@ -263,7 +263,7 @@ impl InPlaceEditWnd
             {"draw", InPlaceEditMode.Draw}, {"line", InPlaceEditMode.Line}, {"circle", InPlaceEditMode.Circle}, {"rect", InPlaceEditMode.Rect},
             {"arrow", InPlaceEditMode.Arrow}, {"text", InPlaceEditMode.Text}, {"marker", InPlaceEditMode.Marker}]
 
-        foreach m in modeMap
+        for m in modeMap
         {
             let btn = assume .editBar.getButton(m.item0)
             btn.setCheck(.editMode == m.item1)

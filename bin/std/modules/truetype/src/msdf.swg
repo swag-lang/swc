@@ -184,7 +184,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     var curX: f64 = 0
     var curY: f64 = 0
 
-    foreach cmd in commands
+    for cmd in commands
     {
         switch cmd.kind
         {
@@ -263,7 +263,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     }
 
     // Propagate element colors down to their segments.
-    foreach el in elements
+    for el in elements
     {
         for i in el.segCount do
             segs.buffer[el.firstSeg + i].color = el.color
@@ -379,7 +379,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64
     var bestIdx:    [3] s32 = [-1, -1, -1]
     var bestParam:  [3] f64
 
-    foreach &s, i in segs
+    for &s, i in segs
     {
         let (sd, dt, param) = msdfSegSignedDistance(s, px, py)
         let a = Math.abs(sd)

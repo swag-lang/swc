@@ -592,7 +592,7 @@ enum VariadicKind: u16
 
     func variadicAnyPassToTyped(values: ...)->u64
     {
-        foreach it in values
+        for it in values
         {
             var v = it
             return variadicAnySinkU64(cast(u64) v)
@@ -673,7 +673,7 @@ enum VariadicKind: u16
     {
         var acc: s32 = 0
 
-        foreach v, i in values
+        for v, i in values
         {
             if @kindof(v) == s32
             {

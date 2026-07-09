@@ -79,7 +79,7 @@ public impl IWnd for MenuCtrl
         var colorText:      Color
         var colorRightText: Color
 
-        foreach i, idx in .items
+        for i, idx in .items
         {
             if i.hidden do
                 continue
@@ -167,7 +167,7 @@ public impl IWnd for MenuCtrl
         var colorRightText: Color
 
         var lastIsSeparator = true
-        foreach i, idx in .items
+        for i, idx in .items
         {
             if i.hidden do
                 continue
@@ -546,7 +546,7 @@ impl MenuCtrl
 
     public mtd updateState()
     {
-        foreach i in .items
+        for i in .items
         {
             let evt = .sendComputeCommandStateEvent(i.id)
             if evt.setFlags.has(.Disabled) do
@@ -662,7 +662,7 @@ impl MenuCtrl
     mtd hitTestBar(surfacePos: Math.Point)->u32
     {
         let pos        = .surfaceToLocal(surfacePos)
-        foreach i, idx in .items
+        for i, idx in .items
         {
             if i.hidden do
                 continue
@@ -683,7 +683,7 @@ impl MenuCtrl
         let clientRect = .getClientRect()
         let sl         = metrics.menuPopup_SpaceLines
         var lastIsSeparator = true
-        foreach i, idx in .items
+        for i, idx in .items
         {
             if i.hidden do
                 continue
@@ -716,7 +716,7 @@ impl MenuCtrl
         var rsf:  Pixel.RichStringFormat
         rsf.font = .getFont()
 
-        foreach i, idx in .items
+        for i, idx in .items
         {
             if i.hidden do
                 continue
@@ -744,7 +744,7 @@ impl MenuCtrl
         rsf.font = .getFont()
 
         var lastIsSeparator = true
-        foreach i, idx in .items
+        for i, idx in .items
         {
             if i.hidden do
                 continue
@@ -843,7 +843,7 @@ public impl MenuCtrl
     // Add a list of items
     mtd addItems(ids: const [..] WndId)
     {
-        foreach id in ids do
+        for id in ids do
             .addItem(null, id)
     }
 

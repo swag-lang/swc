@@ -169,7 +169,7 @@ func hashString(text: string)->u64
     let bytes = cast(const [..] u8) text
     var hash  = 1469598103934665603'u64
 
-    foreach byte in bytes
+    for byte in bytes
     {
         hash ^= cast(u64) byte
         hash = hash * #wrap 1099511628211'u64

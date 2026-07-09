@@ -184,6 +184,39 @@ namespace
         return Result::Error;
     }
 
+    TokenRef forStmtNameRef(Sema& sema, const AstForStmt& node)
+    {
+        if (node.spanNamesRef.isInvalid())
+            return TokenRef::invalid();
+
+        SmallVector<TokenRef> tokNames;
+        sema.ast().appendTokens(tokNames, node.spanNamesRef);
+        return tokNames.empty() ? TokenRef::invalid() : tokNames.front();
+    }
+
+    // A named 'for' over a collection iterates the element values: retype the node into
+    // a ForeachStmt in place (same layout) and resume with the foreach semantics.
+    Result retypeForAsForeach(Sema& sema, const AstNodeRef& childRef)
+    {
+        AstNode& node = sema.node(sema.curNodeRef());
+        node.setId(AstNodeId::ForeachStmt);
+        return node.cast<AstForeachStmt>().semaPostNodeChild(sema, childRef);
+    }
+
+    bool isForCountIntExpr(Sema& sema, const SemaNodeView& exprView)
+    {
+        if (exprView.cst() && exprView.cst()->isInt())
+            return true;
+
+        if (!exprView.type())
+            return false;
+
+        TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), exprView.typeRef());
+        if (!typeRef.isValid())
+            typeRef = exprView.typeRef();
+        return sema.typeMgr().get(typeRef).isInt();
+    }
+
     bool hasDynamicLoopBound(Sema& sema, AstNodeRef boundRef)
     {
         if (boundRef.isInvalid())
@@ -518,6 +551,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
         // Create a variable
+        const TokenRef tokNameRef = forStmtNameRef(sema, *this);
         if (tokNameRef.isValid())
         {
             auto&   symVar   = registerLoopScopeSymbol<SymbolVariable>(sema, *this, tokNameRef);
@@ -541,9 +575,14 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView view = sema.viewNodeType(nodeExprRef);
+        const SemaNodeView view  = sema.viewNodeType(nodeExprRef);
+        const bool         named = forStmtNameRef(sema, *this).isValid();
         if (const SymbolEnum* symEnum = enumTypeExprSymbol(sema, view))
         {
+            // A named binding over an enum type iterates the enum values.
+            if (named)
+                return retypeForAsForeach(sema, childRef);
+
             SWC_RESULT(sema.waitSemaCompleted(symEnum, view.node()->codeRef()));
 
             auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
@@ -552,6 +591,14 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         }
         else
         {
+            // A named binding over a collection iterates the element values.
+            if (named && view.node()->isNot(AstNodeId::RangeExpr))
+            {
+                const SemaNodeView cstView = sema.viewTypeConstant(nodeExprRef);
+                if (!isForCountIntExpr(sema, cstView))
+                    return retypeForAsForeach(sema, childRef);
+            }
+
             SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
             if (view.node()->isNot(AstNodeId::RangeExpr))
             {

@@ -23,7 +23,7 @@ func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextP
     cxt.renderScale = renderScale
     text.IForm.paint(&painter, cxt)
 
-    foreach cmd in painter.commandBuffer
+    for cmd in painter.commandBuffer
     {
         if cmd.id != .Transform do
             continue

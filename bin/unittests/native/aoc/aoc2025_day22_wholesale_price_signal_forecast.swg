@@ -56,7 +56,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
         SequenceSeenStamp[@index] = 0
     }
 
-    foreach initialSecret, buyerIndex in initialSecrets
+    for initialSecret, buyerIndex in initialSecrets
     {
         var secret = initialSecret
         var lastPrice = priceDigit(secret)

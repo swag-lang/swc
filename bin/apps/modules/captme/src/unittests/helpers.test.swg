@@ -124,7 +124,7 @@ func testAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = Form
 {
     let form = Memory.new'FormPolygon()
     form.IForm.setup(capture)
-    foreach pt in points do
+    for pt in points do
         form.points.add(pt)
     form.subKind = subKind
     capture.forms.add(form)
@@ -135,7 +135,7 @@ func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSub
 {
     let form = Memory.new'FormDraw()
     form.IForm.setup(capture)
-    foreach pt in points do
+    for pt in points do
         form.points.add(pt)
     form.subKind = subKind
     capture.forms.add(form)

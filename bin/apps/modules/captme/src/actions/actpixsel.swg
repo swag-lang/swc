@@ -20,7 +20,7 @@ impl IActionUI for ActionPixSel
         var hasPixSel = false
         if capture
         {
-            foreach s in capture.selection
+            for s in capture.selection
             {
                 let f = capture.forms[s]
                 let b = cast(*BaseForm) @dataof(f)
@@ -86,7 +86,7 @@ impl MainWnd
     {
         var result: retval
         let capture = assume .getCapture()
-        foreach s in capture.selection
+        for s in capture.selection
         {
             let f = capture.forms[s]
             let b = cast(*BaseForm) @dataof(f)
@@ -109,14 +109,14 @@ impl MainWnd
         undo.newImg      = capture.backImg
 
         var boundRects: Array'Math.Rectangle
-        foreach f in forms do
+        for f in forms do
             boundRects.add(f.boundRect())
 
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms}
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
-            foreach f, idx in dref p.forms
+            for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
@@ -147,14 +147,14 @@ impl MainWnd
         undo.newImg      = capture.backImg
 
         var boundRects: Array'Math.Rectangle
-        foreach f in forms do
+        for f in forms do
             boundRects.add(f.boundRect())
 
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms}
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
-            foreach f, idx in dref p.forms
+            for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
@@ -192,7 +192,7 @@ impl MainWnd
 
         var infos: Array'Info
 
-        foreach f in forms
+        for f in forms
         {
             var i: Info
 
@@ -252,7 +252,7 @@ impl MainWnd
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
-            foreach f, idx in dref p.forms
+            for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
@@ -311,7 +311,7 @@ impl MainWnd
         var undo = capture.newUndo(.CreateForm)
 
         let startCount = capture.forms.count - forms.count
-        foreach f in forms
+        for f in forms
         {
             let br = f.boundRect()
 
@@ -338,7 +338,7 @@ impl MainWnd
         var masks: Array'Image
         .pixSelSmartFill(serial, &masks)
 
-        foreach f, idx in undo.oldForms
+        for f, idx in undo.oldForms
         {
             let nf = cast(*FormImage) f
             nf.backCaptureMask(masks.buffer + idx)

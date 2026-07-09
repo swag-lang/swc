@@ -316,24 +316,24 @@ This works with flags too.
 /**
 # Iterating Over Enum Values
 
-You can iterate over enums using `for` or `foreach`.
+You can loop over the number of enum values with `for`, or iterate the values themselves by binding a name.
 */
 #test
 {
     enum RGB { R, G, B }
     var cpt = 0
-    for idx in RGB do
+    for RGB do
         cpt += 1
     @assert(cpt == 3)
 }
 
 /**
-`foreach` offers a structured way to iterate and handle specific values.
+Binding a name offers a structured way to iterate and handle specific values.
 */
 #test
 {
     enum RGB { R, G, B }
-    foreach val in RGB
+    for val in RGB
     {
         switch val
         {

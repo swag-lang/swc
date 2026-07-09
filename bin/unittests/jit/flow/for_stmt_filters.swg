@@ -40,7 +40,7 @@
     {
         var arr: [5] s32 = [2, 4, 6, 8, 10]
         var acc: s32     = 0
-        for i in arr where arr[i] >= 6
+        for i in @countof(arr) where arr[i] >= 6
         {
             acc += arr[i]
         }

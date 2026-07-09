@@ -81,7 +81,7 @@ func refreshLayoutTree(wnd: *Wnd)
 
     wnd.sendResizeEvent()
     wnd.applyLayout()
-    foreach child in wnd.childs do
+    for child in wnd.childs do
         refreshLayoutTree(child)
     wnd.invalidate()
 }
@@ -179,7 +179,7 @@ func toggleTheme(_btn: *Button)
 
 func clearPage()
 {
-    foreach child in g_PageView.childs do
+    for child in g_PageView.childs do
         child.destroy()
 }
 

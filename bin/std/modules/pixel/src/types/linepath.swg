@@ -332,7 +332,7 @@ public impl LinePath
         .endPosBuffer = .startPoint
         .polygon.points.add(.endPosBuffer)
 
-        foreach elem, i in .elements
+        for elem, i in .elements
         {
             let pos = elem.position
 
@@ -475,7 +475,7 @@ impl LinePath
         // Sample at critical points: t = 0.25, 0.5, 0.75
         let samplePoints = [0.25, 0.5, 0.75]
 
-        foreach t in samplePoints
+        for t in samplePoints
         {
             let point     = Curve.evaluatePolynomial(p0, p1, p2, p3, t)
             let deviation = Geometry.distanceToLine(point, startPt, endPt)

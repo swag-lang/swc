@@ -25,7 +25,7 @@ func day2B()
     assume r.compile(#"(\d+)-(\d+) ([a-z]): ([a-z])+"#)
 
     var total: u32
-    foreach l in lines
+    for l in lines
     {
         discard r.match(l)
 

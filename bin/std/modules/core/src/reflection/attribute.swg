@@ -51,7 +51,7 @@ func getAttributeValue(type: typeinfo, attribute: typeinfo, value: string)->#nul
 #[ConstExpr]
 func getAttributeValue(attribute: const *Swag.Attribute, value: string)->#null any
 {
-    foreach p in attribute.params where p.name == value do
+    for p in attribute.params where p.name == value do
         return p.value
     return null
 }
@@ -61,7 +61,7 @@ func getAttributeValue(attribute: const *Swag.Attribute, value: string)->#null a
 func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
-    foreach &it in value.attributes where sameAttributeType(attribute, it.type) do
+    for &it in value.attributes where sameAttributeType(attribute, it.type) do
         result.add(it)
     return result
 }
@@ -70,7 +70,7 @@ func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(co
 #[ConstExpr]
 func getAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->#null const *Swag.Attribute
 {
-    foreach &it in value.attributes where sameAttributeType(attribute, it.type) do
+    for &it in value.attributes where sameAttributeType(attribute, it.type) do
         return it
     return null
 }
@@ -91,17 +91,17 @@ func getAttributes(type: typeinfo, attribute: typeinfo)->Array'(const *Swag.Attr
     {
     case Func:
         let typeFunc = cast(const *TypeInfoFunc) type
-        foreach &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case Struct:
         let typeStruct = cast(const *TypeInfoStruct) type
-        foreach &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case Enum:
         let typeEnum = cast(const *TypeInfoEnum) type
-        foreach &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
     }
 
@@ -116,17 +116,17 @@ func getAttribute(type: typeinfo, attribute: typeinfo)->#null const *Swag.Attrib
     {
     case Func:
         let typeFunc = cast(const *TypeInfoFunc) type
-        foreach &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case Struct:
         let typeStruct = cast(const *TypeInfoStruct) type
-        foreach &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case Enum:
         let typeEnum = cast(const *TypeInfoEnum) type
-        foreach &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
+        for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
     }
 

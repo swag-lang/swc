@@ -41,7 +41,7 @@ func appendAuditDiffFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
     let typeStruct = cast(const *Swag.TypeInfoStruct) type
     var len        = start
 
-    foreach field in typeStruct.fields
+    for field in typeStruct.fields
     {
         len = appendAst(buffer, len, "changed_")
         len = appendAst(buffer, len, field.name)
@@ -83,7 +83,7 @@ func(T) buildAuditDiff(before: const &T, after: const &T)->AuditDiff'T
         var buffer: [8192] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "result.changed_")
             len = appendAst(&buffer[0], len, field.name)
@@ -120,7 +120,7 @@ func(T) auditChangedCount(diff: const &AuditDiff'T)->s32
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
             len = appendAst(&buffer[0], len, field.name)
@@ -142,7 +142,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
             len = appendAst(&buffer[0], len, field.name)

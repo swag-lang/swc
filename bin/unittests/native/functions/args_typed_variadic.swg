@@ -54,7 +54,7 @@ func variadicTypedPair(a: s32, values: TypedVariadicPair...)->s32
 func variadicTypedForwardInner(values: s32...)->s32
 {
     var acc: s32 = 0
-    foreach value in values do
+    for value in values do
         acc += value
     return acc
 }
@@ -67,7 +67,7 @@ func variadicTypedForward(values: s32...)->s32
 func variadicTypedAliasForwardInner(values: s32...)->s32
 {
     var acc: s32 = 0
-    foreach value in values do
+    for value in values do
         acc += value
     return acc
 }
@@ -80,7 +80,7 @@ func variadicTypedAliasForward(values: TypedVariadicAlias...)->s32
 func variadicTypedAliasInner(values: TypedVariadicAlias...)->s32
 {
     var acc: s32 = 0
-    foreach value in values do
+    for value in values do
         acc += value
     return acc
 }

@@ -50,9 +50,9 @@ func day7A0()
 
     var id: HashTable'(string, Array'string)
 
-    foreach l in lines
+    for l in lines
     {
-        foreach r in ["bags", "bag", "."] do
+        for r in ["bags", "bag", "."] do
             l.replace(r, "")
         l.replace(" , ", ",")
         l.replace("  ", " ")
@@ -63,10 +63,10 @@ func day7A0()
             continue
 
         let split1 = Tokenize.split(split[1], ',''u8)
-        foreach v in split1
+        for v in split1
         {
             let splitVal = Tokenize.split(v, ' ''u8, 1)
-            foreach can in splitVal[1 to ]
+            for can in splitVal[1 to ]
             {
                 let it = id.tryFind(split[0])
                 if it do
@@ -87,7 +87,7 @@ func day7A0()
         if !it do
             return false
 
-        foreach v in it.value
+        for v in it.value
         {
             if v == "shiny gold" do
                 return true
@@ -99,7 +99,7 @@ func day7A0()
     }
 
     var total: u32
-    foreach v in id do
+    for v in id do
         total += cast(s32) contains(&id, v)
 
     //Console.print("total: ", total)
@@ -117,10 +117,10 @@ func day7A1()
     var id: HashTable'(string, Array'string)
 
     var r = assume Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
-    foreach l in lines
+    for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")
-        foreach v in r.grepAll(split[1])
+        for v in r.grepAll(split[1])
         {
             let splitVal = Tokenize.split(v, ' ''u8, 1)
             id.findOrAdd(split[0]).value.add(splitVal[1])
@@ -133,7 +133,7 @@ func day7A1()
         if !it do
             return false
 
-        foreach v in it.value
+        for v in it.value
         {
             if v == "shiny gold" or contains(id, v) do
                 return true
@@ -143,7 +143,7 @@ func day7A1()
     }
 
     var total: u32
-    foreach v in id do
+    for v in id do
         total += cast(s32) contains(&id, v)
 
     //Console.print("total: ", total)

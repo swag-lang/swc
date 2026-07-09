@@ -290,7 +290,7 @@ func nativeForeachVisitReturn()->bool
 {
     var values = ReturnVisits{}
 
-    foreach value in values
+    for value in values
     {
         if value == 6 do
             return true
@@ -336,7 +336,7 @@ impl GenericScopedVisits
     var sumValues = 0
     var sumIndexes: u64
 
-    foreach value, index in values
+    for value, index in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == #typeof(@index))
@@ -353,7 +353,7 @@ impl GenericScopedVisits
     var values = BufferVisits{}
     var acc = 0
 
-    foreach value, ordinal in values where value != 6
+    for value, ordinal in values where value != 6
     {
         if ordinal == 0 do
             continue
@@ -369,7 +369,7 @@ impl GenericScopedVisits
 {
     var values = BufferVisits{}
 
-    foreach &value, ordinal in values do
+    for &value, ordinal in values do
         dref value += cast(s32) (ordinal + 1)
 
     @assert(values.values[0] == 4)
@@ -383,7 +383,7 @@ impl GenericScopedVisits
     var code = 0
     var order: u64
 
-    foreach #reverse value, index in values
+    for #reverse value, index in values
     {
         code = code * 10 + value
         order += index
@@ -398,7 +398,7 @@ impl GenericScopedVisits
     var values = ReverseVisits{}
     var code = 0
 
-    foreach #Reverse value, index in values
+    for #Reverse value, index in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == #typeof(@index))
@@ -414,10 +414,11 @@ impl GenericScopedVisits
     var count: u64
     var sum = 0
 
-    foreach values
+    for value in values
     {
         count += 1
         sum += cast(s32) @index
+        discard value
     }
 
     @assert(count == 3)
@@ -430,7 +431,7 @@ impl GenericScopedVisits
     var code = 0
     var order: u64
 
-    foreach value in values
+    for value in values
     {
         #assert(#typeof(value) == s32)
         code = code * 10 + value
@@ -446,7 +447,7 @@ impl GenericScopedVisits
     var values = HiddenAliasVisits{}
     var sum = 0
 
-    foreach value, scaled in values
+    for value, scaled in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
@@ -461,7 +462,7 @@ impl GenericScopedVisits
     var values = FieldPointerVisits{}
     var mutatedSum = 0
 
-    foreach &value, ordinal in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == *s32)
         dref value += cast(s32) (ordinal + 1)
@@ -480,7 +481,7 @@ impl GenericScopedVisits
     var signature = 0
     var order: u64
 
-    foreach #Pairs left, right in values
+    for #Pairs left, right in values
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
@@ -497,7 +498,7 @@ impl GenericScopedVisits
     let values = ConstPointerVisits{}
     var sum = 0
 
-    foreach &value, ordinal in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == const *s32)
         sum += dref value + cast(s32) ordinal
@@ -517,7 +518,7 @@ impl GenericScopedVisits
     var sum = 0
     var indexes: u64
 
-    foreach value, ordinal in values
+    for value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))

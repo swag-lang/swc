@@ -52,10 +52,10 @@ func day4A()
     let lines    = assume File.readAllLines(dataPath)
 
     var total, pass: u32
-    foreach l in lines
+    for l in lines
     {
         let res = Tokenize.split(l, ' ''u8)
-        foreach r in res
+        for r in res
         {
             let res1 = Tokenize.split(r, ':''u8)
             let idx  = Slice.findLinear(["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"], res1[0])

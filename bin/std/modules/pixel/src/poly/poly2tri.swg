@@ -113,11 +113,11 @@ impl Result
 
     mtd release()
     {
-        foreach t in .points do
+        for t in .points do
             Memory.delete(t)
-        foreach t in .edges do
+        for t in .edges do
             Memory.delete(t)
-        foreach t in .triangles do
+        for t in .triangles do
             Memory.delete(t)
         .points.clear()
         .edges.clear()
@@ -649,13 +649,13 @@ impl Tessellate
         .deleteNode(.afTail)
         .head, .tail, .afHead, .afMiddle, .afTail = null
 
-        foreach p in .points do
+        for p in .points do
             deletePoint(p)
-        foreach p in .edges do
+        for p in .edges do
             deleteEdge(p)
-        foreach p in .triangles do
+        for p in .triangles do
             deleteTriangle(p)
-        foreach p in .nodes do
+        for p in .nodes do
             .deleteNode(p)
 
         .points.clear()
@@ -668,7 +668,7 @@ impl Tessellate
     // Clear cache
     mtd clearCache()
     {
-        foreach p in .freeNodes do
+        for p in .freeNodes do
             Memory.delete(p)
         .freeNodes.clear()
     }
@@ -707,7 +707,7 @@ impl Tessellate
     {
         mtd initEdges(polyline: [..] *Point)
         {
-            foreach pt, i in polyline
+            for pt, i in polyline
             {
                 let nexti = (i + 1) % @countof(polyline)
                 let edge  = newEdge()
@@ -760,7 +760,7 @@ impl Tessellate
         {
             let point = .points[i]
             let node  = .pointEvent(point)
-            foreach e in point.edges do
+            for e in point.edges do
                 .addEdgeEvent2(e, node)
         }
     }
@@ -1459,7 +1459,7 @@ impl Tessellate
         }
 
         // Remove neighbors which are not part of the mesh
-        foreach i in .triIndices
+        for i in .triIndices
         {
             let tri = .triangles[i]
             for e in 3
@@ -1475,7 +1475,7 @@ impl Tessellate
     {
         var xmin, xmax = .points[0].x
         var ymin, ymax = .points[0].y
-        foreach p in .points
+        for p in .points
         {
             xmax = Math.max(xmax, p.x)
             xmin = Math.min(xmin, p.x)

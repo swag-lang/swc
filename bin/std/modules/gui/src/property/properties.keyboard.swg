@@ -223,7 +223,7 @@ private impl Properties
     {
         if !wnd do
             return null
-        foreach c in wnd.childs
+        for c in wnd.childs
         {
             if .isEditorWnd(c) do
                 return c
@@ -264,7 +264,7 @@ private impl Properties
     {
         if forward
         {
-            foreach item in .items
+            for item in .items
             {
                 if .isNavigable(item) do
                     return item
@@ -286,7 +286,7 @@ private impl Properties
     {
         if !item do
             return -1
-        foreach it, idx in .items
+        for it, idx in .items
         {
             if it == item do
                 return cast(s64) idx

@@ -103,7 +103,7 @@ public impl BitArray
             return
 
         Memory.set(.buffer, 0, .capacity)
-        foreach value, index in what do
+        for value, index in what do
             .set(index, value)
     }
 

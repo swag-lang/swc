@@ -63,7 +63,7 @@ func assertString(value: const &String, expected: string)->bool
     var totalSize = 0'u64
     assume
     {
-        foreach line in File.readAllLines(fileName)
+        for line in File.readAllLines(fileName)
         {
             lineCount += 1
             totalSize += @countof(line)

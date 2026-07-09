@@ -79,7 +79,7 @@ private impl RenderOgl
 {
     mtd findHeadlessTexture(handle: TextureHandle)->#null *HeadlessTexture
     {
-        foreach &it in .headlessTextures where it.handle == handle do
+        for &it in .headlessTextures where it.handle == handle do
             return it
         return null
     }
@@ -107,7 +107,7 @@ private impl RenderOgl
 
     mtd removeHeadlessTexture(handle: TextureHandle)
     {
-        foreach it, idx in .headlessTextures where it.handle == handle
+        for it, idx in .headlessTextures where it.handle == handle
         {
             .headlessTextures.removeAt(idx)
             return
@@ -210,7 +210,7 @@ private impl RenderOgl
         Debug.assert(@countof(datas) <= 8 * 8)
 
         var arr: [64] u32
-        foreach p, i in datas do
+        for p, i in datas do
             arr[i] = p ? 0xFFFFFFFF : 0
 
         var result: GLuint
@@ -310,18 +310,18 @@ impl RenderOgl
 {
     mtd opDrop()
     {
-        foreach rt in .stackReleasedRT do
+        for rt in .stackReleasedRT do
             Memory.delete(rt)
-        foreach rt in .stackRT do
+        for rt in .stackRT do
             Memory.delete(rt)
         Memory.delete(.curRT)
     }
 
     mtd setupHeadless()
     {
-        foreach rt in .stackReleasedRT do
+        for rt in .stackReleasedRT do
             Memory.delete(rt)
-        foreach rt in .stackRT do
+        for rt in .stackRT do
             Memory.delete(rt)
         Memory.delete(.curRT)
 
@@ -966,7 +966,7 @@ impl RenderOgl
             glActiveTexture(GL_TEXTURE1)
             let bpp = cache.renderMode.bytesPerPixel()
             let fmt = bpp == 1 ? GL_RED : (bpp == 4 ? GL_RGBA : GL_RGB)
-            foreach &atlas in cache.atlases
+            for &atlas in cache.atlases
             {
                 if !atlas.dirty do
                     continue
@@ -1156,7 +1156,7 @@ impl RenderOgl
     {
         if .headless
         {
-            foreach cmd in dc.commandBuffer
+            for cmd in dc.commandBuffer
             {
                 switch cmd.id
                 {
@@ -1216,7 +1216,7 @@ impl RenderOgl
 
         for i in 4 do
             glEnableVertexAttribArray(cast(GLuint) i)
-        foreach cmd, cmdIdx in dc.commandBuffer do
+        for cmd, cmdIdx in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx, width, height)
         for i in 4 do
             glDisableVertexAttribArray(cast(GLuint) i)
@@ -1244,7 +1244,7 @@ impl RenderOgl
         let w2 = Math.roundUpToPowerOf2(cast(u32) w)
         let h2 = Math.roundUpToPowerOf2(cast(u32) h)
 
-        foreach rt, i in .stackReleasedRT
+        for rt, i in .stackReleasedRT
         {
             if rt.colorBuffer.width == w2 and rt.colorBuffer.height == h2
             {
@@ -1253,7 +1253,7 @@ impl RenderOgl
             }
         }
 
-        foreach rt, i in .stackReleasedRT
+        for rt, i in .stackReleasedRT
         {
             if rt.colorBuffer.width >= w2 and rt.colorBuffer.height >= h2
             {

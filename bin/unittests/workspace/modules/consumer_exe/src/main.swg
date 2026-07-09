@@ -104,7 +104,7 @@ func verifyImportedClosureCallbacks()
     @assert(depAllOf(prevSelfBufferSet.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
     @assert(depAllOf(prevSelfBufferSet.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     let depWrappers = [DepSelfBufferWrapper{prev: prevSelfBufferSet}]
-    foreach wrapper in depWrappers
+    for wrapper in depWrappers
     {
         @assert(depAllOf(wrapper.prev.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
         @assert(depAllOf(wrapper.prev.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
@@ -134,7 +134,7 @@ func verifyImportedClosureCallbacks()
     @assert(ctxSharedAllOf(sharedPrevSelfBufferSet.toSlice(), func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
     @assert(ctxSharedAllOf(sharedPrevSelfBufferSet.toSlice(), func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
     let sharedWrappers = [CtxSelfBufferWrapper{prev: sharedPrevSelfBufferSet}]
-    foreach wrapper in sharedWrappers
+    for wrapper in sharedWrappers
     {
         @assert(ctxSharedAllOf(wrapper.prev.toSlice(), func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
         @assert(ctxSharedAllOf(wrapper.prev.toSlice(), func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))

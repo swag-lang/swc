@@ -246,7 +246,7 @@ impl RichEditCtrl
 
         if !selRect
         {
-            for i in runes
+            for i in @countof(runes)
             {
                 let c = runes[i]
                 let s = nstyles[i]
@@ -397,7 +397,7 @@ public impl RichEditCtrl
     mtd clear()
     {
         .clearUndo()
-        foreach l in .lines do
+        for l in .lines do
             .freeLines.add(l)
         // Ownership moved to the free list above: detach without freeing,
         // otherwise the recycled pointers in .freeLines would dangle.
@@ -813,7 +813,7 @@ public impl RichEditCtrl
         let fontR = .getFont().getFont(.styles[0].fontMode)
         if fontR
         {
-            foreach l in .lines
+            for l in .lines
             {
                 let arr     = Painter.getGlyphs(l.chars, fontR)
                 let measure = Painter.measureString(arr, fontR)

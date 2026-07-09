@@ -52,14 +52,14 @@ impl AstAfterInvalidCastSignal
 {
     mtd call(params: ...)
     {
-        foreach fn in .arr
+        for fn in .arr
         {
             #ast
             {
                 var sb: AstAfterInvalidCastStringBuilder
                 let ts = #typeof(T)
                 sb.append("fn(")
-                for i in ts.parameters
+                for i in @countof(ts.parameters)
                 {
                     if i do
                         sb.append(",")

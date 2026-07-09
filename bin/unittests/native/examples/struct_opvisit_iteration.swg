@@ -1,7 +1,7 @@
 #global private
 
 // Real-life example: track inventory across four front-of-house bins and expose
-// a custom foreach over the struct itself through opVisit.
+// a custom element iteration over the struct itself through opVisit.
 
 struct ShelfBins
 {
@@ -113,7 +113,7 @@ impl ShelfBins
 func countUnits(bins: ShelfBins)->s32
 {
     var total: s32
-    foreach readUnits in bins do
+    for readUnits in bins do
         total += readUnits
     return total
 }
@@ -121,12 +121,12 @@ func countUnits(bins: ShelfBins)->s32
 func reverseCode(bins: ShelfBins)->s32
 {
     var code: s32
-    foreach #reverse reverseUnits in bins do
+    for #reverse reverseUnits in bins do
         code = code * 10 + reverseUnits
     return code
 }
 
-// Custom foreach over struct fields with forward, reverse, and by-address passes
+// Custom element iteration over struct fields with forward, reverse, and by-address passes
 #test
 {
     var bins = ShelfBins{morning: 2, lunch: 4, afternoon: 6, evening: 8}
@@ -134,7 +134,7 @@ func reverseCode(bins: ShelfBins)->s32
     @assert(countUnits(bins) == 20)
     @assert(reverseCode(bins) == 8642)
 
-    foreach &writeUnits, slot in bins
+    for &writeUnits, slot in bins
     {
         if slot != 1'u64 do
             dref writeUnits += 3 + cast(s32) slot

@@ -44,7 +44,7 @@ func day9BA()
     var map: Array'{ what, num: s64 }
 
     var toCheck: s64
-    foreach t in line
+    for t in line
     {
         let r = t - '0'
         if @index & 1 do
@@ -82,7 +82,7 @@ func day9BA()
     }
 
     var idx, total: u64
-    foreach v in map
+    for v in map
     {
         if v.what == -1
         {

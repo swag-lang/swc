@@ -55,7 +55,7 @@ private impl Application
     mtd sendEventPrivate(evt: IEvent, stopAt: #null *Wnd)
     {
         // Global hook events
-        foreach hook in .hookOnEvent do
+        for hook in .hookOnEvent do
             hook.itf.onHookEvent(evt)
 
         if let ptr = evt as QuitEvent
@@ -203,7 +203,7 @@ private impl Application
             return
 
         // Detect changes
-        for i in .mouse.previousState.pressed
+        for i in @countof(.mouse.previousState.pressed)
         {
             let lastP = .mouse.previousState.pressed[i]
             let curP  = .mouse.currentState.pressed[i]
@@ -259,7 +259,7 @@ private impl Application
         let modifiers = .keyb.getPressedModifiers()
 
         // Detect changes
-        for i in .keyb.previousState.pressed
+        for i in @countof(.keyb.previousState.pressed)
         {
             let lastP = .keyb.previousState.pressed[i]
             let curP  = .keyb.currentState.pressed[i]
@@ -311,7 +311,7 @@ private impl Application
         .mutexPostedEvents.unlock()
 
         var needUpdateState = false
-        foreach it in copy
+        for it in copy
         {
             let evt = it as Event
 
@@ -335,7 +335,7 @@ private impl Application
     {
         if .inModalLoop do
             return
-        foreach w in .postDestroy do
+        for w in .postDestroy do
             .destroyWnd(w)
         .postDestroy.clear()
     }
@@ -343,7 +343,7 @@ private impl Application
     // Update UI state of all surfaces
     mtd updateCommandState()
     {
-        foreach s in .surfaces do
+        for s in .surfaces do
             s.wnd.updateCommandState()
     }
 
@@ -372,7 +372,7 @@ private impl Application
             .keybFocusWnd = null
 
         // Be sure there's no timer for that window
-        foreach t in .timers
+        for t in .timers
         {
             if t.target == wnd and !t.toDelete
             {
@@ -386,7 +386,7 @@ private impl Application
         .hookOnEvent.remove(wnd)
 
         // Be sure there's no posted event for that window
-        foreach e in .postedEvents
+        for e in .postedEvents
         {
             let ptr = e as Event
             if ptr.target == wnd do
@@ -397,7 +397,7 @@ private impl Application
     mtd sendTimerEvents()
     {
         .duringTimerEvents = true
-        foreach t in .timers
+        for t in .timers
         {
             if t.toDelete do
                 continue
@@ -417,12 +417,12 @@ private impl Application
         .duringTimerEvents = false
 
         // Add new registered timers
-        foreach t in .timersToAdd do
+        for t in .timersToAdd do
             .timers.add(t)
         .timersToAdd.clear()
 
         // Remove some timers
-        foreach t in .timersToDelete
+        for t in .timersToDelete
         {
             t.toDelete = false
             .deleteTimer(t)
@@ -433,7 +433,7 @@ private impl Application
 
     mtd sendFrameEvents()
     {
-        foreach t in .frameEvents
+        for t in .frameEvents
         {
             var evt = FrameEvent{}
             t.sendEvent(&evt)
@@ -444,7 +444,7 @@ private impl Application
     {
         if .inModalLoop do
             return
-        foreach p in .toDelete do
+        for p in .toDelete do
             Memory.delete(p.ptr, p.type)
         .toDelete.clear()
     }
@@ -467,7 +467,7 @@ private impl Application
         .sendPostedEvents()
         .sendDestroyEvents()
 
-        foreach s in .surfaces do
+        for s in .surfaces do
             s.paint()
 
         .deletePointers()
@@ -480,7 +480,7 @@ private impl Application
         .inModalLoop += 1
         defer .inModalLoop -= 1
 
-        foreach s in .surfaces
+        for s in .surfaces
         {
             if s != surface do
                 s.disable()
@@ -511,7 +511,7 @@ private impl Application
         }
         else
         {
-            foreach s, idx in .surfaces
+            for s, idx in .surfaces
             {
                 if s != surface
                 {
@@ -533,11 +533,11 @@ impl Application
 {
     mtd opDrop()
     {
-        foreach it in .surfaces do
+        for it in .surfaces do
             it.destroy()
         .sendDestroyEvents()
 
-        foreach it in .postedEvents
+        for it in .postedEvents
         {
             let ptr = it as Event
             .toDelete.add({ptr, ptr.type})
@@ -661,7 +661,7 @@ impl Application
             wnd.style.dirty = true
             wnd.computeStyle()
             wnd.invalidate()
-            foreach c in wnd.childs do
+            for c in wnd.childs do
                 updateTheme(c)
 
             var evt = NotifyEvent{}
@@ -671,14 +671,14 @@ impl Application
         }
 
         .dirtyTheme += 1
-        foreach s in .surfaces do
+        for s in .surfaces do
             s.wnd.updateTheme()
     }
 
     private mtd serializeState(ser: *Serializer) throw
     {
         ser.beginSection(.Unordered)
-        foreach s in .surfaces do
+        for s in .surfaces do
             s.serializeState(ser)
         ser.endSection()
     }
@@ -765,7 +765,7 @@ impl Application
         if .isActivated == activated do
             return
         .isActivated = activated
-        foreach s in .modalSurfaces do
+        for s in .modalSurfaces do
             s.bringToTop()
         .invalidate()
     }
@@ -773,7 +773,7 @@ impl Application
     // Force all surfaces to be painted
     mtd invalidate()
     {
-        foreach s in .surfaces do
+        for s in .surfaces do
             s.invalidate()
     }
 
@@ -863,7 +863,7 @@ impl Application
     #[Swag.Discardable]
     mtd run()->s32
     {
-        foreach s in .surfaces
+        for s in .surfaces
         {
             var evt = FrameEvent{}
             evt.firstFrame = true
@@ -901,7 +901,7 @@ impl Application
     // Register a global os key action
     mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId, target: *Wnd) throw
     {
-        foreach &c in .hotKeys
+        for &c in .hotKeys
         {
             if c.mdf == mdf and c.key == key
             {
@@ -918,7 +918,7 @@ impl Application
     // Get the id associated with a shortcut. null if none
     mtd getHotKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key)->{ id: WndId, wnd: *Wnd }
     {
-        foreach c in .hotKeys
+        for c in .hotKeys
         {
             if c.mdf == mdf and c.key == key do
                 return {c.id, c.target}
@@ -931,7 +931,7 @@ impl Application
     mtd getHotKeyShortcutNameFor(wndId: WndId)->String
     {
         var result: retval
-        foreach c in .hotKeys
+        for c in .hotKeys
         {
             if c.id == wndId
             {

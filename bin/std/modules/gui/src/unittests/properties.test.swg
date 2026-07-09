@@ -266,7 +266,7 @@ struct PropHeadlessArrayData
     func assertBelowLabel(item: *PropertiesItem)
     {
         let labelBottom = item.label.position.bottom()
-        foreach c in item.line.childs
+        for c in item.line.childs
         {
             if c == cast(*Wnd) item.label do
                 continue
@@ -292,7 +292,7 @@ struct PropHeadlessArrayData
     // positive top text padding derived from the font descent (never a hard-coded value).
     let chk  = prop.items[4].checkBox
     var desc: *Label
-    foreach c in chk.parent.childs do
+    for c in chk.parent.childs do
         if c != cast(*Wnd) chk do
             desc = cast(*Label) c
     @assert(desc != null)
@@ -355,7 +355,7 @@ struct PropHeadlessColorData
 
 private func findIconButton(w: *Wnd)->#null *IconButton
 {
-    foreach c in w.childs
+    for c in w.childs
     {
         if c.type == IconButton do
             return cast(*IconButton) c
@@ -691,7 +691,7 @@ struct MultiTile
 
 private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
 {
-    foreach it in prop.items
+    for it in prop.items
     {
         if it.typeValue.name == name do
             return it
@@ -804,7 +804,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 
 private func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox))
 {
-    foreach c in w.childs
+    for c in w.childs
     {
         if c.type == EditBox do
             out.add(cast(*EditBox) c)
@@ -1108,7 +1108,7 @@ impl Gui.IPropertyNotify for ValData
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     @assert(dynArr != null)
     var elems: Array'(*PropertiesItem)
-    foreach it in prop.items where it.parent == dynArr do
+    for it in prop.items where it.parent == dynArr do
         elems.add(it)
     @assert(elems.count == 3)
 
@@ -1131,7 +1131,7 @@ impl Gui.IPropertyNotify for ValData
     let statArr = findFieldItem(prop, #nameof(PropMoveData.stat))
     @assert(statArr != null)
     var statElems: Array'(*PropertiesItem)
-    foreach it in prop.items where it.parent == statArr do
+    for it in prop.items where it.parent == statArr do
         statElems.add(it)
     @assert(statElems.count == 3)
     prop.moveArrayValue(statElems[0], 1)
@@ -1167,7 +1167,7 @@ impl Gui.IPropertyNotify for ValData
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(*PropertiesItem)
-    foreach it in prop.items where it.parent == dynArr do
+    for it in prop.items where it.parent == dynArr do
         elems.add(it)
     @assert(elems.count == 3)
 
@@ -1739,7 +1739,7 @@ struct PropDecorData
 
     // The three decorators on 'mass' produced three extra rows before it, all under Physics.
     var spacer, heading, note: *PropertiesItem
-    foreach it in prop.items
+    for it in prop.items
     {
         if it.flags.has(.Spacer) do
             spacer = it

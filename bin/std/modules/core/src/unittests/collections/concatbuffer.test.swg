@@ -19,7 +19,7 @@ func buildConcatBuffer()->ConcatBuffer
 
 func frontBucketCount(buffer: const &ConcatBuffer)->u64
 {
-    foreach bucket in buffer do
+    for bucket in buffer do
         return bucket.count
 
     return 0
@@ -27,7 +27,7 @@ func frontBucketCount(buffer: const &ConcatBuffer)->u64
 
 func backBucketCount(buffer: const &ConcatBuffer)->u64
 {
-    foreach #reverse bucket in buffer do
+    for #reverse bucket in buffer do
         return bucket.count
 
     return 0
@@ -38,11 +38,11 @@ func backBucketCount(buffer: const &ConcatBuffer)->u64
     let buffer = buildConcatBuffer()
 
     var forwardCode: u64 = 0
-    foreach bucket in buffer do
+    for bucket in buffer do
         forwardCode = forwardCode * 10 + bucket.count
 
     var reverseCode: u64 = 0
-    foreach #reverse bucket in buffer do
+    for #reverse bucket in buffer do
         reverseCode = reverseCode * 10 + bucket.count
 
     @assert(forwardCode == 332)

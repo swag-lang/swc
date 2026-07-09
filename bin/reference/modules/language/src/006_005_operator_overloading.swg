@@ -137,10 +137,10 @@ impl Struct
     func(op: string) opIndexAssign(me, index: OneType, value: AnotherType) {}
 
     // -------------------------------------------------------------------------
-    // Iteration (foreach support)
+    // Iteration ('for' support)
     // -------------------------------------------------------------------------
 
-    // Called in a 'foreach' block to iterate over the struct's elements.
+    // Called in a 'for' iteration block to iterate over the struct's elements.
     // Multiple versions can be defined by adding a name after 'opVisit'.
     #[Swag.Macro]
     {

@@ -186,7 +186,7 @@ internal impl Properties
         .gridLevelHasMark.clear()
         if !.isGridLike() do
             return
-        foreach item in .items
+        for item in .items
         {
             if .isGridHeader(item) or !item.numChilds do
                 continue
@@ -221,7 +221,7 @@ internal impl Properties
 
     mtd syncColumnLabels()
     {
-        foreach item in .items do
+        for item in .items do
             .syncColumnLabel(item)
     }
 

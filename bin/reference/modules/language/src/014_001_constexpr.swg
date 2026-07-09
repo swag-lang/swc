@@ -76,7 +76,7 @@ ConstExpr functions can iterate and compute over constant arrays.
 func arraySum(arr: const [..] s32)->s32
 {
     var sum = 0
-    foreach val in arr do
+    for val in arr do
         sum += val
     return sum
 }

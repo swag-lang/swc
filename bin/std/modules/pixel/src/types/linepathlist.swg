@@ -17,7 +17,7 @@ impl LinePathList
 
     mtd opPostCopy()
     {
-        foreach p, i in .paths
+        for p, i in .paths
         {
             var ptr = Memory.new'LinePath()
             dref ptr  = dref p
@@ -31,7 +31,7 @@ impl LinePathList
     // Remove all private line paths
     mtd clear()
     {
-        foreach p in .paths do
+        for p in .paths do
             Memory.delete(p)
         .paths.clear()
     }
@@ -50,7 +50,7 @@ impl LinePathList
         // Flatten all path, and compute BV
         .bvMin = Vector2.Max
         .bvMax = Vector2.NegMax
-        foreach p in .paths
+        for p in .paths
         {
             p.flatten(quality)
             .bvMin = Vector2.min(.bvMin, p.bvMin)
@@ -65,7 +65,7 @@ impl LinePathList
         if Math.isZeroEpsilon(value) do
             return
 
-        foreach p in .paths
+        for p in .paths
         {
             let v = p.polygon.isClockwise ? value : -value
             p.polygon.offset(v)
@@ -112,7 +112,7 @@ impl LinePathList
             var res: Clipper.ClipperPaths
             off.execute(&res, cast(f64) (value * ClipperScaleCoords))
 
-            foreach path in res
+            for path in res
             {
                 let np = newList.newPath()
                 np.serial = serial
@@ -161,7 +161,7 @@ impl LinePathList
             var res: Clipper.ClipperPaths
             trf.execute(.Union, &res, .NonZero, .NonZero)
 
-            foreach path in res
+            for path in res
             {
                 let np = newList.newPath()
                 np.serial = serial

@@ -25,7 +25,7 @@ at compile time using '#run'.
 func sum(values: s32...)->s32
 {
     var result = 0's32
-    foreach v in values do
+    for v in values do
         result += v
     return result
 }
@@ -98,7 +98,7 @@ Example: initializing a static array at compile time.
     const PowerOfTwo: [N] s32 = #run
     {
         var arr: [N] s32
-        for i in arr do
+        for i in @countof(arr) do
             arr[i] = 1 << cast(u32) i
         return arr
     }

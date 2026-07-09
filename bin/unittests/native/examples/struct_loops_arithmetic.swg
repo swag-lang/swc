@@ -55,7 +55,7 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
     var currentMinute = shiftStartMinute
     var currentTemp = -1
 
-    foreach order in orders
+    for order in orders
     {
         let traysNeeded = clampNeededTrays(order)
         if traysNeeded == 0 do

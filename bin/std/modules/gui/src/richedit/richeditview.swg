@@ -340,7 +340,7 @@ impl RichEditView
 
         let left = snapPixels ? Math.round(x) : x
         var right = left
-        foreach glyph, idx in runToDraw.glyphs
+        for glyph, idx in runToDraw.glyphs
         {
             let step = Painter.advanceTextX(right, glyph.offsetX, glyph.advanceX, info, idx == 0)
             right = step.rightX

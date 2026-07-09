@@ -30,7 +30,7 @@ func day2B()
         [1, 2, 0]]
 
     var total: u64
-    foreach l in lines
+    for l in lines
     {
         let val1 = l[0] - 'A'
         var val2 = l[2] - 'X'

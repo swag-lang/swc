@@ -41,7 +41,7 @@ func missingUnits(item: InventoryItem)->u32
 func countItemsToReorder(items: const [..] InventoryItem)->u32
 {
     var result: u32
-    foreach item in items
+    for item in items
     {
         if missingUnits(item) != 0 do
             result += 1
@@ -53,7 +53,7 @@ func countItemsToReorder(items: const [..] InventoryItem)->u32
 func computeUnitsToOrder(items: const [..] InventoryItem)->u32
 {
     var result: u32
-    foreach item in items do
+    for item in items do
         result += missingUnits(item)
     return result
 }
@@ -61,7 +61,7 @@ func computeUnitsToOrder(items: const [..] InventoryItem)->u32
 func computeEstimatedCost(items: const [..] InventoryItem)->u32
 {
     var result: u32
-    foreach item in items do
+    for item in items do
         result += missingUnits(item) * item.unitCostCents
     return result
 }
@@ -69,7 +69,7 @@ func computeEstimatedCost(items: const [..] InventoryItem)->u32
 func countDelayedEssentialItems(items: const [..] InventoryItem)->u32
 {
     var result: u32
-    foreach item in items
+    for item in items
     {
         if item.essential and missingUnits(item) != 0 and item.leadTimeDays > 7 do
             result += 1
@@ -83,7 +83,7 @@ func pickTopSku(items: const [..] InventoryItem)->string
     var bestSku = items[0].sku
     var bestMissing = missingUnits(items[0])
 
-    foreach item in items
+    for item in items
     {
         let currentMissing = missingUnits(item)
         if currentMissing > bestMissing
@@ -98,7 +98,7 @@ func pickTopSku(items: const [..] InventoryItem)->string
 
 func computePriority(items: const [..] InventoryItem)->ReorderPriority
 {
-    foreach item in items
+    for item in items
     {
         if item.essential and missingUnits(item) != 0 and item.leadTimeDays > 7 do
             return ReorderPriority.Urgent

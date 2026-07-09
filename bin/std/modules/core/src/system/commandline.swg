@@ -18,7 +18,7 @@ struct(T) IsSet
     {
         var str    = StrConv.StringBuilder{}
         let typeof = #typeof(T)
-        foreach f in typeof.fields do
+        for f in typeof.fields do
             str.appendFormat("%: bool\n", f.name)
         let generated = str.moveToString()
         return generated.toString()
@@ -73,7 +73,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
     var allArgs: retval
 
     // Clean all arguments
-    foreach it in args
+    for it in args
     {
         var oneArg = it
         oneArg = Latin1.trim(oneArg)
@@ -110,7 +110,7 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'strin
 {
     var allArgs: retval
 
-    foreach it in splitArgumentsEx(args, options)
+    for it in splitArgumentsEx(args, options)
     {
         allArgs.add(it.value)
     }
@@ -128,7 +128,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval
 
-    foreach &it in typeStruct.fields
+    for &it in typeStruct.fields
     {
         // Test normal name (field)
         if it.name == name

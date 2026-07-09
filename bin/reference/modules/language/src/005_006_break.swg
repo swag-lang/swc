@@ -2,7 +2,7 @@
 /**
 # Introduction to 'break' in Swag
 The 'break' statement exits the nearest enclosing control structure.
-It works with 'for', 'foreach', 'while', and 'switch'. Use it to stop a loop
+It works with 'for', 'while', and 'switch'. Use it to stop a loop
 early or to leave a switch case.
 */
 #test

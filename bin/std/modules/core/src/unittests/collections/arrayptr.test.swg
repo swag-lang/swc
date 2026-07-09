@@ -7,7 +7,7 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
     if values.count != @countof(expected) do
         return false
 
-    foreach value, index in values
+    for value, index in values
     {
         if value == null do
             return false
@@ -28,7 +28,7 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
     var copy = values
     @assert(assertIntArrayPtr(&copy, [1, 2, 3]))
 
-    foreach value, index in values
+    for value, index in values
     {
         @assert(copy[index] != value)
         @assert(dref copy[index] == dref value)

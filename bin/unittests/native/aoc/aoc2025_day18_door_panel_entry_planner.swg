@@ -232,7 +232,7 @@ func codeValue(code: string)->u64
     let bytes = cast(const [..] u8) code
     var value: u64
 
-    foreach ch in bytes
+    for ch in bytes
     {
         if ch == 'A''u8 do
             break
@@ -248,7 +248,7 @@ func codePressCount(code: string, depth: u32)->u64
     var total: u64
     var current = 'A''u8
 
-    foreach next in bytes
+    for next in bytes
     {
         let fromPos = numericPos(current)
         let toPos = numericPos(next)
@@ -281,7 +281,7 @@ func complexitySum(codes: const [..] string, depth: u32)->u64
 {
     var total: u64
 
-    foreach code in codes
+    for code in codes
     {
         total += codeValue(code) * codePressCount(code, depth)
     }

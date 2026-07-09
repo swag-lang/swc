@@ -44,7 +44,7 @@ func wordArrayToByteView()->bool
     var words: [2] u16 = [0x0102'u16, 0x0304'u16]
     let bytes = cast([..] u8) words
     var sum: u32 = 0
-    foreach value in bytes do
+    for value in bytes do
         sum += cast(u32) value
     return @countof(bytes) == 4 and sum == 10'u32
 }

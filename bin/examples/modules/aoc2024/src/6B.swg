@@ -102,7 +102,7 @@ func day6B()
     w = cast() lines[0].length
     h = cast() lines.count
 
-    foreach l in lines
+    for l in lines
     {
         if !sx
         {
@@ -180,7 +180,7 @@ func day6B()
     discard test(&arr0, sx, sy, true)
 
     var total = 0
-    foreach v in arr0
+    for v in arr0
     {
         if v != 'O' do
             continue

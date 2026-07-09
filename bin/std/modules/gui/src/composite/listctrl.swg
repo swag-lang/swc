@@ -118,7 +118,7 @@ impl ListLine
     mtd getItem(column: u32)->*ListItem
     {
         Debug.assert(column < .items.count)
-        foreach item in .items
+        for item in .items
         {
             if item.column == column do
                 return item
@@ -131,7 +131,7 @@ impl ListLine
     #[Swag.Discardable]
     mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
     {
-        foreach item in .items
+        for item in .items
         {
             if item.column == column
             {
@@ -191,7 +191,7 @@ impl IWnd for ListView
         case Space where focusLine:
             if focusLine.canCheck
             {
-                foreach l in .list.selModel
+                for l in .list.selModel
                 {
                     let res = .list.idxLineToIdxList.tryFind(l)
                     if !res do
@@ -214,7 +214,7 @@ impl IWnd for ListView
         case Enter where focusLine:
             if focusLine.canCheck
             {
-                foreach l in .list.selModel
+                for l in .list.selModel
                 {
                     let res = .list.idxLineToIdxList.tryFind(l)
                     if !res do
@@ -414,7 +414,7 @@ impl IWnd for ListView
                         let checked = !.list.checkModel.isSelected(idxLine)
                         if .list.selModel.isSelected(idxLine)
                         {
-                            foreach l in .list.selModel do
+                            for l in .list.selModel do
                                 .list.checkModel.select(l, checked)
                         }
                         else do
@@ -634,7 +634,7 @@ private impl ListView
         }
 
         var format: RichStringFormat
-        foreach item, idxItem in line.items
+        for item, idxItem in line.items
         {
             var colorFg: Color = undefined
             if item.colorFg.a and !isSelected do
@@ -978,7 +978,7 @@ impl ListCtrl
         if .isVirtual do
             return false
 
-        foreach line in .lines
+        for line in .lines
         {
             if line.canCheck do
                 return true
@@ -1128,7 +1128,7 @@ impl ListCtrl
         if .isVirtual or .selModel.isEmpty() do
             return result
 
-        foreach i in .selModel
+        for i in .selModel
         {
             let res = .idxLineToIdxList.tryFind(i)
             if !res do
@@ -1146,7 +1146,7 @@ impl ListCtrl
         if .isVirtual or .checkModel.isEmpty() do
             return result
 
-        foreach i in .checkModel
+        for i in .checkModel
         {
             let res = .idxLineToIdxList.tryFind(i)
             if !res do
@@ -1174,13 +1174,13 @@ impl ListCtrl
     private mtd mapIndexes()
     {
         .idxLineToIdxList.clear()
-        foreach l, idx in .lines do
+        for l, idx in .lines do
             .idxLineToIdxList.add(l.index, cast(u32) idx)
     }
 
     private mtd collectVisibleLines(result: *Array'(*ListLine), lines: [..] *ListLine)
     {
-        foreach l in lines
+        for l in lines
         {
             result.add(l)
             if l.expanded do
@@ -1306,7 +1306,7 @@ impl ListCtrl
         while tmp.count
         {
             let toI = tmp.popBack()
-            foreach l in toI.lines
+            for l in toI.lines
             {
                 removeCount += 1
                 if l.expanded do
@@ -1341,14 +1341,14 @@ impl ListCtrl
     {
         func collapseRec(sl: [..] *ListLine)
         {
-            foreach l in sl
+            for l in sl
             {
                 l.expanded = false
                 collapseRec(l.lines.toSlice())
             }
         }
 
-        foreach l in .lines
+        for l in .lines
         {
             if l.expanded do
                 .collapse(l)

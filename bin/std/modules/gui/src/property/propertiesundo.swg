@@ -229,7 +229,7 @@ public impl Properties
     mtd clearUndo()
     {
         .undoMgr.clear()
-        foreach it in .items do
+        for it in .items do
             it.undoValue.capture(me, it)
     }
 

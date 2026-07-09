@@ -47,7 +47,7 @@ impl ArrayPtr
     // The array's count is set to 0, but the capacity is not changed.
     mtd clear()
     {
-        foreach item in me do
+        for item in me do
             Memory.delete(item, .allocator)
         .count = 0
     }

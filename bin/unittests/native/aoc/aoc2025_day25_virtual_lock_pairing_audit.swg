@@ -104,9 +104,9 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
     result.lockCount = cast(u32) @countof(lockProfiles)
     result.keyCount = cast(u32) @countof(keyProfiles)
 
-    foreach lockProfile in lockProfiles
+    for lockProfile in lockProfiles
     {
-        foreach keyProfile in keyProfiles
+        for keyProfile in keyProfiles
         {
             if fits(lockProfile, keyProfile) do
                 result.compatiblePairCount += 1

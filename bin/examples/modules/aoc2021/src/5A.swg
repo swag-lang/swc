@@ -53,7 +53,7 @@ func day5A()
     const W = 1000'u64
     m.resize(W * W)
 
-    foreach l in lines
+    for l in lines
     {
         assume
         {

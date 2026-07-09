@@ -157,7 +157,7 @@ impl RegExp
     // Returns 'null' if the capture group does not exist
     public mtd opIndex(idx: u64)->string
     {
-        foreach v in .groups
+        for v in .groups
         {
             if v.rank == idx do
                 return v.value
@@ -233,7 +233,7 @@ impl RegExp
     // Returns the parsed string associated with a given captured group
     public mtd getCapture(rank: u32)->string
     {
-        foreach g in .groups
+        for g in .groups
         {
             if g.rank == rank do
                 return g.value
@@ -246,7 +246,7 @@ impl RegExp
     public mtd getCaptures()->Array'string
     {
         var result: retval
-        foreach v in .groups do
+        for v in .groups do
             result.add(v.value)
         return result
     }
@@ -371,7 +371,7 @@ impl RegExp
 
     func setCapture(state: *DfaState, rank: s32, str: string)
     {
-        foreach &v in state.groups
+        for &v in state.groups
         {
             if v.rank == rank
             {
@@ -385,7 +385,7 @@ impl RegExp
 
     mtd hasActiveCapture(state: *DfaState, rank: u32)->bool
     {
-        foreach g in state.activeGroups
+        for g in state.activeGroups
         {
             if g.rank == rank do
                 return true
@@ -460,7 +460,7 @@ impl RegExp
             swap(&pstack1, &pstack2)
 
             var cptReachedEnd = 0
-            foreach &v in dref pstack1
+            for &v in dref pstack1
             {
                 if v.parseIdx >= .bufLength do
                     cptReachedEnd += 1
@@ -559,7 +559,7 @@ impl RegExp
             var strGroup: string
             var hasGroup = false
             let rank = 1 + (what - RuneGroup1)
-            foreach g in st.groups
+            for g in st.groups
             {
                 if g.rank == rank
                 {
@@ -589,7 +589,7 @@ impl RegExp
 
     mtd hasCapture(state: *DfaState, rank: u32)->bool
     {
-        foreach g in state.groups
+        for g in state.groups
         {
             if g.rank == rank do
                 return true
@@ -600,7 +600,7 @@ impl RegExp
 
     mtd hasAvailableEmptyCapture(state: *DfaState, rank: u32)->bool
     {
-        foreach n in state.node.table
+        for n in state.node.table
         {
             if .groupTransform[n.group] == rank do
                 return true
@@ -614,7 +614,7 @@ impl RegExp
             var parent = .groupParent[raw]
             while parent != 0
             {
-                foreach n in state.node.table
+                for n in state.node.table
                 {
                     if n.group == parent and .groupTransform[parent] != 0 do
                         return true
@@ -649,7 +649,7 @@ impl RegExp
             if !epsilon do
                 continue
 
-            foreach next in epsilon.value
+            for next in epsilon.value
             {
                 if table.contains(next) and !done.contains(next) do
                     stack.add(next)
@@ -665,13 +665,13 @@ impl RegExp
         var bestDepth: u32
         let currentRaw  = state.activeGroups.count ? state.activeGroups.back().rawGroup : 0
         let currentRank = state.activeGroups.count ? state.activeGroups.back().rank : 0
-        foreach node in state.node.table
+        for node in state.node.table
         {
             let find = node.transitions.tryFind(c)
             if !find do
                 continue
 
-            foreach next in find.value
+            for next in find.value
             {
                 let depth = .rawGroupDepth(next.group)
                 let rank  = .groupTransform[next.group]
@@ -689,7 +689,7 @@ impl RegExp
     mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode, c: rune)->u32
     {
         var rank: retval
-        foreach n in state.node.table
+        for n in state.node.table
         {
             let grp = .groupTransform[n.group]
             if grp == 0 or .hasActiveCapture(state, grp) do
@@ -698,7 +698,7 @@ impl RegExp
                 continue
 
             var stillThere = false
-            foreach nn in nextNode.table
+            for nn in nextNode.table
             {
                 if .groupTransform[nn.group] == grp
                 {
@@ -899,7 +899,7 @@ impl RegExp
 
     mtd tableHasGroup(table: *NfaTable)->bool
     {
-        foreach n in table.nodes
+        for n in table.nodes
         {
             if n.group != 0 do
                 return true
@@ -1001,7 +1001,7 @@ impl RegExp
                 }
                 .groupTransform[.group] = logicalRank
                 .groupParent[.group] = 0
-                foreach n in table1.nodes
+                for n in table1.nodes
                 {
                     if n.group != 0
                     {
@@ -1200,7 +1200,7 @@ impl RegExp
         outH.clear()
 
         var stack: Array'(*NfaNode)
-        foreach n in dref inH do
+        for n in dref inH do
             stack.add(n)
 
         while stack.count
@@ -1212,7 +1212,7 @@ impl RegExp
             if !find do
                 continue
 
-            foreach t in find.value
+            for t in find.value
             {
                 if !outH.contains(t) do
                     stack.add(t)
@@ -1223,7 +1223,7 @@ impl RegExp
     mtd setTable(node: *DfaNode, tbl: *Array'(*NfaNode))
     {
         node.table = #move dref tbl
-        foreach n in node.table
+        for n in node.table
         {
             if node.rawGroup == 0 do
                 node.rawGroup = n.group
@@ -1238,13 +1238,13 @@ impl RegExp
     func dfaMoveNode(out: *Array'(*NfaNode), c: rune, inH: Array'(*NfaNode))
     {
         out.clear()
-        foreach state in inH
+        for state in inH
         {
             // The real terminal character
             let pfind = state.transitions.tryFind(c)
             if pfind
             {
-                foreach t in pfind.value do
+                for t in pfind.value do
                     out.add(t)
             }
         }
@@ -1254,7 +1254,7 @@ impl RegExp
     {
         if s1.count != s2.count do
             return false
-        foreach t1 in dref s1
+        for t1 in dref s1
         {
             if !s2.contains(t1) do
                 return false
@@ -1286,7 +1286,7 @@ impl RegExp
         while stack.count
         {
             state = stack.popBack()
-            foreach c in .charSet
+            for c in .charSet
             {
                 dfaMoveNode(&moveRes, c, state.table)
                 if moveRes.count == 0 do
@@ -1294,7 +1294,7 @@ impl RegExp
                 dfaEClosure(&moveRes, &epsilonRes)
 
                 var found: *DfaNode
-                foreach tstate in .dfaNodes
+                for tstate in .dfaNodes
                 {
                     if equals(&tstate.table, &epsilonRes)
                     {

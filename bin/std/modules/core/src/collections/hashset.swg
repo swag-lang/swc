@@ -53,7 +53,7 @@ impl HashSet
     mtd opSet(slice: const [..] K)
     {
         .clear()
-        foreach v in slice do
+        for v in slice do
             .add(v)
     }
 
@@ -417,7 +417,7 @@ impl StrConv.IConvert for HashSet
     mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string)
     {
         buf.addBytes("[")
-        foreach k in me
+        for k in me
         {
             if @index do
                 buf.addBytes(", ")

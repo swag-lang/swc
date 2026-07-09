@@ -54,7 +54,7 @@ impl ExactArrayParamJitWriter
     fillExactDigest(digest, 9'u8)
 
     var checksum: s32 = 0
-    foreach value in digest do
+    for value in digest do
         checksum += cast(s32) value
 
     @assert(digest[0] == 9'u8)

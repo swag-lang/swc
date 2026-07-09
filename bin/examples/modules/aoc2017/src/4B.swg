@@ -20,12 +20,12 @@ func day4B()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         let s    = Tokenize.split(l, " ")
         var set: HashSet'string
 
-        foreach w in s
+        for w in s
         {
             var str: String = w
             Slice.sort(str.toSlice())

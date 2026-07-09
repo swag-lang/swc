@@ -10,7 +10,7 @@ using Swag, Core, Core.Math
 func triCount(pts: [..] Vector2)->u64
 {
     var poly: Pixel.Polygon
-    foreach p in pts do
+    for p in pts do
         poly.add(p)
     let first = pts[0]
     poly.add(first)   // close the ring

@@ -8,5 +8,5 @@ struct MissingVisitBox
 #test
 {
     let values = MissingVisitBox{}
-    foreach value in values {} // swc-expected-error {{sema_err_type_not_visitable}}
+    for value in values {} // swc-expected-error {{sema_err_type_not_visitable}}
 }

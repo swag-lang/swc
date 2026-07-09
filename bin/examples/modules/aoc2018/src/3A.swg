@@ -59,7 +59,7 @@ func day3A0()
     var r      = assume Parser.RegExp.create(#"#\d+ @ (\d+),(\d+): (\d+)x(\d+)"#)
     var count: Array's32
     count.resize(1000 * 1000)
-    foreach l in lines
+    for l in lines
     {
         discard r.match(l)
         let startX = assume StrConv.toS32(r[1])
@@ -73,7 +73,7 @@ func day3A0()
     }
 
     var total = 0
-    foreach v in count do
+    for v in count do
         if v > 1 do
             total += 1
 
@@ -90,7 +90,7 @@ func day3A1()
 
     var count: Array's32
     count.resize(1000 * 1000)
-    foreach l in lines
+    for l in lines
     {
         let r = assume Parser.RegExp.grepAll("\\d+", l)
         let v = Slice.map(r[ to ], func(x) => assume StrConv.toS32(x))
@@ -101,7 +101,7 @@ func day3A1()
     }
 
     var total = 0
-    foreach v in count do
+    for v in count do
         if v > 1 do
             total += 1
 

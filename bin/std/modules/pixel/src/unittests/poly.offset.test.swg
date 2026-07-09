@@ -18,7 +18,7 @@ func assertOutlineOffsetPathCount(text: string, expectedCount: u64)
 
     var expectedSerials:     Array's32
     var expectedClockwises:  Array'bool
-    foreach p in paths.paths
+    for p in paths.paths
     {
         expectedSerials.add(p.serial)
         expectedClockwises.add(p.polygon.isClockwise)

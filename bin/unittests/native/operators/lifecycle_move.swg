@@ -273,7 +273,7 @@ func foreachOverloadCopyInfo()->LifecycleInfo
     var dst: Tracked
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
-    foreach value in values do
+    for value in values do
         assignTracked(&dst, value)
     return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -283,7 +283,7 @@ func foreachOverloadMoveInfo()->LifecycleInfo
     var dst: Tracked
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
-    foreach value in values do
+    for value in values do
         assignTracked(&dst, #move value)
     return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }

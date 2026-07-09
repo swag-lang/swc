@@ -25,7 +25,7 @@ func day4A()
         let lines    = File.readAllLines(dataPath)
 
         var total = 0's64
-        foreach l in lines
+        for l in lines
         {
             var idx    = 0
             var count: [26] s32
@@ -40,10 +40,10 @@ func day4A()
             idx += res.eat
 
             var valid = true
-            foreach c in l[idx + 1 to idx + 5]
+            for c in l[idx + 1 to idx + 5]
             {
                 var max, maxi = 0'u64
-                for i in count where count[i] > max
+                for i in @countof(count) where count[i] > max
                 {
                     max  = count[i]
                     maxi = i

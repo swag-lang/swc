@@ -80,7 +80,7 @@ var g_AdminRouteCount: s32
 func countPathParams(path: string)->s32
 {
     var count: s32
-    foreach c in path
+    for c in path
     {
         if c == ':' do
             count += 1
@@ -151,7 +151,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
     let typeFunc = cast(const *TypeInfoFunc) msg.type
 
-    foreach attribute in typeFunc.attributes
+    for attribute in typeFunc.attributes
     {
         if attribute.type != #typeof(AdminRoute) do
             continue
@@ -184,7 +184,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         len = appendAst(&buffer[0], len, "struct AdminRouteRequest_")
         len = appendAst(&buffer[0], len, route.handlerName)
         len = appendAst(&buffer[0], len, "\n{\n")
-        foreach parameter in typeFunc.parameters
+        for parameter in typeFunc.parameters
         {
             len = appendAst(&buffer[0], len, "    ")
             len = appendAst(&buffer[0], len, parameter.name)
@@ -211,7 +211,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
         len = appendAst(&buffer[0], len, route.handlerName)
         len = appendAst(&buffer[0], len, "(")
-        foreach parameter, index in typeFunc.parameters
+        for parameter, index in typeFunc.parameters
         {
             if index != 0 do
                 len = appendAst(&buffer[0], len, ", ")

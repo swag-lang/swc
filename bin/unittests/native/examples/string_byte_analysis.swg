@@ -19,7 +19,7 @@ func countRows(csv: string)->u32
         return 0
 
     var result = 1'u32
-    foreach ch in bytes
+    for ch in bytes
     {
         if ch == '\n''u8 do
             result += 1
@@ -35,7 +35,7 @@ func countColumns(csv: string)->u32
         return 0
 
     var result = 1'u32
-    foreach ch in bytes
+    for ch in bytes
     {
         if ch == '\n''u8 do
             break
@@ -55,7 +55,7 @@ func countNumericCells(csv: string)->u32
     var rowIndex: u32
     var cellStart = true
 
-    foreach ch in bytes
+    for ch in bytes
     {
         if rowIndex != 0 and cellStart and ch >= '0''u8 and ch <= '9''u8 do
             result += 1
@@ -81,7 +81,7 @@ func longestLineLength(csv: string)->u32
     var best: u32
     var current: u32
 
-    foreach ch in bytes
+    for ch in bytes
     {
         if ch == '\n''u8
         {
@@ -104,7 +104,7 @@ func longestLineLength(csv: string)->u32
 func hasQuotedField(csv: string)->bool
 {
     let bytes = cast(const [..] u8) csv
-    foreach ch in bytes
+    for ch in bytes
     {
         if ch == '"''u8 do
             return true

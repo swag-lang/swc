@@ -8,7 +8,7 @@ func assertIntList(values: &List's32, expected: const [..] s32)->bool
         return false
 
     var idx: u64 = 0
-    foreach value in values
+    for value in values
     {
         if value != expected[idx] do
             return false
@@ -26,7 +26,7 @@ struct ListStructProbe
 func visitStructList(values: &List'ListStructProbe)->s32
 {
     var code = 0
-    foreach value, node in values
+    for value, node in values
     {
         #assert(#typeof(node) == *ListEntry'ListStructProbe)
         if value.value == 12 do
@@ -43,7 +43,7 @@ func visitStructList(values: &List'ListStructProbe)->s32
 func visitStructListReverse(values: &List'ListStructProbe)->s32
 {
     var code = 0
-    foreach #reverse value, node in values
+    for #reverse value, node in values
     {
         #assert(#typeof(node) == *ListEntry'ListStructProbe)
         code = code * 10 + value.value
@@ -75,7 +75,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.insertBefore(values.tail, 3)
 
     var code = 0
-    foreach value, node in values
+    for value, node in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(node) == *ListEntry's32)
@@ -94,7 +94,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.insertBefore(values.tail, 3)
 
     var code = 0
-    foreach #reverse value, node in values
+    for #reverse value, node in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(node) == *ListEntry's32)
@@ -111,7 +111,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.addBack(2)
     values.addBack(3)
 
-    foreach &value, node in values
+    for &value, node in values
     {
         #assert(#typeof(value) == *s32)
         #assert(#typeof(node) == *ListEntry's32)
@@ -129,7 +129,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.addBack(ListStructProbe{value: 2})
     values.addBack(ListStructProbe{value: 3})
 
-    foreach value in values do
+    for value in values do
         value.value += 10
 
     @assert(values.head.value.value == 11)

@@ -60,7 +60,7 @@ impl IWnd for LibraryView
 
         // Hit test
         var ht = Swag.U32.Max
-        foreach it, idx in .items
+        for it, idx in .items
         {
             if it.rect.contains(pos)
             {
@@ -146,7 +146,7 @@ impl IWnd for LibraryView
         }
 
         let spos = .scrollWnd.getScrollPos()
-        foreach it, i in .items
+        for it, i in .items
         {
             it.visible = true
             if y + h < spos.y do
@@ -233,7 +233,7 @@ impl LibraryView
 
     mtd updateRecent(capture: *Capture)
     {
-        foreach it in .items
+        for it in .items
         {
             if capture.file == it.fi.fullname
             {
@@ -251,7 +251,7 @@ impl LibraryView
     mtd filter()
     {
         .items.clear()
-        foreach it in .allItems
+        for it in .allItems
         {
             it.filtered = true
 
@@ -299,10 +299,10 @@ impl LibraryView
     {
         // Work on a copy, as 'items' can be changed by sorting during loading
         var copy: Array'*LibraryItem
-        foreach it in .allItems do
+        for it in .allItems do
             copy.add(it)
 
-        foreach it in copy
+        for it in copy
         {
             if th.requestEnd do
                 break
@@ -313,7 +313,7 @@ impl LibraryView
             .postInvalidateEvent()
         }
 
-        foreach it in copy
+        for it in copy
         {
             if th.requestEnd do
                 break
@@ -335,7 +335,7 @@ impl LibraryView
             return
 
         var remaining: Array'*LibraryItem
-        foreach it in .items do
+        for it in .items do
             remaining.add(it)
         if remaining.isEmpty() do
             return
@@ -359,7 +359,7 @@ impl LibraryView
             var best:      f32
             var bestI:     u64
             var foundMatch = false
-            foreach it in remaining where it.capture and toCompare.capture.haar.size == it.capture.haar.size
+            for it in remaining where it.capture and toCompare.capture.haar.size == it.capture.haar.size
             {
                 let similarity = ImageStatistics.quickCompareHaarCoefficients(toCompare.capture.haar, it.capture.haar)
                 if similarity > best
@@ -385,7 +385,7 @@ impl LibraryView
         }
 
         .mutexLoaded.lock()
-        foreach it, i in nitems do
+        for it, i in nitems do
             .items[i] = nitems[i]
         .mutexLoaded.unlock()
     }
@@ -435,7 +435,7 @@ impl LibraryView
 
         // Filter
         var res: Array'File.FileInfo
-        foreach fi in g_Library.files
+        for fi in g_Library.files
         {
             if (.filterYear == 0 or fi.lastWriteTime.year == .filterYear) and
                (.filterMonth == 0 or fi.lastWriteTime.month == .filterMonth) and
@@ -446,13 +446,13 @@ impl LibraryView
         }
 
         let renderer = .getApp().getRenderer()
-        foreach it in .items do
+        for it in .items do
             renderer.removeTexture(&it.texture)
 
         // Add items
         .allItems.clear()
         .allItems.reserve(res.count)
-        foreach fi in res
+        for fi in res
         {
             let ptr = .allItems.addNewPtr()
             ptr.fi = fi

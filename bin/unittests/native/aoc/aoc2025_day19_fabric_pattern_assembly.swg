@@ -44,7 +44,7 @@ func countAssemblies(patterns: const [..] string, design: string)->u64
         if ways[index] == 0 do
             continue
 
-        foreach pattern in patterns
+        for pattern in patterns
         {
             if matchesPattern(designBytes, index, pattern)
             {
@@ -61,7 +61,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
 {
     var result: DesignReport
 
-    foreach design in designs
+    for design in designs
     {
         let arrangements = countAssemblies(patterns, design)
         if arrangements != 0

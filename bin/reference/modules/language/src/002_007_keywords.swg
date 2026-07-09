@@ -14,7 +14,6 @@ while
 switch
 defer
 for
-foreach
 break
 fallthrough
 return

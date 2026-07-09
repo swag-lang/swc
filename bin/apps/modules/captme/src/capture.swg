@@ -192,7 +192,7 @@ impl CaptureClipboardForms
     mtd toForms(capture: *Capture)->Array'IForm
     {
         var result: retval
-        foreach &item in .forms
+        for &item in .forms
         {
             let form = item.toForm(capture)
             if form do
@@ -207,7 +207,7 @@ impl Capture
 {
     func freeForms(forms: Array'IForm)
     {
-        foreach it in forms
+        for it in forms
         {
             let type = @kindof(it)
             Memory.delete(@dataof(it), type)
@@ -275,7 +275,7 @@ impl Capture
 
         if onlySel
         {
-            foreach sel in .selection
+            for sel in .selection
             {
                 let f = .forms[sel]
                 let b = cast(*BaseForm) @dataof(f)
@@ -286,7 +286,7 @@ impl Capture
         }
         else
         {
-            foreach f in .forms
+            for f in .forms
             {
                 let b = cast(*BaseForm) @dataof(f)
                 if b.subKind == .PixSel do
@@ -371,7 +371,7 @@ impl Capture
         let capture = decoder.readAll'Capture(res.toSlice())
         capture.file = file
 
-        foreach itf in capture.forms do
+        for itf in capture.forms do
             itf.setup(capture)
 
         return capture
@@ -392,7 +392,7 @@ impl Capture
         var payload: CaptureClipboardForms
 
         var imgDone = false
-        foreach s in .selection
+        for s in .selection
         {
             let itf = .forms[s]
 
@@ -468,7 +468,7 @@ impl Capture
 
         var boundRect: Math.Rectangle
 
-        foreach itf, idx in res
+        for itf, idx in res
         {
             itf.setup(me)
             let bound = itf.boundRect()
@@ -491,7 +491,7 @@ impl Capture
         pt.x /= zoom
         pt.y /= zoom
 
-        foreach itf in undo.oldForms
+        for itf in undo.oldForms
         {
             let dx = -boundRect.x + pt.x - (boundRect.width * 0.5)
             let dy = -boundRect.y + pt.y - (boundRect.height * 0.5)
@@ -503,7 +503,7 @@ impl Capture
 
         // Select added forms
         .selection.clear()
-        for i in undo.oldForms do
+        for i in @countof(undo.oldForms) do
             .selection.add(countBefore + i)
 
         .selectionHasChanged()
@@ -735,7 +735,7 @@ impl Capture
         .paintBackImage(painter, rect.x, rect.y, zoom)
 
         // Shapes
-        foreach f in .forms
+        for f in .forms
         {
             // Cull against the form's actual painted extent. 'paintForm' inflates the
             // bound by 200 (the rendered geometry - arrow caps, thick strokes, shadow -
@@ -766,7 +766,7 @@ impl Capture
         }
 
         // Gizmos
-        foreach f, i in .forms
+        for f, i in .forms
         {
             var flags = FormFlags.Zero
             if i == .hotForm do
@@ -861,7 +861,7 @@ impl Capture
             return editForm.boundRect()
 
         var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
-        foreach s in .selection
+        for s in .selection
         {
             let f = .forms[s]
             let r = f.boundRect()
@@ -903,7 +903,7 @@ impl Capture
         arrY.add(.height)
         arrY.add(.height / 2)
 
-        foreach f, i in .forms
+        for f, i in .forms
         {
             let autoSel = .selection.contains(i) or @dataof(f) == @dataof(editForm)
             let form    = cast(*BaseForm) @dataof(f)
@@ -925,7 +925,7 @@ impl Capture
 
             case FormPolygon:
                 let form2 = cast(*FormPolygon) form
-                foreach pt, idx in form2.points
+                for pt, idx in form2.points
                 {
                     if !autoSel or idx != idxPt
                     {
@@ -962,7 +962,7 @@ impl Capture
 
         if x
         {
-            foreach ax in arrX
+            for ax in arrX
             {
                 let nbX = Math.abs(pMoved.x - ax)
                 if nbX < bestX
@@ -975,7 +975,7 @@ impl Capture
 
         if y
         {
-            foreach ay in arrY
+            for ay in arrY
             {
                 let nbY = Math.abs(pMoved.y - ay)
                 if nbY < bestY
@@ -1269,7 +1269,7 @@ impl Capture
             if ctrlPressed do
                 newSel = .selection
 
-            foreach f, idx in .forms
+            for f, idx in .forms
             {
                 let pp = f.boundRect() * view.zoom
                 if pp.intersectWith(r) and !newSel.contains(idx) do
@@ -1406,7 +1406,7 @@ impl Capture
         var result: retval
         if !.forms.count do
             return result
-        for #reverse i in .forms
+        for #reverse i in @countof(.forms)
         {
             let f = .forms[i]
             if !f.hitTest(localPos, .editView.zoom) do

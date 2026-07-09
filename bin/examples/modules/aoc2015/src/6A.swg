@@ -65,7 +65,7 @@ internal func day6EnsureInstructions()
     let lines    = assume File.readAllLines(dataPath)
 
     day6Instructions.reserve(lines.count)
-    foreach line in lines
+    for line in lines
     {
         var cursor = 0'u64
         var instruction: Day6Instruction
@@ -104,7 +104,7 @@ func day6A0()
     var lights: HashSet'u32
     lights.reserve(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
-    foreach instruction in day6Instructions
+    for instruction in day6Instructions
     {
         let x0         = cast(u32) instruction.x0
         let y0         = cast(u32) instruction.y0
@@ -162,7 +162,7 @@ func day6A1()
     var lights: Array'bool
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
-    foreach instruction in day6Instructions
+    for instruction in day6Instructions
     {
         let x0         = cast(u64) instruction.x0
         let y0         = cast(u64) instruction.y0
@@ -207,7 +207,7 @@ func day6A1()
     }
 
     var total: u64
-    foreach v in lights do
+    for v in lights do
         total += cast(s32) v
 
     //Console.print("total: ", total)
@@ -224,7 +224,7 @@ func day6A2()
     var lights: BitArray
     lights.reserve(DAY6_GRID_SIZE * DAY6_GRID_SIZE, false)
 
-    foreach instruction in day6Instructions
+    for instruction in day6Instructions
     {
         let x0         = cast(u64) instruction.x0
         let y0         = cast(u64) instruction.y0
@@ -269,7 +269,7 @@ func day6A2()
     }
 
     var total: u64
-    foreach v in lights do
+    for v in lights do
         total += cast(s32) v
 
     //Console.print("total: ", total)

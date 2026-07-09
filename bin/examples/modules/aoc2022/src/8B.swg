@@ -44,12 +44,12 @@ func day8B()
     //Time.Stopwatch.scopeMeasure()
 
     var total: s32
-    foreach l, line in lines
+    for l, line in lines
     {
         if line == 0 or line == lines.count - 1 do
             continue
 
-        foreach #Bytes c, col in l
+        for #Bytes c, col in l
         {
             if col == 0 or col == l.length - 1 do
                 continue

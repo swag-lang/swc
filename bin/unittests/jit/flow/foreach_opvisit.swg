@@ -289,7 +289,7 @@ func jitForeachVisitForward()->s32
     var values = JitFieldVisits{}
     var acc: s32
 
-    foreach value, index in values do
+    for value, index in values do
         acc += value + cast(s32) index
 
     return acc
@@ -300,7 +300,7 @@ func jitForeachVisitWhere()->s32
     var values = JitBufferVisits{}
     var acc: s32
 
-    foreach value, ordinal in values where value != 6
+    for value, ordinal in values where value != 6
     {
         if ordinal == 0 do
             continue
@@ -316,7 +316,7 @@ func jitForeachVisitByAddress()->s32
 {
     var values = JitBufferVisits{}
 
-    foreach &value, ordinal in values do
+    for &value, ordinal in values do
         dref value += cast(s32) (ordinal + 1)
 
     return values.values[0] + values.values[1] + values.values[2]
@@ -326,7 +326,7 @@ func jitForeachVisitReturn()->bool
 {
     var values = JitReturnVisits{}
 
-    foreach value in values
+    for value in values
     {
         if value == 6 do
             return true

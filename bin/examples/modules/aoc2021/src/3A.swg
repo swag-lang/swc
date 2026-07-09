@@ -42,12 +42,12 @@ func day3A()
     let lines    = assume File.readAllLines(dataPath)
 
     var gamma, epsilon: u32
-    for c in lines[0]
+    for c in @countof(lines[0])
     {
         gamma, epsilon <<= 1
 
         var count = 0
-        foreach l in lines do
+        for l in lines do
             count += cast(s32) (l[c] == '1')
 
         gamma |= cast(s32) (count > lines.count / 2)

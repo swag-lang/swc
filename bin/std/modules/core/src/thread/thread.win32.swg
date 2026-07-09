@@ -36,7 +36,7 @@ func wait(threads: *Thread...)
     }
 
     // Close all
-    foreach th in threads
+    for th in threads
     {
         CloseHandle(th.handle)
         th.handle = null

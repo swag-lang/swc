@@ -46,7 +46,7 @@ func print(params: ...)
     var buf:     ConcatBuffer
     let convFmt: StrConv.ConvertFormat
 
-    foreach v in params do
+    for v in params do
         StrConv.convertAny(&buf, v, convFmt, null)
     printf(buf.toString())
 }

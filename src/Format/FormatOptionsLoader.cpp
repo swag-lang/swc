@@ -81,7 +81,7 @@ namespace
         schema.addEnum("allow-short-structs-on-single-line", &options.allowShortStructsOnSingleLine, shortChoices, "When to keep `struct` bodies on a single line.");
 
         schema.add("allow-short-if-statements-on-single-line", &options.allowShortIfStatementsOnSingleLine, "Allow `if x do ...` / `if x { ... }` on one line.");
-        schema.add("allow-short-loops-on-single-line", &options.allowShortLoopsOnSingleLine, "Allow `while`/`for`/`foreach` bodies on one line.");
+        schema.add("allow-short-loops-on-single-line", &options.allowShortLoopsOnSingleLine, "Allow `while`/`for` bodies on one line.");
         schema.add("allow-short-case-on-single-line", &options.allowShortCaseOnSingleLine, "Allow single-statement `case` arms to stay on one line.");
     }
 

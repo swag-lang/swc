@@ -21,7 +21,7 @@ struct ForeachVariadicPayload
         var arr: ForeachStrictArray = cast(ForeachStrictArray) raw
         var acc: s32 = 0
 
-        foreach v, i in arr
+        for v, i in arr
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -42,7 +42,7 @@ struct ForeachVariadicPayload
         var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
         var acc: s32 = 0
 
-        foreach v, i in sl
+        for v, i in sl
         {
             acc += v + cast(s32) i
         }
@@ -61,7 +61,7 @@ struct ForeachVariadicPayload
         var arr: [5] s32 = [1, 2, 3, 4, 5]
         var acc: s32 = 0
 
-        foreach v, i in arr
+        for v, i in arr
         {
             acc += v + cast(s32) i
         }
@@ -80,7 +80,7 @@ struct ForeachVariadicPayload
         var arr: [8] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
         var acc: s32 = 0
 
-        foreach v in arr where (v & 1) == 0
+        for v in arr where (v & 1) == 0
         {
             if v == 6
             {
@@ -107,7 +107,7 @@ struct ForeachVariadicPayload
         var arr: [4] s32 = [1, 2, 3, 4]
         var sum: s32 = 0
 
-        foreach &v, i in arr
+        for &v, i in arr
         {
             sum += dref v + cast(s32) i
         }
@@ -126,7 +126,7 @@ struct ForeachVariadicPayload
         var arr: [3] s32 = [11, 22, 33]
         var count: u64 = 0
 
-        foreach arr
+        for arr
         {
             count += 1
         }
@@ -145,7 +145,7 @@ struct ForeachVariadicPayload
         var text: string = "ABC"
         var acc: u32 = 0
 
-        foreach v, i in text
+        for v, i in text
         {
             acc += cast(u32) v + cast(u32) i
         }
@@ -163,7 +163,7 @@ struct ForeachVariadicPayload
     {
         const values: [1] string = ["1 blue"]
 
-        foreach value in values do
+        for value in values do
             return value[0] & 15
 
         return 0
@@ -181,7 +181,7 @@ struct ForeachVariadicPayload
         var sl = cast([..] s32) arr
         var acc: s32 = 0
 
-        foreach v, i in sl
+        for v, i in sl
         {
             acc += v + cast(s32) i
         }
@@ -200,7 +200,7 @@ struct ForeachVariadicPayload
         var arr: [4] s32 = [5, 6, 7, 8]
         var sl = cast([..] s32) arr
         var acc: s32 = 0
-        foreach v, i in sl
+        for v, i in sl
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -218,7 +218,7 @@ struct ForeachVariadicPayload
     {
         var acc: s32 = 0
 
-        foreach v, i in values
+        for v, i in values
         {
             let p = cast(*s32) @dataof(v)
             acc += dref p + cast(s32) i
@@ -237,7 +237,7 @@ struct ForeachVariadicPayload
     {
         var acc: s32 = 0
 
-        foreach v, i in values
+        for v, i in values
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -255,7 +255,7 @@ struct ForeachVariadicPayload
     {
         var acc: u64 = 0
 
-        foreach v, i in values
+        for v, i in values
         {
             acc += cast(u64) v.arr[0] + cast(u64) v.arr[2] + cast(u64) v.flag + cast(u64) v.tag + i
         }
@@ -275,9 +275,9 @@ struct ForeachVariadicPayload
     {
         var acc: s32 = 0
 
-        foreach v, i in values where (v & 1) == 1
+        for v, i in values where (v & 1) == 1
         {
-            foreach w, j in values
+            for w, j in values
             {
                 if j == i do
                     continue
@@ -298,7 +298,7 @@ struct ForeachVariadicPayload
     {
         var acc: s32 = 0
 
-        foreach v, i in values
+        for v, i in values
         {
             if @kindof(v) == s32
             {
@@ -334,7 +334,7 @@ struct ForeachVariadicPayload
     {
         var acc: s32 = 0
 
-        foreach v, i in values
+        for v, i in values
         {
             if (i & 1) == 0
             {

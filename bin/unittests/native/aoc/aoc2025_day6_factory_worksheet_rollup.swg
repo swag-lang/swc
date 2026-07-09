@@ -25,7 +25,7 @@ func maxU64(lhs, rhs: u64)->u64
 
 func hasVisibleChar(sheet: const [..] string, column: u32)->bool
 {
-    foreach line in sheet
+    for line in sheet
     {
         let bytes = cast(const [..] u8) line
         @assert(column < @countof(bytes))
@@ -116,7 +116,7 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
     let firstLine = cast(const [..] u8) sheet[0]
     let width = cast(u32) @countof(firstLine)
 
-    foreach line in sheet
+    for line in sheet
     {
         @assert(@countof(cast(const [..] u8) line) == width)
     }

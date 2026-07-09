@@ -87,7 +87,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     painter.drawString(ColAuto, 16, "Auto", g_HeaderFont, Argb.DarkGreen)
 
     var y = 46.0
-    foreach size in Sizes
+    for size in Sizes
     {
         let usize = cast(u32) size
         let fonts = fontsFor(usize)

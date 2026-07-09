@@ -59,12 +59,12 @@ func day6A()
 
     var values: Array's32
     let str     = Tokenize.split(lines[0], ',''u8)
-    foreach v in str do
+    for v in str do
         values.add(assume StrConv.toS32(v))
 
     for day in 80
     {
-        for f in values
+        for f in @countof(values)
         {
             if values[f] == 0
             {

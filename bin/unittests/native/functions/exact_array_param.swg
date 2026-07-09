@@ -4,7 +4,7 @@ alias ExactArrayParamNativeHistogram = [8] u16
 
 func accumulateExactHistogram(histogram: ExactArrayParamNativeHistogram, codes: [4] u8)
 {
-    foreach code in codes do
+    for code in codes do
         histogram[code] += 1'u16
 }
 

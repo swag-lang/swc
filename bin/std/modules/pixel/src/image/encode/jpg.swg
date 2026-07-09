@@ -468,7 +468,7 @@ impl Encoder
 
     mtd writeMetaDatas(image: const *Image)
     {
-        foreach md in image.metaDatas
+        for md in image.metaDatas
         {
             .writeWord(0xFFE0'u16 + cast(u16) md.sig)
             .writeWord(3 + cast(u16) md.tag.count + cast(u16) md.value.count)

@@ -48,7 +48,7 @@ func countRangeMatches(ranges: const [..] IdRange, value: u32)->u32
 {
     var result: u32
 
-    foreach range in ranges
+    for range in ranges
     {
         if value >= range.min and value <= range.max do
             result += 1
@@ -62,14 +62,14 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
     var ranges: [16] IdRange
     var result: FreshIdAudit
 
-    foreach line in rangeLines
+    for line in rangeLines
     {
         @assert(result.rangeCount < 16)
         ranges[result.rangeCount] = parseRange(line)
         result.rangeCount += 1
     }
 
-    foreach value in availableIds
+    for value in availableIds
     {
         let matchCount = countRangeMatches(ranges[0 to result.rangeCount], value)
         result.availableCount += 1

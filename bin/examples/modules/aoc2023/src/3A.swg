@@ -45,7 +45,7 @@ func day3A()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    foreach l, y in lines
+    for l, y in lines
     {
         for var x = 0; x < l.length; x += 1
         {
@@ -75,7 +75,7 @@ func day3A()
     }
 
     var total = 0'u64
-    foreach n in nums
+    for n in nums
     {
         for var x = n.x; x <= n.lx; x += 1
         {

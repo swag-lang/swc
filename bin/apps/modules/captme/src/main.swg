@@ -23,7 +23,7 @@ var g_App: Application
 #main
 {
     let args = Env.getArgs()
-    foreach arg in args
+    for arg in args
     {
         if !Path.isValidPathName(arg) do
             continue
@@ -65,7 +65,7 @@ var g_App: Application
         .associateFileExtension(".jpg", "Captme", Env.getExe())
     }
 
-    foreach arg in args
+    for arg in args
     {
         if !Path.isValidPathName(arg) do
             continue

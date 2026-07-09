@@ -31,7 +31,7 @@ func day2A()
     assume r.compile(#"(\d+)-(\d+) ([a-z]): ([a-z])+"#)
 
     var total: u32
-    foreach l in lines
+    for l in lines
     {
         discard r.match(l)
 
@@ -42,7 +42,7 @@ func day2A()
 
         var count: [26] s32
 
-        foreach c in pwd do
+        for c in pwd do
             count[c - 'a'] += 1
         if count[letter] >= min and count[letter] <= max do
             total += 1

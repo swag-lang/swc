@@ -6,7 +6,7 @@
 func inlineTypedVariadicSum(base: s32, values: s32...)->s32
 {
     var sum0: s32 = base
-    foreach v in values
+    for v in values
     {
         sum0 += v
     }
@@ -17,7 +17,7 @@ func inlineTypedVariadicSum(base: s32, values: s32...)->s32
 func inlineTypedVariadicNamed(values: s32...)->s32
 {
     var sum1: s32 = 0
-    foreach v in values
+    for v in values
     {
         sum1 += v
     }
@@ -33,7 +33,7 @@ func forwardInlineTypedVariadic(values: s32...)->s32
 func inlineUntypedVariadicScore(values: ...)->s32
 {
     var sum2: s32 = 0
-    foreach v in values
+    for v in values
     {
         switch @kindof(v)
         {

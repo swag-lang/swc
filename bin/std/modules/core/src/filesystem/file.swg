@@ -120,7 +120,7 @@ func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 throw
     var stream = openWrite(fullname)
 
     var total = 0'u64
-    foreach p in buffer do
+    for p in buffer do
         total += stream.write(p.datas, p.count)
 
     return total
@@ -133,7 +133,7 @@ func writeAllLines(fullname: string, lines: Array'string)->u64 throw
     var stream = openWrite(fullname)
 
     var total = 0'u64
-    foreach v in lines
+    for v in lines
     {
         total += stream.write(@dataof(v), @countof(v))
         total += stream.write(@dataof("\n"), 1)

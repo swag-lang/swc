@@ -14,7 +14,7 @@ var g_HashTypeFace: HashTable'(String, *TypeFace)
 
 #drop
 {
-    foreach k, v in g_HashTypeFace do
+    for k, v in g_HashTypeFace do
         Memory.delete(v)
     g_HashTypeFace.free()
 }
@@ -25,7 +25,7 @@ impl TypeFace
 
     func addOutlineToPathList(pathList: *LinePathList, commands: const [..] OutlineCommand)
     {
-        foreach cmd in commands
+        for cmd in commands
         {
             switch cmd.kind
             {

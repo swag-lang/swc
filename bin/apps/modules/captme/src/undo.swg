@@ -89,7 +89,7 @@ impl Undo
         if .kind == .SetFormFromModel
         {
             Memory.delete(.mdlValue, .mdlType)
-            foreach f in .oldForm do
+            for f in .oldForm do
                 Memory.delete(f, .mdlType)
         }
     }
@@ -133,7 +133,7 @@ impl Undo
 
         case SetImageInside:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormImage do
@@ -146,7 +146,7 @@ impl Undo
 
         case SetText:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -157,7 +157,7 @@ impl Undo
 
         case SetFont:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -169,7 +169,7 @@ impl Undo
 
         case SetFontStyle:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -180,7 +180,7 @@ impl Undo
 
         case SetFormFromModel:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
@@ -196,7 +196,7 @@ impl Undo
             .minP      = Swag.S32.Max
             .maxP      = Swag.S32.Min
             .oldS32.reserve(.selection.count)
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 let r = f.boundRect()
@@ -223,7 +223,7 @@ impl Undo
 
         case SetTypedValue:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
@@ -235,7 +235,7 @@ impl Undo
 
         case ResetRotation:
             .selection = .capture.selection
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !f.canRotate() do
@@ -262,7 +262,7 @@ impl Undo
             .toFreeForms.clear()
             .selection.sort()
             var offset = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s - offset]
                 offset += 1
@@ -331,7 +331,7 @@ impl Undo
             .capture.dirtyBackImg = true
 
         case SetImageInside:
-            foreach s, i in .selection
+            for s, i in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormImage do
@@ -344,7 +344,7 @@ impl Undo
             }
 
         case SetText:
-            foreach s, i in .selection
+            for s, i in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -355,7 +355,7 @@ impl Undo
             }
 
         case SetFont:
-            foreach s, i in .selection
+            for s, i in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -367,7 +367,7 @@ impl Undo
             }
 
         case SetFontStyle:
-            foreach s, i in .selection
+            for s, i in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -378,7 +378,7 @@ impl Undo
             }
 
         case SetFormFromModel:
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
@@ -390,7 +390,7 @@ impl Undo
             }
 
         case SetTypedValue:
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
@@ -401,7 +401,7 @@ impl Undo
             .capture.updateModelFromSelection()
 
         case ResetRotation:
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !f.canRotate() do
@@ -413,7 +413,7 @@ impl Undo
             .capture.updateModelFromSelection()
 
         case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 let r = f.boundRect()
@@ -445,7 +445,7 @@ impl Undo
         case MoveCapture:
             .capture.backImagePos.x += .newPosX
             .capture.backImagePos.y += .newPosY
-            foreach f in .capture.forms do
+            for f in .capture.forms do
                 f.moveForm(.newPosX, .newPosY)
             .capture.width += .newSizeX
             .capture.height += .newSizeY
@@ -453,7 +453,7 @@ impl Undo
             .capture.height = Math.clamp(.capture.height, Capture.MinSize, Capture.MaxSize)
 
         case OffsetSelection:
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 f.moveForm(.newPosX, .newPosY)
@@ -462,7 +462,7 @@ impl Undo
         case MoveToFront:
             .capture.hotForm = Swag.U64.Max
             var dstIdx = .capture.forms.count - 1
-            for #reverse i in .selection
+            for #reverse i in @countof(.selection)
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx -= 1
@@ -471,7 +471,7 @@ impl Undo
         case MoveToBack:
             .capture.hotForm = Swag.U64.Max
             var dstIdx = 0'u64
-            for i in .selection
+            for i in @countof(.selection)
             {
                 .reorderForm(.selection[i], dstIdx)
                 dstIdx += 1
@@ -479,7 +479,7 @@ impl Undo
 
         case MoveForward:
             .capture.hotForm = Swag.U64.Max
-            for #reverse i in .selection
+            for #reverse i in @countof(.selection)
             {
                 let srcIdx = .selection[i]
                 if srcIdx != .capture.forms.count - 1 do
@@ -488,7 +488,7 @@ impl Undo
 
         case MoveBackward:
             .capture.hotForm = Swag.U64.Max
-            for i in .selection
+            for i in @countof(.selection)
             {
                 let srcIdx = .selection[i]
                 if srcIdx != 0 do
@@ -500,7 +500,7 @@ impl Undo
 
         case CreateForm:
             .toFreeForms.clear()
-            foreach f in .oldForms do
+            for f in .oldForms do
                 .capture.forms.add(f)
         }
 
@@ -545,7 +545,7 @@ impl Undo
 
         case SetImageInside:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormImage do
@@ -560,7 +560,7 @@ impl Undo
 
         case SetText:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -573,7 +573,7 @@ impl Undo
 
         case SetFont:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -587,7 +587,7 @@ impl Undo
 
         case SetFontStyle:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if @kindof(f) != FormText do
@@ -600,7 +600,7 @@ impl Undo
 
         case SetFormFromModel:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
@@ -613,7 +613,7 @@ impl Undo
 
         case SetTypedValue:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !.acceptsType(@kindof(f)) do
@@ -626,7 +626,7 @@ impl Undo
 
         case ResetRotation:
             var idx = 0
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 if !f.canRotate() do
@@ -642,7 +642,7 @@ impl Undo
             // no-op for the point-based forms (line, polygon, draw) whose geometry
             // lives in their points.
             let horz = .kind == .AlignLeft or .kind == .AlignRight or .kind == .AlignCenter
-            foreach s, i in .selection
+            for s, i in .selection
             {
                 let f = .capture.forms[s]
                 let r = f.boundRect()
@@ -661,13 +661,13 @@ impl Undo
         case MoveCapture:
             .capture.backImagePos.x -= .newPosX
             .capture.backImagePos.y -= .newPosY
-            foreach f in .capture.forms do
+            for f in .capture.forms do
                 f.moveForm(-.newPosX, -.newPosY)
             .capture.width -= .newSizeX
             .capture.height -= .newSizeY
 
         case OffsetSelection:
-            foreach s in .selection
+            for s in .selection
             {
                 let f = .capture.forms[s]
                 f.moveForm(-.newPosX, -.newPosY)

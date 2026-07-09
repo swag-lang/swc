@@ -167,7 +167,7 @@ func addImage(image: Image)
         let buf   = cast([*] u8) GlobalLock(hglob)
 
         var bufCur = buf
-        foreach b in buffer
+        for b in buffer
         {
             Memory.copy(bufCur, b.datas, b.count)
             bufCur += b.count

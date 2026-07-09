@@ -32,10 +32,10 @@ func day2A()
     let lines    = assume File.readAllLines(dataPath)
 
     var total2, total3 = 0
-    foreach l in lines
+    for l in lines
     {
         var count: [26] s32
-        foreach #Bytes c in l do
+        for #Bytes c in l do
             count[c - 'a'] += 1
         Slice.sort(count[ to ], bigFirst: true)
         switch

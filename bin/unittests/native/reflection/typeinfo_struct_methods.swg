@@ -128,7 +128,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
 func hasMethodNamed(type: typeinfo, expectedName: string)->bool
 {
     let info = cast(const *Swag.TypeInfoStruct) type
-    foreach &methodInfo in info.methods
+    for &methodInfo in info.methods
     {
         if methodInfo.name == expectedName do
             return true

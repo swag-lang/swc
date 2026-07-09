@@ -80,7 +80,7 @@ func variadicAnyWideIntArray(values: ...)->bool
 
     let arr = cast([2] s64) values[0]
     var sum = 0's64
-    foreach v in arr do
+    for v in arr do
         sum += v
     return sum == 5_000_000_001's64
 }

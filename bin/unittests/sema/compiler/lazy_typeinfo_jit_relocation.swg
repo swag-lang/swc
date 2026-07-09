@@ -14,7 +14,7 @@ impl LazySignal
         if .disabled do
             return
 
-        foreach fn in .arr
+        for fn in .arr
         {
             #ast
             {

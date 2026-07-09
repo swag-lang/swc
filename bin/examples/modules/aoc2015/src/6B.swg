@@ -28,7 +28,7 @@ func day6B()
     var lights: Array's32
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
-    foreach instruction in day6Instructions
+    for instruction in day6Instructions
     {
         let x0         = cast(u64) instruction.x0
         let y0         = cast(u64) instruction.y0
@@ -74,7 +74,7 @@ func day6B()
     }
 
     var total: s64
-    foreach v in lights do
+    for v in lights do
         total += v
 
     //Console.print("total: ", total)

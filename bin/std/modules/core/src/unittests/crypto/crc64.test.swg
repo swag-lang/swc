@@ -12,7 +12,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
     {
     case Hash.Crc64Kind.ECMA182:
         const Poly = 0x42F0_E1EB_A9EA_3693'u64
-        foreach value in buffer
+        for value in buffer
         {
             crc ^= cast(u64) value << 56
             for bit in 8
@@ -28,7 +28,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
     case Hash.Crc64Kind.ISO:
         const Poly = 0xD800_0000_0000_0000'u64
         crc = ~crc
-        foreach value in buffer
+        for value in buffer
         {
             crc ^= value
             for bit in 8
@@ -44,7 +44,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
     case Hash.Crc64Kind.ISOXZ:
         const Poly = 0xC96C_5795_D787_0F42'u64
         crc = ~crc
-        foreach value in buffer
+        for value in buffer
         {
             crc ^= value
             for bit in 8

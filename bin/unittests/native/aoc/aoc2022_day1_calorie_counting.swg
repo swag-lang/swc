@@ -8,7 +8,7 @@
 //
 // The solution deliberately exercises many Swag features:
 // structs, enums, generics, lambdas, interfaces, UFCS,
-// slices, foreach, compile-time assertions, and more.
+// slices, element iteration, compile-time assertions, and more.
 
 const MaxElves = 8
 const MaxFoodItemsPerElf = 8
@@ -51,7 +51,7 @@ impl ICalorieSource for Elf
     func impl totalCalories(me)->u32
     {
         var total: u32
-        foreach item in me.items[until me.itemCount] do
+        for item in me.items[until me.itemCount] do
             total += item.calories
         return total
     }
@@ -126,7 +126,7 @@ func sortDescending(values: [..] u32)
 func solvePartOne(elves: const [..] Elf)->u32
 {
     var best: u32
-    foreach e in elves do
+    for e in elves do
         best = maxOf'(u32)(best, elfTotal(e))
     return best
 }
@@ -172,7 +172,7 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     var elf: Elf
     elf.id = id
 
-    foreach c in cals do
+    for c in cals do
         addFoodItem(&elf, "food", c)
 
     return elf

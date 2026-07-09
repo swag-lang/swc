@@ -4,7 +4,7 @@
 func inlineArrayLiteralDigits(values: [4] s32) -> s32
 {
     var digits: s32 = 0
-    foreach value in values
+    for value in values
     {
         digits = digits * 10 + value
     }

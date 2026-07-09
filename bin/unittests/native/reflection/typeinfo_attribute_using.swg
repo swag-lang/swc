@@ -32,9 +32,9 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeU
     var foundGrouped = false
     var foundDirect  = false
 
-    foreach field in ATTRIBUTE_USING_INFO.fields
+    for field in ATTRIBUTE_USING_INFO.fields
     {
-        foreach attribute in field.attributes
+        for attribute in field.attributes
         {
             if attribute.type != #typeof(AttributeUsingScope.ScopedLabel) do
                 continue

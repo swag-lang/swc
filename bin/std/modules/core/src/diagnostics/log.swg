@@ -150,7 +150,7 @@ impl Log
         }
 
         // Otherwise call all writers
-        foreach w in .writers
+        for w in .writers
         {
             w.print(renderedText)
         }

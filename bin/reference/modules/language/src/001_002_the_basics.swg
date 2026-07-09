@@ -222,15 +222,15 @@ Swag supports both 'for' and 'while' loops.
 }
 
 /**
-# 'foreach' Loop
+# Element Iteration with 'for'
 
-'foreach' iterates over collections such as arrays.
+Binding a name in 'for' iterates over collections such as arrays.
 */
 
 #test
 {
     var numbers = [1, 2, 3, 4, 5]
-    foreach num in numbers
+    for num in numbers
     {
         print("Number: ", num, "\n")
     }

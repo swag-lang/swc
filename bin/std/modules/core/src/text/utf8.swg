@@ -288,7 +288,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
     var remain = @countof(dest)
 
     var total = 0'u64
-    foreach ch in src
+    for ch in src
     {
         Debug.assert(remain >= 4, "destination buffer is too small")
         let sl  = @mkslice(dataof + total, remain)
@@ -784,7 +784,7 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
     return 0
 }
 
-// Macro to foreach the unicode characters of the utf8 sequence.
+// Macro to visit the unicode characters of the utf8 sequence.
 // Block parameters:
 // * 'c':       the character
 // * 'charIdx': the character index

@@ -8,7 +8,7 @@ func adler32Reference(buffer: const [..] u8)->u32
     var s1 = 1'u32
     var s2 = 0'u32
 
-    foreach value in buffer
+    for value in buffer
     {
         s1 = (s1 + cast(u32) value) % Base
         s2 = (s2 + s1) % Base

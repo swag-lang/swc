@@ -75,7 +75,7 @@ using Swag, Core
 
     var visitedCount: u32
     var visitedSum:   u32
-    foreach idx in model
+    for idx in model
     {
         visitedCount += 1
         visitedSum += idx
@@ -127,7 +127,7 @@ using Swag, Core
 
     var visitedCount: u32
     var visitedSum:   u32
-    foreach idx in model
+    for idx in model
     {
         visitedCount += 1
         visitedSum += idx

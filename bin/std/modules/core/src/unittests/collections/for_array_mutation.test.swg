@@ -16,7 +16,7 @@ func compactMutationFor(text: string)->u64
 {
     var map: Array'{ what, num: s64 }
     var nextId: s64
-    foreach ch in text
+    for ch in text
     {
         let runLength = ch - '0'
         if @index & 1 do
@@ -29,7 +29,7 @@ func compactMutationFor(text: string)->u64
     }
 
     var last = map.count - #wrap 1
-    for i in map
+    for i in @countof(map)
     {
         if map[i].what != MutationFreeSpanId do
             continue
@@ -56,7 +56,7 @@ func compactMutationFor(text: string)->u64
     }
 
     var blockIndex, total: u64
-    foreach span, visitIndex in map
+    for span, visitIndex in map
     {
         if span.what == MutationFreeSpanId do
             break
@@ -74,7 +74,7 @@ func compactMutationWhile(text: string)->u64
 {
     var map: Array'{ what, num: s64 }
     var nextId: s64
-    foreach ch in text
+    for ch in text
     {
         let runLength = ch - '0'
         if @index & 1 do
@@ -122,7 +122,7 @@ func compactMutationWhile(text: string)->u64
     }
 
     var blockIndex, total: u64
-    foreach span, visitIndex in map
+    for span, visitIndex in map
     {
         if span.what == MutationFreeSpanId do
             break

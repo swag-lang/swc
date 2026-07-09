@@ -57,13 +57,13 @@ func day6A()
     var times: Array's32
     var dists: Array's32
 
-    foreach v in val0 do
+    for v in val0 do
         times.add(assume StrConv.toS32(v))
-    foreach v in val1 do
+    for v in val1 do
         dists.add(assume StrConv.toS32(v))
 
     var total: u64 = 1
-    foreach t, idx in times
+    for t, idx in times
     {
         var cpt = 0
         for i in t

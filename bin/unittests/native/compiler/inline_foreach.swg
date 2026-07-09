@@ -1,6 +1,6 @@
 #global private
 
-// Inlining a callee whose body contains a `foreach` must keep an early `return` inside
+// Inlining a callee whose body contains a `for` must keep an early `return` inside
 // the loop routed to the inlined callee's result. A custom `opVisit` lowers the loop body
 // into a void `#code` callback, so the materialized return must not bind to that void
 // callback. Marked `#[Swag.Inline]` callees exercise this deterministically (inlined under
@@ -39,12 +39,12 @@ impl ReturnVisits
     }
 }
 
-// ---- `foreach` over a slice (builtin iteration) ----
+// ---- `for` over a slice (builtin iteration) ----
 
 #[Swag.Inline]
 func findFirstEven(values: const [..] s32)->s32
 {
-    foreach v in values
+    for v in values
     {
         if (v & 1) == 0 do
             return v
@@ -56,18 +56,18 @@ func findFirstEven(values: const [..] s32)->s32
 func sumAll(values: const [..] s32)->s32
 {
     var total = 0
-    foreach v in values do
+    for v in values do
         total += v
     return total
 }
 
-// ---- `foreach` over a custom `opVisit` (loop body lowered to a void callback) ----
+// ---- `for` over a custom `opVisit` (loop body lowered to a void callback) ----
 
 #[Swag.Inline]
 func findValue(target: s32)->bool
 {
     var values = ReturnVisits{}
-    foreach value in values
+    for value in values
     {
         if value == target do
             return true
@@ -79,7 +79,7 @@ func findValue(target: s32)->bool
 func indexOfValue(target: s32)->s32
 {
     var values = ReturnVisits{}
-    foreach value in values
+    for value in values
     {
         if value == target do
             return cast(s32) @index
@@ -91,7 +91,7 @@ func indexOfValue(target: s32)->s32
 
 func findFirstEvenAuto(values: const [..] s32)->s32
 {
-    foreach v in values
+    for v in values
     {
         if (v & 1) == 0 do
             return v
@@ -102,7 +102,7 @@ func findFirstEvenAuto(values: const [..] s32)->s32
 func findValueAuto(target: s32)->bool
 {
     var values = ReturnVisits{}
-    foreach value in values
+    for value in values
     {
         if value == target do
             return true

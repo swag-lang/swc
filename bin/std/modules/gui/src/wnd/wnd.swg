@@ -320,7 +320,7 @@ impl Wnd
     mtd destroyNow()
     {
         Debug.assert(!.isPendingDestroy)
-        foreach c in .childs do
+        for c in .childs do
             c.destroyNow()
         .surface.app.destroyWnd(me)
     }
@@ -332,7 +332,7 @@ impl Wnd
         if .isPendingDestroy do
             return
         .isPendingDestroy = true
-        foreach c in .childs do
+        for c in .childs do
             c.destroy()
         .surface.app.postDestroy.add(me)
         .invalidate()
@@ -343,7 +343,7 @@ impl Wnd
 
     private mtd firstTopMostIndex()->u64
     {
-        foreach c, i in .childs
+        for c, i in .childs
         {
             if c.wndFlags.has(.TopMost) do
                 return i
@@ -569,7 +569,7 @@ impl Wnd
             painter.setTransform(curTrs)
 
             // Childs
-            foreach c in .childs
+            for c in .childs
             {
                 if c.wndFlags.has(.Hidden) do
                     continue
@@ -725,7 +725,7 @@ impl Wnd
             " clampMin=", .layoutDebug.clampedByMinX, "/", .layoutDebug.clampedByMinY,
             " clampMax=", .layoutDebug.clampedByMaxX, "/", .layoutDebug.clampedByMaxY)
 
-        foreach c in .childs do
+        for c in .childs do
             c.dumpLayoutTreeNode(depth + 1)
     }
 
@@ -991,7 +991,7 @@ impl Wnd
         var centerLayout: Array'(*Wnd)
         var oldSizes:     Array'Math.Point
 
-        foreach c in .childs
+        for c in .childs
         {
             if c.anchorStyle == .None do
                 continue
@@ -1023,7 +1023,7 @@ impl Wnd
             c.setPosition(pos, false)
         }
 
-        foreach c in .childs
+        for c in .childs
         {
             oldSizes.add({c.position.width, c.position.height})
             if !c.isVisibleState() do
@@ -1081,7 +1081,7 @@ impl Wnd
             }
         }
 
-        foreach c in centerLayout
+        for c in centerLayout
         {
             var pos = clientRect
 
@@ -1101,7 +1101,7 @@ impl Wnd
             c.setPosition(pos, false)
         }
 
-        foreach c, i in .childs
+        for c, i in .childs
         {
             if !c.isVisible() do
                 continue
@@ -1118,7 +1118,7 @@ impl Wnd
 
         // Top level window is the last one painted, so it's the last
         // in the array.
-        // So we must foreach in revert order
+        // So we must visit in reverse order
         for var i = cast(s32) .childs.count - 1; i >= 0; i -= 1
         {
             let c = .childs[i]
@@ -1173,7 +1173,7 @@ impl Wnd
     // Retrieve the child with the given id
     mtd getChildById(childId: string)->#null *Wnd
     {
-        foreach c in .childs
+        for c in .childs
         {
             if c.id == childId do
                 return c
@@ -1289,7 +1289,7 @@ impl Wnd
     // Register a keyboard shortcut
     mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId)
     {
-        foreach &c in .keyShortcuts
+        for &c in .keyShortcuts
         {
             if c.mdf == mdf and c.key == key
             {
@@ -1304,7 +1304,7 @@ impl Wnd
     // Get the id associated with a shortcut. null if none
     mtd getKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key)->#null WndId
     {
-        foreach c in .keyShortcuts
+        for c in .keyShortcuts
         {
             if c.mdf == mdf and c.key == key do
                 return c.id
@@ -1320,7 +1320,7 @@ impl Wnd
     mtd getKeyShortcutNameFor(wndId: WndId)->String
     {
         var result: retval
-        foreach c in .keyShortcuts
+        for c in .keyShortcuts
         {
             if c.id == wndId
             {
@@ -1379,7 +1379,7 @@ impl Wnd
     mtd sendHideStateEvent()
     {
         .sendStateEvent(.Hide)
-        foreach c in .childs
+        for c in .childs
         {
             if c.isVisibleState() do
                 c.sendHideStateEvent()
@@ -1389,7 +1389,7 @@ impl Wnd
     mtd sendDisableStateEvent()
     {
         .sendStateEvent(.Disable)
-        foreach c in .childs
+        for c in .childs
         {
             if c.isVisibleState() do
                 c.sendDisableStateEvent()
@@ -1473,7 +1473,7 @@ impl Wnd
             return
         }
 
-        foreach c in .childs do
+        for c in .childs do
             c.updateCommandState()
     }
 
@@ -1544,7 +1544,7 @@ impl Wnd
         cxt.wnd = me
         cxt.id  = evt.id
 
-        foreach act in .actions
+        for act in .actions
         {
             if act.accept(cxt)
             {
@@ -1563,7 +1563,7 @@ impl Wnd
         cxt.wnd = me
         cxt.id  = evt.id
 
-        foreach act in .actions
+        for act in .actions
         {
             if act.accept(cxt)
             {
@@ -1590,7 +1590,7 @@ impl Wnd
 
         if !evt.accepted
         {
-            foreach c in .childs do
+            for c in .childs do
                 c.serializeState(ser)
         }
     }

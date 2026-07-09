@@ -27,15 +27,15 @@ func day2B()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         var values: Array's32
 
         #scope(Done)
-        foreach v in Tokenize.splitAny(l, [' ', '\t'])
+        for v in Tokenize.splitAny(l, [' ', '\t'])
         {
             let value = assume StrConv.toS32(Latin1.trim(v))
-            foreach v1 in values
+            for v1 in values
             {
                 if value % v1 == 0
                 {

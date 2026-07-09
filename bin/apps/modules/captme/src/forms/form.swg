@@ -212,7 +212,7 @@ impl BaseForm
 
         painter.end()
 
-        foreach cmd in painter.commandBuffer
+        for cmd in painter.commandBuffer
         {
             if cmd.id != .DrawTriangles do
                 continue

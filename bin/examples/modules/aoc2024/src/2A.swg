@@ -47,13 +47,13 @@ func day2A()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         let first = Tokenize.split(l, ' ''u8)
 
         var prev = 0, ls = 0
         var bad  = false
-        foreach v in first
+        for v in first
         {
             let a = assume StrConv.toS32(v)
             if @index

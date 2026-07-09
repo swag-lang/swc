@@ -44,7 +44,7 @@
         var arr: [3] u8 = [5, 6, 7]
         var acc: u64    = 0
 
-        foreach value in arr
+        for value in arr
         {
             @assert(#typeof(@index) == u64)
             acc += @index + cast(u64) value
@@ -65,12 +65,12 @@
         var str: string = "abcd"
         var acc: u64    = 0
 
-        for i in arr
+        for i in @countof(arr)
         {
             acc += cast(u64) i
         }
 
-        for i in str
+        for i in @countof(str)
         {
             @assert(#typeof(i) == u64)
             @assert(#typeof(@index) == u64)

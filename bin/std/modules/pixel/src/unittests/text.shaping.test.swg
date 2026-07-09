@@ -86,7 +86,7 @@ func makeShapingTestFont()->*Font
     @assert(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32) paragraphFormat.lineGap + cast(f32) paragraphFormat.paragraphGap)
 
     var visibleChunks = 0
-    foreach &chunk in paragraphText.chunks
+    for &chunk in paragraphText.chunks
     {
         if chunk.visible and !chunk.isEol do
             visibleChunks += 1
@@ -106,7 +106,7 @@ func makeShapingTestFont()->*Font
     lineBreaks.compute()
     var eolCount = 0
     var spaceCount = 0
-    foreach &chunk in lineBreaks.chunks
+    for &chunk in lineBreaks.chunks
     {
         if chunk.isEol do
             eolCount += 1

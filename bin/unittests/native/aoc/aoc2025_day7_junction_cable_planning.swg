@@ -110,7 +110,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     var clusterSizes: [24] u32
     var edgeCount: u32
 
-    foreach line, index in pointLines
+    for line, index in pointLines
     {
         points[index] = parsePoint(line)
         parents[index] = cast(u32) index

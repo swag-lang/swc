@@ -216,7 +216,7 @@ impl Decoder
             if treated do
                 return
 
-            foreach field in structType.fields
+            for field in structType.fields
             {
                 if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
                     continue

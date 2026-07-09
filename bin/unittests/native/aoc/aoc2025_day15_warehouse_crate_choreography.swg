@@ -63,7 +63,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
     var robotX: s32
     var robotY: s32
 
-    foreach _, rowIndex in layout
+    for _, rowIndex in layout
     {
         @assert(lineWidth(layout[rowIndex]) == width)
 
@@ -90,7 +90,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
     let moveBytes = cast(const [..] u8) instructions
     var result: WarehouseReport
 
-    foreach instruction in moveBytes
+    for instruction in moveBytes
     {
         var dx: s32
         var dy: s32

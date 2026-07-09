@@ -121,7 +121,7 @@ public impl Md5
         var result: retval
         result.reserve(33)
 
-        foreach v in digest
+        for v in digest
         {
             result += CONV[v >> 4]
             result += CONV[v & 0x0F]

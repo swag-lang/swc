@@ -57,7 +57,7 @@ func semaTest004()
     injectPlain()
     {
         let values = [1, 2, 3]
-        foreach entry in values
+        for entry in values
         {
             let value = entry + 1
             #assert(#typeof(value) == s32)

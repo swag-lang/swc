@@ -90,7 +90,7 @@ a 'methods' array that you can traverse to retrieve function pointers.
 //     var fnZ: Lambda
 //
 //     let t = MyStruct
-//     foreach p in t.methods
+//     for p in t.methods
 //     {
 //         // 'p.value' is the function pointer; cast it to the expected type
 //         switch p.name

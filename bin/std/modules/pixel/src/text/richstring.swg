@@ -185,7 +185,7 @@ impl RichString
     {
         if !.hasUrl do
             return null
-        foreach &c in .chunks
+        for &c in .chunks
         {
             if !c.isUrl do
                 continue

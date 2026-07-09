@@ -20,7 +20,7 @@ func day6B()
     for
     {
         var best, besti: u64
-        foreach v, i in blocks
+        for v, i in blocks
         {
             if v > best
             {

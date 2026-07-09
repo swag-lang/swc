@@ -48,7 +48,7 @@ func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: con
 
 func visitStructStaticArray(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
 {
-    foreach value, index in values where value.value != 12
+    for value, index in values where value.value != 12
     {
         if index == 0 do
             continue
@@ -62,7 +62,7 @@ func visitStructStaticArray(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))
 func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
 {
     var score = 0
-    foreach #reverse value, index in values
+    for #reverse value, index in values
     {
         score += value.value + cast(s32) index
         if value.value == 12 do
@@ -115,7 +115,7 @@ func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 
     values.add(StaticArrayVisitProbe{value: 2})
     values.add(StaticArrayVisitProbe{value: 3})
 
-    foreach value in values do
+    for value in values do
         value.value += 10
 
     @assert(values[0].value == 11)
@@ -133,7 +133,7 @@ func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 
     values = seed
 
     var reverseIndex = Swag.U64.Max
-    foreach #reverse value, index in values
+    for #reverse value, index in values
     {
         if value == 30 do
             reverseIndex = index

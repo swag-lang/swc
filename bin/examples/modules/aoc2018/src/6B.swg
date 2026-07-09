@@ -45,7 +45,7 @@ func day6B()
     var arr: Array's32
     arr.resize(W * W)
 
-    foreach l in lines
+    for l in lines
     {
         let split = Tokenize.split(l, ',''u8)
         let cx    = assume StrConv.toS32(Latin1.trim(split[0])) + W / 2
@@ -61,7 +61,7 @@ func day6B()
     }
 
     var total = 0
-    foreach v in arr do
+    for v in arr do
         total += cast(s32) (v < 10000)
 
     //Console.print("total: ", total)

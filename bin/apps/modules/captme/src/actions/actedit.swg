@@ -44,7 +44,7 @@ impl IActionUI for ActionEdit
 
             if capture and hasSel
             {
-                foreach it in capture.selection
+                for it in capture.selection
                 {
                     let itfForm = capture.forms[it]
                     if @kindof(itfForm) != FormImage do
@@ -68,7 +68,7 @@ impl IActionUI for ActionEdit
 
             if capture and hasSel
             {
-                foreach it in capture.selection
+                for it in capture.selection
                 {
                     let itfForm = capture.forms[it]
                     if !itfForm.canRotate() do

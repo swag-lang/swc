@@ -26,7 +26,7 @@ func day5B0()
 
     var here: [128, 8] bool
 
-    foreach l in lines
+    for l in lines
     {
         var row0 = 0
         var row1 = 127
@@ -80,7 +80,7 @@ func day5B1()
     let lines    = assume File.readAllLines(dataPath)
 
     var seats: Array's32
-    foreach l in lines
+    for l in lines
     {
         var row0 = 0
         var row1 = 127
@@ -105,7 +105,7 @@ func day5B1()
     }
 
     seats.sort()
-    for i in seats
+    for i in @countof(seats)
     {
         if seats[i + 1] - seats[i] != 1
         {

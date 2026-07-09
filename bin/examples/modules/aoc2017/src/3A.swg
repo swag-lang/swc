@@ -89,7 +89,7 @@ func day3A1()
     for
     {
         const O = [{1, 1, 0}, {0, 0, -1}, {1, -1, 0}, {0, 0, 1}]
-        foreach v in O
+        for v in O
         {
             l += v.item0
             dx = v.item1

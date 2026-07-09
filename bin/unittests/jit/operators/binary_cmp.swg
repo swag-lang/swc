@@ -289,7 +289,7 @@ enum CmpEnum: u16
     func cmpAndOrLoopStress(values: [6] s32)->s32
     {
         var acc: s32 = 0
-        foreach v, i in values
+        for v, i in values
         {
             if (v > 0 and (i & 1) == 0) or (v < 0 and (i & 1) == 1) do
                 acc += v

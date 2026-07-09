@@ -5,7 +5,7 @@
 #[Swag.Inline]
 func(T) modify(values: [..] T, cb: func||(*T))
 {
-    for i in values do
+    for i in @countof(values) do
         cb(&values[i])
 }
 
@@ -14,7 +14,7 @@ func(T) modify(values: [..] T, cb: func||(*T))
 func(T, R) map(values: const [..] T, cb: func||(T)->R)->Array'R
 {
     var result: retval
-    foreach v in values do
+    for v in values do
         result.add(cb(v))
     return result
 }
@@ -77,7 +77,7 @@ func(T) max(values: const [..] T)->{ value: T, index: u64 }
 // Returns true if 'cb' returns true for all values
 func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
-    foreach v in values
+    for v in values
     {
         if !cb(v) do
             return false
@@ -89,7 +89,7 @@ func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
 // Returns true if 'cb' returns true for at least one value
 func(T) anyOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
-    foreach v in values
+    for v in values
     {
         if cb(v) do
             return true
@@ -101,7 +101,7 @@ func(T) anyOf(values: const [..] T, cb: func||(T)->bool)->bool
 // Returns true if 'cb' returns false for all values
 func(T) noneOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
-    foreach v in values
+    for v in values
     {
         if cb(v) do
             return false

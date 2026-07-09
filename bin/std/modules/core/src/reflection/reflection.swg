@@ -91,7 +91,7 @@ using Swag
     func maxSizeOf(v: const [..] typeinfo)->u64
     {
         var res = 0'u32
-        foreach p in v do
+        for p in v do
             res = @max(res, p.sizeof)
         return res
     }
@@ -100,7 +100,7 @@ using Swag
     func orFlags(v: const [..] typeinfo)->Swag.TypeInfoFlags
     {
         var res: Swag.TypeInfoFlags = .Zero
-        foreach p in v do
+        for p in v do
             res |= p.flags
         return res
     }
@@ -202,9 +202,9 @@ private func registerTypeGraphNoLock(type: typeinfo)
         registerTypeGraphNoLock(typeSlice.pointedType)
     case .Struct:
         let typeStruct = cast(const *TypeInfoStruct) type
-        foreach &field in typeStruct.fields do
+        for &field in typeStruct.fields do
             registerTypeGraphNoLock(field.pointedType)
-        foreach &generic in typeStruct.generics do
+        for &generic in typeStruct.generics do
             registerTypeGraphNoLock(generic.pointedType)
     }
 }
@@ -228,16 +228,16 @@ func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
     var ambiguous: bool
 
     Sync.sharedLock(&g_HashLock)
-    foreach ignoredCrc, t in g_HashCrcToType
+    for ignoredCrc, t in g_HashCrcToType
     {
         if !hasInterface(t, itf) do
             continue
 
         let typeStruct = cast(const *TypeInfoStruct) t
         var score = 0'u64
-        foreach streamCrc in fieldCrcs
+        for streamCrc in fieldCrcs
         {
-            foreach &field in typeStruct.fields
+            for &field in typeStruct.fields
             {
                 if typeValueCrc(field) == streamCrc
                 {
@@ -284,9 +284,9 @@ func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
     registerTypeGraphNoLock(#typeof(f64))
     registerTypeGraphNoLock(#typeof(rune))
 
-    foreach m in @pinfos.modules
+    for m in @pinfos.modules
     {
-        foreach t in m.types
+        for t in m.types
         {
             registerTypeGraphNoLock(t)
         }

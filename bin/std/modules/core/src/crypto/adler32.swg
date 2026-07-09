@@ -41,7 +41,7 @@ public impl Adler32
         }
         elif countof < 16
         {
-            foreach b in buffer
+            for b in buffer
             {
                 s1 += b
                 s2 += s1

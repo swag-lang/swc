@@ -8,7 +8,7 @@ func slicesEqual(lhs, rhs: #null const [..] s32)->bool
     if !@countof(lhs) or !@countof(rhs) do
         return true
 
-    for i in lhs where lhs[i] != rhs[i] do
+    for i in @countof(lhs) where lhs[i] != rhs[i] do
         return false
     return true
 }

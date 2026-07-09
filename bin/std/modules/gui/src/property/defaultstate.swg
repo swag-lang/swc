@@ -90,7 +90,7 @@ impl Properties
     // Drop + free the owned default instances (from onDestroyEvent).
     mtd freeDefaultRoots()
     {
-        foreach r in .defaultRoots do
+        for r in .defaultRoots do
             Memory.delete(r.base, r.type)
         .defaultRoots.clear()
     }
@@ -196,7 +196,7 @@ impl Properties
     mtd updateDefaults()->bool
     {
         var changed = false
-        foreach it in .items
+        for it in .items
         {
             if .updateItemDefaultState(it) do
                 changed = true

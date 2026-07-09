@@ -130,7 +130,7 @@ func makeNested(base: s32)->func||()->s32
     fct = func|arr|(extra: s32)->s32
     {
         var sum = 0
-        foreach v in arr do
+        for v in arr do
             sum += v
         return sum + extra
     }

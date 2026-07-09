@@ -124,7 +124,7 @@ func day5A()
     let lines    = assume File.readAllLines(dataPath)
 
     var mode = Mode.Invalid
-    foreach l in lines
+    for l in lines
     {
         if l.isEmpty() do
             continue
@@ -161,7 +161,7 @@ func day5A()
         {
             let tokens = Tokenize.split(l, ':''u8)
             let values = Tokenize.split(tokens[1], ' ''u8)
-            foreach v in values do
+            for v in values do
                 seeds.add(assume StrConv.toU64(v))
             continue
         }
@@ -175,13 +175,13 @@ func day5A()
     }
 
     var total = Swag.U64.Max
-    foreach s in seeds
+    for s in seeds
     {
         var seed = s
 
         for i in 7
         {
-            foreach r in convert[i]
+            for r in convert[i]
             {
                 if seed >= r.src and seed < r.src + r.range
                 {

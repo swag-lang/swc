@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 12: flood-fill garden regions, compute fencing.
 // Part 1: total cost = area × perimeter.  Part 2: area × number of sides.
 // Exercises: enum, impl/mtd with arrow syntax, short functions (=>),
-// defer, foreach with index, bitwise operators, @bitcountnz,
+// defer, for with index, bitwise operators, @bitcountnz,
 // #scope break-to-label, function overloading.
 
 const SmallInput =
@@ -116,7 +116,7 @@ func freeGrid(g: *Grid)
 }
 
 // ---------------------------------------------------------------------------
-// Neighbor bitmask — bitwise operators, foreach with index
+// Neighbor bitmask — bitwise operators, for with index
 // ---------------------------------------------------------------------------
 
 // Neighbor info: 4 cardinal + 4 diagonal same-plant flags.

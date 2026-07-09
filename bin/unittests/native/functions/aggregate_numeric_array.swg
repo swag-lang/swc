@@ -7,7 +7,7 @@ func wideNumericArraySum() -> u64
     #assert(#typeof(values[1]) == s64)
 
     var total: u64 = 0
-    foreach value in values
+    for value in values
     {
         total += cast(u64) value
     }

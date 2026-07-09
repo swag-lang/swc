@@ -105,7 +105,7 @@ impl Application
     {
         if .renderer.headless
         {
-            foreach s in .surfaces
+            for s in .surfaces
             {
                 if s.isHidden do
                     continue
@@ -123,7 +123,7 @@ impl Application
         if hWnd == null do
             return null
 
-        foreach s in .surfaces
+        for s in .surfaces
         {
             if s.native.hWnd == hWnd
             {

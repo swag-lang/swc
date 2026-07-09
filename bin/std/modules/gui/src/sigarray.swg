@@ -40,7 +40,7 @@ impl SigArray
         // Be sure the call has the right number of arguments
         Debug.assert(@countof(params) == @countof(#typeof(T).parameters))
 
-        foreach fn in .arr
+        for fn in .arr
         {
             #ast
             {
@@ -48,7 +48,7 @@ impl SigArray
                 let ts  = #typeof(T)
 
                 sb.appendString("fn(")
-                for i in ts.parameters
+                for i in @countof(ts.parameters)
                 {
                     if i do
                         sb.appendString(",")

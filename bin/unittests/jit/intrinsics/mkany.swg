@@ -81,7 +81,7 @@ enum MkanyKind: u16
         let p = cast(*[6] s32) @dataof(a)
         let value = dref p
         var acc: s32 = 0
-        foreach v, i in value
+        for v, i in value
         {
             acc += v * cast(s32) (i + 1)
         }

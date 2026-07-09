@@ -42,7 +42,7 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
     let typeStruct = cast(const *Swag.TypeInfoStruct) type
     var len        = start
 
-    foreach field in typeStruct.fields
+    for field in typeStruct.fields
     {
         len = appendAst(buffer, len, "has_")
         len = appendAst(buffer, len, field.name)
@@ -75,7 +75,7 @@ func(T) clearPatch(patch: &ApiPatch'T)
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
             len = appendAst(&buffer[0], len, field.name)
@@ -94,7 +94,7 @@ func(T) capturePatch(patch: &ApiPatch'T, value: const &T)
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
             len = appendAst(&buffer[0], len, field.name)
@@ -119,7 +119,7 @@ func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
             len = appendAst(&buffer[0], len, field.name)
@@ -142,7 +142,7 @@ func(T) patchChangedMask(patch: const &ApiPatch'T)->u64
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
             len = appendAst(&buffer[0], len, field.name)
@@ -165,7 +165,7 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         var buffer: [4096] u8
         var len = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
-        foreach field in typeStruct.fields
+        for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
             len = appendAst(&buffer[0], len, field.name)

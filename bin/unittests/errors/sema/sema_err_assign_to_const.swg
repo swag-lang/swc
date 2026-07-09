@@ -60,7 +60,7 @@ func mixinAssignConstParam(values: [2] s32)
 #[Swag.Macro]
 func macroForeachWriteConstParam(values: [2] s32)
 {
-    foreach &value in values
+    for &value in values
     {
         dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
     }
@@ -69,7 +69,7 @@ func macroForeachWriteConstParam(values: [2] s32)
 #[Swag.Mixin]
 func mixinForeachWriteConstParam(values: [2] s32)
 {
-    foreach &value in values
+    for &value in values
     {
         dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
     }
@@ -123,7 +123,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     var text: string = "abc"
-    foreach &value in text
+    for &value in text
     {
         dref value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
     }
@@ -132,7 +132,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("abc")
-    foreach &value in text
+    for &value in text
     {
         dref value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
     }

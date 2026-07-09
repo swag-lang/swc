@@ -117,7 +117,7 @@ private impl RichEditCtrl
         var y           = 0'f32
         var firstHidden = true
         .countVisibleLines = 0
-        for i in .lines
+        for i in @countof(.lines)
         {
             .lines[i].drawingRect.clear()
 
@@ -410,7 +410,7 @@ impl RichEditCtrl
             return
 
         var prev, cur, next: *RichEditLine
-        for i in .lines
+        for i in @countof(.lines)
         {
             cur  = .lines[i]
             next = i == .lines.count - 1 ? null : .lines[i + 1]

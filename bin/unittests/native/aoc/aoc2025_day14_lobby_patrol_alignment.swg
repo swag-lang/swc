@@ -47,7 +47,7 @@ func computeSafetyFactor(robots: const [..] PatrolRobot, width, height, step: s3
     var bottomLeft: u64
     var bottomRight: u64
 
-    foreach robot in robots
+    for robot in robots
     {
         let x = robotX(robot, step, width)
         let y = robotY(robot, step, height)
@@ -96,7 +96,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
         var maxX = Swag.S32.Min
         var maxY = Swag.S32.Min
 
-        foreach robot in robots
+        for robot in robots
         {
             let x = robotX(robot, step, width)
             let y = robotY(robot, step, height)

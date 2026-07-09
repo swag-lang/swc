@@ -26,7 +26,7 @@ func day2B0()
     day2EnsurePresents()
 
     var total: u64
-    foreach gift in day2Presents
+    for gift in day2Presents
     {
         let x = gift.x
         let y = gift.y
@@ -44,7 +44,7 @@ func day2B1()
     day2EnsurePresents()
 
     var total: u64
-    foreach gift in day2Presents do
+    for gift in day2Presents do
         total += gift.x * gift.y * gift.z + 2 * gift.x + 2 * gift.y
 
     //Console.print("total: ", total)

@@ -24,7 +24,7 @@ func runTypedVariadicLambda()->u64
         #assert(#typeof(payloads[0]) == LambdaPayload)
 
         var acc: u64 = cast(u64) pair.a + cast(u64) pair.b + cast(u64) marks[0] + cast(u64) marks[1]
-        foreach payload, index in payloads
+        for payload, index in payloads
         {
             acc += cast(u64) payload.base + cast(u64) payload.marks[index]
         }

@@ -32,7 +32,7 @@ impl Properties
 
         .adaptCondensedControl(line)
 
-        foreach v in typeStruct.fields
+        for v in typeStruct.fields
         {
             let dataField   = cast(*f32) (data + v.offset)
             let fieldOffset = cast(u64) v.offset

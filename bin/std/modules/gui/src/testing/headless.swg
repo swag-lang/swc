@@ -146,7 +146,7 @@ impl HeadlessHost
                 return false
         }
 
-        foreach &edit in stage.edits
+        for &edit in stage.edits
         {
             if !.setModalEditText(edit.label.toString(), edit.text.toString()) do
                 return false
@@ -374,7 +374,7 @@ impl HeadlessHost
     mtd fireTimers()
     {
         let timers = .app.timers
-        foreach timer in timers do
+        for timer in timers do
             .fireTimer(timer)
     }
 
@@ -465,7 +465,7 @@ impl HeadlessHost
             return false
 
         var wnd: *Wnd
-        foreach #reverse surface in .app.modalSurfaces
+        for #reverse surface in .app.modalSurfaces
         {
             let view = surface.getView()
             if !view do
@@ -491,7 +491,7 @@ impl HeadlessHost
                 return ctrl
         }
 
-        foreach child in wnd.childs
+        for child in wnd.childs
         {
             let ctrl = .findEditCtrlByLabel(child, label)
             if ctrl do
@@ -520,7 +520,7 @@ impl HeadlessHost
         if wnd.type == FileBrowserCtrl do
             return cast(*FileBrowserCtrl) wnd
 
-        foreach child in wnd.childs
+        for child in wnd.childs
         {
             let ctrl = .findFileBrowserCtrl(child)
             if ctrl do
@@ -536,7 +536,7 @@ impl HeadlessHost
             return false
 
         var browser: *FileBrowserCtrl
-        foreach surface in .app.modalSurfaces
+        for surface in .app.modalSurfaces
         {
             let view = surface.getView()
             if !view do
@@ -580,7 +580,7 @@ impl HeadlessHost
         if !menu do
             return false
 
-        foreach item in menu.items
+        for item in menu.items
         {
             if item.id != id do
                 continue
@@ -604,7 +604,7 @@ impl HeadlessHost
         if !menu do
             return false
 
-        foreach item in menu.items
+        for item in menu.items
         {
             if item.name.raw != label do
                 continue
@@ -778,7 +778,7 @@ impl HeadlessHost
         .app.postedEvents.clear()
 
         var needUpdateState = false
-        foreach it in copy
+        for it in copy
         {
             let evt = it as Event
             if it is InvalidateEvent
@@ -804,17 +804,17 @@ impl HeadlessHost
         let copy = .app.postDestroy
         .app.postDestroy.clear()
 
-        foreach wnd in copy do
+        for wnd in copy do
             .app.destroyWnd(wnd)
     }
 
     mtd pumpTimerQueues()
     {
-        foreach timer in .app.timersToAdd do
+        for timer in .app.timersToAdd do
             .app.timers.add(timer)
         .app.timersToAdd.clear()
 
-        foreach timer in .app.timersToDelete
+        for timer in .app.timersToDelete
         {
             timer.toDelete = false
             .app.deleteTimer(timer)
@@ -824,7 +824,7 @@ impl HeadlessHost
 
     mtd deleteQueuedObjects()
     {
-        foreach item in .app.toDelete do
+        for item in .app.toDelete do
             Memory.delete(item.ptr, item.type)
         .app.toDelete.clear()
     }

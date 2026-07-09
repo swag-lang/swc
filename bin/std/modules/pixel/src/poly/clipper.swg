@@ -189,7 +189,7 @@ impl Transform
 {
     public mtd opDrop()
     {
-        foreach it in .edgeList do
+        for it in .edgeList do
             Memory.delete(it.edge, it.rank)
     }
 
@@ -641,7 +641,7 @@ impl Transform
         .minimaList.sort()
 
         .scanBeamList.clear()
-        foreach lm in .minimaList
+        for lm in .minimaList
         {
             .insertScanbeam(lm.y)
             var e = lm.leftBound
@@ -1028,14 +1028,14 @@ impl Transform
 
     mtd clearJoins()
     {
-        foreach p in .joinList do
+        for p in .joinList do
             Memory.delete(p)
         .joinList.clear()
     }
 
     mtd clearGhostJoins()
     {
-        foreach p in .ghostJoinList do
+        for p in .ghostJoinList do
             Memory.delete(p)
         .ghostJoinList.clear()
     }
@@ -1062,7 +1062,7 @@ impl Transform
         }
 
         // Fix orientations
-        foreach outRec in .polyOuts
+        for outRec in .polyOuts
         {
             if !outRec.pts or outRec.isOpen do
                 continue
@@ -1073,7 +1073,7 @@ impl Transform
         if .joinList.count do
             .joinCommonEdges()
 
-        foreach outRec in .polyOuts
+        for outRec in .polyOuts
         {
             if !outRec.pts do
                 continue
@@ -1611,7 +1611,7 @@ impl Transform
     mtd fixupFirstLefts2(innerOutRec, outerOutRec: *OutRec)
     {
         let orfl = outerOutRec.firstLeft
-        foreach outRec in .polyOuts
+        for outRec in .polyOuts
         {
             if !outRec.pts or outRec == outerOutRec or outRec == innerOutRec do
                 continue
@@ -1629,7 +1629,7 @@ impl Transform
 
     mtd fixupFirstLefts1(oldOutRec, newOutRec: *OutRec)
     {
-        foreach outRec in .polyOuts
+        for outRec in .polyOuts
         {
             let firstLeft = parseFirstLeft(outRec.firstLeft)
             if outRec.pts and firstLeft == oldOutRec
@@ -1642,7 +1642,7 @@ impl Transform
 
     mtd fixupFirstLefts3(oldOutRec, newOutRec: *OutRec)
     {
-        foreach outRec in .polyOuts
+        for outRec in .polyOuts
         {
             let firstLeft = parseFirstLeft(outRec.firstLeft)
             if outRec.pts and firstLeft == oldOutRec do
@@ -1652,7 +1652,7 @@ impl Transform
 
     mtd joinCommonEdges()
     {
-        foreach join in .joinList
+        for join in .joinList
         {
             let outRec1 = .getOutRec(join.outPt1.idx)
             var outRec2 = .getOutRec(join.outPt2.idx)
@@ -1972,7 +1972,7 @@ impl Transform
     {
         .copyAELToSEL()
         .intersectList.sort()
-        for i in .intersectList
+        for i in @countof(.intersectList)
         {
             if !edgesAdjacent(.intersectList[i])
             {
@@ -1992,7 +1992,7 @@ impl Transform
 
     mtd processIntersectList()
     {
-        foreach iNode in .intersectList
+        for iNode in .intersectList
         {
             .intersectEdges(iNode.edge1, iNode.edge2, iNode.pt)
             .swapPositionsInAEL(iNode.edge1, iNode.edge2)
@@ -3099,7 +3099,7 @@ impl Transform
     mtd buildResult(polys: *ClipperPaths)
     {
         polys.reserve(.polyOuts.count)
-        for i in .polyOuts
+        for i in @countof(.polyOuts)
         {
             if !.polyOuts[i].pts do
                 continue
@@ -3123,7 +3123,7 @@ impl Transform
 
     mtd disposeAllOutRecs()
     {
-        for i in .polyOuts do
+        for i in @countof(.polyOuts) do
             .disposeOutRec(i)
         .polyOuts.clear()
     }

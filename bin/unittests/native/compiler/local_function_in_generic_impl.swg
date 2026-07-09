@@ -14,7 +14,7 @@ namespace LocalFunctionInGenericImpl
         mtd const countValues()->s64
         {
             var total = 0's64
-            foreach value in .values
+            for value in .values
             {
                 func keep(v: T)->T
                 {

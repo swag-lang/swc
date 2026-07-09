@@ -57,7 +57,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
     result.rowCount = cast(u32) @countof(plan)
     result.columnCount = cast(u32) @countof(cast(const [..] u8) plan[0])
 
-    foreach line, row in plan
+    for line, row in plan
     {
         let bytes = cast(const [..] u8) line
         @assert(@countof(bytes) == result.columnCount)

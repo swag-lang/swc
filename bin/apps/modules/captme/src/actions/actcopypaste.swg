@@ -52,7 +52,7 @@ impl IActionUI for ActionCopyPaste
             let hasImg = Clipboard.hasImage()
             if capture and hasSel
             {
-                foreach it in capture.selection
+                for it in capture.selection
                 {
                     let itfForm = capture.forms[it]
                     if @kindof(itfForm) != FormImage do

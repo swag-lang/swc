@@ -56,14 +56,14 @@ func day7A()
     //Console.print(g)
 
     var set: HashTable'(string, s32)
-    foreach v in g
+    for v in g
     {
         let it = set.tryFind(v)
         set.add(v, it ? it.value + 1 : 1)
     }
 
     var result: String
-    foreach k, v in set
+    for k, v in set
     {
         if v == 1
         {

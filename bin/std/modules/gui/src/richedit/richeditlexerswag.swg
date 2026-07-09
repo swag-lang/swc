@@ -100,7 +100,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("while", State.Control)
         .mapWords.add("switch", State.Control)
         .mapWords.add("defer", State.Control)
-        .mapWords.add("foreach", State.Control)
         .mapWords.add("where", State.Control)
         .mapWords.add("break", State.Control)
         .mapWords.add("fallthrough", State.Control)

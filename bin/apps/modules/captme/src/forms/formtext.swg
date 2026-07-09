@@ -225,7 +225,7 @@ impl IForm for FormText
             .borderPaths.resize(tokens.count)
 
             .totalY = 0
-            foreach t, idx in tokens
+            for t, idx in tokens
             {
                 let pathl = &.paths[idx]
                 assume face.getStringOutline(pathl, t, cast() fSize, cast() sSize)
@@ -266,7 +266,7 @@ impl IForm for FormText
         let count = .paths.count
 
         var totalYZ = 0'f32
-        foreach &pathl in .borderPaths
+        for &pathl in .borderPaths
         {
             totalYZ += (pathl.bvMax.y - pathl.bvMin.y) * zscale
         }
@@ -285,7 +285,7 @@ impl IForm for FormText
             y0 = pp.bottom() - addSize - totalYZ
         }
 
-        foreach &pathl, idx in .paths
+        for &pathl, idx in .paths
         {
             let borderPath = &.borderPaths[idx]
             let wt         = (borderPath.bvMax.x - borderPath.bvMin.x) * zscale

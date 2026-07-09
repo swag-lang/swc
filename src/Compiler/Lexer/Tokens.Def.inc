@@ -99,6 +99,7 @@ SWC_TOKEN_DEF(KwdFor, "for",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhile, "while",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdSwitch, "switch",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdDefer, "defer",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
+// Removed keyword, kept for the dedicated "replaced by 'for'" diagnostic.
 SWC_TOKEN_DEF(KwdForeach, "foreach",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhere, "where",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdVerify, "verify",  TokenIdKindE::Keyword | TokenIdKindE::Logic)

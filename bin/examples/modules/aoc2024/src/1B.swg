@@ -37,7 +37,7 @@ func day1B()
     let lines    = assume File.readAllLines(dataPath)
 
     var arr0, arr1: Array's32
-    foreach l in lines
+    for l in lines
     {
         let first = Tokenize.split(l, ' ''u8)
         arr0.add(assume StrConv.toS32(first[0]))
@@ -48,7 +48,7 @@ func day1B()
     arr1.sort()
 
     var total = 0
-    for i in arr0
+    for i in @countof(arr0)
     {
         var ist = Slice.findLinear(arr1.toSlice(), arr0[i])
         if ist == Swag.U64.Max do

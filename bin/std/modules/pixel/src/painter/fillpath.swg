@@ -51,7 +51,7 @@ public impl Painter
         // its inner half overlaps the solid, which is harmless for opaque fills (same
         // colour over same colour). Convex fills inset the solid to avoid the overlap
         // entirely; non-convex fills accept a faint rim on translucent colours.
-        foreach i in p.triangles.triIndices
+        for i in p.triangles.triIndices
         {
             let tri = p.triangles.triangles[i]
             discard .pushTriangle(tri.points[0].v, tri.points[1].v, tri.points[2].v, brush.color)
@@ -169,7 +169,7 @@ public impl Painter
         // Everything in the cache ?
         var serial = 0
         var dirty  = false
-        foreach p in pathList.paths
+        for p in pathList.paths
         {
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
@@ -196,7 +196,7 @@ public impl Painter
         serial = 0
         flush  = null
 
-        foreach p in pathList.paths
+        for p in pathList.paths
         {
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
@@ -242,7 +242,7 @@ public impl Painter
         {
             path.polygon.isClockwise = true
             let res = path.polygon.getClean()
-            foreach p in res.paths do
+            for p in res.paths do
                 .fillPath(p, brush)
         }
     }
@@ -255,7 +255,7 @@ public impl Painter
 
         var path: LinePath
         path.start(points[0].x, points[0].y)
-        foreach pt in points where @index do
+        for pt in points where @index do
             path.lineTo(pt.x, pt.y)
         path.close()
         .fillPath(&path, brush)

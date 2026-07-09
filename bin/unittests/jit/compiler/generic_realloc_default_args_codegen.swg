@@ -160,7 +160,7 @@ namespace GenericReallocDefaultArgsCodegen
         mtd stableCode()->u64
         {
             var total = .capacity * 10 + .count
-            foreach _value, index in .toSlice() do
+            for _value, index in .toSlice() do
                 total += index + 1
             return total
         }
@@ -205,7 +205,7 @@ namespace GenericReallocDefaultArgsCodegen
         resetTracker()
 
         var values: Buffer'T
-        foreach item in items do
+        for item in items do
             values.append(item)
 
         let count = cast(u64) N
@@ -224,7 +224,7 @@ namespace GenericReallocDefaultArgsCodegen
         resetTracker()
 
         var values: Buffer'T
-        foreach item in items do
+        for item in items do
             values.appendNamed(item)
 
         let count = cast(u64) N

@@ -5,7 +5,7 @@
 // Find part numbers (numbers adjacent to symbols) and gear ratios
 // (products of exactly two numbers adjacent to a '*').
 // Exercises: enum, impl/mtd with arrow syntax, generics, interfaces,
-// macros, mixins, #run compile-time, retval, defer, foreach,
+// macros, mixins, #run compile-time, retval, defer, element iteration,
 // bitwise operators, #[Swag.Complete], function overloading.
 
 const MaxDim = 142'u32
@@ -390,7 +390,7 @@ func isAdjacentToCell(entry: NumberEntry, row, col: u32)->bool
 }
 
 // ---------------------------------------------------------------------------
-// Language-features solve: uses interface, macro, mixin, foreach
+// Language-features solve: uses interface, macro, mixin, element iteration
 // ---------------------------------------------------------------------------
 
 func solveWithLanguageFeatures(grid: Grid)->EngineResult
@@ -402,7 +402,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let iChecker = cast(IAdjacencyChecker) checker
 
     // Part 1 via interface dispatch
-    foreach entry, idx in numbers.entries[0 until numbers.count]
+    for entry, idx in numbers.entries[0 until numbers.count]
     {
         if iChecker.hasAdjacentSymbol(grid, entry)
         {
@@ -449,7 +449,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     }
 
     // Sum gear ratios
-    foreach gear in gears.entries[0 until gears.count]
+    for gear in gears.entries[0 until gears.count]
     {
         if gear.adjCount == 2
         {

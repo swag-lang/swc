@@ -44,7 +44,7 @@ func day7B()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0'u64
-    foreach l in lines
+    for l in lines
     {
         let split0 = Tokenize.split(l, ":")
         let res    = assume StrConv.toU64(split0[0])

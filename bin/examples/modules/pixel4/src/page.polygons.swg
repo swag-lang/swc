@@ -6,7 +6,7 @@ func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
         return
 
     path.start(points[0].x, points[0].y)
-    foreach pt in points where @index do
+    for pt in points where @index do
         path.lineTo(pt.x, pt.y)
     path.close()
 }

@@ -38,7 +38,7 @@ func day2A()
     let lines    = assume File.readAllLines(dataPath)
 
     var h, d: u64
-    foreach l in lines
+    for l in lines
     {
         let cmd = Tokenize.split(l, ' ''u8)
         let val = assume StrConv.toS32(cmd[1])

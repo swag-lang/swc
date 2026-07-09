@@ -41,14 +41,14 @@ private func isUpperUtf8(c: u8)->bool
 // Make an utf8 buffer upper case, dealing only with latin1 table
 func makeUpper(buffer: [..] u8)
 {
-    foreach &p in buffer where isLowerUtf8(dref p) do
+    for &p in buffer where isLowerUtf8(dref p) do
         dref p -= 0x20
 }
 
 // Make an utf8 buffer lower case, dealing only with latin1 table
 func makeLower(buffer: [..] u8)
 {
-    foreach &p in buffer where isUpperUtf8(dref p) do
+    for &p in buffer where isUpperUtf8(dref p) do
         dref p += 0x20
 }
 

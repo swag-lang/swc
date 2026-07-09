@@ -33,7 +33,7 @@ func day5A0()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         if Utf8.indexOf(l, "ab") != Swag.U64.Max do
             continue
@@ -45,7 +45,7 @@ func day5A0()
             continue
 
         var vowels, dbl = 0
-        for i in l
+        for i in @countof(l)
         {
             if Utf8.indexOf("aeiou", cast(rune) l[i]) != Swag.U64.Max do
                 vowels += 1
@@ -72,7 +72,7 @@ func day5A1()
     var r0    = assume Parser.RegExp.create("ab|cd|pq|xy")
     var r1    = assume Parser.RegExp.create("[aeiou]")
     var r2    = assume Parser.RegExp.create(#"([a-z])\1"#)
-    foreach l in lines
+    for l in lines
     {
         if r0.grep(l) do
             continue

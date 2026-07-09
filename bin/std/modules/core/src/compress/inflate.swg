@@ -83,7 +83,7 @@ internal
             var nextCode: [HuffmanMaxBits] u16
 
             @init(me, 1)
-            foreach v in codeLengths do
+            for v in codeLengths do
                 sizes[v] += 1
             sizes[0] = 0
 
@@ -109,7 +109,7 @@ internal
             }
 
             .maxCode[16] = 0x10000
-            foreach v, ci in codeLengths
+            for v, ci in codeLengths
             {
                 if !v do
                     continue

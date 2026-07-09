@@ -36,9 +36,9 @@ func day2A()
     var y        = 1
 
     var cde = 0
-    foreach l in lines
+    for l in lines
     {
-        foreach #Bytes c in l
+        for #Bytes c in l
         {
             switch c
             {

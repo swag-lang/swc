@@ -4,7 +4,7 @@
 func inlineArrayLiteralForeach(values: [4] s32) -> s32
 {
     var sum: s32 = 0
-    foreach value in values
+    for value in values
     {
         sum += value
     }

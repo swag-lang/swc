@@ -322,7 +322,7 @@ private impl Tab
     mtd showPopup(x, y: f32)
     {
         .popup = PopupListCtrl.create(me)
-        foreach item in .views do
+        for item in .views do
             .popup.addItem(item.name.raw, item.id, item.icon, item.userData0)
 
         .popup.sigSelected = func|tab = me|(list, idx)
@@ -378,7 +378,7 @@ private impl Tab
         case Divide:
             var w = cast(f32) (rect.width / .views.count)
             w = Math.max(w, .itemMinWidth)
-            foreach v in .views
+            for v in .views
             {
                 v.width = w
                 .mostRightPos += w
@@ -386,14 +386,14 @@ private impl Tab
 
         case Fixed:
             let w = Math.max(.itemFixedLayoutWidth, .itemMinWidth)
-            foreach v in .views
+            for v in .views
             {
                 v.width = w
                 .mostRightPos += w
             }
 
         case Auto:
-            foreach v in .views
+            for v in .views
             {
                 let mes = Painter.measureString(v.item.name.raw, .getFont().regular)
 

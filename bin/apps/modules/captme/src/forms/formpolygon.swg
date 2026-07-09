@@ -74,7 +74,7 @@ impl IForm for FormPolygon
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        foreach &pt in .points
+        for &pt in .points
         {
             pt.x += newPosX
             pt.y += newPosY
@@ -83,7 +83,7 @@ impl IForm for FormPolygon
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        foreach &pt in .points
+        for &pt in .points
         {
             pt.x, pt.y *= scale
         }
@@ -95,7 +95,7 @@ impl IForm for FormPolygon
         let fx   = newSizeX / rect.width
         let fy   = newSizeY / rect.height
 
-        foreach &pt in .points
+        for &pt in .points
         {
             pt.x -= rect.x
             pt.y -= rect.y
@@ -108,7 +108,7 @@ impl IForm for FormPolygon
 
     mtd impl moveForm(newPosX, newPosY: s32)
     {
-        foreach &pt in .points
+        for &pt in .points
         {
             pt.x += newPosX
             pt.y += newPosY
@@ -132,7 +132,7 @@ impl IForm for FormPolygon
         var y0 = Swag.F32.Max
         var x1 = 0'f32
         var y1 = 0'f32
-        foreach &pt in .points
+        for &pt in .points
         {
             x0 = Math.min(x0, pt.x)
             y0 = Math.min(y0, pt.y)
@@ -158,7 +158,7 @@ impl IForm for FormPolygon
         if flags.has(.Hot | .Selected)
         {
             .gizmo.anchors.clear()
-            foreach pt in .points do
+            for pt in .points do
                 .gizmo.anchors.add({pt.x * z, pt.y * z})
             let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
             .gizmo.paint(null, painter, !flags.has(.Selected), col)

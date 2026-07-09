@@ -38,20 +38,20 @@ func day7B()
     var result:  s64
 
     var r0 = assume Parser.RegExp.create(#"(\l+) \((\d+)\)"#)
-    foreach l in lines
+    for l in lines
     {
         discard r0.partialMatch(l)
         set.add(r0[1], Pile{assume StrConv.toS32(r0[2])})
     }
 
     var r1 = assume Parser.RegExp.create(#"\l+"#)
-    foreach l in lines
+    for l in lines
     {
         let n = r1.grepAll(l)
         if n.count == 1 do
             continue
         let self = set.find(n[0])
-        foreach v in n[1 to ] do
+        for v in n[1 to ] do
             self.value.childs.add(v)
     }
 
@@ -63,7 +63,7 @@ func day7B()
         var total: u64
         var sums:  Array'ChildTotal
 
-        foreach v, i in w.childs
+        for v, i in w.childs
         {
             let s = sum(set, result, set.find(v).value)
             sums.add({i, s})

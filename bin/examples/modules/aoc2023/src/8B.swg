@@ -49,7 +49,7 @@ func day8B()
 
     var startNode: Array'u64
 
-    foreach l, i in lines
+    for l, i in lines
     {
         if i == 0 do
             instructions = l.toString()
@@ -63,7 +63,7 @@ func day8B()
     }
 
     nodes.resize(lines.count - 2)
-    foreach l, i in lines
+    for l, i in lines
     {
         if i <= 1 do
             continue
@@ -82,7 +82,7 @@ func day8B()
 
     // For each starting node, cound the length of the path to the first ending node
     // Count is stored in 'onEnd'
-    for i in curNode
+    for i in @countof(curNode)
     {
         var instIndex: u64
         for

@@ -126,7 +126,7 @@
     var arr: [1]s32 = [42]
     var count = 0
     var sum = 0
-    for v in arr
+    for v in @countof(arr)
     {
         count += 1
         sum += cast(s32) v

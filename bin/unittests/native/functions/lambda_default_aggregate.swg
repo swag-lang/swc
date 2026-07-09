@@ -14,7 +14,7 @@ alias LambdaDefaultPayloadFn = func(payload = {values: [3, 4, 5], bias: 7})->s32
     let cb: LambdaDefaultArrayFn = func(values)->f32
     {
         var total = 0.0
-        foreach value, index in values
+        for value, index in values
         {
             total += value * cast(f32) index
         }
@@ -31,7 +31,7 @@ alias LambdaDefaultPayloadFn = func(payload = {values: [3, 4, 5], bias: 7})->s32
     let cb: LambdaDefaultPayloadFn = func(payload)->s32
     {
         var total = payload.bias
-        foreach value in payload.values do
+        for value in payload.values do
             total += value
         return total
     }

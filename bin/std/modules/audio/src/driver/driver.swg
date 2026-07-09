@@ -40,7 +40,7 @@ internal func updateThreadProc(th: Threading.Thread)
 
         // All pending recycles to actual recycle list
         driver.mutexRecycleVoices.lock()
-        foreach voice in driver.pendingRecycleVoices do
+        for voice in driver.pendingRecycleVoices do
             driver.toRecycleVoices.add(voice)
         driver.mutexRecycleVoices.unlock()
         driver.pendingRecycleVoices.clear()
@@ -57,7 +57,7 @@ internal func updateThreadProc(th: Threading.Thread)
         driver.mutexVoicesToUpdate.unlock()
 
         // Update
-        foreach cmd in copyVoices
+        for cmd in copyVoices
         {
             let voice = cmd.voice
             if th.requestEnd do
@@ -136,7 +136,7 @@ impl Driver
         // yet registered in the active list
         ////////////////
         .mutexVoicesToUpdate.lock()
-        foreach cmd in .voicesToUpdate
+        for cmd in .voicesToUpdate
         {
             if cmd.command == .Register do
                 .toRecycleVoices.add(cmd.voice)
@@ -149,11 +149,11 @@ impl Driver
         .toRecycleVoices.add(.pendingRecycleVoices.toSlice())
         .pendingRecycleVoices.clear()
 
-        foreach voice in .toRecycleVoices do
+        for voice in .toRecycleVoices do
             Memory.delete(voice)
         .toRecycleVoices.clear()
 
-        foreach voice in .activeVoices
+        for voice in .activeVoices
         {
             catch voice.stopNative()
             voice.destroyNative()
@@ -163,7 +163,7 @@ impl Driver
 
         // Destroy buses
         ////////////////
-        foreach bus in .buses do
+        for bus in .buses do
             catch bus.destroy()
         .buses.clear()
 

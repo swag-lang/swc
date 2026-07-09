@@ -301,7 +301,7 @@ impl SemaGenericScopedVisits
 func semaTest001()
 {
     var values = SemaBufferVisits{}
-    foreach &value, ordinal in values
+    for &value, ordinal in values
     {
         #assert(#typeof(dref value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -313,7 +313,7 @@ func semaTest002()
 {
     var values = SemaReverseVisits{}
 
-    foreach #Reverse value, ordinal in values
+    for #Reverse value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -327,7 +327,7 @@ func semaTest002b()
     var values: SemaGenericReverseVisits's32
     values.values = [1, 2, 3]
 
-    foreach #reverse value, ordinal in values
+    for #reverse value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -340,10 +340,11 @@ func semaTest003()
 {
     var values = SemaHiddenAliasVisits{}
 
-    foreach values
+    for value in values
     {
         let ordinal = @index
         var x = ordinal
+        var y = value
     }
 }
 
@@ -351,7 +352,7 @@ func semaTest004()
 {
     var values = SemaHiddenAliasVisits{}
 
-    foreach value in values
+    for value in values
     {
         #assert(#typeof(value) == s32)
         let ordinal = @index
@@ -364,7 +365,7 @@ func semaTest005()
 {
     var values = SemaHiddenAliasVisits{}
 
-    foreach value, scaled in values
+    for value, scaled in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
@@ -379,7 +380,7 @@ func semaTest006()
 {
     var values = SemaFieldPointerVisits{}
 
-    foreach &value, ordinal in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == *s32)
         var x = dref value
@@ -391,7 +392,7 @@ func semaTest007()
 {
     var values = SemaPairVisits{}
 
-    foreach #Pairs left, right in values
+    for #Pairs left, right in values
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
@@ -406,7 +407,7 @@ func semaTest008()
 {
     let values = SemaConstPointerVisits{}
 
-    foreach &value, ordinal in values
+    for &value, ordinal in values
     {
         #assert(#typeof(value) == const *s32)
         var x = dref value
@@ -418,7 +419,7 @@ func semaTest009()
 {
     let values: SemaGenericScopedVisits's32 = {values: [10, 20, 30]}
 
-    foreach value, ordinal in values
+    for value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
@@ -433,7 +434,7 @@ func semaTest010()
     var outside: s32 = 0
     var inside: s32 = 0
 
-    foreach value, i in visits
+    for value, i in visits
     {
         if !(i & 1) do
             outside += value

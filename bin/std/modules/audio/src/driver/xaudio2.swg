@@ -315,7 +315,7 @@ public impl Voice
 
         if count
         {
-            foreach bus, i in buses
+            for bus, i in buses
             {
                 Debug.assert(bus != null)
                 sfxSend[i].pOutputVoice = cast() bus.handle

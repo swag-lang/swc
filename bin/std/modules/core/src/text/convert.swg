@@ -329,7 +329,7 @@ func convertStruct(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat,
 
     // Do it field by field
     buf.addBytes("{")
-    foreach field in kindof.fields
+    for field in kindof.fields
     {
         if @index do
             buf.addBytes(", ")

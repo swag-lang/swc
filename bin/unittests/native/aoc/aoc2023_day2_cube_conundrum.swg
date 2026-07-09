@@ -12,7 +12,7 @@ func s()->[2] u32
 {
     var r: [2] u32 = [0, 0]
 
-    foreach l, g in I
+    for l, g in I
     {
         var i: u32
         while i < @countof(l) and l[i] != ':''u8 do

@@ -84,7 +84,7 @@ namespace GenericForeachLazyCodegen
         mtd whereIndexSum(skip: T)->u64
         {
             var total = 0'u64
-            foreach value, index in .values.toSlice() where value != skip do
+            for value, index in .values.toSlice() where value != skip do
                 total += index + 1
             return total
         }
@@ -93,7 +93,7 @@ namespace GenericForeachLazyCodegen
         mtd const constWhereCount(skip: T)->u64
         {
             var total = 0'u64
-            foreach value in .values.toSlice() where value != skip do
+            for value in .values.toSlice() where value != skip do
                 total += 1
             return total
         }
@@ -102,7 +102,7 @@ namespace GenericForeachLazyCodegen
         mtd reverseIndexCode()->u64
         {
             var code = 0'u64
-            foreach #reverse _value, index in .values.toSlice() do
+            for #reverse _value, index in .values.toSlice() do
                 code = code * 10 + index + 1
             return code
         }
@@ -111,7 +111,7 @@ namespace GenericForeachLazyCodegen
         mtd nonNullIndexSum()->u64
         {
             var total = 0'u64
-            foreach &value, index in .values.toSlice() where dref value != null do
+            for &value, index in .values.toSlice() where dref value != null do
                 total += index + 1
             return total
         }
@@ -197,7 +197,7 @@ namespace GenericForeachLazyCodegen
 
         var ptrs = makePtrBox()
         let ptrsOk = ptrs.nonNullIndexSum() == 4
-        foreach ptr in ptrs.values.toSlice() where ptr != null do
+        for ptr in ptrs.values.toSlice() where ptr != null do
             @free(ptr)
         ptrs.free()
 

@@ -46,7 +46,7 @@ impl Offset
     // Deallocates all polygon nodes and resets the lowest point tracking.
     mtd clear()
     {
-        foreach node in .polyNodes.childs do
+        for node in .polyNodes.childs do
             Memory.delete(node)
         .polyNodes.childs.clear()
         .lowest.x = -1
@@ -110,7 +110,7 @@ impl Offset
         .doOffset(delta)
 
         var clpr: Transform
-        foreach &p in .destPolys do
+        for &p in .destPolys do
             clpr.addPath(p, PolyType.Subject)
 
         if delta > 0
@@ -170,7 +170,7 @@ impl Offset
     {
         if .lowest.x >= 0 and !orientation(.polyNodes.childs[.lowest.x].contour)
         {
-            foreach node in .polyNodes.childs do
+            for node in .polyNodes.childs do
                 Slice.reverse(node.contour.toSlice())
         }
     }
@@ -210,7 +210,7 @@ impl Offset
         if Math.isZeroEpsilon(delta)
         {
             .destPolys.reserve(.polyNodes.childs.count)
-            foreach node in .polyNodes.childs do
+            for node in .polyNodes.childs do
                 .destPolys.add(node.contour)
             return
         }
@@ -240,7 +240,7 @@ impl Offset
             .sinVal = -.sinVal
 
         .destPolys.reserve(.polyNodes.childs.count * 2)
-        foreach node, i in .polyNodes.childs
+        for node, i in .polyNodes.childs
         {
             .srcPoly = node.contour
 

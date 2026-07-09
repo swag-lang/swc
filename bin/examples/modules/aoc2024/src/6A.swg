@@ -101,7 +101,7 @@ func day6A()
     let w = lines[0].length
     let h = lines.count
 
-    foreach l in lines
+    for l in lines
     {
         if !sx
         {

@@ -256,7 +256,7 @@ public impl IImageDecoder for Decoder
         if bpsEntry
         {
             let bps = try readValues(base, last, le, bpsEntry)
-            foreach b in bps
+            for b in bps
             {
                 if b != 8 do
                     throw UnsupportedFormatError{"unsupported bit depth"}

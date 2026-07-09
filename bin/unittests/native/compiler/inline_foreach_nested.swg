@@ -23,13 +23,13 @@ impl Visits
 }
 
 // Inlining this callee at a call site that already sits INSIDE the caller's own
-// `foreach` (whose body is lowered to a void `opVisit` callback) must keep this
+// `for` (whose body is lowered to a void `opVisit` callback) must keep this
 // `return true` routed to the callee's own bool result, not to the caller's
 // enclosing void callback.
 #[Swag.Inline]
 func contains(v: Visits, target: s32)->bool
 {
-    foreach value in v
+    for value in v
     {
         if value == target do
             return true
@@ -40,7 +40,7 @@ func contains(v: Visits, target: s32)->bool
 func countCommon(a: Visits, b: Visits)->s32
 {
     var n = 0
-    foreach value in a
+    for value in a
     {
         if contains(b, value) do
             n += 1

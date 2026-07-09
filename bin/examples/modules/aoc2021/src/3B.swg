@@ -38,14 +38,14 @@ internal var lines: Array'String
 func calc(a, b: u8)->u64
 {
     var scan = lines
-    for c in scan[0]
+    for c in @countof(scan[0])
     {
         var count = 0
-        foreach l in scan do
+        for l in scan do
             count += cast(s32) (l[c] == '1')
 
         var next: Array'String
-        foreach l in scan
+        for l in scan
         {
             let v = count >= scan.count - count ? a : b
             if l[c] == v do

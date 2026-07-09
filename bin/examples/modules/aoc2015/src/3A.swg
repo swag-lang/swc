@@ -28,7 +28,7 @@ func day3A()
 
     var pos: Pos
     var set: HashSet'u64
-    foreach #Bytes c in assume File.readAllText(dataPath)
+    for #Bytes c in assume File.readAllText(dataPath)
     {
         switch c
         {

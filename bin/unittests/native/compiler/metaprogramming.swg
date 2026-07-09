@@ -658,7 +658,7 @@ namespace compiler4844
         const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32
-            for i in arr do
+            for i in @countof(arr) do
                 arr[i] = 1 << cast(u32) i
             return arr
         }

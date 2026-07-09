@@ -68,7 +68,7 @@ using Swag, Core
     let propScrollBarBefore  = Math.Rectangle{0, f.main.propWnd.posBoxV, 0, f.main.propWnd.sizeBoxV}
     let quickPaneSizeBefore  = f.main.quickStyleBar.items[0].size
     var sliderCtrlBefore: *SliderCtrl
-    foreach child in f.main.propWnd.mainLayout.childs
+    for child in f.main.propWnd.mainLayout.childs
     {
         if child.type == SliderCtrl
         {
@@ -130,14 +130,14 @@ using Swag, Core
     @assert(quick.qsHighlight.forms.count > 0)
     @assert(quick.qsPixSel.forms.count > 0)
 
-    foreach it in quick.qsHighlight.forms
+    for it in quick.qsHighlight.forms
     {
         let base = cast(*BaseForm) @dataof(it)
         @assert(base.subKind == .Highlight)
         @assert(base.alpha < 100)
     }
 
-    foreach it in quick.qsPixSel.forms
+    for it in quick.qsPixSel.forms
     {
         let base = cast(*BaseForm) @dataof(it)
         @assert(base.subKind == .PixSel)
@@ -146,7 +146,7 @@ using Swag, Core
 
     // Every image-form kind must be present in the default image styles.
     var imageKinds: Array'FormImageKind
-    foreach it in quick.qsImage.forms
+    for it in quick.qsImage.forms
     {
         @assert(@kindof(it) == FormImage)
         imageKinds.add((cast(*FormImage) @dataof(it)).kind)

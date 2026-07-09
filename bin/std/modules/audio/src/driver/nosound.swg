@@ -137,7 +137,7 @@ public impl Voice
             throw SystemError{"too many buses", errorID: count}
 
         handle.busCount = cast(u32) count
-        foreach bus, i in buses
+        for bus, i in buses
         {
             if !bus or !bus.handle do
                 throw BadParameterError{"bus invalid"}

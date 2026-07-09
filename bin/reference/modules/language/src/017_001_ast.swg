@@ -122,7 +122,7 @@ struct(T) IsSet
     {
         var str = StrConv.StringBuilder{}
         let typeof = #typeof(T)
-        foreach f in typeof.fields:
+        for f in typeof.fields:
             str.appendFormat("%: bool\n", f.name)
         return str.toString()
     }

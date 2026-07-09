@@ -145,7 +145,7 @@ func day10B()
     for 40 * 6 do
         crt.append(" ")
 
-    foreach l in lines
+    for l in lines
     {
         toCheck()
         if l != "noop"

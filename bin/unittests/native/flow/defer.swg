@@ -254,7 +254,7 @@ func deferForeach()->s64
     resetDeferTrace()
     var arr: [4] s32 = [1, 2, 3, 4]
 
-    foreach v in arr
+    for v in arr
     {
         defer appendDeferTrace(cast(s64) v)
 

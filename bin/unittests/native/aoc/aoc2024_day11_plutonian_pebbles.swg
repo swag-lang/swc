@@ -217,7 +217,7 @@ func blinkOnce(src: *StoneMap, dst: *StoneMap)
 func mapFromValues(values: u64...)->StoneMap
 {
     var result: retval = mapInit()
-    foreach v in values
+    for v in values
     {
         mapAdd(&result, v, 1)
     }

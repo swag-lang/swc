@@ -62,7 +62,7 @@ func getMonitorForPoint(pt: Math.Point)->Env.Monitor
     let monitors = Env.getMonitors()
 
     // First pass: exact containment
-    foreach m in monitors
+    for m in monitors
     {
         let r = m.rect
         if pt.x >= r.x and pt.x <= r.right() and pt.y >= r.y and pt.y <= r.bottom() do
@@ -72,7 +72,7 @@ func getMonitorForPoint(pt: Math.Point)->Env.Monitor
     // Second pass: nearest (min distance from point to monitor rect)
     var bestM: retval
     var bestD2 = Swag.F32.Inf
-    foreach m in monitors
+    for m in monitors
     {
         let r  = m.rect
         let cx = Math.clamp(pt.x, r.x, r.right())
@@ -96,7 +96,7 @@ func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
     var result:  retval
     var bestSurf = 0'f32
     let monitors = Env.getMonitors()
-    foreach m in monitors
+    for m in monitors
     {
         var r1 = rect
         r1.intersect(m.rect)

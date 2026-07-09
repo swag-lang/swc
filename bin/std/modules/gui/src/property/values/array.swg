@@ -95,7 +95,7 @@ impl Properties
     mtd arrayElementIndex(elemItem: *PropertiesItem)->u64
     {
         var idx = 0'u64
-        foreach it in .items
+        for it in .items
         {
             if it == elemItem do
                 break

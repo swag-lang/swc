@@ -100,7 +100,7 @@ func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
     let cx = 3.0 * (ctrl0.x - start.x)
 
     let xRoots = solveQuadratic(ax, bx, cx)
-    foreach t in xRoots
+    for t in xRoots
     {
         let point = evaluateBezier(start, end, ctrl0, ctrl1, t)
         minX = Math.min(minX, point.x)
@@ -113,7 +113,7 @@ func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
     let cy = 3.0 * (ctrl0.y - start.y)
 
     let yRoots = solveQuadratic(ay, by, cy)
-    foreach t in yRoots
+    for t in yRoots
     {
         let point = evaluateBezier(start, end, ctrl0, ctrl1, t)
         minY = Math.min(minY, point.y)

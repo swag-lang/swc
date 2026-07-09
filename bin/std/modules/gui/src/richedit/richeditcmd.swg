@@ -72,7 +72,7 @@ impl RichEditCtrl
 
     mtd getMappingCommand(key: Input.Key, mdf: Input.KeyModifiers)->RichEditCommand
     {
-        foreach &p in .mapping
+        for &p in .mapping
         {
             if p.key == key and p.modifiers == mdf do
                 return p.command

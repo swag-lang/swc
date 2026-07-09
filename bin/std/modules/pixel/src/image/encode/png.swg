@@ -220,7 +220,7 @@ impl Encoder
 
     mtd writeMetaDatas(image: Image) throw
     {
-        foreach md in image.metaDatas
+        for md in image.metaDatas
         {
             if !md.tag.count or !md.value.count do
                 continue

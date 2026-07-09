@@ -33,14 +33,14 @@ impl IWnd for PropertiesView
         if !.ed.isGridLike()
         {
             let cw = .ed.listUsefulWidth()
-            foreach item in .ed.items do
+            for item in .ed.items do
                 item.line.maxSize.x = cw
         }
 
         .computeLayout()
 
         var lastItem: *PropertiesItem
-        foreach item in .ed.items
+        for item in .ed.items
         {
             if item.label do
                 item.label.autoHeight()

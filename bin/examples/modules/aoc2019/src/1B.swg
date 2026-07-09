@@ -19,7 +19,7 @@ func day1B()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         var fuel = assume StrConv.toS32(l)
         for

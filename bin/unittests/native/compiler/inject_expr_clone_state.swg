@@ -60,7 +60,7 @@ namespace InjectExprCloneSupport
     func visitStructBuffer(values: &VisitBuffer)->s32
     {
         var code = 0
-        foreach value, index in values
+        for value, index in values
         {
             if value.value == 12 do
                 continue
@@ -87,7 +87,7 @@ namespace InjectExprCloneSupport
     values.add(InjectExprCloneSupport.VisitProbe{value: 2})
     values.add(InjectExprCloneSupport.VisitProbe{value: 3})
 
-    foreach value in values do
+    for value in values do
         value.value += 10
 
     var direct = 0

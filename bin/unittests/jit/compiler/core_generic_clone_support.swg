@@ -82,7 +82,7 @@ namespace GenericCloneCodegenSupport
 
         mtd clear()
         {
-            foreach item in .values.toSlice() do
+            for item in .values.toSlice() do
                 @free(item)
             .values.count = 0
         }

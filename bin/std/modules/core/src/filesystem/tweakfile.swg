@@ -55,7 +55,7 @@ impl TweakFile
         var refs:          Array'Ref     // Pending references to resolve
         var currentFolder: *Folder       // Current folder being parsed
 
-        foreach oneit, idx in lines
+        for oneit, idx in lines
         {
             var one = Tokenize.eatSpaces(oneit)
             if @countof(one) == 0 do
@@ -71,7 +71,7 @@ impl TweakFile
                 if @err != null do
                     throw SyntaxError{"invalid folder name", line: idx + 1}
 
-                foreach &folder in .folders
+                for &folder in .folders
                 {
                     if folder.type.name == folderName
                     {

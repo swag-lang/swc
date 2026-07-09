@@ -201,12 +201,12 @@ func remapLoopFlow(stmt: #code)
     @assert(count == 4)
 }
 
-// break remapped to continue in foreach loop
+// break remapped to continue in element-iteration loop
 #test
 {
     var count = 0
     var values: [4] s32 = [10, 20, 30, 40]
-    foreach value in values
+    for value in values
     {
         count += 1
         breakAsContinue(#code {

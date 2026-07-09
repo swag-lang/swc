@@ -123,7 +123,7 @@ namespace GenericMkSliceLazyCodegen
         mtd iteratedCount()->u64
         {
             var total = 0'u64
-            foreach _item in .values.toSlice() do
+            for _item in .values.toSlice() do
                 total += 1
             return total
         }
@@ -148,7 +148,7 @@ namespace GenericMkSliceLazyCodegen
     {
         var values: BufferBox'T
         values.reserve(cast(u64) N)
-        foreach item in items do
+        for item in items do
             values.add(item)
 
         let count = @countof(values.toSlice())
@@ -161,7 +161,7 @@ namespace GenericMkSliceLazyCodegen
     {
         var nested: Nested'T
         nested.box.values.reserve(cast(u64) N)
-        foreach item in items do
+        for item in items do
             nested.box.values.add(item)
 
         let count = nested.totalCount()

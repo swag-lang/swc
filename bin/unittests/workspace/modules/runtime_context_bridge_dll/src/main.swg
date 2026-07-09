@@ -203,7 +203,7 @@ public func(T) ctxSharedInvokeGeneric(value: T, cb: func||(T)->bool)->bool
 #[Swag.NoInline]
 public func(T) ctxSharedAllOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
-    foreach v in values
+    for v in values
     {
         if !cb(v) do
             return false

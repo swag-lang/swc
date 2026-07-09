@@ -223,7 +223,7 @@ internal impl Properties
         // same headers instead of recreating them.
         var categPath: Array'{ name: string, item: *PropertiesItem }
 
-        foreach value in typeStruct.fields
+        for value in typeStruct.fields
         {
             // Category / nested subgroups
             let subCateg = Reflection.getAttributeValue(value, Properties.Category, "name")
@@ -256,7 +256,7 @@ internal impl Properties
             .addValue(value, addr + value.offset, newParent)
 
             let added = cast(u32) (.items.count - numItemsBefore)
-            foreach c in categPath do
+            for c in categPath do
                 c.item.numChilds += added
         }
     }

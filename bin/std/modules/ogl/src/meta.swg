@@ -36,7 +36,7 @@ var g_Functions: Array'OneFunc
 
     builderInit.appendString("public func glInitExtensions()\n{\n")
 
-    foreach e in g_Functions
+    for e in g_Functions
     {
         var builderVars: StringBuilder
 
@@ -51,7 +51,7 @@ var g_Functions: Array'OneFunc
         builderVars.appendString("public func ")
         builderVars.appendString(e.name)
         builderVars.appendString("(")
-        foreach p, i in e.type.parameters
+        for p, i in e.type.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")
@@ -73,7 +73,7 @@ var g_Functions: Array'OneFunc
 
         builderVars.appendString(e.name)
         builderVars.appendString("(")
-        foreach p, i in e.type.parameters
+        for p, i in e.type.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")

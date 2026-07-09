@@ -341,17 +341,44 @@ AstNodeRef Parser::parseForInfinite()
 AstNodeRef Parser::parseForLoop()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>(consume());
-    nodePtr->modifierFlags  = parseModifiers();
-    nodePtr->tokNameRef.setInvalid();
 
-    if (isNot(TokenId::SymLeftParen))
+    // Specialization (foreach form)
+    nodePtr->tokSpecializationRef = consumeIf(TokenId::SharpIdentifier);
+
+    nodePtr->modifierFlags = parseModifiers();
+
+    // The element-iteration forms ('&name', several names, or a specialization) are
+    // resolved at parse time; 'for <name> in <expr>' stays a ForStmt and Sema retypes
+    // it into a ForeachStmt when the expression turns out to be a collection.
+    bool isElementForm = nodePtr->tokSpecializationRef.isValid();
+
+    SmallVector<TokenRef> tokNames;
+
+    if (consumeIf(TokenId::SymAmpersand).isValid())
     {
-        if (nextIs(TokenId::KwdIn))
-        {
-            nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-            consumeAssert(TokenId::KwdIn);
-        }
+        nodePtr->addFlag(AstForeachStmtFlagsE::ByAddress);
+        isElementForm          = true;
+        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        tokNames.push_back(tokName);
     }
+    else if (is(TokenId::Identifier) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
+    {
+        tokNames.push_back(consume());
+    }
+
+    while (consumeIf(TokenId::SymComma).isValid())
+    {
+        isElementForm          = true;
+        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        tokNames.push_back(tokName);
+    }
+
+    nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
+    if (!tokNames.empty())
+        expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
+
+    if (isElementForm)
+        nodePtr->setId(AstNodeId::ForeachStmt);
 
     nodePtr->nodeExprRef = parseRangeExpression();
 
@@ -371,52 +398,6 @@ AstNodeRef Parser::parseFor()
     if (nextIsAny(TokenId::SymLeftCurly, TokenId::KwdDo))
         return parseForInfinite();
     return parseForLoop();
-}
-
-AstNodeRef Parser::parseForeach()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForeachStmt>(consume());
-
-    // Specialization
-    nodePtr->tokSpecializationRef = consumeIf(TokenId::SharpIdentifier);
-
-    // Additional flags
-    nodePtr->modifierFlags = parseModifiers();
-
-    SmallVector<TokenRef> tokNames;
-
-    // By address
-    if (consumeIf(TokenId::SymAmpersand).isValid())
-    {
-        nodePtr->addFlag(AstForeachStmtFlagsE::ByAddress);
-        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-        tokNames.push_back(tokName);
-    }
-    else if (nextIsAny(TokenId::KwdIn, TokenId::SymComma))
-    {
-        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-        tokNames.push_back(tokName);
-    }
-
-    while (consumeIf(TokenId::SymComma).isValid())
-    {
-        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-        tokNames.push_back(tokName);
-    }
-
-    nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
-    if (!tokNames.empty())
-        expectAndConsume(TokenId::KwdIn, DiagnosticId::parser_err_expected_token_before);
-
-    nodePtr->nodeExprRef = parseExpression();
-
-    if (consumeIf(TokenId::KwdWhere).isValid())
-        nodePtr->nodeWhereRef = parseExpression();
-    else
-        nodePtr->nodeWhereRef.setInvalid();
-
-    nodePtr->nodeBodyRef = parseDoCurlyBlock();
-    return nodeRef;
 }
 
 AstNodeRef Parser::parseTryCatch()
@@ -927,7 +908,13 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdWhile:
             return parseWhile();
         case TokenId::KwdForeach:
-            return parseForeach();
+        {
+            // 'foreach' has been merged into 'for'; keep the keyword for the dedicated
+            // diagnostic and recover by parsing the statement as a 'for'.
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_foreach_removed, ref());
+            diag.report(*ctx_);
+            return parseForLoop();
+        }
         case TokenId::KwdSwitch:
             return parseSwitch();
         case TokenId::KwdFor:

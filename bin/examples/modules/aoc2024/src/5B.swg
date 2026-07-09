@@ -23,7 +23,7 @@ func day5B()
     var first = true
     var total = 0
 
-    foreach f in lines
+    for f in lines
     {
         if @countof(f) == 0
         {

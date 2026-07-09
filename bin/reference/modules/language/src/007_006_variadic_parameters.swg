@@ -92,7 +92,7 @@ internal func print()
 {
     func logMessage(prefix: string, messages: ...)
     {
-        foreach msg in messages
+        for msg in messages
         {
             @print(prefix, " => ", cast(string) msg)
         }
@@ -111,7 +111,7 @@ Handle mixed-type parameters dynamically, performing type-specific actions.
     {
         var sum = 0
 
-        foreach p in params
+        for p in params
         {
             switch @kindof(p)
             {

@@ -256,14 +256,14 @@ Only iterations meeting the condition are executed.
 /**
 # 'where' with Arrays
 
-Use `where` to filter array elements during iteration.
+Loop over the element count and use `where` to filter which indices run the body.
 */
 #test
 {
     var arr        = [10, 21, 30, 41, 50]
     var sumOfEvens = 0
 
-    for i in arr where arr[i] % 2 == 0
+    for i in @countof(arr) where arr[i] % 2 == 0
     {
         sumOfEvens += arr[i]
     }
@@ -281,7 +281,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
     var arr         = [10, 15, 20, 25, 30, 35]
     var filteredSum = 0
 
-    for i in arr where arr[i] % 2 == 0 and arr[i] > 15
+    for i in @countof(arr) where arr[i] % 2 == 0 and arr[i] > 15
     {
         filteredSum += arr[i]
     }
@@ -294,7 +294,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
     var arr        = [10, 25, 30, 45, 50, 65]
     var complexSum = 0
 
-    for i in arr where arr[i] % 2 == 0 or arr[i] > 40
+    for i in @countof(arr) where arr[i] % 2 == 0 or arr[i] > 40
     {
         complexSum += arr[i]
     }
@@ -329,7 +329,7 @@ You can combine `#reverse` with `where` for reverse conditional iteration.
     var arr         = [10, 20, 30, 40, 50]
     var reversedSum = 0
 
-    for #reverse i in arr where arr[i] % 2 == 0
+    for #reverse i in @countof(arr) where arr[i] % 2 == 0
     {
         reversedSum += arr[i]
     }
@@ -429,7 +429,6 @@ Swag supports nested loops. In nested contexts, `@index` refers to the current i
 # Iterating Over Arrays with 'for'
 
 You can also use `for` to iterate over arrays and collections.
-(Although `foreach` is generally preferred.)
 */
 #test
 {

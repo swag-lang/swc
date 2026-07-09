@@ -29,7 +29,7 @@ func @is(toType, fromType: typeinfo)->bool
 
     let fromStruct = cast(const *TypeInfoStruct) fromType
 
-    foreach ft in fromStruct.usingFields
+    for ft in fromStruct.usingFields
     {
         let usingType = __concreteAlias(ft.pointedType)
         if usingType.kind == .Struct
@@ -65,7 +65,7 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
 
     let fromStruct = cast(const *TypeInfoStruct) fromType
 
-    foreach ft in fromStruct.usingFields
+    for ft in fromStruct.usingFields
     {
         let usingType = __concreteAlias(ft.pointedType)
         if usingType.kind == .Struct
@@ -130,7 +130,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
     {
         let type1S = cast(const *TypeInfoStruct) type1
         let type2S = cast(const *TypeInfoStruct) type2
-        for i in type1S.fields
+        for i in @countof(type1S.fields)
         {
             let field1 = type1S.fields[i]
             let field2 = type2S.fields[i]
@@ -163,7 +163,7 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
     if !structType or !itfType do
         return null
 
-    for i in structType.interfaces
+    for i in @countof(structType.interfaces)
     {
         if @stringcmp(structType.interfaces[i].name, itfType.fullname) do
             return structType.interfaces[i].value
@@ -310,7 +310,7 @@ func __closeRuntime()
 
 func __dropGlobalVariables()
 {
-    foreach g in @gvtd
+    for g in @gvtd
     {
         var ptr = cast([*] u8) g.ptr
         for x in g.count

@@ -20,7 +20,7 @@ func day3B()
     var here: HashSet's32
     ids.resize(1000 * 1000)
     here.reserve(1000)
-    foreach l in lines
+    for l in lines
     {
         discard r.match(l)
         let id     = assume StrConv.toS32(r[1])

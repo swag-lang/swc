@@ -107,8 +107,8 @@ func day10A()
     var arr: Array'Math.Vector2
     var tot: Array's32
 
-    foreach l, y in lines do
-        foreach c, x in l do
+    for l, y in lines do
+        for c, x in l do
             if c == '#' do
                 arr.add({cast(f32) x + 0.5, cast(f32) y + 0.5})
     tot.resize(arr.count)

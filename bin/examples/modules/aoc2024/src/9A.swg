@@ -58,7 +58,7 @@ func day9A()
 
     var map: Array'{ what, num: s64 }
     var cpt: s64
-    foreach t in line
+    for t in line
     {
         let r = t - '0'
         if @index & 1 do
@@ -71,7 +71,7 @@ func day9A()
     }
 
     var last = map.count - #wrap 1
-    for i in map
+    for i in @countof(map)
     {
         if map[i].what != -1 do
             continue
@@ -101,7 +101,7 @@ func day9A()
     }
 
     var idx, total: u64
-    foreach v, i in map
+    for v, i in map
     {
         if v.what == -1 do
             break

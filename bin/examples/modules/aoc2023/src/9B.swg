@@ -27,12 +27,12 @@ func day9B()
 
     var total: s64
 
-    foreach l in lines
+    for l in lines
     {
         let vals = Tokenize.split(l, ' ''u8)
 
         var values: Array's64
-        foreach v in vals do
+        for v in vals do
             values.add(assume StrConv.toS64(v))
 
         var column: Array's64
@@ -57,7 +57,7 @@ func day9B()
         }
 
         var prev: s64
-        foreach #reverse c in column
+        for #reverse c in column
         {
             let c1 = c - prev
             prev = c1

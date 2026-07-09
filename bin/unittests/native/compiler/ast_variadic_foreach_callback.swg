@@ -85,7 +85,7 @@ impl RegressionSignal
 
     mtd call(params: ...)
     {
-        foreach fn in .arr
+        for fn in .arr
         {
             #ast
             {

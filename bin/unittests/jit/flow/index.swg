@@ -12,7 +12,7 @@
         {
             outer += cast(s32) @index
 
-            foreach value in arr
+            for value in arr
             {
                 if @index == 0 do
                     continue

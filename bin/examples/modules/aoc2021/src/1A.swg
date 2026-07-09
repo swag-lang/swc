@@ -52,7 +52,7 @@ func day1A()
 
     var total: u64
     var last   = Swag.U64.Max
-    foreach l in lines
+    for l in lines
     {
         let cur = assume StrConv.toS32(l)
         if cur > last do

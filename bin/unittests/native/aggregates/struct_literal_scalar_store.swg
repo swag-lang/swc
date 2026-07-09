@@ -12,7 +12,7 @@ func buildMutationMap(text: string)->[3] MutationSpan
 {
     var nextId: s64
     var map: [3] MutationSpan
-    foreach ch in text
+    for ch in text
     {
         let runLength = ch - '0'
         if @index & 1 do

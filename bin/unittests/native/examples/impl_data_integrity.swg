@@ -135,7 +135,7 @@ impl Adler32
         }
         elif count < 16
         {
-            foreach b in buffer
+            for b in buffer
             {
                 s1 += cast(u32) b
                 s2 += s1
@@ -242,7 +242,7 @@ func analyze(data: const [..] u8)->IntegrityReport
         i += 4
     }
 
-    foreach b in data do
+    for b in data do
         report.bitEntropy += cast(u32) @bitcountnz(b)
 
     return report
@@ -428,7 +428,7 @@ func analyze(data: const [..] u8)->IntegrityReport
 
     // Verify the relationship: popcount of reversed byte == popcount of original
     let testBytes = cast(const [..] u8) message
-    foreach b in testBytes
+    for b in testBytes
     {
         @assert(@bitcountnz(b) == @bitcountnz(reverse8(b)))
     }

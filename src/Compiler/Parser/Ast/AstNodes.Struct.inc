@@ -1616,9 +1616,13 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
 };
 
 // -----------------------------------------------------------------------------
-struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
+// Same field layout as AstForeachStmt on purpose: Sema flips a ForStmt into a
+// ForeachStmt in place (setId) when the iterated expression is a collection.
+struct AstForStmt : AstNodeT<AstNodeId::ForStmt, AstForeachStmtFlagsE>
 {
+    TokenRef         tokSpecializationRef;
     AstModifierFlags modifierFlags;
+    SpanRef          spanNamesRef;
     AstNodeRef       nodeExprRef;
     AstNodeRef       nodeWhereRef;
     AstNodeRef       nodeBodyRef;
@@ -1633,6 +1637,8 @@ struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
+
+static_assert(sizeof(AstForStmt) == sizeof(AstForeachStmt), "ForStmt/ForeachStmt must share layout: Sema retypes ForStmt in place");
 
 // -----------------------------------------------------------------------------
 struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>

@@ -58,7 +58,7 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
     var points: [24] Point2
     var result: RectangleEstimate
 
-    foreach line, index in pointLines
+    for line, index in pointLines
     {
         points[index] = parsePoint(line)
     }

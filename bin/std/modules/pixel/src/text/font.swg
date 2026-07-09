@@ -126,11 +126,11 @@ private var g_HashGlyphCache: HashTable'(String, *GlyphCache)
 
 #drop
 {
-    foreach k, v in g_HashFont do
+    for k, v in g_HashFont do
         Memory.delete(v)
     g_HashFont.free()
 
-    foreach k, v in g_HashGlyphCache do
+    for k, v in g_HashGlyphCache do
         Memory.delete(v)
     g_HashGlyphCache.free()
 }
@@ -226,11 +226,11 @@ public impl Font
     // Clear private caches
     func clearCaches()
     {
-        foreach a, b in g_HashFont do
+        for a, b in g_HashFont do
             Memory.delete(b)
         g_HashFont.clear()
 
-        foreach a, b in g_HashGlyphCache do
+        for a, b in g_HashGlyphCache do
             Memory.delete(b)
         g_HashGlyphCache.clear()
     }
@@ -354,7 +354,7 @@ public impl GlyphCache
 {
     mtd opDrop()
     {
-        foreach k, v in .glyphRef do
+        for k, v in .glyphRef do
             Memory.delete(v)
         .glyphRef.free()
         .kernRef.free()

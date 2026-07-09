@@ -15,7 +15,7 @@ func exerciseGenericCloneCodegen()->bool
         return false
 
     var total = 0's32
-    foreach value in slice do
+    for value in slice do
         total += value
 
     var ptrs: GenericCloneCodegenSupport.PtrBox's32

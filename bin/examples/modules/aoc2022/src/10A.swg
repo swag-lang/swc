@@ -205,7 +205,7 @@ func day10A()
 
     var cycle, x = 1
     var total = 0
-    foreach l in lines
+    for l in lines
     {
         toCheck()
         if l != "noop"

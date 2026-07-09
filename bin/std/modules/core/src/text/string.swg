@@ -119,7 +119,7 @@ impl String
     mtd(op: string) opAssign(value: const [..] string)
     {
         #if op == "+=" do
-            foreach v in value do
+            for v in value do
                 .append(v)
         #else do
             #error("invalid operator '" ++ op ++ "'")
@@ -128,7 +128,7 @@ impl String
     mtd(op: string) opAssign(value: const [..] rune)
     {
         #if op == "+=" do
-            foreach v in value do
+            for v in value do
                 .append(v)
         #else do
             #error("invalid operator '" ++ op ++ "'")
@@ -137,7 +137,7 @@ impl String
     mtd(op: string) opAssign(value: const [..] u8)
     {
         #if op == "+=" do
-            foreach v in value do
+            for v in value do
                 .append(v)
         #else do
             #error("invalid operator '" ++ op ++ "'")
@@ -249,7 +249,7 @@ impl String
         }
     }
 
-    // Default foreach, by bytes: the code value is forwarded to 'opVisitBytes' as-is.
+    // Default element iteration, by bytes: the code value is forwarded to 'opVisitBytes' as-is.
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(var item, var index: u64))
     {

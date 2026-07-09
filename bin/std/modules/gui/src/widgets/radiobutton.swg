@@ -156,7 +156,7 @@ impl RadioButton
         if @countof(.group) == 0 or !.parent do
             return
 
-        foreach c in .parent.childs
+        for c in .parent.childs
         {
             if c == cast(*Wnd) me or c.type != RadioButton do
                 continue

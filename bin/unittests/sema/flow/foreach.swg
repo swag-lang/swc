@@ -36,7 +36,7 @@ impl ForeachAliasBuffer
 func semaTest001()
 {
     var arr: [3] s32 = [1, 2, 3]
-    foreach v in arr
+    for v in arr
     {
         #assert(#typeof(v) == s32)
         var x = v
@@ -46,7 +46,7 @@ func semaTest001()
 func semaTest002()
 {
     var arr: ForeachStrictArray = cast(ForeachStrictArray) [4, 5, 6]
-    foreach v, i in arr
+    for v, i in arr
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -58,7 +58,7 @@ func semaTest002()
 func semaTest003()
 {
     var arr: [2] s32 = [1, 2]
-    foreach v in arr where v > 0
+    for v in arr where v > 0
     {
         var x = v
     }
@@ -67,7 +67,7 @@ func semaTest003()
 func semaTest004()
 {
     var arr: [2] u32 = [10'u32, 20]
-    foreach &v in arr
+    for &v in arr
     {
         var x = dref v
     }
@@ -76,7 +76,7 @@ func semaTest004()
 func semaTest005()
 {
     var text: string = "AB"
-    foreach v, i in text
+    for v, i in text
     {
         #assert(#typeof(v) == u8)
         #assert(#typeof(i) == u64)
@@ -89,7 +89,7 @@ func semaTest006()
 {
     var arr: [2] s32 = [3, 4]
     var sl = cast([..] s32) arr
-    foreach v, i in sl
+    for v, i in sl
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -103,7 +103,7 @@ func semaTest007()
     var arr: [2] s32 = [5, 6]
     var rawSl = cast([..] s32) arr
     var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
-    foreach v, i in sl
+    for v, i in sl
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -116,7 +116,7 @@ func semaTest008()
 {
     func foreachVariadicAny(values: ...)
     {
-        foreach v, i in values
+        for v, i in values
         {
             #assert(#typeof(v) == any)
             #assert(#typeof(i) == u64)
@@ -130,7 +130,7 @@ func semaTest009()
 {
     func foreachVariadicTyped(values: s32...)
     {
-        foreach v, i in values
+        for v, i in values
         {
             #assert(#typeof(v) == s32)
             #assert(#typeof(i) == u64)
@@ -149,7 +149,7 @@ func semaTest010()
         High   = 10
     }
 
-    foreach value, idx in Priority
+    for value, idx in Priority
     {
         #assert(#typeof(value) == Priority)
         #assert(#typeof(idx) == u64)
@@ -163,7 +163,7 @@ func semaTest011()
     let text: ForeachAliasBuffer = {data: ['a''u8, 'b''u8, 'c''u8]}
     var freq: [3, 26] u32
 
-    foreach c, i in text
+    for c, i in text
     {
         var cell: &u32 = &freq[i, c - 'a']
         cell += 1'u32

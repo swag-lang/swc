@@ -30,7 +30,7 @@ struct OrderSummary
 func countUnits(lines: const [..] OrderLine)->u32
 {
     var result: u32
-    foreach line in lines do
+    for line in lines do
         result += line.quantity
     return result
 }
@@ -38,14 +38,14 @@ func countUnits(lines: const [..] OrderLine)->u32
 func computeSubtotal(lines: const [..] OrderLine)->u32
 {
     var result: u32
-    foreach line in lines do
+    for line in lines do
         result += line.unitPriceCents * line.quantity
     return result
 }
 
 func hasFragileLine(lines: const [..] OrderLine)->bool
 {
-    foreach line in lines
+    for line in lines
     {
         if line.fragile do
             return true
@@ -61,7 +61,7 @@ func computePackaging(lines: const [..] OrderLine)->u32
     const FragileExtra  = 200'u32
 
     var result = BasePackaging
-    foreach line in lines
+    for line in lines
     {
         result += UnitPackaging * line.quantity
         if line.fragile do
@@ -87,7 +87,7 @@ func findTopSku(lines: const [..] OrderLine)->string
     var bestSku = lines[0].sku
     var bestPrice = lines[0].unitPriceCents
 
-    foreach line in lines
+    for line in lines
     {
         if line.unitPriceCents > bestPrice
         {

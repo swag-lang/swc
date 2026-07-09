@@ -51,17 +51,17 @@ func day6B0()
     var count: [26] s32
     var total, num: u64
 
-    foreach l in lines
+    for l in lines
     {
         if l.length do
             num += 1
 
-        foreach #Bytes c in l do
+        for #Bytes c in l do
             count[c - 'a'] += 1
 
         if @index == lines.count - 1 or lines[@index + 1].length == 0
         {
-            foreach c in count where c == num do
+            for c in count where c == num do
                 total += 1
             @init(count)
             num = 0
@@ -86,12 +86,12 @@ func day6B1()
     var lineVal:  u32
     var interVal: u32 = ~0
 
-    foreach l in lines
+    for l in lines
     {
         if l.length
         {
             lineVal = 0
-            foreach #Bytes c in l do
+            for #Bytes c in l do
                 lineVal |= 1 << cast(u32) (c - 'a')
             interVal &= lineVal
         }

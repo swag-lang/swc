@@ -164,7 +164,7 @@ func semaTest012()
     var freq: [8, 26] u32
     let text: string = "abc"
 
-    foreach c, i in text
+    for c, i in text
     {
         var valueRef: &u32 = &freq[i, c - 'a']
         valueRef += 1'u32

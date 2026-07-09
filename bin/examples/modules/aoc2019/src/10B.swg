@@ -83,8 +83,8 @@ func day10B()
     var arr: Array'Pos
     var tot: Array's32
 
-    foreach l, y in lines do
-        foreach c, x in l do
+    for l, y in lines do
+        for c, x in l do
             if c == '#' do
                 arr.add({{cast(f32) x, cast(f32) y}})
     tot.resize(arr.count)
@@ -125,7 +125,7 @@ func day10B()
 
     // Precompute an exact reduced direction, a clockwise angle from the up vector,
     // and an exact squared distance to keep same-ray asteroids in near-to-far order.
-    foreach &it in arr
+    for &it in arr
     {
         let dx  = cast(s64) it.pos.x - cast(s64) posStart.x
         let dy  = cast(s64) it.pos.y - cast(s64) posStart.y
@@ -149,7 +149,7 @@ func day10B()
     var groups: Array'DirectionGroup
     var haveGroup = false
     var lastDirX, lastDirY = 0's64
-    foreach it in arr
+    for it in arr
     {
         if !haveGroup or it.dirX != lastDirX or it.dirY != lastDirY
         {

@@ -23,7 +23,7 @@ func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
 func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
 {
     var distSquared = Swag.F64.Max
-    foreach edge in edges do
+    for edge in edges do
         distSquared = Math.min(distSquared, edgeDistanceSquared(edge, x, y))
 
     return Math.sqrt(distSquared)

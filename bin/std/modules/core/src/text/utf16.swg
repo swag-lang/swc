@@ -106,7 +106,7 @@ func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
     var dataof = @dataof(dest)
     var remain = @countof(dest)
 
-    foreach ch in src
+    for ch in src
     {
         Debug.assert(remain >= 2, "destination buffer is too small")
         let cpt = encodeRune(@mkslice(dataof, remain), ch)

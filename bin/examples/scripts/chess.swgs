@@ -78,7 +78,7 @@ var g_Game:      GameInfo
 
 func moveIsPossible(fromP, toP: s8)->bool
 {
-    foreach move in g_Game.possibleMoves do
+    for move in g_Game.possibleMoves do
         if move.fromP == fromP and move.toP == toP do
             return true
     return false
@@ -145,19 +145,19 @@ func isCheck(board: [*] Cell, white: bool)->bool
 
     var moves: Array's8
     getKnightMoves(board, kingCell, &moves)
-    foreach v in moves where board[v].piece == .Knight do
+    for v in moves where board[v].piece == .Knight do
         return true
     moves.clear()
     getPawnAttacks(board, kingCell, &moves)
-    foreach v in moves where board[v].piece == .Pawn do
+    for v in moves where board[v].piece == .Pawn do
         return true
     moves.clear()
     getBishopMoves(board, kingCell, &moves)
-    foreach v in moves where board[v].piece == .Bishop or board[v].piece == .Queen do
+    for v in moves where board[v].piece == .Bishop or board[v].piece == .Queen do
         return true
     moves.clear()
     getRookMoves(board, kingCell, &moves)
-    foreach v in moves where board[v].piece == .Rook or board[v].piece == .Queen do
+    for v in moves where board[v].piece == .Rook or board[v].piece == .Queen do
         return true
     return false
 }
@@ -167,7 +167,7 @@ func computeMoves()
     let contentToTreat = g_Game.whiteTurn ? ContentEnum.White : ContentEnum.Black
     g_Game.possibleMoves.clear()
 
-    foreach cell in g_Board
+    for cell in g_Board
     {
         if cell.content != contentToTreat do
             continue
@@ -193,7 +193,7 @@ func computeMoves()
             getKingMoves(g_Board, i, &moves)
         }
 
-        foreach move in moves
+        for move in moves
         {
             var board = doMove(g_Board, i, move)
             if !isCheck(board, g_Game.whiteTurn) do
@@ -277,21 +277,21 @@ func getPieceMove(board: [*] Cell, fromP, offset: s8, moves: *Array's8)->bool
 const KnightMovesDeltas = [10's8, 23, 25, 14, -10, -23, -25, -14]
 func getKnightMoves(board: [*] Cell, fromP: s8, moves: *Array's8)
 {
-    foreach delta in KnightMovesDeltas do
+    for delta in KnightMovesDeltas do
         discard getPieceMove(board, fromP, delta, moves)
 }
 
 const KingMovesDeltas = [11's8, 12, 13, 1, -11, -12, -13, -1]
 func getKingMoves(board: [*] Cell, fromP: s8, moves: *Array's8)
 {
-    foreach delta in KingMovesDeltas do
+    for delta in KingMovesDeltas do
         discard getPieceMove(board, fromP, delta, moves)
 }
 
 const BishopMovesDeltas = [11's8, 13, -11, -13]
 func getBishopMoves(board: [*] Cell, fromP: s8, moves: *Array's8)
 {
-    foreach delta in BishopMovesDeltas
+    for delta in BishopMovesDeltas
     {
         var offset = delta
         while getPieceMove(board, fromP, offset, moves) do
@@ -302,7 +302,7 @@ func getBishopMoves(board: [*] Cell, fromP: s8, moves: *Array's8)
 const RookMovesDeltas = [12's8, 1, -12, -1]
 func getRookMoves(board: [*] Cell, fromP: s8, moves: *Array's8)
 {
-    foreach delta in RookMovesDeltas
+    for delta in RookMovesDeltas
     {
         var offset = delta
         while getPieceMove(board, fromP, offset, moves) do
@@ -431,7 +431,7 @@ func paintBoard(paintEvt: *PaintEvent)
         var cellInfo = g_BoardInfo[g_Game.selectedCell]
         painter.drawRect(cellInfo.rect, ColorSelection, penSize: 3)
 
-        foreach move in g_Game.possibleMoves
+        for move in g_Game.possibleMoves
         {
             if move.fromP == g_Game.selectedCell
             {

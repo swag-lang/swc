@@ -515,7 +515,7 @@ impl IPropertyEditor for RatingEditor
 
         item.sigRefresh += func|line|(item)
         {
-            foreach c in line.childs do
+            for c in line.childs do
                 c.invalidate()
         }
 

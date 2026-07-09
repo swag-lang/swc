@@ -116,7 +116,7 @@ func(T) depInvokeGeneric(value: T, cb: func||(T)->bool)->bool
 #[Swag.NoInline]
 func(T) depAllOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
-    foreach v in values
+    for v in values
     {
         if !cb(v) do
             return false

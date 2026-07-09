@@ -26,7 +26,7 @@ impl IWnd for Dialog
             switch evt.key
             {
             case Tab, Right:
-                foreach btn, idx in .buttons
+                for btn, idx in .buttons
                 {
                     if btn.form == .Default
                     {
@@ -40,7 +40,7 @@ impl IWnd for Dialog
                 }
 
             case Left:
-                foreach btn, idx in .buttons
+                for btn, idx in .buttons
                 {
                     if btn.form == .Default
                     {
@@ -54,7 +54,7 @@ impl IWnd for Dialog
                 }
 
             case Enter:
-                foreach btn in .buttons
+                for btn in .buttons
                 {
                     if btn.form == .Default
                     {
@@ -70,7 +70,7 @@ impl IWnd for Dialog
                     break
                 }
 
-                foreach btn in .buttons
+                for btn in .buttons
                 {
                     if btn.id == BtnNo or btn.id == BtnCancel
                     {

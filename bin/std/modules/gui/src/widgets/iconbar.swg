@@ -34,7 +34,7 @@ impl IconBar
 {
     mtd computeLayout()
     {
-        foreach c in .childs
+        for c in .childs
         {
             if .iconBarFlags.has(.Vertical) do
                 c.dockStyle = .Top

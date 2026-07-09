@@ -53,7 +53,7 @@ impl Properties
             }
 
             var idxSel = 0'u64
-            foreach v, idx in typeEnum.values
+            for v, idx in typeEnum.values
             {
                 switch typeEnum.rawType.sizeof
                 {
@@ -139,7 +139,7 @@ impl Properties
         item.flags.add(.NoSeparator | .Expanded)
         var numChilds: u32
 
-        foreach v in typeEnum.values
+        for v in typeEnum.values
         {
             with let line = Wnd.create'Wnd(me.edView)
             {
@@ -247,7 +247,7 @@ impl Properties
         me.adaptCondensedControl(ed)
         item.comboBox = ed
 
-        foreach v, idx in typeEnum.values do
+        for v, idx in typeEnum.values do
             ed.addItem(v.name)
 
         .refreshEnum(item)

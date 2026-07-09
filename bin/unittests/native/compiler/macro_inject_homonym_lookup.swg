@@ -62,7 +62,7 @@ func injectPlain(stmt: #code)
     injectPlain()
     {
         let values = [1, 2, 3]
-        foreach entry in values
+        for entry in values
         {
             result += entry
         }

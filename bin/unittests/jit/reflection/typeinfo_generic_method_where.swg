@@ -38,7 +38,7 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
 
     var hasCount = false
     var defaultCompareCallable = false
-    foreach &methodInfo in info.methods
+    for &methodInfo in info.methods
     {
         if methodInfo.name == "defaultCompare"
         {

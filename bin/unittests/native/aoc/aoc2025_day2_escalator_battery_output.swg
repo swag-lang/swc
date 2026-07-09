@@ -54,7 +54,7 @@ func auditBanks(banks: const [..] string)->BatteryAudit
     result.bankCount = cast(u32) @countof(banks)
     result.lowestBank = Swag.S32.Max
 
-    foreach bank in banks
+    for bank in banks
     {
         let output = bestBankOutput(bank)
         result.totalOutput += output

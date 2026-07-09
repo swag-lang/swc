@@ -63,7 +63,7 @@ private impl FileBrowserCtrl
         .comboPathStr.clear()
 
         let all = Tokenize.split(.curFolder.toString(), '/''rune)
-        for #reverse i in all
+        for #reverse i in @countof(all)
         {
             var str: String
             for j in i + 1
@@ -88,7 +88,7 @@ private impl FileBrowserCtrl
         var l = .treeCtrl.createLine("Shortcuts")
         l.separator = true
 
-        foreach v in .options.shortcuts
+        for v in .options.shortcuts
         {
             let c    = Env.getSpecialDirectory(v.type)
             var icon = .getApp().getSpecialDirectoryIcon(v.type, true)
@@ -103,7 +103,7 @@ private impl FileBrowserCtrl
         l.separator = true
 
         let volumes = catch Directory.getDrives()
-        foreach v in volumes
+        for v in volumes
         {
             v.removeBack()
             var icon = .getApp().getDirectoryIcon(v, true)
@@ -184,7 +184,7 @@ private impl FileBrowserCtrl
             {
                 var sel  = list.getSelectedLines()
                 var txt: String
-                foreach l in sel
+                for l in sel
                 {
                     let fi = cast(const *FileInfo) l.userData0
                     if fi.isDirectory()
@@ -310,7 +310,7 @@ impl FileBrowserCtrl
             if opt.mode == .SelectFolder do
                 .addItem("Folders")
             else do
-                foreach f, idx in opt.filters do
+                for f, idx in opt.filters do
                     .addItem(f.name, userData0: cast(*void) idx)
             .selectItem(0)
             .sigChanged += func|fileBrowser|(c, idx)
@@ -401,7 +401,7 @@ impl FileBrowserCtrl
         }
         let tokens = Tokenize.split(filterExtensions, ';''rune)
 
-        foreach &fi in .curList
+        for &fi in .curList
         {
             let fname = assume Path.getFileName(fi.fullname)
 
@@ -410,7 +410,7 @@ impl FileBrowserCtrl
             if !fi.isDirectory() and @countof(filterExtensions)
             {
                 show = false
-                foreach t in tokens
+                for t in tokens
                 {
                     if Path.isExtension(fname, t)
                     {
@@ -471,7 +471,7 @@ impl FileBrowserCtrl
         }
 
         let tokens = Tokenize.split(.editFile.text, ';''rune)
-        foreach t in tokens
+        for t in tokens
         {
             // Be sure this is a valid file/folder name
             var t1 = String.from(t)

@@ -202,7 +202,7 @@ func makePickerPalette()->Array'Color
 
 func addPaletteColors(picker: *PalettePicker, colors: Array'Color)
 {
-    foreach color in colors do
+    for color in colors do
         picker.addColor(color)
 }
 
@@ -323,7 +323,7 @@ func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: 
     let pad = 16.0
     let sw = Math.max((rect.width - pad * (n + 1)) / n, 40.0)
     let sh = Math.max(rect.height - 34, 24.0)
-    foreach c, i in cols
+    for c, i in cols
     {
         let x = rect.x + pad + cast(f32) i * (sw + pad)
         drawSwatch(painter, {x, rect.y + 6, sw, sh}, names[i], c, font, colors)
@@ -400,7 +400,7 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
             let pad = 16.0
             let cellW = Math.max((rect.width - pad * 4) / 3, 88.0)
             let cellH = Math.max((rect.height - pad * 3 - 48) / 2, 50.0)
-            foreach c, i in cols
+            for c, i in cols
             {
                 let col = cast(f32) (i % 3)
                 let row = cast(f32) (i / 3)
@@ -463,7 +463,7 @@ func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, ev
 
 func clearPage()
 {
-    foreach child in g_PageView.childs do
+    for child in g_PageView.childs do
         child.destroy()
 }
 

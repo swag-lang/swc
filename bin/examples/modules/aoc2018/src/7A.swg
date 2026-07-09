@@ -45,7 +45,7 @@ func day7A()
     let lines    = assume File.readAllLines(dataPath)
 
     var steps: HashTable'(u8, { prev, next: String })
-    foreach l in lines
+    for l in lines
     {
         steps.findOrAdd(l[5]).value.next.append(l[36])
         steps.findOrAdd(l[36]).value.prev.append(l[5])
@@ -53,7 +53,7 @@ func day7A()
 
     var first = Swag.U8.Max
     var last: u8
-    foreach k, v in steps
+    for k, v in steps
     {
         if v.next.length == 0 do
             last = k
@@ -69,13 +69,13 @@ func day7A()
             break
 
         first = Swag.U8.Max
-        foreach k, v in steps
+        for k, v in steps
         {
             if Utf8.contains(result.toSlice(), cast(rune) k) do
                 continue
 
             var bad = false
-            foreach c in v.prev
+            for c in v.prev
             {
                 if !Utf8.contains(result.toSlice(), cast(rune) c)
                 {

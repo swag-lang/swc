@@ -227,7 +227,7 @@ impl MainWnd
             btn.userData = cast(*void) id
             btn.sigChanged += func(btn)
             {
-                foreach c in btn.parent.childs
+                for c in btn.parent.childs
                 {
                     if c.userData
                     {
@@ -300,7 +300,7 @@ impl MainWnd
 
         let res = dlg.doModal()
 
-        foreach c in dlg.childs
+        for c in dlg.childs
         {
             if c.userData
             {
@@ -411,7 +411,7 @@ impl MainWnd
         var maxX = 0'f32
         var maxY = 0'f32
 
-        foreach f, idx in capture.forms
+        for f, idx in capture.forms
         {
             let r = f.boundRect()
             if r.x > 0 do

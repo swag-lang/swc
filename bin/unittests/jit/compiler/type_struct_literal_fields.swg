@@ -28,7 +28,7 @@ func makeTypeStructLiteralJitPayloads() => [{first: #type [2] TypeStructLiteralJ
 {
     let payloads = makeTypeStructLiteralJitPayloads()
     var total: u64 = 0
-    foreach payload in payloads
+    for payload in payloads
     {
         total += (cast(const *Swag.TypeInfoArray) payload.first).totalCount
     }

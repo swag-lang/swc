@@ -159,7 +159,7 @@ argument.
     call(10, #code(a, b) { total = a + b })
     @assert(total == 30)
 
-    // Partial binder: only the first parameter is renamed, like 'foreach'.
+    // Partial binder: only the first parameter is renamed, like 'for'.
     call(5) #code(first) { total = first + double }
     @assert(total == 15)
 }

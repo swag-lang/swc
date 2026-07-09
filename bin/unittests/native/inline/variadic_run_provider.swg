@@ -6,7 +6,7 @@ namespace InlineRegressionBug14
     func sum(values: s32...) -> s32
     {
         var result = 0's32
-        foreach v in values do
+        for v in values do
             result += v
         return result
     }

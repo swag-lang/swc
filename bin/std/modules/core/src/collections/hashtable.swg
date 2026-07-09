@@ -54,7 +54,7 @@ impl HashTable
     mtd opSet(slice: const [..] { k: K, v: V })
     {
         .clear()
-        foreach v in slice do
+        for v in slice do
             .add(v.k, v.v)
     }
 
@@ -492,7 +492,7 @@ impl StrConv.IConvert for HashTable
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
     {
         buf.addBytes("[")
-        foreach k, v in me
+        for k, v in me
         {
             if @index do
                 buf.addBytes(", ")

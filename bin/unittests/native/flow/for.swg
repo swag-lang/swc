@@ -322,7 +322,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     for value do
         count += 1
 
-    for i in value do
+    for i in @countof(value) do
         sum += cast(s32) i
 
     @assert(count == 4)
@@ -466,7 +466,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var arr: [3]s32 = [1, 2, 3]
     var sum = 0
-    for i in arr
+    for i in @countof(arr)
     {
         var x = i
         sum += cast(s32) x
@@ -587,9 +587,9 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
     var count = 0
     var sum = 0
-    for idx in Bits
+    for idx in @countof(Bits)
     {
-        #assert(#typeof(idx) == u64)
+        #assert(#typeof(idx) == u32)
         count += 1
         sum += cast(s32) idx
     }
@@ -602,7 +602,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var box = StringRefIndexBox{rows: ["10110", "00100"]}
     var sum = 0
-    for i in box[0] do
+    for i in @countof(box[0]) do
         sum += cast(s32) i
 
     @assert(sum == 10)

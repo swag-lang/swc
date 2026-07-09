@@ -202,7 +202,7 @@ func createDocumentEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flag
 
 func clearPage()
 {
-    foreach child in g_PageView.childs do
+    for child in g_PageView.childs do
         child.destroy()
 }
 

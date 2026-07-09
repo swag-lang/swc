@@ -11,7 +11,7 @@ internal impl Properties
     mtd hitTest(ptLoc: Math.Point)->#null *PropertiesItem
     {
         let pt = ptLoc + .scrollWnd.getScrollPos()
-        foreach item in .items
+        for item in .items
         {
             if !item.line.isVisible() do
                 continue

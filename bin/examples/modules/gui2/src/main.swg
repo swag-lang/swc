@@ -178,7 +178,7 @@ func toggleTheme(btn: *Button)
 func clearPage()
 {
     g_Progress = null
-    foreach child in g_PageView.childs do
+    for child in g_PageView.childs do
         child.destroy()
 }
 

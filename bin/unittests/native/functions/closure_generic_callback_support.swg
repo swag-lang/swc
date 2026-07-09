@@ -39,7 +39,7 @@ namespace ClosureGenericCallbackSupport
     #[Swag.NoInline]
     func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
     {
-        foreach v in values
+        for v in values
         {
             if !cb(v) do
                 return false

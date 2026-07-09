@@ -94,7 +94,7 @@ internal func getBot(x: s32)->&Bot
 
 internal func execute(lines: Array'String)
 {
-    foreach l in lines
+    for l in lines
     {
         switch
         {

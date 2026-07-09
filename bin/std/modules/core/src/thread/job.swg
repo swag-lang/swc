@@ -55,7 +55,7 @@ var g_totalJobs:        u32
         {
         }
 
-        foreach th in g_workers do
+        for th in g_workers do
             th.wait()
         g_workers.free()
         g_pendingJobs.free()
@@ -145,9 +145,9 @@ public func setNumWorkers(numWorkers: u32 = 0) throw
 
     g_numWorkers = numWorkers orelse Hardware.getProcessorCount()
     g_workers.resize(cast(u64) g_numWorkers)
-    foreach &th in g_workers do
+    for &th in g_workers do
         try th.init(&workerEntry)
-    foreach &th in g_workers do
+    for &th in g_workers do
         try th.start()
 }
 
@@ -257,7 +257,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void 
     sliceJobs.resize(cast(u64) numWorkers)
 
     var ptr = @dataof(range)
-    foreach &j in sliceJobs
+    for &j in sliceJobs
     {
         let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
@@ -272,7 +272,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void 
     }
 
     // Sync
-    foreach &j in sliceJobs do
+    for &j in sliceJobs do
         waitJob(j)
 }
 
@@ -320,7 +320,7 @@ public func parallelFor(count: u32, contextData: *void = null, stmt: #code(index
     sliceJobs.resize(cast(u64) numWorkers)
 
     var startIndex = 0'u32
-    foreach &j in sliceJobs
+    for &j in sliceJobs
     {
         let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
@@ -335,6 +335,6 @@ public func parallelFor(count: u32, contextData: *void = null, stmt: #code(index
     }
 
     // Sync
-    foreach &j in sliceJobs do
+    for &j in sliceJobs do
         waitJob(j)
 }

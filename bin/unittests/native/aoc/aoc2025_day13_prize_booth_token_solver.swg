@@ -47,7 +47,7 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
 {
     var result: PrizeReport
 
-    foreach machine in machines
+    for machine in machines
     {
         let tokenCost = solveMachine(machine, prizeOffset)
         if tokenCost > 0

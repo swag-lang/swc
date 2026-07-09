@@ -132,7 +132,7 @@ impl Image
         swap(&.width8, &.workingBuffer.width8)
     }
 
-    // Macro to foreach all pixels of the image in parallel chunks.
+    // Macro to visit all pixels of the image in parallel chunks.
     // Block parameters:
     // | pix       | address of the pixel
     // | image     | the processed image

@@ -260,7 +260,7 @@ private impl ComboBox
     {
         if forward
         {
-            foreach item, idx in .items
+            for item, idx in .items
             {
                 if !item.isSeparator
                 {
@@ -290,7 +290,7 @@ private impl ComboBox
         .popup.simFitY        = true
         .popup.selectedIdx    = .selectedIdx
 
-        foreach item in .items
+        for item in .items
         {
             if item.isSeparator do
                 .popup.addSeparator()

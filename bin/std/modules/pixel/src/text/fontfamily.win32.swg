@@ -55,7 +55,7 @@ impl FontFamily
 
             // Already here ?
             let ret = cast(*Array'FontFamilyEnumerate) cast(u64) lParam
-            foreach here in dref ret
+            for here in dref ret
             {
                 if here.name == x do
                     return TRUE

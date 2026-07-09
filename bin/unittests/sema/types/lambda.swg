@@ -52,7 +52,7 @@ func PtrMatch2(lhs: s32, rhs: bool)->string => "ok"
 func PtrMatch4(values: s32...)->s32
 {
     var result = 0
-    foreach value in values do
+    for value in values do
         result += value
     return result
 }

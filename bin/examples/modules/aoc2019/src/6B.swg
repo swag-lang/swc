@@ -54,7 +54,7 @@ func day6B()
     let lines    = assume File.readAllLines(dataPath)
 
     var map: HashTable'(string, string)
-    foreach l in lines
+    for l in lines
     {
         let split = Tokenize.split(l, ')''u8)
         map.add(split[1], split[0])

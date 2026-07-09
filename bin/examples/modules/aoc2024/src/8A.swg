@@ -87,18 +87,18 @@ func day8A()
     var antennas:  Array'{ f: u8, x, y: s64 }
     var antinodes: HashSet'{ x, y: u32 }
 
-    for l in lines
+    for l in @countof(lines)
     {
-        foreach f, c in lines[l]
+        for f, c in lines[l]
         {
             if f != '.' do
                 antennas.add({f, c, l})
         }
     }
 
-    foreach &antenna0, a in antennas
+    for &antenna0, a in antennas
     {
-        foreach &antenna1, b in antennas
+        for &antenna1, b in antennas
         {
             if a == b or antenna0.f != antenna1.f do
                 continue

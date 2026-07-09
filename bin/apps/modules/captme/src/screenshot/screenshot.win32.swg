@@ -30,7 +30,7 @@ internal
                 "Windows.UI.Core.CoreWindow", // UWP system windows
                 "ApplicationFrameWindow"] // UWP app frames
 
-            foreach s in systemClasses
+            for s in systemClasses
             {
                 if str == s do
                     return TRUE

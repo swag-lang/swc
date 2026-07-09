@@ -35,16 +35,16 @@ func day2A()
 
     var total = 0'u64
 
-    foreach l, gameIdx in lines
+    for l, gameIdx in lines
     {
         let first = Tokenize.split(l, ':''u8)
         let sets  = Tokenize.split(first[1], ';''u8)
 
         var game: { r, g, b: s32 }
-        foreach s in sets
+        for s in sets
         {
             let values = Tokenize.split(s, ',''u8)
-            foreach v in values
+            for v in values
             {
                 let one = Tokenize.split(v, ' ''u8)
                 switch one[1]

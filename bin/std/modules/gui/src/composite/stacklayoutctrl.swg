@@ -175,7 +175,7 @@ private impl StackLayoutCtrl
         var visible:  Array'(*Wnd)
         var hints:    Array'SizeHint
         var oldSizes: Array'Math.Point
-        foreach c in .childs
+        for c in .childs
         {
             if !c.isVisibleState() do
                 continue
@@ -195,7 +195,7 @@ private impl StackLayoutCtrl
         var totalMargins = 0'f32
         var totalWeight = 0'f32
         var shrinkPool = 0'f32
-        foreach c, idx in visible
+        for c, idx in visible
         {
             let margin = c.getLayoutMargin()
             let marginMain = .mainMargin(margin)

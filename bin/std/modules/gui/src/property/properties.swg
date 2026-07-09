@@ -160,7 +160,7 @@ impl IWnd for Properties
     // pastel background).
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
-        foreach it in .items
+        for it in .items
         {
             if it.validationLabel and it.validation != .None do
                 .applyValidationVisual(it)
@@ -420,7 +420,7 @@ impl Properties
             }
 
             let off = cast([*] u8) it.data - base0
-            foreach b in bases do
+            for b in bases do
                 it.dataInstances.add(cast(*u8) (cast([*] u8) b + off))
         }
     }
@@ -428,7 +428,7 @@ impl Properties
     // Refresh all displayed values.
     mtd refresh()
     {
-        foreach it in .items do
+        for it in .items do
             .refreshItem(it)
     }
 
@@ -579,7 +579,7 @@ impl Properties
                 item.editBox.editBoxFlags.remove(.ReadOnly)
         }
 
-        foreach c in item.line.childs
+        for c in item.line.childs
         {
             if c == item.label or c == item.labelDesc or c == item.validationLabel do
                 continue
@@ -616,7 +616,7 @@ impl Properties
         // paddings (syncColumnLabels, via applyLayout -> resize) that depend on it.
         .computeLevelMarks()
 
-        foreach it in .items do
+        for it in .items do
             .updateItemState(it)
         .updateValidation()
         .updateDefaults()

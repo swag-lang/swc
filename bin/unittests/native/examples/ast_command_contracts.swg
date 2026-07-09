@@ -109,7 +109,7 @@ func appendCommandEnvelopeDefinition(buffer: [*] u8, start: u64, contractName: s
     len = appendAst(buffer, len, contractName)
     len = appendAst(buffer, len, "\n{\n")
 
-    foreach parameter in typeFunc.parameters
+    for parameter in typeFunc.parameters
     {
         len = appendAst(buffer, len, "    ")
         len = appendAst(buffer, len, parameter.name)
@@ -135,9 +135,9 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
     len = appendAst(buffer, len, ")->bool\n{\n")
     len = appendAst(buffer, len, "    var ok = true\n")
 
-    foreach parameter in typeFunc.parameters
+    for parameter in typeFunc.parameters
     {
-        foreach attribute in typeFunc.attributes
+        for attribute in typeFunc.attributes
         {
             if cast(string) attribute.params[0].value != parameter.name do
                 continue
@@ -195,9 +195,9 @@ func appendCommandRedaction(buffer: [*] u8, start: u64, contractName: string, ty
     len = appendAst(buffer, len, contractName)
     len = appendAst(buffer, len, ") command\n")
 
-    foreach parameter in typeFunc.parameters
+    for parameter in typeFunc.parameters
     {
-        foreach attribute in typeFunc.attributes
+        for attribute in typeFunc.attributes
         {
             if cast(string) attribute.params[0].value != parameter.name do
                 continue
@@ -227,9 +227,9 @@ func appendCommandSecretCount(buffer: [*] u8, start: u64, contractName: string, 
     len = appendAst(buffer, len, "Secrets()->s32\n{\n")
     len = appendAst(buffer, len, "    var count: s32\n")
 
-    foreach parameter in typeFunc.parameters
+    for parameter in typeFunc.parameters
     {
-        foreach attribute in typeFunc.attributes
+        for attribute in typeFunc.attributes
         {
             if cast(string) attribute.params[0].value != parameter.name do
                 continue
@@ -270,7 +270,7 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     len = appendAst(buffer, len, handlerName)
     len = appendAst(buffer, len, "(")
 
-    foreach parameter, index in typeFunc.parameters
+    for parameter, index in typeFunc.parameters
     {
         if index != 0 do
             len = appendAst(buffer, len, ", ")

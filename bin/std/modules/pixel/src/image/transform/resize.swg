@@ -360,7 +360,7 @@ namespace ResizeTools
         var contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
 
         var f = {imgDst: imgDst, imgSrc: imgSrc, contrib: &contrib}
-        Jobs.parallelFor(|index, data| cast(u32) imgDst.width, &f)
+        Jobs.parallelFor(cast(u32) imgDst.width, &f)
         {
             if !data do
                 return
@@ -376,7 +376,7 @@ namespace ResizeTools
         var contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
 
         var f = {imgDst: imgDst, imgSrc: imgSrc, contrib: &contrib}
-        Jobs.parallelFor(|index, data| cast(u32) imgDst.height, &f)
+        Jobs.parallelFor(cast(u32) imgDst.height, &f)
         {
             if !data do
                 return

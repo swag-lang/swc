@@ -238,9 +238,90 @@ AstNodeRef Parser::parseCompilerCode()
         return nodeRef;
     }
 
+    // '#code => expr': explicit expression literal, mirroring 'func() => expr'
+    if (nextIs(TokenId::SymEqualGreater))
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCodeExpr>(consume());
+        consumeAssert(TokenId::SymEqualGreater);
+        nodePtr->nodeExprRef = parseExpression();
+        return nodeRef;
+    }
+
+    // '#code(a, b) { ... }' / '#code(a) => expr': literal with binder names that
+    // rename the callee's block parameters (alias slots) at the call site.
+    if (isCodeLiteralBinderAhead())
+    {
+        const TokenRef tokCode = consume();
+        const SpanRef  binder  = parseCodeBinderNames();
+
+        if (is(TokenId::SymLeftCurly))
+        {
+            auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::CompilerCodeBlock>(tokCode);
+            nodePtr->spanBinderNamesRef = binder;
+            nodePtr->nodeBodyRef        = parseFunctionBody();
+            return nodeRef;
+        }
+
+        consumeAssert(TokenId::SymEqualGreater);
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::CompilerCodeExpr>(tokCode);
+        nodePtr->spanBinderNamesRef = binder;
+        nodePtr->nodeExprRef        = parseExpression();
+        return nodeRef;
+    }
+
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCodeExpr>(consume());
     nodePtr->nodeExprRef    = parseExpression();
     return nodeRef;
+}
+
+bool Parser::isCodeLiteralBinderAhead() const
+{
+    // '#code' '(' [ident {',' ident}] ')' followed by '{' or '=>'. Anything else
+    // is the legacy expression literal (e.g. '#code (a + b)').
+    const Token* t = curToken_ + 1;
+    if (t >= lastToken_ || t->id != TokenId::SymLeftParen)
+        return false;
+
+    ++t;
+    while (t < lastToken_ && t->id != TokenId::SymRightParen)
+    {
+        if (t->id != TokenId::Identifier)
+            return false;
+        ++t;
+        if (t < lastToken_ && t->id == TokenId::SymComma)
+        {
+            ++t;
+            continue;
+        }
+        break;
+    }
+
+    if (t >= lastToken_ || t->id != TokenId::SymRightParen)
+        return false;
+
+    ++t;
+    return t < lastToken_ && (t->id == TokenId::SymLeftCurly || t->id == TokenId::SymEqualGreater);
+}
+
+SpanRef Parser::parseCodeBinderNames()
+{
+    const TokenRef openRef = consumeAssert(TokenId::SymLeftParen);
+
+    SmallVector<TokenRef> names;
+    while (!atEnd() && isNot(TokenId::SymRightParen))
+    {
+        const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        if (nameRef.isInvalid())
+            break;
+        names.push_back(nameRef);
+
+        if (isNot(TokenId::SymRightParen) &&
+            expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before).isInvalid())
+            break;
+    }
+
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    return names.empty() ? SpanRef::invalid() : ast_->pushSpan(names.span());
 }
 
 AstNodeRef Parser::parseCompilerTypeExpr()
@@ -456,6 +537,8 @@ AstNodeRef Parser::parseCompilerInject()
     nodePtr->spanReplaceNodeRef        = SpanRef::invalid();
     SmallVector<TokenRef>   replacementInstructionRefs;
     SmallVector<AstNodeRef> replacementNodeRefs;
+    SmallVector<TokenRef>   bindingNameRefs;
+    SmallVector<AstNodeRef> bindingNodeRefs;
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
@@ -480,6 +563,16 @@ AstNodeRef Parser::parseCompilerInject()
             continue;
         }
 
+        // '#inject(stmt, name = expr)': named value binding for a declared
+        // '#code' parameter of the injected code.
+        if (is(TokenId::Identifier) && nextIs(TokenId::SymEqual))
+        {
+            bindingNameRefs.push_back(consume());
+            consumeAssert(TokenId::SymEqual);
+            bindingNodeRefs.push_back(parseExpression());
+            continue;
+        }
+
         raiseError(DiagnosticId::parser_err_inject_invalid_instruction, ref());
         skipTo({TokenId::SymRightParen});
         break;
@@ -490,6 +583,11 @@ AstNodeRef Parser::parseCompilerInject()
     {
         nodePtr->spanReplaceInstructionRef = ast_->pushSpan(replacementInstructionRefs.span());
         nodePtr->spanReplaceNodeRef        = ast_->pushSpan(replacementNodeRefs.span());
+    }
+    if (!bindingNameRefs.empty())
+    {
+        nodePtr->spanBindingNameRef = ast_->pushSpan(bindingNameRefs.span());
+        nodePtr->spanBindingNodeRef = ast_->pushSpan(bindingNodeRefs.span());
     }
 
     return nodeRef;

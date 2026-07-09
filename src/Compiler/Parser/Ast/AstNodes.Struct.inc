@@ -38,6 +38,8 @@ enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
     Zero                 = 0,
     ImplicitCodeBlockArg = 1 << 0,
     CompilerMacroBody    = 1 << 1,
+    // Sema-synthesized block holding the '#inject' value bindings and the injected code.
+    InjectBindings = 1 << 2,
 };
 
 struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBlockFlagsE>
@@ -422,6 +424,9 @@ struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
 {
     AstNodeRef nodeBodyRef;
     TypeRef    payloadTypeRef = TypeRef::invalid();
+    // Call-site binder names ('#code(a, b) { ... }'), a span of identifier tokens.
+    // They rename the macro's alias slots, like '(|a, b|' call aliases do.
+    SpanRef spanBinderNamesRef = SpanRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
     Result     semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const;
@@ -434,6 +439,8 @@ struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
 {
     AstNodeRef nodeExprRef;
     TypeRef    payloadTypeRef = TypeRef::invalid();
+    // Call-site binder names ('#code(a) => expr'), a span of identifier tokens.
+    SpanRef spanBinderNamesRef = SpanRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     Result     semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const;
@@ -1084,9 +1091,29 @@ struct AstRetValType : AstNodeT<AstNodeId::RetValType>
 struct AstCodeType : AstNodeT<AstNodeId::CodeType>
 {
     AstNodeRef nodeTypeRef;
+    // Declared block parameters ('#code(a, b: T)'), a span of CodeParam nodes.
+    // Names are the default call-site binder names and the '#inject' binding names.
+    // Kept out of collectChildren: they are a compile-time naming contract, not
+    // semantically visited nodes.
+    SpanRef spanParamsRef = SpanRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
     Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
+
+// -----------------------------------------------------------------------------
+enum class AstCodeParamFlagsE : AstNode::ParserFlags
+{
+    Zero = 0,
+    Var  = 1 << 0, // '#code(var a)': the injected binding is mutable
+};
+
+struct AstCodeParam : AstNodeT<AstNodeId::CodeParam, AstCodeParamFlagsE>
+{
+    TokenRef   tokNameRef;
+    AstNodeRef nodeTypeRef = AstNodeRef::invalid();
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1303,6 +1330,16 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
 
 struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
+    // When valid, the declared symbol uses this identifier instead of the one
+    // derived from the name token. Used by sema-synthesized declarations whose
+    // effective name comes from another source view (e.g. '#inject' bindings
+    // renamed by a call-site binder).
+    IdentifierRef forcedIdentRef = IdentifierRef::invalid();
+    // For '#inject' binding declarations: the synthesized block that owns them.
+    // A binding only shadows caller pre-resolved symbols for code injected by the
+    // same '#inject' (hygiene across nested macro expansions).
+    AstNodeRef injectBlockRef = AstNodeRef::invalid();
+
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreDecl(Sema& sema) const;
@@ -1747,6 +1784,13 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
     AstNodeRef nodeExprRef;
     SpanRef    spanReplaceInstructionRef;
     SpanRef    spanReplaceNodeRef;
+    // Named value bindings ('#inject(stmt, v = expr)'): parallel spans of
+    // identifier tokens and initializer expressions. Each binding declares a
+    // variable visible to the injected code, named after the matching declared
+    // '#code' parameter (or its call-site binder rename). Initializers evaluate
+    // in the scope of the '#inject' itself.
+    SpanRef spanBindingNameRef = SpanRef::invalid();
+    SpanRef spanBindingNodeRef = SpanRef::invalid();
 
     static Result semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef);
     Result        semaPostNode(Sema& sema) const;
@@ -1756,6 +1800,7 @@ struct AstCompilerInject : AstNodeT<AstNodeId::CompilerInject>
     {
         AstNode::collectChildren(out, {nodeExprRef});
         AstNode::collectChildren(out, ast, spanReplaceNodeRef);
+        AstNode::collectChildren(out, ast, spanBindingNodeRef);
     }
 };
 

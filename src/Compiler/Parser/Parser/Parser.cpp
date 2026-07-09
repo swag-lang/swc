@@ -517,6 +517,9 @@ void Parser::expectEndStatement()
         return;
     if (isAny(TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket))
         return;
+    // Trailing code literal of the preceding call: 'call(args) #code(a, b) { ... }'
+    if (is(TokenId::CompilerCode))
+        return;
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 

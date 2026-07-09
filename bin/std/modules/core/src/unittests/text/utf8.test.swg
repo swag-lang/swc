@@ -13,7 +13,7 @@ func assertUtf8String(value: const &String, expected: string)->bool
 
 func firstNonAsciiRune(text: string)->rune
 {
-    Utf8.visitRunes(|c, charIndex, byteIndex| text)
+    Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
         discard charIndex
         discard byteIndex
@@ -254,7 +254,7 @@ func firstNonAsciiRune(text: string)->rune
     var charIndexSum: u64
     var byteIndexSum: u64
 
-    Utf8.visitRunes(|c, charIndex, byteIndex| text)
+    Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
         runeSum += cast(u32) c
         charIndexSum += charIndex

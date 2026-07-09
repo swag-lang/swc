@@ -1073,10 +1073,10 @@ namespace
 Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
 {
     if (hasFlag(AstVarDeclFlagsE::Const))
-        SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
+        SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef, forcedIdentRef);
     else
     {
-        SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+        SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef, forcedIdentRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
         {
             auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
@@ -1104,6 +1104,18 @@ Result AstSingleVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
         if (requiresConstExprInitializer(sema, flags()))
             frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
         frame.hideLookupSymbol(sema.curViewSymbol().sym());
+
+        // '#inject' binding initializers evaluate on the macro side of the caller-
+        // parented bindings block, like '#up' expressions in a '#macro' block.
+        if (injectBlockRef.isValid())
+        {
+            if (SemaScope* upScope = sema.resolvedUpLookupScope())
+            {
+                frame.setLookupScope(upScope);
+                frame.setLookupScopeOverrideNodes(nullptr);
+            }
+        }
+
         sema.pushFramePopOnPostChild(frame, childRef);
     }
     return Result::Continue;

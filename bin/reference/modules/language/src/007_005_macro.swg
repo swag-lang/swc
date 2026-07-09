@@ -248,9 +248,10 @@ Remap both 'break' and 'continue' to influence outer/inner loop flow.
 }
 
 /**
-# Using Aliases in Macros
+# Using Aliases in Macros (legacy form)
 Special variables '#alias<num>' inside a macro can be overridden with named aliases
-at the call site for clearer code.
+at the call site for clearer code. This is the historical form; declared block
+parameters (next sections) are the preferred way to name what a macro exposes.
 */
 #test
 {
@@ -279,4 +280,127 @@ at the call site for clearer code.
         @assert(x == 20) // replaces '#alias0'
         @assert(y == 40) // replaces '#alias1'
     }
+}
+
+/**
+# Declared Block Parameters
+A '#code' parameter declares like a function, with 'func' replaced by '#code':
+- '#code' alone is a void statement block.
+- '#code->T' is an expression block of type T ('#code T' is the legacy spelling).
+- '#code(a, b: T)' declares named block parameters (types are optional).
+
+'#inject' binds the parameters by name: no '#alias', no '#macro', no '#up'.
+Binding initializers evaluate in the macro's own scope; the injected code sees
+the resulting values under the declared names.
+*/
+#test
+{
+    #[Swag.Macro]
+    func call(v: s32, stmt: #code(value: s32, double: s32))
+    {
+        #inject(stmt, value = v, double = v * 2)
+    }
+
+    // The declared names are visible at the call site by default.
+    call(20)
+    {
+        @assert(value == 20)
+        @assert(double == 40)
+    }
+}
+
+/**
+# Renaming Block Parameters at the Call Site
+The caller can rename the block parameters positionally with a '#code(...)'
+literal placed before the block. The same literal works inline, as a regular
+argument.
+*/
+#test
+{
+    #[Swag.Macro]
+    func call(v: s32, stmt: #code(value: s32, double: s32))
+    {
+        #inject(stmt, value = v, double = v * 2)
+    }
+
+    var total = 0
+
+    // Trailing form: the binder renames 'value' to 'x' and 'double' to 'y'.
+    call(20) #code(x, y) { total = x + y }
+    @assert(total == 60)
+
+    // Inline form: the code literal is a normal argument.
+    call(10, #code(a, b) { total = a + b })
+    @assert(total == 30)
+
+    // Partial binder: only the first parameter is renamed, like 'foreach'.
+    call(5) #code(first) { total = first + double }
+    @assert(total == 15)
+}
+
+/**
+# Expression Code Literals
+'#code => expr' is the expression literal, mirroring the short function form
+'func() => expr'.
+*/
+#test
+{
+    #[Swag.Macro]
+    func check(cond: #code->bool)
+    {
+        @assert(#inject(cond))
+    }
+
+    check(#code => 1 == 1)
+    check(3 > 2) // an expression argument converts to code implicitly
+}
+
+/**
+# Mutable Block Parameters
+A 'var' parameter gives the injected code a mutable binding. A typed parameter
+also types (and checks) the binding, which is required for references.
+*/
+#test
+{
+    #[Swag.Macro]
+    func withCounter(start: s32, stmt: #code(var counter: s32))
+    {
+        #inject(stmt, counter = start)
+    }
+
+    var got = 0
+    withCounter(10)
+    {
+        counter += 5
+        got = counter
+    }
+
+    @assert(got == 15)
+}
+
+/**
+# Bindings Compose with 'break' Remapping
+Named bindings and control-flow replacements live in the same '#inject'.
+*/
+#test
+{
+    #[Swag.Macro]
+    func repeat(count: s32, stmt: #code(index: s32))
+    {
+        #scope(Outer)
+        for i in count
+        {
+            #inject(stmt, index = i, break = break to Outer)
+        }
+    }
+
+    var total = 0
+    repeat(10)
+    {
+        total += index
+        if index == 3 do
+            break
+    }
+
+    @assert(total == 0 + 1 + 2 + 3)
 }

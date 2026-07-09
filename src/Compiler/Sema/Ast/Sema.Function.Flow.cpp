@@ -743,7 +743,12 @@ namespace
                     if (siblingRef.isInvalid() || siblingRef == searchRef)
                         continue;
 
-                    return sema.node(siblingRef).is(AstNodeId::EmbeddedBlock) ? siblingRef : AstNodeRef::invalid();
+                    // A trailing '{ ... }' block or an explicit trailing code literal
+                    // 'call(args) #code(a, b) { ... }' both bind to the call.
+                    const AstNode& siblingNode = sema.node(siblingRef);
+                    if (siblingNode.is(AstNodeId::EmbeddedBlock) || siblingNode.is(AstNodeId::CompilerCodeBlock))
+                        return siblingRef;
+                    return AstNodeRef::invalid();
                 }
 
                 wrappedInSingleStmtBlock = parentNode->is(AstNodeId::EmbeddedBlock) && children.size() == 1;
@@ -761,6 +766,13 @@ namespace
 
     AstNodeRef makeTrailingCodeBlockArgument(Sema& sema, AstNodeRef siblingRef, TypeRef payloadTypeRef)
     {
+        // An explicit trailing code literal is already a code node: consume it as-is.
+        if (auto* codeBlock = sema.node(siblingRef).safeCast<AstCompilerCodeBlock>())
+        {
+            codeBlock->payloadTypeRef = payloadTypeRef;
+            return siblingRef;
+        }
+
         auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeBlock>(sema.node(siblingRef).tokRef());
         wrappedPtr->setCodeRef(sema.node(siblingRef).codeRef());
         wrappedPtr->nodeBodyRef    = siblingRef;

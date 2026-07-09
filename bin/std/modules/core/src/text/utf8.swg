@@ -785,39 +785,34 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 }
 
 // Macro to foreach the unicode characters of the utf8 sequence.
-// * '#alias0' will contain the character
-// * '#alias1' will contain the character index
-// * '#alias2' will contain the byte index of that character within the utf8 sequence
+// Block parameters:
+// * 'c':       the character
+// * 'charIdx': the character index
+// * 'byteIdx': the byte index of that character within the utf8 sequence
 #[Swag.Macro]
-func visitRunes(buffer: const [..] u8, stmt: #code void)
+func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
 {
     var count = @countof(buffer)
     if !count do
         return
 
-    var byteIdx = 0'u64
-    var charIdx = 0'u64
-    var scan    = @dataof(buffer)
+    var curByteIdx = 0'u64
+    var curCharIdx = 0'u64
+    var scan       = @dataof(buffer)
     while count
     {
         let sl = @mkslice(scan, count)
-        let (c, eat) = decodeRune(sl)
+        let (curRune, eat) = decodeRune(sl)
         if eat == 0 do
             break
 
-        #macro
+        #scope(Inside)
         {
-            #scope(Inside)
-            {
-                let #alias0 = #up c
-                let #alias1 = #up charIdx
-                let #alias2 = #up byteIdx
-                #inject(#up stmt, continue = break to Inside)
-            }
+            #inject(stmt, c = curRune, charIdx = curCharIdx, byteIdx = curByteIdx, continue = break to Inside)
         }
 
-        charIdx += 1
-        byteIdx, scan += eat
+        curCharIdx += 1
+        curByteIdx, scan += eat
         count -= eat
     }
 }
@@ -899,7 +894,7 @@ func beautifyName(name: const [..] u8)->String
 
     var first    = true
     var wasUpper = true
-    visitRunes(|c| name)
+    visitRunes(name)
     {
         if Unicode.isUpper(c)
         {

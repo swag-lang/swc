@@ -402,7 +402,7 @@ namespace
         return true;
     }
 
-    bool shouldSkipMacroInjectPreResolveChild(const AstNode& parentNode, AstNodeRef childRef)
+    bool shouldSkipMacroInjectPreResolveChild(Sema& sema, const AstNode& parentNode, AstNodeRef childRef)
     {
         if (const auto* closureExpr = parentNode.safeCast<AstClosureExpr>())
             return childRef == closureExpr->nodeBodyRef;
@@ -412,6 +412,22 @@ namespace
 
         if (const auto* functionDecl = parentNode.safeCast<AstFunctionDecl>())
             return childRef == functionDecl->nodeBodyRef;
+
+        // '#inject' value bindings resolve at the inject site (the macro's own scope):
+        // they are not caller code, so caller pre-resolution must leave them alone.
+        if (const auto* injectNode = parentNode.safeCast<AstCompilerInject>())
+        {
+            if (injectNode->spanBindingNodeRef.isValid())
+            {
+                SmallVector<AstNodeRef> bindingNodes;
+                sema.ast().appendNodes(bindingNodes, injectNode->spanBindingNodeRef);
+                for (const AstNodeRef bindingRef : bindingNodes)
+                {
+                    if (bindingRef == childRef)
+                        return true;
+                }
+            }
+        }
 
         return false;
     }
@@ -473,7 +489,7 @@ namespace
         parentNode.collectChildrenFromAst(children, sema.ast());
         for (const AstNodeRef childRef : children)
         {
-            if (shouldSkipMacroInjectPreResolveChild(parentNode, childRef))
+            if (shouldSkipMacroInjectPreResolveChild(sema, parentNode, childRef))
                 continue;
             SWC_RESULT(preResolveMacroInjectCallerIdentifiers(sema, childRef, inlinePayload, nodeRef));
         }
@@ -509,6 +525,83 @@ namespace
         }
 
         return payload;
+    }
+
+    // Builds the variable declarations for the named value bindings of an '#inject'
+    // ('#inject(stmt, v = expr)'). Each binding declares a local visible to the
+    // injected code, named after the matching declared '#code' parameter or its
+    // call-site alias/binder rename. Initializers stay at the '#inject' site, so they
+    // evaluate in the macro's own scope with no '#up' or '#macro' wrapping needed.
+    Result makeInjectBindingDecls(Sema& sema, const AstCompilerInject& injectNode, AstNodeRef blockRef, SmallVector<AstNodeRef>& outStmts)
+    {
+        SmallVector<TokenRef>   bindingNames;
+        SmallVector<AstNodeRef> bindingExprs;
+        sema.ast().appendTokens(bindingNames, injectNode.spanBindingNameRef);
+        sema.ast().appendNodes(bindingExprs, injectNode.spanBindingNodeRef);
+        SWC_ASSERT(bindingNames.size() == bindingExprs.size());
+
+        const SemaInlinePayload* rootPayload = sema.frame().currentInlinePayload();
+        if (!rootPayload)
+            rootPayload = SemaHelpers::effectiveInlinePayload(sema);
+
+        for (uint32_t bindingIndex = 0; bindingIndex < bindingNames.size(); ++bindingIndex)
+        {
+            const SourceCodeRef nameRef{injectNode.srcViewRef(), bindingNames[bindingIndex]};
+            const IdentifierRef bindingIdRef = sema.idMgr().addIdentifier(sema.ctx(), nameRef);
+
+            // Locate the slot of this name among the declared '#code' parameters.
+            uint32_t                 slot         = UINT32_MAX;
+            const SemaInlinePayload* foundPayload = nullptr;
+            for (const SemaInlinePayload* payload = rootPayload; payload && !foundPayload; payload = payload->parentInlinePayload)
+            {
+                for (uint32_t paramIndex = 0; paramIndex < payload->codeParamNames.size(); ++paramIndex)
+                {
+                    if (payload->codeParamNames[paramIndex] == bindingIdRef)
+                    {
+                        slot         = paramIndex;
+                        foundPayload = payload;
+                        break;
+                    }
+                }
+            }
+
+            if (!foundPayload || slot >= 10)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_inject_binding_unknown, nameRef);
+                diag.addArgument(Diagnostic::ARG_SYM, Utf8{sema.srcView(nameRef.srcViewRef).tokenString(nameRef.tokRef)});
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            // Effective name: call-site alias/binder rename when present, declared name
+            // otherwise (same resolution as '#aliasN' placeholders).
+            IdentifierRef effectiveIdRef = SemaHelpers::resolveAliasIdentifier(sema, static_cast<TokenId>(static_cast<uint32_t>(TokenId::CompilerAlias0) + slot));
+            if (!effectiveIdRef.isValid())
+                effectiveIdRef = bindingIdRef;
+
+            auto [varRef, varPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(bindingNames[bindingIndex]);
+            varPtr->setCodeRef(nameRef);
+            varPtr->tokNameRef     = bindingNames[bindingIndex];
+            varPtr->forcedIdentRef = effectiveIdRef;
+            varPtr->injectBlockRef = blockRef;
+            varPtr->nodeTypeRef    = AstNodeRef::invalid();
+            varPtr->nodeInitRef    = bindingExprs[bindingIndex];
+            if (!(foundPayload->codeParamVarMask & (1u << slot)))
+                varPtr->addFlag(AstVarDeclFlagsE::Let);
+
+            // A typed '#code' parameter ('#code(line: &String)') types the binding,
+            // which is required for reference bindings and checks the value otherwise.
+            if (slot < foundPayload->codeParamTypeNodes.size() && foundPayload->codeParamTypeNodes[slot].isValid() && foundPayload->codeParamSourceAst)
+            {
+                const SemaClone::CloneContext typeCloneContext{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, foundPayload->codeParamSourceAst};
+                const AstNodeRef              typeCloneRef = SemaClone::cloneAst(sema, foundPayload->codeParamTypeNodes[slot], typeCloneContext);
+                sema.node(varRef).cast<AstSingleVarDecl>().nodeTypeRef = typeCloneRef;
+            }
+
+            outStmts.push_back(varRef);
+        }
+
+        return Result::Continue;
     }
 
     Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef, std::span<const SemaClone::NodeReplacement> replacements = std::span<const SemaClone::NodeReplacement>{})
@@ -562,7 +655,34 @@ namespace
         if (clonedRef.isInvalid())
             return Result::Error;
 
-        sema.setSubstitute(ownerRef, clonedRef);
+
+        // Named value bindings: wrap the injected code in a block whose leading
+        // declarations bind the '#code' parameter values. Initializers resolve at the
+        // '#inject' site (macro scope); the injected code, right after them in the same
+        // block, sees the declarations through the lexical scope chain.
+        AstNodeRef substituteRef = clonedRef;
+        const auto* injectNode   = sema.node(ownerRef).safeCast<AstCompilerInject>();
+        if (injectNode && injectNode->spanBindingNameRef.isValid())
+        {
+            auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(sema.node(ownerRef).tokRef());
+            blockPtr->setCodeRef(sema.node(ownerRef).codeRef());
+            blockPtr->addFlag(AstEmbeddedBlockFlagsE::InjectBindings);
+
+            SmallVector<AstNodeRef> stmts;
+            SWC_RESULT(makeInjectBindingDecls(sema, *injectNode, blockRef, stmts));
+            stmts.push_back(clonedRef);
+
+            sema.node(blockRef).cast<AstEmbeddedBlock>().spanChildrenRef = sema.ast().pushSpan(stmts.span());
+            substituteRef                                                = blockRef;
+
+            // The macro payload drives the block's caller-parented scope (see
+            // AstEmbeddedBlock::semaPreNode) and the resolution context of the
+            // binding initializers.
+            if (isMacroInject)
+                sema.setInlinePayload(blockRef, const_cast<SemaInlinePayload*>(inlinePayload));
+        }
+
+        sema.setSubstitute(ownerRef, substituteRef);
         if (isMacroInject)
         {
             SWC_RESULT(preResolveMacroInjectCallerIdentifiers(sema, clonedRef, *inlinePayload));
@@ -580,16 +700,29 @@ namespace
             // cloned #inject subtree is not structurally inside that original inline root.
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
             frame.setInlineContextRootRef(AstNodeRef::invalid());
-            frame.setLookupScope(injectScope ? injectScope : callerScope);
-            frame.setLookupScopeOverrideNodes(makeLookupScopeOverrideNodes(sema, clonedRef));
+            if (substituteRef == clonedRef)
+            {
+                frame.setLookupScope(injectScope ? injectScope : callerScope);
+                frame.setLookupScopeOverrideNodes(makeLookupScopeOverrideNodes(sema, clonedRef));
+            }
+            else
+            {
+                // The bindings block provides caller-parented scoping (like '#macro'):
+                // resolution follows the natural scope chain.
+                frame.setLookupScope(nullptr);
+                frame.setLookupScopeOverrideNodes(nullptr);
+            }
             frame.setUpLookupScope(inlinePayload->upLookupScope ? inlinePayload->upLookupScope : callerScope);
             for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
                 frame.pushBindingVar(bindingVar);
             for (const TypeRef bindingType : inlinePayload->callerBindingTypes)
                 frame.pushBindingType(bindingType);
-            sema.pushFramePopOnPostNode(frame, clonedRef);
+            // The pop is keyed on the substituted ROOT: deferred frame pops are strict
+            // LIFO, and the root's own context frame (EmbeddedBlock preNode) stacks on
+            // top with the same key, so both unwind together at its post-node.
+            sema.pushFramePopOnPostNode(frame, substituteRef);
         }
-        sema.restartCurrentNode(clonedRef);
+        sema.restartCurrentNode(substituteRef);
         return Result::Continue;
     }
 

@@ -205,22 +205,21 @@ impl String
     }
 
     // Visit the String runes
-    // See [[Utf8.visitRunes]] for aliases
+    // See [[Utf8.visitRunes]] for the block parameters: the code value is forwarded as-is.
     #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisitRunes(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitRunes(stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
     {
         #if ptr do
             #error("visiting runes by pointer is not supported")
         #if back do
             #error("visiting runes in reverse order is not supported")
-        Utf8.visitRunes(|#alias0, #alias1, #alias2| .toSlice(), stmt)
+        Utf8.visitRunes(.toSlice(), stmt)
     }
 
     // Visit the String utf8 bytes
-    // * `#alias0` will contain the byte or the pointer to the byte
-    // * `#alias1` will contain the byte index
+    // Block parameters: 'item' is the byte (or the pointer to it), 'index' the byte index.
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code(var item, var index: u64))
     {
         if !.length do
             return
@@ -238,26 +237,23 @@ impl String
             #else do
                 scan += 1
 
-            #macro
-            {
-                #if #up ptr do
-                    var #alias0 = #up scan
-                #else do
-                    var #alias0 = dref #up scan
-                #if #up back do
-                    var #alias1 = #up me.length - @index - 1
-                #else do
-                    var #alias1 = @index
-                #inject(#up stmt)
-            }
+            #if back do
+                let visitIdx = me.length - @index - 1
+            #else do
+                let visitIdx = @index
+
+            #if ptr do
+                #inject(stmt, item = scan, index = visitIdx)
+            #else do
+                #inject(stmt, item = dref scan, index = visitIdx)
         }
     }
 
-    // Default foreach, by bytes.
+    // Default foreach, by bytes: the code value is forwarded to 'opVisitBytes' as-is.
     #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(var item, var index: u64))
     {
-        .opVisitBytes'(ptr, back)(|#alias0, #alias1| stmt)
+        .opVisitBytes'(ptr, back)(stmt)
     }
 
     // Set the length of the String to 0

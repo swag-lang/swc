@@ -91,9 +91,9 @@ impl HashSet
 
     // Provides a way to iterate over each key in the set.
     // This is a macro that accepts a code block to execute for each key.
-    // Alias: #alias0 for the key or a pointer to it.
+    // Block parameter: 'key' is the key (or a pointer to it).
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(key))
     {
         if !.count do
             return
@@ -111,22 +111,13 @@ impl HashSet
                 continue
 
             #scope(Down)
-            #macro
             {
-                #if #up ptr
-                {
-                    let #alias0 = &#up me.table[#up tableIndex].key
-                }
-                #elif Reflection.isStruct(#up K)
-                {
-                    let #alias0 = cast(const &#up K) &#up me.table[#up tableIndex].key
-                }
-                #else
-                {
-                    let #alias0 = #up me.table[#up tableIndex].key
-                }
-
-                #inject(#up stmt, break = break to Up, continue = break to Down)
+                #if ptr do
+                    #inject(stmt, key = &me.table[tableIndex].key, break = break to Up, continue = break to Down)
+                #elif Reflection.isStruct(K) do
+                    #inject(stmt, key = cast(const &K) &me.table[tableIndex].key, break = break to Up, continue = break to Down)
+                #else do
+                    #inject(stmt, key = me.table[tableIndex].key, break = break to Up, continue = break to Down)
             }
 
             remain -= 1

@@ -50,9 +50,9 @@ impl ConcatBuffer
 
     // Provides a way to iterate over each bucket in the buffer.
     // This is a macro that accepts a code block to execute for each bucket.
-    // Alias: #alias0 for the bucket pointer.
+    // Block parameter: 'bucket' is the bucket pointer.
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(bucket))
     {
         if !.firstBucket do
             return
@@ -66,11 +66,7 @@ impl ConcatBuffer
                 while reverseBucket.next != tail do
                     reverseBucket = reverseBucket.next
 
-                #macro
-                {
-                    let #alias0 = #up reverseBucket
-                    #inject(#up stmt)
-                }
+                #inject(stmt, bucket = reverseBucket)
 
                 tail = reverseBucket
             }
@@ -81,11 +77,7 @@ impl ConcatBuffer
         var b = .firstBucket
         while b != .lastBucket.next
         {
-            #macro
-            {
-                let #alias0 = #up b
-                #inject(#up stmt)
-            }
+            #inject(stmt, bucket = b)
 
             b = b.next
         }

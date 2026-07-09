@@ -169,6 +169,9 @@ private:
     AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerRun();
     AstNodeRef parseCompilerCode();
+    bool       isCodeLiteralBinderAhead() const;
+    SpanRef    parseCodeBinderNames();
+    SpanRef    parseCodeTypeParams();
     AstNodeRef parseCompilerFunc();
     AstNodeRef parseCompilerGlobal();
     AstNodeRef parseCompilerImport();

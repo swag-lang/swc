@@ -47,18 +47,14 @@ impl Image
         .workingBuffer = null
     }
 
+    // Block parameters: 'pixel' is the address of the current pixel, 'index' its ordinal.
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    func(ptr: bool, back: bool) opVisit(me, stmt: #code(var pixel, var index: u64))
     {
         var scan = pixels.buffer
         for width * height
         {
-            #macro
-            {
-                var #alias0 = #up scan
-                var #alias1 = @index
-                #inject(#up stmt)
-            }
+            #inject(stmt, pixel = scan, index = @index)
 
             scan += bpp8
         }
@@ -137,7 +133,7 @@ impl Image
     }
 
     // Macro to foreach all pixels of the image in parallel chunks.
-    // Exported variables:
+    // Block parameters:
     // | pix       | address of the pixel
     // | image     | the processed image
     // | index     | the pixel index
@@ -145,29 +141,27 @@ impl Image
     // | y         | the pixel y coordinates
     // | userData  | as passed to the macro
     #[Swag.Macro]
-    mtd visitPixels(pixelUserData: *void = null, stride: s32 = 1, stmt: #code void)
+    mtd visitPixels(pixelUserData: *void = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
         Debug.assert(stride > 0)
 
         let self: const &Image = me
         var p = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(|buffer, data| @mkslice(cast([*] u8) self.pixels.buffer, self.pixels.count), cast(u32) (.bpp8 * stride), &p)
+        Jobs.parallelVisit(@mkslice(cast([*] u8) self.pixels.buffer, self.pixels.count), cast(u32) (.bpp8 * stride), &p)
         {
             if !data do
                 return
-            let p = cast(*#decltype(p)) data
-            #macro
-            {
-                let image    = #up p.image
-                let userData = #up p.userData
-                var pix      = cast([*] u8) #up buffer
+            let p        = cast(*#decltype(p)) data
+            let pixPtr   = cast([*] u8) buffer
+            let pixIndex = cast(u64) (pixPtr - p.image.pixels.buffer) / p.image.bpp8
 
-                let index = cast(u64) (pix - image.pixels.buffer) / image.bpp8
-                let x     = cast(s32) index % image.width
-                let y     = cast(s32) index / image.width
-
-                #inject(#up stmt)
-            }
+            #inject(stmt,
+                    pix = pixPtr,
+                    image = p.image,
+                    index = pixIndex,
+                    x = cast(s32) pixIndex % p.image.width,
+                    y = cast(s32) pixIndex / p.image.width,
+                    userData = p.userData)
         }
     }
 

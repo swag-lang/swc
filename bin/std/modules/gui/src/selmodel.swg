@@ -99,20 +99,16 @@ impl SelModel
         }
     }
 
+    // Block parameters: 'item' is the selected index, 'index' its ordinal within the range.
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
     {
         #scope(Up)
         foreach &r in .selection
         {
             for i in r.start to r.end
             {
-                #macro
-                {
-                    let #alias0 = #up i
-                    let #alias1 = @index
-                    #inject(#up stmt, break = break to Up)
-                }
+                #inject(stmt, item = i, index = @index, break = break to Up)
             }
         }
     }

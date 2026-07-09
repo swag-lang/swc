@@ -46,12 +46,12 @@ impl List
     // Provides a way to iterate over each element in the list.
     // This is a macro that accepts a code block to execute for each element.
     // Visiting by pointer and in reverse order is supported.
-    // Aliases:
-    // - #alias0: The value of the element.
-    // - #alias1: A pointer to the list node ('ListEntry').
-    // - #alias2: The index of the element.
+    // Block parameters:
+    // - 'item':  The value of the element (or a pointer to it).
+    // - 'node':  A pointer to the list node ('ListEntry').
+    // - 'index': The index of the element.
     #[Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, node, index: u64))
     {
         #if back do
             var n = .tail
@@ -62,18 +62,13 @@ impl List
         while n
         {
             #scope(Down)
-            #macro
             {
-                #if #up ptr do
-                    let #alias0 = cast(*#up T) &#up n.value
-                #elif Reflection.isStruct(#up T) do
-                    let #alias0 = cast(&#up T) &#up n.value
+                #if ptr do
+                    #inject(stmt, item = cast(*T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
+                #elif Reflection.isStruct(T) do
+                    #inject(stmt, item = cast(&T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
                 #else do
-                    let #alias0 = #up n.value
-                let #alias1 = #up n
-                let #alias2 = #up ordinal
-
-                #inject(#up stmt, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
             }
 
             #if back do

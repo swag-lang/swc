@@ -920,6 +920,10 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseCompilerMacro();
         case TokenId::CompilerInject:
             return parseCompilerInject();
+        case TokenId::CompilerCode:
+            // Trailing code literal of the preceding call: 'call(args) #code(a, b) { ... }'.
+            // Attached to the call during sema, like a trailing '{ ... }' block.
+            return parseCompilerCode();
 
         case TokenId::KwdWith:
             return parseWith();

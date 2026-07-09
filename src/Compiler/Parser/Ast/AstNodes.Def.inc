@@ -41,6 +41,7 @@ SWC_NODE_DEF(ArrayType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(LambdaType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(RetValType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CodeType, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(CodeParam, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(VariadicType, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(TypedVariadicType, AstNodeIdFlagsE::Zero)
 

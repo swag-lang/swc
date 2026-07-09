@@ -123,8 +123,9 @@ impl StaticArray
     // Provides a way to iterate over each element in the array.
     // This is a macro that accepts a code block to execute for each element.
     // Visiting by pointer and in reverse order is supported.
+    // Block parameters: 'item' is the element (or a pointer to it), 'index' its ordinal.
     #[Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
         if !.count do
             return
@@ -141,20 +142,18 @@ impl StaticArray
                 scan -= 1
             #else do
                 scan += 1
-            #macro
-            {
-                #if #up ptr do
-                    let #alias0 = cast(*#up T) #up scan
-                #elif Reflection.isStruct(#up T) do
-                    let #alias0 = cast(&#up T) #up scan
-                #else do
-                    let #alias0 = #up scan[0]
-                #if #up back do
-                    let #alias1 = #up me.count - @index - 1
-                #else do
-                    let #alias1 = @index
-                #inject(#up stmt)
-            }
+
+            #if back do
+                let visitIdx = me.count - @index - 1
+            #else do
+                let visitIdx = @index
+
+            #if ptr do
+                #inject(stmt, item = cast(*T) scan, index = visitIdx)
+            #elif Reflection.isStruct(T) do
+                #inject(stmt, item = cast(&T) scan, index = visitIdx)
+            #else do
+                #inject(stmt, item = scan[0], index = visitIdx)
         }
     }
 

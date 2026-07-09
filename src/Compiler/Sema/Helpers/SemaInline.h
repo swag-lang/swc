@@ -34,6 +34,15 @@ struct SemaInlinePayload
     SmallVector2<SymbolVariable*>                    localVariables;
     std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
     std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers  = {};
+    // Declared '#code' parameter names of the callee ('stmt: #code(v, dbl)'), in slot
+    // order. Fallback names for slots with no call-site alias/binder, and the naming
+    // contract for '#inject' value bindings. Bit k of the mask: parameter k is 'var'.
+    // When a parameter is typed ('#code(line: &String)'), its type node (owned by
+    // codeParamSourceAst) types the synthesized binding declaration.
+    SmallVector2<IdentifierRef> codeParamNames;
+    SmallVector2<AstNodeRef>    codeParamTypeNodes;
+    const Ast*                  codeParamSourceAst = nullptr;
+    uint32_t                    codeParamVarMask   = 0;
     AstNodeRef                                       callRef          = AstNodeRef::invalid();
     AstNodeRef                                       inlineRootRef    = AstNodeRef::invalid();
     TypeRef                                          returnTypeRef    = TypeRef::invalid();

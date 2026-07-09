@@ -381,7 +381,7 @@ impl Painter
     {
         var result: retval
         result.reserve(@countof(text))
-        Utf8.visitRunes(|c| text)
+        Utf8.visitRunes(text)
         {
             result.add(font.getGlyphDesc(c))
         }

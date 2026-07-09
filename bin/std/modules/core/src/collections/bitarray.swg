@@ -125,9 +125,9 @@ public impl BitArray
 
     // Provides a way to iterate over each bit in the array.
     // This is a macro that accepts a code block to execute for each bit.
-    // Aliases: #alias0 for the boolean value, #alias1 for the index.
+    // Block parameters: 'item' is the boolean value, 'index' the bit index.
     #[Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: bool, index: u64))
     {
         #if ptr do
             #error("visiting by pointer is not supported for BitArray")
@@ -148,11 +148,8 @@ public impl BitArray
             for bitIndex in bitsInWord
             {
                 #scope(Down)
-                #macro
                 {
-                    let #alias0 = cast(bool) (#up me.buffer[#up idx] & (1'u32 << cast(u32) #up bitIndex))
-                    let #alias1 = #up countBits
-                    #inject(#up stmt, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(bool) (me.buffer[idx] & (1'u32 << cast(u32) bitIndex)), index = countBits, break = break to Up, continue = break to Down)
                 }
 
                 countBits += 1

@@ -293,11 +293,18 @@ IdentifierRef SemaHelpers::resolveAliasIdentifier(const Sema& sema, const TokenI
         return IdentifierRef::invalid();
 
     const uint32_t slot = aliasSlotIndex(tokenId);
-    while (inlinePayload)
+    for (const auto* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
     {
-        if (slot < inlinePayload->aliasIdentifiers.size() && inlinePayload->aliasIdentifiers[slot].isValid())
-            return inlinePayload->aliasIdentifiers[slot];
-        inlinePayload = inlinePayload->parentInlinePayload;
+        if (slot < payload->aliasIdentifiers.size() && payload->aliasIdentifiers[slot].isValid())
+            return payload->aliasIdentifiers[slot];
+    }
+
+    // No call-site alias/binder anywhere in the chain: fall back to the declared
+    // '#code' parameter name ('stmt: #code(v, dbl)' names slot 0 'v', slot 1 'dbl').
+    for (const auto* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
+    {
+        if (slot < payload->codeParamNames.size() && payload->codeParamNames[slot].isValid())
+            return payload->codeParamNames[slot];
     }
 
     return IdentifierRef::invalid();

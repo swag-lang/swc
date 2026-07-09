@@ -646,16 +646,42 @@ void Sema::markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
     SWC_UNUSED(parentRef);
     if (!childRef.isValid())
         return;
-    if (node(childRef).is(AstNodeId::EmbeddedBlock))
-        node(childRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    AstNodeRef blockRef = childRef;
+    if (node(blockRef).is(AstNodeId::CompilerCodeBlock))
+        blockRef = node(blockRef).cast<AstCompilerCodeBlock>().nodeBodyRef;
+    if (blockRef.isValid() && node(blockRef).is(AstNodeId::EmbeddedBlock))
+        node(blockRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
 }
 
 bool Sema::isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const
 {
-    SWC_UNUSED(parentRef);
-    if (childRef.isInvalid() || node(childRef).isNot(AstNodeId::EmbeddedBlock))
+    if (childRef.isInvalid())
         return false;
-    return node(childRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+
+    AstNodeRef blockRef = childRef;
+    if (node(blockRef).is(AstNodeId::CompilerCodeBlock))
+    {
+        // A trailing code literal ('call(args) #code(a, b) { ... }') is consumed as a
+        // call argument: skip it in statement position only, so its visit as an
+        // argument still happens normally.
+        if (parentRef.isInvalid())
+            return false;
+        switch (node(parentRef).id())
+        {
+            case AstNodeId::EmbeddedBlock:
+            case AstNodeId::FunctionBody:
+            case AstNodeId::SwitchCaseBody:
+            case AstNodeId::TopLevelBlock:
+                break;
+            default:
+                return false;
+        }
+        blockRef = node(blockRef).cast<AstCompilerCodeBlock>().nodeBodyRef;
+    }
+
+    if (blockRef.isInvalid() || node(blockRef).isNot(AstNodeId::EmbeddedBlock))
+        return false;
+    return node(blockRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
 }
 
 bool Sema::isLValueStored(AstNodeRef ref) const

@@ -336,11 +336,31 @@ AstNodeRef Parser::parseType()
     if (is(TokenId::KwdRetVal))
         return parseRetValType();
 
-    // '#code'
+    // '#code' declares like a function, with 'func' replaced by '#code':
+    // - '#code'              statement block, no parameters
+    // - '#code(a, b: T)'     statement block with named parameters
+    // - '#code->T'           expression block of type T
+    // - '#code(a: T)->T2'    parameters and expression type
+    // - '#code T'            legacy spelling of '#code->T'
     if (is(TokenId::CompilerCode))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>(consume());
-        nodePtr->nodeTypeRef    = parseSubType();
+        nodePtr->nodeTypeRef    = AstNodeRef::invalid();
+
+        if (is(TokenId::SymLeftParen))
+            nodePtr->spanParamsRef = parseCodeTypeParams();
+
+        if (consumeIf(TokenId::SymMinusGreater).isValid())
+        {
+            nodePtr->nodeTypeRef = parseType();
+        }
+        else if (nodePtr->spanParamsRef.isInvalid() &&
+                 !isAny(TokenId::SymComma, TokenId::SymRightParen, TokenId::SymRightCurly, TokenId::SymEqual, TokenId::SymLeftCurly, TokenId::SymSemiColon, TokenId::EndOfFile))
+        {
+            // Legacy form '#code <type>'
+            nodePtr->nodeTypeRef = parseSubType();
+        }
+
         return nodeRef;
     }
 
@@ -403,6 +423,35 @@ AstNodeRef Parser::parseLambdaType()
     nodePtr->spanParamsRef     = params;
     nodePtr->nodeReturnTypeRef = returnType;
     return nodeRef;
+}
+
+SpanRef Parser::parseCodeTypeParams()
+{
+    const TokenRef openRef = consumeAssert(TokenId::SymLeftParen);
+
+    SmallVector<AstNodeRef> params;
+    while (!atEnd() && isNot(TokenId::SymRightParen))
+    {
+        const bool     isVar   = consumeIf(TokenId::KwdVar).isValid();
+        const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        if (nameRef.isInvalid())
+            break;
+
+        auto [paramRef, paramPtr] = ast_->makeNode<AstNodeId::CodeParam>(nameRef);
+        paramPtr->tokNameRef      = nameRef;
+        if (isVar)
+            paramPtr->addFlag(AstCodeParamFlagsE::Var);
+        if (consumeIf(TokenId::SymColon).isValid())
+            paramPtr->nodeTypeRef = parseType();
+        params.push_back(paramRef);
+
+        if (isNot(TokenId::SymRightParen) &&
+            expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before).isInvalid())
+            break;
+    }
+
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+    return params.empty() ? SpanRef::invalid() : ast_->pushSpan(params.span());
 }
 
 SWC_END_NAMESPACE();

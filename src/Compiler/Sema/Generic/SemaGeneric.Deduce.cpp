@@ -221,6 +221,9 @@ namespace
 
         if (const auto* codeType = typeNode.safeCast<AstCodeType>())
         {
+            // Bare '#code' and '#code(params)' have no payload type node: void block.
+            if (codeType->nodeTypeRef.isInvalid())
+                return sema.typeMgr().addType(TypeInfo::makeCodeBlock(sema.typeMgr().typeVoid()));
             const TypeRef payloadTypeRef = typeRefFromTypeNode(sema, codeType->nodeTypeRef);
             return payloadTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeCodeBlock(payloadTypeRef)) : TypeRef::invalid();
         }

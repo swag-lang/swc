@@ -212,7 +212,7 @@ public impl TypeFace
         var serial = 0
         var x      = 0
 
-        Utf8.visitRunes(|c| text)
+        Utf8.visitRunes(text)
         {
             .face.loadChar(c, .NoBitmap)
             .transform(size, embolden)

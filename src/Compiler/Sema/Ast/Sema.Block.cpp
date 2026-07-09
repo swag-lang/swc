@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -248,6 +249,25 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
         return Result::Continue;
     if (isTransparentAssumeBlock(sema))
         return Result::Continue;
+
+    // A sema-synthesized '#inject' bindings block behaves like a '#macro' block:
+    // its scope is parented to the caller so the injected code cannot see the
+    // macro's internals, and the up-lookup scope (used by the binding
+    // initializers) reaches back to the macro's own scope.
+    if (node.hasFlag(AstEmbeddedBlockFlagsE::InjectBindings))
+    {
+        if (const auto* inlinePayload = sema.inlinePayload(sema.curNodeRef()); inlinePayload && inlinePayload->callerScope)
+        {
+            auto* hiddenScope  = sema.curScopePtr();
+            auto* bindingScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+            bindingScope->setLookupParent(inlinePayload->callerScope);
+
+            auto frame = sema.frame();
+            frame.setUpLookupScope(hiddenScope);
+            sema.pushFramePopOnPostNode(frame);
+            return Result::Continue;
+        }
+    }
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     return Result::Continue;

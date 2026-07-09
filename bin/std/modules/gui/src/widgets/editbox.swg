@@ -512,7 +512,7 @@ private impl EditBox
     // Inserts an arbitrary UTF‑8 string (after deleting the current selection).
     mtd insertString(str: #null string)
     {
-        Utf8.visitRunes(|r| str)
+        Utf8.visitRunes(str) #code(r)
         {
             .insertRune(r)
         }

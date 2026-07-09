@@ -140,6 +140,7 @@ SWC_DIAG_DEF(sema_err_count_negative, Error, "count must be non-negative, found 
 SWC_DIAG_DEF(sema_err_invalid_mkany_ptr, Error, "invalid pointer argument to '@mkany': got '{type}', but the pointee type must be '{requested-type}' or 'void'; [help] pass a matching pointer, or cast it to a void pointer")
 SWC_DIAG_DEF(sema_err_too_many_aliases, Error, "too many call-site aliases: expected at most {count}, found {value}; [help] remove the extra aliases, or declare more alias slots")
 SWC_DIAG_DEF(sema_err_alias_hole, Error, "macro or mixin alias '#alias{value}' is invalid because '#alias{count}' is missing; [help] define '#alias{count}' first, or renumber this alias")
+SWC_DIAG_DEF(sema_err_inject_binding_unknown, Error, "unknown '#inject' binding '{sym}': the injected code declares no matching '#code' parameter; [help] declare the parameter in the '#code(...)' signature, or fix the binding name")
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "field '{value}' cannot have type '{sym}' because struct '{sym}' would contain itself by value")
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "struct definition has a circular reference")
 SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "cyclic dependency detected for symbol '{sym}': {what}")

@@ -136,18 +136,19 @@ namespace SemaHelpers
     }
 
     template<typename T>
-    T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
+    T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef, IdentifierRef forcedIdentRef = IdentifierRef::invalid())
     {
         TaskContext&        ctx = sema.ctx();
         const SourceCodeRef nameRef{node.srcViewRef(), tokNameRef};
         const Token&        tok   = sema.srcView(nameRef.srcViewRef).token(nameRef.tokRef);
-        const IdentifierRef idRef = Token::isCompilerUniq(tok.id) ? ensureCurrentScopeUniqIdentifier(sema, tok.id) : resolveIdentifier(sema, nameRef);
+        const IdentifierRef idRef = forcedIdentRef.isValid() ? forcedIdentRef : (Token::isCompilerUniq(tok.id) ? ensureCurrentScopeUniqIdentifier(sema, tok.id) : resolveIdentifier(sema, nameRef));
 
         const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 
         T*         sym        = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
         SymbolMap* symbolMap  = SemaFrame::currentSymMap(sema);
         SemaScope* localScope = currentLocalSymbolScope(sema);
+
 
         if (localScope)
         {

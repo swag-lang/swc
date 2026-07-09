@@ -181,9 +181,13 @@ Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 
 Result AstCodeType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view    = sema.viewType(nodeTypeRef);
-    const TypeInfo     ty      = TypeInfo::makeCodeBlock(view.typeRef());
-    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    // Bare '#code' (and '#code(params)' without '->') is a void statement block.
+    TypeRef payloadTypeRef = sema.typeMgr().typeVoid();
+    if (nodeTypeRef.isValid())
+        payloadTypeRef = sema.viewType(nodeTypeRef).typeRef();
+
+    const TypeInfo ty      = TypeInfo::makeCodeBlock(payloadTypeRef);
+    const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }

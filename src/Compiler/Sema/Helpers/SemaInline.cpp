@@ -895,7 +895,99 @@ namespace
         return Result::Continue;
     }
 
-    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const Ast& sourceAst, const AstFunctionDecl& decl, AliasIdentifierArray& outAliasIdentifiers)
+    struct DeclaredCodeParam
+    {
+        SourceCodeRef nameRef;
+        AstNodeRef    typeRef = AstNodeRef::invalid();
+        bool          isVar   = false;
+    };
+
+    // Collects the declared '#code' block parameters of the callee, e.g.
+    // 'stmt: #code(v, var dbl)' yields 'v' and 'dbl' (mutable). The first '#code'
+    // parameter with declared names wins. Names map positionally to alias slots.
+    void appendDeclaredCodeParams(const Ast& sourceAst, const AstFunctionDecl& decl, SmallVector<DeclaredCodeParam>& outParams)
+    {
+        if (decl.nodeParamsRef.isInvalid() || !sourceAst.hasNode(decl.nodeParamsRef))
+            return;
+
+        // A comma-separated parameter list parses as a single VarDeclList child:
+        // flatten it so each parameter is visited individually.
+        SmallVector<AstNodeRef> rawParams;
+        sourceAst.node(decl.nodeParamsRef).collectChildrenFromAst(rawParams, sourceAst);
+        SmallVector<AstNodeRef> params;
+        for (const AstNodeRef rawRef : rawParams)
+        {
+            if (rawRef.isValid() && sourceAst.hasNode(rawRef) && sourceAst.node(rawRef).is(AstNodeId::VarDeclList))
+                sourceAst.node(rawRef).collectChildrenFromAst(params, sourceAst);
+            else
+                params.push_back(rawRef);
+        }
+
+        for (AstNodeRef paramRef : params)
+        {
+            while (paramRef.isValid() && sourceAst.hasNode(paramRef) && sourceAst.node(paramRef).is(AstNodeId::AttributeList))
+                paramRef = sourceAst.node(paramRef).cast<AstAttributeList>().nodeBodyRef;
+            if (paramRef.isInvalid() || !sourceAst.hasNode(paramRef))
+                continue;
+
+            const auto* varDecl = sourceAst.node(paramRef).safeCast<AstSingleVarDecl>();
+            if (!varDecl || varDecl->nodeTypeRef.isInvalid() || !sourceAst.hasNode(varDecl->nodeTypeRef))
+                continue;
+
+            const auto* codeType = sourceAst.node(varDecl->nodeTypeRef).safeCast<AstCodeType>();
+            if (!codeType || codeType->spanParamsRef.isInvalid())
+                continue;
+
+            SmallVector<AstNodeRef> codeParams;
+            sourceAst.appendNodes(codeParams, codeType->spanParamsRef);
+            for (const AstNodeRef codeParamRef : codeParams)
+            {
+                const auto* codeParam = sourceAst.node(codeParamRef).safeCast<AstCodeParam>();
+                if (codeParam)
+                    outParams.push_back({SourceCodeRef{codeParam->srcViewRef(), codeParam->tokNameRef}, codeParam->nodeTypeRef, codeParam->hasFlag(AstCodeParamFlagsE::Var)});
+            }
+
+            if (!outParams.empty())
+                return;
+        }
+    }
+
+    // Finds the binder names of a code-literal argument ('#code(a, b) { ... }').
+    // Returns the owning node so error locations can point at it.
+    const AstNode* findCodeArgumentBinder(Sema& sema, std::span<const AstNodeRef> args, SmallVector<TokenRef>& outNames)
+    {
+        for (const AstNodeRef argRef : args)
+        {
+            if (argRef.isInvalid())
+                continue;
+
+            AstNodeRef nodeRef = argRef;
+            while (nodeRef.isValid() && sema.node(nodeRef).is(AstNodeId::NamedArgument))
+                nodeRef = sema.node(nodeRef).cast<AstNamedArgument>().nodeArgRef;
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            SpanRef        binderRef;
+            if (const auto* codeBlock = node.safeCast<AstCompilerCodeBlock>())
+                binderRef = codeBlock->spanBinderNamesRef;
+            else if (const auto* codeExpr = node.safeCast<AstCompilerCodeExpr>())
+                binderRef = codeExpr->spanBinderNamesRef;
+            else
+                continue;
+
+            if (binderRef.isInvalid())
+                continue;
+
+            sema.ast().appendTokens(outNames, binderRef);
+            if (!outNames.empty())
+                return &node;
+        }
+
+        return nullptr;
+    }
+
+    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const Ast& sourceAst, const AstFunctionDecl& decl, std::span<const AstNodeRef> args, std::span<const DeclaredCodeParam> declaredParams, AliasIdentifierArray& outAliasIdentifiers)
     {
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
@@ -918,6 +1010,19 @@ namespace
             }
         }
 
+        // Binder names on a code-literal argument ('#code(a, b) { ... }') rename the
+        // alias slots exactly like '(|a, b|' call aliases do.
+        SmallVector<TokenRef> binderNames;
+        const AstNode*        binderNode = findCodeArgumentBinder(sema, args, binderNames);
+        if (binderNode && !aliases.empty())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, binderNode->codeRef());
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(aliases.size()));
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(aliases.size() + binderNames.size()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
         AliasUsageInfo aliasUsage;
         const Result   usageResult = collectAliasUsageInfo(sema, sourceAst, decl, aliasUsage);
         if (usageResult != Result::Continue)
@@ -933,11 +1038,22 @@ namespace
             return usageResult;
         }
 
-        const size_t providedAliasCount = !aliases.empty() ? aliases.size() : foreachNames.size();
+        // Declared '#code' parameter names raise the arity contract.
+        aliasUsage.aliasCount = std::max(aliasUsage.aliasCount, static_cast<uint32_t>(std::min(declaredParams.size(), outAliasIdentifiers.size())));
+
+        size_t providedAliasCount = !aliases.empty() ? aliases.size() : foreachNames.size();
+        if (!binderNames.empty())
+            providedAliasCount = binderNames.size();
         if (providedAliasCount > aliasUsage.aliasCount)
         {
-            const SourceCodeRef errorRef = !aliases.empty() ? sema.node(aliases[aliasUsage.aliasCount]).codeRef() : SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[aliasUsage.aliasCount]};
-            auto                diag     = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, errorRef);
+            SourceCodeRef errorRef;
+            if (!aliases.empty())
+                errorRef = sema.node(aliases[aliasUsage.aliasCount]).codeRef();
+            else if (!binderNames.empty())
+                errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[aliasUsage.aliasCount]};
+            else
+                errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[aliasUsage.aliasCount]};
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, errorRef);
             diag.addArgument(Diagnostic::ARG_COUNT, aliasUsage.aliasCount);
             diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(providedAliasCount));
             diag.report(sema.ctx());
@@ -954,10 +1070,16 @@ namespace
         for (size_t slot = 0; slot < foreachNames.size(); ++slot)
             outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
 
+        for (size_t slot = 0; slot < binderNames.size() && slot < outAliasIdentifiers.size(); ++slot)
+            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{binderNode->srcViewRef(), binderNames[slot]});
+
         if (isForeachCall)
         {
             for (uint32_t slot = static_cast<uint32_t>(foreachNames.size()); slot < aliasUsage.aliasCount; ++slot)
-                outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__foreach_alias");
+            {
+                if (!outAliasIdentifiers[slot].isValid())
+                    outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__foreach_alias");
+            }
         }
 
         return Result::Continue;
@@ -1768,6 +1890,13 @@ namespace
         if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
             return;
 
+        // '#code' values are not injected yet: a macro body referencing its code
+        // parameter several times (one '#inject' per '#if' branch) embeds several
+        // copies of the caller's code. Their local functions are declared when the
+        // surviving '#inject' clones the code for real, not here.
+        if (node.is(AstNodeId::CompilerCodeBlock) || node.is(AstNodeId::CompilerCodeExpr))
+            return;
+
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
         for (const AstNodeRef childRef : children)
@@ -2425,8 +2554,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             SWC_RESULT(validateInlineBindingOuterScopeVariables(sema, binding.exprRef));
     }
 
+
+    SmallVector<DeclaredCodeParam> declaredCodeParams;
+    appendDeclaredCodeParams(*declAst, *decl, declaredCodeParams);
+
     AliasIdentifierArray aliasIdentifiers = {};
-    SWC_RESULT(collectAliasIdentifiers(sema, callRef, *declAst, *decl, aliasIdentifiers));
+    SWC_RESULT(collectAliasIdentifiers(sema, callRef, *declAst, *decl, args, declaredCodeParams.span(), aliasIdentifiers));
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();
     TypeRef    variadicExprTypeRef = TypeRef::invalid();
@@ -2481,6 +2614,15 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->resultVar           = resultVar;
     inlinePayload->returnTypeRef       = returnTypeRef;
     inlinePayload->aliasIdentifiers    = aliasIdentifiers;
+    if (!declaredCodeParams.empty())
+        inlinePayload->codeParamSourceAst = declAst;
+    for (uint32_t paramIndex = 0; paramIndex < declaredCodeParams.size(); ++paramIndex)
+    {
+        inlinePayload->codeParamNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), declaredCodeParams[paramIndex].nameRef));
+        inlinePayload->codeParamTypeNodes.push_back(declaredCodeParams[paramIndex].typeRef);
+        if (declaredCodeParams[paramIndex].isVar && paramIndex < 32)
+            inlinePayload->codeParamVarMask |= 1u << paramIndex;
+    }
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back(binding);
     for (SymbolVariable* bindingVar : frame.bindingVars())

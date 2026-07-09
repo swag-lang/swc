@@ -535,7 +535,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     let samples = cast(u64) width * cast(u64) rows
     if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchrone()
     {
-        Jobs.parallelFor(|py, data| cast(u32) rows, &ctx)
+        Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
         {
             msdfProcessRow(cast(*MsdfRowCtx) data, py)
         }

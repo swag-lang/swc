@@ -130,9 +130,9 @@ impl HashTable
 
     // Provides a way to iterate over each key-value pair in the me.table.
     // This is a macro that accepts a code block to execute for each pair.
-    // Aliases: #alias0 for the key, #alias1 for the value.
+    // Block parameters: 'key' and 'value' (values, or pointers when visiting by pointer).
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(key, value))
     {
         if !.count do
             return
@@ -150,26 +150,17 @@ impl HashTable
                 continue
 
             #scope(Down)
-            #macro
             {
-                #if #up ptr
-                {
-                    let #alias0 = &#up me.table[#up tableIndex].key
-                    let #alias1 = &#up me.table[#up tableIndex].value
-                }
-                #else
-                {
-                    #if Reflection.isStruct(#up K) do
-                        let #alias0 = cast(const &#up K) &#up me.table[#up tableIndex].key
-                    #else do
-                        let #alias0 = #up me.table[#up tableIndex].key
-                    #if Reflection.isStruct(#up V) do
-                        let #alias1 = cast(const &#up V) &#up me.table[#up tableIndex].value
-                    #else do
-                        let #alias1 = #up me.table[#up tableIndex].value
-                }
-
-                #inject(#up stmt, break = break to Up, continue = break to Down)
+                #if ptr do
+                    #inject(stmt, key = &me.table[tableIndex].key, value = &me.table[tableIndex].value, break = break to Up, continue = break to Down)
+                #elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                    #inject(stmt, key = cast(const &K) &me.table[tableIndex].key, value = cast(const &V) &me.table[tableIndex].value, break = break to Up, continue = break to Down)
+                #elif Reflection.isStruct(K) do
+                    #inject(stmt, key = cast(const &K) &me.table[tableIndex].key, value = me.table[tableIndex].value, break = break to Up, continue = break to Down)
+                #elif Reflection.isStruct(V) do
+                    #inject(stmt, key = me.table[tableIndex].key, value = cast(const &V) &me.table[tableIndex].value, break = break to Up, continue = break to Down)
+                #else do
+                    #inject(stmt, key = me.table[tableIndex].key, value = me.table[tableIndex].value, break = break to Up, continue = break to Down)
             }
 
             remain -= 1

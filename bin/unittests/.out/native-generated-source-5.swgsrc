@@ -1,0 +1,14 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_api_patch_workflow.swg
+// #ast line: 117
+if patch.has_seatLimit do
+    count += 1
+if patch.has_storageGb do
+    count += 1
+if patch.has_auditRetentionDays do
+    count += 1
+if patch.has_ssoEnabled do
+    count += 1
+if patch.has_billingEmail do
+    count += 1
+if patch.has_tier do
+    count += 1

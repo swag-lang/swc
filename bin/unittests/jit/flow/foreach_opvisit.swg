@@ -10,7 +10,7 @@ struct JitFieldVisits
 impl JitFieldVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index: u64))
     {
         #if ptr do
             #error("JitFieldVisits does not expose pointer iteration.")
@@ -19,18 +19,11 @@ impl JitFieldVisits
         {
             for idx in 3
             {
-                #macro
+                switch idx
                 {
-                    var #alias0: s32 = undefined
-                    switch #up idx
-                    {
-                    case 0: #alias0 = #up me.z
-                    case 1: #alias0 = #up me.y
-                    case 2: #alias0 = #up me.x
-                    }
-
-                    let #alias1 = @index
-                    #inject(#up stmt)
+                case 0: #inject(stmt, item = me.z, index = @index)
+                case 1: #inject(stmt, item = me.y, index = @index)
+                case 2: #inject(stmt, item = me.x, index = @index)
                 }
             }
 
@@ -39,18 +32,11 @@ impl JitFieldVisits
 
         for idx in 3
         {
-            #macro
+            switch idx
             {
-                var #alias0: s32 = undefined
-                switch #up idx
-                {
-                case 0: #alias0 = #up me.x
-                case 1: #alias0 = #up me.y
-                case 2: #alias0 = #up me.z
-                }
-
-                let #alias1 = @index
-                #inject(#up stmt)
+            case 0: #inject(stmt, item = me.x, index = @index)
+            case 1: #inject(stmt, item = me.y, index = @index)
+            case 2: #inject(stmt, item = me.z, index = @index)
             }
         }
     }
@@ -64,7 +50,7 @@ struct JitBufferVisits
 impl JitBufferVisits
 {
     #[Swag.Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
     {
         #if back
         {
@@ -72,24 +58,14 @@ impl JitBufferVisits
             {
                 for idx in 3
                 {
-                    #macro
-                    {
-                        var #alias0: *s32 = cast(*s32) &(#up me.values[2 - #up idx])
-                        let #alias1 = @index
-                        #inject(#up stmt)
-                    }
+                    #inject(stmt, item = cast(*s32) &(me.values[2 - idx]), index = @index)
                 }
             }
             #else
             {
                 for idx in 3
                 {
-                    #macro
-                    {
-                        let #alias0 = #up me.values[2 - #up idx]
-                        let #alias1 = @index
-                        #inject(#up stmt)
-                    }
+                    #inject(stmt, item = me.values[2 - idx], index = @index)
                 }
             }
         }
@@ -99,24 +75,14 @@ impl JitBufferVisits
             {
                 for idx in 3
                 {
-                    #macro
-                    {
-                        var #alias0: *s32 = cast(*s32) &(#up me.values[#up idx])
-                        let #alias1 = @index
-                        #inject(#up stmt)
-                    }
+                    #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
                 }
             }
             #else
             {
                 for idx in 3
                 {
-                    #macro
-                    {
-                        let #alias0 = #up me.values[#up idx]
-                        let #alias1 = @index
-                        #inject(#up stmt)
-                    }
+                    #inject(stmt, item = me.values[idx], index = @index)
                 }
             }
         }
@@ -131,7 +97,7 @@ struct JitReverseVisits
 impl JitReverseVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
         #if ptr do
             #error("JitReverseVisits does not expose pointer iteration.")
@@ -141,29 +107,19 @@ impl JitReverseVisits
 
         for idx in 3
         {
-            #macro
-            {
-                let #alias0 = #up me.values[#up idx]
-                let #alias1 = @index
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[idx], index = @index)
         }
     }
 
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitReverse(stmt: #code(item: s32, index: u64))
     {
         #if ptr do
             #error("JitReverseVisits does not expose pointer iteration.")
 
         for idx in 3
         {
-            #macro
-            {
-                let #alias0 = #up me.values[2 - #up idx]
-                let #alias1 = @index
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[2 - idx], index = @index)
         }
     }
 }
@@ -198,7 +154,7 @@ struct JitReturnVisits
 impl JitHiddenAliasVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, tens: s32, index: u64))
     {
         #if ptr do
             #error("JitHiddenAliasVisits does not expose pointer iteration.")
@@ -208,13 +164,7 @@ impl JitHiddenAliasVisits
 
         for idx in 3
         {
-            #macro
-            {
-                let #alias0 = #up me.values[#up idx]
-                let #alias1 = #up me.values[#up idx] * 10
-                let #alias2 = @index
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
         }
     }
 }
@@ -222,50 +172,26 @@ impl JitHiddenAliasVisits
 impl JitFieldPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
         #if back do
             #error("JitFieldPointerVisits does not expose reverse iteration.")
 
         #if ptr
         {
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.first)
-                let #alias1 = 0'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.second)
-                let #alias1 = 1'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.third)
-                let #alias1 = 2'u64
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
+            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
+            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
         }
         #else
         {
             for idx in 3
             {
-                #macro
+                switch idx
                 {
-                    var #alias0: s32 = undefined
-                    switch #up idx
-                    {
-                    case 0: #alias0 = #up me.first
-                    case 1: #alias0 = #up me.second
-                    case 2: #alias0 = #up me.third
-                    }
-
-                    let #alias1 = @index
-                    #inject(#up stmt)
+                case 0: #inject(stmt, item = me.first, index = @index)
+                case 1: #inject(stmt, item = me.second, index = @index)
+                case 2: #inject(stmt, item = me.third, index = @index)
                 }
             }
         }
@@ -275,7 +201,7 @@ impl JitFieldPointerVisits
 impl JitPairVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
     {
         #if ptr do
             #error("JitPairVisits does not expose pointer iteration.")
@@ -284,12 +210,7 @@ impl JitPairVisits
         {
             for idx in 3
             {
-                #macro
-                {
-                    let #alias0 = #up me.values[2 - #up idx]
-                    let #alias1 = #up me.values[3 - #up idx]
-                    #inject(#up stmt)
-                }
+                #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
             }
 
             return
@@ -297,12 +218,7 @@ impl JitPairVisits
 
         for idx in 3
         {
-            #macro
-            {
-                let #alias0 = #up me.values[#up idx]
-                let #alias1 = #up me.values[#up idx + 1]
-                #inject(#up stmt)
-            }
+            #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
         }
     }
 }
@@ -310,7 +226,7 @@ impl JitPairVisits
 impl JitConstPointerVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
     {
         #if back do
             #error("JitConstPointerVisits does not expose reverse iteration.")
@@ -319,24 +235,14 @@ impl JitConstPointerVisits
         {
             for idx in 3
             {
-                #macro
-                {
-                    var #alias0: const *s32 = cast(const *s32) &(#up me.values[#up idx])
-                    let #alias1 = @index
-                    #inject(#up stmt)
-                }
+                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
             }
         }
         #else
         {
             for idx in 3
             {
-                #macro
-                {
-                    let #alias0 = #up me.values[#up idx]
-                    let #alias1 = @index
-                    #inject(#up stmt)
-                }
+                #inject(stmt, item = me.values[idx], index = @index)
             }
         }
     }
@@ -345,7 +251,7 @@ impl JitConstPointerVisits
 impl JitReturnVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
     {
         #if ptr do
             #error("JitReturnVisits does not expose pointer iteration.")
@@ -358,10 +264,8 @@ impl JitReturnVisits
         for idx in @countof(.values)
         {
             #scope(Down)
-            #macro
             {
-                let #alias0 = #up me.values[#up idx]
-                #inject(#up stmt, break = break to Up, continue = break to Down)
+                #inject(stmt, item = me.values[idx], break = break to Up, continue = break to Down)
             }
 
             remain -= 1

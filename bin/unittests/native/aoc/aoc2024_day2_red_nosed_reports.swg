@@ -246,16 +246,14 @@ func noteFeatureLevel(level: s32)
 }
 
 #[Swag.Macro]
-func visitReportLevels(report: Report, skippedIndex: s32, stmt: #code void)
+func visitReportLevels(report: Report, skippedIndex: s32, stmt: #code(level, rawIndex: u32))
 {
     for report.count
     {
         if cast(s32) @index == skippedIndex do
             continue
 
-        let #alias0 = report.levels[cast(u32) @index]
-        let #alias1 = cast(u32) @index
-        #inject(stmt)
+        #inject(stmt, level = report.levels[cast(u32) @index], rawIndex = cast(u32) @index)
     }
 }
 
@@ -264,7 +262,7 @@ func isSafeReportWithLanguageFeatures(report: Report, skippedIndex: s32)->bool
     declareFeatureState()
     defer @assert(featureVisitedLevels <= report.count)
 
-    visitReportLevels(|level, rawIndex| report, skippedIndex)
+    visitReportLevels(report, skippedIndex)
     {
         @assert(rawIndex < report.count)
         noteFeatureLevel(level)

@@ -54,7 +54,7 @@ func mixinConditionalDefer(shouldThrow: bool) throw
 }
 
 #[Swag.Macro]
-func macroRun(stmt: #code void)
+func macroRun(stmt: #code)
 {
     #inject(stmt)
 }

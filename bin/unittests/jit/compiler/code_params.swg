@@ -2,8 +2,8 @@
 
 // ---------------------------------------------------------------------------
 // New '#code' declaration forms.
-// - '#code' alone is a void statement block (same as legacy '#code void').
-// - '#code->T' is an expression block returning T (same as legacy '#code T').
+// - '#code' alone is a void statement block.
+// - '#code->T' is an expression block returning T.
 // - '#code(a, b: T)' declares named block parameters; names are the default
 //   binder names at the call site and the binding names for '#inject'.
 // ---------------------------------------------------------------------------
@@ -20,16 +20,13 @@ func arrowCond(cond: #code->bool)->bool
     return #inject(cond)
 }
 
-// Declared parameter names with a legacy '#alias' body: names map to slots.
 #[Swag.Macro]
 func withNames(value: s32, stmt: #code(v: s32, dbl: s32))
 {
-    let #alias0 = value
-    let #alias1 = value * 2
-    #inject(stmt)
+    #inject(stmt, v = value, dbl = value * 2)
 }
 
-// Declared parameter names bound at '#inject' time: no '#alias', no '#macro'.
+// Declared parameter names bound at '#inject' time: no '#macro', no '#up'.
 #[Swag.Macro]
 func withBindings(value: s32, stmt: #code(v: s32, dbl: s32))
 {
@@ -41,15 +38,6 @@ func withBindings(value: s32, stmt: #code(v: s32, dbl: s32))
 func withVarBinding(value: s32, stmt: #code(var v: s32))
 {
     #inject(stmt, v = value)
-}
-
-// Legacy declaration, new call-site binder: binder names map to alias slots.
-#[Swag.Macro]
-func legacyPair(value: s32, stmt: #code void)
-{
-    let #alias0 = value
-    let #alias1 = value * 2
-    #inject(stmt)
 }
 
 // Mixins support '#inject' bindings too.
@@ -125,16 +113,6 @@ func runBinderInline()->bool
     return total == 30
 }
 
-func runLegacyAliasSyntaxOnNames()->bool
-{
-    var total = 0
-    withNames(|a, b| 10)
-    {
-        total = a + b
-    }
-    return total == 30
-}
-
 func runPartialBinder()->bool
 {
     // Binder arity can be lower than the declared arity, like foreach.
@@ -184,13 +162,6 @@ func runVarBinding()->bool
         total = v
     }
     return total == 6
-}
-
-func runBinderOnLegacy()->bool
-{
-    var total = 0
-    legacyPair(10) #code(a, b) { total = a + b }
-    return total == 30
 }
 
 func runMixinBinding()->bool
@@ -253,13 +224,11 @@ const ArrowCondOk          = #run runArrowCond()
 const DefaultNamesOk       = #run runDefaultNames()
 const BinderTrailingOk     = #run runBinderTrailing()
 const BinderInlineOk       = #run runBinderInline()
-const LegacyAliasSyntaxOk  = #run runLegacyAliasSyntaxOnNames()
 const PartialBinderOk      = #run runPartialBinder()
 const BindingsOk           = #run runBindings()
 const BindingsBinderOk     = #run runBindingsWithBinder()
 const BindingsCallerOk     = #run runBindingsCallerScope()
 const VarBindingOk         = #run runVarBinding()
-const BinderOnLegacyOk     = #run runBinderOnLegacy()
 const MixinBindingOk       = #run runMixinBinding()
 const ForwardNamesOk       = #run runForwardNames()
 const RepeatBindingsOk     = #run runRepeatBindings()
@@ -270,13 +239,11 @@ const BindingEvalOnceOk    = #run runBindingEvalOnce()
 #assert(DefaultNamesOk)
 #assert(BinderTrailingOk)
 #assert(BinderInlineOk)
-#assert(LegacyAliasSyntaxOk)
 #assert(PartialBinderOk)
 #assert(BindingsOk)
 #assert(BindingsBinderOk)
 #assert(BindingsCallerOk)
 #assert(VarBindingOk)
-#assert(BinderOnLegacyOk)
 #assert(MixinBindingOk)
 #assert(ForwardNamesOk)
 #assert(RepeatBindingsOk)

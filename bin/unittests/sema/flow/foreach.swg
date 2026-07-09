@@ -14,21 +14,20 @@ struct ForeachAliasBuffer
 impl ForeachAliasBuffer
 {
     #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
     {
         #if back do
             #error("reverse visit not supported")
 
         for @countof(.data)
         {
-            #macro
+            #if ptr
             {
-                #if #up ptr do
-                    var #alias0 = &me.data[@index]
-                #else do
-                    var #alias0 = me.data[@index]
-                var #alias1 = @index
-                #inject(#up stmt)
+                #inject(stmt, item = &me.data[@index], index = @index)
+            }
+            #else
+            {
+                #inject(stmt, item = me.data[@index], index = @index)
             }
         }
     }

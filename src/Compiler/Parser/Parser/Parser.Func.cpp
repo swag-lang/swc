@@ -358,19 +358,6 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
         }
     }
 
-    if (nextIs(TokenId::SymPipe))
-    {
-        const TokenRef openRef        = ref();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(consume());
-        nodePtr->nodeExprRef          = nodeExpr;
-        nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymPipe);
-        {
-            const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-            nodePtr->spanChildrenRef = parseCompoundContentInside(AstNodeId::NamedArgumentList, openRef, TokenId::SymLeftParen);
-        }
-        return nodeRef;
-    }
-
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
     nodePtr->nodeExprRef          = nodeExpr;
 

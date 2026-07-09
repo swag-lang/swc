@@ -1,0 +1,12 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_audit_diff_workflow.swg
+// #ast line: 118
+if diff.changed_replicas do
+    count += 1
+if diff.changed_rollout do
+    count += 1
+if diff.changed_pauseSeconds do
+    count += 1
+if diff.changed_alertsEnabled do
+    count += 1
+if diff.changed_owner do
+    count += 1

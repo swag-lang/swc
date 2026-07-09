@@ -22,58 +22,58 @@ func bumpDefault()->bool
 }
 
 #[Swag.Macro]
-func sumTwice(expr: #code s32)->s32
+func sumTwice(expr: #code->s32)->s32
 {
-    @assert(#stringof(#typeof(expr)) == "#code s32")
+    @assert(#stringof(#typeof(expr)) == "#code->s32")
     return #inject(expr) + #inject(expr)
 }
 
 #[Swag.Macro]
-func repeatStmt(stmt: #code void)
+func repeatStmt(stmt: #code)
 {
-    @assert(#stringof(#typeof(stmt)) == "#code void")
+    @assert(#stringof(#typeof(stmt)) == "#code")
     #inject(stmt)
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func checkNamed(lhs: s32, rhs: #code s32)->s32
+func checkNamed(lhs: s32, rhs: #code->s32)->s32
 {
     @assert(#stringof(rhs) == "base + 32")
     return lhs + #inject(rhs)
 }
 
 #[Swag.Macro]
-func checkDefault(expr: #code bool = bumpDefault())->bool
+func checkDefault(expr: #code->bool = bumpDefault())->bool
 {
-    @assert(#stringof(#typeof(expr)) == "#code bool")
+    @assert(#stringof(#typeof(expr)) == "#code->bool")
     return #inject(expr)
 }
 
 #[Swag.Macro]
-func consumeForwarded(expr: #code s32)->s32
+func consumeForwarded(expr: #code->s32)->s32
 {
     @assert(#stringof(expr) == "base + 5")
     return #inject(expr)
 }
 
 #[Swag.Macro]
-func forward(expr: #code s32)->s32
+func forward(expr: #code->s32)->s32
 {
     return consumeForwarded(expr)
 }
 
 #[Swag.Macro]
-func forceExpr(expr: #code s32)->s32
+func forceExpr(expr: #code->s32)->s32
 {
     @assert(#stringof(expr) == "base * 3")
     return #inject(expr)
 }
 
 #[Swag.Macro]
-func runWhen(cond: #code bool, stmt: #code void)
+func runWhen(cond: #code->bool, stmt: #code)
 {
-    @assert(#stringof(#typeof(cond)) == "#code bool")
+    @assert(#stringof(#typeof(cond)) == "#code->bool")
     if #inject(cond)
     {
         #inject(stmt)
@@ -81,31 +81,31 @@ func runWhen(cond: #code bool, stmt: #code void)
 }
 
 #[Swag.Macro]
-func defaultBeforeStmt(value: s32 = 40, stmt: #code void)
+func defaultBeforeStmt(value: s32 = 40, stmt: #code)
 {
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func breakAsContinue(stmt: #code void)
+func breakAsContinue(stmt: #code)
 {
     #inject(stmt, break = continue)
 }
 
 #[Swag.Macro]
-func breakAsScopeBreak(stmt: #code void)
+func breakAsScopeBreak(stmt: #code)
 {
     #inject(stmt, break = break to Outer)
 }
 
 #[Swag.Macro]
-func continueAsScopeBreak(stmt: #code void)
+func continueAsScopeBreak(stmt: #code)
 {
     #inject(stmt, continue = break to Outer)
 }
 
 #[Swag.Macro]
-func remapLoopFlow(stmt: #code void)
+func remapLoopFlow(stmt: #code)
 {
     #inject(stmt, continue = break to Outer, break = continue)
 }
@@ -118,7 +118,7 @@ func remapLoopFlow(stmt: #code void)
     @assert(ExprEvalCount == 2)
 }
 
-// #code void stmt is injected twice
+// #code stmt is injected twice
 #test
 {
     StmtEvalCount = 0
@@ -132,7 +132,7 @@ func remapLoopFlow(stmt: #code void)
     let base = 10
     @assert(checkNamed(lhs: 10, rhs: base + 32) == 52)
     @assert(forward(base + 5) == 15)
-    @assert(forceExpr(#code base * 3) == 30)
+    @assert(forceExpr(#code => base * 3) == 30)
 }
 
 // #code with default parameter value

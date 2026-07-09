@@ -1,0 +1,15 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\compiler\ast_implicit_string_return.swg
+// #ast line: 60
+compilerAstImplicitStringTotal += 17
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_audit_diff_workflow.swg
+// #ast line: 140
+if diff.changed_replicas do
+    result.replicas = diff.new_replicas
+if diff.changed_rollout do
+    result.rollout = diff.new_rollout
+if diff.changed_pauseSeconds do
+    result.pauseSeconds = diff.new_pauseSeconds
+if diff.changed_alertsEnabled do
+    result.alertsEnabled = diff.new_alertsEnabled
+if diff.changed_owner do
+    result.owner = diff.new_owner

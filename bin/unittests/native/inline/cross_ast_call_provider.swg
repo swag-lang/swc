@@ -79,16 +79,16 @@ func inlineMethodParamFromCallerExpr(seed: u32)->bool
 }
 
 #[Swag.Macro]
-func injectStmt(stmt: #code void)
+func injectStmt(stmt: #code)
 {
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func injectExpr(expr: #code s32)->s32 => #inject(expr)
+func injectExpr(expr: #code->s32)->s32 => #inject(expr)
 
 #[Swag.Macro]
-func(enabled: bool) genericInjectExpr(expr: #code bool)
+func(enabled: bool) genericInjectExpr(expr: #code->bool)
 {
     if #inject(expr)
     {
@@ -96,7 +96,7 @@ func(enabled: bool) genericInjectExpr(expr: #code bool)
 }
 
 #[Swag.Macro]
-func(what: bool) genericSafetyLike(expr: #code bool)->bool
+func(what: bool) genericSafetyLike(expr: #code->bool)->bool
 {
     if what
     {
@@ -108,37 +108,37 @@ func(what: bool) genericSafetyLike(expr: #code bool)->bool
 }
 
 #[Swag.Macro]
-func safetyLikeBoundCheck(expr50: #code bool)->bool
+func safetyLikeBoundCheck(expr50: #code->bool)->bool
 {
     return genericSafetyLike'(true)(expr50)
 }
 
 #[Swag.Macro]
-func(what: bool) genericInjectValue(expr: #code bool)->bool
+func(what: bool) genericInjectValue(expr: #code->bool)->bool
 {
     return #inject(expr)
 }
 
 #[Swag.Macro]
-func forwardedInjectValue(expr50: #code bool)->bool
+func forwardedInjectValue(expr50: #code->bool)->bool
 {
     return genericInjectValue'(true)(expr50)
 }
 
 #[Swag.Macro]
-func forwardStmt(stmt: #code void)
+func forwardStmt(stmt: #code)
 {
     injectStmt(stmt)
 }
 
 #[Swag.Macro]
-func forwardGenericExpr(expr: #code bool)
+func forwardGenericExpr(expr: #code->bool)
 {
     genericInjectExpr'(true)(expr)
 }
 
 #[Swag.Macro]
-func injectFromMacroBlock(stmt: #code void)
+func injectFromMacroBlock(stmt: #code)
 {
     #macro
     {
@@ -180,7 +180,7 @@ func inlineMacroBlockCapture(seed: s32)->s32
 func inlineMacroExprCapture(seed: s32)->s32
 {
     let local = seed + 1
-    return injectExpr(#code local * 2)
+    return injectExpr(#code => local * 2)
 }
 
 #[Swag.Inline]
@@ -297,7 +297,7 @@ struct InlineJobProbe
 }
 
 #[Swag.Macro]
-func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code void)
+func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code)
 {
     func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
@@ -307,8 +307,8 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *v
         {
             #macro
             {
-                var #alias0 = cast #unconst (*#up T) #up scan
-                let #alias1 = #up sliceContextData
+                var buffer = cast #unconst (*#up T) #up scan
+                let data   = #up sliceContextData
                 #inject(#up stmt)
             }
 
@@ -325,7 +325,7 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *v
 impl InlinePixelProbe
 {
     #[Swag.Macro]
-    mtd visit(stmt: #code void)
+    mtd visit(stmt: #code)
     {
         #macro
         {
@@ -336,7 +336,7 @@ impl InlinePixelProbe
     }
 
     #[Swag.Macro]
-    mtd visitWithUserData(userDataArg: *void, stmt: #code void)
+    mtd visitWithUserData(userDataArg: *void, stmt: #code)
     {
         var p = {userData: userDataArg}
         #macro
@@ -349,7 +349,7 @@ impl InlinePixelProbe
     }
 
     #[Swag.Macro]
-    mtd visitParallelLike(contextData: *void, stmt: #code void)
+    mtd visitParallelLike(contextData: *void, stmt: #code)
     {
         var j: InlineCrossAstCall.InlineJobProbe
         #macro
@@ -364,7 +364,7 @@ impl InlinePixelProbe
     }
 
     #[Swag.Macro]
-    mtd visitParallelLocalLike(contextData: *void, stmt: #code void)
+    mtd visitParallelLocalLike(contextData: *void, stmt: #code)
     {
         func visitSlice(sliceContextData: *void)
         {
@@ -437,7 +437,7 @@ func inlineInjectedLocalContextDataShadow(dstImage: *InlinePixelProbe)
 #[Swag.Inline]
 func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
 {
-    genericParallelVisitLike(|buffer, data| @mkslice(dstImage.buffer, 1), 1, dstImage)
+    genericParallelVisitLike(@mkslice(dstImage.buffer, 1), 1, dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) data
         let x = 1

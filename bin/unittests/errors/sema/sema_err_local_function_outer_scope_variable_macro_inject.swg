@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Macro]
-func injectStmtInLocalFunction(stmt: #code void)
+func injectStmtInLocalFunction(stmt: #code)
 {
     func runStmt()
     {

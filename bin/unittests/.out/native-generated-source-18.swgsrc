@@ -1,0 +1,102 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_command_contracts.swg
+// #ast line: 298
+struct ScheduleDeploymentCommand
+{
+    replicas: s32
+    region: string
+    dryRun: bool
+    authToken: string
+}
+
+func validateScheduleDeploymentCommand(command: const &ScheduleDeploymentCommand)->bool
+{
+    var ok = true
+    ok = ok and command.replicas >= 1 and command.replicas <= 24
+    ok = ok and @countof(command.region) > 0
+    ok = ok and @countof(command.region) >= 3
+    ok = ok and @countof(command.authToken) >= 16
+    return ok
+}
+
+func redactScheduleDeploymentCommand(command: const &ScheduleDeploymentCommand)->ScheduleDeploymentCommand
+{
+    var result = cast(ScheduleDeploymentCommand) command
+    result.authToken = "<redacted>"
+    return result
+}
+
+func countScheduleDeploymentCommandSecrets()->s32
+{
+    var count: s32
+    count += 1
+    return count
+}
+
+func invokeScheduleDeploymentCommand(command: const &ScheduleDeploymentCommand)->DeploymentDecision
+{
+    return scheduleDeployment(command.replicas, command.region, command.dryRun, command.authToken)
+}
+
+struct SubmitWireTransferCommand
+{
+    cents: s32
+    toAccount: string
+    approvalCode: string
+}
+
+func validateSubmitWireTransferCommand(command: const &SubmitWireTransferCommand)->bool
+{
+    var ok = true
+    ok = ok and command.cents >= 100 and command.cents <= 1000000
+    ok = ok and @countof(command.toAccount) > 0
+    ok = ok and @countof(command.toAccount) >= 4
+    ok = ok and @countof(command.approvalCode) >= 6
+    return ok
+}
+
+func redactSubmitWireTransferCommand(command: const &SubmitWireTransferCommand)->SubmitWireTransferCommand
+{
+    var result = cast(SubmitWireTransferCommand) command
+    result.approvalCode = "<redacted>"
+    return result
+}
+
+func countSubmitWireTransferCommandSecrets()->s32
+{
+    var count: s32
+    count += 1
+    return count
+}
+
+func invokeSubmitWireTransferCommand(command: const &SubmitWireTransferCommand)->WireReceipt
+{
+    return submitWireTransfer(command.cents, command.toAccount, command.approvalCode)
+}
+
+struct ResyncCatalogCommand
+{
+}
+
+func validateResyncCatalogCommand(command: const &ResyncCatalogCommand)->bool
+{
+    var ok = true
+    return ok
+}
+
+func redactResyncCatalogCommand(command: const &ResyncCatalogCommand)->ResyncCatalogCommand
+{
+    var result = cast(ResyncCatalogCommand) command
+    return result
+}
+
+func countResyncCatalogCommandSecrets()->s32
+{
+    var count: s32
+    return count
+}
+
+func invokeResyncCatalogCommand(command: const &ResyncCatalogCommand)->bool
+{
+    return resyncCatalog()
+}
+

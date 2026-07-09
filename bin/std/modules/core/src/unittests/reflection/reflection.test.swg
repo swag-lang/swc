@@ -28,7 +28,7 @@ impl ReflectionProbe
     }
 
     #[Macro]
-    mtd visitMacro(stmt: #code void)
+    mtd visitMacro(stmt: #code)
     {
         #inject(stmt)
     }

@@ -121,17 +121,12 @@ struct ForeachTrackedValues
 impl ForeachTrackedValues
 {
     #[Macro]
-    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index))
     {
-        #macro
-        {
-            #if #up ptr do
-                let #alias0 = &#up me.item
-            #else do
-                let #alias0 = cast(&#up Tracked) &#up me.item
-            let #alias1 = 0
-            #inject(#up stmt)
-        }
+        #if ptr do
+            #inject(stmt, item = &me.item, index = 0)
+        #else do
+            #inject(stmt, item = cast(&Tracked) &me.item, index = 0)
     }
 }
 

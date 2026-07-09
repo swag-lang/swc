@@ -13,28 +13,18 @@ struct InlineDefaultSelfCells
 impl InlineDefaultSelfCells
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
         #if back do
             return
 
         #if ptr
         {
-            #macro
-            {
-                let #alias0 = cast(*InlineDefaultSelfCell) &(#up me.values[0])
-                let #alias1 = 0'u64
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = cast(*InlineDefaultSelfCell) &(me.values[0]), index = 0'u64)
         }
         #else
         {
-            #macro
-            {
-                let #alias0 = #up me.values[0]
-                let #alias1 = 0'u64
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[0], index = 0'u64)
         }
     }
 }

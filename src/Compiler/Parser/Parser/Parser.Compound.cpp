@@ -45,9 +45,6 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
         case AstNodeId::QuotedListExpr:
             return parseIdentifierSuffixValue();
 
-        case AstNodeId::AliasCallExpr:
-            return parseQuotedIdentifier();
-
         default:
             SWC_UNREACHABLE();
     }
@@ -106,7 +103,6 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
         case AstNodeId::QuotedListExpr:
-        case AstNodeId::AliasCallExpr:
             if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);

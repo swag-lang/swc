@@ -12,13 +12,13 @@ struct JitMacroClosureState
 }
 
 #[Swag.Macro]
-func jitMacroInjectClosureCapture(stmt: #code void)
+func jitMacroInjectClosureCapture(stmt: #code)
 {
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func jitMacroInjectCallerScopeClosureCapture(stmt: #code void)
+func jitMacroInjectCallerScopeClosureCapture(stmt: #code)
 {
     #macro
     {
@@ -27,13 +27,9 @@ func jitMacroInjectCallerScopeClosureCapture(stmt: #code void)
 }
 
 #[Swag.Macro]
-func jitMacroInjectCallerScopeAliasClosureCapture(seed: s32, stmt: #code void)
+func jitMacroInjectCallerScopeAliasClosureCapture(seed: s32, stmt: #code(start: s32))
 {
-    #macro
-    {
-        let #alias0 = #up seed
-        #inject(#up stmt)
-    }
+    #inject(stmt, start = seed)
 }
 
 func jitMacroClosureCaptureRunTwice(cb: func||()->s32)->s32
@@ -111,7 +107,7 @@ func macroClosureCaptureValue(value: s32)->s32
 
 #test
 {
-    jitMacroInjectCallerScopeAliasClosureCapture(|start| 41)
+    jitMacroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {
@@ -131,7 +127,7 @@ func macroClosureCaptureValue(value: s32)->s32
 
 #test
 {
-    jitMacroInjectCallerScopeAliasClosureCapture(|start| 41)
+    jitMacroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {
@@ -152,7 +148,7 @@ func macroClosureCaptureValue(value: s32)->s32
 
 #test
 {
-    jitMacroInjectCallerScopeAliasClosureCapture(|start| 41)
+    jitMacroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {
@@ -173,7 +169,7 @@ func macroClosureCaptureValue(value: s32)->s32
 
 #test
 {
-    jitMacroInjectCallerScopeAliasClosureCapture(|start| 41)
+    jitMacroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {

@@ -575,7 +575,7 @@ namespace
 
             // Effective name: call-site alias/binder rename when present, declared name
             // otherwise (same resolution as '#aliasN' placeholders).
-            IdentifierRef effectiveIdRef = SemaHelpers::resolveAliasIdentifier(sema, static_cast<TokenId>(static_cast<uint32_t>(TokenId::CompilerAlias0) + slot));
+            IdentifierRef effectiveIdRef = SemaHelpers::resolveCodeParamIdentifier(sema, slot);
             if (!effectiveIdRef.isValid())
                 effectiveIdRef = bindingIdRef;
 
@@ -753,7 +753,6 @@ namespace
         }
 
         if (!node.is(AstNodeId::CallExpr) &&
-            !node.is(AstNodeId::AliasCallExpr) &&
             !node.is(AstNodeId::IntrinsicCallExpr))
             return Result::Continue;
 
@@ -774,7 +773,6 @@ namespace
     {
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::CallExpr) ||
-            node.is(AstNodeId::AliasCallExpr) ||
             node.is(AstNodeId::IntrinsicCallExpr))
         {
             const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);

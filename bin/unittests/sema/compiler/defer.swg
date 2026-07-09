@@ -22,7 +22,7 @@ func mixinDeferredGlobal()
 }
 
 #[Swag.Macro]
-func macroInject(stmt: #code void)
+func macroInject(stmt: #code)
 {
     #inject(stmt)
 }

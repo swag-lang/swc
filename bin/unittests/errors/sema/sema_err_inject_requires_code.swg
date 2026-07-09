@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Macro]
-func badInject(expr: #code s32)
+func badInject(expr: #code->s32)
 {
     let value = #inject(1) // swc-expected-error {{sema_err_inject_requires_code}}
 }

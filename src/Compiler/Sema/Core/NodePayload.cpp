@@ -29,7 +29,6 @@ namespace
     {
         return node.is(AstNodeId::CallExpr) ||
                node.is(AstNodeId::IntrinsicCallExpr) ||
-               node.is(AstNodeId::AliasCallExpr) ||
                node.is(AstNodeId::CompilerCall) ||
                node.is(AstNodeId::CompilerCallOne);
     }

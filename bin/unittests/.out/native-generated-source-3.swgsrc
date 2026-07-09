@@ -1,0 +1,14 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_api_patch_workflow.swg
+// #ast line: 61
+has_seatLimit: bool
+seatLimit: s32
+has_storageGb: bool
+storageGb: s32
+has_auditRetentionDays: bool
+auditRetentionDays: s32
+has_ssoEnabled: bool
+ssoEnabled: bool
+has_billingEmail: bool
+billingEmail: string
+has_tier: bool
+tier: PlanTier

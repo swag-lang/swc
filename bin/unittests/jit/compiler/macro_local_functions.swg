@@ -30,20 +30,18 @@ func aliasBounce(value: s32)->s32
 {
     #macro
     {
-        let #alias0 = #up value
-        #macro
-        {
-            return #up buffer + 1
-        }
+        return #up value + 1
     }
 }
 
 #[Swag.Macro]
 func localNestedUpShadow(seed: s32)->s32
 {
-    func pick(seed: s32, buffer: s32)->s32
+    // 'pick' has its own 'value' parameter: '#up value' inside 'aliasBounce'
+    // must resolve to the macro's parameter, not to this caller-scope local.
+    func pick(seed: s32, value: s32)->s32
     {
-        return aliasBounce(|buffer| #up seed)
+        return aliasBounce(#up seed)
     }
 
     return pick(seed, 1000)
@@ -83,22 +81,17 @@ func forcedLocalMacroRelay(seed: s32)->s32
     @assert(forcedLocalMacroRelay(14) == 42)
 }
 
-// Tests for #macro { #inject } inside a for loop inside a local function.
+// Tests for #inject inside a for loop inside a local function.
 // Verifies the codegen fix for inline-label placement in locally-compiled functions.
 // This is the exact pattern used by Jobs.parallelVisit / Jobs.parallelFor.
 #[Swag.Macro]
-func localForMacroInject(count: s32, contextData: *void = null, stmt: #code void)
+func localForMacroInject(count: s32, contextData: *void = null, stmt: #code(data: *void, data2: *void))
 {
     func doWork(n: s32, ctxData: *void)
     {
         for n
         {
-            #macro
-            {
-                let #alias0 = #up ctxData
-                let #alias1 = #up ctxData
-                #inject(#up stmt)
-            }
+            #inject(stmt, data = ctxData, data2 = ctxData)
         }
     }
 
@@ -107,11 +100,11 @@ func localForMacroInject(count: s32, contextData: *void = null, stmt: #code void
 
 #test
 {
-    // Verify that #macro { #inject } inside a for loop in a local function runs correctly
+    // Verify that #inject inside a for loop in a local function runs correctly
     var runs = 0
     localForMacroInject(3, &runs)
     {
-        discard @atomadd(cast(*s32) #alias0, 1)
+        discard @atomadd(cast(*s32) data, 1)
     }
     @assert(runs == 3)
 }
@@ -119,29 +112,24 @@ func localForMacroInject(count: s32, contextData: *void = null, stmt: #code void
 // Verifies two-level nested macro injection (outer macro → local-function for loop)
 // correctly handles 'return' inside the injected code block via doneLabel placement.
 #[Swag.Macro]
-func parallelVisitLike(ctxData: *void = null, stmt: #code void)
+func parallelVisitLike(ctxData: *void = null, stmt: #code(ctx: *void, ctx2: *void))
 {
-    func doWork(data: *void)
+    func doWork(payload: *void)
     {
         for 3
         {
-            #macro
-            {
-                let #alias0 = #up data
-                let #alias1 = #up data
-                #inject(#up stmt)
-            }
+            #inject(stmt, ctx = payload, ctx2 = payload)
         }
     }
     doWork(ctxData)
 }
 
 #[Swag.Macro]
-func outerMacroDoubleInject(ctxData: *void = null, stmt: #code void)
+func outerMacroDoubleInject(ctxData: *void = null, stmt: #code(data: *void))
 {
     parallelVisitLike(ctxData)
     {
-        #inject(#up stmt)
+        #inject(#up stmt, data = ctx)
     }
 }
 
@@ -150,7 +138,7 @@ func outerMacroDoubleInject(ctxData: *void = null, stmt: #code void)
     var c = 0
     outerMacroDoubleInject(&c)
     {
-        discard @atomadd(cast(*s32) #alias0, 1)
+        discard @atomadd(cast(*s32) data, 1)
     }
     @assert(c == 3)
 }

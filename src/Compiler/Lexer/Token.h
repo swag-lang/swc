@@ -22,7 +22,6 @@ enum class TokenIdKindE : uint16_t
     Literal   = 1 << 9,
     Modifier  = 1 << 10,
     Reserved  = 1 << 11,
-    Alias     = 1 << 12,
     Uniq      = 1 << 13,
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
@@ -103,7 +102,6 @@ struct Token
     static bool isCompilerIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return); }
     static bool isCompilerIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Intrinsic); }
     static bool isCompilerFunc(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Func); }
-    static bool isCompilerAlias(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Alias); }
     static bool isCompilerUniq(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Uniq); }
     static bool isCompiler(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler); }
     static bool isIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic); }

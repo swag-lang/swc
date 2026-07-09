@@ -13,7 +13,7 @@ func pushNullAllocatorContext()->bool
 }
 
 #[Swag.Macro]
-func pushAllocatorLike(allocator: IAllocator, stmt: #code void)
+func pushAllocatorLike(allocator: IAllocator, stmt: #code)
 {
     let prev = @getcontext()
     defer @setcontext(prev)

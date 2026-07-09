@@ -2,7 +2,7 @@
 using Swag
 
 #[Swag.Macro]
-func pushAllocatorMacro(allocator: IAllocator, stmt: #code void)
+func pushAllocatorMacro(allocator: IAllocator, stmt: #code)
 {
     let prev = @getcontext()
     defer @setcontext(prev)

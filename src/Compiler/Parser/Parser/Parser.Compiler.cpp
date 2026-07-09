@@ -248,7 +248,7 @@ AstNodeRef Parser::parseCompilerCode()
     }
 
     // '#code(a, b) { ... }' / '#code(a) => expr': literal with binder names that
-    // rename the callee's block parameters (alias slots) at the call site.
+    // rename the callee's block parameters at the call site.
     if (isCodeLiteralBinderAhead())
     {
         const TokenRef tokCode = consume();
@@ -269,9 +269,9 @@ AstNodeRef Parser::parseCompilerCode()
         return nodeRef;
     }
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCodeExpr>(consume());
-    nodePtr->nodeExprRef    = parseExpression();
-    return nodeRef;
+    raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+    consume();
+    return AstNodeRef::invalid();
 }
 
 bool Parser::isCodeLiteralBinderAhead() const

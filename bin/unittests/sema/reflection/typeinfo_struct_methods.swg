@@ -35,7 +35,7 @@ impl SimpleMethodProbe
     }
 
     #[Macro]
-    mtd visitMacro(stmt: #code void)
+    mtd visitMacro(stmt: #code)
     {
         #inject(stmt)
     }
@@ -86,7 +86,7 @@ impl ExportedMethodProbe
     }
 
     #[Mixin]
-    func injectStmt(stmt: #code void)
+    func injectStmt(stmt: #code)
     {
         #inject(stmt)
     }

@@ -291,7 +291,7 @@ func declareFeatureState()
 }
 
 #[Swag.Macro]
-func forEachGuideLine(bytes: const [..] u8, stmt: #code void)
+func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeToken: u8))
 {
     var lineOpponentToken: u8
     var lineCodeToken: u8
@@ -309,9 +309,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code void)
             if haveOpponent or haveCode
             {
                 @assert(haveOpponent and haveCode)
-                let #alias0 = lineOpponentToken
-                let #alias1 = lineCodeToken
-                #inject(stmt)
+                #inject(stmt, opponentToken = lineOpponentToken, codeToken = lineCodeToken)
                 haveOpponent = false
                 haveCode = false
             }
@@ -341,9 +339,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code void)
     if haveOpponent or haveCode
     {
         @assert(haveOpponent and haveCode)
-        let #alias0 = lineOpponentToken
-        let #alias1 = lineCodeToken
-        #inject(stmt)
+        #inject(stmt, opponentToken = lineOpponentToken, codeToken = lineCodeToken)
     }
 }
 
@@ -358,7 +354,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
 
     defer @assert(featureRoundCount <= MaxRounds)
 
-    forEachGuideLine(|opponentToken, codeToken| bytes)
+    forEachGuideLine(bytes)
     {
         featureRoundCount += 1
         featurePartOne += iPartOne.score(opponentToken, codeToken)

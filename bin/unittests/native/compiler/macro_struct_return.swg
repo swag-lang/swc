@@ -20,13 +20,11 @@ struct InvoiceTotals
 }
 
 #[Swag.Macro]
-func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code void)
+func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line, lineTotalCents: s32))
 {
     for @countof(lines)
     {
-        let #alias0 = lines[@index]
-        let #alias1 = lines[@index].quantity * lines[@index].unitPriceCents
-        #inject(stmt)
+        #inject(stmt, line = lines[@index], lineTotalCents = lines[@index].quantity * lines[@index].unitPriceCents)
     }
 }
 
@@ -37,7 +35,7 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     var subtotalCents: s32
     var taxableSubtotalCents: s32
 
-    visitInvoiceLines(|line, lineTotalCents| lines)
+    visitInvoiceLines(lines)
     {
         @assert(line.quantity > 0)
         @assert(line.unitPriceCents > 0)

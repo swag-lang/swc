@@ -126,7 +126,7 @@ AstNodeRef Parser::parseVarDecl()
         while (true)
         {
             TokenRef tokName = TokenRef::invalid();
-            if (Token::isCompilerAlias(id()) || Token::isCompilerUniq(id()))
+            if (Token::isCompilerUniq(id()))
                 tokName = consume();
             else
                 tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);

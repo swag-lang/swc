@@ -236,13 +236,6 @@ IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& co
     if (Token::isCompilerUniq(tok.id))
         return resolveUniqIdentifier(sema, tok.id);
 
-    if (Token::isCompilerAlias(tok.id))
-    {
-        const IdentifierRef idRef = resolveAliasIdentifier(sema, tok.id);
-        if (idRef.isValid())
-            return idRef;
-    }
-
     return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 }
 
@@ -276,31 +269,24 @@ const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
     return Sema::inlinePayload(*currentFn);
 }
 
-uint32_t SemaHelpers::aliasSlotIndex(const TokenId tokenId)
+IdentifierRef SemaHelpers::resolveCodeParamIdentifier(const Sema& sema, const uint32_t slot)
 {
-    SWC_ASSERT(Token::isCompilerAlias(tokenId));
-    return static_cast<uint32_t>(tokenId) - static_cast<uint32_t>(TokenId::CompilerAlias0);
-}
-
-IdentifierRef SemaHelpers::resolveAliasIdentifier(const Sema& sema, const TokenId tokenId)
-{
-    SWC_ASSERT(Token::isCompilerAlias(tokenId));
-
     const auto* inlinePayload = sema.frame().currentInlinePayload();
     if (!inlinePayload)
         inlinePayload = effectiveInlinePayload(sema);
     if (!inlinePayload)
         return IdentifierRef::invalid();
 
-    const uint32_t slot = aliasSlotIndex(tokenId);
+    // Call-site renames (foreach names, '#code(a, b)' binder) win, walking the
+    // payload chain so forwarding a code value keeps the outermost rename.
     for (const auto* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
     {
         if (slot < payload->aliasIdentifiers.size() && payload->aliasIdentifiers[slot].isValid())
             return payload->aliasIdentifiers[slot];
     }
 
-    // No call-site alias/binder anywhere in the chain: fall back to the declared
-    // '#code' parameter name ('stmt: #code(v, dbl)' names slot 0 'v', slot 1 'dbl').
+    // No rename anywhere in the chain: fall back to the declared '#code' parameter
+    // name ('stmt: #code(v, dbl)' names slot 0 'v', slot 1 'dbl').
     for (const auto* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
     {
         if (slot < payload->codeParamNames.size() && payload->codeParamNames[slot].isValid())

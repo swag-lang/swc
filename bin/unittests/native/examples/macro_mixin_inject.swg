@@ -47,24 +47,21 @@ func accumulateInvoiceLine(lineTotalCents: s32, isTaxable: bool)
 #[Swag.Mixin]
 func declareShippingFees(baseFeeCents: s32)
 {
-    const #alias0: s32 = baseFeeCents
-    const #alias1: s32 = baseFeeCents + 900
+    const standardShippingCents: s32 = baseFeeCents
+    const expeditedShippingCents: s32 = baseFeeCents + 900
 }
 
 #[Swag.Macro]
-func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code void)
+func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line: InvoiceLine, index: s32, lineTotalCents: s32))
 {
     for @countof(lines)
     {
-        let #alias0 = lines[@index]
-        let #alias1 = cast(s32) @index
-        let #alias2 = lines[@index].quantity * lines[@index].unitPriceCents
-        #inject(stmt)
+        #inject(stmt, line = lines[@index], index = cast(s32) @index, lineTotalCents = lines[@index].quantity * lines[@index].unitPriceCents)
     }
 }
 
 #[Swag.Macro]
-func tieredDiscount(subtotalExpr: #code s32)->s32
+func tieredDiscount(subtotalExpr: #code->s32)->s32
 {
     let subtotal = #inject(subtotalExpr)
     if subtotal >= 40000 do
@@ -79,9 +76,9 @@ func tieredDiscount(subtotalExpr: #code s32)->s32
 func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)->InvoiceTotals
 {
     declareInvoiceState()
-    declareShippingFees(|standardShippingCents, expeditedShippingCents| 600)
+    declareShippingFees(600)
 
-    visitInvoiceLines(|line, index, lineTotalCents| lines)
+    visitInvoiceLines(lines)
     {
         @assert(index >= 0)
         @assert(line.quantity > 0)

@@ -6,7 +6,7 @@ struct MacroScopeConfig
 }
 
 #[Swag.Macro]
-func doItTwice(stmt: #code void)
+func doItTwice(stmt: #code)
 {
     #macro
     {
@@ -16,7 +16,7 @@ func doItTwice(stmt: #code void)
 }
 
 #[Swag.Macro]
-func preferCallerScope(stmt: #code void)
+func preferCallerScope(stmt: #code)
 {
     var a = 100
     #macro
@@ -26,7 +26,7 @@ func preferCallerScope(stmt: #code void)
 }
 
 #[Swag.Macro]
-func repeatWithIndex(count: s32, stmt: #code void)
+func repeatWithIndex(count: s32, stmt: #code)
 {
     var i = 0
     while i < count
@@ -41,7 +41,7 @@ func repeatWithIndex(count: s32, stmt: #code void)
 }
 
 #[Swag.Macro]
-func applyConfig(cfg: MacroScopeConfig, stmt: #code void)
+func applyConfig(cfg: MacroScopeConfig, stmt: #code)
 {
     #macro
     {
@@ -51,7 +51,7 @@ func applyConfig(cfg: MacroScopeConfig, stmt: #code void)
 }
 
 #[Swag.Macro]
-func bindTypedAlias(stmt: #code void)
+func bindTypedAlias(stmt: #code)
 {
     alias ScopeValue = s32
     var value: ScopeValue = 41
@@ -63,7 +63,7 @@ func bindTypedAlias(stmt: #code void)
 }
 
 #[Swag.Macro]
-func nestedBlock(seed: s32, stmt: #code void)
+func nestedBlock(seed: s32, stmt: #code)
 {
     #macro
     {
@@ -75,16 +75,11 @@ func nestedBlock(seed: s32, stmt: #code void)
 }
 
 #[Swag.Macro]
-func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(value, out))
 {
     for @countof(values)
     {
-        #macro
-        {
-            let #alias0 = #up values[@index] + #up delta
-            let #alias1 = #up sumPtr
-            #inject(#up stmt)
-        }
+        #inject(stmt, value = values[@index] + delta, out = sumPtr)
     }
 }
 
@@ -96,7 +91,7 @@ struct MemberMacroWalker
 impl MemberMacroWalker
 {
     #[Swag.Macro]
-    mtd visit(scale: s32 = 1, stmt: #code void)
+    mtd visit(scale: s32 = 1, stmt: #code)
     {
         let values = .values
         for @countof(values)
@@ -110,7 +105,7 @@ impl MemberMacroWalker
     }
 
     #[Swag.Macro]
-    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code void)
+    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code)
     {
         let values = .values
         for @countof(values)
@@ -128,7 +123,7 @@ impl MemberMacroWalker
 namespace QualifiedMacroScope
 {
     #[Swag.Macro]
-    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code)
     {
         for @countof(values)
         {
@@ -215,7 +210,7 @@ func runGenericAliasFold()->bool
 {
     let values = [1, 2, 3]
     var sum    = 0
-    genericAliasFold(|value, out| values, 10, &sum)
+    genericAliasFold(values, 10, &sum)
     {
         dref out += value
     }

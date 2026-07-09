@@ -341,7 +341,6 @@ AstNodeRef Parser::parseType()
     // - '#code(a, b: T)'     statement block with named parameters
     // - '#code->T'           expression block of type T
     // - '#code(a: T)->T2'    parameters and expression type
-    // - '#code T'            legacy spelling of '#code->T'
     if (is(TokenId::CompilerCode))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CodeType>(consume());
@@ -351,15 +350,7 @@ AstNodeRef Parser::parseType()
             nodePtr->spanParamsRef = parseCodeTypeParams();
 
         if (consumeIf(TokenId::SymMinusGreater).isValid())
-        {
             nodePtr->nodeTypeRef = parseType();
-        }
-        else if (nodePtr->spanParamsRef.isInvalid() &&
-                 !isAny(TokenId::SymComma, TokenId::SymRightParen, TokenId::SymRightCurly, TokenId::SymEqual, TokenId::SymLeftCurly, TokenId::SymSemiColon, TokenId::EndOfFile))
-        {
-            // Legacy form '#code <type>'
-            nodePtr->nodeTypeRef = parseSubType();
-        }
 
         return nodeRef;
     }

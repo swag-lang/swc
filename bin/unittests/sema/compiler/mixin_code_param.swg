@@ -1,7 +1,7 @@
 // 
 
 #[Swag.Mixin]
-func mixinInjectVoid(stmt: #code void)
+func mixinInjectVoid(stmt: #code)
 {
     #inject(stmt)
 }
@@ -18,7 +18,7 @@ private func semaTest001()
 }
 
 #[Swag.Mixin]
-func mixinInjectValue(value: s32, stmt: #code void)
+func mixinInjectValue(value: s32, stmt: #code)
 {
     #inject(stmt)
     #inject(stmt)

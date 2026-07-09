@@ -540,27 +540,6 @@ struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr, AstCall
 };
 
 // -----------------------------------------------------------------------------
-struct AstAliasCallExpr : AstCompoundT<AstNodeId::AliasCallExpr>
-{
-    AstNodeRef nodeExprRef;
-    SpanRef    spanAliasesRef;
-
-    void       collectAliases(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstNode::collectChildren(out, ast, spanAliasesRef); }
-    void       collectArguments(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstNode::collectChildren(out, ast, spanChildrenRef); }
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPostNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
-    {
-        AstNode::collectChildren(out, {nodeExprRef});
-        AstNode::collectChildren(out, ast, spanAliasesRef);
-        AstCompoundT::collectChildren(out, ast);
-    }
-};
-
-// -----------------------------------------------------------------------------
 struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
 {
     AstNodeRef nodeWhatRef;

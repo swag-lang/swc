@@ -249,7 +249,7 @@ func accumulateLine(line: const [..] u8, finder: IDigitFinder, target: *u64)
 }
 
 #[Swag.Macro]
-func forEachLine(bytes: const [..] u8, stmt: #code void)
+func forEachLine(bytes: const [..] u8, stmt: #code(line))
 {
     var lineStart: u64
     for @countof(bytes)
@@ -262,8 +262,7 @@ func forEachLine(bytes: const [..] u8, stmt: #code void)
             if lineEnd > lineStart
             {
                 let lineLen = lineEnd - lineStart
-                let #alias0 = bytes[lineStart until lineStart + lineLen]
-                #inject(stmt)
+                #inject(stmt, line = bytes[lineStart until lineStart + lineLen])
             }
             lineStart = @index + 1
         }
@@ -281,7 +280,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->CalibrationResult
 
     defer @assert(scanDigitSum >= 0)
 
-    forEachLine(|line| bytes)
+    forEachLine(bytes)
     {
         accumulateLine(line, iDigit, &scanDigitSum)
         accumulateLine(line, iWord, &scanWordSum)

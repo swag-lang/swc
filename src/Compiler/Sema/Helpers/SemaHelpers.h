@@ -90,8 +90,7 @@ namespace SemaHelpers
     void                     pushConstExprRequirement(Sema& sema, AstNodeRef childRef);
     IdentifierRef            getUniqueIdentifier(Sema& sema, const std::string_view& name);
     IdentifierRef            resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef);
-    uint32_t                 aliasSlotIndex(TokenId tokenId);
-    IdentifierRef            resolveAliasIdentifier(const Sema& sema, TokenId tokenId);
+    IdentifierRef            resolveCodeParamIdentifier(const Sema& sema, uint32_t slot);
     uint32_t                 uniqSlotIndex(TokenId tokenId);
     AstNodeRef               uniqSyntaxScopeNodeRef(Sema& sema);
     SemaInlinePayload*       mixinInlinePayloadForUniq(Sema& sema);

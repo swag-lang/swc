@@ -9,7 +9,7 @@ func mixinFromCallerScope()
 }
 
 #[Swag.Mixin]
-func mixinInjectValue(value: s32, stmt: #code void)
+func mixinInjectValue(value: s32, stmt: #code)
 {
     #inject(stmt)
     #inject(stmt)

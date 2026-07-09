@@ -55,13 +55,13 @@ Here, 'increment' defaults to 1.
 
 /**
 # Mixins with Code Blocks
-A mixin can accept a parameter of type 'code', representing a Swag code block defined at the call site.
+A mixin can accept a '#code' parameter, representing a Swag code block defined at the call site.
 The mixin can execute this block multiple times using '#inject'.
 */
 #test
 {
     #[Swag.Mixin]
-    func doItTwice(what: #code void)
+    func doItTwice(what: #code)
     {
         #inject(what)
         // first execution
@@ -76,13 +76,14 @@ The mixin can execute this block multiple times using '#inject'.
 
 /**
 # Passing Code Blocks in Separate Statements
-When the last parameter is of type 'code', the code can be provided in a separate block after the call.
+When the last parameter is a '#code' statement block, the code can be provided in a
+separate block after the call.
 */
 
 #test
 {
     #[Swag.Mixin]
-    func doItTwice(value: s32, what: #code void)
+    func doItTwice(value: s32, what: #code)
     {
         #inject(what)
         #inject(what)
@@ -99,40 +100,26 @@ When the last parameter is of type 'code', the code can be provided in a separat
 }
 
 /**
-# Creating Aliases with Mixins
-Use the special name '#alias' to create a named alias for an identifier.
-This enables flexible manipulation of variables through mixins.
+# Mixins with Block Parameters
+Like macros, a mixin's '#code' parameter can declare named block parameters, bound
+by '#inject'. Since a mixin already runs in the caller's scope, the bindings are
+plain declarations there.
 */
 #test
 {
     #[Swag.Mixin]
-    func inc10()
+    func inc10(stmt: #code(cell))
     {
-        #alias0 += 10
+        #inject(stmt, cell = 10)
     }
 
     var a, b = 0
-    inc10(|a|) // use 'a' as the alias
-    inc10(|b|) // use 'b' as the alias
-    @assert(a == b and b == 10)
-}
-
-#test
-{
-    #[Swag.Mixin]
-    func setVar(value: s32)
+    inc10()
     {
-        let #alias0 = value
+        a += cell
     }
-
-    setVar(|a| 10)
-    setVar(|b| 20)
-    @assert(a == 10)
-    @assert(b == 20)
-
-    // No explicit alias: default '#alias0' is used
-    setVar(30)
-    @assert(#alias0 == 30)
+    inc10() #code(amount) { b += amount }
+    @assert(a == b and b == 10)
 }
 
 /**

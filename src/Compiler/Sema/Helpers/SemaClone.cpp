@@ -290,7 +290,6 @@ namespace
     bool isDetachedReexpandableExpr(const AstNode& node)
     {
         return node.is(AstNodeId::CallExpr) ||
-               node.is(AstNodeId::AliasCallExpr) ||
                node.is(AstNodeId::IntrinsicCallExpr) ||
                node.is(AstNodeId::UnaryExpr) ||
                node.is(AstNodeId::BinaryExpr) ||
@@ -2043,15 +2042,6 @@ AstNodeRef AstIntrinsicCallExpr::semaClone(Sema& sema, const CloneContext& clone
     // so re-selection in the destination can land on a different overload. Pin the overload the
     // intrinsic actually resolved to, mirroring the regular-call path.
     pinClonedCallResolvedFunction(sema, inlineContext, nodeRef(cloneSourceAst(sema, inlineContext)), newPtr->nodeExprRef);
-    return newRef;
-}
-
-AstNodeRef AstAliasCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::AliasCallExpr>(tokRef());
-    newPtr->nodeExprRef     = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->spanAliasesRef  = cloneSpan(sema, spanAliasesRef, cloneContextAsInline(cloneContext));
-    newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

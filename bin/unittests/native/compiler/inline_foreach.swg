@@ -2,7 +2,7 @@
 
 // Inlining a callee whose body contains a `foreach` must keep an early `return` inside
 // the loop routed to the inlined callee's result. A custom `opVisit` lowers the loop body
-// into a `#code void` callback, so the materialized return must not bind to that void
+// into a void `#code` callback, so the materialized return must not bind to that void
 // callback. Marked `#[Swag.Inline]` callees exercise this deterministically (inlined under
 // MarkedOnly and Auto); the unmarked twins exercise the Auto size/shape heuristic when the
 // suite runs with `-bc release`.
@@ -15,7 +15,7 @@ struct ReturnVisits
 impl ReturnVisits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
     {
         #if ptr do
             #error("ReturnVisits does not expose pointer iteration.")
@@ -28,10 +28,8 @@ impl ReturnVisits
         for idx in @countof(.values)
         {
             #scope(Down)
-            #macro
             {
-                let #alias0 = #up me.values[#up idx]
-                #inject(#up stmt, break = break to Up, continue = break to Down)
+                #inject(stmt, item = me.values[idx], break = break to Up, continue = break to Down)
             }
 
             remain -= 1

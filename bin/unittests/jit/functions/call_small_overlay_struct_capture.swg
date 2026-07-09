@@ -50,7 +50,7 @@ func BlendOverlayGridMixin(topLeft, topRight, bottomLeft, bottomRight: OverlayCo
 }
 
 #[Swag.Macro]
-func injectStmt(stmt: #code void)
+func injectStmt(stmt: #code)
 {
     #inject(stmt)
 }

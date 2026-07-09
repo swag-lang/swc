@@ -8,7 +8,7 @@ struct Visits
 impl Visits
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
     {
         #if ptr do
             #error("no pointer iteration")
@@ -17,11 +17,7 @@ impl Visits
 
         for idx in @countof(.values)
         {
-            #macro
-            {
-                let #alias0 = #up me.values[#up idx]
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[idx])
         }
     }
 }

@@ -8,7 +8,7 @@ struct CustomVisitTooManyNames
 impl CustomVisitTooManyNames
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
         #if ptr do
             #error("CustomVisitTooManyNames does not expose pointer iteration.")
@@ -18,12 +18,7 @@ impl CustomVisitTooManyNames
 
         for idx in 2
         {
-            #macro
-            {
-                let #alias0 = #up me.values[#up idx]
-                let #alias1 = @index
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[idx], index = @index)
         }
     }
 }

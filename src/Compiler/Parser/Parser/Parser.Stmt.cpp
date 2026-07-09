@@ -104,12 +104,7 @@ AstNodeRef Parser::parseAlias()
     }
 
     // 3) Otherwise, allow only a symbol / qualified name as RHS
-    else if (is(TokenId::Identifier) ||
-             is(TokenId::CompilerAlias0) || is(TokenId::CompilerAlias1) ||
-             is(TokenId::CompilerAlias2) || is(TokenId::CompilerAlias3) ||
-             is(TokenId::CompilerAlias4) || is(TokenId::CompilerAlias5) ||
-             is(TokenId::CompilerAlias6) || is(TokenId::CompilerAlias7) ||
-             is(TokenId::CompilerAlias8) || is(TokenId::CompilerAlias9))
+    else if (is(TokenId::Identifier))
     {
         nodePtr->nodeExprRef = parseQualifiedIdentifier();
     }
@@ -983,16 +978,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerUniq7:
         case TokenId::CompilerUniq8:
         case TokenId::CompilerUniq9:
-        case TokenId::CompilerAlias0:
-        case TokenId::CompilerAlias1:
-        case TokenId::CompilerAlias2:
-        case TokenId::CompilerAlias3:
-        case TokenId::CompilerAlias4:
-        case TokenId::CompilerAlias5:
-        case TokenId::CompilerAlias6:
-        case TokenId::CompilerAlias7:
-        case TokenId::CompilerAlias8:
-        case TokenId::CompilerAlias9:
             return parseAssignStmt();
 
         default:

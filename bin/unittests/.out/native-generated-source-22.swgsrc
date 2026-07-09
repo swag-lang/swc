@@ -1,0 +1,223 @@
+struct AdminRouteRequest_rotateTenantApiKeys
+{
+    tenantId: s64
+    actorEmail: string
+    forceRevoke: bool
+}
+
+func invokeAdminRoute_rotateTenantApiKeys(request: const &AdminRouteRequest_rotateTenantApiKeys)->bool
+{
+    return rotateTenantApiKeys(request.tenantId, request.actorEmail, request.forceRevoke)
+}
+
+struct AdminRouteRequest_setInvoiceDelivery
+{
+    tenantId: s64
+    billingEmail: string
+    sendCopyToOps: bool
+}
+
+func invokeAdminRoute_setInvoiceDelivery(request: const &AdminRouteRequest_setInvoiceDelivery)->InvoiceDeliveryReceipt
+{
+    return setInvoiceDelivery(request.tenantId, request.billingEmail, request.sendCopyToOps)
+}
+
+struct AdminRouteRequest_listTenantUsers
+{
+    tenantId: s64
+    includeSuspended: bool
+}
+
+func invokeAdminRoute_listTenantUsers(request: const &AdminRouteRequest_listTenantUsers)->s32
+{
+    return listTenantUsers(request.tenantId, request.includeSuspended)
+}
+
+struct AdminRouteRequest_rebuildSearchCache
+{
+    indexName: string
+    full: bool
+}
+
+func invokeAdminRoute_rebuildSearchCache(request: const &AdminRouteRequest_rebuildSearchCache)
+{
+    rebuildSearchCache(request.indexName, request.full)
+}
+
+const GeneratedAdminRouteCount = 4
+
+struct GeneratedAdminRouteDescriptor
+{
+    handler:        string
+    method:         string
+    path:           string
+    permission:     string
+    auditCode:      string
+    pathParamCount: s32
+    paramCount:     s32
+    critical:       bool
+    returnsValue:   bool
+}
+
+func getGeneratedAdminRoute(index: s32)->GeneratedAdminRouteDescriptor
+{
+    switch index
+    {
+        case 0: return {
+            handler: "rotateTenantApiKeys",
+            method: "POST",
+            path: "/tenants/:tenantId/rotate-api-keys",
+            permission: "tenant.write",
+            auditCode: "tenant.keys.rotate",
+            pathParamCount: 1,
+            paramCount: 3,
+            critical: true,
+            returnsValue: true,
+        }
+        case 1: return {
+            handler: "setInvoiceDelivery",
+            method: "POST",
+            path: "/billing/invoice-delivery",
+            permission: "billing.write",
+            auditCode: "billing.delivery.update",
+            pathParamCount: 0,
+            paramCount: 3,
+            critical: false,
+            returnsValue: true,
+        }
+        case 2: return {
+            handler: "listTenantUsers",
+            method: "GET",
+            path: "/tenants/:tenantId/users",
+            permission: "tenant.read",
+            auditCode: "tenant.users.list",
+            pathParamCount: 1,
+            paramCount: 2,
+            critical: false,
+            returnsValue: true,
+        }
+        case 3: return {
+            handler: "rebuildSearchCache",
+            method: "POST",
+            path: "/internal/search/rebuild-cache",
+            permission: "ops.write",
+            auditCode: "search.cache.rebuild",
+            pathParamCount: 0,
+            paramCount: 2,
+            critical: true,
+            returnsValue: false,
+        }
+    }
+
+    return {
+        handler: "",
+        method: "",
+        path: "",
+        permission: "",
+        auditCode: "",
+        pathParamCount: 0,
+        paramCount: 0,
+        critical: false,
+        returnsValue: false,
+    }
+}
+
+func getGeneratedAdminRouteHandler(index: s32)->string
+{
+    switch index
+    {
+        case 0: return "rotateTenantApiKeys"
+        case 1: return "setInvoiceDelivery"
+        case 2: return "listTenantUsers"
+        case 3: return "rebuildSearchCache"
+    }
+
+    return ""
+}
+
+func getGeneratedAdminRouteAuditCode(index: s32)->string
+{
+    switch index
+    {
+        case 0: return "tenant.keys.rotate"
+        case 1: return "billing.delivery.update"
+        case 2: return "tenant.users.list"
+        case 3: return "search.cache.rebuild"
+    }
+
+    return ""
+}
+
+func getGeneratedAdminRoutePathParamCount(index: s32)->s32
+{
+    switch index
+    {
+        case 0: return 1
+        case 1: return 0
+        case 2: return 1
+        case 3: return 0
+    }
+
+    return 0
+}
+
+func getGeneratedAdminRouteParamCount(index: s32)->s32
+{
+    switch index
+    {
+        case 0: return 3
+        case 1: return 3
+        case 2: return 2
+        case 3: return 2
+    }
+
+    return 0
+}
+
+func isGeneratedAdminRouteCritical(index: s32)->bool
+{
+    switch index
+    {
+        case 0: return true
+        case 1: return false
+        case 2: return false
+        case 3: return true
+    }
+
+    return false
+}
+
+func generatedAdminRouteReturnsValue(index: s32)->bool
+{
+    switch index
+    {
+        case 0: return true
+        case 1: return true
+        case 2: return true
+        case 3: return false
+    }
+
+    return false
+}
+
+func findGeneratedAdminRoute(method: string, path: string)->s32
+{
+    if method == "POST" and path == "/tenants/:tenantId/rotate-api-keys" do
+        return 0
+    if method == "POST" and path == "/billing/invoice-delivery" do
+        return 1
+    if method == "GET" and path == "/tenants/:tenantId/users" do
+        return 2
+    if method == "POST" and path == "/internal/search/rebuild-cache" do
+        return 3
+    return -1
+}
+
+func countCriticalAdminRoutes()->s32
+{
+    var count: s32
+    count += 1
+    count += 1
+    return count
+}
+#init { MessageBeforeOutputValue += 1 }

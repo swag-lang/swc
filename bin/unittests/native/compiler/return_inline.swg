@@ -17,13 +17,13 @@ func mixinValue(flag: bool)->s32
 }
 
 #[Swag.Macro, Swag.CalleeReturn]
-func macroCaller(stmt: #code void)
+func macroCaller(stmt: #code)
 {
     #inject(stmt)
 }
 
 #[Swag.Mixin, Swag.CalleeReturn]
-func mixinCaller(stmt: #code void)
+func mixinCaller(stmt: #code)
 {
     #inject(stmt)
 }

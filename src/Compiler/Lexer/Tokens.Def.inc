@@ -215,16 +215,6 @@ SWC_TOKEN_DEF(ModifierUnConst, "#unconst",  TokenIdKindE::Modifier)
 
 // COMPILER IDENTIFIERS
 
-SWC_TOKEN_DEF(CompilerAlias0, "#alias0",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias1, "#alias1",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias2, "#alias2",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias3, "#alias3",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias4, "#alias4",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias5, "#alias5",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias6, "#alias6",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias7, "#alias7",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias8, "#alias8",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
-SWC_TOKEN_DEF(CompilerAlias9, "#alias9",  TokenIdKindE::Compiler | TokenIdKindE::Alias)
 SWC_TOKEN_DEF(CompilerUniq0, "#uniq0",  TokenIdKindE::Compiler | TokenIdKindE::Uniq)
 SWC_TOKEN_DEF(CompilerUniq1, "#uniq1",  TokenIdKindE::Compiler | TokenIdKindE::Uniq)
 SWC_TOKEN_DEF(CompilerUniq2, "#uniq2",  TokenIdKindE::Compiler | TokenIdKindE::Uniq)

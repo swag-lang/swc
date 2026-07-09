@@ -12,13 +12,13 @@ struct MacroClosureState
 }
 
 #[Swag.Macro]
-func macroInjectClosureCapture(stmt: #code void)
+func macroInjectClosureCapture(stmt: #code)
 {
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func macroInjectCallerScopeClosureCapture(stmt: #code void)
+func macroInjectCallerScopeClosureCapture(stmt: #code)
 {
     #macro
     {
@@ -27,13 +27,9 @@ func macroInjectCallerScopeClosureCapture(stmt: #code void)
 }
 
 #[Swag.Macro]
-func macroInjectCallerScopeAliasClosureCapture(seed: s32, stmt: #code void)
+func macroInjectCallerScopeAliasClosureCapture(seed: s32, stmt: #code(start: s32))
 {
-    #macro
-    {
-        let #alias0 = #up seed
-        #inject(#up stmt)
-    }
+    #inject(stmt, start = seed)
 }
 
 func macroClosureCaptureRunTwice(cb: func||()->s32)->s32
@@ -114,7 +110,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
 
 #test
 {
-    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    macroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {
@@ -134,7 +130,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
 
 #test
 {
-    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    macroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {
@@ -155,7 +151,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
 
 #test
 {
-    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    macroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {
@@ -176,7 +172,7 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
 
 #test
 {
-    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    macroInjectCallerScopeAliasClosureCapture(41)
     {
         func makeCounter(seed: s32)->func||()->s32
         {

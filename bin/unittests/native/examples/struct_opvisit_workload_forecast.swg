@@ -16,74 +16,37 @@ struct WorkloadForecast
 impl WorkloadForecast
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
         #if back do
             #error("Reverse iteration is not used in this forecast example.")
 
         #if ptr
         {
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.monday)
-                let #alias1 = 0'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.tuesday)
-                let #alias1 = 1'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.wednesday)
-                let #alias1 = 2'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.thursday)
-                let #alias1 = 3'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0: *s32 = cast(*s32) &(#up me.friday)
-                let #alias1 = 4'u64
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = cast(*s32) &(me.monday), index = 0'u64)
+            #inject(stmt, item = cast(*s32) &(me.tuesday), index = 1'u64)
+            #inject(stmt, item = cast(*s32) &(me.wednesday), index = 2'u64)
+            #inject(stmt, item = cast(*s32) &(me.thursday), index = 3'u64)
+            #inject(stmt, item = cast(*s32) &(me.friday), index = 4'u64)
         }
         #else
         {
             for idx in 5
             {
-                #macro
+                switch idx
                 {
-                    var #alias0: s32 = undefined
-
-                    switch #up idx
-                    {
-                    case 0: #alias0 = #up me.monday
-                    case 1: #alias0 = #up me.tuesday
-                    case 2: #alias0 = #up me.wednesday
-                    case 3: #alias0 = #up me.thursday
-                    case 4: #alias0 = #up me.friday
-                    }
-
-                    let #alias1 = @index
-                    #inject(#up stmt)
+                case 0: #inject(stmt, item = me.monday, index = @index)
+                case 1: #inject(stmt, item = me.tuesday, index = @index)
+                case 2: #inject(stmt, item = me.wednesday, index = @index)
+                case 3: #inject(stmt, item = me.thursday, index = @index)
+                case 4: #inject(stmt, item = me.friday, index = @index)
                 }
             }
         }
     }
 
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
         #if back do
             #error("Reverse iteration is not used in this forecast example.")
@@ -93,27 +56,19 @@ impl WorkloadForecast
 
         for idx in 5
         {
-            #macro
+            switch idx
             {
-                var #alias0: s32 = undefined
-
-                switch #up idx
-                {
-                case 0: #alias0 = #up me.monday
-                case 1: #alias0 = #up me.tuesday
-                case 2: #alias0 = #up me.wednesday
-                case 3: #alias0 = #up me.thursday
-                case 4: #alias0 = #up me.friday
-                }
-
-                let #alias1 = @index
-                #inject(#up stmt)
+            case 0: #inject(stmt, item = me.monday, index = @index)
+            case 1: #inject(stmt, item = me.tuesday, index = @index)
+            case 2: #inject(stmt, item = me.wednesday, index = @index)
+            case 3: #inject(stmt, item = me.thursday, index = @index)
+            case 4: #inject(stmt, item = me.friday, index = @index)
             }
         }
     }
 
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(today: s32, nextDay: s32))
     {
         #if ptr do
             #error("Pair visits stay read-only in this example.")
@@ -121,33 +76,10 @@ impl WorkloadForecast
         #if back do
             #error("Reverse pair iteration is not used in this forecast example.")
 
-        #macro
-        {
-            let #alias0 = #up me.monday
-            let #alias1 = #up me.tuesday
-            #inject(#up stmt)
-        }
-
-        #macro
-        {
-            let #alias0 = #up me.tuesday
-            let #alias1 = #up me.wednesday
-            #inject(#up stmt)
-        }
-
-        #macro
-        {
-            let #alias0 = #up me.wednesday
-            let #alias1 = #up me.thursday
-            #inject(#up stmt)
-        }
-
-        #macro
-        {
-            let #alias0 = #up me.thursday
-            let #alias1 = #up me.friday
-            #inject(#up stmt)
-        }
+        #inject(stmt, today = me.monday, nextDay = me.tuesday)
+        #inject(stmt, today = me.tuesday, nextDay = me.wednesday)
+        #inject(stmt, today = me.wednesday, nextDay = me.thursday)
+        #inject(stmt, today = me.thursday, nextDay = me.friday)
     }
 }
 

@@ -98,54 +98,34 @@ namespace GenericCloneCodegenSupport
     impl OwnedPtrVisitBox
     {
         #[Swag.Macro]
-        mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+        mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
         {
             #if ptr do
                 #error("OwnedPtrVisitBox does not expose pointer iteration.")
 
             #if back
             {
-                #macro
+                if me.count > 1
                 {
-                    if #up me.count > 1
-                    {
-                        let #alias0 = #up me.second
-                        let #alias1 = 1'u64
-                        #inject(#up stmt)
-                    }
+                    #inject(stmt, item = me.second, index = 1'u64)
                 }
 
-                #macro
+                if me.count > 0
                 {
-                    if #up me.count > 0
-                    {
-                        let #alias0 = #up me.first
-                        let #alias1 = 0'u64
-                        #inject(#up stmt)
-                    }
+                    #inject(stmt, item = me.first, index = 0'u64)
                 }
 
                 return
             }
 
-            #macro
+            if me.count > 0
             {
-                if #up me.count > 0
-                {
-                    let #alias0 = #up me.first
-                    let #alias1 = 0'u64
-                    #inject(#up stmt)
-                }
+                #inject(stmt, item = me.first, index = 0'u64)
             }
 
-            #macro
+            if me.count > 1
             {
-                if #up me.count > 1
-                {
-                    let #alias0 = #up me.second
-                    let #alias1 = 1'u64
-                    #inject(#up stmt)
-                }
+                #inject(stmt, item = me.second, index = 1'u64)
             }
         }
 

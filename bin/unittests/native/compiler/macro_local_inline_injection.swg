@@ -1,18 +1,14 @@
 #global private
 
 #[Swag.Macro]
-func inlineLocalMacroInject(count: s32, contextData: *void = null, stmt: #code void)
+func inlineLocalMacroInject(count: s32, contextData: *void = null, stmt: #code(data: *void))
 {
     #[Swag.Inline]
     func doWork(n: s32, ctxData: *void)
     {
         for n
         {
-            #macro
-            {
-                let #alias0 = #up ctxData
-                #inject(#up stmt)
-            }
+            #inject(stmt, data = ctxData)
         }
     }
 
@@ -24,7 +20,7 @@ func inlineLocalMacroInject(count: s32, contextData: *void = null, stmt: #code v
     var runs = 0
     inlineLocalMacroInject(3, &runs)
     {
-        discard @atomadd(cast(*s32) #alias0, 1)
+        discard @atomadd(cast(*s32) data, 1)
     }
     @assert(runs == 3)
 }

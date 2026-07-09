@@ -3,7 +3,7 @@
 namespace CrossFileMacroRegression
 {
     #[Swag.Macro]
-    func runWhen(cond: #code bool, stmt: #code void)
+    func runWhen(cond: #code->bool, stmt: #code)
     {
         if #inject(cond)
         {

@@ -6,7 +6,7 @@ struct MacroScopeConfig
 }
 
 #[Swag.Macro]
-func doItTwice(stmt: #code void)
+func doItTwice(stmt: #code)
 {
     #macro
     {
@@ -16,7 +16,7 @@ func doItTwice(stmt: #code void)
 }
 
 #[Swag.Macro]
-func preferCallerScope(stmt: #code void)
+func preferCallerScope(stmt: #code)
 {
     var a = 100
     #macro
@@ -26,13 +26,13 @@ func preferCallerScope(stmt: #code void)
 }
 
 #[Swag.Macro]
-func injectPlain(stmt: #code void)
+func injectPlain(stmt: #code)
 {
     #inject(stmt)
 }
 
 #[Swag.Macro]
-func repeatWithIndex(count: s32, stmt: #code void)
+func repeatWithIndex(count: s32, stmt: #code)
 {
     var i = 0
     while i < count
@@ -47,7 +47,7 @@ func repeatWithIndex(count: s32, stmt: #code void)
 }
 
 #[Swag.Macro]
-func applyConfig(cfg: MacroScopeConfig, stmt: #code void)
+func applyConfig(cfg: MacroScopeConfig, stmt: #code)
 {
     #macro
     {
@@ -57,7 +57,7 @@ func applyConfig(cfg: MacroScopeConfig, stmt: #code void)
 }
 
 #[Swag.Macro]
-func bindTypedAlias(stmt: #code void)
+func bindTypedAlias(stmt: #code)
 {
     alias ScopeValue = s32
     var value: ScopeValue = 41
@@ -69,7 +69,7 @@ func bindTypedAlias(stmt: #code void)
 }
 
 #[Swag.Macro]
-func nestedBlock(seed: s32, stmt: #code void)
+func nestedBlock(seed: s32, stmt: #code)
 {
     #macro
     {
@@ -81,87 +81,55 @@ func nestedBlock(seed: s32, stmt: #code void)
 }
 
 #[Swag.Macro]
-func singleAlias(value: s32, stmt: #code void)
+func singleAlias(value: s32, stmt: #code(tripled: s32))
 {
-    #macro
-    {
-        let #alias0 = #up value * 3
-        #inject(#up stmt)
-    }
+    #inject(stmt, tripled = value * 3)
 }
 
 #[Swag.Macro]
-func pairAlias(a: s32, b: s32, stmt: #code void)
+func pairAlias(a: s32, b: s32, stmt: #code(sum: s32, product: s32))
 {
-    #macro
-    {
-        let #alias0 = #up a + #up b
-        let #alias1 = #up a * #up b
-        #inject(#up stmt)
-    }
+    #inject(stmt, sum = a + b, product = a * b)
 }
 
 #[Swag.Macro]
-func aliasWithUpVar(offset: s32, stmt: #code void)
+func aliasWithUpVar(offset: s32, stmt: #code(val: s32))
 {
     var local = offset + 100
-    #macro
-    {
-        let #alias0 = #up local
-        #inject(#up stmt)
-    }
+    #inject(stmt, val = local)
 }
 
 #[Swag.Macro]
-func repeatWithAlias(count: s32, stmt: #code void)
+func repeatWithAlias(count: s32, stmt: #code(idx: s32))
 {
     var i = 0
     while i < count
     {
-        #macro
-        {
-            let #alias0 = #up i
-            #inject(#up stmt)
-        }
+        #inject(stmt, idx = i)
         i += 1
     }
 }
 
 #[Swag.Macro]
-func nestedBlockAlias(seed: s32, stmt: #code void)
+func nestedBlockAlias(seed: s32, stmt: #code(inc: s32, doubled: s32))
 {
-    #macro
     {
-        {
-            let #alias0 = #up seed + 1
-            let #alias1 = #up seed * 2
-            #inject(#up stmt)
-        }
+        #inject(stmt, inc = seed + 1, doubled = seed * 2)
     }
 }
 
 #[Swag.Macro]
-func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
+func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code(single: s32, doubled: s32))
 {
-    #macro
-    {
-        let #alias0 = #up cfg.delta
-        let #alias1 = #up cfg.delta * 2
-        #inject(#up stmt)
-    }
+    #inject(stmt, single = cfg.delta, doubled = cfg.delta * 2)
 }
 
 #[Swag.Macro]
-func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code(value, out))
 {
     for @countof(values)
     {
-        #macro
-        {
-            let #alias0 = #up values[@index] + #up delta
-            let #alias1 = #up sumPtr
-            #inject(#up stmt)
-        }
+        #inject(stmt, value = values[@index] + delta, out = sumPtr)
     }
 }
 
@@ -173,7 +141,7 @@ struct MemberMacroWalker
 impl MemberMacroWalker
 {
     #[Swag.Macro]
-    mtd visit(scale: s32 = 1, stmt: #code void)
+    mtd visit(scale: s32 = 1, stmt: #code)
     {
         let values = .values
         for @countof(values)
@@ -187,7 +155,7 @@ impl MemberMacroWalker
     }
 
     #[Swag.Macro]
-    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code void)
+    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code)
     {
         let values = .values
         for @countof(values)
@@ -205,7 +173,7 @@ impl MemberMacroWalker
 namespace QualifiedMacroScope
 {
     #[Swag.Macro]
-    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code)
     {
         for @countof(values)
         {
@@ -307,13 +275,13 @@ namespace QualifiedMacroScope
     @assert(result == 42)
 }
 
-// --- Alias tests ---
+// --- Block parameter tests ---
 
-// Single #alias0 binding in macro
+// Single block parameter binding in macro
 #test
 {
     var result = 0
-    singleAlias(|tripled| 14)
+    singleAlias(14)
     {
         result = tripled
     }
@@ -321,11 +289,11 @@ namespace QualifiedMacroScope
     @assert(result == 42)
 }
 
-// Pair #alias0/#alias1 bindings in macro
+// Paired block parameter bindings in macro
 #test
 {
     var result = 0
-    pairAlias(|sum, product| 3, 7)
+    pairAlias(3, 7)
     {
         result = sum + product
     }
@@ -333,11 +301,11 @@ namespace QualifiedMacroScope
     @assert(result == 10 + 21)
 }
 
-// #alias with #up variable reference
+// Block parameter bound to a macro-local variable
 #test
 {
     var result = 0
-    aliasWithUpVar(|val| 5)
+    aliasWithUpVar(5)
     {
         result = val
     }
@@ -345,11 +313,11 @@ namespace QualifiedMacroScope
     @assert(result == 105)
 }
 
-// #alias in loop macro with repeat count
+// Block parameter in loop macro with repeat count
 #test
 {
     var sum = 0
-    repeatWithAlias(|idx| 4)
+    repeatWithAlias(4)
     {
         sum += idx
     }
@@ -357,11 +325,11 @@ namespace QualifiedMacroScope
     @assert(sum == 6)
 }
 
-// Nested block with dual #alias bindings
+// Nested block with dual block parameter bindings
 #test
 {
     var result = 0
-    nestedBlockAlias(|inc, doubled| 20)
+    nestedBlockAlias(20)
     {
         result = inc + doubled
     }
@@ -369,14 +337,14 @@ namespace QualifiedMacroScope
     @assert(result == 21 + 40)
 }
 
-// #alias with struct config fields
+// Block parameters from struct config fields
 #test
 {
     var cfg: MacroScopeConfig
     cfg.delta = 5
 
     var result = 0
-    aliasWithConfig(|single, doubled| cfg)
+    aliasWithConfig(cfg)
     {
         result = single + doubled
     }
@@ -384,12 +352,12 @@ namespace QualifiedMacroScope
     @assert(result == 5 + 10)
 }
 
-// Generic macro alias calls keep the trailing code block argument
+// Generic macro calls keep the trailing code block argument
 #test
 {
     let values = [1, 2, 3]
     var sum    = 0
-    genericAliasFold(|value, out| values, 10, &sum)
+    genericAliasFold(values, 10, &sum)
     {
         dref out += value
     }

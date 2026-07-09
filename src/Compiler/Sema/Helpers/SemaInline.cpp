@@ -45,7 +45,6 @@ namespace
     bool isInlineReexpandableExpr(const AstNode& node)
     {
         return node.is(AstNodeId::CallExpr) ||
-               node.is(AstNodeId::AliasCallExpr) ||
                node.is(AstNodeId::IntrinsicCallExpr) ||
                node.is(AstNodeId::UnaryExpr) ||
                node.is(AstNodeId::BinaryExpr) ||
@@ -806,94 +805,6 @@ namespace
     }
 
     using AliasIdentifierArray = std::array<IdentifierRef, 10>;
-    using AliasRefArray        = std::array<SourceCodeRef, 10>;
-
-    struct AliasUsageInfo
-    {
-        uint32_t      aliasCount  = 0;
-        SourceCodeRef invalidRef  = SourceCodeRef::invalid();
-        uint32_t      missingSlot = 0;
-        uint32_t      usedSlot    = 0;
-    };
-
-    void collectAliasUsage(const Ast& sourceAst, SourceViewRef ownerSrcViewRef, AstNodeRef nodeRef, AliasRefArray& outAliasRefs)
-    {
-        if (nodeRef.isInvalid() || !sourceAst.hasNode(nodeRef))
-            return;
-
-        const AstNode& node = sourceAst.node(nodeRef);
-        if (node.tokRef().isInvalid())
-            return;
-
-        // Alias placeholders belong to the macro declaration source itself.
-        // Injected/generated child nodes can carry foreign source views and AST ownership,
-        // so alias detection must stay lexical and limited to the declaration body range.
-        if (node.srcViewRef().isInvalid() || node.srcViewRef() != ownerSrcViewRef)
-            return;
-
-        const SourceView& sourceView = sourceAst.srcView();
-        const TokenRef    endTokRef  = node.tokRefEnd(sourceAst);
-        if (endTokRef.isInvalid())
-            return;
-
-        for (uint32_t tokIndex = node.tokRef().get(); tokIndex <= endTokRef.get() && tokIndex < sourceView.tokens().size(); ++tokIndex)
-        {
-            const TokenRef tokRef{tokIndex};
-            const Token&   tok = sourceView.token(tokRef);
-            if (!Token::isCompilerAlias(tok.id))
-                continue;
-
-            const uint32_t slot = SemaHelpers::aliasSlotIndex(tok.id);
-            if (slot < outAliasRefs.size() && !outAliasRefs[slot].isValid())
-                outAliasRefs[slot] = SourceCodeRef{node.srcViewRef(), tokRef};
-        }
-    }
-
-    Result collectAliasUsageInfo(const Sema& sema, const Ast& sourceAst, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
-    {
-        SWC_UNUSED(sema);
-
-        outInfo = {};
-        if (decl.nodeBodyRef.isInvalid())
-            return Result::Continue;
-
-        AliasRefArray       aliasRefs       = {};
-        const SourceViewRef ownerSrcViewRef = sourceAst.srcView().ref();
-        collectAliasUsage(sourceAst, ownerSrcViewRef, decl.nodeBodyRef, aliasRefs);
-
-        int32_t highestSlot = -1;
-        for (int32_t slot = static_cast<int32_t>(aliasRefs.size()) - 1; slot >= 0; --slot)
-        {
-            if (aliasRefs[slot].isValid())
-            {
-                highestSlot = slot;
-                break;
-            }
-        }
-
-        if (highestSlot < 0)
-            return Result::Continue;
-
-        outInfo.aliasCount = static_cast<uint32_t>(highestSlot + 1);
-        for (int32_t slot = 0; slot <= highestSlot; ++slot)
-        {
-            if (aliasRefs[slot].isValid())
-                continue;
-
-            for (int32_t usedSlot = slot + 1; usedSlot <= highestSlot; ++usedSlot)
-            {
-                if (!aliasRefs[usedSlot].isValid())
-                    continue;
-
-                outInfo.invalidRef  = aliasRefs[usedSlot];
-                outInfo.missingSlot = static_cast<uint32_t>(slot);
-                outInfo.usedSlot    = static_cast<uint32_t>(usedSlot);
-                return Result::Error;
-            }
-        }
-
-        return Result::Continue;
-    }
 
     struct DeclaredCodeParam
     {
@@ -987,22 +898,15 @@ namespace
         return nullptr;
     }
 
-    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const Ast& sourceAst, const AstFunctionDecl& decl, std::span<const AstNodeRef> args, std::span<const DeclaredCodeParam> declaredParams, AliasIdentifierArray& outAliasIdentifiers)
+    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, std::span<const AstNodeRef> args, std::span<const DeclaredCodeParam> declaredParams, AliasIdentifierArray& outAliasIdentifiers)
     {
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
-        SmallVector<AstNodeRef> aliases;
-        SmallVector<TokenRef>   foreachNames;
-        bool                    isForeachCall = false;
+        SmallVector<TokenRef> foreachNames;
+        bool                  isForeachCall = false;
         if (callRef.isValid())
         {
-            const AstNode& callNode = sema.node(callRef);
-
-            const auto* aliasCall = callNode.safeCast<AstAliasCallExpr>();
-            if (aliasCall)
-                aliasCall->collectAliases(aliases, sema.ast());
-
-            const auto* foreachStmt = callNode.safeCast<AstForeachStmt>();
+            const auto* foreachStmt = sema.node(callRef).safeCast<AstForeachStmt>();
             if (foreachStmt)
             {
                 isForeachCall = true;
@@ -1011,60 +915,28 @@ namespace
         }
 
         // Binder names on a code-literal argument ('#code(a, b) { ... }') rename the
-        // alias slots exactly like '(|a, b|' call aliases do.
+        // declared block parameters positionally.
         SmallVector<TokenRef> binderNames;
         const AstNode*        binderNode = findCodeArgumentBinder(sema, args, binderNames);
-        if (binderNode && !aliases.empty())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, binderNode->codeRef());
-            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(aliases.size()));
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(aliases.size() + binderNames.size()));
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
 
-        AliasUsageInfo aliasUsage;
-        const Result   usageResult = collectAliasUsageInfo(sema, sourceAst, decl, aliasUsage);
-        if (usageResult != Result::Continue)
-        {
-            if (aliasUsage.invalidRef.isValid())
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_alias_hole, aliasUsage.invalidRef);
-                diag.addArgument(Diagnostic::ARG_COUNT, aliasUsage.missingSlot);
-                diag.addArgument(Diagnostic::ARG_VALUE, aliasUsage.usedSlot);
-                diag.report(sema.ctx());
-            }
+        // The declared '#code' parameters are the arity contract.
+        const uint32_t slotCount = static_cast<uint32_t>(std::min(declaredParams.size(), outAliasIdentifiers.size()));
 
-            return usageResult;
-        }
-
-        // Declared '#code' parameter names raise the arity contract.
-        aliasUsage.aliasCount = std::max(aliasUsage.aliasCount, static_cast<uint32_t>(std::min(declaredParams.size(), outAliasIdentifiers.size())));
-
-        size_t providedAliasCount = !aliases.empty() ? aliases.size() : foreachNames.size();
+        size_t providedCount = foreachNames.size();
         if (!binderNames.empty())
-            providedAliasCount = binderNames.size();
-        if (providedAliasCount > aliasUsage.aliasCount)
+            providedCount = binderNames.size();
+        if (providedCount > slotCount)
         {
             SourceCodeRef errorRef;
-            if (!aliases.empty())
-                errorRef = sema.node(aliases[aliasUsage.aliasCount]).codeRef();
-            else if (!binderNames.empty())
-                errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[aliasUsage.aliasCount]};
+            if (!binderNames.empty())
+                errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[slotCount]};
             else
-                errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[aliasUsage.aliasCount]};
+                errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slotCount]};
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, errorRef);
-            diag.addArgument(Diagnostic::ARG_COUNT, aliasUsage.aliasCount);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(providedAliasCount));
+            diag.addArgument(Diagnostic::ARG_COUNT, slotCount);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(providedCount));
             diag.report(sema.ctx());
             return Result::Error;
-        }
-
-        for (size_t slot = 0; slot < aliases.size(); ++slot)
-        {
-            const AstNode& aliasNode = sema.node(aliases[slot]);
-            if (aliasNode.is(AstNodeId::Identifier))
-                outAliasIdentifiers[slot] = SemaHelpers::resolveIdentifier(sema, aliasNode.codeRef());
         }
 
         for (size_t slot = 0; slot < foreachNames.size(); ++slot)
@@ -1075,7 +947,7 @@ namespace
 
         if (isForeachCall)
         {
-            for (uint32_t slot = static_cast<uint32_t>(foreachNames.size()); slot < aliasUsage.aliasCount; ++slot)
+            for (uint32_t slot = static_cast<uint32_t>(foreachNames.size()); slot < slotCount; ++slot)
             {
                 if (!outAliasIdentifiers[slot].isValid())
                     outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__foreach_alias");
@@ -1253,7 +1125,7 @@ namespace
             return IdentifierRef::invalid();
 
         const TokenId tokenId = sema.token(codeRef).id;
-        if (tokenId == TokenId::Identifier || Token::isCompilerAlias(tokenId) || Token::isCompilerUniq(tokenId))
+        if (tokenId == TokenId::Identifier || Token::isCompilerUniq(tokenId))
             return SemaHelpers::resolveIdentifier(sema, codeRef);
 
         return IdentifierRef::invalid();
@@ -2559,7 +2431,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     appendDeclaredCodeParams(*declAst, *decl, declaredCodeParams);
 
     AliasIdentifierArray aliasIdentifiers = {};
-    SWC_RESULT(collectAliasIdentifiers(sema, callRef, *declAst, *decl, args, declaredCodeParams.span(), aliasIdentifiers));
+    SWC_RESULT(collectAliasIdentifiers(sema, callRef, args, declaredCodeParams.span(), aliasIdentifiers));
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();
     TypeRef    variadicExprTypeRef = TypeRef::invalid();

@@ -6,15 +6,11 @@ struct LocalMethodMacroBox
 }
 
 #[Swag.Macro]
-func aliasBounceOuterReceiver(value: s32)->s32
+func bounceOuterReceiver(value: s32)->s32
 {
     #macro
     {
-        let #alias0 = #up value
-        #macro
-        {
-            return #up buffer + 1
-        }
+        return #up value + 1
     }
 }
 
@@ -25,7 +21,7 @@ impl LocalMethodMacroBox
     {
         func pick(buffer: s32)->s32
         {
-            return aliasBounceOuterReceiver(|buffer| #up me.base + #up delta)
+            return bounceOuterReceiver(#up me.base + #up delta + buffer)
         }
 
         return pick(1000)

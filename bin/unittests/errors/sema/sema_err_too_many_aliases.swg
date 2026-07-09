@@ -1,16 +1,14 @@
 #global private
 
 #[Swag.Macro]
-func macroPair(value: s32, stmt: #code void)
+func macroPair(value: s32, stmt: #code(first: s32, second: s32))
 {
-    let #alias0 = value
-    let #alias1 = value + 1
-    #inject(stmt)
+    #inject(stmt, first = value, second = value + 1)
 }
 
 #test
 {
-    macroPair(|a, b, c| 10) // swc-expected-error {{sema_err_too_many_aliases}}
+    macroPair(10) #code(a, b, c) // swc-expected-error {{sema_err_too_many_aliases}}
     {
     }
 }

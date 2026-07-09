@@ -59,7 +59,7 @@ namespace
             const auto tokenId = static_cast<TokenId>(i);
             if (compilerKind)
             {
-                if (!Token::isCompiler(tokenId) || Token::isCompilerAlias(tokenId) || Token::isCompilerUniq(tokenId))
+                if (!Token::isCompiler(tokenId) || Token::isCompilerUniq(tokenId))
                     continue;
             }
             else if (!Token::isIntrinsic(tokenId))

@@ -105,11 +105,6 @@ namespace
         return node.hasFlag(AstCallExprFlagsE::AttributeContext);
     }
 
-    bool isAttributeContextCall(const AstAliasCallExpr&)
-    {
-        return false;
-    }
-
     bool isCallResultIgnored(const Sema& sema)
     {
         const AstNode* parent = sema.visit().parentNode();
@@ -166,7 +161,7 @@ namespace
             return;
 
         const AstNodeId nodeId = sema.node(targetRef).id();
-        if (nodeId == AstNodeId::CallExpr || nodeId == AstNodeId::AliasCallExpr)
+        if (nodeId == AstNodeId::CallExpr)
             attachThrowableWrapper(sema, ownerRef, targetRef, tokenId);
     }
 
@@ -310,7 +305,6 @@ namespace
 
         const AstNode& resolvedNode = sema.node(resolvedRef);
         if (resolvedNode.isNot(AstNodeId::CallExpr) &&
-            resolvedNode.isNot(AstNodeId::AliasCallExpr) &&
             resolvedNode.isNot(AstNodeId::IntrinsicCallExpr))
             return nullptr;
 
@@ -1065,17 +1059,6 @@ namespace
         return false;
     }
 
-    bool isCallAliasChild(const AstAliasCallExpr& call, const Ast& ast, AstNodeRef childRef)
-    {
-        for (size_t i = 0; i < ast.spanSize(call.spanAliasesRef); ++i)
-        {
-            if (ast.nthNode(call.spanAliasesRef, i) == childRef)
-                return true;
-        }
-
-        return false;
-    }
-
     template<typename T>
     Result semaCallExprPreNodeChildCommon(Sema& sema, const T& node, AstNodeRef childRef)
     {
@@ -1380,16 +1363,6 @@ Result AstCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 }
 
 Result AstCallExpr::semaPostNode(Sema& sema) const
-{
-    return semaCallExprCommon(sema, *this, false);
-}
-
-Result AstAliasCallExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
-{
-    return semaCallExprPreNodeChildCommon(sema, *this, childRef);
-}
-
-Result AstAliasCallExpr::semaPostNode(Sema& sema) const
 {
     return semaCallExprCommon(sema, *this, false);
 }

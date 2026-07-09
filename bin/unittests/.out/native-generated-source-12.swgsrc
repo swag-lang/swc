@@ -1,0 +1,10 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_audit_diff_workflow.swg
+// #ast line: 118
+if diff.changed_maxBins do
+    count += 1
+if diff.changed_maxLoadKg do
+    count += 1
+if diff.changed_requiresScan do
+    count += 1
+if diff.changed_overflowContact do
+    count += 1

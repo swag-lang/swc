@@ -233,7 +233,7 @@ func declareFeatureState()
 }
 
 #[Swag.Macro]
-func forEachLine(bytes: const [..] u8, stmt: #code void)
+func forEachLine(bytes: const [..] u8, stmt: #code(line))
 {
     var lineStart: u64
     for @countof(bytes)
@@ -247,8 +247,7 @@ func forEachLine(bytes: const [..] u8, stmt: #code void)
             if lineEnd > lineStart
             {
                 let lineLen = lineEnd - lineStart
-                let #alias0 = bytes[lineStart until lineStart + lineLen]
-                #inject(stmt)
+                #inject(stmt, line = bytes[lineStart until lineStart + lineLen])
             }
 
             lineStart = @index + 1
@@ -268,7 +267,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->RucksackReport
 
     defer @assert(featureState == GroupState.NeedFirst)
 
-    forEachLine(|line| bytes)
+    forEachLine(bytes)
     {
         featureRucksackCount += 1
         featurePartOne += cast(u64) iDuplicate.score(line)

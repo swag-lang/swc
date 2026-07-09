@@ -8,7 +8,7 @@ func appendTrace(value: s64)
 }
 
 #[Swag.Macro]
-func macroWithDefer(stmt: #code void)
+func macroWithDefer(stmt: #code)
 {
     defer appendTrace(9)
     #macro

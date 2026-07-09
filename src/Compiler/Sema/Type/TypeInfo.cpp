@@ -533,7 +533,10 @@ namespace
             case TypeInfoKind::CodeBlock:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
-                out += std::format("#code {}", renderTypeName(type, ctx, mode));
+                if (type.isVoid())
+                    out += "#code";
+                else
+                    out += std::format("#code->{}", renderTypeName(type, ctx, mode));
                 break;
             }
             case TypeInfoKind::TypeInfo:

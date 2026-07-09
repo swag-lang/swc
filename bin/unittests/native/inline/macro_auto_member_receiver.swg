@@ -18,14 +18,14 @@ enum CrossAstSafetyWhat
 }
 
 #[Swag.Macro]
-func(what: CrossAstSafetyWhat) crossAstSafety(cond: #code bool, loc = #callerlocation)
+func(what: CrossAstSafetyWhat) crossAstSafety(cond: #code->bool, loc = #callerlocation)
 {
     if !#inject(cond) do
         @panic("cross-ast safety failed", loc)
 }
 
 #[Swag.Macro]
-func crossAstBoundCheck(cond: #code bool, loc = #callerlocation)
+func crossAstBoundCheck(cond: #code->bool, loc = #callerlocation)
 {
     crossAstSafety'(CrossAstSafetyWhat.BoundCheck)(cond, loc)
 }

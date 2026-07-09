@@ -22,9 +22,9 @@ func bumpDefault()->bool
 }
 
 #[Swag.Macro]
-func sumTwice(expr: #code s32)->s32
+func sumTwice(expr: #code->s32)->s32
 {
-    @assert(#stringof(#typeof(expr)) == "#code s32")
+    @assert(#stringof(#typeof(expr)) == "#code->s32")
     @assert(ExprEvalCount == 0)
 
     let first = #inject(expr)
@@ -36,18 +36,18 @@ func sumTwice(expr: #code s32)->s32
 }
 
 #[Swag.Macro]
-func runStmt(stmt: #code void)
+func runStmt(stmt: #code)
 {
-    @assert(#stringof(#typeof(stmt)) == "#code void")
+    @assert(#stringof(#typeof(stmt)) == "#code")
     @assert(StmtEvalCount == 0)
     #inject(stmt)
     @assert(StmtEvalCount == 1)
 }
 
 #[Swag.Macro]
-func runWhen(cond: #code bool, stmt: #code void)
+func runWhen(cond: #code->bool, stmt: #code)
 {
-    @assert(#stringof(#typeof(cond)) == "#code bool")
+    @assert(#stringof(#typeof(cond)) == "#code->bool")
     if #inject(cond)
     {
         #inject(stmt)
@@ -55,7 +55,7 @@ func runWhen(cond: #code bool, stmt: #code void)
 }
 
 #[Swag.Macro]
-func checkNamed(lhs: s32, rhs: #code s32)
+func checkNamed(lhs: s32, rhs: #code->s32)
 {
     @assert(lhs == 10)
     @assert(#stringof(rhs) == "base + 32")
@@ -63,29 +63,29 @@ func checkNamed(lhs: s32, rhs: #code s32)
 }
 
 #[Swag.Macro]
-func checkDefault(expr: #code bool = bumpDefault())
+func checkDefault(expr: #code->bool = bumpDefault())
 {
     @assert(DefaultEvalCount == 0)
-    @assert(#stringof(#typeof(expr)) == "#code bool")
+    @assert(#stringof(#typeof(expr)) == "#code->bool")
     @assert(#inject(expr))
     @assert(DefaultEvalCount == 1)
 }
 
 #[Swag.Macro]
-func consumeForwarded(expr: #code s32)->s32
+func consumeForwarded(expr: #code->s32)->s32
 {
     @assert(#stringof(expr) == "base + 5")
     return #inject(expr)
 }
 
 #[Swag.Macro]
-func forward(expr: #code s32)->s32
+func forward(expr: #code->s32)->s32
 {
     return consumeForwarded(expr)
 }
 
 #[Swag.Macro]
-func forceExpr(expr: #code s32)->s32
+func forceExpr(expr: #code->s32)->s32
 {
     @assert(#stringof(expr) == "base * 3")
     return #inject(expr)
@@ -147,7 +147,7 @@ func runForwarded()->bool
 func runForced()->bool
 {
     let base = 10
-    return forceExpr(#code base * 3) == 30
+    return forceExpr(#code => base * 3) == 30
 }
 
 func runBreakReplacementAsContinue()->s32

@@ -529,16 +529,6 @@ AstNodeRef Parser::parseIdentifier()
     switch (id())
     {
         case TokenId::KwdMe:
-        case TokenId::CompilerAlias0:
-        case TokenId::CompilerAlias1:
-        case TokenId::CompilerAlias2:
-        case TokenId::CompilerAlias3:
-        case TokenId::CompilerAlias4:
-        case TokenId::CompilerAlias5:
-        case TokenId::CompilerAlias6:
-        case TokenId::CompilerAlias7:
-        case TokenId::CompilerAlias8:
-        case TokenId::CompilerAlias9:
         case TokenId::CompilerUniq0:
         case TokenId::CompilerUniq1:
         case TokenId::CompilerUniq2:
@@ -998,16 +988,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::Identifier:
             return parseQuotedIdentifier();
         case TokenId::KwdMe:
-        case TokenId::CompilerAlias0:
-        case TokenId::CompilerAlias1:
-        case TokenId::CompilerAlias2:
-        case TokenId::CompilerAlias3:
-        case TokenId::CompilerAlias4:
-        case TokenId::CompilerAlias5:
-        case TokenId::CompilerAlias6:
-        case TokenId::CompilerAlias7:
-        case TokenId::CompilerAlias8:
-        case TokenId::CompilerAlias9:
         case TokenId::CompilerUniq0:
         case TokenId::CompilerUniq1:
         case TokenId::CompilerUniq2:

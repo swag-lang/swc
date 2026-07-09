@@ -203,13 +203,11 @@ func accumulateMul(lhs: s32, rhs: s32)
 }
 
 #[Swag.Macro]
-func visitTokens(stream: TokenStream, stmt: #code void)
+func visitTokens(stream: TokenStream, stmt: #code(tok, idx: u32))
 {
     for stream.count
     {
-        let #alias0 = stream.tokens[cast(u32) @index]
-        let #alias1 = cast(u32) @index
-        #inject(stmt)
+        #inject(stmt, tok = stream.tokens[cast(u32) @index], idx = cast(u32) @index)
     }
 }
 
@@ -268,7 +266,7 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
 {
     declareScannerState()
 
-    visitTokens(|tok, idx| stream)
+    visitTokens(stream)
     {
         @assert(idx < stream.count)
         switch tok.kind

@@ -137,7 +137,7 @@ namespace
 
     bool isThrowableWrapperBreadcrumbNode(AstNodeId nodeId)
     {
-        return isThrowableWrapperOwnerNode(nodeId) || nodeId == AstNodeId::CallExpr || nodeId == AstNodeId::AliasCallExpr;
+        return isThrowableWrapperOwnerNode(nodeId) || nodeId == AstNodeId::CallExpr;
     }
 
     CodeGenNodePayload* throwableWrapperOwnerPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -609,7 +609,7 @@ namespace
             return false;
 
         const AstNode& exprNode = codeGen.node(resolvedExprRef);
-        if (exprNode.isNot(AstNodeId::CallExpr) && exprNode.isNot(AstNodeId::AliasCallExpr))
+        if (exprNode.isNot(AstNodeId::CallExpr))
             return false;
 
         const SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));

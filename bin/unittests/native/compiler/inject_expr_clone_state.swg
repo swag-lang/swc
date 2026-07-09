@@ -23,7 +23,7 @@ namespace InjectExprCloneSupport
         }
 
         #[Macro]
-        mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+        mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: &InjectExprCloneSupport.VisitProbe, index: u64))
         {
             #if back do
                 var cursor = .count
@@ -46,11 +46,8 @@ namespace InjectExprCloneSupport
                 }
 
                 #scope(Down)
-                #macro
                 {
-                    let #alias0 = cast(&InjectExprCloneSupport.VisitProbe) &.values[#up cursor]
-                    let #alias1 = #up cursor
-                    #inject(#up stmt, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(&InjectExprCloneSupport.VisitProbe) &.values[cursor], index = cursor, break = break to Up, continue = break to Down)
                 }
 
                 #if !back do
@@ -77,7 +74,7 @@ namespace InjectExprCloneSupport
     }
 
     #[Macro]
-    func assignInjectedS32(out: *s32, expr: #code s32)
+    func assignInjectedS32(out: *s32, expr: #code->s32)
     {
         dref out = #inject(expr)
     }

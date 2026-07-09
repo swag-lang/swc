@@ -9,7 +9,7 @@ struct InlineBug10VisitBytes
 impl InlineBug10VisitBytes
 {
     #[Macro]
-    mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code(item: u8, index: u64))
     {
         #if ptr do
             #error("visiting by pointer is not needed for this regression")
@@ -21,19 +21,14 @@ impl InlineBug10VisitBytes
             #else do
                 let idx = @index
 
-            #macro
-            {
-                let #alias0 = #up me.values[#up idx]
-                let #alias1 = #up idx
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = me.values[idx], index = idx)
         }
     }
 
     #[Macro, Swag.CalleeReturn]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: u8, index: u64))
     {
-        .opVisitBytes'(ptr, back)(|#alias0, #alias1| stmt)
+        .opVisitBytes'(ptr, back)(stmt)
     }
 }
 

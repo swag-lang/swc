@@ -1,0 +1,44 @@
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_api_patch_workflow.swg
+// #ast line: 117
+if patch.has_dailyDigest do
+    count += 1
+if patch.has_weeklyReport do
+    count += 1
+if patch.has_escalationMinutes do
+    count += 1
+if patch.has_smsEnabled do
+    count += 1
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_api_patch_workflow.swg
+// #ast line: 140
+if patch.has_seatLimit do
+    mask |= bit
+bit <<= 1
+if patch.has_storageGb do
+    mask |= bit
+bit <<= 1
+if patch.has_auditRetentionDays do
+    mask |= bit
+bit <<= 1
+if patch.has_ssoEnabled do
+    mask |= bit
+bit <<= 1
+if patch.has_billingEmail do
+    mask |= bit
+bit <<= 1
+if patch.has_tier do
+    mask |= bit
+bit <<= 1
+// #ast source: C:\Perso\swag-lang\swc\bin\unittests\native\examples\ast_api_patch_workflow.swg
+// #ast line: 140
+if patch.has_dailyDigest do
+    mask |= bit
+bit <<= 1
+if patch.has_weeklyReport do
+    mask |= bit
+bit <<= 1
+if patch.has_escalationMinutes do
+    mask |= bit
+bit <<= 1
+if patch.has_smsEnabled do
+    mask |= bit
+bit <<= 1

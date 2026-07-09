@@ -258,7 +258,7 @@ func(T) maxOf(a, b: T)->T
 // ---------------------------------------------------------------------------
 
 #[Swag.Macro]
-func forEachNeighborCell(grid: Grid, entry: NumberEntry, stmt: #code void)
+func forEachNeighborCell(grid: Grid, entry: NumberEntry, stmt: #code(nr: u32, nc: u32))
 {
     let rStart = maxOf's32(0, cast(s32) entry.row - 1)
     let rEnd   = minOf's32(cast(s32) grid.height - 1, cast(s32) entry.row + 1)
@@ -271,9 +271,7 @@ func forEachNeighborCell(grid: Grid, entry: NumberEntry, stmt: #code void)
         {
             if cast(u32) r == entry.row and cast(u32) c >= entry.col0 and cast(u32) c <= entry.col1 do
                 continue
-            let #alias0 = cast(u32) r
-            let #alias1 = cast(u32) c
-            #inject(stmt)
+            #inject(stmt, nr = cast(u32) r, nc = cast(u32) c)
         }
     }
 }
@@ -418,7 +416,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     {
         let entry = numbers.entries[i]
 
-        forEachNeighborCell(|nr, nc| grid, entry)
+        forEachNeighborCell(grid, entry)
         {
             if isGear(grid.at(nr, nc))
             {

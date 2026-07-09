@@ -50,7 +50,7 @@ impl RegressionArray
     }
 
     #[Macro]
-    func(ptr: bool, back: bool) opVisit(const me, stmt: #code void)
+    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
         discard back
 
@@ -62,15 +62,10 @@ impl RegressionArray
         {
             scan += 1
 
-            #macro
-            {
-                #if #up ptr do
-                    let #alias0 = #up scan
-                #else do
-                    let #alias0 = #up scan[0]
-                let #alias1 = @index
-                #inject(#up stmt)
-            }
+            #if ptr do
+                #inject(stmt, item = scan, index = @index)
+            #else do
+                #inject(stmt, item = scan[0], index = @index)
         }
     }
 }

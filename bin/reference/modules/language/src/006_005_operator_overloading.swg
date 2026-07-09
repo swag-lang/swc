@@ -144,8 +144,8 @@ impl Struct
     // Multiple versions can be defined by adding a name after 'opVisit'.
     #[Swag.Macro]
     {
-        func(ptr: bool, back: bool) opVisit(me, stmt: #code void) {}
-        func(ptr: bool, back: bool) opVisitWhatever(me, stmt: #code void) {}
-        func(ptr: bool, back: bool) opVisitAnother(me, stmt: #code void) {}
+        func(ptr: bool, back: bool) opVisit(me, stmt: #code) {}
+        func(ptr: bool, back: bool) opVisitWhatever(me, stmt: #code) {}
+        func(ptr: bool, back: bool) opVisitAnother(me, stmt: #code) {}
     }
 }

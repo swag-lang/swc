@@ -14,70 +14,23 @@ struct ShelfBins
 impl ShelfBins
 {
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
         #if ptr
         {
             #if back
             {
-                #macro
-                {
-                    var #alias0 = cast(*s32) &(#up me.evening)
-                    let #alias1 = 0'u64
-                    #inject(#up stmt)
-                }
-
-                #macro
-                {
-                    var #alias0 = cast(*s32) &(#up me.afternoon)
-                    let #alias1 = 1'u64
-                    #inject(#up stmt)
-                }
-
-                #macro
-                {
-                    var #alias0 = cast(*s32) &(#up me.lunch)
-                    let #alias1 = 2'u64
-                    #inject(#up stmt)
-                }
-
-                #macro
-                {
-                    var #alias0 = cast(*s32) &(#up me.morning)
-                    let #alias1 = 3'u64
-                    #inject(#up stmt)
-                }
-
+                #inject(stmt, item = cast(*s32) &(me.evening), index = 0'u64)
+                #inject(stmt, item = cast(*s32) &(me.afternoon), index = 1'u64)
+                #inject(stmt, item = cast(*s32) &(me.lunch), index = 2'u64)
+                #inject(stmt, item = cast(*s32) &(me.morning), index = 3'u64)
                 return
             }
 
-            #macro
-            {
-                var #alias0 = cast(*s32) &(#up me.morning)
-                let #alias1 = 0'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0 = cast(*s32) &(#up me.lunch)
-                let #alias1 = 1'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0 = cast(*s32) &(#up me.afternoon)
-                let #alias1 = 2'u64
-                #inject(#up stmt)
-            }
-
-            #macro
-            {
-                var #alias0 = cast(*s32) &(#up me.evening)
-                let #alias1 = 3'u64
-                #inject(#up stmt)
-            }
+            #inject(stmt, item = cast(*s32) &(me.morning), index = 0'u64)
+            #inject(stmt, item = cast(*s32) &(me.lunch), index = 1'u64)
+            #inject(stmt, item = cast(*s32) &(me.afternoon), index = 2'u64)
+            #inject(stmt, item = cast(*s32) &(me.evening), index = 3'u64)
         }
         #else
         {
@@ -85,20 +38,12 @@ impl ShelfBins
             {
                 for idx in 4
                 {
-                    #macro
+                    switch idx
                     {
-                        var #alias0: s32 = undefined
-
-                        switch #up idx
-                        {
-                        case 0: #alias0 = #up me.evening
-                        case 1: #alias0 = #up me.afternoon
-                        case 2: #alias0 = #up me.lunch
-                        case 3: #alias0 = #up me.morning
-                        }
-
-                        let #alias1 = @index
-                        #inject(#up stmt)
+                    case 0: #inject(stmt, item = me.evening, index = @index)
+                    case 1: #inject(stmt, item = me.afternoon, index = @index)
+                    case 2: #inject(stmt, item = me.lunch, index = @index)
+                    case 3: #inject(stmt, item = me.morning, index = @index)
                     }
                 }
 
@@ -107,27 +52,19 @@ impl ShelfBins
 
             for idx in 4
             {
-                #macro
+                switch idx
                 {
-                    var #alias0: s32 = undefined
-
-                    switch #up idx
-                    {
-                    case 0: #alias0 = #up me.morning
-                    case 1: #alias0 = #up me.lunch
-                    case 2: #alias0 = #up me.afternoon
-                    case 3: #alias0 = #up me.evening
-                    }
-
-                    let #alias1 = @index
-                    #inject(#up stmt)
+                case 0: #inject(stmt, item = me.morning, index = @index)
+                case 1: #inject(stmt, item = me.lunch, index = @index)
+                case 2: #inject(stmt, item = me.afternoon, index = @index)
+                case 3: #inject(stmt, item = me.evening, index = @index)
                 }
             }
         }
     }
 
     #[Swag.Macro]
-    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
         #if ptr do
             #error("Address iteration requires a mutable ShelfBins receiver.")
@@ -136,20 +73,12 @@ impl ShelfBins
         {
             for idx in 4
             {
-                #macro
+                switch idx
                 {
-                    var #alias0: s32 = undefined
-
-                    switch #up idx
-                    {
-                    case 0: #alias0 = #up me.evening
-                    case 1: #alias0 = #up me.afternoon
-                    case 2: #alias0 = #up me.lunch
-                    case 3: #alias0 = #up me.morning
-                    }
-
-                    let #alias1 = @index
-                    #inject(#up stmt)
+                case 0: #inject(stmt, item = me.evening, index = @index)
+                case 1: #inject(stmt, item = me.afternoon, index = @index)
+                case 2: #inject(stmt, item = me.lunch, index = @index)
+                case 3: #inject(stmt, item = me.morning, index = @index)
                 }
             }
 
@@ -158,20 +87,12 @@ impl ShelfBins
 
         for idx in 4
         {
-            #macro
+            switch idx
             {
-                var #alias0: s32 = undefined
-
-                switch #up idx
-                {
-                case 0: #alias0 = #up me.morning
-                case 1: #alias0 = #up me.lunch
-                case 2: #alias0 = #up me.afternoon
-                case 3: #alias0 = #up me.evening
-                }
-
-                let #alias1 = @index
-                #inject(#up stmt)
+            case 0: #inject(stmt, item = me.morning, index = @index)
+            case 1: #inject(stmt, item = me.lunch, index = @index)
+            case 2: #inject(stmt, item = me.afternoon, index = @index)
+            case 3: #inject(stmt, item = me.evening, index = @index)
             }
         }
     }

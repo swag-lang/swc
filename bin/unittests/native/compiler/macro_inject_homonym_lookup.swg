@@ -10,7 +10,7 @@ func score()->s32 { return 30 }
 func entry()->s32 { return 100 }
 
 #[Swag.Macro]
-func injectPlain(stmt: #code void)
+func injectPlain(stmt: #code)
 {
     #inject(stmt)
 }

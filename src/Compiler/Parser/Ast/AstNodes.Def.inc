@@ -134,7 +134,6 @@ SWC_NODE_DEF(StructInitializerList, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(CallExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IntrinsicCallExpr, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(AliasCallExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(DiscardExpr, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(CastExpr, AstNodeIdFlagsE::Zero)

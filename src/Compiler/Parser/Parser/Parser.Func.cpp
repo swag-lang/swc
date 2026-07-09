@@ -18,6 +18,9 @@ AstNodeRef Parser::parseClosureArg()
 
     if (is(TokenId::Identifier) && nextIs(TokenId::SymEqual))
     {
+        // Capture alias form: `name = expr`. During the expression parse, stop at
+        // the capture-list delimiter depth instead of letting commas/pipes inside
+        // nested calls or aggregates prematurely end the capture.
         nodePtr->tokAliasNameRef = consume();
         consumeAssert(TokenId::SymEqual);
         const PushContextFlags pushContext(this, ParserContextFlagsE::InClosureCapture);
@@ -135,6 +138,8 @@ AstNodeRef Parser::parseLambdaExpression()
     }
     else if (flags.has(AstFunctionFlagsE::Method))
     {
+        // A method lambda needs a capture list so sema can bind the receiver. Keep
+        // producing a closure node after the diagnostic to preserve recovery shape.
         raiseError(DiagnosticId::parser_err_mtd_missing_capture, tokStart);
         flags.add(AstFunctionFlagsE::Closure);
     }
@@ -225,6 +230,9 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     nodePtr->nodeParamsRef            = parseFunctionParamList();
     if (fwdSeenParam_)
     {
+        // '#fwd' is implemented by reparsing the enclosing declaration twice. The
+        // parser records the trigger here; the statement-level driver performs the
+        // second pass with the move-reference mode enabled.
         fwdDeclActive_  = true;
         fwdCurMode_     = fwdPassMode_;
         fwdStmtTrigger_ = true;

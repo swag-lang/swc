@@ -35,6 +35,8 @@ AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
     const AstNodeId         separatorNodeId = mode == ParserGeneratedMode::Aggregate ? AstNodeId::AggregateBody : mode == ParserGeneratedMode::Enum ? AstNodeId::EnumBody
                                                                                                                                                     : AstNodeId::TopLevelBlock;
 
+    // Generated snippets are parsed without an explicit enclosing token pair. Stop
+    // on EOF or on a recovered closing delimiter that belongs to the caller.
     while (!atEnd() && isNot(TokenId::EndOfFile))
     {
         const Token*     loopStartToken = curToken_;
@@ -128,6 +130,8 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 {
     const Token& token = ast_->srcView().token(tokRef);
 
+    // Parser diagnostics include neighboring token families so messages can explain
+    // both what was seen and the local context without re-walking the token stream.
     if (token.is(TokenId::EndOfFile))
     {
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
@@ -233,6 +237,9 @@ void Parser::tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const
 {
     auto expectedOpening = TokenId::Invalid;
 
+    // A stray closing delimiter is usually clearer as "no matching opening" than as
+    // a generic unexpected-token error. Depth counters tell whether we are inside a
+    // matching construct at the current recovery point.
     switch (ast_->srcView().token(tknRef).id)
     {
         case TokenId::SymRightParen:

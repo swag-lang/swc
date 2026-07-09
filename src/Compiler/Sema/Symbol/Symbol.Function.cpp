@@ -29,6 +29,9 @@ namespace
 
     Utf8 sanitizePublicApiSymbolText(const std::string_view text)
     {
+        // Public API names are exported outside the compiler. Normalize every
+        // fragment to a stable, linker-friendly snake_case token independent of
+        // punctuation in source-level names.
         Utf8 out;
         bool lastWasUnderscore       = true;
         bool previousWasLowerOrDigit = false;
@@ -81,6 +84,8 @@ namespace
         if (!symbol.srcViewRef().isValid())
             return nullptr;
 
+        // The module namespace is the public boundary: paths above it are local to
+        // the build/import context and must not leak into exported symbol names.
         const SourceFile* sourceFile = ctx.compiler().srcView(symbol.srcViewRef()).file();
         return sourceFile ? sourceFile->moduleNamespace() : nullptr;
     }
@@ -115,6 +120,9 @@ namespace
 
     bool isFunctionNestedInFunctionScope(const SymbolFunction& symbol)
     {
+        // Nested functions are implementation details. They may capture locals or be
+        // cloned during inlining/generic expansion, so they cannot form a stable
+        // public API surface.
         const SymbolMap* scope = symbol.ownerSymMap();
         while (scope)
         {
@@ -132,6 +140,8 @@ namespace
         if (!instance.tryGetGenericInstanceArgs(args))
             return;
 
+        // Generic instances with the same root but different arguments must mangle
+        // differently, while still staying human-readable for generated C symbols.
         appendPublicApiSymbolFragment(out, "gen");
         for (const GenericInstanceKey& arg : args)
         {

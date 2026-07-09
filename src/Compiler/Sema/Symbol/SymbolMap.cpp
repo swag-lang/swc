@@ -51,6 +51,8 @@ namespace
 
     Symbol* insertSymbolOrdered(Symbol*& head, Symbol* symbol)
     {
+        // Homonyms are kept in declaration order. Lookup can then report overloads
+        // and duplicate diagnostics deterministically without sorting on every query.
         if (!head || symbolDeclaredBefore(*symbol, *head))
         {
             symbol->setNextHomonym(head);
@@ -178,6 +180,9 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
     if (bigMap_.size() < SHARD_AFTER_KEYS)
         return;
 
+    // Large symbol maps are read by many sema jobs. Publish immutable shard storage
+    // with release/acquire semantics so readers can switch from the monolithic map
+    // without holding the original mutex forever.
     auto* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
 
     const size_t totalKeys = bigMap_.size();
@@ -219,6 +224,8 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
 {
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
+        // Once sharded, the per-key lock is enough: homonym chains remain ordered
+        // and the old big map is no longer the lookup source.
         const Shard&           shard = shards[shardIndex(idRef)];
         const std::shared_lock lock(shard.mutex);
 
@@ -239,7 +246,8 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
 
     std::shared_lock lk(mutex_);
 
-    // Check sharded again after lock
+    // Check sharded again after locking: another writer may have upgraded between
+    // the optimistic atomic load and this shared lock.
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();

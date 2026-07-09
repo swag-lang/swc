@@ -174,7 +174,7 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const Sou
     // view: makeNode() stamps a new node with the active source view but a borrowed token location,
     // which is later corrected for diagnostics but can legitimately point past this view's token
     // array (e.g. a location borrowed from a larger source). Such a codeRef does not name a real
-    // token here, so there is no token-derived identifier — return invalid and let the caller use
+    // token here, so there is no token-derived identifier - return invalid and let the caller use
     // the node's resolved symbol. Without this guard the srcView.token() read below indexes past the
     // token array (intermittent out-of-bounds crash in the parallel macro/inline clone path).
     if (codeRef.tokRef.isInvalid() || codeRef.tokRef.get() >= srcView.tokens().size())
@@ -235,6 +235,9 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     const uint32_t stripeIndex = (hash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
 
+    // Most identifiers point directly into source buffers and are never copied.
+    // Owned/synthetic names opt into shard storage below so every interned string
+    // view remains valid for the compiler lifetime.
     {
         const std::shared_lock lk(stripe.mutex);
         if (const auto* it = stripe.map.find(name, hash))
@@ -248,6 +251,8 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     std::string_view storedName = name;
     if (copyName && !name.empty())
     {
+        // Copy before inserting into the map: the transparent lookup compares
+        // string_view contents, but the stored key must not reference a temporary.
         const std::scoped_lock storeLock(shard.storeMutex);
         const auto [span, _] = shard.stringStore.pushCopySpan(std::span{reinterpret_cast<const std::byte*>(name.data()), name.size()});
         storedName           = std::string_view{reinterpret_cast<const char*>(span.data()), span.size()};
@@ -292,6 +297,8 @@ IdentifierManager::RuntimeFunctionKind IdentifierManager::runtimeFunctionKind(co
     if (!idRef.isValid())
         return RuntimeFunctionKind::Count;
 
+    // Runtime function names are a tiny fixed set; linear scan keeps setup simple
+    // and avoids another map in a path that is not lookup-hot.
     for (uint32_t i = 0; i < static_cast<uint32_t>(RuntimeFunctionKind::Count); i++)
     {
         if (runtimeFunctions_[i] == idRef)

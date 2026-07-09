@@ -61,6 +61,8 @@ TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskConte
 
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {
+    // TypeInfo offsets are relative to their data segment. Keep one cache per
+    // segment so JIT constants, module data and other storages never share offsets.
     {
         const std::shared_lock lk(cachesMutex_);
         const auto             it = caches_.find(&storage);
@@ -116,6 +118,9 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
     if (!cache.pendingBackRefs.empty())
     {
+        // Back references let runtime pointers be mapped to compiler TypeRefs.
+        // Publish them only after the payload is Done, otherwise a concurrent lookup
+        // could observe a pointer to partially-emitted metadata.
         const std::scoped_lock lk(ptrToTypeMutex_);
         for (const TypeRef cachedTypeRef : cache.pendingBackRefs)
         {

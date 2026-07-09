@@ -73,6 +73,9 @@ namespace SemaGeneric
             if (param.defaultRef.isInvalid())
                 return Result::Continue;
 
+            // Defaults can depend only on parameters declared before them. Clone the
+            // default expression with the prefix bindings resolved so later params do
+            // not accidentally participate in evaluation.
             const ResolvedGenericBindingSource   source{params, resolvedArgs};
             SmallVector<SemaClone::ParamBinding> bindings;
             buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
@@ -92,6 +95,9 @@ namespace SemaGeneric
             if (param.explicitType.isInvalid())
                 return Result::Continue;
 
+            // A value generic's declared type may itself mention earlier generic
+            // params. Evaluate it through the same partial binding context as a
+            // default value, then read the stored semantic payload from the clone.
             const ResolvedGenericBindingSource   source{params, resolvedArgs};
             SmallVector<SemaClone::ParamBinding> bindings;
             buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
@@ -134,6 +140,9 @@ namespace SemaGeneric
                 arg.typeRef = declaredTypeRef;
                 if (arg.cstRef.isValid() && sema.cstMgr().get(arg.cstRef).typeRef() != declaredTypeRef)
                 {
+                    // Value generic arguments are constants, but the instance key
+                    // must store them in the declared type. Reuse normal implicit
+                    // cast rules so diagnostics match a value expression context.
                     CastRequest castRequest(CastKind::Implicit);
                     castRequest.errorNodeRef = errorNodeRef;
                     castRequest.srcConstRef  = arg.cstRef;
@@ -169,6 +178,9 @@ namespace SemaGeneric
             if (!ioArg.typeRef.isValid())
                 return Result::Continue;
 
+            // Unsized float generic type arguments default to f64, unless the
+            // diagnostic/value node carries a concrete constant that can dictate a
+            // narrower precise type.
             const TypeInfo& typeInfo = sema.typeMgr().get(ioArg.typeRef);
             if (!typeInfo.isFloatUnsized())
                 return Result::Continue;
@@ -224,6 +236,9 @@ namespace SemaGeneric
         {
             outKeys.clear();
             outKeys.reserve(params.size());
+            // Instance identity is exactly the ordered list of declared generic
+            // parameters. Type params and value params occupy the same slot index but
+            // carry different payload kinds in GenericInstanceKey.
             for (size_t i = 0; i < params.size(); ++i)
             {
                 GenericInstanceKey key;

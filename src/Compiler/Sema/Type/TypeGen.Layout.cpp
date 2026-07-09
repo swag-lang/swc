@@ -39,6 +39,9 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
 {
     using Pn = IdentifierManager::PredefinedName;
 
+    // The TypeInfo hierarchy itself is expressed in Swag runtime types. Always wait
+    // for the base nodes first so specialized TypeInfo structs can reference their
+    // common payload fields safely.
     SWC_RESULT(sema.waitPredefined(Pn::TypeInfo, typeRef, codeRef));
     SWC_RESULT(sema.waitPredefined(Pn::TypeValue, typeRef, codeRef));
 

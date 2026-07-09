@@ -48,6 +48,9 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
 {
     outIsPointer = false;
 
+    // A using field exposes members/operators of either a struct value or a pointer
+    // to a struct. Report pointer-ness separately because some lookups intentionally
+    // refuse to compose through borrowed/indirect storage.
     const TypeManager& typeMgr = ctx.typeMgr();
     if (!typeRef().isValid())
         return nullptr;
@@ -89,12 +92,18 @@ void SymbolVariable::setClosureCaptureByRef(bool value) noexcept
 
 void SymbolVariable::setClosureCapturedSource(SymbolVariable* source) noexcept
 {
+    // The capture symbol is the closure field; the source points back to the
+    // original local/parameter so escape analysis and debug info can report the
+    // user-visible storage.
     addExtraFlag(SymbolVariableFlagsE::ClosureCapture);
     closureCapturedSource_ = source;
 }
 
 void SymbolVariable::setGlobalStorage(DataSegmentKind kind, uint32_t offset)
 {
+    // Global variables are addressed through a data segment plus offset. Mark the
+    // storage kind atomically with the offset so later codegen paths do not have to
+    // infer globals from symbol-map ownership.
     globalStorageKind_ = kind;
     offset_            = offset;
     addExtraFlag(SymbolVariableFlagsE::GlobalStorage);

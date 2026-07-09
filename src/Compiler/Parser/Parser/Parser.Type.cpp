@@ -9,6 +9,8 @@ AstNodeRef Parser::parseIdentifierType()
     const TokenRef   tokRef = ref();
     const AstNodeRef idRef  = is(TokenId::CompilerUp) ? parseCompilerUp() : parseQualifiedIdentifier();
 
+    // Outside an explicit variable type, `Foo{...}` is an initializer expression
+    // glued to a named type. A blank before `{` keeps it as a standalone block.
     if (!hasContextFlag(ParserContextFlagsE::InVarDeclType) && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(idRef);
 
@@ -29,6 +31,9 @@ AstNodeRef Parser::parseRetValType()
 
 AstNodeRef Parser::parseAnonymousAggregateTypeBody()
 {
+    // Anonymous aggregate type bodies reuse the aggregate declaration parser, but
+    // `using` member rules are declaration-specific and must not leak from the
+    // surrounding parse context.
     const ParserContextFlags savedFlags = contextFlags_;
     contextFlags_.remove(ParserContextFlagsE::InUsingMemberDecl);
     const AstNodeRef bodyRef = parseAggregateBody();
@@ -120,7 +125,8 @@ AstNodeRef Parser::parseSubType()
     qualifierRefs.fill(TokenRef::invalid());
     TokenRef lastQualifierRef = TokenRef::invalid();
 
-    // Consume all leading qualifiers in order, diagnose duplicates / mis-ordering.
+    // Qualifiers have a canonical order (`? const T`, not `const ?T`). Enforce it
+    // while parsing so sema only sees one normalized QualifiedType shape.
     for (;;)
     {
         const QualifierDesc* qd = findQualifier(id());
@@ -158,7 +164,7 @@ AstNodeRef Parser::parseSubType()
         consume();
     }
 
-    // Parse the core subtype (pointers, refs, arrays, base type…)
+    // Parse the core subtype (pointers, refs, arrays, base type...)
     const AstNodeRef subNodeRef = parseSubTypeNoQualifiers();
     if (subNodeRef.isInvalid())
         return AstNodeRef::invalid();
@@ -296,6 +302,8 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             return AstNodeRef::invalid();
         dimensions.push_back(firstDim);
 
+        // Dimensions are expressions at parse time; sema later restricts them to
+        // compile-time integer values and resolves aliases/constants.
         // Parse additional dimensions separated by commas
         while (consumeIf(TokenId::SymComma).isValid())
         {

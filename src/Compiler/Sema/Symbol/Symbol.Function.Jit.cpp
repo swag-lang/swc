@@ -33,6 +33,9 @@ namespace
 
     void appendDepOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
     {
+        // Iterative DFS avoids recursive stack growth on large call graphs and
+        // emits dependencies before dependents, which is the order JIT batching
+        // needs for patching direct calls.
         std::unordered_map<SymbolFunction*, DepVisitState> visitStates;
         SmallVector<DepStackEntry>                         stack;
         stack.push_back({.function = &root, .expanded = false});
@@ -120,6 +123,9 @@ namespace
         SmallVector<SymbolFunction*> dependencies;
         function.appendCallDependencies(dependencies);
 
+        // Local call targets can be reached through patch stubs before their final
+        // JIT entry exists. Schedule the missing patch job and pause on the first
+        // unresolved dependency so the scheduler can make it ready.
         for (SymbolFunction* dependency : dependencies)
         {
             if (!dependency || dependency == &function)
@@ -198,6 +204,9 @@ namespace
     {
         SWC_ASSERT(adapter.isClosure());
 
+        // Closure adapters receive the closure context as an ABI argument. Slot 0 of
+        // that context stores the real target function pointer; remaining user args
+        // are forwarded after normal ABI normalization.
         uint32_t regIndex = 1;
 
         const CallConv&                        callConv      = CallConv::get(adapter.callConvKind());
@@ -297,6 +306,8 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (hasLoweredCode())
         return Result::Continue;
     auto& builder = microInstrBuilder(ctx);
+    // Mark which return ABI register bank the function may write. Later backend
+    // passes use this to preserve live return registers through epilog generation.
     if (!returnTypeRef().isValid() || returnTypeRef() == ctx.typeMgr().typeVoid())
     {
         builder.setRetUsesAbiRegs(false, false);

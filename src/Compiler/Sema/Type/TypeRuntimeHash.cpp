@@ -36,6 +36,9 @@ namespace
     public:
         RuntimeHashRootScope()
         {
+            // Runtime hashes can recurse through types, constants and function
+            // signatures. The outermost call owns the traversal stacks; nested calls
+            // share them so cycle detection sees the whole path.
             ownsState_ = g_RuntimeHashDepth == 0;
             if (ownsState_)
                 clearRuntimeHashState();
@@ -97,6 +100,9 @@ namespace
 
     uint32_t cycleHash(uint32_t tag, uint32_t distance)
     {
+        // A recursive edge is represented by what kind of graph it closes and how
+        // far back it jumps. That keeps mutually-recursive shapes deterministic
+        // without relying on transient addresses.
         uint32_t h = Math::hash(tag);
         h          = Math::hashCombine(h, distance);
         return h;
@@ -175,6 +181,9 @@ namespace
         h = Math::hashCombine(h, static_cast<uint32_t>(args.size()));
         for (const GenericInstanceKey& arg : args)
         {
+            // Generic arguments are a tagged union. Hash presence bits first so a
+            // missing value, a type argument and a value argument cannot collide just
+            // because their payload refs happen to share an integer value.
             const bool hasTypeRef = arg.typeRef.isValid();
             const bool hasCstRef  = arg.cstRef.isValid();
 
@@ -239,6 +248,8 @@ namespace
         if (findStackDistance(cycleDistance, state.functions, &function))
             return functionCycleHash(function, cycleDistance);
 
+        // Function type hashes are structural: the function symbol identity does not
+        // matter here, only ABI-relevant flags, return type and parameter types.
         RuntimeHashStackScope functionScope(state.functions, &function);
         uint32_t              h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
         h                       = Math::hashCombine(h, function.isClosure());

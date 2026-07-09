@@ -50,6 +50,9 @@ AstNodeRef Parser::parseCompilerTypeOf()
     {
         if (!nodeArgs.empty())
         {
+            // Error recovery can land on a container closer from the surrounding
+            // syntax. Stop there and let expectAndConsumeClosing handle the final
+            // diagnostic instead of eating tokens from the parent construct.
             if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
                 break;
             if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
@@ -252,6 +255,9 @@ AstNodeRef Parser::parseCompilerIfStmt()
 {
     if (consumeIf(TokenId::KwdDo).isValid())
     {
+        // `#if cond do expr` and `#if cond do { ... }` share the same entry point.
+        // A block after `do` is accepted for recovery, but diagnosed because the
+        // block form normally omits `do`.
         if (is(TokenId::SymLeftCurly))
         {
             const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
@@ -289,7 +295,8 @@ AstNodeRef Parser::parseCompilerIf()
 
     nodePtr->nodeIfBlockRef = parseCompilerIfStmt<ID>();
 
-    // Parse optional 'else' or 'elif' block
+    // Parse optional 'else' or 'elif' block. Else-if is nested in the else slot so
+    // compiler-if chains have the same AST shape as regular if chains.
     if (is(TokenId::CompilerElseIf))
         nodePtr->nodeElseBlockRef = parseCompilerIf<ID>();
     else if (consumeIf(TokenId::CompilerElse).isValid())

@@ -107,6 +107,9 @@ void TypeManager::setup(TaskContext& ctx)
     SWC_ASSERT(ctx.hasCompiler());
     compiler_                      = &ctx.compiler();
     const IdentifierManager& idMgr = ctx.idMgr();
+    // Runtime TypeInfo symbols are discovered by predefined identifiers. Build the
+    // reverse map once so later reflection code can recognize the core runtime
+    // structs without string comparisons.
     for (size_t i = 0; i < PREDEFINED_RUNTIME_MAP.size(); ++i)
     {
         const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[i];
@@ -230,6 +233,9 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     const uint32_t stripeIndex = (stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
 
+    // Intern lookup is split from allocation: readers can share-lock the stripe,
+    // while only the rare insertion path takes the exclusive lock and appends to
+    // the shard store.
     {
         const std::shared_lock lk(stripe.mutex);
         const auto             it = stripe.map.find(typeInfo);
@@ -256,6 +262,8 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
         ptr = shard.store.ptr<TypeInfo>(localIndex);
     }
 
+    // TypeRef encodes shard + local index. The TypeInfo stores its own TypeRef so
+    // callers that only hold a payload pointer can still recover stable identity.
     TypeRef result{(shardIndex << LOCAL_BITS) | localIndex};
     ptr->typeRef_ = result;
 
@@ -288,6 +296,9 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
     if (lhs == rhs && !force32BitInts)
         return lhs;
 
+    // Promotion is table-driven over the builtin numeric set. Complex/user types
+    // should be rejected before this point; the assertions below catch violations
+    // close to the caller that forgot to filter them.
     const auto itL = promoteIndex_.find(lhs.get());
     const auto itR = promoteIndex_.find(rhs.get());
 

@@ -15,6 +15,9 @@ namespace
 {
     SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
     {
+        // Explicit type arguments may name a non-strict alias of a generic root.
+        // Follow aliases only while they preserve specialization semantics; strict
+        // aliases are distinct API surfaces and must not be auto-instantiated.
         Symbol* current = symbol;
         while (current && current->isAlias())
         {
@@ -96,6 +99,9 @@ namespace
 
     void collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
     {
+        // Rebuilding a sema context for generic instantiation must restore the
+        // namespace path as source code would see it. Impl maps are transparent and
+        // route through their owning type's namespace.
         SmallVector<IdentifierRef> reversedPath;
         for (const SymbolMap* current = symMap; current;)
         {
@@ -155,6 +161,8 @@ namespace SemaGeneric
         if (spanRef.isInvalid())
             return;
 
+        // Generic roots may live in the current worker AST or in their original
+        // source-file AST. Resolve the span against whichever AST owns the decl.
         const Ast* ast = nullptr;
         if (sema.ast().tryFindNodeRef(&declNode).isValid())
         {
@@ -183,6 +191,9 @@ namespace SemaGeneric
         if (startSymMap)
             sema.startSymMap_ = startSymMap;
 
+        // The instantiation worker starts with a clean scope/frame stack, then
+        // reconstructs just the declaration environment required for lookup and
+        // diagnostics. Runtime state from the caller must not leak into the clone.
         SmallVector<IdentifierRef> nsPath;
         if (startSymMap)
             collectSymbolMapNamespacePath(startSymMap, nsPath);

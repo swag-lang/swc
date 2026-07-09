@@ -514,14 +514,39 @@ namespace
         f.active      = true;
     }
 
-    void recordCallArgFailure(Sema& sema, const SymbolFunction& fn, MatchFailure& outFail, AstNodeRef ufcsArg, uint32_t userArgIndex, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid(), uint32_t paramIndex = UINT32_MAX, DiagnosticId noteId = DiagnosticId::None, AstNodeRef noteNodeRef = AstNodeRef::invalid(), Utf8 noteValues = {})
+    DiagnosticElement& primaryDiagnosticElement(Diagnostic& diag)
+    {
+        SWC_ASSERT(!diag.elements().empty());
+        return *diag.elements().front();
+    }
+
+    bool hasPrimaryCastFailureNode(const MatchFailure& fail)
+    {
+        return fail.kind == MatchFailKind::InvalidArgumentType && fail.castFailure.nodeRef.isValid();
+    }
+
+    AstNodeRef primaryFailureNodeRef(const SemaNodeView& nodeCallee, const MatchFailure& fail)
+    {
+        if (hasPrimaryCastFailureNode(fail))
+            return fail.castFailure.nodeRef;
+        return nodeCallee.nodeRef();
+    }
+
+    void setCastFailureNodeIfMissing(CastFailure& failure, AstNodeRef nodeRef)
+    {
+        if (failure.nodeRef.isInvalid())
+            failure.nodeRef = nodeRef;
+    }
+
+    void recordCallArgFailure(Sema& sema, const SymbolFunction& fn, MatchFailure& outFail, AstNodeRef ufcsArg, uint32_t userArgIndex, AstNodeRef argRef, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid(), uint32_t paramIndex = UINT32_MAX, DiagnosticId noteId = DiagnosticId::None, AstNodeRef noteNodeRef = AstNodeRef::invalid(), Utf8 noteValues = {})
     {
         CastFailure cf{};
         cf.diagId = diagId;
         if (idRef.isValid())
             cf.valueStr = Utf8{sema.idMgr().get(idRef).name};
-        cf.noteId  = noteId;
-        cf.nodeRef = noteNodeRef;
+        cf.noteId      = noteId;
+        cf.nodeRef     = argRef;
+        cf.noteNodeRef = noteNodeRef;
         if (!noteValues.empty())
             cf.addArgument(Diagnostic::ARG_VALUES, std::move(noteValues));
         cf.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
@@ -589,13 +614,13 @@ namespace
                 if (!fn.tryGetParameterIndexByName(found, idRef, paramStart))
                 {
                     const Utf8 namedParams = formatNamedParameters(sema, params, paramStart, numParams);
-                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, DiagnosticId::sema_err_named_argument_unknown, idRef, UINT32_MAX, namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments, AstNodeRef::invalid(), namedParams);
+                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_named_argument_unknown, idRef, UINT32_MAX, namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments, AstNodeRef::invalid(), namedParams);
                     return false;
                 }
 
                 if (outMapping.paramArgs[found].argRef.isValid())
                 {
-                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, DiagnosticId::sema_err_named_argument_duplicate, idRef, static_cast<uint32_t>(found), DiagnosticId::sema_note_previous_named_argument, outMapping.paramArgs[found].argRef);
+                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_named_argument_duplicate, idRef, static_cast<uint32_t>(found), DiagnosticId::sema_note_previous_named_argument, outMapping.paramArgs[found].argRef);
                     return false;
                 }
 
@@ -616,7 +641,7 @@ namespace
 
             if (seenNamed)
             {
-                recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, DiagnosticId::sema_err_unnamed_parameter);
+                recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, argRef, DiagnosticId::sema_err_unnamed_parameter);
                 return false;
             }
 
@@ -655,16 +680,16 @@ namespace
         diag.addNote(cf.noteId);
         cf.applyArguments(diag.last());
 
-        if (cf.nodeRef.isValid())
+        if (cf.noteNodeRef.isValid())
         {
-            diag.last().addSpan(sema.node(cf.nodeRef).codeRangeWithChildren(ctx, sema.ast()));
+            diag.last().addSpan(sema.node(cf.noteNodeRef).codeRangeWithChildren(ctx, sema.ast()));
             return;
         }
 
-        if (cf.codeRef.isValid())
+        if (cf.noteCodeRef.isValid())
         {
-            const SourceView& srcView = ctx.compiler().srcView(cf.codeRef.srcViewRef);
-            const Token&      tok     = srcView.token(cf.codeRef.tokRef);
+            const SourceView& srcView = ctx.compiler().srcView(cf.noteCodeRef.srcViewRef);
+            const Token&      tok     = srcView.token(cf.noteCodeRef.tokRef);
             diag.last().addSpan(tok.codeRange(ctx, srcView));
         }
     }
@@ -960,7 +985,7 @@ namespace
                 break;
         }
 
-        if (fail.hasLocation && fail.argIndex < numArgs)
+        if (fail.hasLocation && fail.argIndex < numArgs && (isNote || !hasPrimaryCastFailureNode(fail)))
         {
             const AstNodeRef argRef = getCallArg(fail.argIndex, args, ufcsArg);
             diagElement.addSpan(sema.node(argRef).codeRangeWithChildren(ctx, sema.ast()));
@@ -986,8 +1011,8 @@ namespace
                 break;
         }
 
-        Diagnostic diag = SemaError::report(sema, id, nodeCallee.nodeRef());
-        fillMatchDiagnostic(sema, diag.last(), diag, fn, fail, args, ufcsArg, false);
+        Diagnostic diag = SemaError::report(sema, id, primaryFailureNodeRef(nodeCallee, fail));
+        fillMatchDiagnostic(sema, primaryDiagnosticElement(diag), diag, fn, fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1030,8 +1055,9 @@ namespace
         const TaskContext& ctx = sema.ctx();
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
-        diag.last().addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
-        fillMatchDiagnostic(sema, diag.last(), diag, *primary.fn, primary.fail, args, ufcsArg, false);
+        DiagnosticElement& errorElement = primaryDiagnosticElement(diag);
+        errorElement.addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
+        fillMatchDiagnostic(sema, errorElement, diag, *primary.fn, primary.fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1089,7 +1115,7 @@ namespace
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef());
         if (!attempts.empty())
-            diag.last().addArgument(Diagnostic::ARG_SYM, attempts.front().fn->name(ctx));
+            primaryDiagnosticElement(diag).addArgument(Diagnostic::ARG_SYM, attempts.front().fn->name(ctx));
 
         addOverloadFailureNotes(sema, diag, sorted, args, ufcsArg, [](const Attempt&) { return false; });
 
@@ -1321,6 +1347,7 @@ namespace
         if (argTy.isInvalid())
         {
             cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+            cf.nodeRef    = argValueRef;
             cf.srcTypeRef = argTy;
             cf.dstTypeRef = variadicTy;
             attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
@@ -1338,6 +1365,7 @@ namespace
             }
 
             cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+            cf.nodeRef    = argValueRef;
             cf.srcTypeRef = argTy;
             cf.dstTypeRef = variadicTy;
             attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
@@ -1356,6 +1384,7 @@ namespace
                 cf.dstTypeRef = variadicTy;
             }
 
+            setCastFailureNodeIfMissing(cf, argValueRef);
             attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
             failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
             return Result::Continue;
@@ -1844,6 +1873,7 @@ namespace
                     {
                         CastFailure cf{};
                         cf.diagId     = DiagnosticId::sema_err_fwd_not_copyable;
+                        cf.nodeRef    = Match::resolveCallArgumentValueRef(sema, argRef);
                         cf.srcTypeRef = fwdTypeRef;
                         failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                         return Result::Continue;
@@ -1862,6 +1892,7 @@ namespace
                 {
                     CastFailure cf{};
                     cf.diagId     = DiagnosticId::sema_err_move_arg_param_not_move;
+                    cf.nodeRef    = argRef;
                     cf.dstTypeRef = paramTy;
                     failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                     return Result::Continue;
@@ -1890,6 +1921,7 @@ namespace
                     cf.srcTypeRef = argTy;
                     cf.dstTypeRef = paramTy;
                 }
+                setCastFailureNodeIfMissing(cf, argNodeView.nodeRef());
                 attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i].callArgIndex, ctx);
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
@@ -1910,6 +1942,7 @@ namespace
                     cf.srcTypeRef = argTy;
                     cf.dstTypeRef = paramTy;
                 }
+                setCastFailureNodeIfMissing(cf, argNodeView.nodeRef());
                 attachCallCastFailureArgs(cf, fn, mapping.paramArgs[i].callArgIndex, ctx);
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;

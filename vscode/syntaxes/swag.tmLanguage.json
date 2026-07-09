@@ -120,7 +120,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(@)(tableof|stringcmp|sysalloc|typecmp|is|as|getcontext|setcontext|print|compilererror|compilerwarning|breakpoint|assert|panic|init|drop|mkany|mkslice|mkstring|mkinterface|kindof|countof|dataof|postcopy|postmove)\\b"
+          "match": "(@)(tableof|stringcmp|typecmp|is|as|getcontext|setcontext|print|compilererror|compilerwarning|breakpoint|assert|panic|safetypanic|init|drop|mkany|mkslice|mkstring|mkinterface|kindof|countof|dataof|postcopy|postmove)\\b"
         }
       ]
     },
@@ -128,7 +128,7 @@
       "patterns": [
         {
           "name": "entity.name.tag",
-          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|alloc|realloc|free|memcpy|memmove|memset|memcmp|strlen|strcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|cvastart|cvaend|cvaarg)\\b"
+          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|alloc|realloc|free|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|cvastart|cvaend|cvaarg)\\b"
         }
       ]
     },
@@ -144,7 +144,7 @@
       "patterns": [
         {
           "name": "constant.character.escape",
-          "match": "(#)(alias)([0-9]+)|(.)(item)([0-9]+)|(#)(uniq)([0-9]+)"
+          "match": "(.)(item)([0-9]+)|(#)(uniq)([0-9]+)"
         }
       ]
     },
@@ -176,7 +176,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor",
-          "match": "(#)(global)\\s+(using|export|generated|if|namespace|public|private|internal|testpass|testerror|testerrors|testwarning|testwarnings)\\b",
+          "match": "(#)(global)\\s+(using|export|generated|namespace|public|private|internal)\\b",
           "captures": {
             "3": {
               "name": "constant.character.escape"
@@ -189,7 +189,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor",
-          "match": "(#)(global|load|assert|error|warning|print|import|inject|macro|foreignlib|if|else|elif|do|scope)\\b"
+          "match": "(#)(global|load|assert|error|warning|print|import|inject|foreignlib|if|else|elif|scope)\\b"
         }
       ]
     },
@@ -197,7 +197,7 @@
       "patterns": [
         {
           "name": "constant.character.escape",
-          "match": "(#)(tokenpos|curlocation|file|line|scopename|cfg|os|arch|cpu|module|callerlocation|swcversion|swcrevision|swcbuildnum|swcos)"
+          "match": "(#)(curlocation|callerlocation|command|file|line|scopename|cfg|os|arch|cpu|module|swcversion|swcrevision|swcbuildnum|swagos)"
         }
       ]
     },
@@ -205,7 +205,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|fullnameof|nameof|isconstexpr|location|decltype|hastag|gettag|runes|safety|include)"
+          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|fullnameof|nameof|isconstexpr|location|decltype|hastag|gettag|runes|safety|sanity|include)"
         }
       ]
     },
@@ -213,7 +213,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(#)(up|type|code)"
+          "match": "(#)(type|code)"
         }
       ]
     },

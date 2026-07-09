@@ -257,18 +257,14 @@ impl Capture
 
         let render = g_App.getRenderer()
         render.begin(.editView.surface.rc)
-
-        with painter
-        {
-            .begin()
-        }
+        painter.begin()
 
         var layer: Layer
         layer.begin(render, &painter, {width: cast(s32) rect.width, height: cast(s32) rect.height, paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
 
+        .paintBackImage(&painter, 0, 0, zoom)
         with painter
         {
-            me.paintBackImage(&painter, 0, 0, zoom)
             .setColorMaskColor()
             .setParams(.Antialiased)
         }

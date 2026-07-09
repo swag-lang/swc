@@ -60,31 +60,62 @@ namespace
         return endRange.line;
     }
 
+    bool functionSourceLineSpan(const CompilerInstance& compiler, const SymbolFunction& function, uint32_t& outLineStart, uint32_t& outLineEnd)
+    {
+        const AstNode* decl = function.decl();
+        if (!decl)
+            return false;
+
+        const SourceView& declView     = compiler.srcView(decl->srcViewRef());
+        const FileRef     ownerFileRef = declView.ownerFileRef();
+        if (!ownerFileRef.isValid())
+            return false;
+
+        const Ast& declAst = compiler.file(ownerFileRef).ast();
+        if (!declAst.hasSourceView() || declAst.tryFindNodeRef(decl).isInvalid())
+            return false;
+
+        const TaskContext     ctx(compiler.global(), compiler.cmdLine());
+        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, declAst, declView);
+        if (!startRange.srcView || !startRange.len)
+            return false;
+
+        outLineStart = startRange.line;
+        outLineEnd   = codeRangeEndLine(ctx, startRange);
+        return true;
+    }
+
     bool functionHasSourceError(const CompilerInstance& compiler, const SymbolFunction& function)
     {
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
         if (!file)
             return false;
 
-        const AstNode* decl = function.decl();
-        if (!decl)
+        uint32_t lineStart = 0;
+        uint32_t lineEnd   = 0;
+        if (!functionSourceLineSpan(compiler, function, lineStart, lineEnd))
             return file->hasError();
 
-        const SourceView& declView     = compiler.srcView(decl->srcViewRef());
-        const FileRef     ownerFileRef = declView.ownerFileRef();
-        if (!ownerFileRef.isValid())
-            return file->hasError();
+        return file->hasErrorLineInRange(lineStart, lineEnd);
+    }
 
-        const Ast& declAst = compiler.file(ownerFileRef).ast();
-        if (!declAst.hasSourceView() || declAst.tryFindNodeRef(decl).isInvalid())
-            return file->hasError();
+    // A function expecting a static-sanity error that never fired must not run: sanity
+    // findings are compile-time only, so the expectation can no longer be met, and the
+    // body is intentionally faulty code (use-after-free, ...) that would execute inside
+    // the compiler process. The unmatched directive is still reported as a failure by
+    // the verify pass; skipping here only prevents executing the faulty body.
+    bool functionHasUnmatchedSanityErrorDirective(const CompilerInstance& compiler, const SymbolFunction& function)
+    {
+        const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
+        if (!file)
+            return false;
 
-        const TaskContext     ctx(compiler.global(), compiler.cmdLine());
-        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, declAst, declView);
-        if (!startRange.srcView || !startRange.len)
-            return file->hasError();
+        uint32_t lineStart = 0;
+        uint32_t lineEnd   = 0;
+        if (!functionSourceLineSpan(compiler, function, lineStart, lineEnd))
+            return false;
 
-        return file->hasErrorLineInRange(startRange.line, codeRangeEndLine(ctx, startRange));
+        return file->unitTest().hasUntouchedErrorDirectiveInLineRange(lineStart, lineEnd, "sanity_err_");
     }
 
     bool shouldSkipFunctionForTests(const CompilerInstance& compiler, const SymbolFunction& root)
@@ -102,7 +133,7 @@ namespace
             if (!visited.insert(function).second)
                 continue;
 
-            if (function->isIgnored() || functionHasSourceError(compiler, *function))
+            if (function->isIgnored() || functionHasSourceError(compiler, *function) || functionHasUnmatchedSanityErrorDirective(compiler, *function))
                 return true;
 
             SmallVector<SymbolFunction*> dependencies;
@@ -151,7 +182,7 @@ namespace
                 continue;
             if (!graph.visited.insert(function).second)
                 continue;
-            if (function->isIgnored() || functionHasSourceError(compiler, *function))
+            if (function->isIgnored() || functionHasSourceError(compiler, *function) || functionHasUnmatchedSanityErrorDirective(compiler, *function))
             {
                 graph.selfSkippedFunctions.push_back(function);
                 continue;

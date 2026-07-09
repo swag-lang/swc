@@ -9,6 +9,10 @@ using Swag
 // proven fault. Aliases and conditional frees give misses, never reports.
 // ---------------------------------------------------------------------------
 
+// The lifecycle analysis is per-function: the helpers must force it too so their
+// FREES summaries exist even in build configs where sanity is globally disabled
+// (fast-compile), keeping the expected errors config-independent.
+#[Swag.Sanity(.Lifecycle, true)]
 func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
@@ -17,6 +21,7 @@ func myAlloc(size: u64)->*void
     return req.address
 }
 
+#[Swag.Sanity(.Lifecycle, true)]
 func myFree(ptr: *void, size: u64)
 {
     var req: AllocatorRequest

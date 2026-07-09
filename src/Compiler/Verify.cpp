@@ -216,6 +216,28 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     return dismiss;
 }
 
+bool Verify::hasUntouchedErrorDirectiveInLineRange(const uint32_t lineStart, const uint32_t lineEnd, const std::string_view matchPrefix) const
+{
+    if (!lineStart || !lineEnd)
+        return false;
+
+    const uint32_t firstLine = std::min(lineStart, lineEnd);
+    const uint32_t lastLine  = std::max(lineStart, lineEnd);
+
+    const std::scoped_lock lk(directivesMutex_);
+    for (const VerifyDirective& directive : directives_)
+    {
+        if (directive.touched || directive.kind != DiagnosticSeverity::Error)
+            continue;
+        if (!directive.match.starts_with(matchPrefix))
+            continue;
+        if (directive.myCodeRange.line >= firstLine && directive.myCodeRange.line <= lastLine)
+            return true;
+    }
+
+    return false;
+}
+
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
     std::vector<SourceCodeRange> missingRanges;

@@ -1,4 +1,8 @@
 #global private
+// The lifecycle (borrow) analysis is per-function and off in build configs like
+// fast-compile: force it for the whole file so the expected errors fire in every
+// config. Functions testing the disabled behavior override it back to false locally.
+#global #[Swag.Sanity(.Lifecycle, true)]
 using Swag
 
 struct BorrowEscapeOwner

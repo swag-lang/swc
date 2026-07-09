@@ -62,6 +62,7 @@ public:
     void tokenize(TaskContext& ctx);
     bool verifyExpected(const TaskContext& ctx, const Diagnostic& diag) const;
     void verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const;
+    bool hasUntouchedErrorDirectiveInLineRange(uint32_t lineStart, uint32_t lineEnd, std::string_view matchPrefix) const;
 
 private:
     SourceFile*                  file_    = nullptr;

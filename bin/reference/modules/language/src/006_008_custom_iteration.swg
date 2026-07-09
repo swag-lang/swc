@@ -21,6 +21,10 @@ The code block declares its parameters like a function, with 'func' replaced
 by '#code'. The parameter names ('item' and 'index' here) are the contract:
 they are the names the caller sees by default, and the names bound by
 '#inject'.
+
+Each '#inject' clones the caller's code: when a value is selected at runtime,
+compute it into a local first and keep a single '#inject', instead of one
+'#inject' per branch.
 */
 impl MyStruct
 {
@@ -36,12 +40,15 @@ impl MyStruct
         // Visit fields x, y, z in declaration order
         for idx in 3
         {
+            var visitItem: s32 = undefined
             switch idx
             {
-            case 0: #inject(stmt, item = me.x, index = @index)
-            case 1: #inject(stmt, item = me.y, index = @index)
-            case 2: #inject(stmt, item = me.z, index = @index)
+            case 0: visitItem = me.x
+            case 1: visitItem = me.y
+            case 2: visitItem = me.z
             }
+
+            #inject(stmt, item = visitItem, index = @index)
         }
     }
 }
@@ -83,12 +90,15 @@ impl MyStruct
     {
         for idx in 3
         {
+            var visitItem: s32 = undefined
             switch idx
             {
-            case 0: #inject(stmt, item = me.z, index = @index)
-            case 1: #inject(stmt, item = me.y, index = @index)
-            case 2: #inject(stmt, item = me.x, index = @index)
+            case 0: visitItem = me.z
+            case 1: visitItem = me.y
+            case 2: visitItem = me.x
             }
+
+            #inject(stmt, item = visitItem, index = @index)
         }
     }
 }

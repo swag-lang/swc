@@ -33,14 +33,17 @@ impl WorkloadForecast
         {
             for idx in 5
             {
+                var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: #inject(stmt, item = me.monday, index = @index)
-                case 1: #inject(stmt, item = me.tuesday, index = @index)
-                case 2: #inject(stmt, item = me.wednesday, index = @index)
-                case 3: #inject(stmt, item = me.thursday, index = @index)
-                case 4: #inject(stmt, item = me.friday, index = @index)
+                case 0: visitItem = me.monday
+                case 1: visitItem = me.tuesday
+                case 2: visitItem = me.wednesday
+                case 3: visitItem = me.thursday
+                case 4: visitItem = me.friday
                 }
+
+                #inject(stmt, item = visitItem, index = @index)
             }
         }
     }
@@ -56,14 +59,17 @@ impl WorkloadForecast
 
         for idx in 5
         {
+            var visitItem: s32 = undefined
             switch idx
             {
-            case 0: #inject(stmt, item = me.monday, index = @index)
-            case 1: #inject(stmt, item = me.tuesday, index = @index)
-            case 2: #inject(stmt, item = me.wednesday, index = @index)
-            case 3: #inject(stmt, item = me.thursday, index = @index)
-            case 4: #inject(stmt, item = me.friday, index = @index)
+            case 0: visitItem = me.monday
+            case 1: visitItem = me.tuesday
+            case 2: visitItem = me.wednesday
+            case 3: visitItem = me.thursday
+            case 4: visitItem = me.friday
             }
+
+            #inject(stmt, item = visitItem, index = @index)
         }
     }
 

@@ -38,13 +38,16 @@ impl ShelfBins
             {
                 for idx in 4
                 {
+                    var visitItem: s32 = undefined
                     switch idx
                     {
-                    case 0: #inject(stmt, item = me.evening, index = @index)
-                    case 1: #inject(stmt, item = me.afternoon, index = @index)
-                    case 2: #inject(stmt, item = me.lunch, index = @index)
-                    case 3: #inject(stmt, item = me.morning, index = @index)
+                    case 0: visitItem = me.evening
+                    case 1: visitItem = me.afternoon
+                    case 2: visitItem = me.lunch
+                    case 3: visitItem = me.morning
                     }
+
+                    #inject(stmt, item = visitItem, index = @index)
                 }
 
                 return
@@ -52,13 +55,16 @@ impl ShelfBins
 
             for idx in 4
             {
+                var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: #inject(stmt, item = me.morning, index = @index)
-                case 1: #inject(stmt, item = me.lunch, index = @index)
-                case 2: #inject(stmt, item = me.afternoon, index = @index)
-                case 3: #inject(stmt, item = me.evening, index = @index)
+                case 0: visitItem = me.morning
+                case 1: visitItem = me.lunch
+                case 2: visitItem = me.afternoon
+                case 3: visitItem = me.evening
                 }
+
+                #inject(stmt, item = visitItem, index = @index)
             }
         }
     }
@@ -73,13 +79,16 @@ impl ShelfBins
         {
             for idx in 4
             {
+                var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: #inject(stmt, item = me.evening, index = @index)
-                case 1: #inject(stmt, item = me.afternoon, index = @index)
-                case 2: #inject(stmt, item = me.lunch, index = @index)
-                case 3: #inject(stmt, item = me.morning, index = @index)
+                case 0: visitItem = me.evening
+                case 1: visitItem = me.afternoon
+                case 2: visitItem = me.lunch
+                case 3: visitItem = me.morning
                 }
+
+                #inject(stmt, item = visitItem, index = @index)
             }
 
             return
@@ -87,13 +96,16 @@ impl ShelfBins
 
         for idx in 4
         {
+            var visitItem: s32 = undefined
             switch idx
             {
-            case 0: #inject(stmt, item = me.morning, index = @index)
-            case 1: #inject(stmt, item = me.lunch, index = @index)
-            case 2: #inject(stmt, item = me.afternoon, index = @index)
-            case 3: #inject(stmt, item = me.evening, index = @index)
+            case 0: visitItem = me.morning
+            case 1: visitItem = me.lunch
+            case 2: visitItem = me.afternoon
+            case 3: visitItem = me.evening
             }
+
+            #inject(stmt, item = visitItem, index = @index)
         }
     }
 }

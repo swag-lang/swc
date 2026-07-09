@@ -19,12 +19,15 @@ impl JitFieldVisits
         {
             for idx in 3
             {
+                var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: #inject(stmt, item = me.z, index = @index)
-                case 1: #inject(stmt, item = me.y, index = @index)
-                case 2: #inject(stmt, item = me.x, index = @index)
+                case 0: visitItem = me.z
+                case 1: visitItem = me.y
+                case 2: visitItem = me.x
                 }
+
+                #inject(stmt, item = visitItem, index = @index)
             }
 
             return
@@ -32,12 +35,15 @@ impl JitFieldVisits
 
         for idx in 3
         {
+            var visitItem: s32 = undefined
             switch idx
             {
-            case 0: #inject(stmt, item = me.x, index = @index)
-            case 1: #inject(stmt, item = me.y, index = @index)
-            case 2: #inject(stmt, item = me.z, index = @index)
+            case 0: visitItem = me.x
+            case 1: visitItem = me.y
+            case 2: visitItem = me.z
             }
+
+            #inject(stmt, item = visitItem, index = @index)
         }
     }
 }
@@ -187,12 +193,15 @@ impl JitFieldPointerVisits
         {
             for idx in 3
             {
+                var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: #inject(stmt, item = me.first, index = @index)
-                case 1: #inject(stmt, item = me.second, index = @index)
-                case 2: #inject(stmt, item = me.third, index = @index)
+                case 0: visitItem = me.first
+                case 1: visitItem = me.second
+                case 2: visitItem = me.third
                 }
+
+                #inject(stmt, item = visitItem, index = @index)
             }
         }
     }

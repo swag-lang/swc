@@ -24,6 +24,9 @@ namespace
 
     bool shouldWaitReflectedMethodTyping(const SymbolFunction& symFunc)
     {
+        // Reflection waits only for methods that can actually appear in runtime
+        // metadata. Generic roots and compiler-only helpers do not need to hold up
+        // TypeInfo generation because no concrete method entry will be emitted.
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
         if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
@@ -65,6 +68,9 @@ namespace
         if (!typeRef.isValid())
             return false;
 
+        // A cycle in the reflected type graph is fine: dependency collection will
+        // make sure every distinct TypeRef gets a cache entry, then relocations wire
+        // the recursive edges when payloads are emitted.
         if (!visiting.insert(typeRef).second)
             return true;
 
@@ -111,6 +117,9 @@ namespace
         if (!valueCstRef.isValid())
             return;
 
+        // Attribute values are materialized as Runtime::Any in the TypeInfo payload.
+        // Record both the declared value type and the precise boxed type so the
+        // eventual payload can point at already-emitted metadata.
         TaskContext&         ctx = sema.ctx();
         const ConstantValue& cst = ctx.cstMgr().get(valueCstRef);
         if (cst.isNull())
@@ -209,6 +218,9 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
     SmallVector<TypeRef> deps;
     TaskContext&         ctx = sema.ctx();
 
+    // TypeInfo emission is a relocation graph problem. Collect every type that may
+    // be referenced by the payload before reserving/writing the current entry so
+    // pointers can be patched deterministically afterward.
     switch (kind)
     {
         case LayoutKind::Enum:

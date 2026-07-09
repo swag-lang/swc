@@ -16,6 +16,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Recursive shape probes are conservative filters, not proof engines. The caps keep
+    // pathological recursive types/expressions from turning borrow checking into an
+    // unbounded walk; exhausting a budget means "do not infer a borrow carrier".
     constexpr uint32_t K_TYPE_BUDGET = 128;
     constexpr uint32_t K_EXPR_BUDGET = 128;
 
@@ -30,6 +33,9 @@ namespace
 
     TypeRef normalizeBindingType(Sema& sema, TypeRef typeRef)
     {
+        // Bindings are tracked on the storage they ultimately expose. Strip aliases,
+        // enum wrappers and references so later checks compare the carried payload,
+        // not the syntax that happened to produce it.
         while (typeRef.isValid())
         {
             const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
@@ -98,6 +104,9 @@ namespace
         if (isDirectBorrowCarrier(sema, typeRef))
             return true;
 
+        // Structural carriers are discovered through fields/elements, but cycles are
+        // common in user types. A back-edge only says "already being inspected", so
+        // treat it as neutral and let another path prove the carrier if one exists.
         if (!visiting.insert(typeRef).second)
             return false;
 
@@ -191,6 +200,9 @@ namespace
     {
         if (symVar.isClosureCapture())
         {
+            // By-ref captures are aliases of their source variable. If the capture has
+            // no explicit escape info yet, continue from the original symbol so copies
+            // of the closure report against the storage that actually dies.
             if (const SemaEscapeInfo* existing = sema.variableEscapeInfo(symVar))
                 return *existing;
             if (symVar.closureCaptureByRef() && symVar.closureCapturedSource())
@@ -456,7 +468,7 @@ namespace
         if (sourceVar)
         {
             // A reference-typed VARIABLE designates the storage it was bound to: return
-            // that binding's borrow. Decided on the declared type — a self-substituted
+            // that binding's borrow. Decided on the declared type - a self-substituted
             // cast operand (implicit receiver conversion) reports the cast's result
             // type, not the variable's.
             const TypeRef varTypeRef = unwrapAliasEnum(sema, sourceVar->typeRef());
@@ -620,7 +632,7 @@ namespace
     // opCast borrowing 'self', interface creation, ...). Scalars convert by value: casting
     // a 'u64' to a pointer reinterprets the value and never borrows the variable storage.
     // Owner structs (Core.String, ...) qualify too: their heap payload is freed when the
-    // owner drops, and for a LOCAL owner the drop coincides with scope death — rooting a
+    // owner drops, and for a LOCAL owner the drop coincides with scope death - rooting a
     // view at the owner variable reports exactly the escapes that dangle. Parameter and
     // global owners yield Parameter/Static kinds and stay silent locally.
     bool typeHasBorrowableStorage(Sema& sema, TypeRef typeRef)
@@ -758,9 +770,9 @@ namespace
                 {
                     // A structural cast of an rvalue is ALWAYS materialized by the compiler
                     // into a frame-lifetime runtime storage (Cast::runtimeStorageTypeRef:
-                    // array→slice/string, value→any, struct→interface, ...): local bindings
+                    // array->slice/string, value->any, struct->interface, ...): local bindings
                     // are safe, but the storage still dies with the frame. Only a user
-                    // 'opCast' borrows the rvalue itself — its runtime storage holds the
+                    // 'opCast' borrows the rvalue itself - its runtime storage holds the
                     // call RESULT, not the source, and the source dies at end of statement.
                     const auto* specOp   = sema.semaPayload<CastSpecOpPayload>(castRef);
                     const bool  isOpCast = specOp && specOp->kind == CastSpecialOpPayloadKind::OpCast && specOp->calledFn;
@@ -889,7 +901,7 @@ namespace
     // may borrow one of its parameters, the call result borrows the matching arguments.
     //
     // NOT CONSUMED INLINE: sema jobs run in a non-deterministic order, so an intra-module
-    // callee may or may not be sema-completed when its call site is analyzed — and
+    // callee may or may not be sema-completed when its call site is analyzed - and
     // waiting for a function body from another function body turns legal mutual
     // recursion into a stalled-dependency error (SemaCycle). Consuming the mask here
     // would make the errors flicker between otherwise identical builds. Instead, call
@@ -978,7 +990,7 @@ namespace
     // flow state is only valid NOW, so the argument side is captured eagerly; the
     // callee's summaries are read later, when they are final regardless of the sema
     // job order. 'collectPairs' additionally crosses the arguments against the
-    // callee's stores-into-parameter pairs ('g_container.add(&local)') — only wanted
+    // callee's stores-into-parameter pairs ('g_container.add(&local)') - only wanted
     // from the once-per-call Argument hook. Returns false when nothing borrows or the
     // call is not summarizable.
     bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, bool collectPairs, SemaEscapeDeferredCallSnapshot& outCapture)
@@ -1030,7 +1042,7 @@ namespace
             {
                 // The qualified name is prefixed by the module: match the language
                 // interface by suffix. Interface IMPLEMENTATIONS ('X.IAllocator.free')
-                // do not match — only the declared interface method reached by
+                // do not match - only the declared interface method reached by
                 // dispatch does, which is exactly the semantic anchor.
                 const Utf8             fullName = fn->getFullScopedName(sema.ctx());
                 const std::string_view view{fullName};
@@ -1106,7 +1118,7 @@ namespace
             }
 
             // Handing the callee one of the caller's own parameters chains the
-            // summaries: judged by fixpoint, not here — the callee's masks are not
+            // summaries: judged by fixpoint, not here - the callee's masks are not
             // final yet. The edge kind is chosen by the committer.
             if (info.kind == SemaEscapeKind::Parameter && info.sourceVar)
             {
@@ -1126,7 +1138,7 @@ namespace
 
             // A local bound to another opaque call handed onward ('let p = f(&v);
             // g(p)'): compose the two summaries. Each borrow captured at 'f' becomes a
-            // GUARDED template — it escapes only if 'f' returns it (the guard) AND
+            // GUARDED template - it escapes only if 'f' returns it (the guard) AND
             // this callee keeps or returns its argument (the main judge). Templates
             // that already carry a guard are not re-composed (depth-two limit).
             if (info.isDeferredCallBorrow())
@@ -1709,7 +1721,7 @@ namespace SemaEscape
             }
             else if (isLocalVariableStorage(sema, symVar))
             {
-                // 'let p = f(&v)': the local may borrow the call's arguments — capture
+                // 'let p = f(&v)': the local may borrow the call's arguments - capture
                 // them now, judge only if 'p' later escapes.
                 bindDeferredCallBorrow(sema, symVar, initRef);
             }

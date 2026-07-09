@@ -23,6 +23,9 @@ constexpr uint8_t SIB_NO_BASE = 0b101;
 
 namespace
 {
+    // MicroReg numbering follows the compiler ABI; these values are the actual x64
+    // encoding bits. Keep the two maps explicit so calling conventions can evolve
+    // independently from instruction encoding.
     enum class ModRmMode : uint8_t
     {
         Memory         = 0b00,
@@ -229,6 +232,9 @@ namespace
 
     bool canEncode8(uint64_t value, MicroOpBits opBits)
     {
+        // Micro immediates are stored unsigned, so negative signed immediates arrive in
+        // two's-complement form. Accept the low positive range and the sign-extended
+        // high range for the requested operand width.
         return value <= 0x7F ||
                (opBits == MicroOpBits::B16 && value >= 0xFF80) ||
                (opBits == MicroOpBits::B32 && value >= 0xFFFFFF80) ||
@@ -374,6 +380,8 @@ namespace
         if (opBits == MicroOpBits::B16)
             store.pushU8(0x66);
 
+        // REX is required for 64-bit operands, extended registers, and the byte-register
+        // hole (sil/dil/spl/bpl) even when the instruction itself is 8-bit.
         const bool hasReg0 = reg0.isValid() && !reg0.isNoBase();
         const bool hasReg1 = reg1.isValid() && !reg1.isNoBase();
 
@@ -429,6 +437,9 @@ namespace
     {
         const auto memX64 = microRegToX64Reg(memReg);
 
+        // rbp/r13 cannot encode bare [base] with mod=00; rsp/r12 always require SIB.
+        // Centralize those x64 quirks here so instruction encoders can request a
+        // logical [base + offset] form without duplicating addressing edge cases.
         if (memOffset == 0 && memX64 != X64Reg::R13 && memX64 != X64Reg::Rbp)
         {
             if (memX64 == X64Reg::Rsp || memX64 == X64Reg::R12)
@@ -781,6 +792,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     if (!ops)
         return false;
 
+    // Contract with Legalize: every issue reported here must be rewritten before byte
+    // emission. The encode* functions can then assume remaining instruction forms are
+    // representable on x64.
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
     {
@@ -1560,7 +1574,7 @@ namespace
         if (opBitsBaseMul == MicroOpBits::B32)
             store.pushU8(0x67);
         if (reg.isFloat() && opBitsReg == MicroOpBits::B128)
-            store.pushU8(0xF3); // movdqu (128-bit) — mandatory prefix, not the 0x66 of movd/movq
+            store.pushU8(0xF3); // movdqu (128-bit) - mandatory prefix, not the 0x66 of movd/movq
         else if (opBitsReg == MicroOpBits::B16 || reg.isFloat())
             store.pushU8(0x66);
 
@@ -2125,7 +2139,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     {
         if (opBits == MicroOpBits::B8)
         {
-            // One-operand IMUL r/m8 from memory: AL * [mem] → AX, OF correct for s8.
+            // One-operand IMUL r/m8 from memory: AL * [mem] -> AX, OF correct for s8.
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
@@ -2239,7 +2253,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         if (opBits == MicroOpBits::B8)
         {
             // Two-operand IMUL has no 8-bit form. Use one-operand IMUL r/m8 (F6 /5):
-            // AL * r/m8 → AX, with OF=1 when the result doesn't fit in s8.
+            // AL * r/m8 -> AX, with OF=1 when the result doesn't fit in s8.
             const auto rax = x64RegToMicroReg(X64Reg::Rax);
             emitRex(store_, opBits, rax, regSrc);
             emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);

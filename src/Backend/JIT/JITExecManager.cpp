@@ -77,6 +77,9 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
 
     {
         const std::scoped_lock lock(mutex_);
+        // The key is the suspended sema location, not just the function. The same
+        // compile-time function can be requested from multiple nodes with different
+        // completion payloads.
         auto&                  slot = items_[key];
         if (!slot)
         {
@@ -150,6 +153,9 @@ bool JITExecManager::executePendingMainThread()
         Item* itemToRun = nullptr;
         {
             const std::scoped_lock lock(mutex_);
+            // Claim one item under the lock, then run it without holding the mutex:
+            // JIT execution can re-enter compiler services and would otherwise deadlock
+            // producers/consumers of the same queue.
             for (auto& item : items_ | std::views::values)
             {
                 if (!item || item->status != Status::Pending)
@@ -218,6 +224,8 @@ bool JITExecManager::wakeWaiting()
         if (!item || item->status != Status::Waiting)
             continue;
 
+        // The scheduler only tells us that compiler progress happened. Requeue every
+        // waiting item and let executeItem re-check its exact dependency.
         item->status = Status::Pending;
         woken        = true;
     }

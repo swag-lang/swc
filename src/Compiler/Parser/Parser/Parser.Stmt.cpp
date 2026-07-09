@@ -88,6 +88,9 @@ AstNodeRef Parser::parseAlias()
     nodePtr->tokNameRef     = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
 
+    // Alias declarations intentionally accept only type-like forms or symbol names.
+    // Letting the full expression parser run here would make value expressions look
+    // valid until sema, producing poorer diagnostics and ambiguous AST shapes.
     // 1) Definitely looks like a type (array, func, struct literal type, pointer type, etc.)
     if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierNullable, TokenId::SymAsterisk))
     {
@@ -125,6 +128,8 @@ AstNodeRef Parser::parseAlias()
 AstNodeRef Parser::parseReturn()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ReturnStmt>(consume());
+    // A newline after 'return' is a bare return. This keeps automatic statement
+    // termination from accidentally capturing the first expression on the next line.
     if (is(TokenId::SymSemiColon) || tok().startsLine())
         nodePtr->nodeExprRef.setInvalid();
     else
@@ -149,6 +154,8 @@ AstNodeRef Parser::parseBreak()
 {
     if (nextIs(TokenId::KwdTo))
     {
+        // 'break to label' has a distinct node so sema can resolve the named
+        // breakable scope without overloading the regular break statement.
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopedBreakStmt>(ref());
         consumeAssert(TokenId::KwdBreak);
         consumeAssert(TokenId::KwdTo);
@@ -188,6 +195,9 @@ AstNodeRef Parser::parseIf()
         else
             nodePtr->nodeWhereRef.setInvalid();
 
+        // 'else if' is represented by nesting another if node in the else slot.
+        // Later passes can therefore treat chained and manually nested conditionals
+        // with the same traversal code.
         nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
         if (is(TokenId::KwdElseIf))
             nodePtr->nodeElseBlockRef = parseIf();
@@ -207,6 +217,8 @@ AstNodeRef Parser::parseIf()
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
     nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
+    // Same chained-conditional shape as 'if var': the else branch either owns a
+    // block or another IfStmt node.
     if (is(TokenId::KwdElseIf))
         nodePtr->nodeElseBlockRef = parseIf();
     else if (consumeIf(TokenId::KwdElse).isValid())

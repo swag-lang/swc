@@ -22,6 +22,8 @@ namespace
 
     enum class DeductionMode
     {
+        // Normal reports conflicts between independent deductions; MissingOnly is used
+        // when defaults are allowed to fill holes without re-litigating already fixed args.
         Normal,
         MissingOnly,
     };
@@ -113,6 +115,9 @@ namespace
         if (patternRef.isInvalid() || !argTypeRef.isValid())
             return patternRef;
 
+        // UFCS and operator receiver matching can implicitly take the address of a value.
+        // Deduction must therefore compare the value against the pointee pattern, not
+        // against the syntactic reference/pointer wrapper.
         const TypeRef   effectiveArgTypeRef = SemaGeneric::unwrapGenericDeductionType(sema.ctx(), argTypeRef);
         const TypeInfo& argType             = sema.typeMgr().get(effectiveArgTypeRef);
         if (argType.isPointerOrReference())
@@ -203,6 +208,9 @@ namespace
         if (typeNodeRef.isInvalid())
             return TypeRef::invalid();
 
+        // Generic deduction sometimes runs on a declaration AST before the regular
+        // semantic payload for that exact type node is available. Reconstruct the
+        // structural type when the stored view has not been produced yet.
         const TypeRef typeRef = sema.viewType(typeNodeRef).typeRef();
         if (typeRef.isValid())
             return typeRef;
@@ -649,6 +657,9 @@ namespace
         if (!allowPartial && patternFields.size() != actualAggregate.types.size())
             return false;
 
+        // Named aggregate fields are matched first, then unnamed entries fill the
+        // remaining pattern slots in order. This mirrors initializer semantics and lets
+        // partially named aggregate literals participate in generic deduction.
         outOrder.resize(patternFields.size());
         for (size_t& index : outOrder)
             index = SIZE_MAX;
@@ -747,6 +758,9 @@ namespace
         if (!argType.isAggregateStruct())
             return Result::Continue;
 
+        // Aggregate literals do not carry a concrete generic instance yet. Deduce through
+        // the generic root declaration field-by-field, then map the root deductions back
+        // onto the explicit generic arguments written in the call pattern.
         const SymbolStruct*     patternRoot      = nullptr;
         IdentifierRef           patternRootIdRef = IdentifierRef::invalid();
         SmallVector<AstNodeRef> patternArgs;
@@ -1082,6 +1096,9 @@ namespace
         if (patternRef.isInvalid() || !rawArgTypeRef.isValid())
             return Result::Continue;
 
+        // The matcher is intentionally permissive: most shape mismatches mean "this
+        // overload did not deduce here", not "the program is invalid". Only a direct
+        // conflict on a generic parameter reports through outFailure.
         const AstNode& patternNode = sema.node(patternRef);
         if (const auto* ident = patternNode.safeCast<AstIdentifier>())
         {
@@ -1136,6 +1153,9 @@ namespace
             if (!argType.isArray())
                 return Result::Continue;
 
+            // Multi-dimensional concrete arrays can be represented either as one array
+            // type with several dimensions or as nested array element types. Flatten both
+            // sides before binding dimension value parameters.
             SmallVector<AstNodeRef> dims;
             sema.ast().appendNodes(dims, arrayType->spanDimensionsRef);
             SmallVector<uint64_t> actualDims;
@@ -1579,6 +1599,9 @@ namespace SemaGeneric
         if (!buildGenericCallArgMapping(sema, params.span(), args, ufcsArg, prependUfcsArg, mapping))
             return Result::Continue;
 
+        // First pass: user-provided arguments. A deduction error rejects this candidate
+        // but does not immediately emit a diagnostic; overload resolution will decide
+        // whether this failure is the one the user should see.
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
             const GenericCallArgEntry& entry = mapping.paramArgs[i];
@@ -1619,6 +1642,8 @@ namespace SemaGeneric
             const AstNodeRef patternRef = typedVariadicElementTypeRef(*declSema, params.back().typeRef);
             if (patternRef.isValid())
             {
+                // Variadic tails deduce against the element pattern, not the packed
+                // variadic parameter type that codegen will eventually materialize.
                 for (const GenericCallArgEntry& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef valueArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
@@ -1648,6 +1673,9 @@ namespace SemaGeneric
             if (!patternCanDeduceMissingGenericParam(*declSema, genericParams, ioResolvedArgs.span(), params[i].typeRef))
                 continue;
 
+            // Second pass: defaults are allowed to fill only still-missing generic
+            // parameters. They must not override deductions already forced by explicit
+            // arguments, hence DeductionMode::MissingOnly below.
             AstNodeRef defaultRef = AstNodeRef::invalid();
             SWC_RESULT(SemaGeneric::evalGenericFunctionParamDefault(*declSema, root, genericParams, ioResolvedArgs.span(), params[i].defaultRef, defaultRef));
             if (defaultRef.isInvalid())

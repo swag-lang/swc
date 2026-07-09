@@ -105,6 +105,9 @@ void PEWriter::buildImports()
     if (image_->imports.empty())
         return;
 
+    // Import construction is split in two layers: a stable symbol-visible thunk in
+    // .text, and the loader-visible import tables in .idata. User code references the
+    // thunk symbol; the OS loader patches only the IAT slot it jumps through.
     // Group imports by DLL, preserving first-seen order.
     std::vector<Utf8>                                        dllOrder;
     std::unordered_map<Utf8, std::vector<const LinkImport*>> byDll;
@@ -378,6 +381,9 @@ void PEWriter::assignLayout()
 
 bool PEWriter::applyRelocations(Diagnostic& outDiag)
 {
+    // At this point every output section has a final RVA, but directory-local tables
+    // may still contain offsets relative to their own section. Resolve object relocations
+    // first, then rebase those internal directory fixups.
     for (size_t imageIdx = 0; imageIdx < image_->sections.size(); ++imageIdx)
     {
         const LinkSection& src = image_->sections[imageIdx];
@@ -473,6 +479,8 @@ void PEWriter::buildBaseRelocations()
     if (baseRelocSites_.empty())
         return;
 
+    // PE base relocations are grouped by 4 KiB page. Each entry stores the offset within
+    // that page plus the relocation type; blocks are padded to an even WORD count.
     std::ranges::sort(baseRelocSites_);
 
     ByteArray reloc;
@@ -921,6 +929,9 @@ bool PEWriter::writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnosti
     pdbPath_     = pdbPath;
     outPdbBytes_ = &outPdbBytes;
 
+    // Pipeline order is important: synthetic sections must exist before layout; base
+    // relocations need absolute reloc sites collected by applyRelocations; debug/resource
+    // records need their final RVAs and are filled during emit().
     // Copy image sections into the working set, recording the index map and special sections.
     sections_.reserve(image_->sections.size() + 4);
     imageToOut_.resize(image_->sections.size());

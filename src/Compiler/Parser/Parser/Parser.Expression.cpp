@@ -60,6 +60,9 @@ namespace
         if (tok->id != TokenId::SymLeftBracket)
             return false;
 
+        // Disambiguate `[T]`-style type syntax from an array literal without consuming
+        // tokens. The decision is intentionally shallow: once the matching ']' is found,
+        // only the next token is needed to know whether a subtype follows.
         const Token* cursor = tok;
         uint32_t     depth  = 0;
         while (cursor <= lastTok)
@@ -222,6 +225,8 @@ bool Parser::isClosureCaptureEndPipe() const
         !nextIs(TokenId::SymLeftParen))
         return false;
 
+    // In `|captures| (params) -> ...`, the second pipe is not a binary/logical operator.
+    // Validate the following parameter-list shape before letting expression parsing stop.
     const Token* cursor     = curToken_ + 1;
     uint32_t     parenDepth = 0;
     while (cursor <= lastToken_)
@@ -338,6 +343,8 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
     if (left.isInvalid())
         return AstNodeRef::invalid();
 
+    // Precedence climbing keeps the grammar compact while preserving left associativity:
+    // the right side is parsed with a strictly higher minimum precedence.
     while (true)
     {
         const TokenId opId = id();
@@ -413,6 +420,8 @@ AstNodeRef Parser::parseExpression()
 {
     const AstNodeRef nodeExpr1 = parseLogicalExpr();
 
+    // The conditional family sits above logical expressions and is parsed recursively,
+    // making nested `a ? b : c ? d : e` and `or else` chains bind to the right.
     if (is(TokenId::KwdOrElse))
     {
         const TokenRef   tokOp        = consume();
@@ -688,7 +697,9 @@ AstNodeRef Parser::parsePostFixExpression()
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();
 
-    // Handle chained postfix operations: A.B.C()[5](args)
+    // Postfix operations are greedily folded into the left expression. The blank/EOL
+    // checks are semantic: they prevent accidental calls/indexes/member accesses across
+    // token boundaries where the language expects a new expression.
     while (true)
     {
         // Scope resolution
@@ -946,6 +957,9 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseLiteralStruct();
 
         case TokenId::SymLeftBracket:
+            // `[ ... ]` is the only primary form shared by type syntax and value
+            // syntax. Prefer type parsing only when a type-only prefix or the
+            // non-consuming shape check proves it.
             if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
                 return parseType();
             if (looksLikeArrayTypeExpression(tokPtr(), lastToken_))
@@ -1042,7 +1056,8 @@ AstNodeRef Parser::parseQualifiedIdentifier()
 
 AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
 {
-    // Parse the left-hand side from the next lower level (binary expr)
+    // Relational operators are separated from arithmetic binary operators so chained
+    // comparisons keep their own AST kind and diagnostics.
     AstNodeRef left = parseBinaryExpr();
     if (left.isInvalid())
         return AstNodeRef::invalid();

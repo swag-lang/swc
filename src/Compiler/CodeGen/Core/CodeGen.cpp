@@ -445,6 +445,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
     if (!started_)
     {
+        // CodeGen instances can pause and resume. All per-function mutable state is
+        // initialized exactly once here; later calls resume the visitor from its saved
+        // cursor and must see the same function/root pair.
         root_     = root;
         function_ = &symbolFunc;
         builder_  = &symbolFunc.microInstrBuilder(ctx());
@@ -512,6 +515,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     }
     else
     {
+        // A resumed codegen job must be the same logical job. Reusing the object for a
+        // different function would mix virtual register numbering, payloads and defer state.
         SWC_ASSERT(function_ == &symbolFunc);
         SWC_ASSERT(root_ == root);
     }
@@ -525,6 +530,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         const SourceCodeRef currentCodeRef = currentNodeRef.isValid() ? node(currentNodeRef).codeRef() : symbolFunc.codeRef();
         ctx().state().setCodeGenParsing(&symbolFunc, currentNodeRef, currentCodeRef);
 
+        // The visitor drives all node-specific emission. The outer loop only preserves
+        // resumability: a Pause keeps the partially built microcode and visitor cursor.
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
             return Result::Pause;
@@ -657,6 +664,9 @@ const CodeGenLoweringPayload* CodeGen::loweringPayload(AstNodeRef nodeRef) const
 
 const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
 {
+    // Lowering metadata may live either on the exact AST node or on the resolved
+    // substitute. Prefer the explicit lowering payload, then fall back to the codegen
+    // payload created while visiting the node.
     if (const auto* exactPayload = loweringPayload(nodeRef); exactPayload && exactPayload->runtimeStorageSym != nullptr)
         return exactPayload->runtimeStorageSym;
 
@@ -881,6 +891,9 @@ MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind call
     if (currentFunctionIndirectReturnReg_.isValid())
         return currentFunctionIndirectReturnReg_;
 
+    // The hidden return pointer can arrive either through a stack spill produced by
+    // prolog lowering or directly in the ABI's first integer argument register. Materialize
+    // a stable virtual copy so later calls cannot clobber the incoming ABI register.
     if (hasCurrentFunctionIndirectReturnStackOffset() && localStackBaseReg().isValid())
     {
         MicroBuilder&           builder = this->builder();
@@ -1034,6 +1047,8 @@ void CodeGen::pushDeferScope(AstNodeRef scopeRef, AstNodeRef breakOwnerRef, AstN
     if (!hasDeferredStatements_)
         return;
 
+    // Store resolved anchors: later substitutions/inlining can change surface refs, but
+    // defer emission needs to compare against the semantic owner of returns/breaks/cases.
     if (scopeRef.isValid())
         scopeRef = resolvedNodeRef(scopeRef);
     if (breakOwnerRef.isValid())
@@ -1178,6 +1193,9 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
     if (scopeIndex >= deferScopes_.size())
         return Result::Continue;
 
+    // Defer actions run in LIFO order. The cursor lets a nested return/break emitted by
+    // one deferred action continue with the still-pending outer actions without replaying
+    // the action that is currently on the stack.
     const auto&  deferScope         = deferScopes_[scopeIndex];
     const size_t clampedActionCount = std::min(actionCount, deferScope.actions.size());
     deferredEmissionCursors_.push_back({.scopeIndex = scopeIndex, .nextActionCount = clampedActionCount});

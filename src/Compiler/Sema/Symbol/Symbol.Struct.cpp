@@ -28,6 +28,9 @@ namespace
         if (!isConcreteStructLayoutPending(symbolStruct))
             return 0;
 
+        // Generic roots intentionally have no layout, but every concrete struct
+        // reaching this point must have been through layout computation. The dev
+        // detail below is tuned for races/missing waits in the sema pipeline.
 #if SWC_DEV_MODE
         if (!sizeInBytes)
         {
@@ -86,6 +89,9 @@ namespace
 
     bool isRuntimeReflectedMethod(const SymbolFunction& symFunc)
     {
+        // Runtime TypeInfo only publishes callable, concrete methods. Generic roots,
+        // implicit wrappers and half-typed methods would produce dangling method
+        // table entries or signatures that cannot be reflected safely.
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
         if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
@@ -135,6 +141,9 @@ namespace
         if (const SymbolFunction* symFunc = registeredLifecycleFunction(ownerStruct, kind); symFunc && symFunc->isSemaCompleted())
             return symFunc;
 
+        // Generated wrappers can be registered before every explicit method is
+        // fully completed. Prefer a completed user-visible lifecycle overload when
+        // one exists, then fall back to the registered pointer.
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
         {
             if (!symFunc || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
@@ -209,6 +218,9 @@ namespace
         if (childKinds.empty())
             return ImplicitDefaultKind::AllZero;
 
+        // Implicit init synthesis needs to distinguish "all zero" from "contains
+        // undefined": both may be byte-wise cheap, but only the latter preserves
+        // explicit undefined intent through aggregate defaults.
         bool allZero      = true;
         bool allUndefined = true;
         bool anyUndefined = false;

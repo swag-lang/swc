@@ -21,7 +21,8 @@ thread_local std::vector<std::unique_ptr<JobRecord>> JobManager::RecordPool::tls
 
 JobRecord* JobManager::allocRecord()
 {
-    // Fast path: thread-local
+    // Job records are short-lived and recycled on the thread that releases them. Keeping
+    // the common path thread-local avoids taking the scheduler mutex just to allocate.
     auto& tls = RecordPool::tls;
     if (!tls.empty())
     {
@@ -330,7 +331,8 @@ void JobManager::waitAll()
 {
     if (!singleThreaded_)
     {
-        // Existing multithreaded behavior
+        // In worker mode, wait for the global ready queue to drain and for every worker
+        // that already claimed a job to publish its result.
         std::unique_lock lk(mtx_);
         idleCv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) == 0 && activeWorkers_.load(std::memory_order_acquire) == 0; });
         return;
@@ -418,7 +420,8 @@ void JobManager::waitAll(JobClientId client)
 {
     if (!singleThreaded_)
     {
-        // Existing multithreaded behavior
+        // Per-client waiting watches ready+running jobs only. Sleeping jobs are excluded
+        // so the caller can perform the compiler action that may wake them.
         std::unique_lock lk(mtx_);
         idleCv_.wait(lk, [&] { const auto it = clientReadyRunning_.find(client); return it == clientReadyRunning_.end() || it->second == 0; });
         return;
@@ -609,7 +612,7 @@ void JobManager::workerLoop()
         if (!rec)
             continue;
 
-        // From here on, we’re an active worker for this job.
+        // From here on, we are an active worker for this job.
         struct ActiveGuard
         {
             std::atomic<size_t>*     ref;

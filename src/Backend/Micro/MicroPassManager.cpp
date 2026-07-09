@@ -183,6 +183,9 @@ namespace
         if (!MicroVerify::isEnabled(context))
             return Result::Continue;
 
+        // Several consecutive checks can observe the same IR state. Cache the
+        // structural hash until a pass actually runs, otherwise validation-heavy
+        // builds spend most of their time re-verifying unchanged micro code.
         if (!cache.hasCurrentState)
         {
             SWC_RESULT(MicroVerify::verify(context, phase, &cache.structuralHash));
@@ -223,6 +226,9 @@ namespace
         if (context.instructions)
             storageRevisionAfter = context.instructions->revision();
 
+        // passChanged is the invalidation contract between transforms and shared
+        // analyses. A storage revision change means block layout may have changed;
+        // an in-place mutation keeps CFG possibly usable but marks it suspicious.
         if (context.passChanged && context.builder)
         {
             if (storageRevisionAfter != storageRevisionBefore)
@@ -247,6 +253,8 @@ namespace
             SWC_RESULT(verifyCurrentState(context, stageNameAfter, verifyCache));
             const uint64_t structuralHashAfter = verifyCache.structuralHash;
 
+            // Keep passChanged honest in both directions: missing it leaves stale
+            // analyses alive, setting it gratuitously can mask non-converging loops.
             if (!context.passChanged)
             {
                 if (storageRevisionAfter != storageRevisionBefore || structuralHashAfter != structuralHashBefore)
@@ -328,6 +336,8 @@ namespace
 
         MicroSsaState ssaState;
         const bool    useSharedSsa = buildSsa && context.builder && context.instructions && context.operands;
+        // Pre-RA optimization passes can share one lazily-built SSA state across
+        // a sweep; runPass invalidates it as soon as any transform mutates IR.
         if (useSharedSsa)
             context.ssaState = &ssaState;
 
@@ -439,13 +449,13 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
-    // Phase 1 — Initial lowering (runs once).
+    // Phase 1 - Initial lowering (runs once).
     // Only stack adjustment normalization. Legalize is deferred to the RA loop:
     // pre-RA optimization passes work on unconstrained virtual-register IR and
     // shouldn't see encoder-specific rewrites.
     addStartPass(*stackAdjustNormalizePass_);
 
-    // Phase 2 — Pre-RA optimization loop (operates on virtual registers only).
+    // Phase 2 - Pre-RA optimization loop (operates on virtual registers only).
     // Iterates until fixed point before touching register allocation.
     if (optimize)
     {
@@ -474,13 +484,13 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     // safety mask, so it is a no-op in release and fast-compile.
     addPreRaAnalysisPass(*sanityPass_);
 
-    // Phase 3 — Register allocation loop.
+    // Phase 3 - Register allocation loop.
     // Legalize can introduce new virtual registers; RegAlloc can introduce spills that
     // need another Legalize pass. They iterate together until stable.
     addRaLoopPass(*legalizePass_);
     addRaLoopPass(*regAllocPass_);
 
-    // Phase 4 — Post-RA finalization (runs once, on physical registers).
+    // Phase 4 - Post-RA finalization (runs once, on physical registers).
     addPostRaSetupPass(*prologEpilogPass_);
     if (optimize)
     {
@@ -509,11 +519,11 @@ Result MicroPassManager::run(MicroPassContext& context) const
 
     // Read-only analyses over the unoptimized virtual-register IR (run once, before
     // any optimization). Running before the optimization loop keeps the IR faithful
-    // to the source — dead code, address computations and unfolded offsets are all
-    // still present — which the null-dereference sanity analysis relies on.
+    // to the source - dead code, address computations and unfolded offsets are all
+    // still present - which the null-dereference sanity analysis relies on.
     SWC_RESULT(runLinearPasses(context, preRaAnalysisPasses_, verifyCache));
 
-    // Pre-RA optimization loop — converges on the virtual-register IR.
+    // Pre-RA optimization loop - converges on the virtual-register IR.
     SWC_ASSERT(context.builder);
     const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
     SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
@@ -522,7 +532,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.statsInstrAfterPreRaOptim = context.instructions->count();
 #endif
 
-    // Register allocation loop — legalize + regalloc iterate until stable.
+    // Register allocation loop - legalize + regalloc iterate until stable.
     const uint32_t raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raMaxIterations, false, "ra-legalize-loop", verifyCache));
 
@@ -536,7 +546,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.statsInstrAfterPostRaSetup = context.instructions->count();
 #endif
 
-    // Post-RA optimization loop — peephole and dead-code elimination feed each
+    // Post-RA optimization loop - peephole and dead-code elimination feed each
     // other (a folded copy exposes a dead compare, an erased compare exposes a
     // dead def). Sweeping repeatedly lets those cascades settle instead of
     // stopping after a single pass.

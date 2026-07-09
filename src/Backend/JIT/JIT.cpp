@@ -905,6 +905,9 @@ namespace
         if (!segment.findAllocation(allocation, sourceOffset))
             return Result::Continue;
 
+        // Constants can point to other constants that eventually contain function
+        // pointers. Walk that graph once per allocation to avoid cycles while still
+        // patching nested runtime data used by JIT-executed code.
         const uint64_t visitKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
         if (!patchContext.visitedConstantAllocations.insert(visitKey).second)
             return Result::Continue;
@@ -976,6 +979,9 @@ namespace
         if (relocations.empty())
             return Result::Continue;
 
+        // All relocations for one emitted function share resolution caches. This matters
+        // for local functions that may need preparation before they expose a patchable
+        // address, and for foreign lookups that should not hit the OS repeatedly.
         const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_ASSERT(basePtr != nullptr);
 
@@ -1016,6 +1022,8 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteAr
     SWC_ASSERT(!linearCode.empty());
     SWC_ASSERT(linearCode.size() <= std::numeric_limits<uint32_t>::max());
 
+    // Allocate writable memory first. Relocations and optional unwind bytes are patched
+    // before finalize() flips the page permissions and registers SEH metadata.
     JITMemoryManager& memoryManager     = ctx.compiler().jitMemMgr();
     const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool        registerSehUnwind = !unwindInfo.empty();
@@ -1054,6 +1062,8 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     const bool                   patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
     std::unordered_set<uint64_t> referencedGlobalInitOffsets;
 
+    // During a #run, patch only global-init slots referenced by the active JIT call graph.
+    // Full native/JIT preparation still patches the complete snapshot.
     if (patchReferencedGlobalsOnly)
         collectJitGlobalInitRelocationOffsets(ctx, referencedGlobalInitOffsets);
 
@@ -1101,6 +1111,8 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
 void JIT::finalize(JITMemory& executableMemory)
 {
+    // Keep permission changes last: after this point the code buffer is executable and
+    // should no longer be mutated except through the explicit patching APIs.
     JITMemoryManager::makeExecutable(executableMemory);
     JITMemoryManager::registerUnwindInfo(executableMemory);
 }

@@ -16,6 +16,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // These helpers intentionally stay independent from Lexer state. They are used while
+    // lexing a compiler-global marker, before a regular token stream exists for the
+    // following expression.
     enum class GlobalIfValue
     {
         Unknown,
@@ -79,6 +82,8 @@ namespace
         if (!bestCandidate.has_value())
             return std::nullopt;
 
+        // Keep suggestions conservative: a noisy "did you mean" is worse than no
+        // suggestion when compiler directives and intrinsics are intentionally terse.
         const size_t candidateLen = std::max(name.size(), bestCandidate->size());
         const auto   maxDistance  = static_cast<uint32_t>(candidateLen <= 5 ? 1 : candidateLen <= 8 ? 2
                                                                                                     : 3);
@@ -154,6 +159,8 @@ namespace
         if (readCompilerWordRaw(langSpec, cursor) != "#if")
             return GlobalIfValue::Unknown;
 
+        // Only recognize the small, side-effect-free subset that can decide whether the
+        // source view should be skipped before the full parser/sema pipeline runs.
         skipBlanksRaw(langSpec, cursor);
 
         const char8_t* exprCursor = cursor;
@@ -914,6 +921,9 @@ void Lexer::checkGlobalCompilerIfSkip() const
     if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalCompilerIfSkip))
         return;
 
+    // Global compiler-if skipping is a lexer-level fast path. It must not consume the
+    // current buffer because the same bytes still need to be tokenized for diagnostics
+    // and for modes that ignore the skip flag.
     const char8_t* cursor = buffer_;
     skipBlanksRaw(*langSpec_, cursor);
 
@@ -1476,6 +1486,9 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 
     while (buffer_ < endBuffer_)
     {
+        // Every branch below either pushes a token/trivia entry or advances buffer_ past
+        // invalid input. Keeping that invariant local prevents infinite loops after
+        // recovery diagnostics.
         hasTokenError_    = false;
         startToken_       = buffer_;
         startTokenOffset_ = static_cast<uint32_t>(startToken_ - startBuffer_);
@@ -1566,7 +1579,8 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         }
 
         // Character literal or quote operator - context-sensitive
-        // A single quote is a character literal only after blank, identifier, number, or string
+        // Quote syntax reuses `'`: when the previous token can be a quoted expression
+        // target, leave it to lexSymbol(); otherwise this is a character literal.
         if (buffer_[0] == '\'')
         {
             if (prevToken_.id != TokenId::Identifier &&
@@ -1611,7 +1625,8 @@ void Lexer::buildTriviaIndex() const
     auto&          triviaStart = srcView_->triviaStart();
     triviaStart.resize(numTok + 1);
 
-    // trivia_ is in lex order; tokRef is monotonic non-decreasing
+    // trivia_ is in lex order and tokRef is monotonic, so a single cursor builds
+    // the compact token -> trivia slice table without per-token searches.
     uint32_t tIdx = 0;
     for (uint32_t tokIdx = 0; tokIdx < numTok; ++tokIdx)
     {

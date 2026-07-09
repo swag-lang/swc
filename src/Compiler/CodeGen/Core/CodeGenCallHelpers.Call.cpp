@@ -64,6 +64,9 @@ namespace
 
     std::optional<CodeGenNodePayload> tryResolveVariableSymbolPayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        // A variable argument can be backed by several storage classes depending on
+        // how sema lowered it. Keep this resolution centralized so call lowering can
+        // reason about "address vs value" without duplicating storage rules.
         if (symVar.isClosureCapture())
             return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
 
@@ -105,6 +108,9 @@ namespace
     {
         outCalledFunction = nullptr;
 
+        // Prefer the active view, but keep stored/resolved fallbacks. Inlining,
+        // auto-members and substitutions can move the selected symbol away from the
+        // surface callee node while preserving it in NodePayload.
         if (SymbolFunction* calledFunction = singleFunctionFromView(codeGen.curViewSymbol()))
         {
             outCalledFunction = calledFunction;
@@ -203,6 +209,9 @@ namespace
         if (argRef.isInvalid())
             return std::nullopt;
 
+        // Prepared arguments may be wrappers (named arg, transparent expr, substitute).
+        // Walk the small set of likely source refs instead of assuming the syntax node
+        // is also the storage node.
         SmallVector<AstNodeRef> candidateRefs;
         appendUniqueCandidateRef(candidateRefs, argRef);
         appendUniqueCandidateRef(candidateRefs, codeGen.resolvedNodeRef(argRef));
@@ -601,6 +610,9 @@ namespace
         outStorageReg = MicroReg::invalid();
         outStorageSym = nullptr;
 
+        // Directly initialize `var x = call()` into x's storage when the return ABI is
+        // indirect. This avoids a temporary buffer and keeps lifetime/debug metadata
+        // attached to the user variable.
         const AstNodeRef resolvedCallRef = codeGen.viewZero(callRef).nodeRef();
         if (resolvedCallRef.isInvalid())
             return false;
@@ -870,7 +882,7 @@ namespace
     // into a call-site temporary (bitwise copy + 'opPostMove'), consume the source (reset
     // when it has a drop lifecycle, poisoned under lifecycle safety otherwise), and pass
     // the temporary's address as the borrowed argument. The temporary belongs to the
-    // caller — the callee only borrows it — so it is dropped right after the call.
+    // caller - the callee only borrows it - so it is dropped right after the call.
     Result materializePreparedMovedValueArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
         if (argRef.isInvalid() || normalizedTypeRef.isInvalid() || !resolvedArg.movesValueToParam)
@@ -1441,6 +1453,8 @@ namespace
     Result buildPreparedABIArguments(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize, SmallVector<PostCallTemporaryDrop>& outPostCallDrops)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
+        // This is still before ABICall assigns concrete registers/stack slots: the goal
+        // here is to materialize storage, normalize pass kinds, and pack variadics.
         outArgs.clear();
         outArgs.reserve(args.size() + (closureContextReg.isValid() ? 1u : 0u));
         outTransientStackSize                            = 0;
@@ -1601,6 +1615,9 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     if (calleePayload)
         callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, *calledFunction, callConv, closureContextReg);
 
+    // Lower calls in three phases: prepare semantic arguments, let ABICall perform
+    // ABI placement and call emission, then materialize the return and post-call
+    // cleanups back into the AST payload.
     SmallVector<ResolvedCallArgument>  args;
     SmallVector<ABICall::PreparedArg>  preparedArgs;
     SmallVector<PostCallTemporaryDrop> postCallDrops;

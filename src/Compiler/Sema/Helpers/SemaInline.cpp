@@ -25,6 +25,9 @@ namespace
         const SemaInlinePayload* frameInlinePayload     = sema.frame().currentInlinePayload();
         const SemaInlinePayload* effectiveInlinePayload = SemaHelpers::effectiveInlinePayload(sema);
 
+        // Inline recursion can be direct through the current sema frame or indirect
+        // through a payload chain created by previous expansions. Check both before
+        // cloning so recursion is rejected without allocating another body.
         if (effectiveInlinePayload == frameInlinePayload && sema.currentFunction() == &fn)
             return true;
 
@@ -72,6 +75,10 @@ namespace
         if (paramTypeRef.isInvalid() || exprRef.isInvalid())
             return TypeRef::invalid();
 
+        // Inline substitution should mirror the real call conversion closely enough that
+        // literals and transparent expressions keep the parameter type inside the cloned
+        // body, but avoid contextualizing references/code blocks where storage identity
+        // matters more than expression type.
         const TypeInfo& paramType = param.type(sema.ctx());
         if (paramType.isCodeBlock() || paramType.isAnyVariadic() || paramType.isReference())
             return TypeRef::invalid();
@@ -137,6 +144,8 @@ namespace
         if (symVar.hasGlobalStorage())
             return nullptr;
 
+        // Inlining a local function body must not smuggle captures from an outer lexical
+        // function that the original local function could not legally access.
         if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
               symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
               symVar.isClosureCapture()))
@@ -176,6 +185,9 @@ namespace
         if (exprRef.isInvalid())
             return Result::Continue;
 
+        // Validate the expression tree after substitutions too. A binding expression can
+        // be syntactically local but resolve to a cloned node that captures a forbidden
+        // outer variable.
         SmallVector<AstNodeRef> pending;
         pending.push_back(exprRef);
         while (!pending.empty())
@@ -1538,7 +1550,7 @@ namespace
             // The receiver is an already-resolved CALLER expression (e.g. `me.slab[i]`, where
             // `.slab` resolved against the caller's `me`). Materializing it into the inline body
             // prologue means a plain re-expanding clone would re-resolve its auto-members in the
-            // *callee* inline frame — where the caller's `me` is gone — and stall on the `.` marker.
+            // *callee* inline frame - where the caller's `me` is gone - and stall on the `.` marker.
             // Preserve the resolved identifier symbols so the receiver stays bound to the caller.
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
             const AstNodeRef              clonedInitRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, binding.exprRef, noBindings);
@@ -2180,14 +2192,14 @@ namespace
 
         // Inlining a throwable callee requires materializing its error-propagation ABI at the
         // call site. Routing an inlined `throw` to an enclosing `assume` is not yet wired in
-        // codegen — it crashes even for an explicit #[Inline] throwable callee under `assume` —
+        // codegen - it crashes even for an explicit #[Inline] throwable callee under `assume` -
         // so the auto heuristic must not volunteer throwable callees until that lands. (`try` /
         // `catch` routing of an inlined throw already works; only the `assume` panic path does
         // not, but the gate stays at the callee granularity for safety.)
         if (fn.isThrowable())
             return false;
 
-        // Scalar/pointer signature only — see isInlineAggregateType.
+        // Scalar/pointer signature only - see isInlineAggregateType.
         if (fn.returnTypeRef().isValid() && isInlineAggregateType(sema.ctx().typeMgr().get(fn.returnTypeRef())))
             return false;
         for (const SymbolVariable* param : fn.parameters())
@@ -2199,7 +2211,7 @@ namespace
                 return false;
             // A reference parameter to an aggregate (e.g. `const &{x, y}`) is excluded for the same
             // reason its by-value form is: the aggregate is not a scalar/pointer the auto-inline clone
-            // can carry faithfully. For an ANONYMOUS aggregate this is also unsafe under concurrency —
+            // can carry faithfully. For an ANONYMOUS aggregate this is also unsafe under concurrency -
             // the clone re-resolves a member access (`param.x`) by name against that ephemeral tuple
             // type, whose member-symbol map may not yet be published on the thread doing the inline,
             // intermittently yielding a spurious "unknown symbol". Look through the reference and
@@ -2219,7 +2231,7 @@ namespace
             return false;
 
         // Exclude bodies containing constructs whose materialization is not yet reproduced
-        // faithfully when moved into the caller (any nested call — see bodyHasNestedCallExpr — and
+        // faithfully when moved into the caller (any nested call - see bodyHasNestedCallExpr - and
         // nested local functions that re-bind their outer-scope access). Preserving resolved
         // identifier symbols (above) already lets a body reference the callee's private
         // globals/helpers safely; this guard keeps the remaining, not-yet-handled re-resolution
@@ -2381,7 +2393,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Wait for the callee to be sema-completed before materializing its body. A cross-Ast inline
     // needs this so its identifiers carry resolved symbols (they cannot be re-resolved by name in
     // another file); an auto-selected same-Ast inline that pins resolved symbols needs it for the
-    // same reason — a not-yet-resolved reference (e.g. a file-scope const used in the body) would
+    // same reason - a not-yet-resolved reference (e.g. a file-scope const used in the body) would
     // otherwise be cloned with nothing to pin and fail to re-resolve. Self-recursive callees are
     // already filtered out above, so this does not wait on the function being expanded.
     if ((isCrossAstInline || isAutoSelected) && isOrdinaryInline)
@@ -2496,7 +2508,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         // materialized body, otherwise an inlined helper re-introduces overflow/bound checks the
         // caller deliberately suppressed for its own argument expressions (e.g. CityHash's wrapping
         // `fetch(...) * C1` once `Math.ror` is inlined into it). Re-apply the caller's disable
-        // overrides on top of the callee attributes — the union of disabled guards. The callee's
+        // overrides on top of the callee attributes - the union of disabled guards. The callee's
         // own deliberate disables are preserved untouched; enables are not propagated so a wrapping
         // callee body never starts trapping when inlined into a safety-on caller.
         for (const auto& ov : callerSafetyOverrides)

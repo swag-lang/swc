@@ -37,6 +37,9 @@ namespace
         if (nodeRef.isInvalid())
             return nullptr;
 
+        // Clone contexts can point at a foreign source AST (inline/generic bodies) or
+        // the current destination AST. Resolve each ref against both before reading
+        // payloads; AstNodeRef values are stable only within their owning Ast.
         const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
         if (sourceAst.hasNode(nodeRef))
             return &sourceAst;
@@ -138,6 +141,9 @@ namespace
         if (sourceRef.isInvalid())
             return std::nullopt;
 
+        // Preserve semantic payloads when cloning analyzed nodes. For foreign ASTs,
+        // payloads live on the owning SourceFile's NodePayload context rather than on
+        // the current sema instance.
         const Ast* sourceAst = resolveCloneNodeAst(sema, sourceRef, cloneContext);
         if (!sourceAst)
             return std::nullopt;
@@ -157,6 +163,9 @@ namespace
 
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
+        // Binding expressions are cloned independently from replacement nodes; stripping
+        // replacements here prevents a replacement meant for the outer clone from
+        // rewriting the binding source itself.
         SemaClone::CloneContext result{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
@@ -173,6 +182,8 @@ namespace
 
     SemaClone::CloneContext cloneContextForDestinationAst(const SemaClone::CloneContext& cloneContext)
     {
+        // Once a cloned child has been inserted in the destination AST, nested refs must
+        // resolve against that destination, not against the original source AST.
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
@@ -181,6 +192,9 @@ namespace
 
     SemaClone::CloneContext cloneContextInsideBreakable(const SemaClone::CloneContext& cloneContext)
     {
+        // Break/continue targets are valid only up to the nearest cloned breakable
+        // construct. Track nesting so an outer replacement does not capture an inner
+        // loop or switch control-flow edge.
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth + 1};
         result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
         result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;

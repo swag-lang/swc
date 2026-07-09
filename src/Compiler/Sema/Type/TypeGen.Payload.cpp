@@ -45,6 +45,9 @@ namespace
         if (!typeRef.isValid())
             return false;
 
+        // Reflection eligibility is a graph property. A cycle already on the
+        // recursion stack is acceptable: the emitted TypeInfo cache will wire the
+        // back-reference through relocations once all entries have offsets.
         if (!visiting.insert(typeRef).second)
             return true;
 
@@ -108,6 +111,9 @@ namespace
 
     void addTypeRelocation(DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, uint32_t targetOffset)
     {
+        // Runtime payloads are read both before and after the linker applies
+        // relocations. Store the relocation record and a provisional in-segment
+        // pointer so in-process JIT/reflection paths see the same graph shape.
         storage.addRelocation(baseOffset + fieldOffset, targetOffset);
 
         const auto** ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
@@ -128,6 +134,9 @@ namespace
         if (!arg.cstRef.isValid() || !valueTypeRef.isValid())
             return;
 
+        // Value generic arguments need a stable address in runtime metadata. Lower
+        // the constant to bytes, materialize it in the data segment, then store a
+        // relocation from Runtime::TypeValue::value to that static payload.
         TaskContext&   ctx       = sema.ctx();
         const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
         if (!valueSize)
@@ -171,6 +180,8 @@ namespace
         entryGenericTypes.reserve(entryGenericsCount);
         for (uint32_t i = 0; i < entryGenericsCount; ++i)
         {
+            // Runtime generics carry two independent facts: the reflected type of
+            // the argument and, for value generics, the materialized constant bytes.
             const GenericInstanceKey& arg        = genericArgs[i];
             Runtime::TypeValue&       tv         = genericsPtr[i];
             const uint32_t            elemOffset = genericsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
@@ -237,7 +248,7 @@ namespace
         TypeGen::LifecycleFlags flags;
 
         // A struct still being analyzed can grow its field vector concurrently:
-        // iterating it would race. Answer from the direct facts only — conservative,
+        // iterating it would race. Answer from the direct facts only - conservative,
         // and callers on the sema side only reach here for types complete enough to
         // be used by value.
         if (!symStruct.isSemaCompleted())
@@ -486,6 +497,9 @@ namespace
         Runtime::Any* dstAny = storage.ptr<Runtime::Any>(baseOffset + fieldOffset);
         *dstAny              = {};
 
+        // Attribute parameters store an inline Runtime::Any. The boxed type points
+        // at the reflected type cache entry, while non-empty values are copied into
+        // static payload storage so the attribute remains valid after compilation.
         const ConstantValue& cst = sema.ctx().cstMgr().get(valueCstRef);
         if (cst.isNull())
             return;

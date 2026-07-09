@@ -271,6 +271,9 @@ namespace
 
     struct Candidate
     {
+        // Conversion ranks are kept per supplied argument, including an injected UFCS
+        // receiver when one is used. Later comparison functions can then decide whether
+        // to include or ignore that receiver for tie-breaking.
         SmallVector<ConvRank> perArg;
         SymbolFunction*       fn           = nullptr;
         uint32_t              usedDefaults = 0;
@@ -568,6 +571,8 @@ namespace
         bool     seenNamed = false;
         uint32_t nextPos   = paramStart;
 
+        // Build a parameter-indexed view first. That lets type probing stay uniform for
+        // positional, named, defaulted, UFCS, and variadic arguments.
         for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
         {
             const AstNodeRef argRef  = args[userIndex];
@@ -1716,6 +1721,9 @@ namespace
         outCandidate = {};
         outFail      = {};
 
+        // Shape precheck is deliberately cheap and runs before generic instantiation:
+        // it avoids producing speculative instances for arities that cannot possibly
+        // match this call.
         SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, outFail));
         if (outFail.active)
             return Result::Continue;
@@ -1754,9 +1762,9 @@ namespace
         return failure.diagId == DiagnosticId::sema_err_function_where_not_const && fn.hasUnmaterializedGenericBody();
     }
 
-    // Try to build a candidate; if it fails, fill out why + where.
-    // Evaluate a single function symbol against the provided arguments to see if it's a valid match.
-    // It determines conversion ranks, UFCS usage, and handles variadic arguments.
+    // Probe one concrete function against one call shape. This pass records viability
+    // and ranks only; the selected overload will later perform the real casts and
+    // substitutions so failed candidates do not mutate the AST.
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto     params    = fn.parameters();
@@ -1915,7 +1923,8 @@ namespace
             outCandidate.perArg.push_back(r);
         }
 
-        // Handle variadic tail
+        // Variadic tails are ranked after fixed parameters. Untyped variadics are always
+        // the weakest fallback; typed variadics still probe each supplied tail argument.
         if (vi.any() && numParams > 0)
         {
             const uint32_t     startVariadic    = numParams - 1;
@@ -1953,11 +1962,8 @@ namespace
         return candidate.fn && candidate.fn->isGenericInstance();
     }
 
-    // Compares two candidates and returns -1 if 'a' is better than 'b', 1 if 'b' is better, or 0 if they are equivalent.
-    // Selection is based on:
-    // 1. Better conversion ranks (Exact > Standard > Bad)
-    // 2. Number of default arguments used (fewer is better)
-    // 3. Prefer concrete overloads over instantiated generic fallbacks
+    // Compare full call shapes. `ConvRank` is ordered from best to worst, so lower enum
+    // values win; later tie-breakers prefer fewer defaults and non-generic overloads.
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
         const auto     na = static_cast<uint32_t>(a.perArg.size());
@@ -2111,8 +2117,9 @@ namespace
         return kind == SpecOpKind::OpAssign && b.fn->specOpKind() == kind;
     }
 
-    // Evaluate each function symbol to see how well it matches the given arguments.
-    // This includes checking the number of parameters, types, and potential UFCS usage.
+    // Evaluate every reachable function symbol in source order. Generic roots are probed
+    // through speculative instantiation; concrete functions are probed first as regular
+    // calls and then, if relevant, as UFCS/member-style calls with an injected receiver.
     Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
         outAttempts.clear();
@@ -2161,6 +2168,9 @@ namespace
             outFunctionSymbols.push_back(fn);
         }
 
+        // With multiple overloads, a failed generic instantiation is just one failed
+        // candidate. Suppress its immediate diagnostics and preserve the structured
+        // failure so overload reporting can choose the most useful note.
         const bool suppressGenericInstantiationErrors = outFunctionSymbols.size() > 1;
 
         for (SymbolFunction* fn : outFunctionSymbols)
@@ -2305,6 +2315,9 @@ namespace
         if (mode != Match::ResolveCallMode::Normal || current.functions.empty())
             return Result::Continue;
 
+        // The primary lookup tier can stop once it finds same-name symbols, but overload
+        // quality is call-site dependent. Re-check the broader fallback set so a strictly
+        // better visible overload is not hidden by a worse closer one.
         SmallVector<Symbol*> fallbackSymbols;
         SWC_RESULT(Match::matchCallFallbackSymbols(sema, nodeCallee, fallbackSymbols));
         if (fallbackSymbols.empty())
@@ -2389,9 +2402,9 @@ namespace
         outProbe.matched         = true;
     }
 
-    // From a list of viable candidates, select the single best one based on conversion ranks
-    // and other criteria. If there's no clear winner (ambiguity), or no viable candidate,
-    // it raises the appropriate error.
+    // Select exactly one viable candidate. Ambiguity is computed after all tie-breakers,
+    // except for special assignment operators where keeping declaration order is part of
+    // the language rule.
     Result selectBestAttempt(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<const Attempt*>& viable, const SmallVector<SymbolFunction*>& functions, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg, const Attempt*& outSelected)
     {
         if (viable.empty())
@@ -2421,8 +2434,9 @@ namespace
         return Result::Continue;
     }
 
-    // For each argument, perform the required cast to the destination parameter type.
-    // The cast value is then stored back in the argument node.
+    // Finalization pass for the selected overload. Unlike candidate probing, this is
+    // allowed to mutate the AST: auto-enum substitutions, cast nodes, and argument
+    // payloads become the canonical form consumed by codegen.
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, CallArgMapping& mapping, AstNodeRef appliedUfcsArg, Match::ResolveCallMode mode)
     {
         const auto& params    = selectedFn.parameters();

@@ -29,6 +29,9 @@ namespace
         if (!waitCodeRef.isValid())
             return false;
 
+        // Wait states are resumed later, possibly after another branch has already
+        // reported an error on the same source line. In that case retrying the wait
+        // only produces secondary noise, so abort the resumed node early.
         const SourceView&     srcView    = sema.srcView(waitCodeRef.srcViewRef);
         const SourceFile*     waitFile   = srcView.file();
         const SourceFile*     ownerFile  = sema.ownerSourceFile(waitCodeRef.srcViewRef);
@@ -129,6 +132,9 @@ SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
 {
     inheritMissingNamespaces(parent.ctx(), payloadContext);
 
+    // A child sema can analyze nodes stored in another payload context (for example a
+    // declaration from another source view). In that case the module namespace is the
+    // only stable root; the parent's current scope belongs to a different AST walk.
     if (&payloadContext != parent.nodePayloadContext_)
     {
         if (!payloadContext.moduleNamespace_)
@@ -150,6 +156,9 @@ void Sema::inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContex
     if (payloadContext.moduleNamespace_ && payloadContext.fileNamespace_)
         return;
 
+    // Generated or imported payloads may be created before their namespace pointers are
+    // filled. Rehydrate them from the owning source file so later symbol registration
+    // does not accidentally fall back to the caller's namespace.
     if (!payloadContext.ast_.hasSourceView())
         return;
 
@@ -337,6 +346,8 @@ void Sema::nextEscapeBranchAlternative()
     if (escapeBranchStack_.empty())
         return;
 
+    // Branch-local borrow state starts from the same entry snapshot for each
+    // alternative; only the worst rank observed across alternatives survives.
     EscapeBranchState& state = escapeBranchStack_.back();
     mergeEscapeStates(state.mergedState, variableEscapeInfos_);
     variableEscapeInfos_ = state.entryState;
@@ -840,6 +851,9 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     if (shouldAbortWait(*this))
         return Result::Error;
 
+    // Wait helpers store enough context for the scheduler to sleep this job and later
+    // resume the same AST node. Keep the recorded source location close to the blocked
+    // dependency so diagnostics point at the expression that actually needs the symbol.
     const AstNodeRef    waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     const SourceCodeRef waitCodeRef = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     if (waitHasErrorOnLine(*this, waitCodeRef))
@@ -1403,6 +1417,9 @@ Result Sema::runCurrentVisit()
         const AstNodeRef nodeRef = visit_.currentNodeRef();
         ctx().state().setSemaParsing(nodeRef, currentCodeRef(*this, nodeRef));
 
+        // AstVisit owns the pre/post traversal cursor. Sema only translates its pause,
+        // error and stop states into job-level results, which keeps resumable semantic
+        // analysis localized to the visitor.
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
             return Result::Pause;
@@ -1473,6 +1490,9 @@ Result Sema::processDeferredTopLevelItems()
 
             case DeferredTopLevelItemKind::CompilerAst:
             {
+                // Top-level #ast expansion must observe all earlier top-level #run output.
+                // Flush queued compiler runs before expanding the AST item, but keep later
+                // items in the queue so nested insertions preserve source order.
                 if (!pendingTopLevelCompilerRunRefs_.empty())
                 {
                     SWC_RESULT(processPendingTopLevelCompilerRuns(deferredTopLevelItemIndex_));
@@ -1609,6 +1629,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         SWC_DEV_LOOP_TICK(loopGuard);
         jobMgr.waitAll(clientId);
 
+        // Main-thread work can unblock semantic jobs without any worker finishing: JIT
+        // execution, compiler messages, lazy generic bodies, and type-info publication
+        // all feed back into the same wait graph.
         if (compiler.jitExecMgr().executePendingMainThread())
         {
             SWC_DEV_LOOP_RESET(loopGuard);

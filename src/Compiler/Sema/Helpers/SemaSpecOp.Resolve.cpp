@@ -118,6 +118,9 @@ namespace
 
     AstNodeRef makeSyntheticStringConstantArg(Sema& sema, const SourceCodeRef& codeRef, std::string_view value)
     {
+        // Synthetic overload arguments bypass the parser and the regular literal
+        // visitor. Seed the semantic payload immediately so Match can consume them
+        // exactly like already-checked source expressions.
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::StringLiteral>(codeRef.tokRef);
         nodePtr->setCodeRef(codeRef);
 
@@ -132,6 +135,9 @@ namespace
 
     AstNodeRef makeSyntheticBoolConstantArg(Sema& sema, const SourceCodeRef& codeRef, bool value)
     {
+        // Same contract as makeSyntheticStringConstantArg: this node is created
+        // after sema has already reached the special-op path, so no later literal
+        // pass will come back to fill type/constant/value flags.
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::BoolLiteral>(codeRef.tokRef);
         nodePtr->setCodeRef(codeRef);
         sema.setType(nodeRef, sema.typeMgr().typeBool());
@@ -142,6 +148,8 @@ namespace
 
     AstNodeRef makeSyntheticU64Arg(Sema& sema, const SourceCodeRef& codeRef, std::optional<uint64_t> value = std::nullopt)
     {
+        // U64 placeholders are used both for known bounds and for "runtime value"
+        // positions. The type is always fixed; the constant is optional.
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::IntegerLiteral>(codeRef.tokRef);
         nodePtr->setCodeRef(codeRef);
         sema.setType(nodeRef, sema.typeMgr().typeU64());
@@ -162,6 +170,9 @@ namespace
         if (node.nodeWhereRef.isInvalid())
             return node.nodeBodyRef;
 
+        // 'foreach where' is passed to opVisit as a code block. Represent the
+        // filter as an if-statement around the user body so the visit function sees
+        // the same control-flow shape the source would have produced.
         auto [ifRef, ifPtr]     = sema.ast().makeNode<AstNodeId::IfStmt>(node.tokRef());
         ifPtr->nodeConditionRef = node.nodeWhereRef;
         ifPtr->nodeIfBlockRef   = node.nodeBodyRef;
@@ -206,6 +217,9 @@ namespace
         outChildren.clear();
         outAst = nullptr;
 
+        // An impl can be represented in three places while sema is still moving:
+        // the instantiated generic block, the current worker AST, or the original
+        // source-file AST. Return the matching AST together with its child refs.
         const AstNodeRef genericBlockRef = symImpl.genericBlockRef();
         if (genericBlockRef.isValid() && sema.ast().hasNode(genericBlockRef))
         {
@@ -409,6 +423,7 @@ namespace
         if (!visited.insert(&ownerStruct).second)
             return Result::Continue;
 
+        // First search operators declared directly by this struct's impls.
         for (const SymbolImpl* symImpl : ownerStruct.impls())
         {
             if (!symImpl || symImpl->isIgnored())
@@ -452,6 +467,8 @@ namespace
             }
         }
 
+        // Then follow value using-fields. They extend the owner's operator surface,
+        // while pointer using-fields do not own the target storage and are skipped.
         for (const Symbol* field : ownerStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
@@ -1054,7 +1071,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     // `#relocate`, and `#nodrop` without `#move`, write into a target that is treated as uninitialized
     // (or moved-from): the value is moved/copied into it bitwise, then opPostMove / opPostCopy fixes it
     // up. They must never be rerouted through a by-value `opSet`, which reads the (uninitialized or
-    // moved-from) target — its `.buffer` aliasing check and `.allocator`/buffer reuse — corrupting
+    // moved-from) target - its `.buffer` aliasing check and `.allocator`/buffer reuse - corrupting
     // move-only handles such as String/Array (e.g. crashing Array.popBack's
     // `var result: retval = undefined; result = #relocate arr.buffer[...]`, or corrupting Array.insertAt
     // when it overwrites a slot whose buffer was just raw-moved to a neighbour). A plain `#move`

@@ -65,6 +65,9 @@ namespace
 
     bool sameFunctionTypeInfoSignature(const SymbolFunction& lhs, const SymbolFunction& rhs) noexcept
     {
+        // Most function types are symbol-identity based. Structural identity is only
+        // used for synthesized signatures, where parameter names are part of the
+        // user-visible type shape and must match as well.
         if (!lhs.usesStructuralTypeIdentity() || !rhs.usesStructuralTypeIdentity())
             return &lhs == &rhs;
 
@@ -86,6 +89,8 @@ namespace
 
     bool parseImplicitAggregateItemIndex(size_t& outIndex, const std::string_view name)
     {
+        // Unnamed aggregate fields are rendered as itemN. Keep the parser strict so
+        // real user fields such as item01 never collide with generated positions.
         constexpr std::string_view prefix = "item";
         if (!name.starts_with(prefix) || name.size() == prefix.size())
             return false;
@@ -115,6 +120,8 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
     kind_(other.kind_),
     flags_(other.flags_)
 {
+    // TypeInfo stores several non-trivial payloads in a manual union. Every new
+    // TypeInfoKind with owned state must be wired in copy/move/destruction here.
     switch (kind_)
     {
         case TypeInfoKind::Bool:

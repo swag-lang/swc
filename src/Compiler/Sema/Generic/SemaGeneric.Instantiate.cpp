@@ -83,6 +83,9 @@ namespace SemaGeneric
                 return false;
             if (outArgs.size() < outParams.size())
                 return false;
+            // Instance keys can carry bookkeeping beyond the user-declared generic
+            // parameters. Diagnostics and ambient binding lookup must line up with
+            // the declaration order, so trim the extra tail before pairing.
             if (outArgs.size() > outParams.size())
                 outArgs.resize(outParams.size());
             return true;
@@ -128,6 +131,9 @@ namespace SemaGeneric
             outFunctions.clear();
             std::unordered_set<const SymbolFunction*> seenFunctions;
 
+            // Inline expansion can nest generic instances inside other generic
+            // instances. Walk from the innermost frame outward so value/type
+            // bindings prefer the most local instantiation context.
             for (size_t i = sema.frames().size(); i > 0; --i)
             {
                 const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
@@ -235,6 +241,9 @@ namespace SemaGeneric
 
         const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction& function)
         {
+            // Lazy and instantiated functions can be resolved outside their original
+            // declaration frame. Prefer the stored declaration context, then fall
+            // back through the active sema frame/symbol-map stack.
             if (const SymbolImpl* symImpl = function.declImplContext())
                 return symImpl;
 

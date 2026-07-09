@@ -66,7 +66,9 @@ namespace
         ConstantRef       cstRef = ConstantRef::invalid();
     };
 
-    // Owns all buffers needed by a JIT request until completion.
+    // Owns all buffers needed by a JIT request until completion. The executor
+    // receives raw pointers into these vectors, so the shared payload is the
+    // lifetime boundary between a paused sema node and the main-thread JIT run.
     struct JITNodePayload
     {
         SmallVector<SmallVector<std::byte>> argStorage;
@@ -75,7 +77,9 @@ namespace
         std::optional<ConstCallCacheKey>    constCallCacheKey;
     };
 
-    // Pending execution data associated with one JIT submission.
+    // Pending execution data associated with one JIT submission. It carries the
+    // ABI/storage metadata needed to turn the returned bytes back into a compiler
+    // constant when the sema node resumes.
     struct JITPendingNodeData
     {
         std::shared_ptr<JITNodePayload> payload;
@@ -226,6 +230,8 @@ namespace
         const TypeInfo& exprType    = sema.typeMgr().get(exprTypeRef);
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
         const TypeInfo* enumType    = &exprType;
+        // JIT returns normalized storage bytes. Re-wrap them as the expression
+        // type so aliases/enums preserve their source-level identity in constants.
         if (!enumType->isEnum() && exprType.isAlias())
         {
             const TypeRef unwrappedTypeRef = exprType.unwrap(ctx, exprTypeRef, TypeExpandE::Alias);
@@ -327,6 +333,9 @@ namespace
         if (!segment.findAllocation(allocation, sourceOffset))
             return false;
 
+        // Reflected constants can point back to functions through method tables.
+        // Walk each allocation once, otherwise recursive typeinfo graphs would keep
+        // rediscovering the same dependencies through their relocations.
         const uint64_t allocationKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
         if (!visitedAllocations.insert(allocationKey).second)
             return false;
@@ -491,7 +500,7 @@ namespace
 
         // Dependency-closure loop: keep scheduling CodeGen for newly discovered
         // dependencies until the set stabilises. We capture the last stable
-        // `expandedOrder` (snapshot 2) so we can reuse it directly below — this
+        // `expandedOrder` (snapshot 2) so we can reuse it directly below - this
         // avoids a third `buildJitOrderWithNativeRoots` call after the loop that
         // would race against concurrent jobs registering new native-global-function
         // init targets between the stability check and the snapshot.
@@ -617,6 +626,9 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
+        // Synchronous completion and paused completion both flow through the same
+        // pending entry. That keeps constant materialization/cache updates identical
+        // regardless of whether the JIT manager had to switch threads.
         const auto pendingEntry           = std::make_shared<JITPendingNodeData>();
         pendingEntry->payload             = payload;
         pendingEntry->resultMeta          = resultMeta;
@@ -1158,7 +1170,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         return Result::Continue;
     // With backend optimization off (e.g. 'debug'/'fast-compile'), pure-call folding is normally
     // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
-    // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) — folding
+    // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding
     // only proceeds below once the arguments are confirmed constant.
     if (!sema.isOptimizeEnabled() &&
         !sema.isConstExprRequired() &&
@@ -1244,7 +1256,7 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         return Result::Continue;
     // With backend optimization off (e.g. 'debug'/'fast-compile'), pure-call folding is normally
     // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
-    // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) — folding
+    // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding
     // only proceeds below once the arguments are confirmed constant.
     if (!sema.isOptimizeEnabled() &&
         !sema.isConstExprRequired() &&

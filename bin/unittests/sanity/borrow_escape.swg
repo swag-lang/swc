@@ -397,6 +397,7 @@ func borrowEscapeSanityOffTemporary()->u64
 // does not depend on the sema job order.
 // ---------------------------------------------------------------------------
 
+#[Swag.NoInline]
 func borrowEscapePassthrough(p: *s32)->*s32
 {
     return p
@@ -432,6 +433,7 @@ func borrowEscapeThroughCallGlobalSource()->*s32
 }
 
 // Carrier summary: identity on a string borrows its parameter.
+#[Swag.NoInline]
 func borrowEscapeIdentity(s: string)->string
 {
     return s
@@ -445,6 +447,7 @@ func borrowEscapeThroughCallCarrier()->string
 }
 
 // A callee that does NOT return its parameter stays silent at the call site.
+#[Swag.NoInline]
 func borrowEscapeReadOnly(p: *s32)->s32
 {
     return dref p
@@ -458,6 +461,7 @@ func borrowEscapeThroughCallValue()->s32
 
 // Mutual recursion stays legal (no stalled sema dependency) and the summary of the
 // direct-return path is still applied at the call site.
+#[Swag.NoInline]
 func borrowEscapeMutualA(p: *s32, n: s32)->*s32
 {
     if n <= 0 do
@@ -465,6 +469,7 @@ func borrowEscapeMutualA(p: *s32, n: s32)->*s32
     return borrowEscapeMutualB(p, n - 1)
 }
 
+#[Swag.NoInline]
 func borrowEscapeMutualB(p: *s32, n: s32)->*s32
 {
     if n <= 0 do
@@ -483,11 +488,13 @@ func borrowEscapeMutualCall()->*s32
 // however deep the chain, resolved by fixpoint once the whole module is analyzed.
 // ---------------------------------------------------------------------------
 
+#[Swag.NoInline]
 func borrowEscapeWrapOnce(p: *s32)->*s32
 {
     return borrowEscapePassthrough(p)
 }
 
+#[Swag.NoInline]
 func borrowEscapeWrapTwice(p: *s32)->*s32
 {
     return borrowEscapeWrapOnce(p)
@@ -513,11 +520,13 @@ func borrowEscapeThroughWrapperGlobal()
 
 // A wrapper whose callee returns caller-independent data borrows nothing: the chain
 // stays silent whatever was passed in.
+#[Swag.NoInline]
 func borrowEscapeGlobalSource(p: *s32)->*s32
 {
     return &borrowEscapeGlobalInt
 }
 
+#[Swag.NoInline]
 func borrowEscapeWrapGlobalSource(p: *s32)->*s32
 {
     return borrowEscapeGlobalSource(p)
@@ -530,6 +539,7 @@ func borrowEscapeThroughNonBorrowingWrapper()->*s32
 }
 
 // Carrier chain: the string identity summary flows through its wrapper.
+#[Swag.NoInline]
 func borrowEscapeWrapIdentity(s: string)->string
 {
     return borrowEscapeIdentity(s)
@@ -544,11 +554,13 @@ func borrowEscapeThroughWrapCarrier()->string
 
 // A pure passthrough cycle has no direct borrow to seed the masks: the fixpoint
 // converges with nothing set and the call site stays silent.
+#[Swag.NoInline]
 func borrowEscapeCycleA(p: *s32)->*s32
 {
     return borrowEscapeCycleB(p)
 }
 
+#[Swag.NoInline]
 func borrowEscapeCycleB(p: *s32)->*s32
 {
     return borrowEscapeCycleA(p)
@@ -562,6 +574,7 @@ func borrowEscapeThroughCycle()->*s32
 
 // Only one side of the cycle returns its parameter directly; the other side gets the
 // borrow through the fixpoint, across the cycle.
+#[Swag.NoInline]
 func borrowEscapeSeededA(p: *s32, n: s32)->*s32
 {
     if n <= 0 do
@@ -569,6 +582,7 @@ func borrowEscapeSeededA(p: *s32, n: s32)->*s32
     return borrowEscapeSeededB(p, n - 1)
 }
 
+#[Swag.NoInline]
 func borrowEscapeSeededB(p: *s32, n: s32)->*s32
 {
     return borrowEscapeSeededA(p, n - 1)
@@ -634,6 +648,7 @@ func borrowEscapeChainedCleared()->*s32
 }
 
 // The summary chains through a wrapper that binds the result before returning it.
+#[Swag.NoInline]
 func borrowEscapeChainedWrapper(p: *s32)->*s32
 {
     let q = borrowEscapePassthrough(p)
@@ -653,6 +668,7 @@ func borrowEscapeThroughChainedWrapper()->*s32
 
 var borrowEscapeGlobalStash: *s32
 
+#[Swag.NoInline]
 func borrowEscapeStash(p: *s32)
 {
     borrowEscapeGlobalStash = p
@@ -676,6 +692,7 @@ func borrowEscapeStashGlobalSource()
 }
 
 // The stores summary chains through forwarding wrappers.
+#[Swag.NoInline]
 func borrowEscapeStashForward(p: *s32)
 {
     borrowEscapeStash(p)

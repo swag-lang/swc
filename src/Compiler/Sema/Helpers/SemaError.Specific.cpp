@@ -28,6 +28,77 @@ namespace
         });
         return lowest;
     }
+
+    TypeRef typeRefForLabel(Sema& sema, AstNodeRef nodeRef, TypeRef fallbackTypeRef = TypeRef::invalid())
+    {
+        if (nodeRef.isValid())
+        {
+            const SemaNodeView view{sema, nodeRef, SemaNodeViewPartE::Type};
+            if (view.typeRef().isValid())
+                return view.typeRef();
+        }
+
+        return fallbackTypeRef;
+    }
+
+    void addSpanWithMessageId(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, DiagnosticId messageId, DiagnosticSeverity severity)
+    {
+        const SourceCodeRange codeRange = sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+        element.addSpan(codeRange, messageId, severity);
+    }
+
+    void addTypedOperandSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, TypeRef fallbackTypeRef = TypeRef::invalid())
+    {
+        const TypeRef typeRef = typeRefForLabel(sema, nodeRef, fallbackTypeRef);
+        if (typeRef.isValid())
+        {
+            element.addArgument(Diagnostic::ARG_TYPE, typeRef);
+            addSpanWithMessageId(sema, element, nodeRef, DiagnosticId::sema_note_operand_has_type, DiagnosticSeverity::Note);
+            return;
+        }
+
+        addSpanWithMessageId(sema, element, nodeRef, DiagnosticId::sema_note_operand_is_here, DiagnosticSeverity::Note);
+    }
+
+    DiagnosticId foldSafetyValueLabelId(DiagnosticId diagId)
+    {
+        switch (diagId)
+        {
+            case DiagnosticId::safety_err_division_zero:
+                return DiagnosticId::sema_note_zero_divisor_here;
+
+            case DiagnosticId::safety_err_negative_shift:
+                return DiagnosticId::sema_note_negative_shift_amount_here;
+
+            case DiagnosticId::safety_err_invalid_argument:
+                return DiagnosticId::sema_note_invalid_argument_value_here;
+
+            case DiagnosticId::safety_err_integer_overflow:
+                return DiagnosticId::sema_note_overflowing_value_here;
+
+            default:
+                return DiagnosticId::sema_note_safety_value_here;
+        }
+    }
+
+    DiagnosticId typeValueNoteLabelId(DiagnosticId diagId, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return DiagnosticId::sema_note_operand_is_here;
+
+        switch (diagId)
+        {
+            case DiagnosticId::sema_err_pointer_arithmetic_value_ptr:
+            case DiagnosticId::sema_err_pointer_arithmetic_void_ptr:
+                return DiagnosticId::sema_note_pointer_operand_has_type;
+
+            case DiagnosticId::sema_err_invalid_op_enum:
+                return DiagnosticId::sema_note_enum_operand_has_type;
+
+            default:
+                return DiagnosticId::sema_note_operand_has_type;
+        }
+    }
 }
 
 namespace
@@ -134,7 +205,7 @@ Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNo
     auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_LEFT, leftTypeRef);
     diag.addArgument(Diagnostic::ARG_RIGHT, rightTypeRef);
-    addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
+    addTypedOperandSpan(sema, diag.last(), nodeValueRef);
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -143,7 +214,7 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
 {
     auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-    addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
+    addTypedOperandSpan(sema, diag.last(), nodeValueRef, targetTypeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -189,7 +260,7 @@ Result SemaError::raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRe
 
     const auto diag = report(sema, diagId, atNodeRef, location);
     if (nodeValueRef.isValid())
-        addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
+        addSpanWithMessageId(sema, diag.last(), nodeValueRef, foldSafetyValueLabelId(diagId), DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -205,7 +276,7 @@ namespace
     {
         auto diag = SemaError::report(sema, diagId, atNodeRef, SemaError::ReportLocation::Token);
         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-        SemaError::addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
+        addSpanWithMessageId(sema, diag.last(), nodeValueRef, typeValueNoteLabelId(diagId, targetTypeRef), DiagnosticSeverity::Note);
         diag.report(sema.ctx());
         return Result::Error;
     }

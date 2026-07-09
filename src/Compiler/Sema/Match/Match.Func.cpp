@@ -520,16 +520,9 @@ namespace
         return *diag.elements().front();
     }
 
-    bool hasPrimaryCastFailureNode(const MatchFailure& fail)
+    bool hasPrimaryCastFailureLocation(const MatchFailure& fail)
     {
-        return fail.kind == MatchFailKind::InvalidArgumentType && fail.castFailure.nodeRef.isValid();
-    }
-
-    AstNodeRef primaryFailureNodeRef(const SemaNodeView& nodeCallee, const MatchFailure& fail)
-    {
-        if (hasPrimaryCastFailureNode(fail))
-            return fail.castFailure.nodeRef;
-        return nodeCallee.nodeRef();
+        return fail.kind == MatchFailKind::InvalidArgumentType && (fail.castFailure.codeRef.isValid() || fail.castFailure.nodeRef.isValid());
     }
 
     void setCastFailureNodeIfMissing(CastFailure& failure, AstNodeRef nodeRef)
@@ -538,15 +531,43 @@ namespace
             failure.nodeRef = nodeRef;
     }
 
+    void setCastFailureLocation(CastFailure& failure, Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        if (sema.node(nodeRef).is(AstNodeId::NamedArgument))
+        {
+            failure.codeRef = sema.node(nodeRef).codeRef();
+            return;
+        }
+
+        failure.nodeRef = nodeRef;
+    }
+
+    void setCastFailureNoteLocation(CastFailure& failure, Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        if (sema.node(nodeRef).is(AstNodeId::NamedArgument))
+        {
+            failure.noteCodeRef = sema.node(nodeRef).codeRef();
+            return;
+        }
+
+        failure.noteNodeRef = nodeRef;
+    }
+
     void recordCallArgFailure(Sema& sema, const SymbolFunction& fn, MatchFailure& outFail, AstNodeRef ufcsArg, uint32_t userArgIndex, AstNodeRef argRef, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid(), uint32_t paramIndex = UINT32_MAX, DiagnosticId noteId = DiagnosticId::None, AstNodeRef noteNodeRef = AstNodeRef::invalid(), Utf8 noteValues = {})
     {
         CastFailure cf{};
         cf.diagId = diagId;
         if (idRef.isValid())
             cf.valueStr = Utf8{sema.idMgr().get(idRef).name};
-        cf.noteId      = noteId;
-        cf.nodeRef     = argRef;
-        cf.noteNodeRef = noteNodeRef;
+        cf.noteId = noteId;
+        setCastFailureLocation(cf, sema, argRef);
+        setCastFailureNoteLocation(cf, sema, noteNodeRef);
         if (!noteValues.empty())
             cf.addArgument(Diagnostic::ARG_VALUES, std::move(noteValues));
         cf.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
@@ -913,6 +934,22 @@ namespace
         failure.mergeArguments(makeCallCastErrorArguments(fn, callArgIndex, ctx));
     }
 
+    Diagnostic reportMatchFailure(Sema& sema, DiagnosticId id, const SemaNodeView& nodeCallee, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        if (fail.kind == MatchFailKind::TooManyArguments && fail.hasLocation && fail.argIndex < countCallArgs(args, ufcsArg))
+            return SemaError::report(sema, id, getCallArg(fail.argIndex, args, ufcsArg));
+
+        if (fail.kind == MatchFailKind::InvalidArgumentType)
+        {
+            if (fail.castFailure.codeRef.isValid())
+                return SemaError::report(sema, id, fail.castFailure.codeRef);
+            if (fail.castFailure.nodeRef.isValid())
+                return SemaError::report(sema, id, fail.castFailure.nodeRef);
+        }
+
+        return SemaError::report(sema, id, nodeCallee.nodeRef());
+    }
+
     Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
         const Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef());
@@ -985,7 +1022,8 @@ namespace
                 break;
         }
 
-        if (fail.hasLocation && fail.argIndex < numArgs && (isNote || !hasPrimaryCastFailureNode(fail)))
+        const bool primaryAlreadyPointsAtArgument = hasPrimaryCastFailureLocation(fail) || fail.kind == MatchFailKind::TooManyArguments;
+        if (fail.hasLocation && fail.argIndex < numArgs && (isNote || !primaryAlreadyPointsAtArgument))
         {
             const AstNodeRef argRef = getCallArg(fail.argIndex, args, ufcsArg);
             diagElement.addSpan(sema.node(argRef).codeRangeWithChildren(ctx, sema.ast()));
@@ -1011,7 +1049,7 @@ namespace
                 break;
         }
 
-        Diagnostic diag = SemaError::report(sema, id, primaryFailureNodeRef(nodeCallee, fail));
+        Diagnostic diag = reportMatchFailure(sema, id, nodeCallee, fail, args, ufcsArg);
         fillMatchDiagnostic(sema, primaryDiagnosticElement(diag), diag, fn, fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;

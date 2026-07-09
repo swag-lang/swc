@@ -305,7 +305,10 @@ namespace
                     if (foldStatus == Math::FoldStatus::NegativeShift)
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                     if (foldStatus == Math::FoldStatus::DivisionByZero || foldStatus == Math::FoldStatus::NegativeShift)
-                        SemaError::addSpan(sema, diag.last(), node.nodeRightRef, "", DiagnosticSeverity::Note);
+                    {
+                        const DiagnosticId labelId = foldStatus == Math::FoldStatus::NegativeShift ? DiagnosticId::sema_note_negative_shift_amount_here : DiagnosticId::sema_note_zero_divisor_here;
+                        diag.last().addSpan(sema.node(node.nodeRightRef).codeRangeWithChildren(sema.ctx(), sema.ast()), labelId, DiagnosticSeverity::Note);
+                    }
                     diag.report(sema.ctx());
                     return Result::Error;
                 }

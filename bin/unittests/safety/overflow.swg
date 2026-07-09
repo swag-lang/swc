@@ -30,6 +30,32 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
     return result
 }
 
+// These helpers keep runtime safety tests from being reduced to static overflow
+// checks in release builds.
+#[Swag.NoInline]
+func opaqueS8(v: s8)->s8
+{
+    return v
+}
+
+#[Swag.NoInline]
+func opaqueS16(v: s16)->s16
+{
+    return v
+}
+
+#[Swag.NoInline]
+func opaqueS32(v: s32)->s32
+{
+    return v
+}
+
+#[Swag.NoInline]
+func opaqueS64(v: s64)->s64
+{
+    return v
+}
+
 #test
 {
     const cfg      = #run dref @compiler.getBuildCfg()
@@ -391,7 +417,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a / b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS8(-128's8, -1)
+    const value = #run divOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
 }
 
 #test
@@ -402,7 +428,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a / b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS16(-32768's16, -1)
+    const value = #run divOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
 }
 
 #test
@@ -413,7 +439,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a / b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS32(-2147483648's32, -1)
+    const value = #run divOverflowS32(opaqueS32(-2147483648's32), opaqueS32(-1))
 }
 
 #test
@@ -424,7 +450,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a / b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS64(-9223372036854775808's64, -1)
+    const value = #run divOverflowS64(opaqueS64(-9223372036854775808's64), opaqueS64(-1))
 }
 
 // =============================================
@@ -439,7 +465,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a % b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS8(-128's8, -1)
+    const value = #run modOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
 }
 
 #test
@@ -450,7 +476,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a % b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS16(-32768's16, -1)
+    const value = #run modOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
 }
 
 #test
@@ -461,7 +487,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a % b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS32(-2147483648's32, -1)
+    const value = #run modOverflowS32(opaqueS32(-2147483648's32), opaqueS32(-1))
 }
 
 #test
@@ -472,7 +498,7 @@ func wrapCompoundU8(value: u8, delta: u8)->u8
         return a % b // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS64(-9223372036854775808's64, -1)
+    const value = #run modOverflowS64(opaqueS64(-9223372036854775808's64), opaqueS64(-1))
 }
 
 // =============================================

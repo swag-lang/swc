@@ -90,16 +90,19 @@ func inlineSafetyModOverflowS16(a, b: s16)->s16
 // Launders a compile-time constant through a non-inline call so the static sanitizer
 // cannot prove the operand values: these tests target the RUNTIME overflow guard
 // inherited from the inline callee's safety attribute.
+#[Swag.NoInline]
 func opaqueS8(v: s8)->s8
 {
     return v
 }
 
+#[Swag.NoInline]
 func opaqueU64(v: u64)->u64
 {
     return v
 }
 
+#[Swag.NoInline]
 func opaqueS16(v: s16)->s16
 {
     return v

@@ -12,6 +12,20 @@ func mathSafetyEnabled()->bool
     return #safety(Swag.SafetyWhat.Math)
 }
 
+// These helpers keep runtime safety tests from being reduced to static domain
+// checks in release builds.
+#[Swag.NoInline]
+func opaqueF64(v: f64)->f64
+{
+    return v
+}
+
+#[Swag.NoInline]
+func opaqueF32(v: f32)->f32
+{
+    return v
+}
+
 #test
 {
     const cfg      = #run dref @compiler.getBuildCfg()
@@ -39,7 +53,7 @@ func mathSafetyEnabled()->bool
         return @sqrt(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidSqrt(-1.0)
+    const value = #run invalidSqrt(opaqueF64(-1.0))
     @assert(value == 0.0)
 }
 
@@ -51,7 +65,7 @@ func mathSafetyEnabled()->bool
         return @asin(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAsin(2.0)
+    const value = #run invalidAsin(opaqueF64(2.0))
     @assert(value == 0.0)
 }
 
@@ -63,7 +77,7 @@ func mathSafetyEnabled()->bool
         return @acos(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAcos(-2.0)
+    const value = #run invalidAcos(opaqueF64(-2.0))
     @assert(value == 0.0)
 }
 
@@ -75,7 +89,7 @@ func mathSafetyEnabled()->bool
         return @log(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog(-1.0)
+    const value = #run invalidLog(opaqueF64(-1.0))
     @assert(value == 0.0)
 }
 
@@ -87,7 +101,7 @@ func mathSafetyEnabled()->bool
         return @log2(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog2(-1.0)
+    const value = #run invalidLog2(opaqueF64(-1.0))
     @assert(value == 0.0)
 }
 
@@ -99,7 +113,7 @@ func mathSafetyEnabled()->bool
         return @log10(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog10(-1.0)
+    const value = #run invalidLog10(opaqueF64(-1.0))
     @assert(value == 0.0)
 }
 
@@ -111,7 +125,7 @@ func mathSafetyEnabled()->bool
         return @pow(a, b) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidPow(-1.0, 0.5)
+    const value = #run invalidPow(opaqueF64(-1.0), opaqueF64(0.5))
     @assert(value == 0.0)
 }
 
@@ -135,7 +149,7 @@ func mathSafetyEnabled()->bool
         return @sqrt(v)
     }
 
-    const value = #run invalidSqrtDisabled(-1.0)
+    const value = #run invalidSqrtDisabled(opaqueF64(-1.0))
     @assert(value != value)
 }
 
@@ -147,7 +161,7 @@ func mathSafetyEnabled()->bool
         return @log(v)
     }
 
-    const value = #run invalidLogDisabled(-1.0)
+    const value = #run invalidLogDisabled(opaqueF64(-1.0))
     @assert(value != value)
 }
 
@@ -159,7 +173,7 @@ func mathSafetyEnabled()->bool
         return @pow(a, b)
     }
 
-    const value = #run invalidPowDisabled(-1.0, 0.5)
+    const value = #run invalidPowDisabled(opaqueF64(-1.0), opaqueF64(0.5))
     @assert(value != value)
 }
 
@@ -175,7 +189,7 @@ func mathSafetyEnabled()->bool
         return @sqrt(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidSqrtF32(-1.0'f32)
+    const value = #run invalidSqrtF32(opaqueF32(-1.0'f32))
 }
 
 #test
@@ -186,7 +200,7 @@ func mathSafetyEnabled()->bool
         return @asin(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAsinF32(2.0'f32)
+    const value = #run invalidAsinF32(opaqueF32(2.0'f32))
 }
 
 #test
@@ -197,7 +211,7 @@ func mathSafetyEnabled()->bool
         return @acos(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAcosF32(-2.0'f32)
+    const value = #run invalidAcosF32(opaqueF32(-2.0'f32))
 }
 
 #test
@@ -208,7 +222,7 @@ func mathSafetyEnabled()->bool
         return @log(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLogF32(-1.0'f32)
+    const value = #run invalidLogF32(opaqueF32(-1.0'f32))
 }
 
 #test
@@ -219,7 +233,7 @@ func mathSafetyEnabled()->bool
         return @log2(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog2F32(-1.0'f32)
+    const value = #run invalidLog2F32(opaqueF32(-1.0'f32))
 }
 
 #test
@@ -230,7 +244,7 @@ func mathSafetyEnabled()->bool
         return @log10(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog10F32(-1.0'f32)
+    const value = #run invalidLog10F32(opaqueF32(-1.0'f32))
 }
 
 #test
@@ -241,7 +255,7 @@ func mathSafetyEnabled()->bool
         return @pow(a, b) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidPowF32(-1.0'f32, 0.5'f32)
+    const value = #run invalidPowF32(opaqueF32(-1.0'f32), opaqueF32(0.5'f32))
 }
 
 // =============================================
@@ -257,7 +271,7 @@ func mathSafetyEnabled()->bool
         return @asin(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAsinNeg(-2.0)
+    const value = #run invalidAsinNeg(opaqueF64(-2.0))
 }
 
 // @acos with value > 1
@@ -269,7 +283,7 @@ func mathSafetyEnabled()->bool
         return @acos(v) // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAcosPos(2.0)
+    const value = #run invalidAcosPos(opaqueF64(2.0))
 }
 
 // Valid boundary: @asin(-1.0) and @acos(1.0) must not panic

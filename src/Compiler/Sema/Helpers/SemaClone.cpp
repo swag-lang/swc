@@ -32,6 +32,13 @@ namespace
         return cloneContext.sourceAst ? *cloneContext.sourceAst : sema.ast();
     }
 
+    void inheritCloneContextOptions(SemaClone::CloneContext& outContext, const SemaClone::CloneContext& sourceContext)
+    {
+        outContext.preserveResolvedSymbols              = sourceContext.preserveResolvedSymbols;
+        outContext.resolveBindingExprWithParentBindings = sourceContext.resolveBindingExprWithParentBindings;
+        outContext.suppressedImplicitCastSubstituteRef  = sourceContext.suppressedImplicitCastSubstituteRef;
+    }
+
     const Ast* resolveCloneNodeAst(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
     {
         if (nodeRef.isInvalid())
@@ -123,7 +130,6 @@ namespace
         view.cstRef                        = storedView.cstRef();
         view.sym                           = storedView.sym();
         view.hasSymbol                     = storedView.hasSymbol();
-        view.hasSymbolList                 = storedView.hasSymbolList();
 
         uint16_t flags = 0;
         if (sema.isValueStored(sourceRef))
@@ -134,6 +140,26 @@ namespace
             flags = static_cast<uint16_t>(flags | static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst));
         view.flags = static_cast<NodePayloadFlags>(flags);
         return view;
+    }
+
+    void inheritStoredPayload(Sema& sema, AstNodeRef clonedRef, AstNodeRef sourceRef)
+    {
+        // Keep the source node's original semantic payload without importing a
+        // Substitute target that still belongs to the uncloned source expression.
+        const NodePayload::StoredView storedView = currentStoredView(sema, sourceRef);
+        if (storedView.hasSymbol)
+            sema.setSymbol(clonedRef, storedView.sym);
+        else if (storedView.cstRef.isValid())
+            sema.setConstant(clonedRef, storedView.cstRef);
+        else if (storedView.typeRef.isValid())
+            sema.setType(clonedRef, storedView.typeRef);
+
+        if (hasStoredFlag(storedView, NodePayloadFlags::Value))
+            sema.setIsValue(clonedRef);
+        if (hasStoredFlag(storedView, NodePayloadFlags::LValue))
+            sema.setIsLValue(clonedRef);
+        if (hasStoredFlag(storedView, NodePayloadFlags::FoldedTypedConst))
+            sema.setFoldedTypedConst(clonedRef);
     }
 
     std::optional<NodePayload::StoredView> sourceStoredView(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef)
@@ -167,16 +193,14 @@ namespace
         // replacements here prevents a replacement meant for the outer clone from
         // rewriting the binding source itself.
         SemaClone::CloneContext result{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
-        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
+        inheritCloneContextOptions(result, cloneContext);
         return result;
     }
 
     SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
         SemaClone::CloneContext result{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
-        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
+        inheritCloneContextOptions(result, cloneContext);
         return result;
     }
 
@@ -185,8 +209,7 @@ namespace
         // Once a cloned child has been inserted in the destination AST, nested refs must
         // resolve against that destination, not against the original source AST.
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
-        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
+        inheritCloneContextOptions(result, cloneContext);
         return result;
     }
 
@@ -196,8 +219,14 @@ namespace
         // construct. Track nesting so an outer replacement does not capture an inner
         // loop or switch control-flow edge.
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth + 1};
-        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
-        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
+        inheritCloneContextOptions(result, cloneContext);
+        return result;
+    }
+
+    SemaClone::CloneContext cloneContextSuppressingImplicitCastSubstitute(const SemaClone::CloneContext& cloneContext, AstNodeRef castRef)
+    {
+        SemaClone::CloneContext result = cloneContext;
+        result.suppressedImplicitCastSubstituteRef = castRef;
         return result;
     }
 
@@ -282,8 +311,7 @@ namespace
         }
 
         SemaClone::CloneContext result{nestedBindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
-        result.preserveResolvedSymbols              = cloneContext.preserveResolvedSymbols;
-        result.resolveBindingExprWithParentBindings = cloneContext.resolveBindingExprWithParentBindings;
+        inheritCloneContextOptions(result, cloneContext);
         return result;
     }
 
@@ -650,6 +678,8 @@ namespace
         const AstNodeRef resolvedRef = sema.viewZero(sourceRef).nodeRef();
         if (resolvedRef.isInvalid() || resolvedRef == sourceRef)
             return;
+        if (resolvedRef == cloneContext.suppressedImplicitCastSubstituteRef)
+            return;
 
         const auto* sourceCast = sema.node(resolvedRef).safeCast<AstCastExpr>();
         if (!sourceCast)
@@ -859,17 +889,20 @@ namespace
                                     resolvedRef != sourceRef &&
                                     sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
                                     isDetachedReexpandableExpr(sema.node(sourceRef));
+        const bool sourceHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceRef, resolvedRef);
 
         activeSourceRefSet.insert(sourceRef);
-        if (!shouldReexpand)
+        if (!shouldReexpand && !sourceHasImplicitCastSubstitute)
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
+        else if (!shouldReexpand && sourceHasImplicitCastSubstitute && !sema.hasSubstitute(clonedRef))
+            inheritStoredPayload(sema, clonedRef, sourceRef);
         if (sema.node(sourceRef).is(AstNodeId::Identifier) && sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
             sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
 
         if (!shouldReexpand &&
             resolvedRef.isValid() &&
             resolvedRef != sourceRef &&
-            !isImplicitCastSubstitute(sema, sourceRef, resolvedRef) &&
+            !sourceHasImplicitCastSubstitute &&
             !activeSourceRefSet.contains(resolvedRef))
         {
             const AstNodeRef clonedResolvedRef = cloneDetachedExprImpl(sema, resolvedRef);
@@ -894,13 +927,16 @@ namespace
                                              resolvedChildRef != sourceChildRef &&
                                              sema.node(resolvedChildRef).is(AstNodeId::EmbeddedBlock) &&
                                              isDetachedReexpandableExpr(sema.node(sourceChildRef));
-            if (!shouldReexpandChild)
+            const bool sourceChildHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef);
+            if (!shouldReexpandChild && !sourceChildHasImplicitCastSubstitute)
                 sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
+            else if (!shouldReexpandChild && sourceChildHasImplicitCastSubstitute && !sema.hasSubstitute(clonedChildRef))
+                inheritStoredPayload(sema, clonedChildRef, sourceChildRef);
 
             if (!shouldReexpandChild &&
                 resolvedChildRef.isValid() &&
                 resolvedChildRef != sourceChildRef &&
-                !isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef) &&
+                !sourceChildHasImplicitCastSubstitute &&
                 !activeSourceRefSet.contains(resolvedChildRef))
             {
                 const AstNodeRef clonedResolvedChildRef = cloneDetachedExprImpl(sema, resolvedChildRef);
@@ -1144,8 +1180,10 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
         return clonedRef;
     }
 
-    const CloneContext childCloneContext = startsNestedBreakableContext(node) ? cloneContextInsideBreakable(cloneContext) : cloneContext;
-    clonedRef                            = Ast::nodeIdInfos(node.id()).semaClone(sema, node, childCloneContext);
+    CloneContext childCloneContext = startsNestedBreakableContext(node) ? cloneContextInsideBreakable(cloneContext) : cloneContext;
+    if (const auto* castNode = node.safeCast<AstCastExpr>(); castNode && !castNode->hasFlag(AstCastExprFlagsE::Explicit))
+        childCloneContext = cloneContextSuppressingImplicitCastSubstitute(childCloneContext, nodeRef);
+    clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, childCloneContext);
     SWC_ASSERT(clonedRef.isValid());
     if (clonedRef.isInvalid())
     {
@@ -1897,7 +1935,7 @@ AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     SmallVector<SemaClone::ParamBinding> bodyBindings;
     excludeCapturedClosureBindings(sema, *this, inlineContext, bodyBindings);
     SemaClone::CloneContext bodyContext{bodyBindings.span(), inlineContext.replacements, inlineContext.preserveFunctionGenerics, inlineContext.sourceAst, inlineContext.preserveBindingExprState, inlineContext.duplicateRuntimeStorage, inlineContext.breakableDepth};
-    bodyContext.preserveResolvedSymbols = inlineContext.preserveResolvedSymbols;
+    inheritCloneContextOptions(bodyContext, inlineContext);
     newPtr->nodeBodyRef                 = SemaClone::cloneAst(sema, nodeBodyRef, bodyContext);
     return newRef;
 }
@@ -2228,11 +2266,12 @@ AstNodeRef AstGenericParamType::semaClone(Sema& sema, const CloneContext& cloneC
 
 AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
     newPtr->flags()       = flags();
     newPtr->modifierFlags = modifierFlags;
-    newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeTypeRef   = cloneNodeRef(sema, nodeTypeRef, inlineContext);
+    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, inlineContext);
     return newRef;
 }
 

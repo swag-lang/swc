@@ -243,7 +243,7 @@ impl String
                 let visitIdx = @index
 
             #if ptr do
-                #inject(stmt, item = scan, index = visitIdx)
+                #inject(stmt, item = cast(&u8) scan, index = visitIdx)
             #else do
                 #inject(stmt, item = dref scan, index = visitIdx)
         }

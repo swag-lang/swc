@@ -608,6 +608,24 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
         return Result::Error;
     }
 
+    // Assigning to a reference writes through it: a const reference (or a reference
+    // to const) is never assignable.
+    if (leftView.type())
+    {
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), leftView.typeRef());
+        if (unwrappedTypeRef.isValid())
+        {
+            const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
+            if (unwrappedType.isReference() &&
+                (unwrappedType.isConst() || sema.typeMgr().get(unwrappedType.payloadTypeRef()).isConst()))
+            {
+                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+    }
+
     if (isConstAssignmentTarget(sema, leftExprRef, leftView))
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);

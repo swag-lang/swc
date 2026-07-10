@@ -90,7 +90,7 @@ func day5A1()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
 
     var seats: Array'u64
-    for l in assume File.readAllLines(dataPath)
+    for &l in assume File.readAllLines(dataPath)
     {
         l.replace("F", "0")
         l.replace("B", "1")

@@ -111,8 +111,8 @@ Prefix the element name with '&' to visit elements by address and modify them in
 
     for &it in array
     {
-        result += dref it
-        dref it = 555
+        result += it
+        it = 555
     }
 
     @assert(result == 1 + 2 + 3 + 4)

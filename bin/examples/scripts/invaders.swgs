@@ -92,7 +92,7 @@ func updatePlayer()
 
 func updateLasers()
 {
-    for laser in g_Lasers where !laser.dead
+    for &laser in g_Lasers where !laser.dead
     {
         // Laser shot by the player
         if laser.player
@@ -131,7 +131,7 @@ func udpateAliens()
     }
 
     // Move all aliens
-    for alien in g_Aliens where !alien.dead
+    for &alien in g_Aliens where !alien.dead
     {
         alien.x += SPEED_ALIEN_X * g_Dt * g_MoveAlienDirection
         alien.y += moveY
@@ -147,10 +147,10 @@ func udpateAliens()
 
 func checkCollisions()
 {
-    for laser in g_Lasers where !laser.dead
+    for &laser in g_Lasers where !laser.dead
     {
         // Against obstacles
-        for obs in g_Obstacles where !obs.dead
+        for &obs in g_Obstacles where !obs.dead
         {
             let r = Math.Rectangle{obs.x, obs.y, OBS_SIZE, OBS_SIZE}
             if r.contains(Math.Point{laser.x, laser.y})
@@ -167,7 +167,7 @@ func checkCollisions()
         // Player laser against aliens
         if laser.player
         {
-            for alien in g_Aliens where !alien.dead
+            for &alien in g_Aliens where !alien.dead
             {
                 let r = Math.Rectangle{alien.x, alien.y, alien.type.width, alien.type.height}
                 if r.contains(Math.Point{laser.x, laser.y})

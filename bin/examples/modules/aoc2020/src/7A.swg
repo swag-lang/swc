@@ -50,7 +50,7 @@ func day7A0()
 
     var id: HashTable'(string, Array'string)
 
-    for l in lines
+    for &l in lines
     {
         for r in ["bags", "bag", "."] do
             l.replace(r, "")

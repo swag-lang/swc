@@ -55,7 +55,7 @@ var g_totalJobs:        u32
         {
         }
 
-        for th in g_workers do
+        for &th in g_workers do
             th.wait()
         g_workers.free()
         g_pendingJobs.free()

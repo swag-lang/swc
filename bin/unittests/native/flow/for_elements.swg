@@ -63,7 +63,7 @@ alias StrictForeachF32 = f32
     var arr: [2] u32 = [10'u32, 20]
     for &v in arr
     {
-        dref v += 1
+        v += 1
     }
     @assert(arr[0] == 11)
     @assert(arr[1] == 21)
@@ -93,8 +93,8 @@ alias StrictForeachF32 = f32
     var sum = 0
     for &v in text
     {
-        #assert(#typeof(v) == const *u8)
-        sum += cast(s32) dref v
+        #assert(#typeof(v) == #type const &u8)
+        sum += cast(s32) v
     }
     @assert(sum == cast(s32) 'C''u8 + cast(s32) 'D''u8)
 }
@@ -121,8 +121,8 @@ alias StrictForeachF32 = f32
     var sum = 0
     for &v in text
     {
-        #assert(#typeof(v) == const *u8)
-        sum += cast(s32) dref v
+        #assert(#typeof(v) == #type const &u8)
+        sum += cast(s32) v
     }
     @assert(sum == cast(s32) 'C''u8 + cast(s32) 'D''u8)
 }

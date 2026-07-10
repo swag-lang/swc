@@ -152,7 +152,7 @@ impl HashTable
             #scope(Down)
             {
                 #if ptr do
-                    #inject(stmt, key = &me.table[tableIndex].key, value = &me.table[tableIndex].value, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(&K) &me.table[tableIndex].key, value = cast(&V) &me.table[tableIndex].value, break = break to Up, continue = break to Down)
                 #elif Reflection.isStruct(K) and Reflection.isStruct(V) do
                     #inject(stmt, key = cast(const &K) &me.table[tableIndex].key, value = cast(const &V) &me.table[tableIndex].value, break = break to Up, continue = break to Down)
                 #elif Reflection.isStruct(K) do

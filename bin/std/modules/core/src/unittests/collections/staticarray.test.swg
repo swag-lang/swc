@@ -115,7 +115,7 @@ func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 
     values.add(StaticArrayVisitProbe{value: 2})
     values.add(StaticArrayVisitProbe{value: 3})
 
-    for value in values do
+    for &value in values do
         value.value += 10
 
     @assert(values[0].value == 11)

@@ -64,7 +64,7 @@ impl JitBufferVisits
             {
                 for idx in 3
                 {
-                    #inject(stmt, item = cast(*s32) &(me.values[2 - idx]), index = @index)
+                    #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
                 }
             }
             #else
@@ -81,7 +81,7 @@ impl JitBufferVisits
             {
                 for idx in 3
                 {
-                    #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
+                    #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
                 }
             }
             #else
@@ -185,9 +185,9 @@ impl JitFieldPointerVisits
 
         #if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
+            #inject(stmt, item = cast(&s32) &(me.second), index = 1'u64)
+            #inject(stmt, item = cast(&s32) &(me.third), index = 2'u64)
         }
         #else
         {
@@ -244,7 +244,7 @@ impl JitConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
         #else
@@ -317,7 +317,7 @@ func jitForeachVisitByAddress()->s32
     var values = JitBufferVisits{}
 
     for &value, ordinal in values do
-        dref value += cast(s32) (ordinal + 1)
+        value += cast(s32) (ordinal + 1)
 
     return values.values[0] + values.values[1] + values.values[2]
 }

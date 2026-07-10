@@ -64,9 +64,9 @@ impl List
             #scope(Down)
             {
                 #if ptr do
-                    #inject(stmt, item = cast(*T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
-                #elif Reflection.isStruct(T) do
                     #inject(stmt, item = cast(&T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
+                #elif Reflection.isStruct(T) do
+                    #inject(stmt, item = cast(const &T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
                 #else do
                     #inject(stmt, item = n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
             }

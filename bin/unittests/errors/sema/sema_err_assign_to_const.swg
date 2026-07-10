@@ -62,7 +62,7 @@ func macroForeachWriteConstParam(values: [2] s32)
 {
     for &value in values
     {
-        dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
+        value += 1 // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -71,7 +71,7 @@ func mixinForeachWriteConstParam(values: [2] s32)
 {
     for &value in values
     {
-        dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
+        value += 1 // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -125,7 +125,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: string = "abc"
     for &value in text
     {
-        dref value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+        value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -134,7 +134,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: const cstring = cast(const cstring) @dataof("abc")
     for &value in text
     {
-        dref value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+        value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 

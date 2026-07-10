@@ -256,7 +256,7 @@ internal impl Properties
             .addValue(value, addr + value.offset, newParent)
 
             let added = cast(u32) (.items.count - numItemsBefore)
-            for c in categPath do
+            for &c in categPath do
                 c.item.numChilds += added
         }
     }

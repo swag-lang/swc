@@ -466,7 +466,7 @@ impl RegExp
                     cptReachedEnd += 1
 
                 if v.node.terminal and forGrep do
-                    grepTerm = dref v
+                    grepTerm = v
                 elif v.node.terminal and v.parseIdx >= .bufLength do
                     mustEnd = true
             }

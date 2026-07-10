@@ -155,7 +155,7 @@ impl SliceStruct
         for idx in @countof(me.buffer)
         {
             #if ptr do
-                #inject(stmt, item = cast(*s32) &me.buffer[idx], index = @index)
+                #inject(stmt, item = cast(&s32) &me.buffer[idx], index = @index)
             #else do
                 #inject(stmt, item = me.buffer[idx], index = @index)
         }
@@ -181,7 +181,7 @@ Sum elements of a slice via 'opVisit'.
 /**
 # Visiting by Pointer
 
-'ptr == true' lets custom iteration expose elements by address so the loop body
+'ptr == true' lets custom iteration expose elements by reference so the loop body
 can update the underlying storage.
 */
 #test
@@ -189,7 +189,7 @@ can update the underlying storage.
     var arrStruct = SliceStruct{}
 
     for &v, i in arrStruct do
-        dref v += cast(s32) i
+        v += cast(s32) i
 
     @assert(arrStruct.buffer[0] == 1)
     @assert(arrStruct.buffer[1] == 3)

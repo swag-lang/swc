@@ -69,7 +69,7 @@ func semaTest004()
     var arr: [2] u32 = [10'u32, 20]
     for &v in arr
     {
-        var x = dref v
+        var x = v
     }
 }
 

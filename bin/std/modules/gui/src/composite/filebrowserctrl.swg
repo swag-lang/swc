@@ -103,7 +103,7 @@ private impl FileBrowserCtrl
         l.separator = true
 
         let volumes = catch Directory.getDrives()
-        for v in volumes
+        for &v in volumes
         {
             v.removeBack()
             var icon = .getApp().getDirectoryIcon(v, true)

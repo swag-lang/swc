@@ -113,7 +113,7 @@ impl HashSet
             #scope(Down)
             {
                 #if ptr do
-                    #inject(stmt, key = &me.table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(&K) &me.table[tableIndex].key, break = break to Up, continue = break to Down)
                 #elif Reflection.isStruct(K) do
                     #inject(stmt, key = cast(const &K) &me.table[tableIndex].key, break = break to Up, continue = break to Down)
                 #else do

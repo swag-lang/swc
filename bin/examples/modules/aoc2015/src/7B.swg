@@ -17,7 +17,7 @@ using Core
 
     assume
     {
-        for l in File.readAllLines(dataPath)
+        for &l in File.readAllLines(dataPath)
         {
             l.makeUpper()
             result += "internal const "

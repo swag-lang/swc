@@ -1489,6 +1489,10 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isUndefined())
         res = castFromUndefined(sema, castRequest, srcTypeRef, dstTypeRef);
+    // A reference reads as its pointee for scalar conversions: dereference first,
+    // then convert (the codegen numeric path already unwraps reference payloads).
+    else if (srcType.isReference() && (dstType.isEnum() || dstType.isBool() || dstType.isIntLike() || dstType.isFloat()))
+        res = castAllowed(sema, castRequest, srcType.payloadTypeRef(), dstTypeRef);
     else if (dstType.isEnum())
         res = castToEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isBool())

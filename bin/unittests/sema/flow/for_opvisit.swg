@@ -67,7 +67,7 @@ impl SemaBufferVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
             }
         }
         #else
@@ -140,9 +140,9 @@ impl SemaFieldPointerVisits
 
         #if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
+            #inject(stmt, item = cast(&s32) &(me.second), index = 1'u64)
+            #inject(stmt, item = cast(&s32) &(me.third), index = 2'u64)
         }
         #else
         {
@@ -254,7 +254,7 @@ impl SemaConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
         #else
@@ -303,9 +303,9 @@ func semaTest001()
     var values = SemaBufferVisits{}
     for &value, ordinal in values
     {
-        #assert(#typeof(dref value) == s32)
+        #assert(#typeof(value) == #type &s32)
         #assert(#typeof(ordinal) == #typeof(@index))
-        var x = dref value
+        var x = value
     }
 }
 
@@ -382,8 +382,8 @@ func semaTest006()
 
     for &value, ordinal in values
     {
-        #assert(#typeof(value) == *s32)
-        var x = dref value
+        #assert(#typeof(value) == #type &s32)
+        var x = value
         var y = ordinal
     }
 }
@@ -409,8 +409,8 @@ func semaTest008()
 
     for &value, ordinal in values
     {
-        #assert(#typeof(value) == const *s32)
-        var x = dref value
+        #assert(#typeof(value) == #type const &s32)
+        var x = value
         var y = ordinal
     }
 }

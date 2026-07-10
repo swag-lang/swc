@@ -21,7 +21,7 @@ func day7B()
     let lines    = assume File.readAllLines(dataPath)
 
     var total = 0
-    for l in lines
+    for &l in lines
     {
         l.replace("]", "[")
 

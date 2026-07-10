@@ -231,7 +231,7 @@ func keyboard(wnd: *Wnd)
     while recom
     {
         recom = false
-        for c in g_Cells
+        for &c in g_Cells
         {
             if c.val == 0 do
                 continue
@@ -265,7 +265,7 @@ func keyboard(wnd: *Wnd)
             }
         }
 
-        for c in g_Cells
+        for &c in g_Cells
         {
             if !c.val do
                 continue

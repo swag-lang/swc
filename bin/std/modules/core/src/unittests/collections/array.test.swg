@@ -193,7 +193,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 
     for &value, ordinal in values
     {
-        dref value -= cast(s32) ordinal
+        value -= cast(s32) ordinal
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]
@@ -341,7 +341,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     values.add(ArrayVisitProbe{value: 2})
     values.add(ArrayVisitProbe{value: 3})
 
-    for value in values do
+    for &value in values do
         value.value += 10
 
     @assert(values[0].value == 11)

@@ -109,7 +109,7 @@ struct ForeachVariadicPayload
 
         for &v, i in arr
         {
-            sum += dref v + cast(s32) i
+            sum += v + cast(s32) i
         }
 
         return sum

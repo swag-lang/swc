@@ -592,6 +592,35 @@ namespace
             return Result::Continue;
         }
 
+        // A reference to a struct compares as the struct itself (unless the other side
+        // is a pointer, which pointerReferenceForEquality handles as identity), and a
+        // reference to a pointer compares its pointee against 'null'.
+        Result structReferenceForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+        {
+            if (!self.type() || !other.type())
+                return Result::Continue;
+
+            const TypeInfo& selfType = sema.typeMgr().get(self.typeRef());
+            if (!selfType.isReference())
+                return Result::Continue;
+
+            const TypeInfo& otherType = aliasEnumType(sema, other);
+            if (otherType.isAnyPointer())
+                return Result::Continue;
+
+            const TypeRef payloadTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), selfType.payloadTypeRef());
+            if (!payloadTypeRef.isValid())
+                return Result::Continue;
+
+            const TypeInfo& payloadType = sema.typeMgr().get(payloadTypeRef);
+            const bool      readStruct  = payloadType.isStruct();
+            const bool      readPointer = payloadType.isAnyPointer() && otherType.isNull();
+            if (!readStruct && !readPointer)
+                return Result::Continue;
+
+            return Cast::cast(sema, self, selfType.payloadTypeRef(), CastKind::Implicit);
+        }
+
         Result structLiteralForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
         {
             if (!self.type() || !other.type())
@@ -693,6 +722,8 @@ namespace
 
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
+            SWC_RESULT(structReferenceForEquality(sema, nodeLeftView, nodeRightView));
+            SWC_RESULT(structReferenceForEquality(sema, nodeRightView, nodeLeftView));
             enumForEquality(sema, nodeLeftView, nodeRightView);
             enumForEquality(sema, nodeRightView, nodeLeftView);
             nullForEquality(sema, nodeLeftView, nodeRightView);

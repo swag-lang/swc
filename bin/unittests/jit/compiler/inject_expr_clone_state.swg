@@ -87,7 +87,7 @@ namespace InjectExprCloneSupport
     values.add(InjectExprCloneSupport.VisitProbe{value: 2})
     values.add(InjectExprCloneSupport.VisitProbe{value: 3})
 
-    for value in values do
+    for &value in values do
         value.value += 10
 
     var direct = 0

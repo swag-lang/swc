@@ -438,7 +438,7 @@ impl Encoder
     }
 
     #[Swag.Inline]
-    mtd writeBytes(s: [..] u8)
+    mtd writeBytes(s: const [..] u8)
     {
         .stream.addBytes(s)
     }

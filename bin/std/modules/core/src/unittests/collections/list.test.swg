@@ -113,9 +113,9 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
 
     for &value, node in values
     {
-        #assert(#typeof(value) == *s32)
+        #assert(#typeof(value) == #type &s32)
         #assert(#typeof(node) == *ListEntry's32)
-        dref value += 10
+        value += 10
     }
 
     let expected: [3] s32 = [11, 12, 13]
@@ -129,7 +129,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.addBack(ListStructProbe{value: 2})
     values.addBack(ListStructProbe{value: 3})
 
-    for value in values do
+    for &value in values do
         value.value += 10
 
     @assert(values.head.value.value == 11)

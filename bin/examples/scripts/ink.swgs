@@ -68,7 +68,7 @@ impl Drop
     mtd marble(other: Drop)
     {
         let otherr = other.r * other.r
-        for v in .lp.polygon.points
+        for &v in .lp.polygon.points
         {
             let p    = v - other.center
             let root = sqrt(1 + (otherr / p.lengthSquared()))

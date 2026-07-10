@@ -373,10 +373,21 @@ namespace
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
         {
+            // '&name' binds a mutable reference to the element (const when the source is).
             TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
             if (sourceIsConst || sourceIsEnum)
                 typeFlags.add(TypeInfoFlagsE::Const);
-            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, typeFlags));
+            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeReference(valueTypeRef, typeFlags));
+        }
+        else if (valueTypeRef.isValid())
+        {
+            // A struct element never binds by copy: the by-value form aliases the
+            // element through a const reference (mutation goes through '&name').
+            TypeRef rawValueTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), valueTypeRef);
+            if (!rawValueTypeRef.isValid())
+                rawValueTypeRef = valueTypeRef;
+            if (sema.typeMgr().get(rawValueTypeRef).isStruct())
+                valueTypeRef = sema.typeMgr().addType(TypeInfo::makeReference(valueTypeRef, TypeInfoFlagsE::Const));
         }
 
         return Result::Continue;
@@ -456,9 +467,14 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         symbols.reserve(4);
         SWC_RESULT(appendForeachAliasSymbols(sema, symbols, pl, *this, valueTypeRef, indexTypeRef));
 
-        // A '&it' value alias points into the iterated storage.
-        if (hasFlag(AstForeachStmtFlagsE::ByAddress) && !symbols.empty() && symbols.front()->isVariable())
-            SemaEscape::bindForeachAddressAlias(sema, symbols.front()->cast<SymbolVariable>(), nodeExprRef);
+        // A '&it' value alias points into the iterated storage; a struct by-value
+        // binding is a const-reference alias into the same storage.
+        if (!symbols.empty() && symbols.front()->isVariable())
+        {
+            const auto& valueVar = symbols.front()->cast<SymbolVariable>();
+            if (hasFlag(AstForeachStmtFlagsE::ByAddress) || sema.typeMgr().get(valueVar.typeRef()).isReference())
+                SemaEscape::bindForeachAddressAlias(sema, valueVar, nodeExprRef);
+        }
 
         const size_t stateIndex = symbols.size();
         auto&        stateSym   = getOrCreateLoopLocalSymbol(pl, stateIndex, [&]() -> SymbolVariable& { return registerUniqueLoopScopeSymbol<SymbolVariable>(sema, *this, "foreach_state"); });

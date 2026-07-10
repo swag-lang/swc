@@ -66,7 +66,7 @@ impl BufferVisits
             {
                 for idx in 3
                 {
-                    #inject(stmt, item = cast(*s32) &(me.values[2 - idx]), index = @index)
+                    #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
                 }
             }
             #else
@@ -83,7 +83,7 @@ impl BufferVisits
             {
                 for idx in 3
                 {
-                    #inject(stmt, item = cast(*s32) &(me.values[idx]), index = @index)
+                    #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
                 }
             }
             #else
@@ -187,9 +187,9 @@ impl FieldPointerVisits
 
         #if ptr
         {
-            #inject(stmt, item = cast(*s32) &(me.first), index = 0'u64)
-            #inject(stmt, item = cast(*s32) &(me.second), index = 1'u64)
-            #inject(stmt, item = cast(*s32) &(me.third), index = 2'u64)
+            #inject(stmt, item = cast(&s32) &(me.first), index = 0'u64)
+            #inject(stmt, item = cast(&s32) &(me.second), index = 1'u64)
+            #inject(stmt, item = cast(&s32) &(me.third), index = 2'u64)
         }
         #else
         {
@@ -246,7 +246,7 @@ impl ConstPointerVisits
         {
             for idx in 3
             {
-                #inject(stmt, item = cast(const *s32) &(me.values[idx]), index = @index)
+                #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
         #else
@@ -370,7 +370,7 @@ impl GenericScopedVisits
     var values = BufferVisits{}
 
     for &value, ordinal in values do
-        dref value += cast(s32) (ordinal + 1)
+        value += cast(s32) (ordinal + 1)
 
     @assert(values.values[0] == 4)
     @assert(values.values[1] == 8)
@@ -464,9 +464,9 @@ impl GenericScopedVisits
 
     for &value, ordinal in values
     {
-        #assert(#typeof(value) == *s32)
-        dref value += cast(s32) (ordinal + 1)
-        mutatedSum += dref value
+        #assert(#typeof(value) == #type &s32)
+        value += cast(s32) (ordinal + 1)
+        mutatedSum += value
     }
 
     @assert(values.first == 2)
@@ -500,8 +500,8 @@ impl GenericScopedVisits
 
     for &value, ordinal in values
     {
-        #assert(#typeof(value) == const *s32)
-        sum += dref value + cast(s32) ordinal
+        #assert(#typeof(value) == #type const &s32)
+        sum += value + cast(s32) ordinal
     }
 
     @assert(sum == 27)

@@ -51,7 +51,7 @@ impl UndoManager
     // Drop every command and reset the timeline.
     mtd clear()
     {
-        for s in .steps do
+        for &s in .steps do
             Memory.delete(@dataof(s.cmd), @kindof(s.cmd))
         .steps.clear()
         .next      = 0

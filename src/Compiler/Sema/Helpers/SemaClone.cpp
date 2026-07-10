@@ -210,6 +210,7 @@ namespace
         // resolve against that destination, not against the original source AST.
         SemaClone::CloneContext result{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         inheritCloneContextOptions(result, cloneContext);
+        result.suppressedImplicitCastSubstituteRef = AstNodeRef::invalid();
         return result;
     }
 
@@ -312,6 +313,7 @@ namespace
 
         SemaClone::CloneContext result{nestedBindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
         inheritCloneContextOptions(result, cloneContext);
+        result.suppressedImplicitCastSubstituteRef = AstNodeRef::invalid();
         return result;
     }
 
@@ -896,7 +898,8 @@ namespace
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
         else if (!shouldReexpand && sourceHasImplicitCastSubstitute && !sema.hasSubstitute(clonedRef))
             inheritStoredPayload(sema, clonedRef, sourceRef);
-        if (sema.node(sourceRef).is(AstNodeId::Identifier) && sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
+        if (sema.node(sourceRef).is(AstNodeId::Identifier) &&
+            sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
             sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
 
         if (!shouldReexpand &&

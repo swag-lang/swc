@@ -136,7 +136,7 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 
     // The callout tail lives in canvas space and is never carried by a style; give the
     // preview a shortened body and an in-cell downward tail so it renders to scale.
-    if paintItf == FormCallout
+    if @kindof(paintItf) == FormCallout
     {
         let cl = cast(*FormCallout) @dataof(paintItf)
         cl.text  = "A"

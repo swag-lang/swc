@@ -45,7 +45,7 @@ func formEditableText(f: IForm)->#null *String
 
 func formEditableTextDirty(f: IForm)
 {
-    if f == FormText
+    if @kindof(f) == FormText
     {
         let b = cast(*FormText) @dataof(f)
         b.isDirty = true
@@ -82,7 +82,7 @@ func formFontStylePtr(f: IForm)->#null *FontFamilyStyle
 // its render form from live fields each paint, so it needs no explicit flag here.
 func formFontDirty(f: IForm)
 {
-    if f == FormText
+    if @kindof(f) == FormText
     {
         let b = cast(*FormText) @dataof(f)
         b.isDirtyFont = true

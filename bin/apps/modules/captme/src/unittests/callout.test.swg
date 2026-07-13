@@ -92,6 +92,27 @@ using Swag, Core
     f.shutdown()
 }
 
+// SetText must flag the render dirty so the displayed FormText glyphs actually refresh
+// (regression guard for the shared formEditableText/formEditableTextDirty helpers).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+
+    let text = testAddText(f.capture, 0, 0, 100, 40)
+    text.text    = "old"
+    text.isDirty = false
+    f.capture.selection.add(0)
+
+    var u = f.capture.newUndo(.SetText)
+    u.text = "new"
+    f.capture.pushUndo(u)
+    @assert(text.text == "new")
+    @assert(text.isDirty)
+
+    f.shutdown()
+}
+
 // Font name and style edits reuse the shared FormText undo paths for a callout.
 #test
 {

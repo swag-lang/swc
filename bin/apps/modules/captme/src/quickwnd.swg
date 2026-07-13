@@ -592,17 +592,11 @@ impl QuickWnd
         var done = false
         let mode = .main.getEditMode()
 
-        var firstVisible = 0's32
-        for c in .layout.childs
-        {
-            if c.isVisible() do
-                break
-            firstVisible += 1
-        }
-
+        // Form buttons are always the leading children (only the trailing model
+        // button is ever hidden), so form 'i' maps directly to child 'i'.
         for it, i in .currentStyle.forms
         {
-            let btn = cast(*IconButton) .layout.childs[i + firstVisible]
+            let btn = cast(*IconButton) .layout.childs[i]
             btn.isChecked = false
 
             switch it
@@ -629,14 +623,19 @@ impl QuickWnd
                 done = true
         }
 
-        let curMdl = cast(*IconButton) .layout.childs.back()
-        if curMdl.userData
+        // The model button is optional (canAddModel), so the child list can be
+        // empty; guard back() against an out-of-bounds read.
+        if .layout.childs.count
         {
-            curMdl.show(!done)
-            if !done do
-                curMdl.isChecked = true
-            .layout.computeLayout()
-            .setScrollSize(0, .layout.resultHeight)
+            let curMdl = cast(*IconButton) .layout.childs.back()
+            if curMdl.userData
+            {
+                curMdl.show(!done)
+                if !done do
+                    curMdl.isChecked = true
+                .layout.computeLayout()
+                .setScrollSize(0, .layout.resultHeight)
+            }
         }
 
         .invalidate()

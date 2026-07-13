@@ -152,6 +152,9 @@ impl EditView
     {
         if !.capture do
             return
+        // A degenerate (zero-sized) capture would divide by zero below.
+        if .capture.width == 0 or .capture.height == 0 do
+            return
         var rect = .getClientRect()
         rect.inflate(-.viewMargin * 2)
 

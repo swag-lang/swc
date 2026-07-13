@@ -353,9 +353,6 @@ impl LibraryView
                 continue
             }
 
-            if remaining.isEmpty() do
-                continue
-
             var best:      f32
             var bestI:     u64
             var foundMatch = false
@@ -446,7 +443,10 @@ impl LibraryView
         }
 
         let renderer = .getApp().getRenderer()
-        for it in .items do
+        // Release textures over the full set, not just the filtered '.items': items
+        // filtered out are absent from '.items' and would leak their GPU texture
+        // when 'allItems' is cleared below.
+        for it in .allItems do
             renderer.removeTexture(&it.texture)
 
         // Add items

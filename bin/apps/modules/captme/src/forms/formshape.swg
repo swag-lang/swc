@@ -179,7 +179,8 @@ impl IForm for FormShape
             painter.drawEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, pen)
 
         case Rectangle:
-            if .borderColor.a and (pp.width <= 2 * bSize or pp.height < 2 * bSize) do
+            // Both axes must use the same operator so degenerate rects render consistently.
+            if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize) do
                 painter.fillRect(pp, .borderColor)
             else
             {

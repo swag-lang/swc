@@ -82,8 +82,9 @@ impl IActionUI for ActionImage
         let main    = cast(*MainWnd) cxt.wnd
         let capture = assume main.getCapture()
 
-        if !capture.backImgOriginal.isValid() do
-            capture.backImgOriginal = capture.backImg
+        // The backImgOriginal snapshot (which enables "Restore to Original") is taken lazily
+        // at the point backImg is genuinely mutated (see doProcessImage/trimCapture), not here:
+        // several commands can early-return on dialog Cancel or never touch backImg at all.
 
         switch cxt.id
         {
@@ -122,6 +123,10 @@ impl MainWnd
     mtd doProcessImage(cmdId: WndId, l, t, r, b, w, h: s32 = 0)
     {
         let capture = assume .getCapture()
+
+        // A real backImg mutation is about to be committed: snapshot the first original now.
+        if !capture.backImgOriginal.isValid() do
+            capture.backImgOriginal = capture.backImg
 
         let serial = capture.undoMgr.newSerial()
 
@@ -499,8 +504,12 @@ impl MainWnd
 
         let serial = capture.undoMgr.newSerial()
 
-        // Resize capture
-        if minX or minY or maxX != capture.width or maxY != capture.height
+        // Resize capture.
+        // With no opaque pixel and no in-bounds form, none of the scan loops fire and the
+        // accumulators stay at their init sentinels (minX/minY = F32.Max, maxX/maxY = 0), so
+        // minX > maxX. Require a valid content box first, otherwise the offsets below would be
+        // computed from F32.Max and produce a corrupt MoveCapture undo.
+        if minX <= maxX and minY <= maxY and (minX or minY or maxX != capture.width or maxY != capture.height)
         {
             with let undo = capture.newUndo(.MoveCapture)
             {
@@ -537,6 +546,10 @@ impl MainWnd
             cropRect.moveTop(dy)
             cropRect.width -= dw
             cropRect.height -= dh
+
+            // Cropping is a real backImg mutation: snapshot the first original before it.
+            if !capture.backImgOriginal.isValid() do
+                capture.backImgOriginal = capture.backImg
 
             let undo = capture.newUndo(.SetImage)
             undo.newImg = capture.backImg.toCrop(cropRect)

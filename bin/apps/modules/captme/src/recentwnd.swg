@@ -51,11 +51,13 @@ impl RecentView
             .items[.selected].zoom = view.zoom
 
         // Select new recent item
-        .selected = idx
         let item    = .items[idx]
         let capture = catch Capture.load(item.file)
         if capture
         {
+            // Only commit the selection once the capture has actually loaded,
+            // otherwise .selected would point at an item never shown in the view.
+            .selected = idx
             let previousCapture = .main.getCapture()
             if previousCapture do
                 .main.saveCapture(assume previousCapture)
@@ -250,15 +252,21 @@ impl IWnd for RecentWnd
             if !capture.changed do
                 return
 
-            capture.computePreview()
-            let item = .recentView.items[.recentView.selected]
-            .getApp().getRenderer().removeTexture(&item.preview)
-            item.preview = .getApp().getRenderer().addImage(capture.preview)
-            .invalidate()
+            // The 1s save timer isn't cancelled when the selection is cleared
+            // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
+            // into a valid recent item to avoid indexing out of range.
+            if .recentView.selected != Swag.U64.Max and .recentView.selected < .recentView.items.count
+            {
+                capture.computePreview()
+                let item = .recentView.items[.recentView.selected]
+                .getApp().getRenderer().removeTexture(&item.preview)
+                item.preview = .getApp().getRenderer().addImage(capture.preview)
+                .invalidate()
 
-            .main.libWnd.view.updateRecent(capture)
+                .main.libWnd.view.updateRecent(capture)
 
-            .main.saveCapture(capture)
+                .main.saveCapture(capture)
+            }
         }
 
         .getApp().deleteTimer(evt.timer)
@@ -318,6 +326,12 @@ impl RecentWnd
                     {
                         self.recentView.selected = Swag.U64.Max
                         self.recentView.select(i)
+                    }
+                    // A removal before the selected item shifts everything after it
+                    // down by one, so decrement the index to keep tracking the same item.
+                    elif self.recentView.selected != Swag.U64.Max and i < self.recentView.selected
+                    {
+                        self.recentView.selected -= 1
                     }
 
                     break
@@ -434,10 +448,13 @@ impl RecentWnd
             {
                 var idxSel = i
 
-                // Move the item to the first position
+                // Move the item to the first position, shifting items 0..i-1 down by one.
+                // swap() would dump the old first item into slot i and scramble MRU order,
+                // so relocate the (owned) pointer slot instead without freeing the item.
                 if front and i
                 {
-                    .recentView.items.swap(0, i)
+                    .recentView.items.removeAtOrdered(i)
+                    .recentView.items.insertAt(0, it)
                     idxSel = 0
                 }
 

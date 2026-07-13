@@ -159,10 +159,14 @@ impl IForm for FormText
         var pp        = boundRect
         pp.inflate(-bSize * 0.5)
 
-        if .text.isEmpty()
+        // Paint is a render path and must not mutate serialized document state: writing
+        // back into .text fights in-place editing and desyncs undo/serialization. Use a
+        // local fallback for drawing/measuring only, leaving .text untouched.
+        var renderText = .text
+        if renderText.isEmpty()
         {
-            .text    = "A"
-            .isDirty = true
+            renderText = "A"
+            .isDirty   = true
         }
 
         // Font
@@ -206,7 +210,7 @@ impl IForm for FormText
             .isDirty = true
         }
 
-        let tokens = Tokenize.split(.text, '\n''rune)
+        let tokens = Tokenize.split(renderText, '\n''rune)
         if .isDirty
         {
             .isDirty      = false

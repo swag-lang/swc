@@ -43,7 +43,8 @@ impl IActionUI for ActionSelection
 
         case InvertSelection:
             evt.setFlags |= .Disabled | .Name
-            evt.disabled = !capture or isLib
+            // Nothing to invert when there are no forms (matches SelectAll).
+            evt.disabled = !capture or !capture.forms.count or isLib
             evt.name     = "Invert Selection"
 
         case DeleteSelection:

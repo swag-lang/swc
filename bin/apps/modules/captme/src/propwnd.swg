@@ -414,10 +414,13 @@ impl PropWnd
         {
             let curSel = prop.getSelectedBaseForm()
             var picker = createColorPicker(btn, curSel.borderColor)
-            prop.pushTypedValue(curSel.borderColor.argb, BaseForm, #nameof(BaseForm.borderColor), true, true)
-            picker.sigChanged += func|prop, btn|(pk)
+            // Defer the undo entry until the color actually changes: `first` (closure-owned) is
+            // true only on the first change, so opening then closing without picking leaves no
+            // no-op undo entry, while later changes still replace the previous one (first = false).
+            picker.sigChanged += func|prop, btn, first = true|(pk)
             {
-                prop.pushTypedValue(pk.getColor().argb, BaseForm, #nameof(BaseForm.borderColor), false, true)
+                prop.pushTypedValue(pk.getColor().argb, BaseForm, #nameof(BaseForm.borderColor), first, true)
+                first = false
                 btn.invalidate()
             }
         }
@@ -473,10 +476,13 @@ impl PropWnd
             }
             else
             {
-                prop.pushTypedValue(curSel.backColor.argb, BaseForm, #nameof(BaseForm.backColor), true, true)
-                picker.sigChanged += func|prop, btn|(pk)
+                // Defer the undo entry until the color actually changes: `first` (closure-owned) is
+                // true only on the first change, so opening then closing without picking leaves no
+                // no-op undo entry, while later changes still replace the previous one (first = false).
+                picker.sigChanged += func|prop, btn, first = true|(pk)
                 {
-                    prop.pushTypedValue(pk.getColor().argb, BaseForm, #nameof(BaseForm.backColor), false, true)
+                    prop.pushTypedValue(pk.getColor().argb, BaseForm, #nameof(BaseForm.backColor), first, true)
+                    first = false
                     btn.invalidate()
                 }
             }
@@ -913,7 +919,8 @@ impl PropWnd
             let edit0 = EditCtrl.create(l, "x", Format.toString("%", curSel.x), flags: .AutoLoseFocus)
             edit0.labelSize = 15
             edit0.editSize  = 0
-            edit0.edit.setInputU64()
+            // X can be negative (form may sit outside the canvas), and the value is read back with parseS32.
+            edit0.edit.setInputS64()
             edit0.edit.sigLoseFocus += func|prop = me|(ed)
             {
                 let (v, ?, ?) = catch StrConv.parseS32(ed.text)
@@ -923,7 +930,8 @@ impl PropWnd
             let edit1 = EditCtrl.create(l, "y", Format.toString("%", curSel.y), flags: .AutoLoseFocus)
             edit1.labelSize = 15
             edit1.editSize  = 0
-            edit1.edit.setInputU64()
+            // Y can be negative (form may sit outside the canvas), and the value is read back with parseS32.
+            edit1.edit.setInputS64()
             edit1.edit.sigLoseFocus += func|prop = me|(ed)
             {
                 let (v, ?, ?) = catch StrConv.parseS32(ed.text)
@@ -1153,7 +1161,9 @@ impl PropWnd
             .addItem("Round")
             .addItem("Miter")
             .addItem("MiterBevel")
-            .selectItem(cast(u32) curSel.joinStyle - 1)
+            // The combo omits `JoinStyle.None` (0), so index = joinStyle - 1; guard against
+            // `None` which would underflow the unsigned index and select nothing.
+            .selectItem(curSel.joinStyle == .None ? 0 : cast(u32) curSel.joinStyle - 1)
             .sigChanged += func|prop = me|(combo, val)
             {
                 var v = val + 1

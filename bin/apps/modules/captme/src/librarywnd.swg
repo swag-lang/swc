@@ -153,7 +153,9 @@ impl LibraryWnd
         if .view.items.isEmpty() do
             return
         let n = .view.numImagesPerLine()
-        if .view.focusItem >= .view.items.count - n or .view.focusItem == Swag.U32.Max do
+        // Use an addition instead of 'items.count - n' so an unsigned underflow
+        // (when n > items.count) cannot make the guard pass and jump out of range.
+        if .view.focusItem + n >= .view.items.count or .view.focusItem == Swag.U32.Max do
             return
         .view.focusItem += n
         .view.setFocusItem(.view.focusItem)

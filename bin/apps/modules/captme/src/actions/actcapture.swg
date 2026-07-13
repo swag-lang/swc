@@ -55,17 +55,22 @@ impl IActionUI for ActionCapture
             evt.name = Format.toString("Capture Monitor 0 (%x%)", main.monitors[0].rect.width, main.monitors[0].rect.height)
             evt.icon = Icon.from(&main.icons24, 5)
         case Screen1:
-            evt.setFlags |= .Name | .Icon
-            evt.name = Format.toString("Capture Monitor 1 (%x%)", main.monitors[1].rect.width, main.monitors[1].rect.height)
-            evt.icon = Icon.from(&main.icons24, 5)
+            // Screen<N> maps to monitors[N]; guard the read like the execute path
+            // (idx >= monitors.count) so a machine with fewer monitors is safe.
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.disabled = main.monitors.count <= 1
+            evt.name     = evt.disabled ? "Capture Monitor 1" : Format.toString("Capture Monitor 1 (%x%)", main.monitors[1].rect.width, main.monitors[1].rect.height)
+            evt.icon     = Icon.from(&main.icons24, 5)
         case Screen2:
-            evt.setFlags |= .Name | .Icon
-            evt.name = Format.toString("Capture Monitor 2 (%x%)", main.monitors[2].rect.width, main.monitors[2].rect.height)
-            evt.icon = Icon.from(&main.icons24, 5)
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.disabled = main.monitors.count <= 2
+            evt.name     = evt.disabled ? "Capture Monitor 2" : Format.toString("Capture Monitor 2 (%x%)", main.monitors[2].rect.width, main.monitors[2].rect.height)
+            evt.icon     = Icon.from(&main.icons24, 5)
         case Screen3:
-            evt.setFlags |= .Name | .Icon
-            evt.name = Format.toString("Capture Monitor 3 (%x%)", main.monitors[3].rect.width, main.monitors[3].rect.height)
-            evt.icon = Icon.from(&main.icons24, 5)
+            evt.setFlags |= .Name | .Icon | .Disabled
+            evt.disabled = main.monitors.count <= 3
+            evt.name     = evt.disabled ? "Capture Monitor 3" : Format.toString("Capture Monitor 3 (%x%)", main.monitors[3].rect.width, main.monitors[3].rect.height)
+            evt.icon     = Icon.from(&main.icons24, 5)
 
         case HideEditor:
             evt.setFlags |= .Name | .Checked

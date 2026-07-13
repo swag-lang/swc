@@ -142,9 +142,15 @@ impl IActionUI for ActionFile
             if capture.linkedImage.length == 0
             {
                 main.saveAsImage(linked: true)
-                capture.linkedUpToDate = true
-                main.saveCapture(capture)
-                main.recentWnd.updateRecent()
+                // `saveAsImage` returns silently when the user cancels the dialog, leaving
+                // `linkedImage` empty; only mark up-to-date and persist when a linked path
+                // was actually set, otherwise we'd record a linked image that doesn't exist.
+                if capture.linkedImage.length != 0
+                {
+                    capture.linkedUpToDate = true
+                    main.saveCapture(capture)
+                    main.recentWnd.updateRecent()
+                }
                 break
             }
 
@@ -190,6 +196,13 @@ impl IActionUI for ActionFile
             trycatch File.duplicate(file, capture.file)
 
             let newCapture = trycatch Capture.load(file)
+            // `Capture.load` is fallible; `trycatch` swallows a failure and yields null,
+            // so guard before dereferencing to avoid a null crash and abort the duplication.
+            if newCapture == null
+            {
+                MessageDlg.error(main.surface, "Failed to duplicate capture")
+                break
+            }
             newCapture.file        = file
             newCapture.linkedImage = null
             newCapture.changed     = true
@@ -226,11 +239,11 @@ impl IActionUI for ActionFile
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
             lt.padding   = 5
-            addLine(lt, "<b>File<b>", Format.toString("%", capture.file))
+            addLine(lt, "<b>File</b>", Format.toString("%", capture.file))
             if capture.linkedImage != null do
-                addLine(lt, "<b>Linked Image<b>", Format.toString("%", capture.linkedImage))
-            addLine(lt, "<b>Image Size<b>", Format.toString("%x%", capture.width, capture.height))
-            addLine(lt, "<b>File Size<b>", StrConv.toDisplaySize(catch File.getInfo(capture.file).size))
+                addLine(lt, "<b>Linked Image</b>", Format.toString("%", capture.linkedImage))
+            addLine(lt, "<b>Image Size</b>", Format.toString("%x%", capture.width, capture.height))
+            addLine(lt, "<b>File Size</b>", StrConv.toDisplaySize(catch File.getInfo(capture.file).size))
             lt.computeLayout()
             discard dlg.doModal()
         }

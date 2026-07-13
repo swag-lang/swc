@@ -92,8 +92,10 @@ impl IForm for FormPolygon
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
         let rect = .boundRect()
-        let fx   = newSizeX / rect.width
-        let fy   = newSizeY / rect.height
+        // Guard against a near-zero divisor (colinear/degenerate shapes): a zero width
+        // or height would yield inf/NaN and destroy every point, so keep scale at 1.
+        let fx   = Math.isZeroEpsilon(rect.width) ? 1'f32 : newSizeX / rect.width
+        let fy   = Math.isZeroEpsilon(rect.height) ? 1'f32 : newSizeY / rect.height
 
         for &pt in .points
         {
@@ -130,8 +132,10 @@ impl IForm for FormPolygon
 
         var x0 = Swag.F32.Max
         var y0 = Swag.F32.Max
-        var x1 = 0'f32
-        var y1 = 0'f32
+        // Max accumulators must start at -F32.Max (not 0), else shapes entirely in
+        // negative coordinates stay clamped at 0 and produce oversized/misplaced bounds.
+        var x1 = -Swag.F32.Max
+        var y1 = -Swag.F32.Max
         for &pt in .points
         {
             x0 = Math.min(x0, pt.x)

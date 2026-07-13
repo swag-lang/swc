@@ -13,13 +13,17 @@ impl IActionUI for ActionView
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd
+        let capture = main.getCapture()
         switch cxt.id
         {
         case Clip:
             evt.setFlags |= .Name | .Disabled | .Checked
-            evt.name    = "Hide Outside Box"
-            evt.checked = main.editorOptions.clipToSelection
+            evt.name     = "Hide Outside Box"
+            evt.checked  = main.editorOptions.clipToSelection
+            // We advertise .Disabled, so provide the state: clipping to the
+            // selection is meaningless without a capture.
+            evt.disabled = !capture
         }
 
         return true

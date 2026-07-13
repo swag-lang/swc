@@ -363,13 +363,16 @@ impl IForm for FormImage
 
         let iconColor = g_App.theme.colors.btnIcon_Icon
 
-        if .borderColor.a and (pp.width <= 2 * bSize or pp.height < 2 * bSize) do
+        // Both axes must use the same operator so degenerate rects render consistently.
+        if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize) do
             painter.fillRect(pp, .borderColor)
         else
         {
             if cxt.quickMode
             {
-                pp.height -= 10
+                // Reserve room below the icon, but never let a tiny thumbnail's height go
+                // negative and invert the rect.
+                pp.height = Math.max(pp.height - 10, 1'f32)
 
                 var icon: Icon
                 switch .kind

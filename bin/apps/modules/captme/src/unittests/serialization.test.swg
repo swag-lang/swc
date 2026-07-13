@@ -63,9 +63,13 @@ using Swag, Core
     callout.text = "hi there"
     callout.roundSize = 20
     callout.fontSize = 36
+    callout.boldSize = 3
     callout.textColor = ColorGreen
     callout.tailX = 8
     callout.tailY = 70
+    callout.fontStyle = .BoldItalic
+    callout.alignHorz = .LeftTop
+    callout.alignVert = .RightBottom
 
     let path = testTempCapturePath()
     defer { discard catch File.delete(path) }
@@ -136,9 +140,13 @@ using Swag, Core
     @assert(lCallout.text == "hi there")
     @assert(lCallout.roundSize == 20)
     @assert(lCallout.fontSize == 36)
+    @assert(lCallout.boldSize == 3)
     @assert(lCallout.textColor == ColorGreen)
     @assert(lCallout.tailX == 8)
     @assert(lCallout.tailY == 70)
+    @assert(lCallout.fontStyle == .BoldItalic)
+    @assert(lCallout.alignHorz == .LeftTop)
+    @assert(lCallout.alignVert == .RightBottom)
 
     f.shutdown()
 }

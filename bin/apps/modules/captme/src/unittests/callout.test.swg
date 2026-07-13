@@ -92,6 +92,37 @@ using Swag, Core
     f.shutdown()
 }
 
+// Font name and style edits reuse the shared FormText undo paths for a callout.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+
+    let cf = testAddCallout(f.capture, 0, 0, 60, 30)
+    cf.fontName  = "old"
+    cf.fontStyle = .Regular
+    f.capture.selection.add(0)
+
+    var us = f.capture.newUndo(.SetFontStyle)
+    us.fontStyle = .Bold
+    f.capture.pushUndo(us)
+    @assert(cf.fontStyle == .Bold)
+    f.capture.undo()
+    @assert(cf.fontStyle == .Regular)
+
+    var uf = f.capture.newUndo(.SetFont)
+    uf.text      = "Arial"
+    uf.fontStyle = .Italic
+    f.capture.pushUndo(uf)
+    @assert(cf.fontName == "Arial")
+    @assert(cf.fontStyle == .Italic)
+    f.capture.undo()
+    @assert(cf.fontName == "old")
+    @assert(cf.fontStyle == .Regular)
+
+    f.shutdown()
+}
+
 // Painting a callout emits body/tail/text geometry without crashing, and hit-testing
 // covers the body while far-away points miss.
 #test

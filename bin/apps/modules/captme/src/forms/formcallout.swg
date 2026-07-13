@@ -8,10 +8,14 @@ struct FormCallout
     roundSize:       f32 = 16
     tailX, tailY:    f32
     fontSize:        f32 = 40
+    boldSize:        f32 = 0
+    lineSpacing      = 14.0
     fontStyle        = FontFamilyStyle.Regular
     fontName:        String
     textColor:       Color = Argb.White
     text:            String
+    alignHorz        = FormTextAlign.Center
+    alignVert        = FormTextAlign.Center
 
     #[Serialization.NoSerialize]
     {
@@ -36,9 +40,12 @@ impl IForm for FormCallout
         return .isSameBase(ptr) and
                .roundSize == other.roundSize and
                .fontSize == other.fontSize and
+               .boldSize == other.boldSize and
                .fontStyle == other.fontStyle and
                .fontName == other.fontName and
-               .textColor == other.textColor
+               .textColor == other.textColor and
+               .alignHorz == other.alignHorz and
+               .alignVert == other.alignVert
     }
 
     mtd impl copy(dst, src: *BaseForm)
@@ -48,9 +55,12 @@ impl IForm for FormCallout
         let s = cast(*FormCallout) src
         d.roundSize = s.roundSize
         d.fontSize  = s.fontSize
+        d.boldSize  = s.boldSize
         d.fontStyle = s.fontStyle
         d.fontName  = s.fontName
         d.textColor = s.textColor
+        d.alignHorz = s.alignHorz
+        d.alignVert = s.alignVert
         d.scale     = s.scale
     }
 
@@ -249,6 +259,14 @@ impl IForm for FormCallout
                 .render.isDirty = true
             }
 
+            // FormText only rebuilds its glyph face when told the font changed.
+            if .render.fontName != .fontName or .render.fontStyle != .fontStyle
+            {
+                .render.fontName    = .fontName
+                .render.fontStyle   = .fontStyle
+                .render.isDirtyFont = true
+            }
+
             .render.x           = cast(s32) inner.x
             .render.y           = cast(s32) inner.y
             .render.w           = cast(s32) inner.width
@@ -257,10 +275,10 @@ impl IForm for FormCallout
             .render.borderColor = Color.fromArgb(0, Argb.Black)
             .render.borderSize  = 0
             .render.fontSize    = .fontSize
-            .render.fontName    = .fontName
-            .render.fontStyle   = .fontStyle
-            .render.alignHorz   = .Center
-            .render.alignVert   = .Center
+            .render.boldSize    = .boldSize
+            .render.lineSpacing = .lineSpacing
+            .render.alignHorz   = .alignHorz
+            .render.alignVert   = .alignVert
             .render.alpha       = 100
             .render.scale       = 0
             .render.capture     = .capture

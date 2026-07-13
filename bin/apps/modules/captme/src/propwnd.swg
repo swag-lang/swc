@@ -717,31 +717,195 @@ impl PropWnd
         }
     }
 
-    // Text editor button plus round/font sliders for a callout. The button opens the
-    // shared multi-line editor prefilled with the current text; editText() itself
-    // pushes the SetText undo that updates the selected callout.
+    // Full text editing panel for a callout, mirroring propText (font family, inline
+    // text field + multi-line editor, bold/italic, alignment) but bound to FormCallout,
+    // then the callout-specific size/round sliders.
     mtd propCallout()
     {
         if .getSelectedFormType() != FormCallout do
             return
         let curSel = cast(*FormCallout) .getSelectedBaseForm()
 
-        let stack = StackLayoutCtrl.create(.mainLayout, .HorzCenter, {0, 0, 0, 44})
-        stack.padding = 6
-        with let btn = PushButton.create(stack, "Edit Text...", {0, 0, 160})
+        let stack = StackLayoutCtrl.create(.mainLayout, .Top, {0, 0, 0, 160})
+        stack.padding = 8
+
+        // Font
+        let combo = ComboBox.create(stack)
+        combo.addItem(g_App.theme.res.defaultTypeFaceR.getFamilyName())
+        if !curSel.fontName.length do
+            combo.selectedIdx = 0
+        combo.addSeparator()
+
+        if .sysFonts.isEmpty() do
+            .sysFonts = FontFamily.enumerateFromOs()
+        for &fnt in .sysFonts
         {
-            btn.sigPressed += func|prop = me|(btn)
+            combo.addItem(fnt.name, userData0: fnt)
+            if curSel.fontName == fnt.name do
+                combo.selectedIdx = cast(u32) combo.items.count - 1
+        }
+
+        combo.sigChanged += func|prop = me|(combo, idx)
+        {
+            if idx == Swag.U32.Max do
+                return
+            var capture = assume prop.main.getCapture()
+            var undo    = capture.newUndo(.SetFont)
+            var sel = combo.items[idx]
+            if sel.userData0
             {
-                let cur = cast(*FormCallout) prop.getSelectedBaseForm()
-                discard editText(g_Main, cur.text)
+                let p = cast(*FontFamilyEnumerate) sel.userData0
+                undo.text = p.name
+            }
+            undo.fontStyle = .Regular
+            capture.pushUndo(undo)
+        }
+
+        // Text
+        let edt = EditBox.create(stack, curSel.text)
+        edt.rightMargin = 24
+        with let btnedt = IconButton.create(edt, me.getTheme().getIcon24(.More, 20), {0, 0, 20, 20})
+        {
+            .dockStyle = .Right
+            .sigPressed += func|edt|(btn)
+            {
+                let txt = editText(g_Main, edt.text)
+                edt.setText(txt)
             }
         }
 
-        let ctrlR = .createSlider("Round", cast() MinRoundSize, cast() MaxRoundSize, curSel.roundSize)
-        .bindSlider(ctrlR, FormCallout, #nameof(FormCallout.roundSize))
+        edt.name = "Enter text"
+        edt.sigLoseFocus += func|prop = me|(edit)
+        {
+            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+            if curSel.text != edit.text
+            {
+                let capture = assume prop.main.getCapture()
+                let undo    = capture.newUndo(.SetText)
+                undo.text = edit.text
+                capture.pushUndo(undo)
+            }
+        }
+
+        // Bold/Italic
+        let stack2 = StackLayoutCtrl.create(stack, .HorzCenter, {0, 0, 0, 30})
+        with let bar2 = IconBar.create(stack2, 24)
+        {
+            .addCheckableToggleItem(Icon.from(&me.main.icons24, 16), CmdIdTextBold)
+            .addCheckableToggleItem(Icon.from(&me.main.icons24, 17), CmdIdTextItalic)
+
+            .sigUpdateState += func|prop = me|(evt)
+            {
+                let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+                evt.setFlags.add(.Checked)
+                evt.accepted = true
+
+                switch evt.id
+                {
+                case CmdIdTextBold:
+                    evt.checked = curSel.fontStyle == .Bold or curSel.fontStyle == .BoldItalic
+                case CmdIdTextItalic:
+                    evt.checked = curSel.fontStyle == .Italic or curSel.fontStyle == .BoldItalic
+                }
+            }
+
+            .sigCheckChanged += func|prop = me|(btn)
+            {
+                let capture = assume prop.main.getCapture()
+                let curSel  = cast(*FormCallout) prop.getSelectedBaseForm()
+                var fstyle  = curSel.fontStyle
+                switch btn.id
+                {
+                case CmdIdTextBold:
+                    if btn.isChecked and fstyle == .Regular do
+                        fstyle = .Bold
+                    elif btn.isChecked and fstyle == .Italic do
+                        fstyle = .BoldItalic
+                    elif !btn.isChecked and fstyle == .Bold do
+                        fstyle = .Regular
+                    elif !btn.isChecked and fstyle == .BoldItalic do
+                        fstyle = .Italic
+
+                case CmdIdTextItalic:
+                    if btn.isChecked and fstyle == .Regular do
+                        fstyle = .Italic
+                    elif btn.isChecked and fstyle == .Bold do
+                        fstyle = .BoldItalic
+                    elif !btn.isChecked and fstyle == .Italic do
+                        fstyle = .Regular
+                    elif !btn.isChecked and fstyle == .BoldItalic do
+                        fstyle = .Bold
+                }
+
+                var undo = capture.newUndo(.SetFontStyle)
+                undo.fontStyle = fstyle
+                capture.pushUndo(undo)
+            }
+
+            bar2.updateCommandState()
+        }
+
+        // Align
+        let stack1 = StackLayoutCtrl.create(stack, .HorzCenter, {0, 0, 0, 40})
+        with let bar = IconBar.create(stack1, 24)
+        {
+            .addCheckableItem(Icon.from(&me.main.icons24, 8), CmdIdTextHLeft)
+            .addCheckableItem(Icon.from(&me.main.icons24, 9), CmdIdTextHCenter)
+            .addCheckableItem(Icon.from(&me.main.icons24, 10), CmdIdTextHRight)
+            .addCheckableItem(Icon.from(&me.main.icons24, 11), CmdIdTextVTop)
+            .addCheckableItem(Icon.from(&me.main.icons24, 12), CmdIdTextVCenter)
+            .addCheckableItem(Icon.from(&me.main.icons24, 13), CmdIdTextVBottom)
+
+            .sigUpdateState += func|prop = me|(evt)
+            {
+                var curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+                evt.setFlags.add(.Checked)
+                evt.accepted = true
+
+                switch evt.id
+                {
+                case CmdIdTextHLeft:
+                    evt.checked = curSel.alignHorz == .LeftTop
+                case CmdIdTextHCenter:
+                    evt.checked = curSel.alignHorz == .Center
+                case CmdIdTextHRight:
+                    evt.checked = curSel.alignHorz == .RightBottom
+                case CmdIdTextVTop:
+                    evt.checked = curSel.alignVert == .LeftTop
+                case CmdIdTextVCenter:
+                    evt.checked = curSel.alignVert == .Center
+                case CmdIdTextVBottom:
+                    evt.checked = curSel.alignVert == .RightBottom
+                }
+            }
+
+            .sigCheckChanged += func|prop = me|(btn)
+            {
+                switch btn.id
+                {
+                case CmdIdTextHLeft:
+                    prop.pushTypedValue(cast(u32) FormTextAlign.LeftTop, FormCallout, #nameof(FormCallout.alignHorz), true)
+                case CmdIdTextHCenter:
+                    prop.pushTypedValue(cast(u32) FormTextAlign.Center, FormCallout, #nameof(FormCallout.alignHorz), true)
+                case CmdIdTextHRight:
+                    prop.pushTypedValue(cast(u32) FormTextAlign.RightBottom, FormCallout, #nameof(FormCallout.alignHorz), true)
+                case CmdIdTextVTop:
+                    prop.pushTypedValue(cast(u32) FormTextAlign.LeftTop, FormCallout, #nameof(FormCallout.alignVert), true)
+                case CmdIdTextVCenter:
+                    prop.pushTypedValue(cast(u32) FormTextAlign.Center, FormCallout, #nameof(FormCallout.alignVert), true)
+                case CmdIdTextVBottom:
+                    prop.pushTypedValue(cast(u32) FormTextAlign.RightBottom, FormCallout, #nameof(FormCallout.alignVert), true)
+                }
+            }
+
+            bar.updateCommandState()
+        }
 
         let ctrlF = .createSlider("Size", cast() MinFontSize, cast() MaxFontSize, cast() curSel.fontSize)
         .bindSlider(ctrlF, FormCallout, #nameof(FormCallout.fontSize))
+
+        let ctrlR = .createSlider("Round", cast() MinRoundSize, cast() MaxRoundSize, curSel.roundSize)
+        .bindSlider(ctrlR, FormCallout, #nameof(FormCallout.roundSize))
     }
 
     mtd propText()

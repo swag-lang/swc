@@ -52,6 +52,43 @@ func formEditableTextDirty(f: IForm)
     }
 }
 
+// Font name/style also live on both FormText and FormCallout; the SetFont/SetFontStyle
+// undos operate on either through these helpers.
+func formFontNamePtr(f: IForm)->#null *String
+{
+    switch f
+    {
+    case FormText as b:
+        return &b.fontName
+    case FormCallout as b:
+        return &b.fontName
+    }
+    return null
+}
+
+func formFontStylePtr(f: IForm)->#null *FontFamilyStyle
+{
+    switch f
+    {
+    case FormText as b:
+        return &b.fontStyle
+    case FormCallout as b:
+        return &b.fontStyle
+    }
+    return null
+}
+
+// FormText caches its glyph face and must be told the font changed; FormCallout rebuilds
+// its render form from live fields each paint, so it needs no explicit flag here.
+func formFontDirty(f: IForm)
+{
+    if f == FormText
+    {
+        let b = cast(*FormText) @dataof(f)
+        b.isDirtyFont = true
+    }
+}
+
 struct Undo
 {
     kind:            UndoKind
@@ -182,23 +219,24 @@ impl Undo
             .selection = .capture.selection
             for s in .selection
             {
-                let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let f  = .capture.forms[s]
+                let np = formFontNamePtr(f)
+                let sp = formFontStylePtr(f)
+                if !np do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                .oldText.add(b.fontName)
-                .oldU32.add(cast(u32) b.fontStyle)
+                .oldText.add(dref np)
+                .oldU32.add(cast(u32) dref sp)
             }
 
         case SetFontStyle:
             .selection = .capture.selection
             for s in .selection
             {
-                let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let f  = .capture.forms[s]
+                let sp = formFontStylePtr(f)
+                if !sp do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                .oldU32.add(cast(u32) b.fontStyle)
+                .oldU32.add(cast(u32) dref sp)
             }
 
         case SetFormFromModel:
@@ -384,24 +422,25 @@ impl Undo
         case SetFont:
             for s, i in .selection
             {
-                let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let f  = .capture.forms[s]
+                let np = formFontNamePtr(f)
+                let sp = formFontStylePtr(f)
+                if !np do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                b.fontName    = .text
-                b.fontStyle   = .fontStyle
-                b.isDirtyFont = true
+                dref np = .text
+                dref sp = .fontStyle
+                formFontDirty(f)
             }
 
         case SetFontStyle:
             for s, i in .selection
             {
-                let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let f  = .capture.forms[s]
+                let sp = formFontStylePtr(f)
+                if !sp do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                b.fontStyle   = .fontStyle
-                b.isDirtyFont = true
+                dref sp = .fontStyle
+                formFontDirty(f)
             }
 
         case SetFormFromModel:
@@ -602,13 +641,14 @@ impl Undo
             var idx = 0
             for s in .selection
             {
-                let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let f  = .capture.forms[s]
+                let np = formFontNamePtr(f)
+                let sp = formFontStylePtr(f)
+                if !np do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                b.fontName    = .oldText[idx]
-                b.fontStyle   = cast() .oldU32[idx]
-                b.isDirtyFont = true
+                dref np = .oldText[idx]
+                dref sp = cast() .oldU32[idx]
+                formFontDirty(f)
                 idx += 1
             }
 
@@ -616,12 +656,12 @@ impl Undo
             var idx = 0
             for s in .selection
             {
-                let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let f  = .capture.forms[s]
+                let sp = formFontStylePtr(f)
+                if !sp do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                b.fontStyle   = cast() .oldU32[idx]
-                b.isDirtyFont = true
+                dref sp = cast() .oldU32[idx]
+                formFontDirty(f)
                 idx += 1
             }
 

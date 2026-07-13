@@ -20,7 +20,8 @@ impl QuickStyle
                type == FormPolygon or
                type == FormShape or
                type == FormStep or
-               type == FormText
+               type == FormText or
+               type == FormCallout
     }
 
     func deleteOne(itf: IForm)
@@ -140,11 +141,13 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     {
         let cl = cast(*FormCallout) @dataof(paintItf)
         cl.text = "A"
-        // Keep the body close to full size so the mapped border does not read as too
-        // heavy at preview scale, and give it a short in-cell downward tail.
-        cl.h     = cast(s32) (cast(f32) cl.h * 0.72)
-        cl.tailX = cl.x + cast(s32) (cast(f32) cl.w * 0.30)
-        cl.tailY = cl.y + cl.h + cast(s32) (cast(f32) cl.h * 0.36)
+        // Read as a clean speech bubble: quick mode already normalizes the glyph size to
+        // a fixed range, so a small fontSize just lands at the airy end; keep the body
+        // nearly full-cell so the letter breathes, and hang a short downward tail nub.
+        cl.fontSize = 10
+        cl.h        = cast(s32) (cast(f32) cl.h * 0.82)
+        cl.tailX    = cl.x + cast(s32) (cast(f32) cl.w * 0.28)
+        cl.tailY    = cl.y + cl.h + 8
     }
 
     return result

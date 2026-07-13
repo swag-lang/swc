@@ -23,6 +23,7 @@ struct FormCallout
         gizmoTail:   GizmoPoints
         render:      FormText
         tailPath:    LinePath
+        tailStroke:  LinePath
     }
 }
 
@@ -171,12 +172,16 @@ impl IForm for FormCallout
         let cy = b.vertCenter()
         let dx = tip.x - cx
         let dy = tip.y - cy
-        let hb = Math.max(Math.min(18.0, Math.min(b.width, b.height) * 0.3), 2'f32)
+        var hb = Math.max(Math.min(18.0, Math.min(b.width, b.height) * 0.3), 2'f32)
 
-        // Aspect-normalized compare picks a vertical vs horizontal edge.
+        // Aspect-normalized compare picks a vertical vs horizontal edge. Then keep the
+        // base from getting wider than the tail is long: a short tail (the quick-style
+        // preview, or a tip dropped near the body) must still taper to a clean point
+        // instead of a fat squat wedge. Long tails keep the full base (clamp inactive).
         if Math.abs(dx) * b.height > Math.abs(dy) * b.width
         {
             let ex = dx > 0 ? b.right() : b.x
+            hb = Math.max(Math.min(hb, Math.abs(tip.x - ex) * 0.6), 2'f32)
             let by = Math.clamp(tip.y, b.y + hb, b.bottom() - hb)
             result.p0  = {ex, by - hb}
             result.p1  = {ex, by + hb}
@@ -185,6 +190,7 @@ impl IForm for FormCallout
         else
         {
             let ey = dy > 0 ? b.bottom() : b.y
+            hb = Math.max(Math.min(hb, Math.abs(tip.y - ey) * 0.6), 2'f32)
             let bx = Math.clamp(tip.x, b.x + hb, b.right() - hb)
             result.p0  = {bx - hb, ey}
             result.p1  = {bx + hb, ey}
@@ -198,7 +204,11 @@ impl IForm for FormCallout
     {
         let z     = cxt.z
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
-        bSize     = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt)
+        // Quick-mode preview maps the border into a thin range (like FormText's, 2..4)
+        // rather than the heavy shape range (4..8): at icon scale a fat outline is the
+        // main thing that reads as clumsy. Full-scale rendering is unaffected (adaptSize
+        // returns size*z there and ignores this range).
+        bSize     = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 2, 4)
         let rSize = BaseForm.adaptSize(.roundSize, MinRoundSize, MaxRoundSize, cxt)
         let bk    = .backColor
         let body  = .rectFormBound() * z
@@ -237,10 +247,19 @@ impl IForm for FormCallout
             .tailPath.close()
             painter.fillPolygon(&.tailPath, bk)
 
+            // Stroke the two slanted edges as one joined polyline (p0 → tip → p1) so the
+            // tip is a single clean point. The old pair of separate thick drawLine calls
+            // overlapped into a blob at the tip and left stub ends at the base — glaring
+            // at small scale (the quick-style preview) where the border is thick relative
+            // to the tail.
             if .borderColor.a and bSize > 0
             {
-                painter.drawLine(p0.x, p0.y, tip.x, tip.y, .borderColor, bSize)
-                painter.drawLine(p1.x, p1.y, tip.x, tip.y, .borderColor, bSize)
+                .tailStroke.start(p0.x, p0.y)
+                .tailStroke.lineTo(tip.x, tip.y)
+                .tailStroke.lineTo(p1.x, p1.y)
+                var pen = Pen.createSolid(.borderColor, bSize)
+                pen.joinStyle = .Round
+                painter.drawPath(&.tailStroke, pen)
             }
         }
 
@@ -248,7 +267,14 @@ impl IForm for FormCallout
         if !cxt.hitTest
         {
             var inner = .rectFormBound()
-            let pad   = Math.max(.roundSize * 0.5, 6'f32) + .borderSize
+            // Text padding is a form-space inset. The raw round/border values are sized
+            // for full-scale bubbles; at preview scale they would swallow the whole tiny
+            // body and leave a degenerate (near-zero-height) text box, throwing the glyph
+            // off-centre. In quick mode derive the pad from the already-mapped sizes so
+            // the "A" keeps an airy, correctly centred box.
+            var pad = Math.max(.roundSize * 0.5, 6'f32) + .borderSize
+            if cxt.quickMode do
+                pad = Math.max(rSize * 0.5, 2'f32) + bSize
             inner.inflate(-pad, -pad)
             inner.width  = Math.max(inner.width, 1)
             inner.height = Math.max(inner.height, 1)

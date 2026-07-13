@@ -27,6 +27,8 @@ enum UndoKind
     RestoreOrg
     SetImage
     SetImageInside
+    Group
+    Ungroup
 }
 
 // Editable text lives on FormText and (reusing it) FormCallout. The SetText undo
@@ -123,6 +125,12 @@ struct Undo
     mdlValue:        *BaseForm
     text:            String
     fontStyle:       FontFamilyStyle
+
+    // Group/Ungroup: 'groupId' is the fresh id a Group prepends to each member;
+    // 'oldGroups' is the per-selection front id an Ungroup pops (0 = was ungrouped),
+    // saved so undo can prepend it back.
+    groupId:         u64
+    oldGroups:       Array'u64
 }
 
 // Undo is a command of the generic gui UndoManager (owned by Capture): redo re-applies the
@@ -202,6 +210,18 @@ impl Undo
                 if b.kind != .Image do
                     continue
                 .oldImage.add(b.image)
+            }
+
+        case Group:
+            .selection = .capture.selection
+            .groupId   = .capture.newGroupId()
+
+        case Ungroup:
+            .selection = .capture.selection
+            for s in .selection
+            {
+                let b = cast(*BaseForm) @dataof(.capture.forms[s])
+                .oldGroups.add(b.groups.isEmpty() ? 0'u64 : b.groups[0])
             }
 
         case SetText:
@@ -407,6 +427,23 @@ impl Undo
                 b.image = .newImg
                 b.dirty = true
             }
+
+        case Group:
+            for s in .selection
+            {
+                let b = cast(*BaseForm) @dataof(.capture.forms[s])
+                b.groups.insertAt(0, .groupId)
+            }
+            .capture.selectionHasChanged()
+
+        case Ungroup:
+            for s in .selection
+            {
+                let b = cast(*BaseForm) @dataof(.capture.forms[s])
+                if !b.groups.isEmpty() do
+                    b.groups.removeAtOrdered(0)
+            }
+            .capture.selectionHasChanged()
 
         case SetText:
             for s, i in .selection
@@ -623,6 +660,24 @@ impl Undo
                 b.dirty = true
                 idx += 1
             }
+
+        case Group:
+            for s in .selection
+            {
+                let b = cast(*BaseForm) @dataof(.capture.forms[s])
+                if !b.groups.isEmpty() and b.groups[0] == .groupId do
+                    b.groups.removeAtOrdered(0)
+            }
+            .capture.selectionHasChanged()
+
+        case Ungroup:
+            for s, i in .selection
+            {
+                let b = cast(*BaseForm) @dataof(.capture.forms[s])
+                if .oldGroups[i] != 0 do
+                    b.groups.insertAt(0, .oldGroups[i])
+            }
+            .capture.selectionHasChanged()
 
         case SetText:
             var idx = 0

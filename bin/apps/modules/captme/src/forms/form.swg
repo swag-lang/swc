@@ -64,6 +64,12 @@ struct BaseForm
     scale:               f32 = 0
     rotate:              f32 = 0
 
+    // Group membership as a path of group ids, outermost first (empty = ungrouped).
+    // Grouping prepends a fresh id shared by every member; ungrouping pops the front,
+    // so nested groups collapse one level at a time. Ids are minted by Capture and
+    // remapped on paste; the field is style-agnostic (copyBase/isSameBase ignore it).
+    groups:              Array'u64
+
     #[Serialization.NoSerialize]
     {
         capture:      *Capture

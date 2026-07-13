@@ -27,6 +27,7 @@ struct Capture
     file:                    String
     forms:                   Array'IForm
     nextStepIndex:           u32 = 1
+    nextGroupId:             u64 = 1
 
     linkedImage:             String
     linkedUpToDate:          bool = true
@@ -468,6 +469,10 @@ impl Capture
                 return
         }
 
+        // Pasted copies keep their internal grouping but must not re-join the originals
+        // (or collide with groups from another capture file), so mint fresh ids.
+        .remapGroups(res)
+
         let undo = .newUndo(.CreateForm)
         .selection.clear()
 
@@ -785,6 +790,40 @@ impl Capture
             painter.popTransform()
         }
 
+        // Group outline: a dashed, embossed box around each selected group communicates
+        // that its forms move as one unit (the individual member gizmos still show).
+        if .selection.count
+        {
+            var ids: Array'u64
+            for s in .selection
+            {
+                let g = formOuterGroup(.forms[s])
+                if g != 0 and !ids.contains(g) do
+                    ids.add(g)
+            }
+
+            for gid in ids
+            {
+                var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
+                for f in .forms
+                {
+                    if formOuterGroup(f) != gid do
+                        continue
+                    let br = f.boundRect()
+                    bound.x = Math.min(bound.x, br.x)
+                    bound.y = Math.min(bound.y, br.y)
+                    bound.setRight(Math.max(bound.right(), br.right()))
+                    bound.setBottom(Math.max(bound.bottom(), br.bottom()))
+                }
+
+                var vr = bound * zoom
+                vr.offset(rect.x, rect.y)
+                vr.inflate(6)
+                painter.drawRect(vr, Pen.createDash(.Dash, Argb.DarkGray, 3))
+                painter.drawRect(vr, Pen.createDash(.Dash, Argb.White, 1))
+            }
+        }
+
         // Selection rectangle
         if .drawSelRect
         {
@@ -1060,6 +1099,9 @@ impl Capture
 
         with menu
         {
+            .addItem(ActionGroup.Group)
+            .addItem(ActionGroup.Ungroup)
+            .addSeparator()
             .addItem(ActionEdit.ResetRotation)
             .addSeparator()
             .addItem(ActionSelection.SelectAll)
@@ -1174,6 +1216,22 @@ impl Capture
                 }
                 else
                 {
+                    // Double-click on a grouped form enters the group: select just that
+                    // child so it can be moved/edited on its own (standard "enter group").
+                    if evt.kind == .MouseDoubleClick and .hotForm != Swag.U64.Max and formOuterGroup(.forms[.hotForm]) != 0
+                    {
+                        .selection.clear()
+                        .selection.add(.hotForm)
+                        .selectionHasChanged()
+                        .lastSelectPos  = evt.surfacePos
+                        .mouseMode      = .Moving
+                        .firstMouseMove = true
+                        .movingStart    = localPos
+                        view.captureMouse()
+                        view.invalidate()
+                        return true
+                    }
+
                     var here = .selection.contains(.hotForm)
 
                     // Swap between objects at the same position if no mouse move
@@ -1206,6 +1264,7 @@ impl Capture
                         {
                             .lastSelectPos = evt.surfacePos
                             .selection.add(.hotForm)
+                            .expandSelectionToGroups()
                             .selectionHasChanged()
                         }
 
@@ -1280,6 +1339,9 @@ impl Capture
                 if pp.intersectWith(r) and !newSel.contains(idx) do
                     newSel.add(idx)
             }
+
+            // Touching any group member with the lasso selects the whole group.
+            .expandGroups(&newSel)
 
             var selChanged = newSel.count != .selection.count
             if !selChanged
@@ -1478,6 +1540,114 @@ impl Capture
         .updateModelFromSelection()
         .editView.main.updateState()
         .editView.invalidate()
+    }
+
+    //////////////////////////////
+    // GROUP
+    //////////////////////////////
+
+    // Outermost group id a form belongs to (0 = ungrouped). Selecting/hit-testing a
+    // grouped form expands to every form sharing this id, so a group moves as a whole.
+    func formOuterGroup(f: IForm)->u64
+    {
+        let b = cast(*BaseForm) @dataof(f)
+        if b.groups.isEmpty() do
+            return 0
+        return b.groups[0]
+    }
+
+    func groupIndexOf(arr: Array'u64, v: u64)->s64
+    {
+        for x, i in arr where x == v do
+            return i
+        return -1
+    }
+
+    mtd newGroupId()->u64
+    {
+        let id = .nextGroupId
+        .nextGroupId += 1
+        return id
+    }
+
+    // Grow a selection so that whenever one member of a group is selected, the entire
+    // outermost group is too. Called after a click/lasso builds a raw set.
+    mtd expandGroups(sel: *Array'u64)
+    {
+        var ids: Array'u64
+        for s in dref sel
+        {
+            let g = formOuterGroup(.forms[s])
+            if g != 0 and !ids.contains(g) do
+                ids.add(g)
+        }
+
+        if ids.isEmpty() do
+            return
+
+        for f, i in .forms
+        {
+            let g = formOuterGroup(f)
+            if g != 0 and ids.contains(g) and !sel.contains(i) do
+                sel.add(i)
+        }
+
+        sel.sort()
+    }
+
+    mtd expandSelectionToGroups()
+    {
+        .expandGroups(&.selection)
+    }
+
+    // Grouping wraps two or more selected items into one new group; a single item has
+    // nothing to combine with.
+    mtd canGroup()->bool
+    {
+        return .selection.count >= 2
+    }
+
+    // Ungrouping applies as soon as any selected item is part of a group.
+    mtd canUngroup()->bool
+    {
+        for s in .selection
+        {
+            if formOuterGroup(.forms[s]) != 0 do
+                return true
+        }
+        return false
+    }
+
+    // Give every distinct group id in 'forms' a fresh id, keeping the relative nesting
+    // structure. Used when pasting so copies form their own groups instead of silently
+    // re-joining the originals (or colliding across capture files).
+    mtd remapGroups(forms: Array'IForm)
+    {
+        var oldIds: Array'u64
+        var newIds: Array'u64
+
+        for f in forms
+        {
+            let b = cast(*BaseForm) @dataof(f)
+            for gid in b.groups
+            {
+                if gid == 0 or groupIndexOf(oldIds, gid) >= 0 do
+                    continue
+                oldIds.add(gid)
+                newIds.add(.newGroupId())
+            }
+        }
+
+        for f in forms
+        {
+            let b = cast(*BaseForm) @dataof(f)
+            for i in b.groups.count
+            {
+                let idx = groupIndexOf(oldIds, b.groups[i])
+                if idx >= 0 do
+                    b.groups[i] = newIds[idx]
+            }
+        }
     }
 
     //////////////////////////////

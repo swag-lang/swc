@@ -658,6 +658,8 @@ impl QuickWnd
                 btn.isChecked = mode == .Text and it.isSame(&.main.mdlFormText)
             case FormDraw:
                 btn.isChecked = mode == .Draw and it.isSame(&.main.mdlFormDraw)
+            case FormCallout:
+                btn.isChecked = mode == .Callout and it.isSame(&.main.mdlFormCallout)
             }
 
             if btn.isChecked do

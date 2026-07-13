@@ -717,27 +717,31 @@ impl PropWnd
         }
     }
 
-    // Round/font sliders and the text editor entry point for a callout.
+    // Text editor button plus round/font sliders for a callout. The button opens the
+    // shared multi-line editor prefilled with the current text; editText() itself
+    // pushes the SetText undo that updates the selected callout.
     mtd propCallout()
     {
         if .getSelectedFormType() != FormCallout do
             return
         let curSel = cast(*FormCallout) .getSelectedBaseForm()
 
+        let stack = StackLayoutCtrl.create(.mainLayout, .HorzCenter, {0, 0, 0, 44})
+        stack.padding = 6
+        with let btn = PushButton.create(stack, "Edit Text...", {0, 0, 160})
+        {
+            btn.sigPressed += func|prop = me|(btn)
+            {
+                let cur = cast(*FormCallout) prop.getSelectedBaseForm()
+                discard editText(g_Main, cur.text)
+            }
+        }
+
         let ctrlR = .createSlider("Round", cast() MinRoundSize, cast() MaxRoundSize, curSel.roundSize)
         .bindSlider(ctrlR, FormCallout, #nameof(FormCallout.roundSize))
 
         let ctrlF = .createSlider("Size", cast() MinFontSize, cast() MaxFontSize, cast() curSel.fontSize)
         .bindSlider(ctrlF, FormCallout, #nameof(FormCallout.fontSize))
-
-        with let btn = PushButton.create(.mainLayout, "Edit Text...", {0, 0, 0, 40})
-        {
-            .margin.x = 5
-            btn.sigPressed += func|prop = me|(btn)
-            {
-                prop.main.sendCommandEvent(ActionEdit.EditText)
-            }
-        }
     }
 
     mtd propText()

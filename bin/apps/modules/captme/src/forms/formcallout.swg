@@ -198,9 +198,7 @@ impl IForm for FormCallout
     {
         let z     = cxt.z
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
-        // Thinner mapped border in quick-style previews: the body is shrunk to make room
-        // for the tail, so the default 4..8px range reads as too heavy at that scale.
-        bSize     = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 2, 4)
+        bSize     = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt)
         let rSize = BaseForm.adaptSize(.roundSize, MinRoundSize, MaxRoundSize, cxt)
         let bk    = .backColor
         let body  = .rectFormBound() * z

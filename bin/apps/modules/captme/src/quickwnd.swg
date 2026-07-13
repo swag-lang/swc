@@ -139,10 +139,12 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     if @kindof(paintItf) == FormCallout
     {
         let cl = cast(*FormCallout) @dataof(paintItf)
-        cl.text  = "A"
-        cl.h     = cast(s32) (cast(f32) cl.h * 0.6)
+        cl.text = "A"
+        // Keep the body close to full size so the mapped border does not read as too
+        // heavy at preview scale, and give it a short in-cell downward tail.
+        cl.h     = cast(s32) (cast(f32) cl.h * 0.72)
         cl.tailX = cl.x + cast(s32) (cast(f32) cl.w * 0.30)
-        cl.tailY = cl.y + cl.h + cast(s32) (cast(f32) cl.h * 0.45)
+        cl.tailY = cl.y + cl.h + cast(s32) (cast(f32) cl.h * 0.36)
     }
 
     return result

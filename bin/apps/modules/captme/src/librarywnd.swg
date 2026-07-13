@@ -80,14 +80,22 @@ impl LibraryWnd
 
     mtd removeSelected()
     {
+        // g_Library.removeFile() fires onDeleteFile, whose handler removes entries
+        // from .view.items. Snapshot the selected file names (owned copies) first so
+        // we never delete from the list we are iterating, which would skip entries
+        // and desync the selection/indices.
+        var toRemove: Array'String
         for it, i in .view.items
         {
             if it.filtered do
                 continue
 
             if .view.selModel.isSelected(cast() i) do
-                g_Library.removeFile(it.fi.fullname)
+                toRemove.add(it.fi.fullname)
         }
+
+        for name in toRemove do
+            g_Library.removeFile(name)
     }
 
     mtd moveSelHome()

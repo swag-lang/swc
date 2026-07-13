@@ -645,7 +645,11 @@ impl PropWnd
             .toolTip   = "Reset the global step count to 1"
             btn.sigPressed += func|prop = me|(btn)
             {
-                let capture = assume prop.main.getCapture()
+                // The button outlives the panel build; the capture may be gone by the
+                // time it is pressed, so guard instead of assuming it is still there.
+                let capture = prop.main.getCapture()
+                if !capture do
+                    return
                 capture.nextStepIndex = 1
             }
         }

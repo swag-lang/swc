@@ -159,9 +159,17 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
 
     var bits: *u8
     let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
+    if !memBMP or !bits do
+        throw Swag.SystemError{"CreateDIBSection failed"}
     defer catch DeleteObject(cast() memBMP)
 
-    SelectObject(memDC, cast() memBMP)
+    // Keep the DC's original bitmap so we can re-select it before deleting memBMP:
+    // GDI refuses to delete an object that is still selected into a DC. The defer
+    // below runs (LIFO) before the DeleteObject/DeleteDC defers, restoring the DC
+    // first so DeleteObject actually succeeds instead of silently leaking the DIB.
+    let oldBMP = SelectObject(memDC, cast() memBMP)
+    defer discard SelectObject(memDC, oldBMP)
+
     BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)
 
     if drawCursor do

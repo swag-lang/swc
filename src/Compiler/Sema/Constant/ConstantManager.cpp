@@ -111,7 +111,8 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
 
     const TypeInfo& type           = ctx.typeMgr().get(typeRef);
     TypeRef         storageTypeRef = typeRef;
-    if (const TypeRef unwrappedTypeRef = type.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum); unwrappedTypeRef.isValid())
+    const TypeRef   unwrappedTypeRef = type.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    if (unwrappedTypeRef.isValid())
         storageTypeRef = unwrappedTypeRef;
 
     const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);

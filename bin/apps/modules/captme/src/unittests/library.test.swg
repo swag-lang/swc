@@ -1,7 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, File
 
 // Library actions can be exercised against an empty headless library window:
 // sorting/filtering and command states do not require scanning the user's files.
@@ -177,6 +177,82 @@ using Swag, Core
     wnd.sendCommandEvent(ActionLibSel.Up)
     @assert(view.focusItem == 0)
     @assert(view.selModel.isSelected(0))
+
+    f.shutdown()
+}
+
+// Deleting a multi-selection removes every selected capture, even though the
+// onDeleteFile handler removes items from view.items as each file goes away
+// (regression: iterating the list while it was mutated used to skip entries).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+
+    catch Library.init()
+    @assert(@err == null)
+    g_Library.files.clear()
+    g_Library.loaded = true
+    g_Library.onDeleteFile.arr.clear()
+
+    let lib  = f.setupLibraryWnd()
+    let view = lib.view
+
+    // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
+    g_Library.onDeleteFile += func|libWnd = lib|(file)
+    {
+        for it, i in libWnd.view.items
+        {
+            if it.fi.fullname == file
+            {
+                libWnd.view.selModel.select(cast() i, false)
+                libWnd.view.items.removeAtOrdered(i)
+                break
+            }
+        }
+    }
+
+    // Three real capture files, registered in the library and the view.
+    var paths: Array'String
+    for idx in 3
+    {
+        let capture = Memory.new'Capture()
+        capture.width, capture.widthOrg = 8
+        capture.height, capture.heightOrg = 6
+        capture.backImg = Testing.indexedImage(8, 6)
+        let path = testTempCapturePath()
+        capture.file    = path
+        capture.changed = true
+        catch capture.save()
+        @assert(@err == null)
+        @assert(File.exists(path))
+        Memory.delete(capture)
+
+        g_Library.addFile(path)
+        discard testAddLibraryItem(view, path, size: 8, day: cast(u16) (idx + 1))
+        paths.add(path)
+    }
+    defer
+    {
+        for p in paths do
+            discard catch File.delete(p)
+        g_Library.files.clear()
+        g_Library.onDeleteFile.arr.clear()
+    }
+
+    @assert(view.items.count == 3)
+    @assert(g_Library.files.count == 3)
+
+    for idx in view.items.count do
+        view.selModel.select(cast() idx, true)
+
+    lib.removeSelected()
+
+    // Every selection is gone from the view, the library, and the disk.
+    @assert(view.items.count == 0)
+    @assert(g_Library.files.count == 0)
+    for p in paths do
+        @assert(!File.exists(p))
 
     f.shutdown()
 }

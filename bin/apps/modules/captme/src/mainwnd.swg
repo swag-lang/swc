@@ -297,6 +297,12 @@ impl MainWnd
         }
         elif freeze and !.embInfoFreeze
         {
+            // Nothing to freeze without a capture (the Freeze command is disabled in
+            // that case, but guard here too so no code path can fault on getCapture()).
+            let capture = .getCapture()
+            if !capture do
+                return
+
             .embInfoFreeze = EmbInfoCtrl.create(.editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
             .embInfoFreeze.sigOnClose += func|main = me|(ctrl)
             {
@@ -304,7 +310,6 @@ impl MainWnd
                 main.embInfoFreeze = null
             }
 
-            let capture = assume .getCapture()
             capture.selection.clear()
             capture.selectionHasChanged()
             .freezeSel = true
@@ -483,9 +488,15 @@ impl MainWnd
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
+            // CaptureMode only defines Screen0..Screen3, so never index past the
+            // 4 available per-monitor actions even if the machine has more monitors.
             let screenActions = [ActionCapture.Screen0, ActionCapture.Screen1, ActionCapture.Screen2, ActionCapture.Screen3]
-            for m, idx in me.monitors do
+            for m, idx in me.monitors
+            {
+                if idx >= @countof(screenActions) do
+                    break
                 .addItem(screenActions[idx])
+            }
 
             .addSeparator()
             .addItem(ActionCapture.HideEditor)

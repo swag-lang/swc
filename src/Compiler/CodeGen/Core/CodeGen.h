@@ -278,6 +278,29 @@ public:
     }
 
     template<typename T>
+    const T* safeNodePayload(AstNodeRef nodeRef) const
+    {
+        nodeRef = resolvedNodeRef(nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+        {
+            const auto it = nodePayloads_.find(nodeRef);
+            if (it == nodePayloads_.end())
+                return nullptr;
+            return static_cast<const T*>(it->second);
+        }
+        else
+        {
+            const auto it = auxNodePayloads_.find(nodeRef);
+            if (it == auxNodePayloads_.end())
+                return nullptr;
+            return static_cast<const T*>(it->second);
+        }
+    }
+
+    template<typename T>
     T& ensureNodePayload(AstNodeRef nodeRef)
     {
         const AstNodeRef queryNodeRef = nodeRef;

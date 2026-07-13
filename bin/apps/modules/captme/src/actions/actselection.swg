@@ -58,9 +58,10 @@ impl IActionUI for ActionSelection
             evt.checked = main.snap
 
         case Freeze:
-            evt.setFlags |= .Name | .Checked | .Name
-            evt.name    = "Freeze Selection"
-            evt.checked = main.freezeSel
+            evt.setFlags |= .Name | .Checked | .Disabled
+            evt.name     = "Freeze Selection"
+            evt.checked  = main.freezeSel
+            evt.disabled = !capture or isLib
         }
 
         return true

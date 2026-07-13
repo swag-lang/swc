@@ -362,6 +362,44 @@ using Swag, Core
     f.shutdown()
 }
 
+// Freeze is available with a capture and toggles the frozen state, but is disabled
+// and a safe no-op without one (regression: it used to assume a capture and fault).
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+
+    let shape = testAddShape(f.capture, 10, 10, 20, 20)
+    f.capture.selection.add(0)
+
+    var evt = Testing.commandState(ActionSelection.Freeze)
+    @assert(Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    @assert(!evt.disabled)
+
+    f.main.sendCommandEvent(ActionSelection.Freeze)
+    @assert(f.main.freezeSel)
+    @assert(shape.freeze)
+
+    // Unfreeze cleanly, then drop the capture entirely.
+    f.main.freezeSelection(false)
+    @assert(!f.main.freezeSel)
+
+    let old = f.main.editWnd.editView.capture
+    f.main.editWnd.editView.capture = null
+    Memory.delete(old)
+
+    // Without a capture the command is disabled and freezing does nothing.
+    evt = Testing.commandState(ActionSelection.Freeze)
+    @assert(Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    @assert(evt.disabled)
+
+    f.main.freezeSelection(true)
+    @assert(!f.main.freezeSel)
+    @assert(f.main.embInfoFreeze == null)
+
+    f.shutdown()
+}
+
 // Snap computes x/y offsets against capture bounds and neighboring form edges.
 #test
 {

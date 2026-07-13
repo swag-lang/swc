@@ -664,13 +664,19 @@ const CodeGenLoweringPayload* CodeGen::loweringPayload(AstNodeRef nodeRef) const
 
 const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
 {
-    // Lowering metadata may live either on the exact AST node or on the resolved
-    // substitute. Prefer the explicit lowering payload, then fall back to the codegen
-    // payload created while visiting the node.
-    if (const auto* exactPayload = loweringPayload(nodeRef); exactPayload && exactPayload->runtimeStorageSym != nullptr)
+    const auto* exactPayload = loweringPayload(nodeRef);
+    if (exactPayload && exactPayload->runtimeStorageSym != nullptr)
         return exactPayload->runtimeStorageSym;
 
-    const auto* payload = const_cast<CodeGen*>(this)->safePayload(nodeRef);
+    const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    if (resolvedRef != nodeRef)
+    {
+        const auto* resolvedPayload = loweringPayload(resolvedRef);
+        if (resolvedPayload && resolvedPayload->runtimeStorageSym != nullptr)
+            return resolvedPayload->runtimeStorageSym;
+    }
+
+    const auto* payload = safeNodePayload<CodeGenNodePayload>(resolvedRef);
     if (payload && payload->runtimeStorageSym != nullptr)
         return payload->runtimeStorageSym;
     return nullptr;

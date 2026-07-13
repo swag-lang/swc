@@ -179,11 +179,16 @@ impl InPlaceEditWnd
             .capture.crop()
             exitWithResult(true)
         case "save":
+            // On a cancelled save dialog getSaveAsImageName() returns "": keep the
+            // in-place editor open instead of writing an empty path and tearing the
+            // session down (which would discard the capture being edited).
             let fileName = .newMain.getSaveAsImageName()
-            if !fileName.isEmpty() do
+            if !fileName.isEmpty()
+            {
                 .capture.crop()
-            .newMain.doSaveAsImage(fileName)
-            exitWithResult(false)
+                .newMain.doSaveAsImage(fileName)
+                exitWithResult(false)
+            }
         }
     }
 

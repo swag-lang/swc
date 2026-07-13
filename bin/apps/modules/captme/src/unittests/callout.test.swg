@@ -195,6 +195,35 @@ using Swag, Core
     f.shutdown()
 }
 
+// The tail base stays on the straight part of an edge, clear of the rounded corners,
+// even when the tip points toward a corner (regression: it used to attach at the sharp
+// corner past the arc, leaving a gap/overshoot where tail meets body).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+
+    let cf = testAddCallout(f.capture, 0, 0, 100, 60)
+    cf.roundSize = 20
+    let cr = 20.0
+
+    // Tip well past the bottom-left corner: base must sit on the bottom straight span.
+    let bl = cf.tailBase({-40, 100}, cf.roundSize)
+    @assert(bl.p0.y == 60 and bl.p1.y == 60)
+    @assert(bl.p0.x >= cr - 0.01)
+    @assert(bl.p1.x <= 100 - cr + 0.01)
+
+    // Tip past the top-right corner picks the right edge; base stays off the corners.
+    let cf2 = testAddCallout(f.capture, 0, 0, 60, 100)
+    cf2.roundSize = 20
+    let tr = cf2.tailBase({100, -40}, cf2.roundSize)
+    @assert(tr.p0.x == 60 and tr.p1.x == 60)
+    @assert(tr.p0.y >= cr - 0.01)
+    @assert(tr.p1.y <= 100 - cr + 0.01)
+
+    f.shutdown()
+}
+
 // Callouts survive the copy/paste clipboard round-trip with text and geometry intact.
 #test
 {

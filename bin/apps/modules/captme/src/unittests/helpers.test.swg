@@ -91,6 +91,17 @@ func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*F
     return form
 }
 
+func testAddCallout(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormCallout
+{
+    let form = Memory.new'FormCallout()
+    form.IForm.setup(capture)
+    form.IForm.setBaseForm(cast() x, cast() y, cast() width, cast() height)
+    form.tailX = x + width * 0.3
+    form.tailY = y + height + 30
+    capture.forms.add(form)
+    return form
+}
+
 func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormStep
 {
     let form = Memory.new'FormStep()

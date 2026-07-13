@@ -682,6 +682,64 @@ impl PropWnd
         return undo.text
     }
 
+    // Text-fill color swatch for a callout (the bubble fill/border reuse the generic
+    // BaseForm color buttons; only the inner text color is callout-specific).
+    mtd propCalloutText(stack: *Wnd)
+    {
+        if .getSelectedFormType() != FormCallout do
+            return
+
+        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
+        btn.name         = "Text"
+        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        {
+            bc.painter.setParams(.Antialiased)
+            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+            var rect   = pos
+            rect.x = rect.horzCenter() - 21
+            rect.y = rect.vertCenter() - 21
+            rect.width, rect.height = 42
+            if !curSel.textColor.isOpaque() do
+                bc.painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+            bc.painter.fillRoundRect(rect, 10, 10, curSel.textColor)
+        }
+
+        btn.sigShowPopup += func|prop = me|(btn)
+        {
+            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+            var picker = createColorPicker(btn, curSel.textColor)
+            picker.sigChanged += func|prop, btn, first = true|(pk)
+            {
+                prop.pushTypedValue(pk.getColor().argb, FormCallout, #nameof(FormCallout.textColor), first)
+                first = false
+                btn.invalidate()
+            }
+        }
+    }
+
+    // Round/font sliders and the text editor entry point for a callout.
+    mtd propCallout()
+    {
+        if .getSelectedFormType() != FormCallout do
+            return
+        let curSel = cast(*FormCallout) .getSelectedBaseForm()
+
+        let ctrlR = .createSlider("Round", cast() MinRoundSize, cast() MaxRoundSize, curSel.roundSize)
+        .bindSlider(ctrlR, FormCallout, #nameof(FormCallout.roundSize))
+
+        let ctrlF = .createSlider("Size", cast() MinFontSize, cast() MaxFontSize, cast() curSel.fontSize)
+        .bindSlider(ctrlF, FormCallout, #nameof(FormCallout.fontSize))
+
+        with let btn = PushButton.create(.mainLayout, "Edit Text...", {0, 0, 0, 40})
+        {
+            .margin.x = 5
+            btn.sigPressed += func|prop = me|(btn)
+            {
+                prop.main.sendCommandEvent(ActionEdit.EditText)
+            }
+        }
+    }
+
     mtd propText()
     {
         let curSelType = .getSelectedFormType()
@@ -910,7 +968,7 @@ impl PropWnd
         if !.hasRealSelection() do
             return
         let curSelType = .getSelectedFormType()
-        if curSelType != FormShape and curSelType != FormText do
+        if curSelType != FormShape and curSelType != FormText and curSelType != FormCallout do
             return
         let curSel = .getSelectedBaseForm()
 
@@ -1202,6 +1260,7 @@ impl PropWnd
         let stack0 = StackLayoutCtrl.create(.mainLayout, .HorzCenter, {0, 0, 0, BtnColorHeight + 12})
         .propBackColor(stack0)
         .propBorderColor(stack0)
+        .propCalloutText(stack0)
         .propShape(stack0)
         .propStep(stack0)
         if stack0.childs.count == 0 do
@@ -1218,6 +1277,7 @@ impl PropWnd
         .propStrength()
         .propNextStep()
         .propText()
+        .propCallout()
         .propFontSize()
         .propBoldSize()
         .propBorderSize()

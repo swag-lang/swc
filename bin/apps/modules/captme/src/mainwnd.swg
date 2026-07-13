@@ -8,7 +8,7 @@ const Icons48         = #include("datas/icons48.png")
 const AppIcon         = #include("datas/appicon.png")
 
 // Enums
-enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel }
+enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
 
 enum BottomSize
 {
@@ -54,6 +54,7 @@ struct MainWnd
     mdlFormPolygon:                           FormPolygon
     mdlFormText:                              FormText
     mdlFormDraw:                              FormDraw
+    mdlFormCallout:                           FormCallout
     mdlHighlight, mdlPixSel, mdlFavorite:     IForm
 }
 
@@ -557,6 +558,28 @@ impl MainWnd
         }
     }
 
+    // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
+    // sprite for this tool, so it paints its own rounded body plus a small tail.
+    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
+    {
+        bc.painter.setParams(.Antialiased)
+        let col = btn.isChecked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
+
+        var body = pos
+        body.inflate(-pos.width * 0.20, -pos.height * 0.20)
+        body.height *= 0.66
+
+        let tx = body.x + body.width * 0.28
+        var tail: LinePath
+        tail.start(tx, body.bottom() - 2)
+        tail.lineTo(tx + body.width * 0.26, body.bottom() - 2)
+        tail.lineTo(tx, body.bottom() + pos.height * 0.18)
+        tail.close()
+        bc.painter.fillPolygon(&tail, col)
+
+        bc.painter.fillRoundRect(body, 6, 6, col)
+    }
+
     mtd createToolbar()
     {
         with me.editToolBar = StackLayoutCtrl.create(me.topBar, .HorzCenter, {0, 0, 64, 64})
@@ -569,7 +592,7 @@ impl MainWnd
         let toolButtons = [
             ActionToolMode.Favorites, ActionToolMode.Selection, ActionToolMode.Shape,
             ActionToolMode.Arrow, ActionToolMode.Line, ActionToolMode.Poly,
-            ActionToolMode.Text, ActionToolMode.Draw, ActionToolMode.Highlight,
+            ActionToolMode.Text, ActionToolMode.Callout, ActionToolMode.Draw, ActionToolMode.Highlight,
             ActionToolMode.Step, ActionToolMode.Img, ActionToolMode.PixSel]
 
         for id in toolButtons
@@ -577,6 +600,8 @@ impl MainWnd
             with let b = IconButton.create(me.editToolBar, {}, position: {0, 0, 60, 64})
             {
                 .id = id
+                if id == ActionToolMode.Callout do
+                    .sigPaintIcon = &drawCalloutGlyph
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedIcon         $btnIcon_CheckedMark")
                 .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_CheckedMark")

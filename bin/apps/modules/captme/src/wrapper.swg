@@ -56,6 +56,9 @@ impl MainWnd
             .mdlFavorite  = &.mdlFormDraw
             .mdlHighlight = &.mdlFormDraw
             .mdlPixSel    = &.mdlFormDraw
+        case FormCallout as b:
+            .mdlFormCallout = dref b
+            .mdlFavorite    = &.mdlFormCallout
         }
     }
 
@@ -82,6 +85,8 @@ impl MainWnd
                 .mdlFavorite = .mdlFormText
             case FormDraw:
                 .mdlFavorite = .mdlFormDraw
+            case FormCallout:
+                .mdlFavorite = .mdlFormCallout
             }
 
             return
@@ -118,6 +123,8 @@ impl MainWnd
             .editMode = .Text
         case FormDraw:
             .editMode = .Draw
+        case FormCallout:
+            .editMode = .Callout
         }
     }
 
@@ -142,6 +149,8 @@ impl MainWnd
             return .Step
         case FormImage:
             return .Image
+        case FormCallout:
+            return .Callout
         }
 
         unreachable
@@ -170,6 +179,8 @@ impl MainWnd
             formItf = cast(IForm) .mdlFormText
         case Draw:
             formItf = cast(IForm) .mdlFormDraw
+        case Callout:
+            formItf = cast(IForm) .mdlFormCallout
         case Favorites, Selection:
             formItf = .mdlFavorite
         case Highlight:
@@ -224,6 +235,12 @@ impl MainWnd
             if clear do
                 mdl.points.clear()
             return mdl
+        case Callout:
+            let mdl = Memory.new'FormCallout()
+            mdl.IForm.copy(mdl, &.mdlFormCallout)
+            if clear do
+                mdl.text.clear()
+            return mdl
         case Favorites, Highlight, Selection, PixSel:
             break
         }
@@ -261,6 +278,9 @@ impl MainWnd
             it.copy(mdlValue, b)
         case FormDraw as b:
             mdlValue = Memory.new'FormDraw()
+            it.copy(mdlValue, b)
+        case FormCallout as b:
+            mdlValue = Memory.new'FormCallout()
             it.copy(mdlValue, b)
         }
 

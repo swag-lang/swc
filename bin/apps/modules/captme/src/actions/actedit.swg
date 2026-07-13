@@ -33,7 +33,7 @@ impl IActionUI for ActionEdit
         {
         case EditText:
             evt.setFlags |= .Disabled | .Name | .Hidden
-            evt.disabled = !hasSel or !lastSelType or lastSelType != FormText
+            evt.disabled = !hasSel or !lastSelType or (lastSelType != FormText and lastSelType != FormCallout)
             evt.hidden   = evt.disabled
             evt.name     = "Edit"
 
@@ -95,8 +95,12 @@ impl IActionUI for ActionEdit
         switch cxt.id
         {
         case EditText:
-            let lastSel = cast(*FormText) @dataof(capture.forms[capture.selection.back()])
-            discard PropWnd.editText(main, lastSel.text)
+            // Works for both FormText and FormCallout; editText prefills with the current
+            // text and pushes a SetText undo that updates every selected editable form.
+            let f = capture.forms[capture.selection.back()]
+            let t = formEditableText(f)
+            if t do
+                discard PropWnd.editText(main, dref t)
             capture.selectionHasChanged()
 
         case ClearImageInside:

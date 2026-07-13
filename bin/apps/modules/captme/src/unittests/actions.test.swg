@@ -81,6 +81,8 @@ using Swag, Core
     @assert(f.main.editMode == .Image)
     f.main.sendCommandEvent(ActionToolMode.PixSel)
     @assert(f.main.editMode == .PixSel)
+    f.main.sendCommandEvent(ActionToolMode.Callout)
+    @assert(f.main.editMode == .Callout)
     f.main.sendCommandEvent(ActionToolMode.Favorites)
     @assert(f.main.editMode == .Favorites)
     f.main.sendCommandEvent(ActionToolMode.Selection)

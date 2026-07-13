@@ -16,6 +16,7 @@ impl ActionToolMode
     newCmdId("Step")
     newCmdId("Img")
     newCmdId("PixSel")
+    newCmdId("Callout")
 }
 
 impl IActionUI for ActionToolMode
@@ -99,6 +100,14 @@ impl IActionUI for ActionToolMode
             evt.toolTip = "Pixel selection"
             evt.checked = main.editMode == EditMode.PixSel
 
+        case Callout:
+            // No sprite for this tool: the toolbar button draws its own bubble glyph
+            // via sigPaintIcon, so this state intentionally does not manage the icon.
+            evt.setFlags |= .Checked | .Name | .ToolTip
+            evt.name    = "Callout"
+            evt.toolTip = "Add speech-bubble callouts to the capture"
+            evt.checked = main.editMode == EditMode.Callout
+
         case Favorites:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon    = Icon.from(&main.icons48, 5)
@@ -142,6 +151,8 @@ impl IActionUI for ActionToolMode
             main.editMode = EditMode.Image
         case PixSel:
             main.editMode = EditMode.PixSel
+        case Callout:
+            main.editMode = EditMode.Callout
         case Favorites:
             main.editMode = EditMode.Favorites
         case Selection:

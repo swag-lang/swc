@@ -29,6 +29,29 @@ enum UndoKind
     SetImageInside
 }
 
+// Editable text lives on FormText and (reusing it) FormCallout. The SetText undo
+// treats both uniformly through these helpers instead of special-casing each type.
+func formEditableText(f: IForm)->#null *String
+{
+    switch f
+    {
+    case FormText as b:
+        return &b.text
+    case FormCallout as b:
+        return &b.text
+    }
+    return null
+}
+
+func formEditableTextDirty(f: IForm)
+{
+    if f == FormText
+    {
+        let b = cast(*FormText) @dataof(f)
+        b.isDirty = true
+    }
+}
+
 struct Undo
 {
     kind:            UndoKind
@@ -149,10 +172,10 @@ impl Undo
             for s in .selection
             {
                 let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let t = formEditableText(f)
+                if !t do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                .oldText.add(b.text)
+                .oldText.add(dref t)
             }
 
         case SetFont:
@@ -351,11 +374,11 @@ impl Undo
             for s, i in .selection
             {
                 let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let t = formEditableText(f)
+                if !t do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                b.text    = .text
-                b.isDirty = true
+                dref t = .text
+                formEditableTextDirty(f)
             }
 
         case SetFont:
@@ -567,11 +590,11 @@ impl Undo
             for s in .selection
             {
                 let f = .capture.forms[s]
-                if @kindof(f) != FormText do
+                let t = formEditableText(f)
+                if !t do
                     continue
-                let b = cast(*FormText) @dataof(f)
-                b.text    = .oldText[idx]
-                b.isDirty = true
+                dref t = .oldText[idx]
+                formEditableTextDirty(f)
                 idx += 1
             }
 

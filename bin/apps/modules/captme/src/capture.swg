@@ -77,6 +77,7 @@ enum CaptureClipboardFormKind
     Shape
     Step
     Text
+    Callout
 }
 
 struct CaptureClipboardForm
@@ -90,6 +91,7 @@ struct CaptureClipboardForm
     shape:     FormShape
     step:      FormStep
     text:      FormText
+    callout:   FormCallout
 }
 
 struct CaptureClipboardForms
@@ -127,6 +129,9 @@ impl CaptureClipboardForm
         case FormText as form:
             .kind = .Text
             .text = dref form
+        case FormCallout as form:
+            .kind = .Callout
+            .callout = dref form
         default:
             .kind = .None
         }
@@ -169,6 +174,10 @@ impl CaptureClipboardForm
         case Text:
             let form = Memory.new'FormText()
             dref form = .text
+            result = cast(IForm) form
+        case Callout:
+            let form = Memory.new'FormCallout()
+            dref form = .callout
             result = cast(IForm) form
         case None:
             return result

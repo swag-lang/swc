@@ -59,6 +59,14 @@ using Swag, Core
     image.image = Image.create(4, 3, .BGRA8)
     image.image.fill(ColorYellow)
 
+    let callout = testAddCallout(f.capture, 15, 16, 40, 24)
+    callout.text = "hi there"
+    callout.roundSize = 20
+    callout.fontSize = 36
+    callout.textColor = ColorGreen
+    callout.tailX = 8
+    callout.tailY = 70
+
     let path = testTempCapturePath()
     defer { discard catch File.delete(path) }
     f.capture.file = path
@@ -74,7 +82,7 @@ using Swag, Core
 
     @assert(loaded.width == 64)
     @assert(loaded.height == 48)
-    @assert(loaded.forms.count == 8)
+    @assert(loaded.forms.count == 9)
     @assert(loaded.backImg.isValid())
 
     let lShape = cast(*FormShape) @dataof(loaded.forms[0])
@@ -122,6 +130,15 @@ using Swag, Core
     @assert(lImage.image.isValid())
     @assert(lImage.image.width == 4)
     @assert(lImage.image.height == 3)
+
+    let lCallout = cast(*FormCallout) @dataof(loaded.forms[8])
+    @assert(lCallout.capture == loaded)
+    @assert(lCallout.text == "hi there")
+    @assert(lCallout.roundSize == 20)
+    @assert(lCallout.fontSize == 36)
+    @assert(lCallout.textColor == ColorGreen)
+    @assert(lCallout.tailX == 8)
+    @assert(lCallout.tailY == 70)
 
     f.shutdown()
 }

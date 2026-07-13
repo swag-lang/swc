@@ -133,6 +133,18 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     }
 
     paintItf.setBaseForm(cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)
+
+    // The callout tail lives in canvas space and is never carried by a style; give the
+    // preview a shortened body and an in-cell downward tail so it renders to scale.
+    if paintItf == FormCallout
+    {
+        let cl = cast(*FormCallout) @dataof(paintItf)
+        cl.text  = "A"
+        cl.h     = cast(s32) (cast(f32) cl.h * 0.6)
+        cl.tailX = cl.x + cast(s32) (cast(f32) cl.w * 0.30)
+        cl.tailY = cl.y + cl.h + cast(s32) (cast(f32) cl.h * 0.45)
+    }
+
     return result
 }
 
@@ -154,6 +166,7 @@ struct QuickWnd
     qsDraw:              QuickStyle
     qsHighlight:         QuickStyle
     qsPixSel:            QuickStyle
+    qsCallout:           QuickStyle
 
     currentStyle:        *QuickStyle
 }
@@ -189,6 +202,7 @@ impl IWnd for QuickWnd
                 .serialize("QuickWnd.qsDraw", &me.qsDraw)
                 .serialize("QuickWnd.qsHighlight", &me.qsHighlight)
                 .serialize("QuickWnd.qsPixSel", &me.qsPixSel)
+                .serialize("QuickWnd.qsCallout", &me.qsCallout)
             }
         }
     }
@@ -209,6 +223,7 @@ impl QuickWnd
         .qsDraw.sanitize()
         .qsHighlight.sanitize()
         .qsPixSel.sanitize()
+        .qsCallout.sanitize()
 
         if .qsArrow.forms.isEmpty() do
             .defaultQuickStyleArrow()
@@ -230,6 +245,8 @@ impl QuickWnd
             .defaultQuickStyleHighlight()
         if .qsPixSel.forms.isEmpty() do
             .defaultQuickStylePixSel()
+        if .qsCallout.forms.isEmpty() do
+            .defaultQuickStyleCallout()
 
         .updateQuickStyles(forceRebuild: true)
 
@@ -241,6 +258,7 @@ impl QuickWnd
         .main.updateModel(.qsPolygon.forms[0])
         .main.updateModel(.qsText.forms[0])
         .main.updateModel(.qsDraw.forms[0])
+        .main.updateModel(.qsCallout.forms[0])
         .updateSelection()
     }
 
@@ -440,6 +458,29 @@ impl QuickWnd
 
         .add(BorderSize, Argb.White)
         .add(BorderSize, Argb.Black)
+    }
+
+    mtd defaultQuickStyleCallout()
+    {
+        mtd add(bdColor, bkColor, txColor: Color)
+        {
+            let form = Memory.new'FormCallout()
+            form.borderSize  = 4
+            form.borderColor = bdColor
+            form.backColor   = bkColor
+            form.textColor   = txColor
+            form.roundSize   = 16
+            form.fontSize    = 40
+            form.text        = "A"
+            addStyleForm(&.qsCallout, form)
+        }
+
+        .add(Argb.White, ColorRed, Argb.White)
+        .add(Argb.White, ColorGreen, Argb.White)
+        .add(Argb.White, ColorBlue, Argb.White)
+        .add(Argb.White, ColorYellow, Argb.Black)
+        .add(Argb.White, Argb.Black, Argb.White)
+        .add(Argb.Black, Argb.White, Argb.Black)
     }
 
     mtd defaultQuickStyleText()
@@ -677,6 +718,8 @@ impl QuickWnd
             .defaultQuickStyleHighlight()
         case PixSel:
             .defaultQuickStylePixSel()
+        case Callout:
+            .defaultQuickStyleCallout()
         case Favorites:
             break
         case Selection:
@@ -731,6 +774,8 @@ impl QuickWnd
             .currentStyle = &.qsHighlight
         case PixSel:
             .currentStyle = &.qsPixSel
+        case Callout:
+            .currentStyle = &.qsCallout
         case Selection:
             return
         }

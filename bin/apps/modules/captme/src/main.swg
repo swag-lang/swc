@@ -10,6 +10,7 @@ var g_App: Application
     Reflection.registerType(#typeof(FormShape))
     Reflection.registerType(#typeof(FormStep))
     Reflection.registerType(#typeof(FormText))
+    Reflection.registerType(#typeof(FormCallout))
 
     Reflection.registerCrcToTypeAlias(0x0A77C1A5, #typeof(FormPolygon))
     Reflection.registerCrcToTypeAlias(0x0B61E593, #typeof(FormLine))

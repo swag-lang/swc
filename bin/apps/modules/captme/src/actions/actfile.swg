@@ -234,6 +234,9 @@ impl IActionUI for ActionFile
             dlg.setMessage("Capture name")
             dlg.setText(capture.title)
             dlg.edit.selectAll()
+            // EditDlg.createSingleLine (unlike Dialog.createDialog) does not center itself;
+            // do it here now the surface has its final size, so the box opens centered.
+            dlg.surface.center(main.surface)
             if dlg.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dlg.getText())
 

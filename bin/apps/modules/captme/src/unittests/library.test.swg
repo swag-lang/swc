@@ -234,8 +234,11 @@ using Swag, Core, File
     }
     defer
     {
-        for p in paths do
+        for p in paths
+        {
             discard catch File.delete(p)
+            discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.getFileName(p)))
+        }
         g_Library.files.clear()
         g_Library.onDeleteFile.arr.clear()
     }
@@ -248,11 +251,49 @@ using Swag, Core, File
 
     lib.removeSelected()
 
-    // Every selection is gone from the view, the library, and the disk.
+    // Every selection is gone from the view, the library, and its original location,
+    // but soft-delete keeps a recoverable copy in the recycle bin.
     @assert(view.items.count == 0)
     @assert(g_Library.files.count == 0)
-    for p in paths do
+    for p in paths
+    {
         @assert(!File.exists(p))
+        @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.getFileName(p))))
+    }
+
+    f.shutdown()
+}
+
+// The library search box matches captures by title, linked image path or file name,
+// case-insensitively; unrelated captures are filtered out of the visible set. Clearing
+// the search restores the full list.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    let lib  = f.setupLibraryWnd()
+    let view = lib.view
+
+    discard testAddLibraryItem(view, "alpha.captme", 10, 1, title: "Login screen")
+    discard testAddLibraryItem(view, "beta.captme", 10, 2, "report.png", title: "Sales chart")
+    discard testAddLibraryItem(view, "gamma.captme", 10, 3, title: "Login error")
+
+    lib.setSearch("login")
+    @assert(view.items.count == 2)
+
+    lib.setSearch("REPORT")
+    @assert(view.items.count == 1)
+    @assert(view.items[0].fi.fullname == "beta.captme")
+
+    lib.setSearch("gamma")
+    @assert(view.items.count == 1)
+    @assert(view.items[0].fi.fullname == "gamma.captme")
+
+    lib.setSearch("nomatch")
+    @assert(view.items.count == 0)
+
+    lib.setSearch("")
+    @assert(view.items.count == 3)
 
     f.shutdown()
 }

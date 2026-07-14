@@ -233,6 +233,67 @@ impl MainWnd
             MessageDlg.error(.surface, Format.toString("Failed to save capture file: %", capture.file))
     }
 
+    // Change the user-defined name of a capture and persist it. The library shows
+    // previews loaded without the background image, so we never save that in-memory
+    // copy (it would wipe the picture); we update the real file on disk instead and
+    // then refresh the preview's displayed title.
+    mtd setCaptureTitle(file: string, title: string)
+    {
+        let editCapture = .editWnd.getCapture()
+        if editCapture and editCapture.file == file
+        {
+            editCapture.title   = title
+            editCapture.changed = true
+            .saveCapture(editCapture)
+        }
+        else
+        {
+            let full = catch Capture.load(file)
+            if @err != null
+            {
+                MessageDlg.error(.surface, "Failed to rename capture")
+                return
+            }
+
+            full.title   = title
+            full.changed = true
+            .saveCapture(full)
+            Memory.delete(full)
+        }
+
+        // Reflect the new title on the library preview(s) that reference this file.
+        if .libWnd and .libWnd.view
+        {
+            for it in .libWnd.view.items where it.capture and it.fi.fullname == file do
+                it.capture.title = title
+            .libWnd.view.invalidate()
+        }
+    }
+
+    // Render a stored capture at full resolution and place it on the clipboard. Used
+    // from the library, where the focused capture is only a lightweight preview: we
+    // load the complete file, borrow the editor's render context to composite it, and
+    // discard it without touching the active editor selection.
+    mtd copyLibraryImage(file: string)
+    {
+        Cursor.wait()
+        let full = catch Capture.load(file)
+        if @err != null
+        {
+            MessageDlg.error(.surface, "Failed to copy image")
+            return
+        }
+
+        full.editView = .editWnd.editView
+        Clipboard.addImage(full.toImage())
+
+        // toImage() may have uploaded the background as a GPU texture on this transient
+        // capture; opDrop only frees the forms, so release it explicitly to avoid a leak.
+        if full.backTexture.isValid() do
+            .editWnd.editView.getApp().getRenderer().removeTexture(&full.backTexture)
+        Memory.delete(full)
+    }
+
     mtd loadExternalImage(arg: string)
     {
         let imgToLoad = catch Image.load(arg)

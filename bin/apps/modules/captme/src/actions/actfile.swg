@@ -10,6 +10,8 @@ impl ActionFile
     newCmdId("UpdateLinkedImage")
     newCmdId("UnlinkImage")
     newCmdId("DupCapture")
+    newCmdId("RenameCapture")
+    newCmdId("CopyImage")
     newCmdId("DeleteCapture")
     newCmdId("CaptureFileLocation")
     newCmdId("LinkedFileLocation")
@@ -80,6 +82,17 @@ impl IActionUI for ActionFile
             evt.name     = "Duplicate"
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.Duplicate)
+
+        case RenameCapture:
+            evt.setFlags |= .Name | .Disabled
+            evt.name     = "Rename..."
+            evt.disabled = !capture
+
+        case CopyImage:
+            evt.setFlags |= .Name | .Disabled | .Icon
+            evt.name     = "Copy Image to Clipboard"
+            evt.disabled = !capture
+            evt.icon     = main.getTheme().getIcon24(.Copy)
 
         case CaptureFileLocation:
             evt.setFlags |= .Name | .Disabled | .Icon
@@ -212,6 +225,23 @@ impl IActionUI for ActionFile
 
             let dupCapture = trycatch main.recentWnd.addRecent(file, true, true)
             Memory.delete(dupCapture)
+
+        case RenameCapture:
+            // Snapshot the values now: 'capture' may be a library preview that the modal
+            // loop could invalidate, but the file path and current title stay valid.
+            let file  = capture.file.toString()
+            let dlg   = EditDlg.createSingleLine(main.surface)
+            dlg.setMessage("Capture name")
+            dlg.setText(capture.title)
+            dlg.edit.selectAll()
+            if dlg.doModal() == Dialog.BtnOk do
+                main.setCaptureTitle(file, dlg.getText())
+
+        case CopyImage:
+            if main.libraryMode do
+                main.copyLibraryImage(capture.file)
+            else do
+                capture.copyAll()
 
         case CaptureFileLocation:
             if !Env.locateInExplorer(capture.file) do

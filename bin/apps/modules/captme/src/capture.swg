@@ -32,6 +32,9 @@ struct Capture
     linkedImage:             String
     linkedUpToDate:          bool = true
 
+    // User-defined name shown in the library (empty = fall back to the file name).
+    title:                   String
+
     // Dyn
     #[NoSerialize]
     {

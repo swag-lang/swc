@@ -260,7 +260,7 @@ func testDate(day: u16)->Time.DateTime
     return {year: 2026, month: 1, day: day}
 }
 
-func testAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, linked: string = null, linkedUpToDate = true)->*LibraryItem
+func testAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, linked: string = null, linkedUpToDate = true, title: string = null)->*LibraryItem
 {
     let it = view.allItems.addNewPtr()
     it.fi.fullname = name
@@ -272,6 +272,7 @@ func testAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, l
     let capture = Memory.new'Capture()
     capture.linkedImage = linked
     capture.linkedUpToDate = linkedUpToDate
+    capture.title = title
     it.capture = capture
 
     view.items.add(it)

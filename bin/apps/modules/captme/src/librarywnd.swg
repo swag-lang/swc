@@ -25,7 +25,12 @@ struct LibraryWnd
     zoomBtn:                     *IconButton
     sortBtn:                     *IconButton
     filterBtn:                   *IconButton
+    trashBtn:                    *IconButton
+    searchEdit:                  *EditBox
     previewSize:                 PreviewSize
+
+    searchText:                  String
+    trashMode:                   bool
 
     invertSort:                  bool
     sortMethod:                  SortMethod
@@ -96,6 +101,45 @@ impl LibraryWnd
 
         for name in toRemove do
             g_Library.removeFile(name)
+    }
+
+    // Snapshot the selected trash file names first (see removeSelected), then act on the
+    // copies so refilling the grid mid-loop cannot desync indices.
+    mtd selectedFiles()->Array'String
+    {
+        var res: retval
+        for it, i in .view.items
+        {
+            if it.filtered do
+                continue
+            if .view.selModel.isSelected(cast() i) do
+                res.add(it.fi.fullname)
+        }
+        return res
+    }
+
+    // Bring the selected captures back from the recycle bin into the library.
+    mtd restoreSelected()
+    {
+        for name in .selectedFiles()
+        {
+            let dst = Library.restoreFile(name)
+            if !dst.isEmpty() do
+                g_Library.addFile(dst)
+        }
+
+        catch .view.fill()
+        .invalidate()
+    }
+
+    // Erase the selected captures from the recycle bin for good.
+    mtd deleteForeverSelected()
+    {
+        for name in .selectedFiles() do
+            discard catch File.delete(name)
+
+        catch .view.fill()
+        .invalidate()
     }
 
     mtd moveSelHome()
@@ -282,6 +326,7 @@ impl LibraryWnd
         .registerAction'ActionLibSort()
         .registerAction'ActionLibFilter()
         .registerAction'ActionLibSel()
+        .registerAction'ActionLibTrash()
 
         .registerKeyShortcut(.Zero, .Left, ActionLibSel.Left)
         .registerKeyShortcut(.Zero, .Right, ActionLibSel.Right)
@@ -289,6 +334,28 @@ impl LibraryWnd
         .registerKeyShortcut(.Zero, .Down, ActionLibSel.Down)
         .registerKeyShortcut(.Zero, .Home, ActionLibSel.Home)
         .registerKeyShortcut(.Zero, .End, ActionLibSel.End)
+
+        .registerKeyShortcut(.Control, .C, ActionFile.CopyImage)
+        .registerKeyShortcut(.Zero, .F2, ActionFile.RenameCapture)
+    }
+
+    // Update the live text filter and rebuild the visible set.
+    mtd setSearch(text: string)
+    {
+        .searchText = text
+        .view.filter()
+        .invalidate()
+    }
+
+    // Switch between the normal library and the recycle bin. Both reuse the same grid;
+    // only the source of the items changes, so a full re-fill is enough.
+    mtd setTrashMode(trash: bool)
+    {
+        if .trashMode == trash do
+            return
+        .trashMode = trash
+        catch .view.fill()
+        .invalidate()
     }
 
     func create(parent: *MainWnd)->*LibraryWnd
@@ -431,6 +498,38 @@ impl LibraryWnd
                     .addItem(ActionLibFilter.UnLinkedImage)
                 }
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+            }
+        }
+
+        // Recycle bin
+        with res.trashBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Remove), {0, 0, 120, 32})
+        {
+            .name.set("Trash")
+            .iconBtnFlags.add(.Center)
+            .textPos  = .Right
+            .arrowPos = .RightDown
+            .sigPressed += func|res|(btn)
+            {
+                var pos = btn.getSurfaceRect()
+                with var menu = MenuCtrl.createPopup(res)
+                {
+                    .menuCtrlFlags |= .NoKeyShortcuts
+                    .addItem(ActionLibTrash.Toggle)
+                    .addSeparator()
+                    .addItem(ActionLibTrash.Empty)
+                }
+                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+            }
+        }
+
+        // Live search
+        with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .AutoLoseFocus)
+        {
+            .setForm(.Round)
+            .setNote("Search")
+            .sigChanged += func|res|(ed)
+            {
+                res.setSearch(ed.getText())
             }
         }
 

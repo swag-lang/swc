@@ -71,6 +71,8 @@ using Swag, Core
     callout.alignHorz = .LeftTop
     callout.alignVert = .RightBottom
 
+    f.capture.title = "My Capture Name"
+
     let path = testTempCapturePath()
     defer { discard catch File.delete(path) }
     f.capture.file = path
@@ -88,6 +90,7 @@ using Swag, Core
     @assert(loaded.height == 48)
     @assert(loaded.forms.count == 9)
     @assert(loaded.backImg.isValid())
+    @assert(loaded.title == "My Capture Name")
 
     let lShape = cast(*FormShape) @dataof(loaded.forms[0])
     @assert(lShape.capture == loaded)
@@ -161,6 +164,7 @@ using Swag, Core
     f.capture.height = 32
     f.capture.backImg = Image.create(32, 32, .BGRA8)
     f.capture.backImg.fill(ColorRed)
+    f.capture.title = "Preview Title"
     discard testAddShape(f.capture, 2, 3, 4, 5)
 
     let path = testTempCapturePath()
@@ -178,6 +182,7 @@ using Swag, Core
 
     @assert(loaded.forms.count == 1)
     @assert(!loaded.backImg.isValid())
+    @assert(loaded.title == "Preview Title")
     @assert((cast(*BaseForm) @dataof(loaded.forms[0])).capture == loaded)
 
     f.shutdown()

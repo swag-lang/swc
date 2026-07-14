@@ -97,6 +97,10 @@ impl IWnd for LibraryView
 
         if evt.kind == .MouseDoubleClick and .focusItem < .items.count and evt.button == .Left
         {
+            // Trashed captures are not editable; they must be restored first.
+            if .libWnd.trashMode do
+                return
+
             let item = .items[.focusItem]
             .mutexLoaded.lock()
             let capture = item.capture
@@ -115,12 +119,24 @@ impl IWnd for LibraryView
         {
             with let menu = MenuCtrl.createPopup(me)
             {
-                .addItem(ActionFile.DeleteCapture)
-                .addSeparator()
-                .addItem(ActionFile.CaptureFileLocation)
-                .addItem(ActionFile.LinkedFileLocation)
-                .addSeparator()
-                .addItem(ActionFile.FileDetails)
+                if me.libWnd.trashMode
+                {
+                    .addItem(ActionLibTrash.Restore)
+                    .addSeparator()
+                    .addItem(ActionLibTrash.DeleteForever)
+                }
+                else
+                {
+                    .addItem(ActionFile.CopyImage)
+                    .addItem(ActionFile.RenameCapture)
+                    .addSeparator()
+                    .addItem(ActionFile.DeleteCapture)
+                    .addSeparator()
+                    .addItem(ActionFile.CaptureFileLocation)
+                    .addItem(ActionFile.LinkedFileLocation)
+                    .addSeparator()
+                    .addItem(ActionFile.FileDetails)
+                }
             }
 
             discard menu.doModal(evt.surfacePos, autoDestroy: true)
@@ -159,8 +175,10 @@ impl IWnd for LibraryView
             let capture = it.capture
             .mutexLoaded.unlock()
 
-            // We have a capture but not yet a texture. Create it.
-            if capture and !it.texture.isValid() do
+            // We have a capture but not yet a texture. Create it (only when the capture
+            // actually has a preview image; a preview-less capture just shows the
+            // hour-glass placeholder below).
+            if capture and !it.texture.isValid() and capture.preview.isValid() do
                 it.texture = evt.bc.renderer.addImage(capture.preview)
 
             it.rect = Math.Rectangle{x, y, w, h}
@@ -179,6 +197,18 @@ impl IWnd for LibraryView
             }
 
             RecentView.IWnd.paintRecent(me, painter, it.texture, it.rect, infos)
+
+            // User-given name, drawn along the bottom of the thumbnail with a soft
+            // shadow so it stays readable over any background.
+            if capture and !capture.title.isEmpty()
+            {
+                let font  = me.getFont().regular
+                let title = capture.title.toString()
+                let cx    = it.rect.horzCenter()
+                let by    = it.rect.bottom() - 8
+                painter.drawStringCenter(cx + 1, by + 1, title, font, Color.fromArgb(0xC0, Argb.Black))
+                painter.drawStringCenter(cx, by, title, font, Argb.White)
+            }
 
             // Waiting for texture
             if !it.texture.isValid()
@@ -248,9 +278,26 @@ impl LibraryView
         }
     }
 
+    // Case-insensitive substring test used by the library search box. Matches the
+    // capture title, the linked image path and the capture file name so the user can
+    // find a capture by any of the names it is known under.
+    mtd const matchSearch(it: *LibraryItem, capture: *Capture, search: string)->bool
+    {
+        if @countof(search) == 0 do
+            return true
+        if Utf8.indexOf(capture.title.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+            return true
+        if Utf8.indexOf(capture.linkedImage.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+            return true
+        if Utf8.indexOf(it.fi.fullname.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+            return true
+        return false
+    }
+
     mtd filter()
     {
         .items.clear()
+        let search = .libWnd.searchText.toString()
         for it in .allItems
         {
             it.filtered = true
@@ -261,6 +308,11 @@ impl LibraryView
 
             if !capture
             {
+                // Nothing is known about an item until its preview loads. While a search
+                // is active hide it (it re-appears once loaded if it matches) so results
+                // are not padded with unloaded, possibly non-matching, captures.
+                if @countof(search) != 0 do
+                    continue
                 it.filtered = false
                 .items.add(it)
                 continue
@@ -272,6 +324,8 @@ impl LibraryView
             if capture.linkedUpToDate and !capture.linkedImage.isEmpty() and !.libWnd.showUpToDateLinkedImage do
                 continue
             if !capture.linkedUpToDate and !capture.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
+                continue
+            if !.matchSearch(it, capture, search) do
                 continue
 
             it.filtered = false
@@ -287,8 +341,12 @@ impl LibraryView
         if !capture do
             return
 
-        capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
-        g_DirtyList  = true
+        // Some captures carry no preview (older files, or ones never saved with one).
+        // quickExtractHaarFeatures faults on a zero-sized image, so only feature captures
+        // that actually have a preview; the rest simply don't take part in similarity sort.
+        if capture.preview.isValid() do
+            capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
+        g_DirtyList = true
 
         .mutexLoaded.lock()
         it.capture = capture
@@ -345,7 +403,9 @@ impl LibraryView
         var toCompare: *LibraryItem
         while !remaining.isEmpty()
         {
-            if !toCompare or !toCompare.capture or toCompare.filtered
+            // A capture with no Haar features (no preview) can't anchor a similarity
+            // comparison; pass it straight through so it never reaches the compare below.
+            if !toCompare or !toCompare.capture or toCompare.filtered or toCompare.capture.haar.size == 0
             {
                 toCompare = remaining.front()
                 remaining.removeAt(0)
@@ -430,15 +490,23 @@ impl LibraryView
             .thread.wait()
         }
 
-        // Filter
+        // Filter. In trash mode the items come from the recycle bin instead of the
+        // library, and the date sidebar filter does not apply.
         var res: Array'File.FileInfo
-        for fi in g_Library.files
+        if .libWnd.trashMode
         {
-            if (.filterYear == 0 or fi.lastWriteTime.year == .filterYear) and
-               (.filterMonth == 0 or fi.lastWriteTime.month == .filterMonth) and
-               (.filterDay == 0 or fi.lastWriteTime.day == .filterDay)
+            res = catch Library.enumerateTrash()
+        }
+        else
+        {
+            for fi in g_Library.files
             {
-                res.add(fi)
+                if (.filterYear == 0 or fi.lastWriteTime.year == .filterYear) and
+                   (.filterMonth == 0 or fi.lastWriteTime.month == .filterMonth) and
+                   (.filterDay == 0 or fi.lastWriteTime.day == .filterDay)
+                {
+                    res.add(fi)
+                }
             }
         }
 

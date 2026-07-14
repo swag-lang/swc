@@ -111,6 +111,7 @@ impl IWnd for RecentView
                         .addItem(ActionFile.UpdateLinkedImage)
                         .addSeparator()
                         .addItem(ActionFile.DupCapture)
+                        .addItem(ActionFile.RenameCapture)
                         .addItem(ActionFile.DeleteCapture)
                         .addSeparator()
                         .addItem(ActionCopyPaste.CopyAsImage)

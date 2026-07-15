@@ -210,6 +210,29 @@ func borrowEscapeNamedOwner()->u64
     return @countof(s)
 }
 
+// A carrier stored in a field follows the same temporary rules as a plain local:
+// the temporary owner dies at the end of the assignment statement, while a named
+// owner remains alive for the containing field's local uses.
+struct BorrowEscapeTemporaryField
+{
+    text: string
+}
+
+func borrowEscapeTemporaryStringField()->u64
+{
+    var holder: BorrowEscapeTemporaryField
+    holder.text = borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_temporary}}
+    return @countof(holder.text)
+}
+
+func borrowEscapeNamedOwnerStringField()->u64
+{
+    var owner = borrowEscapeMakeOwner()
+    var holder: BorrowEscapeTemporaryField
+    holder.text = owner
+    return @countof(holder.text)
+}
+
 // Reading a carrier element by value copies it: no borrow of the array storage.
 func borrowEscapeElementRead()->string
 {
@@ -257,6 +280,35 @@ var borrowEscapeGlobalSlice: const [..] u16
 func borrowEscapeMaterializedGlobal()
 {
     borrowEscapeGlobalSlice = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+// An array rvalue used as a slice is materialized for the current frame. Keeping
+// that slice in a local struct is valid, but returning or globally storing the
+// struct would make the field outlive the materialized storage.
+struct BorrowEscapeSliceField
+{
+    values: const [..] u16
+}
+
+func borrowEscapeMaterializedLocalField()->u16
+{
+    var holder: BorrowEscapeSliceField
+    holder.values = cast(const [..] u16) borrowEscapeMakeArray()
+    return holder.values[0]
+}
+
+func borrowEscapeMaterializedReturnedField()->BorrowEscapeSliceField
+{
+    var holder: BorrowEscapeSliceField
+    holder.values = cast(const [..] u16) borrowEscapeMakeArray()
+    return holder // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+var borrowEscapeGlobalSliceField: BorrowEscapeSliceField
+
+func borrowEscapeMaterializedGlobalField()
+{
+    borrowEscapeGlobalSliceField.values = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // Boxing an rvalue into a returned 'any' leaks the frame-local box.

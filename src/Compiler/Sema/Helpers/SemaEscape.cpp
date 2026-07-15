@@ -157,7 +157,9 @@ namespace
 
     SemaEscapeInfo mergeEscapeInfo(const SemaEscapeInfo& left, const SemaEscapeInfo& right)
     {
-        return right.rank() > left.rank() ? right : left;
+        SemaEscapeInfo result = left;
+        result.mergeFrom(right);
+        return result;
     }
 
     // A by-value parameter is a copy living in the callee frame: its storage behaves
@@ -196,6 +198,23 @@ namespace
         return symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal);
     }
 
+    void setParameterOrigin(Sema& sema, SemaEscapeInfo& info, const SymbolVariable& parameter)
+    {
+        const SymbolFunction* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return;
+
+        const auto& params = currentFn->parameters();
+        for (size_t i = 0; i < params.size() && i < 64; ++i)
+        {
+            if (params[i] == &parameter)
+            {
+                info.parameterOriginsMask = 1ULL << i;
+                return;
+            }
+        }
+    }
+
     SemaEscapeInfo variableStorageInfo(Sema& sema, const SymbolVariable& symVar, AstNodeRef sourceRef, TypeRef typeRef)
     {
         if (symVar.isClosureCapture())
@@ -217,7 +236,11 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
             info.kind = SemaEscapeKind::Static;
         else if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
             info.kind = isByValueParameterStorage(sema, symVar) ? SemaEscapeKind::Local : SemaEscapeKind::Parameter;
+            if (info.kind == SemaEscapeKind::Parameter)
+                setParameterOrigin(sema, info, symVar);
+        }
         else if (isLocalVariableStorage(sema, symVar))
             info.kind = SemaEscapeKind::Local;
         else
@@ -232,6 +255,7 @@ namespace
             {
                 info.sourceVar = currentFn->parameters().front();
                 info.kind      = SemaEscapeKind::Parameter;
+                setParameterOrigin(sema, info, *info.sourceVar);
             }
             else
                 info.kind = SemaEscapeKind::Unknown;
@@ -291,6 +315,64 @@ namespace
             return nullptr;
 
         return storageRootVariableAt(sema, resolvedRef, forAssignment, outWholeVariable);
+    }
+
+    bool storageProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& outProjection)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(resolvedRef);
+        switch (node.id())
+        {
+            case AstNodeId::Identifier:
+                outProjection.root = identifierVariable(sema, resolvedRef);
+                return outProjection.root != nullptr;
+
+            case AstNodeId::ParenExpr:
+                return storageProjection(sema, node.cast<AstParenExpr>().nodeExprRef, outProjection);
+
+            case AstNodeId::InitializerExpr:
+                return storageProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, outProjection);
+
+            case AstNodeId::AutoCastExpr:
+                return storageProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, outProjection);
+
+            case AstNodeId::AsCastExpr:
+                return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection);
+
+            case AstNodeId::MemberAccessExpr:
+            {
+                if (!storageProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, outProjection))
+                    return false;
+                const SymbolVariable* field = identifierVariable(sema, resolvedRef);
+                if (!field || field == outProjection.root)
+                    return false;
+                outProjection.components.push_back({.kind = SemaEscapeProjectionKind::Field, .field = field});
+                return true;
+            }
+
+            case AstNodeId::IndexExpr:
+            {
+                const auto& index = node.cast<AstIndexExpr>();
+                if (!storageProjection(sema, index.nodeExprRef, outProjection))
+                    return false;
+
+                const SemaNodeView indexView = sema.viewConstant(index.nodeArgRef);
+                if (indexView.hasConstant() && indexView.cst()->isInt() && indexView.cst()->getInt().fits64() && !indexView.cst()->getInt().isNegative())
+                    outProjection.components.push_back({.kind = SemaEscapeProjectionKind::ConstantIndex, .index = static_cast<uint64_t>(indexView.cst()->getInt().asI64())});
+                else
+                    outProjection.components.push_back({.kind = SemaEscapeProjectionKind::AnyIndex});
+                return true;
+            }
+
+            default:
+                return false;
+        }
     }
 
     const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable)
@@ -610,6 +692,61 @@ namespace
             return TypeRef::invalid();
 
         return aggregate.types[fieldIndex];
+    }
+
+    bool structLikeChildProjectionComponent(Sema& sema, SemaEscapeProjectionComponent& outComponent, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef)
+    {
+        const TypeRef targetRef = normalizeBindingType(sema, targetTypeRef);
+        if (!targetRef.isValid())
+            return false;
+
+        const TypeInfo& targetType = sema.typeMgr().get(targetRef);
+        size_t          fieldIndex = 0;
+        if (targetType.isStruct())
+        {
+            const SymbolStruct& targetStruct   = targetType.payloadSymStruct();
+            const auto&         fields         = targetStruct.fields();
+            const auto          findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) { return targetStruct.tryGetFieldIndexByName(outIndex, idRef); };
+            if (!resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex) || fieldIndex >= fields.size() || !fields[fieldIndex])
+                return false;
+            outComponent = {.kind = SemaEscapeProjectionKind::Field, .field = fields[fieldIndex]};
+            return true;
+        }
+
+        if (!targetType.isAggregateStruct())
+            return false;
+
+        const auto& aggregate          = targetType.payloadAggregate();
+        const auto  resolveMemberIndex = [&](IdentifierRef idRef, size_t& outIndex) { return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef); };
+        if (!resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex))
+            return false;
+        outComponent = {.kind = SemaEscapeProjectionKind::ConstantIndex, .index = fieldIndex};
+        return true;
+    }
+
+    bool aggregateLiteralChildren(Sema& sema, SmallVector<AstNodeRef>& outChildren, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        const AstNode& rawNode = sema.node(exprRef);
+        if (rawNode.is(AstNodeId::InitializerExpr))
+            return aggregateLiteralChildren(sema, outChildren, rawNode.cast<AstInitializerExpr>().nodeExprRef);
+        if (rawNode.is(AstNodeId::NamedArgument))
+            return aggregateLiteralChildren(sema, outChildren, rawNode.cast<AstNamedArgument>().nodeArgRef);
+        if (rawNode.is(AstNodeId::CastExpr))
+            return aggregateLiteralChildren(sema, outChildren, rawNode.cast<AstCastExpr>().nodeExprRef);
+        if (rawNode.is(AstNodeId::StructLiteral))
+        {
+            rawNode.cast<AstStructLiteral>().collectChildren(outChildren, sema.ast());
+            return true;
+        }
+        if (rawNode.is(AstNodeId::StructInitializerList))
+        {
+            AstNode::collectChildren(outChildren, sema.ast(), rawNode.cast<AstStructInitializerList>().spanArgsRef);
+            return true;
+        }
+        return false;
     }
 
     SemaEscapeInfo childrenEscapeInfo(Sema& sema, const AstNode& node, uint32_t& budget)
@@ -960,6 +1097,50 @@ namespace
         return false;
     }
 
+    uint64_t parameterOriginsMask(const SymbolFunction& fn, const SemaEscapeInfo& info)
+    {
+        if (info.parameterOriginsMask)
+            return info.parameterOriginsMask;
+
+        if (!info.sourceVar)
+            return 0;
+
+        size_t paramIndex = 0;
+        if (!findCallerParameterIndex(fn, *info.sourceVar, paramIndex) || paramIndex >= 64)
+            return 0;
+        return 1ULL << paramIndex;
+    }
+
+    void addReturnBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
+    {
+        const uint64_t origins = parameterOriginsMask(fn, info);
+        for (size_t i = 0; i < 64; ++i)
+        {
+            if (origins & (1ULL << i))
+                fn.addReturnBorrowsParam(i);
+        }
+    }
+
+    void addStoredBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
+    {
+        const uint64_t origins = parameterOriginsMask(fn, info);
+        for (size_t i = 0; i < 64; ++i)
+        {
+            if (origins & (1ULL << i))
+                fn.addStoresParam(i);
+        }
+    }
+
+    void addFreedBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
+    {
+        const uint64_t origins = parameterOriginsMask(fn, info);
+        for (size_t i = 0; i < 64; ++i)
+        {
+            if (origins & (1ULL << i))
+                fn.addFreesParam(i);
+        }
+    }
+
     // Fills the diagnostic payload of a check template from the borrowed argument's
     // info (identity of the borrowed source; site and wording are stamped at commit).
     void fillDeferredCheckDiag(Sema& sema, SemaEscapeDeferredCheck& check, const SemaEscapeInfo& info)
@@ -1054,6 +1235,7 @@ namespace
         sema.appendResolvedCallArguments(resolvedRef, args);
 
         SmallVector<std::pair<uint32_t, SemaEscapeInfo>> argBorrows;
+        SmallVector<std::pair<uint32_t, uint32_t>>        parameterMappings;
 
         size_t paramIndex = 0;
         for (const ResolvedCallArgument& arg : args)
@@ -1098,12 +1280,11 @@ namespace
                 bool                  reqWhole    = false;
                 const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
                 const SemaEscapeInfo* carried     = reqVar ? sema.variableEscapeInfo(*reqVar) : nullptr;
-                if (carried && carried->kind == SemaEscapeKind::Parameter && carried->sourceVar)
+                if (carried && carried->kind == SemaEscapeKind::Parameter)
                 {
                     SymbolFunction* callerFn = sema.currentFunction();
-                    size_t          idx      = 0;
-                    if (callerFn && findCallerParameterIndex(*callerFn, *carried->sourceVar, idx))
-                        callerFn->addFreesParam(idx);
+                    if (callerFn)
+                        addFreedBorrowOrigins(*callerFn, *carried);
                 }
                 else if (carried && carried->isLocalBorrow() && !hasOwningLifecycle(sema, carried->sourceVar->typeRef()))
                 {
@@ -1120,19 +1301,26 @@ namespace
             // Handing the callee one of the caller's own parameters chains the
             // summaries: judged by fixpoint, not here - the callee's masks are not
             // final yet. The edge kind is chosen by the committer.
-            if (info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+            if (info.kind == SemaEscapeKind::Parameter)
             {
-                SymbolFunction* callerFn         = sema.currentFunction();
-                size_t          callerParamIndex = 0;
-                if (!callerFn || !findCallerParameterIndex(*callerFn, *info.sourceVar, callerParamIndex))
+                SymbolFunction* callerFn = sema.currentFunction();
+                if (!callerFn)
                     continue;
 
-                SemaEscapeSummaryEdge edge;
-                edge.caller           = callerFn;
-                edge.callee           = fn;
-                edge.callerParamIndex = static_cast<uint32_t>(callerParamIndex);
-                edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
-                outCapture.edges.push_back(edge);
+                const uint64_t origins = parameterOriginsMask(*callerFn, info);
+                for (size_t callerParamIndex = 0; callerParamIndex < 64; ++callerParamIndex)
+                {
+                    if (!(origins & (1ULL << callerParamIndex)))
+                        continue;
+
+                    SemaEscapeSummaryEdge edge;
+                    edge.caller           = callerFn;
+                    edge.callee           = fn;
+                    edge.callerParamIndex = static_cast<uint32_t>(callerParamIndex);
+                    edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
+                    outCapture.edges.push_back(edge);
+                    parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam)});
+                }
                 continue;
             }
 
@@ -1140,20 +1328,17 @@ namespace
             // g(p)'): compose the two summaries. Each borrow captured at 'f' becomes a
             // GUARDED template - it escapes only if 'f' returns it (the guard) AND
             // this callee keeps or returns its argument (the main judge). Templates
-            // that already carry a guard are not re-composed (depth-two limit).
+            // every wrapper contributes one guard, so chains have no fixed depth limit.
             if (info.isDeferredCallBorrow())
             {
-                const SemaEscapeDeferredCallSnapshot* snapshot = sema.escapeDeferredCallSnapshot(info.deferredCallRef);
-                if (snapshot)
+                for (const auto& snapshot : info.deferredCalls)
                 {
+                    if (!snapshot)
+                        continue;
                     for (const SemaEscapeDeferredCheck& inner : snapshot->checks)
                     {
-                        if (inner.guardCallee)
-                            continue;
-
                         SemaEscapeDeferredCheck check = inner;
-                        check.guardCallee             = inner.callee;
-                        check.guardParamIndex         = inner.paramIndex;
+                        check.guards.push_back({inner.callee, inner.paramIndex});
                         check.callee                  = fn;
                         check.paramIndex              = static_cast<uint32_t>(thisParam);
                         outCapture.checks.push_back(std::move(check));
@@ -1181,6 +1366,25 @@ namespace
         // caller-parameter destinations would need pair transitivity (future).
         if (collectPairs)
         {
+            for (const auto& [callerInto, calleeInto] : parameterMappings)
+            {
+                for (const auto& [callerStored, calleeStored] : parameterMappings)
+                {
+                    if (callerInto == callerStored || calleeInto == calleeStored)
+                        continue;
+
+                    SemaEscapeSummaryEdge edge;
+                    edge.caller               = sema.currentFunction();
+                    edge.callee               = fn;
+                    edge.callerParamIndex     = callerStored;
+                    edge.calleeParamIndex     = calleeStored;
+                    edge.callerIntoParamIndex = callerInto;
+                    edge.calleeIntoParamIndex = calleeInto;
+                    edge.kind                 = SemaEscapeSummaryEdgeKind::PairToPair;
+                    outCapture.edges.push_back(edge);
+                }
+            }
+
             for (const auto& [intoParam, intoInfo] : argBorrows)
             {
                 if (intoInfo.kind != SemaEscapeKind::Static || intoParam >= 8)
@@ -1235,7 +1439,8 @@ namespace
         for (const SemaEscapeSummaryEdge& protoEdge : capture.edges)
         {
             SemaEscapeSummaryEdge edge = protoEdge;
-            edge.kind                  = edgeKind.value();
+            if (edge.kind != SemaEscapeSummaryEdgeKind::PairToPair)
+                edge.kind = edgeKind.value();
             sema.ctx().compiler().addEscapeSummaryEdge(edge);
         }
     }
@@ -1270,31 +1475,37 @@ namespace
     // Binding an opaque call result to a local: capture the argument borrows now (the
     // flow state dies with the statement) and judge them only if the local later
     // escapes (return, durable store).
-    void bindDeferredCallBorrow(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef)
+    void bindDeferredCallBorrow(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef, const SemaEscapeProjection* projection = nullptr)
     {
         SemaEscapeDeferredCallSnapshot capture;
         if (!captureOpaqueCallBorrows(sema, exprRef, false, capture))
         {
-            sema.clearVariableEscapeInfo(symVar);
+            if (projection)
+                sema.clearProjectionEscapeInfo(*projection);
+            else
+                sema.clearVariableEscapeInfo(symVar);
             return;
         }
 
         SemaEscapeInfo info;
-        info.kind            = SemaEscapeKind::DeferredCall;
-        info.deferredCallRef = sema.addEscapeDeferredCallSnapshot(std::move(capture));
-        info.sourceRef       = exprRef;
-        sema.setVariableEscapeInfo(symVar, info);
+        info.kind      = SemaEscapeKind::DeferredCall;
+        info.sourceRef = exprRef;
+        info.deferredCalls.push_back(std::make_shared<const SemaEscapeDeferredCallSnapshot>(std::move(capture)));
+        if (projection)
+            sema.setProjectionEscapeInfo(*projection, info);
+        else
+            sema.setVariableEscapeInfo(symVar, info);
     }
 
     // A DeferredCall borrow provably escaping: judge its captured checks and edges at
     // the escape site.
     void emitDeferredCallEscape(Sema& sema, const SemaEscapeInfo& info, AstNodeRef atNodeRef, std::string_view what, std::optional<SemaEscapeSummaryEdgeKind> edgeKind)
     {
-        const SemaEscapeDeferredCallSnapshot* snapshot = sema.escapeDeferredCallSnapshot(info.deferredCallRef);
-        if (!snapshot)
-            return;
-
-        commitDeferredCallBorrows(sema, *snapshot, atNodeRef, what, false, edgeKind);
+        for (const auto& snapshot : info.deferredCalls)
+        {
+            if (snapshot)
+                commitDeferredCallBorrows(sema, *snapshot, atNodeRef, what, false, edgeKind);
+        }
     }
 
     SemaEscapeInfo expressionEscapeInfoAt(Sema& sema, AstNodeRef resolvedRef, uint32_t& budget)
@@ -1310,8 +1521,9 @@ namespace
                 const SymbolVariable* symVar = identifierVariable(sema, resolvedRef);
                 if (!symVar)
                     return {};
-                if (const SemaEscapeInfo* info = sema.variableEscapeInfo(*symVar))
-                    return *info;
+                SemaEscapeInfo trackedInfo = sema.variableEscapeInfoIncludingProjections(*symVar);
+                if (trackedInfo.hasBorrow())
+                    return trackedInfo;
 
                 // A carrier-typed parameter value transports caller-owned data: synthesize
                 // its borrow so copies and returns feed the per-function borrow summaries.
@@ -1325,6 +1537,7 @@ namespace
                         info.sourceVar = symVar;
                         info.sourceRef = resolvedRef;
                         info.typeRef   = symVar->typeRef();
+                        setParameterOrigin(sema, info, *symVar);
                         return info;
                     }
                 }
@@ -1344,6 +1557,7 @@ namespace
                         info.sourceVar = currentFn->parameters().front();
                         info.sourceRef = resolvedRef;
                         info.typeRef   = symVar->typeRef();
+                        setParameterOrigin(sema, info, *info.sourceVar);
                         return info;
                     }
                 }
@@ -1390,6 +1604,14 @@ namespace
 
             case AstNodeId::MemberAccessExpr:
             {
+                SemaEscapeProjection projection;
+                if (storageProjection(sema, resolvedRef, projection))
+                {
+                    SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
+                    if (projectedInfo.hasBorrow())
+                        return projectedInfo;
+                }
+
                 SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, budget);
                 if (info.hasBorrow())
                 {
@@ -1407,7 +1629,16 @@ namespace
             }
 
             case AstNodeId::IndexExpr:
+            {
+                SemaEscapeProjection projection;
+                if (storageProjection(sema, resolvedRef, projection))
+                {
+                    SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
+                    if (projectedInfo.hasBorrow())
+                        return projectedInfo;
+                }
                 return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexExpr>().nodeExprRef, budget);
+            }
 
             case AstNodeId::IndexListExpr:
                 return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexListExpr>().nodeExprRef, budget);
@@ -1617,7 +1848,7 @@ namespace
         return Result::Error;
     }
 
-    Result storeOrReportDestinationInfo(Sema& sema, const SymbolVariable& dstVar, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
+    Result storeOrReportDestinationInfo(Sema& sema, const SymbolVariable& dstVar, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what, const SemaEscapeProjection* projection = nullptr)
     {
         // A borrow of a temporary outlives it as soon as it is bound anywhere.
         if (info.isTemporaryBorrow())
@@ -1625,7 +1856,10 @@ namespace
 
         if (info.sourceVar == &dstVar)
         {
-            sema.clearVariableEscapeInfo(dstVar);
+            if (projection && !projection->components.empty())
+                sema.clearProjectionEscapeInfo(*projection);
+            else
+                sema.clearVariableEscapeInfo(dstVar);
             return Result::Continue;
         }
 
@@ -1652,7 +1886,10 @@ namespace
                     return reportBorrowEscape(sema, atNodeRef, info, what);
             }
 
-            sema.setVariableEscapeInfo(dstVar, info);
+            if (projection && !projection->components.empty())
+                sema.setProjectionEscapeInfo(*projection, info);
+            else
+                sema.setVariableEscapeInfo(dstVar, info);
             return Result::Continue;
         }
 
@@ -1675,6 +1912,57 @@ namespace
             return reportBorrowEscape(sema, atNodeRef, info, what);
 
         return Result::Continue;
+    }
+
+    Result bindAggregateLiteralProjectionChildren(Sema& sema, const SymbolVariable& dstVar, const SemaEscapeProjection& baseProjection, AstNodeRef exprRef, TypeRef targetTypeRef, std::string_view what)
+    {
+        SmallVector<AstNodeRef> children;
+        if (!aggregateLiteralChildren(sema, children, exprRef))
+            return Result::Continue;
+
+        for (const AstNodeRef childRef : children)
+        {
+            SemaEscapeProjectionComponent component;
+            if (!structLikeChildProjectionComponent(sema, component, children.span(), childRef, targetTypeRef))
+                continue;
+
+            const TypeRef childTypeRef = structLikeChildTargetType(sema, children.span(), childRef, targetTypeRef);
+            if (!childTypeRef.isValid())
+                continue;
+
+            SemaEscapeProjection projection = baseProjection;
+            projection.components.push_back(component);
+
+            const AstNodeRef childValueRef = argumentValueRef(sema, childRef);
+            SmallVector<AstNodeRef> nestedChildren;
+            if (aggregateLiteralChildren(sema, nestedChildren, childValueRef))
+            {
+                SWC_RESULT(bindAggregateLiteralProjectionChildren(sema, dstVar, projection, childValueRef, childTypeRef, what));
+                continue;
+            }
+
+            uint32_t             budget = K_EXPR_BUDGET;
+            const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, childValueRef, childTypeRef, budget);
+            if (info.hasBorrow())
+                SWC_RESULT(storeOrReportDestinationInfo(sema, dstVar, childRef, info, what, &projection));
+            else if (typeCanCarryBorrowImpl(sema, childTypeRef))
+                bindDeferredCallBorrow(sema, dstVar, childValueRef, &projection);
+        }
+
+        return Result::Continue;
+    }
+
+    Result bindAggregateLiteralProjections(Sema& sema, bool& outHandled, const SymbolVariable& dstVar, AstNodeRef exprRef, TypeRef targetTypeRef, std::string_view what)
+    {
+        SmallVector<AstNodeRef> children;
+        if (!aggregateLiteralChildren(sema, children, exprRef))
+            return Result::Continue;
+
+        outHandled = true;
+        sema.clearVariableEscapeInfo(dstVar);
+        SemaEscapeProjection rootProjection;
+        rootProjection.root = &dstVar;
+        return bindAggregateLiteralProjectionChildren(sema, dstVar, rootProjection, exprRef, targetTypeRef, what);
     }
 
     bool variableInitializerCanEscape(const SymbolVariable& symVar)
@@ -1707,6 +1995,11 @@ namespace SemaEscape
             sema.clearVariableEscapeInfo(symVar);
             return Result::Continue;
         }
+
+        bool aggregateHandled = false;
+        SWC_RESULT(bindAggregateLiteralProjections(sema, aggregateHandled, symVar, initRef, targetTypeRef, "an initializer"));
+        if (aggregateHandled)
+            return Result::Continue;
 
         uint32_t             budget = K_EXPR_BUDGET;
         const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget);
@@ -1747,15 +2040,11 @@ namespace SemaEscape
 
         // Initializing the RETVAL storage with a parameter borrow hands it back to the
         // caller: feeds the RETURN summary like 'return param'.
-        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar && symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        if (info.kind == SemaEscapeKind::Parameter && symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-            {
-                size_t paramIndex = 0;
-                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
-                    currentFn->addReturnBorrowsParam(paramIndex);
-            }
+                addReturnBorrowOrigins(*currentFn, info);
         }
 
         if (info.sourceVar == &symVar)
@@ -1778,11 +2067,26 @@ namespace SemaEscape
 
         bool                  wholeVariable = false;
         const SymbolVariable* dstVar        = storageRootVariable(sema, leftRef, true, wholeVariable);
+        SemaEscapeProjection  projection;
+        const bool            hasProjection = dstVar && storageProjection(sema, leftRef, projection) && projection.root == dstVar && !projection.components.empty();
         if (!typeCanCarryBorrowImpl(sema, targetTypeRef))
         {
-            if (dstVar && wholeVariable)
-                sema.clearVariableEscapeInfo(*dstVar);
+            if (dstVar)
+            {
+                if (hasProjection)
+                    sema.clearProjectionEscapeInfo(projection);
+                else if (wholeVariable)
+                    sema.clearVariableEscapeInfo(*dstVar);
+            }
             return Result::Continue;
+        }
+
+        if (dstVar)
+        {
+            bool aggregateHandled = false;
+            SWC_RESULT(bindAggregateLiteralProjections(sema, aggregateHandled, *dstVar, rightRef, targetTypeRef, "an assignment"));
+            if (aggregateHandled)
+                return Result::Continue;
         }
 
         uint32_t             budget = K_EXPR_BUDGET;
@@ -1799,14 +2103,21 @@ namespace SemaEscape
             {
                 const DeferredCallUse use = dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ? DeferredCallUse::Return : DeferredCallUse::Store;
                 recordDeferredCallBorrow(sema, rightRef, leftRef, "an assignment", use, dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage));
-                if (dstVar && wholeVariable)
-                    sema.clearVariableEscapeInfo(*dstVar);
+                if (dstVar)
+                {
+                    if (hasProjection)
+                        sema.clearProjectionEscapeInfo(projection);
+                    else if (wholeVariable)
+                        sema.clearVariableEscapeInfo(*dstVar);
+                }
             }
             else if (wholeVariable)
             {
                 // 'p = f(&v)' into a local: same deferred capture as an initializer.
                 bindDeferredCallBorrow(sema, *dstVar, rightRef);
             }
+            else if (hasProjection)
+                bindDeferredCallBorrow(sema, *dstVar, rightRef, &projection);
 
             return Result::Continue;
         }
@@ -1817,29 +2128,21 @@ namespace SemaEscape
         // really passed in. Only true globals qualify: a destination rooted at a
         // parameter (me.list = x) targets caller-owned storage whose relative
         // lifetime is unknown (the allocator free-lists live in 'me').
-        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
+        if (info.kind == SemaEscapeKind::Parameter && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-            {
-                size_t paramIndex = 0;
-                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
-                    currentFn->addStoresParam(paramIndex);
-            }
+                addStoredBorrowOrigins(*currentFn, info);
         }
 
         // Storing a parameter borrow into the RETVAL storage hands it back through the
         // return value ('result.field = param; return result'): feeds the RETURN
         // summary exactly like 'return param'.
-        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        if (info.kind == SemaEscapeKind::Parameter && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal))
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-            {
-                size_t paramIndex = 0;
-                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
-                    currentFn->addReturnBorrowsParam(paramIndex);
-            }
+                addReturnBorrowOrigins(*currentFn, info);
         }
 
         // Storing a parameter borrow into storage reachable from ANOTHER parameter
@@ -1849,7 +2152,7 @@ namespace SemaEscape
         // the destination in READ mode: it roots member/dref accesses at the signature
         // receiver. A BARE identifier destination is the parameter being rebound: no
         // caller-visible store.
-        if (info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+        if (info.kind == SemaEscapeKind::Parameter)
         {
             bool                  pairWhole       = false;
             const SymbolVariable* pairRoot        = storageRootVariable(sema, leftRef, false, pairWhole);
@@ -1861,18 +2164,22 @@ namespace SemaEscape
                 const SymbolVariable* dstParam = signatureParameterFor(sema, *pairRoot);
                 if (dstParam && !isByValueParameterStorage(sema, *dstParam))
                 {
-                    size_t storedIndex = 0;
                     size_t intoIndex   = 0;
-                    if (findCallerParameterIndex(*currentFn, *info.sourceVar, storedIndex) &&
-                        findCallerParameterIndex(*currentFn, *dstParam, intoIndex) &&
-                        storedIndex != intoIndex)
-                        currentFn->addStoresIntoParam(intoIndex, storedIndex);
+                    if (findCallerParameterIndex(*currentFn, *dstParam, intoIndex))
+                    {
+                        const uint64_t origins = parameterOriginsMask(*currentFn, info);
+                        for (size_t storedIndex = 0; storedIndex < 64; ++storedIndex)
+                        {
+                            if ((origins & (1ULL << storedIndex)) && storedIndex != intoIndex)
+                                currentFn->addStoresIntoParam(intoIndex, storedIndex);
+                        }
+                    }
                 }
             }
         }
 
         if (dstVar)
-            return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment");
+            return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment", hasProjection ? &projection : nullptr);
         if (info.isLocalBorrow() || info.isMaterializedBorrow() || info.isTemporaryBorrow())
             return reportBorrowEscape(sema, leftRef, info, "an assignment");
 
@@ -1934,15 +2241,11 @@ namespace SemaEscape
 
         // Returning a borrow of caller-owned data is fine for THIS function, but feeds
         // the per-function summary consumed at call sites (callResultEscapeInfo).
-        if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter && info.sourceVar)
+        if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter)
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)
-            {
-                size_t paramIndex = 0;
-                if (findCallerParameterIndex(*currentFn, *info.sourceVar, paramIndex))
-                    currentFn->addReturnBorrowsParam(paramIndex);
-            }
+                addReturnBorrowOrigins(*currentFn, info);
         }
 
         if (!info.isLocalBorrow())
@@ -2017,6 +2320,15 @@ namespace SemaEscape
                             changed = true;
                         }
                         break;
+
+                    case SemaEscapeSummaryEdgeKind::PairToPair:
+                        if (SymbolFunction::hasStoresIntoPair(edge.callee->storesIntoParamPairs(), edge.calleeIntoParamIndex, edge.calleeParamIndex) &&
+                            !SymbolFunction::hasStoresIntoPair(edge.caller->storesIntoParamPairs(), edge.callerIntoParamIndex, edge.callerParamIndex))
+                        {
+                            edge.caller->addStoresIntoParam(edge.callerIntoParamIndex, edge.callerParamIndex);
+                            changed = true;
+                        }
+                        break;
                 }
             }
         }
@@ -2033,14 +2345,16 @@ namespace SemaEscape
                 return a.siteRange.offset < b.siteRange.offset;
             if (a.paramIndex != b.paramIndex)
                 return a.paramIndex < b.paramIndex;
+            if (a.callee != b.callee)
+                return std::less<const SymbolFunction*>{}(a.callee, b.callee);
             if (a.judgeStores != b.judgeStores)
                 return a.judgeStores < b.judgeStores;
             if (a.judgePairs != b.judgePairs)
                 return a.judgePairs < b.judgePairs;
             if (a.intoParamIndex != b.intoParamIndex)
                 return a.intoParamIndex < b.intoParamIndex;
-            if (a.guardParamIndex != b.guardParamIndex)
-                return a.guardParamIndex < b.guardParamIndex;
+            if (a.guards.size() != b.guards.size())
+                return a.guards.size() < b.guards.size();
             return a.symName < b.symName;
         });
 
@@ -2056,11 +2370,12 @@ namespace SemaEscape
                 previous->fileRef == check.fileRef &&
                 previous->siteRange.offset == check.siteRange.offset &&
                 previous->paramIndex == check.paramIndex &&
+                previous->callee == check.callee &&
                 previous->judgeStores == check.judgeStores &&
                 previous->judgePairs == check.judgePairs &&
                 previous->intoParamIndex == check.intoParamIndex &&
-                previous->guardCallee == check.guardCallee &&
-                previous->guardParamIndex == check.guardParamIndex &&
+                previous->guards.size() == check.guards.size() &&
+                std::equal(previous->guards.begin(), previous->guards.end(), check.guards.begin()) &&
                 previous->symName == check.symName &&
                 previous->diagId == check.diagId)
                 continue;
@@ -2098,9 +2413,10 @@ namespace SemaEscape
                     continue;
             }
 
-            // Composed chained-local check: the borrow reaches this call only if the
-            // ORIGINAL callee returns it.
-            if (check.guardCallee && !(check.guardCallee->returnBorrowsParamsMask() & (1ULL << check.guardParamIndex)))
+            const bool guardMiss = std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
+                return !guard.callee || !(guard.callee->returnBorrowsParamsMask() & (1ULL << guard.paramIndex));
+            });
+            if (guardMiss)
                 continue;
 
             Diagnostic diag = Diagnostic::get(diagId, check.fileRef);
@@ -2117,6 +2433,15 @@ namespace SemaEscape
                 if (!check.noteSymName.empty())
                     diag.last().addArgument(Diagnostic::ARG_SYM, check.noteSymName);
                 diag.last().addSpan(check.noteRange);
+            }
+
+            for (const SemaEscapeDeferredGuard& guard : check.guards)
+            {
+                if (!guard.callee)
+                    continue;
+                diag.addNote(DiagnosticId::sema_note_borrow_propagated_through);
+                diag.last().addArgument(Diagnostic::ARG_SYM, guard.callee->name(ctx));
+                diag.last().addSpan(guard.callee->codeRange(ctx));
             }
 
             diag.report(ctx);

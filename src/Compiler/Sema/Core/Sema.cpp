@@ -255,9 +255,10 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
     frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
-    variableEscapeInfos_ = parent.variableEscapeInfos_;
-    variableScopeDepths_ = parent.variableScopeDepths_;
-    escapeBranchStack_   = parent.escapeBranchStack_;
+    variableEscapeInfos_   = parent.variableEscapeInfos_;
+    projectionEscapeInfos_ = parent.projectionEscapeInfos_;
+    variableScopeDepths_   = parent.variableScopeDepths_;
+    escapeBranchStack_     = parent.escapeBranchStack_;
 }
 
 Sema::~Sema() = default;
@@ -278,25 +279,81 @@ void Sema::setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeI
         return;
     }
 
+    std::erase_if(projectionEscapeInfos_, [&symVar](const auto& it) { return it.first.root == &symVar; });
     variableEscapeInfos_[&symVar] = info;
 }
 
 void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
 {
     variableEscapeInfos_.erase(&symVar);
+    std::erase_if(projectionEscapeInfos_, [&symVar](const auto& it) { return it.first.root == &symVar; });
 }
 
-uint32_t Sema::addEscapeDeferredCallSnapshot(SemaEscapeDeferredCallSnapshot&& snapshot)
+SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const
 {
-    escapeDeferredCallSnapshots_.push_back(std::move(snapshot));
-    return static_cast<uint32_t>(escapeDeferredCallSnapshots_.size() - 1);
+    SemaEscapeInfo result;
+    if (const SemaEscapeInfo* info = variableEscapeInfo(symVar))
+        result = *info;
+
+    for (const auto& [projection, info] : projectionEscapeInfos_)
+    {
+        if (projection.root == &symVar)
+            result.mergeFrom(info);
+    }
+    return result;
 }
 
-const SemaEscapeDeferredCallSnapshot* Sema::escapeDeferredCallSnapshot(uint32_t index) const
+SemaEscapeInfo Sema::projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const
 {
-    if (index >= escapeDeferredCallSnapshots_.size())
-        return nullptr;
-    return &escapeDeferredCallSnapshots_[index];
+    SemaEscapeInfo result;
+    for (const auto& [candidate, info] : projectionEscapeInfos_)
+    {
+        if (candidate.root != projection.root || candidate.components.size() != projection.components.size())
+            continue;
+
+        bool matches = true;
+        for (size_t i = 0; i < projection.components.size(); ++i)
+        {
+            const auto& left  = projection.components[i];
+            const auto& right = candidate.components[i];
+            if (left == right)
+                continue;
+            if (left.kind == SemaEscapeProjectionKind::AnyIndex && right.kind != SemaEscapeProjectionKind::Field)
+                continue;
+            if (right.kind == SemaEscapeProjectionKind::AnyIndex && left.kind != SemaEscapeProjectionKind::Field)
+                continue;
+            matches = false;
+            break;
+        }
+
+        if (matches)
+            result.mergeFrom(info);
+    }
+    return result;
+}
+
+void Sema::setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info)
+{
+    if (!projection.root || projection.components.empty())
+        return;
+    if (!info.hasBorrow())
+    {
+        clearProjectionEscapeInfo(projection);
+        return;
+    }
+    projectionEscapeInfos_[projection] = info;
+}
+
+void Sema::clearProjectionEscapeInfo(const SemaEscapeProjection& projection)
+{
+    if (!projection.root)
+        return;
+
+    std::erase_if(projectionEscapeInfos_, [&projection](const auto& it) {
+        if (it.first.root != projection.root || it.first.components.size() < projection.components.size())
+            return false;
+        return std::equal(projection.components.begin(), projection.components.end(), it.first.components.begin());
+    });
 }
 
 uint32_t Sema::variableScopeDepth(const SymbolVariable& symVar) const
@@ -321,14 +378,14 @@ uint32_t Sema::currentScopeDepth() const
 
 namespace
 {
-    void mergeEscapeStates(std::unordered_map<const SymbolVariable*, SemaEscapeInfo>&       dst,
-                           const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& src)
+    template<typename K, typename H>
+    void mergeEscapeStates(std::unordered_map<K, SemaEscapeInfo, H>& dst, const std::unordered_map<K, SemaEscapeInfo, H>& src)
     {
-        for (const auto& [symVar, info] : src)
+        for (const auto& [key, info] : src)
         {
-            auto [it, inserted] = dst.try_emplace(symVar, info);
-            if (!inserted && info.rank() > it->second.rank())
-                it->second = info;
+            auto [it, inserted] = dst.try_emplace(key, info);
+            if (!inserted)
+                it->second.mergeFrom(info);
         }
     }
 }
@@ -336,7 +393,8 @@ namespace
 void Sema::pushEscapeBranch()
 {
     EscapeBranchState state;
-    state.entryState = variableEscapeInfos_;
+    state.entryState           = variableEscapeInfos_;
+    state.entryProjectionState = projectionEscapeInfos_;
     escapeBranchStack_.push_back(std::move(state));
 }
 
@@ -347,10 +405,12 @@ void Sema::nextEscapeBranchAlternative()
         return;
 
     // Branch-local borrow state starts from the same entry snapshot for each
-    // alternative; only the worst rank observed across alternatives survives.
+    // alternative; every possible parameter, projection and deferred call survives.
     EscapeBranchState& state = escapeBranchStack_.back();
     mergeEscapeStates(state.mergedState, variableEscapeInfos_);
-    variableEscapeInfos_ = state.entryState;
+    mergeEscapeStates(state.mergedProjectionState, projectionEscapeInfos_);
+    variableEscapeInfos_   = state.entryState;
+    projectionEscapeInfos_ = state.entryProjectionState;
 }
 
 void Sema::popEscapeBranch(bool mergeEntryState)
@@ -361,10 +421,15 @@ void Sema::popEscapeBranch(bool mergeEntryState)
 
     EscapeBranchState& state = escapeBranchStack_.back();
     mergeEscapeStates(state.mergedState, variableEscapeInfos_);
+    mergeEscapeStates(state.mergedProjectionState, projectionEscapeInfos_);
     if (mergeEntryState)
+    {
         mergeEscapeStates(state.mergedState, state.entryState);
+        mergeEscapeStates(state.mergedProjectionState, state.entryProjectionState);
+    }
 
-    variableEscapeInfos_ = std::move(state.mergedState);
+    variableEscapeInfos_   = std::move(state.mergedState);
+    projectionEscapeInfos_ = std::move(state.mergedProjectionState);
     escapeBranchStack_.pop_back();
 }
 

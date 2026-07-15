@@ -56,8 +56,13 @@ struct SemaEscapeInfo
     const SymbolVariable* sourceVar = nullptr;
     AstNodeRef            sourceRef = AstNodeRef::invalid();
     TypeRef               typeRef   = TypeRef::invalid();
-    // Index of the per-Sema SemaEscapeDeferredCallSnapshot (kind == DeferredCall).
-    uint32_t deferredCallRef = UINT32_MAX;
+    // All signature parameters whose storage this value may borrow. Keeping the full
+    // set is required for aggregates and closures that carry more than one parameter;
+    // sourceVar remains the representative origin used by local diagnostics.
+    uint64_t parameterOriginsMask = 0;
+    // Opaque-call snapshots carried by this value. Shared ownership keeps them valid
+    // when nested Sema instances and control-flow alternatives exchange their state.
+    SmallVector4<std::shared_ptr<const SemaEscapeDeferredCallSnapshot>> deferredCalls;
     // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
     uint32_t sourceScopeDepth = 0;
 
@@ -66,6 +71,28 @@ struct SemaEscapeInfo
     bool isMaterializedBorrow() const { return kind == SemaEscapeKind::Materialized; }
     bool isTemporaryBorrow() const { return kind == SemaEscapeKind::Temporary; }
     bool isDeferredCallBorrow() const { return kind == SemaEscapeKind::DeferredCall; }
+
+    void mergeFrom(const SemaEscapeInfo& other)
+    {
+        if (kind == SemaEscapeKind::Parameter && other.kind == SemaEscapeKind::Parameter)
+        {
+            parameterOriginsMask |= other.parameterOriginsMask;
+            return;
+        }
+
+        if (kind == SemaEscapeKind::DeferredCall && other.kind == SemaEscapeKind::DeferredCall)
+        {
+            for (const auto& call : other.deferredCalls)
+            {
+                if (std::find(deferredCalls.begin(), deferredCalls.end(), call) == deferredCalls.end())
+                    deferredCalls.push_back(call);
+            }
+            return;
+        }
+
+        if (other.rank() > rank())
+            *this = other;
+    }
 
     // Severity order used when two may-borrow facts merge (flow joins, aggregates).
     int rank() const
@@ -91,6 +118,47 @@ struct SemaEscapeInfo
         }
 
         return 0;
+    }
+};
+
+enum class SemaEscapeProjectionKind : uint8_t
+{
+    Field,
+    ConstantIndex,
+    AnyIndex,
+};
+
+struct SemaEscapeProjectionComponent
+{
+    SemaEscapeProjectionKind kind  = SemaEscapeProjectionKind::Field;
+    const SymbolVariable*    field = nullptr;
+    uint64_t                 index = 0;
+
+    bool operator==(const SemaEscapeProjectionComponent&) const noexcept = default;
+};
+
+struct SemaEscapeProjection
+{
+    const SymbolVariable*                         root = nullptr;
+    SmallVector4<SemaEscapeProjectionComponent> components;
+
+    bool operator==(const SemaEscapeProjection& other) const noexcept
+    {
+        return root == other.root && components.size() == other.components.size() && std::equal(components.begin(), components.end(), other.components.begin());
+    }
+};
+
+struct SemaEscapeProjectionHash
+{
+    size_t operator()(const SemaEscapeProjection& projection) const noexcept
+    {
+        size_t result = std::hash<const SymbolVariable*>{}(projection.root);
+        for (const SemaEscapeProjectionComponent& component : projection.components)
+        {
+            const size_t value = component.kind == SemaEscapeProjectionKind::Field ? std::hash<const SymbolVariable*>{}(component.field) : std::hash<uint64_t>{}(component.index);
+            result ^= value + static_cast<size_t>(component.kind) + 0x9e3779b9 + (result << 6) + (result >> 2);
+        }
+        return result;
     }
 };
 
@@ -338,10 +406,10 @@ public:
     const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
     void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
-
-    // Argument-borrow snapshots of opaque calls bound to locals (SemaEscapeKind::DeferredCall).
-    uint32_t                              addEscapeDeferredCallSnapshot(SemaEscapeDeferredCallSnapshot&& snapshot);
-    const SemaEscapeDeferredCallSnapshot* escapeDeferredCallSnapshot(uint32_t index) const;
+    SemaEscapeInfo        variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
+    SemaEscapeInfo        projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
+    void                  setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
+    void                  clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
 
     // Lexical depth of the scope a local variable is declared in (0 = unknown).
     uint32_t variableScopeDepth(const SymbolVariable& symVar) const;
@@ -511,12 +579,14 @@ private:
     {
         std::unordered_map<const SymbolVariable*, SemaEscapeInfo> entryState;
         std::unordered_map<const SymbolVariable*, SemaEscapeInfo> mergedState;
+        std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> entryProjectionState;
+        std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> mergedProjectionState;
     };
 
     std::unordered_map<const SymbolVariable*, SemaEscapeInfo> variableEscapeInfos_;
+    std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> projectionEscapeInfos_;
     std::unordered_map<const SymbolVariable*, uint32_t>       variableScopeDepths_;
     std::vector<EscapeBranchState>                            escapeBranchStack_;
-    std::vector<SemaEscapeDeferredCallSnapshot>               escapeDeferredCallSnapshots_;
     AstVisit                                                  visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

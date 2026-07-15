@@ -994,3 +994,220 @@ func borrowEscapePairGlobalSource()
 {
     borrowEscapeGlobalContainer.add(&borrowEscapeGlobalInt)
 }
+
+#[Swag.NoInline]
+func borrowEscapePairForward(container: *BorrowEscapeContainer, item: *s32)
+{
+    container.add(item)
+}
+
+func borrowEscapePairForwardGlobal()
+{
+    var local: s32
+    borrowEscapePairForward(&borrowEscapeGlobalContainer, &local) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// ---------------------------------------------------------------------------
+// Multiple parameter origins: every borrowed parameter carried by one aggregate
+// must contribute to the return summary. Keeping only one origin would make the
+// result depend on aggregate field order and miss the local passed for 'second'.
+// ---------------------------------------------------------------------------
+
+struct BorrowEscapePairResult
+{
+    first:  *s32
+    second: *s32
+}
+
+#[Swag.NoInline]
+func borrowEscapePairResult(first, second: *s32)->BorrowEscapePairResult
+{
+    return {first, second}
+}
+
+func borrowEscapePairResultSecondLocal()->BorrowEscapePairResult
+{
+    var local: s32
+    return borrowEscapePairResult(&borrowEscapeGlobalInt, &local) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapePairResultFirstLocal()->BorrowEscapePairResult
+{
+    var local: s32
+    return borrowEscapePairResult(&local, &borrowEscapeGlobalInt) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Field-sensitive local state: copying a pointer field preserves the pointee borrow,
+// while assigning or reading a sibling field must not overwrite or inherit it.
+struct BorrowEscapeFieldState
+{
+    local:  *s32
+    global: *s32
+}
+
+func borrowEscapeFieldLocal()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state.local  = &local
+    state.global = &borrowEscapeGlobalInt
+    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeFieldGlobal()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state.local  = &local
+    state.global = &borrowEscapeGlobalInt
+    return state.global
+}
+
+func borrowEscapeFieldClear()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state.local = &local
+    state.local = null
+    return state.local
+}
+
+func borrowEscapeWholeAggregateWithBorrow()->BorrowEscapeFieldState
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state.local = &local
+    return state // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeFieldDeferred()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state.local = borrowEscapePassthrough(&local)
+    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeDeferredJoin(cond: bool)->*s32
+{
+    var local: s32
+    var p: *s32
+    if cond do
+        p = borrowEscapeWrapGlobalSource(&local)
+    else do
+        p = borrowEscapePassthrough(&local)
+    return p // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+struct BorrowEscapeNestedFieldState
+{
+    inner: BorrowEscapeFieldState
+}
+
+func borrowEscapeNestedField()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeNestedFieldState
+    state.inner.local  = &local
+    state.inner.global = &borrowEscapeGlobalInt
+    return state.inner.local // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeNestedSibling()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeNestedFieldState
+    state.inner.local  = &local
+    state.inner.global = &borrowEscapeGlobalInt
+    return state.inner.global
+}
+
+func borrowEscapeDeepDeferredChain()->*s32
+{
+    var local: s32
+    let p1 = borrowEscapePassthrough(&local)
+    let p2 = borrowEscapePassthrough(p1)
+    let p3 = borrowEscapePassthrough(p2)
+    return borrowEscapePassthrough(p3) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+var borrowEscapeRetainedVisitor: BorrowEscapeVisitor
+
+#[Swag.NoInline]
+func borrowEscapeRetainVisitor(visitor: BorrowEscapeVisitor)
+{
+    borrowEscapeRetainedVisitor = visitor
+}
+
+func borrowEscapeRetainedClosure()
+{
+    var local: s32
+    let pLocal = &local
+    let visitor: BorrowEscapeVisitor = func|pLocal|()->s32 { return dref pLocal }
+    borrowEscapeRetainVisitor(visitor) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeArrayElement()->*s32
+{
+    var local: s32
+    var values: [2] *s32
+    values[0] = &local
+    values[1] = &borrowEscapeGlobalInt
+    return values[0] // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeArraySibling()->*s32
+{
+    var local: s32
+    var values: [2] *s32
+    values[0] = &local
+    values[1] = &borrowEscapeGlobalInt
+    return values[1]
+}
+
+func borrowEscapeArrayElementClear()->*s32
+{
+    var local: s32
+    var values: [2] *s32
+    values[0] = &local
+    values[0] = null
+    return values[0]
+}
+
+func borrowEscapeArrayDynamic(index: u64)->*s32
+{
+    var local: s32
+    var values: [2] *s32
+    values[index] = &local
+    return values[0] // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeAggregateAssignmentSibling()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state = {&local, &borrowEscapeGlobalInt}
+    return state.global
+}
+
+func borrowEscapeAggregateAssignmentLocal()->*s32
+{
+    var local: s32
+    var state: BorrowEscapeFieldState
+    state = {&local, &borrowEscapeGlobalInt}
+    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+func borrowEscapeAggregateInitializerSibling()->*s32
+{
+    var local: s32
+    var state = BorrowEscapeFieldState{local: &local, global: &borrowEscapeGlobalInt}
+    return state.global
+}
+
+func borrowEscapeAggregateInitializerLocal()->*s32
+{
+    var local: s32
+    var state = BorrowEscapeFieldState{local: &local, global: &borrowEscapeGlobalInt}
+    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+}

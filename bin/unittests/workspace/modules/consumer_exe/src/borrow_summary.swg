@@ -23,5 +23,11 @@ func verifyImportedBorrowSummaries()
     @assert(gConsumerContainer.slot == &gConsumerBorrowInt)
 }
 
+func verifyImportedMultiOriginSummary()->DepBorrowPair
+{
+    var local: s32
+    return depBorrowMakePair(&gConsumerBorrowInt, &local) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
 var gConsumerContainer: DepBorrowContainer
 

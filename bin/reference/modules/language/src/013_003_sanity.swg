@@ -112,6 +112,29 @@ borrow, and they cross module boundaries through the generated module API (the
 }
 
 /**
+An aggregate can carry several independent borrows. Swag keeps every parameter
+origin in function summaries and tracks local borrows by field path. Assigning a
+sibling field therefore neither hides nor inherits another field's borrow. Constant
+array indices are tracked independently; a dynamic index conservatively overlaps
+every element. Opaque-call snapshots also survive control-flow joins and compose
+through arbitrarily deep local call chains.
+*/
+#test
+{
+    struct Views
+    {
+        local:  *s32
+        global: *s32
+    }
+
+    var local: s32
+    var views: Views
+    views.local  = &local
+    views.global = &sanityGlobalValue
+    @assert(views.global == &sanityGlobalValue)
+}
+
+/**
 # 'Stored Arguments'
 
 A callee that stores its parameter into storage that outlives the call (a global)

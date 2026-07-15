@@ -2,6 +2,7 @@
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Core/StrongRef.h"
 #include "Support/Core/Utf8.h"
 
@@ -18,6 +19,14 @@ using FileRef = StrongRef<SourceFile>;
 // A call whose result may borrow one of its arguments, recorded while analyzing the
 // caller and judged once the whole module is sema-completed: only then is the callee's
 // 'returnBorrowsParamsMask' final, whatever order the sema jobs ran in.
+struct SemaEscapeDeferredGuard
+{
+    const SymbolFunction* callee     = nullptr;
+    uint32_t              paramIndex = 0;
+
+    bool operator==(const SemaEscapeDeferredGuard&) const noexcept = default;
+};
+
 struct SemaEscapeDeferredCheck
 {
     const SymbolFunction* callee     = nullptr;
@@ -25,10 +34,9 @@ struct SemaEscapeDeferredCheck
     // Judged against the callee's STORES summary (the callee keeps its argument beyond
     // the call) instead of its RETURN summary (the call result carries the borrow).
     bool judgeStores = false;
-    // Optional second condition: 'let p = f(&v); g(p)' escapes only if 'f' RETURNS the
-    // borrow of 'v' (the guard) AND 'g' keeps/returns its argument (the main judge).
-    const SymbolFunction* guardCallee     = nullptr;
-    uint32_t              guardParamIndex = 0;
+    // Every preceding call in a chained local must return the borrow for it to reach
+    // the final judged call. A list avoids an arbitrary composition-depth limit.
+    SmallVector4<SemaEscapeDeferredGuard> guards;
     // Judged against the callee's PAIR summary instead: parameter #paramIndex stored
     // into storage reachable from parameter #intoParamIndex, whose argument at this
     // site is a global.
@@ -58,6 +66,7 @@ enum class SemaEscapeSummaryEdgeKind : uint8_t
     ReturnToReturn, // return-position call: callee returns #j -> caller returns #i
     ReturnToStores, // result stored durably: callee returns #j -> caller stores #i
     StoresToStores, // any call: callee stores #j -> caller stores #i
+    PairToPair,     // callee stores #j into #k -> caller stores mapped #i into #h
 };
 
 // A call that hands one of the caller's own parameters to the callee: whatever the
@@ -70,6 +79,8 @@ struct SemaEscapeSummaryEdge
     const SymbolFunction*     callee           = nullptr;
     uint32_t                  callerParamIndex = 0;
     uint32_t                  calleeParamIndex = 0;
+    uint32_t                  callerIntoParamIndex = 0;
+    uint32_t                  calleeIntoParamIndex = 0;
     SemaEscapeSummaryEdgeKind kind             = SemaEscapeSummaryEdgeKind::ReturnToReturn;
 };
 

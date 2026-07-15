@@ -490,14 +490,13 @@ impl LibraryView
             .thread.wait()
         }
 
-        // Filter. In trash mode the items come from the recycle bin instead of the
-        // library, and the date sidebar filter does not apply.
+        // Items come from the folder the breadcrumb currently points at. The captMe home
+        // folder uses the in-memory index (so the date sidebar and delete handlers stay in
+        // sync, honouring the date filter); any other folder (the recycle bin included) is
+        // listed straight from disk.
         var res: Array'File.FileInfo
-        if .libWnd.trashMode
-        {
-            res = catch Library.enumerateTrash()
-        }
-        else
+        let cf = .libWnd.currentFolder()
+        if Library.getFolder() == cf
         {
             for fi in g_Library.files
             {
@@ -508,6 +507,10 @@ impl LibraryView
                     res.add(fi)
                 }
             }
+        }
+        else
+        {
+            res = catch Directory.enumerateFiles(cf, ".captme")
         }
 
         let renderer = .getApp().getRenderer()

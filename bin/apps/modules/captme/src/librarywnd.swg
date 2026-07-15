@@ -27,10 +27,16 @@ struct LibraryWnd
     filterBtn:                   *IconButton
     trashBtn:                    *IconButton
     searchEdit:                  *EditBox
+    breadcrumb:                  *BreadcrumbCtrl
     previewSize:                 PreviewSize
 
     searchText:                  String
     trashMode:                   bool
+    curFolder:                   String
+
+    // Backing storage for the breadcrumb drop-down entry ids (folder paths). Menu items
+    // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
+    menuPaths:                   Array'String
 
     invertSort:                  bool
     sortMethod:                  SortMethod
@@ -347,15 +353,103 @@ impl LibraryWnd
         .invalidate()
     }
 
-    // Switch between the normal library and the recycle bin. Both reuse the same grid;
-    // only the source of the items changes, so a full re-fill is enough.
+    // Switch between the normal library and the recycle bin: both are just folders, so
+    // this is a folder navigation to the captMe folder or its recycle bin.
     mtd setTrashMode(trash: bool)
     {
-        if .trashMode == trash do
+        .navigateFolder(trash ? Library.getTrashFolder() : Library.getFolder())
+    }
+
+    // The real on-disk folder the library is currently showing (the captMe folder by
+    // default, its recycle bin, or any folder navigated to from the breadcrumb).
+    mtd currentFolder()->String
+    {
+        if .curFolder.isEmpty() do
+            return Library.getFolder()
+        return .curFolder
+    }
+
+    // Rebuild the breadcrumb from the current folder path: one level per path component,
+    // each carrying its full path in 'tag' so navigation can act on it.
+    mtd updateBreadcrumb()
+    {
+        if !.breadcrumb do
             return
-        .trashMode = trash
+        .breadcrumb.clear()
+
+        let trashFolder = Library.getTrashFolder()
+
+        // Collect each ancestor's full path, leaf first, by walking up the directory chain.
+        // Keep 'folder' bound to a local so the slice 'p' (and every getDirectoryName slice
+        // derived from it) stays backed by live memory for the whole walk.
+        let folder = .currentFolder()
+        var fulls: Array'String
+        var p = folder.toString()
+        while @countof(p) != 0
+        {
+            fulls.add(String.from(p))
+            let parent = Path.getDirectoryName(p)
+            if parent == null or @countof(parent) == 0 or parent == p do
+                break
+            p = parent
+        }
+
+        // Add levels root-first.
+        for #reverse idx in fulls.count
+        {
+            let fp = fulls[idx].toString()
+            var nm = Path.getFileName(fp) orelse ""
+            if @countof(nm) == 0 do
+                nm = fp
+            let isTrash = trashFolder == fp
+            let icon    = isTrash ? .getTheme().getIcon24(.Remove) : .getTheme().getIcon24(.OpenFile)
+            .breadcrumb.addItem(nm, icon, tag: fp)
+        }
+    }
+
+    // Fill a level's drop-down with the real sub-directories of that level's folder.
+    mtd fillBreadcrumbMenu(bc: *BreadcrumbCtrl, index: u64, menu: *MenuCtrl)
+    {
+        if index >= bc.items.count do
+            return
+        let folder = bc.items[index].tag.toString()
+
+        let dirs = catch Directory.enumerateDirectories(folder)
+        if @err != null do
+            return
+
+        // Mark the child that is currently on the path (the level shown to the right).
+        var currentChild: string
+        if index + 1 < bc.items.count do
+            currentChild = bc.items[index + 1].tag.toString()
+
+        // Own the paths (reserved so no reallocation moves them) and hand the menu slices
+        // into them; the menu keeps ids as non-owning slices used after this returns.
+        .menuPaths.clear()
+        .menuPaths.reserve(dirs.count)
+        for d in dirs do
+            .menuPaths.add(String.from(d.fullname))
+
+        for d, i in dirs
+        {
+            let name = Path.getFileName(d.fullname) orelse d.fullname.toString()
+            menu.addItem(name, .menuPaths[i].toString(), checked: d.fullname == currentChild)
+        }
+    }
+
+    // Navigate the library to a folder chosen from the breadcrumb (its body or a chevron
+    // entry). The captMe folder keeps its full features (date sidebar, delete-to-trash);
+    // the recycle bin and any other folder are simply browsed by listing their captures.
+    mtd navigateFolder(path: string)
+    {
+        if .currentFolder() == path do
+            return
+
+        .curFolder = path
+        .trashMode = Library.getTrashFolder() == path
         catch .view.fill()
         .invalidate()
+        .updateBreadcrumb()
     }
 
     func create(parent: *MainWnd)->*LibraryWnd
@@ -420,6 +514,26 @@ impl LibraryWnd
             }
         }
         res.listCtrl = list
+
+        // Folder path bar: shows the real library folder and lets the user walk it
+        // (its sub-folders, incl. the recycle bin, are reachable from the chevrons).
+        with res.breadcrumb = BreadcrumbCtrl.create(res, {0, 0, 0, 32})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
+            .sigItemPressed += func|res|(bc, idx)
+            {
+                res.navigateFolder(bc.items[idx].tag.toString())
+            }
+            .sigFillMenu = func|res|(bc, idx, menu)
+            {
+                res.fillBreadcrumbMenu(bc, idx, menu)
+            }
+            .sigMenuSelected += func|res|(bc, idx, id)
+            {
+                res.navigateFolder(id)
+            }
+        }
 
         // Top bar
         with res.editZoomBar = StackLayoutCtrl.create(res, .HorzCenter, {0, 0, 300, 32})
@@ -535,6 +649,7 @@ impl LibraryWnd
 
         res.setPreviewSize(.Small)
         res.setSortMethod(res.sortMethod)
+        res.updateBreadcrumb()
         return res
     }
 }

@@ -119,6 +119,75 @@ using Swag, Core
     f.shutdown()
 }
 
+// The library breadcrumb mirrors the real on-disk folder: it ends at the captMe folder
+// normally and at the recycle-bin folder in trash mode, each level carrying its full path.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    let lib = f.setupLibraryWnd()
+
+    // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
+
+    // Default (empty) current folder falls back to the captMe library folder.
+    @assert(lib.currentFolder() == Library.getFolder())
+    lib.updateBreadcrumb()
+    @assert(lib.breadcrumb.items.count > 0)
+    let lastNormal = lib.breadcrumb.items.back()
+    @assert(lastNormal.name == "captMe")
+    @assert(lastNormal.tag == Library.getFolder())
+
+    // Point the library at the recycle bin folder.
+    lib.curFolder = Library.getTrashFolder()
+    @assert(lib.currentFolder() == Library.getTrashFolder())
+    lib.updateBreadcrumb()
+    let lastTrash = lib.breadcrumb.items.back()
+    @assert(lastTrash.tag == Library.getTrashFolder())
+
+    // The recycle-bin leaf sits directly under the captMe folder.
+    @assert(lib.breadcrumb.items.count >= 2)
+    let parentOfTrash = lib.breadcrumb.items[lib.breadcrumb.items.count - 2]
+    @assert(parentOfTrash.tag == Library.getFolder())
+
+    f.shutdown()
+}
+
+// The breadcrumb drop-down lists a level's real sub-folders and keeps their path ids in
+// owned storage (menu items hold ids as non-owning slices, so the source data — a local
+// directory listing — must be copied or the id dangles once the popup is shown).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    let lib = f.setupLibraryWnd()
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
+
+    catch Library.init()
+    @assert(@err == null)
+
+    lib.curFolder = Library.getFolder()
+    lib.updateBreadcrumb()
+
+    // Fill the drop-down for the captMe level (the last one).
+    let idx  = lib.breadcrumb.items.count - 1
+    let menu = MenuCtrl.createPopup(cast(*Wnd) lib)
+    lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
+
+    // Its recycle bin sub-folder is listed, with its path preserved in owned storage.
+    @assert(!lib.menuPaths.isEmpty())
+    var foundTrash = false
+    for p in lib.menuPaths
+    {
+        if p == Library.getTrashFolder() do
+            foundTrash = true
+    }
+    @assert(foundTrash)
+
+    menu.destroy()
+    f.shutdown()
+}
+
 // Loading a capture that has no preview (e.g. an older file, or one restored from the
 // recycle bin) must not fault: Haar features are simply skipped. Regression for a crash
 // where quickExtractHaarFeatures asserted on a zero-sized preview image.

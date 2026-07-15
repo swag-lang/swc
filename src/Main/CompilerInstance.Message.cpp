@@ -460,7 +460,7 @@ namespace
         if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        auto* declJob = heapNew<SemaJob>(ctx, sourceFile.nodePayloadContext(), true, true);
+        auto* declJob = compiler.makeJob<SemaJob>(ctx, sourceFile.nodePayloadContext(), true, true);
         ctx.global().jobMgr().enqueue(*declJob, JobPriority::Normal, compiler.jobClientId());
         compiler.notifyAlive();
         return Result::Continue;
@@ -578,7 +578,7 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
         compilerMessageTypeInfoPrepQueue_.push_back(request);
     }
 
-    auto* job = heapNew<CompilerMessageTypeInfoJob>(ctx);
+    auto* job = makeJob<CompilerMessageTypeInfoJob>(ctx);
     global().jobMgr().enqueue(*job, JobPriority::Normal, jobClientId());
     notifyAlive();
 }

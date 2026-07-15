@@ -1279,20 +1279,20 @@ namespace
                 const AstNodeRef      reqValueRef = argumentValueRef(sema, arg.argRef);
                 bool                  reqWhole    = false;
                 const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
-                const SemaEscapeInfo* carried     = reqVar ? sema.variableEscapeInfo(*reqVar) : nullptr;
-                if (carried && carried->kind == SemaEscapeKind::Parameter)
+                const SemaEscapeInfo carried = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
+                if (carried.kind == SemaEscapeKind::Parameter)
                 {
                     SymbolFunction* callerFn = sema.currentFunction();
                     if (callerFn)
-                        addFreedBorrowOrigins(*callerFn, *carried);
+                        addFreedBorrowOrigins(*callerFn, carried);
                 }
-                else if (carried && carried->isLocalBorrow() && !hasOwningLifecycle(sema, carried->sourceVar->typeRef()))
+                else if (carried.isLocalBorrow() && !hasOwningLifecycle(sema, carried.sourceVar->typeRef()))
                 {
                     SemaEscapeDeferredCheck check;
                     check.callee      = fn;
                     check.paramIndex  = static_cast<uint32_t>(thisParam);
                     check.judgeAlways = true;
-                    fillDeferredCheckDiag(sema, check, *carried);
+                    fillDeferredCheckDiag(sema, check, carried);
                     check.diagId = DiagnosticId::sanity_err_free_borrowed;
                     outCapture.checks.push_back(std::move(check));
                 }

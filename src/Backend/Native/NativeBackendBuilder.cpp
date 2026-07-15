@@ -466,7 +466,7 @@ namespace
             if (root.isInvalid())
                 return builder.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
 
-            auto* job = heapNew<CodeGenJob>(builder.ctx(), baseSema, *info.symbol, root);
+            auto* job = builder.compiler().makeJob<CodeGenJob>(builder.ctx(), baseSema, *info.symbol, root);
             jobMgr.enqueue(*job, JobPriority::Normal, builder.compiler().jobClientId());
         }
 
@@ -1030,7 +1030,7 @@ Result NativeBackendBuilder::buildObjects()
     JobManager& jobMgr = ctx_.global().jobMgr();
     for (uint32_t i = 0; i < objectDescriptions.size(); ++i)
     {
-        auto* job = heapNew<NativeObjJob>(ctx_, *this, i);
+        auto* job = compiler().makeJob<NativeObjJob>(ctx_, *this, i);
         jobMgr.enqueue(*job, JobPriority::Normal, compiler_->jobClientId());
     }
 

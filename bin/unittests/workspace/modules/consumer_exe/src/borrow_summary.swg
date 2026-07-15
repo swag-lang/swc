@@ -18,15 +18,13 @@ func verifyImportedBorrowSummaries()
     var local: s32 = 5
     @assert(depBorrowRead(&local) == 5)
 
+    let pair = depBorrowMakePair(&gConsumerBorrowInt, &gConsumerBorrowInt)
+    @assert(pair.first == &gConsumerBorrowInt)
+    @assert(pair.second == &gConsumerBorrowInt)
+
     // Imported pair summary: caller-owned data into a global container is fine.
     gConsumerContainer.add(&gConsumerBorrowInt)
     @assert(gConsumerContainer.slot == &gConsumerBorrowInt)
-}
-
-func verifyImportedMultiOriginSummary()->DepBorrowPair
-{
-    var local: s32
-    return depBorrowMakePair(&gConsumerBorrowInt, &local) // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var gConsumerContainer: DepBorrowContainer

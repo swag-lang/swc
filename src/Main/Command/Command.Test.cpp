@@ -82,6 +82,16 @@ namespace
 
         outLineStart = startRange.line;
         outLineEnd   = codeRangeEndLine(ctx, startRange);
+
+        const auto* compilerFunction = decl->safeCast<AstCompilerFunc>();
+        if (compilerFunction && compilerFunction->nodeBodyRef.isValid())
+        {
+            const AstNode&         body      = declAst.node(compilerFunction->nodeBodyRef);
+            const SourceCodeRange bodyRange = body.codeRangeWithChildren(ctx, declAst, declView);
+            if (bodyRange.srcView && bodyRange.len)
+                outLineEnd = std::max(outLineEnd, codeRangeEndLine(ctx, bodyRange));
+        }
+
         return true;
     }
 

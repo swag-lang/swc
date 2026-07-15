@@ -85,7 +85,7 @@ namespace Command
         const uint64_t errorsBefore = Stats::getNumErrors();
         for (SourceFile* f : inputFiles)
         {
-            auto* job = heapNew<ParserJob>(ctx, f);
+            auto* job = compiler.makeJob<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -130,7 +130,7 @@ namespace Command
         for (SourceFile* f : files)
         {
             f->setModuleNamespace(*moduleNamespace);
-            auto* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
+            auto* job = compiler.makeJob<SemaJob>(ctx, f->nodePayloadContext(), true);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -138,7 +138,7 @@ namespace Command
 
         for (SourceFile* f : files)
         {
-            auto* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
+            auto* job = compiler.makeJob<SemaJob>(ctx, f->nodePayloadContext(), false);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

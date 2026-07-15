@@ -1497,7 +1497,7 @@ void Sema::deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind)
 
 void Sema::enqueueTopLevelSemaJob(AstNodeRef nodeRef)
 {
-    auto* job = heapNew<SemaJob>(ctx(), *this, nodeRef);
+    auto* job = compiler().makeJob<SemaJob>(ctx(), *this, nodeRef);
     compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
 }
 

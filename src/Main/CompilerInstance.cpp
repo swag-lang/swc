@@ -428,7 +428,7 @@ bool CompilerInstance::tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFu
         return false;
 
     SWC_ASSERT(root.isValid());
-    auto* job = heapNew<CodeGenJob>(sema.ctx(), sema, symbolFunc, root);
+    auto* job = makeJob<CodeGenJob>(sema.ctx(), sema, symbolFunc, root);
     global().jobMgr().enqueue(*job, JobPriority::Normal, jobClientId());
     return true;
 }

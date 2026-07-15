@@ -117,6 +117,16 @@ public:
     const Global&                   global() const { return *(global_); }
     const CommandLine&              cmdLine() const { return *(cmdLine_); }
     JobClientId                     jobClientId() const { return jobClientId_; }
+
+    template<typename T, typename... ARGS>
+    T* makeJob(ARGS&&... args) const
+    {
+        auto job = std::make_unique<T>(std::forward<ARGS>(args)...);
+        T*   ptr = job.get();
+        const std::scoped_lock lock(ownedJobsMutex_);
+        ownedJobs_.push_back(std::move(job));
+        return ptr;
+    }
     TypeManager&                    typeMgr() { return *(typeMgr_.get()); }
     const TypeManager&              typeMgr() const { return *(typeMgr_.get()); }
     TypeGen&                        typeGen() { return *(typeGen_.get()); }
@@ -407,6 +417,8 @@ private:
     SymbolModule*                                  symModule_           = nullptr;
     SymbolNamespace*                               importRootNamespace_ = nullptr;
     JobClientId                                    jobClientId_         = 0;
+    mutable std::mutex                             ownedJobsMutex_;
+    mutable std::vector<std::unique_ptr<Job>>      ownedJobs_;
     fs::path                                       modulePathSrc_;
     fs::path                                       modulePathFile_;
     fs::path                                       exeFullName_;

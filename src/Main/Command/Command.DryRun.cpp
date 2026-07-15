@@ -165,7 +165,7 @@ namespace
             FormatOptions formatOptions;
             SWC_RESULT(optionsLoader.resolve(file->path(), formatOptions));
 
-            auto* job = heapNew<FormatJob>(ctx, file, formatOptions, parserOptions);
+            auto* job = compiler.makeJob<FormatJob>(ctx, file, formatOptions, parserOptions);
             jobs.push_back(job);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }

@@ -571,7 +571,7 @@ namespace
             if (declRoot.isInvalid())
                 return Result::Error;
 
-            auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
+            auto* job = ctx.compiler().makeJob<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
             ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
         }
 

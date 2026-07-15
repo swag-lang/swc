@@ -824,7 +824,7 @@ namespace
         SWC_RESULT(attachDeclaredGeneratedImpls(sema, generatedDeclSema, generatedRoot, ownerStruct, attached));
         SWC_ASSERT(attached);
 
-        auto* job = heapNew<SemaJob>(ctx, sema, generatedRoot);
+        auto* job = sema.compiler().makeJob<SemaJob>(ctx, sema, generatedRoot);
         compiler.global().jobMgr().enqueue(*job, JobPriority::Normal, compiler.jobClientId());
         compiler.notifyAlive();
         return Result::Continue;

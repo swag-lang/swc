@@ -25,7 +25,7 @@ bool JITPatchJob::schedule(TaskContext& ctx, SymbolFunction& symbolFunc, const S
     if (!weakRelocationBlocker)
         weakRelocationBlocker = ctx.state().weakJitRelocationBlocker;
 
-    auto* job = heapNew<JITPatchJob>(ctx, symbolFunc, weakRelocationBlocker);
+    auto* job = ctx.compiler().makeJob<JITPatchJob>(ctx, symbolFunc, weakRelocationBlocker);
     ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
     return true;
 }

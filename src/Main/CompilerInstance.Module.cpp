@@ -2174,7 +2174,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
     for (SourceFile* file : setupCompiler.files())
     {
-        auto* job = heapNew<ParserJob>(setupCtx, file);
+        auto* job = setupCompiler.makeJob<ParserJob>(setupCtx, file);
         jobMgr.enqueue(*job, JobPriority::Normal, clientId);
     }
 
@@ -2227,7 +2227,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     for (SourceFile* file : files)
     {
         file->setModuleNamespace(*moduleNamespace);
-        auto* job = heapNew<SemaJob>(setupCtx, file->nodePayloadContext(), true);
+        auto* job = setupCompiler.makeJob<SemaJob>(setupCtx, file->nodePayloadContext(), true);
         jobMgr.enqueue(*job, JobPriority::Normal, clientId);
     }
 
@@ -2237,7 +2237,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
     for (SourceFile* file : files)
     {
-        auto* job = heapNew<SemaJob>(setupCtx, file->nodePayloadContext(), false);
+        auto* job = setupCompiler.makeJob<SemaJob>(setupCtx, file->nodePayloadContext(), false);
         jobMgr.enqueue(*job, JobPriority::Normal, clientId);
     }
 

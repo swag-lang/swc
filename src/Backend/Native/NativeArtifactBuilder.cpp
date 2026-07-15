@@ -504,7 +504,7 @@ Result NativeArtifactBuilder::buildStartupAndDataSectionsParallel() const
     resetDataSections();
 
     JobManager&          jobMgr     = builder_->ctx().global().jobMgr();
-    auto*                startupJob = heapNew<NativeStartupBuildJob>(builder_->ctx(), *this);
+    auto*                startupJob = builder_->compiler().makeJob<NativeStartupBuildJob>(builder_->ctx(), *this);
     NativeRDataCollector collector(*builder_);
     const JobClientId    clientId = builder_->compiler().jobClientId();
     jobMgr.enqueue(*startupJob, JobPriority::Normal, clientId);

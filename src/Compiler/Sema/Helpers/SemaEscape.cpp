@@ -2716,9 +2716,15 @@ namespace SemaEscape
             return Result::Continue;
         }
 
-        // Returning a borrow of caller-owned data is fine for THIS function, but feeds
-        // the per-function summary consumed at call sites (callResultEscapeInfo).
-        if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter)
+        // Returning a borrow of a parameter feeds this function's per-function summary
+        // (consumed at call sites via callResultEscapeInfo). This must also fire from
+        // inside an inline expansion sitting in return position: a borrow-returning callee
+        // inlined into THIS function's 'return f(me)' still makes THIS function return that
+        // parameter's borrow. 'addReturnBorrowOrigins' only records bits for the current
+        // function's own parameters, so it is a no-op for any other borrow. Skipping it
+        // under inlining was the release-only flakiness: whether the small callee was
+        // auto-inlined (racing on its sema completion) decided if the summary was fed.
+        if (info.kind == SemaEscapeKind::Parameter)
         {
             SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn)

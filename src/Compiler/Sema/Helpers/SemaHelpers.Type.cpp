@@ -947,6 +947,10 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_cannot_infer_aggregate_field_type, child);
 
+        // A bare type expression ('MyStruct') becomes a TypeValue constant, exactly
+        // like in a scalar initialization, so it can later cast to a 'typeinfo' field.
+        SWC_RESULT(SemaCheck::isValueOrType(sema, view));
+
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
 
         memberTypes.push_back(view.typeRef());

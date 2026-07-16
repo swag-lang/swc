@@ -713,6 +713,11 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     {
         SemaNodeView view = sema.viewTypeConstant(child);
         SWC_ASSERT(view.typeRef().isValid());
+
+        // A bare type expression ('MyStruct') becomes a TypeValue constant, exactly
+        // like in a scalar initialization, so it can later cast to a 'typeinfo' element.
+        SWC_RESULT(SemaCheck::isValueOrType(sema, view));
+
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
         values.push_back(view.cstRef());
         elemTypes.push_back(view.typeRef());

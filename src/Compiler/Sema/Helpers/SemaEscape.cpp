@@ -988,27 +988,68 @@ namespace
         return {};
     }
 
+    // The element type of an indexable expression (a builtin array or a slice), or invalid
+    // when the expression is neither. Reads the RESOLVED node's type: indexing a struct
+    // container decays the operand to a slice through an implicit 'opCast', so the raw
+    // identifier still types as the struct while the resolved cast types as the slice.
+    TypeRef indexedElementTypeRef(Sema& sema, AstNodeRef indexedRef)
+    {
+        const AstNodeRef resolvedRef  = sema.viewZero(indexedRef).nodeRef();
+        const TypeRef    indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef.isValid() ? resolvedRef : indexedRef));
+        if (!indexedTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
+        if (indexedType.isArray())
+            return indexedType.payloadArrayElemTypeRef();
+        if (indexedType.isSlice())
+            return indexedType.payloadTypeRef();
+        return TypeRef::invalid();
+    }
+
     SemaEscapeInfo indexEscapeInfo(Sema& sema, AstNodeRef indexRef, AstNodeRef indexedRef, uint32_t& budget)
     {
+        const TypeRef resultTypeRef = expressionTypeRef(sema, indexRef);
+
+        // Reading a single ELEMENT by value copies it: the copy aliases neither the
+        // container storage nor whatever the indexed expression borrowed to reach it. Run
+        // this BEFORE propagating the indexed expression's borrow. A REFERENCE-typed result
+        // is kept as an alias and preserves the borrow.
+        if (isDirectBorrowCarrier(sema, resultTypeRef))
+        {
+            const TypeRef unwrappedResult = unwrapAliasEnum(sema, resultTypeRef);
+            const bool    resultIsRef     = unwrappedResult.isValid() && sema.typeMgr().get(unwrappedResult).isReference();
+            if (!resultIsRef)
+            {
+                const TypeRef elemTypeRef = indexedElementTypeRef(sema, indexedRef);
+                if (elemTypeRef.isValid())
+                {
+                    // A builtin array or slice: the element VALUE read ('result == element')
+                    // copies; a differently typed carrier result is a sub-slice that aliases
+                    // the elements and keeps the borrow.
+                    if (unwrapAliasEnum(sema, elemTypeRef) == unwrappedResult)
+                        return {};
+                }
+                else
+                {
+                    // A struct container reached through 'opIndex': a non-reference carrier
+                    // result is the element loaded out by value.
+                    return {};
+                }
+            }
+        }
+
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);
         if (info.hasBorrow())
         {
-            info.typeRef = expressionTypeRef(sema, indexRef);
+            info.typeRef = resultTypeRef;
             return info;
         }
 
-        const TypeRef resultTypeRef = expressionTypeRef(sema, indexRef);
         if (!isDirectBorrowCarrier(sema, resultTypeRef))
             return {};
 
         if (!isArrayStorageExpr(sema, indexedRef))
-            return {};
-
-        // Reading a carrier ELEMENT by value copies it: the copy does not alias the array
-        // storage. Only slicing (the result aliases the elements themselves) borrows it.
-        const TypeRef arrayTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, indexedRef));
-        const TypeRef elemTypeRef  = arrayTypeRef.isValid() ? sema.typeMgr().get(arrayTypeRef).payloadArrayElemTypeRef() : TypeRef::invalid();
-        if (elemTypeRef.isValid() && unwrapAliasEnum(sema, elemTypeRef) == unwrapAliasEnum(sema, resultTypeRef))
             return {};
 
         return storageBorrowInfo(sema, indexedRef, resultTypeRef);
@@ -2421,6 +2462,40 @@ namespace SemaEscape
         return Result::Continue;
     }
 
+    // Whether the base pointer of an assignment destination provably derives from
+    // frame-local storage: a local pointer that borrows a local, or an opaque pointer
+    // handed out by a call on local storage ('root.pool.newPtr()'). Storing a frame-local's
+    // borrow into such a destination stays within the frame (a self-reference), unlike a
+    // parameter/global pointer (caller-visible) or an opaque pointer of unknown origin (a
+    // heap block from an external allocator), which must still be reported.
+    bool destinationBaseIsFrameLocalPointer(Sema& sema, AstNodeRef leftRef)
+    {
+        AstNodeRef ref   = sema.viewZero(leftRef).nodeRef();
+        uint32_t   guard = 8;
+        while (ref.isValid() && guard--)
+        {
+            const AstNode& node = sema.node(ref);
+            if (node.is(AstNodeId::MemberAccessExpr))
+            {
+                ref = sema.viewZero(node.cast<AstMemberAccessExpr>().nodeLeftRef).nodeRef();
+                continue;
+            }
+            if (node.is(AstNodeId::IndexExpr))
+            {
+                ref = sema.viewZero(node.cast<AstIndexExpr>().nodeExprRef).nodeRef();
+                continue;
+            }
+            break;
+        }
+
+        const SymbolVariable* baseVar = ref.isValid() ? identifierVariable(sema, ref) : nullptr;
+        if (!baseVar)
+            return false;
+
+        const SemaEscapeInfo* info = sema.variableEscapeInfo(*baseVar);
+        return info && (info->isDeferredCallBorrow() || info->isLocalBorrow());
+    }
+
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef)
     {
         if (!lifecycleSanityEnabled(sema))
@@ -2443,7 +2518,11 @@ namespace SemaEscape
             wholeVariable = false;
             hasProjection = true;
         }
-        if (isDirectBorrowCarrier(sema, targetTypeRef) && (!dstVar || !isLocalVariableStorage(sema, *dstVar)))
+        // A store through a destination that provably stays in this frame (a self-reference
+        // through a local-derived pointer) never escapes, whatever borrow it carries.
+        const bool destStaysInFrame = destinationBaseIsFrameLocalPointer(sema, leftRef);
+
+        if (isDirectBorrowCarrier(sema, targetTypeRef) && !destStaysInFrame && (!dstVar || !isLocalVariableStorage(sema, *dstVar)))
         {
             bool                  sourceWhole = false;
             const SymbolVariable* sourceVar   = storageRootVariable(sema, rightRef, false, sourceWhole);
@@ -2570,7 +2649,13 @@ namespace SemaEscape
 
         if (dstVar)
             return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment", hasProjection ? &projection : nullptr);
-        if (info.isLocalBorrow() || info.isMaterializedBorrow() || info.isTemporaryBorrow())
+
+        // A local borrow reaching a destination that provably stays in this frame (a
+        // self-reference through a local-derived pointer) does not escape. A temporary or
+        // materialized borrow dies with the statement/frame regardless, so it always does.
+        if (info.isLocalBorrow())
+            return destStaysInFrame ? Result::Continue : reportBorrowEscape(sema, leftRef, info, "an assignment");
+        if (info.isMaterializedBorrow() || info.isTemporaryBorrow())
             return reportBorrowEscape(sema, leftRef, info, "an assignment");
 
         return Result::Continue;

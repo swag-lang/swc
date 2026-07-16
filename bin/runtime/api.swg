@@ -474,7 +474,7 @@ namespace Swag
         user1:               u64                                       // For user usage
         user2:               u64                                       // For user usage
         user3:               u64                                       // For user usage
-        traces:              [MaxTraces] const *SourceCodeLocation     // Stack trace, in case of errors
+        traces:              [MaxTraces] SourceCodeLocation            // Stack trace, in case of errors
         errors:              [MaxErrors] ErrorValue                    // All errors
         exceptionLoc:        SourceCodeLocation                        // When an exception is raised, this is the code location
         exceptionParams:     [4] const *void                           // When an exception is raised, this are the parameters

@@ -424,16 +424,6 @@ namespace
                             return leftInfo->sourceVar;
                         }
 
-                        // Writing through a local pointer reaches storage only known to this
-                        // frame so far: track the borrow on the pointer variable and report
-                        // later if that pointer itself escapes. Writing through a parameter
-                        // or global pointer reaches caller-visible storage and must report.
-                        if (forAssignment && isLocalVariableStorage(sema, *leftVar))
-                        {
-                            outWholeVariable = false;
-                            return leftVar;
-                        }
-
                         // Data reached through a pointer/reference parameter (including the
                         // body 'me' binding) belongs to the caller: root at the parameter so
                         // returns feed the borrow summary.
@@ -504,14 +494,6 @@ namespace
                         {
                             outWholeVariable = false;
                             return operandInfo->sourceVar;
-                        }
-
-                        // Same rule as member access through a pointer: assigning through a
-                        // local pointer tracks the borrow on that pointer instead of reporting.
-                        if (forAssignment && isLocalVariableStorage(sema, *operandVar))
-                        {
-                            outWholeVariable = false;
-                            return operandVar;
                         }
 
                         // Data reached through a pointer/reference parameter (including the

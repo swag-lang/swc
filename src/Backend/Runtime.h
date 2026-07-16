@@ -357,7 +357,7 @@ namespace Runtime
         uint64_t                  user1;
         uint64_t                  user2;
         uint64_t                  user3;
-        const SourceCodeLocation* traces[32];
+        SourceCodeLocation        traces[32];
         ErrorValue                errors[32];
         SourceCodeLocation        exceptionLoc;
         const void*               exceptionParams[4];

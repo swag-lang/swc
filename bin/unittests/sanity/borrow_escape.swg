@@ -467,8 +467,22 @@ func borrowEscapeThroughLocalPointer()->u64
     return @countof(pHolder.text)
 }
 
-// Writing borrowed data through a local pointer only reaches storage known to this
-// frame: the borrow is tracked on the pointer, not reported.
+// Copying a pointer whose pointee is proven local preserves that provenance.
+func borrowEscapeThroughLocalPointerAlias()->u64
+{
+    var owner: BorrowEscapeOwner
+    owner.buffer[0] = 'x''u8
+    owner.length = 1
+
+    var holder: BorrowEscapeSelfRef
+    let pHolder = &holder
+    let ptrAlias = pHolder
+    ptrAlias.text = owner
+    return @countof(ptrAlias.text)
+}
+
+// A local variable holding an opaque call result does not make its POINTEE local:
+// the callback may return heap, global, or caller-owned storage that survives us.
 struct BorrowEscapeNode
 {
     text: string
@@ -481,7 +495,7 @@ func borrowEscapeThroughHeapPointer(alloc: func()->*BorrowEscapeNode)->u64
     owner.length = 1
 
     let node = alloc()
-    node.text = owner
+    node.text = owner // swc-expected-error {{sanity_err_borrow_escape}}
     return @countof(node.text)
 }
 
@@ -492,6 +506,16 @@ func borrowEscapeThroughParamPointer(node: *BorrowEscapeNode)
     owner.buffer[0] = 'x''u8
     owner.length = 1
     node.text = @mkstring(&owner.buffer[0], owner.length) // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// Aliasing a parameter pointer must preserve its caller-visible pointee.
+func borrowEscapeThroughParamPointerAlias(node: *BorrowEscapeNode)
+{
+    var owner: BorrowEscapeOwner
+    owner.buffer[0] = 'x''u8
+    owner.length = 1
+    let ptrAlias = node
+    ptrAlias.text = owner // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A return inside an inline expansion hands the value back to the calling frame:

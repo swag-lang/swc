@@ -1074,14 +1074,14 @@ namespace
         const bool sourceFunctionLocalIdentifier = storedView &&
                                                    storedView->sym &&
                                                    storedView->sym->isFunctionLocalVariable() &&
-                                                   node.codeRef().isValid() &&
+                                                   nodeTokInRange &&
                                                    sema.token(node.codeRef()).id == TokenId::Identifier;
         const bool sourceLexicalLocalIdentifier = storedView &&
                                                   storedView->sym &&
                                                   !storedView->sym->ownerSymMap() &&
                                                   storedView->sym->isValueExpr() &&
                                                   isNonParameterVariableDecl(*storedView->sym) &&
-                                                  node.codeRef().isValid() &&
+                                                  nodeTokInRange &&
                                                   sema.token(node.codeRef()).id == TokenId::Identifier;
         const bool sourceRebindableLocalIdentifier = sourceSymbolOwnedByFunction ||
                                                      sourceFunctionLocalIdentifier ||
@@ -1092,7 +1092,7 @@ namespace
                                               (!sourceLocalIdentifierPinned &&
                                                !sourceRebindableLocalIdentifier &&
                                                (!storedView->sym->isFunctionLocalVariable() ||
-                                                !node.codeRef().isValid() ||
+                                                !nodeTokInRange ||
                                                 sema.token(node.codeRef()).id != TokenId::Identifier)));
         if (preserveSyntheticSymbol)
         {

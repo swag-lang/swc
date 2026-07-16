@@ -50,6 +50,22 @@ struct SemaLookupScopeOverrideNodes
     std::unordered_set<AstNodeRef> nodeRefs;
 };
 
+// A collection currently being iterated by an enclosing loop, rooted at the storage
+// variable the loop reads. While such a borrow is live, a structural mutation of that
+// same storage (Array.add / remove / clear / free ...) invalidates the iteration: the
+// loop reads a count snapshot and '&it' aliases the buffer, so a realloc dangles it.
+// Held in the frame so it is inherited by inline/macro expansions and restored when the
+// loop frame pops (also on error unwinding).
+struct SemaIterationBorrow
+{
+    const SymbolVariable* root      = nullptr;
+    AstNodeRef            sourceRef = AstNodeRef::invalid();
+    // The loop body, used to spare the common safe pattern where the mutation is followed
+    // by a loop exit ('for it in c { if hit { c.removeAt(i); return it } }'): the loop
+    // never iterates again after the mutation, so the snapshot is never used stale.
+    AstNodeRef            bodyRef   = AstNodeRef::invalid();
+};
+
 enum class SemaFrameContextFlagsE
 {
     Zero              = 0,
@@ -159,6 +175,9 @@ public:
         runtimeStorageSym_     = sym;
     }
 
+    std::span<const SemaIterationBorrow> iterationBorrows() const { return iterationBorrows_.span(); }
+    void                                 pushIterationBorrow(const SemaIterationBorrow& borrow) { iterationBorrows_.push_back(borrow); }
+
     std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
     void                             pushBindingType(TypeRef type);
     void                             popBindingType();
@@ -203,6 +222,7 @@ private:
     SymbolVariable*                     runtimeStorageSym_        = nullptr;
     SmallVector2<TypeRef>               bindingTypes_;
     SmallVector2<SymbolVariable*>       bindingVars_;
+    SmallVector2<SemaIterationBorrow>   iterationBorrows_;
     SmallVector4<const Symbol*>         hiddenLookupSymbols_;
 };
 

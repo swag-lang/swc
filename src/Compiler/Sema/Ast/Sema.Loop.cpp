@@ -258,12 +258,16 @@ namespace
         return Result::Error;
     }
 
-    void pushLoopFrame(Sema& sema, AstNodeRef loopRef, TypeRef indexTypeRef)
+    void pushLoopFrame(Sema& sema, AstNodeRef loopRef, TypeRef indexTypeRef, const SymbolVariable* iterationRoot = nullptr, AstNodeRef iterationSourceRef = AstNodeRef::invalid(), AstNodeRef iterationBodyRef = AstNodeRef::invalid())
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(loopRef, SemaFrame::BreakContextKind::Loop);
         frame.setCurrentLoopIndexTypeRef(indexTypeRef);
         frame.setCurrentLoopIndexOwnerRef(loopRef);
+        // A collection iterated by this loop: a structural mutation of that same storage
+        // in the body (Array.add / remove / ...) invalidates the snapshot the loop reads.
+        if (iterationRoot)
+            frame.pushIterationBorrow({iterationRoot, iterationSourceRef, iterationBodyRef});
         sema.pushFramePopOnPostNode(frame);
     }
 
@@ -461,7 +465,10 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         auto&              pl           = ensureLoopSemaPayload(sema, sema.curNodeRef());
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
 
-        pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef);
+        // Track the iterated storage so a structural mutation of it inside the body is
+        // flagged (iterator invalidation). Null for ranges/temporaries with no storage root.
+        const SymbolVariable* iterationRoot = SemaEscape::iterationSourceRoot(sema, nodeExprRef);
+        pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef, iterationRoot, nodeExprRef, nodeBodyRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
@@ -507,6 +514,20 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (canResolveVisit)
         {
             ensureLoopSemaPayload(sema, sema.curNodeRef()).usesCustomVisit = true;
+
+            // A '#[Macro] opVisit' expands the user loop body inside its own iteration.
+            // The native path pushes the iteration borrow in 'pushLoopFrame', but a custom
+            // visit skips the body children here: register the borrow on a frame that stays
+            // live through this node's postNode (where the macro is expanded and the
+            // injected body analyzed) and is popped by the framework afterwards - no manual
+            // restore, and safe on error unwinding.
+            const SymbolVariable* iterationRoot = SemaEscape::iterationSourceRoot(sema, nodeExprRef);
+            if (iterationRoot)
+            {
+                SemaFrame frame = sema.frame();
+                frame.pushIterationBorrow({iterationRoot, nodeExprRef, nodeBodyRef});
+                sema.pushFramePopOnPostNode(frame);
+            }
             return Result::Continue;
         }
 

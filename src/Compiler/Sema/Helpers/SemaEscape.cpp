@@ -82,6 +82,32 @@ namespace
                type.isLambdaClosure();
     }
 
+    bool isDirectStorageHandle(Sema& sema, TypeRef typeRef)
+    {
+        typeRef = unwrapAliasEnum(sema, typeRef);
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        return type.isString() ||
+               type.isCString() ||
+               type.isSlice() ||
+               type.isAnyPointer() ||
+               type.isReference() ||
+               type.isInterface() ||
+               type.isAny() ||
+               type.isLambdaClosure();
+    }
+
+    bool localProjectionRootCanReceiveLocalStore(Sema& sema, const SymbolVariable& root)
+    {
+        if (!isDirectStorageHandle(sema, root.typeRef()))
+            return true;
+
+        const SemaEscapeInfo* info = sema.variableEscapeInfo(root);
+        return !info || info->isLocalBorrow() || info->isMaterializedBorrow();
+    }
+
     bool hasOwningLifecycle(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -303,6 +329,7 @@ namespace
     }
 
     const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable);
+    bool                  typeHasBorrowableStorage(Sema& sema, TypeRef typeRef);
 
     const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef, bool forAssignment, bool& outWholeVariable)
     {
@@ -415,7 +442,7 @@ namespace
                     // Accessing storage through a pointer that itself borrows a known local
                     // stays inside that local's storage: keep tracking on the borrowed root.
                     bool leftWholeVariable = false;
-                    if (const SymbolVariable* leftVar = storageRootVariable(sema, leftRef, false, leftWholeVariable); leftVar && leftWholeVariable)
+                    if (const SymbolVariable* leftVar = storageRootVariable(sema, leftRef, forAssignment, leftWholeVariable); leftVar && leftWholeVariable)
                     {
                         const SemaEscapeInfo* leftInfo = sema.variableEscapeInfo(*leftVar);
                         if (leftInfo && leftInfo->isLocalBorrow())
@@ -487,7 +514,7 @@ namespace
                 if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
                 {
                     bool operandWholeVariable = false;
-                    if (const SymbolVariable* operandVar = storageRootVariable(sema, unary.nodeExprRef, false, operandWholeVariable); operandVar && operandWholeVariable)
+                    if (const SymbolVariable* operandVar = storageRootVariable(sema, unary.nodeExprRef, forAssignment, operandWholeVariable); operandVar && operandWholeVariable)
                     {
                         const SemaEscapeInfo* operandInfo = sema.variableEscapeInfo(*operandVar);
                         if (operandInfo && operandInfo->isLocalBorrow())
@@ -551,6 +578,55 @@ namespace
             return variableStorageInfo(sema, *sourceVar, sourceRef, typeRef);
         }
         return {};
+    }
+
+    SemaEscapeInfo directTargetStorageBorrowInfo(Sema& sema, AstNodeRef sourceRef, TypeRef targetTypeRef)
+    {
+        if (!isDirectBorrowCarrier(sema, targetTypeRef) || sourceRef.isInvalid())
+            return {};
+
+        AstNodeRef candidateRef = sourceRef;
+        TypeRef    candidateTypeRef;
+
+        uint32_t unwrapGuard = 8;
+        while (candidateRef.isValid() && unwrapGuard--)
+        {
+            const AstNode& candidateNode = sema.node(candidateRef);
+            if (candidateNode.is(AstNodeId::InitializerExpr))
+                candidateRef = candidateNode.cast<AstInitializerExpr>().nodeExprRef;
+            else if (candidateNode.is(AstNodeId::AutoCastExpr))
+                candidateRef = candidateNode.cast<AstAutoCastExpr>().nodeExprRef;
+            else if (candidateNode.is(AstNodeId::AsCastExpr))
+                candidateRef = candidateNode.cast<AstAsCastExpr>().nodeExprRef;
+            else if (candidateNode.is(AstNodeId::ParenExpr))
+                candidateRef = candidateNode.cast<AstParenExpr>().nodeExprRef;
+            else
+                break;
+        }
+
+        const AstNodeRef resolvedRef = sema.viewZero(candidateRef).nodeRef();
+        if (resolvedRef.isValid() && sema.node(resolvedRef).is(AstNodeId::CastExpr))
+        {
+            const auto& cast = sema.node(resolvedRef).cast<AstCastExpr>();
+            candidateRef     = cast.nodeExprRef;
+            candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, resolvedRef, cast.nodeExprRef));
+        }
+        else
+        {
+            candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, sourceRef));
+        }
+
+        const AstNodeRef candidateResolvedRef = sema.viewZero(candidateRef).nodeRef();
+        if (candidateResolvedRef.isValid() && sema.node(candidateResolvedRef).is(AstNodeId::Identifier))
+        {
+            if (const SymbolVariable* candidateVar = identifierVariable(sema, candidateResolvedRef))
+                candidateTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), candidateVar->typeRef());
+        }
+
+        if (!candidateTypeRef.isValid() || isDirectBorrowCarrier(sema, candidateTypeRef) || !typeHasBorrowableStorage(sema, candidateTypeRef))
+            return {};
+
+        return storageBorrowInfo(sema, candidateRef, targetTypeRef, true);
     }
 
     SemaEscapeInfo expressionEscapeInfoRec(Sema& sema, AstNodeRef nodeRef, uint32_t& budget);
@@ -1014,6 +1090,37 @@ namespace
         }
 
         return nullptr;
+    }
+
+    bool isIndirectCallResult(Sema& sema, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+        uint32_t   unwrapGuard = 8;
+        while (resolvedRef.isValid() && unwrapGuard--)
+        {
+            const AstNode& node = sema.node(resolvedRef);
+            AstNodeRef     innerRef = AstNodeRef::invalid();
+            if (node.is(AstNodeId::ParenExpr))
+                innerRef = node.cast<AstParenExpr>().nodeExprRef;
+            else if (node.is(AstNodeId::InitializerExpr))
+                innerRef = node.cast<AstInitializerExpr>().nodeExprRef;
+            else if (node.is(AstNodeId::AutoCastExpr))
+                innerRef = node.cast<AstAutoCastExpr>().nodeExprRef;
+            else if (node.is(AstNodeId::AsCastExpr))
+                innerRef = node.cast<AstAsCastExpr>().nodeExprRef;
+            else
+                break;
+            resolvedRef = sema.viewZero(innerRef).nodeRef();
+        }
+
+        if (resolvedRef.isInvalid() || !sema.node(resolvedRef).is(AstNodeId::CallExpr))
+            return false;
+
+        const auto& call = sema.node(resolvedRef).cast<AstCallExpr>();
+        return identifierVariable(sema, call.nodeExprRef) != nullptr;
     }
 
     // The per-function summary recorded by checkReturn: when the callee's returned value
@@ -1713,6 +1820,13 @@ namespace
                 // literal shapes the raw switch above handles directly.
                 if (castOperandSelfSubstituted(sema, resolvedRef, castNode.nodeExprRef))
                 {
+                    const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), castOperandTypeRef(sema, resolvedRef, castNode.nodeExprRef));
+                    if (isDirectBorrowCarrier(sema, targetTypeRef) &&
+                        operandTypeRef.isValid() &&
+                        !isDirectBorrowCarrier(sema, operandTypeRef) &&
+                        typeHasBorrowableStorage(sema, operandTypeRef))
+                        return storageBorrowInfo(sema, castNode.nodeExprRef, targetTypeRef, true);
+
                     const AstNode& rawOperand = sema.node(castNode.nodeExprRef);
                     if (rawOperand.isNot(AstNodeId::InitializerExpr) &&
                         rawOperand.isNot(AstNodeId::ClosureExpr) &&
@@ -1952,6 +2066,259 @@ namespace
         return symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
                symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
     }
+
+    // The storage variable an expression ultimately designates. Resolves the syntactic
+    // root first (identifier, member/index access, cast operand, borrowing dereference);
+    // when the root is produced by an implicit carrier conversion (an array decaying to a
+    // slice for iteration), falls back to the borrow analysis, which sees through the
+    // opCast to the backing variable. Used to match a loop's iterated storage against a
+    // mutating call's receiver, so both sides must resolve the same way.
+    const SymbolVariable* rootStorageOf(Sema& sema, AstNodeRef exprRef)
+    {
+        bool whole = false;
+        if (const SymbolVariable* var = storageRootVariable(sema, exprRef, false, whole))
+        {
+            // A whole pointer/reference variable that itself borrows a tracked local
+            // designates that local's storage: follow it so a mutation through an alias
+            // ('let p = &v; p.add()') roots at the same variable the loop iterates.
+            if (whole)
+            {
+                if (const SemaEscapeInfo* varInfo = sema.variableEscapeInfo(*var); varInfo && varInfo->isLocalBorrow() && varInfo->sourceVar)
+                    return varInfo->sourceVar;
+            }
+            return var;
+        }
+
+        uint32_t       budget = K_EXPR_BUDGET;
+        SemaEscapeInfo info   = expressionEscapeInfoRec(sema, exprRef, budget);
+        if (!info.hasBorrow() && expressionMayExposeStorageBorrow(sema, exprRef))
+            info = storageBorrowInfo(sema, exprRef, TypeRef::invalid());
+        return info.hasBorrow() ? info.sourceVar : nullptr;
+    }
+
+    // The storage designation (root + field/index path) of an expression. Mirrors
+    // 'storageRootVariableAt' but records the path, and - unlike the shared
+    // 'storageProjection' - it sees through the implicit cast that a mutable-receiver
+    // method inserts ('holder.other.add' wraps 'holder.other' in a receiver cast), so the
+    // field path survives. 'ok' is false when no whole-storage path applies.
+    void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok);
+
+    void iterationProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& out, bool& ok)
+    {
+        ok = false;
+        if (nodeRef.isInvalid())
+            return;
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isInvalid())
+            return;
+        iterationProjectionAt(sema, resolvedRef, out, ok);
+    }
+
+    void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok)
+    {
+        const AstNode& node = sema.node(resolvedRef);
+        switch (node.id())
+        {
+            case AstNodeId::Identifier:
+                out.root = identifierVariable(sema, resolvedRef);
+                ok       = out.root != nullptr;
+                return;
+
+            case AstNodeId::ParenExpr:
+                iterationProjection(sema, node.cast<AstParenExpr>().nodeExprRef, out, ok);
+                return;
+            case AstNodeId::InitializerExpr:
+                iterationProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, out, ok);
+                return;
+            case AstNodeId::AutoCastExpr:
+                iterationProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, out, ok);
+                return;
+            case AstNodeId::AsCastExpr:
+                iterationProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, out, ok);
+                return;
+
+            case AstNodeId::CastExpr:
+            {
+                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
+                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                    iterationProjectionAt(sema, operandRef, out, ok);
+                else
+                    iterationProjection(sema, operandRef, out, ok);
+                return;
+            }
+
+            case AstNodeId::MemberAccessExpr:
+            {
+                iterationProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, out, ok);
+                if (!ok)
+                    return;
+                const SymbolVariable* field = identifierVariable(sema, resolvedRef);
+                if (!field || field == out.root)
+                {
+                    ok = false;
+                    return;
+                }
+                out.components.push_back({.kind = SemaEscapeProjectionKind::Field, .field = field});
+                return;
+            }
+
+            case AstNodeId::IndexExpr:
+            {
+                const auto& index = node.cast<AstIndexExpr>();
+                iterationProjection(sema, index.nodeExprRef, out, ok);
+                if (!ok)
+                    return;
+                const SemaNodeView indexView = sema.viewConstant(index.nodeArgRef);
+                if (indexView.hasConstant() && indexView.cst()->isInt() && indexView.cst()->getInt().fits64() && !indexView.cst()->getInt().isNegative())
+                    out.components.push_back({.kind = SemaEscapeProjectionKind::ConstantIndex, .index = static_cast<uint64_t>(indexView.cst()->getInt().asI64())});
+                else
+                    out.components.push_back({.kind = SemaEscapeProjectionKind::AnyIndex});
+                return;
+            }
+
+            default:
+                ok = false;
+                return;
+        }
+    }
+
+    // The storage an expression designates as a root plus a field/index path, following a
+    // whole-variable alias at the base ('let p = &v' resolves 'p.x' to 'v.x'). When no
+    // syntactic path applies (an array decaying to a slice for iteration), keeps just the
+    // storage root with an empty, EXACT-cleared path; 'outExact' says whether the field
+    // path is reliable, so an ambiguous empty path is not mistaken for "the whole owner".
+    void resolveIterationProjection(Sema& sema, AstNodeRef exprRef, SemaEscapeProjection& out, bool& outExact)
+    {
+        out.root = nullptr;
+        out.components.clear();
+        outExact = false;
+
+        iterationProjection(sema, exprRef, out, outExact);
+        if (!outExact || !out.root)
+        {
+            out.components.clear();
+            out.root = rootStorageOf(sema, exprRef);
+            outExact = false;
+            return;
+        }
+
+        if (const SemaEscapeInfo* varInfo = sema.variableEscapeInfo(*out.root); varInfo && varInfo->isLocalBorrow() && varInfo->sourceVar)
+            out.root = varInfo->sourceVar;
+    }
+
+    // True when the mutation 'receiver' targets the iterated 'source' storage itself or
+    // something nested inside it: the source path must be a prefix of the receiver path
+    // (equal, or the receiver reaches deeper). A broader mutation of a shared owner - the
+    // receiver being an ancestor of the source, e.g. a method on the whole struct while
+    // one of its fields is iterated - is NOT flagged: such a method usually manages
+    // unrelated state, and flagging it would drown the genuine same-collection bugs in
+    // false alarms on ordinary code.
+    bool iterationMutationHitsSource(const SemaEscapeProjection& source, bool sourceExact, const SemaEscapeProjection& receiver, bool receiverExact)
+    {
+        if (!source.root || source.root != receiver.root)
+            return false;
+
+        // Iterating the whole variable: any mutation that roots at it hits the snapshot,
+        // whatever the receiver's exact path (the classic 'for x in arr { arr.add() }').
+        if (source.components.empty())
+            return true;
+
+        // Iterating a SPECIFIC field: the mutation must provably reach that field or
+        // something nested in it. Without a reliable field path on both sides we cannot
+        // prove that - and must not guess, or an unrelated call whose receiver merely
+        // roots at the same owner ('for v in me.list { me.getApp().setIcon(...) }') would
+        // be falsely flagged. Stay silent when either path is unknown.
+        if (!sourceExact || !receiverExact)
+            return false;
+
+        if (source.components.size() > receiver.components.size())
+            return false;
+
+        for (size_t i = 0; i < source.components.size(); ++i)
+        {
+            const SemaEscapeProjectionComponent& cs = source.components[i];
+            const SemaEscapeProjectionComponent& cr = receiver.components[i];
+            if (cs.kind == SemaEscapeProjectionKind::AnyIndex || cr.kind == SemaEscapeProjectionKind::AnyIndex)
+                continue;
+            if (cs != cr)
+                return false;
+        }
+        return true;
+    }
+
+    // The syntactic receiver of a method call ('holder.items.add(x)' -> 'holder.items'):
+    // the callee is a member access whose left is the receiver. Used for projection
+    // matching, since the resolved receiver argument may be a materialized address whose
+    // field path is lost. Invalid for a non-method (UFCS/free function) call shape.
+    AstNodeRef syntacticMethodReceiverRef(Sema& sema, AstNodeRef callRef)
+    {
+        // Read the raw AST: resolution attaches symbols/types but keeps the node ids, so
+        // the call's callee stays the parsed 'holder.items.add' member access. Following
+        // 'viewZero' here would substitute it and lose the receiver's field path.
+        const AstNode& callNode = sema.node(callRef);
+        if (!callNode.is(AstNodeId::CallExpr))
+            return AstNodeRef::invalid();
+
+        const AstNodeRef calleeRef = callNode.cast<AstCallExpr>().nodeExprRef;
+        if (calleeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNode& calleeNode = sema.node(calleeRef);
+        if (calleeNode.is(AstNodeId::MemberAccessExpr))
+            return calleeNode.cast<AstMemberAccessExpr>().nodeLeftRef;
+        return AstNodeRef::invalid();
+    }
+
+    // The common safe pattern: the mutation is followed by an unconditional loop exit, so
+    // the loop never reads the collection again after mutating it
+    // ('for it in c { if hit { c.removeAt(i); return it } }'). Approximated by a loop-exit
+    // statement (return/break/unreachable) placed after the mutation within the loop body.
+    // Uses source order rather than AST structure so it survives the opVisit macro
+    // expansion, which reparents the body but keeps the user code's source ranges.
+    //
+    // Walked with an explicit worklist, not recursion: an expanded/substituted body can be
+    // deep or self-referential, and a recursive descent would overflow the stack. The
+    // budget bounds total work so a substitution cycle terminates instead of spinning.
+    bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef)
+    {
+        if (bodyRef.isInvalid() || callRef.isInvalid())
+            return false;
+
+        const SourceCodeRange callRange = sema.node(callRef).codeRange(sema.ctx());
+        if (!callRange.srcView)
+            return false;
+
+        SmallVector<AstNodeRef> worklist;
+        worklist.push_back(bodyRef);
+
+        uint32_t                budget = 8192;
+        SmallVector<AstNodeRef> children;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::ReturnStmt) || node.is(AstNodeId::BreakStmt) || node.is(AstNodeId::UnreachableStmt))
+            {
+                const SourceCodeRange range = node.codeRange(sema.ctx());
+                if (range.srcView == callRange.srcView && range.offset > callRange.offset)
+                    return true;
+            }
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
+            }
+        }
+        return false;
+    }
 }
 
 namespace SemaEscape
@@ -1987,6 +2354,20 @@ namespace SemaEscape
         const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget);
         if (!info.hasBorrow())
         {
+            // A function-valued callback can return a pointer to heap, global, or
+            // caller-owned storage. Remember that opaque pointee provenance on the
+            // otherwise-local binding so writes through it cannot be mistaken for
+            // writes into this frame.
+            if (isLocalVariableStorage(sema, symVar) && isDirectBorrowCarrier(sema, targetTypeRef) && isIndirectCallResult(sema, initRef))
+            {
+                SemaEscapeInfo opaquePointee;
+                opaquePointee.kind      = SemaEscapeKind::Unknown;
+                opaquePointee.sourceRef = initRef;
+                opaquePointee.typeRef   = targetTypeRef;
+                sema.setVariableEscapeInfo(symVar, opaquePointee);
+                return Result::Continue;
+            }
+
             if (variableInitializerCanEscape(symVar))
             {
                 // A retval initializer hands the result back to the caller: RETURN use.
@@ -2050,7 +2431,32 @@ namespace SemaEscape
         bool                  wholeVariable = false;
         const SymbolVariable* dstVar        = storageRootVariable(sema, leftRef, true, wholeVariable);
         SemaEscapeProjection  projection;
-        const bool            hasProjection = dstVar && storageProjection(sema, leftRef, projection) && projection.root == dstVar && !projection.components.empty();
+        bool                  hasProjection = dstVar && storageProjection(sema, leftRef, projection) && projection.root == dstVar && !projection.components.empty();
+        if (!hasProjection &&
+            storageProjection(sema, leftRef, projection) &&
+            projection.root &&
+            !projection.components.empty() &&
+            isLocalVariableStorage(sema, *projection.root) &&
+            localProjectionRootCanReceiveLocalStore(sema, *projection.root))
+        {
+            dstVar        = projection.root;
+            wholeVariable = false;
+            hasProjection = true;
+        }
+        if (isDirectBorrowCarrier(sema, targetTypeRef) && (!dstVar || !isLocalVariableStorage(sema, *dstVar)))
+        {
+            bool                  sourceWhole = false;
+            const SymbolVariable* sourceVar   = storageRootVariable(sema, rightRef, false, sourceWhole);
+            if (sourceVar && sourceWhole && isLocalVariableStorage(sema, *sourceVar) && typeHasBorrowableStorage(sema, sourceVar->typeRef()))
+            {
+                SemaEscapeInfo info;
+                info.kind      = SemaEscapeKind::Local;
+                info.sourceVar = sourceVar;
+                info.sourceRef = rightRef;
+                info.typeRef   = targetTypeRef;
+                return reportBorrowEscape(sema, leftRef, info, "an assignment");
+            }
+        }
         if (!typeCanCarryBorrowImpl(sema, targetTypeRef))
         {
             if (dstVar)
@@ -2072,7 +2478,9 @@ namespace SemaEscape
         }
 
         uint32_t             budget = K_EXPR_BUDGET;
-        const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
+        SemaEscapeInfo       info   = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
+        if (!info.hasBorrow())
+            info = directTargetStorageBorrowInfo(sema, rightRef, targetTypeRef);
         if (!info.hasBorrow())
         {
             // A destination outside the local frame turns a callee-borrowed argument
@@ -2184,6 +2592,93 @@ namespace SemaEscape
             sema.setVariableEscapeInfo(symVar, info);
         else
             sema.clearVariableEscapeInfo(symVar);
+    }
+
+    const SymbolVariable* iterationSourceRoot(Sema& sema, AstNodeRef exprRef)
+    {
+        if (!lifecycleSanityEnabled(sema) || exprRef.isInvalid())
+            return nullptr;
+        return rootStorageOf(sema, exprRef);
+    }
+
+    Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
+    {
+        if (!lifecycleSanityEnabled(sema))
+            return Result::Continue;
+
+        // Only a method can mutate its receiver, a 'const' method cannot, and operator
+        // methods (opIndex/opIndexSet/opSlice/opData/opCount/opCast/opVisit ...) are
+        // element or view access rather than a structural change of the collection.
+        if (!calledFn.isMethod() || calledFn.isConst())
+            return Result::Continue;
+
+        const std::span<const SemaIterationBorrow> activeBorrows = sema.frame().iterationBorrows();
+        if (activeBorrows.empty())
+            return Result::Continue;
+
+        const Utf8             calleeName = calledFn.name(sema.ctx());
+        const std::string_view calleeView{calleeName};
+        if (calleeView.starts_with("op"))
+            return Result::Continue;
+
+        // The receiver is the first non-interface argument of the resolved call; for the
+        // projection match prefer the syntactic method receiver ('holder.items.add' ->
+        // 'holder.items'), whose field path survives resolution intact.
+        SmallVector<ResolvedCallArgument> args;
+        sema.appendResolvedCallArguments(callRef, args);
+        AstNodeRef receiverRef = AstNodeRef::invalid();
+        for (const ResolvedCallArgument& arg : args)
+        {
+            if (arg.passKind == CallArgumentPassKind::InterfaceObject)
+                continue;
+            receiverRef = argumentValueRef(sema, arg.argRef);
+            break;
+        }
+        if (receiverRef.isInvalid())
+            return Result::Continue;
+
+        AstNodeRef projectedReceiverRef = syntacticMethodReceiverRef(sema, callRef);
+        if (projectedReceiverRef.isInvalid())
+            projectedReceiverRef = receiverRef;
+
+        SemaEscapeProjection receiverProj;
+        bool                 receiverExact = false;
+        resolveIterationProjection(sema, projectedReceiverRef, receiverProj, receiverExact);
+        if (!receiverProj.root)
+            return Result::Continue;
+
+        for (const SemaIterationBorrow& borrow : activeBorrows)
+        {
+            if (borrow.root != receiverProj.root)
+                continue;
+
+            // Iteration is tracked at the storage level, so mutating a sibling field of a
+            // shared owner ('holder.other' while iterating 'holder.items') stays silent.
+            SemaEscapeProjection sourceProj;
+            bool                 sourceExact = false;
+            resolveIterationProjection(sema, borrow.sourceRef, sourceProj, sourceExact);
+            if (!iterationMutationHitsSource(sourceProj, sourceExact, receiverProj, receiverExact))
+                continue;
+
+            // Spare the find-then-remove-then-exit pattern: the loop does not iterate again
+            // after the mutation, so the snapshot is never read stale.
+            if (mutationFollowedByLoopExit(sema, borrow.bodyRef, callRef))
+                continue;
+
+            auto diag = SemaError::report(sema, DiagnosticId::sanity_err_collection_mutated, callRef);
+            diag.addArgument(Diagnostic::ARG_SYM, receiverProj.root->name(sema.ctx()));
+            diag.addArgument(Diagnostic::ARG_VALUE, calleeName);
+            if (borrow.sourceRef.isValid())
+            {
+                diag.addNote(DiagnosticId::sema_note_iteration_source_here);
+                diag.last().addArgument(Diagnostic::ARG_SYM, receiverProj.root->name(sema.ctx()));
+                diag.last().addSpan(sema.node(borrow.sourceRef).codeRange(sema.ctx()));
+            }
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return Result::Continue;
     }
 
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn)

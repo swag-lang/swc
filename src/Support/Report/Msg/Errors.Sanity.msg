@@ -13,3 +13,4 @@ SWC_DIAG_DEF(sanity_err_borrow_escape, Error, "borrowed data from local variable
 SWC_DIAG_DEF(sanity_err_borrow_scope_escape, Error, "borrowed data from local variable '{sym}' does not live as long as '{value}'; [help] declare '{sym}' in the same scope or copy the data")
 SWC_DIAG_DEF(sanity_err_borrow_temporary, Error, "borrowed data from a temporary value may escape through {what}; [help] the temporary is destroyed at the end of the statement; store it in a variable first")
 SWC_DIAG_DEF(sanity_err_borrow_materialized, Error, "borrowed data backed by function-local storage may escape through {what}; [help] copy the data into caller-owned storage")
+SWC_DIAG_DEF(sanity_err_collection_mutated, Error, "'{sym}' is structurally modified by '{value}' while it is being iterated; [help] the loop reads a snapshot of the collection and '{value}' can move or free its storage: break out of the loop, or collect the changes and apply them afterwards")

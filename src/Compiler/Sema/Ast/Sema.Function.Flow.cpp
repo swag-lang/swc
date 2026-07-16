@@ -1310,6 +1310,11 @@ namespace
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, sema.curNode().codeRef()));
         }
 
+        // Iterator invalidation: a structural mutation of a collection an enclosing loop is
+        // iterating. Checked before inline/const-fold expansion so an inlined mutating
+        // method (Array.add, remove, ...) is still caught at its call site.
+        SWC_RESULT(SemaEscape::checkIterationMutation(sema, sema.curNodeRef(), calledFn));
+
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (!returnType.isVoid() &&
             !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Discardable) &&

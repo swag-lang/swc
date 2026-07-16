@@ -103,6 +103,17 @@ namespace SemaEscape
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn);
     void   bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef);
 
+    // The storage variable a 'foreach' source expression ultimately reads (through an
+    // opCast-to-slice, a reference binding, aliases, ...). Registered as the loop's
+    // iteration borrow so a structural mutation of that same variable inside the body is
+    // flagged. Null when the source has no single storage root (a range, a temporary).
+    const SymbolVariable* iterationSourceRoot(Sema& sema, AstNodeRef exprRef);
+
+    // Reports when a resolved call structurally mutates a collection that an enclosing
+    // loop is iterating (the receiver roots at an active iteration borrow, and the callee
+    // is a non-const, non-operator method: add/remove/clear/free ...).
+    Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
+
     // Called on every resolved opaque call: records the "callee stores its argument"
     // deferred checks for borrowed arguments, and the stores-propagation edges for
     // caller-parameter arguments.

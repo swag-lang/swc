@@ -14,24 +14,9 @@ impl IActionUI for ActionFlatten
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
-        let capture = main.getCapture()
-        let hasSel  = capture and capture.selection.count
-
-        switch cxt.id
-        {
-        case Flatten:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Flatten"
-            evt.disabled = !capture or !hasSel
-
-        case FlattenAll:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Flatten All"
-            evt.disabled = !capture or !capture.forms.count
-        }
-
-        return true
+        return updateFromTable(cxt, evt, [
+            {Flatten, "Flatten", .Selection},
+            {FlattenAll, "Flatten All", .Forms}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool

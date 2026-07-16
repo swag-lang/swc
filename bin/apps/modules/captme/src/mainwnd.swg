@@ -56,6 +56,9 @@ struct MainWnd
     mdlFormDraw:                              FormDraw
     mdlFormCallout:                           FormCallout
     mdlHighlight, mdlPixSel, mdlFavorite:     IForm
+
+    // One interface per model field above, in FormRegistry order (see wrapper.swg)
+    mdlByType:                                Array'IForm
 }
 
 // Interface implementation

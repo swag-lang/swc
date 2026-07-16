@@ -70,6 +70,28 @@ struct Capture
     }
 }
 
+// Visit the forms listed in 'selection' (an array of slots in capture.forms) that
+// match T; 'BaseForm' matches every form. The injected block sees the typed form as
+// 'form', its interface as 'itf', and a visit counter as 'idx'. 'continue' skips a
+// form without advancing 'idx' — the exact contract needed to pair 'idx' with arrays
+// built by a previous, identically-filtered pass — and 'break' stops the visit.
+#[Swag.Macro]
+func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(form: *T, itf: IForm, idx: u64))
+{
+    var visitIdx = 0'u64
+    for s in selection
+    {
+        let f = capture.forms[s]
+        #if T != BaseForm
+        {
+            if @kindof(f) != T do
+                continue
+        }
+        #inject(stmt, form = cast(*T) @dataof(f), itf = f, idx = visitIdx)
+        visitIdx += 1
+    }
+}
+
 enum CaptureClipboardFormKind
 {
     None
@@ -908,10 +930,9 @@ impl Capture
             return editForm.boundRect()
 
         var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
-        for s in .selection
+        foreachSelected'BaseForm(me, .selection)
         {
-            let f = .forms[s]
-            let r = f.boundRect()
+            let r = itf.boundRect()
             bound.x = Math.min(bound.x, r.x)
             bound.y = Math.min(bound.y, r.y)
             bound.setRight(Math.max(bound.right(), r.right()))
@@ -1613,9 +1634,20 @@ impl Capture
     // Ungrouping applies as soon as any selected item is part of a group.
     mtd canUngroup()->bool
     {
-        for s in .selection
+        foreachSelected'BaseForm(me, .selection)
         {
-            if formOuterGroup(.forms[s]) != 0 do
+            if formOuterGroup(itf) != 0 do
+                return true
+        }
+        return false
+    }
+
+    // True when the selection contains at least one pixel-selection form
+    mtd hasSelectedPixSel()->bool
+    {
+        foreachSelected'BaseForm(me, .selection)
+        {
+            if form.subKind == .PixSel do
                 return true
         }
         return false

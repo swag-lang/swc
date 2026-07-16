@@ -643,29 +643,8 @@ impl QuickWnd
         for it, i in .currentStyle.forms
         {
             let btn = cast(*IconButton) .layout.childs[i]
-            btn.isChecked = false
-
-            switch it
-            {
-            case FormArrow:
-                btn.isChecked = mode == .Arrow and it.isSame(&.main.mdlFormArrow)
-            case FormShape:
-                btn.isChecked = mode == .Shape and it.isSame(&.main.mdlFormShape)
-            case FormImage:
-                btn.isChecked = mode == .Image and it.isSame(&.main.mdlFormImage)
-            case FormStep:
-                btn.isChecked = mode == .Step and it.isSame(&.main.mdlFormStep)
-            case FormLine:
-                btn.isChecked = mode == .Line and it.isSame(&.main.mdlFormLine)
-            case FormPolygon:
-                btn.isChecked = mode == .Polygon and it.isSame(&.main.mdlFormPolygon)
-            case FormText:
-                btn.isChecked = mode == .Text and it.isSame(&.main.mdlFormText)
-            case FormDraw:
-                btn.isChecked = mode == .Draw and it.isSame(&.main.mdlFormDraw)
-            case FormCallout:
-                btn.isChecked = mode == .Callout and it.isSame(&.main.mdlFormCallout)
-            }
+            let mdl = .main.modelFor(@kindof(it))
+            btn.isChecked = mode == MainWnd.formToEditMode(it) and it.isSame(cast(*BaseForm) @dataof(mdl))
 
             if btn.isChecked do
                 done = true

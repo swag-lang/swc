@@ -14,50 +14,11 @@ impl IActionUI for ActionPixSel
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
-        let capture = main.getCapture()
-
-        var hasPixSel = false
-        if capture
-        {
-            for s in capture.selection
-            {
-                let f = capture.forms[s]
-                let b = cast(*BaseForm) @dataof(f)
-                hasPixSel = b.subKind == .PixSel
-                if hasPixSel do
-                    break
-            }
-        }
-
-        switch cxt.id
-        {
-        case Clear:
-            evt.setFlags |= .Name | .Disabled | .Hidden
-            evt.name     = "Clear"
-            evt.disabled = !capture or !hasPixSel
-            evt.hidden   = evt.disabled
-
-        case Fill:
-            evt.setFlags |= .Name | .Disabled | .Hidden
-            evt.name     = "Fill"
-            evt.disabled = !capture or !hasPixSel
-            evt.hidden   = evt.disabled
-
-        case SmartFill:
-            evt.setFlags |= .Name | .Disabled | .Hidden
-            evt.name     = "Smart Fill"
-            evt.disabled = !capture or !hasPixSel
-            evt.hidden   = evt.disabled
-
-        case SmartMove:
-            evt.setFlags |= .Name | .Disabled | .Hidden
-            evt.name     = "Smart Move"
-            evt.disabled = !capture or !hasPixSel
-            evt.hidden   = evt.disabled
-        }
-
-        return true
+        return updateFromTable(cxt, evt, [
+            {Clear, "Clear", .PixSel, hideDisabled: true},
+            {Fill, "Fill", .PixSel, hideDisabled: true},
+            {SmartFill, "Smart Fill", .PixSel, hideDisabled: true},
+            {SmartMove, "Smart Move", .PixSel, hideDisabled: true}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool
@@ -86,12 +47,10 @@ impl MainWnd
     {
         var result: retval
         let capture = assume .getCapture()
-        for s in capture.selection
+        foreachSelected'BaseForm(capture, capture.selection)
         {
-            let f = capture.forms[s]
-            let b = cast(*BaseForm) @dataof(f)
-            if b.subKind == .PixSel do
-                result.add(f)
+            if form.subKind == .PixSel do
+                result.add(itf)
         }
 
         return result

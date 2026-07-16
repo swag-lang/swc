@@ -23,55 +23,28 @@ impl IActionUI for ActionImage
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
+        if updateFromTable(cxt, evt, [
+            {ResizeImage, "Resize Image...", .Capture},
+            {ExpandImage, "Expand Image...", .Capture},
+            {ExpandCapture, "Expand Capture...", .Capture},
+            {TrimCapture, "Trim Capture", .Capture},
+            {FlipImage, "Flip Image", .Capture},
+            {MirrorImage, "Mirror Image", .Capture},
+            {RotateImageRight, "Rotate Image Right", .Capture},
+            {RotateImageLeft, "Rotate Image Left", .Capture}])
+        {
+            return true
+        }
+
         let main    = cast(*MainWnd) cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
         {
-        case ResizeImage:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Resize Image..."
-            evt.disabled = !capture
-
-        case ExpandImage:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Expand Image..."
-            evt.disabled = !capture
-
-        case ExpandCapture:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Expand Capture..."
-            evt.disabled = !capture
-
-        case TrimCapture:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Trim Capture"
-            evt.disabled = !capture
-
         case RestoreOrg:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "Restore to Original"
             evt.disabled = !capture or !capture.backImgOriginal.isValid()
-
-        case FlipImage:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Flip Image"
-            evt.disabled = !capture
-
-        case MirrorImage:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Mirror Image"
-            evt.disabled = !capture
-
-        case RotateImageRight:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Rotate Image Right"
-            evt.disabled = !capture
-
-        case RotateImageLeft:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Rotate Image Left"
-            evt.disabled = !capture
         }
 
         return true

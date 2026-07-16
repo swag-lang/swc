@@ -24,42 +24,22 @@ impl IActionUI for ActionAlign
     {
         let main = cast(*MainWnd) cxt.wnd
 
-        let capture      = main.getCapture()
-        let hasSel       = capture and capture.selection.count
-        let hasSingleSel = capture and capture.selection.count == 1
+        if updateFromTable(cxt, evt, [
+            {AlignLeft, "Left", .MultiSel},
+            {AlignCenter, "Center", .MultiSel},
+            {AlignRight, "Right", .MultiSel},
+            {AlignTop, "Top", .MultiSel},
+            {AlignMiddle, "Middle", .MultiSel},
+            {AlignBottom, "Bottom", .MultiSel}])
+        {
+            return true
+        }
+
+        let capture = main.getCapture()
+        let hasSel  = capture and capture.selection.count
 
         switch cxt.id
         {
-        case AlignLeft:
-            evt.setFlags |= .Disabled | .Name
-            evt.name     = "Left"
-            evt.disabled = !hasSel or hasSingleSel
-
-        case AlignCenter:
-            evt.setFlags |= .Disabled | .Name
-            evt.name     = "Center"
-            evt.disabled = !hasSel or hasSingleSel
-
-        case AlignRight:
-            evt.setFlags |= .Disabled | .Name
-            evt.name     = "Right"
-            evt.disabled = !hasSel or hasSingleSel
-
-        case AlignTop:
-            evt.setFlags |= .Disabled | .Name
-            evt.name     = "Top"
-            evt.disabled = !hasSel or hasSingleSel
-
-        case AlignMiddle:
-            evt.setFlags |= .Disabled | .Name
-            evt.name     = "Middle"
-            evt.disabled = !hasSel or hasSingleSel
-
-        case AlignBottom:
-            evt.setFlags |= .Disabled | .Name
-            evt.name     = "Bottom"
-            evt.disabled = !hasSel or hasSingleSel
-
         case SendToFront:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Send To Front"

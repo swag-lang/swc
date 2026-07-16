@@ -233,6 +233,32 @@ func borrowEscapeNamedOwnerStringField()->u64
     return @countof(holder.text)
 }
 
+func borrowEscapeTemporaryStringInitializer()->u64
+{
+    let holder = BorrowEscapeTemporaryField{text: cast(string) borrowEscapeMakeOwner()} // swc-expected-error {{sanity_err_borrow_temporary}}
+    return @countof(holder.text)
+}
+
+struct BorrowEscapeNestedTemporaryField
+{
+    inner: BorrowEscapeTemporaryField
+}
+
+func borrowEscapeNestedTemporaryStringField()->u64
+{
+    var holder: BorrowEscapeNestedTemporaryField
+    holder.inner.text = borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_temporary}}
+    return @countof(holder.inner.text)
+}
+
+var borrowEscapeGlobalTemporaryField: BorrowEscapeTemporaryField
+
+func borrowEscapeLocalOwnerGlobalStringField()
+{
+    var owner = borrowEscapeMakeOwner()
+    borrowEscapeGlobalTemporaryField.text = owner // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
 // Reading a carrier element by value copies it: no borrow of the array storage.
 func borrowEscapeElementRead()->string
 {
@@ -297,10 +323,64 @@ func borrowEscapeMaterializedLocalField()->u16
     return holder.values[0]
 }
 
+func borrowEscapeMaterializedLocalFieldInitializer()->u16
+{
+    let holder = BorrowEscapeSliceField{values: cast(const [..] u16) borrowEscapeMakeArray()}
+    return holder.values[0]
+}
+
 func borrowEscapeMaterializedReturnedField()->BorrowEscapeSliceField
 {
     var holder: BorrowEscapeSliceField
     holder.values = cast(const [..] u16) borrowEscapeMakeArray()
+    return holder // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+func borrowEscapeMaterializedReturnedFieldInitializer()->BorrowEscapeSliceField
+{
+    return BorrowEscapeSliceField{values: cast(const [..] u16) borrowEscapeMakeArray()} // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+func borrowEscapeMaterializedCopiedField()->BorrowEscapeSliceField
+{
+    var source: BorrowEscapeSliceField
+    source.values = cast(const [..] u16) borrowEscapeMakeArray()
+    let copy = source
+    return copy // swc-expected-error {{sanity_err_borrow_materialized}}
+}
+
+// Projection state participates in control-flow joins. One unsafe alternative is
+// enough to make the returned field unsafe; overwriting it on every path clears it.
+func borrowEscapeMaterializedFieldJoin(cond: bool)->BorrowEscapeSliceField
+{
+    var holder: BorrowEscapeSliceField
+    if cond do
+        holder.values = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+    else do
+        holder.values = borrowEscapeGlobalSlice
+    return holder
+}
+
+func borrowEscapeMaterializedFieldClearedOnAllPaths(cond: bool)->BorrowEscapeSliceField
+{
+    var holder: BorrowEscapeSliceField
+    holder.values = cast(const [..] u16) borrowEscapeMakeArray()
+    if cond do
+        holder.values = borrowEscapeGlobalSlice
+    else do
+        holder.values = borrowEscapeGlobalSlice
+    return holder
+}
+
+struct BorrowEscapeNestedSliceField
+{
+    inner: BorrowEscapeSliceField
+}
+
+func borrowEscapeMaterializedNestedReturnedField()->BorrowEscapeNestedSliceField
+{
+    var holder: BorrowEscapeNestedSliceField
+    holder.inner.values = cast(const [..] u16) borrowEscapeMakeArray()
     return holder // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 

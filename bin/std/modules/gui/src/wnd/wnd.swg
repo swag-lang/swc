@@ -320,8 +320,12 @@ impl Wnd
     mtd destroyNow()
     {
         Debug.assert(!.isPendingDestroy)
-        for c in .childs do
-            c.destroyNow()
+
+        // Each child's destroyWnd removes it from '.childs': iterating the array while it
+        // shrinks would skip every other child, so always consume the back one.
+        while .childs.count do
+            .childs.back().destroyNow()
+
         .surface.app.destroyWnd(me)
     }
 

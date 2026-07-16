@@ -63,12 +63,12 @@ using Swag, Core
     f.gui.pump()
 
     let propRectBefore       = f.main.propWnd.position
-    let mainLayoutPosBefore  = f.main.propWnd.mainLayout.position
-    let propScrollBefore     = f.main.propWnd.scrollSize
-    let propScrollBarBefore  = Math.Rectangle{0, f.main.propWnd.posBoxV, 0, f.main.propWnd.sizeBoxV}
+    let topLayoutPosBefore   = f.main.propWnd.topLayout.position
+    let gridPosBefore        = f.main.propWnd.grid.position
+    let gridItemCountBefore  = f.main.propWnd.grid.items.count
     let quickPaneSizeBefore  = f.main.quickStyleBar.items[0].size
     var sliderCtrlBefore: *SliderCtrl
-    for child in f.main.propWnd.mainLayout.childs
+    for child in f.main.propWnd.topLayout.childs
     {
         if child.type == SliderCtrl
         {
@@ -80,7 +80,7 @@ using Swag, Core
     let sliderCtrlPosBefore = sliderCtrlBefore.position
     let sliderTrackPosBefore = sliderCtrlBefore.slider.position
     let sliderEditPosBefore = sliderCtrlBefore.edit.position
-    let propChildCountBefore = f.main.propWnd.mainLayout.childs.count
+    let propChildCountBefore = f.main.propWnd.topLayout.childs.count
     var didDismiss = false
 
     f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(app)
@@ -97,14 +97,14 @@ using Swag, Core
 
     @assert(didDismiss)
     @assert(f.main.propWnd.position == propRectBefore)
-    @assert(f.main.propWnd.scrollSize == propScrollBefore)
-    @assert(Math.Rectangle{0, f.main.propWnd.posBoxV, 0, f.main.propWnd.sizeBoxV} == propScrollBarBefore)
+    @assert(f.main.propWnd.grid.position == gridPosBefore)
+    @assert(f.main.propWnd.grid.items.count == gridItemCountBefore)
     @assert(f.main.quickStyleBar.items[0].size == quickPaneSizeBefore)
-    @assert(f.main.propWnd.mainLayout.position == mainLayoutPosBefore)
+    @assert(f.main.propWnd.topLayout.position == topLayoutPosBefore)
     @assert(sliderCtrlBefore.position == sliderCtrlPosBefore)
     @assert(sliderCtrlBefore.slider.position == sliderTrackPosBefore)
     @assert(sliderCtrlBefore.edit.position == sliderEditPosBefore)
-    @assert(f.main.propWnd.mainLayout.childs.count == propChildCountBefore)
+    @assert(f.main.propWnd.topLayout.childs.count == propChildCountBefore)
 
     f.shutdown()
 }

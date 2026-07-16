@@ -18,7 +18,9 @@ using Core, Pixel
 #[Swag.Warning("Wrn0006", .Disable)]
 interface IPropertyNotify
 {
-    mtd itemHasChanged(list: *Properties, item: *PropertiesItem) {}
+    // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore
+    // recorded against a previous grid content (the values are already back in the instances).
+    mtd itemHasChanged(list: *Properties, item: #null *PropertiesItem) {}
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool { return true; }
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool { return true; }
 
@@ -58,6 +60,9 @@ enum PropertiesKind
     List       // This is a flat list
     Grid       // This is a more compact property grid
     Condensed  // A dense, classic property grid: thin rows, compact controls
+    Panel      // A tool panel: full-width self-labeled rows (labeled slider, labeled combo,
+               // check button...), no name column, no descriptions; categories paint as
+               // thin separators. The look of an editor's side panel.
 }
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
@@ -128,10 +133,27 @@ struct Properties
 
     // Undo/redo (propertiesundo.swg). Every field edit that goes through hasChanged records one
     // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
-    // while a command is restoring a value.
+    // while a command is restoring a value. externUndoMgr, when set, receives the commands
+    // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
+    // of one slider drag into a single command. generation stamps the grid content: it bumps on
+    // clearStructs so commands recorded against dropped rows skip their row refresh.
     undoMgr:                  UndoManager
+    externUndoMgr:            #null *UndoManager
     undoEnabled:              bool = true
     applyingUndo:             bool
+    generation:               u64
+    dragItem:                 #null *PropertiesItem
+    dragCmd:                  #null *PropUndoCommand
+
+    // Host-level notify interface (setNotify): consulted for every row, in addition to the
+    // per-struct IPropertyNotify implementations bound at build time. This is how a host that
+    // does not own the displayed structs (an editor panel showing a document's objects) plugs
+    // dynamic visibility, validation and change reactions.
+    hostNtfy:                 IPropertyNotify
+
+    // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
+    // explicit Properties.Name attribute get a row.
+    buildOnlyNamed:           bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points
@@ -203,8 +225,16 @@ internal impl Properties
     mtd getItemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
         var result: retval{true, true}
-        var scan    = item
 
+        if .hostNtfy
+        {
+            if !.hostNtfy.isItemVisible(me, item) do
+                result.visible = false
+            if !.hostNtfy.isItemEnabled(me, item) do
+                result.enable = false
+        }
+
+        var scan = item
         while scan
         {
             if scan.ntfyItf
@@ -256,6 +286,8 @@ internal impl Properties
                 item.editBox.setText(dref cast(*String) item.data)
                 .setEditMixed(item, item.editBox)
             }
+            elif pointed == Core.String and item.comboBox do
+                .refreshFontName(item)
             elif Reflection.isStruct(pointed)
             {
                 let typeStruct = cast(const *Swag.TypeInfoStruct) pointed
@@ -325,6 +357,13 @@ impl Properties
                 .leftMargin     = 18
             }
 
+            // Panel: full-width self-labeled rows, tight side margins
+            if kind == .Panel
+            {
+                .leftMargin  = 8
+                .rightMargin = 8
+            }
+
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }
 
             // Built-in context-menu commands (Copy/Paste/array ops) go through the shared gui
@@ -333,6 +372,38 @@ impl Properties
         }
 
         return ed
+    }
+
+    // Set the host-level notify interface, consulted for every row in addition to the
+    // per-struct implementations. Lets a host that does not own the displayed structs plug
+    // dynamic visibility/enabling, read-only state and change reactions.
+    mtd setNotify(itf: IPropertyNotify)
+    {
+        .hostNtfy = itf
+    }
+
+    // Drop every displayed struct and row, keeping the widget alive so a new content can be
+    // bound with addStruct/addStructMulti (an editor panel re-targeting the current selection).
+    // The undo history recorded so far survives on an external manager (its commands are
+    // detached from the rows); the internal one is cleared with the content it refers to.
+    mtd clearStructs()
+    {
+        if !.externUndoMgr do
+            .undoMgr.clear()
+
+        .generation += 1
+        .dragItem = null
+        .dragCmd  = null
+        .hotItem, .selItem, .menuItem = null
+
+        .freeDefaultRoots()
+
+        for it in .items do
+            it.line.destroyNow()
+        .items.clear()
+        .sections.clear()
+        .gridLevelHasMark.clear()
+        .currentSectionIndex = Swag.U32.Max
     }
 
     // Add a new struct to display.
@@ -350,10 +421,15 @@ impl Properties
     // 'bases' holds the base address of each instance to edit together (>= 1). Editing
     // a field writes it into every instance; a field whose value differs across the
     // instances is shown as "mixed". With a single base this behaves like addStruct.
-    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string = null)
+    // With 'onlyNamed', only the fields carrying an explicit Properties.Name attribute get a
+    // row: the grid becomes opt-in, for structs whose fields are mostly internal state.
+    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string = null, onlyNamed = false)
     {
         Debug.assert(typeof.kind == .Struct)
         Debug.assert(@countof(bases) >= 1)
+
+        .buildOnlyNamed = onlyNamed
+        defer .buildOnlyNamed = false
 
         let firstItemIdx   = .items.count
         var item:          *PropertiesItem
@@ -470,7 +546,10 @@ impl Properties
 
         .sigChanged.call(me, item)
 
-        // Notify all the hierarchy
+        // Notify the host, then all the hierarchy
+        if .hostNtfy do
+            .hostNtfy.itemHasChanged(me, item)
+
         var scan = item
         while scan
         {
@@ -513,6 +592,9 @@ impl Properties
             return true
 
         if Reflection.hasAttribute(item.typeValue, .ReadOnly) do
+            return true
+
+        if .hostNtfy and .hostNtfy.isItemReadOnly(me, item) do
             return true
 
         var scan = cast(#null *PropertiesItem) item

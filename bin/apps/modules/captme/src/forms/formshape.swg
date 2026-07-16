@@ -8,10 +8,12 @@ enum FormShapeKind
 const MinRoundSize = 10.0
 const MaxRoundSize = 50.0
 
+#[Swag.Using(Properties)]
 struct FormShape
 {
     using base:     BaseForm
     kind:           FormShapeKind = Ellipse
+    #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
     roundSize:      f32 = 10
 
     #[Serialization.NoSerialize]

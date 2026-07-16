@@ -40,6 +40,17 @@ impl Properties
     // Float edition, edit width a slider instead of an editbox
     attr SliderMinMax(min, max: f32)
 
+    // Bool edition with a two-entries combo box instead of a check box; 'off' is the
+    // label of the false value, 'on' the label of the true one ("No Shadow"/"Small").
+    attr BoolCombo(off, on: string)
+
+    // String edition with an extra '...' button opening a multi-line edition dialog.
+    attr MultiLine()
+
+    // String edition with a combo box of the system font families; the first entry is
+    // the theme's default font and stores an empty string.
+    attr FontName()
+
     // Color edition, force an opaque color
     attr Opaque()
 

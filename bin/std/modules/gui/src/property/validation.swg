@@ -90,6 +90,13 @@ internal impl Properties
     {
         var hasNtfy = false
         var result:   PropValidationResult
+
+        if .hostNtfy
+        {
+            hasNtfy = true
+            result  = .hostNtfy.validateItem(me, item)
+        }
+
         var scan = cast(#null *PropertiesItem) item
         while scan
         {

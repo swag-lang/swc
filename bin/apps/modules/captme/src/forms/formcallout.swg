@@ -2,20 +2,30 @@
 // a triangular tail whose tip is a freely movable point. The body reuses the shared
 // rect gizmo (resize/move) while the tail tip is a single-anchor point gizmo. Text is
 // rendered by reusing FormText so glyph layout/outline/caching is not duplicated here.
+// Field order below is the display order of the generated properties panel;
+// serialization matches fields by name, so it is free to follow the UI.
+#[Swag.Using(Properties)]
 struct FormCallout
 {
     using base:      BaseForm
+    #[Name("Font"), FontName]
+    fontName:        String
+    #[Name("Text"), MultiLine]
+    text:            String
+    #[Name("Font Style")]
+    fontStyle        = FontFamilyStyle.Regular
+    #[Name("Align")]
+    alignHorz        = FormTextAlign.Center
+    #[Name("Vertical Align")]
+    alignVert        = FormTextAlign.Center
+    #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
+    fontSize:        f32 = 40
+    #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
     roundSize:       f32 = 16
     tailX, tailY:    f32
-    fontSize:        f32 = 40
     boldSize:        f32 = 0
     lineSpacing      = 14.0
-    fontStyle        = FontFamilyStyle.Regular
-    fontName:        String
     textColor:       Color = Argb.White
-    text:            String
-    alignHorz        = FormTextAlign.Center
-    alignVert        = FormTextAlign.Center
 
     #[Serialization.NoSerialize]
     {

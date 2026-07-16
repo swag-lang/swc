@@ -42,11 +42,18 @@ interface IForm
     mtd canRotate()->bool { return false; }
 }
 
+// The property panel is generated from the fields carrying a Properties.Name attribute
+// (see PropWnd): the attribute set declares the editor (slider, checkbox, min/max box)
+// and the panel builds itself by reflection, undo included.
+#[Swag.Using(Properties)]
 struct BaseForm
 {
+    // x/y/w/h carry no grid attribute: the panel edits them through its own bottom
+    // "position" row (PropWnd.propXY), kept at the very bottom like the original.
     x, y:                s32 = 0
     w, h:                s32 = 32
 
+    #[Name("Opacity"), SliderMinMax(0, 100), Unit("%")]
     alpha:               u8 = 100
     shadowOffsetX:       f32 = 2
     shadowOffsetY:       f32 = 2
@@ -57,11 +64,15 @@ struct BaseForm
     // Unused, kept because it is serialized: removing it would fail the decoding of
     // existing capture files and of the quick styles saved in the application config.
     quickModeOpaque:     bool
+    #[Name("Line"), BoolCombo("Straight", "Bezier")]
     bezier:              bool
+    #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
     paintShadow:         bool = true
     subKind:             FormSubKind = None
     joinStyle            = JoinStyle.Round
+    #[Name("Scale"), SliderMinMax(0, 100), Unit("%")]
     scale:               f32 = 0
+    #[Name("Rotate"), SliderMinMax(0, 360), Unit("°")]
     rotate:              f32 = 0
 
     // Group membership as a path of group ids, outermost first (empty = ungrouped).

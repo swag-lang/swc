@@ -1,15 +1,20 @@
 enum FormStepType
 {
+    #[Properties.Name("1...2...3...")]
     Number
+    #[Properties.Name("A...B...C...")]
     LetterUp
+    #[Properties.Name("a...b...c...")]
     LetterDown
 }
 
+#[Swag.Using(Properties)]
 struct FormStep
 {
     using base:     BaseForm
     kind:           FormShapeKind = Ellipse
     index:          u32 = 1
+    #[Name("Step")]
     typeIndex       = FormStepType.Number
 
     #[Serialization.NoSerialize]

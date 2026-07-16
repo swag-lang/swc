@@ -228,27 +228,46 @@ impl Properties
         }
 
         let item = .addItem(value, data, parentItem)
-        var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
-        if !me.isGridLike() do
-            editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = ComboBox.create(item.line, kind: .CheckBox)
+
+        // Panel row: a full-width labeled combo
+        if .kind == .Panel
         {
-            .maxSize.x = editWidth
-            if me.isGridLike() do
-                .dockStyle = .CenterKeepSizeVert
-            else
+            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
+                .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 210)
             }
-            if me.kind == .Condensed do
-                .comboBoxFlags.add(.Flat)
+
+            item.comboBox = ctrl.combo
+        }
+        else
+        {
+            var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            if !me.isGridLike() do
+                editWidth = me.listContentWidthFromUseful(editWidth)
+            with let ed = ComboBox.create(item.line, kind: .CheckBox)
+            {
+                .maxSize.x = editWidth
+                if me.isGridLike() do
+                    .dockStyle = .CenterKeepSizeVert
+                else
+                {
+                    .anchorStyle = .X
+                }
+                if me.kind == .Condensed do
+                    .comboBoxFlags.add(.Flat)
+            }
+
+            me.adaptCondensedControl(ed)
+            item.comboBox = ed
         }
 
-        me.adaptCondensedControl(ed)
-        item.comboBox = ed
-
-        for v, idx in typeEnum.values do
-            ed.addItem(v.name)
+        // An enum value can carry its own display name ('1...2...3...' for Number)
+        for v, idx in typeEnum.values
+        {
+            let dn = Reflection.getAttributeValue(v, Properties.Name, "name")
+            item.comboBox.addItem(dn == null ? v.name : cast(string) dn)
+        }
 
         .refreshEnum(item)
         item.comboBox.sigChanged += func|prop = me, item|(ed, n)

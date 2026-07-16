@@ -11,6 +11,14 @@ impl Properties
                 item.checkBox.checked = dref cast(*bool) item.data ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
+        elif item.comboBox
+        {
+            // Multi-selection: clear the selection when the instances disagree.
+            if .fieldIsMixed(item) do
+                item.comboBox.selectItem(Swag.U32.Max)
+            else do
+                item.comboBox.selectItem(dref cast(*bool) item.data ? 1 : 0)
+        }
     }
 
     mtd validateBool(item: *PropertiesItem)
@@ -18,11 +26,93 @@ impl Properties
         var data = cast(*bool) item.data
         if item.checkBox do
             dref data = item.checkBox.checked == .Checked ? true : false
+        elif item.comboBox
+        {
+            // A deselected combo means "mixed" was just shown: nothing to write.
+            let sel = item.comboBox.selectedIdx
+            if sel > 1 do
+                return
+            dref data = sel == 1
+        }
+
         .hasChanged(item)
+    }
+
+    // Bool shown as a two-entries combo (the BoolCombo attribute): 'off' labels false,
+    // 'on' labels true.
+    mtd constructBoolCombo(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    {
+        let item = .addItem(value, data, parentItem)
+
+        if .kind == .Panel
+        {
+            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
+            {
+                .anchorStyle = .X
+                .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 210)
+            }
+
+            item.comboBox = ctrl.combo
+        }
+        else
+        {
+            var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            if !.isGridLike() do
+                editWidth = .listContentWidthFromUseful(editWidth)
+            with let ed = ComboBox.create(item.line, kind: .CheckBox)
+            {
+                .maxSize.x = editWidth
+                if me.isGridLike() do
+                    .dockStyle = .CenterKeepSizeVert
+                else
+                {
+                    .anchorStyle = .X
+                }
+                if me.kind == .Condensed do
+                    .comboBoxFlags.add(.Flat)
+            }
+
+            me.adaptCondensedControl(ed)
+            item.comboBox = ed
+        }
+
+        item.comboBox.addItem(cast(string) assume Reflection.getAttributeValue(value, .BoolCombo, "off"))
+        item.comboBox.addItem(cast(string) assume Reflection.getAttributeValue(value, .BoolCombo, "on"))
+
+        .refreshBool(item)
+        item.comboBox.sigChanged += func|prop = me, item|(ed, n)
+        {
+            prop.validateBool(item)
+        }
     }
 
     mtd constructBool(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
     {
+        if Reflection.hasAttribute(value, .BoolCombo)
+        {
+            .constructBoolCombo(value, data, parentItem)
+            return
+        }
+
+        // Panel row: a self-labeled check button
+        if .kind == .Panel
+        {
+            let itemP = .addItem(value, data, parentItem)
+            with let ed = CheckButton.create(itemP.line, itemDisplayName(value).toString())
+            {
+                .anchorStyle = .X
+            }
+
+            itemP.checkBox = ed
+            ed.sigChanged += func|prop = me, itemP|(ed)
+            {
+                prop.validateBool(itemP)
+            }
+
+            .refreshBool(itemP)
+            return
+        }
+
         let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
         let item     = .addItem(value, data, parentItem, flags: AddItemFlags.Name)
 

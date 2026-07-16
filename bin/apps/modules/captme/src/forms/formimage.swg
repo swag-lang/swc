@@ -14,12 +14,16 @@ enum FormImagePlacement
     Free
 }
 
+#[Swag.Using(Properties)]
 struct FormImage
 {
     using base:     BaseForm
     image:          Image
+    #[Name("Kind"), RecalcLayout]
     kind:           FormImageKind = .Image
+    #[Name("Strength"), SliderMinMax(0, 100)]
     strength:       s32 = 50
+    #[Name("Place")]
     place:          FormImagePlacement = .Center
     freePos:        Math.Rectangle
 

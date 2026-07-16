@@ -5,17 +5,27 @@ enum FormTextAlign
     Center
 }
 
+// Field order below is the display order of the generated properties panel;
+// serialization matches fields by name, so it is free to follow the UI.
+#[Swag.Using(Properties)]
 struct FormText
 {
     using base:     BaseForm
-    fontSize:       f32 = 48
-    boldSize:       f32 = 0
-    text:           String
-    alignHorz       = FormTextAlign.Center
-    alignVert       = FormTextAlign.Center
-    lineSpacing     = 14.0
-    fontStyle       = FontFamilyStyle.Regular
+    #[Name("Font"), FontName]
     fontName:       String
+    #[Name("Text"), MultiLine]
+    text:           String
+    #[Name("Font Style")]
+    fontStyle       = FontFamilyStyle.Regular
+    #[Name("Align")]
+    alignHorz       = FormTextAlign.Center
+    #[Name("Vertical Align")]
+    alignVert       = FormTextAlign.Center
+    #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
+    fontSize:       f32 = 48
+    #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize)]
+    boldSize:       f32 = 0
+    lineSpacing     = 14.0
 
     #[Serialization.NoSerialize]
     {

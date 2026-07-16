@@ -15,12 +15,16 @@ using Core, Pixel
 
 // A captured copy of one field's value across every edited instance. Strings are copied by
 // content (they own a heap buffer); every other supported type is copied as raw bytes.
+// The per-instance addresses are captured too, so a value can be restored without the row
+// it was recorded against: undo commands stay valid across a grid rebuild (clearStructs +
+// addStruct), as long as the edited instances themselves are still alive.
 struct PropFieldValue
 {
     valid:      bool
     isString:   bool
     n:          u64             // number of instances captured
     sz:         u64             // per-instance byte size (raw-bytes case only)
+    addrs:      Array'(*u8)     // field address in each captured instance
     bytes:      Array'u8        // n * sz contiguous raw bytes (raw-bytes case)
     strings:    Array'String    // n strings (String case)
 }
@@ -46,6 +50,7 @@ impl PropFieldValue
         .isString = false
         .n        = 0
         .sz       = 0
+        .addrs.clear()
         .bytes.clear()
         .strings.clear()
 
@@ -61,13 +66,16 @@ impl PropFieldValue
             return
 
         .n = prop.instanceCount(item)
+        .addrs.reserve(.n)
+        for k in .n do
+            .addrs.add(prop.instanceAddr(item, k))
 
         if item.type == Core.String
         {
             .isString = true
             .strings.reserve(.n)
             for k in .n do
-                .strings.add(dref cast(*String) prop.instanceAddr(item, k))
+                .strings.add(dref cast(*String) .addrs[k])
         }
         else
         {
@@ -76,29 +84,29 @@ impl PropFieldValue
                 return
             .bytes.resize(.n * .sz)
             for k in .n do
-                Memory.copy(cast([*] void) (.bytes.buffer + k * .sz), cast(const [*] void) prop.instanceAddr(item, k), .sz)
+                Memory.copy(cast([*] void) (.bytes.buffer + k * .sz), cast(const [*] void) .addrs[k], .sz)
         }
 
         .valid = true
     }
 
-    // Write the captured value back into every edited instance (up to the number of instances
-    // currently bound, in case the selection shrank).
-    mtd restore(prop: *Properties, item: *PropertiesItem)
+    // Write the captured value back into every captured instance address. Self-contained on
+    // purpose: the row the value was recorded against may be gone (grid rebuilt), only the
+    // edited instances need to be alive.
+    mtd restore()
     {
         if !.valid do
             return
 
-        let cnt = Math.min(.n, prop.instanceCount(item))
         if .isString
         {
-            for k in cnt do
-                dref cast(*String) prop.instanceAddr(item, k) = .strings[k]
+            for k in .n do
+                dref cast(*String) .addrs[k] = .strings[k]
         }
         else
         {
-            for k in cnt do
-                Memory.copy(cast([*] void) prop.instanceAddr(item, k), cast(const [*] void) (.bytes.buffer + k * .sz), .sz)
+            for k in .n do
+                Memory.copy(cast([*] void) .addrs[k], cast(const [*] void) (.bytes.buffer + k * .sz), .sz)
         }
     }
 
@@ -133,25 +141,30 @@ impl PropFieldValue
     }
 }
 
-// One undoable property edit: restore the old/new value of 'item' in 'prop'.
+// One undoable property edit: restore the old/new value at the instance addresses it was
+// captured on. The command does not reference the row it came from: 'generation' records
+// the grid content it was built against, so a command replayed after a rebuild silently
+// skips the row refresh (the values still land at the right addresses).
 struct PropUndoCommand
 {
-    prop:       *Properties
-    item:       *PropertiesItem
-    oldVal:     PropFieldValue
-    newVal:     PropFieldValue
+    prop:           *Properties
+    generation:     u64
+    oldVal:         PropFieldValue
+    newVal:         PropFieldValue
 }
 
 impl IUndoCommand for PropUndoCommand
 {
     mtd impl redo()
     {
-        .prop.applyUndoValue(.item, &.newVal)
+        .newVal.restore()
+        .prop.postUndoRefresh(.generation)
     }
 
     mtd impl undo()
     {
-        .prop.applyUndoValue(.item, &.oldVal)
+        .oldVal.restore()
+        .prop.postUndoRefresh(.generation)
     }
 }
 
@@ -167,6 +180,8 @@ internal impl Properties
 
     // Diff the row's current value against its snapshot; on a real change, push one undo
     // command holding the before/after value, then resync the snapshot. Called from hasChanged.
+    // While a slider drag is active on the row (beginItemDrag), every move after the first is
+    // folded into the command recorded at the first move, so the whole drag is one undo step.
     mtd recordUndo(item: *PropertiesItem)
     {
         if !.undoEnabled do
@@ -179,56 +194,111 @@ internal impl Properties
 
         if item.undoValue.valid and !item.undoValue.isEqual(&cur)
         {
-            let cmd = Memory.new'PropUndoCommand()
-            cmd.prop   = me
-            cmd.item   = item
-            cmd.oldVal = item.undoValue
-            cmd.newVal = cur
-            .undoMgr.pushCmd(cast(IUndoCommand) cmd, 0, false)
+            if .dragItem == item and .dragCmd
+            {
+                .dragCmd.newVal = cur
+            }
+            else
+            {
+                let cmd = Memory.new'PropUndoCommand()
+                cmd.prop       = me
+                cmd.generation = .generation
+                cmd.oldVal     = item.undoValue
+                cmd.newVal     = cur
+                .activeUndoMgr().pushCmd(cast(IUndoCommand) cmd, 0, false)
+                if .dragItem == item do
+                    .dragCmd = cmd
+            }
         }
 
         item.undoValue = cur
     }
 
-    // Restore a recorded value into the row and refresh the grid, without re-recording it.
-    mtd applyUndoValue(item: *PropertiesItem, val: *PropFieldValue)
+    // Refresh/notify tail of an undo/redo restore. When the command predates the current grid
+    // content (generation mismatch), the rows it knew are gone: the values are already restored
+    // at their addresses, there is nothing to refresh here.
+    mtd postUndoRefresh(generation: u64)
     {
+        if generation != .generation do
+            return
+
         .applyingUndo = true
-        val.restore(me, item)
-        item.undoValue = dref val    // keep the snapshot in sync with the timeline position
-        .postChange(item)
+        .refresh()
+
+        // Resync every row snapshot with the restored values, so the next edit diffs against
+        // the timeline position we just moved to.
+        for it in .items do
+            it.undoValue.capture(me, it)
+
+        var relayout = .updateValidation()
+        if .updateDefaults() do
+            relayout = true
+        if relayout
+        {
+            .applyLayout()
+            .scrollWnd.view.sendResizeEvent()
+        }
+
+        // Item-agnostic notification: the restored command may span rows that no longer exist,
+        // so the signal and the host notify are called without a row.
+        .sigChanged.call(me, null)
+        if .hostNtfy do
+            .hostNtfy.itemHasChanged(me, null)
+
         .applyingUndo = false
         .invalidate()
+    }
+
+    // A slider drag started on 'item': coalesce the undo commands of the drag into one.
+    mtd beginItemDrag(item: *PropertiesItem)
+    {
+        .dragItem = item
+        .dragCmd  = null
+    }
+
+    mtd endItemDrag()
+    {
+        .dragItem = null
+        .dragCmd  = null
     }
 }
 
 // Public undo/redo entry points for hosts (menus, toolbars, shortcuts).
 public impl Properties
 {
+    // Record the grid's undo commands into an external UndoManager instead of the grid's own
+    // one, so property edits and the host's other commands share a single undo timeline. The
+    // grid must stay alive as long as the external manager holds commands recorded by it.
+    // Pass null to go back to the internal manager.
+    mtd setExternalUndoMgr(mgr: #null *UndoManager)
+    {
+        .externUndoMgr = mgr
+    }
+
     mtd canUndo()->bool
     {
-        return .undoMgr.canUndo()
+        return .activeUndoMgr().canUndo()
     }
 
     mtd canRedo()->bool
     {
-        return .undoMgr.canRedo()
+        return .activeUndoMgr().canRedo()
     }
 
     mtd undo()
     {
-        .undoMgr.undo()
+        .activeUndoMgr().undo()
     }
 
     mtd redo()
     {
-        .undoMgr.redo()
+        .activeUndoMgr().redo()
     }
 
     // Drop the whole undo history (e.g. after loading a fresh object into the grid).
     mtd clearUndo()
     {
-        .undoMgr.clear()
+        .activeUndoMgr().clear()
         for it in .items do
             it.undoValue.capture(me, it)
     }
@@ -237,5 +307,15 @@ public impl Properties
     mtd setUndoEnabled(on: bool)
     {
         .undoEnabled = on
+    }
+}
+
+internal impl Properties
+{
+    mtd activeUndoMgr()->*UndoManager
+    {
+        if .externUndoMgr do
+            return .externUndoMgr
+        return &.undoMgr
     }
 }

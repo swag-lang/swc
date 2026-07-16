@@ -155,11 +155,101 @@ impl Properties
         .hasChanged(item)
     }
 
+    // Panel row: a full-width self-labeled composite (labeled slider or labeled edit box)
+    mtd constructNativePanel(item: *PropertiesItem, value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative)
+    {
+        var dispName = itemDisplayName(value)
+
+        if Reflection.hasAttribute(value, .SliderMinMax)
+        {
+            with let slider = SliderCtrl.create(item.line, dispName.toString())
+            {
+                .anchorStyle  = .X
+                .autoEditSize = false
+                .labelSize    = 60
+                // Enough for a 3-4 digit value plus a unit; a bigger box would eat the track.
+                .editSize     = 64
+            }
+
+            item.sliderBox = slider
+
+            let unit = Reflection.getAttributeValue(value, .Unit, "value")
+            if unit != null do
+                slider.edit.unit = cast(string) unit
+
+            let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
+            let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
+
+            // Whole bounds read as an integer slider (no trailing decimals), even for a
+            // float field whose values are conceptually whole (a size, an angle...).
+            let whole = minV == Math.floor(minV) and maxV == Math.floor(maxV)
+
+            switch typeNative.nativeKind
+            {
+            case U8, U16, U32, U64:
+                slider.setMinMaxU64(cast() minV, cast() maxV)
+            case S8, S16, S32, S64:
+                slider.setMinMaxS64(cast() minV, cast() maxV)
+            case F32, F64:
+                if whole do
+                    slider.setMinMaxS64(cast() minV, cast() maxV)
+                else do
+                    slider.setMinMaxF32(minV, maxV)
+            }
+
+            return
+        }
+
+        with let ctrl = EditCtrl.create(item.line, dispName.toString(), "", flags: .AutoLoseFocus)
+        {
+            .anchorStyle = .X
+            .editSize    = 0
+        }
+
+        let unit = Reflection.getAttributeValue(value, .Unit, "value")
+        if unit != null do
+            ctrl.edit.unit = cast(string) unit
+
+        item.editBox = ctrl.edit
+
+        var minV, maxV: s64
+        var hasMinMax = false
+        if Reflection.hasAttribute(value, .MinMax)
+        {
+            hasMinMax = true
+            minV      = cast(s64) assume Reflection.getAttributeValue(value, .MinMax, "min")
+            maxV      = cast(s64) assume Reflection.getAttributeValue(value, .MinMax, "max")
+        }
+
+        switch typeNative.nativeKind
+        {
+        case U8, U16, U32, U64:
+            if !hasMinMax do
+                ctrl.edit.setInputU64()
+            else do
+                ctrl.edit.setInputU64(cast() minV, cast() maxV)
+        case S8, S16, S32, S64:
+            if !hasMinMax do
+                ctrl.edit.setInputS64()
+            else do
+                ctrl.edit.setInputS64(cast() minV, cast() maxV)
+        case F32, F64:
+            if !hasMinMax do
+                ctrl.edit.setInputF64()
+            else do
+                ctrl.edit.setInputF64(cast() minV, cast() maxV)
+        }
+    }
+
     mtd constructNative(value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative, data: *u8, parentItem: *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
 
-        if Reflection.hasAttribute(value, .SliderMinMax)
+        if .kind == .Panel
+        {
+            .constructNativePanel(item, value, typeNative)
+        }
+        elif Reflection.hasAttribute(value, .SliderMinMax)
         {
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
@@ -179,6 +269,10 @@ impl Properties
             me.adaptCondensedControl(slider)
             me.flattenCondensedEdit(slider.edit)
             item.sliderBox = slider
+
+            let unit = Reflection.getAttributeValue(value, .Unit, "value")
+            if unit != null do
+                slider.edit.unit = cast(string) unit
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
             let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
@@ -285,6 +379,16 @@ impl Properties
             item.sliderBox.sigChanged += func|prop = me, item|(ed)
             {
                 prop.validateNative(item)
+            }
+
+            // Coalesce the whole drag into one undo command (see recordUndo)
+            item.sliderBox.slider.sigStartChange += func|prop = me, item|(s)
+            {
+                prop.beginItemDrag(item)
+            }
+            item.sliderBox.slider.sigEndChange += func|prop = me|(s)
+            {
+                prop.endItemDrag()
             }
         }
         elif item.editBox

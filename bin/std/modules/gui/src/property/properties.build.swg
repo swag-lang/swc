@@ -7,6 +7,16 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
+    // Display name of a field: its Properties.Name attribute, or its beautified raw name.
+    // Public so custom editors can label their widgets the same way the built-ins do.
+    public func itemDisplayName(value: Swag.TypeValue)->String
+    {
+        let attrName = Reflection.getAttributeValue(value, Properties.Name, "name")
+        if attrName != null do
+            return cast(string) attrName
+        return Utf8.beautifyName(value.name)
+    }
+
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
     // Public so custom editors registered with registerEditor (possibly authored in another
     // module) can build their row the same way the built-in editors do.
@@ -61,15 +71,24 @@ internal impl Properties
         // Name
         if flags.has(.Name)
         {
-            var dispName: String
+            let dispName = itemDisplayName(value)
 
-            let attrName = Reflection.getAttributeValue(value, Properties.Name, "name")
-            if attrName != null do
-                dispName = cast(string) attrName
-            else do
-                dispName = Utf8.beautifyName(value.name)
-
-            if !dispName.isEmpty()
+            // Panel rows label themselves: the composite editors carry the display name,
+            // the row only keeps it for the string filter.
+            if .kind == .Panel
+            {
+                if !dispName.isEmpty()
+                {
+                    if parentItem
+                    {
+                        item.filter += " "
+                        item.filter = parentItem.filter
+                        item.filter += " "
+                    }
+                    item.filter += dispName
+                }
+            }
+            elif !dispName.isEmpty()
             {
                 var labelWidth = cast(f32) .gridColumnSize
                 if !.isGridLike() do
@@ -118,7 +137,7 @@ internal impl Properties
 
             if flags.has(.Description)
             {
-                if !.isGridLike()
+                if !.isGridLike() and .kind != .Panel
                 {
                     with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
@@ -199,6 +218,15 @@ internal impl Properties
                 break
             }
 
+            // A field embedded with 'using' is a flattened namespace in the language; mirror
+            // that here and expand its fields inline, without a group row. The parent keeps its
+            // own notify interface (the outer struct owns the row tree).
+            if value.flags.has(.HasUsing)
+            {
+                .addStructInternal(typeSubStruct, data, parentItem, bindNotify: false)
+                break
+            }
+
             // A plain (non-registered) struct expands inline into one row per field. Custom
             // struct editors (Color, the vector family, ...) are handled by the editor registry
             // at the top of this method and never reach here.
@@ -210,12 +238,12 @@ internal impl Properties
         }
     }
 
-    mtd addStructInternal(typeStruct: const *Swag.TypeInfoStruct, addr: [*] u8, parentItem: *PropertiesItem)
+    mtd addStructInternal(typeStruct: const *Swag.TypeInfoStruct, addr: [*] u8, parentItem: *PropertiesItem, bindNotify = true)
     {
         var newParent = parentItem
 
         // If the struct has implemented the notify interface, store it
-        if parentItem do
+        if parentItem and bindNotify do
             parentItem.ntfyItf = @mkinterface(addr, typeStruct, IPropertyNotify)
 
         // Currently open category path (nested subgroups). Each entry pairs a "/"-split name segment
@@ -225,6 +253,16 @@ internal impl Properties
 
         for value in typeStruct.fields
         {
+            // Opt-in mode (see addStructMulti 'onlyNamed'): a field participates only when it
+            // carries an explicit display name. 'using' struct fields always recurse — their own
+            // fields decide for themselves.
+            if .buildOnlyNamed and
+               !value.flags.has(.HasUsing) and
+               !Reflection.hasAttribute(value, Properties.Name)
+            {
+                continue
+            }
+
             // Category / nested subgroups
             let subCateg = Reflection.getAttributeValue(value, Properties.Category, "name")
             if subCateg != null
@@ -267,6 +305,22 @@ internal impl Properties
     // one step further.
     mtd addCategoryHeader(name: string, parentForCateg: *PropertiesItem)->*PropertiesItem
     {
+        // Panel: a category paints as a thin separator line, not a titled header
+        if .kind == .Panel
+        {
+            let v: Swag.TypeValue{name: name}
+            with let item = .addItem(v, null, parentForCateg, 1, .Zero)
+            {
+                .flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
+                .line.margin.y        = 15
+                .line.margin.w        = 8
+                .line.backgroundStyle = .Dialog
+            }
+
+            .sections.add({item, 1})
+            return item
+        }
+
         let v: Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
         item.label.style.setFont(&.fontCategory)

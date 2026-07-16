@@ -61,50 +61,24 @@ impl IForm for FormDraw
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        for &pt in .points
-        {
-            pt.x += newPosX
-            pt.y += newPosY
-        }
+        offsetPoints(&.points, newPosX, newPosY)
     }
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        for &pt in .points
-        {
-            pt.x *= scale
-            pt.y *= scale
-        }
+        scalePointsBy(&.points, scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        var rect  = .boundRect()
-        let bSize = .borderSize * 0.5
-        rect.inflate(-bSize)
-        // Guard against a near-zero divisor: inflate(-bSize) can drive width/height toward
-        // 0 for near-vertical/horizontal shapes, and inf/NaN scale would destroy every point.
-        let fx = Math.isZeroEpsilon(rect.width) ? 1'f32 : newSizeX / rect.width
-        let fy = Math.isZeroEpsilon(rect.height) ? 1'f32 : newSizeY / rect.height
-
-        for &pt in .points
-        {
-            pt.x -= rect.x
-            pt.y -= rect.y
-            pt.x *= fx
-            pt.y *= fy
-            pt.x += newPosX
-            pt.y += newPosY
-        }
+        var bound = .boundRect()
+        bound.inflate(-.borderSize * 0.5)
+        scalePointsTo(&.points, bound, newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
     {
-        for &pt in .points
-        {
-            pt.x += newPosX
-            pt.y += newPosY
-        }
+        offsetPoints(&.points, newPosX, newPosY)
     }
 
     mtd impl movePoint(pt: u32, newPosX, newPosY: s32)
@@ -117,29 +91,7 @@ impl IForm for FormDraw
     {
         if !.points.count do
             .setDefaultShape()
-
-        var result: retval
-
-        let bSize = .borderSize * 0.5
-        var x0    = Swag.F32.Max
-        var y0    = Swag.F32.Max
-        // Max accumulators must start at -F32.Max (not 0), else shapes entirely in
-        // negative coordinates stay clamped at 0 and produce oversized/misplaced bounds.
-        var x1    = -Swag.F32.Max
-        var y1    = -Swag.F32.Max
-        for &pt in .points
-        {
-            x0 = Math.min(x0, pt.x - bSize)
-            y0 = Math.min(y0, pt.y - bSize)
-            x1 = Math.max(x1, pt.x + bSize)
-            y1 = Math.max(y1, pt.y + bSize)
-        }
-
-        result.x      = x0
-        result.y      = y0
-        result.width  = x1 - x0
-        result.height = y1 - y0
-        return result
+        return boundOfPoints(&.points, .borderSize * 0.5)
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool

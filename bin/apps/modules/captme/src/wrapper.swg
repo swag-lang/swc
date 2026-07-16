@@ -194,96 +194,39 @@ impl MainWnd
 
     mtd newFormFromModel(mode: EditMode, clear = false)->IForm
     {
-        #[Swag.Complete]
-        switch mode
+        // Clone the model of the given mode, whatever its concrete type
+        let mdlItf  = .editModeToModel(mode)
+        let mdlType = @kindof(mdlItf)
+        let mdl     = cast(*BaseForm) Memory.new(mdlType)
+        mdlItf.copy(mdl, cast(*BaseForm) @dataof(mdlItf))
+
+        // A new form starts without the model content, just its style
+        if clear
         {
-        case Arrow:
-            let mdl = Memory.new'FormArrow()
-            mdl.IForm.copy(mdl, &.mdlFormArrow)
-            return mdl
-        case Shape:
-            let mdl = Memory.new'FormShape()
-            mdl.IForm.copy(mdl, &.mdlFormShape)
-            return mdl
-        case Image:
-            let mdl = Memory.new'FormImage()
-            mdl.IForm.copy(mdl, &.mdlFormImage)
-            if clear do
-                mdl.image.release()
-            return mdl
-        case Step:
-            let mdl = Memory.new'FormStep()
-            mdl.IForm.copy(mdl, &.mdlFormStep)
-            return mdl
-        case Line:
-            let mdl = Memory.new'FormLine()
-            mdl.IForm.copy(mdl, &.mdlFormLine)
-            return mdl
-        case Polygon:
-            let mdl = Memory.new'FormPolygon()
-            mdl.IForm.copy(mdl, &.mdlFormPolygon)
-            if clear do
-                mdl.points.clear()
-            return mdl
-        case Text:
-            let mdl = Memory.new'FormText()
-            mdl.IForm.copy(mdl, &.mdlFormText)
-            return mdl
-        case Draw:
-            let mdl = Memory.new'FormDraw()
-            mdl.IForm.copy(mdl, &.mdlFormDraw)
-            if clear do
-                mdl.points.clear()
-            return mdl
-        case Callout:
-            let mdl = Memory.new'FormCallout()
-            mdl.IForm.copy(mdl, &.mdlFormCallout)
-            if clear do
-                mdl.text.clear()
-            return mdl
-        case Favorites, Highlight, Selection, PixSel:
-            break
+            switch mdlType
+            {
+            case FormImage:
+                let f = cast(*FormImage) mdl
+                f.image.release()
+            case FormPolygon:
+                let f = cast(*FormPolygon) mdl
+                f.points.clear()
+            case FormDraw:
+                let f = cast(*FormDraw) mdl
+                f.points.clear()
+            case FormCallout:
+                let f = cast(*FormCallout) mdl
+                f.text.clear()
+            }
         }
 
-        unreachable
+        return @mkinterface(mdl, mdlType, IForm)
     }
 
     func newFormFromForm(it: IForm)->*BaseForm
     {
-        var mdlValue: *BaseForm
-
-        #[Swag.Complete]
-        switch it
-        {
-        case FormShape as b:
-            mdlValue = Memory.new'FormShape()
-            it.copy(mdlValue, b)
-        case FormImage as b:
-            mdlValue = Memory.new'FormImage()
-            it.copy(mdlValue, b)
-        case FormStep as b:
-            mdlValue = Memory.new'FormStep()
-            it.copy(mdlValue, b)
-        case FormLine as b:
-            mdlValue = Memory.new'FormLine()
-            it.copy(mdlValue, b)
-        case FormPolygon as b:
-            mdlValue = Memory.new'FormPolygon()
-            it.copy(mdlValue, b)
-        case FormArrow as b:
-            mdlValue = Memory.new'FormArrow()
-            it.copy(mdlValue, b)
-        case FormText as b:
-            mdlValue = Memory.new'FormText()
-            it.copy(mdlValue, b)
-        case FormDraw as b:
-            mdlValue = Memory.new'FormDraw()
-            it.copy(mdlValue, b)
-        case FormCallout as b:
-            mdlValue = Memory.new'FormCallout()
-            it.copy(mdlValue, b)
-        }
-
+        let mdlValue = cast(*BaseForm) Memory.new(@kindof(it))
+        it.copy(mdlValue, cast(*BaseForm) @dataof(it))
         return mdlValue
     }
 }

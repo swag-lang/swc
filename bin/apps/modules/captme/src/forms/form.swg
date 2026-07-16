@@ -236,3 +236,60 @@ impl BaseForm
         return false
     }
 }
+
+// Shared geometry of the forms defined by a cloud of points (FormDraw & FormPolygon)
+func offsetPoints(points: *Array'Math.Vector2, newPosX, newPosY: s32)
+{
+    for &pt in dref points
+    {
+        pt.x += newPosX
+        pt.y += newPosY
+    }
+}
+
+func scalePointsBy(points: *Array'Math.Vector2, scale: f32)
+{
+    for &pt in dref points do
+        pt.x, pt.y *= scale
+}
+
+// Rescale all the points from the given bound to the given box.
+// Guard against a near-zero divisor (colinear/degenerate shapes): a zero width
+// or height would yield inf/NaN and destroy every point, so keep scale at 1.
+func scalePointsTo(points: *Array'Math.Vector2, bound: Math.Rectangle, newPosX, newPosY, newSizeX, newSizeY: s32)
+{
+    let fx = Math.isZeroEpsilon(bound.width) ? 1'f32 : newSizeX / bound.width
+    let fy = Math.isZeroEpsilon(bound.height) ? 1'f32 : newSizeY / bound.height
+
+    for &pt in dref points
+    {
+        pt.x = ((pt.x - bound.x) * fx) + newPosX
+        pt.y = ((pt.y - bound.y) * fy) + newPosY
+    }
+}
+
+// Bounding rectangle of the points, optionally padded (half border size)
+func boundOfPoints(points: *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
+{
+    var result: retval
+
+    var x0 = Swag.F32.Max
+    var y0 = Swag.F32.Max
+    // Max accumulators must start at -F32.Max (not 0), else shapes entirely in
+    // negative coordinates stay clamped at 0 and produce oversized/misplaced bounds.
+    var x1 = -Swag.F32.Max
+    var y1 = -Swag.F32.Max
+    for &pt in dref points
+    {
+        x0 = Math.min(x0, pt.x - pad)
+        y0 = Math.min(y0, pt.y - pad)
+        x1 = Math.max(x1, pt.x + pad)
+        y1 = Math.max(y1, pt.y + pad)
+    }
+
+    result.x      = x0
+    result.y      = y0
+    result.width  = x1 - x0
+    result.height = y1 - y0
+    return result
+}

@@ -99,43 +99,16 @@ impl MainWnd
 
     mtd pixSelClear()
     {
-        var forms = .getPixSels()
-        if forms.count == 0 do
-            return
-
-        let capture = assume .getCapture()
-        let undo    = capture.newUndo(.SetImage)
-        undo.newImagePos = capture.backImagePos
-        undo.newImg      = capture.backImg
-
-        var boundRects: Array'Math.Rectangle
-        for f in forms do
-            boundRects.add(f.boundRect())
-
-        var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms}
-        undo.newImg.visitPixels(&params)
-        {
-            var p = cast(*#decltype(params)) userData
-            for f, idx in dref p.forms
-            {
-                var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
-                pt.x += p.capture.backImagePos.x
-                pt.y += p.capture.backImagePos.y
-                if !p.boundRects[idx].contains(pt) do
-                    continue
-
-                if f.isInside(pt)
-                {
-                    dref cast(*u32) pix = 0
-                    break
-                }
-            }
-        }
-
-        capture.pushUndo(undo)
+        .pixSelSetPixels(0)
     }
 
     mtd pixSelFill()
+    {
+        .pixSelSetPixels(g_Main.pixSelFillCol.argb)
+    }
+
+    // Set every pixel inside the pixel selection to the given color
+    mtd pixSelSetPixels(argb: u32)
     {
         var forms = .getPixSels()
         if forms.count == 0 do
@@ -150,7 +123,7 @@ impl MainWnd
         for f in forms do
             boundRects.add(f.boundRect())
 
-        var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms}
+        var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms, argb: argb}
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
@@ -164,7 +137,7 @@ impl MainWnd
 
                 if f.isInside(pt)
                 {
-                    dref cast(*u32) pix = g_Main.pixSelFillCol.argb
+                    dref cast(*u32) pix = p.argb
                     break
                 }
             }

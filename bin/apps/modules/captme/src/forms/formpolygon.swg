@@ -74,47 +74,22 @@ impl IForm for FormPolygon
 
     mtd impl moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        for &pt in .points
-        {
-            pt.x += newPosX
-            pt.y += newPosY
-        }
+        offsetPoints(&.points, newPosX, newPosY)
     }
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        for &pt in .points
-        {
-            pt.x, pt.y *= scale
-        }
+        scalePointsBy(&.points, scale)
     }
 
     mtd impl setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
     {
-        let rect = .boundRect()
-        // Guard against a near-zero divisor (colinear/degenerate shapes): a zero width
-        // or height would yield inf/NaN and destroy every point, so keep scale at 1.
-        let fx   = Math.isZeroEpsilon(rect.width) ? 1'f32 : newSizeX / rect.width
-        let fy   = Math.isZeroEpsilon(rect.height) ? 1'f32 : newSizeY / rect.height
-
-        for &pt in .points
-        {
-            pt.x -= rect.x
-            pt.y -= rect.y
-            pt.x *= fx
-            pt.y *= fy
-            pt.x += newPosX
-            pt.y += newPosY
-        }
+        scalePointsTo(&.points, .boundRect(), newPosX, newPosY, newSizeX, newSizeY)
     }
 
     mtd impl moveForm(newPosX, newPosY: s32)
     {
-        for &pt in .points
-        {
-            pt.x += newPosX
-            pt.y += newPosY
-        }
+        offsetPoints(&.points, newPosX, newPosY)
     }
 
     mtd impl movePoint(pt: u32, newPosX, newPosY: s32)
@@ -127,29 +102,7 @@ impl IForm for FormPolygon
     {
         if !.points.count do
             .setDefaultShape()
-
-        var result: retval
-
-        var x0 = Swag.F32.Max
-        var y0 = Swag.F32.Max
-        // Max accumulators must start at -F32.Max (not 0), else shapes entirely in
-        // negative coordinates stay clamped at 0 and produce oversized/misplaced bounds.
-        var x1 = -Swag.F32.Max
-        var y1 = -Swag.F32.Max
-        for &pt in .points
-        {
-            x0 = Math.min(x0, pt.x)
-            y0 = Math.min(y0, pt.y)
-            x1 = Math.max(x1, pt.x)
-            y1 = Math.max(y1, pt.y)
-        }
-
-        result.x      = x0
-        result.y      = y0
-        result.width  = x1 - x0
-        result.height = y1 - y0
-
-        return result
+        return boundOfPoints(&.points)
     }
 
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool

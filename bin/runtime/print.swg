@@ -1,9 +1,11 @@
+#global #[Swag.ExplicitNullability]
+
 using Swag
 
 ////////////////////////////////////////////////////////////
 
 #[Discardable, Safety(.All, false)]
-func __itoa(result: [*] u8, value: s64)->[*] u8
+func __itoa(result: #nonull [*] u8, value: s64)->#nonull [*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
 
@@ -43,7 +45,7 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
 }
 
 #[Discardable, Safety(.All, false)]
-func __utoa(result: [*] u8, value: u64)->[*] u8
+func __utoa(result: #nonull [*] u8, value: u64)->#nonull [*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
 
@@ -77,7 +79,7 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
 }
 
 #[Safety(.All, false)]
-func __ftoa(result: [*] u8, value: f64)
+func __ftoa(result: #nonull [*] u8, value: f64)
 {
     var ipart = cast(s64) value
     var fpart = value - cast(f64) ipart
@@ -134,7 +136,7 @@ func __printU64(value: u64)
 {
     var buf: [100] u8
     __utoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
+    let str = cast(#nonull string) @mkslice(&buf[0], @countof(cast(#nonull cstring) &buf[0]))
     __printString(str)
 }
 
@@ -142,7 +144,7 @@ func __printS64(value: s64)
 {
     var buf: [100] u8
     __itoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
+    let str = cast(#nonull string) @mkslice(&buf[0], @countof(cast(#nonull cstring) &buf[0]))
     __printString(str)
 }
 
@@ -150,7 +152,7 @@ func __printF64(value: f64)
 {
     var buf: [100] u8
     __ftoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
+    let str = cast(#nonull string) @mkslice(&buf[0], @countof(cast(#nonull cstring) &buf[0]))
     __printString(str)
 }
 
@@ -164,16 +166,16 @@ func @print(params: ...)
 
         if ko.flags & TypeInfoFlags.PointerRef
         {
-            let ptr = cast(const *TypeInfoPointer) ko
+            let ptr = cast(#nonull const *TypeInfoPointer) ko
             ko = cast() ptr.pointedType
-            let val = cast(**u64) @dataof(v)
+            let val = cast(#nonull *#nonull *u64) @dataof(v)
             v = @mkany(dref val, ko)
         }
 
         if ko.flags & TypeInfoFlags.PointerTypeInfo
         {
             #[Safety(.DynCast, false)]
-            let ptr = cast(const *TypeInfo) v
+            let ptr = cast(#nonull const *TypeInfo) v
             __printString(ptr.name)
             continue
         }
@@ -181,8 +183,8 @@ func @print(params: ...)
         if ko.flags & TypeInfoFlags.CString
         {
             #[Safety(.DynCast, false)]
-            let ptr = cast(const [*] u8) v
-            let len = @countof(cast(const cstring) ptr)
+            let ptr = cast(#nonull const [*] u8) v
+            let len = @countof(cast(#nonull const cstring) ptr)
             __printString(@mkstring(ptr, len))
             continue
         }
@@ -218,8 +220,8 @@ func @print(params: ...)
             __printF64(cast(f32) v)
         case f64:
             __printF64(cast(f64) v)
-        case string:
-            __printString(cast(string) v)
+        case #nonull string:
+            __printString(cast(#nonull string) v)
         case bool:
             __printString(cast(bool) v ? "true" : "false")
         default:
@@ -231,7 +233,7 @@ func @print(params: ...)
 ////////////////////////////////////////////////////////////
 
 // Compares two strings, and returns 'true' if they are equal.
-func @stringcmp(str1: string, str2: string)->bool
+func @stringcmp(str1: #null string, str2: #null string)->bool
 {
     let num1 = @countof(str1)
     let num2 = @countof(str2)

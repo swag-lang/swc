@@ -9,7 +9,7 @@ func checkProcessInfosAndArgs()->bool
     let c = @jit
     #assert(#typeof(c) == bool)
     let d = @args
-    #assert(#typeof(d) == const [..] string)
+    #assert(#typeof(d) == #nonull const [..] #nonull string)
     let e = @jit
     #assert(#typeof(e) == bool)
     #assert(#typeof(a) == u64)
@@ -22,7 +22,7 @@ func checkProcessInfosAndArgs()->bool
 func checkArgs()->bool
 {
     let a = @args
-    #assert(#typeof(a) == const [..] string)
+    #assert(#typeof(a) == #nonull const [..] #nonull string)
     @assert(@countof(a) >= 0)
     return true
 }

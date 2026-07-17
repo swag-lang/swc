@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 using Swag
 
 // Special attribute that cannot be defined in the boostrap, because
@@ -5,20 +7,20 @@ using Swag
 namespace Swag
 {
     #[AttrUsage(AttributeUsage.All)]
-    attr Using(what: typeinfo...)
+    attr Using(what: #nonull typeinfo...)
 }
 
 ////////////////////////////////////////////////////////////
 
-func __concreteAlias(type1: typeinfo)->typeinfo
+func __concreteAlias(type1: #nonull typeinfo)->#nonull typeinfo
 {
     if type1.kind != TypeInfoKind.Alias or type1.flags & TypeInfoFlags.Strict do
         return type1
-    let typeAlias = cast(const *TypeInfoAlias) type1
+    let typeAlias = cast(#nonull const *TypeInfoAlias) type1
     return __concreteAlias(typeAlias.rawType)
 }
 
-func @is(toType, fromType: typeinfo)->bool
+func @is(toType, fromType: #nonull typeinfo)->bool
 {
     if @typecmp(toType, fromType, .Strict) do
         return true
@@ -27,25 +29,25 @@ func @is(toType, fromType: typeinfo)->bool
     if fromType.kind != .Struct and fromType.kind != .Interface do
         return false
 
-    let fromStruct = cast(const *TypeInfoStruct) fromType
+    let fromStruct = cast(#nonull const *TypeInfoStruct) fromType
 
     for ft in fromStruct.usingFields
     {
         let usingType = __concreteAlias(ft.pointedType)
         if usingType.kind == .Struct
         {
-            let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
+            let typeStruct = cast(#nonull const *Swag.TypeInfoStruct) usingType
             if @is(toType, typeStruct) do
                 return true
         }
         elif usingType.kind == .Pointer
         {
-            let ptr         = cast(const *Swag.TypeInfoPointer) usingType
+            let ptr         = cast(#nonull const *Swag.TypeInfoPointer) usingType
             let pointedType = __concreteAlias(ptr.pointedType)
             if pointedType.kind != .Struct do
                 continue
 
-            let typeStruct = cast(const *Swag.TypeInfoStruct) pointedType
+            let typeStruct = cast(#nonull const *Swag.TypeInfoStruct) pointedType
             if @is(toType, typeStruct) do
                 return true
         }
@@ -54,7 +56,7 @@ func @is(toType, fromType: typeinfo)->bool
     return false
 }
 
-func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
+func @as(toType, fromType: #nonull typeinfo, ptr: #nonull *void)->#null *void
 {
     if @typecmp(toType, fromType, .Strict) do
         return ptr
@@ -63,28 +65,28 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
     if fromType.kind != .Struct and fromType.kind != .Interface do
         return null
 
-    let fromStruct = cast(const *TypeInfoStruct) fromType
+    let fromStruct = cast(#nonull const *TypeInfoStruct) fromType
 
     for ft in fromStruct.usingFields
     {
         let usingType = __concreteAlias(ft.pointedType)
         if usingType.kind == .Struct
         {
-            let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
-            let subPtr     = cast(*void) (cast([*] u8) ptr + ft.offset)
+            let typeStruct = cast(#nonull const *Swag.TypeInfoStruct) usingType
+            let subPtr     = cast(#nonull *void) (cast(#nonull [*] u8) ptr + ft.offset)
             let result     = @as(toType, typeStruct, subPtr)
             if result do
                 return result
         }
         elif usingType.kind == .Pointer
         {
-            let ptrType      = cast(const *Swag.TypeInfoPointer) usingType
+            let ptrType      = cast(#nonull const *Swag.TypeInfoPointer) usingType
             let pointedType  = __concreteAlias(ptrType.pointedType)
             if pointedType.kind != .Struct do
                 continue
 
-            let fieldPtrAddr = cast(**void) (cast([*] u8) ptr + ft.offset)
-            let typeStruct   = cast(const *Swag.TypeInfoStruct) pointedType
+            let fieldPtrAddr = cast(#nonull *#null *void) (cast(#nonull [*] u8) ptr + ft.offset)
+            let typeStruct   = cast(#nonull const *Swag.TypeInfoStruct) pointedType
             let result       = @as(toType, typeStruct, dref fieldPtrAddr)
             if result do
                 return result
@@ -94,15 +96,12 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
     return null
 }
 
-func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
+func @typecmp(typeA, typeB: #nonull typeinfo, cmpFlags: TypeCmpFlags)->bool
 {
-    if cast(const *u8) typeA == cast(const *u8) typeB do
-        return true
     if !typeA and !typeB do
         return true
     if !typeA or !typeB do
         return false
-
     let type1 = __concreteAlias(typeA)
     let type2 = __concreteAlias(typeB)
 
@@ -112,7 +111,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
        type1.flags & .PointerRef and
        type1.flags & .Const
     {
-        let typePointer = cast(const *Swag.TypeInfoPointer) type1
+        let typePointer = cast(#nonull const *Swag.TypeInfoPointer) type1
         return @typecmp(typePointer.pointedType, type2, cmpFlags)
     }
 
@@ -128,8 +127,8 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
     // For tuples, we compare field by field
     if type1.flags & .Tuple
     {
-        let type1S = cast(const *TypeInfoStruct) type1
-        let type2S = cast(const *TypeInfoStruct) type2
+        let type1S = cast(#nonull const *TypeInfoStruct) type1
+        let type2S = cast(#nonull const *TypeInfoStruct) type2
         for i in @countof(type1S.fields)
         {
             let field1 = type1S.fields[i]
@@ -158,7 +157,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
 
 ////////////////////////////////////////////////////////////
 
-func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
+func @tableof(structType, itfType: #nonull const *TypeInfoStruct)->#null const *void
 {
     if !structType or !itfType do
         return null
@@ -175,10 +174,10 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
 ////////////////////////////////////////////////////////////
 
 const __MAX_ARGUMENTS = 512
-var __argv:           [__MAX_ARGUMENTS] string
+var __argv:           [__MAX_ARGUMENTS] #nonull string = undefined
 var __argc            = 0'u32
 
-func __convertArgcArgv(args: const [*] u8)
+func __convertArgcArgv(args: #null const [*] u8)
 {
     if args == null do
         return
@@ -198,7 +197,7 @@ func __convertArgcArgv(args: const [*] u8)
             let start = cmdLine
             while dref cmdLine and dref cmdLine != '"' do
                 cmdLine += 1
-            __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
+            __argv[__argc] = cast(#nonull string) @mkslice(start, cast(u64) (cmdLine - start))
             if dref cmdLine do
                 cmdLine += 1
         }
@@ -207,7 +206,7 @@ func __convertArgcArgv(args: const [*] u8)
             let start = cmdLine
             while dref cmdLine and dref cmdLine != ' ' do
                 cmdLine += 1
-            __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
+            __argv[__argc] = cast(#nonull string) @mkslice(start, cast(u64) (cmdLine - start))
         }
 
         __argc += 1
@@ -218,7 +217,7 @@ func __convertArgcArgv(args: const [*] u8)
     }
 }
 
-func @args()->const [..] string
+func @args()->#nonull const [..] #nonull string
 {
     if __argc == 0 do
         __convertArgcArgv(@dataof(@pinfos.args))
@@ -312,7 +311,7 @@ func __dropGlobalVariables()
 {
     for g in @gvtd
     {
-        var ptr = cast([*] u8) g.ptr
+        var ptr = cast(#nonull [*] u8) g.ptr
         for x in g.count
         {
             g.opDrop(ptr)

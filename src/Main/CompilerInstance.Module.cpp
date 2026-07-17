@@ -63,6 +63,7 @@ namespace
         buildCfg.allocatorElectricMode      = explicitBuildCfg.allocatorElectricMode;
         buildCfg.allocatorFillMemory        = explicitBuildCfg.allocatorFillMemory;
         buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
+        buildCfg.explicitNullability        = explicitBuildCfg.explicitNullability;
         buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
         buildCfg.backend.inlineMode         = explicitBuildCfg.backend.inlineMode;
         buildCfg.backend.cpuVectorize       = explicitBuildCfg.backend.cpuVectorize;

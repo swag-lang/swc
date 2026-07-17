@@ -2827,7 +2827,7 @@ namespace
         return SemaHelpers::attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
     }
 
-    // An explicit '#move' argument bound to a by-value STRUCT parameter: the source is
+    // An explicit '#move' argument bound to a by-value aggregate parameter: the source is
     // consumed into a call-site temporary that the callee borrows.
     bool movesValueToParam(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
     {
@@ -2835,7 +2835,7 @@ namespace
             return false;
 
         const TypeInfo& paramType = sema.typeMgr().get(unwrapAliasEnumOrSelf(sema, paramTypeRef));
-        return !paramType.isMoveReference() && paramType.isStruct();
+        return !paramType.isMoveReference() && (paramType.isStruct() || paramType.isArray());
     }
 
     Result attachMovedValueRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)

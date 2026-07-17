@@ -41,6 +41,9 @@ internal impl Properties
 
         var r = wndItem.getClientRect()
         r.moveTop(wndItem.childs.front().position.y)
+        // Content rectangle of the row, before the focus inflation: anything painted from
+        // it stays inside the line window and is never clipped by the neighbours.
+        let rowRect = r
         r.inflate(item.extendFocus)
         if .isGridLike()
         {
@@ -113,10 +116,11 @@ internal impl Properties
 
         // List rows: a field whose value differs from its declared default is marked by a
         // small vertical accent bar along the row's left edge (the VSCode settings look).
-        // Grid keeps its revert-arrow column instead.
+        // Sized from the un-inflated content rect so the bar's rounded caps are never
+        // clipped by the row window. Grid keeps its revert-arrow column instead.
         if !.isGridLike() and item.isModified and .showReverts
         {
-            let bar = Math.Rectangle{r.x + 1, r.y + 4, 3, Math.max(r.height - 8, 4.0)}
+            let bar = Math.Rectangle{1, rowRect.y + 1, 3, Math.max(rowRect.height - 2, 4.0)}
             painter.fillRoundRect(bar, 1.5, 1.5, colors.prop_FocusBorder)
         }
 

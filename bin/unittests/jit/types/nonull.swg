@@ -5,8 +5,19 @@ struct JitNonNullItem
     value: s32
 }
 
+// Materialize the array type before its element declaration is semantically complete.
+const JIT_NONULL_FORWARD_ARRAY_REQUIRES_INIT =
+    (#typeof([2] JitNonNullForwardHolder).flags & Swag.TypeInfoFlags.RequiresExplicitInit) != 0
+
+struct JitNonNullForwardHolder
+{
+    required: #nonull *JitNonNullItem
+}
+
 alias JitNonNullPointerAlias = #nonull *JitNonNullItem
 alias JitConstPointerAlias   = const *JitNonNullItem
+
+const JIT_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
 struct JitNonNullStringDefault
 {
@@ -45,6 +56,25 @@ struct JitNonNullHolder
     count:    s32 = 7
 }
 
+alias JitNonNullHolderAlias = JitNonNullHolder
+
+struct JitNonNullPointerDefault
+{
+    required: #nonull const [*] u8 = @dataof(JIT_NONULL_POINTER_DEFAULT_TEXT)
+}
+
+struct JitNonNullMoveDefault
+{
+    required: #nonull string = "move-default"
+}
+
+impl JitNonNullMoveDefault
+{
+    mtd opDrop()
+    {
+    }
+}
+
 struct JitNonNullUndefinedHolder
 {
     required: #nonull *JitNonNullItem = undefined
@@ -55,30 +85,82 @@ struct JitNonNullBlockHolder
     required: #nonull [*] JitNonNullItem
 }
 
+struct JitNonNullFamilies
+{
+    valuePointer:  #nonull *JitNonNullItem
+    blockPointer:  #nonull [*] JitNonNullItem
+    slice:         #nonull [..] JitNonNullItem
+    text:          #nonull string
+    ctext:         #nonull cstring
+    boxed:         #nonull any
+    reflectedType: #nonull typeinfo
+}
+
 struct JitNonNullNested
 {
     holder: JitNonNullHolder
 }
+
+func jitHasNonNullFlags(type: typeinfo)->bool
+{
+    if !(type.flags & Swag.TypeInfoFlags.ExplicitNonNull) do
+        return false
+    if !(type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+        return false
+    return !(type.flags & Swag.TypeInfoFlags.Nullable)
+}
+
+func migrateJitLegacyPointer(value: *JitNonNullItem)->#nonull *JitNonNullItem => value
 
 func jitNonNullConstruction()->bool
 {
     var first  = JitNonNullItem{value: 11}
     var second = JitNonNullItem{value: 22}
     var blockStorage: [2] JitNonNullItem = [{value: 31}, {value: 32}]
+    var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
     let direct: #nonull *JitNonNullItem = &first
     let block: #nonull [*] JitNonNullItem = cast([*] JitNonNullItem) &blockStorage[0]
+    let slice: #nonull [..] JitNonNullItem = blockStorage
+    let text: #nonull string = "nonull"
+    let ctext: #nonull cstring = cast(cstring) &cstringStorage[0]
+    let boxed: #nonull any = 123
+    let reflectedType: #nonull typeinfo = JitNonNullItem
+    var nullableValuePointer: #null *JitNonNullItem = null
+    var nullableBlockPointer: #null [*] JitNonNullItem = null
+    var nullableSlice: #null [..] JitNonNullItem = null
+    var nullableString: #null string = null
+    var nullableCString: #null cstring = null
+    var nullableTypeInfo: #null typeinfo = null
+    let boxedNullableValuePointer: #nonull any = nullableValuePointer
+    let boxedNullableBlockPointer: #nonull any = nullableBlockPointer
+    let boxedNullableSlice: #nonull any = nullableSlice
+    let boxedNullableString: #nonull any = nullableString
+    let boxedNullableCString: #nonull any = nullableCString
+    let boxedNullableTypeInfo: #nonull any = nullableTypeInfo
     let aliasReadOnly: const JitNonNullPointerAlias = &first
     let aliasRequired: #nonull JitConstPointerAlias = &first
     let legacySource: *JitNonNullItem = &first
-    let migrated: #nonull *JitNonNullItem = legacySource
+    let migrated: #nonull *JitNonNullItem = migrateJitLegacyPointer(legacySource)
     let widened: #null *JitNonNullItem = migrated
 
     #assert(#typeof(aliasReadOnly) == #nonull const *JitNonNullItem)
     #assert(#typeof(aliasRequired) == #nonull const *JitNonNullItem)
+    #assert(#typeof(direct) == #nonull *JitNonNullItem)
+    #assert(#typeof(block) == #nonull [*] JitNonNullItem)
+    #assert(#typeof(slice) == #nonull [..] JitNonNullItem)
+    #assert(#typeof(text) == #nonull string)
+    #assert(#typeof(ctext) == #nonull cstring)
+    #assert(#typeof(boxed) == #nonull any)
+    #assert(#typeof(reflectedType) == #nonull typeinfo)
 
-    let directType = #typeof(direct)
-    if !(directType.flags & Swag.TypeInfoFlags.ExplicitNonNull) or !(directType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or directType.flags & Swag.TypeInfoFlags.Nullable do
+    if !jitHasNonNullFlags(#typeof(direct)) or
+       !jitHasNonNullFlags(#typeof(block)) or
+       !jitHasNonNullFlags(#typeof(slice)) or
+       !jitHasNonNullFlags(#typeof(text)) or
+       !jitHasNonNullFlags(#typeof(ctext)) or
+       !jitHasNonNullFlags(#typeof(boxed)) or
+       !jitHasNonNullFlags(#typeof(reflectedType)) do
         return false
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
@@ -101,6 +183,8 @@ func jitNonNullConstruction()->bool
         return false
     if !(nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
+    if !JIT_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
+        return false
     if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
     if genericRequiredType.opInit != null or !(genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
@@ -120,6 +204,34 @@ func jitNonNullConstruction()->bool
     ]
     let genericRequired: JitNonNullGenericBox'(#nonull *JitNonNullItem) = {value: &first}
     var genericDefault: JitNonNullGenericBox'JitNonNullStringDefault
+    let pointerArray: [2] #nonull *JitNonNullItem = [&first, &second]
+    let aliasedHolder: JitNonNullHolderAlias = {required: &first}
+    let pointerDefault = JitNonNullPointerDefault{}
+    var moveDefaultSource = JitNonNullMoveDefault{required: "explicit"}
+    let moveDefaultTarget = #move moveDefaultSource
+    let families = JitNonNullFamilies{
+        valuePointer:  direct,
+        blockPointer:  block,
+        slice:         slice,
+        text:          text,
+        ctext:         ctext,
+        boxed:         boxed,
+        reflectedType: reflectedType,
+    }
+
+    #assert(#typeof(families.valuePointer) == #nonull *JitNonNullItem)
+    #assert(#typeof(families.blockPointer) == #nonull [*] JitNonNullItem)
+    #assert(#typeof(families.slice) == #nonull [..] JitNonNullItem)
+    #assert(#typeof(families.text) == #nonull string)
+    #assert(#typeof(families.ctext) == #nonull cstring)
+    #assert(#typeof(families.boxed) == #nonull any)
+    #assert(#typeof(families.reflectedType) == #nonull typeinfo)
+    #assert(#typeof(pointerArray[0]) == #nonull *JitNonNullItem)
+    #assert(#typeof(aliasedHolder) == JitNonNullHolder)
+    #assert(#typeof(aliasedHolder.required) == #nonull *JitNonNullItem)
+    #assert(#typeof(pointerDefault.required) == #nonull const [*] u8)
+    #assert(#typeof(moveDefaultSource.required) == #nonull string)
+    #assert(#typeof(moveDefaultTarget.required) == #nonull string)
 
     if holder.required != &first or holder.required.value != 11 do
         return false
@@ -141,7 +253,27 @@ func jitNonNullConstruction()->bool
         return false
     if genericRequired.value != &first or genericDefault.value.value != "fallback" do
         return false
-
+    if families.valuePointer != &first or families.blockPointer[1].value != 32 do
+        return false
+    if @countof(families.slice) != 2 or families.slice[0].value != 31 do
+        return false
+    if families.text != "nonull" or families.ctext[0] != 'a''u8 do
+        return false
+    if cast(s32) families.boxed != 123 or families.reflectedType.name != "JitNonNullItem" do
+        return false
+    if boxedNullableValuePointer == null or
+       boxedNullableBlockPointer == null or
+       boxedNullableSlice == null or
+       boxedNullableString == null or
+       boxedNullableCString == null or
+       boxedNullableTypeInfo == null do
+        return false
+    if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first do
+        return false
+    if pointerDefault.required != @dataof(JIT_NONULL_POINTER_DEFAULT_TEXT) or pointerDefault.required[0] != 'f''u8 do
+        return false
+    if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
+        return false
     var defaultItem: JitNonNullStringDefault
     var defaultArray: [2] JitNonNullStringDefault
     let omittedDefaults = JitNonNullDefaultContainer{}

@@ -72,6 +72,59 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef preserveUnambiguousConditionalAlias(const TypeRef resultTypeRef, const TypeRef trueTypeRef, const TypeRef concreteTrueTypeRef, const TypeRef falseTypeRef, const TypeRef concreteFalseTypeRef)
+    {
+        const bool preserveTrueAlias  = trueTypeRef != concreteTrueTypeRef && concreteTrueTypeRef == resultTypeRef;
+        const bool preserveFalseAlias = falseTypeRef != concreteFalseTypeRef && concreteFalseTypeRef == resultTypeRef;
+        if (preserveTrueAlias == preserveFalseAlias)
+            return resultTypeRef;
+        return preserveTrueAlias ? trueTypeRef : falseTypeRef;
+    }
+
+    TypeRef resolveConditionalNullabilityJoin(Sema& sema, const TypeRef trueTypeRef, const TypeRef falseTypeRef)
+    {
+        const TypeInfo& rawTrueType          = sema.typeMgr().get(trueTypeRef);
+        const TypeRef   concreteTrueTypeRef  = rawTrueType.unwrap(sema.ctx(), trueTypeRef, TypeExpandE::Alias);
+        const TypeInfo& trueType             = sema.typeMgr().get(concreteTrueTypeRef);
+        const TypeInfo& rawFalseType         = sema.typeMgr().get(falseTypeRef);
+        const TypeRef   concreteFalseTypeRef = rawFalseType.unwrap(sema.ctx(), falseTypeRef, TypeExpandE::Alias);
+        const TypeInfo& falseType            = sema.typeMgr().get(concreteFalseTypeRef);
+
+        if (trueType.isNull() || falseType.isNull())
+        {
+            const TypeInfo& valueType = trueType.isNull() ? falseType : trueType;
+            if (!valueType.isSupportsNullableQualifier())
+                return TypeRef::invalid();
+
+            TypeInfo resultType = valueType;
+            resultType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
+            resultType.addFlag(TypeInfoFlagsE::Nullable);
+            const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
+            return preserveUnambiguousConditionalAlias(resultTypeRef, trueTypeRef, concreteTrueTypeRef, falseTypeRef, concreteFalseTypeRef);
+        }
+
+        if (!trueType.isSupportsNullableQualifier() || !falseType.isSupportsNullableQualifier())
+            return TypeRef::invalid();
+
+        TypeInfo trueBaseType = trueType;
+        trueBaseType.removeFlag(TypeInfoFlagsE::Nullable);
+        trueBaseType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
+        TypeInfo falseBaseType = falseType;
+        falseBaseType.removeFlag(TypeInfoFlagsE::Nullable);
+        falseBaseType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
+        if (trueBaseType != falseBaseType)
+            return TypeRef::invalid();
+
+        TypeInfo resultType = trueBaseType;
+        if (trueType.isNullable() || falseType.isNullable())
+            resultType.addFlag(TypeInfoFlagsE::Nullable);
+        else if (trueType.isExplicitNonNull() && falseType.isExplicitNonNull())
+            resultType.addFlag(TypeInfoFlagsE::ExplicitNonNull);
+
+        const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
+        return preserveUnambiguousConditionalAlias(resultTypeRef, trueTypeRef, concreteTrueTypeRef, falseTypeRef, concreteFalseTypeRef);
+    }
+
     Result resolveConditionalResultType(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
     {
         outTypeRef = TypeRef::invalid();
@@ -117,8 +170,38 @@ namespace
             return Result::Continue;
         }
 
+        outTypeRef = resolveConditionalNullabilityJoin(sema, nodeTrueView.typeRef(), nodeFalseView.typeRef());
+        if (outTypeRef.isValid())
+            return Result::Continue;
+
         outTypeRef = Cast::castAllowedBothWays(sema, nodeTrueView.typeRef(), nodeFalseView.typeRef());
         return Result::Continue;
+    }
+
+    TypeRef resolveNullCoalescingResultType(Sema& sema, const TypeRef leftTypeRef, const TypeRef rightTypeRef)
+    {
+        const TypeInfo& rawLeftType         = sema.typeMgr().get(leftTypeRef);
+        const TypeRef   concreteLeftTypeRef = rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias);
+        const TypeInfo& leftType            = sema.typeMgr().get(concreteLeftTypeRef);
+        if (!leftType.isSupportsNullableQualifier() || leftType.isExplicitNonNull())
+            return leftTypeRef;
+
+        TypeInfo resultType = leftType;
+        resultType.removeFlag(TypeInfoFlagsE::Nullable);
+        resultType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
+
+        // The left branch is selected only when it is present, so the fallback
+        // determines the result contract. An explicit non-null lhs remains non-null.
+        const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
+        const TypeRef   concreteRightTypeRef = rawRightType.unwrap(sema.ctx(), rightTypeRef, TypeExpandE::Alias);
+        const TypeInfo& rightType            = sema.typeMgr().get(concreteRightTypeRef);
+        if (rightType.isNull() || rightType.isNullable())
+            resultType.addFlag(TypeInfoFlagsE::Nullable);
+        else if (rightType.isExplicitNonNull())
+            resultType.addFlag(TypeInfoFlagsE::ExplicitNonNull);
+
+        const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
+        return resultTypeRef == concreteLeftTypeRef ? leftTypeRef : resultTypeRef;
     }
 }
 
@@ -186,8 +269,9 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     if (!nodeLeftView.type()->isConvertibleToBoolAliasAware(sema.ctx()))
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
 
-    SWC_RESULT(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef(), CastKind::Implicit));
-    sema.setType(sema.curNodeRef(), nodeLeftView.typeRef());
+    const TypeRef resultTypeRef = resolveNullCoalescingResultType(sema, nodeLeftView.typeRef(), nodeRightView.typeRef());
+    SWC_RESULT(Cast::cast(sema, nodeRightView, resultTypeRef, CastKind::Implicit));
+    sema.setType(sema.curNodeRef(), resultTypeRef);
 
     // Constant folding
     if (nodeLeftView.cstRef().isValid())
@@ -199,7 +283,13 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef() : nodeLeftView.nodeRef();
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef() : nodeLeftView.cstRef();
         if (selectedCst.isValid())
-            sema.setConstant(sema.curNodeRef(), selectedCst);
+        {
+            // Nullability qualifiers do not change representation. Retag the selected
+            // constant so '#typeof' observes the same contract as the expression.
+            ConstantValue resultCst = sema.cstMgr().get(selectedCst);
+            resultCst.setTypeRef(resultTypeRef);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), resultCst));
+        }
         else
             sema.setSubstitute(sema.curNodeRef(), selectedRef);
     }

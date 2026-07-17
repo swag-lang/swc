@@ -31,6 +31,8 @@ struct NonNullRequiresInitNested
     holder: NonNullRequiresInitHolder
 }
 
+alias NonNullRequiresInitHolderAlias = NonNullRequiresInitHolder
+
 struct NonNullRequiresInitSetTarget
 {
     required: #nonull *NonNullRequiresInitItem
@@ -89,12 +91,47 @@ func nonNullRequiresInitThrowable()->#nonull *NonNullRequiresInitItem throw
 
 #test
 {
+    var value: #nonull [..] NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
+    var value: #nonull string // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
+    var value: #nonull cstring // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
+    var value: #nonull any // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
+    var value: #nonull typeinfo // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
+    var values: [2] #nonull *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
     var value: NonNullRequiresInitHolder // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
     var value: NonNullRequiresInitNested // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+#test
+{
+    var value: NonNullRequiresInitHolderAlias // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test

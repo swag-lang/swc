@@ -125,6 +125,29 @@ namespace
         return false;
     }
 
+    bool constantPointerAddress(uint64_t& result, const ConstantValue& cst) noexcept
+    {
+        if (cst.isNull())
+        {
+            result = 0;
+            return true;
+        }
+
+        if (cst.isValuePointer())
+        {
+            result = cst.getValuePointer();
+            return true;
+        }
+
+        if (cst.isBlockPointer())
+        {
+            result = cst.getBlockPointer();
+            return true;
+        }
+
+        return false;
+    }
+
     bool sameTypeValuePayload(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (leftTypeRef == rightTypeRef)
@@ -352,6 +375,17 @@ namespace
             return Result::Continue;
         }
 
+        if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
+        {
+            uint64_t leftAddress  = 0;
+            uint64_t rightAddress = 0;
+            const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
+            const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
+            SWC_ASSERT(hasLeftAddress && hasRightAddress);
+            result = sema.cstMgr().cstBool(leftAddress == rightAddress);
+            return Result::Continue;
+        }
+
         ConstantRef leftCstRef  = compareLeftView.cstRef();
         ConstantRef rightCstRef = compareRightView.cstRef();
         if (!hasAliasOperand(compareLeftView, compareRightView))
@@ -390,6 +424,28 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+
+        const TypeInfo& compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo& compareRightType = aliasEnumType(sema, compareRightView);
+        if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
+        {
+            uint64_t leftAddress  = 0;
+            uint64_t rightAddress = 0;
+            const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
+            const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
+            SWC_ASSERT(hasLeftAddress && hasRightAddress);
+
+            bool cmpResult = false;
+            switch (op)
+            {
+                case OrderedCompareOp::Less: cmpResult = leftAddress < rightAddress; break;
+                case OrderedCompareOp::LessEqual: cmpResult = leftAddress <= rightAddress; break;
+                case OrderedCompareOp::Greater: cmpResult = leftAddress > rightAddress; break;
+                case OrderedCompareOp::GreaterEqual: cmpResult = leftAddress >= rightAddress; break;
+            }
+            result = sema.cstMgr().cstBool(cmpResult);
+            return Result::Continue;
+        }
 
         ConstantRef leftCstRef  = compareLeftView.cstRef();
         ConstantRef rightCstRef = compareRightView.cstRef();
@@ -444,6 +500,20 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+
+        const TypeInfo& compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo& compareRightType = aliasEnumType(sema, compareRightView);
+        if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
+        {
+            uint64_t leftAddress  = 0;
+            uint64_t rightAddress = 0;
+            const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
+            const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
+            SWC_ASSERT(hasLeftAddress && hasRightAddress);
+            const int compareResult = leftAddress < rightAddress ? -1 : leftAddress > rightAddress ? 1 : 0;
+            result = sema.cstMgr().cstS32(compareResult);
+            return Result::Continue;
+        }
 
         ConstantRef leftCstRef  = compareLeftView.cstRef();
         ConstantRef rightCstRef = compareRightView.cstRef();

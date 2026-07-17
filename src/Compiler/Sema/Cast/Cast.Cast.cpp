@@ -52,7 +52,21 @@ namespace
         return sema.cstMgr().addConstant(sema.ctx(), ptrCst);
     }
 
-    bool isProvablyNullPointerLikeConstant(const ConstantValue& cst)
+    bool isProvablyNullRuntimeAnyConstant(const ConstantValue& cst)
+    {
+        if (!cst.isStruct())
+            return false;
+
+        const std::span anyBytes = cst.getStruct();
+        if (anyBytes.size() != sizeof(Runtime::Any))
+            return false;
+
+        Runtime::Any runtimeAny{};
+        std::memcpy(&runtimeAny, anyBytes.data(), sizeof(runtimeAny));
+        return !runtimeAny.value && !runtimeAny.type;
+    }
+
+    bool isProvablyNullConstant(Sema& sema, const TypeRef srcTypeRef, const ConstantValue& cst)
     {
         if (cst.isNull())
             return true;
@@ -64,10 +78,32 @@ namespace
             return !cst.getSlice().data();
         if (cst.isString())
             return !cst.getString().data();
+
+        const TypeInfo& rawSrcType     = sema.typeMgr().get(srcTypeRef);
+        const TypeRef   unwrappedRef   = rawSrcType.unwrap(sema.ctx(), srcTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& unwrappedType  = sema.typeMgr().get(unwrappedRef);
+        if (unwrappedType.isAny())
+            return isProvablyNullRuntimeAnyConstant(cst);
+
         if (cst.isInt())
-            return cst.getInt().isZero();
+        {
+            const bool hasScalarNullRepresentation = unwrappedType.isAnyPointer() ||
+                                                     unwrappedType.isCString() ||
+                                                     unwrappedType.isTypeInfo() ||
+                                                     (unwrappedType.isFunction() && !unwrappedType.isLambdaClosure());
+            return hasScalarNullRepresentation && cst.getInt().isZero();
+        }
 
         return false;
+    }
+
+    Result validateExplicitNonNullConstant(Sema& sema, CastRequest& castRequest, const TypeRef constantTypeRef, const TypeRef srcTypeRef, const TypeRef dstTypeRef, const ConstantRef cstRef)
+    {
+        if (cstRef.isInvalid() || !sema.typeMgr().get(dstTypeRef).isExplicitNonNull())
+            return Result::Continue;
+        if (!isProvablyNullConstant(sema, constantTypeRef, sema.cstMgr().get(cstRef)))
+            return Result::Continue;
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
     CastRequest makeNestedCastRequest(const CastRequest& parent)
@@ -244,12 +280,14 @@ namespace
         return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
     }
 
-    Result castAddNullableQualifier(CastRequest& castRequest)
+    Result castChangeNullableQualifier(Sema& sema, CastRequest& castRequest, const TypeRef dstTypeRef)
     {
-        if (!castRequest.isConstantFolding())
+        if (!castRequest.materializeConstantResult())
             return Result::Continue;
 
-        castRequest.setConstantFoldingResult(castRequest.constantFoldingSrc());
+        ConstantValue result = sema.cstMgr().get(castRequest.constantFoldingSrc());
+        result.setTypeRef(dstTypeRef);
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), result));
         return Result::Continue;
     }
 
@@ -539,7 +577,8 @@ namespace
         SmallVector<ResolvedCallArgument> resolvedArgs;
         SWC_RESULT(buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn));
 
-        SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span(), castData.forceConstEval));
+        const bool forceConstEval = castData.forceConstEval || castData.calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr);
+        SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span(), forceConstEval));
         const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
         if (callView.cstRef().isValid() &&
             sema.cstMgr().get(callView.cstRef()).typeRef() == castData.calledFn->returnTypeRef())
@@ -1447,23 +1486,26 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (srcTypeRef == dstTypeRef)
+    {
+        SWC_RESULT(validateExplicitNonNullConstant(sema, castRequest, srcTypeRef, srcTypeRef, dstTypeRef, castRequest.constantFoldingSrc()));
         return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
+    }
 
     const TypeManager& typeMgr              = sema.typeMgr();
     const TypeInfo&    srcType              = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType              = typeMgr.get(dstTypeRef);
     const TypeRef      indirectValueTypeRef = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
 
-    if (dstType.isExplicitNonNull() &&
-        castRequest.isConstantFolding() &&
-        isProvablyNullPointerLikeConstant(sema.cstMgr().get(castRequest.constantFoldingSrc())))
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    const bool preservesNullableRepresentation = srcType.isNull() || isImplicitNullableQualificationCast(srcType, dstType);
+    if (preservesNullableRepresentation)
+        SWC_RESULT(validateExplicitNonNullConstant(sema, castRequest, srcTypeRef, srcTypeRef, dstTypeRef, castRequest.constantFoldingSrc()));
 
-    if (srcType.isNullable() && dstType.isExplicitNonNull())
+    const bool boxesTypedValueIntoAny = dstType.isAny() && !srcType.isAny();
+    if (srcType.isNullable() && dstType.isExplicitNonNull() && !boxesTypedValueIntoAny)
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))
-        return castAddNullableQualifier(castRequest);
+        return castChangeNullableQualifier(sema, castRequest, dstTypeRef);
 
     if (isImplicitNullableAnyStringCast(srcType, dstType))
         return castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
@@ -1581,6 +1623,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             resCst.setTypeRef(dstTypeRef);
             castRequest.outConstRef = sema.cstMgr().addConstant(sema.ctx(), resCst);
         }
+
+        SWC_RESULT(validateExplicitNonNullConstant(sema, castRequest, dstTypeRef, srcTypeRef, dstTypeRef, castRequest.outConstRef));
     }
 
     return res;
@@ -1632,13 +1676,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
     UserDefinedLiteralSuffixInfo suffixInfo;
     const bool                   hasUserDefinedLiteralSuffix = resolveUserDefinedLiteralSuffix(sema, view.nodeRef(), suffixInfo);
-    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero && !hasUserDefinedLiteralSuffix)
-        return Result::Continue;
-
-    CastRequest castRequest(effectiveKind);
+    CastRequest                  castRequest(effectiveKind);
     castRequest.flags        = effectiveFlags;
     castRequest.errorNodeRef = view.nodeRef();
     castRequest.setConstantFoldingSrc(view.cstRef());
+
+    if (srcTypeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero && !hasUserDefinedLiteralSuffix)
+    {
+        const Result validationResult = validateExplicitNonNullConstant(sema, castRequest, srcTypeRef, srcTypeRef, dstTypeRef, view.cstRef());
+        if (validationResult != Result::Continue)
+            return emitCastFailure(sema, castRequest.failure);
+        return Result::Continue;
+    }
 
     const Result result = castAllowed(sema, castRequest, view.typeRef(), dstTypeRef);
     if (result == Result::Pause)
@@ -1659,7 +1708,15 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             ConstantRef structOpCastConstRef = ConstantRef::invalid();
             SWC_RESULT(tryConstantFoldStructOpCast(sema, view.nodeRef(), structOpCastData, structOpCastConstRef));
             if (structOpCastConstRef.isValid())
+            {
+                if (structOpCastData.calledFn->returnTypeRef() != dstTypeRef)
+                {
+                    ConstantValue opCastCst = sema.cstMgr().get(structOpCastConstRef);
+                    opCastCst.setTypeRef(dstTypeRef);
+                    structOpCastConstRef = sema.cstMgr().addConstant(sema.ctx(), opCastCst);
+                }
                 castRequest.setConstantFoldingResult(structOpCastConstRef);
+            }
         }
 
         if (structSetData.calledFn && srcCstRef.isValid())
@@ -1672,6 +1729,10 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             if (structSetConstRef.isValid())
                 castRequest.setConstantFoldingResult(structSetConstRef);
         }
+
+        const Result validationResult = validateExplicitNonNullConstant(sema, castRequest, dstTypeRef, srcTypeRef, dstTypeRef, castRequest.constantFoldingResult());
+        if (validationResult != Result::Continue)
+            return emitCastFailure(sema, castRequest.failure);
 
         if (castRequest.constantFoldingResult().isInvalid())
         {
@@ -1736,6 +1797,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     {
         CastRequest explicitCtx(CastKind::Explicit);
         explicitCtx.errorNodeRef = view.nodeRef();
+        explicitCtx.setConstantFoldingSrc(view.cstRef());
         if (castAllowed(sema, explicitCtx, view.typeRef(), dstTypeRef) == Result::Continue)
             castRequest.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
@@ -1748,9 +1810,6 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
 Result Cast::castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, const DiagnosticArguments* errorArguments)
 {
-    if (view.typeRef() == dstTypeRef)
-        return Result::Continue;
-
     return cast(sema, view, dstTypeRef, castKind, castFlags, errorArguments);
 }
 

@@ -123,23 +123,14 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string = null, loc = #caller
 func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->*u8
 {
     let userHint = hint orelse type.fullname
-    if type.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
-        @panic("Memory.new cannot default-initialize this type", loc)
-    if type.kind == Swag.TypeInfoKind.Struct
+    if !canDefaultInit(type)
     {
-        let typeStruct = cast(const *Swag.TypeInfoStruct) type
-        if !typeStruct.opInit do
-            @panic("Memory.new cannot default-initialize this type", loc)
+        @panic("Memory.new cannot default-initialize this type", loc)
+        return null
     }
 
     let ptr      = alloc(cast(u64) type.sizeof, allocator, alignment, userHint, loc)
-    if type.kind == Swag.TypeInfoKind.Struct
-    {
-        let typeStruct = cast(const *Swag.TypeInfoStruct) type
-        typeStruct.opInit(ptr)
-    }
-    else do
-        clear(ptr, cast(u64) type.sizeof)
+    defaultInit(ptr, type)
     return ptr
 }
 
@@ -173,12 +164,7 @@ func delete(ptr: *void, type: typeinfo, allocator: IAllocator = null, hint: stri
     let userHint = hint orelse type.name
     assertIsAllocated(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
 
-    if type.kind == TypeInfoKind.Struct
-    {
-        let typest = cast(const *Swag.TypeInfoStruct) type
-        if typest.opDrop do
-            typest.opDrop(ptr)
-    }
+    dropType(ptr, type)
 
     free(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
 }

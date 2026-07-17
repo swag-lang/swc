@@ -28,6 +28,31 @@ struct NonNullRequiredBlockFieldHolder
     required: #nonull [*] NonNullRequiredFieldItem
 }
 
+struct NonNullRequiredSliceFieldHolder
+{
+    required: #nonull [..] NonNullRequiredFieldItem
+}
+
+struct NonNullRequiredStringFieldHolder
+{
+    required: #nonull string
+}
+
+struct NonNullRequiredCStringFieldHolder
+{
+    required: #nonull cstring
+}
+
+struct NonNullRequiredAnyFieldHolder
+{
+    required: #nonull any
+}
+
+struct NonNullRequiredTypeInfoFieldHolder
+{
+    required: #nonull typeinfo
+}
+
 func acceptNonNullRequiredField(value: NonNullRequiredFieldHolder)
 {
 }
@@ -65,4 +90,29 @@ func acceptNonNullRequiredField(value: NonNullRequiredFieldHolder)
 #test
 {
     let value = NonNullRequiredBlockFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+}
+
+#test
+{
+    let value = NonNullRequiredSliceFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+}
+
+#test
+{
+    let value = NonNullRequiredStringFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+}
+
+#test
+{
+    let value = NonNullRequiredCStringFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+}
+
+#test
+{
+    let value = NonNullRequiredAnyFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+}
+
+#test
+{
+    let value = NonNullRequiredTypeInfoFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }

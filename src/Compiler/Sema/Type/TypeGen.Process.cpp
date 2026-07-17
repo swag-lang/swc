@@ -426,6 +426,11 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             // runtime payload, then compute its dependency list.
             TypeGenCache::Entry entry;
 
+            // Runtime flags include whether the type has a complete implicit default.
+            // Arrays and aliases do not necessarily have a root symbol to wait on above,
+            // so make sure every value dependency is typed before freezing that flag.
+            SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, key, ownerNodeRef));
+
             // Make sure the runtime TypeInfo struct definition exists before we write
             // an instance of it into the 'DataSegment'.
             SWC_RESULT(rtTypeRefFor(sema, kind, entry.rtTypeRef, node.codeRef()));

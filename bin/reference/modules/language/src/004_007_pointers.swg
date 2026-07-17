@@ -28,21 +28,25 @@ It is good practice to check for null pointers before dereferencing them to avoi
 }
 
 /**
-# Explicit Non-Null Pointers
+# Explicit Non-Null Values
 
-`#nonull` is the migration qualifier for pointers that must be initialized with a value.
-Such a pointer cannot be initialized with `null` and has no implicit default. A struct field
-of this type must therefore be supplied by an aggregate initializer unless it declares an
-explicit default.
+`#nonull` is the migration qualifier for values that must be initialized with a non-null
+value. It is accepted everywhere `#null` is accepted: single-value and block pointers,
+slices, `string`, `cstring`, `any`, and `typeinfo`. A `#nonull` value cannot be initialized
+with `null` and has no implicit default. A struct field of this type must therefore be
+supplied by an aggregate initializer unless it declares an explicit non-null default.
 
-During the migration, unannotated pointers retain their legacy nullable behavior. Use
+During the migration, unannotated nullable-capable types retain their legacy behavior. Use
 `#null` when null is part of the intended contract and `#nonull` when it is not.
+To keep batch migrations possible, a legacy value can still flow into a `#nonull` type
+unless it is provably `null`; a value explicitly marked `#null` cannot.
 `undefined` remains an explicit low-level escape hatch and must only be used when the
 storage is initialized manually before it is read.
 
-A value with `opDrop` can be consumed with `#move` only when its type has a complete
-implicit default. The compiler needs that valid default to reset the moved-from source;
-give every field a default before moving a droppable struct that contains required fields.
+A value with `opDrop` can be consumed with `#move` only when resetting its moved-from
+source does not require explicit initialization. Give required fields a default, or use
+`undefined` deliberately as the low-level escape hatch described above, before moving a
+droppable value.
 */
 #test
 {
@@ -52,10 +56,15 @@ give every field a default before moving a droppable struct that contains requir
     }
 
     var value = 42'u8
+    var values = [1, 2, 3]
     let ptr: #nonull *u8 = &value
+    let text: #nonull string = "value"
+    let slice: #nonull [..] s32 = values
     let holder = NonNullPointerHolder{ptr: &value}
 
     #assert(#typeof(ptr) == #nonull *u8)
+    #assert(#typeof(text) == #nonull string)
+    #assert(#typeof(slice) == #nonull [..] s32)
     #assert(#typeof(holder.ptr) == #nonull *u8)
 }
 

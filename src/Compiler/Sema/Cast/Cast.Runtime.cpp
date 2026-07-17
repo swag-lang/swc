@@ -1011,7 +1011,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     }
 
     const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);
-    if (srcCst.isNull())
+    if (srcCst.isNull() && srcType->isNull())
     {
         const ConstantRef nullAnyCstRef = sema.cstMgr().addZeroPayloadConstant(ctx, dstTypeRef);
         SWC_ASSERT(nullAnyCstRef.isValid());
@@ -1041,7 +1041,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     runtimeAny->type                = segment.ptr<Runtime::TypeInfo>(typeInfoRef.offset);
     segment.addRelocation(anyOffset + offsetof(Runtime::Any, type), typeInfoRef.offset);
 
-    if (!srcCst.isNull())
+    if (!srcType->isNull())
     {
         const uint64_t valueSize = srcType->sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());

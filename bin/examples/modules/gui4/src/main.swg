@@ -1,4 +1,4 @@
-using Core, Gui, Pixel
+﻿using Core, Gui, Pixel
 using Properties
 
 const W = 1600
@@ -62,10 +62,10 @@ struct SceneCard
     #[Category("Transform"), Description("Offset from the slot center.")]
     offset: Math.Point = {0, 0}
 
-    #[SliderMinMax(0.5, 1.8), EditSize(280), Description("Uniform scale factor.")]
+    #[SliderMinMax(0.5, 1.8), Description("Uniform scale factor.")]
     scale: f32 = 1.0
 
-    #[Category("Transform/Advanced"), SliderMinMax(0.2, 1.0), EditSize(280), Description("Overall opacity.")]
+    #[Category("Transform/Advanced"), SliderMinMax(0.2, 1.0), Description("Overall opacity.")]
     opacity: f32 = 1.0
 
     // Style group: opens with a HelpBox note, then later a Gap + Heading "Shadow" sub-divider.
@@ -75,10 +75,10 @@ struct SceneCard
     #[Properties.Opaque, Description("Fill color. The editor uses the ColorPicker popup.")]
     fill: Color = Argb.CornflowerBlue
 
-    #[SliderMinMax(0, 42), EditSize(280), Description("Corner radius (card & banner shapes).")]
+    #[SliderMinMax(0, 42), Description("Corner radius (card & banner shapes).")]
     radius: f32 = 16
 
-    #[SliderMinMax(0, 1), EditSize(280), Description("0 = glossy highlight, 1 = fully matte.")]
+    #[SliderMinMax(0, 1), Description("0 = glossy highlight, 1 = fully matte.")]
     roughness: f32 = 0.4
 
     #[Gap(14), Heading("Shadow"), Description("Cast a drop shadow under the card."), RecalcLayout]

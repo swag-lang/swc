@@ -31,17 +31,13 @@ func clearStructArray(arrayPtr: *void, valueType: typeinfo)
 {
     let arr = cast(*Array'u8) arrayPtr
 
-    if isStruct(valueType)
+    if hasDrop(valueType)
     {
-        let valueTypeStruct = cast(const *TypeInfoStruct) valueType
-        if valueTypeStruct.opDrop
+        var scan = arr.buffer
+        for arr.count
         {
-            var scan = arr.buffer
-            for x in arr.count
-            {
-                valueTypeStruct.opDrop(scan)
-                scan += valueTypeStruct.sizeof
-            }
+            Memory.dropType(scan, valueType)
+            scan += valueType.sizeof
         }
     }
 
@@ -55,10 +51,6 @@ func removeValueStructArray(arrayPtr: *void, valueType: typeinfo, index: u64)
     let arr       = cast(*Array'u8) arrayPtr
     let sizeValue = valueType.sizeof
 
-    var valueTypeStruct: const *TypeInfoStruct
-    if isStruct(valueType) do
-        valueTypeStruct = cast() valueType
-
     Debug.assert(index < arr.count)
 
     // Move all elements at the remove position
@@ -66,16 +58,15 @@ func removeValueStructArray(arrayPtr: *void, valueType: typeinfo, index: u64)
     {
         let countMove = arr.count - index - 1
         Memory.copy(arr.buffer + (index * sizeValue), arr.buffer + (index + 1) * sizeValue, countMove * sizeValue)
-        if valueTypeStruct and Reflection.hasPostMove(valueTypeStruct)
+        if Reflection.hasPostMove(valueType)
         {
             for i in index until arr.count - 1 do
-                valueTypeStruct.opPostMove(arr.buffer + (i * sizeValue))
+                Memory.postMoveType(arr.buffer + (i * sizeValue), valueType)
         }
     }
 
     // Drop the last element
-    if valueTypeStruct and Reflection.hasDrop(valueTypeStruct) do
-        valueTypeStruct.opDrop(arr.buffer + (arr.count - 1) * sizeValue)
+    Memory.dropType(arr.buffer + (arr.count - 1) * sizeValue, valueType)
 
     arr.count -= 1
 }
@@ -93,10 +84,6 @@ func swapValues(basePtr: *void, valueType: typeinfo, indexA, indexB: u64)
     let pa   = base + indexA * size
     let pb   = base + indexB * size
 
-    var valueTypeStruct: const *TypeInfoStruct
-    if isStruct(valueType) do
-        valueTypeStruct = cast() valueType
-
     let allocator = @getcontext().allocator
     let tmp       = cast([*] u8) Memory.alloc(size, allocator)
     defer Memory.free(tmp, size, allocator)
@@ -106,28 +93,25 @@ func swapValues(basePtr: *void, valueType: typeinfo, indexA, indexB: u64)
     Memory.copy(pb, tmp, size)
 
     // Each element kept its own bytes but landed at a new address: fix up self-references.
-    if valueTypeStruct and hasPostMove(valueType)
+    if hasPostMove(valueType)
     {
-        valueTypeStruct.opPostMove(pa)
-        valueTypeStruct.opPostMove(pb)
+        Memory.postMoveType(pa, valueType)
+        Memory.postMoveType(pb, valueType)
     }
 }
 
 // Add an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)
 func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
 {
-    if valueType.flags & TypeInfoFlags.RequiresExplicitInit do
+    if !Memory.canDefaultInit(valueType)
+    {
         @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
+        return null
+    }
 
     // We will treat the array as a buffer of bytes, just to be able to access the fields
     let arr       = cast(*Array'u8) arrayPtr
     let sizeValue = valueType.sizeof
-
-    var valueTypeStruct: const *TypeInfoStruct
-    if isStruct(valueType) do
-        valueTypeStruct = cast() valueType
-    if valueTypeStruct and !valueTypeStruct.opInit do
-        @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
 
     // If we need to reallocate the buffer, we will also have to deal with
     // structures specials functions
@@ -149,7 +133,7 @@ func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
             var buf = newBuffer
             for arr.count
             {
-                valueTypeStruct.opPostMove(buf)
+                Memory.postMoveType(buf, valueType)
                 buf += sizeValue
             }
         }
@@ -161,10 +145,7 @@ func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
 
     let result = arr.buffer + (arr.count * valueType.sizeof)
     arr.count += 1
-    if valueTypeStruct do
-        valueTypeStruct.opInit(result)
-    else do
-        Memory.clear(result, sizeValue)
+    Memory.defaultInit(result, valueType)
 
     return result
 }

@@ -399,7 +399,7 @@ namespace
         return codeGen.sema().isLValue(codeGen.node(rightRef));
     }
 
-    Result emitAssignStructLifecycle(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& originalRightPayload, TypeRef rightTypeRef, TypeRef originalRightTypeRef, TokenId assignOp, AstModifierFlags modifierFlags, AstNodeRef rightRef)
+    Result emitAssignLifecycle(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& originalRightPayload, TypeRef rightTypeRef, TypeRef originalRightTypeRef, TokenId assignOp, AstModifierFlags modifierFlags, AstNodeRef rightRef)
     {
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp);
         if (assignOp != TokenId::SymEqual)
@@ -408,7 +408,7 @@ namespace
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
-        if (!targetType.isStruct())
+        if (!targetType.isStruct() && !targetType.isArray())
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
         const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
@@ -487,7 +487,7 @@ namespace
         }
 
         if (shouldResetSource && !elideSource)
-            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, rightTypeRef, stableRight.reg));
         else if (wantInvalidateSource && !invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 
@@ -604,7 +604,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
         return emitAssignList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
     }
 
-    return emitAssignStructLifecycle(codeGen, nodeLeftRef, rightPayload, rightTypeRef, originalRightTypeRef, tok.id, modifierFlags, nodeRightRef);
+    return emitAssignLifecycle(codeGen, nodeLeftRef, rightPayload, rightTypeRef, originalRightTypeRef, tok.id, modifierFlags, nodeRightRef);
 }
 
 SWC_END_NAMESPACE();

@@ -555,7 +555,7 @@ namespace
                             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));
                     }
                     else
-                        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
+                        SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, symVar.typeRef(), initPayload.reg));
                 }
                 else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
                     SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, initPayload.reg, symVar.typeRef(), resolvedInitRef));

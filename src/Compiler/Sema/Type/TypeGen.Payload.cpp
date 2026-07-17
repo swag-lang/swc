@@ -235,6 +235,9 @@ namespace
         if (type.isVoid() || type.isNull() || type.isUndefined())
             return {.canCopy = false};
 
+        if (type.isAlias())
+            return lifecycleFlagsOfTypeRefRec(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
+
         if (type.isArray())
             return lifecycleFlagsOfTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visiting);
 
@@ -304,6 +307,8 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
         if (type.isExplicitNonNull())
             addFlag(rtType, Runtime::TypeInfoFlags::ExplicitNonNull);
+        if (type.isAggregateStruct())
+            addFlag(rtType, Runtime::TypeInfoFlags::Tuple);
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
             addFlag(rtType, Runtime::TypeInfoFlags::RequiresExplicitInit);
         if (type.isTypeInfo())

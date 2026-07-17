@@ -108,28 +108,18 @@ using Swag
     func copy(dst, src: *void, type: typeinfo)
     {
         Memory.copy(dst, src, cast(u64) type.sizeof)
-        if hasPostCopy(type)
-        {
-            let ptrStruct = cast(const *Swag.TypeInfoStruct) type
-            ptrStruct.opPostCopy(dst)
-        }
+        Memory.postCopyType(dst, type)
     }
 
     func reset(dst: *void, type: typeinfo)
     {
-        if type.flags & TypeInfoFlags.RequiresExplicitInit do
-            @panic("Reflection.reset cannot default-initialize this type", #curlocation)
-        if type.kind == TypeInfoKind.Struct
+        if !Memory.canDefaultInit(type)
         {
-            let ptrStruct = cast(const *Swag.TypeInfoStruct) type
-            if !ptrStruct.opInit do
-                @panic("Reflection.reset cannot default-initialize this type", #curlocation)
-            if ptrStruct.opDrop do
-                ptrStruct.opDrop(dst)
-            ptrStruct.opInit(dst)
+            @panic("Reflection.reset cannot default-initialize this type", #curlocation)
+            return
         }
-        else do
-            Memory.clear(dst, cast(u64) type.sizeof)
+        Memory.dropType(dst, type)
+        Memory.defaultInit(dst, type)
     }
 }
 

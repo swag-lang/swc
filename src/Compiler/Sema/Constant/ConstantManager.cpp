@@ -284,6 +284,8 @@ namespace
 
             const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
             ConstantValue                          strValue = ConstantValue::makeString(ctx, res.first);
+            if (ctx.typeMgr().get(value.typeRef()).isString())
+                strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);

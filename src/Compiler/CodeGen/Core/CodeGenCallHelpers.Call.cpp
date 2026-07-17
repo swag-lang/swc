@@ -878,7 +878,7 @@ namespace
         return Result::Continue;
     }
 
-    // An explicit '#move' argument bound to a by-value struct parameter: move the source
+    // An explicit '#move' argument bound to a by-value aggregate parameter: move the source
     // into a call-site temporary (bitwise copy + 'opPostMove'), consume the source (reset
     // when it has a drop lifecycle, poisoned under lifecycle safety otherwise), and pass
     // the temporary's address as the borrowed argument. The temporary belongs to the
@@ -894,7 +894,7 @@ namespace
         const TypeRef   unwrappedTypeRef = ctx.typeMgr().get(normalizedTypeRef).unwrap(ctx, normalizedTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeRef   storageTypeRef   = unwrappedTypeRef.isValid() ? unwrappedTypeRef : normalizedTypeRef;
         const TypeInfo& storageType      = ctx.typeMgr().get(storageTypeRef);
-        if (!storageType.isStruct())
+        if (!storageType.isStruct() && !storageType.isArray())
             return Result::Continue;
 
         const uint64_t rawSize = storageType.sizeOf(ctx);
@@ -921,7 +921,7 @@ namespace
 
         if (codeGen.hasLifecycle(storageTypeRef, CodeGenLifecycleKind::Drop))
         {
-            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, storageTypeRef, sourcePayload.reg));
             outPostCallDrops.push_back({storageTypeRef, storageReg});
         }
         else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))

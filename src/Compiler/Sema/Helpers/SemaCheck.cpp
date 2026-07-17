@@ -418,16 +418,10 @@ Result SemaCheck::checkMoveSourceCanReset(Sema& sema, const AstNodeRef srcRef, T
     if (unwrappedTypeRef.isValid())
         typeRef = unwrappedTypeRef;
 
-    const TypeInfo& type = sema.typeMgr().get(typeRef);
-    if (!type.isStruct())
-        return Result::Continue;
-
-    SWC_RESULT(sema.waitSemaCompleted(&type, srcRef));
+    SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, typeRef, srcRef));
     if (!TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef).hasDrop)
         return Result::Continue;
-
-    SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, typeRef, srcRef));
-    if (SymbolStruct::typeHasCompleteImplicitDefault(sema, typeRef))
+    if (!SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
         return Result::Continue;
 
     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_source_no_default, sema.node(srcRef).codeRef(), typeRef);

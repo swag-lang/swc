@@ -75,10 +75,16 @@ internal impl Properties
     // List-only geometry: in list mode sizeEditValue is the complete useful row width
     // (selection/hot/hit-test). Content and wrapping are inset from that row by the
     // property margins. Grid/condensed keep using their column metrics directly.
+    // Panel rows are full-width by definition, so their useful width tracks the live
+    // view width instead of the host-set sizeEditValue (which stays the build-time
+    // fallback, before the first layout has sized the view).
     mtd listUsefulWidth()->f32
     {
         Debug.assert(!.isGridLike())
-        return Math.max(cast(f32) .sizeEditValue, cast(f32) (.leftMargin + .rightMargin) + 1.0)
+        var width = cast(f32) .sizeEditValue
+        if .kind == .Panel and .edView and .edView.position.width > 0 do
+            width = .edView.position.width
+        return Math.max(width, cast(f32) (.leftMargin + .rightMargin) + 1.0)
     }
 
     mtd listContentWidthFromUseful(width: f32)->f32

@@ -16,6 +16,9 @@ func registerFormat(name: string)->ValueFormat throw
 // Returns true if the clipboard contains the given format
 func hasFormat(fmt: ValueFormat)->bool
 {
+    if g_Fake.enabled do
+        return fakeFind(fmt) != null
+
     if !OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
@@ -27,6 +30,14 @@ func hasFormat(fmt: ValueFormat)->bool
 // 'type' can be null to just check for the given clipboard format.
 func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
 {
+    if g_Fake.enabled
+    {
+        let entry = fakeFind(fmt)
+        if !entry do
+            return false
+        return !type or entry.crc == type.crc
+    }
+
     if !OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
@@ -46,6 +57,9 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
 // 'type' can be null to just check for the given clipboard format.
 func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 {
+    if g_Fake.enabled do
+        return fakeAddTypedData(fmt, type, data)
+
     if !OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
@@ -73,6 +87,9 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 // 'type' can be null to just check for the given clipboard format.
 func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
 {
+    if g_Fake.enabled do
+        return fakeGetTypedData(fmt, type)
+
     var result: retval
 
     if !OpenClipboard(GetDesktopWindow()) do
@@ -109,6 +126,9 @@ func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
 // Returns true if the clipbboard contains an image
 func hasImage()->bool
 {
+    if g_Fake.enabled do
+        return g_Fake.hasImg
+
     if !OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
@@ -124,6 +144,15 @@ func hasImage()->bool
 // Add an image
 func addImage(image: Image)
 {
+    // Mirrors the OS path below: adding an image empties the clipboard first
+    if g_Fake.enabled
+    {
+        fakeClear()
+        g_Fake.hasImg = true
+        g_Fake.img    = image
+        return
+    }
+
     if !OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
@@ -183,6 +212,13 @@ func getImage()->Image
 {
     var result: retval
 
+    if g_Fake.enabled
+    {
+        if g_Fake.hasImg do
+            result = g_Fake.img
+        return result
+    }
+
     if !OpenClipboard(GetDesktopWindow()) do
         return result
     defer discard CloseClipboard()
@@ -224,6 +260,9 @@ func getImage()->Image
 // Returns true if the clipboard contains a string
 func hasString()->bool
 {
+    if g_Fake.enabled do
+        return g_Fake.hasStr
+
     if !OpenClipboard(GetDesktopWindow()) do
         return false
     defer discard CloseClipboard()
@@ -239,6 +278,13 @@ func hasString()->bool
 // Add string to clipboard
 func addString(str: string)
 {
+    if g_Fake.enabled
+    {
+        g_Fake.hasStr = true
+        g_Fake.str    = str
+        return
+    }
+
     if !OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
@@ -269,6 +315,13 @@ func addString(str: string)
 func getString()->String
 {
     var result: retval
+
+    if g_Fake.enabled
+    {
+        if g_Fake.hasStr do
+            result = g_Fake.str
+        return result
+    }
 
     if !OpenClipboard(GetDesktopWindow()) do
         return result

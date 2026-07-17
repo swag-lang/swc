@@ -5,7 +5,7 @@ struct ComboCtrl
 {
     using frameWnd:     FrameWnd
     labelSize:          f32 = 60
-    comboSize:          f32 = 60
+    comboSize:          f32 = 60     // 0 to fit to parent size
 
     label:              *Label
     combo:              *ComboBox
@@ -22,7 +22,8 @@ impl IWnd for ComboCtrl
         let metrics = .getThemeMetrics()
 
         .label.setPosition(0, 0, .labelSize, metrics.comboBox_Height)
-        .combo.setPosition(.label.position.right() + 5, rect.vertCenter() - metrics.comboBox_Height / 2, .comboSize, metrics.comboBox_Height)
+        let comboW = .comboSize == 0 ? .position.width - 5 - .labelSize : .comboSize
+        .combo.setPosition(.label.position.right() + 5, rect.vertCenter() - metrics.comboBox_Height / 2, comboW, metrics.comboBox_Height)
     }
 }
 

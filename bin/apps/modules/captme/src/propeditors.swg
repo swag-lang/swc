@@ -84,7 +84,56 @@ impl IPropertyEditor for AlignEditor
     }
 }
 
+// Editor of the BaseForm.joinStyle field: a labeled combo of the four join kinds. The
+// combo omits `JoinStyle.None` (0), so index = joinStyle - 1; guard against `None` which
+// would underflow the unsigned index and select nothing.
+struct JoinStyleEditor {}
+
+impl IPropertyEditor for JoinStyleEditor
+{
+    mtd impl canEdit(type: typeinfo)->bool
+    {
+        return type == JoinStyle
+    }
+
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+    {
+        let item = list.addItem(value, data, parent)
+        let join = cast(*JoinStyle) data
+
+        with let ctrl = ComboCtrl.create(item.line, Properties.itemDisplayName(value).toString())
+        {
+            .anchorStyle = .X
+            .comboSize   = 0
+        }
+
+        item.comboBox = ctrl.combo
+        with ctrl.combo
+        {
+            .addItem("Bevel")
+            .addItem("Round")
+            .addItem("Miter")
+            .addItem("MiterBevel")
+        }
+
+        ctrl.combo.sigChanged += func|list, item, join|(combo, val)
+        {
+            dref join = cast(JoinStyle) (val + 1)
+            list.hasChanged(item)
+        }
+
+        item.sigRefresh += func|join|(item)
+        {
+            item.comboBox.selectItem(dref join == .None ? 0 : cast(u32) dref join - 1)
+        }
+
+        item.sigRefresh.call(item)
+        return item
+    }
+}
+
 #init
 {
     Properties.registerEditor'(AlignEditor)()
+    Properties.registerEditor'(JoinStyleEditor)()
 }

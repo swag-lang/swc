@@ -19,7 +19,7 @@ struct FormImage
 {
     using base:     BaseForm
     image:          Image
-    #[Name("Kind"), RecalcLayout]
+    #[Category("Image"), Name("Kind"), RecalcLayout]
     kind:           FormImageKind = .Image
     #[Name("Strength"), SliderMinMax(0, 100)]
     strength:       s32 = 50

@@ -52,6 +52,13 @@ internal impl Properties
                 .setListContentPadding(line)
         }
 
+        // Panel rows keep the same vertical breathing room between rows as the grid ones
+        if .kind == .Panel
+        {
+            line.margin.y = .gridLineMargin * 0.5
+            line.margin.w = .gridLineMargin * 0.5
+        }
+
         with let item = .items.addNewPtr()
         {
             .line      = line
@@ -299,6 +306,30 @@ internal impl Properties
         }
     }
 
+    // A thin horizontal separator row, the same look as a Panel category divider. Public so a
+    // host appending hand-made rows (addItem) after the generated content can separate them;
+    // call endAppendRows once done. 'name' feeds the notify visibility dispatch and the filter.
+    public mtd addSeparator(name: string = null, parentItem: #null *PropertiesItem = null)->*PropertiesItem
+    {
+        let v: Swag.TypeValue{name: name}
+        with let item = .addItem(v, null, parentItem, 1, .Zero)
+        {
+            .flags.add(.NoSeparator | .NoFocus)
+            .line.margin.y        = 15
+            .line.margin.w        = 8
+            .line.backgroundStyle = .Dialog
+        }
+
+        return item
+    }
+
+    // To be called once after appending custom rows (addItem / addSeparator) from outside the
+    // reflection build, so visibility states, layout and the scroll size account for them.
+    public mtd endAppendRows()
+    {
+        .updateStates()
+    }
+
     // Create one category/subgroup header row under 'parentForCateg'. A top-level category (whose
     // parent is the section, not another category) stays at level 0 like a full-width divider; a
     // category nested under another keeps addItem's level (parent + 1) so it and its fields indent
@@ -308,15 +339,8 @@ internal impl Properties
         // Panel: a category paints as a thin separator line, not a titled header
         if .kind == .Panel
         {
-            let v: Swag.TypeValue{name: name}
-            with let item = .addItem(v, null, parentForCateg, 1, .Zero)
-            {
-                .flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
-                .line.margin.y        = 15
-                .line.margin.w        = 8
-                .line.backgroundStyle = .Dialog
-            }
-
+            let item = .addSeparator(name, parentForCateg)
+            item.flags.add(.Category | .Expanded)
             .sections.add({item, 1})
             return item
         }

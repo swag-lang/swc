@@ -357,11 +357,13 @@ impl Properties
                 .leftMargin     = 18
             }
 
-            // Panel: full-width self-labeled rows, tight side margins
+            // Panel: full-width self-labeled rows, tight side margins. The line margin
+            // is the vertical breathing room between two rows (half above, half below).
             if kind == .Panel
             {
-                .leftMargin  = 8
-                .rightMargin = 8
+                .leftMargin     = 8
+                .rightMargin    = 8
+                .gridLineMargin = 6
             }
 
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }

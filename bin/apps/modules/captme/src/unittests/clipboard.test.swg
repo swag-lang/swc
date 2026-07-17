@@ -16,8 +16,9 @@ func testResetClipboardToImage()
     Clipboard.addImage(img)
 }
 
-// Copy and Cut go through the real Windows clipboard typed-value format, then
-// keep the capture undoable after the selected form is removed.
+// Copy and Cut go through the clipboard typed-value format (the process-local fake
+// under the headless host), then keep the capture undoable after the selected form
+// is removed.
 #test
 {
     var f: HeadlessFixture
@@ -60,7 +61,7 @@ func testResetClipboardToImage()
     f.shutdown()
 }
 
-// Paste consumes typed Captme forms from the real clipboard and owns them through
+// Paste consumes typed Captme forms from the clipboard and owns them through
 // the normal CreateForm undo command.
 #test
 {

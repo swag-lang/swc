@@ -35,15 +35,14 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 }
 
 // The tool properties panel. The exotic editors (color swatches, shape/cap/dash popup
-// buttons, the text block...) are hand-built rows in 'topLayout'; every plain field
-// (sliders, checkboxes, combos, position boxes) is generated below them by a Properties
-// grid from the attributes carried by the form fields (see BaseForm), with the edits
-// recorded into the capture's own undo timeline.
+// buttons...) are hand-built rows in 'topLayout'; every plain field (sliders, checkboxes,
+// combos) is generated below them by a Properties grid from the attributes carried by the
+// form fields (see BaseForm), with the edits recorded into the capture's own undo
+// timeline. The compact x/y and w/h rows are hand-appended at the end of the grid.
 struct PropWnd
 {
     using frameWnd:     FrameWnd
     topLayout:          *StackLayoutCtrl
-    bottomLayout:       *StackLayoutCtrl
     grid:               *Properties
     main:               *MainWnd
 
@@ -117,47 +116,6 @@ impl PropWnd
 
         .main.quickWnd.updateSelection()
         .main.editWnd.invalidate()
-    }
-
-    // Common width for every slider's value box, so the column of edit boxes lines
-    // up. Derived from the font height so it scales with the font size.
-    mtd sliderEditSize()->f32
-    {
-        let fontR = .getFont().regular
-        if !fontR do
-            return 60
-        return Math.round(fontR.height * 4)
-    }
-
-    mtd createSlider(name: string, minv, maxv: s64, val: f32)->*SliderCtrl
-    {
-        with let ctrl = SliderCtrl.create(me.topLayout, name)
-        {
-            .setMinMaxS64(minv, maxv)
-            // mainLayout owns row placement; a dock style would be applied again by generic relayouts.
-            .autoEditSize = false
-            .editSize     = me.sliderEditSize()
-            .setValue(val)
-        }
-
-        return ctrl
-    }
-
-    // Wire a slider to a form field through the undo system: the drag start pushes
-    // the initial undo entry, each move then replaces it (see pushTypedValue). Float
-    // fields travel as bit patterns, integer fields as plain values.
-    mtd bindSlider(ctrl: *SliderCtrl, type: typeinfo, name: string, common = false, intValue = false)
-    {
-        ctrl.slider.sigStartChange += func|prop = me, type, name, common, intValue|(slider)
-        {
-            let v = intValue ? cast(u32) slider.getValue() : cast #bit (u32) slider.getValue()
-            prop.pushTypedValue(v, type, name, true, common)
-        }
-        ctrl.slider.sigChanged += func|prop = me, type, name, common, intValue|(slider)
-        {
-            let v = intValue ? cast(u32) slider.getValue() : cast #bit (u32) slider.getValue()
-            prop.pushTypedValue(v, type, name, false, common)
-        }
     }
 
     func createArrowButton(stack: *Wnd, w, h: f32)->*IconButton
@@ -710,62 +668,6 @@ impl PropWnd
         }
     }
 
-    mtd propBorderSize()
-    {
-        let curSelType = .getSelectedFormType()
-        if curSelType == FormStep do
-            return
-
-        let curSel = .getSelectedBaseForm()
-        if curSel.subKind == .PixSel do
-            return
-
-        var minS = MinBorderSize
-        var maxS = MaxBorderSize
-        var labl = "Tickness"
-        if curSelType == FormText
-        {
-            minS = MinTextBorderSize
-            maxS = MaxTextBorderSize
-            labl = "Outline"
-        }
-        elif curSelType == FormDraw
-        {
-            minS = Math.max(minS, 1)
-        }
-
-        let ctrl = .createSlider(labl, cast() minS, cast() maxS, curSel.borderSize)
-        .bindSlider(ctrl, BaseForm, #nameof(BaseForm.borderSize), common: true)
-    }
-
-    mtd propJoinStyle()
-    {
-        let curSelType = .getSelectedFormType()
-        if curSelType != FormText and curSelType != FormPolygon do
-            return
-        let curSel = .getSelectedBaseForm()
-        if curSel.subKind == .PixSel do
-            return
-
-        let ctrl = ComboCtrl.create(.topLayout, "Joins")
-        ctrl.comboSize = 210
-        with ctrl.combo
-        {
-            .addItem("Bevel")
-            .addItem("Round")
-            .addItem("Miter")
-            .addItem("MiterBevel")
-            // The combo omits `JoinStyle.None` (0), so index = joinStyle - 1; guard against
-            // `None` which would underflow the unsigned index and select nothing.
-            .selectItem(curSel.joinStyle == .None ? 0 : cast(u32) curSel.joinStyle - 1)
-            .sigChanged += func|prop = me|(combo, val)
-            {
-                var v = val + 1
-                prop.pushTypedValue(cast() v, BaseForm, #nameof(BaseForm.joinStyle), true, true)
-            }
-        }
-    }
-
     mtd propPixSel()
     {
         let curSel = .getSelectedBaseForm()
@@ -778,16 +680,9 @@ impl PropWnd
         discard PushButton.create(.topLayout, "", id: ActionPixSel.SmartMove)
     }
 
-    mtd propSep()
-    {
-        let sep = Wnd.create'Wnd(.topLayout, {0, 0, 0, 1})
-        sep.margin.y        = 15
-        sep.margin.w        = 8
-        sep.backgroundStyle = .Dialog
-    }
-
-    // Position/size boxes, kept as a hand-made row at the very bottom of the panel
-    // (below the generated grid), only for the box forms. X/Y may be negative.
+    // Position/size boxes: two compact hand-made rows (x/y and w/h) appended right after
+    // the generated grid content, separated like a category. Box forms only. X/Y may be
+    // negative (a form may sit outside the canvas).
     mtd propXY()
     {
         if !.hasRealSelection() do
@@ -813,17 +708,29 @@ impl PropWnd
             }
         }
 
-        with let l0 = StackLayoutCtrl.create(.bottomLayout, .HorzFit, {0, 0, 0, 40})
+        func addRow(prop: *PropWnd, name: string)->*Wnd
+        {
+            let v: Swag.TypeValue{name: name}
+            let item = prop.grid.addItem(v, null, null, 40, .Zero)
+            item.flags.add(.NoSeparator | .NoFocus)
+            return StackLayoutCtrl.create(item.line, .HorzFit, {0, 0, 0, 40})
+        }
+
+        discard .grid.addSeparator("Position")
+
+        with let l0 = addRow(me, "position")
         {
             addBox(me, l0, "x", #nameof(BaseForm.x), curSel.x, true)
             addBox(me, l0, "y", #nameof(BaseForm.y), curSel.y, true)
         }
 
-        with let l1 = StackLayoutCtrl.create(.bottomLayout, .HorzFit, {0, 0, 0, 40})
+        with let l1 = addRow(me, "size")
         {
             addBox(me, l1, "w", #nameof(BaseForm.w), curSel.w, false)
             addBox(me, l1, "h", #nameof(BaseForm.h), curSel.h, false)
         }
+
+        .grid.endAppendRows()
     }
 
     // Bind the property grid to the current selection (or to the tool model when nothing
@@ -876,13 +783,26 @@ impl PropWnd
         }
 
         .grid.addStructMulti(.gridBindType, bases.toSlice(), null, onlyNamed: true)
+
+        // The generated border-size slider serves every form as "Tickness"; a text form
+        // edits its glyph outline instead: matching label and a much thinner range. The
+        // slider keeps a normalized position, so re-set the value after the new range.
+        if .gridBindType == FormText
+        {
+            for item in .grid.items
+            {
+                if item.typeValue.name != #nameof(BaseForm.borderSize) or !item.sliderBox do
+                    continue
+                item.sliderBox.label.setText("Outline")
+                item.sliderBox.setMinMaxS64(cast() MinTextBorderSize, cast() MaxTextBorderSize)
+                item.sliderBox.setValueNoChange(.getSelectedBaseForm().borderSize)
+            }
+        }
     }
 
     mtd selectionHasChanged()
     {
         for it in .topLayout.childs do
-            it.destroy()
-        for it in .bottomLayout.childs do
             it.destroy()
         .grid.clearStructs()
 
@@ -909,15 +829,12 @@ impl PropWnd
             stack1.destroyNow()
 
         .propNextStep()
-        .propBorderSize()
-        .propJoinStyle()
         .propPixSel()
 
         .bindGrid()
         .propXY()
 
         .topLayout.computeLayout()
-        .bottomLayout.computeLayout()
         .applyLayout()
 
         let capture = .main.getCapture()
@@ -938,15 +855,11 @@ impl PropWnd
             .topLayout.padding      = 8
             .topLayout.padding.y    = 16
 
-            .bottomLayout              = StackLayoutCtrl.create(prop)
-            .bottomLayout.layoutKind   = .Top
-            .bottomLayout.fitToContent = true
-            .bottomLayout.dockStyle    = .Bottom
-            .bottomLayout.padding      = 8
-
             .grid             = Properties.create(prop, kind: .Panel)
             .grid.dockStyle   = .Center
             .grid.showReverts = false
+            // Always show a small vertical bar so the row width does not jump with the content
+            .grid.scrollWnd.scrollWndFlags |= .ForceVertical | .SmallBar
 
             .main = main
             .grid.setNotify(cast(IPropertyNotify) prop)
@@ -966,18 +879,22 @@ impl IPropertyNotify for PropWnd
         let base = .getSelectedBaseForm()
         if !base do
             return true
-        let name = item.typeValue.name
 
-        // Category headers of the BaseForm groups
-        if name == "Position" do
-            return .canShowPosition()
-        if name == "Style" do
-            return base.subKind != .PixSel
+        // Category separators hide by themselves: the grid force-shows an item's parents,
+        // so a separator appears exactly when its group has at least one visible row.
+        if item.flags.has(.Category) do
+            return false
+
+        let name = item.typeValue.name
 
         switch name
         {
-        case #nameof(BaseForm.x), #nameof(BaseForm.y), #nameof(BaseForm.w), #nameof(BaseForm.h):
-            return .canShowPosition()
+        case #nameof(BaseForm.borderSize):
+            return .gridBindType != FormStep and base.subKind != .PixSel
+
+        case #nameof(BaseForm.joinStyle):
+            return (.gridBindType == FormText or .gridBindType == FormPolygon) and
+                   base.subKind != .PixSel
 
         case #nameof(BaseForm.alpha), #nameof(BaseForm.paintShadow):
             return base.subKind != .PixSel
@@ -1063,12 +980,3 @@ impl IWnd for PropWnd
     }
 }
 
-impl PropWnd
-{
-    mtd canShowPosition()->bool
-    {
-        if !.hasRealSelection() do
-            return false
-        return .gridBindType == FormShape or .gridBindType == FormText or .gridBindType == FormCallout
-    }
-}

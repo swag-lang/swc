@@ -54,6 +54,11 @@ impl HeadlessHost
 {
     mtd setup(width, height: f32)
     {
+        // The OS clipboard is machine-global: another process can hold or rewrite it at
+        // any time. Tests use the process-local fake so they stay deterministic and do
+        // not clobber the user's own clipboard.
+        Clipboard.setFake(true)
+
         .app.renderer.setupHeadless()
 
         .theme = Memory.new'Theme()
@@ -101,6 +106,7 @@ impl HeadlessHost
         if !.root.isPendingDestroy do
             .root.destroy()
         .pump()
+        Clipboard.setFake(false)
     }
 
     // Binds another Application instance to this host: the code under test may read

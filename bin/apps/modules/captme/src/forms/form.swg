@@ -44,36 +44,42 @@ interface IForm
 
 // The property panel is generated from the fields carrying a Properties.Name attribute
 // (see PropWnd): the attribute set declares the editor (slider, checkbox, min/max box)
-// and the panel builds itself by reflection, undo included.
+// and the panel builds itself by reflection, undo included. Field order below is the
+// display order of the generated panel; serialization matches fields by name, so it is
+// free to follow the UI. A Category paints as a thin separator above its field.
 #[Swag.Using(Properties)]
 struct BaseForm
 {
-    // x/y/w/h carry no grid attribute: the panel edits them through its own bottom
-    // "position" row (PropWnd.propXY), kept at the very bottom like the original.
+    // x/y/w/h carry no grid attribute: the panel appends its own compact x/y and w/h
+    // rows right after the generated content (PropWnd.propXY).
     x, y:                s32 = 0
     w, h:                s32 = 32
 
+    // The text forms edit this as "Outline" with a thinner range (PropWnd.bindGrid)
+    #[Name("Tickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
+    borderSize:          f32 = 5
+    #[Name("Joins")]
+    joinStyle            = JoinStyle.Round
+    #[Name("Line"), BoolCombo("Straight", "Bezier")]
+    bezier:              bool
+    #[Category("Effects"), Name("Scale"), SliderMinMax(0, 100), Unit("%")]
+    scale:               f32 = 0
+    #[Name("Rotate"), SliderMinMax(0, 360), Unit("°")]
+    rotate:              f32 = 0
     #[Name("Opacity"), SliderMinMax(0, 100), Unit("%")]
     alpha:               u8 = 100
+    #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
+    paintShadow:         bool = true
+
     shadowOffsetX:       f32 = 2
     shadowOffsetY:       f32 = 2
-    borderSize:          f32 = 5
     borderColor:         Color = Argb.White
     backColor:           Color = Argb.Red
     dashStyle:           DashStyle = None
     // Unused, kept because it is serialized: removing it would fail the decoding of
     // existing capture files and of the quick styles saved in the application config.
     quickModeOpaque:     bool
-    #[Name("Line"), BoolCombo("Straight", "Bezier")]
-    bezier:              bool
-    #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
-    paintShadow:         bool = true
     subKind:             FormSubKind = None
-    joinStyle            = JoinStyle.Round
-    #[Name("Scale"), SliderMinMax(0, 100), Unit("%")]
-    scale:               f32 = 0
-    #[Name("Rotate"), SliderMinMax(0, 360), Unit("°")]
-    rotate:              f32 = 0
 
     // Group membership as a path of group ids, outermost first (empty = ungrouped).
     // Grouping prepends a fresh id shared by every member; ungrouping pops the front,

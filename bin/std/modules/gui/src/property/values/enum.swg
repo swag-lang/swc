@@ -229,13 +229,13 @@ impl Properties
 
         let item = .addItem(value, data, parentItem)
 
-        // Panel row: a full-width labeled combo
+        // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
-                .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 210)
+                .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
             }
 
             item.comboBox = ctrl.combo

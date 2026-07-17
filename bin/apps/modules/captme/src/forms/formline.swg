@@ -5,7 +5,7 @@ struct FormLine
     beginCap:           LineCapStyle = .Round
     endCap:             LineCapStyle = .Round
     dashCap:            DashCapStyle = .None
-    #[Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize)]
+    #[Category("Caps"), Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize)]
     startSize:          f32 = 4
     #[Name("End Size"), SliderMinMax(MinCapSize, MaxCapSize)]
     endSize:            f32 = 4

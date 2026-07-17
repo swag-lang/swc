@@ -72,17 +72,16 @@ impl Properties
 
 internal impl Properties
 {
-    // List-only geometry: in list mode sizeEditValue is the complete useful row width
-    // (selection/hot/hit-test). Content and wrapping are inset from that row by the
-    // property margins. Grid/condensed keep using their column metrics directly.
-    // Panel rows are full-width by definition, so their useful width tracks the live
-    // view width instead of the host-set sizeEditValue (which stays the build-time
-    // fallback, before the first layout has sized the view).
+    // List/Panel geometry: rows, labels and descriptions span the whole control, so the
+    // useful row width (selection/hot/hit-test) tracks the live view width; sizeEditValue
+    // is only the build-time fallback, before the first layout has sized the view. The
+    // value editors keep their own cap (sizeEditValue / the EditSize attribute), so only
+    // the texts stretch — the look of an editor's settings page.
     mtd listUsefulWidth()->f32
     {
         Debug.assert(!.isGridLike())
         var width = cast(f32) .sizeEditValue
-        if .kind == .Panel and .edView and .edView.position.width > 0 do
+        if .edView and .edView.position.width > 0 do
             width = .edView.position.width
         return Math.max(width, cast(f32) (.leftMargin + .rightMargin) + 1.0)
     }
@@ -106,9 +105,12 @@ internal impl Properties
         wnd.padding.z = .rightMargin
     }
 
+    // Right edge (in row-content coordinates) of the revert/action column: anchored to
+    // the value column (sizeEditValue), not to the full row width, so the arrows stay
+    // lined up with the editors whatever the control width.
     mtd listActionRight()->f32
     {
-        return .listContentWidth() - PropRevertGap
+        return .listContentWidthFromUseful(cast(f32) .sizeEditValue) - PropRevertGap
     }
 
     mtd positionListActionButton(item: *PropertiesItem, btn: *IconButton)

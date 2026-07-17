@@ -121,7 +121,10 @@ impl Properties
             editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
-        line.maxSize.x = editWidth
+        // Grid cell: the check line is capped to the value column. List rows let it span
+        // the whole row so the side description wraps over the full control width.
+        if .isGridLike() do
+            line.maxSize.x = editWidth
 
         // Grid rows are single-line: center the editor vertically in the cell. List
         // rows stack the editor under the name label (the row is a StackLayoutCtrl),

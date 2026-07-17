@@ -27,14 +27,21 @@ impl IWnd for PropertiesView
 
         .ed.refreshGridColumnLayout()
 
-        // List mode: every row owns the complete useful width (selection/hot/hit-test). Children
-        // add the internal content margins, so labels, editors, validation bars and action buttons
-        // all derive from the same rectangle.
+        // List mode: every row owns the complete useful width (selection/hot/hit-test), and
+        // the name/description labels re-wrap over the full content width. The value editors
+        // keep their own maxSize cap, so they don't stretch with the row.
         if !.ed.isGridLike()
         {
-            let cw = .ed.listUsefulWidth()
-            for item in .ed.items do
+            let cw       = .ed.listUsefulWidth()
+            let contentW = .ed.listContentWidthFromUseful(cw)
+            for item in .ed.items
+            {
                 item.line.maxSize.x = cw
+                if item.label do
+                    item.label.position.width = contentW
+                if item.labelDesc do
+                    item.labelDesc.position.width = contentW
+            }
         }
 
         .computeLayout()

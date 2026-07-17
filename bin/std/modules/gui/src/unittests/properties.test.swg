@@ -278,10 +278,11 @@ struct PropHeadlessArrayData
     assertBelowLabel(prop.items[2])     // array count editor
     assertBelowLabel(prop.items[4])     // bool
 
-    let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
-    @assert(Math.isEqualEpsilon(prop.items[1].line.position.width, cast(f32) prop.sizeEditValue, 0.01))
+    // Rows and labels span the whole control (the value editors keep their own cap)
+    let rowWidth = prop.items[1].line.position.width
+    @assert(rowWidth > cast(f32) prop.sizeEditValue)
     @assert(Math.isEqualEpsilon(prop.items[1].label.position.x, cast(f32) prop.leftMargin, 0.01))
-    @assert(Math.isEqualEpsilon(prop.items[1].label.position.width, contentWidth, 0.01))
+    @assert(Math.isEqualEpsilon(prop.items[1].label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
 
     let actionsItem = prop.items[2]
     let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
@@ -1352,8 +1353,8 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(!prop.canReset(nameItem))
     @assert(!nameItem.isModified)
 
-    // Bool list rows use a composite check line; its edit width must stay capped so the
-    // revert arrow aligns with the value column instead of the full row.
+    // Bool list rows span the whole row (the side description wraps over the control
+    // width), while the revert arrow stays anchored to the value column.
     let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))
     @assert(enabledItem != null and enabledItem.checkBox != null)
     data.enabled = false
@@ -1361,7 +1362,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(enabledItem.isModified)
     @assert(enabledItem.revertButton != null and enabledItem.revertButton.isVisible())
     let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
-    @assert(enabledItem.checkBox.parent.position.width <= contentWidth)
+    @assert(enabledItem.checkBox.parent.position.width > contentWidth)
     let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
     @assert(Math.isEqualEpsilon(enabledItem.label.position.x + enabledItem.revertButton.position.right(), actionRight, 0.01))
 
@@ -1902,7 +1903,7 @@ impl IPropertyNotify for PropFilterHost
 
 struct PropSameCategData
 {
-    #[Properties.Category("Debug"), Properties.Name("First")]
+    #[Properties.Category("Debug"), Properties.Name("First"), Properties.Description("A long description that should wrap over the full control width, not over the value column")]
     first: bool
     #[Properties.Category("Debug"), Properties.Name("Second")]
     second: bool
@@ -1935,6 +1936,16 @@ struct PropSameCategData
 
     @assert(categs == 1)
     @assert(opt.prop.items.count == 5)
+
+    // The bool description spans the control width, not the value column
+    var descItem: *PropertiesItem
+    for item in opt.prop.items
+    {
+        if item.typeValue.name == "first" do
+            descItem = item
+    }
+    @assert(descItem != null and descItem.checkBox != null)
+    @assert(descItem.checkBox.parent.position.width > cast(f32) opt.prop.sizeEditValue)
 
     host.shutdown()
 }

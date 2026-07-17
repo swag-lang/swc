@@ -371,12 +371,30 @@ func __testUnhandledFilter(exceptionPointers: *void)->s32
     return 0
 }
 
+// A test executable launched without the 'swag.test' run-arg (started by hand rather
+// than by the compiler's test command, which always passes it) behaves like the plain
+// application: the startup thunk still calls the runner, but every #test is skipped
+// and #main runs on a state no test has touched.
+func __isTestRun()->bool
+{
+    for arg in @args
+    {
+        if @stringcmp(arg, "swag.test") do
+            return true
+    }
+
+    return false
+}
+
 // Optimizations stay off: after a panic resume, execution re-enters the middle of
 // this function with the registers captured before the test ran, so every local
 // must live on the stack, not in a register the test call could have recycled.
 #[Swag.Optimize(false)]
 func __runTest(fn: *void)
 {
+    if !__isTestRun() do
+        return
+
     g_TestsExecuted += 1
     g_TestFailed  = false
     g_TestThreadId = __Win32RT.GetCurrentThreadId()
@@ -410,6 +428,9 @@ func __runTest(fn: *void)
 
 func __testsDone()
 {
+    if !__isTestRun() do
+        return
+
     // Marker parsed by the compiler's test command to report the native tally.
     @print("[swag.test] executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, "\n")
     if g_TestsFailedCnt do

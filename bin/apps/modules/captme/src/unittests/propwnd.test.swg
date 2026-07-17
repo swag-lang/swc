@@ -149,6 +149,42 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     f.shutdown()
 }
 
+// The x/y and w/h rows are keyboard-navigable: Down from the position row selects the
+// size row (a non-navigable selection used to snap back to the first row of the grid).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    let prop = testSetupPropWnd(&f)
+
+    discard testAddText(f.capture, 10, 20, 100, 50)
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let posItem  = testFindItem(prop, "position")
+    let sizeItem = testFindItem(prop, "size")
+    @assert(posItem != null and sizeItem != null)
+
+    // Bring the trailing rows into view before clicking them
+    prop.grid.scrollWnd.setScrollPos(0, 10000)
+    f.gui.pump()
+
+    f.gui.clickWnd(posItem.line)
+    f.gui.pump()
+    @assert(prop.grid.selItem == posItem)
+
+    f.gui.keyPress(.Down)
+    f.gui.pump()
+    @assert(prop.grid.selItem == sizeItem)
+
+    f.gui.keyPress(.Up)
+    f.gui.pump()
+    @assert(prop.grid.selItem == posItem)
+
+    f.shutdown()
+}
+
 // A selected step form hides the whole border/joins block and gets no position/size
 // rows. The effects separator stays: its group (opacity/shadow) is still visible, and
 // a separator shows exactly when its group has at least one visible row.

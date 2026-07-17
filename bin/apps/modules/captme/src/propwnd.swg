@@ -712,7 +712,8 @@ impl PropWnd
         {
             let v: Swag.TypeValue{name: name}
             let item = prop.grid.addItem(v, null, null, 40, .Zero)
-            item.flags.add(.NoSeparator | .NoFocus)
+            // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
+            item.flags.add(.NoSeparator)
             return StackLayoutCtrl.create(item.line, .HorzFit, {0, 0, 0, 40})
         }
 

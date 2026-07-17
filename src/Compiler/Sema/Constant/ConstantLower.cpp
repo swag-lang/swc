@@ -280,18 +280,19 @@ namespace
         const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo& elementType    = sema.typeMgr().get(elementTypeRef);
         const uint64_t  elementSize    = elementType.sizeOf(ctx);
-        if (srcSlice.count == 0)
+        if (!srcSlice.ptr && !srcSlice.count)
         {
             dstSlice.ptr   = nullptr;
             dstSlice.count = 0;
             return Result::Continue;
         }
 
-        if (elementSize == 0)
+        if (!srcSlice.count || !elementSize)
         {
-            // Zero-sized slice elements carry length without backing storage.
-            dstSlice.ptr   = nullptr;
+            const auto [dataOffset, dataStorage] = segment.reserveBytes(1, elementType.alignOf(ctx), true);
+            dstSlice.ptr   = dataStorage;
             dstSlice.count = srcSlice.count;
+            segment.addRelocation(payload.baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
             return Result::Continue;
         }
 
@@ -449,7 +450,7 @@ namespace
         {
             const std::span<const std::byte> bytes = cst.getSlice();
             runtimeValue.count                     = cst.getSliceCount();
-            runtimeValue.ptr                       = bytes.empty() ? nullptr : reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
+            runtimeValue.ptr                       = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
         }
 
         writeValue(dstBytes, runtimeValue);

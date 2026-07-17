@@ -375,7 +375,7 @@ namespace
             return cst.isFloat() && cst.getFloat().isZero() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
 
         if (type.isSlice())
-            return cst.isSlice() && cst.getSliceCount() == 0 && cst.getSlice().empty() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+            return cst.isSlice() && cst.getSliceCount() == 0 && !cst.getSlice().data() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
 
         if (type.isAnyPointer() || type.isReference() || type.isTypeInfo() || type.isFunction())
         {

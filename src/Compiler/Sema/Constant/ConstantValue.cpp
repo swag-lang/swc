@@ -79,7 +79,11 @@ namespace
             case ConstantKind::BlockPointer:
                 return lhs.getBlockPointer() == rhs.getBlockPointer();
             case ConstantKind::Slice:
-                return std::ranges::equal(lhs.getSlice(), rhs.getSlice()) && lhs.getSliceCount() == rhs.getSliceCount();
+            {
+                const bool lhsPresent = lhs.getSliceCount() != 0 || lhs.getSlice().data() != nullptr;
+                const bool rhsPresent = rhs.getSliceCount() != 0 || rhs.getSlice().data() != nullptr;
+                return std::ranges::equal(lhs.getSlice(), rhs.getSlice()) && lhs.getSliceCount() == rhs.getSliceCount() && lhsPresent == rhsPresent;
+            }
             case ConstantKind::Null:
                 return true;
             case ConstantKind::Undefined:
@@ -93,7 +97,7 @@ namespace
     bool resolveDataSegmentByteRange(DataSegmentRef& outRef, const DataSegmentRef baseRef, const void* basePtr, const uint64_t size, const void* ptr) noexcept
     {
         outRef = {};
-        if (baseRef.isInvalid() || !basePtr || !ptr || !size)
+        if (baseRef.isInvalid() || !basePtr || !ptr)
             return false;
 
         const auto baseAddress = reinterpret_cast<uintptr_t>(basePtr);
@@ -102,6 +106,14 @@ namespace
             return false;
 
         const uint64_t delta = ptrAddress - baseAddress;
+        if (!size)
+        {
+            if (delta)
+                return false;
+            outRef = baseRef;
+            return true;
+        }
+
         if (delta >= size)
             return false;
 
@@ -689,7 +701,7 @@ ConstantValue ConstantValue::makeSliceCounted(TaskContext& ctx, TypeRef typeRef,
     const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
     cv.typeRef_            = ctx.typeMgr().addType(ty);
     cv.kind_               = ConstantKind::Slice;
-    cv.payloadSlice_.val   = normalizePayloadBytes(bytes);
+    cv.payloadSlice_.val   = bytes;
     cv.payloadSlice_.count = count;
     cv.payloadBorrowed_    = false;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -704,7 +716,7 @@ ConstantValue ConstantValue::makeSliceBorrowedCounted(TaskContext& ctx, TypeRef 
     const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
     cv.typeRef_            = ctx.typeMgr().addType(ty);
     cv.kind_               = ConstantKind::Slice;
-    cv.payloadSlice_.val   = normalizePayloadBytes(bytes);
+    cv.payloadSlice_.val   = bytes;
     cv.payloadSlice_.count = count;
     cv.payloadBorrowed_    = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -865,6 +877,7 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::Slice:
             h = Math::hashCombine(h, Math::hash(payloadSlice_.val));
             h = Math::hashCombine(h, payloadSlice_.count);
+            h = Math::hashCombine(h, payloadSlice_.count != 0 || payloadSlice_.val.data() != nullptr);
             break;
         case ConstantKind::AggregateStruct:
         case ConstantKind::AggregateArray:

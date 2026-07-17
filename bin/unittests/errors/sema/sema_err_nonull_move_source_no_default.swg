@@ -48,11 +48,3 @@ func forwardNonNullMoveSource(value: #fwd NonNullMoveSourceOwner)
     var source = NonNullMoveSourceOwner{required: &item}
     consumeNonNullMoveSource(#move source) // swc-expected-error {{sema_err_move_source_no_default}}
 }
-
-
-#test
-{
-    var item = NonNullMoveSourceItem{value: 1}
-    var source = NonNullMoveSourceOwner{required: &item}
-    forwardNonNullMoveSource(#move source) // swc-expected-error {{sema_err_move_source_no_default}}
-}

@@ -250,7 +250,7 @@ public:
 
     void setPayloadSlice(std::span<const std::byte> bytes, uint64_t count)
     {
-        payloadSlice_.val   = normalizePayloadBytes(bytes);
+        payloadSlice_.val   = bytes;
         payloadSlice_.count = count;
     }
     void setPayloadStruct(std::span<const std::byte> bytes) { payloadStruct_.val = normalizePayloadBytes(bytes); }

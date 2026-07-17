@@ -201,7 +201,8 @@ namespace
                 if (safeArrayCstRef.isInvalid())
                     return false;
                 const ConstantValue& safeArrayCst    = codeGen.cstMgr().get(safeArrayCstRef);
-                const ConstantRef    runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, safeArrayCst.getArray().data(), elementCount);
+                const void*          targetPtr       = sliceBytes.empty() ? sliceBytes.data() : safeArrayCst.getArray().data();
+                const ConstantRef    runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, targetPtr, elementCount);
                 if (runtimeSliceRef.isInvalid())
                     return false;
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);

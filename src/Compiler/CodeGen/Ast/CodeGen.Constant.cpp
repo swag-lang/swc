@@ -738,7 +738,8 @@ namespace
                 if (safeArrayCstRef.isInvalid())
                     return raiseConstantMaterializationError(codeGen, "failed to materialize a slice constant payload");
                 const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), safeArrayCst.getArray().data(), elementCount);
+                const void*          targetPtr          = sliceBytes.empty() ? sliceBytes.data() : safeArrayCst.getArray().data();
+                const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), targetPtr, elementCount);
                 SWC_ASSERT(runtimeSliceCstRef.isValid());
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);

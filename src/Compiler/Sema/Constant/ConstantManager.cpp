@@ -186,6 +186,16 @@ namespace
         return static_cast<uint32_t>(value.getSlice().size());
     }
 
+    std::pair<std::span<const std::byte>, Ref> addStableSlicePayload(DataSegment& segment, const std::span<const std::byte> payload, const uint64_t count)
+    {
+        if (!payload.empty() || (!payload.data() && !count))
+            return segment.addSpan(payload);
+
+        constexpr std::array sentinel{std::byte{}};
+        const auto [storage, ref] = segment.addSpan(sentinel);
+        return {std::span<const std::byte>{storage.data(), 0}, ref};
+    }
+
     bool borrowedPayloadHasRelocations(const ConstantManager& manager, const ConstantValue& value)
     {
         if (!(value.isStruct() || value.isArray() || value.isSlice()) || !value.isPayloadBorrowed())
@@ -250,7 +260,7 @@ namespace
         else
         {
             SWC_ASSERT(value.isSlice());
-            const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
+            const auto [view, ref] = addStableSlicePayload(shard.dataSegment, value.getSlice(), value.getSliceCount());
             stored                 = value;
             stored.setPayloadSlice(view, value.getSliceCount());
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});

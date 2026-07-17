@@ -61,8 +61,6 @@ namespace
 
     std::span<const std::byte> byteSpanFromCStringView(std::string_view view)
     {
-        if (view.empty())
-            return {};
         return {reinterpret_cast<const std::byte*>(view.data()), view.size()};
     }
 

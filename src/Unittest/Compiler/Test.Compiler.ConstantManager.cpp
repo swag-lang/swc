@@ -207,6 +207,40 @@ SWC_TEST_BEGIN(ConstantManager_AcceptsEmptyBorrowedSlicePayloads)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_DistinguishesPresentEmptySlicePayloads)
+{
+    const TypeRef sliceTypeRef = ctx.typeMgr().addType(TypeInfo::makeSlice(ctx.typeMgr().typeU8()));
+    std::array     firstSource{std::byte{0x11}};
+    std::array     secondSource{std::byte{0x22}};
+
+    const std::span<const std::byte> firstEmpty{firstSource.data(), 0};
+    const std::span<const std::byte> secondEmpty{secondSource.data(), 0};
+    const ConstantValue              firstValue = ConstantValue::makeSliceBorrowedCounted(ctx, ctx.typeMgr().typeU8(), firstEmpty, 0);
+    if (!firstValue.getSlice().data())
+        return Result::Error;
+
+    const ConstantRef firstRef   = ctx.cstMgr().addConstant(ctx, firstValue);
+    const ConstantRef secondRef  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeSliceBorrowedCounted(ctx, ctx.typeMgr().typeU8(), secondEmpty, 0));
+    const ConstantRef missingRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeSliceBorrowedCounted(ctx, ctx.typeMgr().typeU8(), std::span<const std::byte>{}, 0));
+    if (!firstRef.isValid() || firstRef != secondRef || firstRef == missingRef)
+        return Result::Error;
+
+    const ConstantValue& stored = ctx.cstMgr().get(firstRef);
+    if (!stored.isSlice() || stored.typeRef() != sliceTypeRef || !stored.getSlice().empty() || stored.getSliceCount() != 0)
+        return Result::Error;
+    if (!stored.getSlice().data() || stored.getSlice().data() == firstSource.data() || stored.getSlice().data() == secondSource.data())
+        return Result::Error;
+
+    DataSegmentRef storedRef;
+    if (!ctx.cstMgr().resolveConstantDataSegmentRef(storedRef, firstRef, stored.getSlice().data()))
+        return Result::Error;
+
+    const ConstantValue& missing = ctx.cstMgr().get(missingRef);
+    if (!missing.isSlice() || missing.getSlice().data() || missing.getSliceCount() != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_DeduplicatesMaterializedArrayPayloadConstants)
 {
     std::array source{

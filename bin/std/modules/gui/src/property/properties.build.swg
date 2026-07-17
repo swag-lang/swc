@@ -306,11 +306,17 @@ internal impl Properties
                     common += 1
 
                 categPath.count = common
-                for i in common until segs.count
+                // Consecutive fields sharing the same category leave no new segment to
+                // create (common == segs.count); an empty 'until' range is a safety
+                // error, so guard the loop.
+                if common < segs.count
                 {
-                    let parentForCateg = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
-                    let citem          = .addCategoryHeader(segs[i], parentForCateg)
-                    categPath.add({segs[i], citem})
+                    for i in common until segs.count
+                    {
+                        let parentForCateg = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem
+                        let citem          = .addCategoryHeader(segs[i], parentForCateg)
+                        categPath.add({segs[i], citem})
+                    }
                 }
 
                 newParent = categPath.count > 0 ? categPath[categPath.count - 1].item : parentItem

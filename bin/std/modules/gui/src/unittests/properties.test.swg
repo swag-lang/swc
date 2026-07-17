@@ -1898,3 +1898,43 @@ impl IPropertyNotify for PropFilterHost
 
     host.shutdown()
 }
+
+
+struct PropSameCategData
+{
+    #[Properties.Category("Debug"), Properties.Name("First")]
+    first: bool
+    #[Properties.Category("Debug"), Properties.Name("Second")]
+    second: bool
+    #[Properties.Category("Debug"), Properties.Name("Third")]
+    third: bool
+}
+
+// Consecutive fields sharing the same Category reuse the open header instead of
+// creating new segments (regression: the empty 'until' range used to panic).
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+
+    var data: PropSameCategData
+    let opt = PropertiesCtrl.create(&host.root, flags: .SectionFilter | .FindBar)
+    opt.dockStyle = .Center
+    opt.addStruct(data, "Application")
+
+    host.root.applyLayout()
+    host.pump()
+
+    // One section + one category header + the three fields
+    var categs = 0
+    for item in opt.prop.items
+    {
+        if item.flags.has(.Category) do
+            categs += 1
+    }
+
+    @assert(categs == 1)
+    @assert(opt.prop.items.count == 5)
+
+    host.shutdown()
+}

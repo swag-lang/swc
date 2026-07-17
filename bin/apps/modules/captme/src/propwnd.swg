@@ -855,9 +855,12 @@ impl PropWnd
             .topLayout.padding      = 8
             .topLayout.padding.y    = 16
 
-            .grid             = Properties.create(prop, kind: .Panel)
-            .grid.dockStyle   = .Center
-            .grid.showReverts = false
+            .grid                 = Properties.create(prop, kind: .Panel)
+            .grid.dockStyle       = .Center
+            .grid.showReverts     = false
+            // Most specific first: a form edits its own fields (text, caps, round...)
+            // before the BaseForm style shared by every form
+            .grid.usingFieldsLast = true
             // Always show a small vertical bar so the row width does not jump with the content
             .grid.scrollWnd.scrollWndFlags |= .ForceVertical | .SmallBar
 

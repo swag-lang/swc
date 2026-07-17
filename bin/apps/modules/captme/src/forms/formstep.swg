@@ -14,7 +14,7 @@ struct FormStep
     using base:     BaseForm
     kind:           FormShapeKind = Ellipse
     index:          u32 = 1
-    #[Category("Step"), Name("Step")]
+    #[Name("Step")]
     typeIndex       = FormStepType.Number
 
     #[Serialization.NoSerialize]

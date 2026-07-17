@@ -8,7 +8,7 @@
 struct FormCallout
 {
     using base:      BaseForm
-    #[Category("Text"), Name("Font"), FontName]
+    #[Name("Font"), FontName]
     fontName:        String
     #[Name("Text"), MultiLine]
     text:            String

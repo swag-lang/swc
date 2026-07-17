@@ -76,6 +76,11 @@ struct Properties
 
     sizeEditValue:      s32 = 200
 
+    // Walk the 'using' base structs after the struct's own fields, so a derived type
+    // edits its most specific fields first (see addStructInternal). The language forces
+    // the base to be declared first; this inverts the generated row order only.
+    usingFieldsLast:    bool
+
     // For grid kind
     gridLineHeight:       f32 = 35
     gridLineMargin:       s32 = 12

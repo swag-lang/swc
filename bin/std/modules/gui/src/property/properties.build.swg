@@ -261,8 +261,28 @@ internal impl Properties
         // same headers instead of recreating them.
         var categPath: Array'{ name: string, item: *PropertiesItem }
 
-        for value in typeStruct.fields
+        // Walk order: declaration order, except when 'usingFieldsLast' pushes the 'using' base
+        // structs after the struct's own fields — a derived type then edits its most specific
+        // fields first even though the language forces the base to be declared first.
+        var walkOrder: Array'u64
+        for i in @countof(typeStruct.fields)
         {
+            if !.usingFieldsLast or !typeStruct.fields[i].flags.has(.HasUsing) do
+                walkOrder.add(i)
+        }
+
+        if .usingFieldsLast
+        {
+            for i in @countof(typeStruct.fields)
+            {
+                if typeStruct.fields[i].flags.has(.HasUsing) do
+                    walkOrder.add(i)
+            }
+        }
+
+        for idx in walkOrder
+        {
+            let value = typeStruct.fields[idx]
             // Opt-in mode (see addStructMulti 'onlyNamed'): a field participates only when it
             // carries an explicit display name. 'using' struct fields always recurse — their own
             // fields decide for themselves.

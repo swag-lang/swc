@@ -1798,3 +1798,50 @@ struct PropHeadlessFontStyleData
 
     host.shutdown()
 }
+
+
+struct PropHeadlessUsingBase
+{
+    baseVal: s32
+}
+
+struct PropHeadlessUsingDerived
+{
+    using base:     PropHeadlessUsingBase
+    ownVal:         s32
+}
+
+// usingFieldsLast walks the struct's own fields before recursing into its 'using'
+// bases, so a derived type edits its most specific fields first.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    func indexOf(prop: *Properties, name: string)->u64
+    {
+        for item, idx in prop.items
+        {
+            if item.typeValue.name == name do
+                return idx
+        }
+
+        @assert(false)
+        return 0
+    }
+
+    var data: PropHeadlessUsingDerived
+
+    // Declaration order by default: the 'using' base fields come first
+    let prop0 = Properties.create(&host.root, {0, 0, 240, 300})
+    prop0.addStruct(data)
+    @assert(indexOf(prop0, "baseVal") < indexOf(prop0, "ownVal"))
+
+    // Most specific first with usingFieldsLast
+    let prop1 = Properties.create(&host.root, {0, 0, 240, 300})
+    prop1.usingFieldsLast = true
+    prop1.addStruct(data)
+    @assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
+
+    host.shutdown()
+}

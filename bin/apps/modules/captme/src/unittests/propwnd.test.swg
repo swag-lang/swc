@@ -34,6 +34,18 @@ func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem
     return null
 }
 
+func testItemIndex(prop: *PropWnd, name: string)->u64
+{
+    for item, idx in prop.grid.items
+    {
+        if item.typeValue.name == name do
+            return idx
+    }
+
+    @assert(false)
+    return 0
+}
+
 // A selected text form generates the full grid: retargeted outline slider, joins combo
 // without `JoinStyle.None`, category separators, and the compact x/y and w/h rows
 // appended at the very end. Every row spans the panel width.
@@ -62,9 +74,14 @@ func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem
     @assert(tf.joinStyle == .Round)
     @assert(joins.comboBox.selectedIdx == 1)
 
-    // Group separators: one above the effects block, one above the text block
+    // Most specific first: the text form's own fields come before the shared BaseForm
+    // block, even though the language declares 'using base' first
+    @assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
+    @assert(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
+    @assert(testItemIndex(prop, #nameof(BaseForm.borderSize)) < testItemIndex(prop, "Effects"))
+
+    // Group separator above the scale/rotate/opacity/shadow block
     @assert(testFindItem(prop, "Effects") != null)
-    @assert(testFindItem(prop, "Text") != null)
 
     // The x/y and w/h rows close the grid, below their own separator
     let n = prop.grid.items.count
@@ -122,10 +139,10 @@ func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem
 
     let border = testFindItem(prop, #nameof(BaseForm.borderSize))
     @assert(border != null and !border.line.isVisible())
+    let round = testFindItem(prop, #nameof(FormShape.roundSize))
+    @assert(round != null and !round.line.isVisible())
     let effects = testFindItem(prop, "Effects")
     @assert(effects != null and !effects.line.isVisible())
-    let shape = testFindItem(prop, "Shape")
-    @assert(shape != null and !shape.line.isVisible())
 
     f.shutdown()
 }

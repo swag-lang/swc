@@ -13,7 +13,7 @@ struct FormShape
 {
     using base:     BaseForm
     kind:           FormShapeKind = Ellipse
-    #[Category("Shape"), Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
+    #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
     roundSize:      f32 = 10
 
     #[Serialization.NoSerialize]

@@ -96,9 +96,11 @@ internal impl Properties
             }
 
             // Clicking a row (but not its editor) puts the keyboard focus on the
-            // grid in navigation mode, so the arrows work right after a click.
+            // grid in navigation mode, so the arrows work right after a click. A miss
+            // (the gap between two rows) must not select-and-reveal the first row —
+            // that would jump the scroll back to the top.
             if !prop.isEditorWnd(mouseEvt.target) do
-                prop.focusNav()
+                prop.focusNav(fallbackToFirst: false)
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseDoubleClick and mouseEvt.button == .Left:
 

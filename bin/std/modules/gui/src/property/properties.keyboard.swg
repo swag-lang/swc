@@ -24,13 +24,15 @@ public impl Properties
 {
     // Give the keyboard focus to the grid in navigation mode. Selects the first
     // navigable row when none is selected yet.
-    mtd focusNav()
+    mtd focusNav(fallbackToFirst = true)
     {
         if !.edView do
             return
         // Keep the current selection (e.g. the row just clicked, even when it is a
         // header/value row); only fall back to the first row when nothing is set.
-        if !.selItem do
+        // A mouse click on empty space opts out (fallbackToFirst false): selecting the
+        // first row would ensure-visible it and yank the scroll back to the top.
+        if !.selItem and fallbackToFirst do
             .setSelItem(.firstNavigable(forward: true))
         .edView.setFocus()
         .invalidate()

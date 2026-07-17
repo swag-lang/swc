@@ -94,6 +94,58 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(border.line.position.width > 250)
     @assert(border.line.position.width >= prop.grid.position.width - 24)
 
+    // The placeholder section row consumes no vertical room: the first real row
+    // starts right at the top of the grid (only its own margin above)
+    @assert(prop.grid.items[0].flags.has(.Section))
+    @assert(prop.grid.items[0].line.position.height == 0)
+    @assert(prop.grid.items[0].line.margin.y == 0 and prop.grid.items[0].line.margin.w == 0)
+
+    f.shutdown()
+}
+
+// Clicking inside the grid must never yank the scroll back to the top: neither on a
+// row, nor on its editors, nor in the dead zone between two rows (a missed hit used
+// to fall back to selecting — and revealing — the first row).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    let prop = testSetupPropWnd(&f)
+
+    discard testAddText(f.capture, 10, 20, 100, 50)
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let posItem = testFindItem(prop, "position")
+    @assert(posItem != null)
+
+    // Scroll all the way down (content is taller than the prop pane)
+    prop.grid.scrollWnd.setScrollPos(0, 10000)
+    let sc = prop.grid.scrollWnd.getScrollPos()
+    @assert(sc.y > 0)
+
+    let stack = posItem.line.childs[0]
+    f.gui.clickWnd((cast(*EditCtrl) stack.childs[0]).edit)
+    f.gui.pump()
+    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+
+    f.gui.clickWnd((cast(*EditCtrl) stack.childs[1]).edit)
+    f.gui.pump()
+    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+
+    f.gui.clickWnd(posItem.line)
+    f.gui.pump()
+    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+
+    // Dead zone just above the row (inside the separator margin)
+    var pt = posItem.line.getSurfaceRect().center()
+    pt.y = posItem.line.getSurfaceRect().y - 8
+    posItem.line.surface.surfaceToScreen(&pt)
+    f.gui.click(pt)
+    f.gui.pump()
+    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+
     f.shutdown()
 }
 

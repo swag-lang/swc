@@ -453,12 +453,18 @@ impl Properties
             .sections.add({item, 0})
         }
 
-        // Creates an empty parent item
+        // Creates an empty parent item. The placeholder row is invisible: it must not
+        // consume any vertical room (addItem turns a zero height into gridLineHeight,
+        // and gives Panel rows their inter-row margins).
         else
         {
             let v: Swag.TypeValue
             item = .addItem(v, null, null, 0, .Zero)
             item.flags.add(.Section | .NoSeparator | .Expanded | .NoFocus)
+            item.valueCellHeight = 0
+            item.line.position.height = 0
+            item.line.preferredSize.y = 0
+            item.line.margin.y, item.line.margin.w = 0
         }
 
         let typeStruct = cast(const *Swag.TypeInfoStruct) typeof

@@ -452,7 +452,7 @@ func __panicBox(msg, title: string)
     }
 }
 
-func __captureStack(skip: u32, wh: [..] *void)->u32
+func __captureStack(skip: u32, wh: #nonull [..] #nonull *void)->u32
 {
     using __Win32RT
     let nb = RtlCaptureStackBackTrace(skip + 1, cast() @countof(wh), cast() @dataof(wh), null)
@@ -566,7 +566,7 @@ func __symbolize(addr: *void)->__SwagSym
     return r
 }
 
-func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
+func __logStackTrace(wh: #nonull [..] #nonull *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
 {
     var hasStarted = false
 

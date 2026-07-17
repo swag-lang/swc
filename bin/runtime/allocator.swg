@@ -15,7 +15,7 @@ struct AllocatorHeader
     next:          *AllocatorHeader
     prevFree:      *AllocatorHeader
     nextFree:      *AllocatorHeader
-    stack:         [16] *void
+    stack:         [16] #nonull *void = undefined
     stackCount:    u32
     allocId:       u32
     classIndex:    u32

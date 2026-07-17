@@ -25,9 +25,10 @@ namespace TypeRuntimeHash
 
 enum class TypeInfoFlagsE : uint8_t
 {
-    Zero     = 0,
-    Const    = 1 << 0,
-    Nullable = 1 << 1,
+    Zero            = 0,
+    Const           = 1 << 0,
+    Nullable        = 1 << 1,
+    ExplicitNonNull = 1 << 2,
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
@@ -114,6 +115,7 @@ public:
 
     bool isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
+    bool isExplicitNonNull() const noexcept { return flags_.has(TypeInfoFlagsE::ExplicitNonNull); }
     bool isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
     bool isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }

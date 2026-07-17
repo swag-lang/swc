@@ -322,6 +322,7 @@ namespace
         }
 
         applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
+        SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), modifierFlags));
 
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
@@ -383,6 +384,7 @@ namespace
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
 
         applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
+        SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), modifierFlags));
 
         if (tok.id == TokenId::SymEqual)
         {
@@ -483,6 +485,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
 
     applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
     markMoveAssignmentSourceAddressableStorage(modifierFlags, nodeRightView);
+    SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), modifierFlags));
 
     if (tok.id == TokenId::SymEqual)
     {

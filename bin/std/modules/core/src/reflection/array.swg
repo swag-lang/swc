@@ -116,6 +116,9 @@ func swapValues(basePtr: *void, valueType: typeinfo, indexA, indexB: u64)
 // Add an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)
 func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
 {
+    if valueType.flags & TypeInfoFlags.RequiresExplicitInit do
+        @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
+
     // We will treat the array as a buffer of bytes, just to be able to access the fields
     let arr       = cast(*Array'u8) arrayPtr
     let sizeValue = valueType.sizeof
@@ -123,6 +126,8 @@ func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
     var valueTypeStruct: const *TypeInfoStruct
     if isStruct(valueType) do
         valueTypeStruct = cast() valueType
+    if valueTypeStruct and !valueTypeStruct.opInit do
+        @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
 
     // If we need to reallocate the buffer, we will also have to deal with
     // structures specials functions
@@ -156,7 +161,7 @@ func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
 
     let result = arr.buffer + (arr.count * valueType.sizeof)
     arr.count += 1
-    if valueTypeStruct and valueTypeStruct.opInit do
+    if valueTypeStruct do
         valueTypeStruct.opInit(result)
     else do
         Memory.clear(result, sizeValue)

@@ -172,6 +172,8 @@ namespace
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
         if (typeInfo.isNullable())
             appendPublicApiSymbolFragment(out, "nullable");
+        else if (typeInfo.isExplicitNonNull())
+            appendPublicApiSymbolFragment(out, "nonull");
         if (typeInfo.isConst())
             appendPublicApiSymbolFragment(out, "const");
 

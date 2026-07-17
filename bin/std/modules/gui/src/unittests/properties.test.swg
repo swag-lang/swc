@@ -1354,31 +1354,28 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(!nameItem.isModified)
 
     // Bool list rows span the whole row (the side description wraps over the control
-    // width), while the revert arrow stays anchored to the value column.
+    // width). List mode has NO revert button: a modified row is marked by the painted
+    // vertical accent bar (VSCode-style), and reset lives in the context menu.
     let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))
     @assert(enabledItem != null and enabledItem.checkBox != null)
     data.enabled = false
     prop.updateStates()
     @assert(enabledItem.isModified)
-    @assert(enabledItem.revertButton != null and enabledItem.revertButton.isVisible())
+    @assert(enabledItem.revertButton == null)
     let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
     @assert(enabledItem.checkBox.parent.position.width > contentWidth)
-    let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
-    @assert(Math.isEqualEpsilon(enabledItem.label.position.x + enabledItem.revertButton.position.right(), actionRight, 0.01))
 
-    // Edit the value away from its default: the row becomes modified and shows the revert arrow.
+    // Edit the value away from its default: the row becomes modified (no button either).
     countItem.editBox.setText("99")
     prop.validateNative(countItem)
     @assert(data.count == 99)
     @assert(countItem.isModified)
-    @assert(countItem.revertButton != null and countItem.revertButton.isVisible())
-    @assert(Math.isEqualEpsilon(countItem.label.position.x + countItem.revertButton.position.right(), actionRight, 0.01))
+    @assert(countItem.revertButton == null)
 
-    // Reset restores the declared default and clears the modified state / hides the arrow.
+    // Reset (the context-menu action path) restores the declared default.
     prop.resetItemDefault(countItem)
     @assert(data.count == 42)
     @assert(!countItem.isModified)
-    @assert(!countItem.revertButton.isVisible())
 
     host.shutdown()
 }
@@ -1946,6 +1943,72 @@ struct PropSameCategData
     }
     @assert(descItem != null and descItem.checkBox != null)
     @assert(descItem.checkBox.parent.position.width > cast(f32) opt.prop.sizeEditValue)
+
+    host.shutdown()
+}
+
+
+enum PropAlignChoice { A, B, C }
+
+struct PropAlignData
+{
+    #[Properties.Name("Slide"), Properties.SliderMinMax(0, 100)]
+    slide: f32 = 10
+    #[Properties.Name("Choice")]
+    choice = PropAlignChoice.A
+    #[Properties.Name("Count")]
+    count: s32 = 5
+}
+
+// List mode: every value editor (slider, combo, edit box) shares the same fixed edit
+// width, so their right edges line up — and stay lined up after the control is resized
+// (regression: anchored widths drifted with the resize history).
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+
+    var data: PropAlignData
+    let prop = Properties.create(&host.root, {0, 0, 400, 560}, .List)
+    prop.addStruct(data, "S")
+    host.root.applyLayout()
+    host.pump()
+
+    func assertAligned(prop: *Properties)
+    {
+        var right = -1.0'f32
+        for item in prop.items
+        {
+            var w: *Wnd
+            if item.sliderBox != null do
+                w = item.sliderBox
+            elif item.comboBox != null do
+                w = item.comboBox
+            elif item.editBox != null do
+                w = item.editBox
+            if !w do
+                continue
+
+            if right < 0 do
+                right = w.position.right()
+            @assert(Math.isEqualEpsilon(w.position.right(), right, 0.01))
+        }
+
+        @assert(right > 0)
+    }
+
+    assertAligned(prop)
+
+    // Grow then shrink the control: the editors must not drift
+    prop.setPosition({0, 0, 760, 560})
+    host.root.applyLayout()
+    host.pump()
+    assertAligned(prop)
+
+    prop.setPosition({0, 0, 300, 560})
+    host.root.applyLayout()
+    host.pump()
+    assertAligned(prop)
 
     host.shutdown()
 }

@@ -23,15 +23,12 @@ impl Properties
 
         // Match the other value editors: fill the value column in grid mode, but
         // stay left-aligned at its edit size in list mode (otherwise the color row
-        // is the only one that ends up centered).
+        // is the only one that ends up centered). maxSize caps the stack stretch;
+        // an anchored width would drift with the resize history.
         let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
         line.maxSize.x = width
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
-        else
-        {
-            line.anchorStyle = .X
-        }
         .adaptCondensedControl(line)
 
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})

@@ -28,6 +28,38 @@ It is good practice to check for null pointers before dereferencing them to avoi
 }
 
 /**
+# Explicit Non-Null Pointers
+
+`#nonull` is the migration qualifier for pointers that must be initialized with a value.
+Such a pointer cannot be initialized with `null` and has no implicit default. A struct field
+of this type must therefore be supplied by an aggregate initializer unless it declares an
+explicit default.
+
+During the migration, unannotated pointers retain their legacy nullable behavior. Use
+`#null` when null is part of the intended contract and `#nonull` when it is not.
+`undefined` remains an explicit low-level escape hatch and must only be used when the
+storage is initialized manually before it is read.
+
+A value with `opDrop` can be consumed with `#move` only when its type has a complete
+implicit default. The compiler needs that valid default to reset the moved-from source;
+give every field a default before moving a droppable struct that contains required fields.
+*/
+#test
+{
+    struct NonNullPointerHolder
+    {
+        ptr: #nonull *u8
+    }
+
+    var value = 42'u8
+    let ptr: #nonull *u8 = &value
+    let holder = NonNullPointerHolder{ptr: &value}
+
+    #assert(#typeof(ptr) == #nonull *u8)
+    #assert(#typeof(holder.ptr) == #nonull *u8)
+}
+
+/**
 # Taking the Address of a Variable
 
 The `&` operator returns the **address** of a variable, producing a pointer to it.

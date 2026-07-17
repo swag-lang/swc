@@ -92,7 +92,7 @@ AstNodeRef Parser::parseAlias()
     // Letting the full expression parser run here would make value expressions look
     // valid until sema, producing poorer diagnostics and ambiguous AST shapes.
     // 1) Definitely looks like a type (array, func, struct literal type, pointer type, etc.)
-    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierNullable, TokenId::SymAsterisk))
+    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierNullable, TokenId::ModifierNonNull, TokenId::SymAsterisk))
     {
         nodePtr->nodeExprRef = parseType();
     }

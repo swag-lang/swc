@@ -288,10 +288,8 @@ impl Properties
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else
-                {
-                    .anchorStyle = .X
-                }
+                else do
+                    .preferredSize.x = editWidth
                 if me.kind == .Condensed do
                     .comboBoxFlags.add(.Flat)
             }

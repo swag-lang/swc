@@ -363,6 +363,9 @@ namespace
 
     Result emitVariableDefaultValueToAddress(CodeGen& codeGen, const SymbolVariable& symVar, const MicroReg dstReg, uint32_t localSize)
     {
+        if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), symVar.typeRef()))
+            return Result::Continue;
+
         const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
         TypeRef         storageTypeRef = symVar.typeRef();
         if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
@@ -383,9 +386,9 @@ namespace
             return Result::Continue;
         }
 
-        if (!emitDefaultValueToLocalStack(codeGen, symVar, dstReg, localSize))
-            CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, localSize);
-        return Result::Continue;
+        if (emitDefaultValueToLocalStack(codeGen, symVar, dstReg, localSize))
+            return Result::Continue;
+        return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, symVar.typeRef(), dstReg);
     }
 
     void codeGenIdentifierVariable(CodeGen& codeGen, const SymbolVariable& symVar)

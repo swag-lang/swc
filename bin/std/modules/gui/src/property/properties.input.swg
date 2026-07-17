@@ -8,6 +8,18 @@ using Core, Pixel
 // properties.menu.swg; the row painting in properties.paint.swg.
 internal impl Properties
 {
+    // True when the event target belongs to the row area (the edView or anything inside
+    // it). The scroll bars are drawn by the scroll window itself, so a click or hover on
+    // them targets the scrollWnd and is excluded — scrolling never selects or hot-tracks
+    // a row through the bar.
+    mtd isOverRows(target: #null *Wnd)->bool
+    {
+        if !target or !.edView do
+            return false
+        let view = cast(*Wnd) .edView
+        return target == view or view.isParentOf(target)
+    }
+
     mtd hitTest(ptLoc: Math.Point)->#null *PropertiesItem
     {
         let pt = ptLoc + .scrollWnd.getScrollPos()
@@ -70,6 +82,11 @@ internal impl Properties
                 return true
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed:
+            // A press outside the row area (on the scroll bar, typically) must not touch the
+            // selection: scrolling and selecting are separate gestures.
+            if !prop.isOverRows(mouseEvt.target) do
+                break
+
             let pt = prop.surfaceToLocal(mouseEvt.surfacePos)
 
             prop.selItem = prop.hitTest(pt)
@@ -103,6 +120,8 @@ internal impl Properties
                 prop.focusNav(fallbackToFirst: false)
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseDoubleClick and mouseEvt.button == .Left:
+            if !prop.isOverRows(mouseEvt.target) do
+                break
 
             // Toggle/Expand
             if prop.isGridLike() and
@@ -137,8 +156,9 @@ internal impl Properties
                 return true
             }
 
-            // Hot item
-            let hit = prop.hitTest(pt)
+            // Hot item. The scroll bar area is not part of the rows: hovering it must not
+            // keep (or make) a row hot under the bar.
+            let hit = prop.isOverRows(mouseEvt.target) ? prop.hitTest(pt) : null
             if hit != prop.hotItem
             {
                 // Leaving a row: drop its tooltip so it does not linger over the next row.

@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
@@ -28,6 +29,35 @@ namespace
         AstNodeRef    nodeRef = AstNodeRef::invalid();
         SourceCodeRef codeRef = SourceCodeRef::invalid();
     };
+
+    AstNodeRef unwrapArrayElemNodeRef(const Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::InitializerExpr))
+            {
+                nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::CastExpr))
+            {
+                nodeRef = node.cast<AstCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::AutoCastExpr))
+            {
+                nodeRef = node.cast<AstAutoCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            return nodeRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
 
     Result failArrayDimCount(const CastArrayArgs& args, size_t srcCount, size_t dstCount)
     {
@@ -71,6 +101,11 @@ namespace
         return args.castRequest->fail(diagnosticId, args.srcTypeRef, args.dstTypeRef);
     }
 
+    Result failArrayMissingRequiredValues(const CastArrayArgs& args)
+    {
+        return args.castRequest->fail(DiagnosticId::sema_err_type_requires_init, args.dstTypeRef, args.dstTypeRef);
+    }
+
     ArrayElemLocation arrayElemLocation(const CastArrayArgs& args, size_t elemIndex)
     {
         if (!args.castRequest->errorNodeRef.isValid())
@@ -105,8 +140,15 @@ namespace
             elemCtx.setConstantFoldingSrc(valueRef);
         const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
+        {
             args.castRequest->failure = elemCtx.failure;
-        return res;
+            return res;
+        }
+
+        const AstNodeRef valueNodeRef = unwrapArrayElemNodeRef(*args.sema, location.nodeRef);
+        if (valueNodeRef.isInvalid())
+            return Result::Continue;
+        return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
     }
 
     Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef, ConstantRef& outRef)
@@ -134,6 +176,7 @@ namespace
         TaskContext&   ctx       = args.sema->ctx();
         const uint64_t arraySize = args.dstType->sizeOf(ctx);
         ByteArray      buffer(arraySize);
+        SWC_INTERNAL_CHECK(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, buffer.span(), args.dstTypeRef) == Result::Continue);
         SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, buffer.span(), *args.dstType, values) == Result::Continue);
         const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
         SWC_ASSERT(result.isValid());
@@ -199,6 +242,9 @@ namespace
 
     Result castAggregateToArray(const CastArrayArgs& args)
     {
+        const AstNodeRef waitNodeRef = args.castRequest->errorNodeRef.isValid() ? args.castRequest->errorNodeRef : args.sema->curNodeRef();
+        SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(*args.sema, args.dstTypeRef, waitNodeRef));
+
         const auto&                     dstDims        = args.dstType->payloadArrayDims();
         const TypeRef                   dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
         const auto&                     srcTypes       = args.srcType->payloadAggregate().types;
@@ -220,6 +266,8 @@ namespace
 
             TypeManager&  typeMgr         = args.sema->typeMgr();
             const TypeRef dstSubArrayType = typeMgr.addType(TypeInfo::makeArray(subDims.span(), dstElemTypeRef, args.dstType->flags()));
+            if (srcTypes.size() < dstTopDim && SymbolStruct::typeRequiresExplicitInitialization(*args.sema, dstSubArrayType))
+                return failArrayMissingRequiredValues(args);
 
             for (size_t i = 0; i < srcTypes.size(); ++i)
             {
@@ -236,6 +284,7 @@ namespace
             ByteArray                  buffer(arraySize);
             const std::span<std::byte> bytes        = buffer.span();
             const uint64_t             subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
+            SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
 
             for (size_t i = 0; i < srcValues->size(); ++i)
             {
@@ -257,6 +306,8 @@ namespace
 
         if (srcTypes.size() > totalCount)
             return failArrayTooManyValues(args, srcTypes.size(), totalCount);
+        if (srcTypes.size() < totalCount && SymbolStruct::typeRequiresExplicitInitialization(*args.sema, dstElemTypeRef))
+            return failArrayMissingRequiredValues(args);
 
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {

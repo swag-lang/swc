@@ -701,6 +701,8 @@ namespace
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
         if (typeInfo.isArray())
             return emitArrayDefaultValue(codeGen, typeRef, dstAddressReg);
+        if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), typeRef))
+            return Result::Continue;
 
         const uint32_t size = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, size);
@@ -728,6 +730,9 @@ namespace
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemTypeRef, dstAddressReg, static_cast<uint32_t>(elemCount));
         if (!storageElemType.isArray())
         {
+            if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), storageElemTypeRef))
+                return Result::Continue;
+
             const uint64_t totalSize = elemCount * elemSize;
             SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
             CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
@@ -799,6 +804,11 @@ namespace
     }
 }
 
+Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, const TypeRef typeRef, const MicroReg dstAddressReg)
+{
+    return emitImplicitDefaultValue(codeGen, typeRef, dstAddressReg);
+}
+
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
 {
     const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
@@ -818,7 +828,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, checkedTypeSizeInBytes(codeGen, typeInfo));
         return Result::Continue;
     }
-    if (symStruct.hasImplicitUndefinedDefault())
+    if (symStruct.hasImplicitUndefinedDefault() || symStruct.requiresExplicitInitialization())
         return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
@@ -864,7 +874,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
         return Result::Continue;
     }
-    if (symStruct.hasImplicitUndefinedDefault())
+    if (symStruct.hasImplicitUndefinedDefault() || symStruct.requiresExplicitInitialization())
     {
         for (uint32_t i = 0; i < count; ++i)
         {
@@ -919,6 +929,64 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         CodeGenMemoryHelpers::emitMemZero(codeGen, cursorReg, sizeOf);
     else
         SWC_RESULT(emitStructDefaultValue(codeGen, typeRef, cursorReg));
+    builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+    builder.placeLabel(doneLabel);
+    return Result::Continue;
+}
+
+Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, const MicroReg dstAddressReg, const uint32_t count)
+{
+    if (!count)
+        return Result::Continue;
+
+    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    if (rawTypeRef.isValid())
+        typeRef = rawTypeRef;
+
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (typeInfo.isStruct())
+        return emitStructDefaultValue(codeGen, typeRef, dstAddressReg, count);
+    if (count == 1)
+        return emitTypeDefaultValue(codeGen, typeRef, dstAddressReg);
+
+    const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;
+        SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+        const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
+        SWC_RESULT(emitTypeDefaultValue(codeGen, typeRef, elemAddressReg));
+    }
+
+    return Result::Continue;
+}
+
+Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, const MicroReg dstAddressReg, const MicroReg countReg)
+{
+    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    if (rawTypeRef.isValid())
+        typeRef = rawTypeRef;
+
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (typeInfo.isStruct())
+        return emitStructDefaultValue(codeGen, typeRef, dstAddressReg, countReg);
+
+    const uint32_t sizeOf    = checkedTypeSizeInBytes(codeGen, typeInfo);
+    MicroBuilder&  builder   = codeGen.builder();
+    const auto     loopLabel = builder.createLabel();
+    const auto     doneLabel = builder.createLabel();
+    const auto     cursorReg = codeGen.nextVirtualIntRegister();
+    const auto     iterReg   = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
+    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(loopLabel);
+    SWC_RESULT(emitTypeDefaultValue(codeGen, typeRef, cursorReg));
     builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);

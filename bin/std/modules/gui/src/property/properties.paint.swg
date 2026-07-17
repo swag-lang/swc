@@ -111,6 +111,15 @@ internal impl Properties
             painter.drawRoundRect(r1, 4, 4, item.aniFocusBorder.cur())
         }
 
+        // List rows: a field whose value differs from its declared default is marked by a
+        // small vertical accent bar along the row's left edge (the VSCode settings look).
+        // Grid keeps its revert-arrow column instead.
+        if !.isGridLike() and item.isModified and .showReverts
+        {
+            let bar = Math.Rectangle{r.x + 1, r.y + 4, 3, Math.max(r.height - 8, 4.0)}
+            painter.fillRoundRect(bar, 1.5, 1.5, colors.prop_FocusBorder)
+        }
+
         // Validation feedback: an inline colored message bar stacked under the value cell,
         // in both list and grid modes.
         .paintValidationBar(painter, item)

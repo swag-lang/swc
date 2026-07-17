@@ -269,6 +269,14 @@ namespace SemaGeneric
             return flags;
         }
 
+        SymbolStructFlags clonedGenericStructFlags(const SymbolStruct& root)
+        {
+            constexpr SymbolStructFlags inheritedFlags = SymbolStructFlagsE::TypeInfo |
+                                                         SymbolStructFlagsE::GenericRoot |
+                                                         SymbolStructFlagsE::Union;
+            return root.structFlags().mask(inheritedFlags);
+        }
+
         Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef)
         {
             if (auto* function = root.safeCast<SymbolFunction>())
@@ -296,7 +304,7 @@ namespace SemaGeneric
                 cloneDecl->spanWhereRef         = SpanRef::invalid();
 
                 auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), cloneDecl, cloneDecl->tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
-                instance->extraFlags() = st.extraFlags();
+                instance->extraFlags() = clonedGenericStructFlags(st);
                 instance->setAttributes(sema.ctx(), st.attributes());
                 instance->setOwnerSymMap(st.ownerSymMap());
                 instance->setDeclNodeRef(cloneRef);
@@ -309,7 +317,7 @@ namespace SemaGeneric
             cloneDecl.spanWhereRef         = SpanRef::invalid();
 
             auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
-            instance->extraFlags() = st.extraFlags();
+            instance->extraFlags() = clonedGenericStructFlags(st);
             instance->setAttributes(sema.ctx(), st.attributes());
             instance->setOwnerSymMap(st.ownerSymMap());
             instance->setDeclNodeRef(cloneRef);

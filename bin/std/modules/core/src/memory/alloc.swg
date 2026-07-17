@@ -123,6 +123,15 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string = null, loc = #caller
 func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->*u8
 {
     let userHint = hint orelse type.fullname
+    if type.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
+        @panic("Memory.new cannot default-initialize this type", loc)
+    if type.kind == Swag.TypeInfoKind.Struct
+    {
+        let typeStruct = cast(const *Swag.TypeInfoStruct) type
+        if !typeStruct.opInit do
+            @panic("Memory.new cannot default-initialize this type", loc)
+    }
+
     let ptr      = alloc(cast(u64) type.sizeof, allocator, alignment, userHint, loc)
     if type.kind == Swag.TypeInfoKind.Struct
     {

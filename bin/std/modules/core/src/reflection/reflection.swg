@@ -117,9 +117,13 @@ using Swag
 
     func reset(dst: *void, type: typeinfo)
     {
+        if type.flags & TypeInfoFlags.RequiresExplicitInit do
+            @panic("Reflection.reset cannot default-initialize this type", #curlocation)
         if type.kind == TypeInfoKind.Struct
         {
             let ptrStruct = cast(const *Swag.TypeInfoStruct) type
+            if !ptrStruct.opInit do
+                @panic("Reflection.reset cannot default-initialize this type", #curlocation)
             if ptrStruct.opDrop do
                 ptrStruct.opDrop(dst)
             ptrStruct.opInit(dst)

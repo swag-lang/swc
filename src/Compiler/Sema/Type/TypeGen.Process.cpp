@@ -434,7 +434,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             // the target storage and remember its offset.
             auto [offset, rtBase] = allocateTypeInfoPayload(storage, kind);
             entry.offset          = offset;
-            initTypeInfoPayload(sema, storage, *rtBase, offset, kind, type, entry);
+            initTypeInfoPayload(sema, storage, *rtBase, offset, kind, key, type, entry);
 
             // Compute direct dependencies required to wire this payload.
             entry.deps = computeDeps(tm, sema, type, kind);

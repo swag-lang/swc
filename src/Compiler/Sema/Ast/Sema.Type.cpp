@@ -280,7 +280,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     const TypeRef   qualifiedTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
     const TypeInfo& qualifiedType    = sema.typeMgr().get(qualifiedTypeRef);
 
-    TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+    TypeInfoFlags typeFlags = qualifiedType.flags();
     if (this->hasFlag(AstQualifiedTypeFlagsE::Const))
     {
         switch (qualifiedType.kind())
@@ -307,19 +307,34 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
         typeFlags.add(TypeInfoFlagsE::Const);
     }
 
+    TokenId        nullabilityTokenId = TokenId::Invalid;
+    TypeInfoFlagsE nullabilityFlag    = TypeInfoFlagsE::Zero;
     if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
+    {
+        nullabilityTokenId = TokenId::ModifierNullable;
+        nullabilityFlag    = TypeInfoFlagsE::Nullable;
+    }
+    else if (this->hasFlag(AstQualifiedTypeFlagsE::ExplicitNonNull))
+    {
+        nullabilityTokenId = TokenId::ModifierNonNull;
+        nullabilityFlag    = TypeInfoFlagsE::ExplicitNonNull;
+    }
+
+    if (nullabilityFlag != TypeInfoFlagsE::Zero)
     {
         if (!qualifiedType.isSupportsNullableQualifier())
         {
             const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
-            const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
+            const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {nullabilityTokenId});
             auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        typeFlags.add(TypeInfoFlagsE::Nullable);
+        typeFlags.remove(TypeInfoFlagsE::Nullable);
+        typeFlags.remove(TypeInfoFlagsE::ExplicitNonNull);
+        typeFlags.add(nullabilityFlag);
     }
 
     TypeRef      typeRef;

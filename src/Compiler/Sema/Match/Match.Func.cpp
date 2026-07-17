@@ -2921,7 +2921,10 @@ namespace
             if (resolvedArg.bindsReferenceToValue)
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
             if (resolvedArg.movesValueToParam)
+            {
+                SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, entry.argRef, selectedFn.parameters()[i]->typeRef(), AstModifierFlagsE::Move));
                 SWC_RESULT(attachMovedValueRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
+            }
             if (i < numParams)
                 SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, selectedFn, selectedFn.parameters()[i]->typeRef(), finalArgRef));
 

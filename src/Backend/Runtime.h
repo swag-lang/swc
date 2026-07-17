@@ -129,6 +129,8 @@ namespace Runtime
         Character         = 0x00008000,
         Const             = 0x00010000,
         Nullable          = 0x00020000,
+        ExplicitNonNull   = 0x00040000,
+        RequiresExplicitInit = 0x00080000,
     };
 
     enum class TypeValueFlags : uint32_t

@@ -78,10 +78,8 @@ impl Properties
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else
-                {
-                    .anchorStyle = .X
-                }
+                else do
+                    .preferredSize.x = editWidth
                 if me.kind == .Condensed do
                     .comboBoxFlags.add(.Flat)
             }
@@ -123,10 +121,8 @@ impl Properties
             }
             elif me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else
-            {
-                .anchorStyle = .X
-            }
+            else do
+                .preferredSize.x = editWidth
 
             if me.kind != .Panel do
                 .maxSize.x = editWidth
@@ -174,10 +170,8 @@ impl Properties
             .maxSize.x = editWidth
             if me.isGridLike() do
                 .dockStyle = .CenterKeepSizeVert
-            else
-            {
-                .anchorStyle = .X
-            }
+            else do
+                .preferredSize.x = editWidth
             .editBoxFlags = .ReadOnly
         }
 

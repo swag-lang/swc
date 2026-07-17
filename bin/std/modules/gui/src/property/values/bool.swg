@@ -64,10 +64,8 @@ impl Properties
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else
-                {
-                    .anchorStyle = .X
-                }
+                else do
+                    .preferredSize.x = editWidth
                 if me.kind == .Condensed do
                     .comboBoxFlags.add(.Flat)
             }
@@ -127,15 +125,12 @@ impl Properties
             line.maxSize.x = editWidth
 
         // Grid rows are single-line: center the editor vertically in the cell. List
-        // rows stack the editor under the name label (the row is a StackLayoutCtrl),
-        // so dock-centering would fight the stack and overlap the label — anchor the
-        // width instead and let the stack own the vertical placement.
+        // rows stack the check line under the name label and stretch it over the row
+        // width (the side description wraps over the whole control).
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
-        else
-        {
-            line.anchorStyle = .X
-        }
+        else do
+            line.layoutSpec.alignX = .Stretch
 
         if !item.label
         {

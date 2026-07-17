@@ -376,21 +376,9 @@ namespace
             return Result::Continue;
 
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        if (storageType.isArray())
-        {
-            const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
-            if (!totalSize)
-                return Result::Continue;
-
-            SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
-            CodeGenMemoryHelpers::emitMemZero(codeGen, dstBaseReg, static_cast<uint32_t>(totalSize));
+        if (!storageType.isArray() && !storageType.isStruct())
             return Result::Continue;
-        }
-
-        if (!storageType.isStruct())
-            return Result::Continue;
-
-        return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageTypeRef, dstBaseReg);
+        return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, storageTypeRef, dstBaseReg);
     }
 
     bool tryResolveExistingAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)

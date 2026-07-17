@@ -118,7 +118,7 @@ private:
     TypeGenCache&                                  cacheFor(const DataSegment& storage);
     static LayoutKind                              layoutKindOf(const TypeInfo& type);
     static Result                                  rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef);
-    static void                                    initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeInfo& type, TypeGenCache::Entry& entry);
+    static void                                    initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry);
     static SmallVector<TypeRef>                    computeDeps(TypeManager& tm, Sema& sema, const TypeInfo& type, LayoutKind kind);
     static void                                    wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind);
     static std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind);

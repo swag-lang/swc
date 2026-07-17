@@ -260,10 +260,10 @@ impl Properties
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else
-                {
-                    .anchorStyle = .X
-                }
+                else do
+                    // Fixed edit width: an anchored width would drift with the resize
+                    // history and break the right-edge alignment across editors
+                    .preferredSize.x = editWidth
             }
 
             me.adaptCondensedControl(slider)
@@ -301,10 +301,8 @@ impl Properties
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert
-                else
-                {
-                    .anchorStyle = .X
-                }
+                else do
+                    .preferredSize.x = editWidth
             }
 
             me.adaptCondensedControl(ed)

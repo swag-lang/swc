@@ -568,6 +568,8 @@ namespace Swag
         Character         = 0x00008000     // This is a 32 bits character
         Const             = 0x00010000     // This is const
         Nullable          = 0x00020000     // This is a nullable type
+        ExplicitNonNull   = 0x00040000     // This is an explicitly non-null type
+        RequiresExplicitInit = 0x00080000  // This type has no complete implicit default value
     }
 
     struct Interface
@@ -656,7 +658,7 @@ namespace Swag
     struct TypeInfoStruct
     {
         using base:      TypeInfo
-        opInit:          func(*void)              // Pointer to the function to initialize an instance of that struct
+        opInit:          func(*void)              // Initialization function, or null when the struct has no implicit default
         opDrop:          func(*void)              // Pointer to the function to drop an instance of that struct
         opPostCopy:      func(*void)              // Pointer to the function to call after a copy
         opPostMove:      func(*void)              // Pointer to the function to call after a move

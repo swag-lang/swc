@@ -498,6 +498,8 @@ namespace
 
         if (typeInfo.isNullable())
             out += "#null ";
+        else if (typeInfo.isExplicitNonNull())
+            out += "#nonull ";
         if (typeInfo.isConst())
             out += "const ";
 

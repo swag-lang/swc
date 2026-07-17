@@ -576,6 +576,11 @@ namespace
         return Result::Error;
     }
 
+    Result reportTypeRequiresInit(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef typeRef)
+    {
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, finalTypeErrorRef(sema, context), typeRef);
+    }
+
     Result tryResolveVarDeclSetInit(Sema& sema, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols, bool isConst, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, SemaNodeView& nodeInitView, VarDeclSetInitInfo& outInfo)
     {
         outInfo = {};
@@ -620,6 +625,8 @@ namespace
             !payload->calledFn->attributes().hasRtFlag(RtAttributeFlagsE::Complete))
         {
             SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
+            if (SymbolStruct::typeRequiresExplicitInitialization(sema, explicitTypeRef))
+                return reportTypeRequiresInit(sema, context, explicitTypeRef);
             outInfo.defaultValueCstRef = explicitType->payloadSymStruct().resolveImplicitDefaultValueRef(sema, explicitTypeRef);
         }
 
@@ -922,6 +929,7 @@ namespace
 
                 const TypeRef declTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
                 SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeInitView.nodeRef(), nodeInitView.typeRef(), declTypeRef, initModifiers, true));
+                SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, nodeInitView.nodeRef(), declTypeRef, initModifiers));
             }
             SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
         }
@@ -943,13 +951,21 @@ namespace
 
         SWC_RESULT(validateFinalType(sema, context, finalTypeRef, isConst, isParameter, isUsing));
 
-        const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
+        const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
+        const bool       isStructField     = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
         const bool       directSelfStructField = explicitTypeRef.isValid() &&
                                            explicitType &&
                                            explicitType->isStruct() &&
-                                           fieldOwnerSymMap &&
-                                           fieldOwnerSymMap->isStruct() &&
+                                           isStructField &&
                                            &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
+        bool requiresExplicitInit = false;
+        if (context.nodeInitRef.isInvalid() && !isParameter && finalTypeRef.isValid() && !directSelfStructField)
+        {
+            SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, finalTypeRef, context.nodeTypeRef));
+            requiresExplicitInit = SymbolStruct::typeRequiresExplicitInitialization(sema, finalTypeRef);
+            if (requiresExplicitInit && !isStructField)
+                return reportTypeRequiresInit(sema, context, finalTypeRef);
+        }
 
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
         ConstantRef implicitStructStoreRef = ConstantRef::invalid();
@@ -958,7 +974,7 @@ namespace
         bool        implicitStructPartInit = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
-            if (!directSelfStructField)
+            if (!directSelfStructField && !requiresExplicitInit)
             {
                 SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
                 const auto& symStruct = explicitType->payloadSymStruct();

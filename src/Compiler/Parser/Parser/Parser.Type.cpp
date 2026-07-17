@@ -95,12 +95,14 @@ namespace
     {
         TokenId                           tokenId;
         EnumFlags<AstQualifiedTypeFlagsE> flag;
+        AstQualifiedTypeFlagsE             conflictingFlag;
         uint8_t                           order;
     };
 
     constexpr QualifierDesc G_QUALIFIER_TABLE[] = {
-        {.tokenId = TokenId::ModifierNullable, .flag = AstQualifiedTypeFlagsE::Nullable, .order = 0},
-        {.tokenId = TokenId::KwdConst, .flag = AstQualifiedTypeFlagsE::Const, .order = 1},
+        {.tokenId = TokenId::ModifierNullable, .flag = AstQualifiedTypeFlagsE::Nullable, .conflictingFlag = AstQualifiedTypeFlagsE::ExplicitNonNull, .order = 0},
+        {.tokenId = TokenId::ModifierNonNull, .flag = AstQualifiedTypeFlagsE::ExplicitNonNull, .conflictingFlag = AstQualifiedTypeFlagsE::Nullable, .order = 0},
+        {.tokenId = TokenId::KwdConst, .flag = AstQualifiedTypeFlagsE::Const, .conflictingFlag = AstQualifiedTypeFlagsE::Zero, .order = 1},
     };
 
     const QualifierDesc* findQualifier(TokenId id)
@@ -124,7 +126,7 @@ AstNodeRef Parser::parseSubType()
     qualifierRefs.fill(TokenRef::invalid());
     TokenRef lastQualifierRef = TokenRef::invalid();
 
-    // Qualifiers have a canonical order (`? const T`, not `const ?T`). Enforce it
+    // Qualifiers have a canonical order (nullability before const). Enforce it
     // while parsing so sema only sees one normalized QualifiedType shape.
     for (;;)
     {
@@ -138,6 +140,17 @@ AstNodeRef Parser::parseSubType()
         if (qualifiers.has(qd->flag))
         {
             Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_type_qualifier, tokRef);
+            if (qualifierRefs[qd->order].isValid())
+                diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, qualifierRefs[qd->order]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            diag.report(*ctx_);
+            consume();
+            continue;
+        }
+
+        // Conflicting nullability qualifiers?
+        if (qd->conflictingFlag != AstQualifiedTypeFlagsE::Zero && qualifiers.has(qd->conflictingFlag))
+        {
+            Diagnostic diag = reportError(DiagnosticId::parser_err_conflicting_type_qualifier, tokRef);
             if (qualifierRefs[qd->order].isValid())
                 diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, qualifierRefs[qd->order]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);

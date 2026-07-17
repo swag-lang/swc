@@ -127,6 +127,18 @@ namespace
         return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
     }
 
+    Result failStructMissingFieldNoDefault(const CastStructArgs& args, const SymbolVariable& field)
+    {
+        const std::string_view fieldName = field.name(args.sema->ctx());
+        const Result           res       = args.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, args.srcTypeRef, args.dstTypeRef, fieldName);
+        if (args.srcType->isAggregateStruct())
+            args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
+        args.castRequest->failure.noteId      = DiagnosticId::sema_note_required_struct_field_declared_here;
+        args.castRequest->failure.noteCodeRef = field.codeRef();
+        args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, fieldName);
+        return res;
+    }
+
     void setStructFieldFailureNote(CastRequest& castRequest, DiagnosticId noteId, AstNodeRef noteNodeRef, std::string_view fieldName)
     {
         castRequest.failure.noteId      = noteId;
@@ -213,8 +225,15 @@ namespace
         CastRequest  elemCtx = makeFieldCastRequest(args, fieldNodeRef, fieldRef);
         const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
+        {
             args.castRequest->failure = elemCtx.failure;
-        return res;
+            return res;
+        }
+
+        const AstNodeRef valueNodeRef = unwrapLiteralSuffixCarrier(*args.sema, fieldNodeRef);
+        if (valueNodeRef.isInvalid())
+            return Result::Continue;
+        return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
     }
 
     Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
@@ -442,6 +461,18 @@ namespace
             dstFieldInitRefs[dstIndex] = fieldNodeRef;
         }
 
+        if (dstStruct.isUnion() && !srcTypes.empty())
+            return Result::Continue;
+
+        for (size_t i = 0; i < dstFields.size(); ++i)
+        {
+            const SymbolVariable* field = dstFields[i];
+            if (!field || dstUsed[i])
+                continue;
+            if (SymbolStruct::fieldRequiresExplicitInitialization(*args.sema, *field))
+                return failStructMissingFieldNoDefault(args, *field);
+        }
+
         return Result::Continue;
     }
 
@@ -499,6 +530,7 @@ namespace
 
         ByteArray                  buffer(structSize);
         const std::span<std::byte> bytes = buffer.span();
+        SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
 
         for (size_t i = 0; i < dstFields.size(); ++i)
         {
@@ -524,6 +556,7 @@ namespace
 
         ByteArray                  buffer(structSize);
         const std::span<std::byte> bytes        = buffer.span();
+        SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
         const TypeRef              fieldTypeRef = field.typeRef();
         const TypeInfo&            fieldType    = args.sema->typeMgr().get(fieldTypeRef);
         const uint64_t             fieldSize    = fieldType.sizeOf(args.sema->ctx());

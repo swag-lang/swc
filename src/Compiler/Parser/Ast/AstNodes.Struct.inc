@@ -923,9 +923,10 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 // -----------------------------------------------------------------------------
 enum class AstQualifiedTypeFlagsE : AstNode::ParserFlags
 {
-    Zero     = 0,
-    Const    = 1 << 0,
-    Nullable = 1 << 1,
+    Zero            = 0,
+    Const           = 1 << 0,
+    Nullable        = 1 << 1,
+    ExplicitNonNull = 1 << 2,
 };
 
 struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType, AstQualifiedTypeFlagsE>

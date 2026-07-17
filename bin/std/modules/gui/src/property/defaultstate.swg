@@ -220,69 +220,62 @@ impl Properties
         return Reflection.isPod(type)
     }
 
-    // Update one row: refresh its cached modified state and sync its revert arrow.
-    //  - Grid (like the Godot/Unreal inspectors): the arrow lives in a revert column docked to the
+    // Update one row: refresh its cached modified state and sync its marker.
+    //  - Grid (like the Godot/Unreal inspectors): a revert arrow lives in a column docked to the
     //    right of the row, reserved on EVERY resettable row so the value editor never resizes when
     //    the arrow toggles. Toggling only swaps the icon in/out, so it needs no relayout.
-    //  - List: the row is a vertical stack, so the arrow is shown/hidden on the name label instead
-    //    (the stacked editor below is unaffected either way).
-    // Returns true only when a list row's arrow visibility changed (grid never triggers relayout).
+    //  - List (like the VSCode settings page): a vertical accent bar along the row's left edge
+    //    marks the modified field (painted by paintBackItem); the reset stays available through
+    //    the context menu. No floating button, whose alignment reads oddly in full-width rows.
+    // Never triggers a relayout (the marker has no layout footprint in either mode).
     mtd updateItemDefaultState(item: *PropertiesItem)->bool
     {
+        let wasModified = item.isModified
         item.isModified = .computeItemModified(item)
-        let grid = .isGridLike()
 
-        if grid
+        if !.isGridLike()
         {
-            if .canReset(item) do
-                .ensureRevertButton(item)
-            if !item.revertButton do
-                return false
-
-            let btn = item.revertButton
-            if item.isModified
-            {
-                if !btn.icon.isValid() do
-                    btn.icon = .getTheme().getIcon24(.Undo, .revertIconSize(btn.position.height))
-                btn.enable(true)
-            }
-            else
-            {
-                btn.icon.clear()             // hide the arrow; the docked button still holds the column
-                btn.enable(false)
-            }
-            btn.invalidate()
+            if item.isModified != wasModified do
+                item.line.invalidate()
             return false
         }
 
-        if item.isModified do
+        if .canReset(item) do
             .ensureRevertButton(item)
         if !item.revertButton do
             return false
-        if item.isModified do
-            .positionListRevert(item)
-        if item.revertButton.isVisible() == item.isModified do
-            return false
-        item.revertButton.show(item.isModified)
-        return true
+
+        let btn = item.revertButton
+        if item.isModified
+        {
+            if !btn.icon.isValid() do
+                btn.icon = .getTheme().getIcon24(.Undo, .revertIconSize(btn.position.height))
+            btn.enable(true)
+        }
+        else
+        {
+            btn.icon.clear()             // hide the arrow; the docked button still holds the column
+            btn.enable(false)
+        }
+        btn.invalidate()
+        return false
     }
 
     // Create the revert arrow in the row's trailing action margin — a square Overlay icon button
-    // (translucent hover, no opaque box that would clash with a pastel/selected row). Grid docks it
-    // to the right of the row and starts it hidden-but-present (empty icon + disabled) so the
-    // reserved column keeps the editor from resizing when the arrow toggles; list positions it by
-    // hand at the right of the edit column (positionListRevert) and starts it hidden.
+    // (translucent hover, no opaque box that would clash with a pastel/selected row). Grid only:
+    // docked to the right of the row and started hidden-but-present (empty icon + disabled) so
+    // the reserved column keeps the editor from resizing when the arrow toggles. List rows use
+    // the painted modified bar instead (see updateItemDefaultState).
     mtd ensureRevertButton(item: *PropertiesItem)
     {
-        if item.revertButton do
+        if item.revertButton or !.isGridLike() do
             return
 
         let host = .rowActionArea(item)
         if !host do
             return
 
-        let grid = .isGridLike()
-        let h    = .revertButtonSize()
+        let h = .revertButtonSize()
         with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Round)
@@ -290,15 +283,9 @@ impl Properties
             .maxSize       = {h, h}          // square: symmetric horizontally and vertically
             .minSize       = {h, h}
             .focusStrategy = .None           // stays out of the keyboard nav order
-
-            if grid
-            {
-                .dockStyle = .Right
-                .margin.x  = PropRevertGap   // breathing room from the editor / previous action
-                .margin.z  = PropRevertGap
-            }
-            else do
-                .dockStyle = .None           // placed by positionListRevert, at the edit column
+            .dockStyle     = .Right
+            .margin.x      = PropRevertGap   // breathing room from the editor / previous action
+            .margin.z      = PropRevertGap
 
             .sigPressed += func|prop = me, item|(b)
             {
@@ -306,39 +293,7 @@ impl Properties
             }
         }
 
-        if grid
-        {
-            item.revertButton.icon.clear()   // reserved column, arrow hidden until modified
-            item.revertButton.enable(false)
-        }
-        else
-        {
-            // The arrow is a child of the name label; let it paint beyond the label's short
-            // single-line bounds so it is never clipped (it is sized + centered on the title line
-            // by positionListRevert).
-            item.label.wndFlags.remove(.ClipChildren)
-            item.revertButton.show(false)
-        }
-    }
-
-    // List mode: line the revert arrow up with the right edge of the selected row's useful area.
-    // The button is a child of the name label, so its geometry is in the label's local space; it is
-    // sized to the title line height so a big square does not overrun the row below.
-    mtd positionListRevert(item: *PropertiesItem)
-    {
-        let btn = item.revertButton
-        if .isGridLike() or !btn or !item.label do
-            return
-
-        // Fit the arrow to the title line (a single-line name is shorter than the grid button).
-        let sz = Math.round(Math.min(item.label.position.height, me.getThemeMetrics().editBox_Height))
-        btn.position.width  = sz
-        btn.position.height = sz
-        btn.maxSize         = {sz, sz}
-        btn.minSize         = {sz, sz}
-        btn.icon.sizeX      = .revertIconSize(sz)
-        btn.icon.sizeY      = btn.icon.sizeX
-
-        .positionListActionButton(item, btn)
+        item.revertButton.icon.clear()       // reserved column, arrow hidden until modified
+        item.revertButton.enable(false)
     }
 }

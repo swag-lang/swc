@@ -24,6 +24,7 @@ namespace SemaCheck
     Result isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);
     Result noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef& errorRef);
     Result noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds);
+    Result checkMoveSourceCanReset(Sema& sema, AstNodeRef srcRef, TypeRef typeRef, AstModifierFlags modifierFlags);
 }
 
 SWC_END_NAMESPACE();

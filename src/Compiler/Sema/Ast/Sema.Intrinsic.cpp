@@ -74,6 +74,11 @@ namespace
         ast.appendNodes(outArgs, node.spanArgsRef);
     }
 
+    Result failIntrinsicInitRequiresValue(Sema& sema, AstNodeRef whatRef, TypeRef fillTypeRef)
+    {
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.node(whatRef).codeRef(), fillTypeRef);
+    }
+
     bool intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args)
     {
         if (args.empty() || !fillTypeRef.isValid())
@@ -163,11 +168,16 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
     SWC_ASSERT(fillTypeRef.isValid());
     if (fillTypeRef.isInvalid())
         return Result::Error;
+    SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, fillTypeRef, nodeWhatRef));
 
     SmallVector<AstNodeRef> args;
     collectIntrinsicInitArgs(args, sema.ast(), *this);
     if (args.empty())
+    {
+        if (SymbolStruct::typeRequiresExplicitInitialization(sema, fillTypeRef))
+            return failIntrinsicInitRequiresValue(sema, nodeWhatRef, fillTypeRef);
         return Result::Continue;
+    }
 
     if (intrinsicInitTreatsArgsAsStructTuple(sema, fillTypeRef, args))
     {
@@ -184,6 +194,15 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
             SWC_ASSERT(fields[i] != nullptr);
             SemaNodeView argView = sema.viewNodeTypeConstant(args[i]);
             SWC_RESULT(Cast::cast(sema, argView, fields[i]->typeRef(), CastKind::Initialization));
+        }
+
+        if (!fillType.payloadSymStruct().isUnion())
+        {
+            for (size_t i = args.size(); i < fields.size(); ++i)
+            {
+                if (fields[i] && SymbolStruct::fieldRequiresExplicitInitialization(sema, *fields[i]))
+                    return failIntrinsicInitRequiresValue(sema, nodeWhatRef, fillTypeRef);
+            }
         }
 
         if (sema.isCurrentFunction())

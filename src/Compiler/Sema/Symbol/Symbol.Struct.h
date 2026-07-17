@@ -22,7 +22,7 @@ struct SymbolStructUsingPathStep
     bool                  isPointer = false;
 };
 
-enum class SymbolStructFlagsE : uint8_t
+enum class SymbolStructFlagsE : uint16_t
 {
     Zero                = 0,
     TypeInfo            = 1 << 0,
@@ -33,6 +33,7 @@ enum class SymbolStructFlagsE : uint8_t
     DefaultAllZero      = 1 << 5,
     DefaultAllUndefined = 1 << 6,
     DefaultHasUndefined = 1 << 7,
+    DefaultRequiresInit = 1 << 8,
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
@@ -81,6 +82,12 @@ public:
     bool        hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
     bool        hasImplicitAllUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllUndefined); }
     bool        hasImplicitUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultHasUndefined); }
+    bool        requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
+    static Result waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
+    static bool typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
+    static bool typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
+    static bool fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field);
+    static Result lowerTypeImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef);
     ConstantRef resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const;
     ConstantRef resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const;
 

@@ -209,26 +209,6 @@ namespace
         return !argView.type()->isStruct() && !argView.type()->isAggregateStruct();
     }
 
-    CodeGenNodePayload makeIntrinsicInitZeroScalarPayload(CodeGen& codeGen, TypeRef fillTypeRef)
-    {
-        CodeGenNodePayload result;
-        result.typeRef = fillTypeRef;
-        result.reg     = codeGen.nextVirtualRegisterForType(fillTypeRef);
-        result.setIsValue();
-
-        const TypeInfo& fillType  = codeGen.typeMgr().get(fillTypeRef);
-        const auto      storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, codeGen.ctx());
-        if (storeBits == MicroOpBits::Zero)
-        {
-            const ConstantRef zeroCstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), fillTypeRef);
-            SWC_ASSERT(zeroCstRef.isValid());
-            return makeAddressPayloadFromConstant(codeGen, zeroCstRef);
-        }
-
-        codeGen.builder().emitClearReg(result.reg, storeBits);
-        return result;
-    }
-
     Result emitIntrinsicInitStore(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
     {
         TaskContext&    ctx       = codeGen.ctx();
@@ -390,29 +370,24 @@ namespace
         if (!dstAddressReg.isValid())
             return Result::Continue;
 
-        const TypeInfo& fillType         = codeGen.typeMgr().get(targetInfo.fillTypeRef);
         uint32_t        constantCount    = 0;
         const bool      hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
-        if (args.empty() && fillType.isStruct())
+        if (args.empty())
         {
             if (hasConstantCount)
-                return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, constantCount);
+                return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, constantCount);
 
             if (node.nodeCountRef.isValid())
             {
                 const MicroReg countReg = materializeIntrinsicLifecycleCountReg(codeGen, node.nodeCountRef);
-                return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, countReg);
+                return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, countReg);
             }
 
-            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, targetInfo.implicitCount);
+            return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, targetInfo.implicitCount);
         }
 
         CodeGenNodePayload srcPayload;
-        if (args.empty())
-        {
-            srcPayload = makeIntrinsicInitZeroScalarPayload(codeGen, targetInfo.fillTypeRef);
-        }
-        else if (intrinsicInitTreatsArgsAsStructTuple(codeGen, targetInfo.fillTypeRef, args))
+        if (intrinsicInitTreatsArgsAsStructTuple(codeGen, targetInfo.fillTypeRef, args))
         {
             SWC_RESULT(buildIntrinsicInitTuplePayload(codeGen, node, targetInfo.fillTypeRef, args, srcPayload));
         }

@@ -7,6 +7,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -194,12 +196,58 @@ namespace
     {
         Mixed,
         MixedWithUndefined,
+        MixedRequiringInit,
+        MixedWithUndefinedRequiringInit,
         AllZero,
         AllUndefined,
+        RequiresInit,
     };
 
     ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef);
     ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+
+    Result waitTypeImplicitDefaultReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
+    {
+        if (typeRef.isInvalid() || !visited.insert(typeRef).second)
+            return Result::Continue;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isExplicitNonNull())
+        {
+            visited.erase(typeRef);
+            return Result::Continue;
+        }
+
+        Result result = Result::Continue;
+        if (type.isAlias())
+        {
+            result = sema.waitSemaCompleted(&type, waitNodeRef);
+            if (result == Result::Continue)
+                result = waitTypeImplicitDefaultReadyRec(sema, type.payloadSymAlias().underlyingTypeRef(), waitNodeRef, visited);
+        }
+        else if (type.isEnum())
+        {
+            result = sema.waitSemaCompleted(&type, waitNodeRef);
+            if (result == Result::Continue)
+                result = waitTypeImplicitDefaultReadyRec(sema, type.payloadSymEnum().underlyingTypeRef(), waitNodeRef, visited);
+        }
+        else if (type.isStruct())
+            result = sema.waitSemaCompleted(&type, waitNodeRef);
+        else if (type.isArray())
+            result = waitTypeImplicitDefaultReadyRec(sema, type.payloadArrayElemTypeRef(), waitNodeRef, visited);
+        else if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef childTypeRef : type.payloadAggregate().types)
+            {
+                result = waitTypeImplicitDefaultReadyRec(sema, childTypeRef, waitNodeRef, visited);
+                if (result != Result::Continue)
+                    break;
+            }
+        }
+
+        visited.erase(typeRef);
+        return result;
+    }
 
     TypeRef implicitDefaultStorageTypeRef(Sema& sema, const TypeRef typeRef)
     {
@@ -210,7 +258,12 @@ namespace
 
     bool implicitDefaultKindHasUndefined(const ImplicitDefaultKind kind)
     {
-        return kind == ImplicitDefaultKind::AllUndefined || kind == ImplicitDefaultKind::MixedWithUndefined;
+        return kind == ImplicitDefaultKind::AllUndefined || kind == ImplicitDefaultKind::MixedWithUndefined || kind == ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
+    }
+
+    bool implicitDefaultKindRequiresInit(const ImplicitDefaultKind kind)
+    {
+        return kind == ImplicitDefaultKind::RequiresInit || kind == ImplicitDefaultKind::MixedRequiringInit || kind == ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
     }
 
     ImplicitDefaultKind combineImplicitDefaultKinds(const std::span<const ImplicitDefaultKind> childKinds)
@@ -224,17 +277,23 @@ namespace
         bool allZero      = true;
         bool allUndefined = true;
         bool anyUndefined = false;
+        bool requiresInit = false;
         for (const ImplicitDefaultKind childKind : childKinds)
         {
             allZero &= childKind == ImplicitDefaultKind::AllZero;
             allUndefined &= childKind == ImplicitDefaultKind::AllUndefined;
             anyUndefined |= implicitDefaultKindHasUndefined(childKind);
+            requiresInit |= implicitDefaultKindRequiresInit(childKind);
         }
 
         if (allUndefined)
             return ImplicitDefaultKind::AllUndefined;
         if (allZero)
             return ImplicitDefaultKind::AllZero;
+        if (requiresInit && anyUndefined)
+            return ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
+        if (requiresInit)
+            return childKinds.size() == 1 && childKinds.front() == ImplicitDefaultKind::RequiresInit ? ImplicitDefaultKind::RequiresInit : ImplicitDefaultKind::MixedRequiringInit;
         if (anyUndefined)
             return ImplicitDefaultKind::MixedWithUndefined;
         return ImplicitDefaultKind::Mixed;
@@ -361,13 +420,26 @@ namespace
         if (typeRef.isInvalid())
             return ImplicitDefaultKind::Mixed;
 
+        const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
+        if (declaredType.isExplicitNonNull())
+            return ImplicitDefaultKind::RequiresInit;
+
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isExplicitNonNull())
+            return ImplicitDefaultKind::RequiresInit;
+
         if (type.isStruct())
         {
             const auto& symStruct = type.payloadSymStruct();
             symStruct.computeImplicitDefaultFlags(sema);
+            if (symStruct.requiresExplicitInitialization())
+            {
+                if (symStruct.hasImplicitUndefinedDefault())
+                    return ImplicitDefaultKind::MixedWithUndefinedRequiringInit;
+                return ImplicitDefaultKind::MixedRequiringInit;
+            }
             if (symStruct.hasImplicitAllUndefinedDefault())
                 return ImplicitDefaultKind::AllUndefined;
             if (symStruct.hasImplicitAllZeroDefault())
@@ -378,7 +450,11 @@ namespace
         }
 
         if (type.isArray())
+        {
+            if (std::ranges::any_of(type.payloadArrayDims(), [](const uint64_t dim) { return dim == 0; }))
+                return ImplicitDefaultKind::AllZero;
             return classifyTypeImplicitDefault(sema, type.payloadArrayElemTypeRef());
+        }
 
         if (type.isAggregateStruct() || type.isAggregateArray())
             return classifyAggregateTypeImplicitDefault(sema, type.payloadAggregate().types);
@@ -386,11 +462,17 @@ namespace
         return ImplicitDefaultKind::AllZero;
     }
 
-    Result lowerImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
+    Result lowerTypeImplicitDefaultBytesRec(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
     {
+        const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
+        if (declaredType.isExplicitNonNull())
+            return Result::Continue;
+
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isExplicitNonNull())
+            return Result::Continue;
         if (type.isStruct())
         {
             for (const SymbolVariable* field : type.payloadSymStruct().fields())
@@ -398,6 +480,8 @@ namespace
                 if (!field)
                     continue;
                 if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                    continue;
+                if (SymbolStruct::fieldRequiresExplicitInitialization(sema, *field))
                     continue;
 
                 const TypeRef   fieldTypeRef = field->typeRef();
@@ -415,7 +499,7 @@ namespace
                 }
                 else if (fieldSize)
                 {
-                    SWC_RESULT(lowerImplicitDefaultBytes(sema, fieldBytes, fieldTypeRef));
+                    SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, fieldBytes, fieldTypeRef));
                 }
             }
 
@@ -435,7 +519,7 @@ namespace
                 totalCount *= dim;
 
             for (uint64_t idx = 0; idx < totalCount; ++idx)
-                SWC_RESULT(lowerImplicitDefaultBytes(sema, dstBytes.subspan(idx * elemSize, elemSize), elemTypeRef));
+                SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes.subspan(idx * elemSize, elemSize), elemTypeRef));
             return Result::Continue;
         }
 
@@ -808,6 +892,8 @@ const SymbolVariable* SymbolStruct::findFieldByName(const IdentifierRef name) co
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
     computeImplicitDefaultFlags(sema);
+    if (requiresExplicitInitialization())
+        return ConstantRef::invalid();
     if (hasImplicitAllZeroDefault() || hasImplicitAllUndefinedDefault())
         return sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
 
@@ -825,7 +911,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         SWC_ASSERT(structSize);
         std::vector     buffer(structSize, std::byte{0});
         const std::span bytes{buffer.data(), buffer.size()};
-        SWC_INTERNAL_CHECK(lowerImplicitDefaultBytes(sema, bytes, typeRef) == Result::Continue);
+        SWC_INTERNAL_CHECK(lowerTypeImplicitDefaultBytesRec(sema, bytes, typeRef) == Result::Continue);
         defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
         SWC_ASSERT(defaultStructCst_.isValid());
     });
@@ -848,6 +934,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
         bool allZero      = true;
         bool allUndefined = true;
         bool anyUndefined = false;
+        bool requiresInit = false;
         for (const SymbolVariable* field : fields_)
         {
             if (!field)
@@ -858,6 +945,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
             allZero &= fieldKind == ImplicitDefaultKind::AllZero;
             allUndefined &= fieldKind == ImplicitDefaultKind::AllUndefined;
             anyUndefined |= implicitDefaultKindHasUndefined(fieldKind);
+            requiresInit |= implicitDefaultKindRequiresInit(fieldKind);
         }
 
         if (allZero)
@@ -866,13 +954,42 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllUndefined);
         if (anyUndefined)
             self->addExtraFlag(SymbolStructFlagsE::DefaultHasUndefined);
+        if (requiresInit)
+            self->addExtraFlag(SymbolStructFlagsE::DefaultRequiresInit);
     });
+}
+
+bool SymbolStruct::typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef)
+{
+    return implicitDefaultKindRequiresInit(classifyTypeImplicitDefault(sema, typeRef));
+}
+
+bool SymbolStruct::typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef)
+{
+    const ImplicitDefaultKind kind = classifyTypeImplicitDefault(sema, typeRef);
+    return !implicitDefaultKindRequiresInit(kind) && !implicitDefaultKindHasUndefined(kind);
+}
+
+Result SymbolStruct::waitTypeImplicitDefaultReady(Sema& sema, const TypeRef typeRef, const AstNodeRef waitNodeRef)
+{
+    std::unordered_set<TypeRef> visited;
+    return waitTypeImplicitDefaultReadyRec(sema, typeRef, waitNodeRef, visited);
+}
+
+bool SymbolStruct::fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field)
+{
+    return implicitDefaultKindRequiresInit(classifyFieldImplicitDefault(sema, field));
+}
+
+Result SymbolStruct::lowerTypeImplicitDefaultBytes(Sema& sema, const std::span<std::byte> dstBytes, const TypeRef typeRef)
+{
+    return lowerTypeImplicitDefaultBytesRec(sema, dstBytes, typeRef);
 }
 
 ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const
 {
     computeImplicitDefaultFlags(sema);
-    if (hasImplicitUndefinedDefault())
+    if (hasImplicitUndefinedDefault() || requiresExplicitInitialization())
         return ConstantRef::invalid();
     return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
 }
@@ -880,6 +997,8 @@ ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typ
 ConstantRef SymbolStruct::resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const
 {
     computeImplicitDefaultFlags(sema);
+    if (requiresExplicitInitialization())
+        return ConstantRef::invalid();
     return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
 }
 

@@ -52,6 +52,24 @@ namespace
         return sema.cstMgr().addConstant(sema.ctx(), ptrCst);
     }
 
+    bool isProvablyNullPointerLikeConstant(const ConstantValue& cst)
+    {
+        if (cst.isNull())
+            return true;
+        if (cst.isValuePointer())
+            return !cst.getValuePointer();
+        if (cst.isBlockPointer())
+            return !cst.getBlockPointer();
+        if (cst.isSlice())
+            return !cst.getSlice().data();
+        if (cst.isString())
+            return !cst.getString().data();
+        if (cst.isInt())
+            return cst.getInt().isZero();
+
+        return false;
+    }
+
     CastRequest makeNestedCastRequest(const CastRequest& parent)
     {
         CastRequest nested(parent.kind);
@@ -194,7 +212,7 @@ namespace
 
     bool isImplicitNullableQualificationCast(const TypeInfo& srcType, const TypeInfo& dstType)
     {
-        if (srcType.isNullable() == dstType.isNullable())
+        if (srcType.isNullable() == dstType.isNullable() && srcType.isExplicitNonNull() == dstType.isExplicitNonNull())
             return false;
         if (!srcType.isSupportsNullableQualifier() || !dstType.isSupportsNullableQualifier())
             return false;
@@ -562,6 +580,8 @@ namespace
 
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
         SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
+        if (SymbolStruct::typeRequiresExplicitInitialization(sema, dstTypeRef))
+            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.curNode().codeRef(), dstTypeRef);
         outInitCstRef = dstType.payloadSymStruct().resolveImplicitDefaultValueRef(sema, dstTypeRef);
         return Result::Continue;
     }
@@ -1223,7 +1243,7 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-    if (dstType.isPointerLike())
+    if (dstType.isPointerLike() && !dstType.isExplicitNonNull())
         return Result::Continue;
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -1433,6 +1453,14 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeInfo&    srcType              = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType              = typeMgr.get(dstTypeRef);
     const TypeRef      indirectValueTypeRef = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
+
+    if (dstType.isExplicitNonNull() &&
+        castRequest.isConstantFolding() &&
+        isProvablyNullPointerLikeConstant(sema.cstMgr().get(castRequest.constantFoldingSrc())))
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (srcType.isNullable() && dstType.isExplicitNonNull())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))
         return castAddNullableQualifier(castRequest);

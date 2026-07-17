@@ -56,9 +56,8 @@ impl IWnd for PropertiesView
             item.sigResize.call(item)
             item.line.applyLayout()
 
-            // Line list-mode row action buttons up with the right edge of the selected useful
-            // area now that the row label has its final size (grid docks them, so this is a no-op).
-            .ed.positionListRevert(item)
+            // Line list-mode row action buttons up with the right edge of the value column
+            // now that the row label has its final size (grid docks them, so this is a no-op).
             .ed.positionListActionButton(item, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the

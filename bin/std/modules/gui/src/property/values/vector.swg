@@ -21,14 +21,10 @@ impl Properties
             line.maxSize.x = width
 
         // Grid rows center the field row vertically in the cell; list rows stack it
-        // under the name label (the row is a StackLayoutCtrl), where dock-centering
-        // would overlap the label — anchor the width and let the stack place it.
+        // under the name label, capped at the edit width by maxSize (an anchored width
+        // would drift with the resize history).
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
-        else
-        {
-            line.anchorStyle = .X
-        }
 
         .adaptCondensedControl(line)
 

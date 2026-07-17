@@ -288,7 +288,7 @@ namespace
         return {off, &ptr->base};
     }
 
-    void initCommon(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, const TypeInfo& type)
+    void initCommon(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, const TypeRef typeRef, const TypeInfo& type)
     {
         TaskContext& ctx = sema.ctx();
 
@@ -302,6 +302,10 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
+        if (type.isExplicitNonNull())
+            addFlag(rtType, Runtime::TypeInfoFlags::ExplicitNonNull);
+        if (SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
+            addFlag(rtType, Runtime::TypeInfoFlags::RequiresExplicitInit);
         if (type.isTypeInfo())
             addFlag(rtType, Runtime::TypeInfoFlags::PointerTypeInfo);
         if (isGenericRuntimeType(type))
@@ -686,8 +690,11 @@ namespace
         if (type.isStruct())
         {
             const SymbolStruct& symStruct = type.payloadSymStruct();
-            if (const auto* opInit = symStruct.effectiveOpInit(ctx))
-                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opInit), opInit, true);
+            if (!SymbolStruct::typeRequiresExplicitInitialization(sema, symStruct.typeRef()))
+            {
+                if (const auto* opInit = symStruct.effectiveOpInit(ctx))
+                    storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opInit), opInit, true);
+            }
             if (const auto* opDrop = symStruct.effectiveOpDrop(ctx))
                 storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opDrop), opDrop, true);
             if (const auto* opPostCopy = symStruct.effectiveOpPostCopy(ctx))
@@ -1042,9 +1049,9 @@ TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfTypeRef(TaskContext& ctx, const
     return lifecycleFlagsOfTypeRefRec(ctx, typeRef, visiting);
 }
 
-void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeInfo& type, TypeGenCache::Entry& entry)
+void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry)
 {
-    initCommon(sema, storage, rtType, offset, type);
+    initCommon(sema, storage, rtType, offset, typeRef, type);
 
     switch (kind)
     {

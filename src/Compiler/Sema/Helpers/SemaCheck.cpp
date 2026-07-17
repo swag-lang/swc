@@ -409,6 +409,30 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     return Result::Error;
 }
 
+Result SemaCheck::checkMoveSourceCanReset(Sema& sema, const AstNodeRef srcRef, TypeRef typeRef, const AstModifierFlags modifierFlags)
+{
+    if (!modifierFlags.has(AstModifierFlagsE::Move) || srcRef.isInvalid() || typeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+    if (unwrappedTypeRef.isValid())
+        typeRef = unwrappedTypeRef;
+
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    if (!type.isStruct())
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(&type, srcRef));
+    if (!TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef).hasDrop)
+        return Result::Continue;
+
+    SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, typeRef, srcRef));
+    if (SymbolStruct::typeHasCompleteImplicitDefault(sema, typeRef))
+        return Result::Continue;
+
+    return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_source_no_default, sema.node(srcRef).codeRef(), typeRef);
+}
+
 Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& view)
 {
     if (sema.isValue(view.nodeRef()))

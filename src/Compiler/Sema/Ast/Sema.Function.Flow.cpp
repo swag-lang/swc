@@ -249,6 +249,11 @@ namespace
         return tokenId;
     }
 
+    bool errorManagementSynthesizesDefaultResult(const TokenId tokenId)
+    {
+        return tokenId == TokenId::KwdCatch || tokenId == TokenId::KwdTryCatch || tokenId == TokenId::KwdAssume;
+    }
+
     bool canPropagateThrowableResult(const Sema& sema)
     {
         return isThrowableFunctionContext(sema) ||
@@ -1430,6 +1435,14 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
     const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
+    if (errorManagementSynthesizesDefaultResult(tokenId) && resultTypeRef.isValid())
+        SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, resultTypeRef, sema.curNodeRef()));
+    if (errorManagementSynthesizesDefaultResult(tokenId) &&
+        resultTypeRef.isValid() &&
+        resultTypeRef != sema.typeMgr().typeVoid() &&
+        SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, codeRef(), resultTypeRef);
+
     if (tokenId != TokenId::KwdTry && resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, resolvedExprRef, *this, resultTypeRef, "__trycatch_runtime_storage"));
 

@@ -592,7 +592,13 @@ namespace
     GeneratedLifecyclePlan makeGeneratedLifecyclePlan(Sema& sema, const SymbolStruct& ownerStruct)
     {
         GeneratedLifecyclePlan plan;
-        plan.init     = true;
+        if (ownerStruct.isGenericRoot() && !ownerStruct.isGenericInstance())
+            plan.init = true;
+        else
+        {
+            ownerStruct.computeImplicitDefaultFlags(sema);
+            plan.init = !ownerStruct.requiresExplicitInitialization();
+        }
         plan.drop     = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpDrop);
         plan.postCopy = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostCopy);
         plan.postMove = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostMove);

@@ -1845,3 +1845,56 @@ struct PropHeadlessUsingDerived
 
     host.shutdown()
 }
+
+
+enum PropFilterChoice
+{
+    Hidden
+    Low
+    Medium
+    High
+}
+
+struct PropFilterData
+{
+    choice = PropFilterChoice.Medium
+}
+
+struct PropFilterHost {}
+
+impl IPropertyNotify for PropFilterHost
+{
+    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    {
+        return enumValue.name != "Hidden"
+    }
+}
+
+// The host notify can hide enum values (isEnumValueVisible): the combo omits them and
+// the selection/write-back mapping stays correct through the remaining entries.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    var data: PropFilterData
+    var ntfy: PropFilterHost
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.setNotify(cast(IPropertyNotify) &ntfy)
+    prop.addStruct(data)
+
+    let item = prop.items[1]
+    @assert(item.comboBox != null)
+    @assert(item.comboBox.items.count == 3)
+
+    // Medium is enum value 2 but combo slot 1 (Hidden is filtered out)
+    @assert(item.comboBox.selectedIdx == 1)
+
+    // Selecting the last combo slot writes the matching enum value back
+    item.comboBox.selectItem(2)
+    @assert(data.choice == .High)
+    item.comboBox.selectItem(0)
+    @assert(data.choice == .Low)
+
+    host.shutdown()
+}

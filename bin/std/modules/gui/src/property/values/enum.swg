@@ -1,5 +1,23 @@
 impl Properties
 {
+    // Dynamic per-value filter of an enum field (IPropertyNotify.isEnumValueVisible):
+    // consulted on the host notify and along the item's parent chain, at build time.
+    mtd isEnumValueShown(item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    {
+        if .hostNtfy and !.hostNtfy.isEnumValueVisible(me, item, enumValue) do
+            return false
+
+        var scan = item
+        while scan
+        {
+            if scan.ntfyItf and !scan.ntfyItf.isEnumValueVisible(me, item, enumValue) do
+                return false
+            scan = scan.parent
+        }
+
+        return true
+    }
+
     mtd refreshEnumFlags(item: *PropertiesItem)
     {
         if item.checkBox
@@ -73,11 +91,24 @@ impl Properties
                     idxSel = idx
             }
 
+            // The combo may hide values (isEnumValueVisible): each combo entry carries its
+            // enum value index in userData0, so map the selected enum index to its combo
+            // slot. A hidden current value simply shows no selection.
+            var idxCombo = Swag.U32.Max
+            for cb, cbIdx in item.comboBox.items
+            {
+                if cast(u64) cb.userData0 == idxSel
+                {
+                    idxCombo = cast(u32) cbIdx
+                    break
+                }
+            }
+
             // Multi-selection: clear the selection when the instances disagree.
             if .fieldIsMixed(item) do
                 item.comboBox.selectItem(Swag.U32.Max)
             else do
-                item.comboBox.selectItem(cast() idxSel)
+                item.comboBox.selectItem(idxCombo)
         }
     }
 
@@ -103,7 +134,7 @@ impl Properties
             func(T) setEd()
             {
                 let p  = cast(*T) item.data
-                let p1 = cast(const *T) typeEnum.values[sel].value
+                let p1 = cast(const *T) typeEnum.values[idxEnum].value
                 dref p = dref p1
             }
 
@@ -112,8 +143,11 @@ impl Properties
 
             // A deselected combo means "mixed" was just shown (multi-selection); there is
             // no concrete value to write, so don't touch the instances.
-            if sel >= @countof(typeEnum.values) do
+            if sel >= item.comboBox.items.count do
                 return
+
+            // Combo slot -> enum value index (the combo may hide values, see constructEnum)
+            let idxEnum = cast(u64) item.comboBox.items[sel].userData0
 
             switch typeEnum.rawType.sizeof
             {
@@ -141,6 +175,10 @@ impl Properties
 
         for v in typeEnum.values
         {
+            // The host can hide values (isEnumValueVisible): skip their row entirely
+            if !.isEnumValueShown(item, v) do
+                continue
+
             with let line = Wnd.create'Wnd(me.edView)
             {
                 .wndFlags.set(.PreChildsPaint)
@@ -262,11 +300,15 @@ impl Properties
             item.comboBox = ed
         }
 
-        // An enum value can carry its own display name ('1...2...3...' for Number)
+        // An enum value can carry its own display name ('1...2...3...' for Number). The
+        // host can hide values (isEnumValueVisible); each combo entry keeps its enum
+        // value index in userData0 so refresh/validate stay index-agnostic.
         for v, idx in typeEnum.values
         {
+            if !.isEnumValueShown(item, v) do
+                continue
             let dn = Reflection.getAttributeValue(v, Properties.Name, "name")
-            item.comboBox.addItem(dn == null ? v.name : cast(string) dn)
+            item.comboBox.addItem(dn == null ? v.name : cast(string) dn, userData0: cast(*void) idx)
         }
 
         .refreshEnum(item)

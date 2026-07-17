@@ -932,6 +932,16 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
+    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    {
+        // The join combo omits JoinStyle.None: no join drawn = notched corners on any
+        // thick stroke, never what a captme form wants.
+        if item.typeValue.name == #nameof(BaseForm.joinStyle) do
+            return enumValue.name != #nameof(JoinStyle.None)
+
+        return true
+    }
+
     mtd impl itemHasChanged(list: *Properties, item: #null *PropertiesItem)
     {
         let capture = .main.getCapture()

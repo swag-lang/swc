@@ -24,6 +24,12 @@ interface IPropertyNotify
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool { return true; }
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool { return true; }
 
+    // Return false to hide one value of an enum field (a value that makes no sense for the
+    // host, e.g. a 'None' entry): the combo omits it, an enum-flags block skips its row.
+    // Like isItemVisible, checked on the host notify and along the item's parent chain, but
+    // when the row is BUILT: rebuild the grid content to re-evaluate it.
+    mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool { return true; }
+
     // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
     // disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor.
     // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.

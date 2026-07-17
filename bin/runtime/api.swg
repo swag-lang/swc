@@ -386,8 +386,8 @@ namespace Swag
     struct AllocatorRequest
     {
         callerLoc:     SourceCodeLocation        // The caller code, to help tracking leaks. Optional.
-        hint:          string                    // A hint message, to help tracking leaks. Optional.
-        address:       *void                     // The returned address or the address to deal with.
+        hint:          #null string              // A hint message, to help tracking leaks. Optional.
+        address:       #null *void               // The returned address or the address to deal with.
         size:          u64                       // The requested size or the size to deal with.
         oldSize:       u64                       // When reallocating.
         alignment:     u32                       // Alignment constraint.
@@ -399,15 +399,15 @@ namespace Swag
     interface IAllocator
     {
         // Allocate a block of memory.
-        mtd alloc(request: *AllocatorRequest);
+        mtd alloc(request: #nonull *AllocatorRequest);
         // Reallocate a previously allocated block.
-        mtd realloc(request: *AllocatorRequest);
+        mtd realloc(request: #nonull *AllocatorRequest);
         // Free a previously allocated block.
-        mtd free(request: *AllocatorRequest);
+        mtd free(request: #nonull *AllocatorRequest);
         // Free all memory allocated with this allocator, if supported.
-        mtd freeAll(request: *AllocatorRequest);
+        mtd freeAll(request: #nonull *AllocatorRequest);
         // Assert that 'request.address' is currently allocated, if supported.
-        mtd assertAllocated(request: *AllocatorRequest);
+        mtd assertAllocated(request: #nonull *AllocatorRequest);
     }
 
     struct ScratchAllocator

@@ -21,7 +21,7 @@ impl ScratchAllocator
     }
 
     // Free a block, if possible.
-    mtd free(addr: #null *void, size: u64)
+    mtd freeMem(addr: #null *void, size: u64)
     {
         @assert(.allocator != null)
         var req: AllocatorRequest
@@ -48,7 +48,7 @@ impl ScratchAllocator
 
         if .block
         {
-            .free(.block, .capacity)
+            .freeMem(.block, .capacity)
             .block = null
         }
     }
@@ -61,7 +61,7 @@ impl ScratchAllocator
         {
             let p = cast(#nonull *LeakHeader) .firstLeak
             let n = p.next
-            .free(p, p.size)
+            .freeMem(p, p.size)
             .firstLeak = n
         }
     }
@@ -109,7 +109,7 @@ impl IAllocator for ScratchAllocator
 
         // Otherwise we assume it's a leak. We unlink it, and free it with
         // the allocator
-        var leak = cast(#nonull [*] LeakHeader) request.address
+        var leak = cast(#null [*] LeakHeader) request.address
         leak -= 1
         if !leak.prev do
             .firstLeak = leak.next
@@ -118,7 +118,7 @@ impl IAllocator for ScratchAllocator
         if leak.next do
             leak.next.prev = leak.prev
         .totalLeak -= leak.size - #sizeof(LeakHeader)
-        .free(leak, leak.size)
+        .freeMem(leak, leak.size)
         request.address = null
     }
 

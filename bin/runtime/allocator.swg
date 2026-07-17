@@ -1,20 +1,22 @@
 ﻿#global namespace Swag
 
+#global #[Swag.ExplicitNullability]
+
 const AllocatorClassCount   = 28'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
 
 struct AllocatorHeader
 {
     loc:           SourceCodeLocation
-    allocAddr:     [*] void
+    allocAddr:     #null [*] void
     allocSize:     u64
     userSize:      u64
     blockSize:     u64
-    hint:          string
-    prev:          *AllocatorHeader
-    next:          *AllocatorHeader
-    prevFree:      *AllocatorHeader
-    nextFree:      *AllocatorHeader
+    hint:          #null string
+    prev:          #null *AllocatorHeader
+    next:          #null *AllocatorHeader
+    prevFree:      #null *AllocatorHeader
+    nextFree:      #null *AllocatorHeader
     stack:         [16] #nonull *void = undefined
     stackCount:    u32
     allocId:       u32
@@ -22,7 +24,7 @@ struct AllocatorHeader
     alignment:     u32
     isTracked:     bool
     magic:         u32
-    ownerHeap:     *void
+    ownerHeap:     #null *void
 }
 
 struct AllocatorFooter
@@ -32,29 +34,29 @@ struct AllocatorFooter
 
 struct AllocatorRawBlock
 {
-    address: [*] void
+    address: #null [*] void
     size:    u64
 }
 
 struct AllocatorClass
 {
-    firstFree:    *AllocatorHeader
+    firstFree:    #null *AllocatorHeader
     cachedBytes:  u64
     cachedCount:  u32
 }
 
 struct AllocatorThreadClass
 {
-    firstFree:    *AllocatorHeader
-    remoteFree:   *AllocatorHeader
+    firstFree:    #null *AllocatorHeader
+    remoteFree:   #null *AllocatorHeader
     cachedBytes:  u64
     cachedCount:  u32
 }
 
 struct AllocatorThreadHeap
 {
-    allocator:    *void
-    nextRetired:  *AllocatorThreadHeap
+    allocator:    #null *void
+    nextRetired:  #null *AllocatorThreadHeap
     threadId:     u64
     classes:      [AllocatorClassCount] AllocatorThreadClass
     cachedBytes:  u64
@@ -64,16 +66,16 @@ struct AllocatorThreadHeap
 }
 
 #[Swag.Tls]
-private var g_AllocatorThreadHeap: *AllocatorThreadHeap
+private var g_AllocatorThreadHeap: #null *AllocatorThreadHeap
 
 struct Allocator
 {
     mutex:           MutexRW
     classes:         [AllocatorClassCount] AllocatorClass
-    firstAlloc:      *AllocatorHeader
-    firstFree:       *AllocatorHeader
-    lastFree:        *AllocatorHeader
-    firstRetiredHeap: *AllocatorThreadHeap
+    firstAlloc:      #null *AllocatorHeader
+    firstFree:       #null *AllocatorHeader
+    lastFree:        #null *AllocatorHeader
+    firstRetiredHeap: #null *AllocatorThreadHeap
     sizeAlloc:       u64
     sizeFree:        u64
     sizeCached:      u64
@@ -101,23 +103,23 @@ struct Allocator
 
 private var g_DefaultAllocator: Allocator
 
-private func atomicLoadHeader(slot: **AllocatorHeader)->*AllocatorHeader
+private func atomicLoadHeader(slot: #nonull *#null *AllocatorHeader)->#null *AllocatorHeader
 {
-    return cast(*AllocatorHeader) @atomcmpxchg(cast(*u64) slot, 0'u64, 0'u64)
+    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(#nonull *u64) slot, 0'u64, 0'u64)
 }
 
-private func atomicExchangeHeader(slot: **AllocatorHeader, value: *AllocatorHeader)->*AllocatorHeader
+private func atomicExchangeHeader(slot: #nonull *#null *AllocatorHeader, value: #null *AllocatorHeader)->#null *AllocatorHeader
 {
-    return cast(*AllocatorHeader) @atomxchg(cast(*u64) slot, cast(u64) value)
+    return cast(#null *AllocatorHeader) @atomxchg(cast(#nonull *u64) slot, cast(u64) value)
 }
 
-private func atomicCompareExchangeHeader(slot: **AllocatorHeader, compareTo, exchangeWith: *AllocatorHeader)->*AllocatorHeader
+private func atomicCompareExchangeHeader(slot: #nonull *#null *AllocatorHeader, compareTo, exchangeWith: #null *AllocatorHeader)->#null *AllocatorHeader
 {
-    return cast(*AllocatorHeader) @atomcmpxchg(cast(*u64) slot, cast(u64) compareTo, cast(u64) exchangeWith)
+    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(#nonull *u64) slot, cast(u64) compareTo, cast(u64) exchangeWith)
 }
 
-private func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
-private func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
+private func atomicGet(addr: #nonull *u32)->u32 => @atomcmpxchg(addr, 0, 0)
+private func atomicGet(addr: #nonull *u64)->u64 => @atomcmpxchg(addr, 0, 0)
 
 private func currentThreadId()->u64
 {
@@ -213,7 +215,7 @@ impl Allocator
 
     func memAlign(value: u64, alignment: u32)->u64
     {
-        let toAlign = cast(u64) (alignment orelse cast(u32) #sizeof(*void)) - 1
+        let toAlign = cast(u64) (alignment orelse cast(u32) #sizeof(#nonull *void)) - 1
         return (value + toAlign) & ~toAlign
     }
 
@@ -271,15 +273,15 @@ impl Allocator
         return .installMagic == InstalledMagic
     }
 
-    mtd osAlloc(size: u64)->[*] u8
+    mtd osAlloc(size: u64)->#null [*] u8
     {
         #if #os == Swag.TargetOs.Windows do
-            return cast([*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
+            return cast(#null [*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
         #else do
-            return cast([*] u8) @alloc(size)
+            return cast(#null [*] u8) @alloc(size)
     }
 
-    mtd osFree(address: *void)
+    mtd osFree(address: #null *void)
     {
         if !address do
             return
@@ -287,52 +289,52 @@ impl Allocator
         #if #os == Swag.TargetOs.Windows do
             discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
         #else do
-            @free(cast([*] void) address)
+            @free(cast(#null [*] void) address)
     }
 
-    mtd rawAlloc(size: u64, alignment: u32 = 0)->[*] u8
+    mtd rawAlloc(size: u64, alignment: u32 = 0)->#null [*] u8
     {
-        let align = cast(u64) (alignment orelse cast(u32) #sizeof(*void))
+        let align = cast(u64) (alignment orelse cast(u32) #sizeof(#nonull *void))
         let bytes = size + align - 1 + #sizeof(AllocatorRawBlock)
         let raw = .osAlloc(bytes)
         if !raw do
             return null
 
         var user = raw + #sizeof(AllocatorRawBlock)
-        user = cast([*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
+        user = cast(#nonull [*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
 
-        let rawBlock = cast(*AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
-        rawBlock.address = cast([*] void) raw
+        let rawBlock = cast(#null *AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
+        rawBlock.address = cast(#null [*] void) raw
         rawBlock.size = bytes
         .statAdd(&.countOsAlloc, 1)
         .statAdd(&.sizeOsAlloc, bytes)
         return user
     }
 
-    mtd rawFree(address: *void)
+    mtd rawFree(address: #null *void)
     {
         if !address do
             return
 
-        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) address - #sizeof(AllocatorRawBlock))
+        let rawBlock = cast(#null *AllocatorRawBlock) (cast(#null [*] u8) address - #sizeof(AllocatorRawBlock))
         .statAdd(&.countOsFree, 1)
         .statAdd(&.sizeOsFree, rawBlock.size)
         .osFree(rawBlock.address)
     }
 
-    mtd allocateThreadHeap()->*AllocatorThreadHeap
+    mtd allocateThreadHeap()->#null *AllocatorThreadHeap
     {
         let address = .rawAlloc(#sizeof(AllocatorThreadHeap))
         @assert(address != null)
 
         @memset(address, 0, #sizeof(AllocatorThreadHeap))
-        let heap = cast(*AllocatorThreadHeap) address
+        let heap = cast(#null *AllocatorThreadHeap) address
         heap.allocator = me
         heap.threadId = currentThreadId()
         return heap
     }
 
-    mtd retireThreadHeap(heap: *AllocatorThreadHeap)
+    mtd retireThreadHeap(heap: #null *AllocatorThreadHeap)
     {
         if !heap do
             return
@@ -347,7 +349,7 @@ impl Allocator
         .mutex.unlock()
     }
 
-    mtd threadHeap()->*AllocatorThreadHeap
+    mtd threadHeap()->#null *AllocatorThreadHeap
     {
         let heap = g_AllocatorThreadHeap
         let tid = currentThreadId()
@@ -357,7 +359,7 @@ impl Allocator
         if heap and heap.threadId == tid
         {
             g_AllocatorThreadHeap = null
-            let oldAllocator = cast(*Allocator) heap.allocator
+            let oldAllocator = cast(#null *Allocator) heap.allocator
             if oldAllocator do
                 oldAllocator.retireThreadHeap(heap)
         }
@@ -366,13 +368,13 @@ impl Allocator
         return g_AllocatorThreadHeap
     }
 
-    mtd fastPathEnabled(request: *AllocatorRequest, classIndex: u32)->bool
+    mtd fastPathEnabled(request: #nonull *AllocatorRequest, classIndex: u32)->bool
     {
         if .diagnosticMode() do
             return false
         if classIndex == AllocatorInvalidClass do
             return false
-        if request.alignment > #sizeof(*void) do
+        if request.alignment > #sizeof(#nonull *void) do
             return false
         return true
     }
@@ -382,17 +384,17 @@ impl Allocator
         return .trackAllocations or .electricMode
     }
 
-    mtd statAdd(value: *u64, delta: u64)
+    mtd statAdd(value: #nonull *u64, delta: u64)
     {
         discard @atomadd(value, delta)
     }
 
-    mtd statAdd(value: *u32, delta: u32)
+    mtd statAdd(value: #nonull *u32, delta: u32)
     {
         discard @atomadd(value, delta)
     }
 
-    mtd statSub(value: *u64, delta: u64)
+    mtd statSub(value: #nonull *u64, delta: u64)
     {
         while true
         {
@@ -403,7 +405,7 @@ impl Allocator
         }
     }
 
-    mtd statSub(value: *u32, delta: u32)
+    mtd statSub(value: #nonull *u32, delta: u32)
     {
         while true
         {
@@ -414,7 +416,7 @@ impl Allocator
         }
     }
 
-    mtd decActive(heap: *AllocatorThreadHeap)->u32
+    mtd decActive(heap: #null *AllocatorThreadHeap)->u32
     {
         while true
         {
@@ -425,20 +427,20 @@ impl Allocator
         }
     }
 
-    mtd shouldCache(header: *AllocatorHeader)->bool
+    mtd shouldCache(header: #null *AllocatorHeader)->bool
     {
         if .electricMode do
             return false
         if header.classIndex == AllocatorInvalidClass do
             return false
-        if header.alignment > #sizeof(*void) do
+        if header.alignment > #sizeof(#nonull *void) do
             return false
         if header.blockSize > .maxCachedSize do
             return false
         return true
     }
 
-    mtd pushThreadLocal(heap: *AllocatorThreadHeap, header: *AllocatorHeader)
+    mtd pushThreadLocal(heap: #null *AllocatorThreadHeap, header: #null *AllocatorHeader)
     {
         let cls = &heap.classes[header.classIndex]
         header.prevFree = null
@@ -453,7 +455,7 @@ impl Allocator
         .statAdd(&.countFree, 1)
     }
 
-    mtd releaseRetiredRemote(heap: *AllocatorThreadHeap, classIndex: u32)
+    mtd releaseRetiredRemote(heap: #null *AllocatorThreadHeap, classIndex: u32)
     {
         let cls = &heap.classes[classIndex]
         var list = atomicExchangeHeader(&cls.remoteFree, null)
@@ -465,7 +467,7 @@ impl Allocator
         }
     }
 
-    mtd pushThreadRemote(heap: *AllocatorThreadHeap, header: *AllocatorHeader)->bool
+    mtd pushThreadRemote(heap: #null *AllocatorThreadHeap, header: #null *AllocatorHeader)->bool
     {
         let cls = &heap.classes[header.classIndex]
         while true
@@ -485,7 +487,7 @@ impl Allocator
         }
     }
 
-    mtd drainThreadRemote(heap: *AllocatorThreadHeap, classIndex: u32)
+    mtd drainThreadRemote(heap: #null *AllocatorThreadHeap, classIndex: u32)
     {
         let cls = &heap.classes[classIndex]
         var list = atomicExchangeHeader(&cls.remoteFree, null)
@@ -497,7 +499,7 @@ impl Allocator
         }
     }
 
-    mtd releaseThreadCached(heap: *AllocatorThreadHeap, classIndex: u32)
+    mtd releaseThreadCached(heap: #null *AllocatorThreadHeap, classIndex: u32)
     {
         let cls = &heap.classes[classIndex]
         let header = cls.firstFree
@@ -521,7 +523,7 @@ impl Allocator
         .rawFree(header.allocAddr)
     }
 
-    mtd trimThreadHeap(heap: *AllocatorThreadHeap)
+    mtd trimThreadHeap(heap: #null *AllocatorThreadHeap)
     {
         while heap.cachedBytes > .maxCachedBytes
         {
@@ -541,7 +543,7 @@ impl Allocator
         }
     }
 
-    mtd releaseThreadHeap(heap: *AllocatorThreadHeap)
+    mtd releaseThreadHeap(heap: #null *AllocatorThreadHeap)
     {
         for i in AllocatorClassCount
         {
@@ -551,15 +553,15 @@ impl Allocator
         }
     }
 
-    mtd releaseThreadHeapRecord(heap: *AllocatorThreadHeap)
+    mtd releaseThreadHeapRecord(heap: #null *AllocatorThreadHeap)
     {
         .rawFree(heap)
     }
 
     mtd releaseRetiredHeaps()
     {
-        var prev: *AllocatorThreadHeap
-        var heap = .firstRetiredHeap
+        var prev: #null *AllocatorThreadHeap
+        var heap: #null *AllocatorThreadHeap = .firstRetiredHeap
         while heap
         {
             let next = heap.nextRetired
@@ -577,7 +579,7 @@ impl Allocator
         }
     }
 
-    mtd acquireThreadCached(heap: *AllocatorThreadHeap, classIndex: u32, size: u64)->*AllocatorHeader
+    mtd acquireThreadCached(heap: #null *AllocatorThreadHeap, classIndex: u32, size: u64)->#null *AllocatorHeader
     {
         .drainThreadRemote(heap, classIndex)
 
@@ -605,17 +607,17 @@ impl Allocator
         return header
     }
 
-    mtd userAddress(header: *AllocatorHeader)->[*] u8
+    mtd userAddress(header: #null *AllocatorHeader)->#null [*] u8
     {
-        return cast([*] u8) header + #sizeof(AllocatorHeader)
+        return cast(#null [*] u8) header + #sizeof(AllocatorHeader)
     }
 
-    mtd footer(header: *AllocatorHeader)->*AllocatorFooter
+    mtd footer(header: #null *AllocatorHeader)->#null *AllocatorFooter
     {
-        return cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
+        return cast(#null *AllocatorFooter) (.userAddress(header) + header.userSize)
     }
 
-    mtd checkFree(header: *AllocatorHeader)
+    mtd checkFree(header: #null *AllocatorHeader)
     {
         let foot = .footer(header)
         if header.magic != MagicFree or foot.magic != MagicFree
@@ -624,7 +626,7 @@ impl Allocator
         }
     }
 
-    mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
+    mtd checkAllocated(header: #null *AllocatorHeader, callerLoc = #callerlocation)
     {
         let foot = .footer(header)
         if (header.magic != MagicAlloc and header.magic != MagicFree) or
@@ -640,16 +642,16 @@ impl Allocator
         }
     }
 
-    mtd assertIsAllocated(addr: *void, callerLoc = #callerlocation)
+    mtd assertIsAllocated(addr: #null *void, callerLoc = #callerlocation)
     {
         if !addr do
             return
 
-        let header = cast(*AllocatorHeader) (cast([*] u8) addr - #sizeof(AllocatorHeader))
+        let header = cast(#null *AllocatorHeader) (cast(#null [*] u8) addr - #sizeof(AllocatorHeader))
         .checkAllocated(header, callerLoc)
     }
 
-    mtd unlinkAllocated(header: *AllocatorHeader)
+    mtd unlinkAllocated(header: #null *AllocatorHeader)
     {
         if !header.prev do
             .firstAlloc = header.next
@@ -662,7 +664,7 @@ impl Allocator
         header.prev, header.next = null
     }
 
-    mtd linkAllocated(header: *AllocatorHeader)
+    mtd linkAllocated(header: #null *AllocatorHeader)
     {
         header.prev = null
         header.next = .firstAlloc
@@ -671,7 +673,7 @@ impl Allocator
         .firstAlloc = header
     }
 
-    mtd unlinkFree(header: *AllocatorHeader)
+    mtd unlinkFree(header: #null *AllocatorHeader)
     {
         if !header.prev do
             .firstFree = header.next
@@ -711,7 +713,7 @@ impl Allocator
         header.prevFree, header.nextFree = null
     }
 
-    mtd linkFree(header: *AllocatorHeader)
+    mtd linkFree(header: #null *AllocatorHeader)
     {
         header.prev = null
         header.next = .firstFree
@@ -738,7 +740,7 @@ impl Allocator
         }
     }
 
-    mtd releaseBlock(header: *AllocatorHeader)
+    mtd releaseBlock(header: #null *AllocatorHeader)
     {
         .checkFree(header)
         .unlinkFree(header)
@@ -746,7 +748,7 @@ impl Allocator
         .releaseUncached(header)
     }
 
-    mtd releaseUncached(header: *AllocatorHeader)
+    mtd releaseUncached(header: #null *AllocatorHeader)
     {
         .checkFree(header)
 
@@ -768,7 +770,7 @@ impl Allocator
             .releaseOldest()
     }
 
-    mtd acquireCached(classIndex: u32, size: u64)->*AllocatorHeader
+    mtd acquireCached(classIndex: u32, size: u64)->#null *AllocatorHeader
     {
         if .electricMode or classIndex == AllocatorInvalidClass do
             return null
@@ -784,9 +786,9 @@ impl Allocator
         return header
     }
 
-    mtd allocateBlock(request: *AllocatorRequest, blockSize: u64, classIndex: u32)->*AllocatorHeader
+    mtd allocateBlock(request: #nonull *AllocatorRequest, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
     {
-        let alignment = request.alignment orelse cast(u32) #sizeof(*void)
+        let alignment = request.alignment orelse cast(u32) #sizeof(#nonull *void)
         let toAddAlign = memAlign(#sizeof(AllocatorHeader), alignment)
 
         let allocSize = toAddAlign + blockSize + #sizeof(AllocatorFooter)
@@ -794,10 +796,10 @@ impl Allocator
         if !address do
             return null
 
-        var userAddr = cast([*] u8) address
+        var userAddr = cast(#null [*] u8) address
         userAddr += toAddAlign
 
-        let header = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
+        let header = cast(#null *AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
         header.allocAddr  = address
         header.allocSize  = allocSize
         header.blockSize  = blockSize
@@ -806,7 +808,7 @@ impl Allocator
         return header
     }
 
-    mtd setupAllocatedHeader(header: *AllocatorHeader, request: *AllocatorRequest, heap: *AllocatorThreadHeap)
+    mtd setupAllocatedHeader(header: #null *AllocatorHeader, request: #nonull *AllocatorRequest, heap: #null *AllocatorThreadHeap)
     {
         header.magic      = MagicAlloc
         header.userSize   = request.size
@@ -836,7 +838,7 @@ impl Allocator
         request.address = .userAddress(header)
     }
 
-    mtd allocate(request: *AllocatorRequest)
+    mtd allocate(request: #nonull *AllocatorRequest)
     {
         // A zero-size reallocation with a live address never reaches this point:
         // 'reallocate' frees it before delegating.
@@ -850,7 +852,7 @@ impl Allocator
         let blockSize  = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
         let heap       = .threadHeap()
 
-        var header: *AllocatorHeader
+        var header: #null *AllocatorHeader
         if .fastPathEnabled(request, classIndex) do
             header = .acquireThreadCached(heap, classIndex, request.size)
         else
@@ -870,7 +872,7 @@ impl Allocator
         .setupAllocatedHeader(header, request, heap)
     }
 
-    mtd reallocate(request: *AllocatorRequest)
+    mtd reallocate(request: #nonull *AllocatorRequest)
     {
         if !request.address
         {
@@ -885,7 +887,7 @@ impl Allocator
         }
 
         let oldAddress = request.address
-        let oldHeader  = cast(*AllocatorHeader) (cast([*] u8) oldAddress - #sizeof(AllocatorHeader))
+        let oldHeader  = cast(#null *AllocatorHeader) (cast(#null [*] u8) oldAddress - #sizeof(AllocatorHeader))
         .checkAllocated(oldHeader, request.callerLoc)
 
         if request.size <= oldHeader.blockSize and (request.alignment == 0 or request.alignment <= oldHeader.alignment)
@@ -927,16 +929,16 @@ impl Allocator
         request.address = allocReq.address
     }
 
-    mtd freeBlock(request: *AllocatorRequest)
+    mtd freeBlock(request: #nonull *AllocatorRequest)
     {
         if !request.address do
             return
 
-        let userAddr = cast([*] u8) request.address
-        let header = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
+        let userAddr = cast(#null [*] u8) request.address
+        let header = cast(#null *AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
         .checkAllocated(header, request.callerLoc)
         let foot = .footer(header)
-        let ownerHeap = cast(*AllocatorThreadHeap) header.ownerHeap
+        let ownerHeap = cast(#null *AllocatorThreadHeap) header.ownerHeap
 
         if header.isTracked do
             .unlinkAllocated(header)
@@ -1002,7 +1004,7 @@ impl Allocator
         {
             let header = .firstAlloc
             .unlinkAllocated(header)
-            discard .decActive(cast(*AllocatorThreadHeap) header.ownerHeap)
+            discard .decActive(cast(#null *AllocatorThreadHeap) header.ownerHeap)
             .statSub(&.countAlloc, 1)
             .statSub(&.sizeAlloc, header.userSize)
 
@@ -1135,7 +1137,7 @@ impl IAllocator for Allocator
             .mutex.unlock()
     }
 
-    mtd impl alloc(request: *AllocatorRequest)
+    mtd impl alloc(request: #nonull *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
@@ -1143,21 +1145,21 @@ impl IAllocator for Allocator
         .allocate(request)
     }
 
-    mtd impl realloc(request: *AllocatorRequest)
+    mtd impl realloc(request: #nonull *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
         .reallocate(request)
     }
 
-    mtd impl free(request: *AllocatorRequest)
+    mtd impl free(request: #nonull *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
         .freeBlock(request)
     }
 
-    mtd impl freeAll(request: *AllocatorRequest)
+    mtd impl freeAll(request: #nonull *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
@@ -1165,7 +1167,7 @@ impl IAllocator for Allocator
         request.address = null
     }
 
-    mtd impl assertAllocated(request: *AllocatorRequest)
+    mtd impl assertAllocated(request: #nonull *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
@@ -1173,7 +1175,7 @@ impl IAllocator for Allocator
     }
 }
 
-func defaultAllocator()->*Allocator
+func defaultAllocator()->#nonull *Allocator
 {
     return &g_DefaultAllocator
 }
@@ -1188,12 +1190,12 @@ func releaseAllocatorThreadCache()
 
     g_AllocatorThreadHeap = null
 
-    let alloc = cast(*Allocator) heap.allocator
+    let alloc = cast(#null *Allocator) heap.allocator
     if alloc do
         alloc.retireThreadHeap(heap)
 }
 
-func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->*Allocator
+func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->#nonull *Allocator
 {
     let cxt = @getcontext()
 

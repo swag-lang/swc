@@ -69,7 +69,10 @@ internal impl Properties
             .level     = parentItem ? parentItem.level + 1 : 0
             .section   = parentItem ? parentItem.section : 0
             .valueCellHeight = height orelse .gridLineHeight
-            if .isGridLike() do
+            // The focus/hot rectangle extends into the inter-row gap: half the line
+            // margin, so two adjacent rows never overlap (Panel rows use the same
+            // margin as the grid ones, see below).
+            if .isGridLike() or .kind == .Panel do
                 .extendFocus = .gridLineMargin * 0.5
         }
 

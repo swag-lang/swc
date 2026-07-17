@@ -363,7 +363,7 @@ impl Properties
             {
                 .leftMargin     = 8
                 .rightMargin    = 8
-                .gridLineMargin = 6
+                .gridLineMargin = 12
             }
 
             .hookOnChildEvent = func(wnd, evt) { return onHookChildEvent(wnd, evt); }

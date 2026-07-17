@@ -500,6 +500,7 @@ namespace
         const IdentifierRef      safetyIdRef        = sema.idMgr().addIdentifier("Safety");
         const IdentifierRef      sanityIdRef        = sema.idMgr().addIdentifier("Sanity");
         const IdentifierRef      borrowSummaryIdRef = sema.idMgr().addIdentifier("BorrowSummary");
+        const IdentifierRef      explicitNullabilityIdRef = sema.idMgr().addIdentifier("ExplicitNullability");
         const IdentifierRef      canOverflowIdRef   = idMgr.predefined(IdentifierManager::PredefinedName::CanOverflow);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
@@ -513,6 +514,11 @@ namespace
             return collectSanityOptions(sema, resolvedArgs, outAttributes);
         if (idRef == borrowSummaryIdRef)
             return collectBorrowSummaryOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == explicitNullabilityIdRef)
+        {
+            outAttributes.setExplicitNullability();
+            return Result::Continue;
+        }
         if (idRef == canOverflowIdRef)
             return collectCanOverflowOption(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))

@@ -519,6 +519,7 @@ namespace Runtime
         String warnAsDisabled;
         bool   warnDefaultDisabled = false;
         bool   warnDefaultErrors   = false;
+        bool   explicitNullability = false;
 
         BuildCfgBackendKind    backendKind    = BuildCfgBackendKind::Executable;
         BuildCfgBackendSubKind backendSubKind = BuildCfgBackendSubKind::Console;

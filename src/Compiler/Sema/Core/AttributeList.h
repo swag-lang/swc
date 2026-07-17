@@ -92,6 +92,7 @@ struct AttributeList
     std::optional<CallConvKind>         foreignCallConvKind;
     GeneratedOperatorFlags              generatedOperators = GeneratedOperatorFlagsE::Zero;
     SourceCodeRef                       generatedOperatorsCodeRef;
+    bool                                explicitNullability = false;
 
     bool empty() const
     {
@@ -111,7 +112,8 @@ struct AttributeList
                foreignFunctionName.empty() &&
                foreignLinkModuleName.empty() &&
                !foreignCallConvKind.has_value() &&
-               generatedOperators.none();
+               generatedOperators.none() &&
+               !explicitNullability;
     }
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
@@ -192,6 +194,11 @@ struct AttributeList
     void setBackendOptimize(bool value)
     {
         backendOptimize = value;
+    }
+
+    void setExplicitNullability()
+    {
+        explicitNullability = true;
     }
 
     CallConvKind resolvedForeignCallConvKind() const

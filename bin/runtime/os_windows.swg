@@ -472,8 +472,8 @@ struct __SwagSym
     line:    u32    = 0
 }
 
-var __dbgCacheBase:    *void  = null
-var __dbgCacheSection: [*] u8 = null
+var __dbgCacheBase:    #null *void  = null
+var __dbgCacheSection: #null [*] u8 = null
 var __dbgCacheCount:   u32    = 0
 var __dbgCacheValid:   bool   = false
 
@@ -534,7 +534,7 @@ func __symbolize(addr: *void)->__SwagSym
     var r: __SwagSym
 
     // GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS(4) | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT(2)
-    var h: *void = null
+    var h: #null *void = null
     if GetModuleHandleExA(6, cast(const *u8) addr, &h) == 0 do
         return r
     if h != __dbgCacheBase do
@@ -566,7 +566,7 @@ func __symbolize(addr: *void)->__SwagSym
     return r
 }
 
-func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null, printNoLine = true)
+func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
 {
     var hasStarted = false
 

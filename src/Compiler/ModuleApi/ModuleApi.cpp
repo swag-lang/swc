@@ -37,6 +37,12 @@ namespace
         if (currentRef == targetRef)
             return true;
 
+        if (ast.node(currentRef).is(AstNodeId::FunctionBody))
+        {
+            ioPath.pop_back();
+            return false;
+        }
+
         SmallVector<AstNodeRef> childRefs;
         ast.node(currentRef).collectChildrenFromAst(childRefs, ast);
         for (const AstNodeRef childRef : childRefs)

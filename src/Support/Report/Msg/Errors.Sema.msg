@@ -74,6 +74,7 @@ SWC_DIAG_DEF(sema_err_let_missing_init, Error, "'let' variable is missing an ini
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "reference of type '{type}' requires an initializer; [help] bind the reference when it is declared")
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "reference is missing an initializer; [help] bind the reference when it is declared")
 SWC_DIAG_DEF(sema_err_type_requires_init, Error, "type '{type}' requires complete initialization because it has no valid implicit default; [help] initialize every required value, or explicitly use 'undefined' as a low-level escape")
+SWC_DIAG_DEF(sema_err_missing_nullability, Error, "type '{type}' must be explicitly declared '#null' or '#nonull' when explicit nullability is enabled; [help] add '#null' for optional values, or '#nonull' for required values")
 SWC_DIAG_DEF(sema_err_fwd_not_copyable, Error, "cannot copy a value of non-copyable type '{type}' into a '#fwd' parameter; [help] pass the value with '#move', or make the type copyable by defining 'opPostCopy'")
 SWC_DIAG_DEF(sema_err_move_arg_not_copyable, Error, "cannot copy a value of non-copyable type '{type}' into a '#move' parameter; [help] pass the value with '#move', or remove '#[Swag.NoCopy]' from the type")
 SWC_DIAG_DEF(sema_err_cannot_copy_nocopy, Error, "cannot copy a value of non-copyable type '{type}'; [help] transfer ownership with '#move', or remove '#[Swag.NoCopy]' from the type")

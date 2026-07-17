@@ -237,6 +237,10 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
     attr Warning(what: string, level: WarningLevel)
 
+    // Require nullable-capable types to be explicitly annotated with '#null' or '#nonull'.
+    #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
+    attr ExplicitNullability()
+
     #[Swag.EnumFlags]
     enum MatchWhat: u32
     {
@@ -871,6 +875,7 @@ namespace Swag
         warnAsDisabled:                string                               // Disable some specific warnings
         warnDefaultDisabled:           bool                                 // All warnings are disabled, except those specified above
         warnDefaultErrors:             bool                                 // All warnings are treated as errors, except those specified above
+        explicitNullability:           bool                                 // Require #null or #nonull on nullable-capable types
 
         backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind

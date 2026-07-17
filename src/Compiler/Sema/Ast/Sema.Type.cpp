@@ -78,6 +78,54 @@ namespace
 
         return TypeRef::invalid();
     }
+
+    bool isWrappedByContainerType(Sema& sema)
+    {
+        const AstNode* parentNode = sema.visit().parentNode();
+        if (!parentNode)
+            return false;
+
+        switch (parentNode->id())
+        {
+            case AstNodeId::QualifiedType:
+                return parentNode->cast<AstQualifiedType>().nodeTypeRef == sema.curNodeRef();
+            case AstNodeId::ValuePointerType:
+                return parentNode->cast<AstValuePointerType>().nodePointeeTypeRef == sema.curNodeRef();
+            case AstNodeId::BlockPointerType:
+                return parentNode->cast<AstBlockPointerType>().nodePointeeTypeRef == sema.curNodeRef();
+            case AstNodeId::SliceType:
+                return parentNode->cast<AstSliceType>().nodePointeeTypeRef == sema.curNodeRef();
+            case AstNodeId::ArrayType:
+                return parentNode->cast<AstArrayType>().nodePointeeTypeRef == sema.curNodeRef();
+            case AstNodeId::TypedVariadicType:
+                return parentNode->cast<AstTypedVariadicType>().nodeTypeRef == sema.curNodeRef();
+            default:
+                return false;
+        }
+    }
+
+    Result checkExplicitNullability(Sema& sema, AstNodeRef typeNodeRef, TypeRef typeRef)
+    {
+        if (!sema.buildCfg().explicitNullability && !sema.frame().currentAttributes().explicitNullability)
+            return Result::Continue;
+        if (isWrappedByContainerType(sema))
+            return Result::Continue;
+
+        TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (unwrappedTypeRef.isInvalid())
+            unwrappedTypeRef = typeRef;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(unwrappedTypeRef);
+        if (!typeInfo.isSupportsNullableQualifier())
+            return Result::Continue;
+        if (typeInfo.isNullable() || typeInfo.isExplicitNonNull())
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_nullability, typeNodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeInfo.toName(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 }
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
@@ -126,23 +174,23 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
             return Result::Continue;
         case TokenId::TypeString:
             sema.setType(nodeRef, typeMgr.typeString());
-            return Result::Continue;
+            return checkExplicitNullability(sema, nodeRef, typeMgr.typeString());
 
         case TokenId::TypeVoid:
             sema.setType(nodeRef, typeMgr.typeVoid());
             return Result::Continue;
         case TokenId::TypeAny:
             sema.setType(nodeRef, typeMgr.typeAny());
-            return Result::Continue;
+            return checkExplicitNullability(sema, nodeRef, typeMgr.typeAny());
         case TokenId::TypeCString:
             sema.setType(nodeRef, typeMgr.typeCString());
-            return Result::Continue;
+            return checkExplicitNullability(sema, nodeRef, typeMgr.typeCString());
         case TokenId::TypeRune:
             sema.setType(nodeRef, typeMgr.typeRune());
             return Result::Continue;
         case TokenId::TypeTypeInfo:
             sema.setType(nodeRef, typeMgr.typeTypeInfo());
-            return Result::Continue;
+            return checkExplicitNullability(sema, nodeRef, typeMgr.typeTypeInfo());
 
         default:
             break;
@@ -220,7 +268,7 @@ Result AstValuePointerType::semaPostNode(Sema& sema) const
     const TypeInfo     ty      = TypeInfo::makeValuePointer(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return Result::Continue;
+    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
 }
 
 Result AstBlockPointerType::semaPostNode(Sema& sema) const
@@ -229,7 +277,7 @@ Result AstBlockPointerType::semaPostNode(Sema& sema) const
     const TypeInfo     ty      = TypeInfo::makeBlockPointer(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return Result::Continue;
+    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
 }
 
 Result AstReferenceType::semaPostNode(Sema& sema) const
@@ -269,7 +317,7 @@ Result AstSliceType::semaPostNode(Sema& sema) const
     const TypeInfo ty      = TypeInfo::makeSlice(view.typeRef());
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return Result::Continue;
+    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
 }
 
 Result AstQualifiedType::semaPostNode(Sema& sema) const

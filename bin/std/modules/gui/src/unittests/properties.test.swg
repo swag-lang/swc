@@ -1760,3 +1760,41 @@ struct PropDecorData
 
     host.shutdown()
 }
+
+
+struct PropHeadlessFontStyleData
+{
+    style = Pixel.FontFamilyStyle.Regular
+}
+
+// The bold/italic buttons of the FontFamilyStyle editor are independent toggles: a
+// second click on a checked button must uncheck it (regression: with Checkable the
+// click on a checked button was swallowed, so bold/italic could never be removed).
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessFontStyleData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300}, kind: .Panel)
+    prop.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    // items[0] is the implicit section; the editor stacks the B and I buttons in a sub-line
+    let item      = prop.items[1]
+    let stack     = item.line.childs[0]
+    let btnBold   = cast(*IconButton) stack.childs[0]
+    let btnItalic = cast(*IconButton) stack.childs[1]
+
+    host.clickWnd(btnBold)
+    @assert(data.style == .Bold)
+    host.clickWnd(btnItalic)
+    @assert(data.style == .BoldItalic)
+    host.clickWnd(btnBold)
+    @assert(data.style == .Italic)
+    host.clickWnd(btnItalic)
+    @assert(data.style == .Regular)
+
+    host.shutdown()
+}

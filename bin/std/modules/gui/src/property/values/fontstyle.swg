@@ -30,18 +30,20 @@ impl IPropertyEditor for FontStyleEditor
             .spacing     = 4
         }
 
+        // CheckableToggle, not Checkable: bold/italic are independent on/off switches, so a
+        // click on a checked button must uncheck it (Checkable ignores clicks when checked).
         with let btnBold = IconButton.create(line, {}, {0, 0, BtnW, lineH})
         {
             .name = "B"
             .setForm(.RoundSquare)
-            .iconBtnFlags.add(.Checkable)
+            .iconBtnFlags.add(.CheckableToggle)
         }
 
         with let btnItalic = IconButton.create(line, {}, {0, 0, BtnW, lineH})
         {
             .name = "I"
             .setForm(.RoundSquare)
-            .iconBtnFlags.add(.Checkable)
+            .iconBtnFlags.add(.CheckableToggle)
         }
 
         func writeStyle(list: *Properties, item: *PropertiesItem, style: *FontFamilyStyle, btnBold, btnItalic: *IconButton)

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #import("core")
 #import("ogl")
 #import("truetype")

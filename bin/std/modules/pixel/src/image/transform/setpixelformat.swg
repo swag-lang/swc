@@ -1,10 +1,11 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
 {
-    mtd const doRGB8(dstImage: *Image)
+    mtd const doRGB8(dstImage: #nonull *Image)
     {
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
 
         #[Swag.Complete]
         switch .pf
@@ -14,7 +15,7 @@ impl Image
         case RGBA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
@@ -23,7 +24,7 @@ impl Image
         case BGR8, BGRA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
@@ -32,9 +33,9 @@ impl Image
         }
     }
 
-    mtd const doRGBA8(dstImage: *Image)
+    mtd const doRGBA8(dstImage: #nonull *Image)
     {
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
 
         #[Swag.Complete]
         switch .pf
@@ -44,7 +45,7 @@ impl Image
         case BGRA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
@@ -54,7 +55,7 @@ impl Image
         case RGB8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
@@ -64,7 +65,7 @@ impl Image
         case BGR8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
@@ -74,9 +75,9 @@ impl Image
         }
     }
 
-    mtd const doBGR8(dstImage: *Image)
+    mtd const doBGR8(dstImage: #nonull *Image)
     {
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
 
         #[Swag.Complete]
         switch .pf
@@ -86,7 +87,7 @@ impl Image
         case BGRA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
@@ -95,7 +96,7 @@ impl Image
         case RGB8, RGBA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
@@ -104,9 +105,9 @@ impl Image
         }
     }
 
-    mtd const doBGRA8(dstImage: *Image)
+    mtd const doBGRA8(dstImage: #nonull *Image)
     {
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
 
         #[Swag.Complete]
         switch .pf
@@ -116,7 +117,7 @@ impl Image
         case BGR8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
@@ -126,7 +127,7 @@ impl Image
         case RGB8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
@@ -136,7 +137,7 @@ impl Image
         case RGBA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
@@ -146,7 +147,7 @@ impl Image
         }
     }
 
-    mtd const doChangePf(dstImage: *Image)
+    mtd const doChangePf(dstImage: #nonull *Image)
     {
         #[Swag.Complete]
         switch dstImage.pf
@@ -171,7 +172,7 @@ impl Image
             return
 
         .allocWorkingBuffer(.width, .height, newPf)
-        .doChangePf(.workingBuffer)
+        .doChangePf(.safeWorkingBuffer())
         .applyWorkingBuffer()
     }
 

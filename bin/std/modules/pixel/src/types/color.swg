@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Swag, Core, Core.Errors, Core.StrConv
 
@@ -33,9 +34,9 @@ impl Color
     #[Complete, Inline, Implicit, ConstExpr]
     func opSet(me, argb: Argb) { .argb = cast(u32) argb }
 
-    // Assignment operator for color name string.
+    // Assignment operator for color name #nonull string.
     #[Complete, Inline, ConstExpr]
-    func opSet(me, name: string) { .argb = cast(u32) Argb.fromName(name) }
+    func opSet(me, name: #nonull string) { .argb = cast(u32) Argb.fromName(name) }
 
     // Equality comparison with u32 ARGB value.
     #[Inline]
@@ -621,12 +622,12 @@ impl Color
     }
 }
 
-// Implementation of string parsing interface for Color values.
+// Implementation of #nonull string parsing interface for Color values.
 impl Core.StrConv.IPokeValue for Color
 {
-    // Parse a Color from a string representation.
+    // Parse a Color from a #nonull string representation.
     // Supports hex format (0x...), individual ARGB components, or named colors.
-    mtd impl poke(buf: string)->string throw
+    mtd impl poke(buf: #nonull string)->#nonull string throw
     {
         var eat: u64
         var ovf: bool

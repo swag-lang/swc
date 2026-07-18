@@ -1,14 +1,15 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-func gifCanEncode(fileName: string)->bool
+func gifCanEncode(fileName: #nonull string)->bool
 {
     var enc: Gif.Encoder
     let itf = @mkinterface(&enc, #typeof(Gif.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeGif(result: *ConcatBuffer, image: Image) throw
+func encodeGif(result: #nonull *ConcatBuffer, image: Image) throw
 {
     var enc: Gif.Encoder
     let itf = @mkinterface(&enc, #typeof(Gif.Encoder), IImageEncoder)
@@ -25,7 +26,7 @@ func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
         @assert(img.pixels.buffer[idx + 3] == a)
 }
 
-func assertGifHeader(bytes: const [..] u8, width, height: u16)
+func assertGifHeader(bytes: #nonull const [..] u8, width, height: u16)
 {
     @assert(@countof(bytes) > 20)
     @assert(bytes[0] == 'G' and bytes[1] == 'I' and bytes[2] == 'F')
@@ -43,7 +44,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     catch encodeGif(&cb, src)
     @assert(@err == null)
 
-    let bytes = cb.toSlice()
+    let bytes = nnBytes(cb.toSlice())
     assertGifHeader(bytes, cast(u16) src.width, cast(u16) src.height)
 
     var img: Image
@@ -93,7 +94,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(@err == null)
 
     var dec: Gif.Decoder
-    catch dec.init(bytes.toSlice(), true)
+    catch dec.init(nnBytes(bytes.toSlice()), true)
     @assert(@err == null)
 
     let numFrames = catch dec.getNumFrames()
@@ -174,7 +175,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(@err == null)
 
     var img: Image
-    img = catch Image.decode("rgb.gif", cb.toSlice(), {})
+    img = catch Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
     @assert(@err == null)
     @assert(img.pf == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
@@ -200,7 +201,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(@err == null)
 
     var img: Image
-    img = catch Image.decode("rgba.gif", cb.toSlice(), {})
+    img = catch Image.decode("rgba.gif", nnBytes(cb.toSlice()), {})
     @assert(@err == null)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
     assertGifPixelAt(img, 1, 0, 40'u8, 50'u8, 60'u8, 255'u8)
@@ -219,7 +220,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(@err == null)
 
     var img: Image
-    img = catch Image.decode("bgr.gif", cb.toSlice(), {})
+    img = catch Image.decode("bgr.gif", nnBytes(cb.toSlice()), {})
     @assert(@err == null)
     assertGifPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
@@ -233,7 +234,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     catch encodeGif(&cb, bgra)
     @assert(@err == null)
 
-    img = catch Image.decode("bgra.gif", cb.toSlice(), {})
+    img = catch Image.decode("bgra.gif", nnBytes(cb.toSlice()), {})
     @assert(@err == null)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
 }
@@ -258,7 +259,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(@err == null)
 
     var img: Image
-    img = catch Image.decode("quantized.gif", cb.toSlice(), {})
+    img = catch Image.decode("quantized.gif", nnBytes(cb.toSlice()), {})
     @assert(@err == null)
     @assert(img.width == 17)
     @assert(img.height == 17)

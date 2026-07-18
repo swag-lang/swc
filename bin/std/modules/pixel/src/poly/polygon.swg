@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core.Math
 
@@ -19,7 +20,7 @@ struct Polygon
 
 impl Polygon
 {
-    internal mtd appendClipperPath(path: *Clipper.ClipperPath)
+    internal mtd appendClipperPath(path: #nonull *Clipper.ClipperPath)
     {
         var count = .points.count
         if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
@@ -32,7 +33,7 @@ impl Polygon
         }
     }
 
-    internal func setupGeneratedPath(path: *LinePath)
+    internal func setupGeneratedPath(path: #nonull *LinePath)
     {
         path.isPolyOnly = true
         path.isClosed   = true
@@ -211,7 +212,7 @@ impl Polygon
             let cy0 = Math.clamp(cast(s32) ((Math.min(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
             let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
 
-            // Test against edges already registered in any cell this edge overlaps.
+            // Test against edges already registered in #null any cell this edge overlaps.
             for cy in cy0 to cy1
             {
                 for cx in cx0 to cx1
@@ -281,7 +282,7 @@ impl Polygon
         .compute(knownSimple: true)
     }
 
-    internal mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
+    internal mtd addOffsetInputs(off: #nonull *Clipper.Offset, joinType: Clipper.JoinType)
     {
         if .isSimple
         {
@@ -295,13 +296,13 @@ impl Polygon
             // non-simple. Cleaning simple glyph outlines first can fragment
             // inner contours into many tiny loops.
             var paths: Clipper.ClipperPaths
-            .clean(&paths)
+            .cleanInto(&paths)
             for path in paths do
                 off.addPath(path, joinType)
         }
     }
 
-    private mtd offset(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
+    private mtd offsetInto(res: #nonull *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
     {
         if Math.isZeroEpsilon(value) do
             return
@@ -332,7 +333,7 @@ impl Polygon
     {
         var res: Clipper.ClipperPaths
 
-        .offset(&res, value, joinStyle, toler)
+        .offsetInto(&res, value, joinStyle, toler)
         .clear()
         if res.count do
             .storeClipperResult(res[0])
@@ -346,7 +347,7 @@ impl Polygon
         result.bvMax = .bvMax
 
         var res: Clipper.ClipperPaths
-        .offset(&res, value, joinStyle, toler)
+        .offsetInto(&res, value, joinStyle, toler)
 
         for p in res
         {
@@ -358,7 +359,7 @@ impl Polygon
         return result
     }
 
-    private mtd clean(res: *Clipper.ClipperPaths)
+    private mtd cleanInto(res: #nonull *Clipper.ClipperPaths)
     {
         if !.points.count do
             return
@@ -380,7 +381,7 @@ impl Polygon
     mtd clean()
     {
         var res: Clipper.ClipperPaths
-        .clean(&res)
+        .cleanInto(&res)
         .clear()
         if res.count do
             .storeClipperResult(res[0])
@@ -394,7 +395,7 @@ impl Polygon
         result.bvMax = .bvMax
 
         var res: Clipper.ClipperPaths
-        .clean(&res)
+        .cleanInto(&res)
 
         for p in res
         {

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 public impl Image

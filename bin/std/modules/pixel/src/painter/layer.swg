@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core
 
@@ -35,11 +36,11 @@ struct LayerDrawInfo
 
 struct Layer
 {
-    renderer:       *RenderOgl
-    painter:        *Painter
-    paintTarget:    *RenderTarget
-    contentTarget:  *RenderTarget
-    shadowTarget:   *RenderTarget
+    renderer:       #null *RenderOgl
+    painter:        #null *Painter
+    paintTarget:    #null *RenderTarget
+    contentTarget:  #null *RenderTarget
+    shadowTarget:   #null *RenderTarget
     width:          s32
     height:         s32
     renderScale:    s32 = 1
@@ -49,7 +50,7 @@ struct Layer
 
 impl Layer
 {
-    mtd begin(renderer: *RenderOgl, painter: *Painter, info: LayerBeginInfo)
+    mtd begin(renderer: #nonull *RenderOgl, painter: #nonull *Painter, info: LayerBeginInfo)
     {
         Debug.assert(!.active)
         Debug.assert(renderer != null)
@@ -67,7 +68,7 @@ impl Layer
         .active        = true
         .resolved      = .renderScale == 1
 
-        let paintTarget = .paintTarget
+        let paintTarget = .paintTarget orelse cast(#nonull *RenderTarget) 1'u64
         with painter
         {
             .bindRenderTarget(paintTarget, info.paintAlpha)
@@ -111,7 +112,7 @@ impl Layer
             .drawTexture(dstRect, srcRect, paintTarget.colorBuffer)
             .setShader()
             .unbindRenderTarget()
-            .releaseRenderTarget(paintTarget)
+            .releaseRenderTarget(paintTarget orelse cast(#nonull *RenderTarget) 1'u64)
         }
 
         .paintTarget   = null
@@ -251,10 +252,11 @@ impl Layer
         {
             let paintTarget   = .paintTarget
             let contentTarget = .contentTarget
-            .painter.releaseRenderTarget(.paintTarget)
+            .painter.releaseRenderTarget(.paintTarget orelse cast(#nonull *RenderTarget) 1'u64)
             if contentTarget != paintTarget do
-                .painter.releaseRenderTarget(.contentTarget)
-            .painter.releaseRenderTarget(.shadowTarget)
+                .painter.releaseRenderTarget(.contentTarget orelse cast(#nonull *RenderTarget) 1'u64)
+            if .shadowTarget do
+                .painter.releaseRenderTarget(.shadowTarget orelse cast(#nonull *RenderTarget) 1'u64)
         }
 
         .paintTarget    = null

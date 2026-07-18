@@ -1,9 +1,10 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-// Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
+// Returns the OWNED path: a '#nonull string' view would dangle as soon as the intermediate
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
-func getTestDataPath(fileName: string, loc = #callerlocation)->String
+func getTestDataPath(fileName: #nonull string, loc = #callerlocation)->String
 {
     let dir  = Path.getDirectoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
@@ -68,7 +69,7 @@ func makeTempIcoPath()->String
 // Copy a ConcatBuffer's bytes into an owning Array. ConcatBuffer cannot be
 // returned by value safely (it owns linked buckets), so test builders that
 // assemble bytes return an Array instead.
-func cbToArray(cb: *ConcatBuffer)->Array'u8
+func cbToArray(cb: #nonull *ConcatBuffer)->Array'u8
 {
     cb.makeLinear()
     var result: retval
@@ -79,7 +80,18 @@ func cbToArray(cb: *ConcatBuffer)->Array'u8
     return result
 }
 
-func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
+func nnBytes(bytes: #null [..] u8)->#nonull const [..] u8
+{
+    @assert(bytes != null)
+    return @mkslice(cast(#nonull [*] u8) (assume @dataof(bytes)), @countof(bytes))
+}
+
+func loadTestTypeFace(outFace: #nonull *#nonull *TypeFace, fullname: #nonull string) throw
+{
+    dref outFace = try TypeFace.load(fullname)
+}
+
+func makeImage(width, height: s32, pf: PixelFormat, buffer: #nonull const [..] u8)->Image
 {
     let expectedSize = cast(u64) (width * height * cast(s32) (pf.bpp() >> 3))
     @assert(@countof(buffer) == expectedSize)

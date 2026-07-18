@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
@@ -32,10 +33,10 @@ impl Image
             }
         }
 
-        var f = {r: cast([*] u8) &convArrR[0], g: cast([*] u8) &convArrG[0], b: cast([*] u8) &convArrB[0]}
+        var f = {r: cast(#nonull [*] u8) &convArrR[0], g: cast(#nonull [*] u8) &convArrG[0], b: cast(#nonull [*] u8) &convArrB[0]}
         .visitPixels(&f)
         {
-            let arr = cast(*#decltype(f)) userData
+            let arr = cast(#nonull *#decltype(f)) (assume userData)
             pix[0] = arr.r[pix[0]]
             pix[1] = arr.g[pix[1]]
             pix[2] = arr.b[pix[2]]

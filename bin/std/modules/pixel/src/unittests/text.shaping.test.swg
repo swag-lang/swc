@@ -1,9 +1,12 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-func makeShapingTestFont()->*Font
+func makeShapingTestFont()->#nonull *Font
 {
-    let face = assume TypeFace.load(getTestDataPath("segoeui.ttf"))
+    var face: #nonull *TypeFace = undefined
+    catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf"))
+    @assert(@err == null)
     return Font.create(face, 32, .Bitmap)
 }
 

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
@@ -10,7 +11,7 @@ impl Image
         return {cw, ch}
     }
 
-    mtd const doExpand(dstImage: *Image, l, t, r, b: s32, color: Color)
+    mtd const doExpand(dstImage: #nonull *Image, l, t, r, b: s32, color: Color)
     {
         dstImage.fill(color)
 
@@ -48,7 +49,7 @@ impl Image
     {
         let (cw, ch) = .getWH(l, t, r, b)
         .allocWorkingBuffer(cw, ch, .pf)
-        .doExpand(.workingBuffer, l, t, r, b, color)
+        .doExpand(.safeWorkingBuffer(), l, t, r, b, color)
         .applyWorkingBuffer()
     }
 

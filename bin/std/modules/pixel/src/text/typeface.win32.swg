@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, TrueType
 
 impl TypeFace
@@ -21,20 +22,20 @@ impl TypeFace
     }
 
     // Create a new typeface from a HFONT
-    public func createFromHFONT(fullname: string, hf: HFONT)->*TypeFace throw
+    public func createFromHFONT(fullname: #nonull string, hf: HFONT)->#nonull *TypeFace throw
     {
         Sync.scopedLock(&lock)
 
         let str  = String.from(fullname)
         let here = g_HashTypeFace.tryFind(str)
         if here do
-            return here.value
+            return here.value orelse cast(#nonull *TypeFace) 1'u64
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = getDataFromHFONT(hf)
 
-        tf.face = try Face.load(tf.buffer.toSlice())
+        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(#nonull *Face) 1'u64
 
         g_HashTypeFace.add(str, tf)
         return tf

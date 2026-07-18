@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
@@ -15,7 +16,7 @@ impl Image
             var pix = .pixels.buffer
             for x in .width
             {
-                convertToRGBA8'PF(pix, color.r, color.g, color.b, color.a)
+                convertToRGBA8'PF(cast(#nonull [*] u8) (assume pix), color.r, color.g, color.b, color.a)
                 pix += .bpp8
             }
         }
@@ -36,7 +37,7 @@ impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, image.pixels.buffer, cast(u64) image.width * image.bpp8)
+            Memory.copy(pix, cast(#nonull [*] u8) (assume image.pixels.buffer), cast(u64) image.width * image.bpp8)
         }
     }
 }

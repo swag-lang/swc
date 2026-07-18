@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Test-only mirrors of the private ICO on-disk structures.
@@ -41,7 +42,7 @@ struct IcoDib
 }
 
 // Build a single-image ICO from a DIB body (palette + XOR + AND, no BITMAPINFOHEADER).
-func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [..] u8)->Array'u8
+func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: #nonull const [..] u8)->Array'u8
 {
     var cb: ConcatBuffer
     let bodyLen = cast(u32) @countof(dibBody)
@@ -73,28 +74,28 @@ func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [.
     return cbToArray(&cb)
 }
 
-func icoCanEncode(fileName: string)->bool
+func icoCanEncode(fileName: #nonull string)->bool
 {
     var enc: Ico.Encoder
     let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeIco(result: *ConcatBuffer, image: Image) throw
+func encodeIco(result: #nonull *ConcatBuffer, image: Image) throw
 {
     var enc: Ico.Encoder
     let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
+func decodeIco(bytes: #nonull const [..] u8, opt: DecodeOptions = {})->Image throw
 {
     var dec: Ico.Decoder
     let itf = @mkinterface(&dec, #typeof(Ico.Decoder), IImageDecoder)
     return itf.decode(bytes, opt)
 }
 
-func encodePng(result: *ConcatBuffer, image: Image) throw
+func encodePng(result: #nonull *ConcatBuffer, image: Image) throw
 {
     var enc: Png.Encoder
     let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)
@@ -124,8 +125,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     // AND mask: 2 rows of 4 bytes, fully opaque
     for 8 do body.addNative(0'u8)
 
-    let buf = buildIco(2, 2, 32, 0, body.toSlice())
-    var img = catch decodeIco(buf.toSlice())
+    let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
+    var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
@@ -153,8 +154,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     // AND row 1 (top)
     for 4 do body.addNative(0'u8)
 
-    let buf = buildIco(2, 2, 24, 0, body.toSlice())
-    var img = catch decodeIco(buf.toSlice())
+    let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
+    var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
     @assert(img.pixels.buffer[0] == 10'u8)
@@ -183,8 +184,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     // AND mask: 2 rows of 4 bytes, opaque
     for 8 do body.addNative(0'u8)
 
-    let buf = buildIco(2, 2, 8, 4, body.toSlice())
-    var img = catch decodeIco(buf.toSlice())
+    let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
+    var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
     @assert(img.pixels.buffer[0] == 10'u8)
@@ -207,8 +208,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     // AND mask: 1 row of 4 bytes
     for 4 do body.addNative(0'u8)
 
-    let buf = buildIco(2, 1, 1, 2, body.toSlice())
-    var img = catch decodeIco(buf.toSlice())
+    let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
+    var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pixels.buffer[0] == 7'u8)
     @assert(img.pixels.buffer[1] == 8'u8)
@@ -274,7 +275,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     for 12 do cb.addNative(0'u8)   // rest of XOR
     for 8 do cb.addNative(0'u8)    // AND
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
@@ -296,7 +297,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     catch encodePng(&png, src)
     @assert(@err == null)
     png.makeLinear()
-    let pngBytes = png.toSlice()
+    let pngBytes = nnBytes(png.toSlice())
     let pngLen   = cast(u32) @countof(pngBytes)
 
     var cb: ConcatBuffer
@@ -315,7 +316,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     cb.addStruct(e)
     cb.addBytes(pngBytes)
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.width == 3)
     @assert(img.height == 2)
@@ -327,11 +328,11 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     var body: ConcatBuffer
     for 24 do body.addNative(0'u8)   // 16 XOR + 8 AND
 
-    let buf = buildIco(2, 2, 32, 0, body.toSlice())
+    let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
 
     var opt: DecodeOptions
     opt.decodePixels = false
-    var img = catch decodeIco(buf.toSlice(), opt)
+    var img = catch decodeIco(nnBytes(buf.toSlice()), opt)
     @assert(@err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
@@ -348,7 +349,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     dir.count = 1
     cb.addStruct(dir)
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err != null)
 }
 
@@ -361,7 +362,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     dir.count = 0
     cb.addStruct(dir)
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err != null)
 }
 
@@ -380,7 +381,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     catch encodeIco(&cb, src)
     @assert(@err == null)
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
@@ -404,7 +405,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     catch encodeIco(&cb, src)
     @assert(@err == null)
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
     @assert(img.pixels.buffer[0] == 10'u8)
@@ -426,7 +427,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     catch encodeIco(&cb, src)
     @assert(@err == null)
 
-    var img = catch decodeIco(cb.toSlice())
+    var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
     @assert(img.pixels.buffer[0] == 10'u8)    // B

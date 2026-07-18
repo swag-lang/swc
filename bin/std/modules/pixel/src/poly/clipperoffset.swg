@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 /*
     :LICENCE
     This code is based on the Clipper library (http://www.angusj.com)
@@ -103,7 +104,7 @@ impl Offset
 
     // Execute the offset operation and return the resulting polygons.
     // Processes all added paths with the specified 'delta' offset distance.
-    mtd execute(solution: *ClipperPaths, delta: f64, reverseNeg: bool = false)
+    mtd execute(solution: #nonull *ClipperPaths, delta: f64, reverseNeg: bool = false)
     {
         solution.clear()
         .fixOrientations()
@@ -303,7 +304,7 @@ impl Offset
 
     // Process a single vertex offset with appropriate join handling.
     // Determines the offset position based on adjacent edge normals and join type.
-    mtd offsetPoint(j: s32, ptrk: *s32, jointype: JoinType)
+    mtd offsetPoint(j: s32, ptrk: #nonull *s32, jointype: JoinType)
     {
         let k = dref ptrk
 

@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Regression test for cross-module attribute identity.

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 public enum Argb: u32
 {
     AliceBlue            = 0xFFF0F8FF
@@ -146,11 +147,11 @@ public enum Argb: u32
 public impl Argb
 {
     // Get the Argb value that matches 'name'
-    func fromName(name: string)->Argb
+    func fromName(name: #nonull string)->Argb
     {
         let t = #typeof(Argb)
         for it in t.values where it.name == name do
-            return dref cast(const *Argb) it.value
+            return dref cast(#nonull const *Argb) (assume it.value)
         return Argb.Black
     }
 }

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Swag, Core, Core.Serialization
 
@@ -15,7 +16,7 @@ struct Image
     metaDatas:     Array'ImageMetaData
 
     #[Core.Serialization.NoSerialize]
-    workingBuffer: *Image // Temporary buffer for filters and transformations
+    workingBuffer: #null *Image // Temporary buffer for filters and transformations
 }
 
 impl Image
@@ -25,7 +26,7 @@ impl Image
     mtd const isValid() => .pixels.buffer != null
 
     // Creates a new image
-    func create(width, height: s32, pf: PixelFormat, buffer: const [..] u8 = null)->Image
+    func create(width, height: s32, pf: PixelFormat, buffer: #null const [..] u8 = null)->Image
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
 
@@ -33,7 +34,7 @@ impl Image
         result.init(width, height, pf)
         result.allocPixels()
         if buffer do
-            Memory.copy(result.pixels.buffer, @dataof(buffer), @countof(buffer))
+            Memory.copy(cast(#nonull [*] u8) (assume result.pixels.buffer), @dataof(buffer), @countof(buffer))
         return result
     }
 
@@ -111,6 +112,12 @@ impl Image
         dref .workingBuffer = Image.create(newWidth, newHeight, newPf)
     }
 
+    mtd safeWorkingBuffer()->#nonull *Image
+    {
+        Debug.assert(.workingBuffer != null)
+        return .workingBuffer orelse cast(#nonull *Image) 1'u64
+    }
+
     // Free the working buffer if allocated
     mtd freeWorkingBuffer()
     {
@@ -141,19 +148,19 @@ impl Image
     // | y         | the pixel y coordinates
     // | userData  | as passed to the macro
     #[Swag.Macro]
-    mtd visitPixels(pixelUserData: *void = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
+    mtd visitPixels(pixelUserData: #null *void = null, stride: s32 = 1, stmt: #code(var pix, image, index: u64, x: s32, y: s32, userData))
     {
         Debug.assert(stride > 0)
 
         let self: const &Image = me
         var p = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(@mkslice(cast([*] u8) self.pixels.buffer, self.pixels.count), cast(u32) (.bpp8 * stride), &p)
+        Jobs.parallelVisit(@mkslice(cast(#nonull [*] u8) (assume self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
         {
             if !data do
                 return
-            let p        = cast(*#decltype(p)) data
-            let pixPtr   = cast([*] u8) buffer
-            let pixIndex = cast(u64) (pixPtr - p.image.pixels.buffer) / p.image.bpp8
+            let p        = cast(#nonull *#decltype(p)) (assume data)
+            let pixPtr   = cast(#nonull [*] u8) buffer
+            let pixIndex = cast(u64) (pixPtr - cast(#nonull [*] u8) (assume p.image.pixels.buffer)) / p.image.bpp8
 
             #inject(stmt,
                     pix = pixPtr,
@@ -182,16 +189,16 @@ impl Image
 
     // Copy one pixel, depending on bpp
     #[Swag.Inline]
-    func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
+    func(BPP: u8) copyPixelDirect(pixDst, pixSrc: #nonull [*] u8)
     {
         #if BPP == 24
         {
-            dref cast(*u16) pixDst = dref cast(*u16) pixSrc
+            dref cast(#nonull *u16) pixDst = dref cast(#nonull *u16) pixSrc
             pixDst[2]              = pixSrc[2]
         }
         #elif BPP == 32
         {
-            dref cast(*u32) pixDst = dref cast(*u32) pixSrc
+            dref cast(#nonull *u32) pixDst = dref cast(#nonull *u32) pixSrc
         }
         #else
         {
@@ -201,7 +208,7 @@ impl Image
 
     // Set pixel values at 'pixDst' depending on pixel format
     // Destination is supped to be in RGBA8 format
-    func(PF: PixelFormat) convertToRGBA8(pixDst: [*] u8, r, g, b, a: u8)
+    func(PF: PixelFormat) convertToRGBA8(pixDst: #nonull [*] u8, r, g, b, a: u8)
     {
         #if PF == .BGR8
         {

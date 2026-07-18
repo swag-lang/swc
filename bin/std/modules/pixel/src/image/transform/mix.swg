@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
@@ -8,11 +9,11 @@ impl Image
         AlphaBlend
     }
 
-    mtd const doMix(dstImage: *Image, srcImage: Image, x, y: s32, mode = MixMode.Copy)
+    mtd const doMix(dstImage: #nonull *Image, srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
         Debug.assert(srcImage.pf.hasAlpha() or mode != .AlphaBlend)
 
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
         var f   = {dstImage: dstImage, srcImage: &srcImage, x: x, y: y, mode: mode}
 
         #[Swag.Mixin]
@@ -20,9 +21,9 @@ impl Image
         {
             mec.visitPixels(&f)
             {
-                let params   = cast(*#decltype(f)) userData
-                let dstImage = cast(*Image) params.dstImage
-                let srcImage = cast(const *Image) params.srcImage
+                let params   = cast(#nonull *#decltype(f)) (assume userData)
+                let dstImage = cast(#nonull *Image) params.dstImage
+                let srcImage = cast(#nonull const *Image) params.srcImage
 
                 var pixDst = dstImage.pixels.buffer + x * image.bpp8
                 pixDst += cast(u64) (y * (image.width * image.bpp8))
@@ -32,7 +33,7 @@ impl Image
                    x >= params.x + srcImage.width or
                    y >= params.y + srcImage.height
                 {
-                    copyPixelDirect'BPP(pixDst, pix) // copy current dst pixel back (no change)
+                    copyPixelDirect'BPP(cast(#nonull [*] u8) (pixDst orelse cast(#nonull [*] u8) 1'u64), cast(#nonull [*] u8) (pix orelse cast(#nonull [*] u8) 1'u64)) // copy current dst pixel back (no change)
                 }
                 else
                 {
@@ -45,11 +46,11 @@ impl Image
                     switch params.mode
                     {
                     case Copy:
-                        copyPixelDirect'BPP(pixDst, pixSrc)
+                        copyPixelDirect'BPP(pixDst orelse cast(#nonull [*] u8) 1'u64, pixSrc orelse cast(#nonull [*] u8) 1'u64)
 
                     case AlphaBlend:
                         if BPP != 32 do
-                            copyPixelDirect'BPP(pixDst, pixSrc)
+                            copyPixelDirect'BPP(pixDst orelse cast(#nonull [*] u8) 1'u64, pixSrc orelse cast(#nonull [*] u8) 1'u64)
                         else
                         {
                             let bf = pixSrc[3] / 255.0
@@ -80,7 +81,7 @@ impl Image
         Debug.assert(.pf == srcImage.pf, "mismatched pixel format")
         Debug.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
-        .doMix(.workingBuffer, srcImage, x, y, mode)
+        .doMix(.safeWorkingBuffer(), srcImage, x, y, mode)
         .applyWorkingBuffer()
     }
 

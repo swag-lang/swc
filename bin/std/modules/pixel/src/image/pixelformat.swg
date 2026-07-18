@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Swag
 

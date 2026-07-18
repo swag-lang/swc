@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Win32, Ogl, Gdi32
 
 public struct NativeRenderOgl {}

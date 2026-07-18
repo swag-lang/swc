@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core
 
@@ -10,7 +11,7 @@ struct StringPainter
 impl StringPainter
 {
     // Set font
-    mtd font(font: *Font)
+    mtd font(font: #nonull *Font)
     {
         .fmt.font.regular = font
     }
@@ -39,8 +40,8 @@ impl StringPainter
         .fmt.flags = f
     }
 
-    // Draw string
-    mtd draw(painter: *Painter, rect: Math.Rectangle, what: string)
+    // Draw #nonull string
+    mtd draw(painter: #nonull *Painter, rect: Math.Rectangle, what: #nonull string)
     {
         .str.set(what)
         painter.drawRichString(rect, &.str, .fmt)

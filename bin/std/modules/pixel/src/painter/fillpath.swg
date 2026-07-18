@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core, Core.Math
 
 public impl Painter
@@ -15,7 +16,7 @@ public impl Painter
     // centered band there leaves the hard solid edge exposed at full coverage, which
     // survives intact when alpha is later extracted via the MAX pass of a paintAlpha
     // render target — producing visibly aliased text.
-    private mtd fillContourAA(polygon: *Polygon, color: Color, innerOff: f32, outerOff: f32)
+    private mtd fillContourAA(polygon: #nonull *Polygon, color: Color, innerOff: f32, outerOff: f32)
     {
         let count = polygon.points.count - 1
         if count < 2 do
@@ -33,7 +34,7 @@ public impl Painter
         }
     }
 
-    private mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
+    private mtd fillPathTriangulated(t: #null *Poly2Tri.Tessellate, p: #nonull *LinePath, bvMin, bvMax: Vector2, brush: Brush)
     {
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()
@@ -41,9 +42,10 @@ public impl Painter
         // Triangulation
         if p.triangles.triIndices.count == 0
         {
-            t.triangulate()
-            p.triangles = t.getResult()
-            t.clear()
+            let tess = t orelse cast(#nonull *Poly2Tri.Tessellate) 1'u64
+            tess.triangulate()
+            p.triangles = tess.getResult()
+            tess.clear()
         }
 
         // Paint the solid interior on the true contour (the triangulation is cached,
@@ -67,7 +69,7 @@ public impl Painter
     }
 
     // Fill a list of paths.
-    mtd fillPath(pathList: *LinePathList, color: Color)
+    mtd fillPath(pathList: #nonull *LinePathList, color: Color)
     {
         if !pathList.paths.count do
             return
@@ -76,7 +78,7 @@ public impl Painter
         .fillPath(pathList, brush)
     }
 
-    mtd fillPath(path: *LinePath, brush: Brush)
+    mtd fillPath(path: #nonull *LinePath, brush: Brush)
     {
         path.flatten(.curState.paintQuality)
         if Math.isZeroEpsilon(path.polygon.totalLen) do
@@ -151,7 +153,7 @@ public impl Painter
         }
     }
 
-    mtd fillPath(path: *LinePath, color: Color)
+    mtd fillPath(path: #nonull *LinePath, color: Color)
     {
         let brush = Brush.createSolid(color)
         .fillPath(path, brush)
@@ -159,12 +161,12 @@ public impl Painter
 
     // Fill a list of paths.
     // If the path is clockwise, it will be filled. If the path is anti-clockwise, it will be considered as a hole.
-    mtd fillPath(pathList: *LinePathList, brush: Brush)
+    mtd fillPath(pathList: #nonull *LinePathList, brush: Brush)
     {
         // Flatten all paths
         pathList.flatten(.curState.paintQuality)
 
-        var flush: *LinePath
+        var flush: #null *LinePath
 
         // Everything in the cache ?
         var serial = 0
@@ -201,7 +203,7 @@ public impl Painter
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
                 serial = p.serial
-                .fillPath(dirty ? &.tess : null, flush, pathList.bvMin, pathList.bvMax, brush)
+                .fillPathTriangulated(dirty ? &.tess : null, flush orelse cast(#nonull *LinePath) 1'u64, pathList.bvMin, pathList.bvMax, brush)
                 flush = null
             }
 
@@ -214,11 +216,11 @@ public impl Painter
         }
 
         if flush do
-            .fillPath(dirty ? &.tess : null, flush, pathList.bvMin, pathList.bvMax, brush)
+            .fillPathTriangulated(dirty ? &.tess : null, flush orelse cast(#nonull *LinePath) 1'u64, pathList.bvMin, pathList.bvMax, brush)
     }
 
     // Fill the polygon with the given color
-    mtd fillPolygon(path: *LinePath, color: Color)
+    mtd fillPolygon(path: #nonull *LinePath, color: Color)
     {
         if color.a == 0 do
             return
@@ -228,7 +230,7 @@ public impl Painter
     }
 
     // Fill the polygon with the given 'brush'
-    mtd fillPolygon(path: *LinePath, brush: Brush)
+    mtd fillPolygon(path: #nonull *LinePath, brush: Brush)
     {
         if !brush.hasVisibleAlpha() do
             return
@@ -248,7 +250,7 @@ public impl Painter
     }
 
     // Fill the polygon with the given 'brush'
-    mtd fillPolygon(points: [..] Math.Vector2, brush: Brush)
+    mtd fillPolygon(points: #nonull [..] Math.Vector2, brush: Brush)
     {
         if @countof(points) < 3 do
             return

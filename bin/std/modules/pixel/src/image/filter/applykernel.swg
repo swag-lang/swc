@@ -1,10 +1,11 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
 {
     // Kernel format is : kernelSize, kernelNormalizeValue, kernelValues...
     #[Swag.Incomplete]
-    public enum Kernel: const [..] s32
+    public enum Kernel: #nonull const [..] s32
     {
         GaussianBlur3x3A     = [3, 8, 0, 1, 0, 1, 4, 1, 0, 1, 0]
         GaussianBlur3x3B     = [3, 20, 1, 2, 1, 2, 8, 2, 1, 2, 1]
@@ -36,22 +37,22 @@ impl Image
     }
 
     #[Swag.Safety(.All, false)]
-    mtd doKernel(dstImage: *Image, kernel: Kernel)
+    mtd doKernel(dstImage: #nonull *Image, kernel: Kernel)
     {
         // unsupported pixel format
         if .pf.channels() < 3 or .pf.bitDepth() != 8 do
             return
 
-        var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
+        var f = {kernel: cast(#nonull const [..] s32) kernel, dstImage: dstImage}
         .visitPixels(&f)
         {
-            let params     = cast(*#decltype(f)) userData
+            let params     = cast(#nonull *#decltype(f)) (assume userData)
             let kernelSize = params.kernel[0] / 2
             let b8         = image.bpp8
             let w8         = image.width8
             let w          = image.width
             let h          = image.height
-            let px         = image.pixels.buffer
+            let px         = cast(#nonull [*] u8) (assume image.pixels.buffer)
             var ks         = @dataof(params.kernel) + 2
 
             var bs, gs, rs: s32
@@ -115,7 +116,7 @@ impl Image
     {
         Debug.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
-        .doKernel(.workingBuffer, kernel)
+        .doKernel(.safeWorkingBuffer(), kernel)
         .applyWorkingBuffer()
     }
 

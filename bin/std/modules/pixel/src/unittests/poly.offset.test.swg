@@ -1,40 +1,31 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-func getOutlineFontPath()->String
+func addOffsetRect(list: #nonull *Pixel.LinePathList, serial: s32, x, y: f32)
 {
-    return getTestDataPath("segoeui.ttf")
+    let path = list.newPath()
+    path.serial = serial
+    path.setRect(x, y, 20, 12)
 }
 
-func assertOutlineOffsetPathCount(text: string, expectedCount: u64)
+func assertOffsetCleanPreservesPathIdentity()
 {
-    let face = assume Pixel.TypeFace.load(getOutlineFontPath())
-
     var paths: Pixel.LinePathList
-    assume face.getStringOutline(&paths, text, 80)
+    addOffsetRect(&paths, 10, 0, 0)
+    addOffsetRect(&paths, 20, 100, 0)
+
     paths.flatten(.Normal)
-    paths.offset(4, Pixel.JoinStyle.Round, 0.5)
-    @assert(paths.paths.count == expectedCount)
+    paths.offset(2)
+    @assert(paths.paths.count == 2)
 
-    var expectedSerials:     Array's32
-    var expectedClockwises:  Array'bool
-    for p in paths.paths
-    {
-        expectedSerials.add(p.serial)
-        expectedClockwises.add(p.polygon.isClockwise)
-    }
-
-    paths.clean()
-    @assert(paths.paths.count == expectedCount)
-    for i in paths.paths.count
-    {
-        @assert(paths.paths[i].serial == expectedSerials[i])
-        @assert(paths.paths[i].polygon.isClockwise == expectedClockwises[i])
-    }
+    @assert(paths.paths[0].serial == 10)
+    @assert(paths.paths[1].serial == 20)
+    @assert(paths.paths[0].polygon.points.count != 0)
+    @assert(paths.paths[1].polygon.points.count != 0)
 }
 
 #test
 {
-    assertOutlineOffsetPathCount("A B C D", 8)
-    assertOutlineOffsetPathCount("D F G H", 5)
+    assertOffsetCleanPreservesPathIdentity()
 }

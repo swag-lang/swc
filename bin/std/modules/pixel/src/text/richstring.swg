@@ -1,9 +1,10 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core
 
 struct RichChunk
 {
-    slice:            string
+    slice:            #nonull string = ""
     fontStyle:        FontFamilyStyle = Regular
     hasFontStyle:     bool
     isSpace:          bool
@@ -15,13 +16,13 @@ struct RichChunk
 
     boundRect:        Math.Rectangle
     pos:              Math.Point
-    font:             *Font
+    font:             #nonull *Font = undefined
     shaped:           ShapedRun
     under:            UnderlineStyle = None
 }
 
-// Represents a string with embedded formats.
-// This kind of string is a specific version of [Core.String] but specific for painting. It can contains
+// Represents a #nonull string with embedded formats.
+// This kind of #nonull string is a specific version of [Core.#nonull string] but specific for painting. It can contains
 // some special markers to change it's appearence.
 // ```swag
 // <b>this is bold</b>
@@ -44,7 +45,7 @@ struct RichString
 
 impl RichString
 {
-    mtd opEquals(other: string)->bool
+    mtd opEquals(other: #nonull string)->bool
     {
         return .raw == other
     }
@@ -97,20 +98,20 @@ impl RichString
     #[Swag.Inline]
     mtd opCount() => .raw.length
     #[Swag.Inline]
-    mtd opSet(str: string) => .set(str)
+    mtd opSet(str: #nonull string) => .set(str)
 
-    // Returns 'true' if the string is empty.
+    // Returns 'true' if the #nonull string is empty.
     #[Swag.Inline]
     mtd isEmpty() => .raw.length == 0
 
-    // Force the string to be repainted.
+    // Force the #nonull string to be repainted.
     mtd invalidate()
     {
         .layoutRect.clear()
     }
 
-    // Associate a string.
-    // The string can have multiple lines.
+    // Associate a #nonull string.
+    // The #nonull string can have multiple lines.
     // Accepted markers are:
     // * `<u>` => underline
     // * `<b>` => bold
@@ -126,13 +127,13 @@ impl RichString
     {
         if .raw == text and .chunks.count do
             return
-        .raw   = text
+        .raw   = text orelse ""
         .dirty = true
     }
 
-    // Transform the given string to a naked one.
-    // Will return the string without the format markers.
-    func getNaked(str: string)->String
+    // Transform the given #nonull string to a naked one.
+    // Will return the #nonull string without the format markers.
+    func getNaked(str: #nonull string)->String
     {
         var result: retval
 
@@ -204,7 +205,7 @@ impl RichString
     }
 
     // Compute layout.
-    // This will transform the string in a serie of chunks, each chunk having its one style. The string
+    // This will transform the #nonull string in a serie of chunks, each chunk having its one style. The #nonull string
     // will only be recomputed if it's dirty (the text has changed) or if 'force' is true.
     mtd compute(force = false)
     {

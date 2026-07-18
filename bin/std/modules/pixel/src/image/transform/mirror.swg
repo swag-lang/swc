@@ -1,10 +1,11 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
 {
-    mtd const doMirror(dstImage: *Image)
+    mtd const doMirror(dstImage: #nonull *Image)
     {
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
         let f   = dstImage
 
         #[Swag.Mixin]
@@ -12,10 +13,10 @@ impl Image
         {
             mec.visitPixels(f)
             {
-                let dstImage = cast(*Image) userData
+                let dstImage = cast(#nonull *Image) (assume userData)
                 var pixDst   = dstImage.pixels.buffer + (image.width - x - 1) * image.bpp8
                 pixDst += cast(u64) (y * (image.width * image.bpp8))
-                copyPixelDirect'BPP(pixDst, pix)
+                copyPixelDirect'BPP(cast(#nonull [*] u8) (pixDst orelse cast(#nonull [*] u8) 1'u64), cast(#nonull [*] u8) (pix orelse cast(#nonull [*] u8) 1'u64))
             }
         }
 
@@ -35,7 +36,7 @@ impl Image
     {
         Debug.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
-        .doMirror(.workingBuffer)
+        .doMirror(.safeWorkingBuffer())
         .applyWorkingBuffer()
     }
 

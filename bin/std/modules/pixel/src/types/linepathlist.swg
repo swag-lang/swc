@@ -1,9 +1,10 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core, Core.Math
 
 struct LinePathList
 {
-    paths:     Array'(*LinePath)
+    paths:     Array'(#nonull *LinePath)
     bvMin:     Vector2
     bvMax:     Vector2
 }
@@ -37,7 +38,7 @@ impl LinePathList
     }
 
     // Returns a new path
-    mtd newPath()->*LinePath
+    mtd newPath()->#nonull *LinePath
     {
         let ptr = Memory.new'LinePath()
         .paths.add(ptr)

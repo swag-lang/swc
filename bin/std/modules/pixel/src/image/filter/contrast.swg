@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
@@ -17,7 +18,7 @@ impl Image
         let f = &convArr[0]
         .visitPixels(f)
         {
-            let arr = cast([*] u8) userData
+            let arr = cast(#nonull [*] u8) (assume userData)
             pix[0] = arr[pix[0]]
             pix[1] = arr[pix[1]]
             pix[2] = arr[pix[2]]

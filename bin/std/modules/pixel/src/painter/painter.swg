@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core, Ogl, Core.Math
 
@@ -127,17 +128,17 @@ struct Command
         transform:          struct{ tr: Transform2 }
         clippingRect:       struct{ rect: Math.Rectangle }
         clippingRegion:     struct{ mode: ClippingMode = undefined }
-        font:               struct{ fontRef: *Font }
+        font:               struct{ fontRef: #nonull *Font }
         blendingMode:       struct{ mode: BlendingMode = undefined }
-        textureFont:        struct{ font: *Font, atlasIndex: s32 }
+        textureFont:        struct{ font: #nonull *Font, atlasIndex: s32 }
         colorMask:          ColorMask
-        renderTgt:          struct{ tgt: *RenderTarget, paintAlpha: bool }
-        shader:             struct{ shader: *ShaderBase }
+        renderTgt:          struct{ tgt: #nonull *RenderTarget, paintAlpha: bool }
+        shader:             struct{ shader: #null *ShaderBase }
 
         shaderParam: struct
         {
             param:     ShaderParamHandle
-            type:      typeinfo
+            type:      #nonull typeinfo = undefined
             _f32:      f32
             _s32:      s32
         }
@@ -183,8 +184,8 @@ struct Painter
     lastTexture0Type:       BrushType = SolidColor
     tess:                   Poly2Tri.Tessellate
 
-    stackRT:                Array'*RenderTarget
-    curRT:                  *RenderTarget
+    stackRT:                Array'#null *RenderTarget
+    curRT:                  #null *RenderTarget
 
     lastTexture0Handle:     TextureHandle
     hasTextureFont:         bool
@@ -203,7 +204,7 @@ struct Painter
 
     // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
     // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-    curTextureFont:         *Font
+    curTextureFont:         #null *Font
     curTextureFontAtlas:    s32 = -1
 
     // Reusable shaped run for the immediate drawString path, so per-frame text drawing
@@ -373,7 +374,7 @@ impl Painter
         discard .newCommand(.ResetTextureFont, true)
     }
 
-    private mtd setTextureFont(font: *Font, atlasIndex: s32)
+    private mtd setTextureFont(font: #nonull *Font, atlasIndex: s32)
     {
         // Already bound to this atlas: nothing to emit, so the following glyph
         // triangles extend the current DrawTriangles batch instead of starting a new one.
@@ -389,9 +390,9 @@ impl Painter
         .curTextureFontAtlas = atlasIndex
     }
 
-    private mtd pushTriangleCmd()->*Command
+    private mtd pushTriangleCmd()->#nonull *Command
     {
-        var cmd: *Command
+        var cmd: #null *Command
         if .commandBuffer.count
         {
             let last = .commandBuffer.buffer + .commandBuffer.count - 1
@@ -406,7 +407,7 @@ impl Painter
             cmd.drawTriangles.count = 0
         }
 
-        return cmd
+        return cmd orelse cast(#nonull *Command) 1'u64
     }
 
     private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
@@ -530,20 +531,20 @@ impl Painter
     }
 
     #[Swag.Inline]
-    private mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
+    private mtd newCommand(cmd: CommandId, replaceLast = false)->#nonull *Command
     {
         Debug.assert(.drawingBegin, "begin() not called before")
 
         // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count and .commandBuffer.buffer[.commandBuffer.count - 1].id == cmd do
-            return .commandBuffer.buffer + .commandBuffer.count - 1
+            return (.commandBuffer.buffer orelse cast(#nonull [*] Command) 1'u64) + .commandBuffer.count - 1
 
         let ptr = .commandBuffer.emplaceAddress(1)
         ptr.id = cmd
         return ptr
     }
 
-    private mtd updateFont(fontRef: *Font)
+    private mtd updateFont(fontRef: #nonull *Font)
     {
         if !fontRef.cache.dirty do
             return
@@ -940,7 +941,7 @@ impl Painter
     mtd setColorMaskAlpha() => .setColorMask(false, false, false, true)
 
     // Bind a render target
-    mtd bindRenderTarget(tgt: *RenderTarget, paintAlpha = false)
+    mtd bindRenderTarget(tgt: #nonull *RenderTarget, paintAlpha = false)
     {
         .pushState()
         let cmd = .newCommand(.BindRenderTarget, true)
@@ -969,7 +970,7 @@ impl Painter
     }
 
     // Release the render target
-    mtd releaseRenderTarget(tgt: *RenderTarget)
+    mtd releaseRenderTarget(tgt: #nonull *RenderTarget)
     {
         if !tgt do
             return
@@ -978,7 +979,7 @@ impl Painter
     }
 
     // Set the current shader
-    mtd setShader(shader: *ShaderBase = null)
+    mtd setShader(shader: #null *ShaderBase = null)
     {
         let cmd = .newCommand(.SetShader, true)
         cmd.shader.shader = shader

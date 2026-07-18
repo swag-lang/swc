@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 using Core
 
@@ -40,7 +41,7 @@ impl ImageMetaData
     }
 
     // Returns true if the metadata has the tag 'val'
-    mtd const isTag(val: const [..] u8)->bool
+    mtd const isTag(val: #nonull const [..] u8)->bool
     {
         if @countof(val) != .tag.count do
             return false
@@ -48,7 +49,7 @@ impl ImageMetaData
     }
 
     // Convert the value to a slice
-    mtd const toSlice()->const [..] u8
+    mtd const toSlice()->#nonull const [..] u8
     {
         return .value.toSlice()
     }

@@ -1,11 +1,12 @@
+#global #[Swag.ExplicitNullability]
 #global public
 
 struct FontFamily
 {
-    regular:        *Font
-    bold:           *Font
-    italic:         *Font
-    boldItalic:     *Font
+    regular:        #nonull *Font = undefined
+    bold:           #nonull *Font = undefined
+    italic:         #nonull *Font = undefined
+    boldItalic:     #nonull *Font = undefined
 }
 
 enum FontFamilyStyle
@@ -55,7 +56,7 @@ impl FontFamily
     }
 
     // Set the font corresponding to a given style.
-    mtd setFont(fnt: *Font, style: FontFamilyStyle)
+    mtd setFont(fnt: #nonull *Font, style: FontFamilyStyle)
     {
         switch style
         {

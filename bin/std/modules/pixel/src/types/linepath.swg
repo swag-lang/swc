@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core, Core.Math
 
 public enum ElementType

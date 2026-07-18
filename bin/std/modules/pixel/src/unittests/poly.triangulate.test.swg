@@ -1,13 +1,14 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Math
 
 // Direct stress tests for the poly2tri sweep-line triangulation, independent of
 // the painter. A simple closed polygon with N vertices triangulates into N-2
 // triangles. Regression guard for the edgeIndex() bug, where a constrained-edge
-// side test asserted instead of returning -1 (so any >=4 vertex polygon crashed).
+// side test asserted instead of returning -1 (so #null any >=4 vertex polygon crashed).
 
 // Triangulate a closed simple polygon and return the triangle count.
-func triCount(pts: [..] Vector2)->u64
+func triCount(pts: #nonull [..] Vector2)->u64
 {
     var poly: Pixel.Polygon
     for p in pts do

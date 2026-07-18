@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Create an image in memory and verify its metadata.
@@ -123,21 +124,21 @@ struct BmpCH     // BITMAPCOREHEADER legacy 12-byte header
     bcBitCount: u16
 }
 
-func bmpCanEncode(fileName: string)->bool
+func bmpCanEncode(fileName: #nonull string)->bool
 {
     var enc: Bmp.Encoder
     let itf = @mkinterface(&enc, #typeof(Bmp.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeBmp(result: *ConcatBuffer, image: Image) throw
+func encodeBmp(result: #nonull *ConcatBuffer, image: Image) throw
 {
     var enc: Bmp.Encoder
     let itf = @mkinterface(&enc, #typeof(Bmp.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
+func addBmpPaletteColor(cb: #nonull *ConcatBuffer, b, g, r: u8)
 {
     cb.addNative(b)
     cb.addNative(g)
@@ -1007,10 +1008,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     // File must contain alignment padding: 5 rows x 16 bytes = 80 bytes pixel data
     @assert(@countof(cb) == 134)    // 14+40+80
     cb.makeLinear()
-    let bytes = cb.toSlice()
+    let bytes = nnBytes(cb.toSlice())
     @assert(bytes != null)
-    let fh = cast(const *BmpFH) @dataof(bytes)
-    let bh = cast(const *Bmp.Header) (@dataof(bytes) + #sizeof(BmpFH))
+    let fh = cast(#nonull const *BmpFH) @dataof(bytes)
+    let bh = cast(#nonull const *Bmp.Header) (@dataof(bytes) + #sizeof(BmpFH))
     @assert(fh.bfSize == cast(u32) @countof(cb))
     @assert(fh.bfOffBits == 54'u32)
     @assert(bh.biSizeImage == 80'u32)

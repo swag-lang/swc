@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 public enum DrawPathListMode
@@ -19,8 +20,8 @@ struct Context
     normal:                  Math.Vector2
     prim1, prim2:            u64
     prev:                    Math.Vector2
-    path:                    const *LinePath
-    pen:                     const *Pen
+    path:                    #nonull const *LinePath = undefined
+    pen:                     #nonull const *Pen = undefined
     offsetPath:              f32
 
     remainingPatternLen:     f32
@@ -28,7 +29,7 @@ struct Context
     patternIndex:            s32
     error:                   f32
     divError:                f32
-    pattern:                 const [*] f32
+    pattern:                 #nonull const [*] f32 = undefined
     patternCount:            s32
 }
 
@@ -214,7 +215,7 @@ impl Painter
         }
     }
 
-    mtd drawDashCap(cxt: *Context, capStyle: DashCapStyle, p, d: Math.Vector2, sens: f32)
+    mtd drawDashCap(cxt: #nonull *Context, capStyle: DashCapStyle, p, d: Math.Vector2, sens: f32)
     {
         if cxt.penSize < 3 do
             return
@@ -377,7 +378,7 @@ impl Painter
         }
     }
 
-    mtd drawJoin(cxt: *Context, p, d1, d2: Math.Vector2)
+    mtd drawJoin(cxt: #nonull *Context, p, d1, d2: Math.Vector2)
     {
         #[Swag.Complete]
         switch cxt.pen.joinStyle
@@ -395,7 +396,7 @@ impl Painter
         }
     }
 
-    mtd drawDashEndCap(cxt: *Context, posCap, normalCap: Math.Vector2)
+    mtd drawDashEndCap(cxt: #nonull *Context, posCap, normalCap: Math.Vector2)
     {
         if cxt.beginLine or cxt.lastLineInvalid do
             return
@@ -406,7 +407,7 @@ impl Painter
 
         // AA end edge if no cap. Copy the positions out first: addEdgeAA appends
         // fringe geometry, which may reallocate the vertex buffer and invalidate
-        // any pointer into it.
+        // #null any pointer into it.
         elif .curState.paintParams & .Antialiased
         {
             let prim2p = .vertexBuffer.buffer + cxt.prim2
@@ -417,7 +418,7 @@ impl Painter
         }
     }
 
-    func drawMoveCursor(cxt: *Context, pos: Math.Vector2)
+    func drawMoveCursor(cxt: #nonull *Context, pos: Math.Vector2)
     {
         if pos.distanceTo(cxt.path.endPoint) < 1
         {
@@ -432,7 +433,7 @@ impl Painter
         }
     }
 
-    mtd drawLineInternal(cxt: *Context, pos: Math.Vector2)
+    mtd drawLineInternal(cxt: #nonull *Context, pos: Math.Vector2)
     {
         // Compute line (half width on each side)
         let newPos = pos
@@ -498,7 +499,7 @@ impl Painter
         cxt.beginLine, cxt.firstLine = false
     }
 
-    func preparePattern(cxt: *Context)
+    func preparePattern(cxt: #nonull *Context)
     {
         #[Swag.Complete]
         switch cxt.pen.dashStyle
@@ -506,7 +507,7 @@ impl Painter
         case None:
             return
         case Pattern:
-            cxt.pattern      = cxt.pen.pattern.buffer
+            cxt.pattern      = cast(#nonull const [*] f32) (assume cxt.pen.pattern.buffer)
             cxt.patternCount = cast(s32) cxt.pen.pattern.count
             if cxt.patternCount != 0 do
                 break
@@ -549,7 +550,7 @@ impl Painter
             cxt.remainingPatternLen *= 0.5
     }
 
-    mtd drawLine(cxt: *Context, pos: Math.Vector2)
+    mtd drawLine(cxt: #nonull *Context, pos: Math.Vector2)
     {
         // solid
         if cxt.pen.dashStyle == .None
@@ -632,7 +633,7 @@ impl Painter
     }
 
     // Enhanced function that calculates skip distance AND finds the corresponding point
-    func getAnchorSkipInfo(cxt: *Context, capStyle: LineCapStyle, start: bool)->AnchorSkipInfo
+    func getAnchorSkipInfo(cxt: #nonull *Context, capStyle: LineCapStyle, start: bool)->AnchorSkipInfo
     {
         var info: AnchorSkipInfo
         info.hasAdjustment = false
@@ -736,7 +737,7 @@ impl Painter
     }
 
     // Simplified drawPath method using the optimized approach
-    mtd drawPath(cxt: *Context)
+    mtd drawPath(cxt: #nonull *Context)
     {
         if cxt.pen.size < 1 or cxt.path.polygon.points.count == 0 do
             return
@@ -858,13 +859,13 @@ impl Painter
 public impl Painter
 {
     // Draw a line path.
-    mtd drawPath(path: *LinePath, color: Color, penSize: f32)
+    mtd drawPath(path: #nonull *LinePath, color: Color, penSize: f32)
     {
         let pen = Pen.createSolid(color, penSize)
         .drawPath(path, pen)
     }
 
-    mtd drawPath(path: *LinePath, pen: Pen)
+    mtd drawPath(path: #nonull *LinePath, pen: Pen)
     {
         path.flatten(.curState.paintQuality)
         if Math.isZeroEpsilon(path.polygon.totalLen) do
@@ -889,7 +890,7 @@ public impl Painter
     }
 
     // Draw a list of paths.
-    mtd drawPath(pathList: *LinePathList, pen: Pen, mode: DrawPathListMode = .Separate)
+    mtd drawPath(pathList: #nonull *LinePathList, pen: Pen, mode: DrawPathListMode = .Separate)
     {
         if !pathList.paths.count do
             return
@@ -924,7 +925,7 @@ public impl Painter
         .stopOverlapMode()
     }
 
-    mtd drawPath(pathList: *LinePathList, color: Color, penSize: f32, mode: DrawPathListMode = .Separate)
+    mtd drawPath(pathList: #nonull *LinePathList, color: Color, penSize: f32, mode: DrawPathListMode = .Separate)
     {
         if !pathList.paths.count do
             return

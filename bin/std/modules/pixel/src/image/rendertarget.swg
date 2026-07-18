@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 
 struct RenderTarget

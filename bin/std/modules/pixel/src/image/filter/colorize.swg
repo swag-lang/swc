@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
@@ -38,10 +39,10 @@ impl Image
             }
         }
 
-        var f = {precalc: cast([*] f32) &convArr[0, 0], st: st}
+        var f = {precalc: cast(#nonull [*] f32) &convArr[0, 0], st: st}
         .visitPixels(&f)
         {
-            let params = cast(*#decltype(f)) userData
+            let params = cast(#nonull *#decltype(f)) (assume userData)
             let min = Math.min(pix[0], pix[1], pix[2])
             let max = Math.max(pix[0], pix[1], pix[2])
             let lum = cast(u8) ((cast(s32) max + cast(s32) min) / 2)

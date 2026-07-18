@@ -1,14 +1,15 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 impl Image
 {
-    mtd const doFlip(dstImage: *Image)
+    mtd const doFlip(dstImage: #nonull *Image)
     {
-        let mec = cast #unconst (*Image) me
+        let mec = cast #unconst (#nonull *Image) me
         let f   = dstImage
         mec.visitPixels(f, stride: .width)
         {
-            let dstImage = cast(*Image) userData
+            let dstImage = cast(#nonull *Image) (assume userData)
             let w8       = image.width * image.bpp8
             Memory.copy(dstImage.pixels.buffer + (image.height - y - 1) * w8, pix, cast(u64) w8)
         }
@@ -19,7 +20,7 @@ impl Image
     {
         Debug.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
-        .doFlip(.workingBuffer)
+        .doFlip(.safeWorkingBuffer())
         .applyWorkingBuffer()
     }
 

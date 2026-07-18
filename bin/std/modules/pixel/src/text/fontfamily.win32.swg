@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32
 
 public struct FontFamilyStyleEnumerate
@@ -22,7 +23,7 @@ impl FontFamily
             return TRUE
         let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))
 
-        let ret = cast(*FontFamilyEnumerate) cast(u64) lParam
+        let ret = cast(#nonull *FontFamilyEnumerate) cast(u64) lParam
         var idx = cast(u64) FontFamilyStyle.Regular
 
         if fa.lfWeight > FW_REGULAR
@@ -54,7 +55,7 @@ impl FontFamily
                 return TRUE
 
             // Already here ?
-            let ret = cast(*Array'FontFamilyEnumerate) cast(u64) lParam
+            let ret = cast(#nonull *Array'FontFamilyEnumerate) cast(u64) lParam
             for here in dref ret
             {
                 if here.name == x do
@@ -94,7 +95,7 @@ impl FontFamily
     }
 
     // Get a FontFamilyEnumerate from a font family name
-    public func getFromOs(fontFamily: string)->FontFamilyEnumerate
+    public func getFromOs(fontFamily: #nonull string)->FontFamilyEnumerate
     {
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)

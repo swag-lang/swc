@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 using Swag
 
 // Enum

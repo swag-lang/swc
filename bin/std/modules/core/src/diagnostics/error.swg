@@ -1,10 +1,11 @@
 #global public
+#global #[Swag.ExplicitNullability]
 
 namespace Console
 {
     // Fatal error
     // Exit the process with code -1
-    func fatal(msg: string, args: ...)
+    func fatal(msg: #nonull string, args: ...)
     {
         Console.printf(msg, args)
         Console.println()

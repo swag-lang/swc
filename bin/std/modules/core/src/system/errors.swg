@@ -1,5 +1,6 @@
 #global public
 #global namespace Errors
+#global #[Swag.ExplicitNullability]
 
 struct InvalidFormatError
 {
@@ -42,13 +43,13 @@ struct SerializationError
 struct FileNotFoundError
 {
     using base:     Swag.BaseError
-    fileName:       string
+    fileName:       #null string
 }
 
 struct InvalidFileNameError
 {
     using base:     Swag.BaseError
-    fileName:       string
+    fileName:       #null string
 }
 
 struct InvalidVersion
@@ -67,5 +68,8 @@ func mkString(str: #null string)->#null string
     let count = @countof(str)
     let ptr   = @getcontext().errorAllocator.alloc(count)
     @memcpy(ptr, @dataof(str), count)
-    return @mkstring(cast(const [*] u8) ptr, count)
+    let safePtr = cast(#null [*] u8) ptr
+    if !safePtr do
+        return null
+    return @mkstring(safePtr orelse cast(#nonull [*] u8) 1'u64, count)
 }

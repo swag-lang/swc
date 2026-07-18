@@ -691,7 +691,7 @@ impl Deflate
         }
 
         Memory.copy(&codeSizesToPack[0], &d.huffCodeSizes[0, 0], cast(u64) numLitCodes)
-        Memory.copy(cast([*] u8) &codeSizesToPack[0] + numLitCodes, &d.huffCodeSizes[1, 0], cast(u64) numDistCodes)
+        Memory.copy(cast(#nonull [*] u8) &codeSizesToPack[0] + numLitCodes, &d.huffCodeSizes[1, 0], cast(u64) numDistCodes)
         let totalCodeSizesToPack = numLitCodes + numDistCodes
         var numPackedCodeSizes   = 0
         var rleZCount            = 0

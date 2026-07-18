@@ -1,8 +1,9 @@
 #global public
 #global namespace Debug
+#global #[Swag.ExplicitNullability]
 
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
-func assert(expr: #code->bool, message: string = null, loc = #callerlocation)
+func assert(expr: #code->bool, message: #null string = null, loc = #callerlocation)
 {
     #if ASSERT
     {
@@ -12,7 +13,7 @@ func assert(expr: #code->bool, message: string = null, loc = #callerlocation)
 }
 
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
-func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string = null, loc = #callerlocation)
+func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = null, loc = #callerlocation)
 {
     #if #safety(what)
     {
@@ -22,7 +23,7 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string = null, lo
 }
 
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
-func safetyBoundCheck(expr50: #code->bool, message: string = null, loc = #callerlocation)
+func safetyBoundCheck(expr50: #code->bool, message: #null string = null, loc = #callerlocation)
 {
     safety'(Swag.SafetyWhat.BoundCheck)(expr50, message, loc)
 }

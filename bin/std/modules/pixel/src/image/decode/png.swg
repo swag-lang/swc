@@ -6,6 +6,7 @@
 */
 
 #global namespace Png
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 private
@@ -88,7 +89,7 @@ private
     struct DecodeChunk
     {
         header:     ChunkHeader
-        datas:      const [..] u8
+        datas:      #null const [..] u8
         crc:        u32
     }
 }
@@ -102,7 +103,7 @@ public struct Decoder
     inChannels:        s32
     outChannels:       s32
     dcmpBuf:           Array'u8
-    dstPixels:         [*] u8
+    dstPixels:         #null [*] u8
     dstPixelsSize:     u64
     chunkTRNS:         DecodeChunk
     palette:           [256] u32
@@ -115,13 +116,28 @@ public struct Decoder
 
 impl Decoder
 {
+    func safeDatas(chunk: DecodeChunk)->#nonull const [..] u8
+    {
+        return cast(#nonull const [..] u8) (assume chunk.datas)
+    }
+
+    mtd safeTRNSData()->#nonull const [..] u8
+    {
+        return cast(#nonull const [..] u8) (assume .chunkTRNS.datas)
+    }
+
+    mtd safeDstPixels()->#nonull [*] u8
+    {
+        return .dstPixels orelse cast(#nonull [*] u8) 1'u64
+    }
+
     mtd readChunk(ch: ChunkHeader)->DecodeChunk throw
     {
         var result: retval
 
         result.header = ch
 
-        // Resync the byte cursor before any raw pointer access: the bit reader may have
+        // Resync the byte cursor before #null any raw pointer access: the bit reader may have
         // buffered bytes ahead of the consumed position (its refill loads several bytes at
         // once), so rewind those back into 'curByte' so 'curPtr' is the true chunk start.
         .stream.revert()
@@ -132,11 +148,11 @@ impl Decoder
         .stream.curByte += ch.length
 
         var crc: Hash.Crc32
-        crc.update(@mkslice(cast(const [*] u8) &ch.type, 4))
-        crc.update(result.datas)
+        crc.update(@mkslice(cast(#nonull const [*] u8) &ch.type, 4))
+        crc.update(Decoder.safeDatas(result))
 
         var vcrc: u32
-        .stream.peek32Be(cast([*] u8) &vcrc)
+        .stream.peek32Be(cast(#nonull [*] u8) &vcrc)
         if vcrc != crc.crc do
             throw InvalidFormatError{"invalid checksum"}
 
@@ -146,7 +162,7 @@ impl Decoder
     mtd readHeader(ch: ChunkHeader) throw
     {
         let chunk = .readChunk(ch)
-        .header        = dref cast(const *Header) @dataof(chunk.datas)
+        .header        = dref cast(#nonull const *Header) @dataof(Decoder.safeDatas(chunk))
         .header.width  = Math.bigEndianToNative(.header.width)
         .header.height = Math.bigEndianToNative(.header.height)
 
@@ -202,7 +218,7 @@ impl Decoder
     }
 
     // Expand 1, 2, 4 bits to 8 bits
-    mtd expand8(width, height: u32, output: [*] u8)
+    mtd expand8(width, height: u32, output: #nonull [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
         let rowStrideOut = .inChannels * width
@@ -322,7 +338,7 @@ impl Decoder
         return cast(u64) .inChannels * width
     }
 
-    mtd defilter8(width, height: u32, input, output: [*] u8)
+    mtd defilter8(width, height: u32, input, output: #nonull [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
         let rowStrideOut = cast(u64) .inChannels * width
@@ -431,7 +447,7 @@ impl Decoder
         }
     }
 
-    mtd defilter(width, height: u32, input, output: [*] u8)
+    mtd defilter(width, height: u32, input, output: #nonull [*] u8)
     {
         if .header.bitDepth < 8
         {
@@ -450,7 +466,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input   = .dcmpBuf.buffer
+        var input   = .dcmpBuf.buffer orelse cast(#nonull [*] u8) 1'u64
         for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -490,7 +506,7 @@ impl Decoder
         {
             .orderDefilter = false
             let input = .dcmpBuf.buffer orelse cast(#nonull [*] u8) 1'u64
-            .defilter(.header.width, .header.height, input, .dstPixels)
+            .defilter(.header.width, .header.height, input, .safeDstPixels())
         }
         else
         {
@@ -499,12 +515,12 @@ impl Decoder
         }
     }
 
-    mtd doIt(buffer: const [..] u8)->Image throw
+    mtd doIt(buffer: #nonull const [..] u8)->Image throw
     {
         .stream.init(buffer)
 
         var signature: u64 = undefined
-        .stream.peekBytes(#sizeof(signature), cast([*] u8) &signature)
+        .stream.peekBytes(#sizeof(signature), cast(#nonull [*] u8) &signature)
         if signature != 0x0a1a0a0d474e5089 do
             throw InvalidFormatError{"not a png"}
 
@@ -522,8 +538,8 @@ impl Decoder
             // Peek a chunk header only if it's not already done
             if !chIsHere
             {
-                .stream.peek32Be(cast([*] u8) &ch.length)
-                .stream.peek32(cast([*] u8) &ch.type)
+                .stream.peek32Be(cast(#nonull [*] u8) &ch.length)
+                .stream.peek32(cast(#nonull [*] u8) &ch.type)
             }
 
             chIsHere = false
@@ -556,9 +572,9 @@ impl Decoder
                 while ch.type == IDAT
                 {
                     let chunk = .readChunk(ch)
-                    iDataBuf.add(chunk.datas)
-                    .stream.peek32Be(cast([*] u8) &ch.length)
-                    .stream.peek32(cast([*] u8) &ch.type)
+                    iDataBuf.add(Decoder.safeDatas(chunk))
+                    .stream.peek32Be(cast(#nonull [*] u8) &ch.length)
+                    .stream.peek32(cast(#nonull [*] u8) &ch.type)
                     if .stream.eof do
                         throw InvalidFormatError{"invalid chunk"}
                 }
@@ -569,13 +585,13 @@ impl Decoder
                 if seenIDAT do
                     throw InvalidFormatError{"invalid PLTE chunk"}
                 let chunk = .readChunk(ch)
-                let len   = @countof(chunk.datas)
+                let len   = @countof(Decoder.safeDatas(chunk))
                 if len % 3 != 0 or len > 768 do
                     throw InvalidFormatError{"invalid PLTE chunk"}
                 .seenPLTE = true
                 for var i = 0; i < len; i += 3
                 {
-                    let col = (cast(u32) chunk.datas[i] << 16) | (cast(u32) chunk.datas[i + 1] << 8) | chunk.datas[i + 2]
+                    let col = (cast(u32) Decoder.safeDatas(chunk)[i] << 16) | (cast(u32) Decoder.safeDatas(chunk)[i + 1] << 8) | Decoder.safeDatas(chunk)[i + 2]
                     .palette[i / 3] = col
                 }
 
@@ -585,17 +601,17 @@ impl Decoder
                 let chunk = .readChunk(ch)
                 if .decOptions.decodeMetaDatas
                 {
-                    let len = @countof(chunk.datas)
+                    let len = @countof(Decoder.safeDatas(chunk))
                     if len > 1
                     {
                         var sep = 0'u64
-                        while sep < len and chunk.datas[sep] != 0 do
+                        while sep < len and Decoder.safeDatas(chunk)[sep] != 0 do
                             sep += 1
 
                         var md: ImageMetaData
-                        md.tag = cast(string) chunk.datas[ until sep]
+                        md.tag = cast(#nonull string) Decoder.safeDatas(chunk)[ until sep]
                         if sep + 1 < len do
-                            md.value = cast(string) chunk.datas[sep + 1 to ]
+                            md.value = cast(#nonull string) Decoder.safeDatas(chunk)[sep + 1 to ]
                         result.metaDatas.add(md)
                     }
                 }
@@ -631,7 +647,7 @@ impl Decoder
         if .inChannels == .outChannels
         {
             result.allocPixels()
-            .dstPixels = result.pixels.buffer
+            .dstPixels = cast(#nonull [*] u8) (assume result.pixels.buffer)
         }
         else
         {
@@ -655,15 +671,15 @@ impl Decoder
         return result
     }
 
-    mtd convert(result: *Image)
+    mtd convert(result: #nonull *Image)
     {
-        defer Memory.free(.dstPixels, .dstPixelsSize)
+        defer Memory.free(.safeDstPixels(), .dstPixelsSize)
 
         // Paletted, no transparency
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
-            var src = .dstPixels
-            var dst = result.pixels.buffer
+            var src = .safeDstPixels()
+            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 let pal  = src[0]
@@ -679,8 +695,8 @@ impl Decoder
         // Paletted, transparency
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
-            var src = .dstPixels
-            var dst = result.pixels.buffer
+            var src = .safeDstPixels()
+            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 let pal  = src[0]
@@ -688,7 +704,7 @@ impl Decoder
                 dst[0] = cast() ((color >> 16) & 0xFF)
                 dst[1] = cast() ((color >> 8) & 0xFF)
                 dst[2] = cast() (color & 0xFF)
-                dst[3] = pal < @countof(.chunkTRNS.datas) ? .chunkTRNS.datas[pal] : 255
+                dst[3] = pal < @countof(.safeTRNSData()) ? .safeTRNSData()[pal] : 255
                 src += 1
                 dst += result.bpp8
             }
@@ -697,8 +713,8 @@ impl Decoder
         // Grayscale without alpha channel, no transparency
         elif .inChannels == 1 and !.seenTRSN
         {
-            var src = .dstPixels
-            var dst = result.pixels.buffer
+            var src = .safeDstPixels()
+            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -712,11 +728,11 @@ impl Decoder
         // Grayscale without alpha channel, but transparency
         elif .inChannels == 1 and .seenTRSN
         {
-            var key   = .chunkTRNS.datas[1]
+            var key   = .safeTRNSData()[1]
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
-            var src = .dstPixels
-            var dst = result.pixels.buffer
+            var src = .safeDstPixels()
+            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -731,8 +747,8 @@ impl Decoder
         // Grayscale with alpha channel
         elif .inChannels == 2
         {
-            var src = .dstPixels
-            var dst = result.pixels.buffer
+            var src = .safeDstPixels()
+            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -747,12 +763,12 @@ impl Decoder
         // Color without alpha but transparency
         elif .inChannels == 3 and .seenTRSN
         {
-            let key  = cast(const [*] u8) @dataof(.chunkTRNS.datas)
+            let key  = cast(#nonull const [*] u8) @dataof(.safeTRNSData())
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]
-            var src  = .dstPixels
-            var dst  = result.pixels.buffer
+            var src  = .safeDstPixels()
+            var dst  = cast(#nonull [*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -771,12 +787,12 @@ impl Decoder
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: string)->bool
+    mtd impl canDecode(fileName: #nonull string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".png"
     }
 
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
     {
         .decOptions = options
         return .doIt(buffer)

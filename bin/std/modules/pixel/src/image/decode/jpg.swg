@@ -1,4 +1,5 @@
 #global namespace Jpg
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 private
@@ -138,9 +139,9 @@ private
 #[Opaque]
 public struct Decoder
 {
-    stream:                       const [*] u8
-    inBufOfs:                     [*] u8
-    pSampleBuf:                   [*] u8
+    stream:                       #null const [*] u8
+    inBufOfs:                     #null [*] u8
+    pSampleBuf:                   #null [*] u8
 
     imageSizeX:                   s32
     imageSizeY:                   s32
@@ -188,7 +189,7 @@ public struct Decoder
     compQuant:                    [MaxComponents] u32
     compIdent:                    [MaxComponents] s32
     blockMaxZagSet:               [MaxBlocksPerRow] s32
-    blockSeg:                     [MaxBlocksPerRow] [*] s16
+    blockSeg:                     [MaxBlocksPerRow] #null [*] s16
     compList:                     [MaxCompsInScan] u32
     compDcTab:                    [MaxComponents] s32
     compAcTab:                    [MaxComponents] s32
@@ -196,10 +197,10 @@ public struct Decoder
     compBlocksV:                  [MaxComponents] s32
     mcuOrg:                       [MaxBocksPerMcu] u32
     h:                            [MaxHuffTables] HuffTables
-    dcHuffSeg:                    [MaxBocksPerMcu] *HuffTables
-    acHuffSeg:                    [MaxBocksPerMcu] *HuffTables
+    dcHuffSeg:                    [MaxBocksPerMcu] #null *HuffTables
+    acHuffSeg:                    [MaxBocksPerMcu] #null *HuffTables
     blockMcuY:                    [MaxComponents] s32
-    component:                    [MaxBocksPerMcu] *u32
+    component:                    [MaxBocksPerMcu] #null *u32
     lastDcVal:                    [MaxComponents] s32
     dcCoeffs:                     [MaxComponents] CoeffBuf
     acCoeffs:                     [MaxComponents] CoeffBuf
@@ -222,7 +223,10 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd init(buffer: const [..] u8) throw
+    mtd safeSampleBuf()->#nonull [*] u8 => .pSampleBuf orelse cast(#nonull [*] u8) 1'u64
+    mtd safeInBufOfs()->#nonull [*] u8 => .inBufOfs orelse cast(#nonull [*] u8) 1'u64
+
+    mtd init(buffer: #nonull const [..] u8) throw
     {
         @init(me, 1)
         .stream    = @dataof(buffer)
@@ -248,9 +252,9 @@ impl Decoder
             .initSequential()
     }
 
-    mtd doit(buf: [*] u8) throw
+    mtd doit(buf: #nonull [*] u8) throw
     {
-        var scanLineOfs: *void
+        var scanLineOfs: #null *void
         var scanLineLen: u32
 
         // Gray scale (1BPP)
@@ -264,7 +268,7 @@ impl Decoder
                     break
 
                 var pdest1 = pdest
-                var psrc   = cast([*] u8) scanLineOfs
+                var psrc   = cast(#nonull [*] u8) (assume scanLineOfs)
                 for .imageSizeX
                 {
                     pdest1[0] = dref psrc
@@ -287,17 +291,17 @@ impl Decoder
             {
                 if .decode(&scanLineOfs, &scanLineLen) do
                     break
-                Memory.copy(pdest, scanLineOfs, cast(u64) .imageSizeX * 3)
+                Memory.copy(pdest, cast(#nonull *void) (assume scanLineOfs), cast(u64) .imageSizeX * 3)
                 pdest -= .imageSizeX * 3
             }
         }
     }
 
-    func coeffBufGetp(cb: CoeffBuf, blkX, blkY: s32)->[*] s16
+    func coeffBufGetp(cb: CoeffBuf, blkX, blkY: s32)->#nonull [*] s16
     {
         Debug.assert(blkX < cb.blockNumX)
         Debug.assert(blkY < cb.blockNumY)
-        return cast([*] s16) (cb.pdata.buffer + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
+        return cast(#nonull [*] s16) (cast(#nonull [*] u8) (assume cb.pdata.buffer) + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
     }
 
     mtd loadNextRow() throw
@@ -406,7 +410,7 @@ impl Decoder
         .getBits2(16)
     }
 
-    mtd huffDecode(ph: *HuffTables)->s32
+    mtd huffDecode(ph: #nonull *HuffTables)->s32
     {
         var symbol = ph.lookUp[(.bitBuf >> 8) & 0xFF]
         if symbol < 0
@@ -537,7 +541,7 @@ impl Decoder
         }
     }
 
-    func idct(data: [*] s16, buf: [*] u8)
+    func idct(data: #nonull [*] s16, buf: #nonull [*] u8)
     {
         var pdstPtr = buf
         var dataPtr = data
@@ -546,7 +550,7 @@ impl Decoder
         {
             // Original code:
             // if (dataPtr[1] | dataPtr[2] | dataPtr[3] | dataPtr[4] | dataPtr[5] | dataPtr[6] | dataPtr[7]) == 0
-            let dataPtr64 = cast([*] u64) dataPtr
+            let dataPtr64 = cast(#nonull [*] u64) dataPtr
             let tst       = (dataPtr64[0] & 0xFFFFFFFF_FFFF0000) | dataPtr64[1]
             if tst == 0
             {
@@ -722,8 +726,8 @@ impl Decoder
 
     mtd transformRow()
     {
-        var psrcPtr = .blockSeg[0]
-        var pdstPtr = .pSampleBuf
+        var psrcPtr = .blockSeg[0] orelse cast(#nonull [*] s16) 1'u64
+        var pdstPtr = .pSampleBuf orelse cast(#nonull [*] u8) 1'u64
 
         for .maxBlocksPerRow
         {
@@ -747,7 +751,7 @@ impl Decoder
         .totalBytesRead -= .inBufLeft
     }
 
-    mtd decode(scanLineOfs: **void, scanLineLen: *u32)->s32 throw
+    mtd decode(scanLineOfs: #nonull *#null *void, scanLineLen: #nonull *u32)->s32 throw
     {
         if .totalLinesLeft == 0 do
             return Done
@@ -808,7 +812,7 @@ impl Decoder
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = .scanLine0.buffer
-        var s   = .pSampleBuf + row * 8
+        var s   = .safeSampleBuf() + row * 8
         for #reverse i in 1 to .maxMcusPerRow
         {
             d[0] = s[0]
@@ -829,7 +833,7 @@ impl Decoder
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = .scanLine0.buffer
-        var s   = .pSampleBuf + row * 8
+        var s   = .safeSampleBuf() + row * 8
         for #reverse i in 1 to .maxMcusPerRow
         {
             for j in 8
@@ -854,13 +858,13 @@ impl Decoder
         var d0  = .scanLine0.buffer
         var d1  = .scanLine1.buffer
 
-        var y: [*] u8 = undefined
+        var y: #nonull [*] u8 = undefined
         if row < 8 do
-            y = .pSampleBuf + row * 8
+            y = .safeSampleBuf() + row * 8
         else do
-            y = .pSampleBuf + 64 * 1 + (row & 7) * 8
+            y = .safeSampleBuf() + 64 * 1 + (row & 7) * 8
 
-        var c = .pSampleBuf + 64 * 2 + (row >> 1) * 8
+        var c = .safeSampleBuf() + 64 * 2 + (row >> 1) * 8
         for #reverse i in 1 to .maxMcusPerRow
         {
             for j in 8
@@ -892,8 +896,8 @@ impl Decoder
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d0  = .scanLine0.buffer
-        var y   = .pSampleBuf + row * 8
-        var c   = .pSampleBuf + 2 * 64 + row * 8
+        var y   = .safeSampleBuf() + row * 8
+        var c   = .safeSampleBuf() + 2 * 64 + row * 8
 
         for #reverse i in 1 to .maxMcusPerRow
         {
@@ -936,12 +940,12 @@ impl Decoder
         var d0  = .scanLine0.buffer
         var d1  = .scanLine1.buffer
 
-        var y: [*] u8 = undefined
+        var y: #nonull [*] u8 = undefined
         if row < 8 do
-            y = .pSampleBuf + row * 8
+            y = .safeSampleBuf() + row * 8
         else do
-            y = .pSampleBuf + 64 * 2 + (row & 7) * 8
-        var c = .pSampleBuf + 64 * 4 + (row >> 1) * 8
+            y = .safeSampleBuf() + 64 * 2 + (row & 7) * 8
+        var c = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
 
         for #reverse i in 1 to .maxMcusPerRow
         {
@@ -1063,7 +1067,7 @@ impl Decoder
         .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
         for i in .maxBlocksPerRow
         {
-            .blockSeg[i]       = cast([*] s16) (.quantBuf.buffer + i * 64 * #sizeof(s16))
+            .blockSeg[i]       = cast(#nonull [*] s16) (cast(#nonull [*] u8) (assume .quantBuf.buffer) + i * 64 * #sizeof(s16))
             .blockMaxZagSet[i] = 64
         }
 
@@ -1147,7 +1151,7 @@ impl Decoder
         }
     }
 
-    mtd makeHuffTable(idx: s32, hs: *HuffTables)
+    mtd makeHuffTable(idx: s32, hs: #nonull *HuffTables)
     {
         var huffSize: [257] u8
         var huffCode: [257] u32
@@ -1262,7 +1266,7 @@ impl Decoder
         {
             .dcHuffSeg[i] = &.h[.compDcTab[.mcuOrg[i]]]
             .acHuffSeg[i] = &.h[.compAcTab[.mcuOrg[i]]]
-            .component[i] = cast(*u32) &.lastDcVal[.mcuOrg[i]]
+            .component[i] = cast(#nonull *u32) &.lastDcVal[.mcuOrg[i]]
         }
     }
 
@@ -1700,7 +1704,7 @@ impl Decoder
         return cast(u8) c
     }
 
-    mtd getChar(paddingFlag: *bool)->u32
+    mtd getChar(paddingFlag: #nonull *bool)->u32
     {
         if !.inBufLeft
         {
@@ -2071,9 +2075,9 @@ impl Decoder
         }
     }
 
-    func memset16(p: [*] void, c: u16, n: u32)
+    func memset16(p: #nonull [*] void, c: u16, n: u32)
     {
-        var ps = cast([*] u16) p
+        var ps = cast(#nonull [*] u16) p
         for n
         {
             dref ps = c
@@ -2098,7 +2102,7 @@ impl Decoder
             }
 
             let bytesRead = size
-            Memory.copy(cast([*] u8) &.inBuf[0] + .inBufLeft, .stream + .streamSeek, cast(u64) size)
+            Memory.copy(cast(#nonull [*] u8) &.inBuf[0] + .inBufLeft, .stream + .streamSeek, cast(u64) size)
             .streamSeek += size
             .inBufLeft += bytesRead
             if .inBufLeft >= InBufSize or .eofReached do
@@ -2106,19 +2110,19 @@ impl Decoder
         }
 
         .totalBytesRead += .inBufLeft
-        memset16(.inBufOfs + .inBufLeft, 0xD9FF, 64)
+        memset16(.safeInBufOfs() + .inBufLeft, 0xD9FF, 64)
     }
 }
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: string)->bool
+    mtd impl canDecode(fileName: #nonull string)->bool
     {
         let ext = Path.getExtensionLowerCase(fileName)
         return ext == ".jpg" or ext == ".jpeg"
     }
 
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
     {
         var result: retval
         .decOptions = options
@@ -2132,7 +2136,7 @@ public impl IImageDecoder for Decoder
             return result
         result.allocPixels()
 
-        .doit(result.pixels.buffer)
+        .doit(cast(#nonull [*] u8) (assume result.pixels.buffer))
         result.metaDatas = #move .metaDatas
 
         return result

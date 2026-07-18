@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+#global #[Swag.ExplicitNullability]
 #foreignlib("kernel32")
 #foreignlib("user32")
 #foreignlib("ucrt")
@@ -7,9 +8,9 @@
 ////////////////////////////////////////////////////////////
 namespace __Win32RT
 {
-    alias HANDLE  = *void
+    alias HANDLE  = #null *void
     alias DWORD   = u32
-    alias SRWLOCK = *void
+    alias SRWLOCK = #null *void
     alias USHORT  = u16
     alias ULONG   = u32
     alias ULONG64 = u64
@@ -34,32 +35,32 @@ namespace __Win32RT
 
     #[Swag.Foreign("kernel32")]
     {
-        func RtlCaptureContext(contextRecord: *void);
-        func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void);
-        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT;
-        func GetModuleHandleA(lpModuleName: #null const *u8)->*void;
-        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: **void)->BOOL;
+        func RtlCaptureContext(contextRecord: #nonull *void);
+        func RtlRestoreContext(contextRecord: #nonull *void, exceptionRecord: #null *void);
+        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: #nonull *#nonull *void, backTraceHash: #null *ULONG)->USHORT;
+        func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void;
+        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: #nonull *#null *void)->BOOL;
         func GetStdHandle(nStdHandle: u32)->HANDLE;
-        func WriteFile(hFile: HANDLE, lpBuffer: const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
+        func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
         func GetCurrentProcess()->HANDLE;
         func GetCurrentThreadId()->DWORD;
-        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->*void;
+        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->#null *void;
         func ExitProcess(uExitCode: u32);
-        func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void);
+        func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: #nonull *const *void);
         func DebugBreak();
-        func LoadLibraryA(name: const *u8);
+        func LoadLibraryA(name: #nonull const *u8)->#null *void;
         func TlsAlloc()->u32;
-        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: *void);
-        func TlsGetValue(dwTlsIndex: u32)->*void;
-        func AcquireSRWLockExclusive(SRWLock: *SRWLOCK);
-        func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK);
-        func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->*void;
-        func VirtualFree(lpAddress: *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL;
+        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void);
+        func TlsGetValue(dwTlsIndex: u32)->#null *void;
+        func AcquireSRWLockExclusive(SRWLock: #nonull *SRWLOCK);
+        func ReleaseSRWLockExclusive(SRWLock: #nonull *SRWLOCK);
+        func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void;
+        func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL;
     }
 
     #[Swag.Foreign("user32")]
     {
-        func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32;
+        func MessageBoxA(hWnd: #null const *void, lpText: #nonull const *void, lpCaption: #nonull const *void, uType: u32)->s32;
     }
 }
 
@@ -138,50 +139,50 @@ impl MutexRW
     func pow(val1, val2: f64)->f64;
     func atan2(val1, val2: f64)->f64;
 
-    func malloc(s: s64)->[*] void;
-    func realloc(ptr: [*] void, s: s64)->[*] void;
-    func free(ptr: [*] void);
-    func memcpy(dst: [*] void, src: const [*] void, size: s64)->[*] void;
-    func memmove(dst: [*] void, src: const [*] void, size: s64)->[*] void;
-    func memset(dst: [*] void, value: s32, size: s64)->[*] void;
-    func memcmp(dst, src: const [*] void, size: s64)->s32;
+    func malloc(s: s64)->#null [*] void;
+    func realloc(ptr: #null [*] void, s: s64)->#null [*] void;
+    func free(ptr: #null [*] void);
+    func memcpy(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void;
+    func memmove(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void;
+    func memset(dst: #null [*] void, value: s32, size: s64)->#null [*] void;
+    func memcmp(dst: #null const [*] void, src: #null const [*] void, size: s64)->s32;
 }
 
 ////////////////////////////////////////////////////////////
 // INTRINSIC WRAPPERS
 ////////////////////////////////////////////////////////////
 
-func @alloc(size: u64)->[*] void
+func @alloc(size: u64)->#null [*] void
 {
     return malloc(cast(s64) size)
 }
 
-func @realloc(ptr: [*] void, size: u64)->[*] void
+func @realloc(ptr: #null [*] void, size: u64)->#null [*] void
 {
     return realloc(ptr, cast(s64) size)
 }
 
-func @free(ptr: [*] void)
+func @free(ptr: #null [*] void)
 {
     free(ptr)
 }
 
-func @memset(dst: [*] void, value: u8, size: u64)
+func @memset(dst: #null [*] void, value: u8, size: u64)
 {
     discard memset(dst, cast(s32) value, cast(s64) size)
 }
 
-func @memcpy(dst: [*] void, src: const [*] void, size: u64)
+func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
 {
     discard memcpy(dst, src, cast(s64) size)
 }
 
-func @memmove(dst: [*] void, src: const [*] void, size: u64)
+func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
 {
     discard memmove(dst, src, cast(s64) size)
 }
 
-func @memcmp(dst, src: const [*] void, size: u64)->s32
+func @memcmp(dst, src: #null const [*] void, size: u64)->s32
 {
     return memcmp(dst, src, cast(s64) size)
 }
@@ -239,7 +240,7 @@ func @memcmp(dst, src: const [*] void, size: u64)->s32
 }
 
 ////////////////////////////////////////////////////////////
-func __printString(message: string)
+func __printString(message: #null string)
 {
     if !@dataof(message) or !@countof(message) do
         return
@@ -249,7 +250,7 @@ func __printString(message: string)
 }
 
 ////////////////////////////////////////////////////////////
-func __raiseException666(message: string, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
+func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
@@ -276,15 +277,15 @@ func __raiseException666(message: string, loc: Swag.SourceCodeLocation, kind: Sw
 
     let cxt = @getcontext()
     cxt.exceptionLoc       = loc
-    cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
-    cxt.exceptionParams[1] = cast(const *void) @dataof(message)
-    cxt.exceptionParams[2] = cast(const *void) cast(u64) @countof(message)
-    cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
+    cxt.exceptionParams[0] = cast(#nonull const *void) &cxt.exceptionLoc
+    cxt.exceptionParams[1] = cast(#null const *void) @dataof(message)
+    cxt.exceptionParams[2] = cast(#nonull const *void) cast(u64) @countof(message)
+    cxt.exceptionParams[3] = cast(#nonull const *void) cast(u64) kind
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
 ////////////////////////////////////////////////////////////
-func __loaddll(name: string)              => __Win32RT.LoadLibraryA(@dataof(name))
+func __loaddll(name: #nonull string)      => __Win32RT.LoadLibraryA(@dataof(name))
 
 func __exit()
 {
@@ -292,13 +293,13 @@ func __exit()
 }
 
 func __tlsAlloc()                         => cast(u64) __Win32RT.TlsAlloc()
-func __tlsSetValue(id: u64, value: *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
-func __tlsGetValue(id: u64)->*void        => __Win32RT.TlsGetValue(cast(u32) id)
+func __tlsSetValue(id: u64, value: #null *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
+func __tlsGetValue(id: u64)->#null *void        => __Win32RT.TlsGetValue(cast(u32) id)
 
 ////////////////////////////////////////////////////////////
 // Returns the current thread's runtime context, lazily creating it on a thread
 // the runtime has never seen (an OS-owned callback thread, e.g. xaudio2).
-func __tlsGetPtr(id: u64, size: u64, init: const *void)->*void
+func __tlsGetPtr(id: u64, size: u64, init: #nonull const *void)->#null *void
 {
     using __Win32RT
     var ptr = TlsGetValue(cast(u32) id)
@@ -340,14 +341,14 @@ var g_TestThreadId:   __Win32RT.DWORD
 var g_TestsExecuted:  u32
 var g_TestsFailedCnt: u32
 
-func __testResumeContext()->*void
+func __testResumeContext()->#nonull *void
 {
     // RtlCaptureContext/RtlRestoreContext require a 16-byte aligned CONTEXT.
     let addr = cast(u64) &g_TestContextBuf[0]
-    return cast(*void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
+    return cast(#nonull *void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
 }
 
-func __testPanicHandler(message: string, loc: Swag.SourceCodeLocation)
+func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
 {
     // Drop the hook first so a panic raised while printing takes the default path.
     @getcontext().panic = null
@@ -359,12 +360,12 @@ func __testPanicHandler(message: string, loc: Swag.SourceCodeLocation)
 // Last-chance rescue for hardware faults (access violation, division by zero...)
 // raised by the running test on the test thread. Anything else (worker threads,
 // faults outside a test) keeps the default fatal behavior.
-func __testUnhandledFilter(exceptionPointers: *void)->s32
+func __testUnhandledFilter(exceptionPointers: #nonull *void)->s32
 {
     if !g_TestRunning or __Win32RT.GetCurrentThreadId() != g_TestThreadId do
         return 0 // EXCEPTION_CONTINUE_SEARCH
 
-    let record = dref cast(*const *u32) exceptionPointers
+    let record = dref cast(#nonull *#nonull const *u32) exceptionPointers
     @print("\nhardware exception ", cast(s64) dref record, " in #test\n")
     g_TestFailed = true
     __Win32RT.RtlRestoreContext(__testResumeContext(), null)
@@ -390,7 +391,7 @@ func __isTestRun()->bool
 // this function with the registers captured before the test ran, so every local
 // must live on the stack, not in a register the test call could have recycled.
 #[Swag.Optimize(false)]
-func __runTest(fn: *void)
+func __runTest(fn: #nonull *void)
 {
     if !__isTestRun() do
         return
@@ -437,7 +438,7 @@ func __testsDone()
         __exitError()
 }
 
-func __panicBox(msg, title: string)
+func __panicBox(msg, title: #nonull string)
 {
     using __Win32RT
     let result = MessageBoxA(null, @dataof(msg), @dataof(title), MB_ICONERROR | MB_CANCELTRYCONTINUE)
@@ -467,8 +468,8 @@ struct __SwagSym
 {
     found:   bool   = false
     hasLine: bool   = false
-    name:    string = ""
-    file:    string = ""
+    name:    #nonull string = ""
+    file:    #nonull string = ""
     line:    u32    = 0
 }
 
@@ -477,10 +478,10 @@ var __dbgCacheSection: #null [*] u8 = null
 var __dbgCacheCount:   u32    = 0
 var __dbgCacheValid:   bool   = false
 
-func __peU16(p: [*] u8, off: u64)->u16 => dref cast(*u16) &p[off]
-func __peU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
+func __peU16(p: #null [*] u8, off: u64)->u16 => dref cast(#null *u16) &p[off]
+func __peU32(p: #null [*] u8, off: u64)->u32 => dref cast(#null *u32) &p[off]
 
-func __dbgFindSection(base: *void)
+func __dbgFindSection(base: #null *void)
 {
     __dbgCacheBase    = base
     __dbgCacheValid   = false
@@ -489,7 +490,7 @@ func __dbgFindSection(base: *void)
     if base == null do
         return
 
-    let b      = cast([*] u8) base
+    let b      = cast(#null [*] u8) base
     let ntOff  = cast(u64) __peU32(b, 0x3C)
     let nSec   = __peU16(b, ntOff + 6)
     let optSz  = __peU16(b, ntOff + 20)
@@ -511,7 +512,7 @@ func __dbgFindSection(base: *void)
         if match
         {
             let rva           = __peU32(b, secOff + 12)
-            __dbgCacheSection = cast([*] u8) &b[cast(u64) rva]
+            __dbgCacheSection = cast(#nonull [*] u8) &b[cast(u64) rva]
             __dbgCacheCount   = __peU32(__dbgCacheSection, 8)
             __dbgCacheValid   = true
             return
@@ -520,15 +521,15 @@ func __dbgFindSection(base: *void)
     }
 }
 
-func __dbgStr(off: u32)->string
+func __dbgStr(off: u32)->#nonull string
 {
     if off == 0 do
         return ""
-    let p = cast([*] u8) &__dbgCacheSection[cast(u64) off]
-    return @mkstring(p, @countof(cast(cstring) p))
+    let p = cast(#nonull [*] u8) &__dbgCacheSection[cast(u64) off]
+    return @mkstring(p, @countof(cast(#nonull cstring) p))
 }
 
-func __symbolize(addr: *void)->__SwagSym
+func __symbolize(addr: #nonull *void)->__SwagSym
 {
     using __Win32RT
     var r: __SwagSym

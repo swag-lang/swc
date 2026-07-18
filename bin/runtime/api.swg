@@ -340,22 +340,22 @@ namespace Swag
     // Defined some information about a loaded module
     struct Module
     {
-        name:      string                         // Name of the module
-        types:     const [..] const *TypeInfo     // All exported types
+        name:      #null string                                // Name of the module
+        types:     #null const [..] #null const *TypeInfo      // All exported types
     }
 
     // Defined some information about the current process
     struct ProcessInfos
     {
-        modules:     const [..] Module     // The list of all modules
-        args:        string                // The application arguments, as returned by [[@args]]
+        modules:     #null const [..] Module     // The list of all modules
+        args:        #null string                // The application arguments, as returned by [[@args]]
     }
 
     // Defined a global variable that needs to be dropped when exiting
     struct Gvtd
     {
-        ptr:        *void           // Pointer to the global variable memory
-        opDrop:     func(*void)     // The 'opDrop' function to call when the process must exit
+        ptr:        #null *void           // Pointer to the global variable memory
+        opDrop:     func(#null *void)     // The 'opDrop' function to call when the process must exit
         sizeOf:     u32             // Size of one element
         count:      u32             // Number of elements to drop
     }
@@ -413,11 +413,11 @@ namespace Swag
     struct ScratchAllocator
     {
         allocator:     IAllocator
-        block:         [*] u8
+        block:         #null [*] u8
         capacity:      u64
         used:          u64
         maxUsed:       u64
-        firstLeak:     *void
+        firstLeak:     #null *void
         totalLeak:     u64
         maxLeak:       u64
     }
@@ -441,7 +441,7 @@ namespace Swag
     // This is the base of all errors
     struct BaseError
     {
-        message: string
+        message: #null string
     }
 
     // An error raised by the system
@@ -454,7 +454,7 @@ namespace Swag
     // Store a 'throw' error information
     struct ErrorValue
     {
-        value:              any     // Error value (or null)
+        value:              #null any     // Error value (or null)
         pushUsedAlloc:      u32     // Internal
         pushTraceIndex:     u32     // Internal
         pushHasError:       u32     // Internal
@@ -481,9 +481,9 @@ namespace Swag
         traces:              [MaxTraces] SourceCodeLocation            // Stack trace, in case of errors
         errors:              [MaxErrors] ErrorValue                    // All errors
         exceptionLoc:        SourceCodeLocation                        // When an exception is raised, this is the code location
-        exceptionParams:     [4] const *void                           // When an exception is raised, this are the parameters
-        panic:               func(string, SourceCodeLocation)          // A function to call if there's a panic
-        curError:            any                                       // The current raised error returns by @err
+        exceptionParams:     [4] #null const *void                           // When an exception is raised, this are the parameters
+        panic:               func(#null string, SourceCodeLocation)          // A function to call if there's a panic
+        curError:            #null any                                       // The current raised error returns by @err
         errorIndex:          u32                                       // Number of errors in the array
         traceIndex:          u32                                       // Number of traces in the array
         hasError:            u32                                       // <> 0 if an error is raised
@@ -578,28 +578,28 @@ namespace Swag
 
     struct Interface
     {
-        obj:        *void                  // Pointer to the associated struct instance
-        itable:     const [*] [*] void     // Pointer to the table: [0] type descriptor, then method pointers
+        obj:        #null *void                  // Pointer to the associated struct instance
+        itable:     #null const [*] #null [*] void     // Pointer to the table: [0] type descriptor, then method pointers
     }
 
     const ClosureCaptureBufferSize = 64
 
     struct ClosureValue
     {
-        invoke:     *void
+        invoke:     #null *void
         capture:    [ClosureCaptureBufferSize] u8
     }
 
     struct AttributeParam
     {
-        name:      string     // Name of the attribute parameter
-        value:     any        // Optional default value
+        name:      #null string     // Name of the attribute parameter
+        value:     any              // Optional default value
     }
 
     struct Attribute
     {
-        type:       const *TypeInfo
-        params:     const [..] AttributeParam     // Attribute parameters
+        type:       #null const *TypeInfo
+        params:     #null const [..] AttributeParam     // Attribute parameters
     }
 
     #[EnumFlags]
@@ -613,10 +613,10 @@ namespace Swag
     // Represents a value, like a function parameter or an enum value
     struct TypeValue
     {
-        name:            string                   // Name of the value
-        pointedType:     const *TypeInfo          // Type of the value
-        value:           const *void              // Pointer to the constant value
-        attributes:      const [..] Attribute     // Associated attributes
+        name:            #null string                   // Name of the value
+        pointedType:     #null const *TypeInfo          // Type of the value
+        value:           #null const *void              // Pointer to the constant value
+        attributes:      #null const [..] Attribute     // Associated attributes
         offset:          u32                      // Offset, in bytes
         crc:             u32                      // Unique CRC
         flags:           TypeValueFlags           // Associated flags
@@ -626,8 +626,8 @@ namespace Swag
     // Will be available for all types
     struct TypeInfo
     {
-        fullname:     string                     // The full scoped name of the type
-        name:         string                     // The unscoped name
+        fullname:     #null string                     // The full scoped name of the type
+        name:         #null string                     // The unscoped name
         sizeof:       u32                        // Size in bytes
         crc:          u32                        // A unique CRC to identify the type
         flags         = TypeInfoFlags.Zero       // Some additional flags
@@ -644,60 +644,60 @@ namespace Swag
     struct TypeInfoPointer
     {
         using base:      TypeInfo
-        pointedType:     const *TypeInfo     // The pointed type
+        pointedType:     #nonull const *TypeInfo     // The pointed type
     }
 
     struct TypeInfoAlias
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo     // The underlying type
+        rawType:        #nonull const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoCodeBlock
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo     // The underlying type
+        rawType:        #nonull const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoStruct
     {
         using base:      TypeInfo
-        opInit:          func(*void)              // Initialization hook; null when zero-initialization suffices or explicit initialization is required
-        opDrop:          func(*void)              // Pointer to the function to drop an instance of that struct
-        opPostCopy:      func(*void)              // Pointer to the function to call after a copy
-        opPostMove:      func(*void)              // Pointer to the function to call after a move
-        structName:      string                   // User name of the struct
-        fromGeneric:     const *TypeInfo          // If it comes from a generic instantiation, this is the original generic struct
-        generics:        const [..] TypeValue     // Generic parameters
-        fields:          const [..] TypeValue     // All the fields
-        usingFields:     const [..] TypeValue     // All the fields marked with 'using'
-        methods:         const [..] TypeValue     // All the methods, if exported
-        interfaces:      const [..] TypeValue     // All the interfaces
-        attributes:      const [..] Attribute     // All the attributes
+        opInit:          func(#null *void)              // Initialization hook; null when zero-initialization suffices or explicit initialization is required
+        opDrop:          func(#null *void)              // Pointer to the function to drop an instance of that struct
+        opPostCopy:      func(#null *void)              // Pointer to the function to call after a copy
+        opPostMove:      func(#null *void)              // Pointer to the function to call after a move
+        structName:      #null string                   // User name of the struct
+        fromGeneric:     #null const *TypeInfo          // If it comes from a generic instantiation, this is the original generic struct
+        generics:        #null const [..] TypeValue     // Generic parameters
+        fields:          #null const [..] TypeValue     // All the fields
+        usingFields:     #null const [..] TypeValue     // All the fields marked with 'using'
+        methods:         #null const [..] TypeValue     // All the methods, if exported
+        interfaces:      #null const [..] TypeValue     // All the interfaces
+        attributes:      #null const [..] Attribute     // All the attributes
     }
 
     struct TypeInfoFunc
     {
         using base:     TypeInfo
-        generics:       const [..] TypeValue     // Generic parameters
-        parameters:     const [..] TypeValue     // Parameters
-        returnType:     const *TypeInfo          // The return type, or 'null'
-        attributes:     const [..] Attribute     // All the attributes
+        generics:       #null const [..] TypeValue     // Generic parameters
+        parameters:     #null const [..] TypeValue     // Parameters
+        returnType:     #null const *TypeInfo          // The return type, or 'null'
+        attributes:     #null const [..] Attribute     // All the attributes
     }
 
     struct TypeInfoEnum
     {
         using base:     TypeInfo
-        values:         const [..] TypeValue     // All the values
-        rawType:        const *TypeInfo          // The underlying enum type
-        attributes:     const [..] Attribute     // All the attributes
+        values:         #null const [..] TypeValue     // All the values
+        rawType:        #null const *TypeInfo          // The underlying enum type
+        attributes:     #null const [..] Attribute     // All the attributes
     }
 
     struct TypeInfoArray
     {
         using base:      TypeInfo
-        pointedType:     const *TypeInfo     // The underlying type
-        finalType:       const *TypeInfo     // If this is an array with multiple dimensions, this will be the final type
+        pointedType:     #nonull const *TypeInfo   // The underlying type
+        finalType:       #nonull const *TypeInfo   // If this is an array with multiple dimensions, this will be the final type
         count:           u64                 // Number of elements in the array
         totalCount:      u64                 // The total number of elements in case this has multiple dimensions
     }
@@ -705,19 +705,19 @@ namespace Swag
     struct TypeInfoSlice
     {
         using base:      TypeInfo
-        pointedType:     const *TypeInfo     // The underlying type
+        pointedType:     #nonull const *TypeInfo   // The underlying type
     }
 
     struct TypeInfoVariadic
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo     // The underlying type
+        rawType:        #nonull const *TypeInfo   // The underlying type
     }
 
     struct TypeInfoGeneric
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo
+        rawType:        #nonull const *TypeInfo
     }
 
     struct TypeInfoNamespace
@@ -820,27 +820,27 @@ namespace Swag
     struct BuildCfgGenDoc
     {
         kind                     = BuildCfgDocKind.None     // The kind of documentation to generate
-        outputName:              string                     // The name of the output file (without extension)
-        outputExtension:         string                     // The output extension
-        titleToc:                string                     // Title for the table of content
-        titleContent:            string                     // Title for the main document content
-        css:                     string                     // The 'css' file to include in generated documentations
-        icon:                    string                     // The icon path of the page
-        startHead:               string                     // Content to insert at the start of the <head> section
-        endHead:                 string                     // Content to insert at the end of the <head> section
-        startBody:               string                     // Content to insert at the start of the <body> section
-        endBody:                 string                     // Content to insert at the end of the <body> section
-        morePages:               string                     // Additional external file pages to process (separated with ';')
-        quoteIconNote:           string                     // The icon for the note blockquote
-        quoteIconTip:            string                     // The icon for the tip blockquote
-        quoteIconWarning:        string                     // The icon for the warning blockquote
-        quoteIconAttention:      string                     // The icon for the attention blockquote
-        quoteIconExample:        string                     // The icon for the example blockquote
-        quoteTitleNote:          string                     // The title for the note blockquote
-        quoteTitleTip:           string                     // The title for the tip blockquote
-        quoteTitleWarning:       string                     // The title for the warning blockquote
-        quoteTitleAttention:     string                     // The title for the attention blockquote
-        quoteTitleExample:       string                     // The title for the example blockquote
+        outputName:              #null string                     // The name of the output file (without extension)
+        outputExtension:         #null string                     // The output extension
+        titleToc:                #null string                     // Title for the table of content
+        titleContent:            #null string                     // Title for the main document content
+        css:                     #null string                     // The 'css' file to include in generated documentations
+        icon:                    #null string                     // The icon path of the page
+        startHead:               #null string                     // Content to insert at the start of the <head> section
+        endHead:                 #null string                     // Content to insert at the end of the <head> section
+        startBody:               #null string                     // Content to insert at the start of the <body> section
+        endBody:                 #null string                     // Content to insert at the end of the <body> section
+        morePages:               #null string                     // Additional external file pages to process (separated with ';')
+        quoteIconNote:           #null string                     // The icon for the note blockquote
+        quoteIconTip:            #null string                     // The icon for the tip blockquote
+        quoteIconWarning:        #null string                     // The icon for the warning blockquote
+        quoteIconAttention:      #null string                     // The icon for the attention blockquote
+        quoteIconExample:        #null string                     // The icon for the example blockquote
+        quoteTitleNote:          #null string                     // The title for the note blockquote
+        quoteTitleTip:           #null string                     // The title for the tip blockquote
+        quoteTitleWarning:       #null string                     // The title for the warning blockquote
+        quoteTitleAttention:     #null string                     // The title for the attention blockquote
+        quoteTitleExample:       #null string                     // The title for the example blockquote
         syntaxDefaultColor:      u32 = 0x00222222           // Code syntax default color (if not colorized)
         syntaxColorLum:          f32 = 0.5                  // Code syntax color luminosity in range ]0, 1]
         hasFontAwesome           = true                     // Generate a reference to the FontAwesome script (icons)
@@ -855,7 +855,7 @@ namespace Swag
         moduleVersion:                 u32 = 0                              // The module version
         moduleRevision:                u32 = 0                              // The module revision
         moduleBuildNum:                u32 = 0                              // The module build value
-        moduleNamespace:               string                               // The namespace name of the module
+        moduleNamespace:               #null string                         // The namespace name of the module
         embeddedImports                = false                              // Module should embed all its dependencies
         ignoreInWorkspace              = false                              // Skip this module when building a workspace
 
@@ -870,9 +870,9 @@ namespace Swag
         allocatorFillMemory            = false                              // Fill allocated/freed memory with debug patterns
         errorStackTrace                = true                               // Add stack trace in case a 'throw' is raised
 
-        warnAsErrors:                  string                               // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."
-        warnAsWarning:                 string                               // Override 'warnAsErrors', restoring warnings as warnings
-        warnAsDisabled:                string                               // Disable some specific warnings
+        warnAsErrors:                  #null string                         // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."
+        warnAsWarning:                 #null string                         // Override 'warnAsErrors', restoring warnings as warnings
+        warnAsDisabled:                #null string                         // Disable some specific warnings
         warnDefaultDisabled:           bool                                 // All warnings are disabled, except those specified above
         warnDefaultErrors:             bool                                 // All warnings are treated as errors, except those specified above
         explicitNullability:           bool                                 // Require #null or #nonull on nullable-capable types
@@ -880,20 +880,20 @@ namespace Swag
         backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
 
-        name:                          string                               // Artifact name
-        outDir:                        string                               // Artifact output directory
-        workDir:                       string                               // Work directory
+        name:                          #null string                         // Artifact name
+        outDir:                        #null string                         // Artifact output directory
+        workDir:                       #null string                         // Work directory
 
         backend:                       BuildCfgBackend                      // Backend options
 
-        repoPath:                      string                               // Repository access path to the module
-        resAppIcoFileName:             string                               // For an executable, the associated icon file name
-        resAppName:                    string                               // For an executable, the associated application name
-        resAppDescription:             string                               // For an executable, the associated application description
-        resAppCompany:                 string                               // For an executable, the associated company name
-        resAppCopyright:               string                               // For an executable, the associated copyright notice
+        repoPath:                      #null string                         // Repository access path to the module
+        resAppIcoFileName:             #null string                         // For an executable, the associated icon file name
+        resAppName:                    #null string                         // For an executable, the associated application name
+        resAppDescription:             #null string                         // For an executable, the associated application description
+        resAppCompany:                 #null string                         // For an executable, the associated company name
+        resAppCopyright:               #null string                         // For an executable, the associated copyright notice
         genDoc:                        BuildCfgGenDoc                       // Parameters for document generation
-        registeredConfigs:             string = "fast-compile|debug|fast-debug|release" // Registered build configuration names used by --build-cfg and #cfg
+        registeredConfigs:             #nonull string = "fast-compile|debug|fast-debug|release" // Registered build configuration names used by --build-cfg and #cfg
     }
 
     // #########################################################
@@ -936,9 +936,9 @@ namespace Swag
     // interface returned by [[@compiler]]
     struct CompilerMessage
     {
-        moduleName:     string                          // Name of the module for which the message is sent.
-        name:           string                          // Depends on 'kind'
-        type:           const *TypeInfo                 // Depends on 'kind'
+        moduleName:     #null string                          // Name of the module for which the message is sent.
+        name:           #null string                          // Depends on 'kind'
+        type:           #null const *TypeInfo                 // Depends on 'kind'
         kind:           CompilerMsgKind = undefined     // Kind of the message
     }
 
@@ -947,9 +947,9 @@ namespace Swag
     // The intrinsic '@compiler' will return that interface at compile-time, and 'null' at runtime.
     interface ICompiler
     {
-        mtd getMessage()->const *CompilerMessage; // Returns the compiler message in a '#message' function
-        mtd getBuildCfg()->*BuildCfg; // Returns the build configuration of the current module
-        mtd compileString(str: string);
+        mtd getMessage()->#null const *CompilerMessage; // Returns the compiler message in a '#message' function
+        mtd getBuildCfg()->#null *BuildCfg; // Returns the build configuration of the current module
+        mtd compileString(str: #nonull string);
     }
 
     // Represent a part of a source code file.
@@ -957,8 +957,8 @@ namespace Swag
     // This is typically what will be returned by '#curlocation' or '#callerlocation'.
     struct SourceCodeLocation
     {
-        fileName:      string     // Full path name of the source file
-        funcName:      string     // Name of the function
+        fileName:      #null string     // Full path name of the source file
+        funcName:      #null string     // Name of the function
         lineStart:     u32        // Start line (starts at 0)
         colStart:      u32        // Start column
         lineEnd:       u32        // End line
@@ -976,93 +976,93 @@ func @assert(value: bool);
 // Stop a bytecode execution, and launch the bytecode debugger.
 func @breakpoint();
 // Get the current thread context.
-func @getcontext()->*Swag.Context;
+func @getcontext()->#nonull *Swag.Context;
 // Replace the current thread context.
-func @setcontext(context: const *Swag.Context);
+func @setcontext(context: #nonull const *Swag.Context);
 
 // Get information about the current process.
-func @pinfos()->*Swag.ProcessInfos;
+func @pinfos()->#nonull *Swag.ProcessInfos;
 // Returns the list of all loaded modules.
-func @modules()->const [..] Swag.Module;
+func @modules()->#null const [..] Swag.Module;
 // Returns the list of all global variables.
-func @gvtd()->const [..] Swag.Gvtd;
+func @gvtd()->#null const [..] Swag.Gvtd;
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func @compiler()->Swag.ICompiler;
 
 // Set all bytes of a given memory block to 'value'
-func @memset(dst: [*] void, value: u8, size: u64);
+func @memset(dst: #null [*] void, value: u8, size: u64);
 
 // Copy one memory block to another address.
-func @memcpy(dst: [*] void, src: const [*] void, size: u64);
+func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64);
 
 // Move one memory block to another address.
-func @memmove(dst: [*] void, src: const [*] void, size: u64);
+func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64);
 
 // Compare two memory blocks, and returns -1, 0 if equal, or 1.
-func @memcmp(dst, src: const [*] void, size: u64)->s32;
+func @memcmp(dst, src: #null const [*] void, size: u64)->s32;
 
 // Atomic operations
 #[Swag.Discardable]
 {
     // Atomic 'add'
-    func @atomadd(addr: *s8, value: s8)->s8;
-    func @atomadd(addr: *s16, value: s16)->s16;
-    func @atomadd(addr: *s32, value: s32)->s32;
-    func @atomadd(addr: *s64, value: s64)->s64;
-    func @atomadd(addr: *u8, value: u8)->u8;
-    func @atomadd(addr: *u16, value: u16)->u16;
-    func @atomadd(addr: *u32, value: u32)->u32;
-    func @atomadd(addr: *u64, value: u64)->u64;
+    func @atomadd(addr: #nonull *s8, value: s8)->s8;
+    func @atomadd(addr: #nonull *s16, value: s16)->s16;
+    func @atomadd(addr: #nonull *s32, value: s32)->s32;
+    func @atomadd(addr: #nonull *s64, value: s64)->s64;
+    func @atomadd(addr: #nonull *u8, value: u8)->u8;
+    func @atomadd(addr: #nonull *u16, value: u16)->u16;
+    func @atomadd(addr: #nonull *u32, value: u32)->u32;
+    func @atomadd(addr: #nonull *u64, value: u64)->u64;
 
     // Atomic 'and'
-    func @atomand(addr: *s8, value: s8)->s8;
-    func @atomand(addr: *s16, value: s16)->s16;
-    func @atomand(addr: *s32, value: s32)->s32;
-    func @atomand(addr: *s64, value: s64)->s64;
-    func @atomand(addr: *u8, value: u8)->u8;
-    func @atomand(addr: *u16, value: u16)->u16;
-    func @atomand(addr: *u32, value: u32)->u32;
-    func @atomand(addr: *u64, value: u64)->u64;
+    func @atomand(addr: #nonull *s8, value: s8)->s8;
+    func @atomand(addr: #nonull *s16, value: s16)->s16;
+    func @atomand(addr: #nonull *s32, value: s32)->s32;
+    func @atomand(addr: #nonull *s64, value: s64)->s64;
+    func @atomand(addr: #nonull *u8, value: u8)->u8;
+    func @atomand(addr: #nonull *u16, value: u16)->u16;
+    func @atomand(addr: #nonull *u32, value: u32)->u32;
+    func @atomand(addr: #nonull *u64, value: u64)->u64;
 
     // Atomic 'or'
-    func @atomor(addr: *s8, value: s8)->s8;
-    func @atomor(addr: *s16, value: s16)->s16;
-    func @atomor(addr: *s32, value: s32)->s32;
-    func @atomor(addr: *s64, value: s64)->s64;
-    func @atomor(addr: *u8, value: u8)->u8;
-    func @atomor(addr: *u16, value: u16)->u16;
-    func @atomor(addr: *u32, value: u32)->u32;
-    func @atomor(addr: *u64, value: u64)->u64;
+    func @atomor(addr: #nonull *s8, value: s8)->s8;
+    func @atomor(addr: #nonull *s16, value: s16)->s16;
+    func @atomor(addr: #nonull *s32, value: s32)->s32;
+    func @atomor(addr: #nonull *s64, value: s64)->s64;
+    func @atomor(addr: #nonull *u8, value: u8)->u8;
+    func @atomor(addr: #nonull *u16, value: u16)->u16;
+    func @atomor(addr: #nonull *u32, value: u32)->u32;
+    func @atomor(addr: #nonull *u64, value: u64)->u64;
 
     // Atomic 'xor'
-    func @atomxor(addr: *s8, value: s8)->s8;
-    func @atomxor(addr: *s16, value: s16)->s16;
-    func @atomxor(addr: *s32, value: s32)->s32;
-    func @atomxor(addr: *s64, value: s64)->s64;
-    func @atomxor(addr: *u8, value: u8)->u8;
-    func @atomxor(addr: *u16, value: u16)->u16;
-    func @atomxor(addr: *u32, value: u32)->u32;
-    func @atomxor(addr: *u64, value: u64)->u64;
+    func @atomxor(addr: #nonull *s8, value: s8)->s8;
+    func @atomxor(addr: #nonull *s16, value: s16)->s16;
+    func @atomxor(addr: #nonull *s32, value: s32)->s32;
+    func @atomxor(addr: #nonull *s64, value: s64)->s64;
+    func @atomxor(addr: #nonull *u8, value: u8)->u8;
+    func @atomxor(addr: #nonull *u16, value: u16)->u16;
+    func @atomxor(addr: #nonull *u32, value: u32)->u32;
+    func @atomxor(addr: #nonull *u64, value: u64)->u64;
 
     // Atomic 'exchange'
-    func @atomxchg(addr: *s8, exchangeWith: s8)->s8;
-    func @atomxchg(addr: *s16, exchangeWith: s16)->s16;
-    func @atomxchg(addr: *s32, exchangeWith: s32)->s32;
-    func @atomxchg(addr: *s64, exchangeWith: s64)->s64;
-    func @atomxchg(addr: *u8, exchangeWith: u8)->u8;
-    func @atomxchg(addr: *u16, exchangeWith: u16)->u16;
-    func @atomxchg(addr: *u32, exchangeWith: u32)->u32;
-    func @atomxchg(addr: *u64, exchangeWith: u64)->u64;
+    func @atomxchg(addr: #nonull *s8, exchangeWith: s8)->s8;
+    func @atomxchg(addr: #nonull *s16, exchangeWith: s16)->s16;
+    func @atomxchg(addr: #nonull *s32, exchangeWith: s32)->s32;
+    func @atomxchg(addr: #nonull *s64, exchangeWith: s64)->s64;
+    func @atomxchg(addr: #nonull *u8, exchangeWith: u8)->u8;
+    func @atomxchg(addr: #nonull *u16, exchangeWith: u16)->u16;
+    func @atomxchg(addr: #nonull *u32, exchangeWith: u32)->u32;
+    func @atomxchg(addr: #nonull *u64, exchangeWith: u64)->u64;
 
     // Atomic 'compare and exchange'
-    func @atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8;
-    func @atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16;
-    func @atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32;
-    func @atomcmpxchg(addr: *s64, compareTo, exchangeWith: s64)->s64;
-    func @atomcmpxchg(addr: *u8, compareTo, exchangeWith: u8)->u8;
-    func @atomcmpxchg(addr: *u16, compareTo, exchangeWith: u16)->u16;
-    func @atomcmpxchg(addr: *u32, compareTo, exchangeWith: u32)->u32;
-    func @atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64;
+    func @atomcmpxchg(addr: #nonull *s8, compareTo, exchangeWith: s8)->s8;
+    func @atomcmpxchg(addr: #nonull *s16, compareTo, exchangeWith: s16)->s16;
+    func @atomcmpxchg(addr: #nonull *s32, compareTo, exchangeWith: s32)->s32;
+    func @atomcmpxchg(addr: #nonull *s64, compareTo, exchangeWith: s64)->s64;
+    func @atomcmpxchg(addr: #nonull *u8, compareTo, exchangeWith: u8)->u8;
+    func @atomcmpxchg(addr: #nonull *u16, compareTo, exchangeWith: u16)->u16;
+    func @atomcmpxchg(addr: #nonull *u32, compareTo, exchangeWith: u32)->u32;
+    func @atomcmpxchg(addr: #nonull *u64, compareTo, exchangeWith: u64)->u64;
 }
 
 // Constant intrinsics
@@ -1159,13 +1159,13 @@ func @memcmp(dst, src: const [*] void, size: u64)->s32;
 
 // Returns a system allocated memory block of 'size' bytes.
 // Use [[@free]] to release the allocated memory.
-func @alloc(size: u64)->[*] void;
+func @alloc(size: u64)->#null [*] void;
 
 // Realloc a system memory block allocated with [[@alloc]]
-func @realloc(ptr: [*] void, size: u64)->[*] void;
+func @realloc(ptr: #null [*] void, size: u64)->#null [*] void;
 
 // Free a system memory block allocated with [[@alloc]]
-func @free(ptr: [*] void);
+func @free(ptr: #null [*] void);
 
 #[Swag.ConstExpr]
 {

@@ -74,8 +74,8 @@ impl Properties
             item.comboBox = ed
         }
 
-        item.comboBox.addItem(cast(string) assume Reflection.getAttributeValue(value, .BoolCombo, "off"))
-        item.comboBox.addItem(cast(string) assume Reflection.getAttributeValue(value, .BoolCombo, "on"))
+        item.comboBox.addItem(cast(#nonull string) (assume Reflection.getAttributeValue(value, .BoolCombo, "off")))
+        item.comboBox.addItem(cast(#nonull string) (assume Reflection.getAttributeValue(value, .BoolCombo, "on")))
 
         .refreshBool(item)
         item.comboBox.sigChanged += func|prop = me, item|(ed, n)
@@ -150,7 +150,7 @@ impl Properties
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
-                .setText(dispDesc == null ? "" : cast(string) dispDesc)
+                .setText(dispDesc == null ? "" : cast(#nonull string) (assume dispDesc))
             }
 
             item.sigResize += func|label, line, lineHeight|(item)

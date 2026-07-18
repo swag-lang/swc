@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 using Swag
 
@@ -23,7 +23,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
 
     itf.free(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -40,7 +40,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
 
     alignedItf.free(&aligned)
     @assert(aligned.address == null)
-    alignedAlloc.freeAll()
+    alignedAlloc.releaseAll()
 
     var captureAlloc: Allocator
     let captureItf = makeAlignmentCaptureAllocator(&captureAlloc, captureStack: true)
@@ -57,7 +57,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
 
     captureItf.free(&captured)
     @assert(captured.address == null)
-    captureAlloc.freeAll()
+    captureAlloc.releaseAll()
 }
 
 #test
@@ -81,5 +81,5 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
         @assert(reqs[i].address == null)
     }
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }

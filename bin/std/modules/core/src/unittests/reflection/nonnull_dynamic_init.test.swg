@@ -25,7 +25,7 @@ alias CoreNonNullRuntimeDefaultPair = [2] CoreNonNullRuntimeDefault
 #[Swag.Strict]
 alias CoreNonNullRuntimeDefaultAlias = CoreNonNullRuntimeDefault
 
-func recordCoreNonNullGuardPanic(message: string, loc: Swag.SourceCodeLocation)
+func recordCoreNonNullGuardPanic(message: #null string, loc: Swag.SourceCodeLocation)
 {
     @getcontext().user0 += 1
 }

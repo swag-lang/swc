@@ -12,7 +12,7 @@
     #assert(#typeof(Cfg.allocatorElectricMode) == bool)
     #assert(#typeof(Cfg.allocatorFillMemory) == bool)
     #assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")
-    #assert(Cfg.name == "")
+    #assert(Cfg.name == null)
     #assert(Cfg.outDir == "" or Cfg.outDir != "")
     #assert(Cfg.workDir == "" or Cfg.workDir != "")
 }

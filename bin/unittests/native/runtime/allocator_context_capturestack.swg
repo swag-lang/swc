@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 using Swag
 
@@ -94,5 +94,5 @@ func contextCaptureFree(req: *AllocatorRequest)
 
     itf.free(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }

@@ -288,15 +288,15 @@ func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
         switch typeNative.nativeKind
         {
         case Bool:
-            convertBool(buf, cast(bool) concreteValue)
+            convertBool(buf, dref cast(const *bool) valueData)
             return
 
         case Rune:
-            convertRune(buf, cast(rune) concreteValue)
+            convertRune(buf, dref cast(const *rune) valueData)
             return
 
         case String:
-            buf.addBytes(cast(string) concreteValue)
+            buf.addBytes(dref cast(const *string) valueData)
             return
         }
     }

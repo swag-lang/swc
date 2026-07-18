@@ -433,7 +433,7 @@ func tryCatchAggregateFailureInfo()->AggregateInfo
     return result
 }
 
-func recordAssumePanic(message: string, loc: SourceCodeLocation)
+func recordAssumePanic(message: #null string, loc: SourceCodeLocation)
 {
     let cxt = @getcontext()
     cxt.user0 += 1

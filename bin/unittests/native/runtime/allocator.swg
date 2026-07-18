@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 using Swag
 
@@ -184,7 +184,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.release()
     @assert(scratch.block == null)
     @assert(alloc.countAlloc == 0)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -217,7 +217,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     scratch.release()
     @assert(alloc.countAlloc == 0)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -243,7 +243,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countFree == 1)
     @assert(alloc.sizeCached >= 64)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -265,7 +265,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address == null)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -288,7 +288,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     req2.size = 48
     itf.free(&req2)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -311,7 +311,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     req2.size = 48
     itf.free(&req2)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -341,7 +341,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     req.size = 48
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -373,7 +373,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address == null)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -400,7 +400,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     req.size = 2048
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -420,7 +420,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -437,7 +437,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     req.size = 257
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -450,7 +450,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.freeAll(&req)
     @assert(req.address == null)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -463,7 +463,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address == null)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -479,7 +479,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.free(&req)
     @assert(req.address == null)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -500,7 +500,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             @assert(header.stackCount > 0)
 
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -529,7 +529,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     for i in 128 do
         @assert(freed[i] == Allocator.FreeByte)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -551,7 +551,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address == null)
     @assert(alloc.firstFree == header)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -572,7 +572,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(header.stackCount <= @countof(header.stack))
 
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -597,7 +597,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     itf.free(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -639,7 +639,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         @assert(freed[i] == Allocator.FreeByte)
 
     alloc.checkAllMemory()
-    alloc.freeAll()
+    alloc.releaseAll()
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
 }
@@ -733,7 +733,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -753,7 +753,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
     alloc.releaseRetiredHeaps()
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -778,7 +778,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address != null)
 
     itf2.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #if #os == Swag.TargetOs.Windows
@@ -814,7 +814,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
         req2.size = 64
         itf.free(&req2)
-        alloc.freeAll()
+        alloc.releaseAll()
     }
 
     #test

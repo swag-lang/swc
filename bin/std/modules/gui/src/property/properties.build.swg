@@ -7,13 +7,18 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
+    func attributeString(value: #null any)->#nonull string
+    {
+        return cast(#nonull string) assume value
+    }
+
     // Display name of a field: its Properties.Name attribute, or its beautified raw name.
     // Public so custom editors can label their widgets the same way the built-ins do.
     public func itemDisplayName(value: Swag.TypeValue)->String
     {
         let attrName = Reflection.getAttributeValue(value, Properties.Name, "name")
         if attrName != null do
-            return cast(string) attrName
+            return attributeString(attrName)
         return Utf8.beautifyName(value.name)
     }
 
@@ -142,8 +147,8 @@ internal impl Properties
         if dispDesc != null
         {
             item.filter += " "
-            item.filter += cast(string) dispDesc
-            item.description = cast(string) dispDesc
+            item.filter += attributeString(dispDesc)
+            item.description = attributeString(dispDesc)
 
             if flags.has(.Description)
             {
@@ -155,7 +160,7 @@ internal impl Properties
                         .vertAlignmentText = .Top
                         .horzAlignmentText = .Left
                         .margin.w          = .listDescMarginAfter
-                        .setText(cast(string) dispDesc)
+                        .setText(attributeString(dispDesc))
                         item.labelDesc = labelDesc
                     }
                 }
@@ -297,7 +302,7 @@ internal impl Properties
             let subCateg = Reflection.getAttributeValue(value, Properties.Category, "name")
             if subCateg != null
             {
-                let segs = Tokenize.split(cast(string) subCateg, "/")
+                let segs = Tokenize.split(attributeString(subCateg), "/")
 
                 // Keep the headers shared with the previously open path (longest common prefix),
                 // drop the diverging tail, then create only the new segments.
@@ -394,9 +399,9 @@ internal impl Properties
         if let space = Reflection.getAttributeValue(value, .Gap, "size") do
             .addSpacerRow(parentItem, cast(s32) assume space)
         if let header = Reflection.getAttributeValue(value, .Heading, "text") do
-            .addHeaderRow(cast(string) header, parentItem)
+            .addHeaderRow(attributeString(header), parentItem)
         if let help = Reflection.getAttributeValue(value, .HelpBox, "text") do
-            .addNoteRow(cast(string) help, parentItem)
+            .addNoteRow(attributeString(help), parentItem)
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).

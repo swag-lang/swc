@@ -136,7 +136,7 @@ func __failedAssume(loc: SourceCodeLocation)
            (type == Swag.BaseError)
         {
             let data = @dataof(cxt.errors[cxt.errorIndex].value)
-            let val  = cast(#nonull const *Swag.BaseError) data
+            let val  = cast(#null const *Swag.BaseError) data
             maxLen = @min(@countof(val.message), 128)
             if maxLen
             {

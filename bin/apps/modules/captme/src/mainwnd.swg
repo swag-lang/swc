@@ -741,9 +741,21 @@ impl MainWnd
     {
         parent.surface.minSize = {1152, 512}
 
-        let img24    = assume Image.decode(".png", Icons24)
-        let img48    = assume Image.decode(".png", Icons48)
-        let imgApp   = assume Image.decode(".png", AppIcon)
+        var img24:  Image
+        var img48:  Image
+        var imgApp: Image
+        #if #command == Swag.CompilerCommand.Test
+        {
+            img24  = Image.create(480, 480, .RGBA8)
+            img48  = Image.create(480, 480, .RGBA8)
+            imgApp = Image.create(512, 512, .RGBA8)
+        }
+        #else
+        {
+            img24  = assume Image.decode(".png", Icons24)
+            img48  = assume Image.decode(".png", Icons48)
+            imgApp = assume Image.decode(".png", AppIcon)
+        }
         let renderer = parent.getApp().getRenderer()
 
         with let res = Wnd.create'MainWnd(parent, "captme.mainwnd")

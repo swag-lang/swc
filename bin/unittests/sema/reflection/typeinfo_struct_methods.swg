@@ -284,7 +284,7 @@ func compileTimeMethodReflectionWorks()->bool
 
 const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks()
 
-#assert(@countof(HIDDEN_INFO.methods) == 0)
+#assert(HIDDEN_INFO.methods == null)
 
 #assert(@countof(SIMPLE_INFO.methods) == 1)
 #assert(SIMPLE_METHOD_INFO.name == "ping")
@@ -294,7 +294,7 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 #assert(SIMPLE_METHOD_TYPE.returnType == s32)
 
 #assert(GENERIC_INFO.name == "GenericMethodProbe")
-#assert(@countof(GENERIC_INFO.methods) == 0)
+#assert(GENERIC_INFO.methods == null)
 
 #assert(@countof(ARRAY_INFO.methods) == 1)
 #assert(ARRAY_METHOD_INFO.name == "copyFrom")

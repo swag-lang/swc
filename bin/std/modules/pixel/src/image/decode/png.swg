@@ -339,8 +339,13 @@ impl Decoder
         Memory.clear(tmpRow.buffer, rowStrideOut)
         var up = tmpRow.buffer
 
-        let nk = rowStrideIn - .inChannels
-        for height
+        // PNG filtering references the previous byte of the same pixel. Packed
+        // samples (bit depths below 8) have an effective byte offset of 1, not
+        // the number of channels; otherwise narrow Adam7 passes underflow here.
+        let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels
+        let nk           = rowStrideIn > filterOffset ? rowStrideIn - filterOffset : 0
+        var row = 0'u32
+        while row < height
         {
             let filter = cast(RowFilter) src[0]
             src += 1
@@ -352,37 +357,66 @@ impl Decoder
                 Memory.copy(destOff, src, rowStrideIn)
 
             case Sub:
-                for i in .inChannels do
+                var i = 0'u64
+                while i < filterOffset
+                {
                     destOff[i] = src[i]
-                for k in nk do
-                    destOff[.inChannels + k] = cast #bit (u8) (src[.inChannels + k] + #wrap destOff[k])
+                    i += 1
+                }
+                var k = 0'u64
+                while k < nk
+                {
+                    let idx = filterOffset + k
+                    if idx >= rowStrideIn do
+                        break
+                    destOff[idx] = cast #bit (u8) (src[idx] + #wrap destOff[k])
+                    k += 1
+                }
 
             case Up:
-                for k in rowStrideIn do
+                var k = 0'u64
+                while k < rowStrideIn
+                {
                     destOff[k] = cast #bit (u8) (src[k] + #wrap up[k])
+                    k += 1
+                }
 
             case Average:
-                for i in .inChannels
+                var i = 0'u64
+                while i < filterOffset
                 {
                     let avg = up[i] >> 1
                     destOff[i] = cast #bit (u8) (src[i] + #wrap avg)
+                    i += 1
                 }
-                for k in nk
+                var k = 0'u64
+                while k < nk
                 {
-                    let avg = cast(u8) ((cast(u16) up[.inChannels + k] + cast(u16) destOff[k]) >> 1)
-                    destOff[.inChannels + k] = cast #bit (u8) (src[.inChannels + k] + #wrap avg)
+                    let idx = filterOffset + k
+                    if idx >= rowStrideIn do
+                        break
+                    let avg = cast(u8) ((cast(u16) up[idx] + cast(u16) destOff[k]) >> 1)
+                    destOff[idx] = cast #bit (u8) (src[idx] + #wrap avg)
+                    k += 1
                 }
 
             case Paeth:
-                for i in .inChannels
+                var i = 0'u64
+                while i < filterOffset
                 {
                     let paeth = cast(u32) filterPaeth(0, up[i], 0)
                     destOff[i] = cast #bit (u8) (src[i] + paeth)
+                    i += 1
                 }
-                for k in nk
+                var k = 0'u64
+                while k < nk
                 {
-                    let paeth = cast(u32) filterPaeth(destOff[k], up[.inChannels + k], up[k])
-                    destOff[.inChannels + k] = cast #bit (u8) (src[.inChannels + k] + #wrap paeth)
+                    let idx   = filterOffset + k
+                    if idx >= rowStrideIn do
+                        break
+                    let paeth = cast(u32) filterPaeth(destOff[k], up[idx], up[k])
+                    destOff[idx] = cast #bit (u8) (src[idx] + #wrap paeth)
+                    k += 1
                 }
             }
 
@@ -392,6 +426,7 @@ impl Decoder
                 dest += rowStrideOut
             else do
                 dest -= rowStrideOut
+            row += 1
         }
     }
 

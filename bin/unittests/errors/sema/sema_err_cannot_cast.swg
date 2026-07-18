@@ -9,8 +9,8 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
     let msg = c.getMessage()
     let cfg = c.getBuildCfg()
     c.compileString("")
-    #assert(#typeof(msg) == const *Swag.CompilerMessage)
-    #assert(#typeof(cfg) == *Swag.BuildCfg)
+    #assert(#typeof(msg) == #null const *Swag.CompilerMessage)
+    #assert(#typeof(cfg) == #null *Swag.BuildCfg)
 }
 
 #test

@@ -5,7 +5,7 @@ func checkProcessInfosAndArgs()->bool
 {
     let a = @countof(@pinfos.args)
     let b = @pinfos.args
-    #assert(#typeof(b) == string)
+    #assert(#typeof(b) == #null string)
     let c = @jit
     #assert(#typeof(c) == bool)
     let d = @args
@@ -31,7 +31,7 @@ func checkArgs()->bool
 func checkProcessInfosArgsType()->bool
 {
     let a = @pinfos.args
-    #assert(#typeof(a) == string)
+    #assert(#typeof(a) == #null string)
     return true
 }
 

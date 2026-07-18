@@ -987,7 +987,7 @@ impl Allocator
         discard .decActive(ownerHeap)
     }
 
-    mtd freeAll()
+    mtd releaseAll()
     {
         let heap = g_AllocatorThreadHeap
         if heap and heap.allocator == me
@@ -1092,7 +1092,7 @@ impl Allocator
         // retired-heap list. Unlock before the memset (which zeroes the mutex itself).
         .mutex.lock()
         .printLeaks()
-        .freeAll()
+        .releaseAll()
         .releaseRetiredHeaps()
         .mutex.unlock()
 
@@ -1111,7 +1111,7 @@ impl Allocator
         defer .mutex.unlock()
 
         .printLeaks()
-        .freeAll()
+        .releaseAll()
         .releaseRetiredHeaps()
     }
 }
@@ -1163,7 +1163,7 @@ impl IAllocator for Allocator
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
-        .freeAll()
+        .releaseAll()
         request.address = null
     }
 

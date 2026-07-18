@@ -6,24 +6,24 @@ impl Properties
     // Start a new category. A "/"-separated name opens nested subgroups: Category("Transform/Advanced")
     // creates a "Transform" group with an "Advanced" subgroup indented under it. Consecutive fields
     // sharing a common prefix reuse the same headers.
-    attr Category(name: string)
+    attr Category(name: #nonull string)
 
     // Decorator: insert a bold, non-collapsible divider label above the field.
     // Named 'Heading' to avoid clashing with the existing Header widget type.
-    attr Heading(text: string)
+    attr Heading(text: #nonull string)
 
     // Decorator: insert an empty vertical gap ('size' px) above the field.
     // Named 'Gap' to avoid clashing with the Key.Space enum used inside impl Properties.
     attr Gap(size: s32)
 
     // Decorator: insert an informational note bar above the field.
-    attr HelpBox(text: string)
+    attr HelpBox(text: #nonull string)
 
     // Change the field display name
-    attr Name(name: string)
+    attr Name(name: #nonull string)
 
     // Add a description
-    attr Description(desc: string)
+    attr Description(desc: #nonull string)
 
     // The width of the edition widget
     attr EditSize(size: s32)
@@ -35,14 +35,14 @@ impl Properties
     attr MinMax(min, max: s64)
 
     // Value edition with an editbox, show a unit string
-    attr Unit(value: string)
+    attr Unit(value: #nonull string)
 
     // Float edition, edit width a slider instead of an editbox
     attr SliderMinMax(min, max: f32)
 
     // Bool edition with a two-entries combo box instead of a check box; 'off' is the
     // label of the false value, 'on' the label of the true one ("No Shadow"/"Small").
-    attr BoolCombo(off, on: string)
+    attr BoolCombo(off, on: #nonull string)
 
     // String edition with an extra '...' button opening a multi-line edition dialog.
     attr MultiLine()

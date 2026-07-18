@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 using Swag
 
@@ -21,7 +21,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     var req: AllocatorRequest
     itf.freeAll(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -33,7 +33,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     req.size = 0
     itf.alloc(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -48,7 +48,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
 
     itf.free(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -68,5 +68,5 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
 
     itf.free(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }

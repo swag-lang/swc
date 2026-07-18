@@ -44,7 +44,7 @@ impl ScratchAllocator
     // Release the allocated block
     mtd release()
     {
-        .freeAll()
+        .releaseAll()
 
         if .block
         {
@@ -54,12 +54,12 @@ impl ScratchAllocator
     }
 
     // Release all memory
-    mtd freeAll()
+    mtd releaseAll()
     {
         .used = 0
         while .firstLeak
         {
-            let p = cast(#nonull *LeakHeader) .firstLeak
+            let p = cast(#null *LeakHeader) .firstLeak
             let n = p.next
             .freeMem(p, p.size)
             .firstLeak = n
@@ -186,7 +186,7 @@ impl IAllocator for ScratchAllocator
     mtd impl freeAll(request: #nonull *AllocatorRequest)
     {
         @assert(.block != null)
-        .freeAll()
+        .releaseAll()
         request.address = null
     }
 

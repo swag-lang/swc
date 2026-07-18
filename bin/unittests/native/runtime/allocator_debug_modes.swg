@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 using Swag
 
@@ -67,7 +67,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     for i in 144 do
         @assert(freed[i] == Allocator.FreeByte)
 
-    alloc.freeAll()
+    alloc.releaseAll()
     @assert(alloc.countFree == 0)
 }
 
@@ -123,7 +123,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(alloc.countAlloc == 0)
     @assert(alloc.countFree == 8)
     alloc.checkAllMemory()
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -142,7 +142,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 
     itf.free(&req)
     @assert(req.address == null)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #test
@@ -177,7 +177,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(tracked.address == null)
     @assert(alloc.firstAlloc == null)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 #if #os == Swag.TargetOs.Windows

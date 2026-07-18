@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 using Swag
 
@@ -85,7 +85,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         @assert(req.address == null)
     }
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 // ----------------------------------------------------------------------------
@@ -114,7 +114,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 // ----------------------------------------------------------------------------
@@ -144,7 +144,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     // 128 * 64 = 8192 bytes freed, but the cache is trimmed to the budget.
     @assert(alloc.sizeCached <= alloc.maxCachedBytes + 64)
 
-    alloc.freeAll()
+    alloc.releaseAll()
     @assert(alloc.sizeCached == 0)
 }
 
@@ -175,7 +175,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     @assert(alloc.sizeFree <= alloc.maxFreeSize + 128)
     alloc.checkAllMemory()
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 // ----------------------------------------------------------------------------
@@ -208,7 +208,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     b.size = 110
     itf.free(&b)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 // ----------------------------------------------------------------------------
@@ -243,7 +243,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     req.size = 64
     itf.free(&req)
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 // ----------------------------------------------------------------------------
@@ -258,7 +258,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     req.address = null
     itf.assertAllocated(&req)
 
-    alloc.freeAll()
+    alloc.releaseAll()
 }
 
 // ----------------------------------------------------------------------------
@@ -285,7 +285,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     @assert(alloc.countFree > 0)
     @assert(alloc.sizeCached > 0)
 
-    alloc.freeAll()
+    alloc.releaseAll()
     @assert(alloc.countAlloc == 0)
     @assert(alloc.countFree == 0)
     @assert(alloc.sizeCached == 0)
@@ -375,7 +375,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         alloc.releaseRetiredHeaps()
         @assert(alloc.firstRetiredHeap == null)
 
-        alloc.freeAll()
+        alloc.releaseAll()
     }
 
     const StressCount = 32
@@ -472,6 +472,6 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         alloc.releaseRetiredHeaps()
         @assert(alloc.firstRetiredHeap == null)
 
-        alloc.freeAll()
+        alloc.releaseAll()
     }
 }

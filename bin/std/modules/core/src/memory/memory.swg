@@ -68,7 +68,7 @@ func align(value: const [*] void, alignment: u32)->const [*] void
 // Clear the temporary allocator
 func freeTemp()
 {
-    @getcontext().tempAllocator.freeAll()
+    @getcontext().tempAllocator.releaseAll()
 }
 
 // Push a new allocator for the given block of code

@@ -33,6 +33,7 @@ voice.play(Loop)
 ```
 */
 
+#global #[Swag.ExplicitNullability]
 #import("core")
 #if #os == Swag.TargetOs.Windows do
     #import("xaudio2")

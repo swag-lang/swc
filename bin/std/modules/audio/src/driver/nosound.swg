@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 struct NoSoundVoice
@@ -6,14 +7,14 @@ struct NoSoundVoice
     frequencyRatio:     f32 = 1
     isPlaying:          bool
     busCount:           u32
-    buses:              [16] *Bus
+    buses:              [16] #null *Bus
 }
 
 struct NoSoundBus
 {
     volume:         f32 = 1
     numChannels:    u32
-    parent:         *Bus
+    parent:         #null *Bus
 }
 
 struct NoSoundDriverNative
@@ -46,7 +47,7 @@ impl NoSoundDriverNative
 
 impl Voice
 {
-    func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createNoSound(voice: #nonull *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
         voice.handle = cast(VoiceHandle) Memory.new'NoSoundVoice()
         voice.requestedEncoding = voice.file.encoding
@@ -58,13 +59,13 @@ impl Voice
     {
         if !.handle do
             return
-        Memory.delete(cast(*NoSoundVoice) .handle)
+        Memory.delete(cast(#null *NoSoundVoice) .handle)
         .handle = null
     }
 
     mtd updateNoSound()->bool throw
     {
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         if !handle or !handle.isPlaying do
             return false
 
@@ -87,14 +88,14 @@ impl Voice
 
     mtd playNoSound(batchID: u32 = 0) throw
     {
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         if handle do
             handle.isPlaying = true
     }
 
     mtd stopNoSound(batchID: u32 = 0) throw
     {
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         if handle do
             handle.isPlaying = false
     }
@@ -106,7 +107,7 @@ public impl Voice
     {
         if !.handle do
             return
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
@@ -114,7 +115,7 @@ public impl Voice
     {
         if !.handle do
             return 0
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         return handle.volume
     }
 
@@ -122,16 +123,16 @@ public impl Voice
     {
         if !.handle do
             return
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         handle.frequencyRatio = ratio
     }
 
-    mtd setRootingNoSound(buses: const [..] *Bus) throw
+    mtd setRootingNoSound(buses: #nonull const [..] #nonull *Bus) throw
     {
         if !.handle do
             return
 
-        let handle = cast(*NoSoundVoice) .handle
+        let handle = cast(#null *NoSoundVoice) .handle
         let count = @countof(buses)
         if count >= @countof(handle.buses) do
             throw SystemError{"too many buses", errorID: count}
@@ -148,7 +149,7 @@ public impl Voice
 
 impl Bus
 {
-    func createNoSound(bus: *Bus, numChannels: u32, parent: *Bus = null) throw
+    func createNoSound(bus: #nonull *Bus, numChannels: u32, parent: #null *Bus = null) throw
     {
         if parent and !parent.handle do
             throw BadParameterError{"parent bus invalid"}
@@ -163,7 +164,7 @@ impl Bus
     {
         if !.handle do
             return
-        Memory.delete(cast(*NoSoundBus) .handle)
+        Memory.delete(cast(#null *NoSoundBus) .handle)
         .handle = null
     }
 }
@@ -174,7 +175,7 @@ public impl Bus
     {
         if !.handle do
             return
-        let handle = cast(*NoSoundBus) .handle
+        let handle = cast(#null *NoSoundBus) .handle
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
@@ -182,7 +183,7 @@ public impl Bus
     {
         if !.handle do
             return 0
-        let handle = cast(*NoSoundBus) .handle
+        let handle = cast(#null *NoSoundBus) .handle
         return handle.volume
     }
 }

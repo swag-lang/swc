@@ -3,8 +3,8 @@ using Swag, Core, Core.Errors, Win32, XAudio2
 
 struct XAudio2DriverNative
 {
-    xAudio2:            *IXAudio2
-    masteringVoice:     *IXAudio2MasteringVoice
+    xAudio2:            #null *IXAudio2
+    masteringVoice:     #null *IXAudio2MasteringVoice
     hasInitCOM:         bool
     channelMask:        DWORD
     x3DInstance:        X3DAUDIO_HANDLE
@@ -160,7 +160,7 @@ internal
 
 impl Voice
 {
-    func createXAudio2(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createXAudio2(voice: #nonull *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
         Debug.assert(g_Driver.xAudio2.xAudio2 != null, "driver should be created first")
 
@@ -302,7 +302,7 @@ public impl Voice
     // Root a voice to a given list of buses.
     // You can also set 'buses' to null if you want to root the voice only to the
     // main bus (which is the default).
-    mtd setRootingXAudio2(buses: const [..] *Bus) throw
+    mtd setRootingXAudio2(buses: #nonull const [..] #nonull *Bus) throw
     {
         const MaxBus      = 16
         var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR
@@ -339,7 +339,7 @@ public impl Voice
 
 impl Bus
 {
-    func createXAudio2(bus: *Bus, numChannels: u32, parent: *Bus = null) throw
+    func createXAudio2(bus: #nonull *Bus, numChannels: u32, parent: #null *Bus = null) throw
     {
         var sfxSend:      XAUDIO2_SEND_DESCRIPTOR
         var sfxSendList:  XAUDIO2_VOICE_SENDS

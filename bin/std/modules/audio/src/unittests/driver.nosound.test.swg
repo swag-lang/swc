@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func audioStartNoSoundEngine()
@@ -37,8 +38,8 @@ func audioStartNoSoundEngine()
     let child = catch Bus.create(1, root)
     @assert(@err == null)
 
-    let rootHandle = cast(*NoSoundBus) root.handle
-    let childHandle = cast(*NoSoundBus) child.handle
+    let rootHandle = cast(#null *NoSoundBus) root.handle
+    let childHandle = cast(#null *NoSoundBus) child.handle
     @assert(rootHandle.numChannels == 2)
     @assert(rootHandle.parent == null)
     @assert(childHandle.numChannels == 1)
@@ -78,7 +79,7 @@ func audioStartNoSoundEngine()
 
     let voice = catch Voice.create(&file)
     @assert(@err == null)
-    let handle = cast(*NoSoundVoice) voice.handle
+    let handle = cast(#null *NoSoundVoice) voice.handle
     @assert(handle != null)
     @assert(voice.requestedEncoding == .Pcm16)
     @assert(!voice.isPlaying())
@@ -106,13 +107,15 @@ func audioStartNoSoundEngine()
 
     let bus0 = catch Bus.create(2)
     @assert(@err == null)
-    let bus1 = catch Bus.create(2, bus0)
+    let safeBus0 = bus0 orelse cast(#nonull *Bus) 1'u64
+    let bus1 = catch Bus.create(2, safeBus0)
     @assert(@err == null)
-    discard catch voice.setRooting([bus0, bus1])
+    let safeBus1 = bus1 orelse cast(#nonull *Bus) 1'u64
+    discard catch voice.setRooting([safeBus0, safeBus1])
     @assert(@err == null)
     @assert(handle.busCount == 2)
-    @assert(handle.buses[0] == bus0)
-    @assert(handle.buses[1] == bus1)
+    @assert(handle.buses[0] == safeBus0)
+    @assert(handle.buses[1] == safeBus1)
 
     discard catch voice.play()
     @assert(@err == null)
@@ -149,7 +152,7 @@ func audioStartNoSoundEngine()
 
     let voice = catch Voice.create(&file)
     @assert(@err == null)
-    let handle = cast(*NoSoundVoice) voice.handle
+    let handle = cast(#null *NoSoundVoice) voice.handle
 
     discard catch voice.play()
     @assert(@err == null)

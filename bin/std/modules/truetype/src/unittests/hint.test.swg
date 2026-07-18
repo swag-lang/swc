@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Distance (in 26.6 units) from a value to the nearest whole-pixel boundary.

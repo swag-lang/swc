@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 public struct BBox { xMin, yMin: s32, xMax, yMax: s32 }

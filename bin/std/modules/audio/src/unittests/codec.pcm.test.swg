@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 #test
@@ -69,7 +70,7 @@ using Swag, Core
 #test
 {
     var src: [12] f32 = [-1.0, 0.0, 0.5, 1.0, 2.0, -2.0, 0.25, -0.25, 0.9999, -0.9999, 0.0001, -0.0001]
-    let decoded = catch audioDecodePcmToPcm16(.Float32, cast([..] u8) src, @countof(src) * #sizeof(s16))
+    let decoded = catch audioDecodePcmToPcm16(.Float32, cast(#nonull [..] u8) src, @countof(src) * #sizeof(s16))
     @assert(@err == null)
     @assert(decoded.used.write == @countof(src) * #sizeof(s16))
     @assert(decoded.used.read == @countof(src) * #sizeof(f32))

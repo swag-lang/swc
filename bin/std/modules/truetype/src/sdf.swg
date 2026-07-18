@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
@@ -20,7 +21,7 @@ func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
     return dx * dx + dy * dy
 }
 
-func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
+func closestEdgeDistance(edges: #nonull const [..] Edge, x, y: f64)->f64
 {
     var distSquared = Swag.F64.Max
     for edge in edges do
@@ -29,15 +30,16 @@ func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
     return Math.sqrt(distSquared)
 }
 
-func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
+func renderCurrentOutlineSdf(slot: #null *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
-    clearBitmap(slot)
+    let safeSlot = slot orelse cast(#nonull *GlyphSlot) 1'u64
+    clearBitmap(safeSlot)
 
-    if slot.format != .Outline do
+    if safeSlot.format != .Outline do
         fail(0x13)
 
-    if slot.outline.pointCount <= 0 do
+    if safeSlot.outline.pointCount <= 0 do
         return
 
     var safeSpread = spread
@@ -46,7 +48,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
     safeSpread = Math.min(safeSpread, 64)
 
     let padding = cast(s32) safeSpread
-    let bounds  = computeOutlineBounds(&slot.outline)
+    let bounds  = computeOutlineBounds(&safeSlot.outline)
     let left    = Math.floorS32(bounds.minX / 64.0) - padding
     let right   = Math.ceilS32(bounds.maxX / 64.0) + padding
     let bottom  = Math.floorS32(bounds.minY / 64.0) - padding
@@ -56,12 +58,13 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
     if !width or !rows do
         return
 
-    let edges = buildEdges(&slot.outline)
+    let edges = buildEdges(&safeSlot.outline)
     if !edges.count do
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    var dst = faceData.bitmapPixels.buffer
+    let bitmapBuffer = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
+    var dst = bitmapBuffer
     let scale = 127.0 / cast(f64) safeSpread
 
     for py in rows
@@ -78,12 +81,12 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
         }
     }
 
-    slot.bitmap.rows         = rows
-    slot.bitmap.width        = width
-    slot.bitmap.pitch        = cast(s32) width
-    slot.bitmap.buffer       = faceData.bitmapPixels.buffer
-    slot.bitmap.pixelMode   = .Gray
-    slot.bitmap.grayCount    = 256
-    slot.bitmapLeft         = left
-    slot.bitmapTop          = top
+    safeSlot.bitmap.rows         = rows
+    safeSlot.bitmap.width        = width
+    safeSlot.bitmap.pitch        = cast(s32) width
+    safeSlot.bitmap.buffer       = bitmapBuffer
+    safeSlot.bitmap.pixelMode   = .Gray
+    safeSlot.bitmap.grayCount    = 256
+    safeSlot.bitmapLeft         = left
+    safeSlot.bitmapTop          = top
 }

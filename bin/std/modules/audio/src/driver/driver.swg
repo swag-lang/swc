@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 enum UpdateCommand
@@ -15,15 +16,15 @@ struct Driver
     updateTh:                 Threading.Thread
     wakeupUpdate:             Sync.Event
     mutexVoicesToUpdate:      Sync.Mutex
-    voicesToUpdate:           Array'{ voice: *Voice, command: UpdateCommand }
+    voicesToUpdate:           Array'{ voice: #nonull *Voice, command: UpdateCommand }
 
     mutexRecycleVoices:       Sync.Mutex
-    activeVoices:             Array'(*Voice)
-    pendingRecycleVoices:     Array'(*Voice)
-    toRecycleVoices:          Array'(*Voice)
+    activeVoices:             Array'(#nonull *Voice)
+    pendingRecycleVoices:     Array'(#nonull *Voice)
+    toRecycleVoices:          Array'(#nonull *Voice)
 
     mutexBuses:               Sync.Mutex
-    buses:                    Array'(*Bus)
+    buses:                    Array'(#nonull *Bus)
 
     driverIsClosing:          bool
 }
@@ -172,7 +173,7 @@ impl Driver
         .destroyNative()
     }
 
-    mtd updateVoice(voice: *Voice, cmd: UpdateCommand)
+    mtd updateVoice(voice: #nonull *Voice, cmd: UpdateCommand)
     {
         // The no-sound driver has no real-time buffer feeding: its playback is advanced
         // deterministically by explicit updateNoSound() calls (used by tests). Letting the
@@ -190,9 +191,9 @@ impl Driver
         .wakeupUpdate.signal()
     }
 
-    mtd createVoice()->*Voice
+    mtd createVoice()->#nonull *Voice
     {
-        var back: *Voice
+        var back: #null *Voice
         .mutexRecycleVoices.lock()
         if !.toRecycleVoices.isEmpty() do
             back = .toRecycleVoices.popBack()

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Multi-channel signed distance field generation.
@@ -52,7 +53,7 @@ func msdfNormDir(dx, dy: f64)->{ x: f64, y: f64 }
     return result
 }
 
-func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64)
+func msdfAddSeg(segs: #nonull *Array'MsdfSeg, x0, y0, x1, y1: f64)
 {
     if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
         return
@@ -65,7 +66,7 @@ func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64)
     segs.add(seg)
 }
 
-func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+func msdfFlattenQuadratic(segs: #nonull *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
     {
@@ -85,7 +86,7 @@ func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, toleranc
 }
 
 // msdfgen's "switchColor": deterministically pick the next edge color.
-func msdfSwitchColor(color: *u8, seed: *u64, banned: u8 = MSDF_BLACK)
+func msdfSwitchColor(color: #nonull *u8, seed: #nonull *u64, banned: u8 = MSDF_BLACK)
 {
     let combined = dref color & banned
     if combined == MSDF_RED or combined == MSDF_GREEN or combined == MSDF_BLUE
@@ -115,7 +116,7 @@ func msdfIsCorner(ax, ay, bx, by, crossThreshold: f64)->bool
 }
 
 // Color all elements of one contour so that incident edges across a corner differ.
-func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u64)
+func msdfColorContour(elements: #nonull *Array'MsdfElement, first, count: u32, seed: #nonull *u64)
 {
     // sin(3 degrees): direction changes beyond this angle are treated as corners.
     let crossThreshold = 0.05233595624294383'f64
@@ -173,7 +174,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
 }
 
 // Build colored line segments from a glyph outline, in font pixel units (y up).
-func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
+func buildMsdfSegments(outline: #null const *Outline, segs: #nonull *Array'MsdfSeg)
 {
     let commands  = buildOutlineCommands(outline)
     let tolerance = 0.20 / OVERSAMPLE
@@ -283,7 +284,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
 }
 
 // Signed distance from a point to a directed segment (msdfgen LinearEdge::signedDistance).
-func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, param: f64 }
+func msdfSegSignedDistance(s: #nonull const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, param: f64 }
 {
     let abx = s.x1 - s.x0
     let aby = s.y1 - s.y0
@@ -328,7 +329,7 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
 
 // Extend a segment's true distance to a pseudo-distance past its endpoints, so the
 // field stays linear beyond the segment (this is what keeps corners sharp).
-func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f64
+func msdfSegPseudoDistance(s: #nonull const *MsdfSeg, px, py, param, curSigned: f64)->f64
 {
     let abx   = s.x1 - s.x0
     let aby   = s.y1 - s.y0
@@ -371,7 +372,7 @@ func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f6
 // single pass over the segments. Each segment's true distance is computed once and
 // folded into every channel it carries (a segment is often coloured WHITE and would
 // otherwise be measured three times by three separate per-channel scans).
-func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64 }
+func msdfChannelDistances(segs: #nonull const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64 }
 {
     var bestAbs:    [3] f64 = [Swag.F64.Max, Swag.F64.Max, Swag.F64.Max]
     var bestSigned: [3] f64 = [-Swag.F64.Max, -Swag.F64.Max, -Swag.F64.Max]
@@ -421,17 +422,17 @@ func msdfMedian(a, b, c: f64)->f64
 
 struct MsdfRowCtx
 {
-    segs:        const *Array'MsdfSeg
-    edges:       const *Array'Edge
-    channels:    [*] f32
-    rowVotes:    [*] s64
+    segs:        #nonull const *Array'MsdfSeg
+    edges:       #nonull const *Array'Edge
+    channels:    #nonull [*] f32
+    rowVotes:    #nonull [*] s64
     width:       s32
     left:        s32
     top:         s32
 }
 
 // Fill one output row of the MSDF field and accumulate that row's sign vote.
-func msdfProcessRow(c: *MsdfRowCtx, py: u32)
+func msdfProcessRow(c: #nonull *MsdfRowCtx, py: u32)
 {
     let segsS   = c.segs.toSlice()
     let edgesS  = c.edges.toSlice()
@@ -477,14 +478,15 @@ const MsdfParallelMinSamples: u64 = 2000
 
 // Render the current glyph outline as a 3-channel (RGB) multi-channel SDF.
 // The output bitmap has 3 bytes per pixel (pitch = width * 3).
-func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
+func renderCurrentOutlineMsdf(slot: #null *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
-    clearBitmap(slot)
+    let safeSlot = slot orelse cast(#nonull *GlyphSlot) 1'u64
+    clearBitmap(safeSlot)
 
-    if slot.format != .Outline do
+    if safeSlot.format != .Outline do
         fail(0x13)
-    if slot.outline.pointCount <= 0 do
+    if safeSlot.outline.pointCount <= 0 do
         return
 
     var safeSpread = spread
@@ -493,7 +495,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     safeSpread = Math.min(safeSpread, 64)
 
     let padding = cast(s32) safeSpread
-    let bounds  = computeOutlineBounds(&slot.outline)
+    let bounds  = computeOutlineBounds(&safeSlot.outline)
     let left    = Math.floorS32(bounds.minX / 64.0) - padding
     let right   = Math.ceilS32(bounds.maxX / 64.0) + padding
     let bottom  = Math.floorS32(bounds.minY / 64.0) - padding
@@ -504,12 +506,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
         return
 
     var segs: Array'MsdfSeg
-    buildMsdfSegments(&slot.outline, &segs)
+    buildMsdfSegments(&safeSlot.outline, &segs)
     if segs.count == 0 do
         return
 
     // Authoritative inside/outside test, used only to pick the global field sign.
-    let edges = buildEdges(&slot.outline)
+    let edges = buildEdges(&safeSlot.outline)
 
     var channels: Array'f32
     channels.resize(cast(u64) width * rows * 4)
@@ -522,22 +524,26 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     // while keeping the expensive per-pixel winding test off the hot path.
     var rowVotes: Array's64
     rowVotes.resize(cast(u64) rows)
+    let channelsBuffer = channels.buffer orelse cast(#nonull [*] f32) 1'u64
+    let rowVotesBuffer = rowVotes.buffer orelse cast(#nonull [*] s64) 1'u64
 
-    var ctx: MsdfRowCtx
-    ctx.segs     = &segs
-    ctx.edges    = &edges
-    ctx.channels = channels.buffer
-    ctx.rowVotes = rowVotes.buffer
-    ctx.width    = width
-    ctx.left     = left
-    ctx.top      = top
+    var ctx = MsdfRowCtx{
+        segs:     &segs,
+        edges:    &edges,
+        channels: channelsBuffer,
+        rowVotes: rowVotesBuffer,
+        width:    width,
+        left:     left,
+        top:      top,
+    }
 
     let samples = cast(u64) width * cast(u64) rows
     if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchrone()
     {
         Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
         {
-            msdfProcessRow(cast(*MsdfRowCtx) data, py)
+            let safeData = data orelse cast(#nonull *void) 1'u64
+            msdfProcessRow(cast(#nonull *MsdfRowCtx) safeData, py)
         }
     }
     else
@@ -554,27 +560,27 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
 
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
-    var dst = faceData.bitmapPixels.buffer
+    var dst = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
     for i in count
     {
         let src = i * 4
         // RGB: multi-channel field, corrected by the global sign vote.
         for c in 3
         {
-            let value = 128.0'f64 + flip * cast(f64) channels[src + c] * scale
+            let value = 128.0'f64 + flip * cast(f64) channelsBuffer[src + c] * scale
             dst[src + c] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))
         }
         // A: true signed distance (already signed by the per-pixel inside test).
-        let av = 128.0'f64 + cast(f64) channels[src + 3] * scale
+        let av = 128.0'f64 + cast(f64) channelsBuffer[src + 3] * scale
         dst[src + 3] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av)))
     }
 
-    slot.bitmap.rows       = rows
-    slot.bitmap.width       = width
-    slot.bitmap.pitch       = cast(s32) width * 4
-    slot.bitmap.buffer      = faceData.bitmapPixels.buffer
-    slot.bitmap.pixelMode   = .Bgra
-    slot.bitmap.grayCount   = 256
-    slot.bitmapLeft         = left
-    slot.bitmapTop          = top
+    safeSlot.bitmap.rows       = rows
+    safeSlot.bitmap.width      = width
+    safeSlot.bitmap.pitch      = cast(s32) width * 4
+    safeSlot.bitmap.buffer     = dst
+    safeSlot.bitmap.pixelMode  = .Bgra
+    safeSlot.bitmap.grayCount  = 256
+    safeSlot.bitmapLeft        = left
+    safeSlot.bitmapTop         = top
 }

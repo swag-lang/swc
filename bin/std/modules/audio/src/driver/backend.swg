@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 public enum DriverKind
@@ -7,8 +8,8 @@ public enum DriverKind
     XAudio2
 }
 
-public alias VoiceHandle = *void
-public alias BusHandle = *void
+public alias VoiceHandle = #null *void
+public alias BusHandle = #null *void
 
 struct DriverNative
 {
@@ -129,7 +130,7 @@ impl DriverNative
 
 impl Voice
 {
-    func createNative(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createNative(voice: #nonull *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
         switch g_Driver.kind
         {
@@ -273,7 +274,7 @@ public impl Voice
         }
     }
 
-    mtd setRooting(buses: const [..] *Bus) throw
+    mtd setRooting(buses: #nonull const [..] #nonull *Bus) throw
     {
         switch g_Driver.kind
         {
@@ -293,7 +294,7 @@ public impl Voice
 
 impl Bus
 {
-    func createNative(bus: *Bus, numChannels: u32, parent: *Bus = null) throw
+    func createNative(bus: #nonull *Bus, numChannels: u32, parent: #null *Bus = null) throw
     {
         switch g_Driver.kind
         {

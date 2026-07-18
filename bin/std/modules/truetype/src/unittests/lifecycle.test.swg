@@ -1,7 +1,8 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
+func assertFixtureFontLoads(fileName: #nonull string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init(fileName)

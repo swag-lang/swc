@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 struct OutlineCounter
@@ -10,7 +11,7 @@ struct OutlineCounter
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
-func getTestDataPath(fileName: string, loc = #callerlocation)->String
+func getTestDataPath(fileName: #nonull string, loc = #callerlocation)->String
 {
     let dir  = Path.getDirectoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
@@ -18,7 +19,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
     return path
 }
 
-func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
+func loadFontBytes(fileName: #nonull string = "segoeui.ttf")->Array'u8
 {
     let bytes = catch File.readAllBytes(getTestDataPath(fileName))
     @assert(@err == null)
@@ -33,7 +34,7 @@ struct FaceScope
 
 impl FaceScope
 {
-    mtd init(fileName: string = "segoeui.ttf")
+    mtd init(fileName: #nonull string = "segoeui.ttf")
     {
         .bytes = loadFontBytes(fileName)
 

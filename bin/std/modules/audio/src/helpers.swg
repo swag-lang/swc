@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core
 
 // Convert a DB value to a percent

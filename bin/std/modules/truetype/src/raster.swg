@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 const OVERSAMPLE = 4'u32
@@ -19,7 +20,7 @@ func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->boo
     return dx * dx + dy * dy <= tolerance * tolerance
 }
 
-func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
+func addEdge(edges: #nonull *Array'Edge, x0, y0, x1, y1: f64)
 {
     if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
         return
@@ -34,7 +35,7 @@ func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
     edges.add(edge)
 }
 
-func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+func flattenQuadratic(edges: #nonull *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
     {
@@ -53,7 +54,7 @@ func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64
     flattenQuadratic(edges, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
 }
 
-func buildEdges(outline: const *Outline)->Array'Edge
+func buildEdges(outline: #null const *Outline)->Array'Edge
 {
     var edges: Array'Edge
     let commands = buildOutlineCommands(outline)
@@ -99,7 +100,7 @@ func buildEdges(outline: const *Outline)->Array'Edge
     return edges
 }
 
-func isInside(edges: const [..] Edge, x, y: f64)->bool
+func isInside(edges: #nonull const [..] Edge, x, y: f64)->bool
 {
     var winding = 0
     for edge in edges
@@ -130,7 +131,7 @@ func isInside(edges: const [..] Edge, x, y: f64)->bool
 // The piece runs from (xa, ya) to (xb, yb) in pixel space with ya < yb; 's' is the
 // winding sign (+1 for an upward edge, -1 for a downward one). Final per-pixel
 // coverage is reconstructed as: running_cover + cover[x] - area[x].
-func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
+func accumulateSpan(area, cover: #nonull [*] f64, width: s32, xa, ya, xb, yb, s: f64)
 {
     let dyTotal = yb - ya
     if dyTotal <= 0.0 do
@@ -193,18 +194,19 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     }
 }
 
-func renderCurrentOutline(slot: *GlyphSlot) throw
+func renderCurrentOutline(slot: #null *GlyphSlot) throw
 {
     let faceData = getSlotImpl(slot)
-    clearBitmap(slot)
+    let safeSlot = slot orelse cast(#nonull *GlyphSlot) 1'u64
+    clearBitmap(safeSlot)
 
-    if slot.format != .Outline do
+    if safeSlot.format != .Outline do
         fail(0x13)
 
-    if slot.outline.pointCount <= 0 do
+    if safeSlot.outline.pointCount <= 0 do
         return
 
-    let bounds = computeOutlineBounds(&slot.outline)
+    let bounds = computeOutlineBounds(&safeSlot.outline)
     let left   = Math.floorS32(bounds.minX / 64.0)
     let right  = Math.ceilS32(bounds.maxX / 64.0)
     let bottom = Math.floorS32(bounds.minY / 64.0)
@@ -214,12 +216,13 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
     if !width or !rows do
         return
 
-    let edges = buildEdges(&slot.outline)
+    let edges = buildEdges(&safeSlot.outline)
     if !edges.count do
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    var dst = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
+    let bitmapBuffer = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
+    var dst = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
     var area:  Array'f64
@@ -276,12 +279,12 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
         }
     }
 
-    slot.bitmap.rows         = rows
-    slot.bitmap.width        = width
-    slot.bitmap.pitch        = cast(s32) width
-    slot.bitmap.buffer       = faceData.bitmapPixels.buffer
-    slot.bitmap.pixelMode   = .Gray
-    slot.bitmap.grayCount    = 256
-    slot.bitmapLeft         = left
-    slot.bitmapTop          = top
+    safeSlot.bitmap.rows         = rows
+    safeSlot.bitmap.width        = width
+    safeSlot.bitmap.pitch        = cast(s32) width
+    safeSlot.bitmap.buffer       = bitmapBuffer
+    safeSlot.bitmap.pixelMode   = .Gray
+    safeSlot.bitmap.grayCount    = 256
+    safeSlot.bitmapLeft         = left
+    safeSlot.bitmapTop          = top
 }

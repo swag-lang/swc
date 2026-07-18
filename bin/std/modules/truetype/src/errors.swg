@@ -1,6 +1,7 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-var Errors: [0xFF] string = undefined
+var Errors: [0xFF] #null string = undefined
 
 func fail(code: u8) throw
 {

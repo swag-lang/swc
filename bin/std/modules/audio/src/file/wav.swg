@@ -1,4 +1,5 @@
 #global namespace Wav
+#global #[Swag.ExplicitNullability]
 using Core, Core.Errors, Win32
 
 struct ChunkHeader
@@ -111,7 +112,7 @@ struct WAVEFORMATEXTENSIBLE
     subFormat:         GUID     // Format identifier GUID
 }
 
-func setEncodingFormat(file: *SoundFile, formatTag: u16) throw
+func setEncodingFormat(file: #nonull *SoundFile, formatTag: u16) throw
 {
     switch formatTag
     {
@@ -141,7 +142,7 @@ func setEncodingFormat(file: *SoundFile, formatTag: u16) throw
     }
 }
 
-func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) throw
+func readChunkFmt(file: #nonull *SoundFile, stream: #nonull *File.FileStream, chunkSize: u32) throw
 {
     if chunkSize < #sizeof(WAVEFORMAT) do
         throw InvalidFormatError{"invalid wav"}
@@ -224,7 +225,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
         stream.skipPosition(chunkSize - readSize)
 }
 
-func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) throw
+func readChunkData(file: #nonull *SoundFile, stream: #nonull *File.FileStream, chunkSize: u32) throw
 {
     file.validity |= .Data
     file.dataSeek = stream.getPosition()
@@ -240,7 +241,7 @@ func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) t
 }
 
 // Load a wav file
-public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = true, loadMetaDatas = false) throw
+public func loadFile(file: #nonull *SoundFile, stream: #nonull *File.FileStream, loadDatas = true, loadMetaDatas = false) throw
 {
     enum Stage
     {

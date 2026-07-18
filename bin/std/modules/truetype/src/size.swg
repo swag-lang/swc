@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 public struct SizeMetrics
@@ -14,6 +15,6 @@ public struct SizeMetrics
 
 public struct Size
 {
-    face:      *Face
+    face:      #null *Face
     metrics:   SizeMetrics
 }

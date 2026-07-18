@@ -130,15 +130,15 @@ impl Theme
             if .defaultTypeFaceR do
                 return
 
-            .defaultTypeFaceR  = assume TypeFace.create(DefaultFontRegularName, DefaultFontRegular)
-            .defaultTypeFaceB  = assume TypeFace.create(DefaultFontBoldName, DefaultFontBold)
-            .defaultTypeFaceI  = assume TypeFace.create(DefaultFontItalicName, DefaultFontItalic)
-            .defaultTypeFaceBI = assume TypeFace.create(DefaultFontBoldItalicName, DefaultFontBoldItalic)
+            catch createGuiTypeFace(&.defaultTypeFaceR, DefaultFontRegularName, DefaultFontRegular)
+            catch createGuiTypeFace(&.defaultTypeFaceB, DefaultFontBoldName, DefaultFontBold)
+            catch createGuiTypeFace(&.defaultTypeFaceI, DefaultFontItalicName, DefaultFontItalic)
+            catch createGuiTypeFace(&.defaultTypeFaceBI, DefaultFontBoldItalicName, DefaultFontBoldItalic)
 
-            .defaultFsTypeFaceR  = assume TypeFace.create(DefaultFontFsRegularName, DefaultFontFsRegular)
-            .defaultFsTypeFaceB  = assume TypeFace.create(DefaultFontFsBoldName, DefaultFontFsBold)
-            .defaultFsTypeFaceI  = assume TypeFace.create(DefaultFontFsItalicName, DefaultFontFsItalic)
-            .defaultFsTypeFaceBI = assume TypeFace.create(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
+            catch createGuiTypeFace(&.defaultFsTypeFaceR, DefaultFontFsRegularName, DefaultFontFsRegular)
+            catch createGuiTypeFace(&.defaultFsTypeFaceB, DefaultFontFsBoldName, DefaultFontFsBold)
+            catch createGuiTypeFace(&.defaultFsTypeFaceI, DefaultFontFsItalicName, DefaultFontFsItalic)
+            catch createGuiTypeFace(&.defaultFsTypeFaceBI, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
             .fontDefault.regular    = Font.create(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = Font.create(.defaultTypeFaceB, me.metrics.defaultFontSize)

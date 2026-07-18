@@ -324,9 +324,10 @@ impl RichEditView
         let fontR = .ed.getFont().getFont(strStyle.fontMode)
         if !fontR or str.isEmpty() do
             return x
+        let font = nnFont(fontR)
 
-        var shaped = Painter.shapeRun(str, fontR)
-        let info       = Painter.getTextDrawInfo(fontR)
+        var shaped = Painter.shapeRun(str, font)
+        let info       = Painter.getTextDrawInfo(font)
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
 
@@ -357,7 +358,7 @@ impl RichEditView
             painter.fillRect(rect, strStyle.colBk)
         }
 
-        painter.drawShapedRun(x, y, &shaped, fontR, Brush.createSolid(strStyle.colFg), strStyle.underline)
+        painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(strStyle.colFg), strStyle.underline)
         return right
     }
 

@@ -393,9 +393,10 @@ private impl Tab
             }
 
         case Auto:
+            let font = nnFont(.getFont().regular)
             for v in .views
             {
-                let mes = Painter.measureString(v.item.name.raw, .getFont().regular)
+                let mes = Painter.measureString(v.item.name.raw, font)
 
                 // Text
                 v.width = mes.width

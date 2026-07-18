@@ -837,14 +837,14 @@ public impl MenuCtrl
     // Add a new item
     mtd addItem(id: WndId)
     {
-        .addItem(null, id)
+        .addItem(name: null, id: id)
     }
 
     // Add a list of items
     mtd addItems(ids: const [..] WndId)
     {
         for id in ids do
-            .addItem(null, id)
+            .addItem(name: null, id: id)
     }
 
     // Add a list of items followed by a separator
@@ -859,7 +859,7 @@ public impl MenuCtrl
     {
         with let mitem = me.items.newPtr()
         {
-            .name      = name
+            .name.set(name)
             .icon      = icon
             .id        = id
             .rightName = rightName
@@ -874,7 +874,7 @@ public impl MenuCtrl
     // Add a new popup item
     mtd addPopup(popup: *MenuCtrl, id: WndId)
     {
-        .addPopup(null, popup, id: id)
+        .addPopup(name: null, popup: popup, id: id)
     }
 
     // Add a new popup item
@@ -882,7 +882,7 @@ public impl MenuCtrl
     {
         with let mitem = me.items.newPtr()
         {
-            .name  = name
+            .name.set(name)
             .icon  = icon
             .popup = popup
             .id    = id

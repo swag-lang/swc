@@ -151,7 +151,7 @@ impl Surface
     // Set the surface title
     mtd setTitle(name: #null string)
     {
-        .wnd.name = name
+        .wnd.name.set(name)
         .invalidate()
     }
 

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 private func semaTest001()
 {
     var value: f32 = 1.5

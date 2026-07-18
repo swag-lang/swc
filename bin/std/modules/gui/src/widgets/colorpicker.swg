@@ -244,7 +244,7 @@ impl IWnd for ColorPicker
             }
 
             if .texture.valid do
-                .getApp().renderer.updateTexture(.texture, .img.pixels.buffer)
+                .getApp().renderer.updateTexture(.texture, nnPixels(.img.pixels.buffer))
             else do
                 .texture = .getApp().renderer.addImage(.img)
             .computeXY()

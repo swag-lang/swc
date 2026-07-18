@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #test
 {
     var value: f32 = 1.5

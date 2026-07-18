@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 // 
 
 #global private
@@ -40,8 +41,8 @@ impl RefIndexBuffer
 
 #test
 {
-    func getPtr(x: &s32)->*s32 { return &x; }
-    func writeThrough(p: *s32)
+    func getPtr(x: &s32)->#nonull *s32 { return &x; }
+    func writeThrough(p: #nonull *s32)
     {
         dref p = 42
     }
@@ -77,8 +78,8 @@ func writeScalarRef(target: &s32, value: s32)
 
 #test
 {
-    func getPtr(x: &Vec2)->*Vec2 { return &x; }
-    func writeThrough(p: *Vec2)
+    func getPtr(x: &Vec2)->#nonull *Vec2 { return &x; }
+    func writeThrough(p: #nonull *Vec2)
     {
         p.x = -3
         p.y = 99
@@ -116,7 +117,7 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
 #test
 {
-    func choose(flag: bool, a: &Vec2, b: &Vec2)->*Vec2
+    func choose(flag: bool, a: &Vec2, b: &Vec2)->#nonull *Vec2
     {
         if flag do
             return &a
@@ -134,7 +135,7 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
 #test
 {
-    func nextDigit(bytes: const [..] u8, index: &u64)->u8
+    func nextDigit(bytes: #nonull const [..] u8, index: &u64)->u8
     {
         if index < @countof(bytes)
         {
@@ -146,7 +147,7 @@ func writeVecRef(target: &Vec2, value: Vec2)
         return 0'u8
     }
 
-    let bytes = cast(const [..] u8) "42"
+    let bytes = cast(#nonull const [..] u8) "42"
     var index: u64
     @assert(nextDigit(bytes, &index) == '4''u8)
     @assert(nextDigit(bytes, &index) == '2''u8)

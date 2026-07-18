@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct AnyEmptyBoxingNative
 {
@@ -6,7 +7,7 @@ struct AnyEmptyBoxingNative
 
 #test
 {
-    const boxed: any = AnyEmptyBoxingNative{}
+    const boxed: #nonull any = AnyEmptyBoxingNative{}
     @assert(@kindof(boxed) == AnyEmptyBoxingNative)
-    @assert(cast(const *AnyEmptyBoxingNative) boxed != null)
+    @assert(cast(#nonull const *AnyEmptyBoxingNative) boxed != null)
 }

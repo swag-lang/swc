@@ -270,7 +270,7 @@ impl IWnd for IconButton
                 break
             }
 
-            let fontR = .getFont().regular
+            let fontR = nnFont(.getFont().regular)
             let sm    = Painter.measureString(.name.raw.toString(), fontR)
             nw += sm.width
             nh += fontR.height

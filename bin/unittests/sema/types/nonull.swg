@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct SemaNonNullItem
 {
@@ -12,7 +13,7 @@ struct SemaNonNullLegacyOpCastBox
 impl SemaNonNullLegacyOpCastBox
 {
     #[Swag.ConstExpr, Swag.Implicit]
-    mtd const opCast()->string => "legacy-op-cast"
+    mtd const opCast()->#nonull string => "legacy-op-cast"
 }
 
 struct SemaNonNullRequiredOpCastBox
@@ -26,13 +27,13 @@ impl SemaNonNullRequiredOpCastBox
 }
 
 alias SemaNonNullPointerAlias = #nonull *SemaNonNullItem
-alias SemaConstPointerAlias   = const *SemaNonNullItem
+alias SemaConstPointerAlias   = #nonull const *SemaNonNullItem
 
 const SEMA_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
-const SEMA_NONULL_NULL_VALUE_POINTER: *void = null
+const SEMA_NONULL_NULL_VALUE_POINTER: #null *void = null
 const SEMA_NONULL_PRESENT_VALUE_POINTER = cast(#nonull *void) 1'u64
-const SEMA_NONULL_NULL_BLOCK_POINTER: [*] void = null
+const SEMA_NONULL_NULL_BLOCK_POINTER: #null [*] void = null
 const SEMA_NONULL_PRESENT_BLOCK_POINTER = cast(#nonull [*] void) 1'u64
 
 #assert(SEMA_NONULL_NULL_VALUE_POINTER < SEMA_NONULL_PRESENT_VALUE_POINTER)
@@ -77,7 +78,7 @@ struct SemaNonNullHolder
 {
     required: #nonull *SemaNonNullItem
     optional: #null *SemaNonNullItem
-    legacy:   *SemaNonNullItem
+    legacy:   #null *SemaNonNullItem
     count:    s32 = 7
 }
 
@@ -144,7 +145,7 @@ func acceptSemaNonNullHolder(value: SemaNonNullHolder)
 {
 }
 
-func migrateSemaLegacyPointer(value: *SemaNonNullItem)->#nonull *SemaNonNullItem => value
+func migrateSemaLegacyPointer(value: #nonull *SemaNonNullItem)->#nonull *SemaNonNullItem => value
 
 func semaNonNullConstruction()
 {
@@ -155,10 +156,10 @@ func semaNonNullConstruction()
 
     let direct: #nonull *SemaNonNullItem = &first
     let readOnly: #nonull const *SemaNonNullItem = &first
-    let block: #nonull [*] SemaNonNullItem = cast([*] SemaNonNullItem) &blockStorage[0]
+    let block: #nonull [*] SemaNonNullItem = cast(#nonull [*] SemaNonNullItem) &blockStorage[0]
     let slice: #nonull [..] SemaNonNullItem = blockStorage
     let text: #nonull string = "nonull"
-    let ctext: #nonull cstring = cast(cstring) &cstringStorage[0]
+    let ctext: #nonull cstring = cast(#nonull cstring) &cstringStorage[0]
     let boxed: #nonull any = 123
     let reflectedType: #nonull typeinfo = SemaNonNullItem
     let legacyOpCast: #nonull string = SemaNonNullLegacyOpCastBox{}
@@ -184,7 +185,7 @@ func semaNonNullConstruction()
     let partialDefaults: [2] SemaNonNullStringDefault = [{value: "explicit"}]
 
     // A legacy pointer can migrate to '#nonull', and '#nonull' can widen to '#null'.
-    let legacySource: *SemaNonNullItem = &first
+    let legacySource: #nonull *SemaNonNullItem = &first
     let migrated: #nonull *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
     let widened: #null *SemaNonNullItem = migrated
     let completeSet = cast(SemaNonNullCompleteSet) &first
@@ -250,16 +251,16 @@ func semaNonNullConstruction()
     var undefinedPointer: #nonull *SemaNonNullItem = undefined
     var undefinedHolder = SemaNonNullUndefinedHolder{}
 
-    // Explicitly nullable and unannotated pointers retain their legacy defaults.
+    // Explicitly nullable pointers retain their default.
     var nullableDefault: #null *SemaNonNullItem
-    var legacyDefault: *SemaNonNullItem
-    var legacyHolder: struct {ptr: *SemaNonNullItem}
+    var legacyDefault: #null *SemaNonNullItem
+    var legacyHolder: struct {ptr: #null *SemaNonNullItem}
 
     #assert(#typeof(holder.required) == #nonull *SemaNonNullItem)
     #assert(#typeof(moveTarget.required) == #nonull *SemaNonNullItem)
     #assert(#typeof(blockHolder.required) == #nonull [*] SemaNonNullItem)
     #assert(#typeof(holder.optional) == #null *SemaNonNullItem)
-    #assert(#typeof(holder.legacy) == *SemaNonNullItem)
+    #assert(#typeof(holder.legacy) == #null *SemaNonNullItem)
     #assert(#typeof(contextual.required) == #nonull *SemaNonNullItem)
     #assert(#typeof(nested.holder.required) == #nonull *SemaNonNullItem)
     #assert(#typeof(array[0].required) == #nonull *SemaNonNullItem)
@@ -280,6 +281,6 @@ func semaNonNullConstruction()
     #assert(#typeof(undefinedPointer) == #nonull *SemaNonNullItem)
     #assert(#typeof(undefinedHolder.required) == #nonull *SemaNonNullItem)
     #assert(#typeof(nullableDefault) == #null *SemaNonNullItem)
-    #assert(#typeof(legacyDefault) == *SemaNonNullItem)
-    #assert(#typeof(legacyHolder.ptr) == *SemaNonNullItem)
+    #assert(#typeof(legacyDefault) == #null *SemaNonNullItem)
+    #assert(#typeof(legacyHolder.ptr) == #null *SemaNonNullItem)
 }

@@ -13,7 +13,7 @@ impl RichEditCtrl
     {
         let fontR = .getFont().getFont(.styles[styleIdx].fontMode)
         if fontR do
-            return Painter.getTextDrawInfo(fontR)
+            return Painter.getTextDrawInfo(nnFont(fontR))
         return {}
     }
 
@@ -23,7 +23,8 @@ impl RichEditCtrl
         if !fontR do
             return 0
 
-        return Math.max(fontR.height + .lineSpacing, 1.0)
+        let font = nnFont(fontR)
+        return Math.max(font.height + .lineSpacing, 1.0)
     }
 
     mtd advanceRuneX(line: *RichEditLine, i: u64, x: f32)->f32
@@ -80,7 +81,8 @@ impl RichEditCtrl
     {
         let of        = cast(s32) (x - .getMarginLeft())
         let fontR     = .getFont().getFont(.styles[0].fontMode)
-        let sizeBlank = Painter.measureRune(' ', fontR)
+        let font      = nnFont(fontR)
+        let sizeBlank = Painter.measureRune(' ', font)
         let sx        = cast(s32) (sizeBlank.x * .tabSize)
 
         var tab = (of / sx) * sx
@@ -98,7 +100,8 @@ impl RichEditCtrl
         if !fontR do
             return {}
 
-        var result = Painter.measureRune('X', fontR)
+        let font   = nnFont(fontR)
+        var result = Painter.measureRune('X', font)
         result.y = .getLineHeight()
         return result
     }

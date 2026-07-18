@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct A {}
 func titi(a: &A) {}
@@ -162,7 +163,7 @@ func semaTest011()
 func semaTest012()
 {
     var freq: [8, 26] u32
-    let text: string = "abc"
+    let text: #nonull string = "abc"
 
     for c, i in text
     {

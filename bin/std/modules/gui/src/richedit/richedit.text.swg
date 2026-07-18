@@ -139,6 +139,7 @@ impl RichEditCtrl
         let fontR = .getFont().getFont(.styles[0].fontMode)
         if !fontR do
             return
+        let font = nnFont(fontR)
 
         // Do the wrap
         var curLine    = lineIndex
@@ -160,7 +161,7 @@ impl RichEditCtrl
 
             if cutAti > 1
             {
-                let x = .getMarginLeft() + Painter.measureString(str, fontR).width
+                let x = .getMarginLeft() + Painter.measureString(str, font).width
                 if x > clientRect.right()
                 {
                     if cutAti and cutAti == i + 1 do
@@ -813,10 +814,11 @@ public impl RichEditCtrl
         let fontR = .getFont().getFont(.styles[0].fontMode)
         if fontR
         {
+            let font = nnFont(fontR)
             for l in .lines
             {
-                let arr     = Painter.getGlyphs(l.chars, fontR)
-                let measure = Painter.measureString(arr, fontR)
+                let arr     = Painter.getGlyphs(l.chars, font)
+                let measure = Painter.measureString(arr, font)
                 result.w = Math.max(result.w, measure.width)
             }
         }

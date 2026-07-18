@@ -41,11 +41,11 @@ namespace Swag
     // If no parameter is provided, this prints right before the emit pass.
     // Otherwise, parameters are strings of the form before-passname / after-passname.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
-    attr PrintMicro(stages: string...)
+    attr PrintMicro(stages: #nonull string...)
 
     // On a function or a struct, this prints the associated AST shape.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
-    attr PrintAst(stages: string...)
+    attr PrintAst(stages: #nonull string...)
 
     // The following function or variable is only defined at compile time
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]
@@ -87,11 +87,11 @@ namespace Swag
     // An opBinary operator overload can also be used when its receiver is the right operand.
     // Optional string parameters restrict the operators for generic opBinary implementations.
     #[AttrUsage(AttributeUsage.Function)]
-    attr Commutative(operators: string...)
+    attr Commutative(operators: #nonull string...)
 
     // Generate operator overloads for a struct.
     #[AttrUsage(AttributeUsage.Struct)]
-    attr Operators(operators: string...)
+    attr Operators(operators: #nonull string...)
 
     // Exclude a struct field from generated operator overloads.
     #[AttrUsage(AttributeUsage.StructVariable)]
@@ -103,7 +103,7 @@ namespace Swag
 
     // The following function is foreign (imported)
     #[AttrUsage(AttributeUsage.Function)]
-    attr Foreign(module: string, function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.C)
+    attr Foreign(module: #nonull string, function: #nonull string = "", link: #nonull string = "", callconv: CallConv = Swag.CallConv.C)
 
     // The following function accepts that the called does not use its return value
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]
@@ -111,7 +111,7 @@ namespace Swag
 
     // The following definition is deprecated and should not be used
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]
-    attr Deprecated(msg: string = null)
+    attr Deprecated(msg: #null string = null)
 
     // Put the following global variable in the 'tls' segment.
     // A copy of the variable will be available for each thread.
@@ -133,7 +133,7 @@ namespace Swag
     // Struct field member relocation.
     // The field offset in the struct should be the same as the variable 'name'
     #[AttrUsage(AttributeUsage.StructVariable)]
-    attr Offset(name: string)
+    attr Offset(name: #nonull string)
 
     // The following enum is a set of flags
     #[AttrUsage(AttributeUsage.Enum)]
@@ -235,7 +235,7 @@ namespace Swag
     // ```
     // You can also change the warning behaviors for the whole module in your [[BuildCfg]]
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
-    attr Warning(what: string, level: WarningLevel)
+    attr Warning(what: #nonull string, level: WarningLevel)
 
     // Require nullable-capable types to be explicitly annotated with '#null' or '#nonull'.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]

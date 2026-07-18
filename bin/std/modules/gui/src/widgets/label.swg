@@ -208,7 +208,7 @@ impl Label
     // Change the text
     mtd setText(text: #null string)
     {
-        .name = text
+        .name.set(text)
         .invalidate()
         .autoHeight()
     }

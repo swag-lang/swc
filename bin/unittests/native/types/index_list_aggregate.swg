@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #test
 {
     let values = [[10], [20, 30]]

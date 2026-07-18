@@ -1,13 +1,14 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
-var A: [..] s32
-#assert(#typeof(A) == [..] s32)
-#assert(#nameof(#typeof(A)) == "[..] s32")
+var A: #null [..] s32
+#assert(#typeof(A) == #null [..] s32)
+#assert(#nameof(#typeof(A)) == "#null [..] s32")
 
 #test
 {
     var a: [3] s32 = [1, 2, 3]
-    var s: [..] s32 = a
+    var s: #nonull [..] s32 = a
     @assert(s[0] == 1)
     s[1] = 7
     @assert(a[1] == 7)
@@ -15,14 +16,14 @@ var A: [..] s32
 
 #test
 {
-    var c: const [..] u8 = "abc"
+    var c: #nonull const [..] u8 = "abc"
     @assert(c[0] == 'a')
     @assert(@countof(c) == 3)
 }
 
 #test
 {
-    const s: const [..] s32 = [1, 2, 3]
+    const s: #nonull const [..] s32 = [1, 2, 3]
     @assert(@countof(s) == 3)
     @assert(s[0] == 1)
     @assert(s[2] == 3)
@@ -31,7 +32,7 @@ var A: [..] s32
 #test
 {
     var a: [3] s32 = [1, 2, 3]
-    var s: const [..] s32 = a
+    var s: #nonull const [..] s32 = a
     @assert(@countof(s) == 3)
     @assert(s[1] == 2)
 }
@@ -39,7 +40,7 @@ var A: [..] s32
 #test
 {
     var a: [3] s32 = [1, 2, 3]
-    var s: [..] s32 = a
+    var s: #nonull [..] s32 = a
     @assert(@countof(s) == 3)
     s[2] = 9
     @assert(a[2] == 9)
@@ -47,7 +48,7 @@ var A: [..] s32
 
 #test
 {
-    const s: const [..] u16 = [1'u8, 2'u16, 3]
+    const s: #nonull const [..] u16 = [1'u8, 2'u16, 3]
     @assert(@countof(s) == 3)
     @assert(s[0] == 1'u16)
     @assert(s[2] == 3'u16)
@@ -108,7 +109,7 @@ var A: [..] s32
 
 #test
 {
-    let cstr: const cstring = cast(const cstring) @dataof("slice")
+    let cstr: #nonull const cstring = cast(#nonull const cstring) @dataof("slice")
     let a = cstr[1 to 3]
     let b = cstr[2 to ]
     let c = cstr[ until 2]
@@ -130,14 +131,14 @@ var A: [..] s32
     arrSlice[1] = 77
     @assert(arr[2] == 77)
 
-    var view: [..] s32 = arr
-    let viewRef: const &[..] s32 = &view
+    var view: #nonull [..] s32 = arr
+    let viewRef: const &#nonull [..] s32 = &view
     let sub = viewRef[1 until 3]
     @assert(@countof(sub) == 2)
     @assert(sub[0] == 20)
     @assert(sub[1] == 77)
 
     let text = "string"
-    let textRef: const &string = &text
+    let textRef: const &#nonull string = &text
     @assert(textRef[1 to 3] == "tri")
 }

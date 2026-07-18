@@ -1,6 +1,7 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
-func sumValues(values: [..] s32)->s32
+func sumValues(values: #nonull [..] s32)->s32
 {
     var result = 0
     for value in values do
@@ -45,8 +46,8 @@ func sumValues(values: [..] s32)->s32
     @assert(cube[1][0][2] == 19)
     @assert(cube[1, 1, 0] == cube[1][1][0])
     @assert(cube[1, 1, 2] == 77)
-    @assert(sumValues(cast([..] s32) cube[0, 1]) == 60)
-    @assert(sumValues(cast([..] s32) cube[1][0]) == 34)
+    @assert(sumValues(cast(#nonull [..] s32) cube[0, 1]) == 60)
+    @assert(sumValues(cast(#nonull [..] s32) cube[1][0]) == 34)
 }
 
 #test
@@ -60,5 +61,5 @@ func sumValues(values: [..] s32)->s32
 
     @assert(grid[2, 0] == 6)
     @assert(grid[2, 1] == 4)
-    @assert(sumValues(cast([..] s32) grid[2]) == 10)
+    @assert(sumValues(cast(#nonull [..] s32) grid[2]) == 10)
 }

@@ -122,7 +122,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     let len = @countof(edit.getText())
     edit.setSelection(len, len)
 
-    let fontR    = edit.getFont().regular
+    let fontR    = nnFont(edit.getFont().regular)
     let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR)
     let drift    = Math.abs(edit.posSelEnd - expected)
 
@@ -146,7 +146,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     let len = @countof(edit.getText())
     edit.setSelection(len, len)
 
-    let fontR    = edit.getFont().regular
+    let fontR    = nnFont(edit.getFont().regular)
     let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR)
     let drift    = Math.abs(edit.posSelEnd - expected)
     @assert(drift <= 1.0)
@@ -200,7 +200,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.Zero)
     host.focus(edit)
 
-    let fontR = edit.getFont().regular
+    let fontR = nnFont(edit.getFont().regular)
     let len   = @countof(edit.getText())
 
     // For every caret index, the cached offset must equal the snapped advance to that
@@ -258,7 +258,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
     @assert(edit.selBeg == 0 and edit.selEnd == 3)
 
-    let fontR = edit.getFont().regular
+    let fontR = nnFont(edit.getFont().regular)
     @assert(Math.abs(edit.posSelBeg - Pixel.Painter.measureStringSnapped(edit.getText(), fontR, 0)) <= 0.5)
     @assert(Math.abs(edit.posSelEnd - Pixel.Painter.measureStringSnapped(edit.getText(), fontR, 3)) <= 0.5)
 
@@ -304,7 +304,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     let len = @countof(edit.getText())
     edit.setSelection(len, len)
 
-    let fontR    = edit.getFont().regular
+    let fontR    = nnFont(edit.getFont().regular)
     let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR, len)
     @assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
 

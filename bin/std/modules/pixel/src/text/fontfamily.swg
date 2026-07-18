@@ -3,10 +3,10 @@
 
 struct FontFamily
 {
-    regular:        #nonull *Font = undefined
-    bold:           #nonull *Font = undefined
-    italic:         #nonull *Font = undefined
-    boldItalic:     #nonull *Font = undefined
+    regular:        #null *Font
+    bold:           #null *Font
+    italic:         #null *Font
+    boldItalic:     #null *Font
 }
 
 enum FontFamilyStyle

@@ -211,7 +211,7 @@ impl IWnd for EditBox
         // a few pixels off). This must match getCaretPos/computeCaretPos so the caret
         // tracks the scrolled text. The scroll offset itself is computed by
         // updateScroll (which mirrors this clientRect) so it can be unit-tested.
-        let fontR    = .getFont().regular
+        let fontR    = nnFont(.getFont().regular)
         let caretPos = .getCaretPos()
         let sizeX    = Painter.measureStringSnapped(.text.toString(), fontR)
         .updateScroll()
@@ -676,7 +676,8 @@ private impl EditBox
             return 0
         if .unit.isEmpty() do
             return 0
-        return Painter.measureString(.unit, .getFont().regular).width + .getThemeMetrics().editBox_UnitMargin
+        let font = nnFont(.getFont().regular)
+        return Painter.measureString(.unit, font).width + .getThemeMetrics().editBox_UnitMargin
     }
 
     // Returns the padding vector for the current visual form.
@@ -706,6 +707,7 @@ private impl EditBox
         let fontR = .getFont().regular
         if !fontR do
             return 0
+        let font = nnFont(fontR)
 
         var lo, hi: String
         switch .inputMode
@@ -723,13 +725,13 @@ private impl EditBox
             return 0
         }
 
-        let textW = Math.max(Painter.measureString(lo.toString(), fontR).width, Painter.measureString(hi.toString(), fontR).width)
+        let textW = Math.max(Painter.measureString(lo.toString(), font).width, Painter.measureString(hi.toString(), font).width)
 
         // Derive the box width from the box's *actual* text area (so border, form
         // padding, right margin, unit and clear button are all accounted for),
         // plus one extra digit of breathing room for the caret.
         let chrome = Math.max(.position.width - .getEditRect().width, 0.0) + .getTextMarginRight()
-        return Math.ceil(textW) + chrome + Painter.measureString("00", fontR).width
+        return Math.ceil(textW) + chrome + Painter.measureString("00", font).width
     }
 
     // Forces the caret to become visible and restarts its blink timer.
@@ -753,11 +755,12 @@ private impl EditBox
 
         result = clientRect
         let fontR = .getFont().regular
+        let font  = nnFont(fontR)
         if !.text.isEmpty()
         {
             if .editBoxFlags.has(.RightAlign)
             {
-                let sizeX = Painter.measureStringSnapped(.text.toString(), fontR)
+                let sizeX = Painter.measureStringSnapped(.text.toString(), font)
                 result.x = clientRect.right() - sizeX + .posSelEnd - 2
             }
             else do
@@ -769,7 +772,7 @@ private impl EditBox
         }
 
         result.x -= .getTextMarginRight()
-        result.height = fontR.height
+        result.height = font.height
         result.y      = clientRect.vertCenter() - result.height * 0.5
 
         result.width = 2
@@ -786,6 +789,7 @@ private impl EditBox
         x += .scrollPosX
 
         let fontR = .getFont().regular
+        let font  = nnFont(fontR)
 
         // Naïve incremental search. Could be improved for performance.
         if .editBoxFlags.has(.RightAlign)
@@ -797,7 +801,7 @@ private impl EditBox
             clientRect.x -= .getTextMarginRight()
 
             // Hit-test against the same snapped advances the glyphs are drawn with.
-            let shaped    = Painter.shapeRun(.text.toString(), fontR)
+            let shaped    = Painter.shapeRun(.text.toString(), font)
             let base      = clientRect.right() - Painter.measureStringSnapped(&shaped)
             var lastWidth = 0'f32
             var diff      = 0'f32
@@ -824,7 +828,7 @@ private impl EditBox
 
             // Hit-test against the same snapped advances the glyphs are drawn with,
             // so a click lands on the glyph the caret will be painted next to.
-            let shaped    = Painter.shapeRun(.text.toString(), fontR)
+            let shaped    = Painter.shapeRun(.text.toString(), font)
             var lastWidth = 0'f32
             var diff      = 0'f32
             for idx in 1 until .text.length
@@ -855,6 +859,7 @@ private impl EditBox
             return
 
         let fontR = .getFont().regular
+        let font  = nnFont(fontR)
 
         // Carets and selection rectangles must sit on the same pixel-snapped advances
         // the glyph run is drawn with (see measureStringSnapped). Measuring with the
@@ -862,9 +867,9 @@ private impl EditBox
         // caret drifts further from the real glyph edge the longer the text is. This
         // holds for both alignments, so both use the snapped measure.
         let text = .text.toString()
-        .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, fontR, .selEnd)
+        .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, font, .selEnd)
         if .selBeg != .selEnd do
-            .posSelBeg = Painter.measureStringSnapped(text, fontR, .selBeg)
+            .posSelBeg = Painter.measureStringSnapped(text, font, .selBeg)
     }
 
     // Moves caret left to the start of the previous word.
@@ -956,7 +961,7 @@ internal impl EditBox
     // exercised headlessly — painting needs a renderer, this does not.
     mtd updateScroll()
     {
-        let fontR   = .getFont().regular
+        let fontR   = nnFont(.getFont().regular)
         let metrics = .getThemeMetrics()
 
         var clientRect = .getEditRect()
@@ -1000,6 +1005,16 @@ internal impl EditBox
 
             let maxScroll = Math.max(contentWidth - clientRect.width, 0)
             .scrollPosX = Math.min(Math.max(.scrollPosX, 0), maxScroll)
+
+            // The trigger above mostly reasons about the caret left edge, but the
+            // visible object is the full caret rectangle. Keep the final clamped
+            // scroll honest so the 2px caret cannot remain half-clipped at the right.
+            let caretLeft  = caretPos.x - clientRect.x
+            let caretRight = caretPos.right() - clientRect.x
+            if caretLeft < .scrollPosX do
+                .scrollPosX = caretLeft
+            elif caretRight > .scrollPosX + clientRect.width do
+                .scrollPosX = caretRight - clientRect.width
         }
     }
 

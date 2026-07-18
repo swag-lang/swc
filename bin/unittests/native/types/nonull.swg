@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct NativeNonNullItem
 {
@@ -15,7 +16,7 @@ struct NativeNonNullForwardHolder
 }
 
 alias NativeNonNullPointerAlias = #nonull *NativeNonNullItem
-alias NativeConstPointerAlias   = const *NativeNonNullItem
+alias NativeConstPointerAlias   = #nonull const *NativeNonNullItem
 
 const NATIVE_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
@@ -52,7 +53,7 @@ struct NativeNonNullHolder
 {
     required: #nonull *NativeNonNullItem
     optional: #null *NativeNonNullItem
-    legacy:   *NativeNonNullItem
+    legacy:   #null *NativeNonNullItem
     count:    s32 = 7
 }
 
@@ -101,7 +102,7 @@ struct NativeNonNullNested
     holder: NativeNonNullHolder
 }
 
-func nativeHasNonNullFlags(type: typeinfo)->bool
+func nativeHasNonNullFlags(type: #nonull typeinfo)->bool
 {
     if !(type.flags & Swag.TypeInfoFlags.ExplicitNonNull) do
         return false
@@ -110,7 +111,7 @@ func nativeHasNonNullFlags(type: typeinfo)->bool
     return !(type.flags & Swag.TypeInfoFlags.Nullable)
 }
 
-func migrateNativeLegacyPointer(value: *NativeNonNullItem)->#nonull *NativeNonNullItem => value
+func migrateNativeLegacyPointer(value: #nonull *NativeNonNullItem)->#nonull *NativeNonNullItem => value
 
 func nativeNonNullConstruction()->bool
 {
@@ -120,10 +121,10 @@ func nativeNonNullConstruction()->bool
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
     let direct: #nonull *NativeNonNullItem = &first
-    let block: #nonull [*] NativeNonNullItem = cast([*] NativeNonNullItem) &blockStorage[0]
+    let block: #nonull [*] NativeNonNullItem = cast(#nonull [*] NativeNonNullItem) &blockStorage[0]
     let slice: #nonull [..] NativeNonNullItem = blockStorage
     let text: #nonull string = "nonull"
-    let ctext: #nonull cstring = cast(cstring) &cstringStorage[0]
+    let ctext: #nonull cstring = cast(#nonull cstring) &cstringStorage[0]
     let boxed: #nonull any = 123
     let reflectedType: #nonull typeinfo = NativeNonNullItem
     var nullableValuePointer: #null *NativeNonNullItem = null
@@ -140,7 +141,7 @@ func nativeNonNullConstruction()->bool
     let boxedNullableTypeInfo: #nonull any = nullableTypeInfo
     let aliasReadOnly: const NativeNonNullPointerAlias = &first
     let aliasRequired: #nonull NativeConstPointerAlias = &first
-    let legacySource: *NativeNonNullItem = &first
+    let legacySource: #nonull *NativeNonNullItem = &first
     let migrated: #nonull *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
     let widened: #null *NativeNonNullItem = migrated
 
@@ -303,10 +304,10 @@ func nativeNonNullConstruction()->bool
     #assert(#typeof(undefinedPointer) == #nonull *NativeNonNullItem)
     #assert(#typeof(undefinedHolder.required) == #nonull *NativeNonNullItem)
 
-    // Explicitly nullable and unannotated pointers keep their null default during migration.
+    // Explicitly nullable pointers keep their null default during migration.
     var nullablePointer: #null *NativeNonNullItem
-    var legacyPointer: *NativeNonNullItem
-    var legacyHolder: struct {ptr: *NativeNonNullItem}
+    var legacyPointer: #null *NativeNonNullItem
+    var legacyHolder: struct {ptr: #null *NativeNonNullItem}
     if nullablePointer != null or legacyPointer != null or legacyHolder.ptr != null do
         return false
 

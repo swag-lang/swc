@@ -357,7 +357,7 @@ impl ComboBox
         let item = .items.newPtr()
         with item
         {
-            .name      = name
+            .name.set(name)
             .icon      = icon
             .id        = id
             .userData0 = userData0

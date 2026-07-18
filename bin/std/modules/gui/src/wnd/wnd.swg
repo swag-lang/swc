@@ -284,13 +284,13 @@ impl Wnd
     #[Swag.Inline]
     func(T) create(parent: *Wnd = null, id: WndId = null, hook: HookEvent = null)->*T
     {
-        return create(parent, "", {}, id: id, hook: hook)
+        return create(parent, name: "", position: {}, id: id, hook: hook)
     }
 
     #[Swag.Inline]
     func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: WndId = null, hook: HookEvent = null)->*T
     {
-        return create(parent, "", position, id: id, hook: hook)
+        return create(parent, name: "", position: position, id: id, hook: hook)
     }
 
     func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: WndId = null, hook: HookEvent = null)->*T
@@ -299,7 +299,7 @@ impl Wnd
         res.isAllocated = true
         res.itf         = cast(IWnd) dref res
         res.type        = T
-        res.name        = name
+        res.name.set(name)
         res.id          = id
         res.position    = position
         res.preferredSize = {position.width, position.height}

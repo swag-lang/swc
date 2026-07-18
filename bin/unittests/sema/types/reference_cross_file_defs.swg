@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 struct CrossFileRefFloatBox
 {
     value: f32

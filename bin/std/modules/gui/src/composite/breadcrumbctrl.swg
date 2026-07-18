@@ -86,7 +86,7 @@ impl BreadcrumbCtrl
     // Compute the per-level rectangles from the current items, in control-local space.
     mtd layout()
     {
-        let font   = .getFont().regular
+        let font   = nnFont(.getFont().regular)
         let m      = .getThemeMetrics()
         let client = .getClientRect()
 
@@ -223,7 +223,7 @@ impl IWnd for BreadcrumbCtrl
         let colors  = .getThemeColors()
         let rects   = .getThemeRects()
         let m       = .getThemeMetrics()
-        let font    = .getFont().regular
+        let font    = nnFont(.getFont().regular)
 
         painter.setParams(.Antialiased)
 

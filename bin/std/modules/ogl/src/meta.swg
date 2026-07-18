@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core, Swag, Core.StrConv
 
 #[AttrUsage(AttributeUsage.Function)]
@@ -6,7 +7,7 @@ attr Extension()
 struct OneFunc
 {
     type:     const *TypeInfoFunc
-    name:     string
+    name:     #nonull string
 }
 
 #[Compiler]
@@ -16,7 +17,7 @@ var g_Functions: Array'OneFunc
 {
     let itf = @compiler
     let msg = itf.getMessage()
-    if msg == null or msg.type == null do
+    if msg == null or msg.type == null or msg.name == null do
         return
     if msg.kind != CompilerMsgKind.SemFunctions do
         return
@@ -26,7 +27,7 @@ var g_Functions: Array'OneFunc
     let typeFunc = cast(const *TypeInfoFunc) msg.type
     if !Reflection.hasAttribute(typeFunc, Extension) do
         return
-    g_Functions.add({type: typeFunc, name: msg.name})
+    g_Functions.add({type: typeFunc, name: cast(#nonull string) (assume msg.name)})
 }
 
 #message(CompilerMsgMask.PassAfterSemantic)

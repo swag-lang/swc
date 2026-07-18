@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 using Swag
 
 const GL_SMOOTH_POINT_SIZE_RANGE       = 0x0B12

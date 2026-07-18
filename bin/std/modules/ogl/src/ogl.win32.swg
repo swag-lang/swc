@@ -1,14 +1,15 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
+#global #[Swag.ExplicitNullability]
 #foreignlib("opengl32")
 using Swag, Core, Win32, Gdi32
 
-alias HGLRC               = const *void
+alias HGLRC               = #null const *void
 alias getExtensionAddress = wglGetProcAddress
 
 #[Foreign("opengl32")]
 {
-    func wglGetProcAddress(arg1: LPCSTR)->const *void;
+    func wglGetProcAddress(arg1: LPCSTR)->#null const *void;
 }
 
 internal namespace PrivOgl
@@ -57,7 +58,7 @@ namespace Platform.Win32
     {
         hDC:          HDC
         hRC:          HGLRC
-        window:       *Env.Window
+        window:       #null *Env.Window
     }
 
     public func createContext(window: &Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context throw

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #import("core")
 #if #os == Swag.TargetOs.Windows
 {

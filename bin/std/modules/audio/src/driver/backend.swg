@@ -274,7 +274,7 @@ public impl Voice
         }
     }
 
-    mtd setRooting(buses: #nonull const [..] #nonull *Bus) throw
+    mtd setRooting(buses: #null const [..] #null *Bus) throw
     {
         switch g_Driver.kind
         {
@@ -284,7 +284,7 @@ public impl Voice
         case XAudio2:
             #if #os == Swag.TargetOs.Windows
             {
-                .setRootingXAudio2(buses)
+                .setRootingXAudio2(@dataof(buses), @countof(buses))
             }
             #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}

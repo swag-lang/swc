@@ -127,7 +127,7 @@ public impl Voice
         handle.frequencyRatio = ratio
     }
 
-    mtd setRootingNoSound(buses: #nonull const [..] #nonull *Bus) throw
+    mtd setRootingNoSound(buses: #null const [..] #null *Bus) throw
     {
         if !.handle do
             return
@@ -138,8 +138,9 @@ public impl Voice
             throw SystemError{"too many buses", errorID: count}
 
         handle.busCount = cast(u32) count
-        for bus, i in buses
+        for i in count
         {
+            let bus = buses[i]
             if !bus or !bus.handle do
                 throw BadParameterError{"bus invalid"}
             handle.buses[i] = bus

@@ -1,62 +1,63 @@
 #global public
+#global #[Swag.ExplicitNullability]
 
 #[Extension, Swag.PlaceHolder]
 {
     func glBeginConditionalRender(id: GLuint, mode: GLenum);
     func glBeginTransformFeedback(primitiveMode: GLenum);
-    func glBindFragDataLocation(program: GLuint, colorNumber: GLuint, name: const *GLchar);
+    func glBindFragDataLocation(program: GLuint, colorNumber: GLuint, name: #null const *GLchar);
     func glClampColor(target: GLenum, clamp: GLenum);
     func glClearBufferfi(buffer: GLenum, drawBuffer: GLint, depth: GLfloat, stencil: GLint);
-    func glClearBufferfv(buffer: GLenum, drawBuffer: GLint, value: const *GLfloat);
-    func glClearBufferiv(buffer: GLenum, drawBuffer: GLint, value: const *GLint);
-    func glClearBufferuiv(buffer: GLenum, drawBuffer: GLint, value: const *GLuint);
+    func glClearBufferfv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLfloat);
+    func glClearBufferiv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLint);
+    func glClearBufferuiv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLuint);
     func glColorMaski(buf: GLuint, red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean);
     func glDisablei(cap: GLenum, index: GLuint);
     func glEnablei(cap: GLenum, index: GLuint);
     func glEndConditionalRender();
     func glEndTransformFeedback();
-    func glGetBooleani_v(pname: GLenum, index: GLuint, data: *GLboolean);
-    func glGetFragDataLocation(program: GLuint, name: const *GLchar)->GLint;
-    func glGetStringi(name: GLenum, index: GLuint)->const *GLubyte;
-    func glGetTexParameterIiv(target: GLenum, pname: GLenum, params: *GLint);
-    func glGetTexParameterIuiv(target: GLenum, pname: GLenum, params: *GLuint);
-    func glGetTransformFeedbackVarying(program: GLuint, index: GLuint, bufSize: GLsizei, length: *GLsizei, size: *GLsizei, type: *GLenum, name: *GLchar);
-    func glGetUniformuiv(program: GLuint, location: GLint, params: *GLuint);
-    func glGetVertexAttribIiv(index: GLuint, pname: GLenum, params: *GLint);
-    func glGetVertexAttribIuiv(index: GLuint, pname: GLenum, params: *GLuint);
+    func glGetBooleani_v(pname: GLenum, index: GLuint, data: #null *GLboolean);
+    func glGetFragDataLocation(program: GLuint, name: #null const *GLchar)->GLint;
+    func glGetStringi(name: GLenum, index: GLuint)->#null const *GLubyte;
+    func glGetTexParameterIiv(target: GLenum, pname: GLenum, params: #null *GLint);
+    func glGetTexParameterIuiv(target: GLenum, pname: GLenum, params: #null *GLuint);
+    func glGetTransformFeedbackVarying(program: GLuint, index: GLuint, bufSize: GLsizei, length: #null *GLsizei, size: #null *GLsizei, type: #null *GLenum, name: #null *GLchar);
+    func glGetUniformuiv(program: GLuint, location: GLint, params: #null *GLuint);
+    func glGetVertexAttribIiv(index: GLuint, pname: GLenum, params: #null *GLint);
+    func glGetVertexAttribIuiv(index: GLuint, pname: GLenum, params: #null *GLuint);
     func glIsEnabledi(cap: GLenum, index: GLuint)->GLboolean;
-    func glTexParameterIiv(target: GLenum, pname: GLenum, params: const *GLint);
-    func glTexParameterIuiv(target: GLenum, pname: GLenum, params: const *GLuint);
-    func glTransformFeedbackVaryings(program: GLuint, count: GLsizei, varyings: *const *GLchar, bufferMode: GLenum);
+    func glTexParameterIiv(target: GLenum, pname: GLenum, params: #null const *GLint);
+    func glTexParameterIuiv(target: GLenum, pname: GLenum, params: #null const *GLuint);
+    func glTransformFeedbackVaryings(program: GLuint, count: GLsizei, varyings: #null *#null const *GLchar, bufferMode: GLenum);
     func glUniform1ui(location: GLint, v0: GLuint);
-    func glUniform1uiv(location: GLint, count: GLsizei, value: const *GLuint);
+    func glUniform1uiv(location: GLint, count: GLsizei, value: #null const *GLuint);
     func glUniform2ui(location: GLint, v0: GLuint, v1: GLuint);
-    func glUniform2uiv(location: GLint, count: GLsizei, value: const *GLuint);
+    func glUniform2uiv(location: GLint, count: GLsizei, value: #null const *GLuint);
     func glUniform3ui(location: GLint, v0: GLuint, v1: GLuint, v2: GLuint);
-    func glUniform3uiv(location: GLint, count: GLsizei, value: const *GLuint);
+    func glUniform3uiv(location: GLint, count: GLsizei, value: #null const *GLuint);
     func glUniform4ui(location: GLint, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint);
-    func glUniform4uiv(location: GLint, count: GLsizei, value: const *GLuint);
+    func glUniform4uiv(location: GLint, count: GLsizei, value: #null const *GLuint);
     func glVertexAttribI1i(index: GLuint, v0: GLint);
-    func glVertexAttribI1iv(index: GLuint, v0: const *GLint);
+    func glVertexAttribI1iv(index: GLuint, v0: #null const *GLint);
     func glVertexAttribI1ui(index: GLuint, v0: GLuint);
-    func glVertexAttribI1uiv(index: GLuint, v0: const *GLuint);
+    func glVertexAttribI1uiv(index: GLuint, v0: #null const *GLuint);
     func glVertexAttribI2i(index: GLuint, v0: GLint, v1: GLint);
-    func glVertexAttribI2iv(index: GLuint, v0: const *GLint);
+    func glVertexAttribI2iv(index: GLuint, v0: #null const *GLint);
     func glVertexAttribI2ui(index: GLuint, v0: GLuint, v1: GLuint);
-    func glVertexAttribI2uiv(index: GLuint, v0: const *GLuint);
+    func glVertexAttribI2uiv(index: GLuint, v0: #null const *GLuint);
     func glVertexAttribI3i(index: GLuint, v0: GLint, v1: GLint, v2: GLint);
-    func glVertexAttribI3iv(index: GLuint, v0: const *GLint);
+    func glVertexAttribI3iv(index: GLuint, v0: #null const *GLint);
     func glVertexAttribI3ui(index: GLuint, v0: GLuint, v1: GLuint, v2: GLuint);
-    func glVertexAttribI3uiv(index: GLuint, v0: const *GLuint);
-    func glVertexAttribI4bv(index: GLuint, v0: const *GLbyte);
+    func glVertexAttribI3uiv(index: GLuint, v0: #null const *GLuint);
+    func glVertexAttribI4bv(index: GLuint, v0: #null const *GLbyte);
     func glVertexAttribI4i(index: GLuint, v0: GLint, v1: GLint, v2: GLint, v3: GLint);
-    func glVertexAttribI4iv(index: GLuint, v0: const *GLint);
-    func glVertexAttribI4sv(index: GLuint, v0: const *GLshort);
-    func glVertexAttribI4ubv(index: GLuint, v0: const *GLubyte);
+    func glVertexAttribI4iv(index: GLuint, v0: #null const *GLint);
+    func glVertexAttribI4sv(index: GLuint, v0: #null const *GLshort);
+    func glVertexAttribI4ubv(index: GLuint, v0: #null const *GLubyte);
     func glVertexAttribI4ui(index: GLuint, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint);
-    func glVertexAttribI4uiv(index: GLuint, v0: const *GLuint);
-    func glVertexAttribI4usv(index: GLuint, v0: const *GLushort);
-    func glVertexAttribIPointer(index: GLuint, size: GLint, type: GLenum, stride: GLsizei, pointer: const *void);
+    func glVertexAttribI4uiv(index: GLuint, v0: #null const *GLuint);
+    func glVertexAttribI4usv(index: GLuint, v0: #null const *GLushort);
+    func glVertexAttribIPointer(index: GLuint, size: GLint, type: GLenum, stride: GLsizei, pointer: #null const *void);
 }
 
 const GL_CLIP_DISTANCE0                                = GL_CLIP_PLANE0

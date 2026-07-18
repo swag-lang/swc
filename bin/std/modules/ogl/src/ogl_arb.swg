@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 using Swag
 
 /* ----------------------------- GL_ARB_shadow ----------------------------- */
@@ -102,8 +103,8 @@ const GL_MAX_FRAMEBUFFER_SAMPLES                    = 0x9318
 #[Extension, Swag.PlaceHolder]
 {
     func glFramebufferParameteri(target: GLenum, pname: GLenum, param: GLint);
-    func glGetFramebufferParameteriv(target: GLenum, pname: GLenum, params: *GLint);
-    func glGetNamedFramebufferParameterivEXT(framebuffer: GLuint, pname: GLenum, params: *GLint);
+    func glGetFramebufferParameteriv(target: GLenum, pname: GLenum, params: #null *GLint);
+    func glGetNamedFramebufferParameterivEXT(framebuffer: GLuint, pname: GLenum, params: #null *GLint);
     func glNamedFramebufferParameteriEXT(framebuffer: GLuint, pname: GLenum, param: GLint);
 }
 
@@ -189,18 +190,18 @@ const GL_MAX_SAMPLES                                  = 0x8D57
     func glBindRenderbuffer(target: GLenum, renderbuffer: GLuint);
     func glBlitFramebuffer(srcX0: GLint, srcY0: GLint, srcX1: GLint, srcY1: GLint, dstX0: GLint, dstY0: GLint, dstX1: GLint, dstY1: GLint, mask: GLbitfield, filter: GLenum);
     func glCheckFramebufferStatus(target: GLenum)->GLenum;
-    func glDeleteFramebuffers(n: GLsizei, framebuffers: const *GLuint);
-    func glDeleteRenderbuffers(n: GLsizei, renderbuffers: const *GLuint);
+    func glDeleteFramebuffers(n: GLsizei, framebuffers: #null const *GLuint);
+    func glDeleteRenderbuffers(n: GLsizei, renderbuffers: #null const *GLuint);
     func glFramebufferRenderbuffer(target: GLenum, attachment: GLenum, renderbuffertarget: GLenum, renderbuffer: GLuint);
     func glFramebufferTexture1D(target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint);
     func glFramebufferTexture2D(target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint);
     func glFramebufferTexture3D(target: GLenum, attachment: GLenum, textarget: GLenum, texture: GLuint, level: GLint, layer: GLint);
     func glFramebufferTextureLayer(target: GLenum, attachment: GLenum, texture: GLuint, level: GLint, layer: GLint);
-    func glGenFramebuffers(n: GLsizei, framebuffers: *GLuint);
-    func glGenRenderbuffers(n: GLsizei, renderbuffers: *GLuint);
+    func glGenFramebuffers(n: GLsizei, framebuffers: #null *GLuint);
+    func glGenRenderbuffers(n: GLsizei, renderbuffers: #null *GLuint);
     func glGenerateMipmap(target: GLenum);
-    func glGetFramebufferAttachmentParameteriv(target: GLenum, attachment: GLenum, pname: GLenum, params: *GLint);
-    func glGetRenderbufferParameteriv(target: GLenum, pname: GLenum, params: *GLint);
+    func glGetFramebufferAttachmentParameteriv(target: GLenum, attachment: GLenum, pname: GLenum, params: #null *GLint);
+    func glGetRenderbufferParameteriv(target: GLenum, pname: GLenum, params: #null *GLint);
     func glIsFramebuffer(framebuffer: GLuint)->GLboolean;
     func glIsRenderbuffer(renderbuffer: GLuint)->GLboolean;
     func glRenderbufferStorage(target: GLenum, internalformat: GLenum, width: GLsizei, height: GLsizei);
@@ -217,12 +218,12 @@ const GL_NAMED_STRING_TYPE_ARB   = 0x8DEA
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glCompileShaderIncludeARB(shader: GLuint, count: GLsizei, path: const **GLchar, length: const *GLint);
-    func glDeleteNamedStringARB(namelen: GLint, name: const *GLchar);
-    func glGetNamedStringARB(namelen: GLint, name: const *GLchar, bufSize: GLsizei, stringlen: *GLint, str: *GLchar);
-    func glGetNamedStringivARB(namelen: GLint, name: const *GLchar, pname: GLenum, params: *GLint);
-    func glIsNamedStringARB(namelen: GLint, name: const *GLchar)->GLboolean;
-    func glNamedStringARB(type: GLenum, namelen: GLint, name: const *GLchar, stringlen: GLint, str: const *GLchar);
+    func glCompileShaderIncludeARB(shader: GLuint, count: GLsizei, path: #null const *#null *GLchar, length: #null const *GLint);
+    func glDeleteNamedStringARB(namelen: GLint, name: #null const *GLchar);
+    func glGetNamedStringARB(namelen: GLint, name: #null const *GLchar, bufSize: GLsizei, stringlen: #null *GLint, str: #null *GLchar);
+    func glGetNamedStringivARB(namelen: GLint, name: #null const *GLchar, pname: GLenum, params: #null *GLint);
+    func glIsNamedStringARB(namelen: GLint, name: #null const *GLchar)->GLboolean;
+    func glNamedStringARB(type: GLenum, namelen: GLint, name: #null const *GLchar, stringlen: GLint, str: #null const *GLchar);
 }
 
 const GL_FRAMEBUFFER_SRGB = 0x8DB9

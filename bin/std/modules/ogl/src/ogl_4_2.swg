@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 
 const GL_TRANSFORM_FEEDBACK_PAUSED          = 0x8E23
 const GL_TRANSFORM_FEEDBACK_ACTIVE          = 0x8E24

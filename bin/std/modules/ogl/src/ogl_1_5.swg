@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 using Swag
 
 alias GLintptr   = s64
@@ -8,22 +9,22 @@ alias GLsizeiptr = u64
 {
     func glBeginQuery(target: GLenum, id: GLuint);
     func glBindBuffer(target: GLenum, buffer: GLuint);
-    func glBufferData(target: GLenum, size: GLsizeiptr, data: const *void, usage: GLenum);
-    func glBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data: const *void);
-    func glDeleteBuffers(n: GLsizei, buffers: const *GLuint);
-    func glDeleteQueries(n: GLsizei, ids: const *GLuint);
+    func glBufferData(target: GLenum, size: GLsizeiptr, data: #null const *void, usage: GLenum);
+    func glBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data: #null const *void);
+    func glDeleteBuffers(n: GLsizei, buffers: #null const *GLuint);
+    func glDeleteQueries(n: GLsizei, ids: #null const *GLuint);
     func glEndQuery(target: GLenum);
-    func glGenBuffers(n: GLsizei, buffers: *GLuint);
-    func glGenQueries(n: GLsizei, ids: *GLuint);
-    func glGetBufferParameteriv(target: GLenum, pname: GLenum, params: *GLint);
-    func glGetBufferPointerv(target: GLenum, pname: GLenum, params: **void);
-    func glGetBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data: *void);
-    func glGetQueryObjectiv(id: GLuint, pname: GLenum, params: *GLint);
-    func glGetQueryObjectuiv(id: GLuint, pname: GLenum, params: *GLuint);
-    func glGetQueryiv(target: GLenum, pname: GLenum, params: *GLint);
+    func glGenBuffers(n: GLsizei, buffers: #null *GLuint);
+    func glGenQueries(n: GLsizei, ids: #null *GLuint);
+    func glGetBufferParameteriv(target: GLenum, pname: GLenum, params: #null *GLint);
+    func glGetBufferPointerv(target: GLenum, pname: GLenum, params: #null *#null *void);
+    func glGetBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data: #null *void);
+    func glGetQueryObjectiv(id: GLuint, pname: GLenum, params: #null *GLint);
+    func glGetQueryObjectuiv(id: GLuint, pname: GLenum, params: #null *GLuint);
+    func glGetQueryiv(target: GLenum, pname: GLenum, params: #null *GLint);
     func glIsBuffer(buffer: GLuint)->GLboolean;
     func glIsQuery(id: GLuint)->GLboolean;
-    func glMapBuffer(target: GLenum, access: GLenum)->*void;
+    func glMapBuffer(target: GLenum, access: GLenum)->#null *void;
     func glUnmapBuffer(target: GLenum)->GLboolean;
 }
 

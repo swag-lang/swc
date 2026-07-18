@@ -1,10 +1,11 @@
 #global public
+#global #[Swag.ExplicitNullability]
 
 #[Extension, Swag.PlaceHolder]
 {
     func glFramebufferTexture(target: GLenum, attachment: GLenum, texture: GLuint, level: GLint);
-    func glGetBufferParameteri64v(target: GLenum, value: GLenum, data: *GLint64);
-    func glGetInteger64i_v(pname: GLenum, index: GLuint, data: *GLint64);
+    func glGetBufferParameteri64v(target: GLenum, value: GLenum, data: #null *GLint64);
+    func glGetInteger64i_v(pname: GLenum, index: GLuint, data: #null *GLint64);
 }
 
 const GL_CONTEXT_CORE_PROFILE_BIT             = 0x00000001

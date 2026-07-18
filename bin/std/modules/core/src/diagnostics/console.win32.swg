@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Console
+#global #[Swag.ExplicitNullability]
 using Win32
 
 var g_ColorToWin: [@countof(Color)] u16 = undefined
@@ -76,7 +77,7 @@ public func resetColor()
 }
 
 // Write a formatted message to the console
-public func printf(message: string, params: ...)
+public func printf(message: #null string, params: ...)
     verify
     {
         if !#isconstexpr(message) or !#isconstexpr(params) do

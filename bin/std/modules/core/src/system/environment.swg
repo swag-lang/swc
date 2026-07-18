@@ -1,5 +1,6 @@
 #global public
 #global namespace Env
+#global #[Swag.ExplicitNullability]
 
 // Get the program command line arguments as a [..] string
 func getArgs()->#nonull const [..] #nonull string => @args
@@ -14,13 +15,13 @@ func getArg(idx: u32)->#null string
 }
 
 // Get a given argument, or null
-func hasArg(arg: string)->bool
+func hasArg(arg: #nonull string)->bool
 {
     return Slice.contains(@args, arg)
 }
 
 // Get current executable
-func getExe()->string
+func getExe()->#nonull string
 {
     let args = @args
     if @countof(args) == 0 do
@@ -113,7 +114,7 @@ func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
     return result
 }
 
-private var g_CmdLineArgs: const [..] string
+private var g_CmdLineArgs: #null const [..] #nonull string
 
 enum Metrics
 {

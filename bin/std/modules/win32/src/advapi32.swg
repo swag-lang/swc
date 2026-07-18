@@ -1,10 +1,11 @@
 #global export
+#global #[Swag.ExplicitNullability]
 #foreignlib("advapi32")
 using Swag
 
 alias ACCESS_MASK = DWORD
 alias REGSAM      = ACCESS_MASK
-alias HKEY        = const *void
+alias HKEY        = #null const *void
 alias LSTATUS     = LONG
 
 const HKEY_CLASSES_ROOT                = cast(HKEY) cast(u64) 0x80000000
@@ -47,7 +48,7 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
 
 #[Foreign("advapi32"), Swag.Discardable]
 {
-    func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: #null LPSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS;
+    func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: #null LPSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: #nonull *HKEY, lpdwDisposition: LPDWORD)->LSTATUS;
     func RegSetValueExA(hKey: HKEY, lpValueName: LPCSTR, reserved: DWORD, dwType: DWORD, lpData: #null const *BYTE, cbData: DWORD)->LSTATUS;
     func RegCloseKey(hKey: HKEY)->LSTATUS;
 }

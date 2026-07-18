@@ -4,9 +4,10 @@
 #global #[Swag.ExplicitNullability]
 using Win32
 
-private func threadEntry(param: #nonull *void)->DWORD
+private func threadEntry(param: #null *void)->DWORD
 {
-    let th = cast(#nonull *Thread) param
+    let safeParam = param orelse cast(#nonull *void) 1'u64
+    let th = cast(#nonull *Thread) safeParam
     @setcontext(th.context)
     let lambda = th.userLambda
     if !lambda do

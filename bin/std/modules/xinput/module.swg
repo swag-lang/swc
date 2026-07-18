@@ -1,5 +1,6 @@
 // Wrapper for Microsoft DirectX Input.
 
+#global #[Swag.ExplicitNullability]
 #import("win32")
 
 #run

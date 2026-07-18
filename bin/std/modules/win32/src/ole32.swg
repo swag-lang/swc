@@ -1,4 +1,5 @@
 #global export
+#global #[Swag.ExplicitNullability]
 #foreignlib("ole32")
 using Swag
 

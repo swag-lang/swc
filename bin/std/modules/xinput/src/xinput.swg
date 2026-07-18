@@ -1,4 +1,5 @@
 #global export
+#global #[Swag.ExplicitNullability]
 #foreignlib("xinput")
 
 using Swag, Win32
@@ -43,6 +44,6 @@ struct XINPUT_VIBRATION
 
 #[Foreign(module: "xinput1_4", link: "xinput")]
 {
-    func XInputGetState(dwUserIndex: DWORD, pState: *XINPUT_STATE)->DWORD;
-    func XInputSetState(dwUserIndex: DWORD, pVibration: *XINPUT_VIBRATION)->DWORD;
+    func XInputGetState(dwUserIndex: DWORD, pState: #nonull *XINPUT_STATE)->DWORD;
+    func XInputSetState(dwUserIndex: DWORD, pVibration: #nonull *XINPUT_VIBRATION)->DWORD;
 }

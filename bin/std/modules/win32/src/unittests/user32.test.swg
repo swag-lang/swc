@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 using Swag
 
 private func makeWheelWParam(delta: u32)->u64

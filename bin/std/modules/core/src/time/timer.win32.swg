@@ -3,9 +3,10 @@
 #global namespace Time
 using Win32
 
-private func timerEntry(param: *void, _timerOrWaitFired: BOOL)
+private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
 {
-    let t = cast(*Timer) param
+    let safeParam = param orelse cast(#nonull *void) 1'u64
+    let t = cast(#nonull *Timer) safeParam
     if !@getcontext() do
         @setcontext(t.context)
     t.userLambda(dref t)

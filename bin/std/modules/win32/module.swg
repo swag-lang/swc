@@ -1,6 +1,7 @@
 // Wrappers for Microsoft Windows Sdk Libraries.
 // 10.0.19041.0
 
+#global #[Swag.ExplicitNullability]
 #run
 {
     let itf = @compiler

@@ -1,5 +1,6 @@
 // Wrapper for Microsoft GDI+ library.
 
+#global #[Swag.ExplicitNullability]
 #import("win32")
 
 #run

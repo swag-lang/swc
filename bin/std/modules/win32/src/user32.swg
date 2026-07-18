@@ -1,17 +1,18 @@
 #global export
+#global #[Swag.ExplicitNullability]
 #foreignlib("user32")
 using Swag
 
 #[Swag.Strict]
 {
-    alias HWND     = const *void
-    alias HMENU    = const *void
-    alias HICON    = const *void
-    alias HBITMAP  = const *void
-    alias HCURSOR  = const *void
-    alias HBRUSH   = const *void
-    alias HDC      = const *void
-    alias HMONITOR = const *void
+    alias HWND     = #null const *void
+    alias HMENU    = #null const *void
+    alias HICON    = #null const *void
+    alias HBITMAP  = #null const *void
+    alias HCURSOR  = #null const *void
+    alias HBRUSH   = #null const *void
+    alias HDC      = #null const *void
+    alias HMONITOR = #null const *void
 }
 
 alias WPARAM   = u64
@@ -264,7 +265,7 @@ const IDTIMEOUT  = 32000
 struct WNDCLASSA
 {
     style:             UINT
-    lpfnWndProc:       const *void
+    lpfnWndProc:       #null const *void
     cbClsExtra:        s32
     cbWndExtra:        s32
     hInstance:         HINSTANCE
@@ -278,7 +279,7 @@ struct WNDCLASSA
 struct WNDCLASSW
 {
     style:             UINT
-    lpfnWndProc:       const *void
+    lpfnWndProc:       #null const *void
     cbClsExtra:        s32
     cbWndExtra:        s32
     hInstance:         HINSTANCE
@@ -983,7 +984,7 @@ const DI_COMPAT      = 0x0004
 const DI_DEFAULTSIZE = 0x0008
 const DI_NOMIRROR    = 0x0010
 
-alias DPI_AWARENESS_CONTEXT = *void
+alias DPI_AWARENESS_CONTEXT = #null *void
 const DPI_AWARENESS_CONTEXT_UNAWARE              = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -1's64
 const DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -2's64
 const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -3's64
@@ -1013,7 +1014,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 #[Foreign("user32")]
 {
     func GetAsyncKeyState(vKey: s32)->SHORT;
-    func GetKeyboardState(lpKeystate: *u8)->BOOL;
+    func GetKeyboardState(lpKeystate: #nonull *u8)->BOOL;
     func SetCursorPos(x, y: s32);
     func ShowCursor(show: BOOL);
     func LoadCursorA(hInstance: HINSTANCE, lpCursorName: LPCSTR)->HCURSOR;
@@ -1023,16 +1024,16 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func CreateWindowExW(dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR, dwStyle: DWORD, X: s32, Y: s32, nWidth: s32, nHeight: s32, hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID)->HWND;
     func DefWindowProcA(hwnd: HWND, uMsg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT;
     func DefWindowProcW(hwnd: HWND, uMsg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT;
-    func GetMessageA(lpMsg: *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT)->BOOL;
-    func GetMessageW(lpMsg: *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT)->BOOL;
-    func PeekMessageA(lpMsg: *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT)->BOOL;
-    func PeekMessageW(lpMsg: *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT)->BOOL;
+    func GetMessageA(lpMsg: #nonull *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT)->BOOL;
+    func GetMessageW(lpMsg: #nonull *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT)->BOOL;
+    func PeekMessageA(lpMsg: #nonull *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT)->BOOL;
+    func PeekMessageW(lpMsg: #nonull *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT)->BOOL;
     func PostQuitMessage(nExitCode: s32);
     func SendMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT;
     func SendMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT;
 
-    func GetWindowLongPtrA(hWnd: HWND, nIndex: s32)->*LONG;
-    func GetWindowLongPtrW(hWnd: HWND, nIndex: s32)->*LONG;
+    func GetWindowLongPtrA(hWnd: HWND, nIndex: s32)->#null *LONG;
+    func GetWindowLongPtrW(hWnd: HWND, nIndex: s32)->#null *LONG;
     func WindowFromPoint(pt: POINT)->HWND;
     func ChildWindowFromPoint(hWnd: HWND, pt: POINT)->HWND;
     func ChildWindowFromPointEx(hwnd: HWND, pt: POINT, flags: UINT)->HWND;
@@ -1050,7 +1051,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 
     func MapVirtualKeyA(uCode: UINT, uMapType: UINT)->UINT;
     func MapVirtualKeyW(uCode: UINT, uMapType: UINT)->UINT;
-    func ToUnicode(wVirtKey, wScanCode: UINT, lpKeyState: const *BYTE, pwszBuff: LPWSTR, cchBuff: s32, wFlags: UINT)->s32;
+    func ToUnicode(wVirtKey, wScanCode: UINT, lpKeyState: #nonull const *BYTE, pwszBuff: LPWSTR, cchBuff: s32, wFlags: UINT)->s32;
 
     func OpenClipboard(hWndNewOwner: HWND)->BOOL;
     func CloseClipboard()->BOOL;
@@ -1068,13 +1069,13 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 
 #[Foreign("user32"), Discardable]
 {
-    func GetCursorPos(lpPoint: *POINT)->BOOL;
-    func GetCursorInfo(pci: *CURSORINFO)->BOOL;
+    func GetCursorPos(lpPoint: #nonull *POINT)->BOOL;
+    func GetCursorInfo(pci: #nonull *CURSORINFO)->BOOL;
     func DrawIconEx(hdc: HDC, xLeft, yTop: s32, hIcon: HICON, cxWidth, cyWidth: s32, istepIfAniCur: UINT, hbrFlickerFreeDraw: HBRUSH, diFlags: UINT)->BOOL;
 
-    func FillRect(hDC: HDC, lprc: const *RECT, hbr: HBRUSH)->s32;
-    func GetClientRect(hWnd: HWND, lpRect: *RECT)->BOOL;
-    func GetWindowRect(hWnd: HWND, lpRect: *RECT)->BOOL;
+    func FillRect(hDC: HDC, lprc: #nonull const *RECT, hbr: HBRUSH)->s32;
+    func GetClientRect(hWnd: HWND, lpRect: #nonull *RECT)->BOOL;
+    func GetWindowRect(hWnd: HWND, lpRect: #nonull *RECT)->BOOL;
     func GetWindowTextA(hWnd: HWND, lpString: LPSTR, nMaxCount: s32)->s32;
     func GetWindowTextW(hWnd: HWND, lpString: LPWSTR, nMaxCount: s32)->s32;
     func GetClassNameA(hWnd: HWND, lpClassName: LPSTR, nMaxCount: s32)->s32;
@@ -1090,21 +1091,21 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func SetFocus(hWnd: HWND)->HWND;
     func SetActiveWindow(hWnd: HWND)->HWND;
 
-    func BeginPaint(hWnd: HWND, lpPaint: *PAINTSTRUCT)->HDC;
-    func EndPaint(hWnd: HWND, lpPaint: const *PAINTSTRUCT)->BOOL;
+    func BeginPaint(hWnd: HWND, lpPaint: #nonull *PAINTSTRUCT)->HDC;
+    func EndPaint(hWnd: HWND, lpPaint: #nonull const *PAINTSTRUCT)->BOOL;
     func ReleaseDC(hWnd: HWND, hDC: HDC)->s32;
     func InvalidateRect(hWnd: HWND, lpRect: #null const *RECT, bErase: BOOL)->BOOL;
 
-    func ScreenToClient(hWnd: HWND, lpPoint: *POINT)->BOOL;
-    func ClientToScreen(hWnd: HWND, lpPoint: *POINT)->BOOL;
+    func ScreenToClient(hWnd: HWND, lpPoint: #nonull *POINT)->BOOL;
+    func ClientToScreen(hWnd: HWND, lpPoint: #nonull *POINT)->BOOL;
     func BringWindowToTop(hWnd: HWND)->BOOL;
 
-    func TranslateMessage(lpMsg: const *MSG)->BOOL;
-    func DispatchMessageA(lpMsg: const *MSG)->LRESULT;
-    func DispatchMessageW(lpMsg: const *MSG)->LRESULT;
+    func TranslateMessage(lpMsg: #nonull const *MSG)->BOOL;
+    func DispatchMessageA(lpMsg: #nonull const *MSG)->LRESULT;
+    func DispatchMessageW(lpMsg: #nonull const *MSG)->LRESULT;
 
-    func SetWindowLongPtrA(hWnd: HWND, nIndex: s32, dwNewLong: *LONG)->*LONG;
-    func SetWindowLongPtrW(hWnd: HWND, nIndex: s32, dwNewLong: *LONG)->*LONG;
+    func SetWindowLongPtrA(hWnd: HWND, nIndex: s32, dwNewLong: #null *LONG)->#null *LONG;
+    func SetWindowLongPtrW(hWnd: HWND, nIndex: s32, dwNewLong: #null *LONG)->#null *LONG;
 
     func EnumDisplayMonitors(hdc: HDC, lprcClip: #null *RECT, lpfnEnum: MONITORENUMPROC, dwData: LPARAM)->BOOL;
     func EnumWindows(lpEnumFunc: WNDENUMPROC, lParam: LPARAM)->BOOL;
@@ -1126,15 +1127,15 @@ internal namespace User32Priv
 
         func SetLayeredWindowAttributes(hwnd: HWND, crKey: COLORREF, bAlpha: BYTE, dwFlags: DWORD)->BOOL;
 
-        func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: *MONITORINFO)->BOOL;
-        func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: *MONITORINFO)->BOOL;
+        func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: #nonull *MONITORINFO)->BOOL;
+        func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: #nonull *MONITORINFO)->BOOL;
 
         func RegisterClipboardFormatA(lpszFormat: LPCSTR)->UINT;
         func RegisterClipboardFormatW(lpszFormat: LPCWSTR)->UINT;
 
         func DestroyIcon(hIcon: HICON)->BOOL;
-        func GetIconInfo(hIcon: HICON, piconinfo: *ICONINFO)->BOOL;
-        func CreateIconIndirect(piconinfo: *ICONINFO)->HICON;
+        func GetIconInfo(hIcon: HICON, piconinfo: #nonull *ICONINFO)->BOOL;
+        func CreateIconIndirect(piconinfo: #nonull *ICONINFO)->HICON;
 
         func RegisterHotKey(hWnd: HWND, id: s32, fsModifiers: UINT, vk: UINT)->BOOL;
         func UnregisterHotKey(hWnd: HWND, id: s32)->BOOL;
@@ -1215,14 +1216,14 @@ internal namespace User32Priv
             throwWinError(GetLastError())
     }
 
-    func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: *MONITORINFO) throw
+    func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: #nonull *MONITORINFO) throw
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
         if !User32Priv.GetMonitorInfoA(hMonitor, lpmi) do
             throwWinError(GetLastError())
     }
 
-    func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: *MONITORINFO) throw
+    func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: #nonull *MONITORINFO) throw
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
         if !User32Priv.GetMonitorInfoW(hMonitor, lpmi) do
@@ -1251,13 +1252,13 @@ internal namespace User32Priv
             throwWinError(GetLastError())
     }
 
-    func GetIconInfo(hIcon: HICON, piconinfo: *ICONINFO) throw
+    func GetIconInfo(hIcon: HICON, piconinfo: #nonull *ICONINFO) throw
     {
         if !User32Priv.GetIconInfo(hIcon, piconinfo) do
             throwWinError(GetLastError())
     }
 
-    func CreateIconIndirect(piconinfo: *ICONINFO)->HICON throw
+    func CreateIconIndirect(piconinfo: #nonull *ICONINFO)->HICON throw
     {
         let h = User32Priv.CreateIconIndirect(piconinfo)
         if !h do

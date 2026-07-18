@@ -1,9 +1,10 @@
 #global export
+#global #[Swag.ExplicitNullability]
 #foreignlib("shell32")
 using Swag
 
-alias SHSTDAPI = *void
-alias HRESULT  = *void
+alias SHSTDAPI = #null *void
+alias HRESULT  = #null *void
 
 const S_OK = cast(HRESULT) null
 
@@ -305,8 +306,8 @@ internal namespace Shell32Priv
         func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT;
         func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT;
         func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO)->SHSTDAPI;
-        func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL;
-        func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL;
+        func Shell_NotifyIconA(dwMessage: DWORD, lpData: #nonull *NOTIFYICONDATAA)->BOOL;
+        func Shell_NotifyIconW(dwMessage: DWORD, lpData: #nonull *NOTIFYICONDATAW)->BOOL;
         func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE;
         func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE;
     }
@@ -314,8 +315,8 @@ internal namespace Shell32Priv
 
 #[Foreign("shell32")]
 {
-    func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR;
-    func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR;
+    func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: #nonull *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR;
+    func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: #nonull *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR;
 }
 
 #[Inline]
@@ -356,13 +357,13 @@ internal namespace Shell32Priv
             throwWinError(GetLastError())
     }
 
-    func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) throw
+    func Shell_NotifyIconA(dwMessage: DWORD, lpData: #nonull *NOTIFYICONDATAA) throw
     {
         if !Shell32Priv.Shell_NotifyIconA(dwMessage, lpData) do
             throwWinError(GetLastError())
     }
 
-    func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW) throw
+    func Shell_NotifyIconW(dwMessage: DWORD, lpData: #nonull *NOTIFYICONDATAW) throw
     {
         if !Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
             throwWinError(GetLastError())

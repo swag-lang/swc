@@ -300,7 +300,7 @@ public struct WindowOptions
 
 public struct Window
 {
-    nativeHandle:      #null HWND
+    nativeHandle:      HWND
     callbacks:         WindowCallbacks
     showCommand:       s32 = SW_SHOW
 }
@@ -321,9 +321,10 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     if msg == WM_CREATE
     {
         let createStruct = cast(#nonull *CREATESTRUCTA) cast(u64) lParam
-        SetWindowLongPtrA(hWnd, GWLP_USERDATA, createStruct.lpCreateParams)
+        let createParam = createStruct.lpCreateParams orelse cast(#nonull *void) 1'u64
+        SetWindowLongPtrA(hWnd, GWLP_USERDATA, createParam)
 
-        let window = cast(#nonull *Window) createStruct.lpCreateParams
+        let window = cast(#nonull *Window) createParam
         window.nativeHandle = hWnd
     }
 

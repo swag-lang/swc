@@ -1,4 +1,5 @@
 #global export
+#global #[Swag.ExplicitNullability]
 
 const ERROR_FILE_NOT_FOUND       = 2
 const ERROR_NO_MORE_FILES        = 18

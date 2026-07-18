@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 public enum OutlineCommandKind
@@ -20,9 +21,9 @@ public struct Outline
 {
     contourCount:     s16
     pointCount:       s16
-    points:           [*] Vector
-    tags:             [*] u8
-    contours:         [*] s16
+    points:           #null [*] Vector
+    tags:             #null [*] u8
+    contours:         #null [*] s16
     flags:            s32
 }
 
@@ -33,10 +34,11 @@ public impl Outline
         if .pointCount <= 0 do
             return
 
+        let points = .points orelse cast(#nonull [*] Vector) 1'u64
         for cast(u32) .pointCount
         {
-            .points[@index].x += xOffset
-            .points[@index].y += yOffset
+            points[@index].x += xOffset
+            points[@index].y += yOffset
         }
     }
 
@@ -45,11 +47,12 @@ public impl Outline
         if .pointCount <= 0 do
             return
 
+        let points = .points orelse cast(#nonull [*] Vector) 1'u64
         for cast(u32) .pointCount
         {
-            let pt = .points[@index]
-            .points[@index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
-            .points[@index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
+            let pt = points[@index]
+            points[@index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
+            points[@index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
         }
     }
 
@@ -72,10 +75,12 @@ public impl Outline
         let perSide = cast(f64) strength * 0.5
 
         var start = 0'u32
+        let points   = .points orelse cast(#nonull [*] Vector) 1'u64
+        let contours = .contours orelse cast(#nonull [*] s16) 1'u64
         for cast(u32) .contourCount
         {
-            let endIdx = cast(u32) .contours[@index]
-            let slice  = @mkslice(.points + start, endIdx - start + 1)
+            let endIdx = cast(u32) contours[@index]
+            let slice  = @mkslice(points + start, endIdx - start + 1)
             applyEmboldenToContour(slice, perSide, ccw)
             start = endIdx + 1
         }
@@ -102,20 +107,23 @@ func isOnCurve(tag: u8)->bool
     return (tag & CURVE_TAG_ON) != 0
 }
 
-func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
+func buildOutlineCommands(outline: #null const *Outline)->Array'OutlineCommand
 {
     var commands: Array'OutlineCommand
     if !outline or outline.contourCount <= 0 or outline.pointCount <= 0 do
         return commands
 
     var contourStart = 0'u32
+    let points   = cast(#nonull const [*] Vector) (outline.points orelse cast(#nonull [*] Vector) 1'u64)
+    let tags     = cast(#nonull const [*] u8) (outline.tags orelse cast(#nonull [*] u8) 1'u64)
+    let contours = cast(#nonull const [*] s16) (outline.contours orelse cast(#nonull [*] s16) 1'u64)
     for cast(u32) outline.contourCount
     {
-        let contourEnd = cast(u32) outline.contours[@index]
-        let first      = outline.points[contourStart]
-        let last       = outline.points[contourEnd]
-        let firstOn    = isOnCurve(outline.tags[contourStart])
-        let lastOn     = isOnCurve(outline.tags[contourEnd])
+        let contourEnd = cast(u32) contours[@index]
+        let first      = points[contourStart]
+        let last       = points[contourEnd]
+        let firstOn    = isOnCurve(tags[contourStart])
+        let lastOn     = isOnCurve(tags[contourEnd])
 
         var startPoint: Vector
         var current: Vector
@@ -137,8 +145,8 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
 
         while idx <= contourEnd
         {
-            let point = outline.points[idx]
-            if isOnCurve(outline.tags[idx])
+            let point = points[idx]
+            if isOnCurve(tags[idx])
             {
                 commands.add(OutlineCommand{kind: .LineTo, p0: point})
                 current = point
@@ -147,8 +155,8 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             }
 
             let nextIdx = idx == contourEnd ? contourStart : idx + 1
-            let nextPt  = outline.points[nextIdx]
-            if isOnCurve(outline.tags[nextIdx])
+            let nextPt  = points[nextIdx]
+            if isOnCurve(tags[nextIdx])
             {
                 commands.add(OutlineCommand{kind: .ConicTo, p0: point, p1: nextPt})
                 current = nextPt
@@ -172,7 +180,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
     return commands
 }
 
-func contourSignedArea(points: [..] Vector)->f64
+func contourSignedArea(points: #nonull const [..] Vector)->f64
 {
     if @countof(points) < 3 do
         return 0
@@ -191,17 +199,19 @@ func contourSignedArea(points: [..] Vector)->f64
 // Sum the signed area of every contour. For a well-formed glyph the outer
 // contour dominates, so the sign gives the glyph orientation; the magnitude is
 // the net filled area (outer minus holes).
-func totalOutlineSignedArea(outline: const *Outline)->f64
+func totalOutlineSignedArea(outline: #nonull const *Outline)->f64
 {
     if outline.pointCount <= 0 or outline.contourCount <= 0 do
         return 0
 
     var total = 0.0'f64
     var start = 0'u32
+    let points   = cast(#nonull const [*] Vector) (outline.points orelse cast(#nonull [*] Vector) 1'u64)
+    let contours = cast(#nonull const [*] s16) (outline.contours orelse cast(#nonull [*] s16) 1'u64)
     for cast(u32) outline.contourCount
     {
-        let endIdx = cast(u32) outline.contours[@index]
-        let slice  = @mkslice(outline.points + start, endIdx - start + 1)
+        let endIdx = cast(u32) contours[@index]
+        let slice  = @mkslice(points + start, endIdx - start + 1)
         total += contourSignedArea(slice)
         start = endIdx + 1
     }
@@ -209,7 +219,7 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
     return total
 }
 
-func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
+func applyEmboldenToContour(points: #nonull [..] Vector, strength: f64, ccw: bool)
 {
     if @countof(points) < 2 or Math.isZeroEpsilon(cast(f32) strength) do
         return

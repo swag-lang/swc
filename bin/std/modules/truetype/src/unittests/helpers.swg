@@ -28,7 +28,7 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
 struct FaceScope
 {
     bytes:       Array'u8
-    face:        *Face
+    face:        #null *Face
 }
 
 impl FaceScope
@@ -52,9 +52,10 @@ impl FaceScope
     }
 }
 
-func getFaceData(face: *Face)->*FaceImpl
+func getFaceData(face: #null *Face)->#nonull *FaceImpl
 {
-    return cast(*FaceImpl) cast(*void) face
+    let safeFace = face orelse cast(#nonull *Face) 1'u64
+    return cast(#nonull *FaceImpl) cast(#nonull *void) safeFace
 }
 
 func getOutlineBounds(outline: const *Outline)->BBox

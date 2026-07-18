@@ -28,15 +28,15 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
 #test
 {
-    discard catch Face.load(BrokenFontBytes)
+    let badFace0: #null *Face = catch Face.load(BrokenFontBytes)
     @assert(@err != null)
 
     var empty: Array'u8
-    discard catch Face.load(empty.toSlice())
+    let badFace1: #null *Face = catch Face.load(empty.toSlice())
     @assert(@err != null)
 
     let bytes = loadFontBytes()
-    discard catch Face.load(bytes.toSlice(), 1)
+    let badFace2: #null *Face = catch Face.load(bytes.toSlice(), 1)
     @assert(@err != null)
 }
 

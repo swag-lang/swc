@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 public enum PixelMode
@@ -18,7 +19,7 @@ public struct Bitmap
     rows:             u32
     width:            u32
     pitch:            s32
-    buffer:           [*] u8
+    buffer:           #null [*] u8
     grayCount:        u16
     pixelMode:        PixelMode
 }

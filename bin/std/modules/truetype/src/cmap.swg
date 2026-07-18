@@ -1,6 +1,7 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
-func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32 throw
+func lookupCMap4(cmap: #null const [..] u8, charCode: u32)->u32 throw
 {
     if charCode > 0xFFFF do
         return 0
@@ -49,7 +50,7 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32 throw
     return glyph
 }
 
-func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32 throw
+func lookupCMap12(cmap: #null const [..] u8, charCode: u32)->u32 throw
 {
     let numGroups = readU32(cmap, 12)
     var left      = 0'u32
@@ -79,12 +80,13 @@ func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32 throw
     return 0
 }
 
-func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 throw
+func lookupGlyphIndex(faceData: #nonull *FaceImpl, charCode: u32)->u32 throw
 {
+    let cmap = faceData.chosenCMap
     if faceData.cmapFormat == 4 do
-        return lookupCMap4(faceData.chosenCMap, charCode)
+        return lookupCMap4(cmap, charCode)
     if faceData.cmapFormat == 12 do
-        return lookupCMap12(faceData.chosenCMap, charCode)
+        return lookupCMap12(cmap, charCode)
     fail(0x96)
     return 0
 }

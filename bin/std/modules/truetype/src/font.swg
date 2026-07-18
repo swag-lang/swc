@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 #[ConstExpr]
@@ -38,7 +39,7 @@ struct FaceImpl
     tables:              Array'TableRecord
     glyphMetrics:        Array'GlyphMetric
     glyphLocations:      Array'u32
-    chosenCMap:          const [..] u8
+    chosenCMap:          #null const [..] u8
     cmapFormat:          u16
     unitsPerEm:          u16
     numLongMetrics:      u16
@@ -76,24 +77,25 @@ impl FaceImpl
     }
 }
 
-func getFaceImpl(face: *Face)->*FaceImpl throw
+func getFaceImpl(face: #null *Face)->#nonull *FaceImpl throw
 {
     if !face do
         fail(0x23)
-    let faceData = cast(*FaceImpl) cast(*void) face
+    let safeFace = face orelse cast(#nonull *Face) 1'u64
+    let faceData = cast(#nonull *FaceImpl) cast(#nonull *void) safeFace
     if !faceData do
         fail(0x23)
     return faceData
 }
 
-func getSlotImpl(slot: *GlyphSlot)->*FaceImpl throw
+func getSlotImpl(slot: #null *GlyphSlot)->#nonull *FaceImpl throw
 {
     if !slot do
         fail(0x25)
     return getFaceImpl(slot.face)
 }
 
-func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord
+func findTable(faceData: #nonull *FaceImpl, tag: u32)->#null const *TableRecord
 {
     for it in faceData.tables
     {
@@ -104,7 +106,7 @@ func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord
     return null
 }
 
-func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8 throw
+func getTableSlice(faceData: #nonull *FaceImpl, tag: u32, missingCode: u8)->#null const [..] u8 throw
 {
     let rec = findTable(faceData, tag)
     if !rec do

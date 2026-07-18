@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 public enum GlyphFormat
@@ -23,7 +24,7 @@ public struct GlyphMetrics
 
 public struct GlyphSlot
 {
-    face:                   *Face
+    face:                   #null *Face
     index:                  u32
     metrics:                GlyphMetrics
     linearHorizontalAdvance: s32
@@ -45,14 +46,15 @@ public impl GlyphSlot
         if .outline.pointCount <= 0 do
             return
 
+        let points = .outline.points orelse cast(#nonull [*] Vector) 1'u64
         for cast(u32) .outline.pointCount do
-            .outline.points[@index].x += cast(s32) Math.round(.outline.points[@index].y * 0.21256)
+            points[@index].x += cast(s32) Math.round(points[@index].y * 0.21256)
 
         updateSlotMetrics(me)
     }
 }
 
-func clearOutline(slot: *GlyphSlot)
+func clearOutline(slot: #nonull *GlyphSlot)
 {
     slot.outline.contourCount = 0
     slot.outline.pointCount   = 0
@@ -62,7 +64,7 @@ func clearOutline(slot: *GlyphSlot)
     slot.outline.flags      = 0
 }
 
-func clearBitmap(slot: *GlyphSlot)
+func clearBitmap(slot: #nonull *GlyphSlot)
 {
     slot.bitmap.rows         = 0
     slot.bitmap.width        = 0
@@ -74,7 +76,7 @@ func clearBitmap(slot: *GlyphSlot)
     slot.bitmapTop          = 0
 }
 
-func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
+func computeOutlineBounds(outline: #null const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
 {
     var result: retval
     if !outline or outline.pointCount <= 0 do
@@ -85,9 +87,10 @@ func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX
     result.maxX = Swag.S32.Min
     result.maxY = Swag.S32.Min
 
+    let points = cast(#nonull const [*] Vector) (outline.points orelse cast(#nonull [*] Vector) 1'u64)
     for cast(u32) outline.pointCount
     {
-        let pt = outline.points[@index]
+        let pt = points[@index]
         result.minX = Math.min(result.minX, pt.x)
         result.minY = Math.min(result.minY, pt.y)
         result.maxX = Math.max(result.maxX, pt.x)
@@ -97,7 +100,7 @@ func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX
     return result
 }
 
-func updateSlotMetrics(slot: *GlyphSlot)
+func updateSlotMetrics(slot: #nonull *GlyphSlot)
 {
     let bounds = computeOutlineBounds(&slot.outline)
     if slot.outline.pointCount <= 0

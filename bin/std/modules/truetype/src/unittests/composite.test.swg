@@ -10,7 +10,7 @@ using Swag, Core
     @assert(glyphIndex > 0)
 
     let faceData = getFaceData(scope.face)
-    let glyf = catch getTableSlice(faceData, TAG_GLYF, 0x10)
+    let glyf: #null const [..] u8 = catch getTableSlice(faceData, TAG_GLYF, 0x10)
     @assert(@err == null)
 
     let glyphStart = faceData.glyphLocations[glyphIndex]

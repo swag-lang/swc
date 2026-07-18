@@ -1,10 +1,11 @@
 #global public
+#global #[Swag.ExplicitNullability]
 
 // Represents a single memory block (a bucket) within a ConcatBuffer.
 struct ConcatBufferBucket
 {
-    datas:           [*] u8                  // Pointer to the raw memory of the bucket.
-    next:            *ConcatBufferBucket     // Pointer to the next bucket in the chain.
+    datas:           #null [*] u8            // Pointer to the raw memory of the bucket.
+    next:            #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
     count:           u64                     // Number of bytes used in this bucket.
     size:            u64                     // Total allocated size of this bucket in bytes.
     countBefore:     u64                     // Total number of bytes in all preceding buckets.
@@ -14,8 +15,8 @@ struct ConcatBufferBucket
 // It holds both the bucket and the specific pointer within that bucket.
 struct ConcatBufferSeek
 {
-    bucket:     *ConcatBufferBucket     // The bucket where the position is located.
-    sp:         [*] u8                  // The exact memory address of the position.
+    bucket:     #null *ConcatBufferBucket     // The bucket where the position is located.
+    sp:         #null [*] u8                  // The exact memory address of the position.
 }
 
 // Represents a growable buffer that is divided into buckets (chunks of memory).
@@ -25,10 +26,10 @@ struct ConcatBuffer
 {
     allocator:           Swag.IAllocator         // The allocator to use for all memory operations.
 
-    firstBucket:         *ConcatBufferBucket     // The first bucket in the chain.
-    curBucket:           *ConcatBufferBucket     // The bucket where the current seek pointer is located.
-    lastBucket:          *ConcatBufferBucket     // The last bucket in the chain.
-    currentSP:           [*] u8                  // The current read/write pointer in the `curBucket`.
+    firstBucket:         #null *ConcatBufferBucket     // The first bucket in the chain.
+    curBucket:           #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
+    lastBucket:          #null *ConcatBufferBucket     // The last bucket in the chain.
+    currentSP:           #null [*] u8                  // The current read/write pointer in the `curBucket`.
     granularity:         u64 = 1024              // The default size for newly allocated buckets.
     isAtEnd:             bool = true             // 'true' if the seek pointer is at the very end of the buffer.
     viewFirstBucket:     ConcatBufferBucket      // A pre-allocated bucket used for views, to avoid a separate allocation.
@@ -56,15 +57,17 @@ impl ConcatBuffer
     {
         if !.firstBucket do
             return
+        let firstBucket = .firstBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+        let lastBucket  = .lastBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
 
         #if back
         {
-            var tail = .lastBucket.next
-            while tail != .firstBucket
+            var tail = lastBucket.next
+            while tail != firstBucket
             {
-                var reverseBucket = .firstBucket
+                var reverseBucket = firstBucket
                 while reverseBucket.next != tail do
-                    reverseBucket = reverseBucket.next
+                    reverseBucket = reverseBucket.next orelse cast(#nonull *ConcatBufferBucket) 1'u64
 
                 #inject(stmt, bucket = reverseBucket)
 
@@ -75,11 +78,12 @@ impl ConcatBuffer
         }
 
         var b = .firstBucket
-        while b != .lastBucket.next
+        while b != lastBucket.next
         {
-            #inject(stmt, bucket = b)
+            let bucket = b orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            #inject(stmt, bucket = bucket)
 
-            b = b.next
+            b = bucket.next
         }
     }
 
@@ -97,20 +101,25 @@ impl ConcatBuffer
 
         if .lastBucket
         {
+            let lastBucket = .lastBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            let currentSP  = .currentSP orelse cast(#nonull [*] u8) 1'u64
+            let datas      = lastBucket.datas orelse cast(#nonull [*] u8) 1'u64
+
             // Enough room in the last bucket
-            let seek = cast(u64) (.currentSP - .lastBucket.datas)
-            if seek + numBytes <= .lastBucket.size do
+            let seek = cast(u64) (currentSP - datas)
+            if seek + numBytes <= lastBucket.size do
                 return
 
             // Not enough room in the last bucket, but with have a bucket after that
             // can old the bytes (because of a previous clear())
-            if .lastBucket.next and numBytes <= .lastBucket.next.size
+            if lastBucket.next and numBytes <= lastBucket.next.size
             {
-                .lastBucket.next.countBefore = .lastBucket.countBefore + .lastBucket.count
-                .lastBucket.next.count       = 0
+                let nextBucket = lastBucket.next orelse cast(#nonull *ConcatBufferBucket) 1'u64
+                nextBucket.countBefore = lastBucket.countBefore + lastBucket.count
+                nextBucket.count       = 0
 
-                .curBucket, .lastBucket = .lastBucket.next
-                .currentSP = .curBucket.datas
+                .curBucket, .lastBucket = nextBucket
+                .currentSP = nextBucket.datas
                 return
             }
         }
@@ -122,8 +131,9 @@ impl ConcatBuffer
 
         if .lastBucket
         {
-            newBucket.next   = .lastBucket.next
-            .lastBucket.next = newBucket
+            let lastBucket = .lastBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            newBucket.next   = lastBucket.next
+            lastBucket.next = newBucket
         }
         else do
             .firstBucket = newBucket
@@ -137,9 +147,10 @@ impl ConcatBuffer
         .curBucket, .lastBucket = newBucket
 
         let bsize = Math.max(.granularity, numBytes)
-        .lastBucket.datas = Memory.alloc(bsize, .allocator)
-        .lastBucket.size  = bsize
-        .currentSP        = .lastBucket.datas
+        let lastBucket = .lastBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+        lastBucket.datas = Memory.alloc(bsize, .allocator)
+        lastBucket.size  = bsize
+        .currentSP       = lastBucket.datas
     }
 
     // Associates a specific allocator with the buffer.
@@ -166,10 +177,11 @@ impl ConcatBuffer
         var ptr = .firstBucket
         while ptr
         {
-            let nextPtr = ptr.next
-            Memory.free(ptr.datas, ptr.size, .allocator)
-            if ptr != &.viewFirstBucket do
-                Memory.free(ptr, #sizeof(ConcatBufferBucket), .allocator)
+            let bucket  = ptr orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            let nextPtr = bucket.next
+            Memory.free(bucket.datas, bucket.size, .allocator)
+            if bucket != &.viewFirstBucket do
+                Memory.free(bucket, #sizeof(ConcatBufferBucket), .allocator)
             ptr = nextPtr
         }
 
@@ -184,9 +196,10 @@ impl ConcatBuffer
         if !.firstBucket do
             return
 
-        .curBucket, .lastBucket = .firstBucket
-        .currentSP = .curBucket.datas
-        .curBucket.countBefore, .curBucket.count = 0
+        let firstBucket = .firstBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+        .curBucket, .lastBucket = firstBucket
+        .currentSP = firstBucket.datas
+        firstBucket.countBefore, firstBucket.count = 0
         .isAtEnd = true
     }
 
@@ -195,25 +208,31 @@ impl ConcatBuffer
     {
         if !.isAtEnd
         {
+            let curBucket = .curBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            let currentSP = .currentSP orelse cast(#nonull [*] u8) 1'u64
+            let datas     = curBucket.datas orelse cast(#nonull [*] u8) 1'u64
+
             // If not enough room in the current bucket, then we
             // have to split the content with the next bucket
-            if #sizeof(T) > .curBucket.count or
-               .currentSP > .curBucket.datas + .curBucket.count - #sizeof(T)
+            if #sizeof(T) > curBucket.count or
+               currentSP > datas + curBucket.count - #sizeof(T)
             {
                 var v = val
-                .addBytes(@mkslice(cast([*] u8) &v, #sizeof(T)), false)
+                .addBytes(@mkslice(cast(#nonull [*] u8) &v, #sizeof(T)), false)
                 return
             }
 
-            dref cast(*T) .currentSP = val
+            dref cast(#nonull *T) currentSP = val
             .currentSP += #sizeof(T)
         }
         else
         {
             .grow(#sizeof(T))
-            dref cast(*T) .currentSP = val
+            let curBucket = .curBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            let currentSP = .currentSP orelse cast(#nonull [*] u8) 1'u64
+            dref cast(#nonull *T) currentSP = val
             .currentSP += #sizeof(T)
-            .curBucket.count += #sizeof(T)
+            curBucket.count += #sizeof(T)
         }
     }
 
@@ -221,7 +240,7 @@ impl ConcatBuffer
     #[Swag.Inline]
     mtd(T) addStruct(val: T)
     {
-        .addBytes(@mkslice(cast(const [*] u8) &val, #sizeof(T)))
+        .addBytes(@mkslice(cast(#nonull const [*] u8) &val, #sizeof(T)))
     }
 
     // Appends a slice of bytes to the buffer.
@@ -403,13 +422,15 @@ impl ConcatBuffer
     mtd toSlice()->#null [..] u8
     {
         if .lastBucket == .firstBucket do
-            return @mkslice(.firstBucket.datas, .firstBucket.count)
+            let firstBucket = .firstBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+            let datas       = firstBucket.datas orelse cast(#nonull [*] u8) 1'u64
+            return @mkslice(datas, firstBucket.count)
         return null
     }
 
     // Initializes the buffer to use an external, existing slice of data as its first bucket.
     // This is a "view" mode; the buffer does not own or free this data.
-    mtd setFirstBucket(data: [..] u8)
+    mtd setFirstBucket(data: #nonull [..] u8)
     {
         Debug.assert(.firstBucket == null)
         @init(&.viewFirstBucket, 1)
@@ -441,17 +462,18 @@ impl ConcatBuffer
         return result
     }
 
-    private mtd eatBuffer()->{ data: [*] u8, size: u64, capacity: u64 }
+    private mtd eatBuffer()->{ data: #nonull [*] u8, size: u64, capacity: u64 }
     {
         // Must be linear ?
         Debug.assert(.lastBucket == .firstBucket)
 
-        let rdata     = .firstBucket.datas
-        let rcount    = .firstBucket.count
-        let rcapacity = .firstBucket.size
+        let firstBucket = .firstBucket orelse cast(#nonull *ConcatBufferBucket) 1'u64
+        let rdata     = firstBucket.datas orelse cast(#nonull [*] u8) 1'u64
+        let rcount    = firstBucket.count
+        let rcapacity = firstBucket.size
 
-        if .firstBucket != &.viewFirstBucket do
-            Memory.free(.firstBucket, #sizeof(ConcatBufferBucket), .allocator)
+        if firstBucket != &.viewFirstBucket do
+            Memory.free(firstBucket, #sizeof(ConcatBufferBucket), .allocator)
         .firstBucket = null
 
         return {rdata, rcount, rcapacity}
@@ -494,7 +516,7 @@ impl ConcatBuffer
             return
         }
 
-        let newDatas = cast([*] u8) Memory.alloc(total, .allocator)
+        let newDatas = cast(#nonull [*] u8) Memory.alloc(total, .allocator)
 
         var curPtr = newDatas
         for b in me

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 #[Swag.EnumFlags]
@@ -69,7 +70,7 @@ public impl Face
 {
     // Load a face from an in-memory font file. The returned pointer aliases an
     // internal FaceImpl that owns a private copy of the bytes; release it with destroy().
-    func load(bytes: const [..] u8, faceIndex: u32 = 0)->*Face throw
+    func load(bytes: #null const [..] u8, faceIndex: u32 = 0)->#null *Face throw
     {
         if @countof(bytes) == 0 do
             fail(0x06)
@@ -78,14 +79,15 @@ public impl Face
 
         let faceData = Memory.new'FaceImpl()
         faceData.fontData.resize(@countof(bytes))
-        Memory.copy(faceData.fontData.buffer, @dataof(bytes), @countof(bytes))
+        let fontData = faceData.fontData.buffer orelse cast(#nonull [*] u8) 1'u64
+        Memory.copy(fontData, @dataof(bytes), @countof(bytes))
         parseFace(faceData)
         return &faceData.face
     }
 
     mtd destroy()
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
+        let faceData = cast(#null *FaceImpl) cast(#nonull *void) me
         if faceData do
             Memory.delete(faceData)
     }
@@ -143,10 +145,11 @@ public impl Face
 
     mtd glyphIndex(charCode: rune)->u32
     {
-        let faceData = cast(*FaceImpl) cast(*void) me
+        let faceData = cast(#null *FaceImpl) cast(#nonull *void) me
         if !faceData do
             return 0
-        let idx = catch lookupGlyphIndex(faceData, cast(u32) charCode)
+        let safeFaceData = faceData orelse cast(#nonull *FaceImpl) 1'u64
+        let idx = catch lookupGlyphIndex(safeFaceData, cast(u32) charCode)
         return @err != null ? 0 : idx
     }
 

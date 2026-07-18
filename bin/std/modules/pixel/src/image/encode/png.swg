@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 /*
     :LICENCE
     This code is based on the libspng library by Randy (https://libspng.org/)
@@ -121,24 +122,24 @@ private
 #[Swag.Opaque]
 public struct Encoder
 {
-    stream:                  *ConcatBuffer
+    stream:                  #null *ConcatBuffer
     stored:                  ChunkBitfield
     ihdr:                    Ihdr
     currentChunk:            Chunk
     tmpBuf:                  [256] u8
-    writePtr:                [*] u8
+    writePtr:                #null [*] u8
     crc:                     Hash.Crc32
     subimage:                [7] SubImage
     widestPass:              s32
     lastPass:                s32
     bytesPerPixel:           u32
-    scanlineBuf:             [*] u8
-    prevScanlineBuf:         [*] u8
-    row_buf:                 [*] u8
-    filteredScanlineBuf:     [*] u8
-    filteredScanline:        [*] u8
-    scanline:                [*] u8
-    prevScanline:            [*] u8
+    scanlineBuf:             #null [*] u8
+    prevScanlineBuf:         #null [*] u8
+    row_buf:                 #null [*] u8
+    filteredScanlineBuf:     #null [*] u8
+    filteredScanline:        #null [*] u8
+    scanline:                #null [*] u8
+    prevScanline:            #null [*] u8
     encodeFlags:             EncodeFlags
     rowInfo:                 RowInfo
     pixelSize:               u32
@@ -149,13 +150,13 @@ public struct Encoder
 
 impl Encoder
 {
-    func writeU32(dst: [*] u8, val: u32)
+    func writeU32(dst: #nonull [*] u8, val: u32)
     {
         let v = Math.nativeToBigEndian(val)
-        dref cast(*u32) dst = v
+        dref cast(#nonull *u32) dst = v
     }
 
-    mtd writeData(buf: const [*] u8, bytes: u32)
+    mtd writeData(buf: #nonull const [*] u8, bytes: u32)
     {
         .stream.addBytes(@mkslice(buf, bytes))
     }
@@ -163,10 +164,10 @@ impl Encoder
     mtd writeU32(val: u32)
     {
         var v = Math.nativeToBigEndian(val)
-        .stream.addBytes(@mkslice(cast(const [*] u8) &v, 4))
+        .stream.addBytes(@mkslice(cast(#nonull const [*] u8) &v, 4))
     }
 
-    mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
+    mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->#nonull [*] u8
     {
         let total = chunkLength + 8 + 4
         .stream.grow(total)
@@ -185,7 +186,7 @@ impl Encoder
         let dataPtr = .stream.currentSP
         .stream.moveSeek(chunkLength)
 
-        return dataPtr
+        return cast(#nonull [*] u8) (assume dataPtr)
     }
 
     mtd finishChunk()
@@ -195,7 +196,7 @@ impl Encoder
         .writeU32(.currentChunk.crc)
     }
 
-    mtd writeChunk(chunkType: const [4] u8, buf: const *u8, length: u64)
+    mtd writeChunk(chunkType: const [4] u8, buf: #nonull const *u8, length: u64)
     {
         .writePtr = .writeHeader(chunkType, length)
         if length do
@@ -207,7 +208,7 @@ impl Encoder
     {
         .writeData(PngSignature, 8)
 
-        var dst = cast([*] u8) &.tmpBuf[0]
+        var dst = cast(#nonull [*] u8) &.tmpBuf[0]
         writeU32(dst, .ihdr.width)
         writeU32(dst + 4, .ihdr.height)
         dst[8]  = .ihdr.bitDepth
@@ -314,12 +315,12 @@ impl Encoder
         .finishChunk()
     }
 
-    mtd writeIDatBytes(sl: [*] u8, len: u32) throw
+    mtd writeIDatBytes(sl: #nonull [*] u8, len: u32) throw
     {
         .bufferToCompress.add(@mkslice(sl, len))
     }
 
-    mtd encodeRow(row: [*] u8)->bool throw
+    mtd encodeRow(row: #nonull [*] u8)->bool throw
     {
         let pass = .rowInfo.pass
 
@@ -335,7 +336,7 @@ impl Encoder
             var shiftAmount    = initialShift
 
             let row_uc = row
-            Memory.clear(.scanline, cast(u64) .subimage[pass].scanlineWidth)
+            Memory.clear(cast(#nonull [*] u8) (assume .scanline), cast(u64) .subimage[pass].scanlineWidth)
 
             for k in .subimage[pass].width
             {
@@ -357,7 +358,7 @@ impl Encoder
                 }
             }
 
-            return .encodeScanLine(.scanline)
+            return .encodeScanLine(cast(#nonull [*] u8) (assume .scanline))
         }
 
         for k in .subimage[pass].width
@@ -366,7 +367,7 @@ impl Encoder
             Memory.copy(.scanline + k * .pixelSize, row + ioffset, .pixelSize)
         }
 
-        return .encodeScanLine(.scanline)
+        return .encodeScanLine(cast(#nonull [*] u8) (assume .scanline))
     }
 
     mtd getBestFilter(size: u32)->Filter
@@ -467,7 +468,7 @@ impl Encoder
         return sum
     }
 
-    mtd filterScanline(filtered: [*] u8, size: u32, filter: Filter)
+    mtd filterScanline(filtered: #nonull [*] u8, size: u32, filter: Filter)
     {
         for i in size
         {
@@ -504,7 +505,7 @@ impl Encoder
         }
     }
 
-    mtd encodeScanLine(sl: [*] u8)->bool throw
+    mtd encodeScanLine(sl: #nonull [*] u8)->bool throw
     {
         let pass = .rowInfo.pass
 
@@ -524,8 +525,8 @@ impl Encoder
             {
                 // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
                 // of a full-desktop capture costs seconds in unoptimized builds.
-                let src   = cast(const [*] u32) sl
-                let dst   = cast([*] u32) .scanline
+                let src   = cast(#nonull const [*] u32) sl
+                let dst   = cast(#nonull [*] u32) (assume .scanline)
                 let count = (scanlineWidth - 1) / 4
                 for i in count
                 {
@@ -541,12 +542,12 @@ impl Encoder
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
         if !.rowInfo.scanlineIdx and requiresPrevious do
-            Memory.clear(.prevScanline, cast(u64) scanlineWidth)
+            Memory.clear(cast(#nonull [*] u8) (assume .prevScanline), cast(u64) scanlineWidth)
 
-        var filtered_sl = .filteredScanline
+        var filtered_sl = cast(#nonull [*] u8) (assume .filteredScanline)
         let filter      = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
-            filtered_sl = .scanline
+            filtered_sl = cast(#nonull [*] u8) (assume .scanline)
         filtered_sl -= 1
         filtered_sl[0] = cast(u8) filter
         filtered_sl += 1
@@ -604,17 +605,17 @@ public struct EncodeOptions
 
 public impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
+    mtd impl canEncode(fileName: #nonull string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".png"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: any) throw
+    mtd impl encode(result: #nonull *ConcatBuffer, image: Image, options: #null any) throw
     {
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            .userOptions = dref cast(*EncodeOptions) @dataof(options)
+            .userOptions = dref cast(#nonull *EncodeOptions) (assume @dataof(options))
         }
 
         // unsupported pixel format
@@ -658,10 +659,11 @@ public impl IImageEncoder for Encoder
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 
+        let srcPixels = cast(#nonull [*] u8) (assume image.pixels.buffer)
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bpp8
-            if .encodeRow(image.pixels.buffer + ioffset) do
+            if .encodeRow(srcPixels + ioffset) do
                 break
         }
 

@@ -341,7 +341,7 @@ public impl Voice
     // Root a voice to a given list of buses.
     // You can also set 'buses' to null if you want to root the voice only to the
     // main bus (which is the default).
-    mtd setRootingXAudio2(buses: #null const [*] #null *Bus, count: u64) throw
+    mtd setRootingXAudio2(buses: #null const *void, count: u64) throw
     {
         const MaxBus      = 16
         var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR = undefined
@@ -353,9 +353,11 @@ public impl Voice
 
         if count
         {
+            let baseBuses = cast(u64) (assume buses)
             for i in count
             {
-                let bus = buses[i]
+                let busSlot = cast(#nonull const *#null *Bus) (baseBuses + i * #sizeof(#null *Bus))
+                let bus = dref busSlot
                 let safeBusHandle = bus.handle orelse cast(#nonull *void) 1'u64
                 sfxSend[i].pOutputVoice = cast(#nonull *IXAudio2Voice) safeBusHandle
             }

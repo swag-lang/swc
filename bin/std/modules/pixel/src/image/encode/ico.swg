@@ -1,18 +1,19 @@
 #global namespace Ico
+#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 public struct Encoder {}
 
 public impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
+    mtd impl canEncode(fileName: #nonull string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".ico"
     }
 
     // Encode a single image as a 32-bit BGRA DIB icon entry with an empty AND mask.
     // The alpha channel carries transparency; the AND mask is left fully opaque.
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: any) throw
+    mtd impl encode(result: #nonull *ConcatBuffer, image: Image, options: #null any) throw
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
             throw InvalidFormatError{"invalid image"}

@@ -1,16 +1,17 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 struct ImageEncoder
 {
-    type:     const *TypeInfoStruct
+    type:     #nonull const *TypeInfoStruct
     itf:      IImageEncoder
 }
 
 // Interface to decode a buffer
 public interface IImageEncoder
 {
-    mtd canEncode(filename: string)->bool;
-    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) throw;
+    mtd canEncode(filename: #nonull string)->bool;
+    mtd encode(buf: #nonull *ConcatBuffer, img: Image, opt: #null any) throw;
 }
 
 public impl Image
@@ -29,7 +30,7 @@ public impl Image
     }
 
     // Returns 'true' if the given filename has a corresponding encoder
-    func canSave(fileName: string)->bool
+    func canSave(fileName: #nonull string)->bool
     {
         for &encoder in encoders
         {
@@ -41,12 +42,12 @@ public impl Image
     }
 
     // Save the image to a file
-    mtd save(fileName: string, options: any = null) throw
+    mtd save(fileName: #nonull string, options: #null any = null) throw
     {
         Debug.assert(.pixels.buffer != null, "image is invalid")
 
         // Find the encoder that can treat 'fileName'
-        var found: *ImageEncoder
+        var found: #null *ImageEncoder
         for &encoder in encoders
         {
             if encoder.itf.canEncode(fileName)
@@ -58,18 +59,19 @@ public impl Image
 
         if !found do
             throw UnsupportedFormatError{"no matching image encoder"}
+        let safeFound = found orelse cast(#nonull *ImageEncoder) 1'u64
 
         // Create an encoder instance
-        let ptrEncoder = Memory.new(found.type)
+        let ptrEncoder = Memory.new(safeFound.type)
         defer
         {
-            if found.type.opDrop do
-                found.type.opDrop(ptrEncoder)
-            Memory.free(ptrEncoder, cast(u64) found.type.sizeof)
+            if safeFound.type.opDrop do
+                safeFound.type.opDrop(ptrEncoder)
+            Memory.free(ptrEncoder, cast(u64) safeFound.type.sizeof)
         }
 
         // Encode
-        let itf     = @mkinterface(ptrEncoder, found.type, IImageEncoder)
+        let itf     = @mkinterface(ptrEncoder, safeFound.type, IImageEncoder)
         var result: ConcatBuffer
         itf.encode(&result, me, options)
         File.writeAllBytes(fileName, result)

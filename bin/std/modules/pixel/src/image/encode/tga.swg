@@ -1,16 +1,17 @@
 #global namespace Tga
+#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 public struct Encoder {}
 
 public impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
+    mtd impl canEncode(fileName: #nonull string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".tga"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: any) throw
+    mtd impl encode(result: #nonull *ConcatBuffer, image: Image, options: #null any) throw
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
             throw InvalidFormatError{"invalid image"}

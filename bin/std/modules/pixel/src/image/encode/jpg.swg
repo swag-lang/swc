@@ -1,4 +1,5 @@
 #global namespace Jpg
+#global #[Swag.ExplicitNullability]
 using Core
 
 private
@@ -184,7 +185,7 @@ public struct Encoder
     imageY:            u16
     bufferRGB:         Array'ColorRGB
 
-    stream:            *ConcatBuffer
+    stream:            #null *ConcatBuffer
 
     bytenew:           u8
     bytepos:           s8
@@ -208,9 +209,9 @@ public struct Encoder
     du:                [64] s16
 
     categoryAlloc:     Array'u8
-    category:          [*] u8
+    category:          #null [*] u8
     bitcodeAlloc:      Array'BitString
-    bitcode:           [*] BitString
+    bitcode:           #null [*] BitString
 }
 
 impl Encoder
@@ -305,7 +306,7 @@ impl Encoder
         .imageY = cast(u16) yDiv8
     }
 
-    mtd setQuantTable(basicTable: const [*] u8, newTable: [*] u8)
+    mtd setQuantTable(basicTable: #nonull const [*] u8, newTable: #nonull [*] u8)
     {
         for i in 64
         {
@@ -352,7 +353,7 @@ impl Encoder
             .dhtInfo.valuesCbAC[i] = StdAcChrominanceValues[i]
     }
 
-    func computeHuffmanTable(nrCodes: const [*] u8, stdTable: const [*] u8, hT: [*] BitString)
+    func computeHuffmanTable(nrCodes: #nonull const [*] u8, stdTable: #nonull const [*] u8, hT: #nonull [*] BitString)
     {
         var codevalue  = 0'u16
         var posInTable = 0
@@ -382,8 +383,8 @@ impl Encoder
     {
         .categoryAlloc.resize(65535)
         .bitcodeAlloc.resize(65535)
-        .category = .categoryAlloc.buffer + 32767
-        .bitcode  = .bitcodeAlloc.buffer + 32767
+        .category = cast(#nonull [*] u8) (assume .categoryAlloc.buffer) + 32767
+        .bitcode  = cast(#nonull [*] BitString) (assume .bitcodeAlloc.buffer) + 32767
 
         var nrlower = 1
         var nrupper = 2
@@ -438,7 +439,7 @@ impl Encoder
     }
 
     #[Swag.Inline]
-    mtd writeBytes(s: const [..] u8)
+    mtd writeBytes(s: #nonull const [..] u8)
     {
         .stream.addBytes(s)
     }
@@ -466,7 +467,7 @@ impl Encoder
         }
     }
 
-    mtd writeMetaDatas(image: const *Image)
+    mtd writeMetaDatas(image: #nonull const *Image)
     {
         for md in image.metaDatas
         {
@@ -488,7 +489,7 @@ impl Encoder
         .writeBytes(.dqtInfo.tableCb)
     }
 
-    mtd writeSOF0info(image: const *Image)
+    mtd writeSOF0info(image: #nonull const *Image)
     {
         .writeWord(SOF0info.marker)
         .writeWord(SOF0info.length)
@@ -565,13 +566,13 @@ impl Encoder
         }
     }
 
-    func quantization(data: [*] s8, fdtbl: [*] f32, outData: [*] s16)
+    func quantization(data: #nonull [*] s8, fdtbl: #nonull [*] f32, outData: #nonull [*] s16)
     {
         var dataFloat: [64] f32
         for i in 64 do
             dataFloat[i] = data[i]
 
-        var dataptr = cast([*] f32) &dataFloat[0]
+        var dataptr = cast(#nonull [*] f32) &dataFloat[0]
         for #reverse ctr in 0 to 7
         {
             let tmp0 = dataptr[0] + dataptr[7]
@@ -667,7 +668,7 @@ impl Encoder
         }
     }
 
-    mtd processDU(componentDU: [*] s8, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: [*] BitString)
+    mtd processDU(componentDU: #nonull [*] s8, fdtbl: #nonull [*] f32, dC: #nonull *s16, hTDC, hTAC: #nonull [*] BitString)
     {
         let eob       = hTAC[0x00]
         let m16Zeroes = hTAC[0xF0]
@@ -742,19 +743,19 @@ impl Encoder
 
 public impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
+    mtd impl canEncode(fileName: #nonull string)->bool
     {
         let ext = Path.getExtensionLowerCase(fileName)
         return ext == ".jpg" or ext == ".jpeg"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: any) throw
+    mtd impl encode(result: #nonull *ConcatBuffer, image: Image, options: #null any) throw
     {
         var opt: EncodeOptions
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            opt = dref cast(*EncodeOptions) @dataof(options)
+            opt = dref cast(#nonull *EncodeOptions) (assume @dataof(options))
         }
 
         .stream      = result

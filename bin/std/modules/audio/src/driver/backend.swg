@@ -284,7 +284,7 @@ public impl Voice
         case XAudio2:
             #if #os == Swag.TargetOs.Windows
             {
-                .setRootingXAudio2(@dataof(buses), @countof(buses))
+                .setRootingXAudio2(cast(#null const *void) @dataof(buses), @countof(buses))
             }
             #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}

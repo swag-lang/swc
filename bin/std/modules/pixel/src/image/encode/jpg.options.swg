@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global public
 #global namespace Jpg
 

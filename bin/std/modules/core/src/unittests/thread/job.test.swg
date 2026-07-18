@@ -1,6 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global #if WINDOWS
 #global private
+#global #[Swag.ExplicitNullability]
 using Jobs, Win32
 
 struct ReusedJobData
@@ -12,13 +13,13 @@ struct ReusedJobData
 
 struct WaitJobThreadData
 {
-    job:          *Job
-    waitReturned: *s32
+    job:          #nonull *Job
+    waitReturned: #nonull *s32
 }
 
-func reusedJobEntry(data: *void)
+func reusedJobEntry(data: #null *void)
 {
-    let jobData = cast(*ReusedJobData) data
+    let jobData = cast(#nonull *ReusedJobData) (data orelse cast(#nonull *void) 1'u64)
     let executionIndex = Atomic.add(&jobData.executionCount, 1) + 1
     if executionIndex == 2
     {
@@ -29,7 +30,7 @@ func reusedJobEntry(data: *void)
 
 func waitJobThread(th: Threading.Thread)
 {
-    let data = cast(*WaitJobThreadData) th.userParam
+    let data = cast(#nonull *WaitJobThreadData) (th.userParam orelse cast(#nonull *void) 1'u64)
     Jobs.waitJob(data.job)
     Atomic.add(data.waitReturned, 1)
 }

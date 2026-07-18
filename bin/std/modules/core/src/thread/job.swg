@@ -1,4 +1,5 @@
 #global namespace Jobs
+#global #[Swag.ExplicitNullability]
 using Threading, Swag
 
 #[Swag.EnumFlags]
@@ -11,8 +12,8 @@ public enum JobState
 
 public struct Job
 {
-    lambda:     func(*void)
-    data:       *void
+    lambda:     func(#null *void)
+    data:       #null *void
 
     // Internal state
     state:            JobState = .Zero
@@ -22,9 +23,9 @@ public struct Job
 public struct(T) SliceJob
 {
     using base:     Job
-    buffer:         const [..] T
+    buffer:         #null const [..] T
     offset:         u32
-    contextData:    *void
+    contextData:    #null *void
 }
 
 public struct ForJob
@@ -32,14 +33,14 @@ public struct ForJob
     using base:     Job
     startIndex:     u32
     endIndex:       u32
-    contextData:    *void
+    contextData:    #null *void
 }
 
 var g_Allocator:        Swag.IAllocator
 var g_mustEnd:          bool
 var g_numWorkers:       s32
 var g_workers:          Array'Thread
-var g_pendingJobs:      Array'(*Job)
+var g_pendingJobs:      Array'(#nonull *Job)
 var g_mutexPendingJobs: Sync.Mutex
 var g_eventPendingJobs: Sync.Event
 var g_eventDone:        Sync.Event
@@ -76,10 +77,14 @@ func workerEntry(_th: Thread)
     g_eventPendingJobs.signal()
 }
 
-func runJob(job: *Job)
+func runJob(job: #nonull *Job)
 {
     // Execute job
-    job.lambda(job.data)
+    let lambda = job.lambda
+    if !lambda do
+        return
+    let safeLambda = lambda orelse func(data: #null *void) {}
+    safeLambda(job.data)
 
     // Done
     Sync.scopedLock(&g_mutexPendingJobs)
@@ -95,7 +100,7 @@ func peekExecJob()->bool
     let job = getJobToExec()
     if !job do
         return false
-    runJob(job)
+    runJob(job orelse cast(#nonull *Job) 1'u64)
     return true
 }
 
@@ -110,7 +115,7 @@ func getJobToExec()->#null *Job
     return job
 }
 
-func removeJobNoLock(job: *Job)
+func removeJobNoLock(job: #nonull *Job)
 {
     g_pendingJobs.removeAt(cast(u64) job.pendingIndex)
     if job.pendingIndex < g_pendingJobs.count do
@@ -120,10 +125,10 @@ func removeJobNoLock(job: *Job)
 }
 
 #[Swag.Discardable]
-func clearState(job: *Job, state: JobState) => Atomic.logicAnd(cast(*u32) &job.state, cast(u32) ~state)
+func clearState(job: #nonull *Job, state: JobState) => Atomic.logicAnd(cast(#nonull *u32) &job.state, cast(u32) ~state)
 #[Swag.Discardable]
-func setState(job: *Job, state: JobState) => Atomic.logicOr(cast(*u32) &job.state, cast(u32) state)
-func testState(job: *Job, state: JobState) => Atomic.get(cast(*u32) &job.state) & cast(u32) state != 0
+func setState(job: #nonull *Job, state: JobState) => Atomic.logicOr(cast(#nonull *u32) &job.state, cast(u32) state)
+func testState(job: #nonull *Job, state: JobState) => Atomic.get(cast(#nonull *u32) &job.state) & cast(u32) state != 0
 
 // Returns true is the job system has been initialized
 public func isSynchrone()->bool => g_numWorkers == 0
@@ -152,7 +157,7 @@ public func setNumWorkers(numWorkers: u32 = 0) throw
 }
 
 // Schedule a job to execute
-public func scheduleJob(job: *Job)
+public func scheduleJob(job: #nonull *Job)
 {
     Sync.scopedLock(&g_mutexPendingJobs)
     job.clearState(JobState.Done)
@@ -174,7 +179,7 @@ public func waitDone()
 }
 
 // Wait for a given job to be finished
-public func waitJob(job: *Job)
+public func waitJob(job: #nonull *Job)
 {
     // Fast exit, without lock
     if job.testState(JobState.Done) do
@@ -213,27 +218,30 @@ public func waitJob(job: *Job)
 // - 'buffer': address of the element of the range to process
 // - 'data':   contextData as passed to the macro
 #[Swag.Macro]
-public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code(var buffer, data))
+public func(T) parallelVisit(range: #nonull [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
 {
     if !@countof(range) do
         return
     Debug.assert(offset != 0)
 
-    func jobEntry(jobData: *void)
+    func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(*SliceJob'T) jobData
+        let oneJob = cast(#nonull *SliceJob'T) (jobData orelse cast(#nonull *void) 1'u64)
         visitSlice(oneJob.buffer, oneJob.offset, oneJob.contextData)
     }
 
-    func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
+    func visitSlice(sliceBuffer: #null const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
-        var scan    = @dataof(sliceBuffer)
+        let scan = @dataof(sliceBuffer)
+        if !scan do
+            return
+        var safeScan = scan orelse cast(#nonull const [*] T) 1'u64
         let countof = @countof(sliceBuffer)
         for countof / sliceOffset
         {
-            #inject(stmt, buffer = cast #unconst (*T) scan, data = sliceContextData)
+            #inject(stmt, buffer = cast #unconst (#nonull *T) safeScan, data = sliceContextData)
 
-            scan += sliceOffset
+            safeScan += sliceOffset
         }
     }
 
@@ -281,14 +289,14 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void 
 // - 'index': current for index
 // - 'data':  contextData as passed to the macro
 #[Swag.Macro]
-public func parallelFor(count: u32, contextData: *void = null, stmt: #code(index: u32, data))
+public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code(index: u32, data))
 {
     if !count do
         return
 
-    func jobEntry(jobData: *void)
+    func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(*ForJob) jobData
+        let oneJob = cast(#nonull *ForJob) (jobData orelse cast(#nonull *void) 1'u64)
         visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.contextData)
     }
 

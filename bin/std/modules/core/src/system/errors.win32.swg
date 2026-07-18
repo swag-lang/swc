@@ -1,8 +1,9 @@
 #global #if WINDOWS
 #global namespace Errors
+#global #[Swag.ExplicitNullability]
 using Win32
 
-func transformWinErrors(val0: string = null) throw
+func transformWinErrors(val0: #null string = null) throw
 {
     if @err == null do
         return

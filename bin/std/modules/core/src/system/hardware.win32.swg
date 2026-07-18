@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Hardware
+#global #[Swag.ExplicitNullability]
 using Win32
 
 // Number of processors
@@ -12,5 +13,5 @@ public func getMacAddress()->u64
     var length: DWORD = #sizeof(info)
     if GetAdaptersInfo(&info, &length) != 0 do
         return 0
-    return dref cast(*u64) &info[0].address[0]
+    return dref cast(#nonull *u64) &info[0].address[0]
 }

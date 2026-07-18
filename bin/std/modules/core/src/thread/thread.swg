@@ -1,7 +1,8 @@
 #global public
 #global namespace Threading
+#global #[Swag.ExplicitNullability]
 
-alias ThreadHandle = const *void
+alias ThreadHandle = #null const *void
 
 enum ThreadPriority
 {
@@ -18,7 +19,7 @@ struct Thread
     userLambda:     func||(Thread)
 
     context:        Swag.Context
-    userParam:      *void
+    userParam:      #null *void
 
     priority        = ThreadPriority.Normal
     handle:         ThreadHandle

@@ -1,12 +1,13 @@
 #global #if WINDOWS
 #global public
 #global namespace Sync
+#global #[Swag.ExplicitNullability]
 using Win32
 
 #[Swag.NoCopy]
 struct Event
 {
-    handle: HANDLE
+    handle: #null HANDLE
 }
 
 impl Event

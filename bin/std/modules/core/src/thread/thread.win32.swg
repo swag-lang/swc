@@ -1,20 +1,25 @@
 #global #if WINDOWS
 #global public
 #global namespace Threading
+#global #[Swag.ExplicitNullability]
 using Win32
 
-private func threadEntry(param: *void)->DWORD
+private func threadEntry(param: #nonull *void)->DWORD
 {
-    let th = cast(*Thread) param
+    let th = cast(#nonull *Thread) param
     @setcontext(th.context)
-    th.userLambda(dref th)
+    let lambda = th.userLambda
+    if !lambda do
+        return 0
+    let safeLambda = lambda orelse func(th: Thread) {}
+    safeLambda(dref th)
     th.context.tempAllocator.release()
     Swag.releaseAllocatorThreadCache()
     return 0
 }
 
 // Wait multiple threads
-func wait(threads: *Thread...)
+func wait(threads: #nonull *Thread...)
 {
     var handles: [MAXIMUM_WAIT_OBJECTS] HANDLE
 
@@ -58,7 +63,7 @@ impl Thread
     }
 
     // Initialize a thread in pause state
-    mtd init(lambda: func||(Thread), userParam: *void = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) throw
+    mtd init(lambda: func||(Thread), userParam: #null *void = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) throw
     {
         Debug.assert(!.isValid(), "thread already created")
 

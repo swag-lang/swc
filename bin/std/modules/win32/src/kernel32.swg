@@ -44,7 +44,7 @@ alias LPWCH         = [*] WCHAR
 alias SIZE_T        = u64
 alias va_list       = [*] u8
 
-alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
+alias LPTHREAD_START_ROUTINE = func(#nonull *void)->DWORD
 alias WAITORTIMERCALLBACK    = func(*void, BOOL)
 
 const STD_INPUT_HANDLE      = cast #bit (DWORD) -10
@@ -430,7 +430,7 @@ internal namespace Win32Priv
         func SetConsoleTextAttribute(hConsoleOutput: HANDLE, wAttributes: WORD)->BOOL;
         func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO)->BOOL;
 
-        func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE;
+        func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: #nonull *void, dwCreationFlags: DWORD, lpThreadId: #nonull *DWORD)->HANDLE;
         func GetThreadPriority(hThread: HANDLE)->s32;
         func ResumeThread(hThread: HANDLE)->DWORD;
         func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL;
@@ -525,7 +525,7 @@ internal namespace Win32Priv
             throwWinError(GetLastError())
     }
 
-    func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE throw
+    func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: #nonull *void, dwCreationFlags: DWORD, lpThreadId: #nonull *DWORD)->HANDLE throw
     {
         let h = Win32Priv.CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
         if h == null do

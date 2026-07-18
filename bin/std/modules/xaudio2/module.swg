@@ -1,5 +1,6 @@
 // Wrapper for Microsoft XAudio2 library.
 
+#global #[Swag.ExplicitNullability]
 #import("win32")
 
 #run

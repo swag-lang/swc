@@ -1269,8 +1269,10 @@ impl RenderOgl
     }
 
     // Release the given render target
-    mtd releaseRenderTarget(tgt: #nonull *RenderTarget)
+    mtd releaseRenderTarget(tgt: #null *RenderTarget)
     {
+        if !tgt do
+            return
         .stackReleasedRT.add(tgt)
     }
 

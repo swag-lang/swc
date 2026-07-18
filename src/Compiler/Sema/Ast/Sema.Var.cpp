@@ -651,7 +651,16 @@ namespace
 
     Result checkUndefinedInit(Sema& sema, const SemaPostVarDeclArgs& context, std::span<Symbol* const> symbols, bool isConst, bool isLet, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, const SemaNodeView& nodeInitView, bool& isExplicitUndefinedInit)
     {
-        if (context.nodeInitRef.isInvalid() || nodeInitView.cstRef() != sema.cstMgr().cstUndefined())
+        if (context.nodeInitRef.isInvalid())
+            return Result::Continue;
+
+        // Classify on the node itself as well as on the constant: a paused-and-resumed post-decl
+        // re-runs this check AFTER castOrConcretizeInit already replaced the node's raw `undefined`
+        // constant with a typed one, and the constant-identity test alone would then silently
+        // reclassify the declaration as normally initialized.
+        const bool isUndefinedLiteral = sema.node(nodeInitView.nodeRef()).is(AstNodeId::UndefinedExpr) ||
+                                        sema.node(context.nodeInitRef).is(AstNodeId::UndefinedExpr);
+        if (!isUndefinedLiteral && nodeInitView.cstRef() != sema.cstMgr().cstUndefined())
             return Result::Continue;
 
         if (isConst)

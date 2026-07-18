@@ -63,20 +63,20 @@ impl ArrayPtr
 
     // Deallocates the memory for a single given pointer.
     // The pointer is expected to have been allocated using this array's allocator.
-    mtd deletePtr(item: *T)
+    mtd deletePtr(item: #null *T)
     {
         Memory.delete(item, .allocator)
     }
 
     // Allocates memory for a new object of type T using the array's allocator.
     // Returns a pointer to the newly allocated memory.
-    mtd newPtr()->*T
+    mtd newPtr()->#nonull *T
     {
         return Memory.new'T(.allocator)
     }
 
     // Allocates a new object, adds its pointer to the end of the array, and returns the pointer.
-    mtd addNewPtr()->*T
+    mtd addNewPtr()->#nonull *T
     {
         let ptr = .newPtr()
         .add(ptr)
@@ -84,7 +84,7 @@ impl ArrayPtr
     }
 
     // Allocates a new object and inserts its pointer at 'index', returning the pointer.
-    mtd insertNewPtr(index: u64)->*T
+    mtd insertNewPtr(index: u64)->#nonull *T
     {
         let ptr = .newPtr()
         .insertAt(index, ptr)
@@ -92,7 +92,7 @@ impl ArrayPtr
     }
 
     // Returns the first pointer in the array, or null if the array is empty.
-    mtd getFirst()->*T
+    mtd getFirst()->#null *T
     {
         if .count == 0 do
             return null
@@ -100,7 +100,7 @@ impl ArrayPtr
     }
 
     // Returns the last pointer in the array, or null if the array is empty.
-    mtd getLast()->*T
+    mtd getLast()->#null *T
     {
         if .count == 0 do
             return null

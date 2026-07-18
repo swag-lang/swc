@@ -176,7 +176,8 @@ impl Image
     mtd clear()
     {
         Debug.assert(.pixels.buffer != null)
-        Memory.clear(.pixels.buffer, .size)
+        let pixels = .pixels.buffer orelse cast(#nonull [*] u8) 1'u64
+        Memory.clear(pixels, .size)
     }
 
     // Copy one pixel, depending on bpp

@@ -1,11 +1,12 @@
 #global export
+#global #[Swag.ExplicitNullability]
 using Swag
 
 // Represents a single node in a doubly-linked 'List'.
 struct(T) ListEntry
 {
-    prev:      *ListEntry     // Pointer to the previous node in the list.
-    next:      *ListEntry     // Pointer to the next node in the list.
+    prev:      #null *ListEntry     // Pointer to the previous node in the list.
+    next:      #null *ListEntry     // Pointer to the next node in the list.
     value:     T              // The value stored in the node.
 }
 
@@ -13,8 +14,8 @@ struct(T) ListEntry
 // Provides efficient insertion and deletion of elements.
 struct(T) List
 {
-    head:      *ListEntry     // Pointer to the first node in the list.
-    tail:      *ListEntry     // Pointer to the last node in the list.
+    head:      #null *ListEntry     // Pointer to the first node in the list.
+    tail:      #null *ListEntry     // Pointer to the last node in the list.
     count:     u64            // The total number of elements in the list.
 }
 
@@ -61,20 +62,21 @@ impl List
         #scope(Up)
         while n
         {
+            let node = n orelse cast(#nonull *ListEntry'(T)) 1'u64
             #scope(Down)
             {
                 #if ptr do
-                    #inject(stmt, item = cast(&T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(&T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
                 #elif Reflection.isStruct(T) do
-                    #inject(stmt, item = cast(const &T) &n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(const &T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
                 #else do
-                    #inject(stmt, item = n.value, node = n, index = ordinal, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
             }
 
             #if back do
-                n = n.prev
+                n = node.prev
             #else do
-                n = n.next
+                n = node.next
             ordinal += 1
         }
     }
@@ -98,7 +100,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addFront(value: #fwd T)->*ListEntry
+    mtd addFront(value: #fwd T)->#nonull *ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
@@ -121,7 +123,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addBack(value: #fwd T)->*ListEntry
+    mtd addBack(value: #fwd T)->#nonull *ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
@@ -144,7 +146,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertBefore(node: *ListEntry, value: #fwd T)->*ListEntry
+    mtd insertBefore(node: #nonull *ListEntry, value: #fwd T)->#nonull *ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
@@ -164,7 +166,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertAfter(node: *ListEntry, value: #fwd T)->*ListEntry
+    mtd insertAfter(node: #nonull *ListEntry, value: #fwd T)->#nonull *ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value

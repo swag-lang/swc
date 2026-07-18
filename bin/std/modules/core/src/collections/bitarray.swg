@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Swag
 
 // Manages a compact array of bit values.
@@ -6,7 +7,7 @@ using Swag
 // for storing a large number of boolean flags.
 public struct BitArray
 {
-    buffer:        [*] u32        // Internal buffer storing the bits packed into 32-bit integers.
+    buffer:        #null [*] u32  // Internal buffer storing the bits packed into 32-bit integers.
     allocator:     IAllocator     // The allocator used for memory operations.
     count:         u64            // The number of bits in the array.
     capacity:      u64            // The total allocated capacity in bytes.
@@ -23,6 +24,16 @@ impl BitArray
         if result << 5 < .count do
             result += 1
         return result
+    }
+
+    mtd dataPtr()->#nonull [*] u32
+    {
+        return .buffer orelse cast(#nonull [*] u32) 1'u64
+    }
+
+    mtd const constDataPtr()->#nonull const [*] u32
+    {
+        return cast(#nonull const [*] u32) (.buffer orelse cast(#nonull [*] u32) 1'u64)
     }
 
     // Frees the memory allocated by the bit array.
@@ -51,7 +62,7 @@ impl BitArray
 
         let lastWord = .wordCount() - 1
         let mask     = (1'u32 << cast(u32) usedBits) - 1
-        .buffer[lastWord] &= mask
+        .dataPtr()[lastWord] &= mask
     }
 }
 
@@ -75,10 +86,10 @@ public impl BitArray
     {
         if .buffer
         {
-            let otherBuffer = .buffer
+            let otherBuffer = .dataPtr()
             .buffer = null
             .reserve(.count)
-            Memory.copy(.buffer, otherBuffer, .capacity)
+            Memory.copy(.dataPtr(), otherBuffer, .capacity)
         }
     }
 
@@ -95,14 +106,14 @@ public impl BitArray
     }
 
     // Replaces the content of the bit array with values from a slice of booleans.
-    mtd opSet(what: const [..] bool)
+    mtd opSet(what: #null const [..] bool)
     {
         let len = @countof(what)
         .reserve(len)
         if !len do
             return
 
-        Memory.set(.buffer, 0, .capacity)
+        Memory.set(.dataPtr(), 0, .capacity)
         for value, index in what do
             .set(index, value)
     }
@@ -114,9 +125,11 @@ public impl BitArray
         if .count != other.count do
             return false
 
+        let buffer      = .dataPtr()
+        let otherBuffer = other.constDataPtr()
         for .wordCount()
         {
-            if .buffer[@index] != other.buffer[@index] do
+            if buffer[@index] != otherBuffer[@index] do
                 return false
         }
 
@@ -140,6 +153,7 @@ public impl BitArray
         if totalWords << 5 < .count do
             totalWords += 1
         var countBits  = 0'u64
+        let buffer     = .buffer orelse cast(#nonull [*] u32) 1'u64
 
         #scope(Up)
         for idx in totalWords
@@ -149,7 +163,7 @@ public impl BitArray
             {
                 #scope(Down)
                 {
-                    #inject(stmt, item = cast(bool) (me.buffer[idx] & (1'u32 << cast(u32) bitIndex)), index = countBits, break = break to Up, continue = break to Down)
+                    #inject(stmt, item = cast(bool) (buffer[idx] & (1'u32 << cast(u32) bitIndex)), index = countBits, break = break to Up, continue = break to Down)
                 }
 
                 countBits += 1
@@ -178,14 +192,14 @@ public impl BitArray
     mtd reserve(maxBits: u64, initialValue: bool)
     {
         .reserve(maxBits)
-        Memory.set(.buffer, initialValue ? 0xFF : 0x00, .capacity)
+        Memory.set(.dataPtr(), initialValue ? 0xFF : 0x00, .capacity)
         .clearUnusedBits()
     }
 
     // Sets all bits in the array to the specified boolean value.
     mtd setAll(value: bool)
     {
-        Memory.set(.buffer, value ? 0xFF : 0x00, .capacity)
+        Memory.set(.dataPtr(), value ? 0xFF : 0x00, .capacity)
         .clearUnusedBits()
     }
 
@@ -196,10 +210,11 @@ public impl BitArray
         let val   = index >> 5
         let bit   = index - (val << 5)
         let shift = 1'u32 << cast(u32) bit
+        let buffer = .dataPtr()
         if value do
-            .buffer[val] |= shift
+            buffer[val] |= shift
         else do
-            .buffer[val] &= ~shift
+            buffer[val] &= ~shift
     }
 
     // Returns the boolean value of the bit at a specific position.
@@ -209,7 +224,7 @@ public impl BitArray
         let val   = index >> 5
         let bit   = index - (val << 5)
         let shift = 1'u32 << cast(u32) bit
-        return cast(bool) (.buffer[val] & shift)
+        return cast(bool) (.constDataPtr()[val] & shift)
     }
 
     // Inverts the value of the bit at a specific position.
@@ -220,10 +235,11 @@ public impl BitArray
         let val   = index >> 5
         let bit   = index - (val << 5)
         let shift = 1'u32 << cast(u32) bit
-        if .buffer[val] & shift do
-            .buffer[val] ^= shift
+        let buffer = .dataPtr()
+        if buffer[val] & shift do
+            buffer[val] ^= shift
         else do
-            .buffer[val] |= shift
+            buffer[val] |= shift
     }
 
     // Inverts all bit values in the array.
@@ -232,8 +248,9 @@ public impl BitArray
     {
         if !.count do
             return
+        let buffer = .dataPtr()
         for .wordCount() do
-            .buffer[@index] = ~.buffer[@index]
+            buffer[@index] = ~buffer[@index]
         .clearUnusedBits()
     }
 
@@ -244,8 +261,10 @@ public impl BitArray
         Debug.assert(.count == other.count)
         if !.count do
             return
+        let buffer      = .dataPtr()
+        let otherBuffer = other.constDataPtr()
         for .wordCount() do
-            .buffer[@index] &= other.buffer[@index]
+            buffer[@index] &= otherBuffer[@index]
         .clearUnusedBits()
     }
 
@@ -256,8 +275,10 @@ public impl BitArray
         Debug.assert(.count == other.count)
         if !.count do
             return
+        let buffer      = .dataPtr()
+        let otherBuffer = other.constDataPtr()
         for .wordCount() do
-            .buffer[@index] |= other.buffer[@index]
+            buffer[@index] |= otherBuffer[@index]
         .clearUnusedBits()
     }
 
@@ -268,8 +289,10 @@ public impl BitArray
         Debug.assert(.count == other.count)
         if !.count do
             return
+        let buffer      = .dataPtr()
+        let otherBuffer = other.constDataPtr()
         for .wordCount() do
-            .buffer[@index] ^= other.buffer[@index]
+            buffer[@index] ^= otherBuffer[@index]
         .clearUnusedBits()
     }
 }

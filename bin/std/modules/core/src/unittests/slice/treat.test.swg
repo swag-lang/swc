@@ -12,7 +12,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
     var values: [4] s32 = [1, 2, 3, 4]
     let bias = 10
 
-    Slice.modify(values, func|bias|(it: *s32)
+    Slice.modify(values, func|bias|(it: #nonull *s32)
     {
         dref it += bias
     })

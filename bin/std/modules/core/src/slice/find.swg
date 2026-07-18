@@ -1,5 +1,6 @@
 #global export
 #global namespace Slice
+#global #[Swag.ExplicitNullability]
 
 // Find 'value' in a slice by performing a binary search.
 // The slice must be sorted in ascending order
@@ -43,7 +44,7 @@ func(T, V) findLinear(values: #null const [..] T, value: V)->u64
 }
 
 // Returns true if the given slice contains the sub slice 'value'
-func(T) findSlice(values: #null const [..] T, value: const [..] T)->u32
+func(T) findSlice(values: #null const [..] T, value: #null const [..] T)->u32
 {
     if !@countof(values) do
         return Swag.U32.Max

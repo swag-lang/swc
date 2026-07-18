@@ -117,7 +117,7 @@ func day10A()
     maze.resize(width * height)
 
     #[Swag.Mixin]
-    func mp(x0, y0: s64)->&Dir => maze.buffer + ((x0 + 1) + (y0 + 1) * width)
+    func mp(x0, y0: s64)->&Dir => (maze.buffer orelse cast(#nonull [*] Dir) 1'u64) + ((x0 + 1) + (y0 + 1) * width)
 
     var startX, startY: s64
     for l, line in lines

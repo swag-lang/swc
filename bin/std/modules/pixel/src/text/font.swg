@@ -434,7 +434,8 @@ public impl GlyphCache
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide
             newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)
-            Memory.clear(newAtlas.datas.buffer, newAtlas.datas.count)
+            let datas = newAtlas.datas.buffer orelse cast(#nonull [*] u8) 1'u64
+            Memory.clear(datas, newAtlas.datas.count)
             .atlases.add(newAtlas)
             atlas = &.atlases.buffer[.atlases.count - 1]
         }

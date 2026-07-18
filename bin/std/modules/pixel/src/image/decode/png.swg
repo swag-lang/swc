@@ -336,8 +336,9 @@ impl Decoder
         // A temporary line "before" the first one, if filter needs one
         var tmpRow: Array'u8
         tmpRow.resize(rowStrideOut)
-        Memory.clear(tmpRow.buffer, rowStrideOut)
-        var up = tmpRow.buffer
+        let tmpRowBuffer = tmpRow.buffer orelse cast(#nonull [*] u8) 1'u64
+        Memory.clear(tmpRowBuffer, rowStrideOut)
+        var up = tmpRowBuffer
 
         // PNG filtering references the previous byte of the same pixel. Packed
         // samples (bit depths below 8) have an effective byte offset of 1, not
@@ -458,11 +459,12 @@ impl Decoder
                 continue
 
             tmpArr.resize(cast(u64) (x * y * .inChannels))
-            Memory.clear(tmpArr.buffer, tmpArr.count)
+            let tmpBuffer = tmpArr.buffer orelse cast(#nonull [*] u8) 1'u64
+            Memory.clear(tmpBuffer, tmpArr.count)
 
-            .defilter(cast(u32) x, cast(u32) y, input, tmpArr.buffer)
+            .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
 
-            var t = tmpArr.buffer
+            var t = tmpBuffer
             for j in y
             {
                 for i in x
@@ -487,7 +489,8 @@ impl Decoder
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
-            .defilter(.header.width, .header.height, .dcmpBuf.buffer, .dstPixels)
+            let input = .dcmpBuf.buffer orelse cast(#nonull [*] u8) 1'u64
+            .defilter(.header.width, .header.height, input, .dstPixels)
         }
         else
         {

@@ -219,21 +219,23 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    var dst = faceData.bitmapPixels.buffer
+    var dst = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
     var area:  Array'f64
     var cover: Array'f64
     area.resize(cast(u64) width)
     cover.resize(cast(u64) width)
+    let areaBuffer  = area.buffer orelse cast(#nonull [*] f64) 1'u64
+    let coverBuffer = cover.buffer orelse cast(#nonull [*] f64) 1'u64
 
     let leftF = cast(f64) left
     let topF  = cast(f64) top
 
     for py in rows
     {
-        Memory.clear(area.buffer, area.count * #sizeof(f64))
-        Memory.clear(cover.buffer, cover.count * #sizeof(f64))
+        Memory.clear(areaBuffer, area.count * #sizeof(f64))
+        Memory.clear(coverBuffer, cover.count * #sizeof(f64))
 
         // Glyph-space y band for this row (y points up; row 0 is the top).
         let bandHi = topF - cast(f64) py
@@ -257,14 +259,14 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
             let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
             let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
 
-            accumulateSpan(area.buffer, cover.buffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
+            accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
         }
 
         var running: f64 = 0.0
         for px in width
         {
-            let val = running + cover.buffer[px] - area.buffer[px]
-            running += cover.buffer[px]
+            let val = running + coverBuffer[px] - areaBuffer[px]
+            running += coverBuffer[px]
 
             var c = Math.abs(val)
             if c > 1.0 do

@@ -1049,10 +1049,12 @@ impl Decoder
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
         .scanLine0.resize(cast(u64) .destBytesPerScanLine + 8)
-        Memory.clear(.scanLine0.buffer, cast(u64) .destBytesPerScanLine)
+        let scanLine0 = .scanLine0.buffer orelse cast(#nonull [*] u8) 1'u64
+        Memory.clear(scanLine0, cast(u64) .destBytesPerScanLine)
 
         .scanLine1.resize(cast(u64) .destBytesPerScanLine + 8)
-        Memory.clear(.scanLine1.buffer, cast(u64) .destBytesPerScanLine)
+        let scanLine1 = .scanLine1.buffer orelse cast(#nonull [*] u8) 1'u64
+        Memory.clear(scanLine1, cast(u64) .destBytesPerScanLine)
 
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
         if .maxBlocksPerRow > MaxBlocksPerRow do

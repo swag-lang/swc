@@ -502,7 +502,8 @@ public impl Decoder
         {
             let size = cast(u64) .width * cast(u64) .height
             .frame.resize(4 * size)
-            Memory.set(.frame.buffer, .bgIndex, size)
+            let frame = .frame.buffer orelse cast(#nonull [*] u8) 1'u64
+            Memory.set(frame, .bgIndex, size)
             .canvas = &.frame.buffer[size]
 
             let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]

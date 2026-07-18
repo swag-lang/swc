@@ -1,4 +1,5 @@
 #global export
+#global #[Swag.ExplicitNullability]
 using Swag
 
 // A generic, dynamic array that can hold elements of any type.
@@ -6,7 +7,7 @@ using Swag
 struct(T) Array
 {
     allocator:     IAllocator     // The allocator used for memory operations.
-    buffer:        [*] T          // Pointer to the contiguous memory block holding the elements.
+    buffer:        #null [*] T    // Pointer to the contiguous memory block holding the elements.
     count:         u64            // The number of valid elements currently in the array.
     capacity:      u64            // The total number of elements that can be stored in the allocated me.buffer.
 }
@@ -22,7 +23,7 @@ impl Array
 
     // Returns a raw, constant pointer to the array's me.buffer.
     #[Inline]
-    mtd opData()->const *T
+    mtd opData()->#null const *T
     {
         return .buffer
     }
@@ -58,27 +59,28 @@ impl Array
 
     // Allows the array to be implicitly cast to a mutable slice.
     #[Inline]
-    mtd opCast()->[..] T
+    mtd opCast()->#nonull [..] T
     {
         return .toSlice()
     }
 
     // Allows the array to be implicitly cast to an immutable slice.
     #[Inline]
-    mtd const opCast()->const [..] T
+    mtd const opCast()->#nonull const [..] T
     {
         return .toSlice()
     }
 
     // Creates a slice from a sub-part of the array.
     #[Inline]
-    mtd opSlice(lower, upper: u64)->[..] T
+    mtd opSlice(lower, upper: u64)->#nonull [..] T
     {
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
         Debug.assert(.buffer != null)
-        return @mkslice(.buffer + lower, (upper + 1) - lower)
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return @mkslice(buffer + lower, (upper + 1) - lower)
     }
 
     // Returns a constant reference to the element at the specified index.
@@ -87,7 +89,8 @@ impl Array
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         Debug.assert(.buffer != null)
-        return .buffer + index
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return buffer + index
     }
 
     // Returns a mutable reference to the element at the specified index.
@@ -96,7 +99,8 @@ impl Array
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
         Debug.assert(.buffer != null)
-        return .buffer + index
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return buffer + index
     }
 
     // Assigns a new value to the element at the specified index.
@@ -118,7 +122,7 @@ impl Array
     }
 
     // Replaces the content of the array with elements copied from a slice.
-    mtd opSet(arr: const [..] T)
+    mtd opSet(arr: #null const [..] T)
         where Reflection.canCopy(T)
     {
         let countof = @countof(arr)
@@ -163,12 +167,13 @@ impl Array
     {
         if !.count do
             return
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         #if back do
-            var scan = .buffer + .count
+            var scan = buffer + .count
         #else do
-            var scan = .buffer - 1
+            var scan = buffer - 1
 
         for .count
         {
@@ -197,7 +202,8 @@ impl Array
     mtd ref1(x: u64)->&T
     {
         Debug.safetyBoundCheck(x < .count, "index out of range")
-        return .buffer + x
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return buffer + x
     }
 
     // Returns a mutable reference to an element using 2D coordinates and a width.
@@ -206,7 +212,8 @@ impl Array
     mtd ref2(x, y, w: u64)->&T
     {
         Debug.safetyBoundCheck(x + y * w < .count, "index out of range")
-        return .buffer + x + y * w
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return buffer + x + y * w
     }
 
     // Reallocates the private me.buffer to a new capacity.
@@ -224,7 +231,7 @@ impl Array
             return
         }
 
-        let newBuffer = cast([*] T) Memory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        let newBuffer = cast(#nonull [*] T) Memory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
 
         // Need to call opPostMove on every existing element if the me.buffer has not been reallocated
         // in place
@@ -272,18 +279,10 @@ impl Array
     mtd const isEmpty() => .count == 0
 
     // Returns a mutable slice containing all elements of the array.
-    #[Inline]
-    mtd toSlice()->[..] T
-    {
-        return @mkslice(.buffer, .count)
-    }
+    mtd toSlice()->#nonull [..] T => @mkslice(.buffer orelse cast(#nonull [*] T) 1'u64, .count)
 
     // Returns an immutable slice containing all elements of the array.
-    #[Inline]
-    mtd const toSlice()->const [..] T
-    {
-        return @mkslice(.buffer, .count)
-    }
+    mtd const toSlice()->#nonull const [..] T => @mkslice(.buffer orelse cast(#nonull [*] T) 1'u64, .count)
 
     #[Inline]
     mtd initNewSlots(index, num: u64)
@@ -402,20 +401,22 @@ impl Array
 
     // Reserves space for 'num' elements at the end of the array and returns a pointer to the start of the new space.
     // The new memory is not initialized.
-    mtd emplaceAddress(num: u32 = 1)->[*] T
+    mtd emplaceAddress(num: u32 = 1)->#nonull [*] T
     {
         .grow(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return buffer + .count - num
     }
 
     // Reserves space for 'num' elements at the end of the array and returns a pointer to the start of the new space.
     // The new memory is default-initialized.
-    mtd emplaceInitAddress(num: u32 = 1)->[*] T
+    mtd emplaceInitAddress(num: u32 = 1)->#nonull [*] T
     {
         .grow(.count + num)
         .count += num
-        var res = .buffer + .count - num
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        var res = buffer + .count - num
         @init(res, num)
         return res
     }
@@ -446,7 +447,7 @@ impl Array
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    mtd insertAt(index: u64, values: const [..] T)
+    mtd insertAt(index: u64, values: #null const [..] T)
         where Reflection.canCopy(T)
     {
         var sliceCount = @countof(values)
@@ -493,7 +494,7 @@ impl Array
 
     // Moves elements from a slice at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    mtd emplaceAt(index: u64, values: [..] T)
+    mtd emplaceAt(index: u64, values: #null [..] T)
         where Reflection.canCopy(T)
     {
         var sliceCount = @countof(values)
@@ -696,21 +697,30 @@ impl Array
     mtd sort()
         where Reflection.canCompare(T)
     {
-        Slice.sort(.toSlice(), func(x, y: T)->s32 => x <=> y)
+        if .count <= 1 do
+            return
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => x <=> y)
     }
 
     // Sorts the array in descending order.
     mtd sortReverse()
         where Reflection.canCompare(T)
     {
-        Slice.sort(.toSlice(), func(x, y: T)->s32 => y <=> x)
+        if .count <= 1 do
+            return
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => y <=> x)
     }
 
     // Sorts the array using a custom comparison function.
     mtd sort(cb: func||(T, T)->s32)
     {
         Debug.assert(cb != null)
-        Slice.sort(.toSlice(), cb)
+        if .count <= 1 do
+            return
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        Slice.sort(@mkslice(buffer, .count), cb)
     }
 
     // Returns a copy of the first element of the array.
@@ -724,10 +734,10 @@ impl Array
 
     // Returns a pointer to the first element of the array.
     // Asserts if the array is empty.
-    mtd frontPtr()->*T
+    mtd frontPtr()->#nonull *T
     {
         Debug.assert(.count > 0, "array is empty")
-        return .buffer
+        return .buffer orelse cast(#nonull *T) 1'u64
     }
 
     // Returns a copy of the last element of the array.
@@ -741,10 +751,11 @@ impl Array
 
     // Returns a pointer to the last element of the array.
     // Asserts if the array is empty.
-    mtd backPtr()->*T
+    mtd backPtr()->#nonull *T
     {
         Debug.assert(.count > 0, "array is empty")
-        return .buffer + .count - 1
+        let buffer = .buffer orelse cast(#nonull [*] T) 1'u64
+        return buffer + .count - 1
     }
 
     // Removes the last element from the array and returns it.
@@ -770,7 +781,7 @@ impl Array
 
 impl StrConv.IConvert for Array
 {
-    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
+    mtd const impl convert(buf: #nonull *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
         for i in .count

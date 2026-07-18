@@ -1,4 +1,5 @@
 #global export
+#global #[Swag.ExplicitNullability]
 using Swag
 
 // Represents a single entry within a HashSet.
@@ -19,7 +20,7 @@ struct(K) HashSet
     const HASH_MASK        = 2'u32              // A mask to ensure that valid hashes are >= HASH_FIRST.
 
     allocator:             IAllocator           // The me.allocator used for memory operations.
-    table:                 [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
+    table:                 #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
     count:                 u64                  // The number of valid elements currently in the set.
     capacity:              u64                  // The total number of slots in the hash me.table.
     deleted:               u64                  // The number of slots marked as deleted.
@@ -36,6 +37,16 @@ impl HashSet
         return result
     }
 
+    mtd tablePtr()->#nonull [*] HashSetEntry
+    {
+        return .table orelse cast(#nonull [*] HashSetEntry'(K)) 1'u64
+    }
+
+    mtd const constTablePtr()->#nonull const [*] HashSetEntry
+    {
+        return cast(#nonull const [*] HashSetEntry'(K)) (.table orelse cast(#nonull [*] HashSetEntry'(K)) 1'u64)
+    }
+
     // Returns the number of elements in the set.
     #[Inline]
     mtd opCount()->u64
@@ -50,7 +61,7 @@ impl HashSet
     }
 
     // Replaces the content of the set with elements from a slice.
-    mtd opSet(slice: const [..] K)
+    mtd opSet(slice: #null const [..] K)
     {
         .clear()
         for v in slice do
@@ -67,23 +78,24 @@ impl HashSet
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
+        let oldTable = .tablePtr()
+        let newTable = cast(#nonull [*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
         Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
         #if Reflection.hasPostCopy(K)
         {
             for i in .capacity
             {
-                let hashVal = .table[i].hash
+                let hashVal = oldTable[i].hash
                 if hashVal < HashSet.HASH_DELETED do
                     continue
 
                 newTable[i].hash = hashVal
-                newTable[i].key  = #nodrop .table[i].key
+                newTable[i].key  = #nodrop oldTable[i].key
             }
         }
         #else
         {
-            Memory.copy(newTable, .table, .capacity * #sizeof(HashSetEntry'(K)))
+            Memory.copy(newTable, oldTable, .capacity * #sizeof(HashSetEntry'(K)))
         }
 
         .table = newTable
@@ -98,6 +110,7 @@ impl HashSet
         if !.count do
             return
 
+        let table = .constTablePtr()
         var remain = .count
         #scope(Up)
         for .capacity
@@ -107,17 +120,17 @@ impl HashSet
             #else do
                 let tableIndex = @index
 
-            if .table[tableIndex].hash < HashSet.HASH_FIRST do
+            if table[tableIndex].hash < HashSet.HASH_FIRST do
                 continue
 
             #scope(Down)
             {
                 #if ptr do
-                    #inject(stmt, key = cast(&K) &me.table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 #elif Reflection.isStruct(K) do
-                    #inject(stmt, key = cast(const &K) &me.table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
                 #else do
-                    #inject(stmt, key = me.table[tableIndex].key, break = break to Up, continue = break to Down)
+                    #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
 
             remain -= 1
@@ -140,18 +153,19 @@ impl HashSet
     {
         if !.table do
             return
+        let table = .tablePtr()
 
         // Need to drop every structs
         #if Reflection.hasDrop(#typeof(K))
         {
             for i in .capacity
             {
-                if .table[i].hash >= HashSet.HASH_DELETED do
-                    @drop(&.table[i].key)
+                if table[i].hash >= HashSet.HASH_DELETED do
+                    @drop(&table[i].key)
             }
         }
 
-        Memory.free(.table, .capacity * #sizeof(HashSetEntry'(K)), .allocator)
+        Memory.free(table, .capacity * #sizeof(HashSetEntry'(K)), .allocator)
         .table = null
         .count, .capacity, .deleted = 0
     }
@@ -181,24 +195,26 @@ impl HashSet
 
         if .allocator == null do
             .allocator = @getcontext().allocator
-        .table = cast() Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast(#nonull [*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
+        let table = .tablePtr()
 
         // Be sure hash entry is 0
-        Memory.clear(.table, newCapacityBytes)
+        Memory.clear(table, newCapacityBytes)
 
         // Copy the last me.table to the new me.table, removing me.deleted entries
         let oldCapacity = .capacity
         .capacity = reqCapacity
+        let oldTablePtr = oldTable orelse cast(#nonull [*] HashSetEntry'(K)) 1'u64
         for i in oldCapacity
         {
-            let h = oldTable[i].hash
+            let h = oldTablePtr[i].hash
             if h >= HashSet.HASH_FIRST
             {
-                .emplaceInternal(h, &oldTable[i].key)
+                .emplaceInternal(h, &oldTablePtr[i].key)
             }
             elif h == HashSet.HASH_DELETED
             {
-                @drop(&oldTable[i].key)
+                @drop(&oldTablePtr[i].key)
             }
         }
 
@@ -212,17 +228,18 @@ impl HashSet
         var firstDeleted = Swag.U64.Max
         let mask         = .capacity - 1
         var index        = idx
+        let table        = .tablePtr()
 
         for
         {
-            let entryHash = .table[index].hash
+            let entryHash = table[index].hash
             if entryHash == HashSet.HASH_FREE do
                 return firstDeleted != Swag.U64.Max ? firstDeleted : index
 
             if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max do
                 firstDeleted = index
 
-            if entryHash == hashVal and .table[index].key == key do
+            if entryHash == hashVal and table[index].key == key do
                 return index
 
             index = (index + 1) & mask
@@ -232,61 +249,63 @@ impl HashSet
     // Adds a new key to the set. The key is copied; pass it with '#move' to move it instead.
     // If the key already exists, does nothing. Returns a pointer to the entry.
     #[Discardable]
-    mtd add(key: #fwd K)->*HashSetEntry
+    mtd add(key: #fwd K)->#nonull *HashSetEntry
     {
         .grow()
 
         let hashVal = hashKey(key)
         var index   = cast(u64) hashVal & (.capacity - 1)
+        let table   = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
-        if .table[index].hash >= HashSet.HASH_FIRST do
-            return .table + index
+        if table[index].hash >= HashSet.HASH_FIRST do
+            return table + index
 
-        if .table[index].hash == HashSet.HASH_FREE
+        if table[index].hash == HashSet.HASH_FREE
         {
-            .table[index].key = #nodrop #fwd key
+            table[index].key = #nodrop #fwd key
         }
         else
         {
-            if .table[index].hash == HashSet.HASH_DELETED do
+            if table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
-            .table[index].key = #fwd key
+            table[index].key = #fwd key
         }
 
-        .table[index].hash = hashVal
+        table[index].hash = hashVal
         .count += 1
-        return .table + index
+        return table + index
     }
 
     // Internal helper to add a new element with a pre-computed hash.
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: &K)->*HashSetEntry
+    mtd emplaceInternal(hashVal: u32, key: &K)->#nonull *HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()
 
         var index = cast(u64) hashVal & (.capacity - 1)
+        let table = .tablePtr()
 
         index = .getNewIndex(key, index, hashVal)
-        if .table[index].hash >= HashSet.HASH_FIRST do
-            return .table + index
+        if table[index].hash >= HashSet.HASH_FIRST do
+            return table + index
 
-        if .table[index].hash == HashSet.HASH_FREE
+        if table[index].hash == HashSet.HASH_FREE
         {
-            .table[index].key = #relocate key
+            table[index].key = #relocate key
         }
         else
         {
-            if .table[index].hash == HashSet.HASH_DELETED do
+            if table[index].hash == HashSet.HASH_DELETED do
                 .deleted -= 1
-            @drop(&.table[index].key)
-            .table[index].key = #relocate key
+            @drop(&table[index].key)
+            table[index].key = #relocate key
         }
 
-        .table[index].hash = hashVal
+        table[index].hash = hashVal
         .count += 1
-        return .table + index
+        return table + index
     }
 
     // Toggles the presence of a key in the set.
@@ -301,24 +320,25 @@ impl HashSet
         let mask          = .capacity - 1
         var firstDeleted  = Swag.U64.Max
         var index         = cast(u64) hashVal & mask
+        let table         = .tablePtr()
 
         for
         {
-            let entryHash = .table[index].hash
+            let entryHash = table[index].hash
             if entryHash == HashSet.HASH_FREE
             {
                 let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
-                if .table[targetIndex].hash == HashSet.HASH_FREE
+                if table[targetIndex].hash == HashSet.HASH_FREE
                 {
-                    .table[targetIndex].key = #nodrop #fwd key
+                    table[targetIndex].key = #nodrop #fwd key
                 }
                 else
                 {
                     .deleted -= 1
-                    .table[targetIndex].key = #fwd key
+                    table[targetIndex].key = #fwd key
                 }
 
-                .table[targetIndex].hash = hashVal
+                table[targetIndex].hash = hashVal
                 .count += 1
                 return true
             }
@@ -327,9 +347,9 @@ impl HashSet
             {
                 firstDeleted = index
             }
-            elif entryHash == hashVal and .table[index].key == key
+            elif entryHash == hashVal and table[index].key == key
             {
-                .table[index].hash = HashSet.HASH_DELETED
+                table[index].hash = HashSet.HASH_DELETED
                 .count -= 1
                 .deleted += 1
                 return false
@@ -349,12 +369,13 @@ impl HashSet
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
         var index   = cast(u64) hashVal & mask
+        let table   = .tablePtr()
 
-        while .table[index].hash
+        while table[index].hash
         {
-            if .table[index].hash == hashVal and .table[index].key == key
+            if table[index].hash == hashVal and table[index].key == key
             {
-                .table[index].hash = HashSet.HASH_DELETED
+                table[index].hash = HashSet.HASH_DELETED
                 .count -= 1
                 .deleted += 1
                 return
@@ -373,10 +394,11 @@ impl HashSet
         let hashVal = hashKey(key)
         let mask    = .capacity - 1
         var index   = cast(u64) hashVal & mask
+        let table   = .constTablePtr()
 
-        while .table[index].hash
+        while table[index].hash
         {
-            if .table[index].hash == hashVal and .table[index].key == key do
+            if table[index].hash == hashVal and table[index].key == key do
                 return true
             index = (index + 1) & mask
         }
@@ -392,17 +414,18 @@ impl HashSet
         // Drop the key and the value if necessary
         if .count or .deleted
         {
+            let table = .tablePtr()
             for i in .capacity
             {
-                let hashval = .table[i].hash
+                let hashval = table[i].hash
                 if hashval >= HashSet.HASH_DELETED do
-                    @drop(&.table[i].key)
+                    @drop(&table[i].key)
 
                 if hashval == HashSet.HASH_DELETED do
                     .deleted -= 1
                 elif hashval >= HashSet.HASH_FIRST do
                     .count -= 1
-                .table[i].hash = HashSet.HASH_FREE
+                table[i].hash = HashSet.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value
                 if !.count and !.deleted do
@@ -414,7 +437,7 @@ impl HashSet
 
 impl StrConv.IConvert for HashSet
 {
-    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string)
+    mtd const impl convert(buf: #nonull *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
         for k in me

@@ -274,7 +274,7 @@ func display()
     g_Context.swapBuffers()
 }
 
-func onResize(_window: *Env.Window, width, height: s32)
+func onResize(_window: #nonull *Env.Window, width, height: s32)
 {
     g_Width  = width
     g_Height = height

@@ -302,7 +302,7 @@ func display()
     g_Renderer.end()
 }
 
-func onResize(_window: *Env.Window, width, height: s32)
+func onResize(_window: #nonull *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height

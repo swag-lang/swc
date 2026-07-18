@@ -834,7 +834,7 @@ struct MONITORINFO
     dwFlags:       DWORD
 }
 
-alias MONITORENUMPROC = func(HMONITOR, HDC, *RECT, LPARAM)->BOOL
+alias MONITORENUMPROC = func(HMONITOR, HDC, #nonull *RECT, LPARAM)->BOOL
 alias WNDENUMPROC     = func(HWND, LPARAM)->BOOL
 
 const SM_CXSCREEN                    = 0

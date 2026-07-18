@@ -28,7 +28,7 @@ public impl NativeRenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->RenderingContext throw
     {
-        return try .createContext(window.nativeHandle, width, height, mainRC)
+        return try .createContext(cast(HWND) window.nativeHandle, width, height, mainRC)
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]

@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Env
+#global #[Swag.ExplicitNullability]
 using Win32
 
 public const EndLine = "\r\n"
@@ -14,7 +15,7 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
         if @err != null or len >= MAX_PATH do
             return ""
 
-        var result: retval = cast(string) @mkslice(&a[0], cast(u64) len)
+        var result: retval = cast(#nonull string) @mkslice(&a[0], cast(u64) len)
         Path.normalize(&result)
         return result
     }
@@ -55,7 +56,7 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
     catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE)
     if @err == null
     {
-        result = cast(string) @mkslice(&a[0], @countof(cast(cstring) &a[0]))
+        result = cast(#nonull string) @mkslice(&a[0], @countof(cast(#nonull cstring) &a[0]))
         Path.normalize(&result)
     }
 
@@ -67,7 +68,7 @@ public func getMonitors()->Array'Monitor
 {
     var result: retval
 
-    func proc(hMonitor: HMONITOR, _hDC: HDC, _lpRect: *RECT, lParam: LPARAM)->BOOL
+    func proc(hMonitor: HMONITOR, _hDC: HDC, _lpRect: #nonull *RECT, lParam: LPARAM)->BOOL
     {
         var mi: MONITORINFO
         catch GetMonitorInfoA(hMonitor, &mi)
@@ -75,7 +76,7 @@ public func getMonitors()->Array'Monitor
             return TRUE
 
         var m:  Monitor
-        let ptr = cast(*Array'Monitor) cast(u64) lParam
+        let ptr = cast(#nonull *Array'Monitor) cast(u64) lParam
 
         m.rect.x      = mi.rcMonitor.left
         m.rect.y      = mi.rcMonitor.top
@@ -107,7 +108,7 @@ public func getMonitors()->Array'Monitor
         return TRUE
     }
 
-    EnumDisplayMonitors(null, null, &proc, cast(LPARAM) cast(u64) &result)
+    EnumDisplayMonitors(null, null, cast() &proc, cast(LPARAM) cast(u64) &result)
     result.sort(func||(a, b)
     {
         return a.rect.x <=> b.rect.x
@@ -118,7 +119,7 @@ public func getMonitors()->Array'Monitor
 
 // Locate file in the file explorer
 #[Swag.Discardable]
-public func locateInExplorer(name: string)->bool
+public func locateInExplorer(name: #nonull string)->bool
 {
     var x: String = name
     x.replace("/", "\\")
@@ -131,7 +132,7 @@ public func locateInExplorer(name: string)->bool
 }
 
 // Locate file in the internet explorer
-public func locateUrl(name: string)
+public func locateUrl(name: #nonull string)
 {
     discard catch ShellExecuteA(null, null, @dataof(name), null, null, SW_SHOW)
 }
@@ -162,7 +163,7 @@ var g_SysInfo: SYSTEM_INFO
 }
 
 // Register an application in the system
-public func registerApplication(appName, appFriendly: string)
+public func registerApplication(appName, appFriendly: #nonull string)
 {
     var hKey: HKEY
 
@@ -195,7 +196,7 @@ public func registerApplication(appName, appFriendly: string)
 
 // Associate an extension to an executable
 #[Swag.Discardable]
-public func associateFileExtension(extension, appName, appPath: string)->bool
+public func associateFileExtension(extension, appName, appPath: #nonull string)->bool
 {
     var hKey: HKEY
 
@@ -253,7 +254,7 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 }
 
 var g_StoreArgs: String
-func getNativeArgs()->string
+func getNativeArgs()->#nonull string
 {
     let ptr = GetCommandLineW()
     g_StoreArgs = Utf8.fromUtf16(@mkslice(ptr, Utf16.lengthZeroTerminated(ptr)))
@@ -274,8 +275,8 @@ public func getDPIScale()->f32
     return cast(f32) w1 / cast(f32) w0
 }
 
-public alias WindowPaintCallback  = func||(*Window)
-public alias WindowResizeCallback = func||(*Window, s32, s32)
+public alias WindowPaintCallback  = func||(#nonull *Window)
+public alias WindowResizeCallback = func||(#nonull *Window, s32, s32)
 
 public struct WindowCallbacks
 {
@@ -285,8 +286,8 @@ public struct WindowCallbacks
 
 public struct WindowOptions
 {
-    className:      string
-    title:          string
+    className:      #nonull string
+    title:          #nonull string
     width:          s32
     height:         s32
     x:              s32 = CW_USEDEFAULT
@@ -299,7 +300,7 @@ public struct WindowOptions
 
 public struct Window
 {
-    nativeHandle:      HWND
+    nativeHandle:      #null HWND
     callbacks:         WindowCallbacks
     showCommand:       s32 = SW_SHOW
 }
@@ -310,38 +311,41 @@ public struct WindowLoop
     testFrames:        u32
 }
 
-private func getWindowFromHandle(hWnd: HWND)->*Window
+private func getWindowFromHandle(hWnd: HWND)->#null *Window
 {
-    return cast(*Window) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
+    return cast(#null *Window) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
 }
 
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     if msg == WM_CREATE
     {
-        let createStruct = cast(*CREATESTRUCTA) cast(u64) lParam
+        let createStruct = cast(#nonull *CREATESTRUCTA) cast(u64) lParam
         SetWindowLongPtrA(hWnd, GWLP_USERDATA, createStruct.lpCreateParams)
 
-        let window = cast(*Window) createStruct.lpCreateParams
+        let window = cast(#nonull *Window) createStruct.lpCreateParams
         window.nativeHandle = hWnd
     }
 
     let window = getWindowFromHandle(hWnd)
     if window
     {
+        let safeWindow = window orelse cast(#nonull *Window) 1'u64
         switch msg
         {
         case WM_PAINT:
             var ps: PAINTSTRUCT
             BeginPaint(hWnd, &ps)
-            if window.callbacks.onPaint do
-                window.callbacks.onPaint(window)
+            let onPaint = window.callbacks.onPaint
+            if onPaint do
+                onPaint(safeWindow)
             EndPaint(hWnd, &ps)
             return 0
 
         case WM_SIZE:
-            if window.callbacks.onResize do
-                window.callbacks.onResize(window, LOWORD(lParam), HIWORD(lParam))
+            let onResize = window.callbacks.onResize
+            if onResize do
+                onResize(safeWindow, LOWORD(lParam), HIWORD(lParam))
             return 0
 
         case WM_DESTROY:

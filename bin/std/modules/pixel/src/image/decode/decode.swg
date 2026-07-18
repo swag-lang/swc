@@ -1,8 +1,9 @@
+#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 struct ImageDecoder
 {
-    type:     const *TypeInfoStruct
+    type:     #nonull const *TypeInfoStruct
     itf:      IImageDecoder
 }
 
@@ -19,8 +20,8 @@ public struct DecodeOptions
 // Interface to decode a buffer
 public interface IImageDecoder
 {
-    mtd canDecode(filename: string)->bool;
-    mtd decode(buf: const [..] u8, opt: DecodeOptions)->Image throw;
+    mtd canDecode(filename: #nonull string)->bool;
+    mtd decode(buf: #nonull const [..] u8, opt: DecodeOptions)->Image throw;
 }
 
 impl Image
@@ -28,9 +29,9 @@ impl Image
     var decoders: Array'ImageDecoder
 
     // Find the decoder that can treat 'fileName'
-    func getDecoder(fileName: string)->#null *ImageDecoder
+    func getDecoder(fileName: #nonull string)->#null *ImageDecoder
     {
-        var found: *ImageDecoder
+        var found: #null *ImageDecoder
         for &decoder in decoders
         {
             if decoder.itf.canDecode(fileName)
@@ -44,7 +45,7 @@ impl Image
     }
 
     // Decode the given image buffer with the given decoder
-    func decode(decoder: *ImageDecoder, bytes: const [..] u8, options: DecodeOptions = {})->Image throw
+    func decode(decoder: #nonull *ImageDecoder, bytes: #nonull const [..] u8, options: DecodeOptions = {})->Image throw
     {
         // Create a decoder instance
         let ptrDecoder = Memory.new(decoder.type)
@@ -76,7 +77,7 @@ public impl Image
     }
 
     // Returns 'true' if the given filename has a corresponding decoder
-    func canLoad(fileName: string)->bool
+    func canLoad(fileName: #nonull string)->bool
     {
         for &decoder in decoders
         {
@@ -88,22 +89,24 @@ public impl Image
     }
 
     // Decode the given image buffer
-    func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = {})->Image throw
+    func decode(fileName: #nonull string, bytes: #null const [..] u8, options: DecodeOptions = {})->Image throw
     {
+        if !bytes do
+            throw InvalidFormatError{"invalid image buffer"}
         let found = getDecoder(fileName)
         if !found do
             throw UnsupportedFormatError{"no matching image decoder"}
-        return decode(found, bytes, options)
+        return decode(cast(#nonull *ImageDecoder) (assume found), cast(#nonull const [..] u8) (assume bytes), options)
     }
 
     // Load the given image file
-    func load(fileName: string, options: DecodeOptions = {})->Image throw
+    func load(fileName: #nonull string, options: DecodeOptions = {})->Image throw
     {
         let found = getDecoder(fileName)
         if !found do
             throw UnsupportedFormatError{"no matching image decoder"}
         var bytes = File.readAllBytes(fileName)
-        return decode(found, bytes.toSlice(), options)
+        return decode(fileName, bytes.toSlice(), options)
     }
 }
 

@@ -1,7 +1,8 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 #[Swag.Inline]
-func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
+func hasAnyAbove(arr: #nonull [*] u8, count: u32, limit: u8)->bool
 {
     for i in count
     {
@@ -12,7 +13,7 @@ func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
 }
 
 #[Swag.Inline]
-func firstAboveIndex(arr: [*] u8, count: u32, limit: u8)->s32
+func firstAboveIndex(arr: #nonull [*] u8, count: u32, limit: u8)->s32
 {
     for i in count
     {
@@ -22,7 +23,7 @@ func firstAboveIndex(arr: [*] u8, count: u32, limit: u8)->s32
     return -1
 }
 
-func runInlineScanStress(arr: [*] u8, count: u32)->u32
+func runInlineScanStress(arr: #nonull [*] u8, count: u32)->u32
 {
     var limits: [4] u8 = [0, 4, 8, 9]
     var total: u32

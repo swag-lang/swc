@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 var gVariadicAnyTotal: u64
 var gVariadicTypedTotal: u64

@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 // Overload with different parameter counts (0, 1, 2)
 var gArityResult: s32 = 0
@@ -22,13 +23,13 @@ struct OverS {}
 
 var gOverMethodS32: s32 = 0
 var gOverMethodBool: bool = false
-var gOverMethodStr: string
+var gOverMethodStr: #nonull string = ""
 
 impl OverS
 {
     mtd process(a: s32) { gOverMethodS32 = a }
     mtd process(a: bool) { gOverMethodBool = a }
-    mtd process(a: string) { gOverMethodStr = a }
+    mtd process(a: #nonull string) { gOverMethodStr = a }
 }
 
 #test
@@ -66,7 +67,7 @@ func sizedOp(a: u32) { gOverU32 = a }
 var gOverPtrVal: s32 = 0
 
 func ptrOrVal(a: s32) { gOverPtrVal = a }
-func ptrOrVal(a: *s32) { gOverPtrVal = dref a }
+func ptrOrVal(a: #nonull *s32) { gOverPtrVal = dref a }
 
 #test
 {

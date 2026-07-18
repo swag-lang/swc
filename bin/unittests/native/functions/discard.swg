@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 var gMustUseCalls: s32
 var gCanDiscardCalls: s32

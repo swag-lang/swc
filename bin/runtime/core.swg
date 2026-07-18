@@ -118,11 +118,24 @@ func @typecmp(typeA, typeB: #nonull typeinfo, cmpFlags: TypeCmpFlags)->bool
     if (type1.kind != type2.kind) or (type1.sizeof != type2.sizeof) do
         return false
 
-    // HACK for now : do not take care of Nullable flag
-    let flags1 = type1.flags & ~.Nullable
-    let flags2 = type2.flags & ~.Nullable
+    // HACK for now : do not take care of nullability migration flags
+    let nullableFlags = TypeInfoFlags.Nullable | TypeInfoFlags.ExplicitNonNull | TypeInfoFlags.RequiresExplicitInit
+    let flags1        = type1.flags & ~nullableFlags
+    let flags2        = type2.flags & ~nullableFlags
     if flags1 != flags2 do
         return false
+
+    if type1.kind == TypeInfoKind.Native
+    {
+        let native1 = cast(#nonull const *TypeInfoNative) type1
+        let native2 = cast(#nonull const *TypeInfoNative) type2
+        if native1.nativeKind != native2.nativeKind do
+            return false
+        if native1.nativeKind == TypeInfoNativeKind.String or
+           native1.nativeKind == TypeInfoNativeKind.CString or
+           native1.nativeKind == TypeInfoNativeKind.Any do
+            return true
+    }
 
     // For tuples, we compare field by field
     if type1.flags & .Tuple

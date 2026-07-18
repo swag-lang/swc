@@ -185,11 +185,14 @@ namespace
         if (typeRef.isInvalid())
             return false;
 
-        const AstNode& typeNode = ast.node(typeRef);
-        if (typeNode.isNot(AstNodeId::BuiltinType))
+        const AstNode* typeNode = &ast.node(typeRef);
+        if (const auto* qualifiedType = typeNode->safeCast<AstQualifiedType>())
+            typeNode = &ast.node(qualifiedType->nodeTypeRef);
+
+        if (typeNode->isNot(AstNodeId::BuiltinType))
             return false;
 
-        return sema.token(typeNode.codeRef()).id == expectedType;
+        return sema.token(typeNode->codeRef()).id == expectedType;
     }
 
     bool hasSpecOpGenericSignature(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)

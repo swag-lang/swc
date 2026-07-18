@@ -970,12 +970,12 @@ impl Painter
     }
 
     // Release the render target
-    mtd releaseRenderTarget(tgt: #nonull *RenderTarget)
+    mtd releaseRenderTarget(tgt: #null *RenderTarget)
     {
         if !tgt do
             return
         let cmd = .newCommand(.ReleaseRenderTarget)
-        cmd.renderTgt.tgt = tgt
+        cmd.renderTgt.tgt = tgt orelse cast(#nonull *RenderTarget) 1'u64
     }
 
     // Set the current shader

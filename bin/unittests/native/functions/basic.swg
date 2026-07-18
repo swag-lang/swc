@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 var gBasicF0Calls: s32
 var gBasicF1Last: s32

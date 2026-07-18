@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 using Swag
 
 // Inline expansion must stop re-expanding the same function when an inline call graph loops back

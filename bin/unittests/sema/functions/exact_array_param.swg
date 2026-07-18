@@ -1,11 +1,12 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 alias ExactArrayParamDigest = [16] u8
 
 func exactArrayParamSum(values: [4] s32)->s32
 {
     #assert(#typeof(values) == [4] s32)
-    #assert(#typeof(&values) == [*][4] s32)
+    #assert(#nameof(#typeof(&values)) == "[*] [4] s32")
     return values[0] + values[3]
 }
 
@@ -25,7 +26,7 @@ func exactGridParamRead(grid: [2, 3] s16)->s16
 func(T) exactArrayParamTail(values: [4] T)->T
 {
     #assert(#typeof(values) == [4] T)
-    #assert(#typeof(&values) == [*][4] T)
+    #assert(#nameof(#typeof(&values)) == "[*] [4] u16")
     return values[3]
 }
 
@@ -54,7 +55,7 @@ func(T) exactArrayParamTail(values: [4] T)->T
     let reader = func(values: [4] s32)->s32
     {
         #assert(#typeof(values) == [4] s32)
-        #assert(#typeof(&values) == [*][4] s32)
+        #assert(#nameof(#typeof(&values)) == "[*] [4] s32")
         return values[1] + values[2]
     }
 

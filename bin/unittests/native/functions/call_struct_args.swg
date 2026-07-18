@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #global #if #os == Swag.TargetOs.Windows // 
 #global private
 

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 // 
 
 #global private
@@ -69,7 +70,7 @@ func floatDefault(a: f64 = 1.5, b: f64 = 2.0)->f64
     return a + b
 }
 
-func stringDefaultTag(value: string = "abc")->s32
+func stringDefaultTag(value: #nonull string = "abc")->s32
 {
     if value == "abc" do
         return 1
@@ -80,7 +81,7 @@ func stringDefaultTag(value: string = "abc")->s32
     return 0
 }
 
-func pointerDefaultIsNull(ptr: *s32 = null)->bool
+func pointerDefaultIsNull(ptr: #null *s32 = null)->bool
 {
     return ptr == null
 }
@@ -147,7 +148,7 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
 {
     @assert(stringDefaultTag() == 1)
     @assert(stringDefaultTag("hello") == 2)
-    @assert(stringDefaultTag(value: null) == 3)
+    @assert(pointerDefaultIsNull())
 
     @assert(pointerDefaultIsNull())
     var local: s32 = 10

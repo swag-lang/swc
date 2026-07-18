@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 var gOverloadA0Calls: s32
 var gOverloadA1Last: s32

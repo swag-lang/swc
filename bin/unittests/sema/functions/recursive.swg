@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func directRegular(n: s32)->s32
 {

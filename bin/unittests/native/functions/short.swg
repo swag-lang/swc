@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func A() => true
 func B(a: s32, b: s32) => a + b

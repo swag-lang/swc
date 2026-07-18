@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func titi(a: ...) {}
 func tata(a: s32...) {}

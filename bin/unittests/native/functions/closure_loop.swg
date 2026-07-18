@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 // Closure created in a loop captures by value correctly
 #test

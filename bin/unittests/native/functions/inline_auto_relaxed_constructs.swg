@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 alias RelaxedInlineS32 = s32
 

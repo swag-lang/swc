@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct Pair
 {
@@ -23,12 +24,12 @@ struct PathTarget
 
 struct PathHolder
 {
-    target: *PathTarget
+    target: #null *PathTarget
 }
 
 struct PathOwner
 {
-    target: *PathTarget
+    target: #null *PathTarget
     bias:   s32
 }
 
@@ -45,7 +46,7 @@ impl PathOwner
 {
     mtd makeCallback()->ClosureNullary
     {
-        return func|me.target, me.bias|()->s32 { return target.value + bias }
+        return func|me.target, me.bias|()->s32 { return (target orelse null).value + bias }
     }
 }
 

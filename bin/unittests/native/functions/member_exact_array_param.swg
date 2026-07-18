@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct MemberExactArrayParamMatrix
 {

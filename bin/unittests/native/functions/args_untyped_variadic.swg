@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func variadicAnyOnly(values: ...)->u64
 {
@@ -12,39 +13,39 @@ func variadicAnyWithHead(a: s32, values: ...)->s32
 
 func variadicAnyS32(values: ...)->s32
 {
-    let p0 = cast(*s32) @dataof(values[0])
-    let p1 = cast(*s32) @dataof(values[1])
-    let p2 = cast(*s32) @dataof(values[2])
-    let p3 = cast(*s32) @dataof(values[3])
+    let p0 = cast(#nonull *s32) @dataof(values[0])
+    let p1 = cast(#nonull *s32) @dataof(values[1])
+    let p2 = cast(#nonull *s32) @dataof(values[2])
+    let p3 = cast(#nonull *s32) @dataof(values[3])
     return dref p0 + dref p1 + dref p2 + dref p3
 }
 
 func variadicAnyF64(a: f64, values: ...)->f64
 {
-    let p0 = cast(*f64) @dataof(values[0])
-    let p1 = cast(*f64) @dataof(values[1])
+    let p0 = cast(#nonull *f64) @dataof(values[0])
+    let p1 = cast(#nonull *f64) @dataof(values[1])
     return a + dref p0 + dref p1
 }
 
 func variadicAnyBool(a: bool, values: ...)->s32
 {
-    let p0 = cast(*bool) @dataof(values[0])
-    let p1 = cast(*bool) @dataof(values[1])
+    let p0 = cast(#nonull *bool) @dataof(values[0])
+    let p1 = cast(#nonull *bool) @dataof(values[1])
     return cast(s32) a + cast(s32) dref p0 + cast(s32) dref p1
 }
 
 func variadicAnyRune(a: rune, values: ...)->s32
 {
-    let p0 = cast(*rune) @dataof(values[0])
-    let p1 = cast(*rune) @dataof(values[1])
+    let p0 = cast(#nonull *rune) @dataof(values[0])
+    let p1 = cast(#nonull *rune) @dataof(values[1])
     return cast(s32) a + cast(s32) dref p0 + cast(s32) dref p1
 }
 
 func variadicAnyString(values: ...)->u8
 {
-    let s0 = cast(string) values[0]
-    let s1 = cast(string) values[1]
-    let s2 = cast(string) values[2]
+    let s0 = cast(#nonull string) values[0]
+    let s1 = cast(#nonull string) values[1]
+    let s2 = cast(#nonull string) values[2]
     return cast #wrap(u8) (cast(u16) s0[0] + cast(u16) s1[0] + cast(u16) s2[0])
 }
 

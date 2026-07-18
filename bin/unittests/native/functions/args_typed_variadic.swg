@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct TypedVariadicPair
 {
@@ -41,7 +42,7 @@ func variadicTypedRune(a: rune, values: rune...)->s32
     return cast(s32) a + cast(s32) values[0] + cast(s32) values[1]
 }
 
-func variadicTypedString(a: string, values: string...)->u8
+func variadicTypedString(a: #nonull string, values: #nonull string...)->u8
 {
     return a[0] + values[0][0] + values[1][0]
 }

@@ -353,7 +353,8 @@ public impl Voice
 
         if count
         {
-            let baseBuses = cast(u64) (assume buses)
+            let safeBuses = buses orelse cast(#nonull const *void) 1'u64
+            let baseBuses = cast(u64) safeBuses
             for i in count
             {
                 let busSlot = cast(#nonull const *#null *Bus) (baseBuses + i * #sizeof(#null *Bus))

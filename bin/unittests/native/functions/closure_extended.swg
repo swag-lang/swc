@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct Pair
 {
@@ -23,12 +24,12 @@ struct PathTarget
 
 struct PathHolder
 {
-    target: *PathTarget
+    target: #null *PathTarget
 }
 
 struct PathOwner
 {
-    target: *PathTarget
+    target: #null *PathTarget
     bias:   s32
 }
 
@@ -61,8 +62,9 @@ impl PathOwner
     {
         return func|me.target, me.bias|()->s32
         {
-            target.value += bias
-            return target.value
+            let safeTarget = assume target
+            safeTarget.value += bias
+            return safeTarget.value
         }
     }
 }
@@ -470,8 +472,8 @@ func runInlineClosureCaptureRef()->s32
     @assert(globalReader() == 42)
 
     var text = "abc"
-    let byValue: func||()->string = func|text|()->string { return text }
-    let byRef: func||()->string = func|&text|()->string { return text }
+    let byValue: func||()->#nonull string = func|text|()->#nonull string { return text }
+    let byRef: func||()->#nonull string = func|&text|()->#nonull string { return text }
 
     text = "zzz"
     @assert(byValue() == "abc")

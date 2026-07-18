@@ -1,16 +1,17 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func readAggregatePointerMember(flag: bool)->u16
 {
     var first  = 70'u16
     var second = 80'u16
-    var value  = cast(*void) &second
+    var value  = cast(#nonull *void) &second
     if flag do
-        value = cast(*void) &first
+        value = cast(#nonull *void) &first
 
     var payload = {ptr: value}
-    let data    = cast(*#decltype(payload)) &payload
-    let ptr     = cast(const *u16) data.ptr
+    let data    = cast(#nonull *#decltype(payload)) &payload
+    let ptr     = cast(#nonull const *u16) data.ptr
     return dref ptr
 }
 

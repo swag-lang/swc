@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct A {}
 var gUfcsTotoSum: s32
@@ -20,7 +21,8 @@ impl A
 
 #test
 {
-    var a: *A
+    var value: A
+    var a: #nonull *A = &value
     gUfcsTotoSum = 0
     a.toto(1)
     A.toto(a, 2)
@@ -34,7 +36,7 @@ impl A
     gUfcsTitiLast = 0
     a.toto(1)
     a.titi(10)
-    var b: *A
+    var b: #nonull *A = &a
     b.toto(2)
     @assert(gUfcsTotoSum == 3)
     @assert(gUfcsTitiLast == 10)
@@ -101,12 +103,12 @@ struct UfcsPoint
     x, y: s32
 }
 
-func setUfcsPoint(pt: *UfcsPoint, value: s32)
+func setUfcsPoint(pt: #nonull *UfcsPoint, value: s32)
 {
     pt.x, pt.y = value
 }
 
-func addUfcsPoint(pt: *UfcsPoint, dx: s32, dy: s32)
+func addUfcsPoint(pt: #nonull *UfcsPoint, dx: s32, dy: s32)
 {
     pt.x += dx
     pt.y += dy
@@ -117,13 +119,13 @@ struct UfcsComplex
     real, imag: f32
 }
 
-func multiplyUfcs(c: *UfcsComplex, scalar: f32)
+func multiplyUfcs(c: #nonull *UfcsComplex, scalar: f32)
 {
     c.real *= scalar
     c.imag *= scalar
 }
 
-func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
+func multiplyUfcs(c: #nonull *UfcsComplex, other: #nonull *UfcsComplex)
 {
     let r = (c.real * other.real) - (c.imag * other.imag)
     let i = (c.real * other.imag) + (c.imag * other.real)

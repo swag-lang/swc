@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 struct AbiPair
 {
@@ -28,12 +29,12 @@ struct AbiNested
     q: AbiPayload
 }
 
-func passString(text: string)->string
+func passString(text: #nonull string)->#nonull string
 {
     return text
 }
 
-func passStringAt(text: string, idx: s32)->u8
+func passStringAt(text: #nonull string, idx: s32)->u8
 {
     return text[idx]
 }
@@ -58,12 +59,12 @@ func passPayload(value: AbiPayload)->AbiPayload
     return value
 }
 
-func passPointer(value: *void)->*void
+func passPointer(value: #null *void)->#null *void
 {
     return value
 }
 
-func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: *void)->s32
+func passMixed(a: s32, b: #nonull string, c: AbiPair, d: [2] s32, e: #null *void)->s32
 {
     return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
 }
@@ -96,7 +97,7 @@ func passSlice(values: const [..] s32, idx: s32)->s32
     return values[idx]
 }
 
-func passAggregatePositions(a: *void, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
+func passAggregatePositions(a: #null *void, b: [2] s32, c: #nonull string, d: AbiPair, e: AbiPayload)->u64
 {
     return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
 }
@@ -106,9 +107,9 @@ func passNested(value: AbiNested, extra: s32)->u64
     return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
 }
 
-func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void, values: [2] s32, e: AbiEnum)->bool
+func passKindof(value: AbiPair, payload: AbiPayload, text: #nonull string, p: #null *void, values: [2] s32, e: AbiEnum)->bool
 {
-    return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == string and #typeof(p) == *void and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
+    return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == #nonull string and #typeof(p) == #null *void and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
 }
 
 func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
@@ -158,12 +159,12 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 #test
 {
     let p0 = passPointer(null)
-    let p1 = passPointer(cast(*void) 0x1234'u64)
+    let p1 = passPointer(cast(#nonull *void) 0x1234'u64)
 
     @assert(p0 == null)
-    @assert(p1 == cast(*void) 0x1234'u64)
+    @assert(p1 == cast(#nonull *void) 0x1234'u64)
     @assert(passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    @assert(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64) == 330)
+    @assert(passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(#nonull *void) 0x4567'u64) == 330)
 
     const p: AbiPair = {a: 6, b: 7}
     @assert(passConstRef(p) == 13)
@@ -186,7 +187,7 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     @assert(passSlice(values0, 2) == 33)
     @assert(passSlice(values1, 3) == 404)
     @assert(passSlice(values2, 0) == -1)
-    @assert(passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
+    @assert(passAggregatePositions(cast(#nonull *void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
     @assert(passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
     @assert(passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
     @assert(passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A))

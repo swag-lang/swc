@@ -112,7 +112,7 @@ impl Layer
             .drawTexture(dstRect, srcRect, paintTarget.colorBuffer)
             .setShader()
             .unbindRenderTarget()
-            .releaseRenderTarget(paintTarget orelse cast(#nonull *RenderTarget) 1'u64)
+            .releaseRenderTarget(paintTarget)
         }
 
         .paintTarget   = null
@@ -252,11 +252,11 @@ impl Layer
         {
             let paintTarget   = .paintTarget
             let contentTarget = .contentTarget
-            .painter.releaseRenderTarget(.paintTarget orelse cast(#nonull *RenderTarget) 1'u64)
+            .painter.releaseRenderTarget(.paintTarget)
             if contentTarget != paintTarget do
-                .painter.releaseRenderTarget(.contentTarget orelse cast(#nonull *RenderTarget) 1'u64)
+                .painter.releaseRenderTarget(.contentTarget)
             if .shadowTarget do
-                .painter.releaseRenderTarget(.shadowTarget orelse cast(#nonull *RenderTarget) 1'u64)
+                .painter.releaseRenderTarget(.shadowTarget)
         }
 
         .paintTarget    = null

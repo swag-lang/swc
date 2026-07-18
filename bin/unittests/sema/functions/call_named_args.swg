@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func Sum3(a: s32, b: s32, c: s32)->s32
 {

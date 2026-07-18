@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.ExplicitNullability]
 
 func A() {}
 func B(x: s32) {}
@@ -15,7 +16,7 @@ struct SingleInt
 }
 struct SingleString
 {
-    value: string
+    value: #nonull string
 }
 struct RequiredPoint
 {

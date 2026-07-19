@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -244,7 +245,7 @@ using Swag, Core
 
     @assert(forms.count == 1)
     @assert(@kindof(forms[0]) == FormCallout)
-    let c2 = cast(*FormCallout) @dataof(forms[0])
+    let c2 = cast(#nonull *FormCallout) @dataof(forms[0])
     @assert(c2.text == "hello")
     @assert(c2.roundSize == 18)
     @assert(c2.tailX == 4)

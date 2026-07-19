@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, Pixel
 
 // Ease-out one component of the auto-selection rectangle toward its target. Advancing
@@ -16,7 +17,7 @@ struct CaptureRectWnd
 {
     using wnd:         Wnd
 
-    main:              *MainWnd
+    main:              #null *MainWnd
     startGrab:         bool
     cancelGrab:        bool
     tryStartGrab:      bool
@@ -40,7 +41,7 @@ impl IWnd for CaptureRectWnd
         }
     }
 
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         if evt.kind == .KeyPressed and evt.key == .Escape do
             g_Exit = true
@@ -48,7 +49,7 @@ impl IWnd for CaptureRectWnd
         .invalidate()
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         switch evt.kind
         {
@@ -118,7 +119,7 @@ impl IWnd for CaptureRectWnd
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         var grabRect = getGrabRect()
 
@@ -180,7 +181,7 @@ impl IWnd for CaptureRectWnd
         // Dimensions
         if grabRect.width > 0 and grabRect.height > 0
         {
-            let fontR = .getFont().regular
+            let fontR = captmeFont(.getFont().regular)
             let str   = Format.toString("% x %", grabRect.width, grabRect.height)
             var xx    = grabRect.x + 4
             var yy    = grabRect.y - fontR.height - 8

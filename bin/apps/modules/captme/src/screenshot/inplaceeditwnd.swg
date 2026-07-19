@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, Pixel
 
 enum InPlaceEditMode
@@ -14,11 +15,11 @@ enum InPlaceEditMode
 struct InPlaceEditWnd
 {
     using wnd:            Wnd
-    editWnd:              *EditWnd
-    actionBar:            *IconBar
-    editBar:              *IconBar
-    capture:              *Capture
-    newMain:              *MainWnd
+    editWnd:              #null *EditWnd
+    actionBar:            #null *IconBar
+    editBar:              #null *IconBar
+    capture:              #null *Capture
+    newMain:              #null *MainWnd
     editMode:             InPlaceEditMode = .Arrow
     editColor:            Color = Argb.Red
     editColorHilight:     Color = Argb.Yellow
@@ -28,7 +29,7 @@ struct InPlaceEditWnd
 // The capture overlay spans the whole virtual desktop in physical pixels, so the
 // editor chrome must be sized for the DPI of the monitor the captured area is on,
 // otherwise the bars/buttons render at 96-DPI size and look tiny on a hi-DPI screen.
-func captureUIScale(capture: *Capture)->f32
+func captureUIScale(capture: #nonull *Capture)->f32
 {
     let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
     let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
@@ -43,7 +44,7 @@ func captureUIScale(capture: *Capture)->f32
 
 impl InPlaceEditWnd
 {
-    func create(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
+    func create(capture: #nonull *Capture, main: #nonull *MainWnd, parent: #nonull *Wnd)->#nonull *InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
@@ -57,7 +58,7 @@ impl InPlaceEditWnd
     }
 
     // Private helper methods
-    func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
+    func createMainFrame(main: #nonull *MainWnd, parent: #nonull *Wnd, capture: #nonull *Capture)->#nonull *InPlaceEditWnd
     {
         let newMain = Wnd.create'MainWnd(main.parent, {})
         newMain.registerActions()
@@ -106,7 +107,7 @@ impl InPlaceEditWnd
         .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id); }
     }
 
-    mtd createEditBar(main: *MainWnd)
+    mtd createEditBar(main: #nonull *MainWnd)
     {
         .editBar                 = IconBar.create(.editWnd.editView, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
@@ -145,7 +146,7 @@ impl InPlaceEditWnd
         btnColor.sigShowPopup += func|self = me|(btn)
         {
             let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
-            let picker = PropWnd.createColorPicker(cast(*IconButton) btn, color)
+            let picker = PropWnd.createColorPicker(cast(#nonull *IconButton) btn, color)
             picker.sigChanged += func|self, picker, btn|(pk)
             {
                 if self.editMode == .Marker do
@@ -158,25 +159,27 @@ impl InPlaceEditWnd
         }
     }
 
-    mtd setupCapture(capture: *Capture)
+    mtd setupCapture(capture: #nonull *Capture)
     {
         capture.gizmo.sigHasChanged = func|self = me|() { self.moveButtons(); }
         .moveButtons()
         .updateEditMode()
     }
 
-    mtd handleActionBarPress(actionId: string)
+    mtd handleActionBarPress(actionId: #nonull string)
     {
         switch actionId
         {
         case "copy":
-            .capture.crop()
-            .capture.copyAll()
+            let cap = me.capture orelse cast(#nonull *Capture) 1'u64
+            cap.crop()
+            cap.copyAll()
             exitWithResult(false)
         case "close":
             exitWithResult(false)
         case "edit":
-            .capture.crop()
+            let cap = me.capture orelse cast(#nonull *Capture) 1'u64
+            cap.crop()
             exitWithResult(true)
         case "save":
             // On a cancelled save dialog getSaveAsImageName() returns "": keep the
@@ -185,14 +188,15 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if !fileName.isEmpty()
             {
-                .capture.crop()
+                let cap = me.capture orelse cast(#nonull *Capture) 1'u64
+                cap.crop()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)
             }
         }
     }
 
-    mtd handleEditModeChange(toolId: string)
+    mtd handleEditModeChange(toolId: #nonull string)
     {
         switch toolId
         {
@@ -221,19 +225,19 @@ impl InPlaceEditWnd
         g_GrabDone = grabDone
     }
 
-    func crop(capture: *Capture)
+    func crop(capture: #nonull *Capture)
     {
         let grabRect = calculateGrabRect(capture)
         capture.applyGrabRect(grabRect)
         capture.updateCaptureState()
     }
 
-    func calculateGrabRect(capture: *Capture)->Math.Rectangle
+    func calculateGrabRect(capture: #nonull *Capture)->Math.Rectangle
     {
         return Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
     }
 
-    func applyGrabRect(capture: *Capture, rect: Math.Rectangle)
+    func applyGrabRect(capture: #nonull *Capture, rect: Math.Rectangle)
     {
         var grabRect = rect
 
@@ -242,7 +246,7 @@ impl InPlaceEditWnd
             capture.backImgOriginal = capture.backImg
     }
 
-    func updateCaptureState(capture: *Capture)
+    func updateCaptureState(capture: #nonull *Capture)
     {
         with capture
         {
@@ -373,7 +377,7 @@ impl InPlaceEditWnd
 
 impl IWnd for InPlaceEditWnd
 {
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         evt.accepted = false
         if evt.kind == .KeyPressed and evt.key == .Escape do

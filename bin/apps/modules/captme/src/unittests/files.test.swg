@@ -1,9 +1,10 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core, File
 
-func testPrepareSavedCapture(capture: *Capture)->String
+func testPrepareSavedCapture(capture: #nonull *Capture)->String
 {
     let path = testTempCapturePath()
     capture.file    = path
@@ -15,7 +16,7 @@ func testPrepareSavedCapture(capture: *Capture)->String
     return path
 }
 
-func testSamePath(left: string, right: string)->bool
+func testSamePath(left: String, right: String)->bool
 {
     var l = String.from(left)
     var r = String.from(right)
@@ -24,13 +25,13 @@ func testSamePath(left: string, right: string)->bool
     return Path.equals(l.toString(), r.toString())
 }
 
-func testHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
+func testHasCaptmeFileMetadata(img: Image, captureFile: String)->bool
 {
     for md in img.metaDatas
     {
         if md.isTag("Captme.File")
         {
-            if testSamePath(cast(string) md.toSlice(), captureFile) do
+            if testSamePath(cast(#nonull string) md.toSlice(), captureFile) do
                 return true
         }
     }
@@ -38,7 +39,7 @@ func testHasCaptmeFileMetadata(img: Image, captureFile: string)->bool
     return false
 }
 
-func testPrepareRecentLibrary(main: *MainWnd)
+func testPrepareRecentLibrary(main: #nonull *MainWnd)
 {
     catch Library.init()
     @assert(@err == null)

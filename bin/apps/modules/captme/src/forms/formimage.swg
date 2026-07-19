@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 enum FormImageKind
 {
     Image
@@ -50,17 +51,17 @@ impl FormImage
         @init(&.texture, 1)
     }
 
-    mtd backCaptureMask(mask: *Image)
+    mtd backCaptureMask(mask: #nonull *Image)
     {
         let renderer = g_App.getRenderer()
 
         .image.visitPixels(mask)
         {
-            var maskImg = cast(*Image) userData
+            var maskImg = cast(#nonull *Image) assume userData
             var pix1    = maskImg.pixels.buffer + x * 4
             pix1 += maskImg.width * y * 4
             if !pix1[0] do
-                dref cast(*u32) pix = 0
+                dref cast(#nonull *u32) pix = 0
         }
 
         renderer.removeTexture(&.texture)
@@ -96,9 +97,9 @@ impl IForm for FormImage
         return !.mustEditInside() and .subKind == .None
     }
 
-    mtd impl isSame(ptr: *BaseForm)->bool
+    mtd impl isSame(ptr: #nonull *BaseForm)->bool
     {
-        let other = cast(*FormImage) ptr
+        let other = cast(#nonull *FormImage) ptr
         // backColor only matters for the plain image kind; the processed kinds
         // (blur, pixelate, zoom, capture) have no fill.
         return .isSameBase(ptr, compareBackColor: .kind == .Image) and
@@ -106,18 +107,18 @@ impl IForm for FormImage
                .strength == other.strength
     }
 
-    mtd impl copy(dst, src: *BaseForm)
+    mtd impl copy(dst, src: #nonull *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormImage) dst
-        let srcf = cast(*FormImage) src
+        let dstf = cast(#nonull *FormImage) dst
+        let srcf = cast(#nonull *FormImage) src
         dstf.kind     = srcf.kind
         dstf.strength = srcf.strength
         if srcf.image.isValid() do
             dstf.image = srcf.image
     }
 
-    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         let xa = cast(s32) (movingStart.x / zoom)
         let ya = cast(s32) (movingStart.y / zoom)
@@ -207,7 +208,7 @@ impl IForm for FormImage
         return .rectFormBound()
     }
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
+    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
     {
         if .kind == .Image and
            .place == .Free and
@@ -227,7 +228,7 @@ impl IForm for FormImage
         return .gizmo.mouse(view, pos, evt)
     }
 
-    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -271,7 +272,7 @@ impl IForm for FormImage
         return pp.contains(pt)
     }
 
-    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
     {
         let z     = cxt.z
         let bSize = BaseForm.adaptSize(.borderSize, MinBorderSize, MaxBorderSize, cxt)
@@ -445,7 +446,7 @@ impl IForm for FormImage
         }
     }
 
-    mtd impl setup(capt: *Capture)
+    mtd impl setup(capt: #nonull *Capture)
     {
         .capture = capt
         .gizmo.setupForForm(cast(IForm) me)

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Threading, Time
 
 enum PreviewSize
@@ -18,16 +19,16 @@ struct LibraryWnd
 {
     using wnd:                   Wnd
 
-    main:                        *MainWnd
-    view:                        *LibraryView
-    listCtrl:                    *ListCtrl
-    editZoomBar:                 *Wnd
-    zoomBtn:                     *IconButton
-    sortBtn:                     *IconButton
-    filterBtn:                   *IconButton
-    trashBtn:                    *IconButton
-    searchEdit:                  *EditBox
-    breadcrumb:                  *BreadcrumbCtrl
+    main:                        #null *MainWnd
+    view:                        #null *LibraryView
+    listCtrl:                    #null *ListCtrl
+    editZoomBar:                 #null *Wnd
+    zoomBtn:                     #null *IconButton
+    sortBtn:                     #null *IconButton
+    filterBtn:                   #null *IconButton
+    trashBtn:                    #null *IconButton
+    searchEdit:                  #null *EditBox
+    breadcrumb:                  #null *BreadcrumbCtrl
     previewSize:                 PreviewSize
 
     searchText:                  String
@@ -243,10 +244,10 @@ impl LibraryWnd
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
-        var lastLine:      *ListLine
-        var lastLineYear:  *ListLine
-        var lastLineMonth: *ListLine
-        var lastLineDay:   *ListLine
+        var lastLine: #nonull *ListLine = undefined
+        var lastLineYear: #nonull *ListLine = undefined
+        var lastLineMonth: #nonull *ListLine = undefined
+        var lastLineDay: #nonull *ListLine = undefined
 
         let icon1 = Icon.from(&.main.icons24, 3)
 
@@ -346,7 +347,7 @@ impl LibraryWnd
     }
 
     // Update the live text filter and rebuild the visible set.
-    mtd setSearch(text: string)
+    mtd setSearch(text: String)
     {
         .searchText = text
         .view.filter()
@@ -408,7 +409,7 @@ impl LibraryWnd
     }
 
     // Fill a level's drop-down with the real sub-directories of that level's folder.
-    mtd fillBreadcrumbMenu(bc: *BreadcrumbCtrl, index: u64, menu: *MenuCtrl)
+    mtd fillBreadcrumbMenu(bc: #nonull *BreadcrumbCtrl, index: u64, menu: #nonull *MenuCtrl)
     {
         if index >= bc.items.count do
             return
@@ -419,7 +420,7 @@ impl LibraryWnd
             return
 
         // Mark the child that is currently on the path (the level shown to the right).
-        var currentChild: string
+        var currentChild: String
         if index + 1 < bc.items.count do
             currentChild = bc.items[index + 1].tag.toString()
 
@@ -440,7 +441,7 @@ impl LibraryWnd
     // Navigate the library to a folder chosen from the breadcrumb (its body or a chevron
     // entry). The captMe folder keeps its full features (date sidebar, delete-to-trash);
     // the recycle bin and any other folder are simply browsed by listing their captures.
-    mtd navigateFolder(path: string)
+    mtd navigateFolder(path: String)
     {
         if .currentFolder() == path do
             return
@@ -452,7 +453,7 @@ impl LibraryWnd
         .updateBreadcrumb()
     }
 
-    func create(parent: *MainWnd)->*LibraryWnd
+    func create(parent: #nonull *MainWnd)->#nonull *LibraryWnd
     {
         with let res = Wnd.create'LibraryWnd(parent, "captme.librarywnd")
         {

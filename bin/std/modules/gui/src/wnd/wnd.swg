@@ -1489,6 +1489,10 @@ impl Wnd
             return {}
 
         var evtState: retval
+        @init(&evtState.name, 1)
+        @init(&evtState.longName, 1)
+        @init(&evtState.shortcut, 1)
+        @init(&evtState.toolTip, 1)
 
         // User will fill the state
         evtState.kind   = .ComputeCommandState
@@ -1517,7 +1521,11 @@ impl Wnd
             return
 
         // We first need to be sure that the target can deal with the event
-        var evtState = CommandStateEvent{}
+        var evtState: CommandStateEvent
+        @init(&evtState.name, 1)
+        @init(&evtState.longName, 1)
+        @init(&evtState.shortcut, 1)
+        @init(&evtState.toolTip, 1)
         evtState.kind = .ComputeCommandState
         evtState.id   = cmdId
         .sendEvent(&evtState)

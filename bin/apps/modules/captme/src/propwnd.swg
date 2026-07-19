@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 const BtnColorWidth  = 68.0
 const BtnColorHeight = 88.0
 const BtnStyleWidth  = 88.0
@@ -9,12 +10,12 @@ const DashSize = 8.0
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
-func(T) enumToUserData(value: T)->*void => cast(*void) cast(u64) value
+func(T) enumToUserData(value: T)->#nonull *void => cast(#nonull *void) cast(u64) value
 func(T) enumFromUserData(data: #null *void)->T => cast(T) cast(u64) data
 
 // The ellipse/rectangle/round-rectangle glyph painted by the shape and step
 // buttons and by their popups.
-func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle, color: Color)
+func drawShapeGlyph(painter: #nonull *Painter, kind: FormShapeKind, pos: Math.Rectangle, color: Color)
 {
     var rect = pos
     rect.inflate(-9, -9)
@@ -42,12 +43,12 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 struct PropWnd
 {
     using frameWnd:     FrameWnd
-    topLayout:          *StackLayoutCtrl
-    grid:               *Properties
-    main:               *MainWnd
+    topLayout:          #null *StackLayoutCtrl
+    grid:               #null *Properties
+    main:               #null *MainWnd
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
-    gridBindType:       typeinfo
+    gridBindType:       #nonull typeinfo = undefined
 
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
@@ -64,19 +65,19 @@ impl PropWnd
         return true
     }
 
-    mtd getSelectedBaseForm()->*BaseForm
+    mtd getSelectedBaseForm()->#nonull *BaseForm
     {
         let capture = .main.getCapture()
         if !capture or capture.selection.count == 0
         {
             let iform = .main.editModeToModel(.main.editMode)
-            return cast(*BaseForm) @dataof(iform)
+            return cast(#nonull *BaseForm) @dataof(iform)
         }
 
         return assume capture.getSelectedBaseForm()
     }
 
-    mtd getSelectedFormType()->typeinfo
+    mtd getSelectedFormType()->#nonull typeinfo
     {
         let capture = .main.getCapture()
         if !capture or capture.selection.count == 0
@@ -88,7 +89,7 @@ impl PropWnd
         return assume capture.getSelectedFormType()
     }
 
-    mtd pushTypedValue(val: u32, type: typeinfo, name: string, first: bool, common = false)
+    mtd pushTypedValue(val: u32, type: #nonull typeinfo, name: String, first: bool, common = false)
     {
         let capture = .main.getCapture()
 
@@ -110,7 +111,7 @@ impl PropWnd
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
-            undo.valRef = Reflection.getField(type, name)
+            undo.valRef = assume Reflection.getField(type, name)
             capture.pushUndo(undo)
         }
 
@@ -118,7 +119,7 @@ impl PropWnd
         .main.editWnd.invalidate()
     }
 
-    func createArrowButton(stack: *Wnd, w, h: f32)->*IconButton
+    func createArrowButton(stack: #nonull *Wnd, w, h: f32)->#nonull *IconButton
     {
         with let btn = IconButton.create(stack, {}, {0, 0, w, h})
         {
@@ -138,7 +139,7 @@ impl PropWnd
         return btn
     }
 
-    func createColorPicker(btn: *IconButton, color: Color)->*ColorPickerCtrl
+    func createColorPicker(btn: #nonull *IconButton, color: Color)->#nonull *ColorPickerCtrl
     {
         let frame = btn.createAnchorPopup(356, 382)
         with var pal: Array'Color
@@ -161,14 +162,14 @@ impl PropWnd
     // Shared by the shape and step buttons: 'type' is the concrete form type and
     // 'fieldName' its FormShapeKind field, read back through reflection so both
     // forms go through the same popup.
-    mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: string)
+    mtd createPopupShapeKind(btn: #nonull *IconButton, type: #nonull typeinfo, fieldName: String)
     {
         let frame  = btn.createAnchorPopup(180, 66)
         let layout = frame.createView'WrapLayoutCtrl()
         layout.wrapWidth, layout.wrapHeight = 48
         layout.padding = 4
 
-        func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: string)->FormShapeKind
+        func selectedKind(prop: #nonull *PropWnd, type: #nonull typeinfo, fieldName: String)->FormShapeKind
         {
             var val: u32
             let field = assume Reflection.getField(type, fieldName)
@@ -176,12 +177,12 @@ impl PropWnd
             return cast(FormShapeKind) val
         }
 
-        func updateBtnState(prop: *PropWnd, layout: *Wnd, type: typeinfo, fieldName: string)
+        func updateBtnState(prop: #nonull *PropWnd, layout: #nonull *Wnd, type: #nonull typeinfo, fieldName: String)
         {
             let cur = selectedKind(prop, type, fieldName)
             for c in layout.childs
             {
-                let btn  = cast(*IconButton) c
+                let btn  = cast(#nonull *IconButton) c
                 let kind = enumFromUserData'FormShapeKind(btn.userData)
                 btn.isChecked = cur == kind
                 btn.invalidate()
@@ -205,7 +206,7 @@ impl PropWnd
                 drawShapeGlyph(bc.painter, enumFromUserData'FormShapeKind(btn.userData), pos, color)
             }
 
-            btn0.sigPressed += func|prop = me, layout, type, fieldName|(btn)
+            btn0.sigPressed += func|prop = me, layout, type, &fieldName|(btn)
             {
                 let kind = enumFromUserData'u64(btn.userData)
                 prop.pushTypedValue(cast() kind, type, fieldName, true)
@@ -218,7 +219,7 @@ impl PropWnd
 
     // One popup for both line ends: 'begin' selects the beginCap or endCap field
     // and mirrors the sample stroke accordingly.
-    mtd createPopupCapStyle(btn: *IconButton, begin: bool)
+    mtd createPopupCapStyle(btn: #nonull *IconButton, begin: bool)
     {
         let frame  = btn.createAnchorPopup(100, @countof(LineCapStyle) * 46.0)
         let layout = StackLayoutCtrl.create(frame, .Top)
@@ -226,18 +227,18 @@ impl PropWnd
 
         let fieldName = begin ? #nameof(FormLine.beginCap) : #nameof(FormLine.endCap)
 
-        func selectedCap(prop: *PropWnd, begin: bool)->LineCapStyle
+        func selectedCap(prop: #nonull *PropWnd, begin: bool)->LineCapStyle
         {
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            let curSel = cast(#nonull *FormLine) prop.getSelectedBaseForm()
             return begin ? curSel.beginCap : curSel.endCap
         }
 
-        func updateBtnState(prop: *PropWnd, layout: *Wnd, begin: bool)
+        func updateBtnState(prop: #nonull *PropWnd, layout: #nonull *Wnd, begin: bool)
         {
             let cur = selectedCap(prop, begin)
             for c in layout.childs
             {
-                let btn = cast(*IconButton) c
+                let btn = cast(#nonull *IconButton) c
                 let cap = enumFromUserData'LineCapStyle(btn.userData)
                 btn.isChecked = cur == cap
                 btn.invalidate()
@@ -289,18 +290,18 @@ impl PropWnd
         layout.computeLayout()
     }
 
-    mtd createPopupDashStyle(btn: *IconButton)
+    mtd createPopupDashStyle(btn: #nonull *IconButton)
     {
         let frame  = btn.createAnchorPopup(180, 170)
         let layout = StackLayoutCtrl.create(frame, .Top)
         frame.setView(layout)
 
-        func updateBtnState(prop: *PropWnd, layout: *Wnd)
+        func updateBtnState(prop: #nonull *PropWnd, layout: #nonull *Wnd)
         {
             let curSel = prop.getSelectedBaseForm()
             for c in layout.childs
             {
-                let btn  = cast(*IconButton) c
+                let btn  = cast(#nonull *IconButton) c
                 let dash = enumFromUserData'DashStyle(btn.userData)
                 btn.isChecked = curSel.dashStyle == dash
                 btn.invalidate()
@@ -341,9 +342,9 @@ impl PropWnd
         layout.computeLayout()
     }
 
-    mtd propBorderColor(stack: *Wnd)
+    mtd propBorderColor(stack: #nonull *Wnd)
     {
-        let curSel = cast(*FormText) .getSelectedBaseForm()
+        let curSel = cast(#nonull *FormText) .getSelectedBaseForm()
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
@@ -389,7 +390,7 @@ impl PropWnd
         }
     }
 
-    mtd propBackColor(stack: *Wnd)
+    mtd propBackColor(stack: #nonull *Wnd)
     {
         let curSel = .getSelectedBaseForm()
         if curSel.subKind != .PixSel
@@ -402,7 +403,7 @@ impl PropWnd
 
             if curSelType == FormImage
             {
-                let imgSel = cast(*FormImage) curSel
+                let imgSel = cast(#nonull *FormImage) curSel
                 if imgSel.kind != .Image do
                     return
             }
@@ -452,7 +453,7 @@ impl PropWnd
         }
     }
 
-    mtd propShape(stack: *Wnd)
+    mtd propShape(stack: #nonull *Wnd)
     {
         let curSelType = .getSelectedFormType()
         if curSelType != FormShape do
@@ -466,7 +467,7 @@ impl PropWnd
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            let curSel = cast(*FormShape) prop.getSelectedBaseForm()
+            let curSel = cast(#nonull *FormShape) prop.getSelectedBaseForm()
             drawShapeGlyph(bc.painter, curSel.kind, pos, btn.getThemeColors().btnIcon_Icon)
         }
 
@@ -476,7 +477,7 @@ impl PropWnd
         }
     }
 
-    mtd propStep(stack: *Wnd)
+    mtd propStep(stack: #nonull *Wnd)
     {
         let curSelType = .getSelectedFormType()
         if curSelType != FormStep do
@@ -487,7 +488,7 @@ impl PropWnd
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            let curSel = cast(*FormStep) prop.getSelectedBaseForm()
+            let curSel = cast(#nonull *FormStep) prop.getSelectedBaseForm()
             drawShapeGlyph(bc.painter, curSel.kind, pos, btn.getThemeColors().btnIcon_Icon)
         }
 
@@ -497,7 +498,7 @@ impl PropWnd
         }
     }
 
-    mtd propStartCapStyle(stack: *Wnd)
+    mtd propStartCapStyle(stack: #nonull *Wnd)
     {
         let curSelType = .getSelectedFormType()
         if curSelType != FormLine and curSelType != FormArrow do
@@ -508,7 +509,7 @@ impl PropWnd
 
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
-            var curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            var curSel = cast(#nonull *FormLine) prop.getSelectedBaseForm()
             var rect   = pos
             rect.inflate(-9, -9)
             var pen = Pen.createSolid(btn.getThemeColors().btnIcon_Icon, CapSize)
@@ -527,7 +528,7 @@ impl PropWnd
         }
     }
 
-    mtd propEndCapStyle(stack: *Wnd)
+    mtd propEndCapStyle(stack: #nonull *Wnd)
     {
         let curSelType = .getSelectedFormType()
         if curSelType != FormLine and curSelType != FormArrow do
@@ -537,7 +538,7 @@ impl PropWnd
         btn.name         = "End"
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
-            let curSel = cast(*FormLine) prop.getSelectedBaseForm()
+            let curSel = cast(#nonull *FormLine) prop.getSelectedBaseForm()
             var rect   = pos
             rect.inflate(-9, -9)
             var pen = Pen.createSolid(btn.getThemeColors().btnIcon_Icon, CapSize)
@@ -556,13 +557,13 @@ impl PropWnd
         }
     }
 
-    mtd propDashStyle(stack: *Wnd)
+    mtd propDashStyle(stack: #nonull *Wnd)
     {
         let curSelType = .getSelectedFormType()
         if curSelType != FormShape and curSelType != FormLine and curSelType != FormArrow and curSelType != FormPolygon do
             return
 
-        let curSel = cast(*FormText) .getSelectedBaseForm()
+        let curSel = cast(#nonull *FormText) .getSelectedBaseForm()
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
@@ -612,7 +613,7 @@ impl PropWnd
         }
     }
 
-    func editText(main: *MainWnd, curText: String)->String
+    func editText(main: #nonull *MainWnd, curText: String)->String
     {
         with let dlg = EditDlg.createMultiLine(main.surface)
         {
@@ -635,7 +636,7 @@ impl PropWnd
 
     // Text-fill color swatch for a callout (the bubble fill/border reuse the generic
     // BaseForm color buttons; only the inner text color is callout-specific).
-    mtd propCalloutText(stack: *Wnd)
+    mtd propCalloutText(stack: #nonull *Wnd)
     {
         if .getSelectedFormType() != FormCallout do
             return
@@ -645,7 +646,7 @@ impl PropWnd
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+            let curSel = cast(#nonull *FormCallout) prop.getSelectedBaseForm()
             var rect   = pos
             rect.x = rect.horzCenter() - 21
             rect.y = rect.vertCenter() - 21
@@ -657,7 +658,7 @@ impl PropWnd
 
         btn.sigShowPopup += func|prop = me|(btn)
         {
-            let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
+            let curSel = cast(#nonull *FormCallout) prop.getSelectedBaseForm()
             var picker = createColorPicker(btn, curSel.textColor)
             picker.sigChanged += func|prop, btn, first = true|(pk)
             {
@@ -692,7 +693,7 @@ impl PropWnd
             return
         let curSel = .getSelectedBaseForm()
 
-        func addBox(prop: *PropWnd, parent: *Wnd, label: string, name: string, value: s32, signed: bool)
+        func addBox(prop: #nonull *PropWnd, parent: #nonull *Wnd, label: String, name: String, value: s32, signed: bool)
         {
             let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .AutoLoseFocus)
             edit.labelSize = 15
@@ -701,14 +702,14 @@ impl PropWnd
                 edit.edit.setInputS64()
             else do
                 edit.edit.setInputU64(1, 10000)
-            edit.edit.sigLoseFocus += func|prop, name|(ed)
+            edit.edit.sigLoseFocus += func|prop, &name|(ed)
             {
                 let (v, ?, ?) = catch StrConv.parseS32(ed.text)
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
         }
 
-        func addRow(prop: *PropWnd, name: string)->*Wnd
+        func addRow(prop: #nonull *PropWnd, name: String)->#nonull *Wnd
         {
             let v: Swag.TypeValue{name: name}
             let item = prop.grid.addItem(v, null, null, 40, .Zero)
@@ -741,14 +742,14 @@ impl PropWnd
     mtd bindGrid()
     {
         let capture = .main.getCapture()
-        var bases:  Array'(*u8)
+        var bases:  Array'(#null *u8)
 
         if !capture or !capture.selection.count
         {
             // Tool model: direct edition, no undo (as before)
             let mdl = .main.editModeToModel(.main.editMode)
             .gridBindType = @kindof(mdl)
-            bases.add(cast(*u8) @dataof(mdl))
+            bases.add(cast(#null *u8) @dataof(mdl))
             .grid.setExternalUndoMgr(null)
             .grid.setUndoEnabled(false)
         }
@@ -758,9 +759,9 @@ impl PropWnd
             // a line/arrow mix (an arrow embeds a line), BaseForm otherwise
             var allSame  = true
             var lineOnly = true
-            var firstType: typeinfo
+            var firstType: #null typeinfo
 
-            foreachSelected'BaseForm(capture, capture.selection)
+            foreachSelected'BaseForm(assume capture, capture.selection)
             {
                 let t = @kindof(itf)
                 if !firstType do
@@ -769,11 +770,11 @@ impl PropWnd
                     allSame = false
                 if t != FormLine and t != FormArrow do
                     lineOnly = false
-                bases.add(cast(*u8) form)
+                bases.add(cast(#null *u8) form)
             }
 
             if allSame do
-                .gridBindType = firstType
+                .gridBindType = firstType orelse #typeof(BaseForm)
             elif lineOnly do
                 .gridBindType = FormLine
             else do
@@ -783,7 +784,7 @@ impl PropWnd
             .grid.setUndoEnabled(true)
         }
 
-        .grid.addStructMulti(.gridBindType, bases.toSlice(), null, onlyNamed: true)
+        .grid.addStructMulti(.gridBindType, cast(#nonull [..] *u8) bases.toSlice(), null, onlyNamed: true)
 
         // The generated border-size slider serves every form as "Tickness"; a text form
         // edits its glyph outline instead: matching label and a much thinner range. The
@@ -843,7 +844,7 @@ impl PropWnd
             capture.editView.setFocus()
     }
 
-    func create(parent: *Wnd, main: *MainWnd)->*PropWnd
+    func create(parent: #nonull *Wnd, main: #nonull *MainWnd)->#nonull *PropWnd
     {
         with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
         {
@@ -878,7 +879,7 @@ impl PropWnd
 // fields) and the reaction to every edit.
 impl IPropertyNotify for PropWnd
 {
-    mtd impl isItemVisible(list: *Properties, item: *PropertiesItem)->bool
+    mtd impl isItemVisible(list: #nonull *Properties, item: #nonull *PropertiesItem)->bool
     {
         let base = .getSelectedBaseForm()
         if !base do
@@ -917,14 +918,14 @@ impl IPropertyNotify for PropWnd
         case #nameof(FormShape.roundSize):
             if .gridBindType == FormShape
             {
-                let shape = cast(*FormShape) base
+                let shape = cast(#nonull *FormShape) base
                 return shape.kind == .RoundRectangle
             }
 
         case #nameof(FormImage.strength):
             if .gridBindType == FormImage
             {
-                let img = cast(*FormImage) base
+                let img = cast(#nonull *FormImage) base
                 return img.kind != .Image
             }
         }
@@ -932,7 +933,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    mtd impl isEnumValueVisible(list: #nonull *Properties, item: #nonull *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
         // The join combo omits JoinStyle.None: no join drawn = notched corners on any
         // thick stroke, never what a captme form wants.
@@ -942,7 +943,7 @@ impl IPropertyNotify for PropWnd
         return true
     }
 
-    mtd impl itemHasChanged(list: *Properties, item: #null *PropertiesItem)
+    mtd impl itemHasChanged(list: #nonull *Properties, item: #null *PropertiesItem)
     {
         let capture = .main.getCapture()
         if capture and capture.selection.count
@@ -964,27 +965,27 @@ impl IPropertyNotify for PropWnd
 impl IWnd for PropWnd
 {
     // This impl shadows the whole FrameWnd one: forward its paint/resize methods
-    mtd impl onPrePaintEvent(evt: *PaintEvent)
+    mtd impl onPrePaintEvent(evt: #nonull *PaintEvent)
     {
         .frameWnd.IWnd.onPrePaintEvent(evt)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         .frameWnd.IWnd.onPaintEvent(evt)
     }
 
-    mtd impl onPostPaintEvent(evt: *PaintEvent)
+    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent)
     {
         .frameWnd.IWnd.onPostPaintEvent(evt)
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         .frameWnd.IWnd.onResizeEvent(evt)
     }
 
-    mtd impl onFrameEvent(evt: *FrameEvent)
+    mtd impl onFrameEvent(evt: #nonull *FrameEvent)
     {
         if .needRebuild
         {
@@ -993,4 +994,3 @@ impl IWnd for PropWnd
         }
     }
 }
-

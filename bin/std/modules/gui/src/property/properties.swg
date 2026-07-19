@@ -436,7 +436,7 @@ impl Properties
     // instances is shown as "mixed". With a single base this behaves like addStruct.
     // With 'onlyNamed', only the fields carrying an explicit Properties.Name attribute get a
     // row: the grid becomes opt-in, for structs whose fields are mostly internal state.
-    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string = null, onlyNamed = false)
+    mtd addStructMulti(typeof: typeinfo, bases: #nonull [..] *u8, section: string = null, onlyNamed = false)
     {
         Debug.assert(typeof.kind == .Struct)
         Debug.assert(@countof(bases) >= 1)
@@ -495,7 +495,7 @@ impl Properties
     // Each field sits at a fixed offset from its struct base, so its address in instance
     // k is `base[k] + (item.data - base[0])`. Items under a dynamic array keep a single
     // address (their element storage is not at a fixed struct offset).
-    mtd assignInstances(fromIdx: u64, bases: [..] *u8)
+    mtd assignInstances(fromIdx: u64, bases: #nonull [..] *u8)
     {
         if @countof(bases) <= 1 do
             return

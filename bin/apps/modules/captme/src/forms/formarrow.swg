@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 struct FormArrow
 {
     using line: FormLine

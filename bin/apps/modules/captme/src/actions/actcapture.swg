@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionCapture {}
@@ -24,9 +25,9 @@ impl IActionUI for ActionCapture
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) cxt.wnd
 
         switch cxt.id
         {
@@ -104,7 +105,7 @@ impl IActionUI for ActionCapture
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) cxt.wnd
 
         switch cxt.id
         {
@@ -145,7 +146,7 @@ impl IActionUI for ActionCapture
 
 impl MainWnd
 {
-    mtd newCapture(img: Image, linked: string = null, from: *Capture = null)
+    mtd newCapture(img: Image, linked: #nonull string = "", from: #null *Capture = null)
     {
         if !img.isValid() do
             return
@@ -161,22 +162,23 @@ impl MainWnd
             }
         }
 
-        with capture
+        let validCapture = assume capture
+        with validCapture
         {
             .changed     = true
             .linkedImage = linked
             .file        = Library.newFileName()
         }
 
-        .editWnd.editView.setCapture(capture)
+        .editWnd.editView.setCapture(validCapture)
         .editWnd.editView.zoomToFit(false)
 
-        capture.computePreview()
-        .recentWnd.addRecent(capture.file, capture.preview, linked: linked)
+        validCapture.computePreview()
+        .recentWnd.addRecent(validCapture.file, validCapture.preview, linked: linked)
         .recentWnd.recentView.selected = 0
 
-        .saveCapture(capture)
-        g_Library.addFile(capture.file)
+        .saveCapture(validCapture)
+        g_Library.addFile(validCapture.file)
 
         // Force edition mode
         if .libraryMode

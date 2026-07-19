@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionFile {}
@@ -24,9 +25,9 @@ impl IActionUI for ActionFile
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -120,7 +121,7 @@ impl IActionUI for ActionFile
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id
@@ -216,11 +217,12 @@ impl IActionUI for ActionFile
                 MessageDlg.error(main.surface, "Failed to duplicate capture")
                 break
             }
-            newCapture.file        = file
-            newCapture.linkedImage = null
-            newCapture.changed     = true
-            trycatch newCapture.save()
-            Memory.delete(newCapture)
+            let loaded = assume newCapture
+            loaded.file        = file
+            loaded.linkedImage = ""
+            loaded.changed     = true
+            trycatch loaded.save()
+            Memory.delete(loaded)
             g_Library.addFile(file)
 
             let dupCapture = trycatch main.recentWnd.addRecent(file, true, true)
@@ -256,7 +258,7 @@ impl IActionUI for ActionFile
 
         case FileDetails:
 
-            func addLine(lt: *Wnd, title, val: string)
+            func addLine(lt: #nonull *Wnd, title, val: String)
             {
                 let wnd = Wnd.create'StackLayoutCtrl(lt)
                 wnd.layoutKind      = .Left
@@ -316,9 +318,9 @@ impl MainWnd
             .newCapture(img, dlg.getSelectedName())
     }
 
-    mtd doSaveImage(capture: *Capture, img: *Image, nameFile: string)
+    mtd doSaveImage(capture: #nonull *Capture, img: #nonull *Image, nameFile: String)
     {
-        var optImg: any
+        var optImg: #null any = null
         var optPng: Png.EncodeOptions
         var optJpg: Jpg.EncodeOptions
 

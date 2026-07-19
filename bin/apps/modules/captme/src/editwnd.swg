@@ -1,12 +1,13 @@
+#global #[Swag.ExplicitNullability]
 struct EditWnd
 {
     using scrollWnd:     ScrollWnd
-    editView:            *EditView
+    editView:            #null *EditView
 }
 
 impl EditWnd
 {
-    func create(main: *MainWnd, parent: *Wnd)->*EditWnd
+    func create(main: #nonull *MainWnd, parent: #nonull *Wnd)->#nonull *EditWnd
     {
         let scroll = Wnd.create'EditWnd(parent)
         let view   = Wnd.create'EditView(scroll)

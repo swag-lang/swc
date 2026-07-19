@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 enum UndoKind
 {
     MoveBaseForm
@@ -49,7 +50,7 @@ func formEditableTextDirty(f: IForm)
 {
     if @kindof(f) == FormText
     {
-        let b = cast(*FormText) @dataof(f)
+        let b = cast(#nonull *FormText) @dataof(f)
         b.isDirty = true
     }
 }
@@ -86,7 +87,7 @@ func formFontDirty(f: IForm)
 {
     if @kindof(f) == FormText
     {
-        let b = cast(*FormText) @dataof(f)
+        let b = cast(#nonull *FormText) @dataof(f)
         b.isDirtyFont = true
     }
 }
@@ -94,7 +95,7 @@ func formFontDirty(f: IForm)
 struct Undo
 {
     kind:            UndoKind
-    capture:         *Capture
+    capture:         #null *Capture
     baseForm:        IForm
 
     selection:       Array'u64
@@ -103,7 +104,7 @@ struct Undo
     oldForms:        Array'IForm
     oldS32:          Array's32
     oldU32:          Array'u32
-    oldForm:         Array'*BaseForm
+    oldForm:         Array'#nonull *BaseForm
     oldText:         Array'String
     oldImage:        Array'Image
     oldImg:          Image
@@ -120,9 +121,9 @@ struct Undo
     maxP:            s32
     pointIdx:        u32
     valU32:          u32
-    valRef:          const *Swag.TypeValue
-    mdlType:         typeinfo
-    mdlValue:        *BaseForm
+    valRef:          #null const *Swag.TypeValue
+    mdlType:         #null typeinfo
+    mdlValue:        #null *BaseForm
     text:            String
     fontStyle:       FontFamilyStyle
 
@@ -156,19 +157,21 @@ impl Undo
 
         if .kind == .SetFormFromModel
         {
-            Memory.delete(.mdlValue, .mdlType)
+            let mdlType = .mdlType orelse #typeof(FormShape)
+            Memory.delete(.mdlValue, mdlType)
             for f in .oldForm do
-                Memory.delete(f, .mdlType)
+                Memory.delete(f, mdlType)
         }
     }
 
-    mtd acceptsType(type: typeinfo)->bool
+    mtd acceptsType(type: #nonull typeinfo)->bool
     {
         if .mdlType == null do
             return true
-        if .mdlType == type do
+        let mdlType = .mdlType orelse type
+        if mdlType == type do
             return true
-        if .mdlType == FormLine and type == FormArrow do
+        if mdlType == FormLine and type == FormArrow do
             return true
         return false
     }
@@ -201,7 +204,7 @@ impl Undo
 
         case SetImageInside:
             .selection = .capture.selection
-            foreachSelected'FormImage(.capture, .selection)
+            foreachSelected'FormImage(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if form.kind != .Image do
                     continue
@@ -214,14 +217,14 @@ impl Undo
 
         case Ungroup:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 .oldGroups.add(form.groups.isEmpty() ? 0'u64 : form.groups[0])
             }
 
         case SetText:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let t = formEditableText(itf)
                 if !t do
@@ -231,7 +234,7 @@ impl Undo
 
         case SetFont:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let np = formFontNamePtr(itf)
                 let sp = formFontStylePtr(itf)
@@ -243,7 +246,7 @@ impl Undo
 
         case SetFontStyle:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let sp = formFontStylePtr(itf)
                 if !sp do
@@ -253,11 +256,12 @@ impl Undo
 
         case SetFormFromModel:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
-                let save = cast(*BaseForm) Memory.new(.mdlType)
+                let mdlType = .mdlType orelse #typeof(FormShape)
+                let save = cast(#nonull *BaseForm) (Memory.new(mdlType) orelse cast(#nonull [*] u8) 1'u64)
                 itf.copy(save, form)
                 .oldForm.add(save)
             }
@@ -268,7 +272,7 @@ impl Undo
             .minP      = Swag.S32.Max
             .maxP      = Swag.S32.Min
             .oldS32.reserve(.selection.count)
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let r = itf.boundRect()
 
@@ -294,7 +298,7 @@ impl Undo
 
         case SetTypedValue:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
@@ -305,7 +309,7 @@ impl Undo
 
         case ResetRotation:
             .selection = .capture.selection
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !itf.canRotate() do
                     continue
@@ -403,7 +407,7 @@ impl Undo
             .capture.dirtyBackImg = true
 
         case SetImageInside:
-            foreachSelected'FormImage(.capture, .selection)
+            foreachSelected'FormImage(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if form.kind != .Image do
                     continue
@@ -412,14 +416,14 @@ impl Undo
             }
 
         case Group:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 form.groups.insertAt(0, .groupId)
             }
             .capture.selectionHasChanged()
 
         case Ungroup:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !form.groups.isEmpty() do
                     form.groups.removeAtOrdered(0)
@@ -427,7 +431,7 @@ impl Undo
             .capture.selectionHasChanged()
 
         case SetText:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let t = formEditableText(itf)
                 if !t do
@@ -437,7 +441,7 @@ impl Undo
             }
 
         case SetFont:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let np = formFontNamePtr(itf)
                 let sp = formFontStylePtr(itf)
@@ -449,7 +453,7 @@ impl Undo
             }
 
         case SetFontStyle:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let sp = formFontStylePtr(itf)
                 if !sp do
@@ -459,17 +463,17 @@ impl Undo
             }
 
         case SetFormFromModel:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
                 if form.subKind != .mdlValue.subKind do
                     continue
-                itf.copy(form, .mdlValue)
+                itf.copy(form, .mdlValue orelse cast(#nonull *BaseForm) 1'u64)
             }
 
         case SetTypedValue:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
@@ -479,7 +483,7 @@ impl Undo
             .capture.updateModelFromSelection()
 
         case ResetRotation:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !itf.canRotate() do
                     continue
@@ -489,7 +493,7 @@ impl Undo
             .capture.updateModelFromSelection()
 
         case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let r = itf.boundRect()
 
@@ -528,7 +532,7 @@ impl Undo
             .capture.height = Math.clamp(.capture.height, Capture.MinSize, Capture.MaxSize)
 
         case OffsetSelection:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 itf.moveForm(.newPosX, .newPosY)
             }
@@ -618,7 +622,7 @@ impl Undo
             .capture.dirtyBackImg = true
 
         case SetImageInside:
-            foreachSelected'FormImage(.capture, .selection)
+            foreachSelected'FormImage(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if form.kind != .Image do
                     continue
@@ -627,7 +631,7 @@ impl Undo
             }
 
         case Group:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !form.groups.isEmpty() and form.groups[0] == .groupId do
                     form.groups.removeAtOrdered(0)
@@ -635,7 +639,7 @@ impl Undo
             .capture.selectionHasChanged()
 
         case Ungroup:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if .oldGroups[idx] != 0 do
                     form.groups.insertAt(0, .oldGroups[idx])
@@ -643,7 +647,7 @@ impl Undo
             .capture.selectionHasChanged()
 
         case SetText:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let t = formEditableText(itf)
                 if !t do
@@ -653,7 +657,7 @@ impl Undo
             }
 
         case SetFont:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let np = formFontNamePtr(itf)
                 let sp = formFontStylePtr(itf)
@@ -665,7 +669,7 @@ impl Undo
             }
 
         case SetFontStyle:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let sp = formFontStylePtr(itf)
                 if !sp do
@@ -675,7 +679,7 @@ impl Undo
             }
 
         case SetFormFromModel:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
@@ -684,7 +688,7 @@ impl Undo
             }
 
         case SetTypedValue:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
@@ -694,7 +698,7 @@ impl Undo
             .capture.updateModelFromSelection()
 
         case ResetRotation:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 if !itf.canRotate() do
                     continue
@@ -707,7 +711,7 @@ impl Undo
             // no-op for the point-based forms (line, polygon, draw) whose geometry
             // lives in their points.
             let horz = .kind == .AlignLeft or .kind == .AlignRight or .kind == .AlignCenter
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 let r = itf.boundRect()
                 if horz do
@@ -731,7 +735,7 @@ impl Undo
             .capture.height -= .newSizeY
 
         case OffsetSelection:
-            foreachSelected'BaseForm(.capture, .selection)
+            foreachSelected'BaseForm(.capture orelse cast(#nonull *Capture) 1'u64, .selection)
             {
                 itf.moveForm(-.newPosX, -.newPosY)
             }

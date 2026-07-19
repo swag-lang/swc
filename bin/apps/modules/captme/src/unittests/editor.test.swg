@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -18,7 +19,7 @@ using Swag, Core
     @assert(f.capture.mouseMode == .None)
     @assert(f.gui.app.mouseCaptureWnd == null)
 
-    let shape = cast(*FormShape) @dataof(f.capture.forms[0])
+    let shape = cast(#nonull *FormShape) @dataof(f.capture.forms[0])
     Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
     @assert(f.capture.canUndo())
 
@@ -37,7 +38,7 @@ using Swag, Core
 
     @assert(f.capture.forms.count == 1)
 
-    let shape = cast(*FormShape) @dataof(f.capture.forms[0])
+    let shape = cast(#nonull *FormShape) @dataof(f.capture.forms[0])
     Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
 
     f.shutdown()
@@ -104,7 +105,7 @@ using Swag, Core
     f.main.editMode = .Line
     f.gui.drag({10, 10}, {70, 30})
     @assert(@kindof(f.capture.forms[0]) == FormLine)
-    let line = cast(*FormLine) @dataof(f.capture.forms[0])
+    let line = cast(#nonull *FormLine) @dataof(f.capture.forms[0])
     @assert(line.xa == 10 and line.ya == 10)
     @assert(line.xb == 70 and line.yb == 30)
 
@@ -120,31 +121,31 @@ using Swag, Core
     f.main.editMode = .Image
     f.gui.drag({110, 60}, {160, 105})
     @assert(@kindof(f.capture.forms[3]) == FormImage)
-    @assert((cast(*FormImage) @dataof(f.capture.forms[3])).isReadyToCapture)
+    @assert((cast(#nonull *FormImage) @dataof(f.capture.forms[3])).isReadyToCapture)
 
     f.main.editMode = .Draw
     f.gui.drag({10, 130}, {50, 150})
     @assert(@kindof(f.capture.forms[4]) == FormDraw)
-    @assert((cast(*FormDraw) @dataof(f.capture.forms[4])).points.count >= 2)
+    @assert((cast(#nonull *FormDraw) @dataof(f.capture.forms[4])).points.count >= 2)
 
     f.main.mdlFormShape.subKind = .Highlight
     f.main.mdlHighlight = &f.main.mdlFormShape
     f.main.editMode = .Highlight
     f.gui.drag({120, 130}, {170, 170})
     @assert(@kindof(f.capture.forms[5]) == FormShape)
-    @assert((cast(*BaseForm) @dataof(f.capture.forms[5])).subKind == .Highlight)
+    @assert((cast(#nonull *BaseForm) @dataof(f.capture.forms[5])).subKind == .Highlight)
 
     f.main.mdlFormShape.subKind = .None
     f.main.mdlPixSel = &f.main.mdlFormShape
     f.main.editMode = .PixSel
     f.gui.drag({200, 130}, {250, 170})
     @assert(@kindof(f.capture.forms[6]) == FormShape)
-    @assert((cast(*BaseForm) @dataof(f.capture.forms[6])).subKind == .PixSel)
+    @assert((cast(#nonull *BaseForm) @dataof(f.capture.forms[6])).subKind == .PixSel)
 
     f.main.editMode = .Step
     f.gui.drag({310, 90}, {310, 90})
     @assert(@kindof(f.capture.forms[7]) == FormStep)
-    let step = cast(*FormStep) @dataof(f.capture.forms[7])
+    let step = cast(#nonull *FormStep) @dataof(f.capture.forms[7])
     Testing.assertRect(step.IForm.boundRect(), 286, 66, 48, 48)
     @assert(step.index == 1)
     @assert(f.capture.nextStepIndex == 2)
@@ -171,7 +172,7 @@ using Swag, Core
     @assert(f.gui.app.mouseCaptureWnd == null)
     @assert(f.capture.forms.count == 1)
     @assert(@kindof(f.capture.forms[0]) == FormPolygon)
-    @assert((cast(*FormPolygon) @dataof(f.capture.forms[0])).points.count == 3)
+    @assert((cast(#nonull *FormPolygon) @dataof(f.capture.forms[0])).points.count == 3)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.canUndo())
 

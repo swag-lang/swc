@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -128,7 +129,7 @@ using Swag, Core
     let lib = f.setupLibraryWnd()
 
     // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(#nonull *Wnd) lib, {0, 0, 600, 32})
 
     // Default (empty) current folder falls back to the captMe library folder.
     @assert(lib.currentFolder() == Library.getFolder())
@@ -161,7 +162,7 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     let lib = f.setupLibraryWnd()
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(#nonull *Wnd) lib, {0, 0, 600, 32})
 
     catch Library.init()
     @assert(@err == null)
@@ -171,8 +172,8 @@ using Swag, Core
 
     // Fill the drop-down for the captMe level (the last one).
     let idx  = lib.breadcrumb.items.count - 1
-    let menu = MenuCtrl.createPopup(cast(*Wnd) lib)
-    lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
+    let menu = MenuCtrl.createPopup(cast(#nonull *Wnd) lib)
+    lib.fillBreadcrumbMenu(lib.breadcrumb orelse cast(#nonull *BreadcrumbCtrl) 1'u64, idx, menu)
 
     // Its recycle bin sub-folder is listed, with its path preserved in owned storage.
     @assert(!lib.menuPaths.isEmpty())

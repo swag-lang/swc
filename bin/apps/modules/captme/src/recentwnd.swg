@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 const MaxRecent = 15
 
 const RecentPadding = 8.0
@@ -24,8 +25,8 @@ struct RecentView
 {
     using wnd:     Wnd
 
-    main:          *MainWnd
-    recentWnd:     *RecentWnd
+    main:          #null *MainWnd
+    recentWnd:     #null *RecentWnd
     items:         ArrayPtr'RecentItem
     selected:      u64 = Swag.U64.Max
     hotItem:       u64 = Swag.U64.Max
@@ -52,7 +53,7 @@ impl RecentView
 
         // Select new recent item
         let item    = .items[idx]
-        let capture = catch Capture.load(item.file)
+        let capture: #null *Capture = catch Capture.load(item.file)
         if capture
         {
             // Only commit the selection once the capture has actually loaded,
@@ -61,7 +62,7 @@ impl RecentView
             let previousCapture = .main.getCapture()
             if previousCapture do
                 .main.saveCapture(assume previousCapture)
-            view.setCapture(capture)
+            view.setCapture(assume capture)
             if item.zoom == 0 do
                 view.zoomToFit(false)
             else do
@@ -74,7 +75,7 @@ impl RecentView
 
 impl IWnd for RecentView
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if evt.kind == .MouseWheel do
             evt.accepted = false
@@ -128,7 +129,7 @@ impl IWnd for RecentView
         }
     }
 
-    func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
+    func paintRecent(parent: #nonull *Wnd, painter: #nonull *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
     {
         let colors = parent.getThemeColors()
 
@@ -178,7 +179,7 @@ impl IWnd for RecentView
             painter.drawRoundRect(rect, 8, 8, colors.hilightLight, 4)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let painter    = evt.bc.painter
         let clientRect = .getClientRectPadding()
@@ -210,10 +211,10 @@ impl IWnd for RecentView
 struct RecentWnd
 {
     using scrollWnd:     ScrollWnd
-    main:                *MainWnd
-    recentView:          *RecentView
-    timer:               *Gui.Timer
-    loadTimer:           *Gui.Timer
+    main:                #null *MainWnd
+    recentView:          #null *RecentView
+    timer:               #null *Gui.Timer
+    loadTimer:           #null *Gui.Timer
     pendingRecentFiles:  Array'String
     pendingRecentIndex:  u64
     loadDone:            bool
@@ -222,7 +223,7 @@ struct RecentWnd
 
 impl IWnd for RecentWnd
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         if .timer do
             .getApp().deleteTimer(.timer)
@@ -230,7 +231,7 @@ impl IWnd for RecentWnd
             .getApp().deleteTimer(.loadTimer)
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
     {
         if evt.timer == .loadTimer
         {
@@ -277,7 +278,7 @@ impl IWnd for RecentWnd
 
 impl RecentWnd
 {
-    func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
+    func create(parent: #nonull *Wnd, main: #nonull *MainWnd)->#nonull *RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
@@ -370,14 +371,14 @@ impl RecentWnd
             return
 
         let idx     = .pendingRecentIndex
-        let capture = catch .addRecent(.pendingRecentFiles[idx], front: false)
+        let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false)
         defer #err Memory.delete(capture)
         if @err == null
         {
             if idx == 0 and !.main.editWnd.editView.capture
             {
                 .recentView.selected = 0
-                .main.editWnd.editView.setCapture(capture)
+                .main.editWnd.editView.setCapture(assume capture)
             }
             else do
                 Memory.delete(capture)
@@ -422,10 +423,11 @@ impl RecentWnd
         g_Library.removeFile(item.file)
     }
 
-    mtd addRecent(file: string, front = true, sel = false)->*Capture throw
+    mtd addRecent(file: String, front = true, sel = false)->#null *Capture throw
     {
-        let capture = Capture.load(file)
-        .addRecent(capture.file, capture.preview, front, sel, capture.linkedUpToDate, capture.linkedImage)
+        let capture = try Capture.load(file)
+        let loaded  = assume capture
+        .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
 
         // Too much recent. Remove the oldest
         if front and .recentView.items.count > MaxRecent
@@ -437,10 +439,10 @@ impl RecentWnd
             .recentView.items.count -= 1
         }
 
-        return capture
+        return loaded
     }
 
-    mtd addRecent(file: string, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = null)
+    mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: #nonull string = "")
     {
         // Already there ?
         for it, i in .recentView.items

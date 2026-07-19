@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -9,7 +10,7 @@ struct TextPaintTransform
     found:    bool
 }
 
-func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextPaintTransform
+func testTextPaintTransform(text: #nonull *FormText, tx, ty, z, renderScale: f32)->TextPaintTransform
 {
     var result: retval
 

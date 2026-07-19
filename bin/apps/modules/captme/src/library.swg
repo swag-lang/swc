@@ -1,9 +1,10 @@
+#global #[Swag.ExplicitNullability]
 var g_Library: Library
 
 struct Library
 {
     files:            Array'File.FileInfo
-    onDeleteFile:     SigArray'func||(string)
+    onDeleteFile:     SigArray'func||(String)
     loaded:           bool
 }
 
@@ -43,7 +44,7 @@ impl Library
     // Pick a destination inside 'folder' for 'name' that does not collide with an
     // existing file, prefixing "<n>_" as needed. Both the trash and the restore paths
     // must stay unique so one delete/restore never overwrites another capture.
-    func uniqueName(folder: string, name: string)->String
+    func uniqueName(folder: String, name: String)->String
     {
         let base = Path.getFileName(name) orelse ""
         var dst  = Path.combine(folder, base)
@@ -62,7 +63,7 @@ impl Library
 
     // Copy+delete because the filesystem module has no atomic move; on any failure we
     // leave the source untouched and remove the partial copy, so a capture is never lost.
-    func moveFile(dstFolder: string, srcFile: string)->String
+    func moveFile(dstFolder: String, srcFile: String)->String
     {
         let dst = uniqueName(dstFolder, srcFile)
 
@@ -91,7 +92,7 @@ impl Library
 
     // Bring a trashed capture back into the library folder. Returns the restored path
     // (empty on failure) so the caller can register it again.
-    func restoreFile(trashFile: string)->String
+    func restoreFile(trashFile: String)->String
     {
         return moveFile(getFolder(), trashFile)
     }
@@ -112,7 +113,7 @@ impl Library
     // Soft-delete: move the capture to the recycle bin rather than erasing it. The
     // observers (recent strip, library grid) still see it leave the library through
     // onDeleteFile; it can be brought back from the trash view.
-    mtd removeFile(name: string)
+    mtd removeFile(name: String)
     {
         for fi, idx in .files
         {
@@ -130,7 +131,7 @@ impl Library
         }
     }
 
-    mtd addFile(name: string)
+    mtd addFile(name: String)
     {
         let file = catch File.getFileInfo(name)
         if @err != null do

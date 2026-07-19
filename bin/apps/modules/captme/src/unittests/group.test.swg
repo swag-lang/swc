@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -157,9 +158,9 @@ using Swag, Core
     @assert(loaded.forms.count == 3)
     @assert(loaded.nextGroupId == nextId)
 
-    let la = cast(*BaseForm) @dataof(loaded.forms[0])
-    let lb = cast(*BaseForm) @dataof(loaded.forms[1])
-    let lc = cast(*BaseForm) @dataof(loaded.forms[2])
+    let la = cast(#nonull *BaseForm) @dataof(loaded.forms[0])
+    let lb = cast(#nonull *BaseForm) @dataof(loaded.forms[1])
+    let lc = cast(#nonull *BaseForm) @dataof(loaded.forms[2])
     @assert(la.groups.count == 1)
     @assert(la.groups[0] == gid)
     @assert(lb.groups.count == 1)
@@ -191,8 +192,8 @@ using Swag, Core
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
     @assert(f.capture.forms.count == 4)
-    let pa = cast(*BaseForm) @dataof(f.capture.forms[2])
-    let pb = cast(*BaseForm) @dataof(f.capture.forms[3])
+    let pa = cast(#nonull *BaseForm) @dataof(f.capture.forms[2])
+    let pb = cast(#nonull *BaseForm) @dataof(f.capture.forms[3])
     @assert(pa.groups.count == 1)
     @assert(pb.groups.count == 1)
     @assert(pa.groups[0] == pb.groups[0])

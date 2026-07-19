@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -168,7 +169,7 @@ using Swag, Core
     let angle = 90.0'f32
     var u = f.capture.newUndo(.SetTypedValue)
     u.valU32 = cast #bit (u32) angle
-    u.valRef = Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+    u.valRef = assume Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
     f.capture.pushUndo(u)
     @assert(shape.rotate == 90)
     @assert(text.rotate == 90)
@@ -213,7 +214,7 @@ using Swag, Core
     let angle = 90.0'f32
     var setVal = f.capture.newUndo(.SetTypedValue)
     setVal.valU32  = cast #bit (u32) angle
-    setVal.valRef  = Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+    setVal.valRef  = assume Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
     setVal.mdlType = FormText
     f.capture.pushUndo(setVal)
     @assert(shape.rotate == 33)
@@ -303,7 +304,7 @@ using Swag, Core
 // is geometry (rects, endpoints, point lists, rotation) and form order.
 struct UndoFuzzForm
 {
-    kind:       typeinfo
+    kind:       #nonull typeinfo = undefined
     rect:       Math.Rectangle
     rotate:     f32
     points:     Array'Math.Vector2
@@ -322,29 +323,29 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     var result: retval
     result.kind   = @kindof(itf)
     result.rect   = itf.boundRect()
-    result.rotate = (cast(*BaseForm) @dataof(itf)).rotate
+    result.rotate = (cast(#nonull *BaseForm) @dataof(itf)).rotate
 
     if result.kind == FormLine
     {
-        let line = cast(*FormLine) @dataof(itf)
+        let line = cast(#nonull *FormLine) @dataof(itf)
         result.points.add({cast(f32) line.xa, cast(f32) line.ya})
         result.points.add({cast(f32) line.xb, cast(f32) line.yb})
     }
     elif result.kind == FormArrow
     {
-        let arrow = cast(*FormArrow) @dataof(itf)
+        let arrow = cast(#nonull *FormArrow) @dataof(itf)
         result.points.add({cast(f32) arrow.xa, cast(f32) arrow.ya})
         result.points.add({cast(f32) arrow.xb, cast(f32) arrow.yb})
     }
     elif result.kind == FormPolygon
     {
-        let poly = cast(*FormPolygon) @dataof(itf)
+        let poly = cast(#nonull *FormPolygon) @dataof(itf)
         for pt in poly.points do
             result.points.add(pt)
     }
     elif result.kind == FormDraw
     {
-        let draw = cast(*FormDraw) @dataof(itf)
+        let draw = cast(#nonull *FormDraw) @dataof(itf)
         for pt in draw.points do
             result.points.add(pt)
     }
@@ -352,7 +353,7 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     return result
 }
 
-func testUndoFuzzSnapshot(capture: *Capture)->UndoFuzzState
+func testUndoFuzzSnapshot(capture: #nonull *Capture)->UndoFuzzState
 {
     var result: retval
     result.width    = capture.width
@@ -365,7 +366,7 @@ func testUndoFuzzSnapshot(capture: *Capture)->UndoFuzzState
 
 // Selection is deliberately not part of the state compare: several undo kinds
 // legitimately restore it differently from where the random walk left it.
-func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
+func testUndoFuzzAssertState(capture: #nonull *Capture, snap: #nonull *UndoFuzzState)
 {
     @assert(capture.width == snap.width)
     @assert(capture.height == snap.height)
@@ -391,7 +392,7 @@ func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
     }
 }
 
-func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
+func testUndoFuzzSelect(capture: #nonull *Capture, rng: #nonull *Random.Rng, count: u32)
 {
     capture.selection.clear()
     let total = cast(u32) capture.forms.count
@@ -500,7 +501,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
             let angle = cast(f32) rng.nextS32(0, 360)
             let u = f.capture.newUndo(.SetTypedValue)
             u.valU32 = cast #bit (u32) angle
-            u.valRef = Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+            u.valRef = assume Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
             f.capture.pushUndo(u)
         }
         elif op == 7

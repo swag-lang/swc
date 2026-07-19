@@ -125,7 +125,7 @@ impl RichString
     // ```swag
     mtd set(text: #null string)
     {
-        if .raw == text and .chunks.count do
+        if .chunks.count and .raw == text do
             return
         .raw   = text orelse ""
         .dirty = true

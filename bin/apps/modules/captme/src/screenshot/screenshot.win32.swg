@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32
 
 internal
@@ -44,7 +45,7 @@ internal
     }
 }
 
-func getWndRectAtPos(srf: *Surface, x, y: f32)->Math.Rectangle
+func getWndRectAtPos(srf: #nonull *Surface, x, y: f32)->Math.Rectangle
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
@@ -157,7 +158,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
     bi.bmiHeader.biBitCount    = 32
     bi.bmiHeader.biCompression = BI_RGB
 
-    var bits: *u8
+    var bits: #nonull *u8 = undefined
     let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
     if !memBMP or !bits do
         throw Swag.SystemError{"CreateDIBSection failed"}

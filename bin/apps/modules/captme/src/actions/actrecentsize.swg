@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionRecentSize {}
@@ -16,9 +17,9 @@ impl IActionUI for ActionRecentSize
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) cxt.wnd
 
         switch cxt.id
         {
@@ -64,7 +65,7 @@ impl IActionUI for ActionRecentSize
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) cxt.wnd
 
         switch cxt.id
         {

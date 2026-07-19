@@ -1,9 +1,10 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
-func testAddMonitor(main: *MainWnd, idx: u32)
+func testAddMonitor(main: #nonull *MainWnd, idx: u32)
 {
     let x = cast(f32) idx * 320
     let rect = Math.Rectangle{x, 0, 320, 240}

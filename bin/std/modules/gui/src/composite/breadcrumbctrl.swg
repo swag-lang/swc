@@ -45,7 +45,7 @@ struct BreadcrumbCtrl
     // Opening a level's chevron: the app fills 'menu' with the level's children.
     sigFillMenu:        func||(*BreadcrumbCtrl, u64, *MenuCtrl)
     // A child was picked from a level's chevron menu; 'id' is the chosen menu item id.
-    sigMenuSelected:    SigArray'func||(*BreadcrumbCtrl, u64, string)
+    sigMenuSelected:    SigArray'func||(*BreadcrumbCtrl, u64, String)
 }
 
 impl BreadcrumbCtrl

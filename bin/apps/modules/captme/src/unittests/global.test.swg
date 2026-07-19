@@ -1,9 +1,10 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
-func testSetupGlobalMain(main: *MainWnd)
+func testSetupGlobalMain(main: #nonull *MainWnd)
 {
     main.editWnd.dockStyle = .Center
 

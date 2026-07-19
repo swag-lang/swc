@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionMoveSel {}
@@ -18,9 +19,9 @@ impl IActionUI for ActionMoveSel
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) cxt.wnd
 
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
@@ -40,10 +41,10 @@ impl IActionUI for ActionMoveSel
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = assume main.getCapture()
 
-        var undo: *Undo
+        var undo: #nonull *Undo = undefined
         switch cxt.id
         {
         case Left1:

@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 struct QuickStyle
 {
     forms: Array'IForm
@@ -61,7 +62,7 @@ impl QuickStyle
 
 // Register a freshly built default form into a quick style set (see the
 // defaultQuickStyle* builders below).
-func(T) addStyleForm(qs: *QuickStyle, form: *T)
+func(T) addStyleForm(qs: #nonull *QuickStyle, form: #nonull *T)
 {
     let it = cast(IForm) form
     it.setup(null)
@@ -72,16 +73,16 @@ struct QuickButton
 {
     using iconBtn:     IconButton
     formItf:           IForm
-    quickWnd:          *QuickWnd
+    quickWnd:          #null *QuickWnd
 }
 
 struct QuickStylePaintForm
 {
     itf:       IForm
-    title:     string
+    title:     String
 }
 
-func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
+func quickStyleReleasePaintForm(paint: #nonull *QuickStylePaintForm)
 {
     if paint.itf do
         Memory.delete(@dataof(paint.itf), @kindof(paint.itf))
@@ -98,7 +99,7 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     cxt.z         = 1
     cxt.quickMode = true
 
-    let sel  = cast(*BaseForm) @dataof(paintItf)
+    let sel  = cast(#nonull *BaseForm) @dataof(paintItf)
     let s    = cast(s32) BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
     let rect = Math.Rectangle{8 + s, 8 + s, 48 - 2 * s, 48 - 2 * s}
 
@@ -108,16 +109,16 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     switch paintItf
     {
     case FormPolygon:
-        let poly = cast(*FormPolygon) @dataof(paintItf)
+        let poly = cast(#nonull *FormPolygon) @dataof(paintItf)
         poly.setDefaultShape()
     case FormDraw:
-        let poly = cast(*FormDraw) @dataof(paintItf)
+        let poly = cast(#nonull *FormDraw) @dataof(paintItf)
         poly.setDefaultShape()
     case FormText:
-        let txt = cast(*FormText) @dataof(paintItf)
+        let txt = cast(#nonull *FormText) @dataof(paintItf)
         txt.text = "A"
     case FormImage:
-        let img = cast(*FormImage) @dataof(paintItf)
+        let img = cast(#nonull *FormImage) @dataof(paintItf)
         switch img.kind
         {
         case Image:
@@ -139,7 +140,7 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     // preview a shortened body and an in-cell downward tail so it renders to scale.
     if @kindof(paintItf) == FormCallout
     {
-        let cl = cast(*FormCallout) @dataof(paintItf)
+        let cl = cast(#nonull *FormCallout) @dataof(paintItf)
         cl.text = "A"
         // Read as a clean speech bubble: quick mode already normalizes the glyph size to
         // a fixed range, so a small fontSize just lands at the airy end; keep the body
@@ -157,8 +158,8 @@ struct QuickWnd
 {
     using scrollWnd:     ScrollWnd
 
-    layout:              *WrapLayoutCtrl
-    main:                *MainWnd
+    layout:              #null *WrapLayoutCtrl
+    main:                #null *MainWnd
 
     qsArrow:             QuickStyle
     qsShape:             QuickStyle
@@ -173,12 +174,12 @@ struct QuickWnd
     qsPixSel:            QuickStyle
     qsCallout:           QuickStyle
 
-    currentStyle:        *QuickStyle
+    currentStyle:        #null *QuickStyle
 }
 
 impl IWnd for QuickWnd
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if evt.kind == .MousePressed and evt.button == .Right
         {
@@ -190,7 +191,7 @@ impl IWnd for QuickWnd
         .scrollWnd.IWnd.onMouseEvent(evt)
     }
 
-    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
+    mtd impl onSerializeStateEvent(evt: #nonull *SerializeStateEvent)
     {
         catch
         {
@@ -276,14 +277,14 @@ impl QuickWnd
         let res = menu.doModal(pos, autoDestroy: true)
         if res == "0" and btn
         {
-            let qbtn = cast(*QuickButton) btn
+            let qbtn = cast(#nonull *QuickButton) assume btn
             .currentStyle.remove(qbtn.formItf)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
     }
 
-    func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
+    func create(parent: #nonull *Wnd, main: #nonull *MainWnd)->#nonull *QuickWnd
     {
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
@@ -642,9 +643,9 @@ impl QuickWnd
         // button is ever hidden), so form 'i' maps directly to child 'i'.
         for it, i in .currentStyle.forms
         {
-            let btn = cast(*IconButton) .layout.childs[i]
+            let btn = cast(#nonull *IconButton) .layout.childs[i]
             let mdl = .main.modelFor(@kindof(it))
-            btn.isChecked = mode == MainWnd.formToEditMode(it) and it.isSame(cast(*BaseForm) @dataof(mdl))
+            btn.isChecked = mode == MainWnd.formToEditMode(it) and it.isSame(cast(#nonull *BaseForm) @dataof(mdl))
 
             if btn.isChecked do
                 done = true
@@ -654,7 +655,7 @@ impl QuickWnd
         // empty; guard back() against an out-of-bounds read.
         if .layout.childs.count
         {
-            let curMdl = cast(*IconButton) .layout.childs.back()
+            let curMdl = cast(#nonull *IconButton) .layout.childs.back()
             if curMdl.userData
             {
                 curMdl.show(!done)
@@ -717,7 +718,7 @@ impl QuickWnd
 
     mtd updateQuickStyles(forceRebuild = false)
     {
-        func paintForm(painter: *Painter, btnp: *QuickButton)
+        func paintForm(painter: #nonull *Painter, btnp: #nonull *QuickButton)
         {
             painter.setParams(.Antialiased)
             var paintForm = quickStyleNewPaintForm(btnp.formItf)
@@ -725,11 +726,11 @@ impl QuickWnd
 
             Capture.paintForm(painter, {}, {0, 0, 64, 64}, paintForm.itf, zoom: 1, quickMode: true)
 
-            if @countof(paintForm.title)
+            if !paintForm.title.isEmpty()
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
                 let rect = paintForm.itf.boundRect()
-                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, btnp.getFont().regular, textColor)
+                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, captmeFont(btnp.getFont().regular), textColor)
             }
         }
 
@@ -770,7 +771,7 @@ impl QuickWnd
             return
 
         let formItf     = .main.editModeToModel(.main.getEditMode())
-        let baseForm    = cast(*BaseForm) @dataof(formItf)
+        let baseForm    = cast(#nonull *BaseForm) @dataof(formItf)
         var canAddModel = false
         if baseForm
         {
@@ -813,19 +814,19 @@ impl QuickWnd
 
             btn.sigPaintIcon = func(btn, bc, pos, flags)
             {
-                paintForm(bc.painter, cast(*QuickButton) btn)
+                paintForm(bc.painter, cast(#nonull *QuickButton) btn)
             }
 
             btn.sigRightPressed += func(btn)
             {
                 var rect = btn.getSurfaceRect()
-                let quickBtn = cast(*QuickButton) btn
+                let quickBtn = cast(#nonull *QuickButton) btn
                 quickBtn.quickWnd.btnPopup(btn, rect.center())
             }
 
             btn.sigCheckChanged += func(btn)
             {
-                let quickBtn = cast(*QuickButton) btn
+                let quickBtn = cast(#nonull *QuickButton) btn
                 let quick    = quickBtn.quickWnd
                 let it       = quickBtn.formItf
                 if !btn.isChecked do
@@ -854,7 +855,7 @@ impl QuickWnd
         if canAddModel
         {
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
-            btn.userData = cast(*void) 1'u64 // This is the model button
+            btn.userData = cast(#nonull *void) 1'u64 // This is the model button
             btn.formItf  = formItf
             btn.setForm(.RoundSquare)
             btn.style.addStyleSheetColors("btnIcon_Bk          0x0")
@@ -864,7 +865,7 @@ impl QuickWnd
 
             btn.sigPaintIcon = func(btn, bc, pos, flags)
             {
-                paintForm(bc.painter, cast(*QuickButton) btn)
+                paintForm(bc.painter, cast(#nonull *QuickButton) btn)
                 var rect = btn.getClientRect()
                 rect.inflate(-2, -2)
                 bc.painter.setParams(.Antialiased)

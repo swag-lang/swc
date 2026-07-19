@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Threading, Time
 
 internal var g_UpdatingLib: bool
@@ -7,7 +8,7 @@ internal const ItemMargin = 8.0
 struct LibraryItem
 {
     fi:           File.FileInfo
-    capture:      *Capture
+    capture:      #null *Capture
     texture:      Texture
     rect:         Math.Rectangle
     visible:      bool
@@ -25,11 +26,11 @@ impl LibraryItem
 struct LibraryView
 {
     using wnd:       Wnd
-    scrollWnd:       *ScrollWnd
-    libWnd:          *LibraryWnd
-    mainWnd:         *MainWnd
+    scrollWnd:       #null *ScrollWnd
+    libWnd:          #null *LibraryWnd
+    mainWnd:         #null *MainWnd
     allItems:        ArrayPtr'LibraryItem
-    items:           Array'*LibraryItem
+    items:           Array'#nonull *LibraryItem
     mutexLoaded:     Sync.Mutex
     thread:          Thread
     hotItem          = Swag.U32.Max
@@ -38,12 +39,12 @@ struct LibraryView
     filterYear:      u64
     filterMonth:     u64
     filterDay:       u64
-    imgSpin:         *ImageRect
+    imgSpin:         #null *ImageRect
 }
 
 impl IWnd for LibraryView
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if evt.kind == .MouseLeave
         {
@@ -143,7 +144,7 @@ impl IWnd for LibraryView
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         if !g_UpdatingLib do
             .imgSpin.hide()
@@ -202,7 +203,7 @@ impl IWnd for LibraryView
             // shadow so it stays readable over any background.
             if capture and !capture.title.isEmpty()
             {
-                let font  = me.getFont().regular
+                let font  = captmeFont(me.getFont().regular)
                 let title = capture.title.toString()
                 let cx    = it.rect.horzCenter()
                 let by    = it.rect.bottom() - 8
@@ -261,7 +262,7 @@ impl LibraryView
         return {W, H}
     }
 
-    mtd updateRecent(capture: *Capture)
+    mtd updateRecent(capture: #nonull *Capture)
     {
         for it in .items
         {
@@ -281,7 +282,7 @@ impl LibraryView
     // Case-insensitive substring test used by the library search box. Matches the
     // capture title, the linked image path and the capture file name so the user can
     // find a capture by any of the names it is known under.
-    mtd const matchSearch(it: *LibraryItem, capture: *Capture, search: string)->bool
+    mtd const matchSearch(it: #nonull *LibraryItem, capture: #nonull *Capture, search: String)->bool
     {
         if @countof(search) == 0 do
             return true
@@ -317,15 +318,16 @@ impl LibraryView
                 .items.add(it)
                 continue
             }
-            if !capture.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
+            let loaded = capture orelse cast(#nonull *Capture) 1'u64
+            if !loaded.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
                 continue
-            if capture.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do
+            if loaded.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do
                 continue
-            if capture.linkedUpToDate and !capture.linkedImage.isEmpty() and !.libWnd.showUpToDateLinkedImage do
+            if loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUpToDateLinkedImage do
                 continue
-            if !capture.linkedUpToDate and !capture.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
+            if !loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
                 continue
-            if !.matchSearch(it, capture, search) do
+            if !.matchSearch(it, loaded, search) do
                 continue
 
             it.filtered = false
@@ -335,9 +337,9 @@ impl LibraryView
         .invalidate()
     }
 
-    mtd loadOne(it: *LibraryItem)
+    mtd loadOne(it: #nonull *LibraryItem)
     {
-        let capture = catch Capture.load(it.fi.fullname, preview: true)
+        let capture: #null *Capture = catch Capture.load(it.fi.fullname, preview: true)
         if !capture do
             return
 
@@ -356,7 +358,7 @@ impl LibraryView
     mtd loadFiles(th: Thread)
     {
         // Work on a copy, as 'items' can be changed by sorting during loading
-        var copy: Array'*LibraryItem
+        var copy: Array'#nonull *LibraryItem
         for it in .allItems do
             copy.add(it)
 
@@ -392,15 +394,15 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
-        var remaining: Array'*LibraryItem
+        var remaining: Array'#nonull *LibraryItem
         for it in .items do
             remaining.add(it)
         if remaining.isEmpty() do
             return
 
-        var nitems: Array'*LibraryItem
+        var nitems: Array'#nonull *LibraryItem
 
-        var toCompare: *LibraryItem
+        var toCompare: #nonull *LibraryItem = undefined
         while !remaining.isEmpty()
         {
             // A capture with no Haar features (no preview) can't anchor a similarity

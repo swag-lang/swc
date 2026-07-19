@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionAlign {}
@@ -20,9 +21,9 @@ impl IActionUI for ActionAlign
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) cxt.wnd
 
         if updateFromTable(cxt, evt, [
             {AlignLeft, "Left", .MultiSel},
@@ -70,10 +71,10 @@ impl IActionUI for ActionAlign
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = assume main.getCapture()
 
-        var undo: *Undo
+        var undo: #nonull *Undo = undefined
         switch cxt.id
         {
         case AlignLeft:

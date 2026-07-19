@@ -68,7 +68,13 @@ func countNonZeroBytes(img: Image)->u64
 // Returns a command state event for the given command id.
 func commandState(id: WndId)->CommandStateEvent
 {
-    return {id: id}
+    var evt: CommandStateEvent
+    @init(&evt.name, 1)
+    @init(&evt.longName, 1)
+    @init(&evt.shortcut, 1)
+    @init(&evt.toolTip, 1)
+    evt.id = id
+    return evt
 }
 
 // Asks action type T whether it accepts the command, through its IActionUI interface.

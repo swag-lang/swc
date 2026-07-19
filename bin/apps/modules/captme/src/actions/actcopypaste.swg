@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionCopyPaste {}
@@ -15,9 +16,9 @@ impl IActionUI for ActionCopyPaste
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
@@ -57,7 +58,7 @@ impl IActionUI for ActionCopyPaste
                     let itfForm = capture.forms[it]
                     if @kindof(itfForm) != FormImage do
                         continue
-                    let b = cast(*FormImage) @dataof(itfForm)
+                    let b = cast(#nonull *FormImage) @dataof(itfForm)
                     if b.kind != .Image do
                         continue
                     evt.hidden = false
@@ -80,7 +81,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id

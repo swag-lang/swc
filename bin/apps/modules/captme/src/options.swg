@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 #[Swag.Using(Properties)]
 struct CaptureOptions
 {

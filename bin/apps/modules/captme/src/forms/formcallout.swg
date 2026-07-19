@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 // A speech-bubble annotation: a rounded-rectangle body holding centered text, with
 // a triangular tail whose tip is a freely movable point. The body reuses the shared
 // rect gizmo (resize/move) while the tail tip is a single-anchor point gizmo. Text is
@@ -101,7 +102,7 @@ impl FormCallout
 
     // Sample a corner arc (a0Deg..a1Deg, screen convention: +x right, +y down) into an
     // already-started path.
-    func addArc(path: *LinePath, cx, cy, r, a0Deg, a1Deg: f32)
+    func addArc(path: #nonull *LinePath, cx, cy, r, a0Deg, a1Deg: f32)
     {
         const Seg = 8
         for k in Seg + 1
@@ -115,7 +116,7 @@ impl FormCallout
     // `edge` (0=bottom, 1=top, 2=right, 3=left) — as ONE closed path. Rendering body and
     // tail from a single fill + single stroke makes the tail fuse seamlessly with the
     // body: no overlapping fills/strokes to misalign at the corner where they meet.
-    func buildOutline(path: *LinePath, b: Math.Rectangle, r: f32, p0, p1, tip: Math.Vector2, edge: s32)
+    func buildOutline(path: #nonull *LinePath, b: Math.Rectangle, r: f32, p0, p1, tip: Math.Vector2, edge: s32)
     {
         // Top edge, left → right.
         path.start(b.x + r, b.y)
@@ -170,9 +171,9 @@ impl IForm for FormCallout
         return false
     }
 
-    mtd impl isSame(ptr: *BaseForm)->bool
+    mtd impl isSame(ptr: #nonull *BaseForm)->bool
     {
-        let other = cast(*FormCallout) ptr
+        let other = cast(#nonull *FormCallout) ptr
         return .isSameBase(ptr) and
                .roundSize == other.roundSize and
                .fontSize == other.fontSize and
@@ -184,11 +185,11 @@ impl IForm for FormCallout
                .alignVert == other.alignVert
     }
 
-    mtd impl copy(dst, src: *BaseForm)
+    mtd impl copy(dst, src: #nonull *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let d = cast(*FormCallout) dst
-        let s = cast(*FormCallout) src
+        let d = cast(#nonull *FormCallout) dst
+        let s = cast(#nonull *FormCallout) src
         d.roundSize = s.roundSize
         d.fontSize  = s.fontSize
         d.boldSize  = s.boldSize
@@ -200,7 +201,7 @@ impl IForm for FormCallout
         d.scale     = s.scale
     }
 
-    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         let xa = cast(s32) (movingStart.x / zoom)
         let ya = cast(s32) (movingStart.y / zoom)
@@ -265,7 +266,7 @@ impl IForm for FormCallout
         return Math.Rectangle{minx, miny, maxx - minx, maxy - miny}
     }
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
+    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
     {
         // The tail tip takes precedence; it only reports handled when hot/moving.
         if .gizmoTail.mouse(view, pos, evt) do
@@ -273,7 +274,7 @@ impl IForm for FormCallout
         return .gizmoRect.mouse(view, pos, evt)
     }
 
-    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -296,7 +297,7 @@ impl IForm for FormCallout
         return BaseForm.drawHitTest(me, pt, z)
     }
 
-    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
     {
         let z     = cxt.z
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize

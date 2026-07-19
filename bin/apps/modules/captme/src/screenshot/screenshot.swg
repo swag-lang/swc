@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, Pixel
 
 enum CaptureMode
@@ -26,7 +27,7 @@ var g_DesktopTexture:     Texture
 
 func getGrabRect()->Math.Rectangle
 {
-    var result: retval
+    var result: retval = undefined
     result.x      = Math.min(g_StartGrabX, g_EndGrabX)
     result.y      = Math.min(g_StartGrabY, g_EndGrabY)
     result.width  = Math.max(g_StartGrabX, g_EndGrabX) - result.x
@@ -51,12 +52,12 @@ func waitForCapture()->bool
     return g_GrabDone
 }
 
-func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface } throw
+func performScreenCapture(main: #nonull *MainWnd)->{ img: Image, sf: #null *Surface } throw
 {
     g_App.disableHotKeys()
     defer g_App.enableHotKeys()
 
-    var result: retval
+    var result: retval = undefined
     result.img       = getDesktopImage(main.captureOptions.captureCursor)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
@@ -82,7 +83,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface } throw
 }
 
 // In place edition of capture image
-func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *Capture throw
+func performInPlaceEdit(img: Image, surface: #nonull *Surface, main: #nonull *MainWnd)->#null *Capture throw
 {
     if !surface do
         return null
@@ -122,13 +123,15 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *C
     return capture
 }
 
-func captureRect(main: *MainWnd)->#null *Capture throw
+func captureRect(main: #nonull *MainWnd)->#null *Capture throw
 {
-    let (img, sf) = catch performScreenCapture(main)
-    return catch performInPlaceEdit(img, sf, main)
+    let (img, sf) = try performScreenCapture(main)
+    if !sf do
+        return null
+    return try performInPlaceEdit(img, assume sf, main)
 }
 
-func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
+func setGrabBounds(main: #nonull *MainWnd, captureMode: CaptureMode)->bool
 {
     switch captureMode
     {
@@ -167,7 +170,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
     return true
 }
 
-func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
+func screenShot(main: #nonull *MainWnd, captureMode: CaptureMode) throw
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
@@ -188,7 +191,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
     g_ScreenHeight = Env.getMetric(.DesktopHeight)
 
     // Capture
-    var capture: *Capture
+    var capture: #null *Capture
     if !setGrabBounds(main, captureMode) do
         capture = captureRect(main)
     else
@@ -229,5 +232,5 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
     }
 
     if capture do
-        main.newCapture(capture.backImg, null, capture)
+        main.newCapture(capture.backImg, "", capture)
 }

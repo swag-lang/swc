@@ -1,12 +1,13 @@
 #global #if #command == Swag.CompilerCommand.Test
+#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 struct HeadlessFixture
 {
     gui:      Testing.HeadlessHost
-    main:     *MainWnd
-    editView: *EditView
-    capture:  *Capture
+    main:     #nonull *MainWnd = undefined
+    editView: #nonull *EditView = undefined
+    capture:  #nonull *Capture = undefined
 }
 
 impl HeadlessFixture
@@ -25,7 +26,8 @@ impl HeadlessFixture
         .main.editWnd.setPosition({x: 0, y: 0, width: width, height: height})
         .main.editWnd.editView.setPosition({x: 0, y: 0, width: width, height: height})
 
-        .editView        = .main.editWnd.editView
+        let editWnd = .main.editWnd orelse cast(#nonull *EditWnd) 1'u64
+        .editView        = editWnd.editView orelse cast(#nonull *EditView) 1'u64
         let localCapture = Memory.new'Capture()
         localCapture.width, localCapture.widthOrg = 400
         localCapture.height, localCapture.heightOrg = 300
@@ -42,7 +44,7 @@ impl HeadlessFixture
         testRegisterHeadlessCommands(.main)
     }
 
-    mtd setupLibraryWnd()->*LibraryWnd
+    mtd setupLibraryWnd()->#nonull *LibraryWnd
     {
         .main.libWnd = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
         .main.libWnd.main = .main
@@ -55,7 +57,7 @@ impl HeadlessFixture
         view.scrollWnd = scroll
         scroll.setView(view)
         .main.libWnd.view = view
-        return .main.libWnd
+        return .main.libWnd orelse cast(#nonull *LibraryWnd) 1'u64
     }
 
     mtd shutdown()
@@ -72,7 +74,7 @@ func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEve
     return evt
 }
 
-func testAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->*FormShape
+func testAddShape(capture: #nonull *Capture, x: f32, y: f32, width: f32, height: f32, subKind = FormSubKind.None)->#nonull *FormShape
 {
     let form = Memory.new'FormShape()
     form.IForm.setup(capture)
@@ -82,7 +84,7 @@ func testAddShape(capture: *Capture, x: f32, y: f32, width: f32, height: f32, su
     return form
 }
 
-func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormText
+func testAddText(capture: #nonull *Capture, x: f32, y: f32, width: f32, height: f32)->#nonull *FormText
 {
     let form = Memory.new'FormText()
     form.IForm.setup(capture)
@@ -91,7 +93,7 @@ func testAddText(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*F
     return form
 }
 
-func testAddCallout(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormCallout
+func testAddCallout(capture: #nonull *Capture, x: f32, y: f32, width: f32, height: f32)->#nonull *FormCallout
 {
     let form = Memory.new'FormCallout()
     form.IForm.setup(capture)
@@ -102,7 +104,7 @@ func testAddCallout(capture: *Capture, x: f32, y: f32, width: f32, height: f32)-
     return form
 }
 
-func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormStep
+func testAddStep(capture: #nonull *Capture, x: f32, y: f32, width: f32, height: f32)->#nonull *FormStep
 {
     let form = Memory.new'FormStep()
     form.IForm.setup(capture)
@@ -111,7 +113,7 @@ func testAddStep(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*F
     return form
 }
 
-func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormLine
+func testAddLine(capture: #nonull *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->#nonull *FormLine
 {
     let form = Memory.new'FormLine()
     form.IForm.setup(capture)
@@ -121,7 +123,7 @@ func testAddLine(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind 
     return form
 }
 
-func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->*FormArrow
+func testAddArrow(capture: #nonull *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind = FormSubKind.None)->#nonull *FormArrow
 {
     let form = Memory.new'FormArrow()
     form.IForm.setup(capture)
@@ -131,7 +133,7 @@ func testAddArrow(capture: *Capture, xa: f32, ya: f32, xb: f32, yb: f32, subKind
     return form
 }
 
-func testAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormPolygon
+func testAddPolygon(capture: #nonull *Capture, points: #nonull [..] Math.Vector2, subKind = FormSubKind.None)->#nonull *FormPolygon
 {
     let form = Memory.new'FormPolygon()
     form.IForm.setup(capture)
@@ -142,7 +144,7 @@ func testAddPolygon(capture: *Capture, points: [..] Math.Vector2, subKind = Form
     return form
 }
 
-func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSubKind.None)->*FormDraw
+func testAddDraw(capture: #nonull *Capture, points: #nonull [..] Math.Vector2, subKind = FormSubKind.None)->#nonull *FormDraw
 {
     let form = Memory.new'FormDraw()
     form.IForm.setup(capture)
@@ -153,7 +155,7 @@ func testAddDraw(capture: *Capture, points: [..] Math.Vector2, subKind = FormSub
     return form
 }
 
-func testAddImage(capture: *Capture, x: f32, y: f32, width: f32, height: f32)->*FormImage
+func testAddImage(capture: #nonull *Capture, x: f32, y: f32, width: f32, height: f32)->#nonull *FormImage
 {
     let form = Memory.new'FormImage()
     form.IForm.setup(capture)
@@ -180,7 +182,7 @@ func testPrimeGizmo(form: IForm, z: f32 = 1)
     painter.end()
 }
 
-func testPrimeCaptureGizmo(capture: *Capture)
+func testPrimeCaptureGizmo(capture: #nonull *Capture)
 {
     capture.gizmo.rect = {0, 0, capture.width, capture.height}
 
@@ -190,7 +192,7 @@ func testPrimeCaptureGizmo(capture: *Capture)
     painter.end()
 }
 
-func testRegisterHeadlessActions(main: *MainWnd)
+func testRegisterHeadlessActions(main: #nonull *MainWnd)
 {
     main.registerAction'ActionSelection()
     main.registerAction'ActionMoveSel()
@@ -209,7 +211,7 @@ func testRegisterHeadlessActions(main: *MainWnd)
     main.registerAction'ActionRecentSize()
 }
 
-func testRegisterHeadlessShortcuts(main: *MainWnd)
+func testRegisterHeadlessShortcuts(main: #nonull *MainWnd)
 {
     main.registerKeyShortcut(.Control, .A, ActionSelection.SelectAll)
     main.registerKeyShortcut(.Control, .D, ActionSelection.DeSelectAll)
@@ -237,20 +239,20 @@ func testRegisterHeadlessShortcuts(main: *MainWnd)
     main.registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
 }
 
-func testRegisterHeadlessCommands(main: *MainWnd)
+func testRegisterHeadlessCommands(main: #nonull *MainWnd)
 {
     testRegisterHeadlessActions(main)
     testRegisterHeadlessShortcuts(main)
 }
 
-func testRegisterIoActions(main: *MainWnd)
+func testRegisterIoActions(main: #nonull *MainWnd)
 {
     main.registerAction'ActionCopyPaste()
     main.registerAction'ActionFile()
     main.registerAction'ActionCapture()
 }
 
-func testRegisterLocalEditorShortcuts(main: *MainWnd)
+func testRegisterLocalEditorShortcuts(main: #nonull *MainWnd)
 {
     testRegisterHeadlessCommands(main)
 }
@@ -260,7 +262,7 @@ func testDate(day: u16)->Time.DateTime
     return {year: 2026, month: 1, day: day}
 }
 
-func testAddLibraryItem(view: *LibraryView, name: string, size: u64, day: u16, linked: string = null, linkedUpToDate = true, title: string = null)->*LibraryItem
+func testAddLibraryItem(view: #nonull *LibraryView, name: String, size: u64, day: u16, linked: #nonull string = "", linkedUpToDate = true, title: #nonull string = "")->#nonull *LibraryItem
 {
     let it = view.allItems.addNewPtr()
     it.fi.fullname = name

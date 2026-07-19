@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 enum FormStepType
 {
     #[Properties.Name("1...2...3...")]
@@ -30,26 +31,26 @@ struct FormStep
 
 impl IForm for FormStep
 {
-    mtd impl isSame(ptr: *BaseForm)->bool
+    mtd impl isSame(ptr: #nonull *BaseForm)->bool
     {
-        let other = cast(*FormStep) ptr
+        let other = cast(#nonull *FormStep) ptr
         return .isSameBase(ptr) and
                .kind == other.kind and
                .typeIndex == other.typeIndex
     }
 
-    mtd impl copy(dst, src: *BaseForm)
+    mtd impl copy(dst, src: #nonull *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(*FormStep) dst
-        let srcf = cast(*FormStep) src
+        let dstf = cast(#nonull *FormStep) dst
+        let srcf = cast(#nonull *FormStep) src
         dstf.kind      = srcf.kind
         dstf.typeIndex = srcf.typeIndex
         dstf.ws        = srcf.ws
         dstf.hs        = srcf.hs
     }
 
-    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         var xa = cast(s32) (movingStart.x / zoom)
         var ya = cast(s32) (movingStart.y / zoom)
@@ -102,12 +103,12 @@ impl IForm for FormStep
         return .rectFormBound()
     }
 
-    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
+    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
     {
         return .gizmo.mouse(view, pos, evt)
     }
 
-    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -126,7 +127,7 @@ impl IForm for FormStep
         return BaseForm.drawHitTest(me, pt, z)
     }
 
-    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
     {
         let z     = cxt.z
         var fSize = Math.min(.w, .h) * 0.6
@@ -215,7 +216,7 @@ impl IForm for FormStep
         }
     }
 
-    mtd impl setup(capt: *Capture)
+    mtd impl setup(capt: #nonull *Capture)
     {
         .capture = capt
         .gizmo.setupForForm(cast(IForm) me)

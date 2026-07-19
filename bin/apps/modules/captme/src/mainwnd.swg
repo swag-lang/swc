@@ -1,5 +1,6 @@
+#global #[Swag.ExplicitNullability]
 // Global variable
-var g_Main: *MainWnd
+var g_Main: #null *MainWnd
 
 // Constants
 const ClipboardFormat = "Swag.CaptMe"
@@ -21,17 +22,17 @@ enum BottomSize
 struct MainWnd
 {
     using wnd:                                    Wnd
-    topBar, editToolBar, recentBar:               *Wnd
-    editWnd:                                      *EditWnd
-    quickWnd:                                     *QuickWnd
-    propWnd:                                      *PropWnd
-    libWnd:                                       *LibraryWnd
-    recentWnd:                                    *RecentWnd
-    recentSizeBar:                                *IconBar
-    quickStyleBar:                                *SplitterCtrl
-    editZoomBar:                                  *StackLayoutCtrl
-    captureBtn, libraryBtn, zoomBtn, sizeBtn:     *IconButton
-    embInfoFreeze:                                *EmbInfoCtrl
+    topBar, editToolBar, recentBar:               #null *Wnd
+    editWnd:                                      #null *EditWnd
+    quickWnd:                                     #null *QuickWnd
+    propWnd:                                      #null *PropWnd
+    libWnd:                                       #null *LibraryWnd
+    recentWnd:                                    #null *RecentWnd
+    recentSizeBar:                                #null *IconBar
+    quickStyleBar:                                #null *SplitterCtrl
+    editZoomBar:                                  #null *StackLayoutCtrl
+    captureBtn, libraryBtn, zoomBtn, sizeBtn:     #null *IconButton
+    embInfoFreeze:                                #null *EmbInfoCtrl
     icons24, icons48, appIcon:                    ImageList
     monitors:                                     Array'Env.Monitor
 
@@ -119,7 +120,7 @@ impl IWnd for MainWnd
         sf.destroy()
     }
 
-    mtd impl onSysUserEvent(evt: *SysUserEvent)
+    mtd impl onSysUserEvent(evt: #nonull *SysUserEvent)
     {
         #if #os == Swag.TargetOs.Windows
         {
@@ -141,7 +142,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent)
     {
         evt.accepted = false
         if evt.kind == .Close
@@ -155,12 +156,12 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         .saveAppState()
     }
 
-    mtd impl onStateEvent(evt: *StateEvent)
+    mtd impl onStateEvent(evt: #nonull *StateEvent)
     {
         switch evt.kind
         {
@@ -182,7 +183,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
+    mtd impl onSerializeStateEvent(evt: #nonull *SerializeStateEvent)
     {
         if .inPlaceEdit do
             return
@@ -213,7 +214,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onFrameEvent(evt: *FrameEvent)
+    mtd impl onFrameEvent(evt: #nonull *FrameEvent)
     {
         if evt.firstFrame do
             .quickWnd.setDefault()
@@ -229,7 +230,7 @@ impl MainWnd
             catch g_App.saveState()
     }
 
-    mtd saveCapture(capture: *Capture)
+    mtd saveCapture(capture: #nonull *Capture)
     {
         catch capture.save()
         if @err != null do
@@ -240,28 +241,29 @@ impl MainWnd
     // previews loaded without the background image, so we never save that in-memory
     // copy (it would wipe the picture); we update the real file on disk instead and
     // then refresh the preview's displayed title.
-    mtd setCaptureTitle(file: string, title: string)
+    mtd setCaptureTitle(file: String, title: String)
     {
         let editCapture = .editWnd.getCapture()
         if editCapture and editCapture.file == file
         {
             editCapture.title   = title
             editCapture.changed = true
-            .saveCapture(editCapture)
+            .saveCapture(assume editCapture)
         }
         else
         {
-            let full = catch Capture.load(file)
+            let full: #null *Capture = catch Capture.load(file)
             if @err != null
             {
                 MessageDlg.error(.surface, "Failed to rename capture")
                 return
             }
 
-            full.title   = title
-            full.changed = true
-            .saveCapture(full)
-            Memory.delete(full)
+            let loaded = assume full
+            loaded.title   = title
+            loaded.changed = true
+            .saveCapture(loaded)
+            Memory.delete(loaded)
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
@@ -277,27 +279,28 @@ impl MainWnd
     // from the library, where the focused capture is only a lightweight preview: we
     // load the complete file, borrow the editor's render context to composite it, and
     // discard it without touching the active editor selection.
-    mtd copyLibraryImage(file: string)
+    mtd copyLibraryImage(file: String)
     {
         Cursor.wait()
-        let full = catch Capture.load(file)
+        let full: #null *Capture = catch Capture.load(file)
         if @err != null
         {
             MessageDlg.error(.surface, "Failed to copy image")
             return
         }
 
-        full.editView = .editWnd.editView
-        Clipboard.addImage(full.toImage())
+        let loaded = assume full
+        loaded.editView = .editWnd.editView
+        Clipboard.addImage(loaded.toImage())
 
         // toImage() may have uploaded the background as a GPU texture on this transient
         // capture; opDrop only frees the forms, so release it explicitly to avoid a leak.
-        if full.backTexture.isValid() do
-            .editWnd.editView.getApp().getRenderer().removeTexture(&full.backTexture)
-        Memory.delete(full)
+        if loaded.backTexture.isValid() do
+            .editWnd.editView.getApp().getRenderer().removeTexture(&loaded.backTexture)
+        Memory.delete(loaded)
     }
 
-    mtd loadExternalImage(arg: string)
+    mtd loadExternalImage(arg: String)
     {
         let imgToLoad = catch Image.load(arg)
         if @err != null
@@ -311,7 +314,7 @@ impl MainWnd
         {
             if md.isTag("Captme.File")
             {
-                let dupCapture = catch .recentWnd.addRecent(cast(string) md.toSlice(), true, true)
+                let dupCapture = catch .recentWnd.addRecent(cast(#nonull string) md.toSlice(), true, true)
                 Memory.delete(dupCapture)
                 done = true
                 break
@@ -381,7 +384,7 @@ impl MainWnd
 
             for it in capture.forms
             {
-                let p = cast(*BaseForm) @dataof(it)
+                let p = cast(#nonull *BaseForm) @dataof(it)
                 p.freeze = true
             }
         }
@@ -628,7 +631,7 @@ impl MainWnd
 
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
     // sprite for this tool, so it paints its own rounded body plus a small tail.
-    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
+    func drawCalloutGlyph(btn: #nonull *IconButton, bc: #nonull *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
     {
         bc.painter.setParams(.Antialiased)
         let col = btn.isChecked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
@@ -669,7 +672,12 @@ impl MainWnd
             {
                 .id = id
                 if id == ActionToolMode.Callout do
-                    .sigPaintIcon = &drawCalloutGlyph
+                    .sigPaintIcon = func(btn, bc, pos, flags)
+                    {
+                        drawCalloutGlyph(btn orelse cast(#nonull *IconButton) 1'u64,
+                                         bc orelse cast(#nonull *PaintContext) 1'u64,
+                                         pos, flags)
+                    }
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedIcon         $btnIcon_CheckedMark")
                 .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_CheckedMark")
@@ -700,16 +708,16 @@ impl MainWnd
 
     mtd setTopBarHeight()
     {
-        var icons: Array'(*IconButton)
+        var icons: Array'(#nonull *IconButton)
         for c in .topBar.childs
         {
             if c.type == IconButton do
-                icons.add(cast(*IconButton) c)
+                icons.add(cast(#nonull *IconButton) c)
         }
         for c in .editToolBar.childs
         {
             if c.type == IconButton do
-                icons.add(cast(*IconButton) c)
+                icons.add(cast(#nonull *IconButton) c)
         }
 
         for c in icons
@@ -737,7 +745,7 @@ impl MainWnd
         .applyLayout()
     }
 
-    func create(parent: *Wnd)->*MainWnd
+    func create(parent: #nonull *Wnd)->#nonull *MainWnd
     {
         parent.surface.minSize = {1152, 512}
 
@@ -804,7 +812,7 @@ impl MainWnd
             .addItem({}, ActionRecentSize.RecentBig, .Checkable)
         }
 
-        with res.recentWnd = RecentWnd.create(res.recentBar, res)
+        with res.recentWnd = RecentWnd.create(res.recentBar orelse cast(#nonull *Wnd) 1'u64, res)
         {
             .dockStyle = .Center
         }
@@ -817,8 +825,8 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        res.quickWnd = QuickWnd.create(res.quickStyleBar, res)
-        res.propWnd  = PropWnd.create(res.quickStyleBar, res)
+        res.quickWnd = QuickWnd.create(res.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, res)
+        res.propWnd  = PropWnd.create(res.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, res)
 
         with let quickPane = res.quickStyleBar.addPane(res.quickWnd, title: true)
         {

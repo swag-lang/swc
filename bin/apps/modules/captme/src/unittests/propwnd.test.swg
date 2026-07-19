@@ -1,11 +1,12 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
 // Build the right-side properties panel the way the app does (quick styles pane on
 // top, properties pane below) and return it, laid out.
-func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
+func testSetupPropWnd(f: #nonull *HeadlessFixture)->#nonull *PropWnd
 {
     f.gui.surfaceWnd.view = f.main
 
@@ -14,16 +15,17 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
         .splitterFlags.add(.HideBars)
     }
 
-    f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar, f.main)
-    f.main.propWnd  = PropWnd.create(f.main.quickStyleBar, f.main)
+    let splitter = f.main.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64
+    f.main.quickWnd = QuickWnd.create(splitter, f.main)
+    f.main.propWnd  = PropWnd.create(splitter, f.main)
     discard f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
     discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
-    return f.main.propWnd
+    return f.main.propWnd orelse cast(#nonull *PropWnd) 1'u64
 }
 
-func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem
+func testFindItem(prop: #nonull *PropWnd, name: #nonull string)->#null *PropertiesItem
 {
     for item in prop.grid.items
     {
@@ -34,7 +36,7 @@ func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem
     return null
 }
 
-func testItemIndex(prop: *PropWnd, name: string)->u64
+func testItemIndex(prop: #nonull *PropWnd, name: #nonull string)->u64
 {
     for item, idx in prop.grid.items
     {
@@ -126,11 +128,11 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(sc.y > 0)
 
     let stack = posItem.line.childs[0]
-    f.gui.clickWnd((cast(*EditCtrl) stack.childs[0]).edit)
+    f.gui.clickWnd((cast(#nonull *EditCtrl) stack.childs[0]).edit)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
-    f.gui.clickWnd((cast(*EditCtrl) stack.childs[1]).edit)
+    f.gui.clickWnd((cast(#nonull *EditCtrl) stack.childs[1]).edit)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 

@@ -1,9 +1,10 @@
+#global #[Swag.ExplicitNullability]
 // Single source of truth mapping a form type to its edit mode and to the tool
 // contexts it can serve as a model for. Every mode<->type<->model lookup below
 // derives from this table; MainWnd.mdlByType is built in the same order.
 struct FormDesc
 {
-    type:            typeinfo
+    type:            #nonull typeinfo = undefined
     mode:            EditMode
     canHighlight:    bool
     canPixSel:       bool
@@ -20,7 +21,7 @@ const FormRegistry: [?] FormDesc = [
     {FormImage, EditMode.Image, false, false},
     {FormCallout, EditMode.Callout, false, false}]
 
-func formDescIndex(type: typeinfo)->u64
+func formDescIndex(type: #nonull typeinfo)->u64
 {
     for i in @countof(FormRegistry)
     {
@@ -58,7 +59,7 @@ impl MainWnd
     // The model of a given form type: an interface over the corresponding
     // 'mdlFormX' field, registered lazily so any way of constructing a MainWnd
     // (including the test fixtures) gets a valid mapping
-    mtd modelFor(type: typeinfo)->IForm
+    mtd modelFor(type: #nonull typeinfo)->IForm
     {
         if .mdlByType.isEmpty()
         {
@@ -109,7 +110,7 @@ impl MainWnd
 
     mtd updateModel(f: IForm)
     {
-        let form = cast(*BaseForm) @dataof(f)
+        let form = cast(#nonull *BaseForm) @dataof(f)
 
         if form.subKind == .Highlight do
             .mdlHighlight = f
@@ -135,7 +136,7 @@ impl MainWnd
             return
         }
 
-        let form = cast(*BaseForm) @dataof(f)
+        let form = cast(#nonull *BaseForm) @dataof(f)
         if form.subKind == .Highlight
         {
             .editMode = .Highlight
@@ -175,8 +176,8 @@ impl MainWnd
         // Clone the model of the given mode, whatever its concrete type
         let mdlItf  = .editModeToModel(mode)
         let mdlType = @kindof(mdlItf)
-        let mdl     = cast(*BaseForm) Memory.new(mdlType)
-        mdlItf.copy(mdl, cast(*BaseForm) @dataof(mdlItf))
+        let mdl     = cast(#nonull *BaseForm) (Memory.new(mdlType) orelse cast(#nonull [*] u8) 1'u64)
+        mdlItf.copy(mdl, cast(#nonull *BaseForm) @dataof(mdlItf))
 
         // A new form starts without the model content, just its style
         if clear
@@ -184,16 +185,16 @@ impl MainWnd
             switch mdlType
             {
             case FormImage:
-                let f = cast(*FormImage) mdl
+                let f = cast(#nonull *FormImage) mdl
                 f.image.release()
             case FormPolygon:
-                let f = cast(*FormPolygon) mdl
+                let f = cast(#nonull *FormPolygon) mdl
                 f.points.clear()
             case FormDraw:
-                let f = cast(*FormDraw) mdl
+                let f = cast(#nonull *FormDraw) mdl
                 f.points.clear()
             case FormCallout:
-                let f = cast(*FormCallout) mdl
+                let f = cast(#nonull *FormCallout) mdl
                 f.text.clear()
             }
         }
@@ -201,10 +202,10 @@ impl MainWnd
         return @mkinterface(mdl, mdlType, IForm)
     }
 
-    func newFormFromForm(it: IForm)->*BaseForm
+    func newFormFromForm(it: IForm)->#nonull *BaseForm
     {
-        let mdlValue = cast(*BaseForm) Memory.new(@kindof(it))
-        it.copy(mdlValue, cast(*BaseForm) @dataof(it))
+        let mdlValue = cast(#nonull *BaseForm) (Memory.new(@kindof(it)) orelse cast(#nonull [*] u8) 1'u64)
+        it.copy(mdlValue, cast(#nonull *BaseForm) @dataof(it))
         return mdlValue
     }
 }

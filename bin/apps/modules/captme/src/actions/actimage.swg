@@ -1,3 +1,4 @@
+#global #[Swag.ExplicitNullability]
 struct ActionImage {}
 
 var g_KeepRatio:  bool = true
@@ -21,7 +22,7 @@ impl IActionUI for ActionImage
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
         if updateFromTable(cxt, evt, [
             {ResizeImage, "Resize Image...", .Capture},
@@ -36,7 +37,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -52,7 +53,7 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) cxt.wnd
         let capture = assume main.getCapture()
 
         // The backImgOriginal snapshot (which enables "Restore to Original") is taken lazily
@@ -196,20 +197,20 @@ impl MainWnd
         .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
     }
 
-    func createBtnGrid(dlg: *Wnd)
+    func createBtnGrid(dlg: #nonull *Wnd)
     {
-        func createBtn(dlg: *Wnd, pos: Math.Rectangle, id: u64)
+        func createBtn(dlg: #nonull *Wnd, pos: Math.Rectangle, id: u64)
         {
             let btn = CheckButton.create(dlg, " ", pos)
             btn.checked  = g_ResizeMode == id ? .Undefined : .UnChecked
-            btn.userData = cast(*void) id
+            btn.userData = cast(#nonull *void) id
             btn.sigChanged += func(btn)
             {
                 for c in btn.parent.childs
                 {
                     if c.userData
                     {
-                        let btnc = cast(*CheckButton) c
+                        let btnc = cast(#nonull *CheckButton) c
                         btnc.checked = c != btn ? .UnChecked : .Undefined
                         btnc.invalidate()
                     }
@@ -232,7 +233,7 @@ impl MainWnd
         createBtn(dlg, {X + S + O + S + O, Y + S + O + S + O, S, S}, 9)
     }
 
-    mtd createExpandDialog(title: string, w, h: s32)->WndId
+    mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
         let dlg = Dialog.createDialog(.surface, 350, 265, title: title)
         dlg.addButton("Resize", Dialog.BtnOk, true)
@@ -282,7 +283,7 @@ impl MainWnd
         {
             if c.userData
             {
-                let btnc = cast(*CheckButton) c
+                let btnc = cast(#nonull *CheckButton) c
                 if btnc.checked != .UnChecked
                 {
                     g_ResizeMode = cast(u64) btnc.userData

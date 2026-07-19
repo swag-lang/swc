@@ -1,9 +1,10 @@
+#global #[Swag.ExplicitNullability]
 struct EditView
 {
     using wnd:       Wnd
-    main:            *MainWnd
-    scroll:          *ScrollWnd
-    capture:         *Capture
+    main:            #null *MainWnd
+    scroll:          #null *ScrollWnd
+    capture:         #null *Capture
     zoom:            f32 = 1
     viewMargin:      f32 = 32
     firstPaint:      bool = true
@@ -12,7 +13,7 @@ struct EditView
 
 impl IWnd for EditView
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         evt.accepted = false
         if !.capture do
@@ -38,7 +39,7 @@ impl IWnd for EditView
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         if .firstPaint
         {
@@ -170,7 +171,7 @@ impl EditView
         .setZoom(Math.min(zx, zy))
     }
 
-    mtd setCapture(c: *Capture)
+    mtd setCapture(c: #nonull *Capture)
     {
         if .capture do
             Memory.delete(.capture)

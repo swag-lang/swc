@@ -330,9 +330,9 @@ func parseFace(faceData: #nonull *FaceImpl) throw
     parseOS2(faceData)
 
     faceData.face.style = .None
-    if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains("Bold") do
+    if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(#nonull string) "Bold") do
         faceData.face.style |= .Bold
-    if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains("Italic") do
+    if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains(cast(#nonull string) "Italic") do
         faceData.face.style |= .Italic
 
     initFaceRecords(faceData)

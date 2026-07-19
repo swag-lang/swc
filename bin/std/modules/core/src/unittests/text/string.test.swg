@@ -238,7 +238,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
     @assert(value.contains('C''u8))
     @assert(value.contains('\u00E9''rune))
-    @assert(value.contains("Caf"))
+    @assert(value.contains(cast(#nonull string) "Caf"))
 
     let needle: [3] u8 = ['a''u8, 'f''u8, 0xc3]
     @assert(value.contains(cast(const [..] u8) needle))

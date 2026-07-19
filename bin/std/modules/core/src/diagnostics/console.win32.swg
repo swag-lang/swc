@@ -91,16 +91,17 @@ public func printf(message: #null string, params: ...)
     if message == null do
         return
 
+    let safeMessage = message orelse ""
     if @countof(params)
     {
-        let str = Format.toString(message, params)
+        let str = Format.toString(safeMessage, params)
         let len = cast(u32) @countof(str)
         catch WriteFile(g_StdOutputHandle, @dataof(str), len, null, null)
     }
     else
     {
-        let len = cast(u32) @countof(message)
-        catch WriteFile(g_StdOutputHandle, @dataof(message), len, null, null)
+        let len = cast(u32) @countof(safeMessage)
+        catch WriteFile(g_StdOutputHandle, @dataof(safeMessage), len, null, null)
     }
 }
 

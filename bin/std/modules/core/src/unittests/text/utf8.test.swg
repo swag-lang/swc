@@ -200,10 +200,10 @@ func firstNonAsciiRune(text: string)->rune
 {
     let text = "one fish two fish"
 
-    @assert(Utf8.contains(text, "fish"))
+    @assert(Utf8.contains(text, cast(#nonull string) "fish"))
     @assert(Utf8.contains(text, 'f''u8))
     @assert(Utf8.contains(text, 'o''rune))
-    @assert(!Utf8.contains(text, "bird"))
+    @assert(!Utf8.contains(text, cast(#nonull string) "bird"))
 
     @assert(Utf8.lastIndexOf(text, "fish") == 13)
     @assert(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)

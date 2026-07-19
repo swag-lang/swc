@@ -19,7 +19,7 @@ internal impl Properties
         let attrName = Reflection.getAttributeValue(value, Properties.Name, "name")
         if attrName != null do
             return attributeString(attrName)
-        return Utf8.beautifyName(value.name)
+        return Utf8.beautifyName(value.name orelse "")
     }
 
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.

@@ -122,9 +122,11 @@ impl TweakFile
             }
 
             // Parse and assign value to field
-            one = catch StrConv.parseValue(cast(#nonull [*] u8) currentFolder.data + safeField.offset, safeField.pointedType, one)
+            let safePointedType = assume safeField.pointedType
+            let parsedOne: #null string = catch StrConv.parseValue(cast(#nonull [*] u8) currentFolder.data + safeField.offset, safePointedType, one)
             if @err != null do
                 throw SyntaxError{"invalid value", line: idx + 1}
+            one = parsedOne orelse ""
 
             // Ensure nothing invalid follows the value
             if @countof(one) and !Latin1.isSpace(one[0]) and one[0] != '#' do

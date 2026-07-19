@@ -329,7 +329,7 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    mtd replace(what, by: string, comparisonType = Utf8.ComparisonType.Latin1)
+    mtd replace(what, by: #nonull string, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = @countof(what)
         if !whatLength or whatLength > .length do
@@ -724,14 +724,14 @@ impl String
         // Returns true if the string contains 'what'
         mtd const contains(what: u8)->bool            => Utf8.contains(.toSlice(), what)
         mtd const contains(what: rune)->bool          => Utf8.contains(.toSlice(), what)
-        mtd const contains(what: string)->bool        => Utf8.contains(.toSlice(), what)
-        mtd const contains(what: const [..] u8)->bool => Utf8.contains(.toSlice(), what)
+        mtd const contains(what: #nonull string)->bool        => Utf8.contains(.toSlice(), what)
+        mtd const contains(what: #nonull const [..] u8)->bool => Utf8.contains(.toSlice(), what)
 
         // Return true if the string starts with 'str'
-        mtd const startsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
+        mtd const startsWith(str: #nonull string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
 
         // Find 'what', and returns the byte index of it
-        mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
+        mtd const indexOf(what: #nonull string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
         mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64                                                => Utf8.indexOf(.toSlice(), what, startByteIndex)
     }
 }

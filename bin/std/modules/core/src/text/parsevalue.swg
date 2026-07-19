@@ -1,4 +1,5 @@
 #global namespace StrConv
+#global #[Swag.ExplicitNullability]
 using Swag, Core.Errors
 
 // This function will parse the string 'buf' and decode the corresponding value in 'addr'.
@@ -12,19 +13,20 @@ using Swag, Core.Errors
 // 'buf' can contain multiple values separated with blanks if 'type' is:
 // * a static array of the types above
 // * a dynamic 'Core.Array' of the types above
-public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
+public func parseValue(addr: #nonull *void, type: #nonull typeinfo, buf: #nonull string)->#null string throw
 {
-    var patch = cast(*u8) addr
+    var patch = cast(#nonull *u8) addr
     var one   = Tokenize.eatSpaces(buf)
 
     // Dynamic Core.Array
     let valueType = Reflection.getStructArrayType(type)
     if valueType
     {
+        let safeValueType = assume valueType
         while @countof(one) and one[0] != '#'
         {
-            let addrVal = Reflection.appendValueStructArray(addr, valueType)
-            one = parseValue(addrVal, valueType, one)
+            let addrVal = Reflection.appendValueStructArray(addr, safeValueType)
+            one = (parseValue(addrVal, safeValueType, one) orelse "")
             one = Tokenize.eatSpaces(one)
         }
 
@@ -34,14 +36,14 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
     // Static array
     if Reflection.isStaticArray(type)
     {
-        let arrayType = cast(const *TypeInfoArray) type
-        var addrVal   = cast([*] u8) addr
+        let arrayType = cast(#nonull const *TypeInfoArray) type
+        var addrVal   = cast(#nonull [*] u8) addr
         var cpt       = 0
         while @countof(one) and one[0] != '#'
         {
             if cpt == arrayType.totalCount do
                 throw InvalidFormatError{"too many static array values"}
-            one = parseValue(addrVal, arrayType.finalType, one)
+            one = (parseValue(addrVal, arrayType.finalType, one) orelse "")
             one = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
             cpt += 1
@@ -53,35 +55,36 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
     // Enum
     if Reflection.isEnum(type)
     {
-        let enumType = cast(const *TypeInfoEnum) type
-        if enumType.rawType != string and enumType.sizeof > 8 do
+        let enumType = cast(#nonull const *TypeInfoEnum) type
+        if enumType.rawType != #nonull string and enumType.sizeof > 8 do
             throw UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", enumType.rawType.name))}
         let enumFlags = Reflection.hasAttribute(enumType, EnumFlags)
 
         for
         {
             one = Tokenize.eatSpaces(one)
-            let id = parseIdentifier(one)
+            let id = parseIdentifier(one) orelse ""
             let v  = Reflection.getEnumValue(type, id)
             if !v do
                 throw InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
+            let enumValue = assume v.value
 
-            if enumType.rawType == string
+            if enumType.rawType == #nonull string
             {
-                dref cast(*string) patch = dref cast(const *string) v.value
+                dref cast(#nonull *string) patch = dref cast(#nonull const *string) enumValue
             }
             elif !enumFlags
             {
                 switch enumType.sizeof
                 {
                 case 1:
-                    dref cast(*u8) patch = dref cast(const *u8) v.value
+                    dref cast(#nonull *u8) patch = dref cast(#nonull const *u8) enumValue
                 case 2:
-                    dref cast(*u16) patch = dref cast(const *u16) v.value
+                    dref cast(#nonull *u16) patch = dref cast(#nonull const *u16) enumValue
                 case 4:
-                    dref cast(*u32) patch = dref cast(const *u32) v.value
+                    dref cast(#nonull *u32) patch = dref cast(#nonull const *u32) enumValue
                 case 8:
-                    dref cast(*u64) patch = dref cast(const *u64) v.value
+                    dref cast(#nonull *u64) patch = dref cast(#nonull const *u64) enumValue
                 }
             }
             else
@@ -89,13 +92,13 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
                 switch enumType.sizeof
                 {
                 case 1:
-                    dref cast(*u8) patch |= dref cast(const *u8) v.value
+                    dref cast(#nonull *u8) patch |= dref cast(#nonull const *u8) enumValue
                 case 2:
-                    dref cast(*u16) patch |= dref cast(const *u16) v.value
+                    dref cast(#nonull *u16) patch |= dref cast(#nonull const *u16) enumValue
                 case 4:
-                    dref cast(*u32) patch |= dref cast(const *u32) v.value
+                    dref cast(#nonull *u32) patch |= dref cast(#nonull const *u32) enumValue
                 case 8:
-                    dref cast(*u64) patch |= dref cast(const *u64) v.value
+                    dref cast(#nonull *u64) patch |= dref cast(#nonull const *u64) enumValue
                 }
             }
 
@@ -136,83 +139,83 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
         (val, eat, ovf) = parseS8(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*s8) patch = val
+        dref cast(#nonull *s8) patch = val
 
     case s16:
         var val: s16 = undefined
         (val, eat, ovf) = parseS16(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*s16) patch = val
+        dref cast(#nonull *s16) patch = val
 
     case s32:
         var val: s32 = undefined
         (val, eat, ovf) = parseS32(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*s32) patch = val
+        dref cast(#nonull *s32) patch = val
 
     case s64:
         var val: s64 = undefined
         (val, eat, ovf) = parseS64(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*s64) patch = val
+        dref cast(#nonull *s64) patch = val
 
     case u8:
         var val: u8 = undefined
         (val, eat, ovf) = parseU8(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*u8) patch = val
+        dref cast(#nonull *u8) patch = val
 
     case u16:
         var val: u16 = undefined
         (val, eat, ovf) = parseU16(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*u16) patch = val
+        dref cast(#nonull *u16) patch = val
 
     case u32:
         var val: u32 = undefined
         (val, eat, ovf) = parseU32(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*u32) patch = val
+        dref cast(#nonull *u32) patch = val
 
     case u64:
         var val: u64 = undefined
         (val, eat, ovf) = parseU64(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*u64) patch = val
+        dref cast(#nonull *u64) patch = val
 
     case f32:
         var val: f32 = undefined
         (val, eat, ovf) = parseF32(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*f32) patch = val
+        dref cast(#nonull *f32) patch = val
 
     case f64:
         var val: f64 = undefined
         (val, eat, ovf) = parseF64(one)
         if ovf do
             throw OverflowError{}
-        dref cast(*f64) patch = val
+        dref cast(#nonull *f64) patch = val
 
     case bool:
         var val: bool = undefined
         (val, eat) = parseBool(one)
-        dref cast(*bool) patch = val
+        dref cast(#nonull *bool) patch = val
 
     case rune:
         var val: rune = undefined
         (val, eat) = parseRune(one)
-        dref cast(*rune) patch = val
+        dref cast(#nonull *rune) patch = val
 
     case String:
-        eat = parseString(cast(*String) patch, one)
+        eat = parseString(cast(#nonull *String) patch, one)
 
     default:
         throw UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}

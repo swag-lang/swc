@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 #global namespace StrConv
 using Swag, Globalization
 
@@ -147,7 +148,7 @@ impl ConvertFormatInt
 }
 
 // Convert a value to an utf8 string, and append the result in a ConcatBuffer
-func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertAny(buf: #nonull *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     var valueData = @dataof(value)
     var type      = Reflection.makeConcreteAlias(@kindof(value))
@@ -179,7 +180,7 @@ func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
         if type.flags & TypeInfoFlags.CString
         {
             let ptr = dref cast(const [*] [*] u8) valueData
-            let len = @countof(cast(cstring) ptr)
+            let len = @countof(cast(#null cstring) ptr)
             buf.addBytes(@mkslice(ptr, len))
             return
         }
@@ -189,7 +190,7 @@ func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
         fmt.width   = 16
         fmt.padding = '0''u8
         fmt.setFormat(strFormat)
-        convertInt(buf, dref cast(const *u64) valueData, fmt)
+        convertInt(buf, dref cast(#nonull const *u64) valueData, fmt)
         return
     }
 
@@ -254,13 +255,13 @@ func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
 
     if Reflection.isInteger(type)
     {
-        convertInt(buf, concreteValue, convFmt, strFormat)
+        convertIntAny(buf, concreteValue, convFmt, strFormat)
         return
     }
 
     if Reflection.isFloat(type)
     {
-        convertFloat(buf, concreteValue, convFmt, strFormat)
+        convertFloatAny(buf, concreteValue, convFmt, strFormat)
         return
     }
 
@@ -305,7 +306,7 @@ func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
 }
 
 // Convert a structure content to an utf8 string, and put the result in a ConcatBuffer
-func convertStruct(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertStruct(buf: #nonull *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     let kindof = cast(const *Swag.TypeInfoStruct) @kindof(value)
     Debug.assert(kindof.kind == TypeInfoKind.Struct, "this is not a structure")
@@ -342,7 +343,7 @@ func convertStruct(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat,
 }
 
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
-func convertFloat(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatFloat)
+func convertFloat(buf: #nonull *ConcatBuffer, value: const any, fmt: ConvertFormatFloat)
 {
     let kindof = cast(const *Swag.TypeInfoNative) @kindof(value)
     Debug.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
@@ -362,7 +363,7 @@ func convertFloat(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatFloat)
 }
 
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
-func convertInt(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatInt)
+func convertInt(buf: #nonull *ConcatBuffer, value: const any, fmt: ConvertFormatInt)
 {
     let kindof = cast(const *Swag.TypeInfoNative) @kindof(value)
     Debug.assert(kindof.flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
@@ -463,11 +464,11 @@ func convertInt(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatInt)
         cpt -= 1
     }
 
-    buf.addBytes(cast([..] u8) @mkslice(&tmp[cpt + 1], cast(u64) 63 - cpt))
+    buf.addBytes(cast(#nonull [..] u8) @mkslice(&tmp[cpt + 1], cast(u64) 63 - cpt))
 }
 
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
-func convertFloat(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertFloatAny(buf: #nonull *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     Debug.assert(@kindof(value).flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
 
@@ -477,7 +478,7 @@ func convertFloat(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, 
 }
 
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
-func convertInt(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
+func convertIntAny(buf: #nonull *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     Debug.assert(@kindof(value).flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
 
@@ -487,13 +488,13 @@ func convertInt(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
 }
 
 // Convert a 'bool' to a string, and put the result in a ConcatBuffer
-func convertBool(buf: *ConcatBuffer, value: bool)
+func convertBool(buf: #nonull *ConcatBuffer, value: bool)
 {
     buf.addBytes(value ? "true" : "false")
 }
 
 // Convert a 'rune' to a string, and put the result in a ConcatBuffer
-func convertRune(buf: *ConcatBuffer, value: rune)
+func convertRune(buf: #nonull *ConcatBuffer, value: rune)
 {
     var arr: [4] u8
     if !value do
@@ -507,7 +508,7 @@ func convertRune(buf: *ConcatBuffer, value: rune)
 
 // Templated version. Convert a value of type 'T'
 #[Swag.Warning("Wrn0006", .Disable)]
-func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: #null string)
+func(T) convert(buf: #nonull *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: #null string)
 {
     #if Reflection.isInteger(T)
     {

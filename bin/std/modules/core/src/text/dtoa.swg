@@ -7,10 +7,11 @@
 
 #global namespace StrConv
 #global namespace Dtoa
+#global #[Swag.ExplicitNullability]
 #global #[Swag.Safety(.Overflow|.NaN, false)]
 using Globalization
 
-func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, mant: u64, exp: s64)
+func dtoa(dst: #nonull *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, mant: u64, exp: s64)
 {
     var prec = precision
 
@@ -18,7 +19,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
     d.assign(mant)
     d.shift(cast(s32) exp - Swag.F64.MantBits)
 
-    var digs:    DecimalSlice
+    var digs:    DecimalSlice = undefined
     let shortest = prec < 0
     if shortest
     {
@@ -58,7 +59,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
     formatDigits(dst, shortest, neg, forceSign, digs, prec, fmt)
 }
 
-func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs: DecimalSlice, precision: s64, fmt: u8)
+func formatDigits(dst: #nonull *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs: DecimalSlice, precision: s64, fmt: u8)
 {
     var prec = precision
     switch fmt
@@ -93,7 +94,7 @@ func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs
     }
 }
 
-func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, fmt: u8)
+func fmtE(dst: #nonull *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, fmt: u8)
 {
     // sign
     if neg do
@@ -159,7 +160,7 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     }
 }
 
-func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
+func fmtF(dst: #nonull *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
 {
     // sign
     if neg do
@@ -198,7 +199,7 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
 
 // roundShortest rounds d (= mant * 2^exp) to the shortest number of digits
 // that will let the original floating point value be precisely reconstructed.
-func roundShortest(d: *Decimal, mant: u64, exp: s64)
+func roundShortest(d: #nonull *Decimal, mant: u64, exp: s64)
 {
     // If mantissa is zero, the number is zero; stop now.
     if mant == 0
@@ -353,7 +354,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
 // | g | 'e' for large exponents, 'f' otherwise
 // | G | 'E' for large exponents, 'f' otherwise
 // A negative precision means *only as much as needed to be exact*
-public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
+public func parse(buf: #nonull *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
 {
     let bits: u64 = cast #bit (u64) val
 
@@ -365,7 +366,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
     switch exp
     {
     case (1 << Swag.F64.ExpBits) - 1:
-        var s: string
+        var s: #nonull string = undefined
         switch
         {
         case mant != 0:
@@ -396,7 +397,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         var f: FloatExt
         var (lower, upper) = f.assignComputeBounds(mant, exp, neg)
         var tmp: [32] u8
-        var digs: DecimalSlice
+        var digs: DecimalSlice = undefined
         digs.d = tmp
 
         ok = f.shortestDecimal(&digs, &lower, &upper)
@@ -434,7 +435,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         if digits <= 15
         {
             var tmp: [24] u8
-            var digs: DecimalSlice
+            var digs: DecimalSlice = undefined
             digs.d = tmp
             var f = FloatExt{mant, exp - cast(s64) Swag.F64.MantBits, neg}
             ok = f.fixedDecimal(&digs, digits)

@@ -256,7 +256,7 @@ public func associateFileExtension(extension, appName, appPath: #nonull string)-
 var g_StoreArgs: String
 func getNativeArgs()->#nonull string
 {
-    let ptr = GetCommandLineW()
+    let ptr = GetCommandLineW() orelse cast(#nonull const [*] u16) 1'u64
     g_StoreArgs = Utf8.fromUtf16(@mkslice(ptr, Utf16.lengthZeroTerminated(ptr)))
 
     if @countof(@pinfos.args) do

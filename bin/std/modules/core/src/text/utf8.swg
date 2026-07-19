@@ -6,6 +6,7 @@
 */
 
 #global public
+#global #[Swag.ExplicitNullability]
 #global namespace Utf8
 
 const RuneError    = 0xFFFD'rune
@@ -91,7 +92,7 @@ private
 
 // Get the last unicode rune of the utf8 slice, and the number of
 // bytes to encode it
-func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
+func decodeLastRune(buffer: #nonull const [..] u8)->{ c: rune, eat: u32 }
 {
     var result: retval
 
@@ -150,7 +151,7 @@ func decodeLastRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 // Get the unicode rune pointed by 'buffer', and the number of bytes to encode it
 //
 // Will return 'RuneError' for an invalid utf8 sequence
-func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
+func decodeRune(buffer: #nonull const [..] u8)->{ c: rune, eat: u32 }
 {
     var result: retval
 
@@ -242,7 +243,7 @@ func decodeRune(buffer: const [..] u8)->{ c: rune, eat: u32 }
 // the number of bytes that were needed to make the conversion.
 //
 // 'dest' must be at least 4 bytes long
-func encodeRune(dest: [..] u8, src: rune)->u32
+func encodeRune(dest: #nonull [..] u8, src: rune)->u32
 {
     Debug.assert(@countof(dest) >= 4, "destination buffer is too small")
 
@@ -282,7 +283,7 @@ func encodeRune(dest: [..] u8, src: rune)->u32
 //
 // Returns the number of bytes written in the destination buffer
 // 'dest' must be at least 4 bytes long
-func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
+func fromUnicode(dest: #nonull [..] u8, src: #nonull const [..] rune)->u64
 {
     let dataof = @dataof(dest)
     var remain = @countof(dest)
@@ -301,7 +302,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 }
 
 // Convert an unicode buffer to a String
-func fromUnicode(src: const [..] rune)->String
+func fromUnicode(src: #nonull const [..] rune)->String
 {
     var result: retval
     result.reserve(4 * @countof(src))
@@ -313,7 +314,7 @@ func fromUnicode(src: const [..] rune)->String
 //
 // Returns the number of bytes written in the destination buffer.
 // 'dest' must be at least 4 bytes long
-func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
+func fromUtf16(dest: #nonull [..] u8, src: #nonull const [..] u16)->u64
 {
     var count      = 0'u64
     var srcPtr     = @dataof(src)
@@ -338,7 +339,7 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 }
 
 // Convert an utf16 buffer to a String
-func fromUtf16(src: const [..] u16)->String
+func fromUtf16(src: #nonull const [..] u16)->String
 {
     var result: retval
     result.reserve(4 * @countof(src))
@@ -365,7 +366,7 @@ func isValidRune(c: rune)->bool
 // Returns the number of bytes to encode the first rune of the utf8 buffer
 //
 // If it's an invalid encoding, returns 1.
-func countBytesAt(buffer: const [..] u8)->u32
+func countBytesAt(buffer: #nonull const [..] u8)->u32
 {
     let dataof  = @dataof(buffer)
     let countof = @countof(buffer)
@@ -408,7 +409,7 @@ func countBytesAt(buffer: const [..] u8)->u32
 }
 
 // Returns the byte index of the given rune index
-func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bool }
+func byteIndex(buffer: #nonull const [..] u8, charIndex: u64)->{ index: u64, success: bool }
 {
     var result: retval
 
@@ -442,7 +443,7 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
 }
 
 // Returns the number of runes in an utf8 buffer
-func countRunes(buffer: const [..] u8)->u64
+func countRunes(buffer: #nonull const [..] u8)->u64
 {
     var dataof  = @dataof(buffer)
     var countof = @countof(buffer)
@@ -462,13 +463,13 @@ func countRunes(buffer: const [..] u8)->u64
 
 // Find the first occurence of rune 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
+func indexOf(src: #nonull const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 {
     return indexOfAny(src, [what], startByteIndex)
 }
 
 // Find the given string, and returns the byte index of it
-func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->u64
+func indexOf(src: #nonull const [..] u8, what: #nonull string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = @countof(src)
     if !length do
@@ -500,7 +501,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
 
 // Find one of the runes in 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)->u64
+func indexOfAny(src: #nonull const [..] u8, what: #nonull const [..] u8, startByteIndex = 0'u64)->u64
 {
     let length = @countof(src)
     if !length do
@@ -530,7 +531,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
 }
 
 // Find one of the runes in 'what', and returns the byte index of it
-func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u64)->u64
+func indexOfAny(src: #nonull const [..] u8, what: #nonull const [..] rune, startByteIndex = 0'u64)->u64
 {
     let length = @countof(src)
     if !length do
@@ -563,39 +564,39 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
 }
 
 // Returns true if 'src' contains the string 'what'
-func contains(src: const [..] u8, what: string)->bool
+func contains(src: #nonull const [..] u8, what: #nonull string)->bool
 {
     return indexOf(src, what) != Swag.U64.Max
 }
 
 // Returns true if 'src' contains the string 'what'
-func contains(src: const [..] u8, what: rune)->bool
+func contains(src: #nonull const [..] u8, what: rune)->bool
 {
     return indexOf(src, what) != Swag.U64.Max
 }
 
 // Returns true if 'src' contains the string 'what'
-func contains(src: const [..] u8, what: u8)->bool
+func contains(src: #nonull const [..] u8, what: u8)->bool
 {
     return Slice.contains(src, what)
 }
 
 // Returns true if 'src' contains the slice 'what'
-func contains(src, what: const [..] u8)->bool
+func contains(src, what: #nonull const [..] u8)->bool
 {
     return Slice.findSlice(src, what) != Swag.U32.Max
 }
 
 // Find the last rune occurence of 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-func lastIndexOf(src: const [..] u8, what: rune)->u64
+func lastIndexOf(src: #nonull const [..] u8, what: rune)->u64
 {
     return lastIndexOfAny(src, [what])
 }
 
 // Returns the last index (in bytes) of a any of the runes in 'what'.
 // Returns 'Swag.U64.Max' if not found
-func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
+func lastIndexOfAny(src: #nonull const [..] u8, what: #nonull const [..] rune)->u64
 {
     let length = @countof(src)
     if !length do
@@ -620,7 +621,7 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 
 // Returns the last index (in bytes) of a any of the bytes in 'what'.
 // Returns 'Swag.U64.Max' if not found
-func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
+func lastIndexOfAny(src: #nonull const [..] u8, what: #nonull const [..] u8)->u64
 {
     let length = @countof(src)
     if !length do
@@ -642,7 +643,7 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 
 // Returns the last index (in bytes) of a string.
 // Returns 'Swag.U64.Max' if not found
-func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonType.Latin1)->u64
+func lastIndexOf(src: #nonull const [..] u8, what: #nonull string, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = @countof(src)
     if !length do
@@ -667,7 +668,7 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
 }
 
 // Return true if the string starts with 'str'
-func startsWith(src: #null const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
+func startsWith(src: #null const [..] u8, str: #nonull string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = @countof(src)
     if !length do
@@ -680,7 +681,7 @@ func startsWith(src: #null const [..] u8, str: string, comparisonType = Comparis
 }
 
 // Return true if the string ends with 'str'
-func endsWith(src: #null const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
+func endsWith(src: #null const [..] u8, str: #nonull string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = @countof(src)
     if !length do
@@ -698,10 +699,10 @@ func firstRune(src: #null const [..] u8)->rune
     let countof = @countof(src)
     if !countof do
         return 0
-    let dataof = @dataof(src)
+    let dataof = @dataof(src) orelse cast(#nonull const [*] u8) 1'u64
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
-    let (c, ?) = Utf8.decodeRune(src)
+    let (c, ?) = Utf8.decodeRune(@mkslice(dataof, countof))
     return c
 }
 
@@ -711,10 +712,10 @@ func lastRune(src: #null const [..] u8)->rune
     let countof = @countof(src)
     if !countof do
         return 0
-    let dataof = @dataof(src)
+    let dataof = @dataof(src) orelse cast(#nonull const [*] u8) 1'u64
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
-    let (c, ?) = Utf8.decodeLastRune(src)
+    let (c, ?) = Utf8.decodeLastRune(@mkslice(dataof, countof))
     return c
 }
 
@@ -727,7 +728,7 @@ public enum ComparisonType
 }
 
 // Compare two utf8 buffers with the given algorithm
-func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s32
+func compare(src, dst: #nonull const [..] u8, comparisonType = ComparisonType.Latin1)->s32
 {
     using ComparisonType
 
@@ -790,7 +791,7 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 // * 'charIdx': the character index
 // * 'byteIdx': the byte index of that character within the utf8 sequence
 #[Swag.Macro]
-func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
+func visitRunes(buffer: #nonull const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
 {
     var count = @countof(buffer)
     if !count do
@@ -818,7 +819,7 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
 }
 
 // Returns true if the utf8 sequence is valid
-func isValid(buffer: const [..] u8)->bool
+func isValid(buffer: #nonull const [..] u8)->bool
 {
     var p       = @dataof(buffer)
     var countof = @countof(buffer)
@@ -828,7 +829,7 @@ func isValid(buffer: const [..] u8)->bool
     // Quick zap ascii characters
     while countof >= 8
     {
-        let first64 = dref cast(const *u64) p
+        let first64 = dref cast(#nonull const *u64) p
         if first64 & 0x80808080_80808080 do
             break
         p += 8
@@ -888,7 +889,7 @@ func isValid(buffer: const [..] u8)->bool
     return true
 }
 
-func beautifyName(name: const [..] u8)->String
+func beautifyName(name: #nonull const [..] u8)->String
 {
     var result: retval
 

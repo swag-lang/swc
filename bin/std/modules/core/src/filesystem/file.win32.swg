@@ -33,7 +33,8 @@ func exists(fullName: #null string)->bool
 {
     if fullName == null do
         return false
-    let winPath    = Utf16.toZeroTerminated(fullName)
+    let safeName = fullName orelse ""
+    let winPath    = Utf16.toZeroTerminated(safeName)
     let attributes = catch GetFileAttributesW(@dataof(winPath))
     if @err != null do
         return false

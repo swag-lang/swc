@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -29,15 +30,14 @@ namespace
         return nullptr;
     }
 
-    void recordPublicEntry(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const ModuleApiPublicEntry& publicEntry)
+    void addPublicEntry(ModuleApiFileEntry& fileEntry, const ModuleApiPublicEntry& publicEntry)
     {
-        if (!srcViewRef.isValid() || publicEntry.rootRef.isInvalid())
+        if (publicEntry.rootRef.isInvalid())
             return;
 
-        ModuleApiFileEntry&   entry         = state.files[srcViewRef];
-        ModuleApiPublicEntry* existingEntry = findMatchingPublicEntry(entry.publicEntries, publicEntry);
+        ModuleApiPublicEntry* existingEntry = findMatchingPublicEntry(fileEntry.publicEntries, publicEntry);
         if (!existingEntry)
-            entry.publicEntries.push_back(publicEntry);
+            fileEntry.publicEntries.push_back(publicEntry);
         else if (!existingEntry->symbol)
             existingEntry->symbol = publicEntry.symbol;
     }
@@ -73,10 +73,63 @@ namespace
     }
 }
 
+namespace
+{
+    // AST-dependent classification of a candidate symbol. Must only run once sema is
+    // fully done for the module: it walks whole file ASTs, which other sema jobs mutate
+    // in place (node id flips, child span rewrites) while they are still running.
+    Result resolvePendingSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiFileEntry& fileEntry, const bool diagnosticsOnly)
+    {
+        if (diagnosticsOnly && !symbol.isVariable())
+            return Result::Continue;
+
+        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
+        const SourceFile* astFile    = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
+        if (!astFile)
+            astFile = sourceFile;
+        if (!sourceFile || !astFile)
+            return Result::Continue;
+
+        AstNodeRef declRef;
+        if (!ModuleApi::Internal::tryFindNodeRef(astFile->ast(), symbol.decl(), declRef))
+        {
+            if (astFile->ast().hasSourceView() && symbol.srcViewRef() != astFile->ast().srcView().ref())
+                declRef = astFile->ast().tryFindNodeRef(symbol.decl());
+        }
+        if (declRef.isInvalid())
+            return Result::Continue;
+        if (!ModuleApi::Internal::isExportedPublicDeclScope(*astFile, declRef, symbol))
+            return Result::Continue;
+
+        if (symbol.isVariable())
+        {
+            if (ModuleApi::Internal::hasExplicitPublicAccessModifier(*astFile, declRef))
+                return reportModuleApiPublicGlobalVariable(ctx, symbol);
+            return Result::Continue;
+        }
+
+        ModuleApiPublicEntry publicEntry;
+        publicEntry.rootRef = ModuleApi::Internal::findExportDeclRoot(*astFile, declRef);
+        publicEntry.symbol  = &symbol;
+        if (publicEntry.rootRef.isInvalid())
+            return Result::Continue;
+
+        if (!ModuleApi::Internal::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
+            return Result::Continue;
+
+        addPublicEntry(fileEntry, publicEntry);
+        return Result::Continue;
+    }
+}
+
 namespace ModuleApi
 {
     void onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol)
     {
+        // This callback fires while sema jobs are still mutating ASTs on other threads,
+        // so it must not walk any AST. Apply the symbol-only filters here and defer the
+        // AST-dependent classification to resolvePendingEntries(), which runs post-sema.
+        //
         // An interface impl carries no Public flag of its own; it is exported only through
         // its public member functions. A marker / default-only interface impl has none, so
         // it would vanish from the generated module API -- losing the struct<->interface
@@ -103,35 +156,39 @@ namespace ModuleApi
             return;
         if (symbol.isImpl() && !isEmptyPublicInterfaceImpl)
             return;
-
-        AstNodeRef declRef;
-        if (!Internal::tryFindNodeRef(astFile->ast(), symbol.decl(), declRef))
-        {
-            if (astFile->ast().hasSourceView() && symbol.srcViewRef() != astFile->ast().srcView().ref())
-                declRef = astFile->ast().tryFindNodeRef(symbol.decl());
-        }
-        if (declRef.isInvalid())
-            return;
-        if (!Internal::isExportedPublicDeclScope(*astFile, declRef, symbol))
+        if (!symbol.srcViewRef().isValid())
             return;
 
-        if (symbol.isVariable())
+        state.files[symbol.srcViewRef()].pendingSymbols.push_back(&symbol);
+    }
+
+    Result resolvePendingEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& entries, const bool diagnosticsOnly)
+    {
+        std::vector<ModuleApiFileEntry*> fileEntries;
+        fileEntries.reserve(entries.size());
+        for (auto& [srcViewRef, entry] : entries)
         {
-            if (Internal::hasExplicitPublicAccessModifier(*astFile, declRef))
-                reportModuleApiPublicGlobalVariable(ctx, symbol);
-            return;
+            if (!entry.pendingSymbols.empty())
+                fileEntries.push_back(&entry);
         }
 
-        ModuleApiPublicEntry publicEntry;
-        publicEntry.rootRef = Internal::findExportDeclRoot(*astFile, declRef);
-        publicEntry.symbol  = &symbol;
-        if (publicEntry.rootRef.isInvalid())
-            return;
+        std::vector results(fileEntries.size(), Result::Continue);
+        Export::parallelForIndexed(ctx, static_cast<uint32_t>(fileEntries.size()), [&](TaskContext& workerCtx, uint32_t i) {
+            ModuleApiFileEntry& fileEntry = *fileEntries[i];
+            for (const Symbol* symbol : fileEntry.pendingSymbols)
+            {
+                if (resolvePendingSymbol(workerCtx, *symbol, fileEntry, diagnosticsOnly) == Result::Error)
+                    results[i] = Result::Error;
+            }
+        });
 
-        if (!Internal::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
-            return;
+        for (const Result r : results)
+        {
+            if (r != Result::Continue)
+                return Result::Error;
+        }
 
-        recordPublicEntry(state, symbol.srcViewRef(), publicEntry);
+        return Result::Continue;
     }
 }
 

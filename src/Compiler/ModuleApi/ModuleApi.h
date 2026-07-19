@@ -19,6 +19,12 @@ struct ModuleApiPublicEntry
 
 struct ModuleApiFileEntry
 {
+    // Candidate public symbols recorded while sema is still running. AST-dependent
+    // classification is deferred to resolvePendingEntries(), which runs post-sema:
+    // walking a file's AST while other sema jobs mutate it is a data race.
+    std::vector<const Symbol*> pendingSymbols;
+
+    // Resolved entries, produced from pendingSymbols by resolvePendingEntries().
     std::vector<ModuleApiPublicEntry> publicEntries;
 };
 
@@ -31,6 +37,7 @@ namespace ModuleApi
 {
     bool   isCurrentModuleSourceFile(const SourceFile& sourceFile);
     void   onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol);
+    Result resolvePendingEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& entries, bool diagnosticsOnly);
     Result exportFiles(TaskContext& ctx);
 
     namespace Internal

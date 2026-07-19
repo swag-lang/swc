@@ -46,6 +46,9 @@ namespace
 
     void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
     {
+        // A symbol completes sema exactly once, so per-thread pending lists are disjoint.
+        outEntry.pendingSymbols.insert(outEntry.pendingSymbols.end(), threadEntry.pendingSymbols.begin(), threadEntry.pendingSymbols.end());
+
         for (const ModuleApiPublicEntry& threadPublicEntry : threadEntry.publicEntries)
         {
             const auto it = findPublicEntry(outEntry.publicEntries, threadPublicEntry);
@@ -305,12 +308,16 @@ namespace ModuleApi
     {
         CompilerInstance& compiler     = ctx.compiler();
         const fs::path&   exportApiDir = compiler.cmdLine().exportApiDir;
-        if (exportApiDir.empty())
-            return Result::Continue;
 
         std::unordered_map<SourceViewRef, ModuleApiFileEntry> collectedEntries;
         for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
             mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
+
+        // Sema is done here, so walking the ASTs is safe now. Without an export directory,
+        // only the diagnostics (public global variables) are needed.
+        SWC_RESULT(resolvePendingEntries(ctx, collectedEntries, exportApiDir.empty()));
+        if (exportApiDir.empty())
+            return Result::Continue;
 
         const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);
         const SourceFile* firstSourceFile  = nullptr;

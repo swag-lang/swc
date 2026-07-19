@@ -6,6 +6,7 @@
 */
 
 #global namespace Unicode
+#global #[Swag.ExplicitNullability]
 
 const TableWhiteSpace: [?] Range = [
     {0x0009, 0x000d, 1},

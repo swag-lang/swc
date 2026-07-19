@@ -24,6 +24,23 @@ namespace
         return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
     }
 
+    bool isImplicitArrayToSliceElementQualificationCast(const TypeInfo& srcElemType, const TypeInfo& dstElemType)
+    {
+        if (srcElemType.kind() != dstElemType.kind())
+            return false;
+        if (srcElemType.isConst() != dstElemType.isConst())
+            return false;
+        if (!srcElemType.isSupportsNullableQualifier() || !dstElemType.isSupportsNullableQualifier())
+            return false;
+
+        // During the explicit-nullability migration, legacy element types can flow to an explicit
+        // nullable destination because the runtime representation is unchanged and the destination
+        // still accepts null.  Do not use that relaxation for explicit non-null destinations.
+        if (dstElemType.isExplicitNonNull())
+            return srcElemType.isExplicitNonNull();
+        return dstElemType.isNullable();
+    }
+
     uint64_t sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
     {
         const uint64_t dstElementSize = dstElementType.sizeOf(ctx);
@@ -669,8 +686,10 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     {
         const auto srcElemTypeRef = srcType.payloadArrayElemTypeRef();
         const auto dstElemTypeRef = dstType.payloadTypeRef();
+        const auto srcElemType    = typeMgr.get(srcElemTypeRef);
+        const auto dstElemType    = typeMgr.get(dstElemTypeRef);
 
-        if (castRequest.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef)
+        if (castRequest.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef || isImplicitArrayToSliceElementQualificationCast(srcElemType, dstElemType))
         {
             const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource);
             if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
@@ -678,7 +697,6 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
             if (srcElemTypeRef != dstElemTypeRef)
             {
-                const TypeInfo& dstElemType = sema.typeMgr().get(dstElemTypeRef);
                 const uint64_t  s           = dstElemType.sizeOf(ctx);
                 const uint64_t  d           = srcType.sizeOf(ctx);
                 const bool      match       = s == 0 || (d / s * s == d);
@@ -690,7 +708,6 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
-                const TypeInfo&     dstElemType = sema.typeMgr().get(dstElemTypeRef);
                 const uint64_t      sliceCount  = sliceCountFromArrayCast(ctx, srcType, dstElemType);
                 const ConstantValue sliceCst    = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, srcCst.getArray(), sliceCount, dstType.flags());
                 castRequest.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), sliceCst);

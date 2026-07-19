@@ -192,7 +192,7 @@ otherwise, it returns the right-hand expression.
 */
 #test
 {
-    var a = "string1"
+    var a: #null string = "string1"
     let b = "string2"
 
     var c = a orelse b

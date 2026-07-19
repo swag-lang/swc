@@ -179,7 +179,7 @@ impl JSon
         {
             StrConv.convertInt(.output, value, .fmtInt)
         }
-        #elif NT == string
+        #elif Reflection.isString(NT)
         {
             .output.addNative('"''u8)
             .output.addBytes(value)

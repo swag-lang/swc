@@ -135,6 +135,11 @@ func getDesktopImage(drawCursor: bool)->Image throw
 // capture must not pay for the whole multi-monitor desktop.
 func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
 {
+    #if #command == Swag.CompilerCommand.Test
+    {
+        return Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
+    }
+
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
 

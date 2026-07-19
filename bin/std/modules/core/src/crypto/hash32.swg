@@ -10,7 +10,7 @@ public interface IHash32
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash32(value: T)->u32
 {
-    #if T == string do
+    #if Reflection.isString(T) do
         return Hash.Crc32.compute(value)
     #elif Reflection.isStruct(T) and #defined(T.IHash32) do
         #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"

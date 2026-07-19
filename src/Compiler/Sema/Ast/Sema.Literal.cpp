@@ -393,7 +393,8 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
 
     if (tok.id == TokenId::StringRaw)
     {
-        const auto val = ConstantValue::makeString(ctx, value);
+        auto val = ConstantValue::makeString(ctx, value);
+        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
         return Result::SkipChildren;
     }
@@ -401,7 +402,8 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
-        const auto val = ConstantValue::makeString(ctx, value);
+        auto val = ConstantValue::makeString(ctx, value);
+        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
         return Result::SkipChildren;
     }
@@ -424,7 +426,8 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
         result += cp;
     }
 
-    const auto val = ConstantValue::makeString(ctx, result);
+    auto val = ConstantValue::makeString(ctx, result);
+    val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return Result::SkipChildren;
 }

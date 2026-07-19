@@ -61,7 +61,7 @@ func(T) unbox(box: Box'T)->T => box.value
 #assert(#typeof(castTo'(s32, f64)(1)) == f64)
 #assert(#typeof(castTo'(bool, s32)(true)) == s32)
 #assert(#typeof(makeBox(42)) == Box's32)
-#assert(#typeof(makeBox("hi")) == Box'string)
+#assert(#typeof(makeBox("hi")) == Box'(#nonull string))
 #assert(#typeof(makeBox(true).value) == bool)
 
 #test

@@ -28,7 +28,7 @@ namespace
 
     AstNodeRef unwrapLiteralSuffixCarrier(const Sema& sema, AstNodeRef nodeRef)
     {
-        while (nodeRef.isValid())
+        while (nodeRef.isValid() && sema.ast().hasNode(nodeRef))
         {
             const AstNode& node = sema.node(nodeRef);
             if (node.is(AstNodeId::NamedArgument))
@@ -61,18 +61,29 @@ namespace
         return AstNodeRef::invalid();
     }
 
+    const Token* safeToken(const Sema& sema, const SourceCodeRef& codeRef, const SourceView** outSrcView = nullptr)
+    {
+        SourceCodeRange codeRange;
+        if (!sema.compiler().tryTokenCodeRange(sema.ctx(), codeRange, codeRef))
+            return nullptr;
+
+        if (outSrcView)
+            *outSrcView = codeRange.srcView;
+        return &codeRange.srcView->token(codeRef.tokRef);
+    }
+
     const AstSuffixLiteral* customLiteralSuffixNode(const Sema& sema, AstNodeRef nodeRef, AstNodeRef& outExprRef)
     {
         outExprRef = AstNodeRef::invalid();
         nodeRef    = unwrapLiteralSuffixCarrier(sema, nodeRef);
-        if (nodeRef.isInvalid())
+        if (nodeRef.isInvalid() || !sema.ast().hasNode(nodeRef))
             return nullptr;
 
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::SuffixLiteral))
         {
             const auto& suffixLiteral = node.cast<AstSuffixLiteral>();
-            if (sema.node(suffixLiteral.nodeSuffixRef).is(AstNodeId::Identifier))
+            if (suffixLiteral.nodeSuffixRef.isValid() && sema.ast().hasNode(suffixLiteral.nodeSuffixRef) && sema.node(suffixLiteral.nodeSuffixRef).is(AstNodeId::Identifier))
             {
                 outExprRef = nodeRef;
                 return &suffixLiteral;
@@ -84,18 +95,24 @@ namespace
         if (!node.is(AstNodeId::UnaryExpr))
             return nullptr;
 
-        const Token& tok = sema.token(node.codeRef());
-        if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus}))
+        const SourceCodeRef codeRef = node.codeRef();
+        if (!codeRef.isValid() || !sema.ast().hasSourceView() || sema.ast().srcView().ref() != codeRef.srcViewRef)
+            return nullptr;
+
+        const Token* tok = safeToken(sema, codeRef);
+        if (!tok || !tok->isAny({TokenId::SymPlus, TokenId::SymMinus}))
             return nullptr;
 
         const AstNodeRef operandRef = unwrapLiteralSuffixCarrier(sema, node.cast<AstUnaryExpr>().nodeExprRef);
         if (operandRef.isInvalid())
             return nullptr;
+        if (!sema.ast().hasNode(operandRef))
+            return nullptr;
         if (sema.node(operandRef).isNot(AstNodeId::SuffixLiteral))
             return nullptr;
 
         const auto& suffixLiteral = sema.node(operandRef).cast<AstSuffixLiteral>();
-        if (sema.node(suffixLiteral.nodeSuffixRef).isNot(AstNodeId::Identifier))
+        if (suffixLiteral.nodeSuffixRef.isInvalid() || !sema.ast().hasNode(suffixLiteral.nodeSuffixRef) || sema.node(suffixLiteral.nodeSuffixRef).isNot(AstNodeId::Identifier))
             return nullptr;
 
         outExprRef = nodeRef;
@@ -599,10 +616,13 @@ bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef,
     if (!suffixLiteral)
         return false;
 
-    const AstNode&         suffixNode = sema.node(suffixLiteral->nodeSuffixRef);
-    const SourceView&      srcView    = sema.compiler().srcView(suffixNode.srcViewRef());
-    const Token&           tok        = sema.token(suffixNode.codeRef());
-    const std::string_view suffix     = tok.string(srcView);
+    const AstNode&    suffixNode = sema.node(suffixLiteral->nodeSuffixRef);
+    const SourceView* srcView    = nullptr;
+    const Token*      tok        = safeToken(sema, suffixNode.codeRef(), &srcView);
+    if (!tok || !srcView)
+        return false;
+
+    const std::string_view suffix = tok->string(*srcView);
     if (suffix.empty())
         return false;
 
@@ -610,7 +630,12 @@ bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef,
     outInfo.literalRef = suffixLiteral->nodeLiteralRef;
     outInfo.suffix     = suffix;
     if (exprRef.isValid() && sema.node(exprRef).is(AstNodeId::UnaryExpr))
-        outInfo.unaryOp = sema.token(sema.node(exprRef).codeRef()).id;
+    {
+        const Token* unaryTok = safeToken(sema, sema.node(exprRef).codeRef());
+        if (!unaryTok)
+            return false;
+        outInfo.unaryOp = unaryTok->id;
+    }
     return true;
 }
 

@@ -78,7 +78,7 @@ alias IndexStrictU8 = u8
 #test
 {
     var text = "hello"
-    var textRef: &string = &text
+    var textRef: &#nonull string = &text
     @assert(textRef[1] == cast(u8) 'e''rune)
 
     var grid: [2, 3] s32

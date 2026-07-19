@@ -10,7 +10,7 @@ public interface IHash64
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash64(value: T)->u64
 {
-    #if T == string do
+    #if Reflection.isString(T) do
         return Hash.murmur3(@dataof(value), @countof(value), 0)
     #elif Reflection.isStruct(T) and #defined(T.IHash64) do
         #ast "return " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"

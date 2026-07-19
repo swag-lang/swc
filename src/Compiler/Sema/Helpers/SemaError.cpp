@@ -200,7 +200,9 @@ DiagnosticElement* SemaError::addCurrentModuleHelp(Sema& sema, Diagnostic& diag,
 
 void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange)
 {
-    SWC_ASSERT(codeRange.isValid());
+    SourceCodeRange tokenCodeRange;
+    if (!sema.compiler().tryTokenCodeRange(sema.ctx(), tokenCodeRange, codeRange))
+        return;
 
     const TaskContext& ctx     = sema.ctx();
     const SourceView&  srcView = sema.srcView(codeRange.srcViewRef);
@@ -248,8 +250,12 @@ void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNod
 
 Diagnostic SemaError::build(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
-    const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
-    Diagnostic        diag    = buildDiagnostic(id, srcView.fileRef(), srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef));
+    SourceCodeRange codeRange;
+    Diagnostic      diag;
+    if (sema.compiler().tryTokenCodeRange(sema.ctx(), codeRange, atCodeRef))
+        diag = buildDiagnostic(id, codeRange.srcView->fileRef(), codeRange);
+    else
+        diag = Diagnostic::get(id, FileRef::invalid());
     setReportArguments(sema, diag, atCodeRef);
     return diag;
 }

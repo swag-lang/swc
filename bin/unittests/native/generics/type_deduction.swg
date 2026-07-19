@@ -188,7 +188,7 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
 
     let b2 = makeBox("hello")
     @assert(b2.value == "hello")
-    #assert(#typeof(b2.value) == string)
+    #assert(#typeof(b2.value) == #nonull string)
 
     let b3 = makeBox(true)
     @assert(b3.value == true)

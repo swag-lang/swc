@@ -31,7 +31,7 @@
     @assert(asByte == 1)
 }
 
-func takeStringValue(value: string)->u64
+func takeStringValue(value: #nonull string)->u64
 {
     return @countof(value)
 }
@@ -39,8 +39,8 @@ func takeStringValue(value: string)->u64
 #test
 {
     var text = "seed"
-    var textRef: &string = &text
-    let textValue = cast(string) textRef
+    var textRef: &#nonull string = &text
+    let textValue = cast(#nonull string) textRef
 
     @assert(textValue == "seed")
     @assert(takeStringValue(textRef) == 4'u64)
@@ -49,8 +49,8 @@ func takeStringValue(value: string)->u64
 #test
 {
     var text = "seed"
-    var textRef: &string = &text
-    let snapshot = cast(string) textRef
+    var textRef: &#nonull string = &text
+    let snapshot = cast(#nonull string) textRef
     text = "changed"
 
     @assert(snapshot == "seed")

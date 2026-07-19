@@ -226,7 +226,7 @@ namespace NS {}
     @assert(@countof(sl3) == 0)
 }
 
-func countStringRef(value: &string)->u64
+func countStringRef(value: &#nonull string)->u64
 {
     return @countof(value)
 }
@@ -261,7 +261,7 @@ func countSpecOpRef(value: const &RefCountedRuntime)->u64
     return @countof(value)
 }
 
-func loopStringRef(value: const &string)->u64
+func loopStringRef(value: const &#nonull string)->u64
 {
     var count: u64 = 0
     for value do
@@ -304,7 +304,7 @@ func loopSignedRef(value: &s32)->s32
 #test
 {
     var text = "hello"
-    var textRef: &string = &text
+    var textRef: &#nonull string = &text
     @assert(@countof(textRef) == 5)
     @assert(countStringRef(textRef) == 5)
     @assert(loopStringRef(textRef) == 5)

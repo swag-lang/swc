@@ -90,7 +90,7 @@ annotations.
 
     let b = "string"
     @assert(b == "string")
-    #assert(#typeof(b) == string)
+    #assert(#typeof(b) == #nonull string)
 
     let c = 1.5'f64
     @assert(c == 1.5)
@@ -112,7 +112,7 @@ Type inference also applies when declaring multiple variables simultaneously.
     @assert(c == 1.5)
     @assert(d == "string")
     #assert(#typeof(c) == f32)
-    #assert(#typeof(d) == string)
+    #assert(#typeof(d) == #nonull string)
 }
 
 /**

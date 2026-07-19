@@ -100,8 +100,8 @@
 {
     const A: any = "abc"
     #assert(#typeof(A) == any)
-    @assert(@kindof(A) == string)
-    @assert(cast(string) A == "abc")
+    @assert(@kindof(A) == #nonull string)
+    @assert(cast(#nonull string) A == "abc")
 }
 
 #test

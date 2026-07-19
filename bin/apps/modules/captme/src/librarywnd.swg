@@ -392,7 +392,7 @@ impl LibraryWnd
             let parent = Path.getDirectoryName(p)
             if parent == null or @countof(parent) == 0 or parent == p do
                 break
-            p = parent
+            p = assume parent
         }
 
         // Add levels root-first.

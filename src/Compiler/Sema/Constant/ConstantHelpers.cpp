@@ -507,20 +507,29 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);
 
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);
-    auto* rtLoc                  = reinterpret_cast<Runtime::SourceCodeLocation*>(storage);
+    if (!storage || offset == INVALID_REF)
+        return Result::Error;
 
-    rtLoc->fileName.length = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileName);
+    const uint32_t fileNameLength = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileName);
 
+    uint32_t funcNameLength = 0;
     if (funcName.empty())
     {
-        rtLoc->funcName.ptr    = nullptr;
-        rtLoc->funcName.length = 0;
+        auto* rtLoc = segment.ptr<Runtime::SourceCodeLocation>(offset);
+        if (!rtLoc)
+            return Result::Error;
+        rtLoc->funcName.ptr = nullptr;
     }
     else
     {
-        rtLoc->funcName.length = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, funcName.ptr), funcName);
+        funcNameLength = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, funcName.ptr), funcName);
     }
 
+    auto* rtLoc = segment.ptr<Runtime::SourceCodeLocation>(offset);
+    if (!rtLoc)
+        return Result::Error;
+    rtLoc->fileName.length = fileNameLength;
+    rtLoc->funcName.length = funcNameLength;
     rtLoc->lineStart = codeRange.line;
     rtLoc->colStart  = codeRange.column;
     rtLoc->lineEnd   = codeRange.line;

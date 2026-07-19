@@ -30,7 +30,7 @@ bool Ast::hasNode(AstNodeRef nodeRef) const
 
     const uint32_t   localRef = refLocal(globalRef);
     std::shared_lock lock(shards_[shard].mutex);
-    return shards_[shard].store.containsRef(localRef);
+    return shards_[shard].store.containsRef(localRef, sizeof(AstNode));
 }
 
 bool Ast::hasSpan(SpanRef spanRef) const

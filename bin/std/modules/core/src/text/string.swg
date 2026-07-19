@@ -1,4 +1,5 @@
 #global public
+#global #[Swag.ExplicitNullability]
 using Swag
 
 const StringSmallSize = 16'u64
@@ -12,7 +13,7 @@ enum CharacterSet
 
 struct String
 {
-    buffer:        [*] u8
+    buffer:        #null [*] u8
     length:        u64
     capacity:      u64
     allocator:     IAllocator
@@ -28,31 +29,33 @@ impl String
     }
 
     #[Inline]
-    mtd const opData()->const [*] u8
+    mtd const opData()->#null const [*] u8
     {
         return .buffer
     }
 
     #[Implicit, Inline]
-    mtd const opCast()->cstring
+    mtd const opCast()->#null cstring
     {
         return .buffer
     }
 
     #[Implicit, Inline]
-    mtd const opCast()->string
+    mtd const opCast()->#nonull string
     {
-        return @mkstring(.buffer, .length)
+        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        return @mkstring(buffer, .length)
     }
 
     #[Implicit, Inline]
-    mtd const opCast()->const [..] u8
+    mtd const opCast()->#nonull const [..] u8
     {
-        return @mkslice(.buffer, .length)
+        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        return @mkslice(buffer, .length)
     }
 
     #[Implicit]
-    mtd opSet(value: string)
+    mtd opSet(value: #null string)
     {
         if @dataof(value) == null
         {
@@ -79,13 +82,13 @@ impl String
         .buffer[.length] = 0
     }
 
-    mtd const opSlice(lower, upper: u64)->string
+    mtd const opSlice(lower, upper: u64)->#nonull string
     {
         Debug.assert(lower <= upper and lower < .length and upper < .length)
         return @mkstring(.buffer + lower, (upper + 1) - lower)
     }
 
-    mtd const opEquals(other: string)->bool
+    mtd const opEquals(other: #null string)->bool
     {
         if .buffer == @dataof(other) do
             return true
@@ -94,12 +97,12 @@ impl String
         return Memory.compare(.buffer, @dataof(other), .length) == 0
     }
 
-    mtd const opCompare(other: string)->s32
+    mtd const opCompare(other: #nonull string)->s32
     {
         return Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
     }
 
-    mtd(op: string) opIndexAssign(index: u64, value: u8)
+    mtd(op: #nonull string) opIndexAssign(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         #if op == "+=" do
@@ -116,7 +119,7 @@ impl String
         .buffer[index] = value
     }
 
-    mtd(op: string) opAssign(value: const [..] string)
+    mtd(op: #nonull string) opAssign(value: #null const [..] #null string)
     {
         #if op == "+=" do
             for v in value do
@@ -125,7 +128,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: string) opAssign(value: const [..] rune)
+    mtd(op: #nonull string) opAssign(value: #nonull const [..] #nonull string)
     {
         #if op == "+=" do
             for v in value do
@@ -134,7 +137,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: string) opAssign(value: const [..] u8)
+    mtd(op: #nonull string) opAssign(value: #nonull const [..] rune)
     {
         #if op == "+=" do
             for v in value do
@@ -143,7 +146,16 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: string) opAssign(value: string)
+    mtd(op: #nonull string) opAssign(value: #nonull const [..] u8)
+    {
+        #if op == "+=" do
+            for v in value do
+                .append(v)
+        #else do
+            #error("invalid operator '" ++ op ++ "'")
+    }
+
+    mtd(op: #nonull string) opAssign(value: #null string)
     {
         #if op == "+=" do
             .append(value)
@@ -151,7 +163,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: string) opAssign(value: rune)
+    mtd(op: #nonull string) opAssign(value: rune)
     {
         #if op == "+=" do
             .append(value)
@@ -159,7 +171,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: string) opAssign(value: u8)
+    mtd(op: #nonull string) opAssign(value: u8)
     {
         #if op == "+=" do
             .append(value)
@@ -192,6 +204,9 @@ impl String
 
     mtd opDrop()
     {
+        if !.buffer do
+            return
+
         if .buffer != cast() &.padding[0] do
             Memory.free(.buffer, .capacity, .allocator)
     }
@@ -225,10 +240,12 @@ impl String
             return
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
+        let buffer = assume .buffer
+
         #if back do
-            var scan = .buffer + .length
+            var scan = buffer + .length
         #else do
-            var scan = .buffer - 1
+            var scan = buffer - 1
 
         for .length
         {
@@ -295,7 +312,7 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    mtd replace(what: rune, by: string)
+    mtd replace(what: rune, by: #null string)
     {
         if !.length do
             return
@@ -329,7 +346,7 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    mtd replace(what, by: #nonull string, comparisonType = Utf8.ComparisonType.Latin1)
+    mtd replace(what: #nonull string, by: #null string, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = @countof(what)
         if !whatLength or whatLength > .length do
@@ -419,7 +436,7 @@ impl String
     }
 
     // Insert a substring at the given position
-    mtd insert(byteIndex: u64, value: string)
+    mtd insert(byteIndex: u64, value: #null string)
     {
         if byteIndex == .length
         {
@@ -449,7 +466,7 @@ impl String
     }
 
     // Append a formatted string
-    mtd appendFormat(format: string, values: ...)
+    mtd appendFormat(format: #nonull string, values: ...)
     {
         .append(Format.toString(format, values))
     }
@@ -459,7 +476,8 @@ impl String
     mtd append(value: u8)
     {
         .grow(.length + 2)
-        var ptr = cast(*u16) (.buffer + .length)
+        let buffer = assume .buffer
+        var ptr = cast(#nonull *u16) (buffer + .length)
         dref ptr = value
         .length += 1
     }
@@ -478,7 +496,7 @@ impl String
     }
 
     // Append a string to the String
-    mtd append(value: string)
+    mtd append(value: #null string)
     {
         let concatLength = @countof(value)
         if concatLength == 0 do
@@ -502,7 +520,7 @@ impl String
     }
 
     // Join a list of strings to make a unique one
-    func join(values: string...)->String
+    func join(values: #null string...)->String
     {
         var result: String
         for values do
@@ -512,7 +530,7 @@ impl String
 
     // Join an list of strings to make a unique one, by using a given 'separator'
     // between them
-    func joinWith(separator: string, values: string...)->String
+    func joinWith(separator: #null string, values: #null string...)->String
     {
         var result: String
         for values
@@ -563,6 +581,13 @@ impl String
             let oldBuffer = .buffer
             .buffer = cast() Memory.alloc(newCapacity, .allocator)
             Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
+            .capacity = newCapacity
+        }
+
+        // First allocation directly to dynamic storage
+        elif !.buffer
+        {
+            .buffer   = cast() Memory.alloc(newCapacity, .allocator)
             .capacity = newCapacity
         }
 
@@ -635,23 +660,26 @@ impl String
 
     // Returns a string type
     #[Inline]
-    mtd const toString()->string
+    mtd const toString()->#nonull string
     {
-        return @mkstring(.buffer, .length)
+        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        return @mkstring(buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
-    mtd toSlice()->[..] u8
+    mtd toSlice()->#nonull [..] u8
     {
-        return @mkslice(.buffer, .length)
+        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        return @mkslice(buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
-    mtd const toSlice()->const [..] u8
+    mtd const toSlice()->#nonull const [..] u8
     {
-        return @mkslice(.buffer, .length)
+        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        return @mkslice(buffer, .length)
     }
 
     // Convert the string inplace to upper case.

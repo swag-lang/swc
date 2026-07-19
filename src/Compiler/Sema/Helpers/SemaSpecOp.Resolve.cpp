@@ -125,9 +125,9 @@ namespace
         nodePtr->setCodeRef(codeRef);
 
         const TaskContext&  ctx         = sema.ctx();
-        const ConstantValue constant    = ConstantValue::makeString(ctx, value);
+        ConstantValue       constant    = ConstantValue::makeString(ctx, value);
+        constant.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
         const ConstantRef   constantRef = sema.cstMgr().addConstant(ctx, constant);
-        sema.setType(nodeRef, sema.typeMgr().typeString());
         sema.setConstant(nodeRef, constantRef);
         sema.setIsValue(*nodePtr);
         return nodeRef;

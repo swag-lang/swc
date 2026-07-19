@@ -49,7 +49,7 @@ Use '@kindof' to get the concrete runtime type of the referenced value.
 {
     var a: any = "string"
     #assert(#typeof(a) == any)
-    @assert(@kindof(a) == string)
+    @assert(@kindof(a) == #nonull string)
 
     a = true
     @assert(@kindof(a) == bool)
@@ -89,12 +89,12 @@ You can create heterogeneous arrays where each element holds a different type.
     @assert(@kindof(array[0]) == bool)
     @assert(@kindof(array[1]) == s32)
     @assert(@kindof(array[2]) == f32)
-    @assert(@kindof(array[3]) == string)
+    @assert(@kindof(array[3]) == #nonull string)
 
     @assert(cast(bool) array[0] == true)
     @assert(cast(s32) array[1] == 2)
     @assert(cast(f32) array[2] == 3.0)
-    @assert(cast(string) array[3] == "4")
+    @assert(cast(#nonull string) array[3] == "4")
 }
 
 /**
@@ -114,7 +114,7 @@ An 'any' value can be null, similar to pointers and other nullable types.
 
     x = "string"
     @assert(x != null)
-    @assert(cast(string) x == "string")
+    @assert(cast(#nonull string) x == "string")
 
     x = null
     @assert(x == null)
@@ -138,7 +138,7 @@ This uses '@kindof' internally to compare the stored value's type.
 
     x = "string"
     @assert(x != s32)
-    @assert(x == string)
+    @assert(x == #nonull string)
 
     struct A {}
     x = A{}

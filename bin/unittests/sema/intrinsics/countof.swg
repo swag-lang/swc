@@ -84,7 +84,7 @@ func semaTest004()
     #assert(count == 9)
 }
 
-func countStringRef(value: &string)->u64
+func countStringRef(value: &#nonull string)->u64
 {
     return @countof(value)
 }
@@ -114,7 +114,7 @@ func countSpecOpRef(value: const &RefCountedBySpecOp)->u64
     return @countof(value)
 }
 
-func loopStringRef(value: const &string)->u64
+func loopStringRef(value: const &#nonull string)->u64
 {
     var count: u64 = 0
     for value do
@@ -149,7 +149,7 @@ func loopUnsignedRef(value: &u32)->u32
 func semaTest005()
 {
     var text = "hello"
-    var textRef: &string = &text
+    var textRef: &#nonull string = &text
     #assert(#typeof(@countof(textRef)) == u64)
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef)) == u64)

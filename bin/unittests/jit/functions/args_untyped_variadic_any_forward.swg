@@ -26,7 +26,7 @@ func anyIsBool(value: any)->bool
 
 func anyIsString(value: any)->bool
 {
-    return @kindof(value) == string and cast(string) value == "variadic-any"
+    return @kindof(value) == #nonull string and cast(#nonull string) value == "variadic-any"
 }
 
 func anyIsBox(value: any)->bool
@@ -104,8 +104,8 @@ func variadicFirstAnyDataS32(values: ...)->s32
         let v2 = relayAny(values[2])
         return @kindof(v0) == s32 and
                cast(s32) v0 == 42 and
-               @kindof(v1) == string and
-               cast(string) v1 == "relay" and
+               @kindof(v1) == #nonull string and
+               cast(#nonull string) v1 == "relay" and
                @kindof(v2) == VariadicAnyBox and
                (cast(VariadicAnyBox) v2).value == 314
     }

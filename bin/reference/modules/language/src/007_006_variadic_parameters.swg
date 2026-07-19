@@ -31,7 +31,7 @@ Variadic parameters are treated as slices of type 'any', allowing you to process
         #assert(#typeof(parameters[2]) == any)
         // Determine actual runtime types
         @assert(@kindof(parameters[0]) == s32)
-        @assert(@kindof(parameters[1]) == string)
+        @assert(@kindof(parameters[1]) == #nonull string)
         @assert(@kindof(parameters[2]) == f32)
     }
     myFunction(4, "true", 5.6'f32)
@@ -72,9 +72,9 @@ Variadic parameters can be forwarded between functions while preserving their ty
     func A(params: ...)
     {
         @assert(@countof(params) == 2)
-        @assert(@kindof(params[0]) == string)
+        @assert(@kindof(params[0]) == #nonull string)
         @assert(@kindof(params[1]) == bool)
-        @assert(cast(string) params[0] == "value")
+        @assert(cast(#nonull string) params[0] == "value")
         @assert(cast(bool) params[1] == true)
     }
     func B(params: ...)
@@ -117,7 +117,7 @@ Handle mixed-type parameters dynamically, performing type-specific actions.
             {
             case s32:
                 sum += 1
-            case string:
+            case #nonull string:
                 sum += 10
             }
         }

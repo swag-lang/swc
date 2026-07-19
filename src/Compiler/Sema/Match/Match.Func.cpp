@@ -2432,6 +2432,8 @@ namespace
         {
             const AstNodeRef argRef  = mapping.paramArgs[i].argRef;
             const TypeRef    paramTy = params[i]->typeRef();
+            if (!paramTy.isValid())
+                continue;
             if (argRef.isValid() && !sema.typeMgr().get(paramTy).isCodeBlock())
                 SWC_RESULT(resolveAutoEnumArgFinal(sema, argRef, paramTy));
         }

@@ -39,7 +39,7 @@ func semaTest005()
 func semaTest006()
 {
     var text = "hello"
-    var textRef: &string = &text
+    var textRef: &#nonull string = &text
     var ch = textRef[1]
     #assert(#typeof(ch) == u8)
 

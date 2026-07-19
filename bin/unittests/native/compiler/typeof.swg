@@ -15,7 +15,7 @@ const TypedValue: s32 = 10
 #assert(#typeof(1 + 1's64) == s64)
 #assert(#typeof(cast(*u8) null) == *u8)
 #assert(#typeof(true) == bool)
-#assert(#typeof("x") == string)
+#assert(#typeof("x") == #nonull string)
 #assert(#typeof(func()->s32) == #type func()->s32)
 
 struct TypeOfPair { left, right: s16 }

@@ -148,8 +148,10 @@ func addImage(image: Image)
     if g_Fake.enabled
     {
         fakeClear()
+        if !image.isValid() do
+            return
         g_Fake.hasImg = true
-        g_Fake.img    = image
+        g_Fake.img    = Image.create(image.width, image.height, image.pf, image.pixels.toSlice())
         return
     }
 

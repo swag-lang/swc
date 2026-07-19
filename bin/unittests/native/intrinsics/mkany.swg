@@ -247,8 +247,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let info = #typeof(text)
     let boxed: any = @mkany(&text, info)
 
-    @assert(@kindof(boxed) == string)
-    @assert(cast(string) boxed == "omega")
+    @assert(@kindof(boxed) == #nonull string)
+    @assert(cast(#nonull string) boxed == "omega")
 }
 
 #test

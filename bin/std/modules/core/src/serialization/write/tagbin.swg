@@ -354,7 +354,7 @@ impl TagBin
     // Writes a native value to the output buffer, with special handling for strings
     mtd(NT) writeNative(value: NT)
     {
-        #if NT == string
+        #if Reflection.isString(NT)
         {
             .output.addNative(cast(u32) @countof(value))
             .output.addBytes(value)

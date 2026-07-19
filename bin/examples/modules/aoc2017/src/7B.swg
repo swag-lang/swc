@@ -21,7 +21,7 @@ using Core
 internal struct Pile
 {
     val:        s32
-    childs:     Array'string
+    childs:     Array'(#nonull string)
 }
 
 internal struct ChildTotal

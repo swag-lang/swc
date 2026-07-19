@@ -317,7 +317,7 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 
 // Lay labelled swatches in a single horizontal row that fits `rect`. Used by the
 // short, wide bottom panels where a tall card would overlap or clip.
-func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'string, cols: Array'Color)
+func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'(#nonull string), cols: Array'Color)
 {
     let n = Math.max(cast(f32) cols.count, 1.0)
     let pad = 16.0
@@ -358,7 +358,7 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
         }
         else
         {
-            var names: Array'string
+            var names: Array'(#nonull string)
             var cols:  Array'Color
             names.add("selected");   cols.add(g_Color)
             names.add("lighter");    cols.add(Color.getLighter(g_Color, 0.34))
@@ -384,7 +384,7 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
         painter.fillRect(rect, colors.view_Bk)
 
-        var names: Array'string
+        var names: Array'(#nonull string)
         var cols:  Array'Color
         names.add("selected");   cols.add(g_Color)
         names.add("analog -30"); cols.add(g_Color.rotateHue(-30))

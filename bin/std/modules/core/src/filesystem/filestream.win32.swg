@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace File
+#global #[Swag.ExplicitNullability]
 using Win32
 
 impl FileStream
@@ -11,7 +12,7 @@ impl FileStream
     }
 
     // Read from the given file stream, and returns the number of bytes
-    mtd read(buffer: *void, length: u64)->u64
+    mtd read(buffer: #null *void, length: u64)->u64
     {
         Debug.assert(.isOpen())
         Debug.assert(.canRead)
@@ -23,7 +24,7 @@ impl FileStream
     }
 
     // Write to the given file stream, and returns the number of written bytes
-    mtd write(buffer: const *void, length: u64)->u64 throw
+    mtd write(buffer: #null const *void, length: u64)->u64 throw
     {
         Debug.assert(.isOpen())
         Debug.assert(.canWrite)

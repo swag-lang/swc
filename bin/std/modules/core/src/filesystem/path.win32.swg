@@ -1,10 +1,11 @@
 #global #if WINDOWS
 #global public
 #global namespace Path
+#global #[Swag.ExplicitNullability]
 using Win32
 
 // Returns true if the given path name is valid
-func isValidPathName(fullname: string)->bool
+func isValidPathName(fullname: #nonull string)->bool
 {
     if @countof(fullname) == 0 do
         return false
@@ -35,7 +36,7 @@ func isValidPathName(fullname: string)->bool
 }
 
 // Returns true if the given file name is valid
-func isValidFileName(fullname: string)->bool
+func isValidFileName(fullname: #nonull string)->bool
 {
     if @countof(fullname) == 0 do
         return false
@@ -67,12 +68,12 @@ func isValidFileName(fullname: string)->bool
 }
 
 // Returns the length of the root part of the path
-func getRootLength(fullname: string)->u32
+func getRootLength(fullname: #nonull string)->u32
 {
     if fullname == null do
         return 0
 
-    func startsWithOrdinal(source, value: string)->bool
+    func startsWithOrdinal(source, value: #nonull string)->bool
     {
         let sourceLength = @countof(source)
         let valueLength  = @countof(value)
@@ -156,7 +157,7 @@ func getRootLength(fullname: string)->u32
 }
 
 // Transform 'fullname' to an absolute path
-func getAbsolute(fullname: string)->String throw
+func getAbsolute(fullname: #nonull string)->String throw
 {
     var result: retval
 

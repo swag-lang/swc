@@ -1,10 +1,11 @@
 #global #if WINDOWS
 #global public
 #global namespace File
+#global #[Swag.ExplicitNullability]
 using Win32
 
 // Delete the specified file
-func delete(fullName: string) throw
+func delete(fullName: #nonull string) throw
 {
     let winPath = Utf16.toZeroTerminated(fullName)
     catch DeleteFileW(@dataof(winPath))
@@ -12,7 +13,7 @@ func delete(fullName: string) throw
 }
 
 // Change the file write date/time
-func touch(fullName: string) throw
+func touch(fullName: #nonull string) throw
 {
     let winPath = Utf16.toZeroTerminated(fullName)
 
@@ -28,7 +29,7 @@ func touch(fullName: string) throw
 }
 
 // Returns true if the given file exists
-func exists(fullName: string)->bool
+func exists(fullName: #null string)->bool
 {
     if fullName == null do
         return false
@@ -44,7 +45,7 @@ func exists(fullName: string)->bool
 }
 
 // Open a new file stream
-func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream throw
+func open(fullName: #nonull string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream throw
 {
     var result: retval
 
@@ -108,13 +109,13 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
 }
 
 // Creates a new file stream for reading
-func openRead(fullName: string)->FileStream throw
+func openRead(fullName: #nonull string)->FileStream throw
 {
     return open(fullName, FileMode.Open, FileAccess.Read, FileShare.Read)
 }
 
 // Creates a new file stream for writing
-func openWrite(fullName: string)->FileStream throw
+func openWrite(fullName: #nonull string)->FileStream throw
 {
     return open(fullName, FileMode.Create, FileAccess.Write, FileShare.Zero)
 }

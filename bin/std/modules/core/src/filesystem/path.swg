@@ -1,5 +1,6 @@
 #global public
 #global namespace Path
+#global #[Swag.ExplicitNullability]
 using Swag
 
 const DirectorySeparatorChar    = '/''u8      // Default directory separator character
@@ -15,53 +16,56 @@ func isDirectorySeparator(c: u8)->bool
 
 // Returns the root part of the path, null if not found
 #[ConstExpr]
-func getRootName(fullname: string)->#null string
+func getRootName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    Debug.assert(isValidPathName(fullname))
-    let rootLength = getRootLength(fullname)
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
+    let rootLength = getRootLength(path)
     if !rootLength do
         return null
-    return cast() @mkslice(@dataof(fullname), cast(u64) rootLength)
+    return cast() @mkslice(@dataof(path), cast(u64) rootLength)
 }
 
 // Returns true if the given path is rooted (starts with a separator or a drive letter and colon)
 #[ConstExpr]
-func isRooted(fullname: string)->bool
+func isRooted(fullname: #null string)->bool
 {
     if fullname == null do
         return false
-    Debug.assert(isValidPathName(fullname))
-    let countof = @countof(fullname)
-    if countof >= 1 and isDirectorySeparator(fullname[0]) do
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
+    let countof = @countof(path)
+    if countof >= 1 and isDirectorySeparator(path[0]) do
         return true
-    if countof >= 2 and fullname[1] == VolumeSeparatorChar do
+    if countof >= 2 and path[1] == VolumeSeparatorChar do
         return true
     return false
 }
 
 // Returns the directory part of the path, null if not found
 #[ConstExpr]
-func getDirectoryName(fullname: string)->#null string
+func getDirectoryName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    Debug.assert(isValidPathName(fullname))
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
 
-    let countof = @countof(fullname)
+    let countof = @countof(path)
     var cpt     = countof
     while cpt
     {
         cpt -= 1
-        let c = fullname[cpt]
+        let c = path[cpt]
         if isDirectorySeparator(c)
         {
             if cpt == 0 do
                 return null
-            if cpt == 2 and fullname[1] == VolumeSeparatorChar do
+            if cpt == 2 and path[1] == VolumeSeparatorChar do
                 return null
-            return cast() @mkslice(@dataof(fullname), cast(u64) cpt)
+            return cast() @mkslice(@dataof(path), cast(u64) cpt)
         }
     }
 
@@ -70,75 +74,78 @@ func getDirectoryName(fullname: string)->#null string
 
 // Returns the file name part of the path, null if not found
 #[ConstExpr]
-func getFileName(fullname: string)->#null string
+func getFileName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    Debug.assert(isValidPathName(fullname))
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
 
-    let countof = @countof(fullname)
+    let countof = @countof(path)
     var cpt     = countof
     while cpt
     {
         cpt -= 1
-        let c = fullname[cpt]
+        let c = path[cpt]
         if isDirectorySeparator(c) or c == VolumeSeparatorChar
         {
             if cpt == countof - 1 do
                 return null
-            return cast() @mkslice(@dataof(fullname) + cpt + 1, cast(u64) (countof - cpt) - 1)
+            return cast() @mkslice(@dataof(path) + cpt + 1, cast(u64) (countof - cpt) - 1)
         }
     }
 
-    return fullname
+    return path
 }
 
 // Returns the file name without its extension, null if not found
 #[ConstExpr]
-func getFileNameWithoutExtension(fullname: string)->#null string
+func getFileNameWithoutExtension(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    Debug.assert(isValidPathName(fullname))
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
 
-    let countof = @countof(fullname)
+    let countof = @countof(path)
     var cpt     = countof
     var last    = countof
     while cpt
     {
         cpt -= 1
-        let c = fullname[cpt]
+        let c = path[cpt]
         if c == '.' and last == countof do
             last = cpt
         elif isDirectorySeparator(c) or c == VolumeSeparatorChar
         {
             if cpt == countof - 1 do
                 return null
-            return cast() @mkslice(@dataof(fullname) + cpt + 1, cast(u64) (last - cpt) - 1)
+            return cast() @mkslice(@dataof(path) + cpt + 1, cast(u64) (last - cpt) - 1)
         }
     }
 
     if last != countof do
-        return cast() @mkslice(@dataof(fullname), cast(u64) last)
-    return fullname
+        return cast() @mkslice(@dataof(path), cast(u64) last)
+    return path
 }
 
 // Returns the file name extension, including the '.' character
 // Returns null if no extension was found
 #[ConstExpr]
-func getExtension(fullname: string)->#null string
+func getExtension(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    Debug.assert(isValidPathName(fullname))
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
 
-    var cpt = @countof(fullname)
+    var cpt = @countof(path)
     while cpt
     {
         cpt -= 1
-        let c = fullname[cpt]
+        let c = path[cpt]
         if c == '.' do
-            return cast() @mkslice(@dataof(fullname) + cpt, cast(u64) @countof(fullname) - cpt)
+            return cast() @mkslice(@dataof(path) + cpt, cast(u64) @countof(path) - cpt)
         if isDirectorySeparator(c) or c == VolumeSeparatorChar do
             break
     }
@@ -148,30 +155,31 @@ func getExtension(fullname: string)->#null string
 
 // Returns the file name extension in lower case, including the '.' character
 // Returns null if no extension was found
-func getExtensionLowerCase(fullname: string)->String
+func getExtensionLowerCase(fullname: #null string)->String
 {
     return String.toLower(getExtension(fullname))
 }
 
 // Returns true if the given file has the specified extension (case-insensitive)
-func isExtension(fullname, extension: string)->bool
+func isExtension(fullname, extension: #nonull string)->bool
 {
     return getExtensionLowerCase(fullname) == String.toLower(extension)
 }
 
 // Returns true if the file name contains an extension
 #[ConstExpr]
-func hasExtension(fullname: string)->bool
+func hasExtension(fullname: #null string)->bool
 {
     if fullname == null do
         return false
-    Debug.assert(isValidPathName(fullname))
+    let path = fullname orelse ""
+    Debug.assert(isValidPathName(path))
 
-    var cpt = @countof(fullname)
+    var cpt = @countof(path)
     while cpt
     {
         cpt -= 1
-        let c = fullname[cpt]
+        let c = path[cpt]
         if c == '.' do
             return true
         if isDirectorySeparator(c) or c == VolumeSeparatorChar do
@@ -182,12 +190,13 @@ func hasExtension(fullname: string)->bool
 }
 
 // Combines multiple path segments into one, adding a directory separator between them if necessary
-func combine(fullnames: string...)->String
+func combine(fullnames: #null string...)->String
 {
     var result: retval
     for one in fullnames
     {
-        if @countof(one) == 0 do
+        let part = one orelse ""
+        if @countof(part) == 0 do
             continue
 
         if result.length
@@ -197,20 +206,20 @@ func combine(fullnames: string...)->String
                 result += DirectorySeparatorChar
         }
 
-        result += one
+        result += part
     }
 
     return result
 }
 
 // Returns true if the two paths are equal (case-insensitive Latin1 comparison)
-func equals(path1, path2: string)->bool
+func equals(path1, path2: #nonull string)->bool
 {
     return Utf8.compare(path1, path2, .Latin1NoCase) == 0
 }
 
 // Normalizes the path by replacing '\' with '/' to conform to standard path format
-func normalize(fullname: *String)
+func normalize(fullname: #nonull *String)
 {
     fullname.replace("\\", "/")
 }

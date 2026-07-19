@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace File
+#global #[Swag.ExplicitNullability]
 using Win32
 
 impl FileAttributes
@@ -45,7 +46,7 @@ impl FileAttributes
 }
 
 // Returns attributes associated to the given filename
-func getAttributes(fullName: string)->FileAttributes throw
+func getAttributes(fullName: #nonull string)->FileAttributes throw
 {
     let winPath    = Utf16.toZeroTerminated(fullName)
     let attributes = catch GetFileAttributesW(@dataof(winPath))

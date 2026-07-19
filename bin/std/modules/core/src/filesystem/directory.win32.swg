@@ -1,9 +1,10 @@
 #global #if WINDOWS
 #global public
 #global namespace Directory
+#global #[Swag.ExplicitNullability]
 using Win32
 
-func create(dirname: string) throw
+func create(dirname: #nonull string) throw
 {
     let winPath = Utf16.toZeroTerminated(dirname)
     catch CreateDirectoryW(@dataof(winPath), null)
@@ -11,7 +12,7 @@ func create(dirname: string) throw
 }
 
 // Returns true if the given directory exists
-func exists(dirName: string)->bool
+func exists(dirName: #nonull string)->bool
 {
     if @countof(dirName) == 0 do
         return false
@@ -27,7 +28,7 @@ func exists(dirName: string)->bool
 }
 
 // Enumerate a directory
-func enumerate(dirName: string, options: EnumerationOptions)->Array'(File.FileInfo) throw
+func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.FileInfo) throw
 {
     using File
     var result: retval
@@ -94,7 +95,7 @@ func enumerate(dirName: string, options: EnumerationOptions)->Array'(File.FileIn
                     fi.lastWriteTime.setSYSTEMTIME(fileTime)
 
                     mustAdd = false
-                    if options.matchExtension and Path.isExtension(fi.fullname, options.matchExtension) do
+                    if options.matchExtension and Path.isExtension(fi.fullname, options.matchExtension orelse "") do
                         mustAdd = true
                     elif options.matchFileName and filename == options.matchFileName do
                         mustAdd = true
@@ -138,7 +139,7 @@ func getCurrent()->String throw
 }
 
 // Set the current directory
-func setCurrent(dirName: string) throw
+func setCurrent(dirName: #nonull string) throw
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch SetCurrentDirectoryW(@dataof(winPath))
@@ -155,10 +156,10 @@ func getDrives()->Array'String throw
     if slen >= MAX_PATH do
         return result
 
-    var ptr = cast([*] u8) &volName[0]
+    var ptr = cast(#nonull [*] u8) &volName[0]
     while ptr[0]
     {
-        let len = @countof(cast(cstring) ptr)
+        let len = @countof(cast(#nonull cstring) ptr)
         result.add(@mkstring(ptr, len))
         ptr += len + 1
     }
@@ -184,7 +185,7 @@ func getVolumes()->Array'String throw
         catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret)
         if @err == null
         {
-            let len = @countof(cast(cstring) driveName)
+            let len = @countof(cast(#nonull cstring) driveName)
             if len
             {
                 var str = String.from(@mkstring(&driveName[0], len))

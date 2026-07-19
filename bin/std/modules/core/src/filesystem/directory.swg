@@ -1,11 +1,12 @@
 #global public
 #global namespace Directory
+#global #[Swag.ExplicitNullability]
 
 // Options for customizing file and directory enumeration
 struct EnumerationOptions
 {
-    matchExtension:            string                         // Optional extension to match (e.g. ".txt")
-    matchFileName:             string                         // Optional file name pattern to match
+    matchExtension:            #null string                   // Optional extension to match (e.g. ".txt")
+    matchFileName:             #null string                   // Optional file name pattern to match
     skipAttributes             = File.FileAttributes.Zero     // Attributes to skip during enumeration
     recurse                    = false                        // Whether to recurse into subdirectories
     wantFiles                  = true                         // Whether to include files in the results
@@ -16,7 +17,7 @@ struct EnumerationOptions
 }
 
 // Gets all files in the specified directory
-func enumerateFiles(dirName: string, matchExtension: string = null, recurse = false)->Array'(File.FileInfo) throw
+func enumerateFiles(dirName: #nonull string, matchExtension: #null string = null, recurse = false)->Array'(File.FileInfo) throw
 {
     var options: EnumerationOptions
     options.matchExtension  = matchExtension
@@ -26,7 +27,7 @@ func enumerateFiles(dirName: string, matchExtension: string = null, recurse = fa
 }
 
 // Gets all directories in the specified directory
-func enumerateDirectories(dirName: string, matchExtension: string = null, recurse = false)->Array'(File.FileInfo) throw
+func enumerateDirectories(dirName: #nonull string, matchExtension: #null string = null, recurse = false)->Array'(File.FileInfo) throw
 {
     var options: EnumerationOptions
     options.matchExtension = matchExtension

@@ -1,5 +1,6 @@
 #global public
 #global namespace Time
+#global #[Swag.ExplicitNullability]
 using Errors
 
 // Names of the months used for formatting and parsing
@@ -80,22 +81,23 @@ impl DateTime
     }
 
     // Returns the month name corresponding to a month number (1 to 12)
-    func monthName(month: u16)->string
+    func monthName(month: u16)->#nonull string
     {
         Debug.assert(month >= 1 and month <= 12)
         return MonthNames[month - 1]
     }
 
     // Returns the name of the given day of the week
-    func dayOfWeekName(day: DayOfWeek)->string
+    func dayOfWeekName(day: DayOfWeek)->#nonull string
     {
         return DayOfWeekNames[cast(u32) day]
     }
 
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
-    internal func parseU8(buf: &string, eat: &u32)->u16 throw
+    internal func parseU8(buf: &#nonull string, eat: &u32)->u16 throw
     {
-        let (year, eat0, ovf) = StrConv.parseU8(buf)
+        let view: #nonull string = buf
+        let (year, eat0, ovf) = StrConv.parseU8(view)
         if ovf do
             throw SyntaxError{}
         eat += eat0
@@ -104,9 +106,10 @@ impl DateTime
     }
 
     // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
-    internal func parseU16(buf: &string, eat: &u32)->u16 throw
+    internal func parseU16(buf: &#nonull string, eat: &u32)->u16 throw
     {
-        let (year, eat0, ovf) = StrConv.parseU16(buf)
+        let view: #nonull string = buf
+        let (year, eat0, ovf) = StrConv.parseU16(view)
         if ovf do
             throw SyntaxError{}
         eat += eat0
@@ -115,7 +118,7 @@ impl DateTime
     }
 
     // Parses a separator character from the buffer and updates the consumed character count
-    internal func parseSep(buf: &string, sep: u8, eat: &u32) throw
+    internal func parseSep(buf: &#nonull string, sep: u8, eat: &u32) throw
     {
         if !@countof(buf) or buf[0] != sep do
             throw SyntaxError{}
@@ -124,7 +127,7 @@ impl DateTime
     }
 
     // Converts a string to a DateTime using the expected format
-    func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } throw
+    func parse(str: #nonull string, checkDate = true)->{ value: DateTime, eat: u32 } throw
     {
         var result: retval
         var buf     = str
@@ -311,17 +314,17 @@ impl Serialization.ISerialize for DateTime
         return false
     }
 
-    mtd impl readElement(type: Swag.TypeValue, data: *void, decoder: Serialization.IDecoder)->bool throw
+    mtd impl readElement(type: Swag.TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool throw
     {
         return false
     }
 
-    mtd impl writeElement(type: Swag.TypeValue, data: const *void, decoder: Serialization.IEncoder)->bool throw
+    mtd impl writeElement(type: Swag.TypeValue, data: #null const *void, decoder: Serialization.IEncoder)->bool throw
     {
         return false
     }
 
-    mtd impl postRead(data: *void, decoder: Serialization.IDecoder) throw
+    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) throw
     {
     }
 }
@@ -329,7 +332,7 @@ impl Serialization.ISerialize for DateTime
 impl StrConv.IConvert for DateTime
 {
     // Converts a DateTime to a string using a single-character format specifier (for use with Format.toString)
-    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string)
+    mtd const impl convert(buf: #nonull *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #nonull string)
     {
         var str: String
         if @countof(strFormat) == 0 or @countof(strFormat) > 1 do

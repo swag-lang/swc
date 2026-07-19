@@ -1,8 +1,9 @@
 #global public
 #global namespace File
+#global #[Swag.ExplicitNullability]
 
 // Opaque handle to a file, used internally by FileStream
-alias FileHandle = const *void
+alias FileHandle = #null const *void
 
 // Represents an open file stream for reading, writing, or seeking
 #[Swag.NoCopy]
@@ -24,7 +25,7 @@ impl FileStream
     }
 
     // Reads a value of type 'T' from the stream into 'buffer'; returns true if read was successful
-    mtd(T) readValue(buffer: *T)->bool
+    mtd(T) readValue(buffer: #nonull *T)->bool
     {
         return .read(buffer, #sizeof(T)) == #sizeof(T)
     }

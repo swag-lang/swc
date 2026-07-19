@@ -1,8 +1,9 @@
 #global public
 #global namespace Tokenize
+#global #[Swag.ExplicitNullability]
 
 // Removes surrounding double quotes from the string, if present
-func eatQuotes(str: string)->string
+func eatQuotes(str: #nonull string)->#nonull string
 {
     let countof = @countof(str)
     if countof < 2 do
@@ -13,7 +14,7 @@ func eatQuotes(str: string)->string
 }
 
 // Eats 'count' bytes from the beginning of the string and returns the remaining string
-func eatCount(str: string, count: u64)->string
+func eatCount(str: #nonull string, count: u64)->#nonull string
 {
     if str == null do
         return str
@@ -22,8 +23,9 @@ func eatCount(str: string, count: u64)->string
     return @mkstring(@dataof(str) + cpt, countof - cpt)
 }
 
+
 // Removes leading space characters from the string and returns the trimmed result
-func eatSpaces(str: string)->string
+func eatSpaces(str: #nonull string)->#nonull string
 {
     let countof = @countof(str)
     if !countof do
@@ -38,7 +40,7 @@ func eatSpaces(str: string)->string
 // Splits the string into an array of lines using newline or carriage return as delimiters
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' is destroyed
-func splitLines(src: string)->Array'string
+func splitLines(src: #nonull string)->Array'(#nonull string)
 {
     var result: retval
     let countof = @countof(src)
@@ -67,7 +69,7 @@ func splitLines(src: string)->Array'string
     return result
 }
 
-private func addSplitPart(result: &Array'string, value: string, removeEmpty: bool)
+private func addSplitPart(result: &Array'(#nonull string), value: #nonull string, removeEmpty: bool)
 {
     if removeEmpty and !@countof(value) do
         return
@@ -77,7 +79,7 @@ private func addSplitPart(result: &Array'string, value: string, removeEmpty: boo
 // Splits the string into substrings using a byte as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' String is destroyed
-func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'string
+func split(src: #nonull string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'(#nonull string)
 {
     let countof = @countof(src)
     var result: retval
@@ -108,7 +110,7 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 // Splits the string into substrings using another string as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' String is destroyed
-func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true)->Array'string
+func split(src: #nonull string, separator: #nonull string, maxSplit: u32 = 0, removeEmpty = true)->Array'(#nonull string)
 {
     let countof          = @countof(src)
     let separatorCountof = @countof(separator)
@@ -150,7 +152,7 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
 // Splits the string into substrings using a rune as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' is destroyed
-func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)->Array'string
+func split(src: #nonull string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(#nonull string)
 {
     return splitAny(src, [separator], maxSplit, removeEmpty)
 }
@@ -158,7 +160,7 @@ func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)-
 // Splits the string into substrings using any rune from the given array as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' String is destroyed
-func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, removeEmpty = true)->Array'string
+func splitAny(src: #nonull string, separators: #nonull const [..] rune, maxSplit: u32 = 0, removeEmpty = true)->Array'(#nonull string)
 {
     let countof = @countof(src)
 
@@ -194,7 +196,7 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
 }
 
 // Returns the first substring of 'str' stopping at the first whitespace character
-func getToSpace(str: string)->string
+func getToSpace(str: #nonull string)->#nonull string
 {
     let countof = @countof(str)
     var cpt     = 0'u64
@@ -204,7 +206,7 @@ func getToSpace(str: string)->string
 }
 
 // Returns the first substring of 'str' that contains only alphanumeric characters
-func getWhileAlnum(str: string)->string
+func getWhileAlnum(str: #nonull string)->#nonull string
 {
     let countof = @countof(str)
     var cpt     = 0'u64
@@ -215,7 +217,7 @@ func getWhileAlnum(str: string)->string
 
 // Returns a substring of 'src' starting at 'startByteIndex' and ending at the first occurrence of 'delimiter'
 // Includes the delimiter if 'includeDelimiter' is true
-func getTo(src: string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter = true)->string
+func getTo(src: #nonull string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter = true)->#nonull string
 {
     var dataof = @dataof(src)
     var length = @countof(src)

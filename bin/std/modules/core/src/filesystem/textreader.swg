@@ -1,4 +1,5 @@
 #global namespace File
+#global #[Swag.ExplicitNullability]
 
 // Text encoding formats supported for reading text files
 public enum TextEncoding
@@ -33,8 +34,9 @@ impl TextReader
 
             if .encodingType == .Utf8
             {
-                dref cast(*u32) .buffer.buffer = 0
-                .buffer.count                  = .stream.read(.buffer.buffer, .buffer.capacity)
+                let buffer = .buffer.buffer orelse cast(#nonull [*] u8) 1'u64
+                dref cast(#nonull *u32) buffer = 0
+                .buffer.count = .stream.read(buffer, .buffer.capacity)
 
                 // BOM
                 if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do
@@ -51,7 +53,7 @@ impl TextReader
 public impl TextReader
 {
     // Opens the reader with the specified text encoding (default is UTF-8)
-    mtd open(fullname: string, encoding = TextEncoding.Utf8) throw
+    mtd open(fullname: #nonull string, encoding = TextEncoding.Utf8) throw
     {
         Debug.assert(!.stream.isOpen())
 
@@ -87,14 +89,14 @@ public impl TextReader
 
         for
         {
-            var ptr  = .buffer.buffer + .byteSeek
+            var ptr  = (.buffer.buffer orelse cast(#nonull [*] u8) 1'u64) + .byteSeek
             let ptrB = ptr
-            let ptrE = .buffer.buffer + .buffer.count
+            let ptrE = (.buffer.buffer orelse cast(#nonull [*] u8) 1'u64) + .buffer.count
 
             // u64 by u64
             while ptr + 8'u64 <= ptrE
             {
-                let c64 = dref cast(*u64) ptr
+                let c64 = dref cast(#nonull *u64) ptr
                 if Math.hasByte(c64, '\r') or Math.hasByte(c64, '\n') do
                     break
                 ptr += 8

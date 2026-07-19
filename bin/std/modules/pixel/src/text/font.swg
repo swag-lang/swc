@@ -122,8 +122,8 @@ public struct Font
     drawResolveFont:   #null *Font
 }
 
-private var g_HashFont:       HashTable'(#nonull string, #null *Font)
-private var g_HashGlyphCache: HashTable'(#nonull string, #null *GlyphCache)
+private var g_HashFont:       HashTable'(String, #null *Font)
+private var g_HashGlyphCache: HashTable'(String, #null *GlyphCache)
 
 #drop
 {

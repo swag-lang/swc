@@ -11,7 +11,7 @@ public struct TypeFace
     forceBold:        bool
 }
 
-var g_HashTypeFace: HashTable'(#nonull string, #null *TypeFace)
+var g_HashTypeFace: HashTable'(String, #null *TypeFace)
 
 #drop
 {

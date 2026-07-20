@@ -13,13 +13,13 @@ impl IActionUI for ActionEdit
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
-        var lastSelType: #nonull typeinfo = undefined
+        var lastSelType: typeinfo = undefined
         if capture
         {
             if capture.selection.count
@@ -49,7 +49,7 @@ impl IActionUI for ActionEdit
                     let itfForm = capture.forms[it]
                     if @kindof(itfForm) != FormImage do
                         continue
-                    let b = cast(#nonull *FormImage) @dataof(itfForm)
+                    let b = cast(*FormImage) @dataof(itfForm)
                     if b.kind != .Image do
                         continue
                     evt.hidden = false
@@ -74,7 +74,7 @@ impl IActionUI for ActionEdit
                     if !itfForm.canRotate() do
                         continue
                     evt.hidden = false
-                    let b = cast(#nonull *BaseForm) @dataof(itfForm)
+                    let b = cast(*BaseForm) @dataof(itfForm)
                     if !Math.isZeroEpsilon(b.rotate)
                     {
                         evt.disabled = false
@@ -89,7 +89,7 @@ impl IActionUI for ActionEdit
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id

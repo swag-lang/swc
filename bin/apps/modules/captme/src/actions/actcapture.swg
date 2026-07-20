@@ -24,9 +24,9 @@ impl IActionUI for ActionCapture
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
 
         switch cxt.id
         {
@@ -104,7 +104,7 @@ impl IActionUI for ActionCapture
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
 
         switch cxt.id
         {
@@ -145,7 +145,7 @@ impl IActionUI for ActionCapture
 
 impl MainWnd
 {
-    mtd newCapture(img: Image, linked: #nonull string = "", from: #null *Capture = null)
+    mtd newCapture(img: Image, linked: string = "", from: #null *Capture = null)
     {
         if !img.isValid() do
             return

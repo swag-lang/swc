@@ -66,7 +66,7 @@ struct Masks
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: #nonull const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) throw
 {
     if ptr + size > last do
         throw InvalidFormatError{"invalid source buffer"}
@@ -137,14 +137,14 @@ func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
     return result
 }
 
-func writeBgrPixel(dst: #nonull [*] u8, b, g, r: u8)
+func writeBgrPixel(dst: [*] u8, b, g, r: u8)
 {
     dst[0] = b
     dst[1] = g
     dst[2] = r
 }
 
-func writeBgraPixel(dst: #nonull [*] u8, b, g, r, a: u8)
+func writeBgraPixel(dst: [*] u8, b, g, r, a: u8)
 {
     dst[0] = b
     dst[1] = g
@@ -152,7 +152,7 @@ func writeBgraPixel(dst: #nonull [*] u8, b, g, r, a: u8)
     dst[3] = a
 }
 
-func writePalettePixel(dst: #nonull [*] u8, palette: #nonull const [*] u8, paletteEntrySize: u32, index, paletteCount: u32) throw
+func writePalettePixel(dst: [*] u8, palette: const [*] u8, paletteEntrySize: u32, index, paletteCount: u32) throw
 {
     if index >= paletteCount do
         throw InvalidFormatError{"invalid palette index"}
@@ -161,7 +161,7 @@ func writePalettePixel(dst: #nonull [*] u8, palette: #nonull const [*] u8, palet
     writeBgrPixel(dst, entry[0], entry[1], entry[2])
 }
 
-func writeMaskedPixel(dst: #nonull [*] u8, pixel: u32, masks: Masks, hasAlpha: bool)
+func writeMaskedPixel(dst: [*] u8, pixel: u32, masks: Masks, hasAlpha: bool)
 {
     let b = maskToByte(pixel, masks.b)
     let g = maskToByte(pixel, masks.g)
@@ -172,7 +172,7 @@ func writeMaskedPixel(dst: #nonull [*] u8, pixel: u32, masks: Masks, hasAlpha: b
         writeBgrPixel(dst, b, g, r)
 }
 
-func packedIndex(src: #nonull const [*] u8, bitCount: u16, x: s32)->u32
+func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
 {
     switch bitCount
     {
@@ -186,7 +186,7 @@ func packedIndex(src: #nonull const [*] u8, bitCount: u16, x: s32)->u32
     }
 }
 
-func decodePackedPalette(result: #nonull *Image, src, last: #nonull const [*] u8, palette: #nonull const [*] u8, paletteEntrySize, paletteCount: u32, bitCount: u16, topDown: bool) throw
+func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32, bitCount: u16, topDown: bool) throw
 {
     let stride = rowStride(result.width, bitCount)
     checkBuffer(src, last, stride * cast(u64) result.height)
@@ -195,7 +195,7 @@ func decodePackedPalette(result: #nonull *Image, src, last: #nonull const [*] u8
     {
         let dstY   = topDown ? result.height - y - 1 : y
         let srcRow = src + stride * cast(u64) y
-        var dst    = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
+        var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
         for x in result.width
         {
             writePalettePixel(dst, palette, paletteEntrySize, packedIndex(srcRow, bitCount, x), paletteCount)
@@ -204,7 +204,7 @@ func decodePackedPalette(result: #nonull *Image, src, last: #nonull const [*] u8
     }
 }
 
-func decodeUncompressedDirect(result: #nonull *Image, src, last: #nonull const [*] u8, bitCount: u16, topDown: bool) throw
+func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount: u16, topDown: bool) throw
 {
     let stride   = rowStride(result.width, bitCount)
     let rowBytes = cast(u64) result.width * result.bpp8
@@ -213,11 +213,11 @@ func decodeUncompressedDirect(result: #nonull *Image, src, last: #nonull const [
     for y in result.height
     {
         let dstY = topDown ? result.height - y - 1 : y
-        Memory.copy(cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
+        Memory.copy(cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
     }
 }
 
-func decode16(result: #nonull *Image, src, last: #nonull const [*] u8, masks: Masks, topDown: bool) throw
+func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bool) throw
 {
     let stride = rowStride(result.width, 16)
     checkBuffer(src, last, stride * cast(u64) result.height)
@@ -226,17 +226,17 @@ func decode16(result: #nonull *Image, src, last: #nonull const [*] u8, masks: Ma
     {
         let dstY   = topDown ? result.height - y - 1 : y
         var srcPix = src + stride * cast(u64) y
-        var dst    = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
+        var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
         for result.width
         {
-            writeMaskedPixel(dst, dref cast(#nonull const *u16) srcPix, masks, false)
+            writeMaskedPixel(dst, dref cast(const *u16) srcPix, masks, false)
             srcPix += 2
             dst += 3
         }
     }
 }
 
-func decodeRle8(result: #nonull *Image, src, last: #nonull const [*] u8, palette: #nonull const [*] u8, paletteEntrySize, paletteCount: u32) throw
+func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) throw
 {
     var x: s32
     var y: s32
@@ -254,7 +254,7 @@ func decodeRle8(result: #nonull *Image, src, last: #nonull const [*] u8, palette
             if x + count > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for count
             {
                 writePalettePixel(dst, palette, paletteEntrySize, value, paletteCount)
@@ -288,7 +288,7 @@ func decodeRle8(result: #nonull *Image, src, last: #nonull const [*] u8, palette
             if x + absoluteCount > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for i in absoluteCount
             {
                 writePalettePixel(dst, palette, paletteEntrySize, p[i], paletteCount)
@@ -308,7 +308,7 @@ func rle4Index(value: u8, index: u32)->u32
     return cast(u32) ((index & 1) ? (value & 0x0F) : (value >> 4))
 }
 
-func decodeRle4(result: #nonull *Image, src, last: #nonull const [*] u8, palette: #nonull const [*] u8, paletteEntrySize, paletteCount: u32) throw
+func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) throw
 {
     var x: s32
     var y: s32
@@ -326,7 +326,7 @@ func decodeRle4(result: #nonull *Image, src, last: #nonull const [*] u8, palette
             if x + count > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for i in count
             {
                 writePalettePixel(dst, palette, paletteEntrySize, rle4Index(value, i), paletteCount)
@@ -361,7 +361,7 @@ func decodeRle4(result: #nonull *Image, src, last: #nonull const [*] u8, palette
             if x + pixelCount > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for i in pixelCount
             {
                 writePalettePixel(dst, palette, paletteEntrySize, rle4Index(p[i / 2], i), paletteCount)
@@ -378,12 +378,12 @@ func decodeRle4(result: #nonull *Image, src, last: #nonull const [*] u8, palette
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: #nonull string)->bool
+    mtd impl canDecode(fileName: string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".bmp"
     }
 
-    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
     {
         var dataof  = @dataof(buffer)
         let countof = @countof(buffer)
@@ -397,7 +397,7 @@ public impl IImageDecoder for Decoder
         var bfOffBits: u32
         if countof >= #sizeof(FileHeader)
         {
-            let fh = cast(#nonull const *FileHeader) dataof
+            let fh = cast(const *FileHeader) dataof
             if fh.bfType == BMP_SIGNATURE
             {
                 hasFileHeader = true
@@ -414,7 +414,7 @@ public impl IImageDecoder for Decoder
 
         checkBuffer(dataof, last, #sizeof(u32))
         let headerStart = dataof
-        let size        = dref cast(#nonull const *u32) dataof
+        let size        = dref cast(const *u32) dataof
         if size < #sizeof(CoreHeader) do
             throw UnsupportedFormatError{"unsupported BMP header"}
 
@@ -424,7 +424,7 @@ public impl IImageDecoder for Decoder
         if size == #sizeof(CoreHeader)
         {
             checkBuffer(dataof, last, #sizeof(CoreHeader))
-            let ch = cast(#nonull const *CoreHeader) dataof
+            let ch = cast(const *CoreHeader) dataof
             dataof += #sizeof(CoreHeader)
             paletteEntrySize = 3
 
@@ -459,18 +459,18 @@ public impl IImageDecoder for Decoder
             let maskPtr = headerStart + #sizeof(Header)
             if size >= 52
             {
-                masks.r = readMask(dref cast(#nonull const *u32) maskPtr)
-                masks.g = readMask(dref cast(#nonull const *u32) (maskPtr + 4))
-                masks.b = readMask(dref cast(#nonull const *u32) (maskPtr + 8))
+                masks.r = readMask(dref cast(const *u32) maskPtr)
+                masks.g = readMask(dref cast(const *u32) (maskPtr + 4))
+                masks.b = readMask(dref cast(const *u32) (maskPtr + 8))
                 if size >= 56 do
-                    masks.a = readMask(dref cast(#nonull const *u32) (maskPtr + 12))
+                    masks.a = readMask(dref cast(const *u32) (maskPtr + 12))
             }
             elif size == #sizeof(Header)
             {
                 checkBuffer(dataof, last, 12)
-                masks.r = readMask(dref cast(#nonull const *u32) dataof)
-                masks.g = readMask(dref cast(#nonull const *u32) (dataof + 4))
-                masks.b = readMask(dref cast(#nonull const *u32) (dataof + 8))
+                masks.r = readMask(dref cast(const *u32) dataof)
+                masks.g = readMask(dref cast(const *u32) (dataof + 4))
+                masks.b = readMask(dref cast(const *u32) (dataof + 8))
                 dataof += 12
             }
             else do

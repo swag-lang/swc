@@ -2,7 +2,7 @@
 
 struct JitNonNullMoveArrayDefault
 {
-    value: #nonull string = "reset"
+    value: string = "reset"
 }
 
 impl JitNonNullMoveArrayDefault
@@ -14,7 +14,7 @@ impl JitNonNullMoveArrayDefault
 
 struct JitNonNullMoveUndefinedEscape
 {
-    value: #nonull string = undefined
+    value: string = undefined
 }
 
 impl JitNonNullMoveUndefinedEscape

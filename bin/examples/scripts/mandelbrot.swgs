@@ -10,7 +10,7 @@ using Core, Gui, Pixel
 
 var g_Image:   Image
 var g_Texture: Texture
-var g_Slider:  *Slider
+var g_Slider:  #null *Slider
 
 func compute()
 {
@@ -19,7 +19,7 @@ func compute()
     var data = {minS: g_Slider.getValueLeft(), maxS: g_Slider.getValueRight()}
     g_Image.visitPixels(&data)
     {
-        var params = cast(*#decltype(data)) userData
+        var params = cast(*#decltype(data)) assume userData
         var minS   = params.minS
         var maxS   = params.maxS
 
@@ -52,7 +52,7 @@ func compute()
     }
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     let w = cast(s32) wnd.position.width
     let h = cast(s32) wnd.position.height

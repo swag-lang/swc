@@ -10,6 +10,7 @@ var g_Renderer: Pixel.RenderOgl
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
+var g_FontPath:  String
 var g_FontBytes:  Array'u8
 var g_Face:       #null *Face
 var g_TypeFace:   #null *Pixel.TypeFace
@@ -18,7 +19,7 @@ var g_BodyFont:   #null *Pixel.Font
 var g_InfoFont:   #null *Pixel.Font
 var g_FontInfo:   String
 
-func fontPath(fileName: #nonull string, loc = #callerlocation)->String
+func fontPath(fileName: string, loc = #callerlocation)->String
 {
     let srcPath = Path.getDirectoryName(loc.fileName)
     return Path.combine(Path.combine(srcPath, "data"), fileName)
@@ -26,7 +27,8 @@ func fontPath(fileName: #nonull string, loc = #callerlocation)->String
 
 func loadFonts() throw
 {
-    let path = fontPath("segoeui.ttf")
+    g_FontPath = fontPath("segoeui.ttf")
+    let path   = g_FontPath.toString()
 
     g_FontBytes = File.readAllBytes(path)
     g_Face = try Face.load(g_FontBytes.toSlice())
@@ -48,7 +50,7 @@ func dropFonts()
     }
 }
 
-func drawScene(painter: #nonull *Pixel.Painter)
+func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Argb.WhiteSmoke)
     painter.setParams(.Antialiased)
@@ -84,7 +86,7 @@ func display()
     g_Renderer.end()
 }
 
-func onResize(_window: #nonull *Env.Window, width, height: s32)
+func onResize(_window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height

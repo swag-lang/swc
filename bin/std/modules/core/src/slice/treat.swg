@@ -3,7 +3,7 @@
 
 // Transform in place the content of a slice with a given lambda
 #[Swag.Inline]
-func(T) modify(values: #nonull [..] T, cb: func||(#nonull *T))
+func(T) modify(values: [..] T, cb: func||(*T))
 {
     for i in @countof(values) do
         cb(&values[i])
@@ -11,7 +11,7 @@ func(T) modify(values: #nonull [..] T, cb: func||(#nonull *T))
 
 // Map the content of a slice to an array of type 'R'.
 // The lambda must return the value of 'R' for each element of the slice.
-func(T, R) map(values: #nonull const [..] T, cb: func||(T)->R)->Array'R
+func(T, R) map(values: const [..] T, cb: func||(T)->R)->Array'R
 {
     var result: retval
     for v in values do
@@ -22,7 +22,7 @@ func(T, R) map(values: #nonull const [..] T, cb: func||(T)->R)->Array'R
 // Reduce the content of a slice to one single value.
 // The lambda is called with the previous reduced value and each element of the slice.
 // The first reduced value is the first element of the slice.
-func(T) reduce(values: #nonull const [..] T, cb: func||(T, T)->T)->T
+func(T) reduce(values: const [..] T, cb: func||(T, T)->T)->T
 {
     var result = values[0]
     if @countof(values) == 1 do
@@ -33,7 +33,7 @@ func(T) reduce(values: #nonull const [..] T, cb: func||(T, T)->T)->T
 }
 
 // Get the minimum value of a slice, and the corresponding value index.
-func(T) min(values: #nonull const [..] T)->{ value: T, index: u64 }
+func(T) min(values: const [..] T)->{ value: T, index: u64 }
 {
     var result: retval
     result.value = values[0]
@@ -54,7 +54,7 @@ func(T) min(values: #nonull const [..] T)->{ value: T, index: u64 }
 }
 
 // Get the maximum value of a slice, and the corresponding value index.
-func(T) max(values: #nonull const [..] T)->{ value: T, index: u64 }
+func(T) max(values: const [..] T)->{ value: T, index: u64 }
 {
     var result: retval
     result.value = values[0]
@@ -75,7 +75,7 @@ func(T) max(values: #nonull const [..] T)->{ value: T, index: u64 }
 }
 
 // Returns true if 'cb' returns true for all values
-func(T) allOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
+func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
@@ -87,7 +87,7 @@ func(T) allOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
 }
 
 // Returns true if 'cb' returns true for at least one value
-func(T) anyOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
+func(T) anyOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
@@ -99,7 +99,7 @@ func(T) anyOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
 }
 
 // Returns true if 'cb' returns false for all values
-func(T) noneOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
+func(T) noneOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
@@ -111,7 +111,7 @@ func(T) noneOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
 }
 
 // Reverse the content of a slice
-func(T) reverse(values: #nonull [..] T)
+func(T) reverse(values: [..] T)
 {
     if @countof(values) <= 1 do
         return
@@ -129,7 +129,7 @@ func(T) reverse(values: #nonull [..] T)
 // Get a permutation of the slice
 // Shuffle the slice until no more permutation is possible, and then returns 'false'.
 // To obtain all permutations, the slice must be sorted the first time.
-func(T) nextPermutation(arr: #nonull [..] T)->bool
+func(T) nextPermutation(arr: [..] T)->bool
 {
     let size = cast(s32) @countof(arr)
 

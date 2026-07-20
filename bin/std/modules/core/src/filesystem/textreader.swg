@@ -33,8 +33,8 @@ impl TextReader
 
             if .encodingType == .Utf8
             {
-                let buffer = .buffer.buffer orelse cast(#nonull [*] u8) 1'u64
-                dref cast(#nonull *u32) buffer = 0
+                let buffer = .buffer.buffer orelse cast([*] u8) 1'u64
+                dref cast(*u32) buffer = 0
                 .buffer.count = .stream.read(buffer, .buffer.capacity)
 
                 // BOM
@@ -52,7 +52,7 @@ impl TextReader
 public impl TextReader
 {
     // Opens the reader with the specified text encoding (default is UTF-8)
-    mtd open(fullname: #nonull string, encoding = TextEncoding.Utf8) throw
+    mtd open(fullname: string, encoding = TextEncoding.Utf8) throw
     {
         Debug.assert(!.stream.isOpen())
 
@@ -88,14 +88,14 @@ public impl TextReader
 
         for
         {
-            var ptr  = (.buffer.buffer orelse cast(#nonull [*] u8) 1'u64) + .byteSeek
+            var ptr  = (.buffer.buffer orelse cast([*] u8) 1'u64) + .byteSeek
             let ptrB = ptr
-            let ptrE = (.buffer.buffer orelse cast(#nonull [*] u8) 1'u64) + .buffer.count
+            let ptrE = (.buffer.buffer orelse cast([*] u8) 1'u64) + .buffer.count
 
             // u64 by u64
             while ptr + 8'u64 <= ptrE
             {
-                let c64 = dref cast(#nonull *u64) ptr
+                let c64 = dref cast(*u64) ptr
                 if Math.hasByte(c64, '\r') or Math.hasByte(c64, '\n') do
                     break
                 ptr += 8

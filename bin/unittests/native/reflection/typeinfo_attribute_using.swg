@@ -45,13 +45,13 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeU
             if field.name == "grouped"
             {
                 foundGrouped = true
-                @assert(cast(string) attribute.params[0].value == "grouped")
+                @assert(cast(#null string) attribute.params[0].value == "grouped")
             }
 
             if field.name == "direct"
             {
                 foundDirect = true
-                @assert(cast(string) attribute.params[0].value == "direct")
+                @assert(cast(#null string) attribute.params[0].value == "direct")
             }
         }
     }

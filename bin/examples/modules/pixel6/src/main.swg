@@ -20,7 +20,7 @@ enum OutlineMode
 
 struct TextCase
 {
-    label:      #nonull string
+    label:      string
     scale:      f32
 }
 
@@ -74,7 +74,7 @@ func shutdownGdiPlus()
     g_GdiToken = 0
 }
 
-func addGdiPathText(path: #nonull *GpPath, text16: #nonull const [*] u16, count: s32, family: #nonull *GpFontFamily, format: #nonull *GpStringFormat, emSize, x, y: f32)
+func addGdiPathText(path: *GpPath, text16: const [*] u16, count: s32, family: *GpFontFamily, format: *GpStringFormat, emSize, x, y: f32)
 {
     var layout: GpRectF
     layout.x      = x
@@ -97,7 +97,7 @@ func unpremultiplyChannel(value, alpha: u8)->u8
     return cast(u8) result
 }
 
-func unpremultiplyImage(image: #nonull *Image)
+func unpremultiplyImage(image: *Image)
 {
     var ptr = image.pixels.buffer
     for image.width * image.height
@@ -110,7 +110,7 @@ func unpremultiplyImage(image: #nonull *Image)
     }
 }
 
-func flipImageVertical(image: #nonull *Image)
+func flipImageVertical(image: *Image)
 {
     var row = Array'u8{}
     row.resize(cast(u64) image.width8)
@@ -127,7 +127,7 @@ func flipImageVertical(image: #nonull *Image)
     }
 }
 
-func renderGdiPlusOutlineImage(text: #nonull string, scale: f32)->Image
+func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
 {
     initGdiPlus()
 
@@ -159,7 +159,7 @@ func renderGdiPlusOutlineImage(text: #nonull string, scale: f32)->Image
     var bitmap: #null *GpBitmap
     var graphics: #null *GpGraphics
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
-    gdipCheck(GdipGetImageGraphicsContext(cast(#nonull *GpImage) (assume bitmap), &graphics))
+    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) (assume bitmap), &graphics))
     gdipCheck(GdipSetSmoothingMode(assume graphics, GdipSmoothingModeHighQuality))
     gdipCheck(GdipSetPixelOffsetMode(assume graphics, GdipPixelOffsetModeHighQuality))
     gdipCheck(GdipSetTextRenderingHint(assume graphics, GdipTextRenderingHintAAGridFit))
@@ -175,15 +175,15 @@ func renderGdiPlusOutlineImage(text: #nonull string, scale: f32)->Image
     gdipCheck(GdipSetPenLineJoin(assume pen, GdipLineJoinRound))
     gdipCheck(GdipCreateSolidFill(cast(u32) Argb.White, &brush))
     gdipCheck(GdipDrawPath(assume graphics, assume pen, assume path))
-    gdipCheck(GdipFillPath(assume graphics, cast(#nonull *GpBrush) (assume brush), assume path))
+    gdipCheck(GdipFillPath(assume graphics, cast(*GpBrush) (assume brush), assume path))
 
     gdipCheck(GdipDeletePen(assume pen))
-    gdipCheck(GdipDeleteBrush(cast(#nonull *GpBrush) (assume brush)))
+    gdipCheck(GdipDeleteBrush(cast(*GpBrush) (assume brush)))
     gdipCheck(GdipDeletePath(assume path))
     gdipCheck(GdipDeleteStringFormat(assume format))
     gdipCheck(GdipDeleteFontFamily(assume family))
     gdipCheck(GdipDeleteGraphics(assume graphics))
-    gdipCheck(GdipDisposeImage(cast(#nonull *GpImage) (assume bitmap)))
+    gdipCheck(GdipDisposeImage(cast(*GpImage) (assume bitmap)))
 
     flipImageVertical(&image)
     unpremultiplyImage(&image)
@@ -209,20 +209,20 @@ func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectan
     return result
 }
 
-func drawHeader(painter: #nonull *Pixel.Painter)
+func drawHeader(painter: *Pixel.Painter)
 {
     painter.drawString(34, 28, "Captme outline text quality", assume g_TitleFont, Argb.MidnightBlue)
     painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawFrame(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title: #nonull string)
+func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 {
     painter.fillRoundRect(rect, 8, 8, Argb.White)
     painter.drawRoundRect(rect, 8, 8, Color.fromArgb(84, Argb.SlateGray), 1)
     painter.drawString(rect.x + 12, rect.y + 10, title, assume g_LabelFont, Argb.DarkSlateBlue)
 }
 
-func makeOutline(text: #nonull string, size: u32, embolden: u32)->LinePathList
+func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
 {
     var result: retval
     assume g_TypeFace.getStringOutline(&result, text, size, embolden)
@@ -230,7 +230,7 @@ func makeOutline(text: #nonull string, size: u32, embolden: u32)->LinePathList
     return result
 }
 
-func drawOutlineCore(painter: #nonull *Pixel.Painter, outline: #nonull *LinePathList, x, y, scale, border: f32, faceColor, outlineColor: Color, mode: OutlineMode)
+func drawOutlineCore(painter: *Pixel.Painter, outline: *LinePathList, x, y, scale, border: f32, faceColor, outlineColor: Color, mode: OutlineMode)
 {
     let drawX = x - ((outline.bvMin.x - border) * scale)
     let drawY = y - ((outline.bvMin.y - border) * scale)
@@ -262,7 +262,7 @@ func drawOutlineCore(painter: #nonull *Pixel.Painter, outline: #nonull *LinePath
     painter.popTransform()
 }
 
-func renderOutlineToTarget(painter: #nonull *Pixel.Painter, rt: #nonull *RenderTarget, outline: #nonull *LinePathList, textX, textY, scale: f32, mode: OutlineMode)
+func renderOutlineToTarget(painter: *Pixel.Painter, rt: *RenderTarget, outline: *LinePathList, textX, textY, scale: f32, mode: OutlineMode)
 {
     with painter
     {
@@ -277,7 +277,7 @@ func renderOutlineToTarget(painter: #nonull *Pixel.Painter, rt: #nonull *RenderT
     }
 }
 
-func drawShadowedOutline(painter: #nonull *Pixel.Painter, area: Math.Rectangle, text: #nonull string, scale: f32, mode: OutlineMode, superSample = 1)
+func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: string, scale: f32, mode: OutlineMode, superSample = 1)
 {
     const Bold = 0'u32
 
@@ -359,7 +359,7 @@ func drawShadowedOutline(painter: #nonull *Pixel.Painter, area: Math.Rectangle, 
     painter.releaseRenderTarget(rtBlur)
 }
 
-func drawShadowedTexture(painter: #nonull *Pixel.Painter, area: Math.Rectangle, texture: Texture)
+func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture: Texture)
 {
     let localW = texture.width
     let localH = texture.height
@@ -412,7 +412,7 @@ func drawShadowedTexture(painter: #nonull *Pixel.Painter, area: Math.Rectangle, 
     painter.releaseRenderTarget(rtBlur)
 }
 
-func drawSampleGrid(painter: #nonull *Pixel.Painter, rowRect: Math.Rectangle, title: #nonull string, mode: OutlineMode)
+func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: string, mode: OutlineMode)
 {
     drawFrame(painter, rowRect, title)
 
@@ -431,7 +431,7 @@ func drawSampleGrid(painter: #nonull *Pixel.Painter, rowRect: Math.Rectangle, ti
     }
 }
 
-func drawGdiGrid(painter: #nonull *Pixel.Painter, rowRect: Math.Rectangle)
+func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
 {
     drawFrame(painter, rowRect, "GDI+ reference (GraphicsPath DrawPath + FillPath)")
 
@@ -449,7 +449,7 @@ func drawGdiGrid(painter: #nonull *Pixel.Painter, rowRect: Math.Rectangle)
     }
 }
 
-func drawScene(painter: #nonull *Pixel.Painter)
+func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Color.fromArgb(255, 242, 244, 248))
     painter.setParams(.Antialiased)
@@ -470,7 +470,7 @@ func display()
     g_Renderer.end()
 }
 
-func onResize(_window: #nonull *Env.Window, width, height: s32)
+func onResize(_window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height

@@ -11,9 +11,9 @@ impl IActionUI for ActionAbout
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
         switch cxt.id
         {
         case About:
@@ -27,7 +27,7 @@ impl IActionUI for ActionAbout
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
         let view = main.editWnd.editView
 
         const Date = #run Time.DateTime.now()

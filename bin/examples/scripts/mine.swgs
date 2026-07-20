@@ -17,7 +17,7 @@ struct Cell
 }
 
 var g_Grid:       [GridSize, GridSize] Cell
-var g_FontCell:   *Font
+var g_FontCell:   #null *Font
 var g_Lost:       bool
 var g_Win:        bool
 var g_NumMines:   s32
@@ -103,7 +103,7 @@ func setup()
     fillGrid()
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

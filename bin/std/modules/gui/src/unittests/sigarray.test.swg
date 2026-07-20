@@ -5,19 +5,19 @@ using Swag, Core
 var SigArrayTestTotal: s32
 var SigArrayTestTrace: String
 
-func sigArrayTestAdd(value: #nonull *s32)
+func sigArrayTestAdd(value: *s32)
 {
     discard value
     SigArrayTestTotal += 1
 }
 
-func sigArrayTestAddDelta(value: #nonull *s32, delta: s32)
+func sigArrayTestAddDelta(value: *s32, delta: s32)
 {
     discard value
     SigArrayTestTotal += delta
 }
 
-func sigArrayTestAppendA(value: #nonull *s32)
+func sigArrayTestAppendA(value: *s32)
 {
     dref value += 1
     SigArrayTestTrace += "A"
@@ -25,11 +25,11 @@ func sigArrayTestAppendA(value: #nonull *s32)
 
 #test
 {
-    var signal: SigArray'func||(#nonull *s32)
+    var signal: SigArray'func||(*s32)
     @assert(signal.isEmpty())
 
     signal += &sigArrayTestAdd
-    signal += func(value: #nonull *s32) { discard value; SigArrayTestTotal += 10 }
+    signal += func(value: *s32) { discard value; SigArrayTestTotal += 10 }
     @assert(!signal.isEmpty())
     @assert(signal.arr.count == 2)
 
@@ -56,9 +56,9 @@ func sigArrayTestAppendA(value: #nonull *s32)
 
 #test
 {
-    var signal: SigArray'func||(#nonull *s32, s32)
+    var signal: SigArray'func||(*s32, s32)
     signal += &sigArrayTestAddDelta
-    signal += func(value: #nonull *s32, delta: s32)
+    signal += func(value: *s32, delta: s32)
     {
         discard value
         SigArrayTestTotal += delta * 10
@@ -72,14 +72,14 @@ func sigArrayTestAppendA(value: #nonull *s32)
 
 #test
 {
-    var signal: SigArray'func||(#nonull *s32)
+    var signal: SigArray'func||(*s32)
     signal += &sigArrayTestAppendA
-    signal += func(value: #nonull *s32)
+    signal += func(value: *s32)
     {
         dref value *= 3
         SigArrayTestTrace += "B"
     }
-    signal += func(value: #nonull *s32)
+    signal += func(value: *s32)
     {
         dref value -= 2
         SigArrayTestTrace += "C"

@@ -17,12 +17,12 @@ func zeroFallbackF32(x: f32)->f32
     return x orelse 3.5'f32
 }
 
-func nullStringFallback(value: string)->string
+func nullStringFallback(value: #null string)->string
 {
     return value orelse "fallback"
 }
 
-func nullPointerFallback(ptr: *s32)->s32
+func nullPointerFallback(ptr: #null *s32)->s32
 {
     let fallback = cast(*s32) &GNullOrelse
     let resolved = ptr orelse fallback

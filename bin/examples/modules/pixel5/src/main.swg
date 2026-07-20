@@ -42,6 +42,7 @@ var g_Painter:      Pixel.Painter
 var g_RC:           Pixel.RenderingContext
 var g_Keyboard:     Input.Keyboard
 
+var g_FontPath:  String
 var g_FontBytes:    Array'u8
 var g_TypeFace:     #null *Pixel.TypeFace
 var g_TitleFont:    #null *Pixel.Font
@@ -59,7 +60,7 @@ var g_KernelCards:    [CardsPerPage] TextureCard
 var g_TransformCards: [CardsPerPage] TextureCard
 var g_PainterCards:   [CardsPerPage] TextureCard
 
-func dataPath(fileName: #nonull string, loc = #callerlocation)->String
+func dataPath(fileName: string, loc = #callerlocation)->String
 {
     let srcPath = Path.getDirectoryName(loc.fileName) orelse ""
     return Path.combine(Path.combine(srcPath, "data"), fileName)
@@ -67,7 +68,8 @@ func dataPath(fileName: #nonull string, loc = #callerlocation)->String
 
 func loadFonts() throw
 {
-    let path = dataPath("segoeui.ttf")
+    g_FontPath = dataPath("segoeui.ttf")
+    let path   = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = Font.create(assume g_TypeFace, 34)
@@ -96,7 +98,7 @@ func normalizeShowcaseImage(image: const &Image)->Image
     return result
 }
 
-func setTextureCard(card: #nonull *TextureCard, title, subtitle: #nonull string, texture: Texture, options: CardOptions = {})
+func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Texture, options: CardOptions = {})
 {
     card.title    = title
     card.subtitle = subtitle
@@ -104,7 +106,7 @@ func setTextureCard(card: #nonull *TextureCard, title, subtitle: #nonull string,
     card.options  = options
 }
 
-func setImageCard(card: #nonull *TextureCard, title, subtitle: #nonull string, image: const &Image, options: CardOptions = {})
+func setImageCard(card: *TextureCard, title, subtitle: string, image: const &Image, options: CardOptions = {})
 {
     setTextureCard(card, title, subtitle, g_Renderer.addImage(image), options)
 }
@@ -137,7 +139,7 @@ func nextPage()
     g_Page = (g_Page + 1) % MaxPages
 }
 
-func drawWrappedText(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, text: #nonull string, font: #nonull *Pixel.Font, color: Color)
+func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
 {
     var richText: RichString = text
     var format: RichStringFormat
@@ -148,13 +150,13 @@ func drawWrappedText(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, text
     painter.drawRichString(rect, &richText, format)
 }
 
-func drawPageHeader(painter: #nonull *Pixel.Painter, title, subtitle: #nonull string)
+func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
     painter.drawString(28, 22, title, assume g_TitleFont, Argb.MidnightBlue)
     drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, assume g_SubTitleFont, Argb.DimGray)
 }
 
-func drawFooter(painter: #nonull *Pixel.Painter)
+func drawFooter(painter: *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : tonal filters, kernels and grading, image transforms, painter transforms.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 24, pageText, assume g_HelpFont, Argb.DimGray)
@@ -205,7 +207,7 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
     return {x, y, width, height}
 }
 
-func drawCardTexture(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
+func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
 {
     if !card.texture.isValid() do
         return
@@ -245,7 +247,7 @@ func drawCardTexture(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card
     painter.popClippingRect()
 }
 
-func drawCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
+func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
 {
     let titleBarRect = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
     let previewRect  = insetRect(rect, 14, CardHeaderHeight + 14, 14, 14)
@@ -262,7 +264,7 @@ func drawCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card: const
     drawCardTexture(painter, previewRect, card)
 }
 
-func drawScene(painter: #nonull *Pixel.Painter)
+func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Color.fromArgb(255, 245, 246, 249))
     painter.setParams(.Antialiased)
@@ -302,7 +304,7 @@ func display()
     g_Renderer.end()
 }
 
-func onResize(_window: #nonull *Env.Window, width, height: s32)
+func onResize(_window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height

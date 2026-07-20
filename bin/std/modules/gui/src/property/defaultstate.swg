@@ -83,7 +83,7 @@ impl Properties
             if off < 0 or cast(u64) off >= rootSize do
                 continue
 
-            it.defaultData = cast(#nonull *u8) (defBase + off)
+            it.defaultData = cast(*u8) (defBase + off)
         }
     }
 
@@ -97,7 +97,7 @@ impl Properties
 
     // True when the field can be reset to a declared default: the feature is on, the row has a
     // comparable default, is not read-only, and its type is one the grid can copy back safely.
-    mtd canReset(item: #nonull *PropertiesItem)->bool
+    mtd canReset(item: *PropertiesItem)->bool
     {
         if !.showReverts or !item.defaultData or !item.data or !item.type do
             return false
@@ -109,7 +109,7 @@ impl Properties
     // Whether the field currently differs from its declared default (drives the marker/revert).
     // IPropertyNotify.isItemAtDefault (first non-Auto along the parent chain) overrides the
     // built-in per-instance comparison.
-    mtd computeItemModified(item: #nonull *PropertiesItem)->bool
+    mtd computeItemModified(item: *PropertiesItem)->bool
     {
         if !.canReset(item) do
             return false
@@ -154,7 +154,7 @@ impl Properties
 
     // Reset 'item' to its default value. IPropertyNotify.resetItemToDefault (along the parent
     // chain) may take over; otherwise the declared default is written into every edited instance.
-    mtd resetItemDefault(item: #nonull *PropertiesItem)
+    mtd resetItemDefault(item: *PropertiesItem)
     {
         var scan = cast(#null *PropertiesItem) item
         while scan
@@ -228,7 +228,7 @@ impl Properties
     //    marks the modified field (painted by paintBackItem); the reset stays available through
     //    the context menu. No floating button, whose alignment reads oddly in full-width rows.
     // Never triggers a relayout (the marker has no layout footprint in either mode).
-    mtd updateItemDefaultState(item: #nonull *PropertiesItem)->bool
+    mtd updateItemDefaultState(item: *PropertiesItem)->bool
     {
         let wasModified = item.isModified
         item.isModified = .computeItemModified(item)
@@ -266,7 +266,7 @@ impl Properties
     // docked to the right of the row and started hidden-but-present (empty icon + disabled) so
     // the reserved column keeps the editor from resizing when the arrow toggles. List rows use
     // the painted modified bar instead (see updateItemDefaultState).
-    mtd ensureRevertButton(item: #nonull *PropertiesItem)
+    mtd ensureRevertButton(item: *PropertiesItem)
     {
         if item.revertButton or !.isGridLike() do
             return

@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createSliderPage(parent: #nonull *Wnd)
+func createSliderPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Horizontal", "Single value sliders with continuous and stepped ranges.", layout.left)

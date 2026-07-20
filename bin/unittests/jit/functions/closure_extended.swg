@@ -80,8 +80,7 @@ func runDottedPathCapture()->s32
 {
     var first:  PathTarget = {value: 10}
     var second: PathTarget = {value: 50}
-    var holder: PathHolder
-    holder.target = &first
+    var holder: PathHolder = {target: &first}
 
     let cb: func||()->s32 = func|holder.target|()->s32
     {
@@ -99,9 +98,7 @@ func runMePathCapture()->s32
 {
     var first:  PathTarget = {value: 5}
     var second: PathTarget = {value: 90}
-    var owner:  PathOwner
-    owner.target = &first
-    owner.bias   = 4
+    var owner:  PathOwner = {target: &first, bias: 4}
 
     let cb = owner.makeCallback()
     owner.target = &second

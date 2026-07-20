@@ -146,11 +146,11 @@ public enum Argb: u32
 public impl Argb
 {
     // Get the Argb value that matches 'name'
-    func fromName(name: #nonull string)->Argb
+    func fromName(name: string)->Argb
     {
         let t = #typeof(Argb)
         for it in t.values where it.name == name do
-            return dref cast(#nonull const *Argb) (assume it.value)
+            return dref cast(const *Argb) (assume it.value)
         return Argb.Black
     }
 }

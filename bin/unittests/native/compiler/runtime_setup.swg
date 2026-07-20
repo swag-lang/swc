@@ -5,7 +5,7 @@ func runtimeSetupWorks()->bool
     if !cxt.allocator or !cxt.tempAllocator.capacity or !cxt.errorAllocator.capacity do
         return false
 
-    let ptr = cast([*] u8) cxt.tempAllocator.alloc(2)
+    let ptr = cast(#null [*] u8) cxt.tempAllocator.alloc(2)
     if !ptr do
         return false
 

@@ -21,13 +21,13 @@ const PropMixedText = "—"
 internal impl Properties
 {
     // Number of edited instances (always >= 1).
-    mtd instanceCount(item: #nonull *PropertiesItem)->u64
+    mtd instanceCount(item: *PropertiesItem)->u64
     {
         return Math.max(item.dataInstances.count, 1)
     }
 
     // Field address in instance 'k'. Falls back to the single 'data' pointer.
-    mtd instanceAddr(item: #nonull *PropertiesItem, k: u64)->#null *u8
+    mtd instanceAddr(item: *PropertiesItem, k: u64)->#null *u8
     {
         if k < item.dataInstances.count do
             return item.dataInstances[k]
@@ -35,13 +35,13 @@ internal impl Properties
     }
 
     // True when more than one instance is being edited.
-    mtd isMultiEdit(item: #nonull *PropertiesItem)->bool
+    mtd isMultiEdit(item: *PropertiesItem)->bool
     {
         return item.dataInstances.count > 1
     }
 
     // True when the item (or an ancestor) is a dynamic array.
-    mtd isUnderDynamicArray(item: #nonull *PropertiesItem)->bool
+    mtd isUnderDynamicArray(item: *PropertiesItem)->bool
     {
         var scan = cast(#null *PropertiesItem) item
         while scan
@@ -54,7 +54,7 @@ internal impl Properties
     }
 
     // True when the field differs across the edited instances (multi-selection only).
-    mtd fieldIsMixed(item: #nonull *PropertiesItem)->bool
+    mtd fieldIsMixed(item: *PropertiesItem)->bool
     {
         let n = item.dataInstances.count
         if n <= 1 do
@@ -86,7 +86,7 @@ internal impl Properties
     }
 
     // Copy the just-edited field value from instance 0 into the other instances.
-    mtd propagateField(item: #nonull *PropertiesItem)
+    mtd propagateField(item: *PropertiesItem)
     {
         let n = item.dataInstances.count
         if n <= 1 do
@@ -111,7 +111,7 @@ internal impl Properties
     // otherwise clear the note so the concrete value set by the caller shows through.
     // Returns true when mixed, so the caller can skip writing a concrete value.
     #[Swag.Discardable]
-    mtd setEditMixed(item: #nonull *PropertiesItem, ed: #nonull *EditBox)->bool
+    mtd setEditMixed(item: *PropertiesItem, ed: *EditBox)->bool
     {
         if .fieldIsMixed(item)
         {
@@ -125,7 +125,7 @@ internal impl Properties
 
     // Like fieldIsMixed but for a sub-range of the field (e.g. one vector component at
     // byte offset 'byteOffset', 'sz' bytes wide).
-    mtd subFieldIsMixed(item: #nonull *PropertiesItem, byteOffset, sz: u64)->bool
+    mtd subFieldIsMixed(item: *PropertiesItem, byteOffset, sz: u64)->bool
     {
         let n = item.dataInstances.count
         if n <= 1 or sz == 0 do
@@ -143,7 +143,7 @@ internal impl Properties
 
     // setEditMixed for a sub-range of the field (used by the vector component boxes).
     #[Swag.Discardable]
-    mtd setEditMixedSub(item: #nonull *PropertiesItem, ed: #nonull *EditBox, byteOffset, sz: u64)->bool
+    mtd setEditMixedSub(item: *PropertiesItem, ed: *EditBox, byteOffset, sz: u64)->bool
     {
         if .subFieldIsMixed(item, byteOffset, sz)
         {
@@ -157,7 +157,7 @@ internal impl Properties
 
     // Write a single f32 component (at byte offset 'byteOffset') into every instance.
     // Used by the vector editor so editing one component leaves the others untouched.
-    mtd writeFloatComponent(item: #nonull *PropertiesItem, byteOffset: u64, val: f32)
+    mtd writeFloatComponent(item: *PropertiesItem, byteOffset: u64, val: f32)
     {
         let n = .instanceCount(item)
         for k in n do
@@ -166,7 +166,7 @@ internal impl Properties
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
     // other flag bits (which may legitimately differ per instance) untouched.
-    mtd writeEnumBit(item: #nonull *PropertiesItem, mask: u64, set: bool)
+    mtd writeEnumBit(item: *PropertiesItem, mask: u64, set: bool)
     {
         let n  = .instanceCount(item)
         let sz = .fieldSize(item)
@@ -185,7 +185,7 @@ internal impl Properties
     // True when the masked bits of an enum-flags field disagree across the instances.
     // 'mask' is the flag value of one row; the row is "mixed" when some instances have
     // the bit set and others do not.
-    mtd flagBitIsMixed(item: #nonull *PropertiesItem, mask: u64)->bool
+    mtd flagBitIsMixed(item: *PropertiesItem, mask: u64)->bool
     {
         let n = item.dataInstances.count
         if n <= 1 do
@@ -239,7 +239,7 @@ private impl Properties
 private impl Properties
 {
     // The field's byte size (the pointed type of the value).
-    mtd fieldSize(item: #nonull *PropertiesItem)->u64
+    mtd fieldSize(item: *PropertiesItem)->u64
     {
         if !item.type do
             return 0

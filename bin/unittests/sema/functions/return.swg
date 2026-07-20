@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 func test1()
 {
     return;

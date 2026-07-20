@@ -27,7 +27,7 @@ struct AnyPair
 
 const PersistentAnyPair: AnyPair = #run
 {
-    var pair: AnyPair
+    var pair: AnyPair = undefined
     pair.item = "abc"
     pair.other = "def"
     return pair
@@ -35,7 +35,7 @@ const PersistentAnyPair: AnyPair = #run
 
 const PersistentAnyArray: [2] any = #run
 {
-    var values: [2] any
+    var values: [2] any = undefined
     values[0] = "first"
     values[1] = "second"
     return values

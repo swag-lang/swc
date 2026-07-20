@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertIntSlice(values: #nonull const [..] s32, expected: #nonull const [..] s32)->bool
+func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
 {
     if @countof(values) != @countof(expected) do
         return false

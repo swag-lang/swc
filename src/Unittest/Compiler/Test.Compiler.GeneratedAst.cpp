@@ -147,7 +147,7 @@ func touch()
     let i: Wrapper'f32
     let j: Wrapper'f64
     let k: Wrapper'bool
-    let l: Wrapper'string
+    let l: Wrapper'(#null string)
     let m: Wrapper'(Wrapper's32)
     let n: Wrapper'(Wrapper'u64)
 
@@ -162,7 +162,7 @@ func touch()
     #assert(#typeof(i.value) == f32)
     #assert(#typeof(j.value) == f64)
     #assert(#typeof(k.value) == bool)
-    #assert(#typeof(l.value) == string)
+    #assert(#typeof(l.value) == #null string)
     #assert(#typeof(m.value.value) == s32)
     #assert(#typeof(n.value.value) == u64)
 }

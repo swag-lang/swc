@@ -56,7 +56,7 @@ struct TagBin
 private impl TagBin
 {
     // Creates or reuses a new section for writing
-    mtd newSection()->#nonull *TagBinSection
+    mtd newSection()->*TagBinSection
     {
         if .freeSections.count
         {
@@ -76,7 +76,7 @@ private impl TagBin
         .freeSections.add(ptr)
     }
 
-    mtd acquireTmpBuf()->#nonull *ConcatBuffer
+    mtd acquireTmpBuf()->*ConcatBuffer
     {
         if .freeTmpBuf.count
         {
@@ -88,7 +88,7 @@ private impl TagBin
         return .freeTmpBuf.newPtr()
     }
 
-    mtd releaseTmpBuf(b: #nonull *ConcatBuffer)
+    mtd releaseTmpBuf(b: *ConcatBuffer)
     {
         b.clear()
         .freeTmpBuf.add(b)
@@ -105,7 +105,7 @@ impl TagBin
     }
 
     // Begins writing to a specified output buffer
-    mtd startWrite(buf: #nonull *ConcatBuffer)
+    mtd startWrite(buf: *ConcatBuffer)
     {
         .output = buf
         .outStack.clear()
@@ -316,7 +316,7 @@ impl TagBin
                 .output.addNative(TagBinSignatures.Raw)
                 if !data do
                     return true
-                let bufArr = cast(#nonull const *Array'u8) assume data
+                let bufArr = cast(const *Array'u8) assume data
                 .output.addBytes(@mkslice(bufArr.buffer, countElem * sizeof))
                 return true
             }
@@ -335,7 +335,7 @@ impl TagBin
                 .output.addNative(TagBinSignatures.Raw)
                 if !data do
                     return true
-                .output.addBytes(@mkslice(cast(#nonull const [*] u8) assume data, countElem * sizeof))
+                .output.addBytes(@mkslice(cast(const [*] u8) assume data, countElem * sizeof))
                 return true
             }
             else

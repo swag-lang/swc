@@ -37,7 +37,7 @@ struct Equation
 
 struct EquationList
 {
-    data:      [*] Equation
+    data:      #null [*] Equation
     count:     u32
     capacity:  u32
     growCount: u32
@@ -88,7 +88,7 @@ func initEquationList(initialCapacity: u32)->EquationList
 {
     var result: EquationList
     result.capacity = initialCapacity
-    result.data = cast([*] Equation) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
+    result.data = cast(#null [*] Equation) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
     @assert(result.data != null)
     return result
 }
@@ -106,7 +106,7 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast([*] Equation) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
+        result.data = cast(#null [*] Equation) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
         @assert(result.data != null)
         result.capacity = newCapacity
         result.growCount += 1'u32

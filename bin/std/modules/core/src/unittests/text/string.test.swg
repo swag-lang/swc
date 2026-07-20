@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertString(value: const &String, expected: #nonull string)->bool
+func assertString(value: const &String, expected: string)->bool
 {
     let text  = value.toString()
     let slice = value.toSlice()
@@ -238,10 +238,10 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
     @assert(value.contains('C''u8))
     @assert(value.contains('\u00E9''rune))
-    @assert(value.contains(cast(#nonull string) "Caf"))
+    @assert(value.contains(cast(string) "Caf"))
 
     let needle: [3] u8 = ['a''u8, 'f''u8, 0xc3]
-    @assert(value.contains(cast(#nonull const [..] u8) needle))
+    @assert(value.contains(cast(const [..] u8) needle))
 
     @assert(value.startsWith("Core"))
     @assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))

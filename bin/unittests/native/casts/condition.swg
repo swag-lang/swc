@@ -2,17 +2,17 @@
 
 #test
 {
-    var a: *s32
+    var a: #null *s32
     if !a {}
-    var b: string
+    var b: #null string
     if !b {}
-    var c: [..] s32
+    var c: #null [..] s32
     if !c {}
-    var d: [*] bool
+    var d: #null [*] bool
     if !d {}
     var e: func()
     if !e {}
-    var f: typeinfo
+    var f: #null typeinfo
     if !f {}
     @assert(!a)
     @assert(!b)
@@ -24,8 +24,8 @@
 
 #test
 {
-    var a: *s32
-    var b: *s32
+    var a: #null *s32
+    var b: #null *s32
     if !a or !b {}
     @assert(!a or !b)
 }
@@ -39,8 +39,8 @@
 
 #test
 {
-    var a: *s32
-    var b: *s32
+    var a: #null *s32
+    var b: #null *s32
 
     @assert(!a or !b)
 
@@ -69,7 +69,7 @@
 
 #test
 {
-    var a: *s32
+    var a: #null *s32
 
     @assert((a and a) == false)
     @assert(a or !a)
@@ -84,7 +84,7 @@
 
 #test
 {
-    var s: string
+    var s: #null string
     @assert(!s)
 
     s = "abc"
@@ -97,6 +97,6 @@
     var s: [..] s32 = a
     @assert(!s == false)
 
-    var n: [..] s32 = null
+    var n: #null [..] s32 = null
     @assert(!n)
 }

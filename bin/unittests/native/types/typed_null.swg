@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func typedNullString()->bool
 {
@@ -42,7 +41,7 @@ func typedNullPointerOrelse()->bool
 func typedNullConditional(flag: bool)->bool
 {
     let left = cast(#null string) null
-    let right: #nonull string = "ok"
+    let right: string = "ok"
     let resolved = flag ? left : right
     if flag do
         return resolved == null
@@ -53,7 +52,7 @@ func typedNullSliceConditional(flag: bool)->bool
 {
     let left = cast(#null const [..] s32) null
     const storage: [2] s32 = [7, 8]
-    let right: #nonull const [..] s32 = storage
+    let right: const [..] s32 = storage
     let resolved = flag ? left : right
     if flag do
         return resolved == null and @countof(resolved) == 0

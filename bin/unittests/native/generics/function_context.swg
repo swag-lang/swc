@@ -53,7 +53,7 @@ func(A, B) functionLocalRenamedPartialBox(first: A, third: B)->B
         item: MiddleDefaultBox'A
     }
 
-    var data: Local
+    var data: Local = undefined
     data.item.first = first
     data.item.second = "ok"
     data.item.third = third

@@ -51,7 +51,7 @@ public func murmur3(a, b: u64)->u64
 }
 
 #[Safety(.All, false)]
-public func murmur3(key: #nonull const [*] u8, len: u64, seed: u64)->u64
+public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 {
     const m = 0xc6a4a7935bd1e995'u64
     const r = 47
@@ -71,7 +71,7 @@ public func murmur3(key: #nonull const [*] u8, len: u64, seed: u64)->u64
         h *= m
     }
 
-    let data2 = cast(#nonull const [*] u8) &data[nblocks]
+    let data2 = cast(const [*] u8) &data[nblocks]
     switch len & 7
     {
     case 7:

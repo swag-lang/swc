@@ -212,7 +212,7 @@ namespace
             return Result::Continue;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isExplicitNonNull())
+        if (type.isNonNullable())
         {
             visited.erase(typeRef);
             return Result::Continue;
@@ -421,13 +421,13 @@ namespace
             return ImplicitDefaultKind::Mixed;
 
         const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
-        if (declaredType.isExplicitNonNull())
+        if (declaredType.isNonNullable())
             return ImplicitDefaultKind::RequiresInit;
 
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isExplicitNonNull())
+        if (type.isNonNullable())
             return ImplicitDefaultKind::RequiresInit;
 
         if (type.isStruct())
@@ -465,13 +465,13 @@ namespace
     Result lowerTypeImplicitDefaultBytesRec(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
     {
         const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
-        if (declaredType.isExplicitNonNull())
+        if (declaredType.isNonNullable())
             return Result::Continue;
 
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isExplicitNonNull())
+        if (type.isNonNullable())
             return Result::Continue;
         if (type.isStruct())
         {

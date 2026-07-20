@@ -9,7 +9,7 @@ struct(T) GenericSizeEntry
 
 struct(T) GenericSizeBox
 {
-    entries: [*] GenericSizeEntry
+    entries: #null [*] GenericSizeEntry
 }
 
 alias GenericSizeEntryAlias = GenericSizeEntry

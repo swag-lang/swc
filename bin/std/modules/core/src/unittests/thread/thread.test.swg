@@ -9,7 +9,7 @@ private const WaitManyDelayedSleepMs    = 1000'u32
 
 struct WaitManyPayload
 {
-    doneCount: #nonull *s32
+    doneCount: *s32
     sleepMs:   u32
 }
 

@@ -31,7 +31,7 @@ var state: s32
 {
     if state != 11 and state != 1111
     {
-        var ptr: [*] u8 = null
+        var ptr: #null [*] u8 = null
         ptr[111] = 111
     }
 }

@@ -51,7 +51,7 @@ func waitForCapture()->bool
     return g_GrabDone
 }
 
-func performScreenCapture(main: #nonull *MainWnd)->{ img: Image, sf: #null *Surface } throw
+func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } throw
 {
     g_App.disableHotKeys()
     defer g_App.enableHotKeys()
@@ -82,7 +82,7 @@ func performScreenCapture(main: #nonull *MainWnd)->{ img: Image, sf: #null *Surf
 }
 
 // In place edition of capture image
-func performInPlaceEdit(img: Image, surface: #nonull *Surface, main: #nonull *MainWnd)->#null *Capture throw
+func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *Capture throw
 {
     if !surface do
         return null
@@ -122,7 +122,7 @@ func performInPlaceEdit(img: Image, surface: #nonull *Surface, main: #nonull *Ma
     return capture
 }
 
-func captureRect(main: #nonull *MainWnd)->#null *Capture throw
+func captureRect(main: *MainWnd)->#null *Capture throw
 {
     let (img, sf) = try performScreenCapture(main)
     if !sf do
@@ -130,7 +130,7 @@ func captureRect(main: #nonull *MainWnd)->#null *Capture throw
     return try performInPlaceEdit(img, assume sf, main)
 }
 
-func setGrabBounds(main: #nonull *MainWnd, captureMode: CaptureMode)->bool
+func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
 {
     switch captureMode
     {
@@ -169,7 +169,7 @@ func setGrabBounds(main: #nonull *MainWnd, captureMode: CaptureMode)->bool
     return true
 }
 
-func screenShot(main: #nonull *MainWnd, captureMode: CaptureMode) throw
+func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)

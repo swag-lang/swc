@@ -49,7 +49,7 @@ struct Layer
 
 impl Layer
 {
-    mtd begin(renderer: #nonull *RenderOgl, painter: #nonull *Painter, info: LayerBeginInfo)
+    mtd begin(renderer: *RenderOgl, painter: *Painter, info: LayerBeginInfo)
     {
         Debug.assert(!.active)
         Debug.assert(renderer != null)
@@ -67,7 +67,7 @@ impl Layer
         .active        = true
         .resolved      = .renderScale == 1
 
-        let paintTarget = .paintTarget orelse cast(#nonull *RenderTarget) 1'u64
+        let paintTarget = .paintTarget orelse cast(*RenderTarget) 1'u64
         with painter
         {
             .bindRenderTarget(paintTarget, info.paintAlpha)

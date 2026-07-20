@@ -20,7 +20,7 @@ func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
     return dx * dx + dy * dy
 }
 
-func closestEdgeDistance(edges: #nonull const [..] Edge, x, y: f64)->f64
+func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
 {
     var distSquared = Swag.F64.Max
     for edge in edges do
@@ -32,7 +32,7 @@ func closestEdgeDistance(edges: #nonull const [..] Edge, x, y: f64)->f64
 func renderCurrentOutlineSdf(slot: #null *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = slot orelse cast(#nonull *GlyphSlot) 1'u64
+    let safeSlot = slot orelse cast(*GlyphSlot) 1'u64
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -62,7 +62,7 @@ func renderCurrentOutlineSdf(slot: #null *GlyphSlot, spread: u32) throw
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    let bitmapBuffer = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
+    let bitmapBuffer = faceData.bitmapPixels.buffer orelse cast([*] u8) 1'u64
     var dst = bitmapBuffer
     let scale = 127.0 / cast(f64) safeSpread
 

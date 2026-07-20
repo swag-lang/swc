@@ -7,13 +7,13 @@ using Core, Gui, Pixel, Core.Math
 const Div = "\u00F7"
 const Mul = "\u00D7"
 
-var g_FontTxt:      *Font
-var g_FontBtn:      *Font
-var g_Edit:         *EditBox
+var g_FontTxt:      #null *Font
+var g_FontBtn:      #null *Font
+var g_Edit:         #null *EditBox
 var g_ComputeValue: s64
 var g_CurValue:     s64
 var g_Op:           String
-var g_Error:        string
+var g_Error:        #null string
 var g_Start:        bool = true
 
 func validateOp(str: string)
@@ -55,7 +55,7 @@ func validateOp(str: string)
     }
 
     if g_Error do
-        g_Edit.setText(g_Error)
+        g_Edit.setText(assume g_Error)
     else do
         g_Edit.setText(Format.toString("%", g_CurValue))
 }
@@ -69,7 +69,7 @@ func createBtn(str: string, x, y: s32)
         {
             validateOp(btn.name.raw)
         }
-        btn.style.setFont(g_FontBtn, .Regular)
+        btn.style.setFont(assume g_FontBtn, .Regular)
         layout.setColRowChild(btn, x, y)
 
         switch str
@@ -82,7 +82,7 @@ func createBtn(str: string, x, y: s32)
     }
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -101,9 +101,9 @@ func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
         with g_Edit = EditBox.create(layout, "0")
         {
             .editBoxFlags = .ReadOnly | .RightAlign
-            .style.setFont(g_FontTxt, .Regular)
+            .style.setFont(assume g_FontTxt, .Regular)
         }
-        layout.setColRowChild(g_Edit, 0, 0, 4)
+        layout.setColRowChild(assume g_Edit, 0, 0, 4)
 
         createBtn("7", 0, 2)
         createBtn("8", 1, 2)

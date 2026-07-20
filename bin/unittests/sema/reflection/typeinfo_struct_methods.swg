@@ -117,12 +117,12 @@ const EXPORTED_SCALE_INFO  = EXPORTED_INFO.methods[0]
 const EXPORTED_ADD_INFO    = EXPORTED_INFO.methods[1]
 const EXPORTED_SCALED_INFO = EXPORTED_INFO.methods[2]
 const EXPORTED_SCORE_INFO  = EXPORTED_INFO.methods[3]
-const SIMPLE_METHOD_TYPE = cast(const *Swag.TypeInfoFunc) SIMPLE_METHOD_INFO.pointedType
-const ARRAY_METHOD_TYPE  = cast(const *Swag.TypeInfoFunc) ARRAY_METHOD_INFO.pointedType
-const EXPORTED_SCALE_TYPE  = cast(const *Swag.TypeInfoFunc) EXPORTED_SCALE_INFO.pointedType
-const EXPORTED_ADD_TYPE    = cast(const *Swag.TypeInfoFunc) EXPORTED_ADD_INFO.pointedType
-const EXPORTED_SCALED_TYPE = cast(const *Swag.TypeInfoFunc) EXPORTED_SCALED_INFO.pointedType
-const EXPORTED_SCORE_TYPE  = cast(const *Swag.TypeInfoFunc) EXPORTED_SCORE_INFO.pointedType
+const SIMPLE_METHOD_TYPE = cast(#null const *Swag.TypeInfoFunc) SIMPLE_METHOD_INFO.pointedType
+const ARRAY_METHOD_TYPE  = cast(#null const *Swag.TypeInfoFunc) ARRAY_METHOD_INFO.pointedType
+const EXPORTED_SCALE_TYPE  = cast(#null const *Swag.TypeInfoFunc) EXPORTED_SCALE_INFO.pointedType
+const EXPORTED_ADD_TYPE    = cast(#null const *Swag.TypeInfoFunc) EXPORTED_ADD_INFO.pointedType
+const EXPORTED_SCALED_TYPE = cast(#null const *Swag.TypeInfoFunc) EXPORTED_SCALED_INFO.pointedType
+const EXPORTED_SCORE_TYPE  = cast(#null const *Swag.TypeInfoFunc) EXPORTED_SCORE_INFO.pointedType
 
 func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedName: string)->bool
 {
@@ -157,7 +157,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
         return false
 
     let methodInfo = info.methods[0]
-    let methodType = cast(const *Swag.TypeInfoFunc) methodInfo.pointedType
+    let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
     if methodInfo.name != "ping" or
        methodInfo.pointedType.kind != .Func or
        @countof(methodType.parameters) != 1 or
@@ -178,7 +178,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
         return false
 
     let methodInfo = info.methods[0]
-    let methodType = cast(const *Swag.TypeInfoFunc) methodInfo.pointedType
+    let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
     if methodInfo.name != "copyFrom" or
        methodInfo.pointedType.kind != .Func or
        @countof(methodType.parameters) != 2 or
@@ -206,10 +206,10 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     let scaledInfo = info.methods[2]
     let scoreInfo = info.methods[3]
 
-    let scaleType = cast(const *Swag.TypeInfoFunc) scaleInfo.pointedType
-    let addType = cast(const *Swag.TypeInfoFunc) addInfo.pointedType
-    let scaledType = cast(const *Swag.TypeInfoFunc) scaledInfo.pointedType
-    let scoreType = cast(const *Swag.TypeInfoFunc) scoreInfo.pointedType
+    let scaleType = cast(#null const *Swag.TypeInfoFunc) scaleInfo.pointedType
+    let addType = cast(#null const *Swag.TypeInfoFunc) addInfo.pointedType
+    let scaledType = cast(#null const *Swag.TypeInfoFunc) scaledInfo.pointedType
+    let scoreType = cast(#null const *Swag.TypeInfoFunc) scoreInfo.pointedType
 
     if scaleInfo.name != "scaleValue" or
        scaleInfo.pointedType.kind != .Func or
@@ -333,6 +333,8 @@ const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks(
 #assert(EXPORTED_SCORE_TYPE.parameters[1].pointedType == s32)
 #assert(EXPORTED_SCORE_TYPE.returnType == s32)
 
-#assert(!hasMethodNamed(#typeof(ExportedMethodProbe), "injectStmt"))
-#assert(!hasMethodNamed(#typeof(ExportedMethodProbe), "compilerOnly"))
+const NO_INJECT_STMT_METHOD   = #run !hasMethodNamed(#typeof(ExportedMethodProbe), "injectStmt")
+const NO_COMPILER_ONLY_METHOD = #run !hasMethodNamed(#typeof(ExportedMethodProbe), "compilerOnly")
+#assert(NO_INJECT_STMT_METHOD)
+#assert(NO_COMPILER_ONLY_METHOD)
 #assert(COMPILE_TIME_METHOD_REFLECTION_OK)

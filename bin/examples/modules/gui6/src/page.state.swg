@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createStateMenuModel(parent: #nonull *Wnd)
+func createStateMenuModel(parent: *Wnd)
 {
     g_StateMenu = createTrackedPopup(parent)
     addViewItems(assume g_StateMenu)
@@ -10,7 +10,7 @@ func createStateMenuModel(parent: #nonull *Wnd)
     addDocumentItems(assume g_StateMenu)
 }
 
-func showStateMenuFrom(btn: #nonull *Button)
+func showStateMenuFrom(btn: *Button)
 {
     if !g_StateMenu do
         return
@@ -19,7 +19,7 @@ func showStateMenuFrom(btn: #nonull *Button)
     discard g_StateMenu.doModal({pos.horzCenter(), pos.bottom() + 8}, .AnchorTopCenter)
 }
 
-func createCommandStatePage(parent: #nonull *Wnd)
+func createCommandStatePage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     createStateMenuModel(parent)

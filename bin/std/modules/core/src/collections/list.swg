@@ -61,7 +61,7 @@ impl List
         #scope(Up)
         while n
         {
-            let node = n orelse cast(#nonull *ListEntry'(T)) 1'u64
+            let node = n orelse cast(*ListEntry'(T)) 1'u64
             #scope(Down)
             {
                 #if ptr do
@@ -99,7 +99,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addFront(value: #fwd T)->#nonull *ListEntry
+    mtd addFront(value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
@@ -122,7 +122,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd addBack(value: #fwd T)->#nonull *ListEntry
+    mtd addBack(value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
@@ -145,7 +145,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertBefore(node: #nonull *ListEntry, value: #fwd T)->#nonull *ListEntry
+    mtd insertBefore(node: *ListEntry, value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
@@ -165,7 +165,7 @@ impl List
     // The value is copied; pass it with '#move' to move it instead.
     // Returns a pointer to the newly created list node.
     #[Discardable]
-    mtd insertAfter(node: #nonull *ListEntry, value: #fwd T)->#nonull *ListEntry
+    mtd insertAfter(node: *ListEntry, value: #fwd T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value

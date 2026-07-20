@@ -4,12 +4,12 @@
 alias StrictKindOfAny = any
 
 // ============================================================
-// @kindof with default any
+// @kindof result type with a plain any
 // ============================================================
 
 #test
 {
-    var a: any
+    var a: any = 0's32
     var b = @kindof(a)
     #assert(#typeof(b) == typeinfo)
     @assert(#typeof(b) == typeinfo)

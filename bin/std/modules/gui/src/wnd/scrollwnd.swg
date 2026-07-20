@@ -20,8 +20,8 @@ public struct ScrollWnd
     scrollSize:               Math.Point
     scrollWndFlags            = ScrollWndFlags.Zero
 
-    sigScrollPosChanged:      SigArray'func||(#nonull *ScrollWnd, Math.Point, Math.Point)
-    sigScrollSizeChanged:     SigArray'func||(#nonull *ScrollWnd, Math.Point, Math.Point)
+    sigScrollPosChanged:      SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
+    sigScrollSizeChanged:     SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
 
     oldMouseCapture:          #null *Wnd
 
@@ -63,7 +63,7 @@ public struct ScrollWnd
 
 public impl IWnd for ScrollWnd
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
         if !.view do
@@ -75,7 +75,7 @@ public impl IWnd for ScrollWnd
         .view.setPosition(rect)
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let clientRect = .getClientRect()
         let pos        = .surfaceToLocal(evt.surfacePos)
@@ -194,7 +194,7 @@ public impl IWnd for ScrollWnd
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         if .smoothScroll
         {

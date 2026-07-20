@@ -38,9 +38,9 @@ struct RichEditCtrl
     marginRight:                 f32
     lexer:                       IRichEditLexer
     form                         = RichEditForm.RichEditCtrl
-    sigIsReadOnly:               SigArray'func||(#nonull *bool)
-    sigChanged:                  SigArray'func||(#nonull *RichEditCtrl)
-    sigModified:                 SigArray'func||(#nonull *RichEditCtrl)
+    sigIsReadOnly:               SigArray'func||(*bool)
+    sigChanged:                  SigArray'func||(*RichEditCtrl)
+    sigModified:                 SigArray'func||(*RichEditCtrl)
     bkColorModel:                String
 
     styles:                      [256] RichEditRuneStyle
@@ -77,7 +77,7 @@ struct RichEditCtrl
 
 private impl IWnd for RichEditCtrl
 {
-    mtd impl onNotifyEvent(evt: #nonull *NotifyEvent)
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.ntfyKind == .ThemeChanged
         {
@@ -157,7 +157,7 @@ private impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    mtd newLine(index: u64)->#nonull *RichEditLine
+    mtd newLine(index: u64)->*RichEditLine
     {
         var p: #null *RichEditLine
 
@@ -248,7 +248,7 @@ private impl RichEditCtrl
 impl RichEditCtrl
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *RichEditCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*RichEditCtrl
     {
         var pos = position
         if pos.height == 0 do

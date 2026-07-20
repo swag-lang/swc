@@ -2,7 +2,7 @@
 using Swag
 
 #[Swag.Strict]
-alias OrelseStrictHandle = const *void
+alias OrelseStrictHandle = #null const *void
 
 interface IOrelseProbe
 {
@@ -65,7 +65,7 @@ impl IOrelseProbe for OrelseProbe
     func cstringFallback()->bool
     {
         var data: [3] u8 = ['o''u8, 'k''u8, 0]
-        let resolved = cast(cstring) null orelse cast(cstring) &data[0]
+        let resolved = cast(#null cstring) null orelse cast(cstring) &data[0]
         return resolved != null and @countof(resolved) == 2
     }
 
@@ -92,7 +92,7 @@ impl IOrelseProbe for OrelseProbe
 {
     func explicitAnyChecks()->bool
     {
-        let missing: any = null
+        let missing: #null any = null
         let boolTrue: any = true
         let boolFalse: any = false
         return missing == null and

@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct SemaNonNullItem
 {
@@ -13,7 +12,7 @@ struct SemaNonNullLegacyOpCastBox
 impl SemaNonNullLegacyOpCastBox
 {
     #[Swag.ConstExpr, Swag.Implicit]
-    mtd const opCast()->#nonull string => "legacy-op-cast"
+    mtd const opCast()->string => "legacy-op-cast"
 }
 
 struct SemaNonNullRequiredOpCastBox
@@ -23,18 +22,18 @@ struct SemaNonNullRequiredOpCastBox
 impl SemaNonNullRequiredOpCastBox
 {
     #[Swag.ConstExpr, Swag.Implicit]
-    mtd const opCast()->#nonull string => "required-op-cast"
+    mtd const opCast()->string => "required-op-cast"
 }
 
-alias SemaNonNullPointerAlias = #nonull *SemaNonNullItem
-alias SemaConstPointerAlias   = #nonull const *SemaNonNullItem
+alias SemaNonNullPointerAlias = *SemaNonNullItem
+alias SemaConstPointerAlias   = const *SemaNonNullItem
 
 const SEMA_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
 const SEMA_NONULL_NULL_VALUE_POINTER: #null *void = null
-const SEMA_NONULL_PRESENT_VALUE_POINTER = cast(#nonull *void) 1'u64
+const SEMA_NONULL_PRESENT_VALUE_POINTER = cast(*void) 1'u64
 const SEMA_NONULL_NULL_BLOCK_POINTER: #null [*] void = null
-const SEMA_NONULL_PRESENT_BLOCK_POINTER = cast(#nonull [*] void) 1'u64
+const SEMA_NONULL_PRESENT_BLOCK_POINTER = cast([*] void) 1'u64
 
 #assert(SEMA_NONULL_NULL_VALUE_POINTER < SEMA_NONULL_PRESENT_VALUE_POINTER)
 #assert(SEMA_NONULL_NULL_VALUE_POINTER <= SEMA_NONULL_PRESENT_VALUE_POINTER)
@@ -47,7 +46,7 @@ const SEMA_NONULL_PRESENT_BLOCK_POINTER = cast(#nonull [*] void) 1'u64
 
 struct SemaNonNullStringDefault
 {
-    value: #nonull string = "fallback"
+    value: string = "fallback"
 }
 
 struct(T) SemaNonNullGenericBox
@@ -76,7 +75,7 @@ const SEMA_NONULL_PARTIAL_ARRAY: [2] SemaNonNullStringDefault = [{value: "explic
 
 struct SemaNonNullHolder
 {
-    required: #nonull *SemaNonNullItem
+    required: *SemaNonNullItem
     optional: #null *SemaNonNullItem
     legacy:   #null *SemaNonNullItem
     count:    s32 = 7
@@ -86,12 +85,12 @@ alias SemaNonNullHolderAlias = SemaNonNullHolder
 
 struct SemaNonNullPointerDefault
 {
-    required: #nonull const [*] u8 = @dataof(SEMA_NONULL_POINTER_DEFAULT_TEXT)
+    required: const [*] u8 = @dataof(SEMA_NONULL_POINTER_DEFAULT_TEXT)
 }
 
 struct SemaNonNullMoveDefault
 {
-    required: #nonull string = "move-default"
+    required: string = "move-default"
 }
 
 impl SemaNonNullMoveDefault
@@ -103,23 +102,23 @@ impl SemaNonNullMoveDefault
 
 struct SemaNonNullUndefinedHolder
 {
-    required: #nonull *SemaNonNullItem = undefined
+    required: *SemaNonNullItem = undefined
 }
 
 struct SemaNonNullBlockHolder
 {
-    required: #nonull [*] SemaNonNullItem
+    required: [*] SemaNonNullItem
 }
 
 struct SemaNonNullFamilies
 {
-    valuePointer:  #nonull *SemaNonNullItem
-    blockPointer:  #nonull [*] SemaNonNullItem
-    slice:         #nonull [..] SemaNonNullItem
-    text:          #nonull string
-    ctext:         #nonull cstring
-    boxed:         #nonull any
-    reflectedType: #nonull typeinfo
+    valuePointer:  *SemaNonNullItem
+    blockPointer:  [*] SemaNonNullItem
+    slice:         [..] SemaNonNullItem
+    text:          string
+    ctext:         cstring
+    boxed:         any
+    reflectedType: typeinfo
 }
 
 struct SemaNonNullNested
@@ -129,13 +128,13 @@ struct SemaNonNullNested
 
 struct SemaNonNullCompleteSet
 {
-    required: #nonull *SemaNonNullItem
+    required: *SemaNonNullItem
 }
 
 impl SemaNonNullCompleteSet
 {
     #[Swag.Complete]
-    mtd opSet(value: #nonull *SemaNonNullItem)
+    mtd opSet(value: *SemaNonNullItem)
     {
         .required = value
     }
@@ -145,7 +144,7 @@ func acceptSemaNonNullHolder(value: SemaNonNullHolder)
 {
 }
 
-func migrateSemaLegacyPointer(value: #nonull *SemaNonNullItem)->#nonull *SemaNonNullItem => value
+func migrateSemaLegacyPointer(value: *SemaNonNullItem)->*SemaNonNullItem => value
 
 func semaNonNullConstruction()
 {
@@ -154,47 +153,47 @@ func semaNonNullConstruction()
     var blockStorage: [2] SemaNonNullItem = [{value: 31}, {value: 32}]
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct: #nonull *SemaNonNullItem = &first
-    let readOnly: #nonull const *SemaNonNullItem = &first
-    let block: #nonull [*] SemaNonNullItem = cast(#nonull [*] SemaNonNullItem) &blockStorage[0]
-    let slice: #nonull [..] SemaNonNullItem = blockStorage
-    let text: #nonull string = "nonull"
-    let ctext: #nonull cstring = cast(#nonull cstring) &cstringStorage[0]
-    let boxed: #nonull any = 123
-    let reflectedType: #nonull typeinfo = SemaNonNullItem
-    let legacyOpCast: #nonull string = SemaNonNullLegacyOpCastBox{}
+    let direct: *SemaNonNullItem = &first
+    let readOnly: const *SemaNonNullItem = &first
+    let block: [*] SemaNonNullItem = cast([*] SemaNonNullItem) &blockStorage[0]
+    let slice: [..] SemaNonNullItem = blockStorage
+    let text: string = "nonull"
+    let ctext: cstring = cast(cstring) &cstringStorage[0]
+    let boxed: any = 123
+    let reflectedType: typeinfo = SemaNonNullItem
+    let legacyOpCast: string = SemaNonNullLegacyOpCastBox{}
     let widenedRequiredOpCast: #null string = SemaNonNullRequiredOpCastBox{}
     let aliasReadOnly: const SemaNonNullPointerAlias = &first
-    let aliasRequired: #nonull SemaConstPointerAlias = &first
-    #assert(#typeof(direct) == #nonull *SemaNonNullItem)
-    #assert(#typeof(readOnly) == #nonull const *SemaNonNullItem)
-    #assert(#typeof(block) == #nonull [*] SemaNonNullItem)
-    #assert(#typeof(slice) == #nonull [..] SemaNonNullItem)
-    #assert(#typeof(text) == #nonull string)
-    #assert(#typeof(ctext) == #nonull cstring)
-    #assert(#typeof(boxed) == #nonull any)
-    #assert(#typeof(reflectedType) == #nonull typeinfo)
-    #assert(#typeof(legacyOpCast) == #nonull string)
+    let aliasRequired: SemaConstPointerAlias = &first
+    #assert(#typeof(direct) == *SemaNonNullItem)
+    #assert(#typeof(readOnly) == const *SemaNonNullItem)
+    #assert(#typeof(block) == [*] SemaNonNullItem)
+    #assert(#typeof(slice) == [..] SemaNonNullItem)
+    #assert(#typeof(text) == string)
+    #assert(#typeof(ctext) == cstring)
+    #assert(#typeof(boxed) == any)
+    #assert(#typeof(reflectedType) == typeinfo)
+    #assert(#typeof(legacyOpCast) == string)
     #assert(#typeof(widenedRequiredOpCast) == #null string)
-    #assert(#typeof(aliasReadOnly) == #nonull const *SemaNonNullItem)
-    #assert(#typeof(aliasRequired) == #nonull const *SemaNonNullItem)
+    #assert(#typeof(aliasReadOnly) == const *SemaNonNullItem)
+    #assert(#typeof(aliasRequired) == const *SemaNonNullItem)
 
     var defaultItem: SemaNonNullStringDefault
     var defaultArray: [2] SemaNonNullStringDefault
     let omittedDefaults = SemaNonNullDefaultContainer{}
     let partialDefaults: [2] SemaNonNullStringDefault = [{value: "explicit"}]
 
-    // A legacy pointer can migrate to '#nonull', and '#nonull' can widen to '#null'.
-    let legacySource: #nonull *SemaNonNullItem = &first
-    let migrated: #nonull *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
+    // A bare (non-null) pointer can widen to '#null'.
+    let legacySource: *SemaNonNullItem = &first
+    let migrated: *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
     let widened: #null *SemaNonNullItem = migrated
     let completeSet = cast(SemaNonNullCompleteSet) &first
-    let genericRequired: SemaNonNullGenericBox'(#nonull *SemaNonNullItem) = {value: &first}
+    let genericRequired: SemaNonNullGenericBox'(*SemaNonNullItem) = {value: &first}
     var genericDefault: SemaNonNullGenericBox'SemaNonNullStringDefault
-    #assert(#typeof(migrated) == #nonull *SemaNonNullItem)
+    #assert(#typeof(migrated) == *SemaNonNullItem)
     #assert(#typeof(widened) == #null *SemaNonNullItem)
-    #assert(#typeof(completeSet.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(genericRequired.value) == #nonull *SemaNonNullItem)
+    #assert(#typeof(completeSet.required) == *SemaNonNullItem)
+    #assert(#typeof(genericRequired.value) == *SemaNonNullItem)
     #assert(#typeof(genericDefault.value) == SemaNonNullStringDefault)
 
     let holder = SemaNonNullHolder{required: &first}
@@ -207,7 +206,7 @@ func semaNonNullConstruction()
         {required: &first},
         {required: &second, count: 8},
     ]
-    let pointerArray: [2] #nonull *SemaNonNullItem = [&first, &second]
+    let pointerArray: [2] *SemaNonNullItem = [&first, &second]
     let aliasedHolder: SemaNonNullHolderAlias = {required: &first}
     let pointerDefault = SemaNonNullPointerDefault{}
     var moveDefaultSource = SemaNonNullMoveDefault{required: "explicit"}
@@ -228,12 +227,12 @@ func semaNonNullConstruction()
     let nullableString: #null string = null
     let nullableCString: #null cstring = null
     let nullableTypeInfo: #null typeinfo = null
-    let boxedNullableValuePointer: #nonull any = nullableValuePointer
-    let boxedNullableBlockPointer: #nonull any = nullableBlockPointer
-    let boxedNullableSlice: #nonull any = nullableSlice
-    let boxedNullableString: #nonull any = nullableString
-    let boxedNullableCString: #nonull any = nullableCString
-    let boxedNullableTypeInfo: #nonull any = nullableTypeInfo
+    let boxedNullableValuePointer: any = nullableValuePointer
+    let boxedNullableBlockPointer: any = nullableBlockPointer
+    let boxedNullableSlice: any = nullableSlice
+    let boxedNullableString: any = nullableString
+    let boxedNullableCString: any = nullableCString
+    let boxedNullableTypeInfo: any = nullableTypeInfo
 
     #assert(boxedNullableValuePointer != null)
     #assert(boxedNullableBlockPointer != null)
@@ -248,7 +247,7 @@ func semaNonNullConstruction()
     @init(mutable)(&second)
 
     // 'undefined' remains an explicit low-level escape hatch from initialization checks.
-    var undefinedPointer: #nonull *SemaNonNullItem = undefined
+    var undefinedPointer: *SemaNonNullItem = undefined
     var undefinedHolder = SemaNonNullUndefinedHolder{}
 
     // Explicitly nullable pointers retain their default.
@@ -256,30 +255,30 @@ func semaNonNullConstruction()
     var legacyDefault: #null *SemaNonNullItem
     var legacyHolder: struct {ptr: #null *SemaNonNullItem}
 
-    #assert(#typeof(holder.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(moveTarget.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(blockHolder.required) == #nonull [*] SemaNonNullItem)
+    #assert(#typeof(holder.required) == *SemaNonNullItem)
+    #assert(#typeof(moveTarget.required) == *SemaNonNullItem)
+    #assert(#typeof(blockHolder.required) == [*] SemaNonNullItem)
     #assert(#typeof(holder.optional) == #null *SemaNonNullItem)
     #assert(#typeof(holder.legacy) == #null *SemaNonNullItem)
-    #assert(#typeof(contextual.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(nested.holder.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(array[0].required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(pointerArray[0]) == #nonull *SemaNonNullItem)
+    #assert(#typeof(contextual.required) == *SemaNonNullItem)
+    #assert(#typeof(nested.holder.required) == *SemaNonNullItem)
+    #assert(#typeof(array[0].required) == *SemaNonNullItem)
+    #assert(#typeof(pointerArray[0]) == *SemaNonNullItem)
     #assert(#typeof(aliasedHolder) == SemaNonNullHolder)
-    #assert(#typeof(aliasedHolder.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(pointerDefault.required) == #nonull const [*] u8)
-    #assert(#typeof(moveDefaultSource.required) == #nonull string)
-    #assert(#typeof(moveDefaultTarget.required) == #nonull string)
-    #assert(#typeof(families.valuePointer) == #nonull *SemaNonNullItem)
-    #assert(#typeof(families.blockPointer) == #nonull [*] SemaNonNullItem)
-    #assert(#typeof(families.slice) == #nonull [..] SemaNonNullItem)
-    #assert(#typeof(families.text) == #nonull string)
-    #assert(#typeof(families.ctext) == #nonull cstring)
-    #assert(#typeof(families.boxed) == #nonull any)
-    #assert(#typeof(families.reflectedType) == #nonull typeinfo)
-    #assert(#typeof(mutable.required) == #nonull *SemaNonNullItem)
-    #assert(#typeof(undefinedPointer) == #nonull *SemaNonNullItem)
-    #assert(#typeof(undefinedHolder.required) == #nonull *SemaNonNullItem)
+    #assert(#typeof(aliasedHolder.required) == *SemaNonNullItem)
+    #assert(#typeof(pointerDefault.required) == const [*] u8)
+    #assert(#typeof(moveDefaultSource.required) == string)
+    #assert(#typeof(moveDefaultTarget.required) == string)
+    #assert(#typeof(families.valuePointer) == *SemaNonNullItem)
+    #assert(#typeof(families.blockPointer) == [*] SemaNonNullItem)
+    #assert(#typeof(families.slice) == [..] SemaNonNullItem)
+    #assert(#typeof(families.text) == string)
+    #assert(#typeof(families.ctext) == cstring)
+    #assert(#typeof(families.boxed) == any)
+    #assert(#typeof(families.reflectedType) == typeinfo)
+    #assert(#typeof(mutable.required) == *SemaNonNullItem)
+    #assert(#typeof(undefinedPointer) == *SemaNonNullItem)
+    #assert(#typeof(undefinedHolder.required) == *SemaNonNullItem)
     #assert(#typeof(nullableDefault) == #null *SemaNonNullItem)
     #assert(#typeof(legacyDefault) == #null *SemaNonNullItem)
     #assert(#typeof(legacyHolder.ptr) == #null *SemaNonNullItem)

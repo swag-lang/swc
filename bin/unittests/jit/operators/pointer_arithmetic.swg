@@ -94,7 +94,7 @@ impl PointerFieldHolder
 {
     func arrayFieldPointerDecay()->u16
     {
-        var holder: PointerFieldHolder
+        var holder: PointerFieldHolder = undefined
         return holder.writeAfterPointerOffset()
     }
 

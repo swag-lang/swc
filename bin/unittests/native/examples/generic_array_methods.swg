@@ -7,7 +7,7 @@ const DefaultCapacity = 4'u64
 
 struct(T) DynArray
 {
-    data:     [*] T
+    data:     #null [*] T
     count:    u64
     capacity: u64
 }
@@ -18,7 +18,7 @@ impl DynArray
     {
         var result: DynArray'T
         result.capacity = DefaultCapacity
-        result.data = cast([*] T) @alloc(DefaultCapacity * #sizeof(T))
+        result.data = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
         return result
     }
 
@@ -36,7 +36,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data = cast([*] T) @realloc(me.data, newCapacity * #sizeof(T))
+            me.data = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
             me.capacity = newCapacity
         }
 
@@ -104,7 +104,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data = cast([*] T) @realloc(me.data, newCapacity * #sizeof(T))
+            me.data = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
             me.capacity = newCapacity
         }
 

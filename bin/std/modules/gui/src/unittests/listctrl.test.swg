@@ -4,7 +4,7 @@ using Swag, Core
 
 var ListCtrlHeadlessSelCount: u32
 
-func listCtrlHeadlessSel(list: #nonull *ListCtrl)
+func listCtrlHeadlessSel(list: *ListCtrl)
 {
     discard list
     ListCtrlHeadlessSelCount += 1

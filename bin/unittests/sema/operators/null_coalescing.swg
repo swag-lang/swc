@@ -4,7 +4,7 @@ const A = true
 const B = A orelse false
 #assert(B)
 
-const C: string = null
+const C: #null string = null
 const D = C orelse "d"
 #assert(D == "d")
 
@@ -28,9 +28,9 @@ const M: f64 = 2.25
 const N = M orelse 4.5'f64
 #assert(N == 2.25'f64)
 
-const S0: const [..] u8 = null
+const S0: #null const [..] u8 = null
 const S1 = S0 orelse "abc"
-#assert(#typeof(S1) == #nonull const [..] u8)
+#assert(#typeof(S1) == const [..] u8)
 #assert(S1[0] == 'a')
 #assert(S1[1] == 'b')
 #assert(S1[2] != 'd')
@@ -47,7 +47,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    var p: *s32
+    var p: #null *s32
     var v: s32 = 10
     @assert((p orelse &v) == &v)
     p = &v
@@ -56,7 +56,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    var s: string
+    var s: #null string
     @assert((s orelse "fallback") == "fallback")
     s = "ok"
     @assert((s orelse "fallback") == "ok")

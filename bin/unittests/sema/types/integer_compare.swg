@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 #assert(12's8 == 12's8)
 #assert(12's16 == 12's16)

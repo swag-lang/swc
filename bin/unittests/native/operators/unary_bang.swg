@@ -10,7 +10,7 @@ func unaryBangInt(a: s32)->bool
     return !a
 }
 
-func unaryBangPointer(a: *void)->bool
+func unaryBangPointer(a: #null *void)->bool
 {
     return !a
 }

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func sameValues(values: #nonull const [..] s32, expected: #nonull const [..] s32)->bool
+func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 {
     return Slice.equals(values, expected)
 }
@@ -12,7 +12,7 @@ func sameValues(values: #nonull const [..] s32, expected: #nonull const [..] s32
     var values: [4] s32 = [1, 2, 3, 4]
     let bias = 10
 
-    Slice.modify(values, func|bias|(it: #nonull *s32)
+    Slice.modify(values, func|bias|(it: *s32)
     {
         dref it += bias
     })
@@ -23,7 +23,7 @@ func sameValues(values: #nonull const [..] s32, expected: #nonull const [..] s32
         return value / 2
     })
     @assert(mapped.count == 4)
-    @assert(sameValues(cast(#nonull [..] s32) mapped, [5, 6, 6, 7]))
+    @assert(sameValues(cast([..] s32) mapped, [5, 6, 6, 7]))
 }
 
 #test

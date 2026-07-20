@@ -8,8 +8,8 @@ func isStructArray(t: #null typeinfo)->bool
     if !t or !isStruct(t) do
         return false
 
-    let tt           = cast(#nonull const *TypeInfoStruct) assume t
-    let arrayGeneric = (cast(#nonull const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
+    let tt           = cast(const *TypeInfoStruct) assume t
+    let arrayGeneric = (cast(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
     if !tt.fromGeneric or !arrayGeneric do
         return false
     return tt.fromGeneric.fullname == arrayGeneric.fullname
@@ -22,7 +22,7 @@ func getStructArrayType(t: #null typeinfo)->#null typeinfo
     if !isStructArray(t) do
         return null
 
-    let tt = cast(#nonull const *TypeInfoStruct) assume t
+    let tt = cast(const *TypeInfoStruct) assume t
     return tt.generics[0].pointedType
 }
 
@@ -32,7 +32,7 @@ func clearStructArray(arrayPtr: #null *void, valueType: #null typeinfo)
     if !arrayPtr or !valueType do
         return
 
-    let arr    = cast(#nonull *Array'u8) assume arrayPtr
+    let arr    = cast(*Array'u8) assume arrayPtr
     let nnType = assume valueType
 
     if hasDrop(nnType)
@@ -55,7 +55,7 @@ func removeValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, in
         return
 
     // We will treat the array as a buffer of bytes, just to be able to access the fields
-    let arr       = cast(#nonull *Array'u8) assume arrayPtr
+    let arr       = cast(*Array'u8) assume arrayPtr
     let nnType    = assume valueType
     let sizeValue = nnType.sizeof
 
@@ -89,7 +89,7 @@ func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB:
 
     let nnType = assume valueType
     let size = nnType.sizeof
-    let base = cast(#nonull [*] u8) assume basePtr
+    let base = cast([*] u8) assume basePtr
     let pa   = base + indexA * size
     let pb   = base + indexB * size
 
@@ -126,7 +126,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo)->#
     }
 
     // We will treat the array as a buffer of bytes, just to be able to access the fields
-    let arr       = cast(#nonull *Array'u8) assume arrayPtr
+    let arr       = cast(*Array'u8) assume arrayPtr
     let sizeValue = nnType.sizeof
 
     // If we need to reallocate the buffer, we will also have to deal with

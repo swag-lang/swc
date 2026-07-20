@@ -2,20 +2,20 @@
 
 struct JitPresentEmptySliceDefault
 {
-    value: #nonull const [..] u8 = ""
+    value: const [..] u8 = ""
 }
 
-const JIT_PRESENT_EMPTY_STRING_SLICE: #nonull const [..] u8 = ""
+const JIT_PRESENT_EMPTY_STRING_SLICE: const [..] u8 = ""
 const JIT_PRESENT_EMPTY_CSTRING: const cstring = cast(const cstring) @dataof("")
-const JIT_PRESENT_EMPTY_CSTRING_SLICE: #nonull const [..] u8 = cast(const [..] u8) JIT_PRESENT_EMPTY_CSTRING
+const JIT_PRESENT_EMPTY_CSTRING_SLICE: const [..] u8 = cast(const [..] u8) JIT_PRESENT_EMPTY_CSTRING
 const JIT_PRESENT_EMPTY_SLICE_DEFAULT: JitPresentEmptySliceDefault = {}
 const JIT_MISSING_EMPTY_SLICE: #null const [..] u8 = null
 
 func jitPresentEmptySlices()->bool
 {
-    let direct: #nonull const [..] u8 = ""
+    let direct: const [..] u8 = ""
     let ctext: const cstring = cast(const cstring) @dataof("")
-    let fromCString: #nonull const [..] u8 = cast(const [..] u8) ctext
+    let fromCString: const [..] u8 = cast(const [..] u8) ctext
     var fromDefault: JitPresentEmptySliceDefault
 
     return @countof(JIT_PRESENT_EMPTY_STRING_SLICE) == 0 and

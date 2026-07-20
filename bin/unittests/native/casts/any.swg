@@ -77,7 +77,7 @@ struct AnyCompareType
     @assert(x != bool)
 
     x = "string"
-    @assert(x == #nonull string)
+    @assert(x == string)
     @assert(x != s32)
 
     x = AnyCompareType{}

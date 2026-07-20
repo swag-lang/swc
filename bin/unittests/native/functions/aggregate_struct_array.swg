@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func aggregateStructArrayDigits(payloadIndex: u64) -> s32
 {

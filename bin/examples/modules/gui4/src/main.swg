@@ -98,7 +98,7 @@ struct SceneCard
 impl IPropertyNotify for SceneCard
 {
     // Conditional enable: radius is meaningless for a pill, shadow softness only when shadows are on.
-    mtd impl isItemEnabled(_list: #nonull *Properties, item: #nonull *PropertiesItem)->bool
+    mtd impl isItemEnabled(_list: *Properties, item: *PropertiesItem)->bool
     {
         switch item.typeValue.name
         {
@@ -112,7 +112,7 @@ impl IPropertyNotify for SceneCard
     }
 
     // Per-field validation, surfaced by the grid as an accent bar + tooltip.
-    mtd impl validateItem(_list: #nonull *Properties, item: #nonull *PropertiesItem)->PropValidationResult
+    mtd impl validateItem(_list: *Properties, item: *PropertiesItem)->PropValidationResult
     {
         switch item.typeValue.name
         {
@@ -162,20 +162,20 @@ var g_TestStep: s32
 // Small helpers
 // ---------------------------------------------------------------------------
 
-func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *FrameWnd
+func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*FrameWnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -206,13 +206,13 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: #nonull *Button)
+func toggleTheme(_btn: *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
 }
 
-func initCard(c: #nonull *SceneCard, label: #nonull string, argb: u32, shape: CardShape, scale, radius, roughness, opacity: f32, shadow: bool, sk: ShadowKind, badges: CardBadge)
+func initCard(c: *SceneCard, label: string, argb: u32, shape: CardShape, scale, radius, roughness, opacity: f32, shadow: bool, sk: ShadowKind, badges: CardBadge)
 {
     c.label      = label
     c.fill       = Color.fromArgb(argb)
@@ -279,9 +279,9 @@ func rebuildInspector()
     if g_Props.isGridLike() do
         g_Props.setColumnSize(190)
 
-    var bases: Array'(#nonull *u8)
+    var bases: Array'(*u8)
     for i in g_CardCount do
-        bases.add(cast(#nonull *u8) &g_Cards[i])
+        bases.add(cast(*u8) &g_Cards[i])
     g_Props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
     if !g_Filter.isEmpty() do
@@ -315,7 +315,7 @@ func setCardCount(count: s32)
         g_Preview.invalidate()
 }
 
-func createInspectorPage(parent: #nonull *Wnd)
+func createInspectorPage(parent: *Wnd)
 {
     // Left column: a control row (display mode + edited count), a search box, then the grid.
     g_ObjHost           = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
@@ -373,7 +373,7 @@ func createInspectorPage(parent: #nonull *Wnd)
 // Preview: the NumCards cards drawn in vertical slots, the first g_CardCount selected.
 // ---------------------------------------------------------------------------
 
-func cardRadius(card: #nonull *SceneCard, h: f32)->f32
+func cardRadius(card: *SceneCard, h: f32)->f32
 {
     switch card.shape
     {
@@ -384,7 +384,7 @@ func cardRadius(card: #nonull *SceneCard, h: f32)->f32
     return card.radius
 }
 
-func drawCard(painter: #nonull *Painter, slot: Math.Rectangle, card: #nonull *SceneCard, selected: bool)
+func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selected: bool)
 {
     painter.setParams(.Antialiased)
 
@@ -436,7 +436,7 @@ func drawCard(painter: #nonull *Painter, slot: Math.Rectangle, card: #nonull *Sc
     painter.drawStringCenter(body.horzCenter(), body.vertCenter(), card.label.toString(), font, tcol)
 }
 
-func onPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
+func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -477,7 +477,7 @@ impl IPropertyEditor for RatingEditor
         return type == Rating
     }
 
-    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
         let item   = list.addItem(value, data, parent)
         let rating = cast(#null *Rating) data
@@ -571,7 +571,7 @@ func layoutRootView()
     g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -644,7 +644,7 @@ func updateTestMode()
         Env.exit(0)
 }
 
-func onFrame(_app: #nonull *Application)
+func onFrame(_app: *Application)
 {
     updateTestMode()
 }

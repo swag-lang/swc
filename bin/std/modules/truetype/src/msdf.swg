@@ -52,7 +52,7 @@ func msdfNormDir(dx, dy: f64)->{ x: f64, y: f64 }
     return result
 }
 
-func msdfAddSeg(segs: #nonull *Array'MsdfSeg, x0, y0, x1, y1: f64)
+func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64)
 {
     if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
         return
@@ -65,7 +65,7 @@ func msdfAddSeg(segs: #nonull *Array'MsdfSeg, x0, y0, x1, y1: f64)
     segs.add(seg)
 }
 
-func msdfFlattenQuadratic(segs: #nonull *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+func msdfFlattenQuadratic(segs: *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
     {
@@ -85,7 +85,7 @@ func msdfFlattenQuadratic(segs: #nonull *Array'MsdfSeg, x0, y0, x1, y1, x2, y2, 
 }
 
 // msdfgen's "switchColor": deterministically pick the next edge color.
-func msdfSwitchColor(color: #nonull *u8, seed: #nonull *u64, banned: u8 = MSDF_BLACK)
+func msdfSwitchColor(color: *u8, seed: *u64, banned: u8 = MSDF_BLACK)
 {
     let combined = dref color & banned
     if combined == MSDF_RED or combined == MSDF_GREEN or combined == MSDF_BLUE
@@ -115,7 +115,7 @@ func msdfIsCorner(ax, ay, bx, by, crossThreshold: f64)->bool
 }
 
 // Color all elements of one contour so that incident edges across a corner differ.
-func msdfColorContour(elements: #nonull *Array'MsdfElement, first, count: u32, seed: #nonull *u64)
+func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u64)
 {
     // sin(3 degrees): direction changes beyond this angle are treated as corners.
     let crossThreshold = 0.05233595624294383'f64
@@ -173,7 +173,7 @@ func msdfColorContour(elements: #nonull *Array'MsdfElement, first, count: u32, s
 }
 
 // Build colored line segments from a glyph outline, in font pixel units (y up).
-func buildMsdfSegments(outline: #null const *Outline, segs: #nonull *Array'MsdfSeg)
+func buildMsdfSegments(outline: #null const *Outline, segs: *Array'MsdfSeg)
 {
     let commands  = buildOutlineCommands(outline)
     let tolerance = 0.20 / OVERSAMPLE
@@ -283,7 +283,7 @@ func buildMsdfSegments(outline: #null const *Outline, segs: #nonull *Array'MsdfS
 }
 
 // Signed distance from a point to a directed segment (msdfgen LinearEdge::signedDistance).
-func msdfSegSignedDistance(s: #nonull const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, param: f64 }
+func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, param: f64 }
 {
     let abx = s.x1 - s.x0
     let aby = s.y1 - s.y0
@@ -328,7 +328,7 @@ func msdfSegSignedDistance(s: #nonull const *MsdfSeg, px, py: f64)->{ sd: f64, d
 
 // Extend a segment's true distance to a pseudo-distance past its endpoints, so the
 // field stays linear beyond the segment (this is what keeps corners sharp).
-func msdfSegPseudoDistance(s: #nonull const *MsdfSeg, px, py, param, curSigned: f64)->f64
+func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f64
 {
     let abx   = s.x1 - s.x0
     let aby   = s.y1 - s.y0
@@ -371,7 +371,7 @@ func msdfSegPseudoDistance(s: #nonull const *MsdfSeg, px, py, param, curSigned: 
 // single pass over the segments. Each segment's true distance is computed once and
 // folded into every channel it carries (a segment is often coloured WHITE and would
 // otherwise be measured three times by three separate per-channel scans).
-func msdfChannelDistances(segs: #nonull const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64 }
+func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64 }
 {
     var bestAbs:    [3] f64 = [Swag.F64.Max, Swag.F64.Max, Swag.F64.Max]
     var bestSigned: [3] f64 = [-Swag.F64.Max, -Swag.F64.Max, -Swag.F64.Max]
@@ -421,17 +421,17 @@ func msdfMedian(a, b, c: f64)->f64
 
 struct MsdfRowCtx
 {
-    segs:        #nonull const *Array'MsdfSeg
-    edges:       #nonull const *Array'Edge
-    channels:    #nonull [*] f32
-    rowVotes:    #nonull [*] s64
+    segs:        const *Array'MsdfSeg
+    edges:       const *Array'Edge
+    channels:    [*] f32
+    rowVotes:    [*] s64
     width:       s32
     left:        s32
     top:         s32
 }
 
 // Fill one output row of the MSDF field and accumulate that row's sign vote.
-func msdfProcessRow(c: #nonull *MsdfRowCtx, py: u32)
+func msdfProcessRow(c: *MsdfRowCtx, py: u32)
 {
     let segsS   = c.segs.toSlice()
     let edgesS  = c.edges.toSlice()
@@ -480,7 +480,7 @@ const MsdfParallelMinSamples: u64 = 2000
 func renderCurrentOutlineMsdf(slot: #null *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = slot orelse cast(#nonull *GlyphSlot) 1'u64
+    let safeSlot = slot orelse cast(*GlyphSlot) 1'u64
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -523,8 +523,8 @@ func renderCurrentOutlineMsdf(slot: #null *GlyphSlot, spread: u32) throw
     // while keeping the expensive per-pixel winding test off the hot path.
     var rowVotes: Array's64
     rowVotes.resize(cast(u64) rows)
-    let channelsBuffer = channels.buffer orelse cast(#nonull [*] f32) 1'u64
-    let rowVotesBuffer = rowVotes.buffer orelse cast(#nonull [*] s64) 1'u64
+    let channelsBuffer = channels.buffer orelse cast([*] f32) 1'u64
+    let rowVotesBuffer = rowVotes.buffer orelse cast([*] s64) 1'u64
 
     var ctx = MsdfRowCtx{
         segs:     &segs,
@@ -541,8 +541,8 @@ func renderCurrentOutlineMsdf(slot: #null *GlyphSlot, spread: u32) throw
     {
         Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
         {
-            let safeData = data orelse cast(#nonull *void) 1'u64
-            msdfProcessRow(cast(#nonull *MsdfRowCtx) safeData, py)
+            let safeData = data orelse cast(*void) 1'u64
+            msdfProcessRow(cast(*MsdfRowCtx) safeData, py)
         }
     }
     else
@@ -559,7 +559,7 @@ func renderCurrentOutlineMsdf(slot: #null *GlyphSlot, spread: u32) throw
 
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
-    var dst = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
+    var dst = faceData.bitmapPixels.buffer orelse cast([*] u8) 1'u64
     for i in count
     {
         let src = i * 4

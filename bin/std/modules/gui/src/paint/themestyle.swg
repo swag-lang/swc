@@ -36,7 +36,7 @@ impl ThemeStyle
         }
     }
 
-    private mtd set(theme: #nonull *Theme)
+    private mtd set(theme: *Theme)
     {
         .refr       = Memory.new'ThemeStyleRef()
         .refr.theme = theme
@@ -52,7 +52,7 @@ impl ThemeStyle
         .set(theme)
     }
 
-    private mtd compute(owner: #nonull *Wnd, parent: #null *ThemeStyle)
+    private mtd compute(owner: *Wnd, parent: #null *ThemeStyle)
     {
         // First time, initialize to parent
         if !.refr
@@ -161,7 +161,7 @@ impl ThemeStyle
         .dirty = true
     }
 
-    mtd setFont(fnt: #nonull *Font, style: FontFamilyStyle)
+    mtd setFont(fnt: *Font, style: FontFamilyStyle)
     {
         .font.setFont(fnt, style)
         .dirty = true

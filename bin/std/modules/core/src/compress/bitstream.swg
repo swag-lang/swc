@@ -14,7 +14,7 @@ struct BitStream
 impl BitStream
 {
     // Initializes the bit stream with an input buffer
-    mtd init(buf: #nonull const [..] u8)
+    mtd init(buf: const [..] u8)
     {
         @init(me, 1)
         .stream = buf
@@ -140,7 +140,7 @@ impl BitStream
     }
 
     // Peeks 'width' bytes into 'dest', consuming bits after each byte
-    mtd peekBytes(width: u8, dest: #nonull [*] u8)
+    mtd peekBytes(width: u8, dest: [*] u8)
     {
         // Could be optimized further
         for i in width
@@ -151,7 +151,7 @@ impl BitStream
     }
 
     // Peeks 4 bytes (little-endian) into 'dest'
-    mtd peek32(dest: #nonull [*] u8)
+    mtd peek32(dest: [*] u8)
     {
         dest[0] = cast(u8) .peekBits(8)
         .consumeBits(8)
@@ -164,7 +164,7 @@ impl BitStream
     }
 
     // Peeks 4 bytes (big-endian) into 'dest', auto-switches based on platform
-    mtd peek32Be(dest: #nonull [*] u8)
+    mtd peek32Be(dest: [*] u8)
     {
         #if BIG_ENDIAN do
             peek32(dest) // Already big-endian

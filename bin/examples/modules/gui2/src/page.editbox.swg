@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createEditBoxPage(parent: #nonull *Wnd)
+func createEditBoxPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let forms = createPanel(parent, "Forms", "Square, round, flat and transparent edit boxes with placeholder notes.", layout.left)

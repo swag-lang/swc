@@ -35,9 +35,9 @@ impl IActionUI for ActionProperties
 
     // Provide each item's label, icon and enabled state from the current target row. This is the
     // logic that used to live inline in popupMenu next to each addItem.
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let prop = cast(#nonull *Properties) assume cxt.wnd
+        let prop = cast(*Properties) assume cxt.wnd
         let item = prop.menuItem
         if !item do
             return false
@@ -106,7 +106,7 @@ impl IActionUI for ActionProperties
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let prop = cast(#nonull *Properties) assume cxt.wnd
+        let prop = cast(*Properties) assume cxt.wnd
         let item = prop.menuItem
         if !item do
             return false

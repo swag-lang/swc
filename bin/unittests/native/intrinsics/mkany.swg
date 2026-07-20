@@ -137,7 +137,7 @@ alias MkanyStrictTypeInfo = typeinfo
 
 #test
 {
-    var boxed: any = null
+    var boxed: any = undefined
     var value: s64 = 9000
     boxed = @mkany(&value, s64)
     let p = cast(*s64) @dataof(boxed)
@@ -247,8 +247,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let info = #typeof(text)
     let boxed: any = @mkany(&text, info)
 
-    @assert(@kindof(boxed) == #nonull string)
-    @assert(cast(#nonull string) boxed == "omega")
+    @assert(@kindof(boxed) == string)
+    @assert(cast(string) boxed == "omega")
 }
 
 #test

@@ -289,7 +289,7 @@ namespace compiler309
 namespace compiler311
 {
     //
-    var g: string
+    var g: string = ""
 
     //#[Swag.PrintBc]
     #test

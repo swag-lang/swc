@@ -84,8 +84,8 @@ struct PropertiesItem
     comboBox:           #null *ComboBox
     sliderBox:          #null *SliderCtrl
 
-    sigResize:          SigArray'func||(#nonull *PropertiesItem)
-    sigRefresh:         SigArray'func||(#nonull *PropertiesItem)
+    sigResize:          SigArray'func||(*PropertiesItem)
+    sigRefresh:         SigArray'func||(*PropertiesItem)
 
     ntfyItf:            IPropertyNotify
 

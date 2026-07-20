@@ -22,7 +22,7 @@ struct PushButton
 
 impl IWnd for PushButton
 {
-    mtd impl onStateEvent(evt: #nonull *StateEvent)
+    mtd impl onStateEvent(evt: *StateEvent)
     {
         .button.IWnd.onStateEvent(evt)
         if evt.kind == .Hide or evt.kind == .Disable
@@ -33,7 +33,7 @@ impl IWnd for PushButton
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc
         let theme   = .getTheme()
@@ -175,7 +175,7 @@ impl IWnd for PushButton
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if .processMouseEvent(evt) do
             .postCommandEvent(.id)
@@ -185,7 +185,7 @@ impl IWnd for PushButton
 impl PushButton
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *PushButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*PushButton
     {
         Debug.assert(parent != null)
         var pos = position

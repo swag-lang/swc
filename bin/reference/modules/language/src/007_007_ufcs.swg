@@ -22,7 +22,7 @@ This improves clarity when working with structs or objects.
 {
     struct Point { x, y: s32 }
 
-    func set(pt: #nonull *Point, value: s32)
+    func set(pt: *Point, value: s32)
     {
         pt.x, pt.y = value
     }
@@ -46,7 +46,7 @@ UFCS works with multi-parameter functions as long as the first parameter type ma
 {
     struct Vector { x, y: f32 }
 
-    func add(vec: #nonull *Vector, dx: f32, dy: f32)
+    func add(vec: *Vector, dx: f32, dy: f32)
     {
         vec.x += dx
         vec.y += dy
@@ -71,13 +71,13 @@ UFCS supports overloaded functions, selecting the correct overload based on argu
 {
     struct Complex { real, imag: f32 }
 
-    func multiply(c: #nonull *Complex, scalar: f32)
+    func multiply(c: *Complex, scalar: f32)
     {
         c.real *= scalar
         c.imag *= scalar
     }
 
-    func multiply(c: #nonull *Complex, other: #nonull *Complex)
+    func multiply(c: *Complex, other: *Complex)
     {
         // Use temporary variables to prevent reuse of modified values
         let r = (c.real * other.real) - (c.imag * other.imag)

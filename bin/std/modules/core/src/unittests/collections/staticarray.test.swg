@@ -32,7 +32,7 @@ func resetStaticArrayDropTrace()
     StaticArrayDropCount = 0
 }
 
-func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: #nonull const [..] s32)->bool
+func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false

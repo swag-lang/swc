@@ -29,7 +29,7 @@ func(T) functionLocalImplicitBox()->bool
         item: Box
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.value) == T
 }
 
@@ -40,7 +40,7 @@ func(T, N: s32) functionLocalImplicitBuffer()->bool
         item: Buffer
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.values) == #type [N] T
 }
 
@@ -51,7 +51,7 @@ func(T, V) functionLocalPartialBox()->bool
         item: MiddleDefaultBox'T
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.first) == T and #typeof(data.item.second) == string and #typeof(data.item.third) == V
 }
 
@@ -62,7 +62,7 @@ func(T) functionLocalExplicitPrefixValue()->bool
         item: PrefixDefaultBuffer'3
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.values) == #type [3] T
 }
 
@@ -73,7 +73,7 @@ func(U) functionLocalImplicitRenamedBox()->bool
         item: Box
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.value) == U
 }
 
@@ -84,7 +84,7 @@ func(U, M: s32) functionLocalImplicitRenamedBuffer()->bool
         item: Buffer
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.values) == #type [M] U
 }
 
@@ -95,7 +95,7 @@ func(A, B) functionLocalRenamedPartialBox()->bool
         item: MiddleDefaultBox'A
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.first) == A and #typeof(data.item.second) == string and #typeof(data.item.third) == B
 }
 
@@ -106,7 +106,7 @@ func(U) functionLocalRenamedExplicitPrefixValue()->bool
         item: PrefixDefaultBuffer'3
     }
 
-    let data: Local
+    var data: Local = undefined
     return #typeof(data.item.values) == #type [3] U
 }
 
@@ -134,7 +134,7 @@ impl MethodTypeShadowHolder
             item: Box
         }
 
-        let data: Local
+        var data: Local = undefined
         return #typeof(data.item.value) == T and #typeof(value) == T
     }
 }
@@ -152,7 +152,7 @@ impl MethodConstShadowHolder
             item: Buffer
         }
 
-        let data: Local
+        var data: Local = undefined
         return #typeof(data.item.values) == #type [N] T
     }
 }

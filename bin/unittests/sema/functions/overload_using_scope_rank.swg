@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 // Regression: a same-name function declared at a closer scope tier (here the module
 // scope) must not shadow better-ranked overloads brought in through a `using`

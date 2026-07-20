@@ -17,7 +17,7 @@ const REFLECTED_STORED_TYPE_INFO = cast(const *TypeInfoFunc) #typeof(reflectedSt
     func attributeStoredTypeArgument()->bool
     {
         let attribute = REFLECTED_STORED_TYPE_INFO.attributes[0]
-        let value = cast(typeinfo) attribute.params[0].value
+        let value = cast(#null typeinfo) attribute.params[0].value
         return value == #type const [2] f32
     }
 

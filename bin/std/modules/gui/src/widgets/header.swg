@@ -35,8 +35,8 @@ struct Header
     form                  = HeaderForm.Flat
     headerFlags           = HeaderFlags.Clickable
     marginItems:          f32 = 5
-    sigLayoutChanged:     func||(#nonull *Header)
-    sigClicked:           func||(#nonull *Header, u32)
+    sigLayoutChanged:     func||(*Header)
+    sigClicked:           func||(*Header, u32)
 
     items:                ArrayPtr'HeaderItem
     hotIdx                = Swag.U32.Max
@@ -50,7 +50,7 @@ struct Header
 
 impl IWnd for Header
 {
-    mtd paintItem(bc: PaintContext, item: #nonull *HeaderItem, idx: u32, x: f32)
+    mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
     {
         let painter = bc.painter
 
@@ -111,7 +111,7 @@ impl IWnd for Header
         Theme.drawIconText(painter, labelPos, item.icon, &item.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let painter = evt.bc.painter
         let theme   = .getTheme()
@@ -155,7 +155,7 @@ impl IWnd for Header
         }
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .MouseReleased and evt.button == .Left
         {
@@ -279,7 +279,7 @@ private impl Header
 impl Header
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *Header
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Header
     {
         Debug.assert(parent != null)
 
@@ -295,7 +295,7 @@ impl Header
 
     // Add a new view
     #[Swag.Discardable]
-    mtd addItem(tabName: #nonull string, width = 100'f32, icon: Icon = {})->#nonull *HeaderItem
+    mtd addItem(tabName: string, width = 100'f32, icon: Icon = {})->*HeaderItem
     {
         let item = .items.newPtr()
         item.name   = tabName
@@ -307,7 +307,7 @@ impl Header
     }
 
     // Returns the given item, by index
-    mtd getItem(idx: u32)->#nonull *HeaderItem
+    mtd getItem(idx: u32)->*HeaderItem
     {
         Debug.assert(idx < .items.count)
         return assume .items[idx]

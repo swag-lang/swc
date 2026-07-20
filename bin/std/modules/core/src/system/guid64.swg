@@ -107,7 +107,7 @@ impl GUID64
     }
 
     // Convert GUID64 to hexadecimal string
-    mtd const toString(result: #nonull [..] u8)
+    mtd const toString(result: [..] u8)
     {
         Debug.assert(@countof(result) == 16)
 
@@ -145,7 +145,7 @@ impl GUID64
     }
 
     // Parse GUID64 from hex string (with or without 0x prefix)
-    func parse(str: #nonull string)->GUID64
+    func parse(str: string)->GUID64
     {
         var result:  retval = undefined
         var startIdx = 0
@@ -184,7 +184,7 @@ impl StrConv.IConvert for GUID64
 {
     // Convert the GUID to its hexadecimal string representation.
     // Produces a 16-character uppercase hex string without separators.
-    mtd const impl convert(buf: #nonull *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes(.getString())
     }
@@ -198,6 +198,6 @@ impl Hash.IHash32 for GUID64
     // Uses CRC32 algorithm on the 8-byte GUID data for consistent hashing.
     mtd const impl compute()->u32
     {
-        return Hash.Crc32.compute(@mkslice(cast(#nonull const [*] u8) &.guid, #sizeof(u64)))
+        return Hash.Crc32.compute(@mkslice(cast(const [*] u8) &.guid, #sizeof(u64)))
     }
 }

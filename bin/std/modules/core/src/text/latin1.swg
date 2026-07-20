@@ -39,14 +39,14 @@ private func isUpperUtf8(c: u8)->bool
 }
 
 // Make an utf8 buffer upper case, dealing only with latin1 table
-func makeUpper(buffer: #nonull [..] u8)
+func makeUpper(buffer: [..] u8)
 {
     for c, i in buffer where isLowerUtf8(c) do
         buffer[i] -= 0x20
 }
 
 // Make an utf8 buffer lower case, dealing only with latin1 table
-func makeLower(buffer: #nonull [..] u8)
+func makeLower(buffer: [..] u8)
 {
     for c, i in buffer where isUpperUtf8(c) do
         buffer[i] += 0x20
@@ -54,7 +54,7 @@ func makeLower(buffer: #nonull [..] u8)
 
 // Compare two utf8 strings, dealing only with latin1 table
 // Returns -1, 0 or 1
-func compare(src, dst: #nonull const [..] u8, ignoreCase = false)->s32
+func compare(src, dst: const [..] u8, ignoreCase = false)->s32
 {
     let length      = @countof(src)
     let otherLength = @countof(dst)
@@ -96,9 +96,9 @@ func compare(src, dst: #nonull const [..] u8, ignoreCase = false)->s32
 // The original code has been modified for Swag
 // See LICENCE.md for the corresponding licence.
 #[Swag.Sanity(Swag.SafetyWhat.All, false)]
-func compareNatural(src, dst: #nonull const [..] u8, ignoreCase = false)->s32
+func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 {
-    func compareLeft(src, dst: #nonull const [..] u8)->s32
+    func compareLeft(src, dst: const [..] u8)->s32
     {
         var csrc = @countof(src)
         var cdst = @countof(dst)
@@ -129,7 +129,7 @@ func compareNatural(src, dst: #nonull const [..] u8, ignoreCase = false)->s32
         return 0
     }
 
-    func compareRight(src, dst: #nonull const [..] u8)->s32
+    func compareRight(src, dst: const [..] u8)->s32
     {
         var bias = 0
         var csrc = @countof(src)
@@ -232,7 +232,7 @@ func compareNatural(src, dst: #nonull const [..] u8, ignoreCase = false)->s32
 }
 
 // Trim the string.
-func trim(str: #nonull string)->#nonull string
+func trim(str: string)->string
 {
     var countof = @countof(str)
     var cpt     = 0'u64

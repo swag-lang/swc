@@ -46,21 +46,21 @@ struct ArrayOptions
     labels: Array'String
 }
 
-func parseFailed(args: #nonull const [..] #nonull string)->bool
+func parseFailed(args: const [..] string)->bool
 {
     var options: BasicOptions
     discard catch CommandLine.parse(&options, args)
     return @err != null
 }
 
-func parseAdvancedFailed(args: #nonull const [..] #nonull string)->bool
+func parseAdvancedFailed(args: const [..] string)->bool
 {
     var options: AdvancedOptions
     discard catch CommandLine.parse(&options, args)
     return @err != null
 }
 
-func assertIntValues(values: const &Array's32, expected: #nonull const [..] s32)->bool
+func assertIntValues(values: const &Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -74,7 +74,7 @@ func assertIntValues(values: const &Array's32, expected: #nonull const [..] s32)
     return true
 }
 
-func assertStringValues(values: const &Array'String, expected: #nonull const [..] #nonull string)->bool
+func assertStringValues(values: const &Array'String, expected: const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -90,7 +90,7 @@ func assertStringValues(values: const &Array'String, expected: #nonull const [..
 
 #test
 {
-    let args: [4] #nonull string = ["  -name:Bob  ", " -count = 42 ", "", "payload"]
+    let args: [4] string = ["  -name:Bob  ", " -count = 42 ", "", "payload"]
     let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
 
     @assert(split.count == 5)
@@ -103,7 +103,7 @@ func assertStringValues(values: const &Array'String, expected: #nonull const [..
 
 #test
 {
-    let args: [4] #nonull string = [" -threshold = -.5 ", "-values:-1", " 2 ", " 3 "]
+    let args: [4] string = [" -threshold = -.5 ", "-values:-1", " 2 ", " 3 "]
     let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
 
     @assert(split.count == 6)
@@ -118,7 +118,7 @@ func assertStringValues(values: const &Array'String, expected: #nonull const [..
 #test
 {
     var options = BasicOptions{}
-    let args: [7] #nonull string = ["-delta", "-7", "-count", "-12", "-enabled", "-mode", "Gamma"]
+    let args: [7] string = ["-delta", "-7", "-count", "-12", "-enabled", "-mode", "Gamma"]
 
     let result = catch CommandLine.parse(&options, args)
 

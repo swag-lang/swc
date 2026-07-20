@@ -12,7 +12,7 @@ struct MutationSpan
     num:  s64
 }
 
-func compactMutationFor(text: #nonull string)->u64
+func compactMutationFor(text: string)->u64
 {
     var map: Array'{ what, num: s64 }
     var nextId: s64
@@ -70,7 +70,7 @@ func compactMutationFor(text: #nonull string)->u64
     return total
 }
 
-func compactMutationWhile(text: #nonull string)->u64
+func compactMutationWhile(text: string)->u64
 {
     var map: Array'{ what, num: s64 }
     var nextId: s64

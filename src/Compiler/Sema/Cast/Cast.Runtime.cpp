@@ -36,8 +36,8 @@ namespace
         // During the explicit-nullability migration, legacy element types can flow to an explicit
         // nullable destination because the runtime representation is unchanged and the destination
         // still accepts null.  Do not use that relaxation for explicit non-null destinations.
-        if (dstElemType.isExplicitNonNull())
-            return srcElemType.isExplicitNonNull();
+        if (dstElemType.isNonNullable())
+            return srcElemType.isNonNullable();
         return dstElemType.isNullable();
     }
 

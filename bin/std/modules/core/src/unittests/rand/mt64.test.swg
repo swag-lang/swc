@@ -54,7 +54,7 @@ using Swag
 
 #test
 {
-    const seed: #nonull const [..] u64 = [0x12345'u64, 0x23456'u64, 0x34567'u64, 0x45678'u64]
+    const seed: const [..] u64 = [0x12345'u64, 0x23456'u64, 0x34567'u64, 0x45678'u64]
     var rng: Random.Mt64
     rng.seedU64(seed)
 

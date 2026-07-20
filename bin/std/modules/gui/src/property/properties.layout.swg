@@ -9,7 +9,7 @@ impl Properties
     // The window into which a row's trailing action widgets are placed. Grid docks them on the row
     // cell; list places them on the name label in local content coordinates. Null for rows with no
     // label in list mode.
-    mtd rowActionArea(item: #nonull *PropertiesItem)->#null *Wnd
+    mtd rowActionArea(item: *PropertiesItem)->#null *Wnd
     {
         return .isGridLike() ? item.line : cast(#null *Wnd) item.label
     }
@@ -28,7 +28,7 @@ impl Properties
     // In condensed mode the value editors fill the whole value cell (both axes):
     // the grid lines already provide the visual structure, so the editor stays
     // flat and edge-to-edge instead of floating as a smaller bordered box.
-    mtd adaptCondensedControl(wnd: #nonull *Wnd)
+    mtd adaptCondensedControl(wnd: *Wnd)
     {
         if .kind != .Condensed do
             return
@@ -39,7 +39,7 @@ impl Properties
     // Flatten an edit box for the condensed cell look: no background/border at
     // rest (only when invalid), with a small horizontal padding so the text does
     // not touch the column separator.
-    mtd flattenCondensedEdit(ed: #nonull *EditBox)
+    mtd flattenCondensedEdit(ed: *EditBox)
     {
         if .kind != .Condensed do
             return
@@ -113,7 +113,7 @@ internal impl Properties
         return .listContentWidthFromUseful(cast(f32) .sizeEditValue) - PropRevertGap
     }
 
-    mtd positionListActionButton(item: #nonull *PropertiesItem, btn: #null *IconButton)
+    mtd positionListActionButton(item: *PropertiesItem, btn: #null *IconButton)
     {
         if .isGridLike() or !btn or !item.label do
             return
@@ -130,12 +130,12 @@ internal impl Properties
         return Math.clamp(size, .gridMarginColumn, maxSize)
     }
 
-    mtd isGridHeader(item: #nonull *PropertiesItem)->bool
+    mtd isGridHeader(item: *PropertiesItem)->bool
     {
         return .isGridLike() and item.flags.has(.Section | .Category | .Header)
     }
 
-    mtd getGridHeaderLabelWidth(item: #nonull *PropertiesItem)->f32
+    mtd getGridHeaderLabelWidth(item: *PropertiesItem)->f32
     {
         var width = .edView.position.width
         if width <= 0 do
@@ -150,12 +150,12 @@ internal impl Properties
     // tint. Headers (section/category) span the full width and are never indented. Depth 0 is a
     // top-level field (level 1); every nested struct/array level adds one gridIndentSize step.
     // Data-column depth of a row: 0 for a top-level field (level 1), +1 per nested struct/array.
-    mtd itemDepth(item: #nonull *PropertiesItem)->u32
+    mtd itemDepth(item: *PropertiesItem)->u32
     {
         return item.level > 0 ? item.level - 1 : 0'u32
     }
 
-    mtd itemIndent(item: #nonull *PropertiesItem)->f32
+    mtd itemIndent(item: *PropertiesItem)->f32
     {
         if !.isGridLike() do
             return 0
@@ -179,7 +179,7 @@ internal impl Properties
     // the row's depth has any expandable item (so leaf rows stay aligned with their expandable
     // siblings); shrunk when the whole depth is mark-less, reclaiming that horizontal room so a
     // group of pure-leaf fields tucks in closer under its parent instead of leaving an empty slot.
-    mtd itemLabelGutter(item: #nonull *PropertiesItem)->f32
+    mtd itemLabelGutter(item: *PropertiesItem)->f32
     {
         if !.isGridLike() or .isGridHeader(item) do
             return cast(f32) .leftMargin
@@ -205,7 +205,7 @@ internal impl Properties
         }
     }
 
-    mtd syncColumnLabel(item: #nonull *PropertiesItem)
+    mtd syncColumnLabel(item: *PropertiesItem)
     {
         if !item.label do
             return

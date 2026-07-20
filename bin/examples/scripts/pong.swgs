@@ -25,7 +25,7 @@ struct Paddle
 
 var g_Rng:  Random.Rng
 var g_Rect: Math.Rectangle
-var g_Font: *Font
+var g_Font: #null *Font
 
 var g_ScoreLeft:  s32
 var g_ScoreRight: s32
@@ -115,7 +115,7 @@ func updateBall(wnd: *Wnd)
     g_Ball.pos += g_Ball.speed * dt
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -147,7 +147,7 @@ func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
         painter.fillRect(g_PaddleRight.pos.x - PaddleWidth, g_PaddleRight.pos.y - PaddleHeight, 2 * PaddleWidth, 2 * PaddleHeight, Argb.White)
 
         var sp: StringPainter
-        sp.font(g_Font)
+        sp.font(assume g_Font)
         sp.color(Argb.White)
         sp.horzAlign(.Center)
         sp.vertAlign(.Center)

@@ -2,8 +2,8 @@
 
 struct(T) RecursiveAssocPayload
 {
-    first:   *T
-    second:  *T
+    first:   #null *T
+    second:  #null *T
     count:   u64
 }
 
@@ -16,7 +16,7 @@ struct(K, V) RecursiveAssocEntry
 
 struct(K, V) RecursiveAssocTable
 {
-    table:     [*] RecursiveAssocEntry
+    table:     #null [*] RecursiveAssocEntry
     count:     u64
     capacity:  u64
     deleted:   u64
@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable = .table
         let oldCapacity = .capacity
-        .table = cast([*] RecursiveAssocEntry'(K, V)) @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        .table = cast(#null [*] RecursiveAssocEntry'(K, V)) @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
 
         for i in oldCapacity
         {
@@ -94,7 +94,7 @@ impl RecursiveAssocTable
         let oldTable = .table
         let oldCapacity = .capacity
 
-        .table = cast([*] RecursiveAssocEntry'(K, V)) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        .table = cast(#null [*] RecursiveAssocEntry'(K, V)) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
         .count = 0
         .deleted = 0
         .capacity = reqCapacity
@@ -117,7 +117,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->*RecursiveAssocEntry'(K, V)
+    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->#null *RecursiveAssocEntry'(K, V)
     {
         .grow()
 
@@ -141,7 +141,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd add(key: K, value: V)->*RecursiveAssocEntry'(K, V)
+    mtd add(key: K, value: V)->#null *RecursiveAssocEntry'(K, V)
     {
         let hashVal = recursiveHash(cast(u32) key)
         return .emplaceInternal(hashVal, &key, &value)

@@ -1,12 +1,12 @@
 public struct ActionContext
 {
     wnd:     #null *Wnd
-    id:      #nonull WndId
+    id:      WndId
 }
 
 public interface IActionUI
 {
     mtd accept(cxt: ActionContext)->bool;
-    mtd update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool;
+    mtd update(cxt: ActionContext, evt: *CommandStateEvent)->bool;
     mtd execute(cxt: ActionContext)->bool;
 }

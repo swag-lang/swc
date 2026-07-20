@@ -25,7 +25,7 @@ struct StackLayoutCtrl
 
 impl IWnd for StackLayoutCtrl
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
         .wnd.IWnd.onResizeEvent(evt)
@@ -110,28 +110,28 @@ private impl StackLayoutCtrl
         return .isHorizontal() ? margin.w : margin.z
     }
 
-    mtd mainPolicy(wnd: #nonull *Wnd)->SizePolicy
+    mtd mainPolicy(wnd: *Wnd)->SizePolicy
     {
         return .isHorizontal() ? wnd.layoutSpec.policyX : wnd.layoutSpec.policyY
     }
 
-    mtd crossPolicy(wnd: #nonull *Wnd)->SizePolicy
+    mtd crossPolicy(wnd: *Wnd)->SizePolicy
     {
         return .isHorizontal() ? wnd.layoutSpec.policyY : wnd.layoutSpec.policyX
     }
 
-    mtd mainWeight(wnd: #nonull *Wnd)->f32
+    mtd mainWeight(wnd: *Wnd)->f32
     {
         return Math.max(.isHorizontal() ? wnd.layoutSpec.weightX : wnd.layoutSpec.weightY, 0)
     }
 
-    mtd canShrinkMain(wnd: #nonull *Wnd)->bool
+    mtd canShrinkMain(wnd: *Wnd)->bool
     {
         let pol = .mainPolicy(wnd)
         return pol == SizePolicy.Fill or pol == SizePolicy.Expand
     }
 
-    mtd setRectMain(rect: #nonull *Math.Rectangle, pos, size: f32)
+    mtd setRectMain(rect: *Math.Rectangle, pos, size: f32)
     {
         if .isHorizontal()
         {
@@ -145,7 +145,7 @@ private impl StackLayoutCtrl
         }
     }
 
-    mtd setRectCross(rect: #nonull *Math.Rectangle, pos, size: f32)
+    mtd setRectCross(rect: *Math.Rectangle, pos, size: f32)
     {
         if .isHorizontal()
         {
@@ -172,7 +172,7 @@ private impl StackLayoutCtrl
         let availableMain = .mainFromRect(client)
         let availableCross = .crossFromRect(client)
 
-        var visible:  Array'(#nonull *Wnd)
+        var visible:  Array'(*Wnd)
         var hints:    Array'SizeHint
         var oldSizes: Array'Math.Point
         for c in .childs
@@ -349,7 +349,7 @@ private impl StackLayoutCtrl
 impl StackLayoutCtrl
 {
     // Create a layout control
-    func create(parent: #nonull *Wnd, kind: StackLayoutKind = .Top, position: Math.Rectangle = {})->#nonull *StackLayoutCtrl
+    func create(parent: *Wnd, kind: StackLayoutKind = .Top, position: Math.Rectangle = {})->*StackLayoutCtrl
     {
         let res = Wnd.create'StackLayoutCtrl(parent, position)
         res.layoutKind = kind

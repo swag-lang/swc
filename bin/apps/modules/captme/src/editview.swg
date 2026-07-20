@@ -12,7 +12,7 @@ struct EditView
 
 impl IWnd for EditView
 {
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
         if !.capture do
@@ -38,7 +38,7 @@ impl IWnd for EditView
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         if .firstPaint
         {
@@ -170,7 +170,7 @@ impl EditView
         .setZoom(Math.min(zx, zy))
     }
 
-    mtd setCapture(c: #nonull *Capture)
+    mtd setCapture(c: *Capture)
     {
         if .capture do
             Memory.delete(.capture)

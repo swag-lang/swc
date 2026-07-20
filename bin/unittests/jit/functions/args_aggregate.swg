@@ -104,7 +104,7 @@ struct AbiNested
 
 #test
 {
-    func passPointer(value: *void)->*void { return value }
+    func passPointer(value: #null *void)->#null *void { return value }
     const V = #run passPointer(null)
     #assert(V == null)
     const V1 = #run passPointer(cast(*void) 0x1234'u64)
@@ -115,7 +115,7 @@ struct AbiNested
 
 #test
 {
-    func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: *void)->s32 { return a + c.a + d[1] }
+    func passMixed(a: s32, b: string, c: AbiPair, d: [2] s32, e: #null *void)->s32 { return a + c.a + d[1] }
     const V = #run passMixed(3, "mix", {a: 10, b: 11}, [8, 9], null)
     #assert(V == 22)
     const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64)
@@ -185,7 +185,7 @@ struct AbiNested
 
 #test
 {
-    func passAggregatePositions(a: *void, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
+    func passAggregatePositions(a: #null *void, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
     {
         return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
     }
@@ -209,9 +209,9 @@ struct AbiNested
 
 #test
 {
-    func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void, values: [2] s32, e: AbiEnum)->bool
+    func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: #null *void, values: [2] s32, e: AbiEnum)->bool
     {
-        return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == string and #typeof(p) == *void and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
+        return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == string and #typeof(p) == #null *void and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
     }
 
     const V = #run passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A)

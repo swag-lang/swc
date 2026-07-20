@@ -45,7 +45,7 @@ private struct DefaultThemeImages
 
 private var g_DefaultThemeImages: DefaultThemeImages
 
-private func defaultThemeImages()->#nonull *DefaultThemeImages
+private func defaultThemeImages()->*DefaultThemeImages
 {
     let cache = &g_DefaultThemeImages
     Sync.scopedLock(&cache.lock)
@@ -97,7 +97,7 @@ impl Theme
         Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: #nonull *RenderOgl)
+    private mtd setupDefault(renderer: *RenderOgl)
     {
         .intialized = true
         .colors.setDark()
@@ -164,7 +164,7 @@ impl Theme
     }
 
     // Create a default font with the given size
-    mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->#nonull *Font
+    mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
         #[Swag.Complete]
         switch style
@@ -183,7 +183,7 @@ impl Theme
     }
 
     // Create a default font (fixed size) with the given size
-    mtd createDefaultFontFS(size: u32, style = FontFamilyStyle.Regular)->#nonull *Font
+    mtd createDefaultFontFS(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
         #[Swag.Complete]
         switch style

@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct LambdaPair
 {
@@ -21,7 +20,7 @@ struct LambdaResult
     pair:     LambdaPair
 }
 
-alias LambdaAggregate = func(LambdaPayload, [4] s32, #nonull any)->LambdaResult
+alias LambdaAggregate = func(LambdaPayload, [4] s32, any)->LambdaResult
 alias LambdaTypedVariadic = func(LambdaPair, [2] u16, LambdaPayload...)->u64
 alias LambdaUntypedVariadic = func(bool, ...)->s32
 alias LambdaUnary = func(s32)->s32
@@ -54,7 +53,7 @@ struct LambdaArrayHolder
     callbacks: [2] LambdaUnary
 }
 
-func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s32, boxed: #nonull any)->LambdaResult
+func invokeAggregate(cb: LambdaAggregate, payload: LambdaPayload, values: [4] s32, boxed: any)->LambdaResult
 {
     return cb(payload, values, boxed)
 }
@@ -99,7 +98,7 @@ func semaTest001()
     {
         #assert(#typeof(payload) == LambdaPayload)
         #assert(#typeof(values) == [4] s32)
-        #assert(#typeof(boxed) == #nonull any)
+        #assert(#typeof(boxed) == any)
 
         return {
             total: cast(s64) payload.base + cast(s64) values[0] + cast(s64) values[3] + cast(s64) cast(s32) boxed,
@@ -161,7 +160,7 @@ func semaTest004()
         #assert(#nameof(#typeof(values[1])) == "any")
         #assert(#nameof(#typeof(values[2])) == "any")
 
-        let text = cast(#nonull string) values[2]
+        let text = cast(string) values[2]
         return cast(s32) values[0] + cast(s32) values[1] + cast(s32) text[1] + cast(s32) flag
     }
 

@@ -9,7 +9,7 @@ const SurrSelf  = 0x10000
 
 // Get the unicode character pointed by 'buffer', and the number of u16 to encode it
 // Will return 'RuneError' for an invalid utf16 sequence
-func decodeRune(buffer: #nonull const [..] u16)->{ c: rune, eat: u32 }
+func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 {
     var result: retval
 
@@ -42,7 +42,7 @@ func decodeRune(buffer: #nonull const [..] u16)->{ c: rune, eat: u32 }
 // Convert unicode character 'src' to an utf16 sequence, and returns
 // the number of u16 that were needed to make the conversion.
 // 'dest' must be at least 2 u16 long
-func encodeRune(dest: #nonull [..] u16, src: rune)->u32
+func encodeRune(dest: [..] u16, src: rune)->u32
 {
     Debug.assert(@countof(dest) >= 2, "destination buffer is too small")
     switch
@@ -65,7 +65,7 @@ func encodeRune(dest: #nonull [..] u16, src: rune)->u32
 
 // Convert an utf8 buffer to a utf16 buffer, and returns the
 // number of valid elements in the destination buffer
-func fromUtf8(dest: #nonull [..] u16, src: #nonull const [..] u8)->u64
+func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
     var count      = 0'u64
     var srcPtr     = @dataof(src)
@@ -90,11 +90,11 @@ func fromUtf8(dest: #nonull [..] u16, src: #nonull const [..] u8)->u64
 }
 
 // Convert an utf8 buffer to an utf16 sequence
-func fromUtf8(src: #nonull const [..] u8)->Array'u16
+func fromUtf8(src: const [..] u8)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src))
-    let buffer = result.buffer orelse cast(#nonull [*] u16) 1'u64
+    let buffer = result.buffer orelse cast([*] u16) 1'u64
     result.count = fromUtf8(@mkslice(buffer, result.capacity), src)
     return result
 }
@@ -102,7 +102,7 @@ func fromUtf8(src: #nonull const [..] u8)->Array'u16
 // Convert a character array (32 bits unicode) to an utf16 buffer
 // Returns the number of bytes written in the destination buffer
 // 'dest' must be at least 2 bytes long
-func fromUnicode(dest: #nonull [..] u16, src: #nonull const [..] rune)->u64
+func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
 {
     var dataof = @dataof(dest)
     var remain = @countof(dest)
@@ -119,21 +119,21 @@ func fromUnicode(dest: #nonull [..] u16, src: #nonull const [..] rune)->u64
 }
 
 // Convert a character array (32 bits unicode) to an utf16 sequence
-func fromUnicode(src: #nonull const [..] rune)->Array'u16
+func fromUnicode(src: const [..] rune)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src))
-    let buffer = result.buffer orelse cast(#nonull [*] u16) 1'u64
+    let buffer = result.buffer orelse cast([*] u16) 1'u64
     result.count = fromUnicode(@mkslice(buffer, result.capacity), src)
     return result
 }
 
 // Convert string to an utf16 array, zero terminated
-func toZeroTerminated(src: #nonull string)->Array'u16
+func toZeroTerminated(src: string)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src) + 1)
-    let buffer = result.buffer orelse cast(#nonull [*] u16) 1'u64
+    let buffer = result.buffer orelse cast([*] u16) 1'u64
     result.count             = Utf16.fromUtf8(@mkslice(buffer, result.capacity), src) + 1
     result[result.count - 1] = 0
     return result

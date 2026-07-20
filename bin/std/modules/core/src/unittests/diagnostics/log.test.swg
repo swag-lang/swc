@@ -9,7 +9,7 @@ struct MemoryLogWriter
 
 impl ILogWriter for MemoryLogWriter
 {
-    mtd impl print(text: #nonull string)
+    mtd impl print(text: string)
     {
         if me.count < @countof(me.lines) do
             me.lines[me.count] = text
@@ -17,7 +17,7 @@ impl ILogWriter for MemoryLogWriter
     }
 }
 
-func makeExpectedShortLine(prefix: #nonull string, loc: Swag.SourceCodeLocation, text: #nonull string)->String
+func makeExpectedShortLine(prefix: string, loc: Swag.SourceCodeLocation, text: string)->String
 {
     var result: retval
     if @countof(prefix)
@@ -34,7 +34,7 @@ func makeExpectedShortLine(prefix: #nonull string, loc: Swag.SourceCodeLocation,
     return result
 }
 
-func makeExpectedFullLoc(loc: Swag.SourceCodeLocation, text: #nonull string)->String
+func makeExpectedFullLoc(loc: Swag.SourceCodeLocation, text: string)->String
 {
     var result: retval
     result.append(loc.fileName)

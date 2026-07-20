@@ -12,7 +12,7 @@ struct RadioButton
     // mutually exclusive the same non-empty id.
     group:               WndId
     radioButtonFlags     = RadioButtonFlags.Zero
-    sigChanged:          SigArray'func||(#nonull *RadioButton)
+    sigChanged:          SigArray'func||(*RadioButton)
 }
 
 #[Swag.EnumFlags]
@@ -24,7 +24,7 @@ enum RadioButtonFlags
 
 impl IWnd for RadioButton
 {
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc
         let theme   = .getTheme()
@@ -110,7 +110,7 @@ impl IWnd for RadioButton
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if .processMouseEvent(evt) and !.checked
         {
@@ -124,7 +124,7 @@ impl IWnd for RadioButton
 impl RadioButton
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *RadioButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*RadioButton
     {
         Debug.assert(parent != null)
         var pos = position
@@ -158,9 +158,9 @@ impl RadioButton
 
         for c in .parent.childs
         {
-            if c == cast(#nonull *Wnd) me or c.type != RadioButton do
+            if c == cast(*Wnd) me or c.type != RadioButton do
                 continue
-            let other = cast(#nonull *RadioButton) c
+            let other = cast(*RadioButton) c
             if other.group == .group do
                 other.setChecked(false)
         }

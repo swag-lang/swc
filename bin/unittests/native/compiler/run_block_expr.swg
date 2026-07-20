@@ -64,7 +64,7 @@ const PersistentTextHolder: TextHolder = #run
     data[1] = 'b'
     data[2] = data[1] + 1
 
-    var holder: TextHolder
+    var holder: TextHolder = undefined
     holder.text = cast(string) data
     return holder
 }
@@ -76,14 +76,14 @@ const PersistentStringArray: [1] string = #run
     data[1] = 'b'
     data[2] = data[1] + 1
 
-    var values: [1] string
+    var values: [1] string = undefined
     values[0] = cast(string) data
     return values
 }
 
 const PersistentAnyPair: AnyPair = #run
 {
-    var pair: AnyPair
+    var pair: AnyPair = undefined
     pair.item = "abc"
     pair.other = "def"
     return pair
@@ -91,7 +91,7 @@ const PersistentAnyPair: AnyPair = #run
 
 const PersistentAnyArray: [2] any = #run
 {
-    var values: [2] any
+    var values: [2] any = undefined
     values[0] = "first"
     values[1] = "second"
     return values
@@ -105,7 +105,7 @@ const PersistentStrictAny: RunStrictAny = #run
 
 const PersistentStrictAnyArray: [2] RunStrictAny = #run
 {
-    var values: [2] RunStrictAny
+    var values: [2] RunStrictAny = undefined
     values[0] = cast(RunStrictAny) "left"
     values[1] = cast(RunStrictAny) "right"
     return values
@@ -119,7 +119,7 @@ const PersistentBytesHolder: BytesHolder = #run
     data[2] = 3
     data[3] = 4
 
-    var holder: BytesHolder
+    var holder: BytesHolder = undefined
     holder.bytes = cast(const [..] u8) data
     return holder
 }
@@ -188,7 +188,7 @@ func functionScopedShortCompilerOnlyRunCall()
 
     let value = #run
     {
-        var pair: AnyPair
+        var pair: AnyPair = undefined
         pair.item = "abc"
         pair.other = "def"
         return pair
@@ -196,7 +196,7 @@ func functionScopedShortCompilerOnlyRunCall()
 
     let values = #run
     {
-        var items: [2] any
+        var items: [2] any = undefined
         items[0] = "first"
         items[1] = "second"
         return items

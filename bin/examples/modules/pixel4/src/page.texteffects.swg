@@ -2,7 +2,7 @@ using Core, Pixel
 
 // Center a string (with optional MSDF text effects) inside 'area', mirroring the
 // baseline math of drawStringCenter.
-func drawEffectSample(painter: #nonull *Pixel.Painter, area: Math.Rectangle, text: #nonull string, font: #nonull *Pixel.Font, color: Color, fx: TextEffect)
+func drawEffectSample(painter: *Pixel.Painter, area: Math.Rectangle, text: string, font: *Pixel.Font, color: Color, fx: TextEffect)
 {
     let ms  = Painter.measureString(text, font)
     let top = area.vertCenter() - ms.height * 0.5 - (font.ascent - ms.ascent)
@@ -10,13 +10,13 @@ func drawEffectSample(painter: #nonull *Pixel.Painter, area: Math.Rectangle, tex
     painter.drawString(left, top, text, font, color, fx)
 }
 
-func drawEffectSurface(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, color: Color)
+func drawEffectSurface(painter: *Pixel.Painter, rect: Math.Rectangle, color: Color)
 {
     painter.fillRoundRect(rect, 14, 14, color)
     painter.drawRoundRect(rect, 14, 14, Color.fromArgb(34, Argb.SlateGray), 1)
 }
 
-func drawOutlineEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawOutlineEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Outline", "A second distance threshold draws a crisp border under the glyph face. Its width scales with the text size.")
     let sample = insetRect(body, 20, 12, 20, 30)
@@ -30,7 +30,7 @@ func drawOutlineEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle
     drawWrappedText(painter, {body.x + 18, body.bottom() - 24, body.width - 36, 22}, "outlineWidth 0.26, white face over a midnight-blue border", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawGlowEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawGlowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Glow / neon", "A soft halo derived from the distance to the edge, composited under the face. A thin outline keeps the core sharp.")
     let sample = insetRect(body, 20, 12, 20, 30)
@@ -48,7 +48,7 @@ func drawGlowEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     drawWrappedText(painter, {body.x + 18, body.bottom() - 24, body.width - 36, 22}, "glowColor + glowPower 1.4 over a dark surface", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawBevelEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawBevelEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Bevel", "The distance-field gradient is lit from the upper-left, embossing the face for a raised, metallic look.")
     let sample = insetRect(body, 20, 12, 20, 30)
@@ -63,7 +63,7 @@ func drawBevelEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     drawWrappedText(painter, {body.x + 18, body.bottom() - 24, body.width - 36, 22}, "bevel 0.9 emboss + faint outline on a gold face", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawShadowEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawShadowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Drop shadow", "A softened, offset second pass behind the text. Combined here with an outline in a single drawString call.")
     let sample = insetRect(body, 20, 12, 20, 30)
@@ -80,7 +80,7 @@ func drawShadowEffectCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     drawWrappedText(painter, {body.x + 18, body.bottom() - 24, body.width - 36, 22}, "shadowOffset (5,6) + softness 0.45, outline + face in one pass", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawTextEffectsPage(painter: #nonull *Pixel.Painter)
+func drawTextEffectsPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "MSDF text effects", "Page 10 : outline, glow, bevel and soft drop shadow, derived from the glyph distance field (TextMeshPro-style).")
     drawOutlineEffectCard(painter, {28, 104, 452, 280})

@@ -112,7 +112,7 @@ func computePriority(items: const [..] InventoryItem)->ReorderPriority
 
 func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
 {
-    var result: RestockPlan
+    var result: RestockPlan = undefined
     result.itemCount = cast(u32) @countof(items)
     result.reorderItemCount = countItemsToReorder(items)
     result.totalUnitsToOrder = computeUnitsToOrder(items)

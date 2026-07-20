@@ -2,19 +2,19 @@
 
 using Pixel
 
-func nnFont(font: #null *Font)->#nonull *Font
+func nnFont(font: #null *Font)->*Font
 {
     Debug.assert(font != null)
-    return font orelse cast(#nonull *Font) 1'u64
+    return font orelse cast(*Font) 1'u64
 }
 
-func nnPixels(pixels: #null [*] u8)->#nonull const *u8
+func nnPixels(pixels: #null [*] u8)->const *u8
 {
     Debug.assert(pixels != null)
-    return cast(#nonull const *u8) (pixels orelse cast(#nonull [*] u8) 1'u64)
+    return cast(const *u8) (pixels orelse cast([*] u8) 1'u64)
 }
 
-func createGuiTypeFace(outFace: #nonull *#nonull *TypeFace, name: #nonull string, bytes: #nonull const [..] u8) throw
+func createGuiTypeFace(outFace: **TypeFace, name: string, bytes: const [..] u8) throw
 {
     dref outFace = try TypeFace.create(name, bytes)
 }

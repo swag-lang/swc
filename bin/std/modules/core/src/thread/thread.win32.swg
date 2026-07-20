@@ -5,8 +5,8 @@ using Win32
 
 private func threadEntry(param: #null *void)->DWORD
 {
-    let safeParam = param orelse cast(#nonull *void) 1'u64
-    let th = cast(#nonull *Thread) safeParam
+    let safeParam = param orelse cast(*void) 1'u64
+    let th = cast(*Thread) safeParam
     @setcontext(th.context)
     let lambda = th.userLambda
     if !lambda do
@@ -19,7 +19,7 @@ private func threadEntry(param: #null *void)->DWORD
 }
 
 // Wait multiple threads
-func wait(threads: #nonull *Thread...)
+func wait(threads: *Thread...)
 {
     var handles: [MAXIMUM_WAIT_OBJECTS] HANDLE
 

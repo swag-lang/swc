@@ -10,9 +10,9 @@ public struct AboutDlg
 
 public struct AboutDlgParams
 {
-    dlgTitle:         #nonull string
-    messageTitle:     #nonull string
-    message:          #nonull string
+    dlgTitle:         string
+    messageTitle:     string
+    message:          string
     iconTitle:        Icon       // Icon that will be displayed in the title bar
     bigIcon:          Icon       // Big icon, inside the dialog
 }
@@ -20,7 +20,7 @@ public struct AboutDlgParams
 public impl AboutDlg
 {
     // Creates the message box
-    func create(from: #nonull *Surface, params: AboutDlgParams, width, height: s32 = 0)->#nonull *AboutDlg
+    func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
     {
         let dlg = Wnd.create'AboutDlg()
         let w   = cast(s32) width orelse 500
@@ -78,7 +78,7 @@ public impl AboutDlg
     }
 
     // Display the box, centered, and returns the id of the pressed button
-    mtd doModal(from: #nonull *Surface)
+    mtd doModal(from: *Surface)
     {
         .surface.center(from)
         discard Dialog.doModal(me)

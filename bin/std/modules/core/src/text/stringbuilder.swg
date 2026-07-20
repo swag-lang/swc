@@ -52,7 +52,7 @@ impl StringBuilder
     }
 
     // Append a formatted string
-    mtd appendFormat(fmt: #nonull string, values: ...)
+    mtd appendFormat(fmt: string, values: ...)
     {
         Format.append(&.buffer, fmt, values)
     }

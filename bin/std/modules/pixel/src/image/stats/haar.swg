@@ -1,7 +1,7 @@
 #global namespace ImageStatistics
 using Core, Core.Math
 
-func haarTransform2D(data: #nonull [*] f32, size: u32, output: #nonull [*] f32)
+func haarTransform2D(data: [*] f32, size: u32, output: [*] f32)
 {
     Memory.copy(output, data, size * size * #sizeof(f32))
 
@@ -18,7 +18,7 @@ func haarTransform2D(data: #nonull [*] f32, size: u32, output: #nonull [*] f32)
 }
 
 // 1D Haar transform on a row
-func haarTransform1D(data: #nonull [*] f32, offset: s32, length: s32)
+func haarTransform1D(data: [*] f32, offset: s32, length: s32)
 {
     if length <= 1 do
         return
@@ -38,7 +38,7 @@ func haarTransform1D(data: #nonull [*] f32, offset: s32, length: s32)
 }
 
 // 1D Haar transform on a column
-func haarTransform1DVertical(data: #nonull [*] f32, col: s32, length: s32, stride: s32)
+func haarTransform1DVertical(data: [*] f32, col: s32, length: s32, stride: s32)
 {
     if length <= 1 do
         return
@@ -57,7 +57,7 @@ func haarTransform1DVertical(data: #nonull [*] f32, col: s32, length: s32, strid
         data[col + i * stride] = temp[i]
 }
 
-func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: #nonull [*] f32)
+func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [*] f32)
 {
     Debug.assert(targetWidth > 0 and targetHeight > 0, "Target dimensions must be positive")
 
@@ -125,10 +125,10 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
     // Convert image to grayscale and resize
     var grayImage: Array'f32
     grayImage.resize(targetSize * targetSize)
-    image.resampleToGrayscale(cast(s32) targetSize, cast(s32) targetSize, grayImage.buffer orelse cast(#nonull [*] f32) 1'u64)
+    image.resampleToGrayscale(cast(s32) targetSize, cast(s32) targetSize, grayImage.buffer orelse cast([*] f32) 1'u64)
 
     // 2D Haar transform
-    haarTransform2D(grayImage.buffer orelse cast(#nonull [*] f32) 1'u64, targetSize, features.coefficients.buffer orelse cast(#nonull [*] f32) 1'u64)
+    haarTransform2D(grayImage.buffer orelse cast([*] f32) 1'u64, targetSize, features.coefficients.buffer orelse cast([*] f32) 1'u64)
     return features
 }
 
@@ -258,7 +258,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     }
 
     // 2D Haar transform
-    haarTransform2D(grayData.buffer orelse cast(#nonull [*] f32) 1'u64, windowSize, features.coefficients.buffer orelse cast(#nonull [*] f32) 1'u64)
+    haarTransform2D(grayData.buffer orelse cast([*] f32) 1'u64, windowSize, features.coefficients.buffer orelse cast([*] f32) 1'u64)
     return features
 }
 

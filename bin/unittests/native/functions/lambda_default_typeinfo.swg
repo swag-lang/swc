@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func lambdaDefaultTypeInfoFunc0()->s32 => 1
 func lambdaDefaultTypeInfoFunc1(value: bool)->bool => value

@@ -1,10 +1,10 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
 
-attr TypeMeta(label: #nonull string, priority: s32 = 0)
-attr FieldMeta(fieldAlias: #nonull string, rank: s32 = 0)
-attr FuncMeta(label: #nonull string, arity: s32 = 0)
-attr EnumMeta(label: #nonull string)
+attr TypeMeta(label: string, priority: s32 = 0)
+attr FieldMeta(fieldAlias: string, rank: s32 = 0)
+attr FuncMeta(label: string, arity: s32 = 0)
+attr EnumMeta(label: string)
 
 #[TypeMeta("probe", 3)]
 #[Swag.ExportType(.Methods)]
@@ -16,7 +16,7 @@ struct ReflectionProbe
     #[FieldMeta("switch")]
     enabled: bool = true
 
-    label: #nonull string = "seed"
+    label: string = "seed"
 
 }
 
@@ -113,7 +113,7 @@ impl CopyProbe
     }
 }
 
-func runtimeMethodReflectionWorks(type: #nonull typeinfo, seed: s32)->bool
+func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     ReflectionRuntimeMethodCalls += 1
 
@@ -157,7 +157,7 @@ func runtimeMethodReflectionWorks(type: #nonull typeinfo, seed: s32)->bool
     let type = #typeof(ReflectionProbe)
     let fieldX = Reflection.getField(type, "x")
     let fieldEnabled = Reflection.getField(type, "enabled")
-    let typeStruct = cast(#nonull const *Swag.TypeInfoStruct) type
+    let typeStruct = cast(const *Swag.TypeInfoStruct) type
 
     @assert(cast(#null string) Reflection.getAttributeValue(type, TypeMeta, "label") == "probe")
     @assert(cast(s32) Reflection.getAttributeValue(type, TypeMeta, "priority") == 3)
@@ -231,7 +231,7 @@ func runtimeMethodReflectionWorks(type: #nonull typeinfo, seed: s32)->bool
 #test
 {
     let arrayType = #typeof(Array's32)
-    let arrayInfo = cast(#nonull const *Swag.TypeInfoStruct) arrayType
+    let arrayInfo = cast(const *Swag.TypeInfoStruct) arrayType
     @assert(Reflection.isStructArray(arrayType))
     @assert(Reflection.isGeneric(arrayType))
     @assert(@countof(arrayInfo.generics) == 1)
@@ -289,7 +289,7 @@ func runtimeMethodReflectionWorks(type: #nonull typeinfo, seed: s32)->bool
 #test
 {
     let enumType = #typeof(ProbeState)
-    let enumInfo = cast(#nonull const *Swag.TypeInfoEnum) enumType
+    let enumInfo = cast(const *Swag.TypeInfoEnum) enumType
     let enumValue = Reflection.getEnumValue(enumType, "Busy")
     var state = ProbeState.Busy
 
@@ -316,7 +316,7 @@ func runtimeMethodReflectionWorks(type: #nonull typeinfo, seed: s32)->bool
 #test
 {
     let funcType = #typeof(makeRepeated'(u16, 3))
-    let funcInfo = cast(#nonull const *Swag.TypeInfoFunc) funcType
+    let funcInfo = cast(const *Swag.TypeInfoFunc) funcType
     @assert(Reflection.isGeneric(funcType))
     @assert(@countof(funcInfo.generics) == 2)
     @assert(funcInfo.generics[0].pointedType == u16)

@@ -2,7 +2,7 @@
 
 struct NonNullMoveArrayRequired
 {
-    value: #nonull string
+    value: string
 }
 
 impl NonNullMoveArrayRequired

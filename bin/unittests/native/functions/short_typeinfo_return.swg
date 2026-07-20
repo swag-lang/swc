@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func makeArrayInfo() => #typeof(#type [3] u16)
 func makeSliceInfo() => #typeof(#type #null [..] bool)

@@ -20,45 +20,45 @@ interface IPropertyNotify
 {
     // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore
     // recorded against a previous grid content (the values are already back in the instances).
-    mtd itemHasChanged(list: #nonull *Properties, item: #null *PropertiesItem) {}
-    mtd isItemVisible(list: #nonull *Properties, item: #nonull *PropertiesItem)->bool { return true; }
-    mtd isItemEnabled(list: #nonull *Properties, item: #nonull *PropertiesItem)->bool { return true; }
+    mtd itemHasChanged(list: *Properties, item: #null *PropertiesItem) {}
+    mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool { return true; }
+    mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool { return true; }
 
     // Return false to hide one value of an enum field (a value that makes no sense for the
     // host, e.g. a 'None' entry): the combo omits it, an enum-flags block skips its row.
     // Like isItemVisible, checked on the host notify and along the item's parent chain, but
     // when the row is BUILT: rebuild the grid content to re-evaluate it.
-    mtd isEnumValueVisible(list: #nonull *Properties, item: #nonull *PropertiesItem, enumValue: Swag.TypeValue)->bool { return true; }
+    mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool { return true; }
 
     // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
     // disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor.
     // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.
-    mtd isItemReadOnly(list: #nonull *Properties, item: #nonull *PropertiesItem)->bool { return false; }
+    mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool { return false; }
 
     // Called when the user right-clicks a row: add custom menu items (each with a unique
     // command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.
-    mtd fillPopupMenu(list: #nonull *Properties, item: #nonull *PropertiesItem, menu: #nonull *MenuCtrl) {}
+    mtd fillPopupMenu(list: *Properties, item: *PropertiesItem, menu: *MenuCtrl) {}
 
     // Called with the command id chosen in the popup menu when it is not one of the built-in
     // actions. Return true once handled. This is how custom fillPopupMenu items are executed.
-    mtd onPopupCommand(list: #nonull *Properties, item: #nonull *PropertiesItem, cmdId: #nonull string)->bool { return false; }
+    mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool { return false; }
 
     // Return a validation state + message for 'item'. Called on build and after every
     // change; the row shows an accent bar + badge in the state color and the message as a
     // tooltip. The most severe result along the item's parent chain wins.
-    mtd validateItem(list: #nonull *Properties, item: #nonull *PropertiesItem)->PropValidationResult { return {}; }
+    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult { return {}; }
 
     // Customize the "is this field still at its default value?" test, used to decide whether the
     // row shows the revert marker. Return .Auto (the default) to let the grid compare the current
     // value against the value the field is initialized to in the struct declaration; return
     // .AtDefault / .Modified to force the answer when the test is more involved than a plain
     // comparison. The first non-Auto result along the item's parent chain wins.
-    mtd isItemAtDefault(list: #nonull *Properties, item: #nonull *PropertiesItem)->PropDefaultState { return .Auto; }
+    mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState { return .Auto; }
 
     // Reset 'item' to its default value yourself; return true once handled. Return false (the
     // default) to let the grid restore the value declared in the struct. Called by the "Reset to
     // default" action and the revert marker. Checked along the item's parent chain.
-    mtd resetItemToDefault(list: #nonull *Properties, item: #nonull *PropertiesItem)->bool { return false; }
+    mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool { return false; }
 }
 
 enum PropertiesKind
@@ -108,7 +108,7 @@ struct Properties
     valBarGap:                f32 = 7    // gap between the row editor and the bar
     valBarRadius:             f32 = 6    // corner radius of the colored background
 
-    sigChanged:               SigArray'func||(#nonull *Properties, #null *PropertiesItem)
+    sigChanged:               SigArray'func||(*Properties, #null *PropertiesItem)
 
     leftMargin:               s32 = 15
     rightMargin:              s32 = 15
@@ -172,7 +172,7 @@ struct Properties
 // properties.paint, the notify dispatch below refreshes via refreshItem).
 impl IWnd for Properties
 {
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let colorBar = .cursorSet ? .getThemeColors().splitView_BarHot : .getThemeColors().prop_GridColumn
         .aniBar.apply(me, colorBar)
@@ -181,7 +181,7 @@ impl IWnd for Properties
     // Free the default-constructed instances backing the "reset to default" feature. They are
     // heap-allocated per added struct (assignDefaults), so their drop+free is not covered by the
     // struct's automatic field drop.
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .freeDefaultRoots()
     }
@@ -191,7 +191,7 @@ impl IWnd for Properties
     // like EmbInfoCtrl re-runs setColors on ThemeChanged) — otherwise a bar built under one theme
     // keeps stale colors under the next (e.g. dark-theme light text nearly invisible on the light
     // pastel background).
-    mtd impl onThemeEvent(evt: #nonull *ThemeEvent)
+    mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         for it in .items
         {
@@ -206,7 +206,7 @@ impl IWnd for Properties
     // that no action claims comes from a custom fillPopupMenu item: dispatch it to the notify
     // interface(s) along the clicked row's parent chain, then refresh — the same contract the
     // old inline `default:` switch case had.
-    mtd impl onCommandEvent(evt: #nonull *CommandEvent)
+    mtd impl onCommandEvent(evt: *CommandEvent)
     {
         evt.accepted = false
 
@@ -217,7 +217,7 @@ impl IWnd for Properties
         var scan = cast(#null *PropertiesItem) item
         while scan
         {
-            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, assume item, evt.id)
+            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, assume item, assume evt.id)
             {
                 .refreshItem(assume item)
                 .hasChanged(assume item)
@@ -233,7 +233,7 @@ impl IWnd for Properties
 // value editors can call them, but they are not part of the public API.
 internal impl Properties
 {
-    mtd getItemState(item: #nonull *PropertiesItem)->{ visible, enable: bool }
+    mtd getItemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
         var result: retval{true, true}
 
@@ -268,7 +268,7 @@ internal impl Properties
         return result
     }
 
-    mtd refreshItem(item: #nonull *PropertiesItem)
+    mtd refreshItem(item: *PropertiesItem)
     {
         if !item.sigRefresh.isEmpty()
         {
@@ -313,7 +313,7 @@ impl Properties
 {
     // Creates a new Properties instance
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: #null WndId = null)->#nonull *Properties
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: #null WndId = null)->*Properties
     {
         let ed = Wnd.create'Properties(parent, "", position, id)
 
@@ -420,13 +420,13 @@ impl Properties
     }
 
     // Add a new struct to display.
-    mtd addStruct(val: #nonull any, section: #null string = null)
+    mtd addStruct(val: any, section: #null string = null)
     {
         let typeof = @kindof(val)
         Debug.assert(typeof.kind == .Struct)
 
-        var bases: Array'(#nonull *u8)
-        bases.add(cast(#nonull *u8) @dataof(val))
+        var bases: Array'(*u8)
+        bases.add(cast(*u8) @dataof(val))
         .addStructMulti(typeof, bases.toSlice(), section)
     }
 
@@ -436,7 +436,7 @@ impl Properties
     // instances is shown as "mixed". With a single base this behaves like addStruct.
     // With 'onlyNamed', only the fields carrying an explicit Properties.Name attribute get a
     // row: the grid becomes opt-in, for structs whose fields are mostly internal state.
-    mtd addStructMulti(typeof: #nonull typeinfo, bases: #nonull [..] #nonull *u8, section: #null string = null, onlyNamed = false)
+    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: #null string = null, onlyNamed = false)
     {
         Debug.assert(typeof.kind == .Struct)
         Debug.assert(@countof(bases) >= 1)
@@ -473,13 +473,13 @@ impl Properties
             item.line.margin.y, item.line.margin.w = 0
         }
 
-        let typeStruct = cast(#nonull const *Swag.TypeInfoStruct) typeof
-        .addStructInternal(typeStruct, cast(#nonull [*] u8) bases[0], item)
+        let typeStruct = cast(const *Swag.TypeInfoStruct) typeof
+        .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
         item.numChilds = cast(u32) (.items.count - numItemsBefore)
 
         .assignInstances(firstItemIdx, bases)
-        .assignDefaults(firstItemIdx, typeof, cast(#nonull [*] u8) bases[0])
+        .assignDefaults(firstItemIdx, typeof, cast([*] u8) bases[0])
         .assignUndoSnapshots(firstItemIdx)
 
         // Editors were first filled from instance 0 before the instance addresses existed;
@@ -495,12 +495,12 @@ impl Properties
     // Each field sits at a fixed offset from its struct base, so its address in instance
     // k is `base[k] + (item.data - base[0])`. Items under a dynamic array keep a single
     // address (their element storage is not at a fixed struct offset).
-    mtd assignInstances(fromIdx: u64, bases: #nonull [..] #nonull *u8)
+    mtd assignInstances(fromIdx: u64, bases: [..] *u8)
     {
         if @countof(bases) <= 1 do
             return
 
-        let base0 = cast(#nonull [*] u8) bases[0]
+        let base0 = cast([*] u8) bases[0]
         for i in fromIdx until .items.count
         {
             let it = .items[i]
@@ -516,7 +516,7 @@ impl Properties
 
             let off = cast(#null [*] u8) it.data - base0
             for b in bases do
-                it.dataInstances.add(cast(#nonull *u8) (cast(#nonull [*] u8) b + off))
+                it.dataInstances.add(cast(*u8) (cast([*] u8) b + off))
         }
     }
 
@@ -528,7 +528,7 @@ impl Properties
     }
 
     // To be called when a value has changed.
-    mtd hasChanged(item: #nonull *PropertiesItem)
+    mtd hasChanged(item: *PropertiesItem)
     {
         // Multi-selection: the editor wrote the new value into instance 0; mirror it into
         // the other edited instances so they all change together. Composite editors that
@@ -547,7 +547,7 @@ impl Properties
 
     // The refresh/relayout/notify tail shared by a user edit (hasChanged) and by an undo/redo
     // restore (applyUndoValue) — everything except propagation and undo recording.
-    mtd postChange(item: #nonull *PropertiesItem)
+    mtd postChange(item: *PropertiesItem)
     {
         .refresh()
 
@@ -601,7 +601,7 @@ impl Properties
     // Returns true if the given item is read-only: a static string, a field tagged with the
     // ReadOnly attribute, or made read-only at runtime by a notify interface along the parent
     // chain. Read-only items are shown but cannot be edited or pasted into.
-    mtd isItemReadOnly(item: #nonull *PropertiesItem)->bool
+    mtd isItemReadOnly(item: *PropertiesItem)->bool
     {
         if !item.type do
             return false
@@ -628,7 +628,7 @@ impl Properties
     }
 
     // Returns true if the given item can be changed (edited / pasted into)
-    mtd canChangeItem(item: #nonull *PropertiesItem)->bool
+    mtd canChangeItem(item: *PropertiesItem)->bool
     {
         if !item.data or !item.type do
             return false
@@ -648,7 +648,7 @@ impl Properties
     }
 
     // Update the state of the given item
-    mtd updateItemState(item: #nonull *PropertiesItem)
+    mtd updateItemState(item: *PropertiesItem)
     {
         var mustShow   = false
         var mustEnable = false

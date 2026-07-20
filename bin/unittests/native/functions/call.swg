@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // Migrated from the former native/legit suite.
 #global private
 using Swag
@@ -46,7 +45,7 @@ namespace compiler1629
     #test
     {
         var arr: [64] u8
-        var ptr  = cast(#nonull [*] #null [*] void) &arr[0]
+        var ptr  = cast([*] #null [*] void) &arr[0]
         ptr[0] = null
         @assert(ptr[0] == null)
     }
@@ -145,7 +144,7 @@ namespace compiler1651
 {
     //
     //#[Swag.PrintBc]
-    func toto1(x: #nonull any)->s32
+    func toto1(x: any)->s32
     {
         let v = cast(s32) x
         @assert(v == 100)
@@ -198,7 +197,7 @@ namespace compiler1661
     //#[Swag.PrintBc]
     #test
     {
-        var addr:  [1] #nonull *#null *TT = undefined
+        var addr:  [1] *#null *TT = undefined
         var addr1: #null *TT = null
         var value: TT
 
@@ -223,10 +222,10 @@ namespace compiler1662
     #test
     {
         var value: s64 = 666
-        var addr:  [1] #nonull [*] #nonull [*] s64 = undefined
-        var addr1: #nonull [*] s64 = cast(#nonull [*] s64) &value
+        var addr:  [1] [*] [*] s64 = undefined
+        var addr1: [*] s64 = cast([*] s64) &value
 
-        addr[0] = cast(#nonull [*] #nonull [*] s64) &addr1
+        addr[0] = cast([*] [*] s64) &addr1
 
         @assert(addr[0][0][0] == 666)
     }
@@ -245,10 +244,10 @@ namespace compiler1663
     #test
     {
         var value: TT
-        var addr:  [1] #nonull [*] #nonull [*] TT = undefined
-        var addr1: #nonull [*] TT = cast(#nonull [*] TT) &value
+        var addr:  [1] [*] [*] TT = undefined
+        var addr1: [*] TT = cast([*] TT) &value
 
-        addr[0] = cast(#nonull [*] #nonull [*] TT) &addr1
+        addr[0] = cast([*] [*] TT) &addr1
 
         //@print(addr1.value)
         @assert(addr[0][0].value == 456)
@@ -268,7 +267,7 @@ namespace compiler1664
     #test
     {
         var value: TT
-        var addr:  [2, 2] #nonull *TT = undefined
+        var addr:  [2, 2] *TT = undefined
 
         addr[0, 0] = &value
 
@@ -367,7 +366,7 @@ namespace compiler1671
     //#global testerror
 
     //#[Swag.PrintBc]
-    func toto(x: ...)->#nonull typeinfo
+    func toto(x: ...)->typeinfo
     {
         @assert(@kindof(x[0]) == s32)
         return @kindof(x[0])
@@ -422,7 +421,7 @@ namespace compiler1678
     }
 
     //#[Swag.PrintBc]
-    func C(x: #nonull any)->s64
+    func C(x: any)->s64
     {
         return D(cast(TT) x)
     }
@@ -454,7 +453,7 @@ namespace compiler1679
     }
 
     //#[Swag.PrintBc]
-    func E(x: #nonull any)->s64
+    func E(x: any)->s64
     {
         let ptr = cast(TT) x
         //C(cast(TT) x)
@@ -496,7 +495,7 @@ namespace compiler1680
     }
 
     //#[Swag.PrintBc]
-    func E(x: #nonull any)->s64
+    func E(x: any)->s64
     {
         return C(cast(TT) x)
     }
@@ -562,7 +561,7 @@ namespace compiler1682
     alias myStruct = TT
 
     //#[Swag.PrintBc]
-    func C(x: #nonull any)->s64
+    func C(x: any)->s64
     {
         //@print(cast(s64) x.value)
         let val = cast(myStruct) x
@@ -1021,7 +1020,7 @@ namespace compiler322
     {
         var a: s32 = 666
         let b  = &a
-        var c: #nonull *s32 = b
+        var c: *s32 = b
         c = b; @assert(dref b == 666)
         @assert(dref c == 666)
         /*@assert(a == 1);

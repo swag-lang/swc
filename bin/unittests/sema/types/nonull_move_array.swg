@@ -1,9 +1,8 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct SemaNonNullMoveArrayDefault
 {
-    value: #nonull string = "reset"
+    value: string = "reset"
 }
 
 impl SemaNonNullMoveArrayDefault
@@ -15,7 +14,7 @@ impl SemaNonNullMoveArrayDefault
 
 struct SemaNonNullMoveUndefinedEscape
 {
-    value: #nonull string = undefined
+    value: string = undefined
 }
 
 impl SemaNonNullMoveUndefinedEscape
@@ -52,5 +51,5 @@ func semaNonNullMoveArrayDefaults()
     #assert(#typeof(initTarget) == [2] SemaNonNullMoveArrayDefault)
     #assert(#typeof(assignTarget) == [2] SemaNonNullMoveArrayDefault)
     #assert(#typeof(callResult) == bool)
-    #assert(#typeof(escapeTarget.value) == #nonull string)
+    #assert(#typeof(escapeTarget.value) == string)
 }

@@ -26,16 +26,16 @@ struct FileBrowserCtrl
     curList:          Array'FileInfo
 
     // A file/folder was activated (double-click or Enter on a non-directory).
-    sigAccept:        SigArray'func||(#nonull *FileBrowserCtrl)
+    sigAccept:        SigArray'func||(*FileBrowserCtrl)
     // The current folder changed.
-    sigFolderChanged: SigArray'func||(#nonull *FileBrowserCtrl)
+    sigFolderChanged: SigArray'func||(*FileBrowserCtrl)
     // The user requested the creation of a new folder (host shows the prompt).
-    sigNewFolder:     SigArray'func||(#nonull *FileBrowserCtrl)
+    sigNewFolder:     SigArray'func||(*FileBrowserCtrl)
 }
 
 impl IWnd for FileBrowserCtrl
 {
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         if .options.state
         {
@@ -124,7 +124,7 @@ private impl FileBrowserCtrl
         }
     }
 
-    mtd createFileList(view: #nonull *Wnd)
+    mtd createFileList(view: *Wnd)
     {
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
@@ -231,7 +231,7 @@ private impl FileBrowserCtrl
 impl FileBrowserCtrl
 {
     // Creates the file browser composite inside 'parent'.
-    func create(parent: #nonull *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->#nonull *FileBrowserCtrl
+    func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
     {
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
@@ -436,7 +436,7 @@ impl FileBrowserCtrl
     }
 
     // Create a folder inside the current folder; returns true on success.
-    mtd createFolder(name: #nonull string)->bool
+    mtd createFolder(name: string)->bool
     {
         let path = Path.combine(.curFolder, name)
         catch Directory.create(path)

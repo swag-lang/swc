@@ -32,20 +32,20 @@ const PHOTO_PALETTE       = 3
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: #nonull const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) throw
 {
     if ptr + size > last do
         throw InvalidFormatError{"invalid source buffer"}
 }
 
-func rd16(p: #nonull const [*] u8, le: bool)->u32
+func rd16(p: const [*] u8, le: bool)->u32
 {
     if le do
         return cast(u32) p[0] | (cast(u32) p[1] << 8)
     return (cast(u32) p[0] << 8) | cast(u32) p[1]
 }
 
-func rd32(p: #nonull const [*] u8, le: bool)->u32
+func rd32(p: const [*] u8, le: bool)->u32
 {
     if le do
         return cast(u32) p[0] | (cast(u32) p[1] << 8) | (cast(u32) p[2] << 16) | (cast(u32) p[3] << 24)
@@ -95,7 +95,7 @@ impl Ifd
 }
 
 // Read 'count' scalar values (BYTE/SHORT/LONG) of an entry into an array.
-func readValues(base, last: #nonull const [*] u8, le: bool, e: #nonull *Entry)->Array'u32 throw
+func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
 {
     var result: retval
 
@@ -112,12 +112,12 @@ func readValues(base, last: #nonull const [*] u8, le: bool, e: #nonull *Entry)->
     else
     {
         p = base + e.valoff
-        checkBuffer(cast(#nonull const [*] u8) (assume p), last, totalBytes)
+        checkBuffer(cast(const [*] u8) (assume p), last, totalBytes)
     }
 
     for i in e.count
     {
-        let q = cast(#nonull const [*] u8) (assume p) + cast(u64) i * ts
+        let q = cast(const [*] u8) (assume p) + cast(u64) i * ts
         switch e.type
         {
         case TYPE_BYTE:
@@ -132,19 +132,19 @@ func readValues(base, last: #nonull const [*] u8, le: bool, e: #nonull *Entry)->
     return result
 }
 
-func readScalar(base, last: #nonull const [*] u8, le: bool, ifd: #nonull *Ifd, tag: u32, defValue: u32)->u32 throw
+func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValue: u32)->u32 throw
 {
     let e = ifd.find(tag)
     if !e do
         return defValue
-    let values = try readValues(base, last, le, cast(#nonull *Entry) (assume e))
+    let values = try readValues(base, last, le, cast(*Entry) (assume e))
     if !values.count do
         return defValue
     return values[0]
 }
 
 // PackBits run-length decoder. Decodes up to 'expected' bytes into 'dst'.
-func unpackBits(dst: #nonull [*] u8, expected: u64, src, last: #nonull const [*] u8) throw
+func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) throw
 {
     var out: u64
     var p = src
@@ -182,13 +182,13 @@ func unpackBits(dst: #nonull [*] u8, expected: u64, src, last: #nonull const [*]
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: #nonull string)->bool
+    mtd impl canDecode(fileName: string)->bool
     {
         let ext = Path.getExtensionLowerCase(fileName)
         return ext == ".tif" or ext == ".tiff"
     }
 
-    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
     {
         let base    = @dataof(buffer)
         let countof = @countof(buffer)
@@ -255,7 +255,7 @@ public impl IImageDecoder for Decoder
         let bpsEntry = ifd.find(TAG_BITS_PER_SAMPLE)
         if bpsEntry
         {
-            let bps = try readValues(base, last, le, cast(#nonull *Entry) (assume bpsEntry))
+            let bps = try readValues(base, last, le, cast(*Entry) (assume bpsEntry))
             for b in bps
             {
                 if b != 8 do
@@ -295,7 +295,7 @@ public impl IImageDecoder for Decoder
             let cmEntry = ifd.find(TAG_COLOR_MAP)
             if !cmEntry do
                 throw InvalidFormatError{"missing color map"}
-            let cm = try readValues(base, last, le, cast(#nonull *Entry) (assume cmEntry))
+            let cm = try readValues(base, last, le, cast(*Entry) (assume cmEntry))
             let entries = cm.count / 3
             for i in entries
             {
@@ -311,8 +311,8 @@ public impl IImageDecoder for Decoder
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
         if !stripOffEntry or !stripCntEntry do
             throw InvalidFormatError{"missing strip data"}
-        let stripOffsets = try readValues(base, last, le, cast(#nonull *Entry) (assume stripOffEntry))
-        let stripCounts  = try readValues(base, last, le, cast(#nonull *Entry) (assume stripCntEntry))
+        let stripOffsets = try readValues(base, last, le, cast(*Entry) (assume stripOffEntry))
+        let stripCounts  = try readValues(base, last, le, cast(*Entry) (assume stripCntEntry))
         if stripOffsets.count != stripCounts.count or !stripOffsets.count do
             throw InvalidFormatError{"invalid strip data"}
 
@@ -339,7 +339,7 @@ public impl IImageDecoder for Decoder
             let srcPtr     = base + srcOff
             checkBuffer(srcPtr, last, srcCount)
 
-            let dstPtr = (decoded.buffer orelse cast(#nonull [*] u8) 1'u64) + cast(u64) rowStart * rowBytes
+            let dstPtr = (decoded.buffer orelse cast([*] u8) 1'u64) + cast(u64) rowStart * rowBytes
 
             if compression == COMPRESSION_PACKBITS
             {
@@ -362,7 +362,7 @@ public impl IImageDecoder for Decoder
         {
             let srcRow = decoded.buffer + cast(u64) y * rowBytes
             let dstY   = result.height - y - 1
-            var dst    = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
+            var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
 
             for x in cast(s32) width
             {

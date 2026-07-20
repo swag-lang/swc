@@ -21,14 +21,14 @@ func(T) localAliasUnionValue(value: T)->T
         item: ValueOrPtrAlias2
     }
 
-    var data: Local
+    var data: Local = undefined
     data.item.value = value
     return data.item.value
 }
 
 #test
 {
-    var wrapped: WrapperAliasUnion's32
+    var wrapped: WrapperAliasUnion's32 = undefined
     let local = localAliasUnionValue'u16(12)
 
     wrapped.item.value = 42

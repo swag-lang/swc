@@ -39,7 +39,7 @@ var g_Allocator:        Swag.IAllocator
 var g_mustEnd:          bool
 var g_numWorkers:       s32
 var g_workers:          Array'Thread
-var g_pendingJobs:      Array'(#nonull *Job)
+var g_pendingJobs:      Array'(*Job)
 var g_mutexPendingJobs: Sync.Mutex
 var g_eventPendingJobs: Sync.Event
 var g_eventDone:        Sync.Event
@@ -76,7 +76,7 @@ func workerEntry(_th: Thread)
     g_eventPendingJobs.signal()
 }
 
-func runJob(job: #nonull *Job)
+func runJob(job: *Job)
 {
     // Execute job
     let lambda = job.lambda
@@ -99,7 +99,7 @@ func peekExecJob()->bool
     let job = getJobToExec()
     if !job do
         return false
-    runJob(job orelse cast(#nonull *Job) 1'u64)
+    runJob(job orelse cast(*Job) 1'u64)
     return true
 }
 
@@ -114,7 +114,7 @@ func getJobToExec()->#null *Job
     return job
 }
 
-func removeJobNoLock(job: #nonull *Job)
+func removeJobNoLock(job: *Job)
 {
     g_pendingJobs.removeAt(cast(u64) job.pendingIndex)
     if job.pendingIndex < g_pendingJobs.count do
@@ -124,10 +124,10 @@ func removeJobNoLock(job: #nonull *Job)
 }
 
 #[Swag.Discardable]
-func clearState(job: #nonull *Job, state: JobState) => Atomic.logicAnd(cast(#nonull *u32) &job.state, cast(u32) ~state)
+func clearState(job: *Job, state: JobState) => Atomic.logicAnd(cast(*u32) &job.state, cast(u32) ~state)
 #[Swag.Discardable]
-func setState(job: #nonull *Job, state: JobState) => Atomic.logicOr(cast(#nonull *u32) &job.state, cast(u32) state)
-func testState(job: #nonull *Job, state: JobState) => Atomic.get(cast(#nonull *u32) &job.state) & cast(u32) state != 0
+func setState(job: *Job, state: JobState) => Atomic.logicOr(cast(*u32) &job.state, cast(u32) state)
+func testState(job: *Job, state: JobState) => Atomic.get(cast(*u32) &job.state) & cast(u32) state != 0
 
 // Returns true is the job system has been initialized
 public func isSynchrone()->bool => g_numWorkers == 0
@@ -156,7 +156,7 @@ public func setNumWorkers(numWorkers: u32 = 0) throw
 }
 
 // Schedule a job to execute
-public func scheduleJob(job: #nonull *Job)
+public func scheduleJob(job: *Job)
 {
     Sync.scopedLock(&g_mutexPendingJobs)
     job.clearState(JobState.Done)
@@ -178,7 +178,7 @@ public func waitDone()
 }
 
 // Wait for a given job to be finished
-public func waitJob(job: #nonull *Job)
+public func waitJob(job: *Job)
 {
     // Fast exit, without lock
     if job.testState(JobState.Done) do
@@ -217,7 +217,7 @@ public func waitJob(job: #nonull *Job)
 // - 'buffer': address of the element of the range to process
 // - 'data':   contextData as passed to the macro
 #[Swag.Macro]
-public func(T) parallelVisit(range: #nonull [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
+public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
 {
     if !@countof(range) do
         return
@@ -225,7 +225,7 @@ public func(T) parallelVisit(range: #nonull [..] T, offset: u32 = 1, contextData
 
     func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(#nonull *SliceJob'T) (jobData orelse cast(#nonull *void) 1'u64)
+        let oneJob = cast(*SliceJob'T) (jobData orelse cast(*void) 1'u64)
         visitSlice(oneJob.buffer, oneJob.offset, oneJob.contextData)
     }
 
@@ -234,11 +234,11 @@ public func(T) parallelVisit(range: #nonull [..] T, offset: u32 = 1, contextData
         let scan = @dataof(sliceBuffer)
         if !scan do
             return
-        var safeScan = scan orelse cast(#nonull const [*] T) 1'u64
+        var safeScan = scan orelse cast(const [*] T) 1'u64
         let countof = @countof(sliceBuffer)
         for countof / sliceOffset
         {
-            #inject(stmt, buffer = cast #unconst (#nonull *T) safeScan, data = sliceContextData)
+            #inject(stmt, buffer = cast #unconst (*T) safeScan, data = sliceContextData)
 
             safeScan += sliceOffset
         }
@@ -295,7 +295,7 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
 
     func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(#nonull *ForJob) (jobData orelse cast(#nonull *void) 1'u64)
+        let oneJob = cast(*ForJob) (jobData orelse cast(*void) 1'u64)
         visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.contextData)
     }
 

@@ -27,7 +27,7 @@ namespace DiskLayout
 
     struct DiskMapData
     {
-        blocks:    [*] u16
+        blocks:    #null [*] u16
         blockCount: u32
         fileCount:  u16
     }
@@ -35,7 +35,7 @@ namespace DiskLayout
     func initDiskMap(capacity: u32 = MaxBlocks)->DiskMap
     {
         var result: DiskMap
-        result.blocks = cast([*] u16) @alloc(cast(u64) capacity * cast(u64) #sizeof(u16))
+        result.blocks = cast(#null [*] u16) @alloc(cast(u64) capacity * cast(u64) #sizeof(u16))
         @assert(result.blocks != null)
         result.blockCount = 0
         result.fileCount = 0

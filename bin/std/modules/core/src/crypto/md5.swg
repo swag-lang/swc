@@ -39,7 +39,7 @@ public impl Md5
     }
 
     // Update the hash value with 'buffer' content
-    mtd update(data: #nonull const [..] u8)
+    mtd update(data: const [..] u8)
     {
         // Only deal with 32 bits size
         Debug.assert(@countof(data) <= Swag.U32.Max)
@@ -73,7 +73,7 @@ public impl Md5
     }
 
     // Returns the md5 value for the given buffer
-    func compute(buffer: #nonull const [..] u8)->Digest
+    func compute(buffer: const [..] u8)->Digest
     {
         let bufferLen = @countof(buffer)
         if bufferLen < 56
@@ -164,7 +164,7 @@ impl Md5
     }
 
     #[Swag.Inline]
-    func ff1(a: #nonull *u32, b, c, d, x, s, ac: u32)
+    func ff1(a: *u32, b, c, d, x, s, ac: u32)
     {
         dref a += f1(b, c, d) + x + ac
         dref a = f5(dref a, s)
@@ -172,7 +172,7 @@ impl Md5
     }
 
     #[Swag.Inline]
-    func ff2(a: #nonull *u32, b, c, d, x, s, ac: u32)
+    func ff2(a: *u32, b, c, d, x, s, ac: u32)
     {
         dref a += f2(b, c, d) + x + ac
         dref a = f5(dref a, s)
@@ -180,7 +180,7 @@ impl Md5
     }
 
     #[Swag.Inline]
-    func ff3(a: #nonull *u32, b, c, d, x, s, ac: u32)
+    func ff3(a: *u32, b, c, d, x, s, ac: u32)
     {
         dref a += f3(b, c, d) + x + ac
         dref a = f5(dref a, s)
@@ -188,14 +188,14 @@ impl Md5
     }
 
     #[Swag.Inline]
-    func ff4(a: #nonull *u32, b, c, d, x, s, ac: u32)
+    func ff4(a: *u32, b, c, d, x, s, ac: u32)
     {
         dref a += f4(b, c, d) + x + ac
         dref a = f5(dref a, s)
         dref a += b
     }
 
-    func transform(state: [4] u32, block: #nonull const [*] u8)
+    func transform(state: [4] u32, block: const [*] u8)
     {
         var a  = state[0]
         var b  = state[1]
@@ -284,7 +284,7 @@ impl Md5
         state[3] += d
     }
 
-    func encode(output: #nonull [*] u8, input: #nonull [*] u32, len: u32)
+    func encode(output: [*] u8, input: [*] u32, len: u32)
     {
         var i, j = 0
         while j < len
@@ -298,7 +298,7 @@ impl Md5
         }
     }
 
-    func decode(output: #nonull [*] u32, input: #nonull const [*] u8, len: u32)
+    func decode(output: [*] u32, input: const [*] u8, len: u32)
     {
         var i, j = 0
         while j < len

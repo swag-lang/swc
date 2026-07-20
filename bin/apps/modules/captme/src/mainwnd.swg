@@ -119,7 +119,7 @@ impl IWnd for MainWnd
         sf.destroy()
     }
 
-    mtd impl onSysUserEvent(evt: #nonull *SysUserEvent)
+    mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
         #if #os == Swag.TargetOs.Windows
         {
@@ -141,7 +141,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent)
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = false
         if evt.kind == .Close
@@ -155,12 +155,12 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .saveAppState()
     }
 
-    mtd impl onStateEvent(evt: #nonull *StateEvent)
+    mtd impl onStateEvent(evt: *StateEvent)
     {
         switch evt.kind
         {
@@ -182,7 +182,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onSerializeStateEvent(evt: #nonull *SerializeStateEvent)
+    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
         if .inPlaceEdit do
             return
@@ -213,7 +213,7 @@ impl IWnd for MainWnd
         }
     }
 
-    mtd impl onFrameEvent(evt: #nonull *FrameEvent)
+    mtd impl onFrameEvent(evt: *FrameEvent)
     {
         if evt.firstFrame do
             .quickWnd.setDefault()
@@ -229,7 +229,7 @@ impl MainWnd
             catch g_App.saveState()
     }
 
-    mtd saveCapture(capture: #nonull *Capture)
+    mtd saveCapture(capture: *Capture)
     {
         catch capture.save()
         if @err != null do
@@ -313,7 +313,7 @@ impl MainWnd
         {
             if md.isTag("Captme.File")
             {
-                let dupCapture = catch .recentWnd.addRecent(cast(#nonull string) md.toSlice(), true, true)
+                let dupCapture = catch .recentWnd.addRecent(cast(string) md.toSlice(), true, true)
                 Memory.delete(dupCapture)
                 done = true
                 break
@@ -383,7 +383,7 @@ impl MainWnd
 
             for it in capture.forms
             {
-                let p = cast(#nonull *BaseForm) @dataof(it)
+                let p = cast(*BaseForm) @dataof(it)
                 p.freeze = true
             }
         }
@@ -630,7 +630,7 @@ impl MainWnd
 
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
     // sprite for this tool, so it paints its own rounded body plus a small tail.
-    func drawCalloutGlyph(btn: #nonull *IconButton, bc: #nonull *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
+    func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
     {
         bc.painter.setParams(.Antialiased)
         let col = btn.isChecked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
@@ -673,8 +673,8 @@ impl MainWnd
                 if id == ActionToolMode.Callout do
                     .sigPaintIcon = func(btn, bc, pos, flags)
                     {
-                        drawCalloutGlyph(btn orelse cast(#nonull *IconButton) 1'u64,
-                                         bc orelse cast(#nonull *PaintContext) 1'u64,
+                        drawCalloutGlyph(btn orelse cast(*IconButton) 1'u64,
+                                         bc orelse cast(*PaintContext) 1'u64,
                                          pos, flags)
                     }
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
@@ -707,16 +707,16 @@ impl MainWnd
 
     mtd setTopBarHeight()
     {
-        var icons: Array'(#nonull *IconButton)
+        var icons: Array'(*IconButton)
         for c in .topBar.childs
         {
             if c.type == IconButton do
-                icons.add(cast(#nonull *IconButton) c)
+                icons.add(cast(*IconButton) c)
         }
         for c in .editToolBar.childs
         {
             if c.type == IconButton do
-                icons.add(cast(#nonull *IconButton) c)
+                icons.add(cast(*IconButton) c)
         }
 
         for c in icons
@@ -744,7 +744,7 @@ impl MainWnd
         .applyLayout()
     }
 
-    func create(parent: #nonull *Wnd)->#nonull *MainWnd
+    func create(parent: *Wnd)->*MainWnd
     {
         parent.surface.minSize = {1152, 512}
 
@@ -811,7 +811,7 @@ impl MainWnd
             .addItem({}, ActionRecentSize.RecentBig, .Checkable)
         }
 
-        with res.recentWnd = RecentWnd.create(res.recentBar orelse cast(#nonull *Wnd) 1'u64, res)
+        with res.recentWnd = RecentWnd.create(res.recentBar orelse cast(*Wnd) 1'u64, res)
         {
             .dockStyle = .Center
         }
@@ -824,8 +824,8 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        res.quickWnd = QuickWnd.create(res.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, res)
-        res.propWnd  = PropWnd.create(res.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, res)
+        res.quickWnd = QuickWnd.create(res.quickStyleBar orelse cast(*SplitterCtrl) 1'u64, res)
+        res.propWnd  = PropWnd.create(res.quickStyleBar orelse cast(*SplitterCtrl) 1'u64, res)
 
         with let quickPane = res.quickStyleBar.addPane(assume res.quickWnd, title: true)
         {

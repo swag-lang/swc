@@ -19,16 +19,16 @@ impl INullCoalescingProbe for NullCoalescingProbe
     }
 }
 
-func probeObject(itf: INullCoalescingProbe)->*void
+func probeObject(itf: INullCoalescingProbe)->#null *void
 {
     let runtimeItf = cast(const *Swag.Interface) &itf
     return runtimeItf.obj
 }
 
-func probeITable(itf: INullCoalescingProbe)->const *void
+func probeITable(itf: INullCoalescingProbe)->#null const *void
 {
     let runtimeItf = cast(const *Swag.Interface) &itf
-    return runtimeItf.itable
+    return cast(#null const *void) runtimeItf.itable
 }
 
 func falseBoolFallback(value: bool)->bool
@@ -38,7 +38,7 @@ func falseBoolFallback(value: bool)->bool
 
 func nullStringFallback()->bool
 {
-    var value: string = null
+    var value: #null string = null
     let fallback = "fallback"
     let resolved = value orelse fallback
     return resolved == fallback
@@ -54,7 +54,7 @@ func nonNullStringWins()->bool
 
 func nullSliceFallback()->bool
 {
-    var value: [..] u32 = null
+    var value: #null [..] u32 = null
     let fallbackValues: [2] u32 = [7, 9]
     let fallback: [..] u32 = fallbackValues
     let resolved = value orelse fallback

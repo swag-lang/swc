@@ -137,9 +137,9 @@ func levelName(level: LogLevel)->string
     let info = cast(const *Swag.TypeInfoEnum) #typeof(LogLevel)
     for i in @countof(info.values)
     {
-        let stored = cast(const *LogLevel) info.values[i].value
+        let stored = cast(const *LogLevel) assume info.values[i].value
         if dref stored == level do
-            return info.values[i].name
+            return assume info.values[i].name
     }
     return "unknown"
 }

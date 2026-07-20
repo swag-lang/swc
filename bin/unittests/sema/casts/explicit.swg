@@ -122,7 +122,8 @@ func semaTest001()
 
 func semaTest002()
 {
-    var a: [*] s32
+    var x: s32
+    var a = cast([*] s32) &x
     var b = cast(u64) a
 }
 
@@ -140,7 +141,7 @@ func semaTest004()
     #assert(#typeof(s) == [..] u16)
 }
 
-func takeStringValue(value: #nonull string)->u64
+func takeStringValue(value: string)->u64
 {
     return @countof(value)
 }
@@ -148,11 +149,11 @@ func takeStringValue(value: #nonull string)->u64
 func semaTest005()
 {
     var text = "abcd"
-    var textRef: &#nonull string = &text
-    let textValue = cast(#nonull string) textRef
+    var textRef: &string = &text
+    let textValue = cast(string) textRef
     let textSize = takeStringValue(textRef)
 
-    #assert(#typeof(textValue) == #nonull string)
+    #assert(#typeof(textValue) == string)
     #assert(#typeof(textSize) == u64)
     @assert(textValue == "abcd")
     @assert(textSize == 4'u64)

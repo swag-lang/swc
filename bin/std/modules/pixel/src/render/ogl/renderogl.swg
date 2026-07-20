@@ -205,7 +205,7 @@ private impl RenderOgl
         }
     }
 
-    func generateTexture(datas: #nonull const [..] u8, w, h: s32)->GLuint
+    func generateTexture(datas: const [..] u8, w, h: s32)->GLuint
     {
         Debug.assert(@countof(datas) <= 8 * 8)
 
@@ -422,7 +422,7 @@ impl RenderOgl
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: #nonull const *GLchar, UserParam: #nonull const *void)
+    internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
     {
         //@print(cast(cstring) (Message));
     }
@@ -501,7 +501,7 @@ impl RenderOgl
     }
 
     // Set the current render target
-    mtd bindRenderTarget(rt: #nonull *RenderTarget, vp: #null *Math.Rectangle = null)
+    mtd bindRenderTarget(rt: *RenderTarget, vp: #null *Math.Rectangle = null)
     {
         Debug.assert(rt != null)
         if !rt.colorBuffer.valid do
@@ -534,7 +534,7 @@ impl RenderOgl
 
         var result: retval = Image.create(w, h, .BGRA8)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, .curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast(#nonull [*] u8) (assume result.pixels.buffer))
+        glReadPixels(x, .curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (assume result.pixels.buffer))
         .unbindRenderTarget()
         return result
     }
@@ -611,7 +611,7 @@ impl RenderOgl
 
     // Delete a render target
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd deleteRenderTarget(rt: #nonull *RenderTarget)
+    mtd deleteRenderTarget(rt: *RenderTarget)
     {
         if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.valid do
             return
@@ -640,7 +640,7 @@ impl RenderOgl
     }
 
     // Load and register an image for rendering
-    mtd addImage(fullName: #nonull string)->Texture throw
+    mtd addImage(fullName: string)->Texture throw
     {
         return .addImage(Image.load(fullName))
     }
@@ -695,7 +695,7 @@ impl RenderOgl
         glGenTextures(1, &textureID)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast(#nonull [*] u8) (assume image.pixels.buffer))
+        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) (assume image.pixels.buffer))
 
         var result: retval
         result.handle = cast(TextureHandle) textureID
@@ -726,7 +726,7 @@ impl RenderOgl
 
     // Update content of texture
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd updateTexture(texture: Texture, pixels: #nonull const *u8)
+    mtd updateTexture(texture: Texture, pixels: const *u8)
     {
         if .headless
         {
@@ -771,7 +771,7 @@ impl RenderOgl
 
     // Unregister a texture created with 'addImage'
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd removeTexture(texture: #nonull *Texture)
+    mtd removeTexture(texture: *Texture)
     {
         if !texture.valid do
             return
@@ -781,7 +781,7 @@ impl RenderOgl
             texture.valid = false
             return
         }
-        glDeleteTextures(1, cast(#nonull *GLuint) &texture.handle)
+        glDeleteTextures(1, cast(*GLuint) &texture.handle)
         texture.valid = false
     }
 
@@ -841,7 +841,7 @@ impl RenderOgl
         glUniformMatrix4fv(cast(GLint) mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
     }
 
-    private mtd executeCommand(dc: #nonull *Painter, cmd: Pixel.Command, cmdIdx: u64, width, height: s32)
+    private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64, width, height: s32)
     {
         switch cmd.id
         {
@@ -983,7 +983,7 @@ impl RenderOgl
                 // is felt as a series of hitches while a font warms up its glyphs.
                 let isNew = atlas.texture.handle == InvalidTextureHandle
                 if isNew do
-                    glGenTextures(1, cast(#nonull *GLuint) &atlas.texture.handle)
+                    glGenTextures(1, cast(*GLuint) &atlas.texture.handle)
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) atlas.texture.handle)
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
@@ -1152,7 +1152,7 @@ impl RenderOgl
     }
 
     // Draw the given painter
-    mtd draw(dc: #nonull *Painter)
+    mtd draw(dc: *Painter)
     {
         if .headless
         {
@@ -1239,7 +1239,7 @@ impl RenderOgl
 
     // Get a render target of the given size
     // releaseRenderTarget must be called to release it
-    mtd getRenderTarget(w, h: s32)->#nonull *RenderTarget
+    mtd getRenderTarget(w, h: s32)->*RenderTarget
     {
         let w2 = Math.roundUpToPowerOf2(cast(u32) w)
         let h2 = Math.roundUpToPowerOf2(cast(u32) h)
@@ -1249,7 +1249,7 @@ impl RenderOgl
             if rt.colorBuffer.width == w2 and rt.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(i)
-                return rt orelse cast(#nonull *RenderTarget) 1'u64
+                return rt orelse cast(*RenderTarget) 1'u64
             }
         }
 
@@ -1258,7 +1258,7 @@ impl RenderOgl
             if rt.colorBuffer.width >= w2 and rt.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(i)
-                return rt orelse cast(#nonull *RenderTarget) 1'u64
+                return rt orelse cast(*RenderTarget) 1'u64
             }
         }
 
@@ -1276,7 +1276,7 @@ impl RenderOgl
     }
 
     // Create the given shader
-    func createShader(base: #nonull *ShaderBase, vertex, pixel: #nonull const [..] u8) throw
+    func createShader(base: *ShaderBase, vertex, pixel: const [..] u8) throw
     {
         var buf: String = @mkstring(@dataof(vertex), @countof(vertex))
         buf.replace("#include base", @mkstring(@dataof(BaseVertexShader), @countof(BaseVertexShader)))

@@ -10,7 +10,7 @@ struct StringPainter
 impl StringPainter
 {
     // Set font
-    mtd font(font: #nonull *Font)
+    mtd font(font: *Font)
     {
         .fmt.font.regular = font
     }
@@ -39,8 +39,8 @@ impl StringPainter
         .fmt.flags = f
     }
 
-    // Draw #nonull string
-    mtd draw(painter: #nonull *Painter, rect: Math.Rectangle, what: #nonull string)
+    // Draw string
+    mtd draw(painter: *Painter, rect: Math.Rectangle, what: string)
     {
         .str.set(what)
         painter.drawRichString(rect, &.str, .fmt)

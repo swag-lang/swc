@@ -394,7 +394,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     if (tok.id == TokenId::StringRaw)
     {
         auto val = ConstantValue::makeString(ctx, value);
-        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
+        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
         return Result::SkipChildren;
     }
@@ -403,7 +403,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         auto val = ConstantValue::makeString(ctx, value);
-        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
+        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
         return Result::SkipChildren;
     }
@@ -427,7 +427,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     }
 
     auto val = ConstantValue::makeString(ctx, result);
-    val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
+    val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
     return Result::SkipChildren;
 }

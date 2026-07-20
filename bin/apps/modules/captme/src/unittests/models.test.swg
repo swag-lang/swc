@@ -48,61 +48,61 @@ using Swag, Core
     f.main.mdlFormShape.kind = .RoundRectangle
     let shape = f.main.newFormFromModel(.Shape)
     @assert(@kindof(shape) == FormShape)
-    @assert((cast(#nonull *FormShape) @dataof(shape)).kind == .RoundRectangle)
+    @assert((cast(*FormShape) @dataof(shape)).kind == .RoundRectangle)
     testDeleteForm(shape)
 
     f.main.mdlFormLine.borderSize = 9
     let line = f.main.newFormFromModel(.Line)
     @assert(@kindof(line) == FormLine)
-    @assert((cast(#nonull *FormLine) @dataof(line)).borderSize == 9)
+    @assert((cast(*FormLine) @dataof(line)).borderSize == 9)
     testDeleteForm(line)
 
     f.main.mdlFormArrow.endSize = 8
     let arrow = f.main.newFormFromModel(.Arrow)
     @assert(@kindof(arrow) == FormArrow)
-    @assert((cast(#nonull *FormArrow) @dataof(arrow)).endSize == 8)
+    @assert((cast(*FormArrow) @dataof(arrow)).endSize == 8)
     testDeleteForm(arrow)
 
     f.main.mdlFormPolygon.points.add({1, 1})
     let polygon = f.main.newFormFromModel(.Polygon, clear: true)
     @assert(@kindof(polygon) == FormPolygon)
-    @assert((cast(#nonull *FormPolygon) @dataof(polygon)).points.count == 0)
+    @assert((cast(*FormPolygon) @dataof(polygon)).points.count == 0)
     testDeleteForm(polygon)
 
     f.main.mdlFormDraw.points.add({1, 1})
     let draw = f.main.newFormFromModel(.Draw, clear: true)
     @assert(@kindof(draw) == FormDraw)
-    @assert((cast(#nonull *FormDraw) @dataof(draw)).points.count == 0)
+    @assert((cast(*FormDraw) @dataof(draw)).points.count == 0)
     testDeleteForm(draw)
 
     f.main.mdlFormText.fontSize = 72
     let text = f.main.newFormFromModel(.Text)
     @assert(@kindof(text) == FormText)
-    @assert((cast(#nonull *FormText) @dataof(text)).fontSize == 72)
+    @assert((cast(*FormText) @dataof(text)).fontSize == 72)
     testDeleteForm(text)
 
     f.main.mdlFormStep.ws = 33
     f.main.mdlFormStep.hs = 44
     let step = f.main.newFormFromModel(.Step)
     @assert(@kindof(step) == FormStep)
-    @assert((cast(#nonull *FormStep) @dataof(step)).ws == 33)
-    @assert((cast(#nonull *FormStep) @dataof(step)).hs == 44)
+    @assert((cast(*FormStep) @dataof(step)).ws == 33)
+    @assert((cast(*FormStep) @dataof(step)).hs == 44)
     testDeleteForm(step)
 
     f.main.mdlFormImage.kind = .Pixelate
     let image = f.main.newFormFromModel(.Image, clear: true)
     @assert(@kindof(image) == FormImage)
-    @assert((cast(#nonull *FormImage) @dataof(image)).kind == .Pixelate)
-    @assert(!(cast(#nonull *FormImage) @dataof(image)).image.isValid())
+    @assert((cast(*FormImage) @dataof(image)).kind == .Pixelate)
+    @assert(!(cast(*FormImage) @dataof(image)).image.isValid())
     testDeleteForm(image)
 
     f.main.mdlFormCallout.roundSize = 22
     f.main.mdlFormCallout.text = "model text"
     let callout = f.main.newFormFromModel(.Callout, clear: true)
     @assert(@kindof(callout) == FormCallout)
-    @assert((cast(#nonull *FormCallout) @dataof(callout)).roundSize == 22)
+    @assert((cast(*FormCallout) @dataof(callout)).roundSize == 22)
     // clear drops the text payload while keeping the style.
-    @assert((cast(#nonull *FormCallout) @dataof(callout)).text.isEmpty())
+    @assert((cast(*FormCallout) @dataof(callout)).text.isEmpty())
     testDeleteForm(callout)
 
     f.shutdown()

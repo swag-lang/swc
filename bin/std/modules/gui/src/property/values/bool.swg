@@ -1,6 +1,6 @@
 impl Properties
 {
-    mtd refreshBool(item: #nonull *PropertiesItem)
+    mtd refreshBool(item: *PropertiesItem)
     {
         if item.checkBox
         {
@@ -21,7 +21,7 @@ impl Properties
         }
     }
 
-    mtd validateBool(item: #nonull *PropertiesItem)
+    mtd validateBool(item: *PropertiesItem)
     {
         var data = cast(#null *bool) item.data
         if item.checkBox do
@@ -74,8 +74,8 @@ impl Properties
             item.comboBox = ed
         }
 
-        item.comboBox.addItem(cast(#nonull string) (assume Reflection.getAttributeValue(value, .BoolCombo, "off")))
-        item.comboBox.addItem(cast(#nonull string) (assume Reflection.getAttributeValue(value, .BoolCombo, "on")))
+        item.comboBox.addItem(cast(string) (assume Reflection.getAttributeValue(value, .BoolCombo, "off")))
+        item.comboBox.addItem(cast(string) (assume Reflection.getAttributeValue(value, .BoolCombo, "on")))
 
         .refreshBool(item)
         item.comboBox.sigChanged += func|prop = me, item|(ed, n)
@@ -150,7 +150,7 @@ impl Properties
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
-                .setText(dispDesc == null ? "" : cast(#nonull string) (assume dispDesc))
+                .setText(dispDesc == null ? "" : cast(string) (assume dispDesc))
             }
 
             item.sigResize += func|label, line, lineHeight|(item)

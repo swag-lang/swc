@@ -46,7 +46,7 @@ namespace GenericReallocDefaultArgsCodegen
 
     namespace LocalMemory
     {
-        func free(buffer: [*] void, size: u64, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
+        func free(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
         {
             if !buffer do
                 return
@@ -61,7 +61,7 @@ namespace GenericReallocDefaultArgsCodegen
             talloc.free(&req)
         }
 
-        func realloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: string = null, loc = #callerlocation)->[*] void
+        func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
         {
             gLastCaller = loc
             gLastHintWasNull = hint == null
@@ -91,7 +91,7 @@ namespace GenericReallocDefaultArgsCodegen
     struct(T) Buffer
     {
         allocator: IAllocator
-        buffer:    [*] T
+        buffer:    #null [*] T
         count:     u64
         capacity:  u64
     }
@@ -111,7 +111,7 @@ namespace GenericReallocDefaultArgsCodegen
                 return
             }
 
-            .buffer = cast([*] T) LocalMemory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer = cast(#null [*] T) LocalMemory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 
@@ -130,7 +130,7 @@ namespace GenericReallocDefaultArgsCodegen
             if .allocator == null do
                 .allocator = @getcontext().allocator
 
-            .buffer = cast([*] T) LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator)
+            .buffer = cast(#null [*] T) LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator)
             .capacity = newCapacity
         }
 
@@ -153,7 +153,7 @@ namespace GenericReallocDefaultArgsCodegen
         #[Inline]
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
         }
 
         #[Swag.NoInline]

@@ -44,9 +44,9 @@
 using Gui, Core, Pixel
 const Scale = 3.0
 
-var g_Wnd:      *Wnd
+var g_Wnd:      #null *Wnd
 var g_DataPath: String
-var g_Painter:  *Painter
+var g_Painter:  #null *Painter
 
 var g_MapTex:      Texture
 var g_PillTex:     Texture
@@ -96,14 +96,14 @@ var g_SoundSiren:    Audio.SoundFile
 var g_SoundRetreat:  Audio.SoundFile
 var g_SoundScared:   Audio.SoundFile
 
-var g_VoiceReady:    *Audio.Voice
-var g_VoiceDeath:    *Audio.Voice
-var g_VoiceEatFruit: *Audio.Voice
-var g_VoiceEatGhost: *Audio.Voice
-var g_VoiceChomp:    *Audio.Voice
-var g_VoiceSiren:    *Audio.Voice
-var g_VoiceRetreat:  *Audio.Voice
-var g_VoiceScared:   *Audio.Voice
+var g_VoiceReady:    #null *Audio.Voice
+var g_VoiceDeath:    #null *Audio.Voice
+var g_VoiceEatFruit: #null *Audio.Voice
+var g_VoiceEatGhost: #null *Audio.Voice
+var g_VoiceChomp:    #null *Audio.Voice
+var g_VoiceSiren:    #null *Audio.Voice
+var g_VoiceRetreat:  #null *Audio.Voice
+var g_VoiceScared:   #null *Audio.Voice
 
 var g_Mode:        GameMode = STARTLEVEL
 var g_TempMode:    GameMode = STARTLEVEL
@@ -2052,7 +2052,7 @@ func gameLoop()
         g_Ticks += 1
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -2224,6 +2224,6 @@ func loadBindTextures()
     assume Audio.createEngine()
     defer Audio.destroyEngine()
 
-    func muteForTest(app: #nonull *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
+    func muteForTest(app: *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
     Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)
 }

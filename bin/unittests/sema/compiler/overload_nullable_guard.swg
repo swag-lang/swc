@@ -18,11 +18,11 @@ impl GuardedNode
 
 func pick()->bool
 {
-    var n: *Node = null
+    var n: #null *Node = null
     return pick(n)
 }
 
-func pick(n: *Node)->bool
+func pick(n: #null *Node)->bool
 {
     return n != null
 }
@@ -31,7 +31,7 @@ func select(n: #null *Node)->bool
 {
     if !n do
         return false
-    return select(n)
+    return select(assume n)
 }
 
 func select(n: *Node)->bool

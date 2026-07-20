@@ -32,7 +32,7 @@ impl InlineDefaultSelfCells
 var InlineDefaultSelfItems: InlineDefaultSelfCells
 
 #[Swag.Inline]
-func inlineDefaultSelfPtr(x, y: s32, self: *InlineDefaultSelfCell = null)->bool
+func inlineDefaultSelfPtr(x, y: s32, self: #null *InlineDefaultSelfCell = null)->bool
 {
     for &c in InlineDefaultSelfItems
     {

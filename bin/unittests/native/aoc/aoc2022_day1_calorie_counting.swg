@@ -26,7 +26,7 @@ enum Rank: u8
 
 struct FoodItem
 {
-    name:     string
+    name:     string = ""
     calories: u32
 }
 

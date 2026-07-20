@@ -76,7 +76,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         @assert(req.address != null)
         @assert(cast(u64) req.address % cast(u64) #sizeof(*void) == 0)
 
-        let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+        let header = cast(*AllocatorHeader) (cast([*] u8) (assume req.address) - #sizeof(AllocatorHeader))
         @assert(header.classIndex == cast(u32) i)
         @assert(header.blockSize == expected)
 
@@ -104,7 +104,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) (assume req.address) - #sizeof(AllocatorHeader))
     @assert(header.classIndex == AllocatorInvalidClass)
     @assert(header.blockSize == big)
 
@@ -226,7 +226,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     itf.realloc(&req)
     @assert(req.address != null)
 
-    let p = cast([*] u8) req.address
+    let p = cast([*] u8) assume req.address
     for i in 64 do
         p[i] = cast(u8) (i + 1)
 
@@ -237,7 +237,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     @assert(req.address != null)
     @assert(cast(u64) req.address % 128 == 0)
 
-    let moved = cast([*] u8) req.address
+    let moved = cast([*] u8) assume req.address
     for i in 64 do
         @assert(moved[i] == cast(u8) (i + 1))
 
@@ -316,7 +316,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     struct AllocRetirePayload
     {
         allocator: IAllocator
-        out:       **void
+        out:       *#null *void
         size:      u64
         done:      *s32
     }
@@ -346,9 +346,9 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var blockAddr: *void = null
+        var blockAddr: #null *void = null
         var done:      s32 = 0
-        var payload:   AllocRetirePayload
+        var payload:   AllocRetirePayload = undefined
         payload.allocator = itf
         payload.out       = &blockAddr
         payload.size      = 64
@@ -383,8 +383,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     struct StressShared
     {
         itf:       IAllocator
-        alloc:     *Allocator
-        slots:     [StressCount] *void
+        alloc:     #null *Allocator
+        slots:     [StressCount] #null *void
         index:     s32
         freerDone: s32
     }
@@ -442,7 +442,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         shared.itf   = itf
         shared.alloc = &alloc
 
-        var handles: [StressCount] Th.HANDLE
+        var handles: [StressCount] Th.HANDLE = undefined
         for i in StressCount
         {
             var tid: Th.DWORD

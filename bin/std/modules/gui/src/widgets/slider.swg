@@ -22,9 +22,9 @@ struct Slider
     max:                f32 = 1.0
     steps:              f32
     sliderFlags         = SliderFlags.HilightBar
-    sigStartChange:     SigArray'func||(#nonull *Slider)
-    sigChanged:         SigArray'func||(#nonull *Slider)
-    sigEndChange:       SigArray'func||(#nonull *Slider)
+    sigStartChange:     SigArray'func||(*Slider)
+    sigChanged:         SigArray'func||(*Slider)
+    sigEndChange:       SigArray'func||(*Slider)
 
     isMoving:           bool
     isPressed1:         bool
@@ -43,7 +43,7 @@ struct Slider
 
 impl IWnd for Slider
 {
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc
         let theme   = .getTheme()
@@ -194,7 +194,7 @@ impl IWnd for Slider
         }
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let pos        = .surfaceToLocal(evt.surfacePos)
         let isVertical = .sliderFlags.has(.Vertical)
@@ -323,7 +323,7 @@ impl IWnd for Slider
     // increase the (left) value by one step; Home/End jump to min/max; Page keys
     // move by a larger amount. The step is the configured step, one integer unit
     // for an integer slider, or 5% of the range otherwise.
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -607,7 +607,7 @@ impl Slider
     }
 
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false, vertical = false)->#nonull *Slider
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false, vertical = false)->*Slider
     {
         Debug.assert(parent != null)
         var pos = position

@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createWorkspacePage(parent: #nonull *Wnd)
+func createWorkspacePage(parent: *Wnd)
 {
     let panel = createPanel(parent, "Workspace composition", "A fuller gui3-only composition: one code pane, one note pane and one read-only preview pane.", getFullPageRect(parent))
     let rect = panel.getClientRect()
@@ -11,7 +11,7 @@ func createWorkspacePage(parent: #nonull *Wnd)
     let split = SplitterCtrl.create(panel, {18, 88, rect.width - 36, rect.height - 106}, vertical: false)
     split.setFrameFlags(.Zero, .Borders | .FocusBorder)
 
-    let code = createCodeEditor(split, {}, cast(#nonull string) SourcePageWorkspace, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
+    let code = createCodeEditor(split, {}, cast(string) SourcePageWorkspace, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     code.setFrameFlags(.Zero, .Borders | .FocusBorder)
     code.marginLeft  = 18
     code.marginRight = 22
@@ -28,7 +28,7 @@ func createWorkspacePage(parent: #nonull *Wnd)
     let noteItem = side.addPane(notes, 230)
     noteItem.tryPreserveSize = true
 
-    let preview = createCodeEditor(side, {}, cast(#nonull string) SourcePageLexer, .ShowFocusSel | .ReadOnly | .DrawBlanks | .TabToSpaces)
+    let preview = createCodeEditor(side, {}, cast(string) SourcePageLexer, .ShowFocusSel | .ReadOnly | .DrawBlanks | .TabToSpaces)
     preview.setFrameFlags(.Zero, .Borders | .FocusBorder)
     preview.marginLeft  = 16
     preview.marginRight = 20

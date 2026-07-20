@@ -16,14 +16,14 @@ struct IconBar
     iconSize:            f32
     iconPadding:         f32 = 4
 
-    sigUpdateState:      SigArray'func||(#nonull *CommandStateEvent)
-    sigCheckChanged:     SigArray'func||(#nonull *IconButton)
-    sigPressed:          SigArray'func||(#nonull *IconButton)
+    sigUpdateState:      SigArray'func||(*CommandStateEvent)
+    sigCheckChanged:     SigArray'func||(*IconButton)
+    sigPressed:          SigArray'func||(*IconButton)
 }
 
 impl IWnd for IconBar
 {
-    mtd impl onComputeStateEvent(evt: #nonull *CommandStateEvent)
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
         .sigUpdateState.call(evt)
@@ -51,7 +51,7 @@ impl IconBar
     }
 
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->*IconBar
     {
         Debug.assert(parent != null)
         var pos = position
@@ -63,7 +63,7 @@ impl IconBar
 
     // Add a new button
     #[Swag.Discardable]
-    mtd addItem(icon: Icon, btnId: #null WndId = null, iconBtnFlags = IconButtonFlags.Zero)->#nonull *IconButton
+    mtd addItem(icon: Icon, btnId: #null WndId = null, iconBtnFlags = IconButtonFlags.Zero)->*IconButton
     {
         var iconT = icon
         iconT.sizeX, iconT.sizeY = .iconSize
@@ -87,7 +87,7 @@ impl IconBar
         {
             b.sigPressed += func|bar = me|(btn)
             {
-                bar.sigPressed.call(cast(#nonull *IconButton) btn)
+                bar.sigPressed.call(cast(*IconButton) btn)
             }
         }
 
@@ -97,14 +97,14 @@ impl IconBar
 
     // Add a new checkable button
     #[Swag.Discardable]
-    mtd addCheckableItem(icon: Icon, btnId: #null WndId = null)->#nonull *IconButton
+    mtd addCheckableItem(icon: Icon, btnId: #null WndId = null)->*IconButton
     {
         return .addItem(icon, btnId, .Checkable)
     }
 
     // Add a new checkable button
     #[Swag.Discardable]
-    mtd addCheckableToggleItem(icon: Icon, btnId: #null WndId = null)->#nonull *IconButton
+    mtd addCheckableToggleItem(icon: Icon, btnId: #null WndId = null)->*IconButton
     {
         return .addItem(icon, btnId, .CheckableToggle)
     }
@@ -118,7 +118,7 @@ impl IconBar
     }
 
     // Returns the button with the given id
-    mtd getButton(btnId: #nonull string)->#null *IconButton
+    mtd getButton(btnId: string)->#null *IconButton
     {
         let btn = .getChildById(btnId)
         if !btn do

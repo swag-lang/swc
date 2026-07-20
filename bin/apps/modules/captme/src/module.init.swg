@@ -7,8 +7,8 @@
     cfg.resAppIcoFileName = Path.getDirectoryName(#file) ++ "/datas/appicon.ico"
 }
 
-func captmeFont(font: #null *Font)->#nonull *Font
+func captmeFont(font: #null *Font)->*Font
 {
     Debug.assert(font != null)
-    return font orelse cast(#nonull *Font) 1'u64
+    return font orelse cast(*Font) 1'u64
 }

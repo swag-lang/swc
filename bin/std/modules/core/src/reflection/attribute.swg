@@ -60,7 +60,7 @@ func getAttributeValue(attribute: #null const *Swag.Attribute, value: #null stri
 
 // Returns the given associated attributes to 'value'
 #[ConstExpr]
-func getAttributes(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->Array'(#nonull const *Swag.Attribute)
+func getAttributes(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
     if !value do
@@ -90,7 +90,7 @@ func hasAttribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)
 
 // Returns the given associated attributes to 'type'
 #[ConstExpr]
-func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(#nonull const *Swag.Attribute)
+func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
     if !type do
@@ -100,17 +100,17 @@ func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(#non
     switch safeType.kind
     {
     case Func:
-        let typeFunc = cast(#nonull const *TypeInfoFunc) safeType
+        let typeFunc = cast(const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case Struct:
-        let typeStruct = cast(#nonull const *TypeInfoStruct) safeType
+        let typeStruct = cast(const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case Enum:
-        let typeEnum = cast(#nonull const *TypeInfoEnum) safeType
+        let typeEnum = cast(const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
     }
@@ -129,17 +129,17 @@ func getAttribute(type: #null typeinfo, attribute: #null typeinfo)->#null const 
     switch safeType.kind
     {
     case Func:
-        let typeFunc = cast(#nonull const *TypeInfoFunc) safeType
+        let typeFunc = cast(const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case Struct:
-        let typeStruct = cast(#nonull const *TypeInfoStruct) safeType
+        let typeStruct = cast(const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case Enum:
-        let typeEnum = cast(#nonull const *TypeInfoEnum) safeType
+        let typeEnum = cast(const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
     }

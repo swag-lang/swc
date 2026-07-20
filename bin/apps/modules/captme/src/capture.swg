@@ -76,7 +76,7 @@ struct Capture
 // form without advancing 'idx' — the exact contract needed to pair 'idx' with arrays
 // built by a previous, identically-filtered pass — and 'break' stops the visit.
 #[Swag.Macro]
-func(T) foreachSelected(capture: #nonull *Capture, selection: Array'u64, stmt: #code(form: #nonull *T, itf: IForm, idx: u64))
+func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(form: *T, itf: IForm, idx: u64))
 {
     var visitIdx = 0'u64
     for s in selection
@@ -87,7 +87,7 @@ func(T) foreachSelected(capture: #nonull *Capture, selection: Array'u64, stmt: #
             if @kindof(f) != T do
                 continue
         }
-        #inject(stmt, form = cast(#nonull *T) @dataof(f), itf = f, idx = visitIdx)
+        #inject(stmt, form = cast(*T) @dataof(f), itf = f, idx = visitIdx)
         visitIdx += 1
     }
 }
@@ -163,7 +163,7 @@ impl CaptureClipboardForm
         }
     }
 
-    mtd toForm(capture: #nonull *Capture)->IForm
+    mtd toForm(capture: *Capture)->IForm
     {
         var result: retval
 
@@ -224,7 +224,7 @@ impl CaptureClipboardForms
             .forms.add(#move item)
     }
 
-    mtd toForms(capture: #nonull *Capture)->Array'IForm
+    mtd toForms(capture: *Capture)->Array'IForm
     {
         var result: retval
         for &item in .forms
@@ -254,7 +254,7 @@ impl Capture
         freeForms(.forms)
     }
 
-    mtd setup(view: #nonull *EditView)
+    mtd setup(view: *EditView)
     {
         .editView         = view
         .gizmo.sigChanged = func|capture = me|(g, first, hitMove)
@@ -309,7 +309,7 @@ impl Capture
             for sel in .selection
             {
                 let f = .forms[sel]
-                let b = cast(#nonull *BaseForm) @dataof(f)
+                let b = cast(*BaseForm) @dataof(f)
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -319,7 +319,7 @@ impl Capture
         {
             for f in .forms
             {
-                let b = cast(#nonull *BaseForm) @dataof(f)
+                let b = cast(*BaseForm) @dataof(f)
                 if b.subKind == .PixSel do
                     continue
                 paintForm(&painter, {}, rect, f, zoom, snapMode: true)
@@ -430,7 +430,7 @@ impl Capture
             // Add real image
             if !imgDone and @kindof(itf) == FormImage
             {
-                let fimg = cast(#nonull *FormImage) @dataof(itf)
+                let fimg = cast(*FormImage) @dataof(itf)
                 if fimg.kind == .Image and fimg.image.isValid()
                 {
                     imgDone = true
@@ -548,7 +548,7 @@ impl Capture
     // PAINT
     //////////////////////////////
 
-    func paintForm(painter: #nonull *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false)
+    func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false)
     {
         let render = &g_App.renderer
 
@@ -561,7 +561,7 @@ impl Capture
         var savePaintPos: Math.Rectangle
         var saveNoClipPos: Math.Rectangle
         var wt2, ht2: s32
-        with let base = cast(#nonull *BaseForm) @dataof(f)
+        with let base = cast(*BaseForm) @dataof(f)
         {
             savePaintPos = .paintPos
 
@@ -664,7 +664,7 @@ impl Capture
             base.paintPos = savePaintPos
     }
 
-    mtd paintBackImage(painter: #nonull *Painter, x, y: f32, z: f32)
+    mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
         let renderer = .editView.getApp().getRenderer()
 
@@ -742,7 +742,7 @@ impl Capture
         view.invalidateRect(local)
     }
 
-    mtd paint(painter: #nonull *Painter, clip, rect: Math.Rectangle)
+    mtd paint(painter: *Painter, clip, rect: Math.Rectangle)
     {
         painter.fillRect(rect, Argb.LightGray)
         painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
@@ -881,7 +881,7 @@ impl Capture
         var result: retval
 
         var form: IForm
-        var type: #nonull typeinfo = undefined
+        var type: typeinfo = undefined
 
         if editForm do
             form = editForm
@@ -892,13 +892,13 @@ impl Capture
 
         if .selection.count == 1 and type == FormPolygon
         {
-            let poly = cast(#nonull *FormPolygon) @dataof(form)
+            let poly = cast(*FormPolygon) @dataof(form)
             result.x = poly.points[idxPt].x + nx
             result.y = poly.points[idxPt].y + ny
         }
         elif (.selection.count == 1 or editForm) and (type == FormLine or type == FormArrow)
         {
-            let line = cast(#nonull *FormLine) @dataof(form)
+            let line = cast(*FormLine) @dataof(form)
             if !right or !bottom
             {
                 result.x = line.xa
@@ -974,12 +974,12 @@ impl Capture
         for f, i in .forms
         {
             let autoSel = .selection.contains(i) or @dataof(f) == @dataof(editForm)
-            let form    = cast(#nonull *BaseForm) @dataof(f)
+            let form    = cast(*BaseForm) @dataof(f)
 
             switch f
             {
             case FormLine, FormArrow:
-                let form2 = cast(#nonull *FormLine) form
+                let form2 = cast(*FormLine) form
                 if !autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
                     arrX.add(cast(s32) form2.xa)
                 if !autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
@@ -992,7 +992,7 @@ impl Capture
                 }
 
             case FormPolygon:
-                let form2 = cast(#nonull *FormPolygon) form
+                let form2 = cast(*FormPolygon) form
                 for pt, idx in form2.points
                 {
                     if !autoSel or idx != idxPt
@@ -1078,7 +1078,7 @@ impl Capture
     // CONTENT
     //////////////////////////////
 
-    mtd popupMenu(view: #nonull *EditView, pos: Math.Point)
+    mtd popupMenu(view: *EditView, pos: Math.Point)
     {
         with let menu = MenuCtrl.createPopup(view)
         {
@@ -1142,7 +1142,7 @@ impl Capture
         view.setFocus()
     }
 
-    mtd mouse(view: #nonull *EditView, evt: #nonull *MouseEvent)->bool
+    mtd mouse(view: *EditView, evt: *MouseEvent)->bool
     {
         let app = view.getApp()
 
@@ -1175,7 +1175,7 @@ impl Capture
             if .selection.count == 1
             {
                 let selForm = .forms[.selection[0]]
-                let p       = cast(#nonull *BaseForm) @dataof(selForm)
+                let p       = cast(*BaseForm) @dataof(selForm)
                 if !view.main.freezeSel or !p.freeze
                 {
                     if selForm.mouse(view, localPos, evt)
@@ -1203,7 +1203,7 @@ impl Capture
                 var ht = .hitTest(localPos)
                 if ht != Swag.U64.Max
                 {
-                    let p = cast(#nonull *BaseForm) @dataof(.forms[ht])
+                    let p = cast(*BaseForm) @dataof(.forms[ht])
                     if view.main.freezeSel and p.freeze do
                         ht = Swag.U64.Max
                 }
@@ -1450,7 +1450,7 @@ impl Capture
                 let itf  = .editView.main.newFormFromModel(mode, clear: true)
                 if itf do
                     itf.setup(me)
-                let base = cast(#nonull *BaseForm) @dataof(itf)
+                let base = cast(*BaseForm) @dataof(itf)
                 if base and .editView.main.editMode == .PixSel do
                     base.subKind = .PixSel
                 let undo = .newUndo(.CreateForm)
@@ -1518,7 +1518,7 @@ impl Capture
     {
         if .selection.count == 0 do
             return null
-        return cast(#nonull *BaseForm) @dataof(.forms[.selection.back()])
+        return cast(*BaseForm) @dataof(.forms[.selection.back()])
     }
 
     mtd getSelectedFormType()->#null typeinfo
@@ -1574,7 +1574,7 @@ impl Capture
     // grouped form expands to every form sharing this id, so a group moves as a whole.
     func formOuterGroup(f: IForm)->u64
     {
-        let b = cast(#nonull *BaseForm) @dataof(f)
+        let b = cast(*BaseForm) @dataof(f)
         if b.groups.isEmpty() do
             return 0
         return b.groups[0]
@@ -1596,7 +1596,7 @@ impl Capture
 
     // Grow a selection so that whenever one member of a group is selected, the entire
     // outermost group is too. Called after a click/lasso builds a raw set.
-    mtd expandGroups(sel: #nonull *Array'u64)
+    mtd expandGroups(sel: *Array'u64)
     {
         var ids: Array'u64
         for s in dref sel
@@ -1663,7 +1663,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast(#nonull *BaseForm) @dataof(f)
+            let b = cast(*BaseForm) @dataof(f)
             for gid in b.groups
             {
                 if gid == 0 or groupIndexOf(oldIds, gid) >= 0 do
@@ -1675,7 +1675,7 @@ impl Capture
 
         for f in forms
         {
-            let b = cast(#nonull *BaseForm) @dataof(f)
+            let b = cast(*BaseForm) @dataof(f)
             for i in b.groups.count
             {
                 let idx = groupIndexOf(oldIds, b.groups[i])
@@ -1691,7 +1691,7 @@ impl Capture
 
     // Allocate a new (not yet pushed) Undo command. To group several commands into one
     // undo/redo step, mint a shared id with .undoMgr.newSerial() and pass it to pushUndo.
-    mtd newUndo(kind: UndoKind)->#nonull *Undo
+    mtd newUndo(kind: UndoKind)->*Undo
     {
         let ptr = Memory.new'Undo()
         ptr.kind = kind
@@ -1729,7 +1729,7 @@ impl Capture
     // Push a command onto the undo timeline. A non-zero 'serial' groups this command with the
     // others sharing that value into one undo/redo step (0 = its own fresh group); get a shared
     // id from .undoMgr.newSerial().
-    mtd pushUndo(u: #nonull *Undo, serial: u64 = 0)
+    mtd pushUndo(u: *Undo, serial: u64 = 0)
     {
         u.capture = me
 

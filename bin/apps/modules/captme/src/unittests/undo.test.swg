@@ -303,7 +303,7 @@ using Swag, Core
 // is geometry (rects, endpoints, point lists, rotation) and form order.
 struct UndoFuzzForm
 {
-    kind:       #nonull typeinfo = undefined
+    kind:       typeinfo = undefined
     rect:       Math.Rectangle
     rotate:     f32
     points:     Array'Math.Vector2
@@ -322,29 +322,29 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     var result: retval
     result.kind   = @kindof(itf)
     result.rect   = itf.boundRect()
-    result.rotate = (cast(#nonull *BaseForm) @dataof(itf)).rotate
+    result.rotate = (cast(*BaseForm) @dataof(itf)).rotate
 
     if result.kind == FormLine
     {
-        let line = cast(#nonull *FormLine) @dataof(itf)
+        let line = cast(*FormLine) @dataof(itf)
         result.points.add({cast(f32) line.xa, cast(f32) line.ya})
         result.points.add({cast(f32) line.xb, cast(f32) line.yb})
     }
     elif result.kind == FormArrow
     {
-        let arrow = cast(#nonull *FormArrow) @dataof(itf)
+        let arrow = cast(*FormArrow) @dataof(itf)
         result.points.add({cast(f32) arrow.xa, cast(f32) arrow.ya})
         result.points.add({cast(f32) arrow.xb, cast(f32) arrow.yb})
     }
     elif result.kind == FormPolygon
     {
-        let poly = cast(#nonull *FormPolygon) @dataof(itf)
+        let poly = cast(*FormPolygon) @dataof(itf)
         for pt in poly.points do
             result.points.add(pt)
     }
     elif result.kind == FormDraw
     {
-        let draw = cast(#nonull *FormDraw) @dataof(itf)
+        let draw = cast(*FormDraw) @dataof(itf)
         for pt in draw.points do
             result.points.add(pt)
     }
@@ -352,7 +352,7 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     return result
 }
 
-func testUndoFuzzSnapshot(capture: #nonull *Capture)->UndoFuzzState
+func testUndoFuzzSnapshot(capture: *Capture)->UndoFuzzState
 {
     var result: retval
     result.width    = capture.width
@@ -365,7 +365,7 @@ func testUndoFuzzSnapshot(capture: #nonull *Capture)->UndoFuzzState
 
 // Selection is deliberately not part of the state compare: several undo kinds
 // legitimately restore it differently from where the random walk left it.
-func testUndoFuzzAssertState(capture: #nonull *Capture, snap: #nonull *UndoFuzzState)
+func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
 {
     @assert(capture.width == snap.width)
     @assert(capture.height == snap.height)
@@ -391,7 +391,7 @@ func testUndoFuzzAssertState(capture: #nonull *Capture, snap: #nonull *UndoFuzzS
     }
 }
 
-func testUndoFuzzSelect(capture: #nonull *Capture, rng: #nonull *Random.Rng, count: u32)
+func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
 {
     capture.selection.clear()
     let total = cast(u32) capture.forms.count

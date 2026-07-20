@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct Pair
 {

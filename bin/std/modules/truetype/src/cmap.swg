@@ -79,7 +79,7 @@ func lookupCMap12(cmap: #null const [..] u8, charCode: u32)->u32 throw
     return 0
 }
 
-func lookupGlyphIndex(faceData: #nonull *FaceImpl, charCode: u32)->u32 throw
+func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 throw
 {
     let cmap = faceData.chosenCMap
     if faceData.cmapFormat == 4 do

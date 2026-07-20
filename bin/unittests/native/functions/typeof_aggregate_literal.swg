@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func typeofStructLiteralField(valueIndex: u64)->s32
 {

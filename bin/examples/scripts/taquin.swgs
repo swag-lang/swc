@@ -35,7 +35,7 @@ func tilePos(i, j: s32)->Math.Rectangle
     return Math.Rectangle{xd, yd, displayW, displayH}
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

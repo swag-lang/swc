@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func addSimpleTreeBranch(tree: #nonull *ListCtrl, rootName: #nonull string, rootIcon: ThemeIcons24, childCount: s32)->#nonull *ListLine
+func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons24, childCount: s32)->*ListLine
 {
     let root = tree.createLine(rootName, app.theme.getIcon24(rootIcon, 16))
     for i in childCount
@@ -12,7 +12,7 @@ func addSimpleTreeBranch(tree: #nonull *ListCtrl, rootName: #nonull string, root
     return root
 }
 
-func createTreesPage(parent: #nonull *Wnd)
+func createTreesPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 

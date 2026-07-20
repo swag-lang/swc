@@ -1320,6 +1320,20 @@ namespace
                 resolvedRef = sema.viewZero(node.cast<AstInitializerExpr>().nodeExprRef).nodeRef();
             else if (node.is(AstNodeId::NamedArgument))
                 resolvedRef = sema.viewZero(node.cast<AstNamedArgument>().nodeArgRef).nodeRef();
+            else if (node.is(AstNodeId::CastExpr))
+            {
+                // A cast (e.g. the implicit widening to a #null destination) preserves
+                // borrow provenance: look through it to reach the call.
+                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
+                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                    resolvedRef = operandRef;
+                else
+                    resolvedRef = sema.viewZero(operandRef).nodeRef();
+            }
+            else if (node.is(AstNodeId::AutoCastExpr))
+                resolvedRef = sema.viewZero(node.cast<AstAutoCastExpr>().nodeExprRef).nodeRef();
+            else if (node.is(AstNodeId::AsCastExpr))
+                resolvedRef = sema.viewZero(node.cast<AstAsCastExpr>().nodeExprRef).nodeRef();
             else
                 break;
         }

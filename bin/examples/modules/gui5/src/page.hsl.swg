@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createHslModesPage(parent: #nonull *Wnd)
+func createHslModesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "HSL planes", "Two-dimensional HSL pickers cover the principal hue, saturation and lightness relationships.", layout.left)

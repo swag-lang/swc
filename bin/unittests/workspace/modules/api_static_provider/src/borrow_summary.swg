@@ -6,19 +6,19 @@ var depBorrowGlobalInt: s32 = 7
 var depBorrowGlobalStash: #null *s32
 
 // Return summary: the result borrows the parameter.
-func depBorrowPassthrough(p: #nonull *s32)->#nonull *s32
+func depBorrowPassthrough(p: *s32)->*s32
 {
     return p
 }
 
 // Transitive return summary through a wrapper.
-func depBorrowWrap(p: #nonull *s32)->#nonull *s32
+func depBorrowWrap(p: *s32)->*s32
 {
     return depBorrowPassthrough(p)
 }
 
 // Stores summary: the parameter is kept beyond the call.
-func depBorrowStash(p: #nonull *s32)
+func depBorrowStash(p: *s32)
 {
     depBorrowGlobalStash = p
 }
@@ -30,7 +30,7 @@ func depBorrowStashed()->#null *s32
 }
 
 // No summary: call sites stay silent whatever was passed.
-func depBorrowRead(p: #nonull *s32)->s32
+func depBorrowRead(p: *s32)->s32
 {
     return dref p
 }
@@ -38,11 +38,11 @@ func depBorrowRead(p: #nonull *s32)->s32
 // Every parameter carried by an aggregate contributes to the exported return summary.
 struct DepBorrowPair
 {
-    first:  #nonull *s32
-    second: #nonull *s32
+    first:  *s32
+    second: *s32
 }
 
-func depBorrowMakePair(first, second: #nonull *s32)->DepBorrowPair
+func depBorrowMakePair(first, second: *s32)->DepBorrowPair
 {
     return {first, second}
 }
@@ -55,7 +55,7 @@ struct DepBorrowContainer
 
 impl DepBorrowContainer
 {
-    mtd add(item: #nonull *s32)
+    mtd add(item: *s32)
     {
         .slot = item
     }

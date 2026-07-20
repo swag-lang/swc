@@ -92,45 +92,45 @@ using Swag, Core
     @assert(loaded.backImg.isValid())
     @assert(loaded.title == "My Capture Name")
 
-    let lShape = cast(#nonull *FormShape) @dataof(loaded.forms[0])
+    let lShape = cast(*FormShape) @dataof(loaded.forms[0])
     @assert(lShape.capture == loaded)
     @assert(lShape.subKind == .Highlight)
     @assert(lShape.kind == .RoundRectangle)
     @assert(lShape.roundSize == 18)
 
-    let lLine = cast(#nonull *FormLine) @dataof(loaded.forms[1])
+    let lLine = cast(*FormLine) @dataof(loaded.forms[1])
     @assert(lLine.subKind == .PixSel)
     @assert(lLine.bezier)
     @assert(lLine.xc == 6)
     @assert(lLine.yc == 7)
     @assert(!lLine.paintShadow)
 
-    let lArrow = cast(#nonull *FormArrow) @dataof(loaded.forms[2])
+    let lArrow = cast(*FormArrow) @dataof(loaded.forms[2])
     @assert(lArrow.endSize == 9)
 
-    let lPolygon = cast(#nonull *FormPolygon) @dataof(loaded.forms[3])
+    let lPolygon = cast(*FormPolygon) @dataof(loaded.forms[3])
     @assert(lPolygon.subKind == .Highlight)
     @assert(lPolygon.bezier)
     @assert(!lPolygon.paintShadow)
     @assert(lPolygon.points.count == 3)
 
-    let lDraw = cast(#nonull *FormDraw) @dataof(loaded.forms[4])
+    let lDraw = cast(*FormDraw) @dataof(loaded.forms[4])
     @assert(lDraw.subKind == .PixSel)
     @assert(!lDraw.paintShadow)
     @assert(lDraw.points.count == 3)
 
-    let lText = cast(#nonull *FormText) @dataof(loaded.forms[5])
+    let lText = cast(*FormText) @dataof(loaded.forms[5])
     @assert(lText.text == "roundtrip")
     @assert(lText.fontSize == 32)
     @assert(lText.alignHorz == .RightBottom)
     @assert(lText.alignVert == .LeftTop)
 
-    let lStep = cast(#nonull *FormStep) @dataof(loaded.forms[6])
+    let lStep = cast(*FormStep) @dataof(loaded.forms[6])
     @assert(lStep.index == 5)
     @assert(lStep.kind == .Rectangle)
     @assert(lStep.typeIndex == .LetterUp)
 
-    let lImage = cast(#nonull *FormImage) @dataof(loaded.forms[7])
+    let lImage = cast(*FormImage) @dataof(loaded.forms[7])
     @assert(lImage.kind == .Image)
     @assert(lImage.place == .Free)
     Testing.assertRect(lImage.freePos, 2, 3, 8, 9)
@@ -138,7 +138,7 @@ using Swag, Core
     @assert(lImage.image.width == 4)
     @assert(lImage.image.height == 3)
 
-    let lCallout = cast(#nonull *FormCallout) @dataof(loaded.forms[8])
+    let lCallout = cast(*FormCallout) @dataof(loaded.forms[8])
     @assert(lCallout.capture == loaded)
     @assert(lCallout.text == "hi there")
     @assert(lCallout.roundSize == 20)
@@ -183,7 +183,7 @@ using Swag, Core
     @assert(loaded.forms.count == 1)
     @assert(!loaded.backImg.isValid())
     @assert(loaded.title == "Preview Title")
-    @assert((cast(#nonull *BaseForm) @dataof(loaded.forms[0])).capture == loaded)
+    @assert((cast(*BaseForm) @dataof(loaded.forms[0])).capture == loaded)
 
     f.shutdown()
 }

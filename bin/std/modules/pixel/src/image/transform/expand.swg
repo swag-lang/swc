@@ -10,7 +10,7 @@ impl Image
         return {cw, ch}
     }
 
-    mtd const doExpand(dstImage: #nonull *Image, l, t, r, b: s32, color: Color)
+    mtd const doExpand(dstImage: *Image, l, t, r, b: s32, color: Color)
     {
         dstImage.fill(color)
 

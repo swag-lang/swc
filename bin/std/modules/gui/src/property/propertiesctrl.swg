@@ -25,7 +25,7 @@ impl PropertiesCtrl
 {
     // Creates a new Properties instance
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: #null WndId = null)->#nonull *PropertiesCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: #null WndId = null)->*PropertiesCtrl
     {
         let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
 
@@ -126,7 +126,7 @@ impl PropertiesCtrl
     }
 
     // Add a new struct to display
-    mtd addStruct(val: #nonull any, category: #null string = null)
+    mtd addStruct(val: any, category: #null string = null)
     {
         .prop.addStruct(val, category)
         .fillSections()

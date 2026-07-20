@@ -50,12 +50,13 @@ func semaTest006()
 
 func semaTest007()
 {
-    var p: *u32 = null
+    var p: #null *u32 = null
 }
 
 func semaTest008()
 {
-    var p64: *u64
+    var x64: u64
+    var p64: *u64 = &x64
     var p32: *u32 = cast() p64
 }
 
@@ -80,9 +81,9 @@ func semaTest011()
 
 func semaTest012()
 {
-    var p: *u32 = cast() null
-    var s: string = cast() null
-    var sl: [..] s32 = cast() null
+    var p: #null *u32 = cast() null
+    var s: #null string = cast() null
+    var sl: #null [..] s32 = cast() null
 }
 
 func semaTest013()

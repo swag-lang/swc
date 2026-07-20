@@ -202,7 +202,7 @@ impl RichEditCtrl
         }
     }
 
-    mtd insertRunePrivate(cp: #nonull *RichEditCursor, c: rune, txtStyle: RichEditStyleRef)
+    mtd insertRunePrivate(cp: *RichEditCursor, c: rune, txtStyle: RichEditStyleRef)
     {
         if c == '\r' do
             return
@@ -239,7 +239,7 @@ impl RichEditCtrl
         .recomputeScroll = true
     }
 
-    mtd insertTextPrivate(cp: #nonull *RichEditCursor, runes: Array'rune, nstyles: Array'u8, selRect: bool)
+    mtd insertTextPrivate(cp: *RichEditCursor, runes: Array'rune, nstyles: Array'u8, selRect: bool)
     {
         if runes.isEmpty() do
             return
@@ -298,7 +298,7 @@ impl RichEditCtrl
         .recomputeScroll = true
     }
 
-    mtd insertTextPrivate(cp: #nonull *RichEditCursor, text: #nonull string, txtStyle: RichEditStyleRef)
+    mtd insertTextPrivate(cp: *RichEditCursor, text: string, txtStyle: RichEditStyleRef)
     {
         if .lines.isEmpty() do
             .newLine(0)
@@ -442,7 +442,7 @@ public impl RichEditCtrl
     }
 
     // Set the text content
-    mtd setText(text: #nonull string)
+    mtd setText(text: string)
     {
         .clear()
 
@@ -454,7 +454,7 @@ public impl RichEditCtrl
     }
 
     // Append a text with a given style
-    mtd addText(text: #nonull string, txtStyle: RichEditStyleRef = 0)
+    mtd addText(text: string, txtStyle: RichEditStyleRef = 0)
     {
         var cp: RichEditCursor
         if .lines.count
@@ -468,7 +468,7 @@ public impl RichEditCtrl
     }
 
     // Insert a text with a given style
-    mtd insertText(text: #nonull string)
+    mtd insertText(text: string)
     {
         let undo = Memory.new'RichEditUndo()
         undo.type  = .Insert
@@ -486,7 +486,7 @@ public impl RichEditCtrl
     }
 
     // Insert a text with a style per character
-    mtd insertText(text: #nonull string, txtStyles: Array'u8)
+    mtd insertText(text: string, txtStyles: Array'u8)
     {
         let undo = Memory.new'RichEditUndo()
         undo.type       = .Insert
@@ -644,7 +644,7 @@ public impl RichEditCtrl
     }
 
     // Insert text at the start of each selected line
-    mtd insertBegLine(txt: #nonull string)
+    mtd insertBegLine(txt: string)
     {
         var first = true
 
@@ -697,7 +697,7 @@ public impl RichEditCtrl
     }
 
     // Delete a given text at the start of each selected line
-    mtd deleteBegLine(txt: #nonull string, lastLine: bool)
+    mtd deleteBegLine(txt: string, lastLine: bool)
     {
         var arrR   = Unicode.fromUtf8(txt)
         var first  = true

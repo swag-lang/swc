@@ -33,8 +33,8 @@ const Unvisited = 0xFFFFFFFF'u32
 
 struct Grid
 {
-    cells:  [*] u8
-    dist:   [*] u32      // distance from S along the single path
+    cells:  #null [*] u8
+    dist:   #null [*] u32      // distance from S along the single path
     w:      u32
     h:      u32
     sr:     u32
@@ -47,8 +47,8 @@ struct Grid
 func gridInit() -> Grid
 {
     var g: Grid
-    g.cells = cast([*] u8)  @alloc(cast(u64) MaxCells)
-    g.dist  = cast([*] u32) @alloc(cast(u64) MaxCells * #sizeof(u32))
+    g.cells = cast(#null [*] u8)  @alloc(cast(u64) MaxCells)
+    g.dist  = cast(#null [*] u32) @alloc(cast(u64) MaxCells * #sizeof(u32))
     for MaxCells
     {
         g.cells[@index] = 0
@@ -208,7 +208,7 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32) -> u64
 
     // Collect path cells into array for efficient pairwise iteration
     let pathSize = g.pathLen + 1
-    let pathBuf = cast([*] Pos) @alloc(cast(u64) pathSize * #sizeof(Pos))
+    let pathBuf = cast([*] Pos) assume @alloc(cast(u64) pathSize * #sizeof(Pos))
     defer @free(pathBuf)
 
     // Fill path buffer in distance order

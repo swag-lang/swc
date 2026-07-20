@@ -28,20 +28,19 @@ It is good practice to check for null pointers before dereferencing them to avoi
 }
 
 /**
-# Explicit Non-Null Values
+# Non-Null by Default
 
-`#nonull` is the migration qualifier for values that must be initialized with a non-null
-value. It is accepted everywhere `#null` is accepted: single-value and block pointers,
-slices, `string`, `cstring`, `any`, and `typeinfo`. A `#nonull` value cannot be initialized
-with `null` and has no implicit default. A struct field of this type must therefore be
-supplied by an aggregate initializer unless it declares an explicit non-null default.
+Nullable-capable types — single-value and block pointers, slices, `string`, `cstring`,
+`any`, and `typeinfo` — are non-null by default: a bare `*u8` or `string` cannot be
+initialized with `null` and has no implicit default. A struct field of such a type must
+therefore be supplied by an aggregate initializer unless it declares an explicit non-null
+default. Use `#null` to opt into nullability when null is part of the intended contract.
 
-During the migration, unannotated nullable-capable types retain their legacy behavior. Use
-`#null` when null is part of the intended contract and `#nonull` when it is not.
-To keep batch migrations possible, a legacy value can still flow into a `#nonull` type
-unless it is provably `null`; a value explicitly marked `#null` cannot.
-`undefined` remains an explicit low-level escape hatch and must only be used when the
-storage is initialized manually before it is read.
+A `#null` value cannot flow into a bare (non-null) slot directly; after checking it
+against `null`, use `assume` to convert it (a safety check panics at runtime if the value
+is still null). Comparisons between `#null` and bare values of the same type are always
+allowed. `undefined` remains an explicit low-level escape hatch and must only be used
+when the storage is initialized manually before it is read.
 
 A value with `opDrop` can be consumed with `#move` only when resetting its moved-from
 source does not require explicit initialization. Give required fields a default, or use
@@ -52,20 +51,20 @@ droppable value.
 {
     struct NonNullPointerHolder
     {
-        ptr: #nonull *u8
+        ptr: *u8
     }
 
     var value = 42'u8
     var values = [1, 2, 3]
-    let ptr: #nonull *u8 = &value
-    let text: #nonull string = "value"
-    let slice: #nonull [..] s32 = values
+    let ptr: *u8 = &value
+    let text: string = "value"
+    let slice: [..] s32 = values
     let holder = NonNullPointerHolder{ptr: &value}
 
-    #assert(#typeof(ptr) == #nonull *u8)
-    #assert(#typeof(text) == #nonull string)
-    #assert(#typeof(slice) == #nonull [..] s32)
-    #assert(#typeof(holder.ptr) == #nonull *u8)
+    #assert(#typeof(ptr) == *u8)
+    #assert(#typeof(text) == string)
+    #assert(#typeof(slice) == [..] s32)
+    #assert(#typeof(holder.ptr) == *u8)
 }
 
 /**
@@ -104,7 +103,7 @@ Const pointers help guarantee that a pointer always refers to the same memory lo
 #test
 {
     let str  = "string"
-    let ptr: #nonull const *u8 = @dataof(str)
+    let ptr: const *u8 = @dataof(str)
     @assert(dref ptr == 's') // Access the first byte of the string
 }
 
@@ -151,11 +150,11 @@ single element. Cast it to a multi-value pointer when pointer arithmetic is inte
 #test
 {
     var arr: [4] s32
-    var ptr  = cast(#nonull [*] s32) &arr[1]
+    var ptr  = cast([*] s32) &arr[1]
 
     // The pointer is treated as a multi-value pointer
     ptr = ptr - 1
-    #assert(#typeof(ptr) == #nonull [*] s32)
+    #assert(#typeof(ptr) == [*] s32)
 }
 
 /**
@@ -170,8 +169,8 @@ This is particularly useful when traversing arrays or buffers via pointers.
 #test
 {
     var arr = [1, 2, 3, 4]
-    let ptr = cast(#nonull [*] s32) &arr[0]
-    @assert(#typeof(ptr) == #nonull [*] s32)
+    let ptr = cast([*] s32) &arr[0]
+    @assert(#typeof(ptr) == [*] s32)
     let value1 = ptr[0]
     @assert(value1 == 1)
     #assert(#typeof(value1) == s32)

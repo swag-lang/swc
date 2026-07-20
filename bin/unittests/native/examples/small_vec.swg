@@ -18,7 +18,7 @@ const InlineCap = 4'u64
 struct SmallVec
 {
     inline:   [InlineCap] s32
-    ptr:      [*] s32
+    ptr:      #null [*] s32
     count:    u64
     capacity: u64
 }
@@ -46,7 +46,7 @@ impl SmallVec
         while newCap < want do
             newCap *= 2
 
-        let newBuf = cast([*] s32) @alloc(newCap * #sizeof(s32))
+        let newBuf = cast(#null [*] s32) @alloc(newCap * #sizeof(s32))
         for i in .count do
             newBuf[i] = .ptr[i]
 
@@ -97,7 +97,7 @@ impl SmallVec
         {
             // Heap path: allocate a fresh buffer and copy the elements.
             let oldPtr = .ptr
-            .ptr = cast([*] s32) @alloc(.capacity * #sizeof(s32))
+            .ptr = cast(#null [*] s32) @alloc(.capacity * #sizeof(s32))
             for i in .count do
                 .ptr[i] = oldPtr[i]
         }

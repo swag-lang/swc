@@ -2,7 +2,7 @@ using Core, Pixel
 
 struct CapRow
 {
-    label:        #nonull string
+    label:        string
     begCap:       LineCapStyle
     endCap:       LineCapStyle
     color:        Color
@@ -26,7 +26,7 @@ func makeCapPath(left, right, y: f32)->LinePath
     return path
 }
 
-func drawCapRow(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
+func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
 {
     let baselineY = Math.round(rect.vertCenter())
     let startX    = rect.x + 250
@@ -62,7 +62,7 @@ func drawCapRow(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, row: CapR
     painter.drawPath(&path, pen)
 }
 
-func drawCapsPage(painter: #nonull *Pixel.Painter)
+func drawCapsPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel path drawing", "Page 1 : starts, endings and cap styles on the same straight segment.")
 

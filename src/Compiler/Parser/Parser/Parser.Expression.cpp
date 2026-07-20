@@ -43,7 +43,6 @@ namespace
             case TokenId::CompilerDeclType:
             case TokenId::KwdConst:
             case TokenId::ModifierNullable:
-            case TokenId::ModifierNonNull:
             case TokenId::SymAsterisk:
             case TokenId::SymAmpersand:
             case TokenId::SymAmpersandAmpersand:
@@ -978,7 +977,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::SymAsterisk:
         case TokenId::SymAmpersand:
         case TokenId::ModifierNullable:
-        case TokenId::ModifierNonNull:
             return parseType();
 
         case TokenId::CompilerType:

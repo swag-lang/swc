@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func sum4f(a, b, c, d: f32)->f32
 {

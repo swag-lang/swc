@@ -95,7 +95,7 @@ Non-integer enums require explicit assignments.
 
 #test
 {
-    enum Value1: #nonull string { A = "string 1", B = "string 2", C = "string 3" }
+    enum Value1: string { A = "string 1", B = "string 2", C = "string 3" }
     #assert(Value1.A == "string 1")
     enum Value2: f32
     {
@@ -114,7 +114,7 @@ Non-integer enums require explicit assignments.
 */
 #test
 {
-    enum Value: #nonull string
+    enum Value: string
     {
         A = "1"
         B = "2"
@@ -175,9 +175,9 @@ Enums can also store slices.
 */
 #test
 {
-    enum Value: #nonull const [..] s32 { A = [1, 2], B = [10, 20, 30] }
-    let a = cast(#nonull const [..] s32) Value.A
-    let b = cast(#nonull const [..] s32) Value.B
+    enum Value: const [..] s32 { A = [1, 2], B = [10, 20, 30] }
+    let a = cast(const [..] s32) Value.A
+    let b = cast(const [..] s32) Value.B
     #assert(@countof(a) == 2)
     #assert(@countof(b) == 3)
     @assert(b[2] == 30)

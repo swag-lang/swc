@@ -244,7 +244,7 @@ namespace ResizeTools
     }
 
     #[Swag.Safety(.All, false)]
-    func scaleRow(imgDst: #nonull *Image, imgSrc: #nonull const *Image, row: s64, contrib: #nonull *LineContrib)
+    func scaleRow(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: *LineContrib)
     {
         let bpp8   = imgDst.bpp8
         var dstRow = imgDst.pixels.buffer + row * bpp8 * imgDst.width
@@ -298,7 +298,7 @@ namespace ResizeTools
     }
 
     #[Swag.Safety(.All, false)]
-    func scaleCol(imgDst: #nonull *Image, imgSrc: #nonull const *Image, col: s64, contrib: #nonull *LineContrib)
+    func scaleCol(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: *LineContrib)
     {
         let bpp8   = imgDst.bpp8
         var dstCol = imgDst.pixels.buffer + col * bpp8
@@ -353,7 +353,7 @@ namespace ResizeTools
         }
     }
 
-    func scaleCol(imgDst: #nonull *Image, imgSrc: #nonull const *Image, rmode: Image.ResizeMode)
+    func scaleCol(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
     {
         let sh      = cast(s64) imgSrc.height
         let dh      = cast(s64) imgDst.height
@@ -364,12 +364,12 @@ namespace ResizeTools
         {
             if !data do
                 return
-            let params = cast(#nonull *#decltype(f)) (assume data)
+            let params = cast(*#decltype(f)) (assume data)
             scaleCol(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
         }
     }
 
-    func scaleRow(imgDst: #nonull *Image, imgSrc: #nonull const *Image, rmode: Image.ResizeMode)
+    func scaleRow(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
     {
         let sw      = cast(s64) imgSrc.width
         let dw      = cast(s64) imgDst.width
@@ -380,19 +380,19 @@ namespace ResizeTools
         {
             if !data do
                 return
-            let params = cast(#nonull *#decltype(f)) (assume data)
+            let params = cast(*#decltype(f)) (assume data)
             scaleRow(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
         }
     }
 
-    func doResizeFilter(dstImage: #nonull *Image, srcImage: #nonull const *Image, mode: Image.ResizeMode)
+    func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)
     {
         var tmp = Image.create(dstImage.width, srcImage.height, srcImage.pf)
         scaleRow(&tmp, srcImage, mode)
         scaleCol(dstImage, &tmp, mode)
     }
 
-    func doResizeRaw(dstImage: #nonull *Image, srcImage: #nonull const *Image)
+    func doResizeRaw(dstImage: *Image, srcImage: const *Image)
     {
         let xscale = srcImage.width / cast(f32) dstImage.width
         let yscale = srcImage.height / cast(f32) dstImage.height
@@ -403,11 +403,11 @@ namespace ResizeTools
         {
             dstImage.visitPixels(&f)
             {
-                let params = cast(#nonull *#decltype(f)) (assume userData)
+                let params = cast(*#decltype(f)) (assume userData)
                 let fx     = cast(u32) (x * params.xscale)
                 let fy     = cast(u32) (y * params.yscale)
                 let pixSrc = params.srcImage.pixels.buffer + (fx * image.bpp8) + (fy * params.srcImage.width * image.bpp8)
-                Image.copyPixelDirect'BPP(cast(#nonull [*] u8) (pix orelse cast(#nonull [*] u8) 1'u64), cast(#nonull [*] u8) (pixSrc orelse cast(#nonull [*] u8) 1'u64))
+                Image.copyPixelDirect'BPP(cast([*] u8) (pix orelse cast([*] u8) 1'u64), cast([*] u8) (pixSrc orelse cast([*] u8) 1'u64))
             }
         }
 
@@ -422,7 +422,7 @@ namespace ResizeTools
         }
     }
 
-    func doResize(dstImage: #nonull *Image, srcImage: #nonull const *Image, mode: Image.ResizeMode)
+    func doResize(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)
     {
         switch mode
         {

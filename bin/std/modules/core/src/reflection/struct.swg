@@ -9,7 +9,7 @@ func isStructOfName(type: #null typeinfo, name: #null string)->bool
     if !isStruct(type) do
         return false
 
-    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) assume type
     return typeStruct.structName == name
 }
 
@@ -21,7 +21,7 @@ func getMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
     if !isStruct(type) do
         return null
 
-    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) assume type
     for &it in typeStruct.methods where it.name == name do
         return it
     return null
@@ -35,7 +35,7 @@ func getField(type: #null typeinfo, name: #null string)->#null const *TypeValue
     if !isStruct(type) do
         return null
 
-    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) assume type
     for &it in typeStruct.fields where it.name == name do
         return it
     return null
@@ -59,33 +59,33 @@ func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *
         return
 
     let nnType = assume type
-    let patch  = cast(#nonull [*] u8) (assume src) + nnType.offset
+    let patch  = cast([*] u8) (assume src) + nnType.offset
     let nnDest = assume dest
     switch nnType.pointedType
     {
     case s8, u8, bool:
-        dref cast(#nonull *u8) nnDest = dref cast(#nonull *u8) patch
+        dref cast(*u8) nnDest = dref cast(*u8) patch
     case s16, u16:
-        dref cast(#nonull *u16) nnDest = dref cast(#nonull *u16) patch
+        dref cast(*u16) nnDest = dref cast(*u16) patch
     case s32, u32, f32, rune:
-        dref cast(#nonull *u32) nnDest = dref cast(#nonull *u32) patch
+        dref cast(*u32) nnDest = dref cast(*u32) patch
     case s64, u64, f64:
-        dref cast(#nonull *u64) nnDest = dref cast(#nonull *u64) patch
+        dref cast(*u64) nnDest = dref cast(*u64) patch
     case string:
-        dref cast(#nonull *#null string) nnDest = dref cast(#nonull *#null string) patch
+        dref cast(*#null string) nnDest = dref cast(*#null string) patch
     default:
         if !hardCast do
             Debug.assert(false, "unsupported getFieldValue type")
         switch nnType.pointedType.sizeof
         {
         case 1:
-            dref cast(#nonull *u8) nnDest = dref cast(#nonull *u8) patch
+            dref cast(*u8) nnDest = dref cast(*u8) patch
         case 2:
-            dref cast(#nonull *u16) nnDest = dref cast(#nonull *u16) patch
+            dref cast(*u16) nnDest = dref cast(*u16) patch
         case 4:
-            dref cast(#nonull *u32) nnDest = dref cast(#nonull *u32) patch
+            dref cast(*u32) nnDest = dref cast(*u32) patch
         case 8:
-            dref cast(#nonull *u64) nnDest = dref cast(#nonull *u64) patch
+            dref cast(*u64) nnDest = dref cast(*u64) patch
         default:
             Debug.assert(false, "unsupported getFieldValue type")
         }
@@ -100,33 +100,33 @@ func setFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null c
         return
 
     let nnType = assume type
-    var patch  = cast(#nonull [*] u8) (assume dest) + nnType.offset
+    var patch  = cast([*] u8) (assume dest) + nnType.offset
     let nnSrc  = assume src
     switch nnType.pointedType
     {
     case s8, u8, bool:
-        dref cast(#nonull *u8) patch = dref cast(#nonull const *u8) nnSrc
+        dref cast(*u8) patch = dref cast(const *u8) nnSrc
     case s16, u16:
-        dref cast(#nonull *u16) patch = dref cast(#nonull const *u16) nnSrc
+        dref cast(*u16) patch = dref cast(const *u16) nnSrc
     case s32, u32, f32, rune:
-        dref cast(#nonull *u32) patch = dref cast(#nonull const *u32) nnSrc
+        dref cast(*u32) patch = dref cast(const *u32) nnSrc
     case s64, u64, f64:
-        dref cast(#nonull *u64) patch = dref cast(#nonull const *u64) nnSrc
+        dref cast(*u64) patch = dref cast(const *u64) nnSrc
     case string:
-        dref cast(#nonull *#null string) patch = dref cast(#nonull const *#null string) nnSrc
+        dref cast(*#null string) patch = dref cast(const *#null string) nnSrc
     default:
         if !hardCast do
             Debug.assert(false, "unsupported setFieldValue type")
         switch nnType.pointedType.sizeof
         {
         case 1:
-            dref cast(#nonull *u8) patch = dref cast(#nonull const *u8) nnSrc
+            dref cast(*u8) patch = dref cast(const *u8) nnSrc
         case 2:
-            dref cast(#nonull *u16) patch = dref cast(#nonull const *u16) nnSrc
+            dref cast(*u16) patch = dref cast(const *u16) nnSrc
         case 4:
-            dref cast(#nonull *u32) patch = dref cast(#nonull const *u32) nnSrc
+            dref cast(*u32) patch = dref cast(const *u32) nnSrc
         case 8:
-            dref cast(#nonull *u64) patch = dref cast(#nonull const *u64) nnSrc
+            dref cast(*u64) patch = dref cast(const *u64) nnSrc
         default:
             Debug.assert(false, "unsupported setFieldValue type")
         }
@@ -148,15 +148,15 @@ func canCompare(type: #null typeinfo)->bool
     switch nnType.kind
     {
     case .Alias:
-        let typeAlias = cast(#nonull const *TypeInfoAlias) nnType
+        let typeAlias = cast(const *TypeInfoAlias) nnType
         return canCompare(typeAlias.rawType)
     case .Enum:
-        let typeEnum = cast(#nonull const *TypeInfoEnum) nnType
+        let typeEnum = cast(const *TypeInfoEnum) nnType
         return canCompare(typeEnum.rawType)
     case .Pointer:
         return true
     case .Native:
-        let typeNative = cast(#nonull const *TypeInfoNative) nnType
+        let typeNative = cast(const *TypeInfoNative) nnType
         switch typeNative.nativeKind
         {
         case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String:
@@ -192,7 +192,7 @@ func hasInterface(type: #null typeinfo, itf: #null typeinfo)->bool
     if !isStruct(type) do
         return false
 
-    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) assume type
     for it in typeStruct.interfaces where it.name == itf.fullname do
         return true
     return false

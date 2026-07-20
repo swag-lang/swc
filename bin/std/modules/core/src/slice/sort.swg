@@ -2,7 +2,7 @@
 #global namespace Slice
 
 // Insertion sort algorithm (slow)
-func(T) insertionSort(values: #nonull [..] T, cb: func||(T, T)->s32)
+func(T) insertionSort(values: [..] T, cb: func||(T, T)->s32)
 {
     var buffer = @dataof(values)
     let count  = @countof(values)
@@ -17,7 +17,7 @@ func(T) insertionSort(values: #nonull [..] T, cb: func||(T, T)->s32)
 }
 
 // Quick sort algorithm
-func(T) quickSort(values: #nonull [..] T, cb: func||(T, T)->s32)
+func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
 {
     let count = cast(s64) @countof(values)
     if count == 0 do
@@ -85,7 +85,7 @@ func(T) quickSort(values: #nonull [..] T, cb: func||(T, T)->s32)
 
 // Sort the slice, by picking the right algorithm depending on the type and the
 // number of elements
-func(T) sort(values: #nonull [..] T, bigFirst = false)
+func(T) sort(values: [..] T, bigFirst = false)
     where Reflection.canCompare(T)
 {
     if bigFirst do
@@ -96,7 +96,7 @@ func(T) sort(values: #nonull [..] T, bigFirst = false)
 
 // Sort the slice, by picking the right algorithm depending on the type and the
 // number of elements
-func(T) sort(values: #nonull [..] T, cb: func||(T, T)->s32)
+func(T) sort(values: [..] T, cb: func||(T, T)->s32)
 {
     Debug.assert(cb != null)
     if @countof(values) <= 10 do
@@ -106,14 +106,14 @@ func(T) sort(values: #nonull [..] T, cb: func||(T, T)->s32)
 }
 
 // Returns true if the slice is sorted
-func(T) isSorted(values: #nonull const [..] T)->bool
+func(T) isSorted(values: const [..] T)->bool
     where Reflection.canCompare(T)
 {
     return isSorted(values, func(x, y: T)->s32 => x <=> y)
 }
 
 // Returns true if the slice is sorted
-func(T) isSorted(values: #nonull const [..] T, cb: func||(T, T)->s32)->bool
+func(T) isSorted(values: const [..] T, cb: func||(T, T)->s32)->bool
 {
     Debug.assert(cb != null)
     let countof = @countof(values)

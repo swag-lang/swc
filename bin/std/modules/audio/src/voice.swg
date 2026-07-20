@@ -66,17 +66,17 @@ private impl Voice
 
     mtd hasState(st: VoiceState)->bool
     {
-        return Atomic.get(cast(#nonull *u32) &.state) & cast(u32) st ? true : false
+        return Atomic.get(cast(*u32) &.state) & cast(u32) st ? true : false
     }
 
     mtd setState(st: VoiceState)
     {
-        discard Atomic.logicOr(cast(#nonull *u32) &.state, cast(u32) st)
+        discard Atomic.logicOr(cast(*u32) &.state, cast(u32) st)
     }
 
     mtd resetState(st: VoiceState)
     {
-        discard Atomic.logicAnd(cast(#nonull *u32) &.state, ~cast(u32) st)
+        discard Atomic.logicAnd(cast(*u32) &.state, ~cast(u32) st)
     }
 }
 
@@ -89,7 +89,7 @@ public impl Voice
 
     // Creates a new voice for a given sound file.
     // A voice is what will be actually played. You can have as many voices as you want for one unique [[SoundFile]].
-    func create(file: #nonull *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice throw
+    func create(file: *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice throw
     {
         let voice = g_Driver.createVoice()
         voice.file = file
@@ -103,7 +103,7 @@ public impl Voice
     // Creates a voice and plays it.
     // By default, the voice will be destroyed when stopped or finished.
     #[Swag.Discardable]
-    func play(file: #nonull *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice throw
+    func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice throw
     {
         let voice = create(file, createFlags)
         voice.play(playFlags)

@@ -3,7 +3,7 @@ using Swag
 
 struct(T) LazySignal
 {
-    arr:      [..] T
+    arr:      #null [..] T
     disabled: s32
 }
 

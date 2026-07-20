@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-func testSetupGlobalMain(main: #nonull *MainWnd)
+func testSetupGlobalMain(main: *MainWnd)
 {
     main.editWnd.dockStyle = .Center
 

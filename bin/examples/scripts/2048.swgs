@@ -22,7 +22,7 @@ struct Cell
 }
 
 var g_Cells:    Array'Cell
-var g_Font:     *Font
+var g_Font:     #null *Font
 var g_MoveDirX: s32
 var g_MoveDirY: s32
 var g_IsMoving: bool
@@ -95,7 +95,7 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
         let str  = Format.toString("%", c.val)
         var zoom = c.z
         zoom -= (cast(f32) str.length * 0.08)
-        painter.drawStringCenter(xi + (CellSizeW * 0.5), yi + (CellSizeW * 0.5), str, g_Font, Argb.Black, zoom: zoom)
+        painter.drawStringCenter(xi + (CellSizeW * 0.5), yi + (CellSizeW * 0.5), str, assume g_Font, Argb.Black, zoom: zoom)
     }
 }
 
@@ -174,7 +174,7 @@ func animate(wnd: *Wnd)
     }
 }
 
-func cellAt(x, y: s32, self: *Cell = null)->#null *Cell
+func cellAt(x, y: s32, self: #null *Cell = null)->#null *Cell
 {
     for &c in g_Cells
     {
@@ -278,7 +278,7 @@ func keyboard(wnd: *Wnd)
     }
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -295,7 +295,7 @@ func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 
         painter.drawStringCenter(rect.horzCenter(), 20, "score", wnd.getTheme().createDefaultFont(25), Argb.White)
         let str = Format.toString("%", g_Score)
-        painter.drawStringCenter(rect.horzCenter(), 60, str, g_Font, Argb.White)
+        painter.drawStringCenter(rect.horzCenter(), 60, str, assume g_Font, Argb.White)
 
         keyboard(wnd)
         paintGrid(wnd, painter)

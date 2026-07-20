@@ -29,7 +29,7 @@ struct LibraryView
     libWnd:          #null *LibraryWnd
     mainWnd:         #null *MainWnd
     allItems:        ArrayPtr'LibraryItem
-    items:           Array'#nonull *LibraryItem
+    items:           Array'*LibraryItem
     mutexLoaded:     Sync.Mutex
     thread:          Thread
     hotItem          = Swag.U32.Max
@@ -43,7 +43,7 @@ struct LibraryView
 
 impl IWnd for LibraryView
 {
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .MouseLeave
         {
@@ -143,7 +143,7 @@ impl IWnd for LibraryView
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         if !g_UpdatingLib do
             .imgSpin.hide()
@@ -261,7 +261,7 @@ impl LibraryView
         return {W, H}
     }
 
-    mtd updateRecent(capture: #nonull *Capture)
+    mtd updateRecent(capture: *Capture)
     {
         for it in .items
         {
@@ -281,7 +281,7 @@ impl LibraryView
     // Case-insensitive substring test used by the library search box. Matches the
     // capture title, the linked image path and the capture file name so the user can
     // find a capture by any of the names it is known under.
-    mtd const matchSearch(it: #nonull *LibraryItem, capture: #nonull *Capture, search: String)->bool
+    mtd const matchSearch(it: *LibraryItem, capture: *Capture, search: String)->bool
     {
         if @countof(search) == 0 do
             return true
@@ -317,7 +317,7 @@ impl LibraryView
                 .items.add(assume it)
                 continue
             }
-            let loaded = capture orelse cast(#nonull *Capture) 1'u64
+            let loaded = capture orelse cast(*Capture) 1'u64
             if !loaded.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
                 continue
             if loaded.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do
@@ -336,7 +336,7 @@ impl LibraryView
         .invalidate()
     }
 
-    mtd loadOne(it: #nonull *LibraryItem)
+    mtd loadOne(it: *LibraryItem)
     {
         let capture: #null *Capture = catch Capture.load(it.fi.fullname, preview: true)
         if !capture do
@@ -357,7 +357,7 @@ impl LibraryView
     mtd loadFiles(th: Thread)
     {
         // Work on a copy, as 'items' can be changed by sorting during loading
-        var copy: Array'#nonull *LibraryItem
+        var copy: Array'*LibraryItem
         for it in .allItems do
             copy.add(assume it)
 
@@ -393,15 +393,15 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
-        var remaining: Array'#nonull *LibraryItem
+        var remaining: Array'*LibraryItem
         for it in .items do
             remaining.add(it)
         if remaining.isEmpty() do
             return
 
-        var nitems: Array'#nonull *LibraryItem
+        var nitems: Array'*LibraryItem
 
-        var toCompare: #nonull *LibraryItem = undefined
+        var toCompare: *LibraryItem = undefined
         while !remaining.isEmpty()
         {
             // A capture with no Haar features (no preview) can't anchor a similarity

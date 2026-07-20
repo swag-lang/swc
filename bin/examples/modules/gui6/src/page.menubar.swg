@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createMenuBarPage(parent: #nonull *Wnd)
+func createMenuBarPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 

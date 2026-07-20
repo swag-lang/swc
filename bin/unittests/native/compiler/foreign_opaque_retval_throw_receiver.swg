@@ -4,7 +4,7 @@
 struct BigOpaque
 {
     payload: [472] u8
-    capture: string
+    capture: string = ""
     matched: bool
 }
 

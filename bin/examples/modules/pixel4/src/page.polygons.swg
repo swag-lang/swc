@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func addPolygonPath(path: #nonull *LinePath, points: #nonull [..] Math.Vector2)
+func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
 {
     if @countof(points) < 2 do
         return
@@ -44,7 +44,7 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
     return result
 }
 
-func drawPolygonSamplesCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title, subtitle: #nonull string, fillColor, strokeColor: Color, points0, points1: #nonull [..] Math.Vector2)
+func drawPolygonSamplesCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, fillColor, strokeColor: Color, points0, points1: [..] Math.Vector2)
 {
     let body   = drawPanel(painter, rect, title, subtitle)
     let center = body.horzCenter()
@@ -58,7 +58,7 @@ func drawPolygonSamplesCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangl
     drawClosedOutline(painter, points1, Pen.createSolid(strokeColor, 4))
 }
 
-func drawPolygonHoleCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawPolygonHoleCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Winding and holes", "Outer ring filled, inner ring reversed to carve a hole.")
     var list = buildPolygonHoleList(body)
@@ -74,7 +74,7 @@ func drawPolygonHoleCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     drawWrappedText(painter, {body.x + 22, body.bottom() - 38, body.width - 44, 24}, "Counter-wound inner contour", assume g_HelpFont, Argb.Indigo)
 }
 
-func drawPolygonsPage(painter: #nonull *Pixel.Painter)
+func drawPolygonsPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel polygon rendering", "Page 4 : convex fills, concave triangulation and polygon winding for holes.")
 

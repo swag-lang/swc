@@ -2,7 +2,7 @@
 using Swag
 
 #[Swag.Strict]
-alias OrelseStrictHandle = const *void
+alias OrelseStrictHandle = #null const *void
 
 interface IOrelseProbe
 {
@@ -34,7 +34,7 @@ const BoolResolved = false orelse true
 #assert(#typeof(BoolResolved) == bool)
 #assert(BoolResolved)
 
-const AnyNullValue: any = null
+const AnyNullValue: #null any = null
 #assert(AnyNullValue == null)
 
 const AnyTrueValue: any = true
@@ -48,7 +48,7 @@ const AnyFalseValue: any = false
 func semaTest001()
 {
     var raw: [2] u8 = ['x''u8, 'y''u8]
-    let primary: const [..] u8 = null
+    let primary: #null const [..] u8 = null
     let resolved = primary orelse raw
     #assert(#typeof(resolved) == const [..] u8)
     @assert(@countof(resolved) == 2)
@@ -57,7 +57,7 @@ func semaTest001()
 func semaTest002()
 {
     var cstrData: [3] u8 = ['o''u8, 'k''u8, 0]
-    let resolved = cast(cstring) null orelse cast(cstring) &cstrData[0]
+    let resolved = cast(#null cstring) null orelse cast(cstring) &cstrData[0]
     #assert(#typeof(resolved) == cstring)
     @assert(@countof(resolved) == 2)
 }

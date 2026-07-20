@@ -38,20 +38,20 @@ var g_TestFrame: s32
 var g_DarkTheme: bool
 var g_LexerSwag: RichEditLexerSwag
 
-func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
+func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
     let label = createText(parent, text, rect, .WordWrap)
     label.labelFlags.add(.LightText)
@@ -59,13 +59,13 @@ func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Recta
     return label
 }
 
-func createCaption(parent: #nonull *Wnd, text: #nonull string, x, y, width: f32)
+func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 24})
     label.labelFlags.add(.LightText)
 }
 
-func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
+func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -77,7 +77,7 @@ func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Ma
     return view
 }
 
-func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
+func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
     let rect         = parent.getClientRect()
     let width        = Math.max(rect.width, 1.0)
@@ -94,13 +94,13 @@ func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
     return result
 }
 
-func getFullPageRect(parent: #nonull *Wnd)->Math.Rectangle
+func getFullPageRect(parent: *Wnd)->Math.Rectangle
 {
     let rect = parent.getClientRect()
     return {0, 0, Math.max(rect.width, 1.0), Math.max(rect.height, 1.0)}
 }
 
-func pageTitle(page: s32)->#nonull string
+func pageTitle(page: s32)->string
 {
     switch page
     {
@@ -117,7 +117,7 @@ func pageTitle(page: s32)->#nonull string
     unreachable
 }
 
-func pageSubtitle(page: s32)->#nonull string
+func pageSubtitle(page: s32)->string
 {
     switch page
     {
@@ -164,13 +164,13 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: #nonull *Button)
+func toggleTheme(_btn: *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
 }
 
-func createDemoEditor(parent: #nonull *Wnd, rect: Math.Rectangle, flags: RichEditFlags, form = RichEditForm.RichEditCtrl)->#nonull *RichEditCtrl
+func createDemoEditor(parent: *Wnd, rect: Math.Rectangle, flags: RichEditFlags, form = RichEditForm.RichEditCtrl)->*RichEditCtrl
 {
     let ed = RichEditCtrl.create(parent, rect)
     ed.setFrameForm(.Round)
@@ -180,7 +180,7 @@ func createDemoEditor(parent: #nonull *Wnd, rect: Math.Rectangle, flags: RichEdi
     return ed
 }
 
-func createCodeEditor(parent: #nonull *Wnd, rect: Math.Rectangle, text: #nonull string, flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->#nonull *RichEditCtrl
+func createCodeEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->*RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags)
     ed.setLexer(cast(IRichEditLexer) g_LexerSwag)
@@ -190,7 +190,7 @@ func createCodeEditor(parent: #nonull *Wnd, rect: Math.Rectangle, text: #nonull 
     return ed
 }
 
-func createDocumentEditor(parent: #nonull *Wnd, rect: Math.Rectangle, text: #nonull string, flags = RichEditFlags.ShowFocusSel | .WordWrap, form = RichEditForm.Edit)->#nonull *RichEditCtrl
+func createDocumentEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .WordWrap, form = RichEditForm.Edit)->*RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags, form)
     ed.marginLeft  = 18
@@ -246,7 +246,7 @@ func layoutRootView()
     g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -313,7 +313,7 @@ func canUsePageArrows()->bool
     return !g_PageView.isParentOf(focus)
 }
 
-func onFrame(app: #nonull *Application)
+func onFrame(app: *Application)
 {
     if !g_Surface or !g_View or !g_PageView do
         return

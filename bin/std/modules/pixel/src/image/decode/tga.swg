@@ -40,7 +40,7 @@ struct Palette
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: #nonull const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) throw
 {
     if ptr + size > last do
         throw InvalidFormatError{"invalid source buffer"}
@@ -135,14 +135,14 @@ func expand5(value: u32)->u8
     return cast(u8) ((value * 255 + 15) / 31)
 }
 
-func writeBgrPixel(dst: #nonull [*] u8, b, g, r: u8)
+func writeBgrPixel(dst: [*] u8, b, g, r: u8)
 {
     dst[0] = b
     dst[1] = g
     dst[2] = r
 }
 
-func writeBgraPixel(dst: #nonull [*] u8, b, g, r, a: u8)
+func writeBgraPixel(dst: [*] u8, b, g, r, a: u8)
 {
     dst[0] = b
     dst[1] = g
@@ -150,7 +150,7 @@ func writeBgraPixel(dst: #nonull [*] u8, b, g, r, a: u8)
     dst[3] = a
 }
 
-func writeTga16Pixel(dst: #nonull [*] u8, value: u16, writeAlpha, alphaFromBit: bool)
+func writeTga16Pixel(dst: [*] u8, value: u16, writeAlpha, alphaFromBit: bool)
 {
     let pixel = cast(u32) value
     let b     = expand5(pixel & 0x1F)
@@ -162,35 +162,35 @@ func writeTga16Pixel(dst: #nonull [*] u8, value: u16, writeAlpha, alphaFromBit: 
         writeBgrPixel(dst, b, g, r)
 }
 
-func dstPixel(result: #nonull *Image, header: Header, pixelIndex: u64)->#nonull [*] u8
+func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
 {
     let srcX = cast(s32) (pixelIndex % header.width)
     let srcY = cast(s32) (pixelIndex / header.width)
     let dstX = header.descriptorByte & DESC_ORIGIN_RIGHT ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - srcY - 1 : srcY
-    return cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8 + cast(u64) dstX * result.bpp8
+    return cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8 + cast(u64) dstX * result.bpp8
 }
 
-func paletteIndex(src: #nonull const [*] u8, bpp: u8)->u32
+func paletteIndex(src: const [*] u8, bpp: u8)->u32
 {
     if bpp == 16 do
-        return dref cast(#nonull const *u16) src
+        return dref cast(const *u16) src
     return src[0]
 }
 
-func writePalettePixel(dst: #nonull [*] u8, palette: Palette, index: u32) throw
+func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) throw
 {
     if index < palette.first or index >= cast(u32) palette.first + palette.count do
         throw InvalidFormatError{"invalid palette index"}
 
-    let paletteData = cast(#nonull const [*] u8) (assume palette.data)
+    let paletteData = cast(const [*] u8) (assume palette.data)
     let entry = paletteData + cast(u64) (index - palette.first) * palette.bpp8
     switch palette.bpp
     {
     case 15:
-        writeTga16Pixel(dst, dref cast(#nonull const *u16) entry, false, false)
+        writeTga16Pixel(dst, dref cast(const *u16) entry, false, false)
     case 16:
-        writeTga16Pixel(dst, dref cast(#nonull const *u16) entry, true, true)
+        writeTga16Pixel(dst, dref cast(const *u16) entry, true, true)
     case 24:
         writeBgrPixel(dst, entry[0], entry[1], entry[2])
     case 32:
@@ -198,7 +198,7 @@ func writePalettePixel(dst: #nonull [*] u8, palette: Palette, index: u32) throw
     }
 }
 
-func writeSourcePixel(result: #nonull *Image, header: Header, palette: Palette, pixelIndex: u64, src: #nonull const [*] u8) throw
+func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelIndex: u64, src: const [*] u8) throw
 {
     let dst = dstPixel(result, header, pixelIndex)
 
@@ -221,9 +221,9 @@ func writeSourcePixel(result: #nonull *Image, header: Header, palette: Palette, 
     switch header.bpp
     {
     case 15:
-        writeTga16Pixel(dst, dref cast(#nonull const *u16) src, false, false)
+        writeTga16Pixel(dst, dref cast(const *u16) src, false, false)
     case 16:
-        writeTga16Pixel(dst, dref cast(#nonull const *u16) src, true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
+        writeTga16Pixel(dst, dref cast(const *u16) src, true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
     case 24:
         writeBgrPixel(dst, src[0], src[1], src[2])
     case 32:
@@ -231,7 +231,7 @@ func writeSourcePixel(result: #nonull *Image, header: Header, palette: Palette, 
     }
 }
 
-func decodeRaw(result: #nonull *Image, header: Header, palette: Palette, src, last: #nonull const [*] u8, pixelBytes: u8, pixelCount: u64) throw
+func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) throw
 {
     var p = src
     checkBuffer(p, last, pixelCount * pixelBytes)
@@ -242,7 +242,7 @@ func decodeRaw(result: #nonull *Image, header: Header, palette: Palette, src, la
     }
 }
 
-func decodeRle(result: #nonull *Image, header: Header, palette: Palette, src, last: #nonull const [*] u8, pixelBytes: u8, pixelCount: u64) throw
+func decodeRle(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) throw
 {
     var index: u64
     var p = src
@@ -282,12 +282,12 @@ func decodeRle(result: #nonull *Image, header: Header, palette: Palette, src, la
 
 public impl IImageDecoder for Decoder
 {
-    func impl canDecode(me, fileName: #nonull string)->bool
+    func impl canDecode(me, fileName: string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".tga"
     }
 
-    func impl decode(me, buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
+    func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image throw
     {
         var dataof  = @dataof(buffer)
         let countof = @countof(buffer)
@@ -296,7 +296,7 @@ public impl IImageDecoder for Decoder
         if countof < #sizeof(Header) do
             throw InvalidFormatError{"invalid source buffer"}
 
-        let header = dref cast(#nonull const *Header) dataof
+        let header = dref cast(const *Header) dataof
         dataof += #sizeof(Header)
 
         if header.width == 0 or header.height == 0 do

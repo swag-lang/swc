@@ -9,7 +9,7 @@ struct CoreNonNullDynamicItem
 union CoreNonNullZeroUnion
 {
     bits:    u64
-    pointer: #nonull *CoreNonNullDynamicItem = undefined
+    pointer: *CoreNonNullDynamicItem = undefined
 }
 
 #[Swag.Strict]
@@ -17,7 +17,7 @@ alias CoreNonNullZeroUnionAlias = CoreNonNullZeroUnion
 
 struct CoreNonNullRuntimeDefault
 {
-    value: #nonull string = "fallback"
+    value: string = "fallback"
 }
 
 alias CoreNonNullRuntimeDefaultPair = [2] CoreNonNullRuntimeDefault
@@ -33,7 +33,7 @@ func recordCoreNonNullGuardPanic(message: #null string, loc: Swag.SourceCodeLoca
 func testCoreNonNullDynamicInitialization()->bool
 {
     var item = CoreNonNullDynamicItem{value: 71}
-    let requiredType = #typeof(#nonull *CoreNonNullDynamicItem)
+    let requiredType = #typeof(*CoreNonNullDynamicItem)
     let cxt = @getcontext()
     let previousPanic = cxt.panic
     let previousUser0 = cxt.user0
@@ -47,16 +47,16 @@ func testCoreNonNullDynamicInitialization()->bool
     if allocatedRequired do
         Memory.free(cast(#null [*] void) allocatedRequired, cast(u64) requiredType.sizeof)
 
-    var resetSentinel: #nonull *CoreNonNullDynamicItem = &item
+    var resetSentinel: *CoreNonNullDynamicItem = &item
     Reflection.reset(&resetSentinel, requiredType)
     let preservedReset = resetSentinel == &item
 
-    var rejectedArray: Array'(#nonull *CoreNonNullDynamicItem)
+    var rejectedArray: Array'(*CoreNonNullDynamicItem)
     let rejectedAppend = Reflection.appendValueStructArray(&rejectedArray, requiredType)
     let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and !rejectedArray.count and !rejectedArray.capacity
 
     let zeroType = #typeof(CoreNonNullZeroUnion)
-    let zeroStructType = cast(#nonull const *Swag.TypeInfoStruct) zeroType
+    let zeroStructType = cast(const *Swag.TypeInfoStruct) zeroType
     if zeroStructType.opInit != null or zeroType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 

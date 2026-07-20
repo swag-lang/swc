@@ -9,7 +9,7 @@ struct SliderCtrl
     gap:                f32 = 8
     autoEditSize:       bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
-    sigChanged:         SigArray'func||(#nonull *SliderCtrl)
+    sigChanged:         SigArray'func||(*SliderCtrl)
 
     label:              #null *Label
     slider:             #null *Slider
@@ -18,7 +18,7 @@ struct SliderCtrl
 
 impl IWnd for SliderCtrl
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if !.label do
             return
@@ -53,7 +53,7 @@ impl IWnd for SliderCtrl
 impl SliderCtrl
 {
     // Create the popup list, but: not display it
-    func create(parent: #nonull *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *SliderCtrl
+    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null)->*SliderCtrl
     {
         let metrics = parent.getThemeMetrics()
         var pos     = position

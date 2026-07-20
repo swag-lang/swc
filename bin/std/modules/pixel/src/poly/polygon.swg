@@ -19,7 +19,7 @@ struct Polygon
 
 impl Polygon
 {
-    internal mtd appendClipperPath(path: #nonull *Clipper.ClipperPath)
+    internal mtd appendClipperPath(path: *Clipper.ClipperPath)
     {
         var count = .points.count
         if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
@@ -32,7 +32,7 @@ impl Polygon
         }
     }
 
-    internal func setupGeneratedPath(path: #nonull *LinePath)
+    internal func setupGeneratedPath(path: *LinePath)
     {
         path.isPolyOnly = true
         path.isClosed   = true
@@ -52,21 +52,21 @@ impl Polygon
     #[Swag.Inline]
     mtd getPoint(i: u64)->&Vector2
     {
-        let points = .points.buffer orelse cast(#nonull [*] Vector2) 1'u64
+        let points = .points.buffer orelse cast([*] Vector2) 1'u64
         return points + i
     }
 
     #[Swag.Inline]
     mtd const getPoint(i: u64)->const &Vector2
     {
-        let points = .points.buffer orelse cast(#nonull [*] Vector2) 1'u64
+        let points = .points.buffer orelse cast([*] Vector2) 1'u64
         return points + i
     }
 
     // Get the given point, with an optional offset
     mtd const getPoint(i: u64, offset: f32 = 0)->Vector2
     {
-        let points = .points.buffer orelse cast(#nonull [*] Vector2) 1'u64
+        let points = .points.buffer orelse cast([*] Vector2) 1'u64
         if Math.isZeroEpsilon(offset) do
             return points[i]
 
@@ -281,7 +281,7 @@ impl Polygon
         .compute(knownSimple: true)
     }
 
-    internal mtd addOffsetInputs(off: #nonull *Clipper.Offset, joinType: Clipper.JoinType)
+    internal mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
     {
         if .isSimple
         {
@@ -301,7 +301,7 @@ impl Polygon
         }
     }
 
-    private mtd offsetInto(res: #nonull *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
+    private mtd offsetInto(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
     {
         if Math.isZeroEpsilon(value) do
             return
@@ -358,7 +358,7 @@ impl Polygon
         return result
     }
 
-    private mtd cleanInto(res: #nonull *Clipper.ClipperPaths)
+    private mtd cleanInto(res: *Clipper.ClipperPaths)
     {
         if !.points.count do
             return

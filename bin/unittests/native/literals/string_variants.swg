@@ -10,8 +10,8 @@ const Eol = #"
     let b = #"C:\Path\To\File"#
     let c = #"no \n escape here"#
 
-    #assert(#typeof(a) == #nonull string)
-    #assert(#typeof(b) == #nonull string)
+    #assert(#typeof(a) == string)
+    #assert(#typeof(b) == string)
 
     @assert(a == "hello")
     @assert(b == "C:\\Path\\To\\File")

@@ -11,9 +11,9 @@ impl IActionUI for ActionView
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = main.getCapture()
         switch cxt.id
         {
@@ -31,7 +31,7 @@ impl IActionUI for ActionView
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
         switch cxt.id
         {
         case Clip:

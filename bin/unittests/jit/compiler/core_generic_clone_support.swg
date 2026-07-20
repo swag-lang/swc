@@ -3,7 +3,7 @@ using Swag
 
 namespace GenericCloneCodegenSupport
 {
-    func helperFree(buffer: [*] void, size: u64, allocator: IAllocator = null)
+    func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
     {
         if !buffer do
             return
@@ -16,7 +16,7 @@ namespace GenericCloneCodegenSupport
         talloc.free(&req)
     }
 
-    func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->[*] void
+    func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->#null [*] void
     {
         var req: AllocatorRequest
         req.address = buffer
@@ -31,7 +31,7 @@ namespace GenericCloneCodegenSupport
     struct(T) BufferBox
     {
         allocator: IAllocator
-        buffer:   [*] T
+        buffer:   #null [*] T
         count:    u64
         capacity: u64
     }
@@ -43,13 +43,13 @@ namespace GenericCloneCodegenSupport
             if newCapacity <= .capacity do
                 return
 
-            .buffer = cast([*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
         }
 
         mtd add(value: T)
@@ -75,7 +75,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = cast(*T) @alloc(#sizeof(T))
+            let ptr = cast(*T) assume @alloc(#sizeof(T))
             dref ptr = value
             .values.add(ptr)
         }

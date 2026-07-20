@@ -17,12 +17,12 @@ struct(T) NonNullRequiresInitGenericBox
 
 struct NonNullRequiresInitForwardHolder
 {
-    required: #nonull *NonNullRequiresInitItem
+    required: *NonNullRequiresInitItem
 }
 
 struct NonNullRequiresInitHolder
 {
-    required: #nonull *NonNullRequiresInitItem
+    required: *NonNullRequiresInitItem
     count:    s32 = 7
 }
 
@@ -35,7 +35,7 @@ alias NonNullRequiresInitHolderAlias = NonNullRequiresInitHolder
 
 struct NonNullRequiresInitSetTarget
 {
-    required: #nonull *NonNullRequiresInitItem
+    required: *NonNullRequiresInitItem
 }
 
 impl NonNullRequiresInitSetTarget
@@ -45,16 +45,16 @@ impl NonNullRequiresInitSetTarget
     }
 }
 
-var NonNullRequiresInitGlobal: #nonull *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+var NonNullRequiresInitGlobal: *NonNullRequiresInitItem // swc-expected-error@(+0,+1) {{sema_err_type_requires_init}}
 var NonNullRequiresInitThrowableItem = NonNullRequiresInitItem{}
 
-func nonNullRequiresInitRetval()->#nonull *NonNullRequiresInitItem
+func nonNullRequiresInitRetval()->*NonNullRequiresInitItem
 {
     var result: retval // swc-expected-error {{sema_err_type_requires_init}}
     return result
 }
 
-func nonNullRequiresInitThrowable()->#nonull *NonNullRequiresInitItem throw
+func nonNullRequiresInitThrowable()->*NonNullRequiresInitItem throw
 {
     return &NonNullRequiresInitThrowableItem
 }
@@ -81,42 +81,42 @@ func nonNullRequiresInitThrowable()->#nonull *NonNullRequiresInitItem throw
 
 #test
 {
-    var value: #nonull *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+    var value: *NonNullRequiresInitItem // swc-expected-error@(+0,+1) {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var value: #nonull [*] NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+    var value: [*] NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var value: #nonull [..] NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+    var value: [..] NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var value: #nonull string // swc-expected-error {{sema_err_type_requires_init}}
+    var value: string // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var value: #nonull cstring // swc-expected-error {{sema_err_type_requires_init}}
+    var value: cstring // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var value: #nonull any // swc-expected-error {{sema_err_type_requires_init}}
+    var value: any // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var value: #nonull typeinfo // swc-expected-error {{sema_err_type_requires_init}}
+    var value: typeinfo // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var values: [2] #nonull *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
+    var values: [2] *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
@@ -136,7 +136,7 @@ func nonNullRequiresInitThrowable()->#nonull *NonNullRequiresInitItem throw
 
 #test
 {
-    var value: NonNullRequiresInitGenericBox'(#nonull *NonNullRequiresInitItem) // swc-expected-error {{sema_err_type_requires_init}}
+    var value: NonNullRequiresInitGenericBox'(*NonNullRequiresInitItem) // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
@@ -162,7 +162,7 @@ func nonNullRequiresInitThrowable()->#nonull *NonNullRequiresInitItem throw
 #test
 {
     var item = NonNullRequiresInitItem{value: 1}
-    var ptr: #nonull *NonNullRequiresInitItem = &item
+    var ptr: *NonNullRequiresInitItem = &item
     @init(&ptr) // swc-expected-error {{sema_err_type_requires_init}}
 }
 

@@ -11,7 +11,8 @@ alias PointerArithmeticStrictU8 = u8
 
 #test
 {
-    var p: [*]s32 = null
+    var x0: s32
+    var p: [*]s32 = cast([*]s32) &x0
 
     var off1: u8 = 1
 
@@ -40,7 +41,7 @@ alias PointerArithmeticStrictU8 = u8
     @assert((p - c2) == 1)
 }
 
-#assert(#typeof((cast([*]s32) null) - (cast([*]s32) null)) == s64)
+#assert(#typeof((cast(#null [*]s32) null) - (cast(#null [*]s32) null)) == s64)
 
 #test
 {

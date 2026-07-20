@@ -20,14 +20,14 @@ struct FileDlgState
 
 struct FileDlgOptions
 {
-    title:          #nonull string = ""
-    btnOkName:      #nonull string = ""
-    openFolder:     #nonull string = ""
-    editName:       #nonull string = ""
+    title:          string = ""
+    btnOkName:      string = ""
+    openFolder:     string = ""
+    editName:       string = ""
     drivePane       = true
     mode:           FileDlgMode = SelectOneFile
-    filters:        Array'{ name: #nonull string, extensions: #nonull string }
-    shortcuts:      Array'{ type: Core.Env.SpecialDirectory, name: #nonull string }
+    filters:        Array'{ name: string, extensions: string }
+    shortcuts:      Array'{ type: Core.Env.SpecialDirectory, name: string }
     state:          #null *FileDlgState
 }
 
@@ -41,7 +41,7 @@ struct FileDlg
 
 impl IWnd for FileDlg
 {
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         // The browser saves the folder/column widths; the dialog owns the position.
         if .dlgOptions.state do
@@ -109,7 +109,7 @@ private impl FileDlg
 impl FileDlg
 {
     // Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.
-    func create(from: #nonull *Surface, opt: FileDlgOptions = {})->#nonull *FileDlg
+    func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {
         let dlg = Wnd.create'FileDlg()
         dlg.fromSurface = from

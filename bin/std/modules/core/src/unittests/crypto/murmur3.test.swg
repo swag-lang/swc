@@ -46,13 +46,13 @@ func murmur3Reference(a, b: u64)->u64
 }
 
 #[Swag.Safety(.Overflow, false)]
-func murmur3Reference(key: #nonull const [*] u8, len: u64, seed: u64)->u64
+func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
 {
     const M = 0xc6a4_a793_5bd1_e995'u64
     const R = 47
 
     var h = seed ^ (len * M)
-    let data = cast(#nonull const [*] u64) key
+    let data = cast(const [*] u64) key
     let nblocks = len / 8
 
     for i in nblocks
@@ -65,7 +65,7 @@ func murmur3Reference(key: #nonull const [*] u8, len: u64, seed: u64)->u64
         h *= M
     }
 
-    let data2 = cast(#nonull const [*] u8) &data[nblocks]
+    let data2 = cast(const [*] u8) &data[nblocks]
     switch len & 7
     {
     case 7:
@@ -117,7 +117,7 @@ func assertMurmur3Pair(a, b: u64)
     @assert(Hash.murmur3(a, b) == murmur3Reference(a, b))
 }
 
-func fillMurmur3Pattern(buffer: #nonull [..] u8)
+func fillMurmur3Pattern(buffer: [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)
@@ -153,7 +153,7 @@ func fillMurmur3Pattern(buffer: #nonull [..] u8)
 
     for length in 34
     {
-        let ptr = cast(#nonull const [*] u8) @dataof(data)
+        let ptr = cast(const [*] u8) @dataof(data)
         @assert(Hash.murmur3(ptr, length, 0) == murmur3Reference(ptr, length, 0))
         @assert(Hash.murmur3(ptr, length, 0x1234_5678_9abc_def0'u64) == murmur3Reference(ptr, length, 0x1234_5678_9abc_def0'u64))
     }

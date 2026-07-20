@@ -30,10 +30,12 @@
 
 #test
 {
-    var a: [*] u8
+    var x: u8
+    var base = cast([*] u8) &x
+    var a    = base
     a += 1
     a -= 1
-    @assert(a == null)
+    @assert(a == base)
 }
 
 #test

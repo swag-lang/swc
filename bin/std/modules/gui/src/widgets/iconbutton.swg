@@ -64,10 +64,10 @@ struct IconButton
     iconColor:           Color
     textColor:           Color
 
-    sigHidePopup:        SigArray'func||(#nonull *IconButton)
-    sigShowPopup:        SigArray'func||(#nonull *IconButton)
-    sigCheckChanged:     SigArray'func||(#nonull *IconButton)
-    sigPaintIcon:        func||(#nonull *IconButton, #nonull *PaintContext, Math.Rectangle, PaintItemFlags)
+    sigHidePopup:        SigArray'func||(*IconButton)
+    sigShowPopup:        SigArray'func||(*IconButton)
+    sigCheckChanged:     SigArray'func||(*IconButton)
+    sigPaintIcon:        func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)
 
     aniBk:               BlendColor
     isChecked:           bool
@@ -104,19 +104,19 @@ impl IWnd for IconButton
         }
     }
 
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .hidePopup()
     }
 
-    mtd impl onStateEvent(evt: #nonull *StateEvent)
+    mtd impl onStateEvent(evt: *StateEvent)
     {
         .button.IWnd.onStateEvent(evt)
         if evt.kind == .Hide or evt.kind == .Disable do
             .aniBk.reset()
     }
 
-    mtd impl onApplyStateEvent(evt: #nonull *CommandStateEvent)
+    mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
         if evt.id != .id do
             return
@@ -136,7 +136,7 @@ impl IWnd for IconButton
         .button.IWnd.onApplyStateEvent(evt)
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc
         let theme   = .getTheme()
@@ -526,7 +526,7 @@ impl IWnd for IconButton
         return 4
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if .processMouseEvent(evt)
         {
@@ -567,7 +567,7 @@ impl IWnd for IconButton
 impl IconButton
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, icon: Icon, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *IconButton
+    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: #null WndId = null)->*IconButton
     {
         Debug.assert(parent != null)
         var pos = position
@@ -603,7 +603,7 @@ impl IconButton
     }
 
     // Creates a popup window linked to the button position.
-    mtd createAnchorPopup(w, h: f32)->#nonull *FrameWnd
+    mtd createAnchorPopup(w, h: f32)->*FrameWnd
     {
         let pos          = .getSurfaceRect()
         let topView      = .getTopView()

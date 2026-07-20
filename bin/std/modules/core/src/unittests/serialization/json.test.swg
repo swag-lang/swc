@@ -36,7 +36,7 @@ func makeJsonPayload()->JsonPayload
     return result
 }
 
-func assertIntArray(values: const &Array's32, expected: #nonull const [..] s32)->bool
+func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false

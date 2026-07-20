@@ -12,7 +12,7 @@ impl IPropertyEditor for FontStyleEditor
         return type == FontFamilyStyle
     }
 
-    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
         parent.flags.add(.NoSeparator | .NoFocus)
 
@@ -46,7 +46,7 @@ impl IPropertyEditor for FontStyleEditor
             .iconBtnFlags.add(.CheckableToggle)
         }
 
-        func writeStyle(list: #nonull *Properties, item: #nonull *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: #nonull *IconButton)
+        func writeStyle(list: *Properties, item: *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: *IconButton)
         {
             let bold   = btnBold.isChecked
             let italic = btnItalic.isChecked

@@ -68,7 +68,7 @@ struct AntinodeGrid
 {
     width:  u32
     height: u32
-    cells:  [*] u8
+    cells:  #null [*] u8
 }
 
 struct ResonanceReport
@@ -107,7 +107,7 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     result.width = width
     result.height = height
     let size = cast(u64) width * cast(u64) height
-    result.cells = cast([*] u8) @alloc(size)
+    result.cells = cast(#null [*] u8) @alloc(size)
     @assert(result.cells != null)
     for width * height
     {

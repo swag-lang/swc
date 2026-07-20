@@ -25,14 +25,14 @@ impl BitArray
         return result
     }
 
-    mtd dataPtr()->#nonull [*] u32
+    mtd dataPtr()->[*] u32
     {
-        return .buffer orelse cast(#nonull [*] u32) 1'u64
+        return .buffer orelse cast([*] u32) 1'u64
     }
 
-    mtd const constDataPtr()->#nonull const [*] u32
+    mtd const constDataPtr()->const [*] u32
     {
-        return cast(#nonull const [*] u32) (.buffer orelse cast(#nonull [*] u32) 1'u64)
+        return cast(const [*] u32) (.buffer orelse cast([*] u32) 1'u64)
     }
 
     // Frees the memory allocated by the bit array.
@@ -152,7 +152,7 @@ public impl BitArray
         if totalWords << 5 < .count do
             totalWords += 1
         var countBits  = 0'u64
-        let buffer     = .buffer orelse cast(#nonull [*] u32) 1'u64
+        let buffer     = .buffer orelse cast([*] u32) 1'u64
 
         #scope(Up)
         for idx in totalWords

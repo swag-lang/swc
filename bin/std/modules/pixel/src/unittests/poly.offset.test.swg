@@ -1,7 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func addOffsetRect(list: #nonull *Pixel.LinePathList, serial: s32, x, y: f32)
+func addOffsetRect(list: *Pixel.LinePathList, serial: s32, x, y: f32)
 {
     let path = list.newPath()
     path.serial = serial

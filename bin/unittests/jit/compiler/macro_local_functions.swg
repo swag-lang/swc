@@ -77,9 +77,9 @@ func forcedLocalMacroRelay(seed: s32)->s32
 // Verifies the codegen fix for inline-label placement in locally-compiled functions.
 // This is the exact pattern used by Jobs.parallelVisit / Jobs.parallelFor.
 #[Swag.Macro]
-func localForMacroInject(count: s32, contextData: *void = null, stmt: #code(data: *void, data2: *void))
+func localForMacroInject(count: s32, contextData: #null *void = null, stmt: #code(data: #null *void, data2: #null *void))
 {
-    func doWork(n: s32, ctxData: *void)
+    func doWork(n: s32, ctxData: #null *void)
     {
         for n
         {
@@ -96,7 +96,7 @@ func localForMacroInject(count: s32, contextData: *void = null, stmt: #code(data
     var runs = 0
     localForMacroInject(3, &runs)
     {
-        discard @atomadd(cast(*s32) data, 1)
+        discard @atomadd(cast(*s32) (assume data), 1)
     }
     @assert(runs == 3)
 }
@@ -104,9 +104,9 @@ func localForMacroInject(count: s32, contextData: *void = null, stmt: #code(data
 // Verifies two-level nested macro injection (outer macro → local-function for loop)
 // correctly handles 'return' inside the injected code block via doneLabel placement.
 #[Swag.Macro]
-func parallelVisitLike(ctxData: *void = null, stmt: #code(ctx: *void, ctx2: *void))
+func parallelVisitLike(ctxData: #null *void = null, stmt: #code(ctx: #null *void, ctx2: #null *void))
 {
-    func doWork(payload: *void)
+    func doWork(payload: #null *void)
     {
         for 3
         {
@@ -117,7 +117,7 @@ func parallelVisitLike(ctxData: *void = null, stmt: #code(ctx: *void, ctx2: *voi
 }
 
 #[Swag.Macro]
-func outerMacroDoubleInject(ctxData: *void = null, stmt: #code(data: *void))
+func outerMacroDoubleInject(ctxData: #null *void = null, stmt: #code(data: #null *void))
 {
     parallelVisitLike(ctxData)
     {
@@ -132,7 +132,7 @@ func outerMacroDoubleInject(ctxData: *void = null, stmt: #code(data: *void))
     var c = 0
     outerMacroDoubleInject(&c)
     {
-        discard @atomadd(cast(*s32) data, 1)
+        discard @atomadd(cast(*s32) (assume data), 1)
     }
     @assert(c == 3)
 }

@@ -134,7 +134,7 @@ const MaxGates = 256'u32
 struct Circuit
 {
     // Wire values: index by encoded name
-    wireVal:  [*] u8     // 0 or 1 or 255 (unset)
+    wireVal:  #null [*] u8     // 0 or 1 or 255 (unset)
     gates:    [MaxGates] Gate
     gateCount: u32
 
@@ -145,7 +145,7 @@ struct Circuit
 func circuitInit() -> Circuit
 {
     var c: Circuit
-    c.wireVal = cast([*] u8) @alloc(cast(u64) MaxWireIdx * #sizeof(u8))
+    c.wireVal = cast(#null [*] u8) @alloc(cast(u64) MaxWireIdx * #sizeof(u8))
     let total = MaxWireIdx
     for total { c.wireVal[@index] = 255 }
     c.maxZBit = 0

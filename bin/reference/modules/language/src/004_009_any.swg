@@ -18,7 +18,7 @@
 
     // Now store a string
     a = "string"
-    @assert(cast(#nonull string) (assume a) == "string")
+    @assert(cast(string) (assume a) == "string")
 
     // Now store a bool
     a = true
@@ -33,8 +33,8 @@ Use '@dataof' to access a pointer to the underlying value stored inside 'any'.
 
 #test
 {
-    let a:  #nonull any = 6
-    let ptr = cast(#nonull const *s32) @dataof(a)
+    let a:  any = 6
+    let ptr = cast(const *s32) @dataof(a)
     @assert(dref ptr == 6)
 }
 
@@ -47,9 +47,9 @@ Use '@kindof' to get the concrete runtime type of the referenced value.
 
 #test
 {
-    var a: #nonull any = "string"
-    #assert(#typeof(a) == #nonull any)
-    @assert(@kindof(a) == #nonull string)
+    var a: any = "string"
+    #assert(#typeof(a) == any)
+    @assert(@kindof(a) == string)
 
     a = true
     @assert(@kindof(a) == bool)
@@ -63,15 +63,15 @@ You can retrieve the stored value directly or as a constant reference.
 
 #test
 {
-    let a: #nonull any = 42
-    #assert(#typeof(a) == #nonull any)
+    let a: any = 42
+    #assert(#typeof(a) == any)
     @assert(@kindof(a) == s32)
 
     let b = cast(s32) a // Get the value itself
     @assert(b == 42)
 
     let c = cast(const &s32) a // Get a constant reference to the value
-    let d = cast(#nonull const *s32) a // Get a constant pointer to the value
+    let d = cast(const *s32) a // Get a constant pointer to the value
     @assert(c == 42)
     @assert(dref d == 42)
 }
@@ -89,12 +89,12 @@ You can create heterogeneous arrays where each element holds a different type.
     @assert(@kindof(array[0]) == bool)
     @assert(@kindof(array[1]) == s32)
     @assert(@kindof(array[2]) == f32)
-    @assert(@kindof(array[3]) == #nonull string)
+    @assert(@kindof(array[3]) == string)
 
     @assert(cast(bool) array[0] == true)
     @assert(cast(s32) array[1] == 2)
     @assert(cast(f32) array[2] == 3.0)
-    @assert(cast(#nonull string) array[3] == "4")
+    @assert(cast(string) array[3] == "4")
 }
 
 /**
@@ -114,7 +114,7 @@ An 'any' value can be null, similar to pointers and other nullable types.
 
     x = "string"
     @assert(x != null)
-    @assert(cast(#nonull string) (assume x) == "string")
+    @assert(cast(string) (assume x) == "string")
 
     x = null
     @assert(x == null)
@@ -138,7 +138,7 @@ This uses '@kindof' internally to compare the stored value's type.
 
     x = "string"
     @assert(x != s32)
-    @assert(x == #nonull string)
+    @assert(x == string)
 
     struct A {}
     x = A{}

@@ -21,7 +21,7 @@ impl IActionUI for ActionImage
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         if updateFromTable(cxt, evt, [
             {ResizeImage, "Resize Image...", .Capture},
@@ -36,7 +36,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -52,7 +52,7 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         // The backImgOriginal snapshot (which enables "Restore to Original") is taken lazily
@@ -196,20 +196,20 @@ impl MainWnd
         .doProcessImage(ActionImage.ResizeImage, w: w, h: h)
     }
 
-    func createBtnGrid(dlg: #nonull *Wnd)
+    func createBtnGrid(dlg: *Wnd)
     {
-        func createBtn(dlg: #nonull *Wnd, pos: Math.Rectangle, id: u64)
+        func createBtn(dlg: *Wnd, pos: Math.Rectangle, id: u64)
         {
             let btn = CheckButton.create(dlg, " ", pos)
             btn.checked  = g_ResizeMode == id ? .Undefined : .UnChecked
-            btn.userData = cast(#nonull *void) id
+            btn.userData = cast(*void) id
             btn.sigChanged += func(btn)
             {
                 for c in btn.parent.childs
                 {
                     if c.userData
                     {
-                        let btnc = cast(#nonull *CheckButton) c
+                        let btnc = cast(*CheckButton) c
                         btnc.checked = c != btn ? .UnChecked : .Undefined
                         btnc.invalidate()
                     }
@@ -282,7 +282,7 @@ impl MainWnd
         {
             if c.userData
             {
-                let btnc = cast(#nonull *CheckButton) c
+                let btnc = cast(*CheckButton) c
                 if btnc.checked != .UnChecked
                 {
                     g_ResizeMode = cast(u64) btnc.userData

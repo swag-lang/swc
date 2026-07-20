@@ -20,7 +20,7 @@ func resetLifecycleHooks()
     PostMoveCount = 0
 }
 
-func helperFree(buffer: [*] void, size: u64, allocator: IAllocator = null)
+func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
 {
     if !buffer do
         return
@@ -33,7 +33,7 @@ func helperFree(buffer: [*] void, size: u64, allocator: IAllocator = null)
     talloc.free(&req)
 }
 
-func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->[*] void
+func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->#null [*] void
 {
     var req: AllocatorRequest
     req.address = buffer
@@ -45,7 +45,7 @@ func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAll
     return req.address
 }
 
-func memoryLikeFree(buffer: [*] void, size: u64, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
+func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -60,7 +60,7 @@ func memoryLikeFree(buffer: [*] void, size: u64, allocator: IAllocator = null, h
     talloc.free(&req)
 }
 
-func memoryLikeRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: string = null, loc = #callerlocation)->[*] void
+func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -287,7 +287,7 @@ impl RemoveBuffer
 struct OwnedDropBuffer
 {
     allocator: IAllocator
-    buffer: [*] DropOnlyTracked
+    buffer: #null [*] DropOnlyTracked
     count: u64
     capacity: u64
 }
@@ -312,7 +312,7 @@ impl OwnedDropBuffer
 struct ReallocDropBuffer
 {
     allocator: IAllocator
-    buffer: [*] DropOnlyTracked
+    buffer: #null [*] DropOnlyTracked
     count: u64
     capacity: u64
 }
@@ -334,7 +334,7 @@ impl ReallocDropBuffer
         req.oldSize = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
         .allocator.realloc(&req)
-        .buffer = cast([*] DropOnlyTracked) req.address
+        .buffer = cast(#null [*] DropOnlyTracked) req.address
         .capacity = newCapacity
     }
 
@@ -342,7 +342,8 @@ impl ReallocDropBuffer
     {
         .reserve(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = assume .buffer
+        return buffer + .count - num
     }
 
     mtd free()
@@ -363,7 +364,7 @@ impl ReallocDropBuffer
 struct(T) GenericOwnedBuffer
 {
     allocator: IAllocator
-    buffer: [*] T
+    buffer: #null [*] T
     count: u64
     capacity: u64
 }
@@ -385,7 +386,7 @@ impl GenericOwnedBuffer
         req.oldSize = .capacity * #sizeof(T)
         req.address = .buffer
         .allocator.realloc(&req)
-        .buffer = cast([*] T) req.address
+        .buffer = cast(#null [*] T) req.address
         .capacity = newCapacity
     }
 
@@ -393,7 +394,8 @@ impl GenericOwnedBuffer
     {
         .reserve(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = assume .buffer
+        return buffer + .count - num
     }
 
     mtd free()
@@ -414,7 +416,7 @@ impl GenericOwnedBuffer
 struct(T) LazyAllocatorGenericBuffer
 {
     allocator: IAllocator
-    buffer: [*] T
+    buffer: #null [*] T
     count: u64
     capacity: u64
 }
@@ -438,7 +440,7 @@ impl LazyAllocatorGenericBuffer
         req.oldSize = .capacity * #sizeof(T)
         req.address = .buffer
         .allocator.realloc(&req)
-        .buffer = cast([*] T) req.address
+        .buffer = cast(#null [*] T) req.address
         .capacity = newCapacity
     }
 
@@ -446,7 +448,8 @@ impl LazyAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = assume .buffer
+        return buffer + .count - num
     }
 
     mtd free()
@@ -467,7 +470,7 @@ impl LazyAllocatorGenericBuffer
 struct(T) HelperAllocatorGenericBuffer
 {
     allocator: IAllocator
-    buffer: [*] T
+    buffer: #null [*] T
     count: u64
     capacity: u64
 }
@@ -486,7 +489,7 @@ impl HelperAllocatorGenericBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast([*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -494,7 +497,8 @@ impl HelperAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = assume .buffer
+        return buffer + .count - num
     }
 
     mtd free()
@@ -511,7 +515,7 @@ impl HelperAllocatorGenericBuffer
 struct(T) MemoryAllocatorGenericBuffer
 {
     allocator: IAllocator
-    buffer: [*] T
+    buffer: #null [*] T
     count: u64
     capacity: u64
 }
@@ -530,7 +534,7 @@ impl MemoryAllocatorGenericBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast([*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer = cast(#null [*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -538,7 +542,8 @@ impl MemoryAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = assume .buffer
+        return buffer + .count - num
     }
 
     mtd remove(index, num: u64)
@@ -579,7 +584,7 @@ impl MemoryAllocatorGenericBuffer
 struct(T) PostCopyAllocatorGenericBuffer
 {
     allocator: IAllocator
-    buffer: [*] T
+    buffer: #null [*] T
     count: u64
     capacity: u64
 }
@@ -602,7 +607,7 @@ impl PostCopyAllocatorGenericBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast([*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -610,7 +615,8 @@ impl PostCopyAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        return .buffer + .count - num
+        let buffer = assume .buffer
+        return buffer + .count - num
     }
 
     mtd free()
@@ -1318,7 +1324,7 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    let ptr = cast([*] DropOnlyTracked) req.address
+    let ptr = cast([*] DropOnlyTracked) assume req.address
     @init(ptr, 3)
     for i in 3 do
         ptr[i].value = cast(s32) (i + 1)
@@ -1341,7 +1347,7 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    var values = OwnedDropBuffer{itf, cast([*] DropOnlyTracked) req.address, 3, 3}
+    var values = OwnedDropBuffer{itf, cast(#null [*] DropOnlyTracked) req.address, 3, 3}
     for i in 3 do
         values.buffer[i].value = cast(s32) (i + 1)
 
@@ -1543,10 +1549,10 @@ func intrinsicInitStrictPointerInfo()->bool
     var first: s32 = 42
     var second: s32 = 7
 
-    var value: IntrinsicStrictS32Ptr
+    var value: IntrinsicStrictS32Ptr = cast(IntrinsicStrictS32Ptr) &second
     @init(&value)(cast(IntrinsicStrictS32Ptr) &first)
 
-    var values: [2] IntrinsicStrictS32Ptr
+    var values: [2] IntrinsicStrictS32Ptr = [cast(IntrinsicStrictS32Ptr) &first, cast(IntrinsicStrictS32Ptr) &first]
     @init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
 
     return dref value == 42 and dref values[0] == 7 and dref values[1] == 7
@@ -1554,16 +1560,13 @@ func intrinsicInitStrictPointerInfo()->bool
 
 func intrinsicInitStrictStringInfo()->bool
 {
-    var value: IntrinsicStrictStringAlias
+    var value: IntrinsicStrictStringAlias = cast(IntrinsicStrictStringAlias) "seed"
     @init(&value)(cast(IntrinsicStrictStringAlias) "hello")
 
-    var empty: IntrinsicStrictStringAlias
-    @init(&empty)
-
-    var values: [2] IntrinsicStrictStringAlias
+    var values: [2] IntrinsicStrictStringAlias = [cast(IntrinsicStrictStringAlias) "seed", cast(IntrinsicStrictStringAlias) "seed"]
     @init(&values, 2)(cast(IntrinsicStrictStringAlias) "world")
 
-    return cast(string) value == "hello" and cast(string) empty == "" and cast(string) values[0] == "world" and cast(string) values[1] == "world"
+    return cast(string) value == "hello" and cast(string) values[0] == "world" and cast(string) values[1] == "world"
 }
 
 func makeIntrinsicRunStrictIntArray()->[2] IntrinsicStrictIntAlias

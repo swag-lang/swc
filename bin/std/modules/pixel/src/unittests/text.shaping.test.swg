@@ -1,9 +1,9 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func makeShapingTestFont()->#nonull *Font
+func makeShapingTestFont()->*Font
 {
-    var face: #nonull *TypeFace = undefined
+    var face: *TypeFace = undefined
     catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf"))
     @assert(@err == null)
     return Font.create(face, 32, .Bitmap)

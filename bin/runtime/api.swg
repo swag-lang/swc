@@ -41,11 +41,11 @@ namespace Swag
     // If no parameter is provided, this prints right before the emit pass.
     // Otherwise, parameters are strings of the form before-passname / after-passname.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
-    attr PrintMicro(stages: #nonull string...)
+    attr PrintMicro(stages: string...)
 
     // On a function or a struct, this prints the associated AST shape.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
-    attr PrintAst(stages: #nonull string...)
+    attr PrintAst(stages: string...)
 
     // The following function or variable is only defined at compile time
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]
@@ -87,11 +87,11 @@ namespace Swag
     // An opBinary operator overload can also be used when its receiver is the right operand.
     // Optional string parameters restrict the operators for generic opBinary implementations.
     #[AttrUsage(AttributeUsage.Function)]
-    attr Commutative(operators: #nonull string...)
+    attr Commutative(operators: string...)
 
     // Generate operator overloads for a struct.
     #[AttrUsage(AttributeUsage.Struct)]
-    attr Operators(operators: #nonull string...)
+    attr Operators(operators: string...)
 
     // Exclude a struct field from generated operator overloads.
     #[AttrUsage(AttributeUsage.StructVariable)]
@@ -103,7 +103,7 @@ namespace Swag
 
     // The following function is foreign (imported)
     #[AttrUsage(AttributeUsage.Function)]
-    attr Foreign(module: #nonull string, function: #nonull string = "", link: #nonull string = "", callconv: CallConv = Swag.CallConv.C)
+    attr Foreign(module: string, function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.C)
 
     // The following function accepts that the called does not use its return value
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]
@@ -133,7 +133,7 @@ namespace Swag
     // Struct field member relocation.
     // The field offset in the struct should be the same as the variable 'name'
     #[AttrUsage(AttributeUsage.StructVariable)]
-    attr Offset(name: #nonull string)
+    attr Offset(name: string)
 
     // The following enum is a set of flags
     #[AttrUsage(AttributeUsage.Enum)]
@@ -235,11 +235,8 @@ namespace Swag
     // ```
     // You can also change the warning behaviors for the whole module in your [[BuildCfg]]
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
-    attr Warning(what: #nonull string, level: WarningLevel)
+    attr Warning(what: string, level: WarningLevel)
 
-    // Require nullable-capable types to be explicitly annotated with '#null' or '#nonull'.
-    #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
-    attr ExplicitNullability()
 
     #[Swag.EnumFlags]
     enum MatchWhat: u32
@@ -399,15 +396,15 @@ namespace Swag
     interface IAllocator
     {
         // Allocate a block of memory.
-        mtd alloc(request: #nonull *AllocatorRequest);
+        mtd alloc(request: *AllocatorRequest);
         // Reallocate a previously allocated block.
-        mtd realloc(request: #nonull *AllocatorRequest);
+        mtd realloc(request: *AllocatorRequest);
         // Free a previously allocated block.
-        mtd free(request: #nonull *AllocatorRequest);
+        mtd free(request: *AllocatorRequest);
         // Free all memory allocated with this allocator, if supported.
-        mtd freeAll(request: #nonull *AllocatorRequest);
+        mtd freeAll(request: *AllocatorRequest);
         // Assert that 'request.address' is currently allocated, if supported.
-        mtd assertAllocated(request: #nonull *AllocatorRequest);
+        mtd assertAllocated(request: *AllocatorRequest);
     }
 
     struct ScratchAllocator
@@ -572,7 +569,6 @@ namespace Swag
         Character         = 0x00008000     // This is a 32 bits character
         Const             = 0x00010000     // This is const
         Nullable          = 0x00020000     // This is a nullable type
-        ExplicitNonNull   = 0x00040000     // This is an explicitly non-null type
         RequiresExplicitInit = 0x00080000  // This type must be explicitly initialized
     }
 
@@ -644,19 +640,19 @@ namespace Swag
     struct TypeInfoPointer
     {
         using base:      TypeInfo
-        pointedType:     #nonull const *TypeInfo     // The pointed type
+        pointedType:     const *TypeInfo     // The pointed type
     }
 
     struct TypeInfoAlias
     {
         using base:     TypeInfo
-        rawType:        #nonull const *TypeInfo     // The underlying type
+        rawType:        const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoCodeBlock
     {
         using base:     TypeInfo
-        rawType:        #nonull const *TypeInfo     // The underlying type
+        rawType:        const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoStruct
@@ -696,8 +692,8 @@ namespace Swag
     struct TypeInfoArray
     {
         using base:      TypeInfo
-        pointedType:     #nonull const *TypeInfo   // The underlying type
-        finalType:       #nonull const *TypeInfo   // If this is an array with multiple dimensions, this will be the final type
+        pointedType:     const *TypeInfo   // The underlying type
+        finalType:       const *TypeInfo   // If this is an array with multiple dimensions, this will be the final type
         count:           u64                 // Number of elements in the array
         totalCount:      u64                 // The total number of elements in case this has multiple dimensions
     }
@@ -705,19 +701,19 @@ namespace Swag
     struct TypeInfoSlice
     {
         using base:      TypeInfo
-        pointedType:     #nonull const *TypeInfo   // The underlying type
+        pointedType:     const *TypeInfo   // The underlying type
     }
 
     struct TypeInfoVariadic
     {
         using base:     TypeInfo
-        rawType:        #nonull const *TypeInfo   // The underlying type
+        rawType:        const *TypeInfo   // The underlying type
     }
 
     struct TypeInfoGeneric
     {
         using base:     TypeInfo
-        rawType:        #nonull const *TypeInfo
+        rawType:        const *TypeInfo
     }
 
     struct TypeInfoNamespace
@@ -875,7 +871,6 @@ namespace Swag
         warnAsDisabled:                #null string                         // Disable some specific warnings
         warnDefaultDisabled:           bool                                 // All warnings are disabled, except those specified above
         warnDefaultErrors:             bool                                 // All warnings are treated as errors, except those specified above
-        explicitNullability:           bool                                 // Require #null or #nonull on nullable-capable types
 
         backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
@@ -893,7 +888,7 @@ namespace Swag
         resAppCompany:                 #null string                         // For an executable, the associated company name
         resAppCopyright:               #null string                         // For an executable, the associated copyright notice
         genDoc:                        BuildCfgGenDoc                       // Parameters for document generation
-        registeredConfigs:             #nonull string = "fast-compile|debug|fast-debug|release" // Registered build configuration names used by --build-cfg and #cfg
+        registeredConfigs:             string = "fast-compile|debug|fast-debug|release" // Registered build configuration names used by --build-cfg and #cfg
     }
 
     // #########################################################
@@ -949,7 +944,7 @@ namespace Swag
     {
         mtd getMessage()->#null const *CompilerMessage; // Returns the compiler message in a '#message' function
         mtd getBuildCfg()->#null *BuildCfg; // Returns the build configuration of the current module
-        mtd compileString(str: #nonull string);
+        mtd compileString(str: string);
     }
 
     // Represent a part of a source code file.
@@ -976,12 +971,12 @@ func @assert(value: bool);
 // Stop a bytecode execution, and launch the bytecode debugger.
 func @breakpoint();
 // Get the current thread context.
-func @getcontext()->#nonull *Swag.Context;
+func @getcontext()->*Swag.Context;
 // Replace the current thread context.
-func @setcontext(context: #nonull const *Swag.Context);
+func @setcontext(context: const *Swag.Context);
 
 // Get information about the current process.
-func @pinfos()->#nonull *Swag.ProcessInfos;
+func @pinfos()->*Swag.ProcessInfos;
 // Returns the list of all loaded modules.
 func @modules()->#null const [..] Swag.Module;
 // Returns the list of all global variables.
@@ -1005,64 +1000,64 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32;
 #[Swag.Discardable]
 {
     // Atomic 'add'
-    func @atomadd(addr: #nonull *s8, value: s8)->s8;
-    func @atomadd(addr: #nonull *s16, value: s16)->s16;
-    func @atomadd(addr: #nonull *s32, value: s32)->s32;
-    func @atomadd(addr: #nonull *s64, value: s64)->s64;
-    func @atomadd(addr: #nonull *u8, value: u8)->u8;
-    func @atomadd(addr: #nonull *u16, value: u16)->u16;
-    func @atomadd(addr: #nonull *u32, value: u32)->u32;
-    func @atomadd(addr: #nonull *u64, value: u64)->u64;
+    func @atomadd(addr: *s8, value: s8)->s8;
+    func @atomadd(addr: *s16, value: s16)->s16;
+    func @atomadd(addr: *s32, value: s32)->s32;
+    func @atomadd(addr: *s64, value: s64)->s64;
+    func @atomadd(addr: *u8, value: u8)->u8;
+    func @atomadd(addr: *u16, value: u16)->u16;
+    func @atomadd(addr: *u32, value: u32)->u32;
+    func @atomadd(addr: *u64, value: u64)->u64;
 
     // Atomic 'and'
-    func @atomand(addr: #nonull *s8, value: s8)->s8;
-    func @atomand(addr: #nonull *s16, value: s16)->s16;
-    func @atomand(addr: #nonull *s32, value: s32)->s32;
-    func @atomand(addr: #nonull *s64, value: s64)->s64;
-    func @atomand(addr: #nonull *u8, value: u8)->u8;
-    func @atomand(addr: #nonull *u16, value: u16)->u16;
-    func @atomand(addr: #nonull *u32, value: u32)->u32;
-    func @atomand(addr: #nonull *u64, value: u64)->u64;
+    func @atomand(addr: *s8, value: s8)->s8;
+    func @atomand(addr: *s16, value: s16)->s16;
+    func @atomand(addr: *s32, value: s32)->s32;
+    func @atomand(addr: *s64, value: s64)->s64;
+    func @atomand(addr: *u8, value: u8)->u8;
+    func @atomand(addr: *u16, value: u16)->u16;
+    func @atomand(addr: *u32, value: u32)->u32;
+    func @atomand(addr: *u64, value: u64)->u64;
 
     // Atomic 'or'
-    func @atomor(addr: #nonull *s8, value: s8)->s8;
-    func @atomor(addr: #nonull *s16, value: s16)->s16;
-    func @atomor(addr: #nonull *s32, value: s32)->s32;
-    func @atomor(addr: #nonull *s64, value: s64)->s64;
-    func @atomor(addr: #nonull *u8, value: u8)->u8;
-    func @atomor(addr: #nonull *u16, value: u16)->u16;
-    func @atomor(addr: #nonull *u32, value: u32)->u32;
-    func @atomor(addr: #nonull *u64, value: u64)->u64;
+    func @atomor(addr: *s8, value: s8)->s8;
+    func @atomor(addr: *s16, value: s16)->s16;
+    func @atomor(addr: *s32, value: s32)->s32;
+    func @atomor(addr: *s64, value: s64)->s64;
+    func @atomor(addr: *u8, value: u8)->u8;
+    func @atomor(addr: *u16, value: u16)->u16;
+    func @atomor(addr: *u32, value: u32)->u32;
+    func @atomor(addr: *u64, value: u64)->u64;
 
     // Atomic 'xor'
-    func @atomxor(addr: #nonull *s8, value: s8)->s8;
-    func @atomxor(addr: #nonull *s16, value: s16)->s16;
-    func @atomxor(addr: #nonull *s32, value: s32)->s32;
-    func @atomxor(addr: #nonull *s64, value: s64)->s64;
-    func @atomxor(addr: #nonull *u8, value: u8)->u8;
-    func @atomxor(addr: #nonull *u16, value: u16)->u16;
-    func @atomxor(addr: #nonull *u32, value: u32)->u32;
-    func @atomxor(addr: #nonull *u64, value: u64)->u64;
+    func @atomxor(addr: *s8, value: s8)->s8;
+    func @atomxor(addr: *s16, value: s16)->s16;
+    func @atomxor(addr: *s32, value: s32)->s32;
+    func @atomxor(addr: *s64, value: s64)->s64;
+    func @atomxor(addr: *u8, value: u8)->u8;
+    func @atomxor(addr: *u16, value: u16)->u16;
+    func @atomxor(addr: *u32, value: u32)->u32;
+    func @atomxor(addr: *u64, value: u64)->u64;
 
     // Atomic 'exchange'
-    func @atomxchg(addr: #nonull *s8, exchangeWith: s8)->s8;
-    func @atomxchg(addr: #nonull *s16, exchangeWith: s16)->s16;
-    func @atomxchg(addr: #nonull *s32, exchangeWith: s32)->s32;
-    func @atomxchg(addr: #nonull *s64, exchangeWith: s64)->s64;
-    func @atomxchg(addr: #nonull *u8, exchangeWith: u8)->u8;
-    func @atomxchg(addr: #nonull *u16, exchangeWith: u16)->u16;
-    func @atomxchg(addr: #nonull *u32, exchangeWith: u32)->u32;
-    func @atomxchg(addr: #nonull *u64, exchangeWith: u64)->u64;
+    func @atomxchg(addr: *s8, exchangeWith: s8)->s8;
+    func @atomxchg(addr: *s16, exchangeWith: s16)->s16;
+    func @atomxchg(addr: *s32, exchangeWith: s32)->s32;
+    func @atomxchg(addr: *s64, exchangeWith: s64)->s64;
+    func @atomxchg(addr: *u8, exchangeWith: u8)->u8;
+    func @atomxchg(addr: *u16, exchangeWith: u16)->u16;
+    func @atomxchg(addr: *u32, exchangeWith: u32)->u32;
+    func @atomxchg(addr: *u64, exchangeWith: u64)->u64;
 
     // Atomic 'compare and exchange'
-    func @atomcmpxchg(addr: #nonull *s8, compareTo, exchangeWith: s8)->s8;
-    func @atomcmpxchg(addr: #nonull *s16, compareTo, exchangeWith: s16)->s16;
-    func @atomcmpxchg(addr: #nonull *s32, compareTo, exchangeWith: s32)->s32;
-    func @atomcmpxchg(addr: #nonull *s64, compareTo, exchangeWith: s64)->s64;
-    func @atomcmpxchg(addr: #nonull *u8, compareTo, exchangeWith: u8)->u8;
-    func @atomcmpxchg(addr: #nonull *u16, compareTo, exchangeWith: u16)->u16;
-    func @atomcmpxchg(addr: #nonull *u32, compareTo, exchangeWith: u32)->u32;
-    func @atomcmpxchg(addr: #nonull *u64, compareTo, exchangeWith: u64)->u64;
+    func @atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8;
+    func @atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16;
+    func @atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32;
+    func @atomcmpxchg(addr: *s64, compareTo, exchangeWith: s64)->s64;
+    func @atomcmpxchg(addr: *u8, compareTo, exchangeWith: u8)->u8;
+    func @atomcmpxchg(addr: *u16, compareTo, exchangeWith: u16)->u16;
+    func @atomcmpxchg(addr: *u32, compareTo, exchangeWith: u32)->u32;
+    func @atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64;
 }
 
 // Constant intrinsics

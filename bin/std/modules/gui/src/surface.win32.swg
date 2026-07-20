@@ -37,7 +37,7 @@ struct NativeSurface
 // Fixed notification-area icon id. A surface owns at most one tray icon.
 const TrayIconID = 1
 
-private func postSurfaceSysCommand(surface: #nonull *Surface, kind: SysCommandEvent.Kind)
+private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
 {
     if surface.wnd.isPendingDestroy do
         return
@@ -52,7 +52,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     // Associate pointer to surface with 'hWnd'
     if msg == WM_CREATE
     {
-        let lpcs = cast(#nonull *CREATESTRUCTW) cast(u64) lParam
+        let lpcs = cast(*CREATESTRUCTW) cast(u64) lParam
         SetWindowLongPtrW(hWnd, GWLP_USERDATA, lpcs.lpCreateParams)
     }
 
@@ -174,7 +174,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_GETMINMAXINFO:
-            let mm = cast(#nonull *MINMAXINFO) cast(u64) lParam
+            let mm = cast(*MINMAXINFO) cast(u64) lParam
 
             // Enforce the surface min/max size during interactive (border-drag) resizing,
             // which is handled by the OS sizing loop and only honours the track sizes.
@@ -245,7 +245,7 @@ private impl Surface
     }
 
     // Creates a new (invisible) surface
-    func createNative(app: #nonull *Application, result: #nonull *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
+    func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
     {
         // Create class
         #[Swag.Global]
@@ -396,7 +396,7 @@ impl Surface
     }
 
     // Send a custom message to the surface application with name 'surfaceID'
-    func sendCustomMessage(surfaceID: #nonull string, id: u32, param: u64)->bool
+    func sendCustomMessage(surfaceID: string, id: u32, param: u64)->bool
     {
         let hwnd = Win32.FindWindowA(@dataof("Swag.Gui.Surface"), @dataof(surfaceID))
         if !hwnd do
@@ -605,7 +605,7 @@ impl Surface
     }
 
     // Transform a point in screen space relative to the surface
-    mtd screenToSurface(pt: #nonull *Math.Point)
+    mtd screenToSurface(pt: *Math.Point)
     {
         if .app.renderer.headless
         {
@@ -621,7 +621,7 @@ impl Surface
     }
 
     // Transform a point relative to the surface in screen space
-    mtd surfaceToScreen(pt: #nonull *Math.Point)
+    mtd surfaceToScreen(pt: *Math.Point)
     {
         if .app.renderer.headless
         {

@@ -107,7 +107,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageLateFunctionCount += 1
         MessageSawLateFunction = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
         @assert(@countof(typeFunc.parameters) == 0)
         @assert(typeFunc.returnType.name == "s32")
     }
@@ -116,7 +116,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessagePlaceholderFunctionCount += 1
         MessageSawPlaceholderFunction = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
         @assert(@countof(typeFunc.parameters) == 1)
         @assert(typeFunc.parameters[0].name == "value")
         @assert(typeFunc.parameters[0].pointedType.name == "s32")
@@ -127,7 +127,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageMarkedNoParamCount += 1
         MessageSawMarkedNoParam = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
         @assert(@countof(typeFunc.parameters) == 0)
         @assert(typeFunc.returnType.name == "u32")
         var foundMarker = false
@@ -140,7 +140,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessagePlainNoParamCount += 1
         MessageSawPlainNoParam = true
-        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
         @assert(@countof(typeFunc.parameters) == 0)
         @assert(typeFunc.returnType.name == "u32")
         for attribute in typeFunc.attributes do
@@ -170,7 +170,7 @@ var MessageUnknownCountArrayCount = 0
         @assert(msg.type.kind == TypeInfoKind.Alias)
         @assert(msg.type.name == "MessageStrictHandle")
 
-        let aliasType = cast(const *TypeInfoAlias) msg.type
+        let aliasType = cast(#null const *TypeInfoAlias) msg.type
         @assert(aliasType.rawType != null)
         @assert(aliasType.rawType.name == "const *void")
     }
@@ -196,7 +196,7 @@ var MessageUnknownCountArrayCount = 0
         @assert(msg.type != null)
         @assert(msg.type.kind == TypeInfoKind.Array)
 
-        let typeArray = cast(const *TypeInfoArray) msg.type
+        let typeArray = cast(#null const *TypeInfoArray) msg.type
         @assert(typeArray.pointedType != null)
         @assert(typeArray.pointedType.name == "s32")
         @assert(typeArray.finalType != null)

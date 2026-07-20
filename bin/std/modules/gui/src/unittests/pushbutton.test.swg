@@ -7,19 +7,19 @@ const PushButtonHeadless_Command = "PushButtonHeadless.Command"
 var PushButtonHeadlessPressedCount: u32
 var PushButtonHeadlessRightPressedCount: u32
 
-func pushButtonHeadlessPressed(btn: #nonull *Button)
+func pushButtonHeadlessPressed(btn: *Button)
 {
     discard btn
     PushButtonHeadlessPressedCount += 1
 }
 
-func pushButtonHeadlessRightPressed(btn: #nonull *Button)
+func pushButtonHeadlessRightPressed(btn: *Button)
 {
     discard btn
     PushButtonHeadlessRightPressedCount += 1
 }
 
-func pushButtonHeadlessHideOnPressed(btn: #nonull *Button)
+func pushButtonHeadlessHideOnPressed(btn: *Button)
 {
     btn.hide()
     PushButtonHeadlessPressedCount += 1

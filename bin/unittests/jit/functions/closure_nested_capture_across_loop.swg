@@ -22,7 +22,7 @@ var g_sink:  u32
 #[Swag.NoInline]
 func blend(x, y: u32)->u32 => ((x << 1) ^ (y >> 1) ^ (x & y)) & 0xFFFFFF
 
-struct Owner { tag: u32; pop: *Box }
+struct Owner { tag: u32; pop: #null *Box }
 
 impl Owner
 {

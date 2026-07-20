@@ -23,9 +23,9 @@ struct FormLine
 
 impl IForm for FormLine
 {
-    mtd impl isSame(ptr: #nonull *BaseForm)->bool
+    mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(#nonull *FormLine) ptr
+        let other = cast(*FormLine) ptr
         return .isSameBase(ptr) and
                .beginCap == other.beginCap and
                .endCap == other.endCap and
@@ -35,11 +35,11 @@ impl IForm for FormLine
                .bezier == other.bezier
     }
 
-    mtd impl copy(dst, src: #nonull *BaseForm)
+    mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(#nonull *FormLine) dst
-        let srcf = cast(#nonull *FormLine) src
+        let dstf = cast(*FormLine) dst
+        let srcf = cast(*FormLine) src
         dstf.beginCap  = srcf.beginCap
         dstf.endCap    = srcf.endCap
         dstf.startSize = srcf.startSize
@@ -48,7 +48,7 @@ impl IForm for FormLine
         dstf.bezier    = srcf.bezier
     }
 
-    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         .xa = cast(s32) (movingStart.x / zoom)
         .ya = cast(s32) (movingStart.y / zoom)
@@ -132,12 +132,12 @@ impl IForm for FormLine
         return .cacheBv
     }
 
-    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         return .gizmo.mouse(view, pos, evt)
     }
 
-    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -164,7 +164,7 @@ impl IForm for FormLine
         return BaseForm.drawHitTest(me, pt, z)
     }
 
-    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
         bSize = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 8, 12)

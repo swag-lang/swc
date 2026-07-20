@@ -18,7 +18,7 @@ func myAlloc(size: u64)->*void
     var req: AllocatorRequest
     req.size = size
     @getcontext().allocator.alloc(&req)
-    return req.address
+    return assume req.address
 }
 
 #[Swag.Sanity(.Lifecycle, true)]

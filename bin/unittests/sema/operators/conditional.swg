@@ -35,7 +35,7 @@ var var2 = 20
 
 func semaTest003()
 {
-    var A: *s32
+    var A: #null *s32
     var C = A ? A : null
 }
 

@@ -162,7 +162,7 @@ enum FixedKind: u8
 
 #test
 {
-    func callPointerEnum(a: *void, b: FixedKind, c: s32)->u64
+    func callPointerEnum(a: #null *void, b: FixedKind, c: s32)->u64
     {
         return cast(u64) (a != null) + cast(u64) cast(u8) b + cast(u64) c
     }

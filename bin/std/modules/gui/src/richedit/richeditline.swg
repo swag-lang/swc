@@ -49,7 +49,7 @@ impl RichEditLine
         }
     }
 
-    mtd insertRunes(insIndex: u64, runes: #nonull const [..] rune, styles: #nonull const [..] u8)
+    mtd insertRunes(insIndex: u64, runes: const [..] rune, styles: const [..] u8)
     {
         .dirtyStyle = true
         var srcI = 0'u64

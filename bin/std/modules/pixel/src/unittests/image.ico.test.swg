@@ -41,7 +41,7 @@ struct IcoDib
 }
 
 // Build a single-image ICO from a DIB body (palette + XOR + AND, no BITMAPINFOHEADER).
-func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: #nonull const [..] u8)->Array'u8
+func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [..] u8)->Array'u8
 {
     var cb: ConcatBuffer
     let bodyLen = cast(u32) @countof(dibBody)
@@ -73,28 +73,28 @@ func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: #nonull 
     return cbToArray(&cb)
 }
 
-func icoCanEncode(fileName: #nonull string)->bool
+func icoCanEncode(fileName: string)->bool
 {
     var enc: Ico.Encoder
     let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeIco(result: #nonull *ConcatBuffer, image: Image) throw
+func encodeIco(result: *ConcatBuffer, image: Image) throw
 {
     var enc: Ico.Encoder
     let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func decodeIco(bytes: #nonull const [..] u8, opt: DecodeOptions = {})->Image throw
+func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 {
     var dec: Ico.Decoder
     let itf = @mkinterface(&dec, #typeof(Ico.Decoder), IImageDecoder)
     return itf.decode(bytes, opt)
 }
 
-func encodePng(result: #nonull *ConcatBuffer, image: Image) throw
+func encodePng(result: *ConcatBuffer, image: Image) throw
 {
     var enc: Png.Encoder
     let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)

@@ -14,13 +14,13 @@ public struct MessageDlgOptions
     iconColor:            Color
     horzAlignmentText     = StringHorzAlignment.Center
     vertAlignmentText     = StringVertAlignment.Center
-    sigCreate:            func||(#nonull *MessageDlg)
+    sigCreate:            func||(*MessageDlg)
 }
 
 public impl MessageDlg
 {
     // Creates the message box
-    func create(from: #nonull *Surface, message: #nonull string, options: MessageDlgOptions)->#nonull *MessageDlg
+    func create(from: *Surface, message: string, options: MessageDlgOptions)->*MessageDlg
     {
         let dlg = Wnd.create'MessageDlg()
         dlg.fromSurface = from
@@ -51,7 +51,7 @@ public impl MessageDlg
     }
 
     // Display the box, centered, and returns the id of the pressed button
-    mtd doModal(from: #nonull *Surface)->#nonull string
+    mtd doModal(from: *Surface)->WndId
     {
         .adaptSizeToMessage()
         .surface.center(from)
@@ -116,7 +116,7 @@ public impl MessageDlg
     }
 
     // Add a bottom extended window
-    mtd setExtension(wndExtension: #nonull *Wnd)
+    mtd setExtension(wndExtension: *Wnd)
     {
         Debug.assert(.extension == null)
         .extension           = wndExtension
@@ -152,7 +152,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'ok'
-    func ok(from: #nonull *Surface, message: #nonull string, options: MessageDlgOptions = {})
+    func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
     {
         with let dlg = create(from, message, options)
         {
@@ -163,7 +163,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'ok' and 'cancel' button
-    func okCancel(from: #nonull *Surface, message: #nonull string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->#nonull WndId
+    func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         with let dlg = create(from, message, options)
         {
@@ -175,7 +175,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'yes' and 'no' button
-    func yesNo(from: #nonull *Surface, message: #nonull string, title: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->#nonull WndId
+    func yesNo(from: *Surface, message: string, title: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if !opt.icon.isValid()
@@ -195,7 +195,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'yes' and 'no' button
-    func yesNoCancel(from: #nonull *Surface, message: #nonull string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->#nonull WndId
+    func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if !opt.icon.isValid()
@@ -215,7 +215,7 @@ public impl MessageDlg
     }
 
     // Message box to 'confirm' something
-    func confirm(from: #nonull *Surface, message: #nonull string, question: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->#nonull WndId
+    func confirm(from: *Surface, message: string, question: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var txt = String.from(message)
         while !txt.isEmpty() and txt.back() == '\n' do
@@ -228,7 +228,7 @@ public impl MessageDlg
 
     // Message box to show the current raised error.
     // @err must still contain the raised error.
-    func error(from: #nonull *Surface, message: #null string = null, options: MessageDlgOptions = {})
+    func error(from: *Surface, message: #null string = null, options: MessageDlgOptions = {})
     {
         var txt: String = String.from(message)
         if !txt.isEmpty() do

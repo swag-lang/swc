@@ -3,7 +3,7 @@ using Swag
 
 namespace GenericForeachLazyCodegen
 {
-    func helperFree(buffer: [*] void, size: u64, allocator: IAllocator = null)
+    func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
     {
         if !buffer do
             return
@@ -16,7 +16,7 @@ namespace GenericForeachLazyCodegen
         talloc.free(&req)
     }
 
-    func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->[*] void
+    func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->#null [*] void
     {
         var req: AllocatorRequest
         req.address = buffer
@@ -31,7 +31,7 @@ namespace GenericForeachLazyCodegen
     struct(T) BufferBox
     {
         allocator: IAllocator
-        buffer:    [*] T
+        buffer:    #null [*] T
         count:     u64
         capacity:  u64
     }
@@ -43,20 +43,20 @@ namespace GenericForeachLazyCodegen
             if newCapacity <= .capacity do
                 return
 
-            .buffer = cast([*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 
         #[Inline]
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer, .count)
+            return @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
         }
 
         #[Inline]
         mtd const toSlice()->const [..] T
         {
-            return @mkslice(.buffer, .count)
+            return @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
         }
 
         mtd add(value: T)
@@ -146,14 +146,14 @@ namespace GenericForeachLazyCodegen
 
     func allocS32(value: s32)->*s32
     {
-        let ptr = cast(*s32) @alloc(#sizeof(s32))
+        let ptr = assume cast(#null *s32) @alloc(#sizeof(s32))
         dref ptr = value
         return ptr
     }
 
-    func makePtrBox()->LoopBox'(*s32)
+    func makePtrBox()->LoopBox'(#null *s32)
     {
-        var box: LoopBox'(*s32)
+        var box: LoopBox'(#null *s32)
         box.values.reserve(3)
         box.values.add(allocS32(4))
         box.values.add(null)

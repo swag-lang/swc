@@ -44,7 +44,7 @@ impl PropFieldValue
 
     // Snapshot the current value of 'item' across all its edited instances. Leaves the value
     // invalid for rows that cannot be snapshotted.
-    mtd capture(prop: #nonull *Properties, item: #nonull *PropertiesItem)
+    mtd capture(prop: *Properties, item: *PropertiesItem)
     {
         .valid    = false
         .isString = false
@@ -111,7 +111,7 @@ impl PropFieldValue
     }
 
     // Value equality (used to skip recording a no-op change).
-    mtd isEqual(o: #nonull *PropFieldValue)->bool
+    mtd isEqual(o: *PropFieldValue)->bool
     {
         if .isString != o.isString do
             return false
@@ -182,7 +182,7 @@ internal impl Properties
     // command holding the before/after value, then resync the snapshot. Called from hasChanged.
     // While a slider drag is active on the row (beginItemDrag), every move after the first is
     // folded into the command recorded at the first move, so the whole drag is one undo step.
-    mtd recordUndo(item: #nonull *PropertiesItem)
+    mtd recordUndo(item: *PropertiesItem)
     {
         if !.undoEnabled do
             return
@@ -250,7 +250,7 @@ internal impl Properties
     }
 
     // A slider drag started on 'item': coalesce the undo commands of the drag into one.
-    mtd beginItemDrag(item: #nonull *PropertiesItem)
+    mtd beginItemDrag(item: *PropertiesItem)
     {
         .dragItem = item
         .dragCmd  = null
@@ -312,7 +312,7 @@ public impl Properties
 
 internal impl Properties
 {
-    mtd activeUndoMgr()->#nonull *UndoManager
+    mtd activeUndoMgr()->*UndoManager
     {
         if .externUndoMgr do
             return assume .externUndoMgr

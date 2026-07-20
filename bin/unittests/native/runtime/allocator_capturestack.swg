@@ -62,7 +62,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) (assume req.address) - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 

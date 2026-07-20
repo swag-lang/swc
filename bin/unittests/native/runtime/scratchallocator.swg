@@ -148,7 +148,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 256
     itf.alloc(&req)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8) assume req.address
     for i in 256 do
         ptr[i] = cast(u8) ((i * 3 + 5) & 0xFF)
 
@@ -165,7 +165,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
-    var ptrs: [4] *void
+    var ptrs: [4] #null *void
     for i in 4
     {
         var req: AllocatorRequest
@@ -203,7 +203,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(scratch.totalLeak >= 256)
 
     // Write to it to verify usability
-    let ptr = cast([*] u8) req2.address
+    let ptr = cast([*] u8) assume req2.address
     ptr[0] = 0xAA
     ptr[255] = 0xBB
     @assert(ptr[0] == 0xAA)
@@ -332,7 +332,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 32
     itf.alloc(&req)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8) assume req.address
     for i in 32 do
         ptr[i] = cast(u8) (i + 1)
 
@@ -341,7 +341,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address != null)
 
-    let newPtr = cast([*] u8) req.address
+    let newPtr = cast([*] u8) assume req.address
     for i in 32 do
         @assert(newPtr[i] == cast(u8) (i + 1))
 
@@ -385,7 +385,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8) assume req.address
     ptr[0] = 0xFF
     @assert(ptr[0] == 0xFF)
 
@@ -466,7 +466,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.alignment = 8
     itf.alloc(&req)
 
-    let vals = cast([*] u32) req.address
+    let vals = cast([*] u32) assume req.address
     for i in 10 do
         vals[i] = cast(u32) (i * 777 + 11)
 
@@ -524,7 +524,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8) assume req.address
     ptr[0] = 1
     ptr[199] = 2
     @assert(ptr[0] == 1)

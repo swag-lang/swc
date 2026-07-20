@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // 
 
 #global private
@@ -45,8 +44,8 @@ func inlineUntypedVariadicScore(values: ...)->s32
             {
                 sum2 += 10
             }
-        case #nonull string:
-            sum2 += (cast(#nonull string) v)[0]
+        case string:
+            sum2 += (cast(string) v)[0]
         }
     }
 
@@ -88,23 +87,23 @@ func inlineTypedVariadicLiteralEdges(values: s32...) -> s32
 
     var u0: s32 = 1
     var u1: bool = true
-    var u2: #nonull string = "A"
+    var u2: string = "A"
     @assert(inlineUntypedVariadicScore(u0, u1, u2) == 76)
 
     var u3: s32 = 2
     var u4: bool = false
-    var u5: #nonull string = "B"
+    var u5: string = "B"
     var u6: s32 = 3
     @assert(inlineUntypedVariadicScore(u3, u4, u5, u6) == 71)
 
     var h0: s32 = 40
     var h1: s32 = 1
-    var h2: #nonull string = "a"
+    var h2: string = "a"
     var h3: bool = false
     @assert(inlineUntypedVariadicHead(h0, h1, h2, h3) == 43)
 
     var h4: s32 = 50
-    var h5: #nonull string = "x"
+    var h5: string = "x"
     @assert(inlineUntypedVariadicHead(h4, h5) == 51)
 
     @assert(forwardInlineTypedVariadic(10, 20, 30) == 60)

@@ -1,12 +1,12 @@
 using Core, Pixel
 
-func drawTextCardSurface(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, color: Color)
+func drawTextCardSurface(painter: *Pixel.Painter, rect: Math.Rectangle, color: Color)
 {
     painter.fillRoundRect(rect, 14, 14, color)
     painter.drawRoundRect(rect, 14, 14, Color.fromArgb(34, Argb.SlateGray), 1)
 }
 
-func drawTextFlowCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Rich layout", "Styled runs, tabs, URL spans, alignment and clipping are resolved through drawRichString.")
     let gap = 14.0
@@ -47,7 +47,7 @@ func drawTextFlowCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     painter.drawRichString(insetRect(right, 12, 12, 12, 12), &labels, labelFmt)
 }
 
-func drawPaintedGlyphCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Painted glyphs", "Gradient, sweep and texture brushes bind to shaped text just like regular vector fills.")
     let sample = insetRect(body, 20, 12, 20, 18)
@@ -79,7 +79,7 @@ func drawPaintedGlyphCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     painter.drawString(textureX, textureY, textureText, assume g_HelpFont, Brush.createTiled(g_TileTexture), UnderlineStyle.Underline)
 }
 
-func drawBaselineCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Metrics and baselines", "Mixed sizes share a baseline, with measured ink boxes shown against the font box.")
     let sample = insetRect(body, 20, 14, 20, 18)
@@ -115,7 +115,7 @@ func drawBaselineCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     painter.drawRichString({sample.x + 24, sample.bottom() - 64, sample.width - 48, 52}, &paragraph, fmt)
 }
 
-func drawOutlineTextCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
+func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Vector outlines", "Typeface outlines become paths, so fills, strokes, clipping and textured pens all still apply.")
     let preview = insetRect(body, 20, 14, 20, 40)
@@ -144,7 +144,7 @@ func drawOutlineTextCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
     drawWrappedText(painter, {body.x + 18, body.bottom() - 32, body.width - 36, 22}, "TypeFace.getStringOutline + gradient fill + textured outline", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawTextPage(painter: #nonull *Pixel.Painter)
+func drawTextPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel text rendering", "Page 7 : shaped runs, rich layout, painted glyphs, baseline metrics and vector outlines in one painter pass.")
     drawTextFlowCard(painter, {28, 104, 452, 280})

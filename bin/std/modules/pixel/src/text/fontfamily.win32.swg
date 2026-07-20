@@ -15,14 +15,14 @@ public struct FontFamilyEnumerate
 
 impl FontFamily
 {
-    func enumSubFamily(fa: #nonull const *LOGFONTW, _tm: #nonull const *TEXTMETRICW, _fontType: DWORD, lParam: LPARAM)->BOOL
+    func enumSubFamily(fa: const *LOGFONTW, _tm: const *TEXTMETRICW, _fontType: DWORD, lParam: LPARAM)->BOOL
     {
         let len = Utf16.lengthZeroTerminated(&fa.lfFaceName[0])
         if !len do
             return TRUE
         let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))
 
-        let ret = cast(#nonull *FontFamilyEnumerate) cast(u64) lParam
+        let ret = cast(*FontFamilyEnumerate) cast(u64) lParam
         var idx = cast(u64) FontFamilyStyle.Regular
 
         if fa.lfWeight > FW_REGULAR
@@ -40,7 +40,7 @@ impl FontFamily
         return TRUE
     }
 
-    func enumFamily(fa: #nonull const *LOGFONTW, _tm: #nonull const *TEXTMETRICW, fontType: DWORD, lParam: LPARAM)->BOOL
+    func enumFamily(fa: const *LOGFONTW, _tm: const *TEXTMETRICW, fontType: DWORD, lParam: LPARAM)->BOOL
     {
         if fontType & TRUETYPE_FONTTYPE
         {
@@ -54,7 +54,7 @@ impl FontFamily
                 return TRUE
 
             // Already here ?
-            let ret = cast(#nonull *Array'FontFamilyEnumerate) cast(u64) lParam
+            let ret = cast(*Array'FontFamilyEnumerate) cast(u64) lParam
             for here in dref ret
             {
                 if here.name == x do
@@ -94,7 +94,7 @@ impl FontFamily
     }
 
     // Get a FontFamilyEnumerate from a font family name
-    public func getFromOs(fontFamily: #nonull string)->FontFamilyEnumerate
+    public func getFromOs(fontFamily: string)->FontFamilyEnumerate
     {
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)

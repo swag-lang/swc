@@ -5,7 +5,7 @@ using Swag, Core
 var BreadcrumbPressedIndex: u64 = Swag.U64.Max
 var BreadcrumbPressedCount: u32
 
-func breadcrumbPressed(bc: #nonull *BreadcrumbCtrl, idx: u64)
+func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 {
     discard bc
     BreadcrumbPressedIndex = idx

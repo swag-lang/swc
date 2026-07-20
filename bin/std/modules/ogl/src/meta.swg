@@ -6,7 +6,7 @@ attr Extension()
 struct OneFunc
 {
     type:     #null const *TypeInfoFunc
-    name:     #nonull string
+    name:     string
 }
 
 #[Compiler]
@@ -23,10 +23,10 @@ var g_Functions: Array'OneFunc
     if msg.type.kind != TypeInfoKind.Func do
         return
 
-    let typeFunc = cast(#nonull const *TypeInfoFunc) assume msg.type
+    let typeFunc = cast(const *TypeInfoFunc) assume msg.type
     if !Reflection.hasAttribute(typeFunc, Extension) do
         return
-    g_Functions.add({type: typeFunc, name: cast(#nonull string) (assume msg.name)})
+    g_Functions.add({type: typeFunc, name: cast(string) (assume msg.name)})
 }
 
 #message(CompilerMsgMask.PassAfterSemantic)

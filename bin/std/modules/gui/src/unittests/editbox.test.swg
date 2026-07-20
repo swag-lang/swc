@@ -5,8 +5,8 @@ using Swag, Core
 var EditHeadlessEnterCount:  u32
 var EditHeadlessEscapeCount: u32
 
-func editHeadlessEnter(eb: #nonull *EditBox)  { discard eb; EditHeadlessEnterCount += 1 }
-func editHeadlessEscape(eb: #nonull *EditBox) { discard eb; EditHeadlessEscapeCount += 1 }
+func editHeadlessEnter(eb: *EditBox)  { discard eb; EditHeadlessEnterCount += 1 }
+func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1 }
 
 // setText/getText round-trips the content.
 #test

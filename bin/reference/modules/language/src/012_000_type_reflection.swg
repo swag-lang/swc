@@ -107,7 +107,7 @@ the corresponding type. This enables dynamic yet type-safe patterns.
 {
     // Return a typeinfo based on a constexpr condition
     #[Swag.ConstExpr]
-    func getType(needAString: bool)->#nonull typeinfo
+    func getType(needAString: bool)->typeinfo
     {
         if needAString do
             return #null string

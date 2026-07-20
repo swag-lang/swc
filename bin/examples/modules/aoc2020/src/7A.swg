@@ -48,7 +48,7 @@ func day7A0()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var id: HashTable'(#nonull string, Array'(#nonull string))
+    var id: HashTable'(string, Array'(string))
 
     for &l in lines
     {
@@ -73,7 +73,7 @@ func day7A0()
                     it.value.add(can)
                 else
                 {
-                    var tmp: Array'(#nonull string)
+                    var tmp: Array'(string)
                     tmp.add(can)
                     id.add(split[0], tmp)
                 }
@@ -81,7 +81,7 @@ func day7A0()
         }
     }
 
-    func contains(id: *HashTable'(#nonull string, Array'(#nonull string)), what: string)->bool
+    func contains(id: *HashTable'(string, Array'(string)), what: string)->bool
     {
         let it = id.tryFind(what)
         if !it do
@@ -114,7 +114,7 @@ func day7A1()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var id: HashTable'(#nonull string, Array'(#nonull string))
+    var id: HashTable'(string, Array'(string))
 
     var r = assume Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
     for l in lines
@@ -127,7 +127,7 @@ func day7A1()
         }
     }
 
-    func contains(id: *HashTable'(#nonull string, Array'(#nonull string)), what: string)->bool
+    func contains(id: *HashTable'(string, Array'(string)), what: string)->bool
     {
         let it = id.tryFind(what)
         if !it do

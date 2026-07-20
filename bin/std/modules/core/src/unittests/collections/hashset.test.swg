@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertStringSetHas(values: const &HashSet'String, expected: #nonull string)->bool
+func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
 {
     for value in values
     {

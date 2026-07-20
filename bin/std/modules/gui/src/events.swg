@@ -14,7 +14,7 @@ struct Event
 
 impl Event
 {
-    func(T) create()->#nonull *T
+    func(T) create()->*T
     {
         let res = Memory.new'T()
         res.type = #typeof(T)
@@ -29,7 +29,7 @@ impl IEvent for Event
 struct CommandEvent
 {
     using base:     Event
-    id:             #nonull WndId = undefined
+    id:             WndId = undefined
     source:         #null *Wnd
 }
 
@@ -69,7 +69,7 @@ struct CommandStateEvent
 
     using base:        Event
     kind:              Kind
-    id:                #nonull WndId = undefined
+    id:                WndId = undefined
     source:            #null *Wnd
 
     icon:              Icon
@@ -91,7 +91,7 @@ impl IEvent for CommandStateEvent
 struct TimerEvent
 {
     using base:     Event
-    timer:          #nonull *Timer = undefined
+    timer:          *Timer = undefined
 }
 
 impl IEvent for TimerEvent
@@ -160,7 +160,7 @@ struct PaintEvent
 
     using base:     Event
     kind:           Kind = .Paint
-    bc:             #nonull *PaintContext = undefined
+    bc:             *PaintContext = undefined
 }
 
 impl IEvent for PaintEvent
@@ -298,7 +298,7 @@ impl IEvent for SysCommandEvent
 struct ThemeEvent
 {
     using base:     Event
-    style:          #nonull *ThemeStyle = undefined
+    style:          *ThemeStyle = undefined
     parent:         #null *ThemeStyle
 }
 
@@ -309,7 +309,7 @@ impl IEvent for ThemeEvent
 struct SerializeStateEvent
 {
     using base:     Event
-    ser:            #nonull *Serialization.Serializer = undefined
+    ser:            *Serialization.Serializer = undefined
 }
 
 impl IEvent for SerializeStateEvent

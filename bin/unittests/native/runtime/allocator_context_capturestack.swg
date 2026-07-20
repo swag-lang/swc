@@ -36,7 +36,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     var req = contextCaptureAlloc(80)
     @assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8) assume req.address
     for i in 80 do
         ptr[i] = cast(u8) (i + 9)
 
@@ -45,7 +45,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     @getcontext().allocator.realloc(&req)
     @assert(req.address != null)
 
-    let grown = cast([*] u8) req.address
+    let grown = cast([*] u8) assume req.address
     for i in 80 do
         @assert(grown[i] == cast(u8) (i + 9))
 
@@ -88,7 +88,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) (assume req.address) - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 

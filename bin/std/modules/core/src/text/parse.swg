@@ -5,7 +5,7 @@ using Globalization, Swag, Errors
 // Convert an utf8 buffer in hexadecimal to an unsigned integer value.
 // Returns the value and the number of bytes used to make the conversion.
 // 'ovf' will be true in case of overflow
-func parseX64(str: #nonull string)->{ value: u64, eat: u32, ovf: bool } throw
+func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } throw
 {
     var result: retval
 
@@ -48,7 +48,7 @@ func parseX64(str: #nonull string)->{ value: u64, eat: u32, ovf: bool } throw
 // Convert an utf8 buffer in binary to an unsigned integer value.
 // Returns the value and the number of bytes used to make the conversion.
 // 'ovf' will be true in case of overflow
-func parseB64(str: #nonull string)->{ value: u64, eat: u32, ovf: bool } throw
+func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } throw
 {
     var result: retval
 
@@ -85,7 +85,7 @@ func parseB64(str: #nonull string)->{ value: u64, eat: u32, ovf: bool } throw
 // Convert an utf8 buffer in decimal to an unsigned integer value.
 // Returns the value and the number of bytes used to make the conversion.
 // 'ovf' will be true in case of overflow
-func parseU8(str: #nonull string)->{ value: u8, eat: u32, ovf: bool } throw
+func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseU64(str)
     if res > Swag.U8.Max do
@@ -93,7 +93,7 @@ func parseU8(str: #nonull string)->{ value: u8, eat: u32, ovf: bool } throw
     return {cast(u8) res, eat, ovf}
 }
 
-func parseU16(str: #nonull string)->{ value: u16, eat: u32, ovf: bool } throw
+func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseU64(str)
     if res > Swag.U16.Max do
@@ -101,7 +101,7 @@ func parseU16(str: #nonull string)->{ value: u16, eat: u32, ovf: bool } throw
     return {cast(u16) res, eat, ovf}
 }
 
-func parseU32(str: #nonull string)->{ value: u32, eat: u32, ovf: bool } throw
+func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseU64(str)
     if res > Swag.U32.Max do
@@ -109,7 +109,7 @@ func parseU32(str: #nonull string)->{ value: u32, eat: u32, ovf: bool } throw
     return {cast(u32) res, eat, ovf}
 }
 
-func parseU64(str: #nonull string)->{ value: u64, eat: u32, ovf: bool } throw
+func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } throw
 {
     var result: retval
 
@@ -178,7 +178,7 @@ func parseU64(str: #nonull string)->{ value: u64, eat: u32, ovf: bool } throw
 // Convert an utf8 buffer to an signed integer value.
 // Returns the value and the number of bytes used to make the conversion.
 // 'ovf' will be true in case of overflow
-func parseS8(str: #nonull string)->{ value: s8, eat: u32, ovf: bool } throw
+func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseS64(str)
     if res < Swag.S8.Min do
@@ -188,7 +188,7 @@ func parseS8(str: #nonull string)->{ value: s8, eat: u32, ovf: bool } throw
     return {cast(s8) res, eat, ovf}
 }
 
-func parseS16(str: #nonull string)->{ value: s16, eat: u32, ovf: bool } throw
+func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseS64(str)
     if res < Swag.S16.Min do
@@ -198,7 +198,7 @@ func parseS16(str: #nonull string)->{ value: s16, eat: u32, ovf: bool } throw
     return {cast(s16) res, eat, ovf}
 }
 
-func parseS32(str: #nonull string)->{ value: s32, eat: u32, ovf: bool } throw
+func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseS64(str)
     if res < Swag.S32.Min do
@@ -208,7 +208,7 @@ func parseS32(str: #nonull string)->{ value: s32, eat: u32, ovf: bool } throw
     return {cast(s32) res, eat, ovf}
 }
 
-func parseS64(str: #nonull string)->{ value: s64, eat: u32, ovf: bool } throw
+func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } throw
 {
     var result: retval
 
@@ -288,7 +288,7 @@ func parseS64(str: #nonull string)->{ value: s64, eat: u32, ovf: bool } throw
 // Convert an utf8 buffer to a floating point value.
 // Returns the value and the number of bytes used to make the conversion.
 // 'ovf' will be true in case of overflow
-func parseF32(str: #nonull string)->{ value: f32, eat: u32, ovf: bool } throw
+func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseF64(str)
     var absRes = res
@@ -312,14 +312,14 @@ func parseF32(str: #nonull string)->{ value: f32, eat: u32, ovf: bool } throw
     return {cast(f32) res, eat, ovf}
 }
 
-func parseF64(str: #nonull string)->{ value: f64, eat: u32, ovf: bool } throw
+func parseF64(str: string)->{ value: f64, eat: u32, ovf: bool } throw
 {
     return try StrConv.Atod.parse(str)
 }
 
 // Convert an utf8 buffer to a boolean.
 // Returns the value and the number of bytes used to make the conversion
-func parseBool(str: #nonull string)->{ value: bool, eat: u32 } throw
+func parseBool(str: string)->{ value: bool, eat: u32 } throw
 {
     var result: retval
 
@@ -339,7 +339,7 @@ func parseBool(str: #nonull string)->{ value: bool, eat: u32 } throw
 }
 
 // Convert an utf8 buffer to a simple rune
-func parseRune(str: #nonull string)->{ value: rune, eat: u32 } throw
+func parseRune(str: string)->{ value: rune, eat: u32 } throw
 {
     let countof = @countof(str)
     if !countof do
@@ -348,7 +348,7 @@ func parseRune(str: #nonull string)->{ value: rune, eat: u32 } throw
 }
 
 // Parse an identifier name in the sens of swag (ascii)
-func parseIdentifier(str: #nonull string)->#null string throw
+func parseIdentifier(str: string)->#null string throw
 {
     let countof = @countof(str)
     if !countof do
@@ -365,7 +365,7 @@ func parseIdentifier(str: #nonull string)->#null string throw
 
 // Convert an utf8 buffer to a String.
 // String in the buffer can be quoted (but the result will not be in that case)
-func parseString(result: #nonull *String, str: #nonull string)->u32 throw
+func parseString(result: *String, str: string)->u32 throw
 {
     let countof = @countof(str)
     if !countof do
@@ -418,7 +418,7 @@ func parseString(result: #nonull *String, str: #nonull string)->u32 throw
 
 // Convert an utf8 buffer to a String.
 // String in the buffer can be quoted (but the result will not be in that case)
-func parseString(str: #nonull string)->{ value: String, eat: u32 } throw
+func parseString(str: string)->{ value: String, eat: u32 } throw
 {
     var result: retval
     result.eat = try parseString(&result.value, str)
@@ -426,7 +426,7 @@ func parseString(str: #nonull string)->{ value: String, eat: u32 } throw
 }
 
 // Transform a string to an 's8'
-func toS8(str: #nonull string)->s8 throw
+func toS8(str: string)->s8 throw
 {
     let (v, eat, ovf) = parseS8(str)
     if ovf do
@@ -437,7 +437,7 @@ func toS8(str: #nonull string)->s8 throw
 }
 
 // Transform a string to an 's16'
-func toS16(str: #nonull string)->s16 throw
+func toS16(str: string)->s16 throw
 {
     let (v, eat, ovf) = parseS16(str)
     if ovf do
@@ -448,7 +448,7 @@ func toS16(str: #nonull string)->s16 throw
 }
 
 // Transform a string to an 's32'
-func toS32(str: #nonull string)->s32 throw
+func toS32(str: string)->s32 throw
 {
     let (v, eat, ovf) = parseS32(str)
     if ovf do
@@ -459,7 +459,7 @@ func toS32(str: #nonull string)->s32 throw
 }
 
 // Transform a string to an 's64'
-func toS64(str: #nonull string)->s64 throw
+func toS64(str: string)->s64 throw
 {
     let (v, eat, ovf) = parseS64(str)
     if ovf do
@@ -470,7 +470,7 @@ func toS64(str: #nonull string)->s64 throw
 }
 
 // Transform a string to an 'u8'
-func toU8(str: #nonull string)->u8 throw
+func toU8(str: string)->u8 throw
 {
     let (v, eat, ovf) = parseU8(str)
     if ovf do
@@ -481,7 +481,7 @@ func toU8(str: #nonull string)->u8 throw
 }
 
 // Transform a string to an 'u16'
-func toU16(str: #nonull string)->u16 throw
+func toU16(str: string)->u16 throw
 {
     let (v, eat, ovf) = parseU16(str)
     if ovf do
@@ -492,7 +492,7 @@ func toU16(str: #nonull string)->u16 throw
 }
 
 // Transform a string to an 'u32'
-func toU32(str: #nonull string)->u32 throw
+func toU32(str: string)->u32 throw
 {
     let (v, eat, ovf) = parseU32(str)
     if ovf do
@@ -503,7 +503,7 @@ func toU32(str: #nonull string)->u32 throw
 }
 
 // Transform a string to an 'u64'
-func toU64(str: #nonull string)->u64 throw
+func toU64(str: string)->u64 throw
 {
     let (v, eat, ovf) = parseU64(str)
     if ovf do
@@ -514,7 +514,7 @@ func toU64(str: #nonull string)->u64 throw
 }
 
 // Transform a string to an 'f32'
-func toF32(str: #nonull string)->f32 throw
+func toF32(str: string)->f32 throw
 {
     let (v, eat, ovf) = parseF32(str)
     if ovf do
@@ -525,7 +525,7 @@ func toF32(str: #nonull string)->f32 throw
 }
 
 // Transform a string to an 'f64'
-func toF64(str: #nonull string)->f64 throw
+func toF64(str: string)->f64 throw
 {
     let (v, eat, ovf) = parseF64(str)
     if ovf do
@@ -536,7 +536,7 @@ func toF64(str: #nonull string)->f64 throw
 }
 
 // Transform a string to an integer or float
-func(T) toNum(str: #nonull string)->T throw
+func(T) toNum(str: string)->T throw
 {
     #if T == u8 do
         return toU8(str)

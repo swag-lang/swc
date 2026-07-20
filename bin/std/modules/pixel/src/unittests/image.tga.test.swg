@@ -28,21 +28,21 @@ struct TgaH
     descriptorByte:    u8
 }
 
-func tgaCanEncode(fileName: #nonull string)->bool
+func tgaCanEncode(fileName: string)->bool
 {
     var enc: Tga.Encoder
     let itf = @mkinterface(&enc, #typeof(Tga.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeTga(result: #nonull *ConcatBuffer, image: Image) throw
+func encodeTga(result: *ConcatBuffer, image: Image) throw
 {
     var enc: Tga.Encoder
     let itf = @mkinterface(&enc, #typeof(Tga.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func addTgaImageHeader(cb: #nonull *ConcatBuffer, imageType, bpp, descriptor: u8, width, height: u16)
+func addTgaImageHeader(cb: *ConcatBuffer, imageType, bpp, descriptor: u8, width, height: u16)
 {
     var h: TgaH
     h.imageTypeCode  = imageType
@@ -53,7 +53,7 @@ func addTgaImageHeader(cb: #nonull *ConcatBuffer, imageType, bpp, descriptor: u8
     cb.addStruct(h)
 }
 
-func addTgaPaletteColor(cb: #nonull *ConcatBuffer, b, g, r: u8)
+func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     cb.addNative(b)
     cb.addNative(g)
@@ -550,7 +550,7 @@ func addTgaPaletteColor(cb: #nonull *ConcatBuffer, b, g, r: u8)
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     @assert(bytes != null)
-    let h = cast(#nonull const *TgaH) @dataof(bytes)
+    let h = cast(const *TgaH) @dataof(bytes)
     @assert(h.imageTypeCode == TGA_TYPE_RGB)
     @assert(h.bpp == 32'u8)
     @assert(h.descriptorByte == 8'u8)

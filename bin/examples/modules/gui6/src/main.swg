@@ -72,7 +72,7 @@ var g_PageView: #null *Wnd
 var g_Footer: #null *Label
 var g_StatusLabel: #null *Label
 var g_Preview: #null *Wnd
-var g_PageMenus: Array'(#nonull *MenuCtrl)
+var g_PageMenus: Array'(*MenuCtrl)
 var g_ContextMenu: #null *MenuCtrl
 var g_StateMenu: #null *MenuCtrl
 var g_Page: s32
@@ -86,27 +86,27 @@ var g_ActionCount: s32
 var g_Mode = PreviewMode.Detailed
 var g_StatusText: String
 
-func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
+func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
     let label = createText(parent, text, rect, .WordWrap | .LightText)
     label.vertAlignmentText = .Top
     return label
 }
 
-func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
+func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -118,20 +118,20 @@ func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Ma
     return view
 }
 
-func createCaption(parent: #nonull *Wnd, text: #nonull string, x, y, width: f32)
+func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 22})
     label.labelFlags.add(.LightText)
 }
 
-func createActionButton(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, id: WndId, icon: ThemeIcons24)->#nonull *PushButton
+func createActionButton(parent: *Wnd, text: string, rect: Math.Rectangle, id: WndId, icon: ThemeIcons24)->*PushButton
 {
     let btn = PushButton.create(parent, text, rect, id)
     btn.icon = app.theme.getIcon24(icon, 18)
     return btn
 }
 
-func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
+func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
     let rect = parent.getClientRect()
     let width = Math.max(rect.width, 1.0)
@@ -148,7 +148,7 @@ func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
     return result
 }
 
-func pageTitle(page: s32)->#nonull string
+func pageTitle(page: s32)->string
 {
     switch page
     {
@@ -165,7 +165,7 @@ func pageTitle(page: s32)->#nonull string
     unreachable
 }
 
-func pageSubtitle(page: s32)->#nonull string
+func pageSubtitle(page: s32)->string
 {
     switch page
     {
@@ -182,7 +182,7 @@ func pageSubtitle(page: s32)->#nonull string
     unreachable
 }
 
-func currentModeName()->#nonull string
+func currentModeName()->string
 {
     switch g_Mode
     {
@@ -197,7 +197,7 @@ func currentModeName()->#nonull string
     unreachable
 }
 
-func boolWord(value: bool)->#nonull string
+func boolWord(value: bool)->string
 {
     return value ? "on" : "off"
 }
@@ -220,7 +220,7 @@ func updateStatusLabel()
         g_StatusLabel.setText(g_StatusText)
 }
 
-func setStatus(text: #nonull string)
+func setStatus(text: string)
 {
     g_StatusText = text
     updateStatusLabel()
@@ -256,13 +256,13 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: #nonull *Button)
+func toggleTheme(_btn: *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
 }
 
-func createTrackedPopup(parent: #nonull *Wnd)->#nonull *MenuCtrl
+func createTrackedPopup(parent: *Wnd)->*MenuCtrl
 {
     let menu = MenuCtrl.createPopup(parent, owner: g_View)
     g_PageMenus.add(menu)
@@ -279,7 +279,7 @@ func destroyPageMenus()
     g_StateMenu = null
 }
 
-func addDocumentItems(menu: #nonull *MenuCtrl)
+func addDocumentItems(menu: *MenuCtrl)
 {
     menu.addItem("New document", MenuCmd.NewFile, app.theme.getIcon24(.Plus, 18))
     menu.addItem("Open...", MenuCmd.OpenFile, app.theme.getIcon24(.OpenFile, 18))
@@ -291,7 +291,7 @@ func addDocumentItems(menu: #nonull *MenuCtrl)
     menu.addItem("Quit", MenuCmd.Quit, app.theme.getIcon24(.Quit, 18))
 }
 
-func addEditItems(menu: #nonull *MenuCtrl)
+func addEditItems(menu: *MenuCtrl)
 {
     menu.addItem("Undo", MenuCmd.Undo, app.theme.getIcon24(.Undo, 18))
     menu.addItem("Redo", MenuCmd.Redo, app.theme.getIcon24(.Redo, 18))
@@ -302,7 +302,7 @@ func addEditItems(menu: #nonull *MenuCtrl)
     menu.addItem("Duplicate", MenuCmd.Duplicate, app.theme.getIcon24(.Duplicate, 18))
 }
 
-func addViewItems(menu: #nonull *MenuCtrl)
+func addViewItems(menu: *MenuCtrl)
 {
     menu.addItem("Show grid", MenuCmd.ToggleGrid)
     menu.addItem("Show guides", MenuCmd.ToggleGuides)
@@ -312,34 +312,34 @@ func addViewItems(menu: #nonull *MenuCtrl)
     menu.addItem("Column layout", MenuCmd.ModeColumns)
 }
 
-func addThemeItems(menu: #nonull *MenuCtrl)
+func addThemeItems(menu: *MenuCtrl)
 {
     menu.addItem("Light theme", MenuCmd.ThemeLight)
     menu.addItem("Dark theme", MenuCmd.ThemeDark)
 }
 
-func createFileMenu(parent: #nonull *Wnd)->#nonull *MenuCtrl
+func createFileMenu(parent: *Wnd)->*MenuCtrl
 {
     let menu = createTrackedPopup(parent)
     addDocumentItems(menu)
     return menu
 }
 
-func createEditMenu(parent: #nonull *Wnd)->#nonull *MenuCtrl
+func createEditMenu(parent: *Wnd)->*MenuCtrl
 {
     let menu = createTrackedPopup(parent)
     addEditItems(menu)
     return menu
 }
 
-func createViewMenu(parent: #nonull *Wnd)->#nonull *MenuCtrl
+func createViewMenu(parent: *Wnd)->*MenuCtrl
 {
     let menu = createTrackedPopup(parent)
     addViewItems(menu)
     return menu
 }
 
-func createOptionsMenu(parent: #nonull *Wnd)->#nonull *MenuCtrl
+func createOptionsMenu(parent: *Wnd)->*MenuCtrl
 {
     let menu = createTrackedPopup(parent)
     addThemeItems(menu)
@@ -348,7 +348,7 @@ func createOptionsMenu(parent: #nonull *Wnd)->#nonull *MenuCtrl
     return menu
 }
 
-func createMainMenuBar(parent: #nonull *Wnd, rect: Math.Rectangle)->#nonull *MenuCtrl
+func createMainMenuBar(parent: *Wnd, rect: Math.Rectangle)->*MenuCtrl
 {
     let bar = MenuCtrl.createBar(parent, rect, owner: g_View)
     bar.addPopup("File", createFileMenu(parent))
@@ -358,13 +358,13 @@ func createMainMenuBar(parent: #nonull *Wnd, rect: Math.Rectangle)->#nonull *Men
     return bar
 }
 
-func createStatusPanel(parent: #nonull *Wnd, rect: Math.Rectangle)
+func createStatusPanel(parent: *Wnd, rect: Math.Rectangle)
 {
     let panel = createPanel(parent, "Command feedback", "The last selected menu item is reflected here while checked and disabled rows update from shared state.", rect)
     g_StatusLabel = createHelpText(panel, g_StatusText, {20, 92, rect.width - 40, rect.height - 112})
 }
 
-func drawWrappedText(painter: #nonull *Painter, rect: Math.Rectangle, text: #nonull string, font: #nonull *Font, color: Color, maxLines = 2'u32)
+func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 2'u32)
 {
     var richText: RichString = text
     var format: RichStringFormat
@@ -375,7 +375,7 @@ func drawWrappedText(painter: #nonull *Painter, rect: Math.Rectangle, text: #non
     painter.drawRichString(rect, &richText, format)
 }
 
-func drawStatePill(painter: #nonull *Painter, rect: Math.Rectangle, text: #nonull string, active: bool, font: #nonull *Font, colors: #nonull *ThemeColors)
+func drawStatePill(painter: *Painter, rect: Math.Rectangle, text: string, active: bool, font: *Font, colors: *ThemeColors)
 {
     let fill = active ? Argb.CornflowerBlue : colors.view_Bk
     let textColor = active ? Argb.White : colors.label_Text
@@ -384,7 +384,7 @@ func drawStatePill(painter: #nonull *Painter, rect: Math.Rectangle, text: #nonul
     painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), text, font, textColor)
 }
 
-func onPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
+func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -442,7 +442,7 @@ func onPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
     return false
 }
 
-func createPreview(parent: #nonull *Wnd, rect: Math.Rectangle)->#nonull *Wnd
+func createPreview(parent: *Wnd, rect: Math.Rectangle)->*Wnd
 {
     let view = Wnd.create'Wnd(parent, rect)
     view.hookOnEvent = &onPreviewEvent
@@ -573,7 +573,7 @@ func processMenuCommand(id: WndId)->bool
     return true
 }
 
-func computeMenuCommandState(evt: #nonull *CommandStateEvent)->bool
+func computeMenuCommandState(evt: *CommandStateEvent)->bool
 {
     switch evt.id
     {
@@ -625,7 +625,7 @@ func computeMenuCommandState(evt: #nonull *CommandStateEvent)->bool
     return true
 }
 
-func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
     if let cmd = evt as CommandEvent
     {
@@ -765,7 +765,7 @@ func canUsePageArrows()->bool
     return !g_PageView.isParentOf(focus)
 }
 
-func onFrame(app: #nonull *Application)
+func onFrame(app: *Application)
 {
     if !g_Surface or !g_View or !g_PageView do
         return

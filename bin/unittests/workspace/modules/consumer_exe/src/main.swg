@@ -51,13 +51,13 @@ func verifyImportedImplicitStructDefaults()
 func verifyImportedInterfaceTablePreparation()
 {
     let objectType    = #typeof(DepTableScore{})
-    let objectInfo    = cast(#nonull const *Swag.TypeInfoStruct) objectType
-    let interfaceInfo = cast(#nonull const *Swag.TypeInfoStruct) #typeof(IDepTableScore)
+    let objectInfo    = cast(const *Swag.TypeInfoStruct) objectType
+    let interfaceInfo = cast(const *Swag.TypeInfoStruct) #typeof(IDepTableScore)
     let table         = @tableof(objectInfo, interfaceInfo)
     @assert(table != null)
 
     var dynamicScore = @mkinterface(null, objectType, IDepTableScore)
-    let runtimeScore = cast(#nonull *Swag.Interface) &dynamicScore
+    let runtimeScore = cast(*Swag.Interface) &dynamicScore
     @assert(runtimeScore != null)
     @assert(runtimeScore.itable == table)
     @assert(cast(#null const *Swag.TypeInfoStruct) dref runtimeScore.itable == objectInfo)

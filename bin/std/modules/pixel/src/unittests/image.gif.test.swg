@@ -1,14 +1,14 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func gifCanEncode(fileName: #nonull string)->bool
+func gifCanEncode(fileName: string)->bool
 {
     var enc: Gif.Encoder
     let itf = @mkinterface(&enc, #typeof(Gif.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeGif(result: #nonull *ConcatBuffer, image: Image) throw
+func encodeGif(result: *ConcatBuffer, image: Image) throw
 {
     var enc: Gif.Encoder
     let itf = @mkinterface(&enc, #typeof(Gif.Encoder), IImageEncoder)
@@ -25,7 +25,7 @@ func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
         @assert(img.pixels.buffer[idx + 3] == a)
 }
 
-func assertGifHeader(bytes: #nonull const [..] u8, width, height: u16)
+func assertGifHeader(bytes: const [..] u8, width, height: u16)
 {
     @assert(@countof(bytes) > 20)
     @assert(bytes[0] == 'G' and bytes[1] == 'I' and bytes[2] == 'F')

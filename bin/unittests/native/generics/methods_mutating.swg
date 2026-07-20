@@ -242,7 +242,7 @@ impl CopyGate
 {
     var moved: string = "beta"
 
-    var gate: CopyGate'string
+    var gate: CopyGate'string = {values: ["", ""], count: 0}
     gate.add("alpha")
     gate.add(#move moved)
 

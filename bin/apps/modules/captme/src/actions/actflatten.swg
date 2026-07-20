@@ -12,7 +12,7 @@ impl IActionUI for ActionFlatten
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         return updateFromTable(cxt, evt, [
             {Flatten, "Flatten", .Selection},
@@ -21,10 +21,10 @@ impl IActionUI for ActionFlatten
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
-        var undo: #nonull *Undo = undefined
+        var undo: *Undo = undefined
         switch cxt.id
         {
         case Flatten:

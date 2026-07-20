@@ -14,7 +14,7 @@ struct JSonOptions
 struct JSon
 {
     options:           JSonOptions                                 // Formatting options.
-    output:            #nonull *ConcatBuffer = undefined           // Output buffer for generated JSON.
+    output:            *ConcatBuffer = undefined           // Output buffer for generated JSON.
     indent:            u32                                         // Current indentation level.
     containerDepth:    u32                                         // Current logical nesting depth for arrays/objects.
     fmtInt:            StrConv.ConvertFormatInt                    // Format used for converting integers.
@@ -41,7 +41,7 @@ impl JSon
     }
 
     // Initializes the JSON writer with the given output buffer.
-    mtd startWrite(buf: #nonull *ConcatBuffer)
+    mtd startWrite(buf: *ConcatBuffer)
     {
         .output = buf
     }

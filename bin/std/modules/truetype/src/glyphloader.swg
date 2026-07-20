@@ -11,13 +11,13 @@ const CMP_WE_HAVE_AN_XY_SCALE      = 0x0040'u16
 const CMP_WE_HAVE_A_2X2            = 0x0080'u16
 const CMP_WE_HAVE_INSTRUCTIONS     = 0x0100'u16
 
-func addScaledPoint(faceData: #nonull *FaceImpl, x, y: f64, onCurve: bool)
+func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
 {
     faceData.outlinePoints.add(Vector{x: cast(s32) Math.round(x), y: cast(s32) Math.round(y)})
     faceData.outlineTags.add(onCurve ? CURVE_TAG_ON : 0)
 }
 
-func appendSimpleGlyph(faceData: #nonull *FaceImpl, glyphData: #null const [..] u8, xPpem, yPpem: u32) throw
+func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpem, yPpem: u32) throw
 {
     let contourCount = cast(u32) readS16(glyphData, 0)
     var offset       = 10'u64
@@ -108,7 +108,7 @@ func appendSimpleGlyph(faceData: #nonull *FaceImpl, glyphData: #null const [..] 
         faceData.outlineContours.add(cast(s16) (startPoint + contourEnds[@index]))
 }
 
-func appendCompositeGlyph(faceData: #nonull *FaceImpl, glyphData: #null const [..] u8, xPpem, yPpem: u32, depth: u32) throw
+func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpem, yPpem: u32, depth: u32) throw
 {
     if depth >= MAX_RECURSE do
         fail(0x15)
@@ -214,7 +214,7 @@ func appendCompositeGlyph(faceData: #nonull *FaceImpl, glyphData: #null const [.
     }
 }
 
-func appendGlyph(faceData: #nonull *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth: u32 = 0) throw
+func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth: u32 = 0) throw
 {
     if glyphIndex >= faceData.face.glyphCount do
         fail(0x10)

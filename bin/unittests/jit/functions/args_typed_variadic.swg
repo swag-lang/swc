@@ -257,7 +257,7 @@ alias TypedVariadicAlias = s32
 
 #test
 {
-    func variadicTyped(values: *void...)->bool
+    func variadicTyped(values: #null *void...)->bool
     {
         return values[0] == cast(*void) 0x1234'u64 and values[1] == null
     }

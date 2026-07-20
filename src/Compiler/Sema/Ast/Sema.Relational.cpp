@@ -644,18 +644,29 @@ namespace
             if (!self.type() || !other.type())
                 return Result::Continue;
 
+            // A nullable operand compares as a nullable typeinfo: comparisons never
+            // dereference, so the nullability of the source must be preserved rather
+            // than rejected by the non-null default.
+            TypeRef typeInfoTargetRef = sema.typeMgr().typeTypeInfo();
+            if (aliasEnumType(sema, self).isNullable())
+            {
+                TypeInfo nullableTypeInfo = sema.typeMgr().get(typeInfoTargetRef);
+                nullableTypeInfo.addFlag(TypeInfoFlagsE::Nullable);
+                typeInfoTargetRef = sema.typeMgr().addType(nullableTypeInfo);
+            }
+
             const TypeInfo& otherType                     = aliasEnumType(sema, other);
             const bool      otherIsRuntimeTypeInfoPointer = sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), other.typeRef());
             const bool      otherIsTypeLike               = otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny() || otherIsRuntimeTypeInfoPointer || other.type()->isTypeValue();
             if (self.type()->isTypeValue() && otherIsTypeLike)
             {
-                SWC_RESULT(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
+                SWC_RESULT(Cast::cast(sema, self, typeInfoTargetRef, CastKind::Implicit));
                 return Result::Continue;
             }
 
             if (sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), self.typeRef()) && otherIsTypeLike)
             {
-                SWC_RESULT(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Explicit));
+                SWC_RESULT(Cast::cast(sema, self, typeInfoTargetRef, CastKind::Explicit));
                 return Result::Continue;
             }
 
@@ -764,9 +775,36 @@ namespace
         }
     }
 
+    // Comparisons never write through their operands, so a bare (non-null) operand can
+    // always be compared against a #null one: widen the bare side to nullable and let
+    // the regular promotion unify the base types.
+    Result widenNullableCompareOperand(Sema& sema, SemaNodeView& bareView, const SemaNodeView& nullableView)
+    {
+        TypeRef bareTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), bareView.typeRef());
+        if (bareTypeRef.isInvalid())
+            bareTypeRef = bareView.typeRef();
+        TypeRef otherTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nullableView.typeRef());
+        if (otherTypeRef.isInvalid())
+            otherTypeRef = nullableView.typeRef();
+        if (bareTypeRef.isInvalid() || otherTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeInfo& bareType  = sema.typeMgr().get(bareTypeRef);
+        const TypeInfo& otherType = sema.typeMgr().get(otherTypeRef);
+        if (!otherType.isNullable() || !bareType.isNonNullable())
+            return Result::Continue;
+
+        TypeInfo widened = bareType;
+        widened.addFlag(TypeInfoFlagsE::Nullable);
+        return Cast::castIfNeeded(sema, bareView, sema.typeMgr().addType(widened), CastKind::Implicit);
+    }
+
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         SWC_UNUSED(node);
+
+        SWC_RESULT(widenNullableCompareOperand(sema, nodeLeftView, nodeRightView));
+        SWC_RESULT(widenNullableCompareOperand(sema, nodeRightView, nodeLeftView));
 
         const bool orderedCompare = op == TokenId::SymLess ||
                                     op == TokenId::SymLessEqual ||

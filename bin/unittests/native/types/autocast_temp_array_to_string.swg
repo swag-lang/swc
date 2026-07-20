@@ -1,12 +1,11 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct AutocastTempArrayToStringHolder
 {
     cb: func(flag: bool)->[5] u8
 }
 
-func autocastTempArrayToStringConsume(text: #nonull string) -> u8
+func autocastTempArrayToStringConsume(text: string) -> u8
 {
     return text[0] + text[4]
 }
@@ -21,8 +20,8 @@ func autocastTempArrayToStringConsume(text: #nonull string) -> u8
         },
     }
 
-    let text: #nonull string = holder.cb(false)
-    let bytes = cast(#nonull const [..] u8) text
+    let text: string = holder.cb(false)
+    let bytes = cast(const [..] u8) text
     @assert(@countof(bytes) == 5)
     @assert(text[0] == 'w''u8)
     @assert(text[4] == 'd''u8)

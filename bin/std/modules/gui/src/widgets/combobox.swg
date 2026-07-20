@@ -30,7 +30,7 @@ struct ComboBox
     comboBoxFlags       = ComboBoxFlags.Zero    // Active behaviour flags
     minWidthPopup:      f32 = 100
     maxHeightPopup:     f32 = 300
-    sigChanged:         SigArray'func||(#nonull *ComboBox, u32)
+    sigChanged:         SigArray'func||(*ComboBox, u32)
 
     editBox:            #null *EditBox
     isHot:              bool
@@ -46,7 +46,7 @@ struct ComboBox
 
 impl IWnd for ComboBox
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if .editBox
         {
@@ -58,7 +58,7 @@ impl IWnd for ComboBox
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc
         let painter = evt.bc.painter
@@ -141,7 +141,7 @@ impl IWnd for ComboBox
         icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         switch evt.kind
         {
@@ -170,7 +170,7 @@ impl IWnd for ComboBox
     // Keyboard control of the focused combo box. Up/Left and Down/Right move the
     // selection to the previous/next selectable item; Home/End jump to the first/
     // last; Enter/Space (or Alt+Down) open the drop-down and Escape closes it.
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -321,7 +321,7 @@ private impl ComboBox
 impl ComboBox
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->#nonull *ComboBox
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->*ComboBox
     {
         Debug.assert(parent != null)
         var pos = position
@@ -352,7 +352,7 @@ impl ComboBox
 
     // Add a new item
     #[Swag.Discardable]
-    mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->#nonull *ComboBoxItem
+    mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->*ComboBoxItem
     {
         let item = .items.newPtr()
         with item

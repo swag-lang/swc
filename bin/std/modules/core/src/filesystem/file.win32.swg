@@ -4,7 +4,7 @@
 using Win32
 
 // Delete the specified file
-func delete(fullName: #nonull string) throw
+func delete(fullName: string) throw
 {
     let winPath = Utf16.toZeroTerminated(fullName)
     catch DeleteFileW(@dataof(winPath))
@@ -12,7 +12,7 @@ func delete(fullName: #nonull string) throw
 }
 
 // Change the file write date/time
-func touch(fullName: #nonull string) throw
+func touch(fullName: string) throw
 {
     let winPath = Utf16.toZeroTerminated(fullName)
 
@@ -45,7 +45,7 @@ func exists(fullName: #null string)->bool
 }
 
 // Open a new file stream
-func open(fullName: #nonull string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream throw
+func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream throw
 {
     var result: retval
 
@@ -109,13 +109,13 @@ func open(fullName: #nonull string, mode: FileMode, access: FileAccess, share: F
 }
 
 // Creates a new file stream for reading
-func openRead(fullName: #nonull string)->FileStream throw
+func openRead(fullName: string)->FileStream throw
 {
     return open(fullName, FileMode.Open, FileAccess.Read, FileShare.Read)
 }
 
 // Creates a new file stream for writing
-func openWrite(fullName: #nonull string)->FileStream throw
+func openWrite(fullName: string)->FileStream throw
 {
     return open(fullName, FileMode.Create, FileAccess.Write, FileShare.Zero)
 }

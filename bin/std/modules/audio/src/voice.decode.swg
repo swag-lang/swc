@@ -20,7 +20,7 @@ impl Voice
             let orgSeek  = .streamCurSeek
             let readSize = (.file.datas.count - .streamCurSeek)
             .streamCurSeek = .file.datas.count
-            let datasBuffer = .file.datas.buffer orelse cast(#nonull [*] u8) 1'u64
+            let datasBuffer = .file.datas.buffer orelse cast([*] u8) 1'u64
             return {datasBuffer + orgSeek, readSize}
         }
 
@@ -28,7 +28,7 @@ impl Voice
         if !.decodedBuffers[.decodedBufferIdx].buffer do
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
-        let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer orelse cast(#nonull [*] u8) 1'u64
+        let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer orelse cast([*] u8) 1'u64
         let destSize   = .decodeData(destBuffer, DecodedBufferSize)
 
         .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
@@ -45,8 +45,8 @@ impl Voice
         let desc = getCodec(.requestedEncoding, .file.encoding)
         if !desc do
             throw UnsupportedFormatError{"unsupported encoding"}
-        let decoderData = Memory.new(desc.type) orelse cast(#nonull [*] u8) 1'u64
-        let decoder = cast(#nonull *Codec) decoderData
+        let decoderData = Memory.new(desc.type) orelse cast([*] u8) 1'u64
+        let decoder = cast(*Codec) decoderData
         decoder.srcEncoding = .file.encoding
         decoder.dstEncoding = .requestedEncoding
         decoder.type        = desc.type
@@ -57,14 +57,14 @@ impl Voice
     {
         if .codec == null do
             return
-        let decoder = cast(#nonull *Codec) @dataof(.codec)
+        let decoder = cast(*Codec) @dataof(.codec)
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
         Memory.free(decoder, cast(u64) decoder.type.sizeof)
         .codec = null
     }
 
-    mtd decodeData(destBuffer: #nonull [*] void, length: u64)->u64 throw
+    mtd decodeData(destBuffer: [*] void, length: u64)->u64 throw
     {
         // If the file contains datas that are directly requested by the driver, no need
         // to decode, we can directly read in the destination buffer
@@ -82,20 +82,20 @@ impl Voice
             assume .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
             let readStart = .streamCurSeek
-            let streamBuffer = .streamBuffer.buffer orelse cast(#nonull [*] u8) 1'u64
+            let streamBuffer = .streamBuffer.buffer orelse cast([*] u8) 1'u64
             .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
             .streamCurSeek      = readStart + .codec.init(streamBuffer, .streamBuffer.count)
         }
 
         let readStart = .streamCurSeek
-        let streamBuffer = .streamBuffer.buffer orelse cast(#nonull [*] u8) 1'u64
+        let streamBuffer = .streamBuffer.buffer orelse cast([*] u8) 1'u64
         .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
         let used = .codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
         .streamCurSeek = readStart + used.read
         return used.write
     }
 
-    mtd readData(destBuffer: #nonull [*] void, length: u64)->u64 throw
+    mtd readData(destBuffer: [*] void, length: u64)->u64 throw
     {
         // Out of datas
         if .streamCurSeek >= .file.dataSize do
@@ -108,7 +108,7 @@ impl Voice
         if .streamCurSeek < .file.datas.count
         {
             let remain = Math.min(.file.datas.count - .streamCurSeek, length)
-            let datasBuffer = .file.datas.buffer orelse cast(#nonull [*] u8) 1'u64
+            let datasBuffer = .file.datas.buffer orelse cast([*] u8) 1'u64
             Memory.copy(destBuffer, datasBuffer + .streamCurSeek, remain)
             .streamCurSeek += remain
             if .streamCurSeek >= .file.dataSize do

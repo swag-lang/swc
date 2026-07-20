@@ -36,14 +36,14 @@ impl HashSet
         return result
     }
 
-    mtd tablePtr()->#nonull [*] HashSetEntry
+    mtd tablePtr()->[*] HashSetEntry
     {
-        return .table orelse cast(#nonull [*] HashSetEntry'(K)) 1'u64
+        return .table orelse cast([*] HashSetEntry'(K)) 1'u64
     }
 
-    mtd const constTablePtr()->#nonull const [*] HashSetEntry
+    mtd const constTablePtr()->const [*] HashSetEntry
     {
-        return cast(#nonull const [*] HashSetEntry'(K)) (.table orelse cast(#nonull [*] HashSetEntry'(K)) 1'u64)
+        return cast(const [*] HashSetEntry'(K)) (.table orelse cast([*] HashSetEntry'(K)) 1'u64)
     }
 
     // Returns the number of elements in the set.
@@ -78,7 +78,7 @@ impl HashSet
             .allocator = @getcontext().allocator
 
         let oldTable = .tablePtr()
-        let newTable = cast(#nonull [*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
+        let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
         Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
         #if Reflection.hasPostCopy(K)
         {
@@ -194,7 +194,7 @@ impl HashSet
 
         if .allocator == null do
             .allocator = @getcontext().allocator
-        .table = cast(#nonull [*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -203,7 +203,7 @@ impl HashSet
         // Copy the last me.table to the new me.table, removing me.deleted entries
         let oldCapacity = .capacity
         .capacity = reqCapacity
-        let oldTablePtr = oldTable orelse cast(#nonull [*] HashSetEntry'(K)) 1'u64
+        let oldTablePtr = oldTable orelse cast([*] HashSetEntry'(K)) 1'u64
         for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
@@ -248,7 +248,7 @@ impl HashSet
     // Adds a new key to the set. The key is copied; pass it with '#move' to move it instead.
     // If the key already exists, does nothing. Returns a pointer to the entry.
     #[Discardable]
-    mtd add(key: #fwd K)->#nonull *HashSetEntry
+    mtd add(key: #fwd K)->*HashSetEntry
     {
         .grow()
 
@@ -278,7 +278,7 @@ impl HashSet
 
     // Internal helper to add a new element with a pre-computed hash.
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: &K)->#nonull *HashSetEntry
+    mtd emplaceInternal(hashVal: u32, key: &K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()
@@ -436,7 +436,7 @@ impl HashSet
 
 impl StrConv.IConvert for HashSet
 {
-    mtd const impl convert(buf: #nonull *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
         for k in me

@@ -122,8 +122,8 @@ Swag panics if a cast from 'any' to another type is invalid.
 */
 #test
 {
-    let x: #nonull any = "1"
-    let y  = cast(#nonull string) x
+    let x: any = "1"
+    let y  = cast(string) x
     // var z = cast(s32) x  // Would panic: underlying type mismatch
     // @assert(z == 0)
 }
@@ -154,7 +154,7 @@ Indexing a slice is checked for bounds.
 */
 #test
 {
-    let x:  #nonull const [..] s32 = [0, 1, 2]
+    let x:  const [..] s32 = [0, 1, 2]
     var idx = 1
     @assert(x[idx] == 1)
     idx += 9
@@ -168,7 +168,7 @@ Slice operations are checked for bounds.
 */
 #test
 {
-    var x: #nonull const [..] s32 = [0, 1, 2]
+    var x: const [..] s32 = [0, 1, 2]
     // var slice = x[1..4]   // Would panic: out-of-bounds
     // @assert(slice[0] == 1)
 }
@@ -227,7 +227,7 @@ With '#[Swag.Complete]', Swag panics if a switch does not cover all cases.
         Blue
     }
 
-    func colorToString(color: Color)->#nonull string
+    func colorToString(color: Color)->string
     {
         // #[Swag.Complete]
         switch color

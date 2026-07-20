@@ -70,7 +70,7 @@ const AutoMsdfMinPx: f32 = 20.0
 // MSDF atlas regardless of how many sizes are used.
 public struct GlyphCache
 {
-    typeFace:          #nonull *TypeFace = undefined
+    typeFace:          *TypeFace = undefined
     renderMode:        FontRenderMode
     refSize:           u32
     spread:            u32
@@ -98,7 +98,7 @@ public struct GlyphCache
 // Glyph quads and metrics are scaled by size/refSize when drawn or measured.
 public struct Font
 {
-    cache:             #nonull *GlyphCache = undefined
+    cache:             *GlyphCache = undefined
     mode:              FontRenderMode      // Creation intent (may be .Auto); the cache is always concrete
     size:              u32
     forceBold:         bool
@@ -115,7 +115,7 @@ public struct Font
 
     // Memoized result of 'resolveDrawFont' for an 'Auto' font: the last on-screen
     // pixel size that was resolved and the concrete bitmap view it produced. Avoids a
-    // #nonull string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
+    // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
     // size of 0 is never resolved, so it doubles as the "empty" sentinel.
     drawResolvePx:     s32
     drawResolveFont:   #null *Font
@@ -141,7 +141,7 @@ private func mulFix(a, b: s32)->s32
     return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
 }
 
-private func renderModeName(mode: FontRenderMode)->#nonull string
+private func renderModeName(mode: FontRenderMode)->string
 {
     switch mode
     {
@@ -158,13 +158,13 @@ private var g_FontLock: Sync.Mutex
 
 // Get or create the shared glyph cache for a (typeface, style, mode, refSize, spread).
 // Assumes g_FontLock is held.
-private func acquireGlyphCache(typeFace: #nonull *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->#nonull *GlyphCache
+private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
 {
     let key = Format.toString("%_%_%_%_%_%", typeFace.fullname, refSize, forceBold, forceItalic, renderModeName(renderMode), spread)
 
     let here = g_HashGlyphCache.tryFind(key)
     if here do
-        return here.value orelse cast(#nonull *GlyphCache) 1'u64
+        return here.value orelse cast(*GlyphCache) 1'u64
 
     let cache = Memory.new'GlyphCache()
     cache.typeFace    = typeFace
@@ -206,13 +206,13 @@ public impl Font
     }
 
     // Returns the glyph descriptor of a given rune (in reference-size pixels)
-    mtd getGlyphDesc(c: rune)->#nonull const *GlyphDesc
+    mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
         return .cache.getGlyphDesc(c)
     }
 
     // Returns the glyph descriptor of a given glyph index (in reference-size pixels)
-    mtd getGlyphDescByIndex(glyphIndex: u32)->#nonull const *GlyphDesc
+    mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc
     {
         return .cache.getGlyphDescByIndex(glyphIndex)
     }
@@ -236,7 +236,7 @@ public impl Font
     }
 
     // Release the given font
-    func release(font: #nonull *Font)
+    func release(font: *Font)
     {
         if !font do
             return
@@ -249,7 +249,7 @@ public impl Font
     // 'atlasMode' is the concrete glyph cache mode; 'intent' is the creation mode
     // stored on the Font (may be .Auto). Both take part in the Font key so an auto
     // Font and an explicit MSDF Font of the same size do not collide.
-    private func createView(typeFace: #nonull *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->#nonull *Font
+    private func createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         Debug.assert(typeFace != null)
         Debug.assert(size > 0)
@@ -260,7 +260,7 @@ public impl Font
 
         let here = g_HashFont.tryFind(str)
         if here do
-            return here.value orelse cast(#nonull *Font) 1'u64
+            return here.value orelse cast(*Font) 1'u64
 
         let cache = acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
 
@@ -284,7 +284,7 @@ public impl Font
     }
 
     // Builds a Font for the requested creation mode (spread is internal).
-    private func createMode(typeFace: #nonull *TypeFace, size: u32, mode: FontRenderMode, forceBold, forceItalic: bool)->#nonull *Font
+    private func createMode(typeFace: *TypeFace, size: u32, mode: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         switch mode
         {
@@ -305,7 +305,7 @@ public impl Font
     // Non-auto fonts return themselves. An auto Font uses the size-independent MSDF
     // view at or above AutoMsdfMinPx, and a crisp bitmap rasterized at the exact
     // pixel size below it.
-    func resolveDrawFont(font: #nonull *Font, effectivePx: f32)->#nonull *Font
+    func resolveDrawFont(font: *Font, effectivePx: f32)->*Font
     {
         if font.mode != .Auto do
             return font
@@ -318,7 +318,7 @@ public impl Font
         // Fast path: same on-screen size as the previous draw (the common case for a
         // given widget) returns the already-resolved view with no lookup or lock.
         if px == font.drawResolvePx do
-            return font.drawResolveFont orelse cast(#nonull *Font) 1'u64
+            return font.drawResolveFont orelse cast(*Font) 1'u64
 
         let view = createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
 
@@ -333,14 +333,14 @@ public impl Font
     // Creates a Font of the given typeface and size.
     // 'mode' selects the rendering technique; .Auto (default) gives the best quality
     // at #null any on-screen size by adapting between a bitmap and MSDF at draw time.
-    func create(typeFace: #nonull *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->#nonull *Font
+    func create(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font
     {
         return createMode(typeFace, size, mode, forceBold, forceItalic)
     }
 
     // Creates a Font with the given filename and size.
     // 'mode' selects the rendering technique; .Auto (default) adapts at draw time.
-    func create(fullname: #nonull string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->#nonull *Font throw
+    func create(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font throw
     {
         Debug.assert(@countof(fullname) != 0)
         Debug.assert(size > 0)
@@ -382,7 +382,7 @@ public impl GlyphCache
     }
 
     // Returns the glyph descriptor of a given rune, rendered at the reference size
-    mtd getGlyphDesc(c: rune)->#nonull const *GlyphDesc
+    mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
         return .getGlyphDescByIndex(.typeFace.face.glyphIndex(c))
     }
@@ -399,11 +399,11 @@ public impl GlyphCache
     }
 
     // Returns the glyph descriptor of a given glyph index, rendered at the reference size
-    mtd getGlyphDescByIndex(glyphIndex: u32)->#nonull const *GlyphDesc
+    mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc
     {
         let entry = .glyphRef.tryFind(glyphIndex)
         if entry do
-            return cast(#nonull const *GlyphDesc) (entry.value orelse cast(#nonull *GlyphDesc) 1'u64)
+            return cast(const *GlyphDesc) (entry.value orelse cast(*GlyphDesc) 1'u64)
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
@@ -439,7 +439,7 @@ public impl GlyphCache
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide
             newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)
-            let datas = newAtlas.datas.buffer orelse cast(#nonull [*] u8) 1'u64
+            let datas = newAtlas.datas.buffer orelse cast([*] u8) 1'u64
             Memory.clear(datas, newAtlas.datas.count)
             .atlases.add(newAtlas)
             atlas = &.atlases.buffer[.atlases.count - 1]

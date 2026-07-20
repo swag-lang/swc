@@ -384,17 +384,17 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetLogicalDriveStringsA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD;
     func GetLogicalDriveStringsW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD;
 
-    func GetSystemInfo(lpSystemInfo: #nonull *SYSTEM_INFO);
+    func GetSystemInfo(lpSystemInfo: *SYSTEM_INFO);
     func GlobalAlloc(uFlags: UINT, dwBytes: SIZE_T)->HGLOBAL;
     func LocalFree(hLocal: HLOCAL)->HLOCAL;
     func GlobalLock(hMem: HGLOBAL)->LPVOID;
     func GlobalUnlock(hMem: HGLOBAL)->BOOL;
     func GlobalSize(hMem: HGLOBAL)->SIZE_T;
 
-    func QueryPerformanceCounter(lpPerformanceCount: #nonull *LARGE_INTEGER);
-    func QueryPerformanceFrequency(lpFrequency: #nonull *LARGE_INTEGER);
-    func GetLocalTime(lpSystemTime: #nonull *SYSTEMTIME);
-    func GetSystemTime(lpSystemTime: #nonull *SYSTEMTIME);
+    func QueryPerformanceCounter(lpPerformanceCount: *LARGE_INTEGER);
+    func QueryPerformanceFrequency(lpFrequency: *LARGE_INTEGER);
+    func GetLocalTime(lpSystemTime: *SYSTEMTIME);
+    func GetSystemTime(lpSystemTime: *SYSTEMTIME);
 
     func Sleep(dwMilliseconds: DWORD);
     func SleepEx(dwMilliseconds: DWORD, bAltertable: BOOL);
@@ -402,22 +402,22 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetCurrentThreadId()->DWORD;
     func GetCurrentThread()->HANDLE;
 
-    func AcquireSRWLockExclusive(SRWLock: #nonull *SRWLOCK);
-    func AcquireSRWLockShared(SRWLock: #nonull *SRWLOCK);
-    func InitializeSRWLock(SRWLock: #nonull *SRWLOCK);
-    func ReleaseSRWLockExclusive(SRWLock: #nonull *SRWLOCK);
-    func ReleaseSRWLockShared(SRWLock: #nonull *SRWLOCK);
-    func TryAcquireSRWLockExclusive(SRWLock: #nonull *SRWLOCK)->BOOL;
-    func TryAcquireSRWLockShared(SRWLock: #nonull *SRWLOCK)->BOOL;
+    func AcquireSRWLockExclusive(SRWLock: *SRWLOCK);
+    func AcquireSRWLockShared(SRWLock: *SRWLOCK);
+    func InitializeSRWLock(SRWLock: *SRWLOCK);
+    func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK);
+    func ReleaseSRWLockShared(SRWLock: *SRWLOCK);
+    func TryAcquireSRWLockExclusive(SRWLock: *SRWLOCK)->BOOL;
+    func TryAcquireSRWLockShared(SRWLock: *SRWLOCK)->BOOL;
 
     func CreateWaitableTimerA(lpTimerAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCSTR)->HANDLE;
     func CreateWaitableTimerW(lpTimerAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, lpTimerName: LPCWSTR)->HANDLE;
     func CancelWaitableTimer(hTimer: HANDLE)->BOOL;
-    func SetWaitableTimer(hTimer: HANDLE, lpDueTime: #nonull const *LARGE_INTEGER, lPeriod: LONG, pfnCompletionRoutine: #null *void, lpArgToCompletionRoutine: LPVOID, fResume: BOOL)->BOOL;
+    func SetWaitableTimer(hTimer: HANDLE, lpDueTime: const *LARGE_INTEGER, lPeriod: LONG, pfnCompletionRoutine: #null *void, lpArgToCompletionRoutine: LPVOID, fResume: BOOL)->BOOL;
 
     func ReadFile(hFile: HANDLE, lpBuffer: LPVOID, nNumberOfBytesToRead: DWORD, lpNumberOfBytesRead: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL;
     func CloseHandle(handle: HANDLE);
-    func FileTimeToLocalFileTime(lpFileTime: #nonull const *FILETIME, lpLocalFileTime: #nonull *FILETIME)->BOOL;
+    func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL;
 }
 
 internal namespace Win32Priv
@@ -428,25 +428,25 @@ internal namespace Win32Priv
         func FreeConsole()->BOOL;
         func AttachConsole(dwProcessId: DWORD)->BOOL;
         func SetConsoleTextAttribute(hConsoleOutput: HANDLE, wAttributes: WORD)->BOOL;
-        func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: #nonull *CONSOLE_SCREEN_BUFFER_INFO)->BOOL;
+        func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO)->BOOL;
 
-        func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: #nonull *void, dwCreationFlags: DWORD, lpThreadId: #nonull *DWORD)->HANDLE;
+        func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE;
         func GetThreadPriority(hThread: HANDLE)->s32;
         func ResumeThread(hThread: HANDLE)->DWORD;
         func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL;
         func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD;
-        func WaitForMultipleObjects(nCount: DWORD, lpHandles: #nonull const *HANDLE, bWaitAll: BOOL, dwMilliseconds: DWORD)->DWORD;
+        func WaitForMultipleObjects(nCount: DWORD, lpHandles: const *HANDLE, bWaitAll: BOOL, dwMilliseconds: DWORD)->DWORD;
         func ReleaseMutex(hMutex: HANDLE)->BOOL;
         func ResetEvent(hEvent: HANDLE)->BOOL;
         func SetEvent(hEvent: HANDLE)->BOOL;
 
-        func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: #nonull *STARTUPINFOA, lpProcessInformation: #nonull *PROCESS_INFORMATION)->BOOL;
-        func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: #nonull *STARTUPINFOW, lpProcessInformation: #nonull *PROCESS_INFORMATION)->BOOL;
+        func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION)->BOOL;
+        func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION)->BOOL;
         func CreateEventA(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE;
         func CreateEventW(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE;
         func CreateMutexA(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE;
         func CreateMutexW(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCWSTR)->HANDLE;
-        func CreateTimerQueueTimer(phNewTimer: #nonull *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: #null *void, dueTime: DWORD, period: DWORD, flags: ULONG)->BOOL;
+        func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: #null *void, dueTime: DWORD, period: DWORD, flags: ULONG)->BOOL;
         func DeleteTimerQueueTimer(timerQueue: HANDLE, timer: HANDLE, completionEvent: HANDLE)->BOOL;
 
         func WriteFile(hFile: HANDLE, lpBuffer: LPCVOID, nNumberOfBytesToWrite: DWORD, lpNumberOfBytesWritten: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL;
@@ -461,24 +461,24 @@ internal namespace Win32Priv
         func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD;
         func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD;
 
-        func FileTimeToSystemTime(lpFileTime: #nonull const *FILETIME, lpSystemTime: #nonull *SYSTEMTIME)->BOOL;
-        func SystemTimeToFileTime(lpSystemTime: #nonull const *SYSTEMTIME, lpFileTime: #nonull *FILETIME)->BOOL;
+        func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME)->BOOL;
+        func SystemTimeToFileTime(lpSystemTime: const *SYSTEMTIME, lpFileTime: *FILETIME)->BOOL;
         func SetFileTime(hFile: HANDLE, lpCreationTime: #null const *FILETIME, lpLastAccessTime: #null const *FILETIME, lpLastWriteTime: #null const *FILETIME)->BOOL;
 
-        func FindFirstFileA(lpFileName: LPCSTR, lpFindFileData: #nonull *WIN32_FIND_DATAA)->HANDLE;
-        func FindFirstFileW(lpFileName: LPCWSTR, lpFindFileData: #nonull *WIN32_FIND_DATAW)->HANDLE;
+        func FindFirstFileA(lpFileName: LPCSTR, lpFindFileData: *WIN32_FIND_DATAA)->HANDLE;
+        func FindFirstFileW(lpFileName: LPCWSTR, lpFindFileData: *WIN32_FIND_DATAW)->HANDLE;
         func FindFirstFileExA(lpFileName: LPCSTR, fInfoLevelId: FINDEX_INFO_LEVELS, lpFindFileData: LPVOID, fSearchOp: FINDEX_SEARCH_OPS, lpSearchFilter: LPVOID, dwAdditionalFlags: DWORD)->HANDLE;
         func FindFirstFileExW(lpFileName: LPCWSTR, fInfoLevelId: FINDEX_INFO_LEVELS, lpFindFileData: LPVOID, fSearchOp: FINDEX_SEARCH_OPS, lpSearchFilter: LPVOID, dwAdditionalFlags: DWORD)->HANDLE;
-        func FindNextFileA(hFindFile: HANDLE, lpFindFileData: #nonull *WIN32_FIND_DATAA)->BOOL;
-        func FindNextFileW(hFindFile: HANDLE, lpFindFileData: #nonull *WIN32_FIND_DATAW)->BOOL;
+        func FindNextFileA(hFindFile: HANDLE, lpFindFileData: *WIN32_FIND_DATAA)->BOOL;
+        func FindNextFileW(hFindFile: HANDLE, lpFindFileData: *WIN32_FIND_DATAW)->BOOL;
         func FindClose(hFindFile: HANDLE)->BOOL;
         func FindFirstVolumeA(lpszVolumeName: LPSTR, cchBufferLength: DWORD)->HANDLE;
         func FindFirstVolumeW(lpszVolumeName: LPWSTR, cchBufferLength: DWORD)->HANDLE;
         func FindNextVolumeA(hFindVolume: HANDLE, lpszVolumeName: LPSTR, cchBufferLength: DWORD)->BOOL;
         func FindNextVolumeW(hFindVolume: HANDLE, lpszVolumeName: LPWSTR, cchBufferLength: DWORD)->BOOL;
         func FindVolumeClose(hFindVolume: HANDLE)->BOOL;
-        func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: #nonull *DWORD)->BOOL;
-        func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: #nonull *DWORD)->BOOL;
+        func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD)->BOOL;
+        func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD)->BOOL;
 
         func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL;
         func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL;
@@ -519,13 +519,13 @@ internal namespace Win32Priv
             throwWinError(GetLastError())
     }
 
-    func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: #nonull *CONSOLE_SCREEN_BUFFER_INFO) throw
+    func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO) throw
     {
         if !Win32Priv.GetConsoleScreenBufferInfo(hConsoleOutput, lpConsoleScreenBufferInfo) do
             throwWinError(GetLastError())
     }
 
-    func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: #nonull *void, dwCreationFlags: DWORD, lpThreadId: #nonull *DWORD)->HANDLE throw
+    func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE throw
     {
         let h = Win32Priv.CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
         if h == null do
@@ -566,7 +566,7 @@ internal namespace Win32Priv
     }
 
     #[Discardable]
-    func WaitForMultipleObjects(nCount: DWORD, lpHandles: #nonull const *HANDLE, bWaitAll: BOOL, dwMilliseconds: DWORD)->DWORD throw
+    func WaitForMultipleObjects(nCount: DWORD, lpHandles: const *HANDLE, bWaitAll: BOOL, dwMilliseconds: DWORD)->DWORD throw
     {
         let res = Win32Priv.WaitForMultipleObjects(nCount, lpHandles, bWaitAll, dwMilliseconds)
         if res == WAIT_FAILED do
@@ -592,13 +592,13 @@ internal namespace Win32Priv
             throwWinError(GetLastError())
     }
 
-    func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: #nonull *STARTUPINFOA, lpProcessInformation: #nonull *PROCESS_INFORMATION) throw
+    func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION) throw
     {
         if !Win32Priv.CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
             throwWinError(GetLastError())
     }
 
-    func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: #nonull *STARTUPINFOW, lpProcessInformation: #nonull *PROCESS_INFORMATION) throw
+    func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION) throw
     {
         if !Win32Priv.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
             throwWinError(GetLastError())
@@ -636,7 +636,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func CreateTimerQueueTimer(phNewTimer: #nonull *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: #null *void, dueTime: DWORD, period: DWORD, flags: ULONG) throw
+    func CreateTimerQueueTimer(phNewTimer: *HANDLE, timerQueue: HANDLE, callback: WAITORTIMERCALLBACK, parameter: #null *void, dueTime: DWORD, period: DWORD, flags: ULONG) throw
     {
         if !Win32Priv.CreateTimerQueueTimer(phNewTimer, timerQueue, callback, parameter, dueTime, period, flags) do
             throwWinError(GetLastError())
@@ -661,13 +661,13 @@ internal namespace Win32Priv
         return res
     }
 
-    func FileTimeToSystemTime(lpFileTime: #nonull const *FILETIME, lpSystemTime: #nonull *SYSTEMTIME) throw
+    func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME) throw
     {
         if !Win32Priv.FileTimeToSystemTime(lpFileTime, lpSystemTime) do
             throwWinError(GetLastError())
     }
 
-    func SystemTimeToFileTime(lpSystemTime: #nonull const *SYSTEMTIME, lpFileTime: #nonull *FILETIME) throw
+    func SystemTimeToFileTime(lpSystemTime: const *SYSTEMTIME, lpFileTime: *FILETIME) throw
     {
         if !Win32Priv.SystemTimeToFileTime(lpSystemTime, lpFileTime) do
             throwWinError(GetLastError())
@@ -779,7 +779,7 @@ internal namespace Win32Priv
         return h
     }
 
-    func FindFirstFileA(lpFileName: LPCSTR, lpFindFileData: #nonull *WIN32_FIND_DATAA)->HANDLE throw
+    func FindFirstFileA(lpFileName: LPCSTR, lpFindFileData: *WIN32_FIND_DATAA)->HANDLE throw
     {
         let res = Win32Priv.FindFirstFileA(lpFileName, lpFindFileData)
         if res == INVALID_HANDLE_VALUE and GetLastError() != ERROR_FILE_NOT_FOUND do
@@ -787,7 +787,7 @@ internal namespace Win32Priv
         return res
     }
 
-    func FindFirstFileW(lpFileName: LPCWSTR, lpFindFileData: #nonull *WIN32_FIND_DATAW)->HANDLE throw
+    func FindFirstFileW(lpFileName: LPCWSTR, lpFindFileData: *WIN32_FIND_DATAW)->HANDLE throw
     {
         let res = Win32Priv.FindFirstFileW(lpFileName, lpFindFileData)
         if res == INVALID_HANDLE_VALUE and GetLastError() != ERROR_FILE_NOT_FOUND do
@@ -811,7 +811,7 @@ internal namespace Win32Priv
         return res
     }
 
-    func FindNextFileA(hFindFile: HANDLE, lpFindFileData: #nonull *WIN32_FIND_DATAA)->BOOL throw
+    func FindNextFileA(hFindFile: HANDLE, lpFindFileData: *WIN32_FIND_DATAA)->BOOL throw
     {
         let res = Win32Priv.FindNextFileA(hFindFile, lpFindFileData)
         if !res and GetLastError() != ERROR_NO_MORE_FILES do
@@ -819,7 +819,7 @@ internal namespace Win32Priv
         return res
     }
 
-    func FindNextFileW(hFindFile: HANDLE, lpFindFileData: #nonull *WIN32_FIND_DATAW)->BOOL throw
+    func FindNextFileW(hFindFile: HANDLE, lpFindFileData: *WIN32_FIND_DATAW)->BOOL throw
     {
         let res = Win32Priv.FindNextFileW(hFindFile, lpFindFileData)
         if !res and GetLastError() != ERROR_NO_MORE_FILES do
@@ -871,13 +871,13 @@ internal namespace Win32Priv
             throwWinError(GetLastError())
     }
 
-    func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: #nonull *DWORD) throw
+    func GetVolumePathNamesForVolumeNameA(lpszVolumeName: LPCSTR, lpszVolumePathNames: LPCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD) throw
     {
         if !Win32Priv.GetVolumePathNamesForVolumeNameA(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
             throwWinError(GetLastError())
     }
 
-    func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: #nonull *DWORD) throw
+    func GetVolumePathNamesForVolumeNameW(lpszVolumeName: LPCWSTR, lpszVolumePathNames: LPWCH, cchBufferLength: DWORD, lpcchReturnLength: *DWORD) throw
     {
         if !Win32Priv.GetVolumePathNamesForVolumeNameW(lpszVolumeName, lpszVolumePathNames, cchBufferLength, lpcchReturnLength) do
             throwWinError(GetLastError())

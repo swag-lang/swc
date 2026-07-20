@@ -2,13 +2,13 @@ using Core
 
 impl Image
 {
-    mtd const doHalfSize(dstImage: #nonull *Image)
+    mtd const doHalfSize(dstImage: *Image)
     {
         var f = {img: me}
         dstImage.visitPixels(&f)
         {
-            let data       = cast(#nonull *#decltype(f)) (assume userData)
-            let srcImage   = cast(#nonull const *Image) data.img
+            let data       = cast(*#decltype(f)) (assume userData)
+            let srcImage   = cast(const *Image) data.img
             let b8         = srcImage.bpp8
             let w8         = srcImage.width * b8
             let pixSrc     = srcImage.pixels.buffer + (x * 2 * b8) + (y * 2 * w8)

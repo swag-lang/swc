@@ -13,7 +13,7 @@ struct ComboCtrl
 
 impl IWnd for ComboCtrl
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if !.label do
             return
@@ -29,7 +29,7 @@ impl IWnd for ComboCtrl
 
 impl ComboCtrl
 {
-    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ComboCtrl
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*ComboCtrl
     {
         let metrics = parent.getThemeMetrics()
         var pos     = position

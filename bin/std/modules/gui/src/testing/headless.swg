@@ -24,7 +24,7 @@ struct AutoStage
     file:       String
     label:      String
     edits:      Array'AutoEdit
-    button: #nonull WndId = undefined
+    button: WndId = undefined
 }
 
 struct HeadlessHost
@@ -113,7 +113,7 @@ impl HeadlessHost
     // its own module-global Application (theme, renderer, options) while events flow
     // through the host. The renderer goes headless and the host's theme and style
     // are shared instead of being rebuilt.
-    mtd bindApplication(app: #nonull *Application)
+    mtd bindApplication(app: *Application)
     {
         app.renderer.setupHeadless()
         app.theme = .theme
@@ -135,7 +135,7 @@ impl HeadlessHost
         }
     }
 
-    private mtd runAutoStage(stage: #nonull *AutoStage)->bool
+    private mtd runAutoStage(stage: *AutoStage)->bool
     {
         switch stage.kind
         {
@@ -161,7 +161,7 @@ impl HeadlessHost
         return .clickModalButton(stage.button)
     }
 
-    private mtd driveAutoStages(app: #nonull *Application)
+    private mtd driveAutoStages(app: *Application)
     {
         if !.autoArmed do
             return
@@ -202,9 +202,9 @@ impl HeadlessHost
         .autoArmed     = true
     }
 
-    private mtd addAutoStage(kind: AutoStageKind, button: #null WndId = null, folder, file, label: #null string = null)->#nonull *AutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: #null WndId = null, folder, file, label: #null string = null)->*AutoStage
     {
-        let stage = cast(#nonull *AutoStage) .autoStages.emplaceInitAddress()
+        let stage = cast(*AutoStage) .autoStages.emplaceInitAddress()
         stage.kind   = kind
         stage.button = button orelse ""
         stage.folder = folder
@@ -218,7 +218,7 @@ impl HeadlessHost
     // opened by the code under test without any test-side closure. If the expected
     // UI never shows up within 'maxFrames' frames, the pending loop is cancelled and
     // 'autoHandled' stays false.
-    mtd clickModalButtonWhenShown(button: #nonull WndId, maxFrames: u32 = 60)
+    mtd clickModalButtonWhenShown(button: WndId, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.ModalButton, button)
@@ -227,7 +227,7 @@ impl HeadlessHost
     // Same auto-driver as clickModalButtonWhenShown for a file dialog: fills the
     // modal file browser with 'fileName' (folder + name), then accepts it with
     // 'button'. The folder part must exist.
-    mtd acceptModalFileDialog(fileName: #nonull string, button: #nonull WndId = Dialog.BtnOk, maxFrames: u32 = 60)
+    mtd acceptModalFileDialog(fileName: string, button: WndId = Dialog.BtnOk, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         let stage = .addAutoStage(.ModalButton, button)
@@ -237,7 +237,7 @@ impl HeadlessHost
 
     // Arms the auto UI driver to click item 'id' of the captured popup menu as soon
     // as the popup exists (e.g. after a right-click opening a context menu).
-    mtd clickPopupMenuItemWhenShown(id: #nonull WndId, maxFrames: u32 = 60)
+    mtd clickPopupMenuItemWhenShown(id: WndId, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupItem, id)
@@ -245,7 +245,7 @@ impl HeadlessHost
 
     // Arms the auto UI driver to open the submenu labelled 'label' of the captured
     // popup menu as soon as the popup exists.
-    mtd openPopupSubMenuWhenShown(label: #nonull string, maxFrames: u32 = 60)
+    mtd openPopupSubMenuWhenShown(label: string, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupSubMenu, label: label)
@@ -254,7 +254,7 @@ impl HeadlessHost
     // Appends one more step to the armed sequence: once the previous step succeeded,
     // click 'button' in the next modal that shows up (e.g. a nested overwrite
     // confirmation after accepting a file dialog).
-    mtd thenClickModalButton(button: #nonull WndId)
+    mtd thenClickModalButton(button: WndId)
     {
         Debug.assert(.autoArmed)
         discard .addAutoStage(.ModalButton, button)
@@ -262,7 +262,7 @@ impl HeadlessHost
 
     // Appends one more step to the armed sequence: click item 'id' of the captured
     // popup menu (e.g. inside a submenu opened by the previous step).
-    mtd thenClickPopupMenuItem(id: #nonull WndId)
+    mtd thenClickPopupMenuItem(id: WndId)
     {
         Debug.assert(.autoArmed)
         discard .addAutoStage(.PopupItem, id)
@@ -270,7 +270,7 @@ impl HeadlessHost
 
     // Appends one more step to the armed sequence: open the submenu labelled 'label'
     // of the captured popup menu.
-    mtd thenOpenPopupSubMenu(label: #nonull string)
+    mtd thenOpenPopupSubMenu(label: string)
     {
         Debug.assert(.autoArmed)
         discard .addAutoStage(.PopupSubMenu, label: label)
@@ -278,11 +278,11 @@ impl HeadlessHost
 
     // Fills the labelled edit box of the modal with 'text' before the last armed
     // stage's button is clicked. May be called several times for several edits.
-    mtd withModalEdit(label, text: #nonull string)
+    mtd withModalEdit(label, text: string)
     {
         Debug.assert(.autoArmed and .autoStages.count > 0)
         let stage = .autoStages.buffer + .autoStages.count - 1
-        let edit  = cast(#nonull *AutoEdit) stage.edits.emplaceInitAddress()
+        let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
         edit.text  = text
     }
@@ -310,7 +310,7 @@ impl HeadlessHost
         }
     }
 
-    mtd closeOnCommand(cmdId: #nonull WndId)
+    mtd closeOnCommand(cmdId: WndId)
     {
         .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
         {
@@ -456,7 +456,7 @@ impl HeadlessHost
         .mouseUp(pt, button, modifiers)
     }
 
-    mtd clickWnd(wnd: #nonull *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
     {
         Debug.assert(wnd != null)
 
@@ -465,7 +465,7 @@ impl HeadlessHost
         .click(pt, button, modifiers)
     }
 
-    mtd clickModalButton(id: #nonull WndId)->bool
+    mtd clickModalButton(id: WndId)->bool
     {
         if .app.modalSurfaces.count == 0 do
             return false
@@ -477,7 +477,7 @@ impl HeadlessHost
             if !view do
                 continue
 
-            wnd = view.getChildById(id)
+            wnd = view.getChildById(assume id)
             if wnd do
                 break
         }
@@ -488,11 +488,11 @@ impl HeadlessHost
         return true
     }
 
-    mtd findEditCtrlByLabel(wnd: #nonull *Wnd, label: #nonull string)->#null *EditCtrl
+    mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->#null *EditCtrl
     {
         if wnd.type == EditCtrl
         {
-            let ctrl = cast(#nonull *EditCtrl) wnd
+            let ctrl = cast(*EditCtrl) wnd
             if ctrl.label and ctrl.label.name.raw == label do
                 return ctrl
         }
@@ -507,7 +507,7 @@ impl HeadlessHost
         return null
     }
 
-    mtd setModalEditText(label: #nonull string, text: #nonull string)->bool
+    mtd setModalEditText(label: string, text: string)->bool
     {
         if .app.modalSurfaces.count == 0 do
             return false
@@ -521,10 +521,10 @@ impl HeadlessHost
         return true
     }
 
-    mtd findFileBrowserCtrl(wnd: #nonull *Wnd)->#null *FileBrowserCtrl
+    mtd findFileBrowserCtrl(wnd: *Wnd)->#null *FileBrowserCtrl
     {
         if wnd.type == FileBrowserCtrl do
-            return cast(#nonull *FileBrowserCtrl) wnd
+            return cast(*FileBrowserCtrl) wnd
 
         for child in wnd.childs
         {
@@ -536,7 +536,7 @@ impl HeadlessHost
         return null
     }
 
-    mtd setModalFileSelection(folder: #nonull string, fileName: #nonull string)->bool
+    mtd setModalFileSelection(folder: string, fileName: string)->bool
     {
         if .app.modalSurfaces.count == 0 do
             return false
@@ -580,7 +580,7 @@ impl HeadlessHost
         return menu
     }
 
-    mtd clickPopupMenuItem(id: #nonull WndId)->bool
+    mtd clickPopupMenuItem(id: WndId)->bool
     {
         let menu = .getCapturedPopupMenu()
         if !menu do
@@ -604,7 +604,7 @@ impl HeadlessHost
         return false
     }
 
-    mtd moveToPopupMenuItem(label: #nonull string)->bool
+    mtd moveToPopupMenuItem(label: string)->bool
     {
         let menu = .getCapturedPopupMenu()
         if !menu do
@@ -628,7 +628,7 @@ impl HeadlessHost
         return false
     }
 
-    mtd openPopupSubMenu(label: #nonull string)->bool
+    mtd openPopupSubMenu(label: string)->bool
     {
         let menu = .getCapturedPopupMenu()
         if !menu do
@@ -696,7 +696,7 @@ impl HeadlessHost
         .pump()
     }
 
-    mtd focus(wnd: #nonull *Wnd)
+    mtd focus(wnd: *Wnd)
     {
         .app.keybFocusWnd = wnd
     }
@@ -764,7 +764,7 @@ impl HeadlessHost
         return target
     }
 
-    mtd sendMouseEvent(target: #nonull *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
+    mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
     {
         .setModifierKeys(modifiers, true)
         defer { me.setModifierKeys(modifiers, false) }

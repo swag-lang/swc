@@ -7,7 +7,7 @@ struct GenericResizeTracked
 
 struct(T) GenericResizeBuffer
 {
-    buffer:   [*] T
+    buffer:   #null [*] T
     count:    u64
     capacity: u64
 }

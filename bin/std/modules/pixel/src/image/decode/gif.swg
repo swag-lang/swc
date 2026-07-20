@@ -86,10 +86,10 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeStream()->#nonull const [*] u8 => cast(#nonull const [*] u8) (assume .stream)
-    mtd safeStreamStart()->#nonull const [*] u8 => cast(#nonull const [*] u8) (assume .streamStart)
-    mtd safePalette()->#nonull *Palette => cast(#nonull *Palette) (assume .palette)
-    mtd safeCanvas()->#nonull [*] u8 => cast(#nonull [*] u8) (assume .canvas)
+    mtd safeStream()->const [*] u8 => cast(const [*] u8) (assume .stream)
+    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) (assume .streamStart)
+    mtd safePalette()->*Palette => cast(*Palette) (assume .palette)
+    mtd safeCanvas()->[*] u8 => cast([*] u8) (assume .canvas)
 
     mtd seek(len: u64) throw
     {
@@ -99,7 +99,7 @@ impl Decoder
         .streamLen -= len
     }
 
-    mtd read(dest: #nonull *u8, len: u64) throw
+    mtd read(dest: *u8, len: u64) throw
     {
         if len > .streamLen do
             throw InvalidFormatError{"read error"}
@@ -221,7 +221,7 @@ impl Decoder
             .table.entries[key] = {1, 0xFFF, cast(u8) key}
     }
 
-    mtd getKey(keySize: s32, subLen, shift, byte: #nonull *u8)->u16 throw
+    mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 throw
     {
         var key       = 0'u32
         var frag_size = 0
@@ -398,7 +398,7 @@ impl Decoder
         .readImageData(interlace)
     }
 
-    mtd renderFrame(buffer: #nonull [*] u8, pf: PixelFormat)
+    mtd renderFrame(buffer: [*] u8, pf: PixelFormat)
     {
         var i = cast(u32) .fy * .width + .fx
 
@@ -409,7 +409,7 @@ impl Decoder
                 for k in cast(u32) .fw
                 {
                     let index = .frame[(.fy + j) * cast(u32) .width + (.fx + k)]
-                    let color = cast(#nonull [*] u8) &.palette.colors[index * 3'u32]
+                    let color = cast([*] u8) &.palette.colors[index * 3'u32]
                     let b     = buffer + (i + k) * 4
                     b[0] = color[0]
                     b[1] = color[1]
@@ -427,7 +427,7 @@ impl Decoder
                 for k in .fw
                 {
                     let index = .frame[(.fy + j) * .width + (.fx + k)]
-                    let color = cast(#nonull [*] u8) &.palette.colors[index * 3'u32]
+                    let color = cast([*] u8) &.palette.colors[index * 3'u32]
                     let b     = buffer + (i + k) * 3
                     b[0] = color[0]
                     b[1] = color[1]
@@ -461,7 +461,7 @@ impl Decoder
 public impl Decoder
 {
     // Initialize the decoder
-    mtd init(buffer: #nonull const [..] u8, decodePixels: bool) throw
+    mtd init(buffer: const [..] u8, decodePixels: bool) throw
     {
         .initDone = true
         .streamStart, .stream = @dataof(buffer)
@@ -508,11 +508,11 @@ public impl Decoder
         {
             let size = cast(u64) .width * cast(u64) .height
             .frame.resize(4 * size)
-            let frame = .frame.buffer orelse cast(#nonull [*] u8) 1'u64
+            let frame = .frame.buffer orelse cast([*] u8) 1'u64
             Memory.set(frame, .bgIndex, size)
             .canvas = &.frame.buffer[size]
 
-            let bgcolor = cast(#nonull [*] u8) &.palette.colors[.bgIndex * 3'u32]
+            let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]
             if bgcolor[0] or bgcolor[1] or bgcolor[2]
             {
                 for i in size do
@@ -527,7 +527,7 @@ public impl Decoder
     }
 
     // Create an image for the current frame
-    mtd getFrame(image: #nonull *Image, decodePixels = true)
+    mtd getFrame(image: *Image, decodePixels = true)
     {
         Debug.assert(.initDone)
         image.init(.width, .height, .gce.transparency ? PixelFormat.RGBA8 : PixelFormat.RGB8)
@@ -537,7 +537,7 @@ public impl Decoder
     }
 
     // Get the next frame. Returns false if we have reached the end
-    mtd nextFrame(img: #nonull *Image)->bool throw
+    mtd nextFrame(img: *Image)->bool throw
     {
         Debug.assert(.initDone)
         if .reachEnd do
@@ -549,7 +549,7 @@ public impl Decoder
             return false
         }
 
-        .renderFrame(cast(#nonull [*] u8) (assume img.pixels.buffer), img.pf)
+        .renderFrame(cast([*] u8) (assume img.pixels.buffer), img.pf)
         return true
     }
 
@@ -581,13 +581,13 @@ public impl Decoder
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: #nonull string)->bool
+    mtd impl canDecode(fileName: string)->bool
     {
         let ext = Path.getExtensionLowerCase(fileName)
         return ext == ".gif"
     }
 
-    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
     {
         .init(buffer, options.decodePixels)
 
@@ -596,7 +596,7 @@ public impl IImageDecoder for Decoder
         if !options.decodePixels do
             return result
 
-        .renderFrame(cast(#nonull [*] u8) (assume result.pixels.buffer), result.pf)
+        .renderFrame(cast([*] u8) (assume result.pixels.buffer), result.pf)
         return result
     }
 }

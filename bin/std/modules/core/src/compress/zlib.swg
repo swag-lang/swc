@@ -12,7 +12,7 @@ struct ZLib
 impl ZLib
 {
     // Decompress stream
-    mtd compress(buffer: #nonull const [..] u8, level = Deflate.CompressionLevel.Default)->Array'u8 throw
+    mtd compress(buffer: const [..] u8, level = Deflate.CompressionLevel.Default)->Array'u8 throw
     {
         var result: retval
 
@@ -31,7 +31,7 @@ impl ZLib
     }
 
     // Decompress stream. hintSize pre-reserves the output buffer to avoid realloc churn.
-    mtd decompress(buffer: #nonull const [..] u8, hintSize: u64 = 0)->Array'u8 throw
+    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0)->Array'u8 throw
     {
         var bs = ByteStream.openRead(buffer)
         if bs.length() < 6 do

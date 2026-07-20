@@ -25,7 +25,7 @@
 
 #test
 {
-    func unaryBangPointer(a: *void)->bool { return !a }
+    func unaryBangPointer(a: #null *void)->bool { return !a }
     const V0 = #run unaryBangPointer(null)
     const V1 = #run unaryBangPointer(cast(*void) 0x1000'u64)
     #assert(V0)

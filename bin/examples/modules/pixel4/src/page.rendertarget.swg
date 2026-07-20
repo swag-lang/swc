@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func drawRenderTargetContent(painter: #nonull *Pixel.Painter, width, height: s32)
+func drawRenderTargetContent(painter: *Pixel.Painter, width, height: s32)
 {
     painter.clear(Color.fromArgb(255, 243, 246, 250))
 
@@ -22,7 +22,7 @@ func drawRenderTargetContent(painter: #nonull *Pixel.Painter, width, height: s32
     drawClosedOutline(painter, star[to], Pen.createSolid(Argb.White, 6))
 }
 
-func drawRenderTargetPreviewCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, texture: Texture)
+func drawRenderTargetPreviewCard(painter: *Pixel.Painter, rect: Math.Rectangle, texture: Texture)
 {
     let body      = drawPanel(painter, rect, "Offscreen texture reuse", "The render target is drawn once, then sampled back as a normal texture at different scales.")
     let sampleGap = 18.0
@@ -50,7 +50,7 @@ func drawRenderTargetPreviewCard(painter: #nonull *Pixel.Painter, rect: Math.Rec
     painter.drawTexture(insetRect(rightRect, 14, 34, 14, 14), srcRect, texture)
 }
 
-func drawRenderTargetBrushCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, texture: Texture)
+func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, texture: Texture)
 {
     let body = drawPanel(painter, rect, "Render target as a brush", "Once the offscreen pass is complete, its color buffer can feed regular brush and pen paths in the main scene.")
 
@@ -80,7 +80,7 @@ func drawRenderTargetBrushCard(painter: #nonull *Pixel.Painter, rect: Math.Recta
     }
 }
 
-func drawRenderTargetPage(painter: #nonull *Pixel.Painter)
+func drawRenderTargetPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel render targets", "Page 9 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 

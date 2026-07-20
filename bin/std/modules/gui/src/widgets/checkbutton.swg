@@ -22,12 +22,12 @@ struct CheckButton
 
     checked              = ButtonCheckState.UnChecked
     checkButtonFlags     = CheckButtonFlags.Zero
-    sigChanged:          SigArray'func||(#nonull *CheckButton)
+    sigChanged:          SigArray'func||(*CheckButton)
 }
 
 impl IWnd for CheckButton
 {
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let bc      = evt.bc
         let painter = bc.painter
@@ -117,14 +117,14 @@ impl IWnd for CheckButton
         Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if .processMouseEvent(evt) do
             .toggle()
     }
 
     // Space or Enter toggles the focused check button.
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -142,7 +142,7 @@ impl IWnd for CheckButton
 impl CheckButton
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *CheckButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*CheckButton
     {
         Debug.assert(parent != null)
         var pos = position

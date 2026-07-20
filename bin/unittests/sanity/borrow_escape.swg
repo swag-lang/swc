@@ -22,7 +22,7 @@ impl BorrowEscapeOwner
 
 struct BorrowEscapePayload
 {
-    text: string
+    text: string = ""
 }
 
 func borrowEscapePayload()->BorrowEscapePayload
@@ -55,7 +55,7 @@ func borrowEscapeImplicitOpCastReturn()->string
     return owner // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-var borrowEscapeGlobalText: string
+var borrowEscapeGlobalText: string = ""
 
 func borrowEscapeImplicitOpCastAssign()
 {
@@ -120,7 +120,7 @@ func borrowEscapeByValueParamCast(o: BorrowEscapeOwner)->string
 // within the same frame.
 func borrowEscapeInnerScope()->s32
 {
-    var p: *s32
+    var p: #null *s32
     {
         var v: s32 = 42
         p = &v // swc-expected-error {{sanity_err_borrow_scope_escape}}
@@ -137,39 +137,39 @@ func borrowEscapeSameScope()->s32
 }
 
 // Flow joins: clearing the borrow on only one path does not erase it.
-func borrowEscapeConditionalClear(cond: bool)->*s32
+func borrowEscapeConditionalClear(cond: bool)->#null *s32
 {
     var v: s32
-    var p = &v
+    var p: #null *s32 = &v
     if cond do
         p = null
     return p // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A borrow created in only one branch survives the join.
-func borrowEscapeConditionalBorrow(cond: bool)->*s32
+func borrowEscapeConditionalBorrow(cond: bool)->#null *s32
 {
     var v: s32
-    var p: *s32
+    var p: #null *s32
     if cond do
         p = &v
     return p // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An unconditional clear does erase the borrow.
-func borrowEscapeUnconditionalClear()->*s32
+func borrowEscapeUnconditionalClear()->#null *s32
 {
     var v: s32
-    var p = &v
+    var p: #null *s32 = &v
     p = null
     return p
 }
 
 // Clearing on both branches erases it too.
-func borrowEscapeBothBranchesClear(cond: bool)->*s32
+func borrowEscapeBothBranchesClear(cond: bool)->#null *s32
 {
     var v: s32
-    var p = &v
+    var p: #null *s32 = &v
     if cond do
         p = null
     else do
@@ -178,10 +178,10 @@ func borrowEscapeBothBranchesClear(cond: bool)->*s32
 }
 
 // A borrow created inside a loop body survives the loop.
-func borrowEscapeLoopBorrow()->*s32
+func borrowEscapeLoopBorrow()->#null *s32
 {
     var v: s32
-    var p: *s32
+    var p: #null *s32
     for i in 4 do
         p = &v
     return p // swc-expected-error {{sanity_err_borrow_escape}}
@@ -215,7 +215,7 @@ func borrowEscapeNamedOwner()->u64
 // owner remains alive for the containing field's local uses.
 struct BorrowEscapeTemporaryField
 {
-    text: string
+    text: string = ""
 }
 
 func borrowEscapeTemporaryStringField()->u64
@@ -262,14 +262,14 @@ func borrowEscapeLocalOwnerGlobalStringField()
 // Reading a carrier element by value copies it: no borrow of the array storage.
 func borrowEscapeElementRead()->string
 {
-    var arr: [2] string
+    var arr: [2] string = undefined
     arr[0] = "hi"
     return arr[0]
 }
 
 // Reading a carrier member through a borrowing pointer copies the member value:
 // the copy does not alias the borrowed storage (Swag.Interface.obj pattern).
-func borrowEscapeMemberRead(itf: Swag.Interface)->*void
+func borrowEscapeMemberRead(itf: Swag.Interface)->#null *void
 {
     let p = &itf
     return p.obj
@@ -301,7 +301,7 @@ func borrowEscapeMaterializedTracked()->const [..] u16
     return view // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
-var borrowEscapeGlobalSlice: const [..] u16
+var borrowEscapeGlobalSlice: #null const [..] u16
 
 func borrowEscapeMaterializedGlobal()
 {
@@ -313,7 +313,7 @@ func borrowEscapeMaterializedGlobal()
 // struct would make the field outlive the materialized storage.
 struct BorrowEscapeSliceField
 {
-    values: const [..] u16
+    values: #null const [..] u16
 }
 
 func borrowEscapeMaterializedLocalField()->u16
@@ -399,13 +399,13 @@ func borrowEscapeMaterializedAnyReturn()->any
 
 // Casting a scalar value to a pointer reinterprets the value: it does not
 // borrow the variable storage and must not warn.
-var borrowEscapeScalarSink: *void
+var borrowEscapeScalarSink: #null *void
 
-func borrowEscapeScalarCast()->*void
+func borrowEscapeScalarCast()->#null *void
 {
     var idx: u64 = 42
-    borrowEscapeScalarSink = cast(*void) idx
-    return cast(*void) idx
+    borrowEscapeScalarSink = cast(#null *void) idx
+    return cast(#null *void) idx
 }
 
 // '#run' return payloads pointing into the local stack frame are persisted
@@ -452,7 +452,7 @@ func borrowEscapeClosureByRef()->BorrowEscapeVisitor
 // that local's storage: nothing outlives the frame, no warning.
 struct BorrowEscapeSelfRef
 {
-    text: string
+    text: string = ""
 }
 
 func borrowEscapeThroughLocalPointer()->u64
@@ -485,7 +485,7 @@ func borrowEscapeThroughLocalPointerAlias()->u64
 // the callback may return heap, global, or caller-owned storage that survives us.
 struct BorrowEscapeNode
 {
-    text: string
+    text: string = ""
 }
 
 func borrowEscapeThroughHeapPointer(alloc: func()->*BorrowEscapeNode)->u64
@@ -570,7 +570,7 @@ func borrowEscapeThroughCall()->*s32
     return borrowEscapePassthrough(&v) // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-var borrowEscapeGlobalPtr: *s32
+var borrowEscapeGlobalPtr: #null *s32
 
 // Same through a global destination.
 func borrowEscapeThroughCallGlobal()
@@ -799,10 +799,10 @@ func borrowEscapeChainedLocalOnly()->s32
 }
 
 // Clearing the local erases the deferred borrow.
-func borrowEscapeChainedCleared()->*s32
+func borrowEscapeChainedCleared()->#null *s32
 {
     var v: s32
-    var p = borrowEscapePassthrough(&v)
+    var p: #null *s32 = borrowEscapePassthrough(&v)
     p = null
     return p
 }
@@ -826,7 +826,7 @@ func borrowEscapeThroughChainedWrapper()->*s32
 // makes any borrowed argument escape, whatever happens to the call result.
 // ---------------------------------------------------------------------------
 
-var borrowEscapeGlobalStash: *s32
+var borrowEscapeGlobalStash: #null *s32
 
 #[Swag.NoInline]
 func borrowEscapeStash(p: *s32)
@@ -914,7 +914,7 @@ func borrowEscapeMethodChainGlobal()->*s32
 
 func borrowEscapeMaterializedScope()->u16
 {
-    var view: const [..] u16
+    var view: #null const [..] u16
     {
         view = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
     }
@@ -929,7 +929,7 @@ func borrowEscapeMaterializedScope()->u16
 
 struct BorrowEscapeOwned
 {
-    buffer: [*] u8
+    buffer: #null [*] u8
     length: u64
 }
 
@@ -940,7 +940,8 @@ impl BorrowEscapeOwned
     #[Swag.Implicit, Swag.Inline]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        let buffer = .buffer orelse cast([*] u8) 1'u64
+        return @mkstring(buffer, .length)
     }
 }
 
@@ -1013,7 +1014,7 @@ func borrowEscapeOwnedTemporary()->u64
 
 struct BorrowEscapeBox
 {
-    text: string
+    text: string = ""
 }
 
 var borrowEscapeGlobalBytes: [4] u8
@@ -1117,7 +1118,7 @@ func borrowEscapeChainedArgHarmless()->s32
 
 struct BorrowEscapeContainer
 {
-    slot: *s32
+    slot: #null *s32
 }
 
 impl BorrowEscapeContainer
@@ -1197,11 +1198,11 @@ func borrowEscapePairResultFirstLocal()->BorrowEscapePairResult
 // while assigning or reading a sibling field must not overwrite or inherit it.
 struct BorrowEscapeFieldState
 {
-    local:  *s32
-    global: *s32
+    local:  #null *s32
+    global: #null *s32
 }
 
-func borrowEscapeFieldLocal()->*s32
+func borrowEscapeFieldLocal()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeFieldState
@@ -1210,7 +1211,7 @@ func borrowEscapeFieldLocal()->*s32
     return state.local // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeFieldGlobal()->*s32
+func borrowEscapeFieldGlobal()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeFieldState
@@ -1219,7 +1220,7 @@ func borrowEscapeFieldGlobal()->*s32
     return state.global
 }
 
-func borrowEscapeFieldClear()->*s32
+func borrowEscapeFieldClear()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeFieldState
@@ -1236,7 +1237,7 @@ func borrowEscapeWholeAggregateWithBorrow()->BorrowEscapeFieldState
     return state // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeFieldDeferred()->*s32
+func borrowEscapeFieldDeferred()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeFieldState
@@ -1247,7 +1248,7 @@ func borrowEscapeFieldDeferred()->*s32
 func borrowEscapeDeferredJoin(cond: bool)->*s32
 {
     var local: s32
-    var p: *s32
+    var p: *s32 = undefined
     if cond do
         p = borrowEscapeWrapGlobalSource(&local)
     else do
@@ -1260,7 +1261,7 @@ struct BorrowEscapeNestedFieldState
     inner: BorrowEscapeFieldState
 }
 
-func borrowEscapeNestedField()->*s32
+func borrowEscapeNestedField()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeNestedFieldState
@@ -1269,7 +1270,7 @@ func borrowEscapeNestedField()->*s32
     return state.inner.local // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeNestedSibling()->*s32
+func borrowEscapeNestedSibling()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeNestedFieldState
@@ -1303,42 +1304,42 @@ func borrowEscapeRetainedClosure()
     borrowEscapeRetainVisitor(visitor) // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeArrayElement()->*s32
+func borrowEscapeArrayElement()->#null *s32
 {
     var local: s32
-    var values: [2] *s32
+    var values: [2] #null *s32
     values[0] = &local
     values[1] = &borrowEscapeGlobalInt
     return values[0] // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeArraySibling()->*s32
+func borrowEscapeArraySibling()->#null *s32
 {
     var local: s32
-    var values: [2] *s32
+    var values: [2] #null *s32
     values[0] = &local
     values[1] = &borrowEscapeGlobalInt
     return values[1]
 }
 
-func borrowEscapeArrayElementClear()->*s32
+func borrowEscapeArrayElementClear()->#null *s32
 {
     var local: s32
-    var values: [2] *s32
+    var values: [2] #null *s32
     values[0] = &local
     values[0] = null
     return values[0]
 }
 
-func borrowEscapeArrayDynamic(index: u64)->*s32
+func borrowEscapeArrayDynamic(index: u64)->#null *s32
 {
     var local: s32
-    var values: [2] *s32
+    var values: [2] #null *s32
     values[index] = &local
     return values[0] // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeAggregateAssignmentSibling()->*s32
+func borrowEscapeAggregateAssignmentSibling()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeFieldState
@@ -1346,7 +1347,7 @@ func borrowEscapeAggregateAssignmentSibling()->*s32
     return state.global
 }
 
-func borrowEscapeAggregateAssignmentLocal()->*s32
+func borrowEscapeAggregateAssignmentLocal()->#null *s32
 {
     var local: s32
     var state: BorrowEscapeFieldState
@@ -1354,14 +1355,14 @@ func borrowEscapeAggregateAssignmentLocal()->*s32
     return state.local // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-func borrowEscapeAggregateInitializerSibling()->*s32
+func borrowEscapeAggregateInitializerSibling()->#null *s32
 {
     var local: s32
     var state = BorrowEscapeFieldState{local: &local, global: &borrowEscapeGlobalInt}
     return state.global
 }
 
-func borrowEscapeAggregateInitializerLocal()->*s32
+func borrowEscapeAggregateInitializerLocal()->#null *s32
 {
     var local: s32
     var state = BorrowEscapeFieldState{local: &local, global: &borrowEscapeGlobalInt}

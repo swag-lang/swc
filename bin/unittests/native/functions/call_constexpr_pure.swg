@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func pureAdd(a: s32, b: s32)->s32
 {

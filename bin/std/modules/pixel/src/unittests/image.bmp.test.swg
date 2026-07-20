@@ -123,21 +123,21 @@ struct BmpCH     // BITMAPCOREHEADER legacy 12-byte header
     bcBitCount: u16
 }
 
-func bmpCanEncode(fileName: #nonull string)->bool
+func bmpCanEncode(fileName: string)->bool
 {
     var enc: Bmp.Encoder
     let itf = @mkinterface(&enc, #typeof(Bmp.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeBmp(result: #nonull *ConcatBuffer, image: Image) throw
+func encodeBmp(result: *ConcatBuffer, image: Image) throw
 {
     var enc: Bmp.Encoder
     let itf = @mkinterface(&enc, #typeof(Bmp.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func addBmpPaletteColor(cb: #nonull *ConcatBuffer, b, g, r: u8)
+func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     cb.addNative(b)
     cb.addNative(g)
@@ -1009,8 +1009,8 @@ func addBmpPaletteColor(cb: #nonull *ConcatBuffer, b, g, r: u8)
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     @assert(bytes != null)
-    let fh = cast(#nonull const *BmpFH) @dataof(bytes)
-    let bh = cast(#nonull const *Bmp.Header) (@dataof(bytes) + #sizeof(BmpFH))
+    let fh = cast(const *BmpFH) @dataof(bytes)
+    let bh = cast(const *Bmp.Header) (@dataof(bytes) + #sizeof(BmpFH))
     @assert(fh.bfSize == cast(u32) @countof(cb))
     @assert(fh.bfOffBits == 54'u32)
     @assert(bh.biSizeImage == 80'u32)

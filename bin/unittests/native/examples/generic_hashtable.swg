@@ -15,8 +15,8 @@ struct(K, V) HashEntry
 
 struct(K, V) HashTable
 {
-    entries:  [*] HashEntry'(K, V)
-    states:   [*] u8
+    entries:  #null [*] HashEntry'(K, V)
+    states:   #null [*] u8
     count:    u64
     capacity: u64
     hashFn:   func(K)->u64
@@ -25,8 +25,8 @@ struct(K, V) HashTable
 
 func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
 {
-    table.entries  = cast([*] HashEntry'(K, V)) @alloc(capacity * #sizeof(HashEntry'(K, V)))
-    table.states   = cast([*] u8) @alloc(capacity * #sizeof(u8))
+    table.entries  = cast(#null [*] HashEntry'(K, V)) @alloc(capacity * #sizeof(HashEntry'(K, V)))
+    table.states   = cast(#null [*] u8) @alloc(capacity * #sizeof(u8))
     table.capacity = capacity
     table.count    = 0
 
@@ -115,7 +115,7 @@ func(K, V) put(table: *HashTable'(K, V), key: K, value: V)
     insertAssumeSpace'(K, V)(table, key, value)
 }
 
-func(K, V) tryGet(table: *HashTable'(K, V), key: K)->*V
+func(K, V) tryGet(table: *HashTable'(K, V), key: K)->#null *V
 {
     if table.count == 0 do
         return null

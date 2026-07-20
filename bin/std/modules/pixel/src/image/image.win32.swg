@@ -31,7 +31,7 @@ impl Image
         infos.bmiHeader.biPlanes      = 1
         infos.bmiHeader.biBitCount    = bitmap.bmBitsPixel
         infos.bmiHeader.biCompression = BI_RGB
-        GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast(#nonull [*] u8) (assume result.pixels.buffer), &infos, cast() DIB_RGB_COLORS)
+        GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) (assume result.pixels.buffer), &infos, cast() DIB_RGB_COLORS)
 
         return result
     }
@@ -47,7 +47,7 @@ impl Image
         bi.bmiHeader.biBitCount    = .bpp
         bi.bmiHeader.biCompression = BI_RGB
 
-        var ppvBits: #nonull *u8 = undefined
+        var ppvBits: *u8 = undefined
         let hbmp     = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
         defer #noerr DeleteObject(cast() hbmp)
 

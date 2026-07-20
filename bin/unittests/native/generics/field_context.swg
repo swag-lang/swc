@@ -90,7 +90,7 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
         item: MiddleDefaultBox'T
     }
 
-    var data: Local
+    var data: Local = undefined
     data.item.first = value
     data.item.second = "ok"
     data.item.third = tail
@@ -111,7 +111,7 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
     @assert(renamed.second.values[2] == 9'u16)
     #assert(#typeof(renamed.first.values) == #type [3] u16)
 
-    var partial: PartialMiddleDefaultHolder'(u32, f64)
+    var partial: PartialMiddleDefaultHolder'(u32, f64) = undefined
     partial.item.first = 11
     partial.item.second = "value"
     partial.item.third = 2.5

@@ -11,7 +11,7 @@ func assertSha1Digest(digest: Hash.Sha1.Digest, e0, e1, e2, e3, e4: u32)
     @assert(digest[4] == e4)
 }
 
-func assertSha1(buffer: #nonull const [..] u8, e0, e1, e2, e3, e4: u32)
+func assertSha1(buffer: const [..] u8, e0, e1, e2, e3, e4: u32)
 {
     assertSha1Digest(Hash.Sha1.compute(buffer), e0, e1, e2, e3, e4)
 
@@ -31,7 +31,7 @@ func assertSha1(buffer: #nonull const [..] u8, e0, e1, e2, e3, e4: u32)
     assertSha1Digest(digest, e0, e1, e2, e3, e4)
 }
 
-func fillSha1Pattern(buffer: #nonull [..] u8)
+func fillSha1Pattern(buffer: [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)

@@ -126,7 +126,7 @@ namespace
 
         const TaskContext&  ctx         = sema.ctx();
         ConstantValue       constant    = ConstantValue::makeString(ctx, value);
-        constant.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::ExplicitNonNull)));
+        constant.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
         const ConstantRef   constantRef = sema.cstMgr().addConstant(ctx, constant);
         sema.setConstant(nodeRef, constantRef);
         sema.setIsValue(*nodePtr);

@@ -23,9 +23,9 @@ enum FormSubKind
 
 interface IForm
 {
-    mtd paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags);
-    mtd paint(painter: #nonull *Painter, cxt: FormPaintContext);
-    mtd mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool;
+    mtd paintGizmo(painter: *Painter, z: f32, flags: FormFlags);
+    mtd paint(painter: *Painter, cxt: FormPaintContext);
+    mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool;
     mtd isInside(pt: Math.Point)->bool;
     mtd hitTest(pt: Math.Point, z: f32)->bool;
     mtd boundRect()->Math.Rectangle;
@@ -34,10 +34,10 @@ interface IForm
     mtd scaleBaseForm(scale: f32);
     mtd setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32);
     mtd movePoint(pt: u32, newPosX, newPosY: s32);
-    mtd edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool;
+    mtd edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool;
     mtd setup(capt: #null *Capture);
-    mtd isSame(ptr: #nonull *BaseForm)->bool;
-    mtd copy(dst, src: #nonull *BaseForm);
+    mtd isSame(ptr: *BaseForm)->bool;
+    mtd copy(dst, src: *BaseForm);
     mtd mustClipToBound()->bool { return false; }
     mtd canRotate()->bool { return false; }
 }
@@ -107,7 +107,7 @@ impl BaseForm
     // Style fields shared by every form type. Each form's isSame/copy compares and
     // copies these through the two helpers below, then handles its own fields.
     // FormImage opts out of the backColor comparison for its processed kinds.
-    mtd isSameBase(other: #nonull *BaseForm, compareBackColor = true)->bool
+    mtd isSameBase(other: *BaseForm, compareBackColor = true)->bool
     {
         if compareBackColor and .backColor != other.backColor do
             return false
@@ -119,7 +119,7 @@ impl BaseForm
                .paintShadow == other.paintShadow
     }
 
-    func copyBase(dst, src: #nonull *BaseForm)
+    func copyBase(dst, src: *BaseForm)
     {
         dst.borderColor = src.borderColor
         dst.borderSize  = src.borderSize
@@ -172,7 +172,7 @@ impl BaseForm
 
     // PixSel forms share one look: an almost transparent fill and a thin dashed
     // outline, widened when hit-testing so the outline stays clickable.
-    mtd applyPixSelStyle(painter: #nonull *Painter, cxt: FormPaintContext)->{ bSize: f32, dash: DashStyle }
+    mtd applyPixSelStyle(painter: *Painter, cxt: FormPaintContext)->{ bSize: f32, dash: DashStyle }
     {
         var result: retval
         if cxt.hitTest
@@ -202,7 +202,7 @@ impl BaseForm
     {
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
-        let base = cast(#nonull *BaseForm) @dataof(itf)
+        let base = cast(*BaseForm) @dataof(itf)
         var pos  = Math.Vector2{pt.x, pt.y}
         if base.subKind != .Highlight and base.subKind != .PixSel and !Math.isZeroEpsilon(base.rotate)
         {
@@ -255,7 +255,7 @@ impl BaseForm
 }
 
 // Shared geometry of the forms defined by a cloud of points (FormDraw & FormPolygon)
-func offsetPoints(points: #nonull *Array'Math.Vector2, newPosX, newPosY: s32)
+func offsetPoints(points: *Array'Math.Vector2, newPosX, newPosY: s32)
 {
     for &pt in dref points
     {
@@ -264,7 +264,7 @@ func offsetPoints(points: #nonull *Array'Math.Vector2, newPosX, newPosY: s32)
     }
 }
 
-func scalePointsBy(points: #nonull *Array'Math.Vector2, scale: f32)
+func scalePointsBy(points: *Array'Math.Vector2, scale: f32)
 {
     for &pt in dref points do
         pt.x, pt.y *= scale
@@ -273,7 +273,7 @@ func scalePointsBy(points: #nonull *Array'Math.Vector2, scale: f32)
 // Rescale all the points from the given bound to the given box.
 // Guard against a near-zero divisor (colinear/degenerate shapes): a zero width
 // or height would yield inf/NaN and destroy every point, so keep scale at 1.
-func scalePointsTo(points: #nonull *Array'Math.Vector2, bound: Math.Rectangle, newPosX, newPosY, newSizeX, newSizeY: s32)
+func scalePointsTo(points: *Array'Math.Vector2, bound: Math.Rectangle, newPosX, newPosY, newSizeX, newSizeY: s32)
 {
     let fx = Math.isZeroEpsilon(bound.width) ? 1'f32 : newSizeX / bound.width
     let fy = Math.isZeroEpsilon(bound.height) ? 1'f32 : newSizeY / bound.height
@@ -286,7 +286,7 @@ func scalePointsTo(points: #nonull *Array'Math.Vector2, bound: Math.Rectangle, n
 }
 
 // Bounding rectangle of the points, optionally padded (half border size)
-func boundOfPoints(points: #nonull *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
+func boundOfPoints(points: *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
 {
     var result: retval
 

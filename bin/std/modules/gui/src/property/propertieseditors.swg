@@ -26,7 +26,7 @@ public interface IPropertyEditor
     // An editor is a stateless singleton: it is invoked on a null instance (like canEdit), so
     // 'me' carries no per-field state — read any per-field configuration from 'value' (its
     // attributes), and wire 'data'/'item'/'list' into the widget callbacks.
-    mtd construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem;
+    mtd construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem;
 }
 
 // One registered editor: the implementing type (used to instantiate a fresh editor per field)
@@ -34,7 +34,7 @@ public interface IPropertyEditor
 // ImageDecoder / ImageEncoder.
 struct PropertyEditorReg
 {
-    type: #nonull const *Swag.TypeInfoStruct
+    type: const *Swag.TypeInfoStruct
     itf:  IPropertyEditor
 }
 
@@ -58,7 +58,7 @@ impl Properties
 
     // Append a {type, itf} entry to the registry. Public so the generic registerEditor above can
     // call it from any module; the 'editors' static itself stays module-internal.
-    func addEditor(type: #nonull const *Swag.TypeInfoStruct, itf: IPropertyEditor)
+    func addEditor(type: const *Swag.TypeInfoStruct, itf: IPropertyEditor)
     {
         var reg: PropertyEditorReg = undefined
         reg.type = type

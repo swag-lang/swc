@@ -64,7 +64,7 @@ impl GUID128
 
     // Convert guid to a string of the form xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
     #[Swag.Safety(.BoundCheck, false)]
-    mtd const toString(result: #nonull [..] u8)
+    mtd const toString(result: [..] u8)
     {
         Debug.assert(@countof(result) == 36)
 
@@ -129,7 +129,7 @@ impl StrConv.IConvert for GUID128
 {
     // Convert the GUID to its string representation for display.
     // Uses the standard UUID format with hyphens.
-    mtd const impl convert(buf: #nonull *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes(.getString())
     }

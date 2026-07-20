@@ -19,7 +19,7 @@ func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->boo
     return dx * dx + dy * dy <= tolerance * tolerance
 }
 
-func addEdge(edges: #nonull *Array'Edge, x0, y0, x1, y1: f64)
+func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
 {
     if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
         return
@@ -34,7 +34,7 @@ func addEdge(edges: #nonull *Array'Edge, x0, y0, x1, y1: f64)
     edges.add(edge)
 }
 
-func flattenQuadratic(edges: #nonull *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
     {
@@ -99,7 +99,7 @@ func buildEdges(outline: #null const *Outline)->Array'Edge
     return edges
 }
 
-func isInside(edges: #nonull const [..] Edge, x, y: f64)->bool
+func isInside(edges: const [..] Edge, x, y: f64)->bool
 {
     var winding = 0
     for edge in edges
@@ -130,7 +130,7 @@ func isInside(edges: #nonull const [..] Edge, x, y: f64)->bool
 // The piece runs from (xa, ya) to (xb, yb) in pixel space with ya < yb; 's' is the
 // winding sign (+1 for an upward edge, -1 for a downward one). Final per-pixel
 // coverage is reconstructed as: running_cover + cover[x] - area[x].
-func accumulateSpan(area, cover: #nonull [*] f64, width: s32, xa, ya, xb, yb, s: f64)
+func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
 {
     let dyTotal = yb - ya
     if dyTotal <= 0.0 do
@@ -196,7 +196,7 @@ func accumulateSpan(area, cover: #nonull [*] f64, width: s32, xa, ya, xb, yb, s:
 func renderCurrentOutline(slot: #null *GlyphSlot) throw
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = slot orelse cast(#nonull *GlyphSlot) 1'u64
+    let safeSlot = slot orelse cast(*GlyphSlot) 1'u64
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -220,7 +220,7 @@ func renderCurrentOutline(slot: #null *GlyphSlot) throw
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    let bitmapBuffer = faceData.bitmapPixels.buffer orelse cast(#nonull [*] u8) 1'u64
+    let bitmapBuffer = faceData.bitmapPixels.buffer orelse cast([*] u8) 1'u64
     var dst = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
@@ -228,8 +228,8 @@ func renderCurrentOutline(slot: #null *GlyphSlot) throw
     var cover: Array'f64
     area.resize(cast(u64) width)
     cover.resize(cast(u64) width)
-    let areaBuffer  = area.buffer orelse cast(#nonull [*] f64) 1'u64
-    let coverBuffer = cover.buffer orelse cast(#nonull [*] f64) 1'u64
+    let areaBuffer  = area.buffer orelse cast([*] f64) 1'u64
+    let coverBuffer = cover.buffer orelse cast([*] f64) 1'u64
 
     let leftF = cast(f64) left
     let topF  = cast(f64) top

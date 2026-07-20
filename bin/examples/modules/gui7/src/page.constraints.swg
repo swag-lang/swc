@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createDockLabel(parent: #nonull *Wnd, title, text: #nonull string, dock: DockStyle, size: Math.Point, margin: Math.Vector4 = {})->#nonull *Label
+func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: Math.Point, margin: Math.Vector4 = {})->*Label
 {
     let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), {0, 0, size.x, size.y}, null, .WordWrap)
     label.backgroundStyle = .Window
@@ -12,7 +12,7 @@ func createDockLabel(parent: #nonull *Wnd, title, text: #nonull string, dock: Do
     return label
 }
 
-func createConstraintsPage(parent: #nonull *Wnd)
+func createConstraintsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
     let page = createPanel(parent, "Docking and constraints", "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.", layout.full)

@@ -144,7 +144,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
         return false
 
     let methodInfo = info.methods[0]
-    let methodType = cast(const *Swag.TypeInfoFunc) methodInfo.pointedType
+    let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
     if methodInfo.name != "ping" or
        methodInfo.pointedType.kind != .Func or
        @countof(methodType.parameters) != 1 or
@@ -167,7 +167,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
         return false
 
     let methodInfo = info.methods[0]
-    let methodType = cast(const *Swag.TypeInfoFunc) methodInfo.pointedType
+    let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
     if methodInfo.name != "copyFrom" or
        methodInfo.pointedType.kind != .Func or
        @countof(methodType.parameters) != 2 or
@@ -196,10 +196,10 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     let scaledInfo = info.methods[2]
     let scoreInfo = info.methods[3]
 
-    let scaleType = cast(const *Swag.TypeInfoFunc) scaleInfo.pointedType
-    let addType = cast(const *Swag.TypeInfoFunc) addInfo.pointedType
-    let scaledType = cast(const *Swag.TypeInfoFunc) scaledInfo.pointedType
-    let scoreType = cast(const *Swag.TypeInfoFunc) scoreInfo.pointedType
+    let scaleType = cast(#null const *Swag.TypeInfoFunc) scaleInfo.pointedType
+    let addType = cast(#null const *Swag.TypeInfoFunc) addInfo.pointedType
+    let scaledType = cast(#null const *Swag.TypeInfoFunc) scaledInfo.pointedType
+    let scoreType = cast(#null const *Swag.TypeInfoFunc) scoreInfo.pointedType
 
     if scaleInfo.name != "scaleValue" or
        scaleInfo.pointedType.kind != .Func or

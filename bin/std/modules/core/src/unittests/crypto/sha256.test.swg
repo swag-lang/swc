@@ -14,7 +14,7 @@ func assertSha256Digest(digest: Hash.Sha256.Digest, e0, e1, e2, e3, e4, e5, e6, 
     @assert(digest[7] == e7)
 }
 
-func assertSha256(buffer: #nonull const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7: u32)
+func assertSha256(buffer: const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7: u32)
 {
     assertSha256Digest(Hash.Sha256.compute(buffer), e0, e1, e2, e3, e4, e5, e6, e7)
 
@@ -34,7 +34,7 @@ func assertSha256(buffer: #nonull const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7:
     assertSha256Digest(digest, e0, e1, e2, e3, e4, e5, e6, e7)
 }
 
-func fillSha256Pattern(buffer: #nonull [..] u8)
+func fillSha256Pattern(buffer: [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)

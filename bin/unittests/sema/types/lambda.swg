@@ -1,22 +1,21 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 var A: func(s32)
 #assert(#nameof(#typeof(A)) == "func(s32)")
 var B: func(s32, bool)
 #assert(#nameof(#typeof(B)) == "func(s32, bool)")
-var C: func(s32, bool)->#nonull string
-#assert(#nameof(#typeof(C)) == "func(s32, bool)->#nonull string")
-var D: func(s32, #nonull string)->#null *s32 throw
-#assert(#nameof(#typeof(D)) == "func(s32, #nonull string)->#null *s32 throw")
+var C: func(s32, bool)->string
+#assert(#nameof(#typeof(C)) == "func(s32, bool)->string")
+var D: func(s32, string)->#null *s32 throw
+#assert(#nameof(#typeof(D)) == "func(s32, string)->#null *s32 throw")
 var E: func||(s32)
 #assert(#nameof(#typeof(E)) == "func||(s32)")
 var F: func||(s32, bool)
 #assert(#nameof(#typeof(F)) == "func||(s32, bool)")
-var G: func||(s32, bool)->#nonull string
-#assert(#nameof(#typeof(G)) == "func||(s32, bool)->#nonull string")
-var H: func||(s32, #nonull string)->#null *s32 throw
-#assert(#nameof(#typeof(H)) == "func||(s32, #nonull string)->#null *s32 throw")
+var G: func||(s32, bool)->string
+#assert(#nameof(#typeof(G)) == "func||(s32, bool)->string")
+var H: func||(s32, string)->#null *s32 throw
+#assert(#nameof(#typeof(H)) == "func||(s32, string)->#null *s32 throw")
 
 struct RecursiveFuncField
 {
@@ -49,7 +48,7 @@ var A0: func(a: s32)
 
 func PtrMatch0() {}
 func PtrMatch1(value: s32) {}
-func PtrMatch2(lhs: s32, rhs: bool)->#nonull string => "ok"
+func PtrMatch2(lhs: s32, rhs: bool)->string => "ok"
 func PtrMatch4(values: s32...)->s32
 {
     var result = 0
@@ -66,7 +65,7 @@ func semaTest001()
 {
     let p0: func() = &PtrMatch0
     let p1: func(value: s32) = &PtrMatch1
-    let p2: func(s32, bool)->#nonull string = &PtrMatch2
+    let p2: func(s32, bool)->string = &PtrMatch2
     let p4: func(s32...)->s32 = &PtrMatch4
     let p5: func(...)->s32 = &PtrMatch5
 
@@ -74,7 +73,7 @@ func semaTest001()
     p1(10)
 
     let text = p2(1, true)
-    #assert(#typeof(text) == #nonull string)
+    #assert(#typeof(text) == string)
 
     let total = p4(1, 2, 3)
     #assert(#typeof(total) == s32)

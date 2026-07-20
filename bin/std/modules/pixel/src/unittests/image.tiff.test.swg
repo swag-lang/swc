@@ -3,7 +3,7 @@ using Swag, Core
 
 // Low-level, endian-aware writers used to hand-build TIFF byte buffers.
 
-func tw16(cb: #nonull *ConcatBuffer, le: bool, v: u16)
+func tw16(cb: *ConcatBuffer, le: bool, v: u16)
 {
     if le
     {
@@ -17,7 +17,7 @@ func tw16(cb: #nonull *ConcatBuffer, le: bool, v: u16)
     }
 }
 
-func tw32(cb: #nonull *ConcatBuffer, le: bool, v: u32)
+func tw32(cb: *ConcatBuffer, le: bool, v: u32)
 {
     if le
     {
@@ -36,7 +36,7 @@ func tw32(cb: #nonull *ConcatBuffer, le: bool, v: u32)
 }
 
 // Single inline SHORT value (left-justified in the 4-byte field).
-func entShort(cb: #nonull *ConcatBuffer, le: bool, tag, value: u16)
+func entShort(cb: *ConcatBuffer, le: bool, tag, value: u16)
 {
     tw16(cb, le, tag)
     tw16(cb, le, 3)
@@ -46,7 +46,7 @@ func entShort(cb: #nonull *ConcatBuffer, le: bool, tag, value: u16)
 }
 
 // Single inline LONG value.
-func entLong(cb: #nonull *ConcatBuffer, le: bool, tag: u16, value: u32)
+func entLong(cb: *ConcatBuffer, le: bool, tag: u16, value: u32)
 {
     tw16(cb, le, tag)
     tw16(cb, le, 4)
@@ -55,7 +55,7 @@ func entLong(cb: #nonull *ConcatBuffer, le: bool, tag: u16, value: u32)
 }
 
 // Entry whose values live at an external offset.
-func entOffset(cb: #nonull *ConcatBuffer, le: bool, tag, type: u16, count, offset: u32)
+func entOffset(cb: *ConcatBuffer, le: bool, tag, type: u16, count, offset: u32)
 {
     tw16(cb, le, tag)
     tw16(cb, le, type)
@@ -66,7 +66,7 @@ func entOffset(cb: #nonull *ConcatBuffer, le: bool, tag, type: u16, count, offse
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: #nonull const [..] u8, palette: #null const [..] u16, extraSamples: bool)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: #null const [..] u16, extraSamples: bool)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -185,21 +185,21 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     return cbToArray(&cb)
 }
 
-func tiffCanEncode(fileName: #nonull string)->bool
+func tiffCanEncode(fileName: string)->bool
 {
     var enc: Tiff.Encoder
     let itf = @mkinterface(&enc, #typeof(Tiff.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeTiff(result: #nonull *ConcatBuffer, image: Image) throw
+func encodeTiff(result: *ConcatBuffer, image: Image) throw
 {
     var enc: Tiff.Encoder
     let itf = @mkinterface(&enc, #typeof(Tiff.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func decodeTiff(bytes: #nonull const [..] u8, opt: DecodeOptions = {})->Image throw
+func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 {
     var dec: Tiff.Decoder
     let itf = @mkinterface(&dec, #typeof(Tiff.Decoder), IImageDecoder)

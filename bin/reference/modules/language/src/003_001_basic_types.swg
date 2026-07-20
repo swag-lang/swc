@@ -96,7 +96,7 @@ This structure ensures efficient text manipulation and full Unicode compatibilit
 */
 #test
 {
-    let a: #nonull string = "string 是" // UTF-8 encoded string
+    let a: string = "string 是" // UTF-8 encoded string
 
     @assert(a == "string 是")
     @assert(#sizeof(a) == 2 * #sizeof(#null *void)) // Pointer + length

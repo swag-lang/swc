@@ -18,7 +18,7 @@ enum LogFlags
 // Interface for writing log output.
 interface ILogWriter
 {
-    mtd print(text: #nonull string); // Print a string to the log destination.
+    mtd print(text: string); // Print a string to the log destination.
 }
 
 // A thread-safe logger that supports multiple output writers and customizable formatting.
@@ -125,7 +125,7 @@ impl Log
     }
 
     // Print a message to the log with an optional source location.
-    mtd print(text: #nonull string, loc = #callerlocation)
+    mtd print(text: string, loc = #callerlocation)
     {
         // Get this first, to have the time of the call, before the lock
         if .flags & (.Date | .Time) do
@@ -138,7 +138,7 @@ impl Log
         .buildHeader(loc)
         .buf.appendString(text)
         let rendered:     String = .buf.toString()
-        let renderedText: #nonull string = rendered.toString()
+        let renderedText: string = rendered.toString()
 
         // Output default result if no writers
         if .writers.isEmpty()

@@ -7,7 +7,7 @@ struct NonNullRequiredFieldItem
 
 struct NonNullRequiredFieldHolder
 {
-    required: #nonull *NonNullRequiredFieldItem
+    required: *NonNullRequiredFieldItem
     optional: #null *NonNullRequiredFieldItem
     legacy:   *NonNullRequiredFieldItem
     count:    s32 = 7
@@ -25,32 +25,32 @@ struct NonNullRequiredFieldBatch
 
 struct NonNullRequiredBlockFieldHolder
 {
-    required: #nonull [*] NonNullRequiredFieldItem
+    required: [*] NonNullRequiredFieldItem
 }
 
 struct NonNullRequiredSliceFieldHolder
 {
-    required: #nonull [..] NonNullRequiredFieldItem
+    required: [..] NonNullRequiredFieldItem
 }
 
 struct NonNullRequiredStringFieldHolder
 {
-    required: #nonull string
+    required: string
 }
 
 struct NonNullRequiredCStringFieldHolder
 {
-    required: #nonull cstring
+    required: cstring
 }
 
 struct NonNullRequiredAnyFieldHolder
 {
-    required: #nonull any
+    required: any
 }
 
 struct NonNullRequiredTypeInfoFieldHolder
 {
-    required: #nonull typeinfo
+    required: typeinfo
 }
 
 func acceptNonNullRequiredField(value: NonNullRequiredFieldHolder)

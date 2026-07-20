@@ -106,10 +106,10 @@ func audioStartNoSoundEngine()
 
     let bus0 = catch Bus.create(2)
     @assert(@err == null)
-    let safeBus0 = bus0 orelse cast(#nonull *Bus) 1'u64
+    let safeBus0 = bus0 orelse cast(*Bus) 1'u64
     let bus1 = catch Bus.create(2, safeBus0)
     @assert(@err == null)
-    let safeBus1 = bus1 orelse cast(#nonull *Bus) 1'u64
+    let safeBus1 = bus1 orelse cast(*Bus) 1'u64
     discard catch voice.setRooting([safeBus0, safeBus1])
     @assert(@err == null)
     @assert(handle.busCount == 2)

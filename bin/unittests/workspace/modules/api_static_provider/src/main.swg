@@ -16,7 +16,7 @@ func depScale(value: f32)->f32
     return value * 4
 }
 
-func depStringLength(text: #nonull string)->u64
+func depStringLength(text: string)->u64
 {
     return @countof(text)
 }

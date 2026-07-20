@@ -1,24 +1,24 @@
 #global namespace Memory
 using Swag
 
-internal func concreteRuntimeType(type: #nonull typeinfo)->#nonull typeinfo
+internal func concreteRuntimeType(type: typeinfo)->typeinfo
 {
     var result = type
     while result.kind == TypeInfoKind.Alias
     {
-        let typeAlias = cast(#nonull const *TypeInfoAlias) result
+        let typeAlias = cast(const *TypeInfoAlias) result
         result = typeAlias.rawType
     }
 
     return result
 }
 
-internal func canDefaultInit(type: #nonull typeinfo)->bool
+internal func canDefaultInit(type: typeinfo)->bool
 {
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(#nonull const *TypeInfoArray) concreteType
+        let typeArray = cast(const *TypeInfoArray) concreteType
         if !typeArray.count do
             return true
         if type.flags & TypeInfoFlags.RequiresExplicitInit do
@@ -34,7 +34,7 @@ internal func canDefaultInit(type: #nonull typeinfo)->bool
     if concreteType.kind != TypeInfoKind.Struct do
         return true
 
-    let typeStruct = cast(#nonull const *TypeInfoStruct) concreteType
+    let typeStruct = cast(const *TypeInfoStruct) concreteType
     if typeStruct.opInit do
         return true
     if !(concreteType.flags & TypeInfoFlags.Tuple) do
@@ -52,17 +52,17 @@ internal func canDefaultInit(type: #nonull typeinfo)->bool
     return true
 }
 
-internal func defaultInit(dst: #null *void, type: #nonull typeinfo)
+internal func defaultInit(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = dst orelse cast(#nonull *void) 1'u64
+    let data = dst orelse cast(*void) 1'u64
 
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(#nonull const *TypeInfoArray) concreteType
-        var scan      = cast(#nonull [*] u8) data
+        let typeArray = cast(const *TypeInfoArray) concreteType
+        var scan      = cast([*] u8) data
         for typeArray.count
         {
             let pointedType = typeArray.pointedType
@@ -77,7 +77,7 @@ internal func defaultInit(dst: #null *void, type: #nonull typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(#nonull const *TypeInfoStruct) concreteType
+        let typeStruct = cast(const *TypeInfoStruct) concreteType
         if typeStruct.opInit
         {
             typeStruct.opInit(data)
@@ -94,7 +94,7 @@ internal func defaultInit(dst: #null *void, type: #nonull typeinfo)
             let pointedType = field.pointedType
             if !pointedType do
                 return
-            defaultInit(cast(#nonull [*] u8) data + field.offset, pointedType orelse #typeof(u8))
+            defaultInit(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
         }
         return
     }
@@ -102,11 +102,11 @@ internal func defaultInit(dst: #null *void, type: #nonull typeinfo)
     clear(data, cast(u64) concreteType.sizeof)
 }
 
-internal func dropType(dst: #null *void, type: #nonull typeinfo)
+internal func dropType(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = dst orelse cast(#nonull *void) 1'u64
+    let data = dst orelse cast(*void) 1'u64
 
     if !(type.flags & TypeInfoFlags.HasDrop) do
         return
@@ -114,8 +114,8 @@ internal func dropType(dst: #null *void, type: #nonull typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(#nonull const *TypeInfoArray) concreteType
-        var scan      = cast(#nonull [*] u8) data
+        let typeArray = cast(const *TypeInfoArray) concreteType
+        var scan      = cast([*] u8) data
         for typeArray.count
         {
             let pointedType = typeArray.pointedType
@@ -130,7 +130,7 @@ internal func dropType(dst: #null *void, type: #nonull typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(#nonull const *TypeInfoStruct) concreteType
+        let typeStruct = cast(const *TypeInfoStruct) concreteType
         if typeStruct.opDrop
         {
             typeStruct.opDrop(data)
@@ -144,17 +144,17 @@ internal func dropType(dst: #null *void, type: #nonull typeinfo)
                 let pointedType = field.pointedType
                 if !pointedType do
                     return
-                dropType(cast(#nonull [*] u8) data + field.offset, pointedType orelse #typeof(u8))
+                dropType(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
             }
         }
     }
 }
 
-internal func postCopyType(dst: #null *void, type: #nonull typeinfo)
+internal func postCopyType(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = dst orelse cast(#nonull *void) 1'u64
+    let data = dst orelse cast(*void) 1'u64
 
     if !(type.flags & TypeInfoFlags.HasPostCopy) do
         return
@@ -162,8 +162,8 @@ internal func postCopyType(dst: #null *void, type: #nonull typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(#nonull const *TypeInfoArray) concreteType
-        var scan      = cast(#nonull [*] u8) data
+        let typeArray = cast(const *TypeInfoArray) concreteType
+        var scan      = cast([*] u8) data
         for typeArray.count
         {
             let pointedType = typeArray.pointedType
@@ -178,7 +178,7 @@ internal func postCopyType(dst: #null *void, type: #nonull typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(#nonull const *TypeInfoStruct) concreteType
+        let typeStruct = cast(const *TypeInfoStruct) concreteType
         if typeStruct.opPostCopy
         {
             typeStruct.opPostCopy(data)
@@ -192,17 +192,17 @@ internal func postCopyType(dst: #null *void, type: #nonull typeinfo)
                 let pointedType = field.pointedType
                 if !pointedType do
                     return
-                postCopyType(cast(#nonull [*] u8) data + field.offset, pointedType orelse #typeof(u8))
+                postCopyType(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
             }
         }
     }
 }
 
-internal func postMoveType(dst: #null *void, type: #nonull typeinfo)
+internal func postMoveType(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = dst orelse cast(#nonull *void) 1'u64
+    let data = dst orelse cast(*void) 1'u64
 
     if !(type.flags & TypeInfoFlags.HasPostMove) do
         return
@@ -210,8 +210,8 @@ internal func postMoveType(dst: #null *void, type: #nonull typeinfo)
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
     {
-        let typeArray = cast(#nonull const *TypeInfoArray) concreteType
-        var scan      = cast(#nonull [*] u8) data
+        let typeArray = cast(const *TypeInfoArray) concreteType
+        var scan      = cast([*] u8) data
         for typeArray.count
         {
             let pointedType = typeArray.pointedType
@@ -226,7 +226,7 @@ internal func postMoveType(dst: #null *void, type: #nonull typeinfo)
 
     if concreteType.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(#nonull const *TypeInfoStruct) concreteType
+        let typeStruct = cast(const *TypeInfoStruct) concreteType
         if typeStruct.opPostMove
         {
             typeStruct.opPostMove(data)
@@ -240,7 +240,7 @@ internal func postMoveType(dst: #null *void, type: #nonull typeinfo)
                 let pointedType = field.pointedType
                 if !pointedType do
                     return
-                postMoveType(cast(#nonull [*] u8) data + field.offset, pointedType orelse #typeof(u8))
+                postMoveType(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
             }
         }
     }

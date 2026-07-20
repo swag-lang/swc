@@ -21,7 +21,7 @@ const VARIADIC_TYPE_INFO_PARAM_INFO = cast(const *TypeInfoStruct) #typeof(Variad
     @assert(@countof(VARIADIC_TYPE_INFO_PARAM_INFO.attributes) == 1)
 
     let attribute = VARIADIC_TYPE_INFO_PARAM_INFO.attributes[0]
-    let value = cast(typeinfo) attribute.params[0].value
+    let value = cast(#null typeinfo) attribute.params[0].value
 
     @assert(attribute.type == #typeof(VariadicTypeInfoParamAttr))
     @assert(attribute.params[0].name == "value")

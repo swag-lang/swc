@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func fillCompressPattern(buffer: #nonull [..] u8)
+func fillCompressPattern(buffer: [..] u8)
 {
     for i in @countof(buffer)
     {
@@ -11,7 +11,7 @@ func fillCompressPattern(buffer: #nonull [..] u8)
     }
 }
 
-func assertBytesEqual(actual: #nonull const [..] u8, expected: #nonull const [..] u8)->bool
+func assertBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 {
     if @countof(actual) != @countof(expected) do
         return false
@@ -25,7 +25,7 @@ func assertBytesEqual(actual: #nonull const [..] u8, expected: #nonull const [..
     return true
 }
 
-func assertZLibRoundTrip(input: #nonull const [..] u8, level: Compress.Deflate.CompressionLevel)
+func assertZLibRoundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var zlib: Compress.ZLib
     let compressed = catch zlib.compress(input, level)
@@ -40,7 +40,7 @@ func assertZLibRoundTrip(input: #nonull const [..] u8, level: Compress.Deflate.C
     @assert(assertBytesEqual(decoded.toSlice(), input))
 }
 
-func assertDeflateRoundTrip(input: #nonull const [..] u8, level: Compress.Deflate.CompressionLevel, strategy: Compress.Deflate.CompressionStrategy)
+func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, strategy: Compress.Deflate.CompressionStrategy)
 {
     var deflater: Compress.Deflate
     deflater.init(level, strategy)

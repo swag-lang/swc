@@ -4,17 +4,18 @@ const A: s32 = 1
 const B: bool = cast() A
 #assert(B == true)
 
-var gAutoPtr: *u32
+var gAutoPtr: #null *u32
 var gAutoS32: s32
 var gAutoU64: u64
 var gAutoF64: f64
+var gAutoX64: u64
 func toto(ptr: *u32) { gAutoPtr = ptr }
 func takes_s32(v: s32) { gAutoS32 = v }
 func takes_u64(v: u64) { gAutoU64 = v }
 func takes_f64(v: f64) { gAutoF64 = v }
 #test
 {
-    var ptr: *u64
+    var ptr: *u64 = &gAutoX64
     toto(cast() ptr)
     @assert(gAutoPtr == cast(*u32) ptr)
 }

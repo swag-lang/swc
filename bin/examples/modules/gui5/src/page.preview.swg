@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createPreviewPage(parent: #nonull *Wnd)
+func createPreviewPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Selected color card", "The selected color is rendered with checkerboard alpha, automatic contrast text and complement accent.", layout.left)

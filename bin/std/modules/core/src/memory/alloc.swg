@@ -2,7 +2,7 @@
 #global namespace Memory
 using Swag
 
-func allocZeroSizeMessage(kind: #nonull string, size: u64, hint: #null string, loc: Swag.SourceCodeLocation)->String
+func allocZeroSizeMessage(kind: string, size: u64, hint: #null string, loc: Swag.SourceCodeLocation)->String
 {
     var result: retval
     result.append(kind)
@@ -67,7 +67,7 @@ func freeAll(allocator: IAllocator, hint: #null string = null, loc = #callerloca
 }
 
 // Reallocate/allocate a given amount of bytes
-func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#nonull [*] void
+func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
     if !newSize do
         @panic(allocZeroSizeMessage("Memory.realloc", newSize, hint, loc), loc)
@@ -86,11 +86,11 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAll
     let address = req.address
     if !address do
         @panic("Memory.realloc returned null", loc)
-    return address orelse cast(#nonull [*] void) 1'u64
+    return address orelse cast([*] void) 1'u64
 }
 
 // Allocate a given amount of bytes
-func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#nonull [*] void
+func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
     if !size do
         @panic(allocZeroSizeMessage("Memory.alloc", size, hint, loc), loc)
@@ -107,11 +107,11 @@ func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #n
     let address = req.address
     if !address do
         @panic("Memory.alloc returned null", loc)
-    return address orelse cast(#nonull [*] void) 1'u64
+    return address orelse cast([*] void) 1'u64
 }
 
 // Allocate a given amount of bytes in the temporary allocator
-func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#nonull [*] void
+func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
     if !size do
         @panic(allocZeroSizeMessage("Memory.tempAlloc", size, hint, loc), loc)
@@ -125,11 +125,11 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #
     let address = req.address
     if !address do
         @panic("Memory.tempAlloc returned null", loc)
-    return address orelse cast(#nonull [*] void) 1'u64
+    return address orelse cast([*] void) 1'u64
 }
 
 // Allocate and initialize the given type
-func new(type: #nonull typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#null *u8
+func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#null *u8
 {
     let userHint = hint orelse type.fullname
     if !canDefaultInit(type)
@@ -144,10 +144,10 @@ func new(type: #nonull typeinfo, allocator: IAllocator = null, alignment: u32 = 
 }
 
 // Allocate and initialize the given type
-func(T) new(allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#nonull *T
+func(T) new(allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
-    let ptr      = cast(#nonull *T) alloc(#sizeof(T), allocator, alignment, userHint, loc)
+    let ptr      = cast(*T) alloc(#sizeof(T), allocator, alignment, userHint, loc)
     @init(ptr, 1)
     return ptr
 }
@@ -164,7 +164,7 @@ func(T) delete(ptr: #null *T, allocator: IAllocator = null, hint: #null string =
 }
 
 // Drop and release memory of the given type
-func delete(ptr: #null *void, type: #nonull typeinfo, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func delete(ptr: #null *void, type: typeinfo, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !ptr do
         return
@@ -176,18 +176,18 @@ func delete(ptr: #null *void, type: #nonull typeinfo, allocator: IAllocator = nu
     let safePtr = ptr
     if !safePtr do
         return
-    dropType(safePtr orelse cast(#nonull *void) 1'u64, type)
+    dropType(safePtr orelse cast(*void) 1'u64, type)
 
     free(ptr, cast(u64) type.sizeof, allocator, userHint, loc)
 }
 
 // Allocate and initialize an array of the given type
-func(T) new(num: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#nonull [*] T
+func(T) new(num: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] T
 {
     Debug.assert(num > 0)
 
     let userHint = hint orelse #stringof(T)
-    let ptr      = cast(#nonull [*] T) alloc(#sizeof(T) * num, allocator, alignment, userHint, loc)
+    let ptr      = cast([*] T) alloc(#sizeof(T) * num, allocator, alignment, userHint, loc)
     @init(ptr, num)
     return ptr
 }

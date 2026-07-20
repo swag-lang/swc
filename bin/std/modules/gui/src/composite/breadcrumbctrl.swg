@@ -41,17 +41,17 @@ struct BreadcrumbCtrl
     arrowPad            = 6.0'f32
 
     // Clicking a level body: navigate to the level at this index.
-    sigItemPressed:     SigArray'func||(#nonull *BreadcrumbCtrl, u64)
+    sigItemPressed:     SigArray'func||(*BreadcrumbCtrl, u64)
     // Opening a level's chevron: the app fills 'menu' with the level's children.
-    sigFillMenu:        func||(#nonull *BreadcrumbCtrl, u64, #nonull *MenuCtrl)
+    sigFillMenu:        func||(*BreadcrumbCtrl, u64, *MenuCtrl)
     // A child was picked from a level's chevron menu; 'id' is the chosen menu item id.
-    sigMenuSelected:    SigArray'func||(#nonull *BreadcrumbCtrl, u64, String)
+    sigMenuSelected:    SigArray'func||(*BreadcrumbCtrl, u64, String)
 }
 
 impl BreadcrumbCtrl
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *BreadcrumbCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*BreadcrumbCtrl
     {
         Debug.assert(parent != null)
         var pos = position
@@ -71,7 +71,7 @@ impl BreadcrumbCtrl
 
     // Append a level. 'hasArrow' shows its drop-down chevron (default true). 'tag' is an
     // arbitrary string the app can read back (e.g. the level's folder path).
-    mtd addItem(name: #nonull string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: #null string = null)
+    mtd addItem(name: string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: #null string = null)
     {
         var it: BreadcrumbItem
         it.name     = name
@@ -145,7 +145,7 @@ impl BreadcrumbCtrl
 
 impl IWnd for BreadcrumbCtrl
 {
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .MouseLeave
         {
@@ -214,7 +214,7 @@ impl IWnd for BreadcrumbCtrl
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         .layout()
 

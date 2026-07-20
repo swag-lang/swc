@@ -12,13 +12,13 @@ struct ReusedJobData
 
 struct WaitJobThreadData
 {
-    job:          #nonull *Job
-    waitReturned: #nonull *s32
+    job:          *Job
+    waitReturned: *s32
 }
 
 func reusedJobEntry(data: #null *void)
 {
-    let jobData = cast(#nonull *ReusedJobData) (data orelse cast(#nonull *void) 1'u64)
+    let jobData = cast(*ReusedJobData) (data orelse cast(*void) 1'u64)
     let executionIndex = Atomic.add(&jobData.executionCount, 1) + 1
     if executionIndex == 2
     {
@@ -29,7 +29,7 @@ func reusedJobEntry(data: #null *void)
 
 func waitJobThread(th: Threading.Thread)
 {
-    let data = cast(#nonull *WaitJobThreadData) (th.userParam orelse cast(#nonull *void) 1'u64)
+    let data = cast(*WaitJobThreadData) (th.userParam orelse cast(*void) 1'u64)
     Jobs.waitJob(data.job)
     Atomic.add(data.waitReturned, 1)
 }

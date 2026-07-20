@@ -129,7 +129,6 @@ namespace Runtime
         Character         = 0x00008000,
         Const             = 0x00010000,
         Nullable          = 0x00020000,
-        ExplicitNonNull   = 0x00040000,
         RequiresExplicitInit = 0x00080000,
     };
 
@@ -519,7 +518,6 @@ namespace Runtime
         String warnAsDisabled;
         bool   warnDefaultDisabled = false;
         bool   warnDefaultErrors   = false;
-        bool   explicitNullability = false;
 
         BuildCfgBackendKind    backendKind    = BuildCfgBackendKind::Executable;
         BuildCfgBackendSubKind backendSubKind = BuildCfgBackendSubKind::Console;

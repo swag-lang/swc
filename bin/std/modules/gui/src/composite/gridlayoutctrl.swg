@@ -45,7 +45,7 @@ struct GridLayoutCtrl
 
 impl IWnd for GridLayoutCtrl
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
         .wnd.IWnd.onResizeEvent(evt)
@@ -115,7 +115,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd spanH(col, row: s32, child: #nonull *Wnd)->s32
+    mtd spanH(col, row: s32, child: *Wnd)->s32
     {
         var result: retval = 0
         var idx = col + (row * .numColumns)
@@ -132,7 +132,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd spanV(col, row: s32, child: #nonull *Wnd)->s32
+    mtd spanV(col, row: s32, child: *Wnd)->s32
     {
         var result: retval = 0
         var idx = col + (row * .numColumns)
@@ -192,7 +192,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd computeTrackSizes(tracks: #nonull [..] GridTrack, content: #nonull [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
+    mtd computeTrackSizes(tracks: [..] GridTrack, content: [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
     {
         var result: retval
         let count = @countof(tracks)
@@ -258,7 +258,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd trackOffset(sizes: #nonull [..] f32, idx: s32, spacing: f32)->f32
+    mtd trackOffset(sizes: [..] f32, idx: s32, spacing: f32)->f32
     {
         var result: retval
         for i in idx
@@ -270,7 +270,7 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd trackSpanSize(sizes: #nonull [..] f32, idx, span: s32, spacing: f32)->f32
+    mtd trackSpanSize(sizes: [..] f32, idx, span: s32, spacing: f32)->f32
     {
         var result: retval
         for i in span
@@ -287,7 +287,7 @@ private impl GridLayoutCtrl
 impl GridLayoutCtrl
 {
     // Create a layout control
-    func create(parent: #nonull *Wnd, numColumns, numRows: s32, position: Math.Rectangle = {})->#nonull *GridLayoutCtrl
+    func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = {})->*GridLayoutCtrl
     {
         Debug.assert(numColumns > 0 and numRows > 0)
 
@@ -387,7 +387,7 @@ impl GridLayoutCtrl
 
     // Set the wnd associated with the given 'col' and 'row'.
     // Window can cover multiple columns and rows.
-    mtd setColRowChild(child: #nonull *Wnd, col, row: s32, spanH, spanV: s32 = 1)
+    mtd setColRowChild(child: *Wnd, col, row: s32, spanH, spanV: s32 = 1)
     {
         .ensureStorage()
         Debug.assert(child.parent == me)

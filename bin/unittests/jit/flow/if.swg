@@ -162,7 +162,7 @@ impl EarlyReturnAndElifText
         return .length
     }
 
-    mtd const opEquals(other: string)->bool
+    mtd const opEquals(other: #null string)->bool
     {
         return .length == @countof(other)
     }
@@ -172,7 +172,7 @@ struct EarlyReturnAndElifBox
 {
     enabled: bool
     text:    EarlyReturnAndElifText
-    button:  *EarlyReturnAndElifButton
+    button:  #null *EarlyReturnAndElifButton
     cb:      func||()
     value:   s32
 }

@@ -21,20 +21,20 @@ impl TypeFace
     }
 
     // Create a new typeface from a HFONT
-    public func createFromHFONT(fullname: #nonull string, hf: HFONT)->#nonull *TypeFace throw
+    public func createFromHFONT(fullname: string, hf: HFONT)->*TypeFace throw
     {
         Sync.scopedLock(&lock)
 
         let str  = String.from(fullname)
         let here = g_HashTypeFace.tryFind(str)
         if here do
-            return here.value orelse cast(#nonull *TypeFace) 1'u64
+            return here.value orelse cast(*TypeFace) 1'u64
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = getDataFromHFONT(hf)
 
-        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(#nonull *Face) 1'u64
+        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(*Face) 1'u64
 
         g_HashTypeFace.add(str, tf)
         return tf

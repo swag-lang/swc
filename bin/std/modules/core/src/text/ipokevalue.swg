@@ -4,6 +4,6 @@ namespace StrConv
 {
     public interface IPokeValue
     {
-        mtd poke(buf: #nonull string)->#nonull string throw;
+        mtd poke(buf: string)->string throw;
     }
 }

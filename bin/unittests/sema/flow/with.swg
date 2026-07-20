@@ -22,7 +22,7 @@ struct SemaWithPoint
 
 struct SemaWithHolder
 {
-    ptr: *SemaWithPoint
+    ptr: #null *SemaWithPoint
 }
 
 struct SemaWithWrapper

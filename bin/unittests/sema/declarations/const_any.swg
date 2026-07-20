@@ -106,8 +106,8 @@ func semaTest013()
 
 func semaTest014()
 {
-    const A: any = null
-    #assert(#typeof(A) == any)
+    const A: #null any = null
+    #assert(#typeof(A) == #null any)
     @assert(A == null)
 }
 

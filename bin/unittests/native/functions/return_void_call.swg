@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 var gReturnVoidCallValue: s32 = 0
 

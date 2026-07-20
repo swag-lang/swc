@@ -3,7 +3,7 @@
 using Swag
 
 #[Swag.Safety(.Overflow, false)]
-func crc32Reference(buffer: #nonull const [..] u8, seed: u32 = 0)->u32
+func crc32Reference(buffer: const [..] u8, seed: u32 = 0)->u32
 {
     var crc = ~seed
 
@@ -22,7 +22,7 @@ func crc32Reference(buffer: #nonull const [..] u8, seed: u32 = 0)->u32
     return ~crc
 }
 
-func assertCrc32(buffer: #nonull const [..] u8, seed: u32 = 0)
+func assertCrc32(buffer: const [..] u8, seed: u32 = 0)
 {
     let expected = crc32Reference(buffer, seed)
 
@@ -38,7 +38,7 @@ func assertCrc32(buffer: #nonull const [..] u8, seed: u32 = 0)
     @assert(crc.crc == expected)
 }
 
-func fillCrc32Pattern(buffer: #nonull [..] u8)
+func fillCrc32Pattern(buffer: [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)

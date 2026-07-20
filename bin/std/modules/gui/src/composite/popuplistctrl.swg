@@ -16,7 +16,7 @@ struct PopupListCtrl
     maxHeightPopup:       f32 = 300
     simFitX, simFitY:     bool
 
-    sigSelected:          func||(#nonull *PopupListCtrl, u32)
+    sigSelected:          func||(*PopupListCtrl, u32)
 
     items:                ArrayPtr'PopupListCtrlItem
     selectedIdx           = Swag.U32.Max
@@ -34,7 +34,7 @@ struct PopupListView
 
 impl IWnd for PopupListView
 {
-    mtd impl onFocusEvent(evt: #nonull *FocusEvent)
+    mtd impl onFocusEvent(evt: *FocusEvent)
     {
         switch evt.kind
         {
@@ -49,7 +49,7 @@ impl IWnd for PopupListView
     // Keyboard control of the popup when it holds the focus directly. The property
     // grid keeps the focus and forwards keys via PopupListCtrl.key* instead, but a
     // standalone focused popup still works through this path.
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -76,7 +76,7 @@ impl IWnd for PopupListView
         evt.accepted = true
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let mouseInRect = .getSurfaceRect().contains(evt.surfacePos)
         let pos         = .surfaceToLocal(evt.surfacePos)
@@ -133,7 +133,7 @@ impl IWnd for PopupListView
         return Swag.U32.Max
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let painter = evt.bc.painter
 
@@ -227,7 +227,7 @@ private impl PopupListView
             return
         .closing = true
 
-        if .getApp().mouseCaptureWnd == cast(#nonull *Wnd) me do
+        if .getApp().mouseCaptureWnd == cast(*Wnd) me do
             .releaseMouse()
 
         if .list.sigSelected do
@@ -299,7 +299,7 @@ private impl PopupListView
 impl PopupListCtrl
 {
     // Create the popup list, but: not display it
-    func create(owner: #nonull *Wnd)->#nonull *PopupListCtrl
+    func create(owner: *Wnd)->*PopupListCtrl
     {
         let popup = Wnd.create'PopupListCtrl(owner.getTopView(), owner.position, owner.id)
 
@@ -352,7 +352,7 @@ impl PopupListCtrl
     }
 
     // Add a new item in the list
-    mtd addItem(name: #nonull string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)
+    mtd addItem(name: string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)
     {
         let item = .items.newPtr()
         with item

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertIntList(values: &List's32, expected: #nonull const [..] s32)->bool
+func assertIntList(values: &List's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -28,7 +28,7 @@ func visitStructList(values: &List'ListStructProbe)->s32
     var code = 0
     for value, node in values
     {
-        #assert(#typeof(node) == #nonull *ListEntry'ListStructProbe)
+        #assert(#typeof(node) == *ListEntry'ListStructProbe)
         if value.value == 12 do
             continue
 
@@ -45,7 +45,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     var code = 0
     for #reverse value, node in values
     {
-        #assert(#typeof(node) == #nonull *ListEntry'ListStructProbe)
+        #assert(#typeof(node) == *ListEntry'ListStructProbe)
         code = code * 10 + value.value
         if value.value == 12 do
             return code
@@ -60,7 +60,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.addBack(2)
     values.addFront(1)
     values.addBack(4)
-    let tail = values.tail orelse cast(#nonull *ListEntry's32) 1'u64
+    let tail = values.tail orelse cast(*ListEntry's32) 1'u64
     values.insertBefore(tail, 3)
 
     let expected: [4] s32 = [1, 2, 3, 4]
@@ -73,14 +73,14 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)
-    let tail = values.tail orelse cast(#nonull *ListEntry's32) 1'u64
+    let tail = values.tail orelse cast(*ListEntry's32) 1'u64
     values.insertBefore(tail, 3)
 
     var code = 0
     for value, node in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(node) == #nonull *ListEntry's32)
+        #assert(#typeof(node) == *ListEntry's32)
         code = code * 10 + value
     }
 
@@ -93,14 +93,14 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)
-    let tail = values.tail orelse cast(#nonull *ListEntry's32) 1'u64
+    let tail = values.tail orelse cast(*ListEntry's32) 1'u64
     values.insertBefore(tail, 3)
 
     var code = 0
     for #reverse value, node in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(node) == #nonull *ListEntry's32)
+        #assert(#typeof(node) == *ListEntry's32)
         code = code * 10 + value
     }
 
@@ -117,7 +117,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     for &value, node in values
     {
         #assert(#typeof(value) == #type &s32)
-        #assert(#typeof(node) == #nonull *ListEntry's32)
+        #assert(#typeof(node) == *ListEntry's32)
         value += 10
     }
 

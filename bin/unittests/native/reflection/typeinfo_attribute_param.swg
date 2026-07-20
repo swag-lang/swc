@@ -25,7 +25,7 @@ const REFLECTED_STORED_DEFAULT_INFO = cast(const *TypeInfoStruct) #typeof(Reflec
     @assert(@countof(REFLECTED_STORED_DEFAULT_INFO.attributes) == 1)
 
     let attribute = REFLECTED_STORED_DEFAULT_INFO.attributes[0]
-    let value = cast(typeinfo) attribute.params[0].value
+    let value = cast(#null typeinfo) attribute.params[0].value
 
     @assert(attribute.params[0].name == "t")
     @assert(value == StoredDefaultPair)

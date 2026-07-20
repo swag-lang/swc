@@ -2,15 +2,15 @@
 
 func semaTest001()
 {
-    var a: *s32
-    var b: *s8
+    var a: #null *s32
+    var b: #null *s8
     let c = a == b
     let d = a <= b
 }
 
 func semaTest002()
 {
-    var a: *s32 = null
+    var a: #null *s32 = null
     let b = a == null
     let c = a != null
     #assert(#typeof(b) == bool)
@@ -19,8 +19,8 @@ func semaTest002()
 
 func semaTest003()
 {
-    var a: *s32
-    var b: *s8
+    var a: #null *s32
+    var b: #null *s8
     let c = a < b
     let d = a > b
     let e = a >= b

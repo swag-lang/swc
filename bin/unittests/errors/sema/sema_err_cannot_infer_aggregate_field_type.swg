@@ -26,6 +26,6 @@ impl InferBox
 // children. The compiler must report this, never assert.
 func semaErrCannotInferAggregateFieldType()
 {
-    var data: InferBox'{ kind: InferEnum, name: string }
+    var data: InferBox'{ kind: InferEnum, name: string } = undefined
     data.add({.A, "x"}) // swc-expected-error {{sema_err_cannot_infer_aggregate_field_type}}
 }

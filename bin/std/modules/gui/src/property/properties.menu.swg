@@ -26,7 +26,7 @@ internal impl Properties
         return result
     }
 
-    mtd popupMenu(item: #nonull *PropertiesItem, pt: Math.Point)
+    mtd popupMenu(item: *PropertiesItem, pt: Math.Point)
     {
         ToolTip.hide(assume item.line)
 

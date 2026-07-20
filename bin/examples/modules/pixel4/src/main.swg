@@ -14,6 +14,7 @@ var g_Painter:       Pixel.Painter
 var g_RC:            Pixel.RenderingContext
 var g_Keyboard:      Input.Keyboard
 
+var g_FontPath:  String
 var g_FontBytes:     Array'u8
 var g_TypeFace:      #null *Pixel.TypeFace
 var g_TitleFont:     #null *Pixel.Font
@@ -28,7 +29,7 @@ var g_OutlineText:   LinePathList
 var g_Page:          s32
 var g_TestFrame:     s32
 
-func fontPath(fileName: #nonull string, loc = #callerlocation)->String
+func fontPath(fileName: string, loc = #callerlocation)->String
 {
     let srcPath = Path.getDirectoryName(loc.fileName)
     return Path.combine(Path.combine(srcPath, "data"), fileName)
@@ -36,7 +37,8 @@ func fontPath(fileName: #nonull string, loc = #callerlocation)->String
 
 func loadFonts() throw
 {
-    let path = fontPath("segoeui.ttf")
+    g_FontPath = fontPath("segoeui.ttf")
+    let path   = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = Font.create(assume g_TypeFace, 34)
@@ -152,19 +154,19 @@ func isAnchorCap(cap: LineCapStyle)->bool
     return cap == .ArrowAnchor or cap == .ArrowAnchor2 or cap == .SquareAnchor or cap == .RoundAnchor
 }
 
-func drawPageHeader(painter: #nonull *Pixel.Painter, title, subtitle: #nonull string)
+func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
     painter.drawString(28, 22, title, assume g_TitleFont, Argb.MidnightBlue)
     drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, assume g_SubTitleFont, Argb.DimGray)
 }
 
-func drawFooter(painter: #nonull *Pixel.Painter)
+func drawFooter(painter: *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, gradients, text, compositing, render targets, text effects, layers.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 26, pageText, assume g_HelpFont, Argb.DimGray)
 }
 
-func drawPanel(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title, subtitle: #nonull string)->Math.Rectangle
+func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)->Math.Rectangle
 {
     painter.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Argb.White)
     painter.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Color.fromArgb(96, Argb.SlateGray), 2)
@@ -173,7 +175,7 @@ func drawPanel(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title, sub
     return insetRect(rect, 18, PanelHeaderHeight, 18, 18)
 }
 
-func drawWrappedText(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, text: #nonull string, font: #nonull *Pixel.Font, color: Color)
+func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
 {
     var richText: RichString = text
     var format: RichStringFormat
@@ -184,7 +186,7 @@ func drawWrappedText(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, text
     painter.drawRichString(rect, &richText, format)
 }
 
-func drawClosedOutline(painter: #nonull *Pixel.Painter, points: #nonull [..] Math.Vector2, pen: Pen)
+func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
 {
     if @countof(points) < 2 do
         return
@@ -298,7 +300,7 @@ func makeBlobPath(rect: Math.Rectangle)->LinePath
     return path
 }
 
-func drawScene(painter: #nonull *Pixel.Painter)
+func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Argb.WhiteSmoke)
     painter.setParams(.Antialiased)
@@ -344,7 +346,7 @@ func display()
     g_Renderer.end()
 }
 
-func onResize(_window: #nonull *Env.Window, width, height: s32)
+func onResize(_window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height

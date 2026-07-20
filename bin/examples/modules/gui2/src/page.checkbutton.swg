@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createCheckButtonPage(parent: #nonull *Wnd)
+func createCheckButtonPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "States", "The same CheckButton in unchecked, checked, undefined and disabled forms.", layout.left)

@@ -40,19 +40,19 @@ const RuneInvert = cast(rune) 0x0400_0000
 struct NfaTable
 {
     level:     u32
-    nodes:     Array'(#nonull *NfaNode)
+    nodes:     Array'(*NfaNode)
 }
 
 struct NfaNode
 {
-    transitions:     HashTable'(rune, Array'(#nonull *NfaNode))
+    transitions:     HashTable'(rune, Array'(*NfaNode))
     group:           u32
     terminal:        bool
 }
 
 struct DfaNode
 {
-    table:           Array'(#nonull *NfaNode)
+    table:           Array'(*NfaNode)
     transitions:     HashTable'(rune, #null *DfaNode)
     rawGroup:        u32
     group:           u32
@@ -62,7 +62,7 @@ struct DfaNode
 struct RegExpGroup
 {
     rank:      u32
-    value:     #nonull string
+    value:     string
 }
 
 struct ActiveGroup
@@ -125,7 +125,7 @@ public struct RegExp
     nfaNodes:           ArrayPtr'(NfaNode)
     dfaNodes:           ArrayPtr'(DfaNode)
     nfaTables:          ArrayPtr'(NfaTable)
-    nfaStack:           Array'(#nonull *NfaTable)
+    nfaStack:           Array'(*NfaTable)
     charSet:            HashSet'rune
     groups:             Array'RegExpGroup
     groupTransform:     Array'u32
@@ -155,7 +155,7 @@ impl RegExp
 
     // You can get a capture group value by using the derefence syntax.
     // Returns 'null' if the capture group does not exist
-    public mtd opIndex(idx: u64)->#nonull string
+    public mtd opIndex(idx: u64)->string
     {
         for v in .groups
         {
@@ -213,7 +213,7 @@ impl RegExp
     }
 
     // Creates and return an expression
-    public func create(expr: #nonull string, ignoreCase = false)->RegExp throw
+    public func create(expr: string, ignoreCase = false)->RegExp throw
     {
         var result: retval
         result.compile(expr, ignoreCase)
@@ -221,7 +221,7 @@ impl RegExp
     }
 
     // Compile the expression
-    public mtd compile(expr: #nonull string, ignoreCase = false) throw
+    public mtd compile(expr: string, ignoreCase = false) throw
     {
         .clear()
         .ignoreCase = ignoreCase
@@ -231,7 +231,7 @@ impl RegExp
     }
 
     // Returns the parsed string associated with a given captured group
-    public mtd getCapture(rank: u32)->#nonull string
+    public mtd getCapture(rank: u32)->string
     {
         for g in .groups
         {
@@ -243,7 +243,7 @@ impl RegExp
     }
 
     // Returns all the captured strings, in order
-    public mtd getCaptures()->Array'(#nonull string)
+    public mtd getCaptures()->Array'(string)
     {
         var result: retval
         for v in .groups do
@@ -252,7 +252,7 @@ impl RegExp
     }
 
     // Compile and match the expression.
-    public mtd match(expr: #nonull string, str: #null string, ignoreCase = false)->bool throw
+    public mtd match(expr: string, str: #null string, ignoreCase = false)->bool throw
     {
         .compile(expr, ignoreCase)
         return .match(str)
@@ -268,14 +268,14 @@ impl RegExp
     }
 
     // Find all the occurences in the string
-    public func grepAll(expr: #nonull string, str: #null string)->Array'(#nonull string) throw
+    public func grepAll(expr: string, str: #null string)->Array'(string) throw
     {
         var r = create(expr)
         return r.grepAll(str)
     }
 
     // Find all the occurences in the string
-    public mtd grepAll(str: #null string)->Array'(#nonull string)
+    public mtd grepAll(str: #null string)->Array'(string)
     {
         var result: retval
 
@@ -316,7 +316,7 @@ impl RegExp
     }
 
     // Find the first occurence in the string
-    public func grep(expr: #nonull string, str: #null string)->#null string throw
+    public func grep(expr: string, str: #null string)->#null string throw
     {
         var r = create(expr)
         return r.grep(str)
@@ -345,7 +345,7 @@ impl RegExp
         return null
     }
 
-    mtd internalGrep(str: #nonull string, atBufferStart = true, prevWasWord = false)->#null string
+    mtd internalGrep(str: string, atBufferStart = true, prevWasWord = false)->#null string
     {
         var beg  = cast(#null const [*] u8) @dataof(str)
         let last = beg + @countof(str)
@@ -370,7 +370,7 @@ impl RegExp
         return null
     }
 
-    func setCapture(state: #nonull *DfaState, rank: s32, str: #nonull string)
+    func setCapture(state: *DfaState, rank: s32, str: string)
     {
         for &v in state.groups
         {
@@ -384,7 +384,7 @@ impl RegExp
         state.groups.add({rank, str})
     }
 
-    mtd hasActiveCapture(state: #nonull *DfaState, rank: u32)->bool
+    mtd hasActiveCapture(state: *DfaState, rank: u32)->bool
     {
         for g in state.activeGroups
         {
@@ -408,7 +408,7 @@ impl RegExp
         return depth
     }
 
-    mtd closeActiveGroup(state: #nonull *DfaState, idx: u64)
+    mtd closeActiveGroup(state: *DfaState, idx: u64)
     {
         let group = state.activeGroups[idx]
         let ptr   = .bufStart + state.parseIdx
@@ -417,7 +417,7 @@ impl RegExp
         setCapture(state, cast(s32) group.rank, value)
     }
 
-    mtd matchInternal(str: #nonull string, forGrep: bool)->{ ok: bool, buf: #null const [*] u8 }
+    mtd matchInternal(str: string, forGrep: bool)->{ ok: bool, buf: #null const [*] u8 }
     {
         var result: retval
 
@@ -508,7 +508,7 @@ impl RegExp
         return result
     }
 
-    mtd closeGroup(state: #nonull *DfaState)
+    mtd closeGroup(state: *DfaState)
     {
         while state.activeGroups.count
         {
@@ -518,7 +518,7 @@ impl RegExp
         }
     }
 
-    mtd syncActiveGroups(state: #nonull *DfaState, nextRawGroup: u32)
+    mtd syncActiveGroups(state: *DfaState, nextRawGroup: u32)
     {
         var desiredRawGroups: Array'u32
         var rawGroup = nextRawGroup
@@ -555,7 +555,7 @@ impl RegExp
         }
     }
 
-    mtd backward(out: #nonull *Array'DfaState, what: rune, state: #nonull *DfaState)
+    mtd backward(out: *Array'DfaState, what: rune, state: *DfaState)
     {
         let stateNode = assume state.node
         let grp = stateNode.transitions.tryFind(what)
@@ -564,7 +564,7 @@ impl RegExp
             let grpNode = assume grp.value
             var st = dref state
             .syncActiveGroups(&st, grpNode.rawGroup)
-            var strGroup: #nonull string = ""
+            var strGroup: string = ""
             var hasGroup = false
             let rank = 1 + (what - RuneGroup1)
             for g in st.groups
@@ -596,7 +596,7 @@ impl RegExp
         }
     }
 
-    mtd hasCapture(state: #nonull *DfaState, rank: u32)->bool
+    mtd hasCapture(state: *DfaState, rank: u32)->bool
     {
         for g in state.groups
         {
@@ -607,7 +607,7 @@ impl RegExp
         return false
     }
 
-    mtd hasAvailableEmptyCapture(state: #nonull *DfaState, rank: u32)->bool
+    mtd hasAvailableEmptyCapture(state: *DfaState, rank: u32)->bool
     {
         let stateNode = assume state.node
         for n in stateNode.table
@@ -640,10 +640,10 @@ impl RegExp
         return false
     }
 
-    mtd canReachTransition(table: #nonull *Array'(#nonull *NfaNode), fromNode: #nonull *NfaNode, c: rune)->bool
+    mtd canReachTransition(table: *Array'(*NfaNode), fromNode: *NfaNode, c: rune)->bool
     {
-        var stack: Array'(#nonull *NfaNode)
-        var done: Array'(#nonull *NfaNode)
+        var stack: Array'(*NfaNode)
+        var done: Array'(*NfaNode)
         stack.add(fromNode)
         while stack.count
         {
@@ -669,7 +669,7 @@ impl RegExp
         return false
     }
 
-    mtd transitionTargetRawGroup(state: #nonull *DfaState, c: rune)->u32
+    mtd transitionTargetRawGroup(state: *DfaState, c: rune)->u32
     {
         var result: retval
         var bestDepth: u32
@@ -697,7 +697,7 @@ impl RegExp
         return result
     }
 
-    mtd findDisappearingEmptyGroup(state: #nonull *DfaState, nextNode: #nonull *DfaNode, c: rune)->u32
+    mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode, c: rune)->u32
     {
         var rank: retval
         let stateNode = assume state.node
@@ -726,7 +726,7 @@ impl RegExp
         return rank
     }
 
-    mtd dfaMatch(out: #nonull *Array'DfaState, c: rune, eat: s32, curState: #nonull *DfaState)
+    mtd dfaMatch(out: *Array'DfaState, c: rune, eat: s32, curState: *DfaState)
     {
         var ok = false
 
@@ -860,19 +860,19 @@ impl RegExp
         .checkTr(0'rune, eat)
     }
 
-    func addTransition(node: #nonull *NfaNode, c: rune, toNode: #nonull *NfaNode)
+    func addTransition(node: *NfaNode, c: rune, toNode: *NfaNode)
     {
         var here = node.transitions.tryFind(c)
         if !here
         {
-            let toT: Array'(#nonull *NfaNode)
+            let toT: Array'(*NfaNode)
             here = node.transitions.add(c, toT)
         }
 
         here.value.add(toNode)
     }
 
-    mtd nfaPop()->#nonull *NfaTable throw
+    mtd nfaPop()->*NfaTable throw
     {
         if .nfaStack.isEmpty() do
             throw SyntaxError{"nfaPop"}
@@ -911,7 +911,7 @@ impl RegExp
         .nfaStack.add(table)
     }
 
-    mtd tableHasGroup(table: #nonull *NfaTable)->bool
+    mtd tableHasGroup(table: *NfaTable)->bool
     {
         for n in table.nodes
         {
@@ -1209,11 +1209,11 @@ impl RegExp
         .operatorConcat(.nfaStack.count, true, 0)
     }
 
-    func dfaEClosure(inH, outH: #nonull *Array'(#nonull *NfaNode))
+    func dfaEClosure(inH, outH: *Array'(*NfaNode))
     {
         outH.clear()
 
-        var stack: Array'(#nonull *NfaNode)
+        var stack: Array'(*NfaNode)
         for n in dref inH do
             stack.add(n)
 
@@ -1234,7 +1234,7 @@ impl RegExp
         }
     }
 
-    mtd setTable(node: #nonull *DfaNode, tbl: #nonull *Array'(#nonull *NfaNode))
+    mtd setTable(node: *DfaNode, tbl: *Array'(*NfaNode))
     {
         node.table = #move dref tbl
         for n in node.table
@@ -1249,7 +1249,7 @@ impl RegExp
         node.group = .groupTransform[node.rawGroup]
     }
 
-    func dfaMoveNode(out: #nonull *Array'(#nonull *NfaNode), c: rune, inH: Array'(#nonull *NfaNode))
+    func dfaMoveNode(out: *Array'(*NfaNode), c: rune, inH: Array'(*NfaNode))
     {
         out.clear()
         for state in inH
@@ -1264,7 +1264,7 @@ impl RegExp
         }
     }
 
-    func equals(s1, s2: #nonull *Array'(#nonull *NfaNode))->bool
+    func equals(s1, s2: *Array'(*NfaNode))->bool
     {
         if s1.count != s2.count do
             return false
@@ -1286,16 +1286,16 @@ impl RegExp
         table.nodes.back().terminal = true
 
         // Build the first state of the DFA table
-        var nfaStart, dfaStart: Array'(#nonull *NfaNode)
+        var nfaStart, dfaStart: Array'(*NfaNode)
         nfaStart.addOnce(table.nodes.front())
         dfaEClosure(&nfaStart, &dfaStart)
 
-        var state = Memory.new'DfaNode() orelse cast(#nonull *DfaNode) 1'u64
+        var state = Memory.new'DfaNode() orelse cast(*DfaNode) 1'u64
         .setTable(state, &dfaStart)
         .dfaNodes.add(state)
 
-        var moveRes, epsilonRes: Array'(#nonull *NfaNode)
-        var stack: Array'(#nonull *DfaNode)
+        var moveRes, epsilonRes: Array'(*NfaNode)
+        var stack: Array'(*DfaNode)
         stack.add(state)
         while stack.count
         {
@@ -1319,7 +1319,7 @@ impl RegExp
 
                 if !found
                 {
-                    let newNode = Memory.new'DfaNode() orelse cast(#nonull *DfaNode) 1'u64
+                    let newNode = Memory.new'DfaNode() orelse cast(*DfaNode) 1'u64
                     found = newNode
                     .setTable(newNode, &epsilonRes)
                     stack.add(newNode)
@@ -1332,7 +1332,7 @@ impl RegExp
     }
 
     #[Swag.Discardable]
-    mtd preprocessInter(sl: #nonull const [..] rune)->#nonull const [*] rune throw
+    mtd preprocessInter(sl: const [..] rune)->const [*] rune throw
     {
         var pz      = @dataof(sl)
         let pzStart = pz
@@ -1492,7 +1492,7 @@ impl RegExp
         return pz
     }
 
-    func toI32(pz, pzEnd: #nonull const [*] rune, val: #nonull *s32)->#nonull const [*] rune throw
+    func toI32(pz, pzEnd: const [*] rune, val: *s32)->const [*] rune throw
     {
         if !Unicode.isLatin1(pz[0]) or !Latin1.isDigit(cast(u8) pz[0]) do
             throw SyntaxError{}
@@ -1510,7 +1510,7 @@ impl RegExp
         return pzStart
     }
 
-    mtd preprocessEnum(sl: #nonull const [..] rune)->#nonull const [*] rune throw
+    mtd preprocessEnum(sl: const [..] rune)->const [*] rune throw
     {
         var pz    = @dataof(sl)
         let pzEnd = pz + @countof(sl)
@@ -1688,7 +1688,7 @@ impl RegExp
         return result
     }
 
-    mtd preprocessUnicode(sl: #nonull const [..] rune)->#nonull const [*] rune throw
+    mtd preprocessUnicode(sl: const [..] rune)->const [*] rune throw
     {
         let pz    = @dataof(sl) + 2
         let pzEnd = @dataof(sl) + @countof(sl)
@@ -1734,7 +1734,7 @@ impl RegExp
         throw SyntaxError{"invalid unicode property"}
     }
 
-    mtd preprocessEscape(sl: #nonull const [..] rune, inInter = false)->#nonull const [*] rune throw
+    mtd preprocessEscape(sl: const [..] rune, inInter = false)->const [*] rune throw
     {
         var pz = @dataof(sl)
         let c  = dref pz
@@ -1965,7 +1965,7 @@ impl RegExp
         }
     }
 
-    mtd preprocess(inStr: #nonull string) throw
+    mtd preprocess(inStr: string) throw
     {
         var in32 = Unicode.fromUtf8(inStr)
         addParenthesis(&in32)

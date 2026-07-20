@@ -747,7 +747,7 @@ namespace compiler4849
     {
         let value = #run
         {
-            var payload: Carrier
+            var payload: Carrier = undefined
             payload.item = "abc"
             payload.other = "def"
             return payload
@@ -755,7 +755,7 @@ namespace compiler4849
 
         let values = #run
         {
-            var words: [2] any
+            var words: [2] any = undefined
             words[0] = "first"
             words[1] = "second"
             return words

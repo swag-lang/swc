@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Inline]
 func inlineArrayLiteralDigits(values: [4] s32) -> s32

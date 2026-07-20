@@ -32,7 +32,7 @@ impl SelfRefPool
 // self-reference that dies with 'root'.
 func selfRefStore()
 {
-    var root: SelfRefNode
+    var root: SelfRefNode = undefined
     let child = root.pool.newPtr()
     child.parent = &root
 }

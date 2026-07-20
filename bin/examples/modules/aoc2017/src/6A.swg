@@ -29,7 +29,7 @@ func day6A()
     let slice  = Tokenize.split(line, " ")
     var blocks = Slice.map(slice[ to ], func(x) => assume StrConv.toS32(x))
 
-    var set:  HashSet'(#nonull string)
+    var set:  HashSet'(string)
     var total = 0
     for
     {

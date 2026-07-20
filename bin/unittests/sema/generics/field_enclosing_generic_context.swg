@@ -201,30 +201,30 @@ impl MethodBufferContext
 
 func semaTest001()
 {
-    let wrapped: WrapperImplicit'u16
-    let doubled: DoubleBufferImplicit'(u8, 4)
-    let renamed: RenamedDoubleBufferImplicit'(u16, 3)
-    let reordered: ReorderedRenamedDoubleBufferImplicit'(5, u32)
-    let renamedWrapper: RenamedWrapperImplicit'(bool, 7)
-    let prefixDefaultHolder: PrefixDefaultHolderImplicit'u8
-    let middleDefaultHolder: MiddleDefaultHolderImplicit'(u16, f32)
-    let nestedMiddleDefaultHolder: NestedMiddleDefaultHolderImplicit'(u16, f32)
-    let twinImplicitHolder: TwinImplicitHolder's64
-    let trailingValueDefaultHolder: TrailingValueDefaultHolder'(u16, 6)
-    let splitValueDefaultHolder: SplitValueDefaultHolder'u32
+    var wrapped: WrapperImplicit'u16 = undefined
+    var doubled: DoubleBufferImplicit'(u8, 4) = undefined
+    var renamed: RenamedDoubleBufferImplicit'(u16, 3) = undefined
+    var reordered: ReorderedRenamedDoubleBufferImplicit'(5, u32) = undefined
+    var renamedWrapper: RenamedWrapperImplicit'(bool, 7) = undefined
+    var prefixDefaultHolder: PrefixDefaultHolderImplicit'u8 = undefined
+    var middleDefaultHolder: MiddleDefaultHolderImplicit'(u16, f32) = undefined
+    var nestedMiddleDefaultHolder: NestedMiddleDefaultHolderImplicit'(u16, f32) = undefined
+    var twinImplicitHolder: TwinImplicitHolder's64 = undefined
+    var trailingValueDefaultHolder: TrailingValueDefaultHolder'(u16, 6) = undefined
+    var splitValueDefaultHolder: SplitValueDefaultHolder'u32 = undefined
     let methodBufferContext: MethodBufferContext'(u16, 9)
     let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
-    let partialMiddleDefaultHolder: PartialMiddleDefaultHolder'(u32, f64)
-    let partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8)
-    let partialBufferHolder: PartialBufferHolder'(bool, 5)
-    let explicitPrefixValueHolder: ExplicitPrefixValueHolder'u8
-    let explicitSplitValueHolder: ExplicitSplitValueHolder'u16
-    let partialTailOnlyHolder: PartialTailOnlyHolder'(bool, f32)
-    let composedTypeDefaultHolder: ComposedTypeDefaultHolder's16
-    let sizeofDefaultHolder: SizeofDefaultHolder'u64
-    let anonymousStructFieldHolder: AnonymousStructFieldHolder'bool
-    let anonymousStructBufferHolder: AnonymousStructBufferHolder'(u8, 4)
-    let anonymousUnionFieldHolder: AnonymousUnionFieldHolder's32
+    var partialMiddleDefaultHolder: PartialMiddleDefaultHolder'(u32, f64) = undefined
+    var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8) = undefined
+    var partialBufferHolder: PartialBufferHolder'(bool, 5) = undefined
+    var explicitPrefixValueHolder: ExplicitPrefixValueHolder'u8 = undefined
+    var explicitSplitValueHolder: ExplicitSplitValueHolder'u16 = undefined
+    var partialTailOnlyHolder: PartialTailOnlyHolder'(bool, f32) = undefined
+    var composedTypeDefaultHolder: ComposedTypeDefaultHolder's16 = undefined
+    var sizeofDefaultHolder: SizeofDefaultHolder'u64 = undefined
+    var anonymousStructFieldHolder: AnonymousStructFieldHolder'bool = undefined
+    var anonymousStructBufferHolder: AnonymousStructBufferHolder'(u8, 4) = undefined
+    var anonymousUnionFieldHolder: AnonymousUnionFieldHolder's32 = undefined
 
     #assert(#typeof(wrapped.item.value) == u16)
     #assert(#typeof(doubled.first.values) == #type [4] u8)

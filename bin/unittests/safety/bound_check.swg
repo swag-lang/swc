@@ -181,7 +181,7 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func emptySliceBoundCheck()->s32
     {
-        var slice: [..] s32
+        var slice: #null [..] s32
         return slice[0] // swc-expected-error {{safety_err_runtime}}
     }
 

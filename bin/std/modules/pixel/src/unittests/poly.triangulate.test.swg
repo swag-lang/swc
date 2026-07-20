@@ -7,7 +7,7 @@ using Swag, Core, Core.Math
 // side test asserted instead of returning -1 (so #null any >=4 vertex polygon crashed).
 
 // Triangulate a closed simple polygon and return the triangle count.
-func triCount(pts: #nonull [..] Vector2)->u64
+func triCount(pts: [..] Vector2)->u64
 {
     var poly: Pixel.Polygon
     for p in pts do

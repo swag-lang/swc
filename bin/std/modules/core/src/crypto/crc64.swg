@@ -97,7 +97,7 @@ impl Crc64
 
     // Returns the hash value for the given buffer
     #[Swag.ConstExpr]
-    public func compute(buffer: #nonull const [..] u8, kind = Crc64Kind.ECMA182)->u64
+    public func compute(buffer: const [..] u8, kind = Crc64Kind.ECMA182)->u64
     {
         var v: Crc64
         v.init(kind)

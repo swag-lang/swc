@@ -1,12 +1,11 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
-func widenNullablePointer(value: #nonull *s32)->#null *s32 => value
-func widenNullableString(value: #nonull string)->#null string => value
-func widenNullableSlice(value: #nonull [..] s32)->#null [..] s32 => value
-func widenNullableAny(value: #nonull any)->#null any => value
-func widenNullableCString(value: #nonull cstring)->#null cstring => value
-func widenNullableTypeInfo(value: #nonull typeinfo)->#null typeinfo => value
+func widenNullablePointer(value: *s32)->#null *s32 => value
+func widenNullableString(value: string)->#null string => value
+func widenNullableSlice(value: [..] s32)->#null [..] s32 => value
+func widenNullableAny(value: any)->#null any => value
+func widenNullableCString(value: cstring)->#null cstring => value
+func widenNullableTypeInfo(value: typeinfo)->#null typeinfo => value
 
 func nullableWidening()->bool
 {
@@ -31,11 +30,11 @@ func nullableWidening()->bool
         return false
 
     var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
-    let cstr = widenNullableCString(cast(#nonull cstring) &cstrData[0])
+    let cstr = widenNullableCString(cast(cstring) &cstrData[0])
     if cstr == null or @countof(cstr) != 3 do
         return false
 
-    let infoType: #nonull typeinfo = s32
+    let infoType: typeinfo = s32
     let info = widenNullableTypeInfo(infoType)
     if info != infoType do
         return false

@@ -29,14 +29,14 @@ func compare(dest, src: #null const [*] void, size: u64)->s32
 
 // Compare two blocks of memory
 #[Inline]
-func(T) equals(dest, src: #nonull const *T)->bool
+func(T) equals(dest, src: const *T)->bool
 {
     return @memcmp(dest, src, #sizeof(T)) == 0
 }
 
 // Clear one block of memory
 #[Inline]
-func clear(dest: #nonull [*] void, size: u64)
+func clear(dest: [*] void, size: u64)
 {
     if size do
         @memset(dest, 0, size)
@@ -44,7 +44,7 @@ func clear(dest: #nonull [*] void, size: u64)
 
 // Set the content of one block of memory to a specific byte value
 #[Inline]
-func set(dest: #nonull [*] void, value: u8, size: u64)
+func set(dest: [*] void, value: u8, size: u64)
 {
     if size do
         @memset(dest, value, size)
@@ -54,13 +54,13 @@ func set(dest: #nonull [*] void, value: u8, size: u64)
 #[Inline]
 func align(value: u64, alignment: u32)->u64
 {
-    let toAlign: u64 = cast(u64) (alignment orelse cast(u32) #sizeof(#nonull *void)) - 1
+    let toAlign: u64 = cast(u64) (alignment orelse cast(u32) #sizeof(*void)) - 1
     return (value + toAlign) & ~toAlign
 }
 
 // Align a pointer to the given amount
 #[Inline]
-func align(value: #nonull const [*] void, alignment: u32)->#nonull const [*] void
+func align(value: const [*] void, alignment: u32)->const [*] void
 {
     return cast() align(cast(u64) value, alignment)
 }

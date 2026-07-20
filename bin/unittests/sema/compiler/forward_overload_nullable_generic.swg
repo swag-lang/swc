@@ -6,7 +6,7 @@ func getValue(type: typeinfo, attribute: typeinfo, value: string)->#null any
     let attrib = getAttr(type, attribute)
     if !attrib do
         return null
-    return getValue(attrib, value)
+    return getValue(assume attrib, value)
 }
 
 func(T) getValue(type: typeinfo, attribute: typeinfo, value: string, def: T)->T

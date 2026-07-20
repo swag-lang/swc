@@ -124,7 +124,7 @@ struct StringMetrics
 
 struct ShapedGlyph
 {
-    desc:        #nonull const *GlyphDesc = undefined
+    desc:        const *GlyphDesc = undefined
     glyphIndex:  u32
     cluster:     u64
     advanceX:    f32
@@ -136,7 +136,7 @@ struct ShapedGlyph
 
 struct ShapedRun
 {
-    font:        #nonull *Font = undefined
+    font:        *Font = undefined
     glyphs:      Array'ShapedGlyph
     metrics:     StringMetrics
     inkBounds:   Math.Rectangle
@@ -147,7 +147,7 @@ struct ShapedRun
 
 public struct TextDrawInfo
 {
-    drawFont:    #nonull *Font = undefined
+    drawFont:    *Font = undefined
     snapPixels:  bool
     scale:       f32
 }
@@ -172,7 +172,7 @@ struct RichStringFormat
     maxLines:          u32
 }
 
-private func appendShapedGlyph(run: #nonull *ShapedRun, font: #nonull *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
+private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
@@ -213,7 +213,7 @@ private func appendShapedGlyph(run: #nonull *ShapedRun, font: #nonull *Font, gly
     run.glyphs.add(glyph)
 }
 
-private func appendShapedTab(run: #nonull *ShapedRun, font: #nonull *Font, cluster: u64, tabSize: u32)
+private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize: u32)
 {
     let spaceGlyphIndex = font.glyphIndex(' ')
     let spaceDesc       = font.getGlyphDescByIndex(spaceGlyphIndex)
@@ -231,7 +231,7 @@ private func appendShapedTab(run: #nonull *ShapedRun, font: #nonull *Font, clust
     appendShapedGlyph(run, font, spaceGlyphIndex, cluster, 0, tabAdvance, true)
 }
 
-private func finishShapedRun(run: #nonull *ShapedRun, font: #nonull *Font)
+private func finishShapedRun(run: *ShapedRun, font: *Font)
 {
     if run.glyphs.isEmpty() do
         return
@@ -257,7 +257,7 @@ private func snapTextPosition(value: f32, snapPixels: bool)->f32
 
 impl Painter
 {
-    func getTextDrawInfo(font: #nonull *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
+    func getTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
     {
         var result: retval
         result.drawFont   = Font.resolveDrawFont(font, cast(f32) font.size * zoom * transformScale)
@@ -291,7 +291,7 @@ impl Painter
     // allocating. This currently preserves the legacy one-rune to one-glyph behavior,
     // but stores glyph indexes, advances and cluster positions so GSUB/GPOS, fallback
     // and bidi can be introduced at this layer.
-    func shapeRunInto(result: #nonull *ShapedRun, text: #nonull string, font: #nonull *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)
+    func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)
     {
         Debug.assert(font != null, "invalid font")
 
@@ -337,7 +337,7 @@ impl Painter
     }
 
     // Shape a single-font text run, returning a freshly allocated run.
-    func shapeRun(text: #nonull string, font: #nonull *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->ShapedRun
+    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->ShapedRun
     {
         var result: retval
         shapeRunInto(&result, text, font, tabSize, letterSpacing)
@@ -346,7 +346,7 @@ impl Painter
 
     // Rebuild a shaped run for another concrete font cache while preserving its
     // glyph sequence and cluster mapping.
-    func shapeRunForFont(run: #nonull const *ShapedRun, font: #nonull *Font)->ShapedRun
+    func shapeRunForFont(run: const *ShapedRun, font: *Font)->ShapedRun
     {
         Debug.assert(font != null, "invalid font")
         Debug.assert(run.font == null or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
@@ -377,8 +377,8 @@ impl Painter
         return result
     }
 
-    // Returns all the glyphs for a given #nonull string and font
-    func getGlyphs(text: #nonull string, font: #nonull *Font)->Array'(#nonull const *GlyphDesc)
+    // Returns all the glyphs for a given string and font
+    func getGlyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
         result.reserve(@countof(text))
@@ -390,8 +390,8 @@ impl Painter
         return result
     }
 
-    // Returns all the glyphs for a given #nonull string and font
-    func getGlyphs(text: Array'rune, font: #nonull *Font)->Array'(#nonull const *GlyphDesc)
+    // Returns all the glyphs for a given string and font
+    func getGlyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
         result.reserve(@countof(text))
@@ -409,7 +409,7 @@ impl Painter
         var result: retval
         if !font do
             return result
-        let localFont = font orelse cast(#nonull *Font) 1'u64
+        let localFont = font orelse cast(*Font) 1'u64
         let desc = localFont.getGlyphDesc(c)
         let sc   = localFont.scale()
         result.x = desc.advanceX * sc
@@ -418,14 +418,14 @@ impl Painter
     }
 
     // Returns the metrics of a given text
-    func measureString(text: #nonull string, font: #nonull *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->StringMetrics
+    func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->StringMetrics
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing)
         return shaped.metrics
     }
 
     // Returns the metrics of an already shaped text run
-    func measureString(text: #nonull *ShapedRun)->StringMetrics => text.metrics
+    func measureString(text: *ShapedRun)->StringMetrics => text.metrics
 
     // Horizontal advance up to byte `atByte`, computed with the exact pixel
     // snapping and draw-font resolution `drawString` uses to render `run`. Unlike
@@ -433,14 +433,14 @@ impl Painter
     // on-screen glyph positions, so carets, selection rectangles and right-aligned
     // anchoring line up with what is actually drawn. Default `atByte` measures the
     // whole run.
-    func measureStringSnapped(run: #nonull const *ShapedRun, atByte: u64 = Swag.U64.Max)->f32
+    func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max)->f32
     {
         let info = getTextDrawInfo(run.font)
 
         // drawString re-shapes onto the resolved draw font; mirror that so the
         // advances use the same glyph metrics it will actually draw with.
         var drawShape: ShapedRun
-        var toDraw: #nonull const *ShapedRun = run
+        var toDraw: const *ShapedRun = run
         if run.font != info.drawFont
         {
             drawShape = shapeRunForFont(run, info.drawFont)
@@ -459,15 +459,15 @@ impl Painter
         return x
     }
 
-    // #nonull string convenience overload of `measureStringSnapped`.
-    func measureStringSnapped(text: #nonull string, font: #nonull *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->f32
+    // string convenience overload of `measureStringSnapped`.
+    func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->f32
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing)
         return measureStringSnapped(&shaped, atByte)
     }
 
     // Returns the bounding rectangle of a given text, scaled to the font draw size
-    func measureString(text: Array'(#nonull const *GlyphDesc), font: #nonull *Font)->StringMetrics
+    func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
     {
         var result: retval
         result.ascent  = Swag.F32.NegInf
@@ -492,7 +492,7 @@ impl Painter
     // Emit the glyph quads of a shaped run, translated by (dx, dy) and tinted with
     // 'color'. The offset is applied after pixel snapping so a sub-pixel shadow
     // offset survives. Shared by the face pass and the drop-shadow pass.
-    private mtd pushShapedGlyphs(runToDraw: #nonull *ShapedRun, drawFont: #nonull *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
+    private mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
     {
         var x = startLeft
         for glyph, idx in runToDraw.glyphs
@@ -529,14 +529,14 @@ impl Painter
     }
 
     // Draw an already shaped text run
-    mtd drawShapedRun(left, top: f32, shaped: #nonull *ShapedRun, font: #nonull *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
         .drawShapedRun(left, top, shaped, font, brush, TextEffect{}, under, zoom)
     }
 
     // Draw an already shaped text run, with MSDF text effects (outline/glow/bevel/
     // shadow). Effects are ignored when the resolved draw font is not MSDF.
-    mtd drawShapedRun(left, top: f32, shaped: #nonull *ShapedRun, font: #nonull *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
         if shaped.glyphs.isEmpty() do
             return
@@ -552,7 +552,7 @@ impl Painter
         let isMsdf     = drawFont.cache.renderMode == .Msdf
 
         var drawShape: ShapedRun
-        var runToDraw: #nonull *ShapedRun = shaped
+        var runToDraw: *ShapedRun = shaped
         if shaped.font != drawFont
         {
             drawShape = shapeRunForFont(shaped, drawFont)
@@ -622,8 +622,8 @@ impl Painter
         .endFont()
     }
 
-    // Draw a simple #nonull string (centered)
-    mtd drawStringCenter(x, y: f32, text: #nonull string, font: #nonull *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
+    // Draw a simple string (centered)
+    mtd drawStringCenter(x, y: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
         let ms = measureString(text, font)
         var yr = y - (ms.height * 0.5 * zoom)
@@ -631,8 +631,8 @@ impl Painter
         .drawString(x - (ms.width * 0.5 * zoom), yr, text, font, color, under, zoom)
     }
 
-    // Draw a simple #nonull string
-    mtd drawString(left, top: f32, text: #nonull string, font: #nonull *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
+    // Draw a simple string
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
         if @countof(text) == 0 or color.a == 0 do
             return
@@ -641,8 +641,8 @@ impl Painter
         .drawString(left, top, text, font, brush, under, zoom)
     }
 
-    // Draw a simple #nonull string
-    mtd drawString(left, top: f32, text: #nonull string, font: #nonull *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
+    // Draw a simple string
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
         if @countof(text) == 0 or !brush.hasVisibleAlpha() do
             return
@@ -658,8 +658,8 @@ impl Painter
         .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom)
     }
 
-    // Draw a simple #nonull string with MSDF text effects (outline/glow/bevel/shadow).
-    mtd drawString(left, top: f32, text: #nonull string, font: #nonull *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    // Draw a simple string with MSDF text effects (outline/glow/bevel/shadow).
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
         if @countof(text) == 0 do
             return
@@ -667,8 +667,8 @@ impl Painter
         .drawString(left, top, text, font, brush, effect, under, zoom)
     }
 
-    // Draw a simple #nonull string with a brush and MSDF text effects.
-    mtd drawString(left, top: f32, text: #nonull string, font: #nonull *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    // Draw a simple string with a brush and MSDF text effects.
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
     {
         if @countof(text) == 0 do
             return
@@ -681,7 +681,7 @@ impl Painter
     }
 
     // Recompute the layout for a given rectangle
-    func computeLayout(pos: Math.Rectangle, text: #nonull *RichString, format: RichStringFormat)
+    func computeLayout(pos: Math.Rectangle, text: *RichString, format: RichStringFormat)
     {
         Debug.assert(format.font.regular != null, "invalid default font")
         text.layoutRect = pos
@@ -712,7 +712,7 @@ impl Painter
         {
             // Attributes
             let fs = c.hasFontStyle ? c.fontStyle : format.fontStyle
-            c.font = format.font.getFont(fs) orelse cast(#nonull *Font) 1'u64
+            c.font = format.font.getFont(fs) orelse cast(*Font) 1'u64
 
             // Measure
             c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)
@@ -947,10 +947,10 @@ impl Painter
         text.boundRect.width = boundRight - text.boundRect.x
     }
 
-    // Draw a rich #nonull string.
-    // A rich #nonull string can be multiline, and accepts private formats.
+    // Draw a rich string.
+    // A rich string can be multiline, and accepts private formats.
     // The layout will be computed at the first call, and each time 'pos' has changed.
-    mtd drawRichString(pos: Math.Rectangle, text: #nonull *RichString, format: RichStringFormat, forceCompute = false)
+    mtd drawRichString(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, forceCompute = false)
     {
         text.compute()
         if text.chunks.count == 0 do

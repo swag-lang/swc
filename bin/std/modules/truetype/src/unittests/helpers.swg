@@ -10,7 +10,7 @@ struct OutlineCounter
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
-func getTestDataPath(fileName: #nonull string, loc = #callerlocation)->String
+func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let dir  = Path.getDirectoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
@@ -18,7 +18,7 @@ func getTestDataPath(fileName: #nonull string, loc = #callerlocation)->String
     return path
 }
 
-func loadFontBytes(fileName: #nonull string = "segoeui.ttf")->Array'u8
+func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
 {
     let bytes = catch File.readAllBytes(getTestDataPath(fileName))
     @assert(@err == null)
@@ -33,7 +33,7 @@ struct FaceScope
 
 impl FaceScope
 {
-    mtd init(fileName: #nonull string = "segoeui.ttf")
+    mtd init(fileName: string = "segoeui.ttf")
     {
         .bytes = loadFontBytes(fileName)
 
@@ -52,10 +52,10 @@ impl FaceScope
     }
 }
 
-func getFaceData(face: #null *Face)->#nonull *FaceImpl
+func getFaceData(face: #null *Face)->*FaceImpl
 {
-    let safeFace = face orelse cast(#nonull *Face) 1'u64
-    return cast(#nonull *FaceImpl) cast(#nonull *void) safeFace
+    let safeFace = face orelse cast(*Face) 1'u64
+    return cast(*FaceImpl) cast(*void) safeFace
 }
 
 func getOutlineBounds(outline: #null const *Outline)->BBox

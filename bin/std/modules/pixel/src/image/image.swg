@@ -33,7 +33,7 @@ impl Image
         result.init(width, height, pf)
         result.allocPixels()
         if buffer do
-            Memory.copy(cast(#nonull [*] u8) (assume result.pixels.buffer), @dataof(buffer), @countof(buffer))
+            Memory.copy(cast([*] u8) (assume result.pixels.buffer), @dataof(buffer), @countof(buffer))
         return result
     }
 
@@ -111,10 +111,10 @@ impl Image
         dref .workingBuffer = Image.create(newWidth, newHeight, newPf)
     }
 
-    mtd safeWorkingBuffer()->#nonull *Image
+    mtd safeWorkingBuffer()->*Image
     {
         Debug.assert(.workingBuffer != null)
-        return .workingBuffer orelse cast(#nonull *Image) 1'u64
+        return .workingBuffer orelse cast(*Image) 1'u64
     }
 
     // Free the working buffer if allocated
@@ -153,13 +153,13 @@ impl Image
 
         let self: const &Image = me
         var p = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(@mkslice(cast(#nonull [*] u8) (assume self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
+        Jobs.parallelVisit(@mkslice(cast([*] u8) (assume self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
         {
             if !data do
                 return
-            let p        = cast(#nonull *#decltype(p)) (assume data)
-            let pixPtr   = cast(#nonull [*] u8) buffer
-            let pixIndex = cast(u64) (pixPtr - cast(#nonull [*] u8) (assume p.image.pixels.buffer)) / p.image.bpp8
+            let p        = cast(*#decltype(p)) (assume data)
+            let pixPtr   = cast([*] u8) buffer
+            let pixIndex = cast(u64) (pixPtr - cast([*] u8) (assume p.image.pixels.buffer)) / p.image.bpp8
 
             #inject(stmt,
                     pix = pixPtr,
@@ -182,22 +182,22 @@ impl Image
     mtd clear()
     {
         Debug.assert(.pixels.buffer != null)
-        let pixels = .pixels.buffer orelse cast(#nonull [*] u8) 1'u64
+        let pixels = .pixels.buffer orelse cast([*] u8) 1'u64
         Memory.clear(pixels, .size)
     }
 
     // Copy one pixel, depending on bpp
     #[Swag.Inline]
-    func(BPP: u8) copyPixelDirect(pixDst, pixSrc: #nonull [*] u8)
+    func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
     {
         #if BPP == 24
         {
-            dref cast(#nonull *u16) pixDst = dref cast(#nonull *u16) pixSrc
+            dref cast(*u16) pixDst = dref cast(*u16) pixSrc
             pixDst[2]              = pixSrc[2]
         }
         #elif BPP == 32
         {
-            dref cast(#nonull *u32) pixDst = dref cast(#nonull *u32) pixSrc
+            dref cast(*u32) pixDst = dref cast(*u32) pixSrc
         }
         #else
         {
@@ -207,7 +207,7 @@ impl Image
 
     // Set pixel values at 'pixDst' depending on pixel format
     // Destination is supped to be in RGBA8 format
-    func(PF: PixelFormat) convertToRGBA8(pixDst: #nonull [*] u8, r, g, b, a: u8)
+    func(PF: PixelFormat) convertToRGBA8(pixDst: [*] u8, r, g, b, a: u8)
     {
         #if PF == .BGR8
         {

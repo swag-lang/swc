@@ -51,9 +51,9 @@ struct FormText
 
 impl IForm for FormText
 {
-    mtd impl isSame(ptr: #nonull *BaseForm)->bool
+    mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(#nonull *FormText) ptr
+        let other = cast(*FormText) ptr
         return .isSameBase(ptr) and
                .fontSize == other.fontSize and
                .boldSize == other.boldSize and
@@ -62,11 +62,11 @@ impl IForm for FormText
                .joinStyle == other.joinStyle
     }
 
-    mtd impl copy(dst, src: #nonull *BaseForm)
+    mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(#nonull *FormText) dst
-        let srcf = cast(#nonull *FormText) src
+        let dstf = cast(*FormText) dst
+        let srcf = cast(*FormText) src
         dstf.fontSize  = srcf.fontSize
         dstf.boldSize  = srcf.boldSize
         dstf.joinStyle = srcf.joinStyle
@@ -85,7 +85,7 @@ impl IForm for FormText
         return .subKind == .None
     }
 
-    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         let xa = cast(s32) (movingStart.x / zoom)
         let ya = cast(s32) (movingStart.y / zoom)
@@ -128,12 +128,12 @@ impl IForm for FormText
         return .rectFormBound()
     }
 
-    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         return .gizmo.mouse(view, pos, evt)
     }
 
-    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -155,7 +155,7 @@ impl IForm for FormText
         return pp.contains(pt)
     }
 
-    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         var cxtCpy = cxt
         cxtCpy.z = 1
@@ -340,7 +340,7 @@ impl IForm for FormText
         }
     }
 
-    mtd impl setup(capt: #nonull *Capture)
+    mtd impl setup(capt: *Capture)
     {
         .capture = capt
         .gizmo.setupForForm(cast(IForm) me)

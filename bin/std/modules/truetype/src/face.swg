@@ -78,7 +78,7 @@ public impl Face
 
         let faceData = Memory.new'FaceImpl()
         faceData.fontData.resize(@countof(bytes))
-        let fontData = faceData.fontData.buffer orelse cast(#nonull [*] u8) 1'u64
+        let fontData = faceData.fontData.buffer orelse cast([*] u8) 1'u64
         Memory.copy(fontData, @dataof(bytes), @countof(bytes))
         parseFace(faceData)
         return &faceData.face
@@ -86,7 +86,7 @@ public impl Face
 
     mtd destroy()
     {
-        let faceData = cast(#null *FaceImpl) cast(#nonull *void) me
+        let faceData = cast(#null *FaceImpl) cast(*void) me
         if faceData do
             Memory.delete(faceData)
     }
@@ -144,10 +144,10 @@ public impl Face
 
     mtd glyphIndex(charCode: rune)->u32
     {
-        let faceData = cast(#null *FaceImpl) cast(#nonull *void) me
+        let faceData = cast(#null *FaceImpl) cast(*void) me
         if !faceData do
             return 0
-        let safeFaceData = faceData orelse cast(#nonull *FaceImpl) 1'u64
+        let safeFaceData = faceData orelse cast(*FaceImpl) 1'u64
         let idx = catch lookupGlyphIndex(safeFaceData, cast(u32) charCode)
         return @err != null ? 0 : idx
     }

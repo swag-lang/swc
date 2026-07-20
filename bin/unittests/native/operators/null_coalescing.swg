@@ -4,7 +4,7 @@ const A = true
 const B = A orelse false
 #assert(B)
 
-const C: string = null
+const C: #null string = null
 const D = C orelse "d"
 #assert(D == "d")
 
@@ -20,9 +20,9 @@ const I: s32 = 7
 const J = I orelse 42
 #assert(J == 7)
 
-const S0: const [..] u8 = null
+const S0: #null const [..] u8 = null
 const S1 = S0 orelse "abc"
-#assert(#typeof(S1) == #nonull const [..] u8)
+#assert(#typeof(S1) == const [..] u8)
 #assert(S1[0] == 'a')
 #assert(S1[1] == 'b')
 #assert(S1[2] != 'd')
@@ -60,7 +60,7 @@ func fallbackString()->string
 
 #test
 {
-    var p: *s32
+    var p: #null *s32
     var v: s32 = 10
     @assert((p orelse &v) == &v)
     p = &v
@@ -69,7 +69,7 @@ func fallbackString()->string
 
 #test
 {
-    var s: string
+    var s: #null string
     @assert((s orelse "fallback") == "fallback")
     s = "ok"
     @assert((s orelse "fallback") == "ok")
@@ -87,7 +87,7 @@ func fallbackString()->string
 #test
 {
     NullCoercCounter = 0
-    var ptr: *s32 = null
+    var ptr: #null *s32 = null
     let value = ptr orelse fallbackPointer()
 
     @assert(value == &NullCoercValue)
@@ -98,7 +98,7 @@ func fallbackString()->string
 #test
 {
     NullCoercCounter = 0
-    var s: string = null
+    var s: #null string = null
     let value = s orelse fallbackString()
 
     @assert(value == "fallback")

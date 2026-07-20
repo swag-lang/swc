@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createSplitterPane(parent: #nonull *Wnd, title, text: #nonull string)->#nonull *FrameWnd
+func createSplitterPane(parent: *Wnd, title, text: string)->*FrameWnd
 {
     let pane = createPane(parent, title, text)
     let view = pane.view
@@ -11,7 +11,7 @@ func createSplitterPane(parent: #nonull *Wnd, title, text: #nonull string)->#non
     return pane
 }
 
-func createSplitterPage(parent: #nonull *Wnd)
+func createSplitterPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
     let page = createPanel(parent, "Nested splitters", "Drag the vertical and horizontal bars; side panes keep useful minimum sizes while the editor area absorbs most resize changes.", layout.full)

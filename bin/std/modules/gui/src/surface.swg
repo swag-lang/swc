@@ -11,8 +11,8 @@ struct SurfaceState
 struct Surface
 {
     using native:      NativeSurface
-    app:               #nonull *Application = undefined
-    wnd:               #nonull *SurfaceWnd = undefined
+    app:               *Application = undefined
+    wnd:               *SurfaceWnd = undefined
     painter:           Painter
     rt:                RenderTarget
     userData:          #null *void
@@ -97,7 +97,7 @@ impl Surface
     }
 
     // Creates the surface
-    func create(surface: #nonull *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
+    func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
     {
         with surface
         {
@@ -136,7 +136,7 @@ impl Surface
     }
 
     // Returns inside view
-    mtd getView()->#nonull *Wnd
+    mtd getView()->*Wnd
     {
         return assume .wnd.view
     }
@@ -180,7 +180,7 @@ impl Surface
     }
 
     // Center this surface relative to 'from'
-    mtd center(from: #nonull *Surface)
+    mtd center(from: *Surface)
     {
         var pos = .position
         pos.x = from.position.horzCenter()
@@ -405,7 +405,7 @@ impl Surface
         .wnd.sendResizeEvent()
     }
 
-    private mtd serializeState(ser: #nonull *Serializer) throw
+    private mtd serializeState(ser: *Serializer) throw
     {
         // Save position and surface state
         if .wnd.view != null and .wnd.view.id != null

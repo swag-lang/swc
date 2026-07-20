@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct OffPair
 {
@@ -25,7 +24,7 @@ func stringAndNested()->u64
 {
     let head: s8 = 0
     {
-        let inner: #nonull string = "x"
+        let inner: string = "x"
         #assert(#offsetof(inner) == 8)
     }
 

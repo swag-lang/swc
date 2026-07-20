@@ -108,13 +108,12 @@ namespace
         return h;
     }
 
-    // Nullability qualifiers must not affect runtime type identity: `#null string` and
+    // The #null qualifier must not affect runtime type identity: `#null string` and
     // `string` are the same runtime type (mirrors the qualifier masking in `@typecmp`).
     uint32_t identityFlags(const TypeInfo& typeInfo)
     {
         TypeInfoFlags flags = typeInfo.flags();
         flags.remove(TypeInfoFlagsE::Nullable);
-        flags.remove(TypeInfoFlagsE::ExplicitNonNull);
         return static_cast<uint32_t>(flags.get());
     }
 

@@ -7,7 +7,7 @@ struct NonNullMoveSourceItem
 
 struct NonNullMoveSourceOwner
 {
-    required: #nonull *NonNullMoveSourceItem
+    required: *NonNullMoveSourceItem
 }
 
 impl NonNullMoveSourceOwner

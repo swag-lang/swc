@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createPushButtonPage(parent: #nonull *Wnd)
+func createPushButtonPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Forms", "The same command rendered with the standard push button forms.", layout.left)

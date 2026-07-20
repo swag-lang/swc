@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertBuilderString(value: const &String, expected: #nonull string)->bool
+func assertBuilderString(value: const &String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and

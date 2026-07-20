@@ -162,7 +162,7 @@ var g_SoundFlap:  Audio.SoundFile
 'g_Font' is a **value** pointer to a Font structure.
 */
 
-var g_Font: *Font
+var g_Font: #null *Font
 
 /**
 In Swag, their are two types of pointers.
@@ -204,7 +204,7 @@ This is the callback that will deal with all gui events. This feels like *Window
 
 For a simple script, this is more easy to process events in that way.
 */
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -312,7 +312,7 @@ func paint(painter: *Painter)
     // Score
     if !g_FirstStart
     {
-        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), g_Font, Argb.White)
+        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), assume g_Font, Argb.White)
     }
 
     // Message

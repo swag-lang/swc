@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct CastTempArrayToStringHolder
 {
@@ -16,8 +15,8 @@ struct CastTempArrayToStringHolder
         },
     }
 
-    let text = cast(#nonull string) holder.cb(false)
-    let bytes = cast(#nonull const [..] u8) text
+    let text = cast(string) holder.cb(false)
+    let bytes = cast(const [..] u8) text
     @assert(@countof(bytes) == 5)
     @assert(text[0] == 'w''u8)
     @assert(text[4] == 'd''u8)

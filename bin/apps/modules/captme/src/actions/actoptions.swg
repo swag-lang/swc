@@ -11,9 +11,9 @@ impl IActionUI for ActionOptions
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
 
         switch cxt.id
         {
@@ -28,7 +28,7 @@ impl IActionUI for ActionOptions
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
         let view = main.editWnd.editView
 
         let dlg = Dialog.createDialog(assume view.surface, 800, 600, title: "Options", flags: .Border | .CloseBtn | .Sizeable)

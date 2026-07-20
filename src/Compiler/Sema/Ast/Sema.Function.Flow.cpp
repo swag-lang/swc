@@ -1434,10 +1434,14 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
         sema.setConstant(sema.curNodeRef(), exprView.cstRef());
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
-    const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
-    if (errorManagementSynthesizesDefaultResult(tokenId) && resultTypeRef.isValid())
+    // A nullable `assume` never synthesizes a default result (it checks for null and
+    // panics); only the error-management forms need an implicit default for the type.
+    const bool    isNullableAssume = codeGenPayload && codeGenPayload->assumeNullable;
+    const TokenId tokenId          = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
+    if (!isNullableAssume && errorManagementSynthesizesDefaultResult(tokenId) && resultTypeRef.isValid())
         SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, resultTypeRef, sema.curNodeRef()));
-    if (errorManagementSynthesizesDefaultResult(tokenId) &&
+    if (!isNullableAssume &&
+        errorManagementSynthesizesDefaultResult(tokenId) &&
         resultTypeRef.isValid() &&
         resultTypeRef != sema.typeMgr().typeVoid() &&
         SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))

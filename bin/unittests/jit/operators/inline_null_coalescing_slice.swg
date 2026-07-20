@@ -3,7 +3,7 @@
 #[Swag.Inline]
 func inlineJitNullCoalescingSliceFallback()->bool
 {
-    var value: [..] u32 = null
+    var value: #null [..] u32 = null
     let fallbackValues: [2] u32 = [7, 9]
     let fallback: [..] u32 = fallbackValues
     let resolved = value orelse fallback
@@ -19,7 +19,7 @@ func inlineJitNullCoalescingBoolFallback(value: bool)->bool
 #[Swag.Inline]
 func inlineJitNullCoalescingStringFallback()->bool
 {
-    var value: string = null
+    var value: #null string = null
     let fallback = "fallback"
     let resolved = value orelse fallback
     return resolved == fallback

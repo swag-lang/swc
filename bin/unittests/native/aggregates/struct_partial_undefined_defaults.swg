@@ -16,7 +16,7 @@ struct PartialUndefinedEvent
     }
 
     kind: Kind = undefined
-    from: *void
+    from: #null *void
 }
 
 struct PartialUndefinedDefaults

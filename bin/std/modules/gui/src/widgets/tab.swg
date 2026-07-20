@@ -63,7 +63,7 @@ struct Tab
     itemAutoLayoutMargin:     f32 = 25
     itemMinWidth:             f32 = 25
 
-    sigSelChanged:            SigArray'func||(#nonull *Tab)
+    sigSelChanged:            SigArray'func||(*Tab)
 
     buttonPopup:              #null *IconButton
     views:                    ArrayPtr'TabItem
@@ -77,7 +77,7 @@ struct Tab
 
 impl IWnd for Tab
 {
-    mtd paintItem(painter: #nonull *Painter, v: #nonull *TabItem, idx: u32)
+    mtd paintItem(painter: *Painter, v: *TabItem, idx: u32)
     {
         var clientRect = .getClientRect()
         clientRect.height = Math.min(.barHeight, clientRect.height)
@@ -203,7 +203,7 @@ impl IWnd for Tab
         Theme.drawIconText(painter, labelPos, v.icon, &v.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let painter = evt.bc.painter
         let theme   = .getTheme()
@@ -263,7 +263,7 @@ impl IWnd for Tab
         }
     }
 
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if .views.isEmpty() do
             return
@@ -281,7 +281,7 @@ impl IWnd for Tab
         }
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let hit = .hitTest(evt.surfacePos)
         if hit != .hotIdx
@@ -480,7 +480,7 @@ private impl Tab
 impl Tab
 {
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *Tab
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Tab
     {
         Debug.assert(parent != null)
         let res = Wnd.create'Tab(parent, null, position, id)
@@ -527,7 +527,7 @@ impl Tab
 
     // Add a new view
     #[Swag.Discardable]
-    mtd addItem(tabName: #nonull string, icon: Icon = {}, view: #null *Wnd = null)->#nonull *TabItem
+    mtd addItem(tabName: string, icon: Icon = {}, view: #null *Wnd = null)->*TabItem
     {
         if view
         {

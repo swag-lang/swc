@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertStringArray(values: const &Array'(#nonull string), expected: #nonull const [..] string)->bool
+func assertStringArray(values: const &Array'(string), expected: const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false

@@ -31,7 +31,7 @@ impl IGenericPointerCast for GenericPointerCastBox
 
 func(T) getGenericPointerCastValue()->s32
 {
-    let ptr = cast(*T) @alloc(#sizeof(T))
+    let ptr = cast(#null *T) @alloc(#sizeof(T))
     ptr.base.value = 7
     ptr.value = 42
     ptr.itf = cast(IGenericPointerCast) dref ptr

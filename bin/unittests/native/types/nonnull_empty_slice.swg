@@ -1,22 +1,21 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct NativePresentEmptySliceDefault
 {
-    value: #nonull const [..] u8 = ""
+    value: const [..] u8 = ""
 }
 
-const NATIVE_PRESENT_EMPTY_STRING_SLICE: #nonull const [..] u8 = ""
-const NATIVE_PRESENT_EMPTY_CSTRING: #nonull const cstring = cast(#nonull const cstring) @dataof("")
-const NATIVE_PRESENT_EMPTY_CSTRING_SLICE: #nonull const [..] u8 = cast(#nonull const [..] u8) NATIVE_PRESENT_EMPTY_CSTRING
+const NATIVE_PRESENT_EMPTY_STRING_SLICE: const [..] u8 = ""
+const NATIVE_PRESENT_EMPTY_CSTRING: const cstring = cast(const cstring) @dataof("")
+const NATIVE_PRESENT_EMPTY_CSTRING_SLICE: const [..] u8 = cast(const [..] u8) NATIVE_PRESENT_EMPTY_CSTRING
 const NATIVE_PRESENT_EMPTY_SLICE_DEFAULT: NativePresentEmptySliceDefault = {}
 const NATIVE_MISSING_EMPTY_SLICE: #null const [..] u8 = null
 
 func nativePresentEmptySlices()->bool
 {
-    let direct: #nonull const [..] u8 = ""
-    let ctext: #nonull const cstring = cast(#nonull const cstring) @dataof("")
-    let fromCString: #nonull const [..] u8 = cast(#nonull const [..] u8) ctext
+    let direct: const [..] u8 = ""
+    let ctext: const cstring = cast(const cstring) @dataof("")
+    let fromCString: const [..] u8 = cast(const [..] u8) ctext
     var fromDefault: NativePresentEmptySliceDefault
 
     return @countof(NATIVE_PRESENT_EMPTY_STRING_SLICE) == 0 and

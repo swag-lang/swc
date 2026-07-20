@@ -40,7 +40,7 @@ struct FrameWnd
 
 impl IWnd for FrameWnd
 {
-    mtd impl onPrePaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPrePaintEvent(evt: *PaintEvent)
     {
         if .frameFlags.has(.SmallShadow)
         {
@@ -57,7 +57,7 @@ impl IWnd for FrameWnd
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         if .frameForm == .Transparent do
             return
@@ -103,7 +103,7 @@ impl IWnd for FrameWnd
         .usedColorBk = colorBk
     }
 
-    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPostPaintEvent(evt: *PaintEvent)
     {
         if .frameForm == .Transparent do
             return
@@ -204,7 +204,7 @@ impl IWnd for FrameWnd
         }
     }
 
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if !.view do
             return
@@ -217,7 +217,7 @@ impl IWnd for FrameWnd
 impl FrameWnd
 {
     #[Swag.Discardable]
-    mtd(T) createView(hook: HookEvent = null)->#nonull *T
+    mtd(T) createView(hook: HookEvent = null)->*T
     {
         .view                 = Wnd.create'T(me, "", .position, hook: hook)
         .view.backgroundStyle = .Transparent
@@ -225,7 +225,7 @@ impl FrameWnd
         return assume cast(#null *T) .view
     }
 
-    mtd setView(what: #nonull *Wnd)
+    mtd setView(what: *Wnd)
     {
         if .view do
             .view.destroy()

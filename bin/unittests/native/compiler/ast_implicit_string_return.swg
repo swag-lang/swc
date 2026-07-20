@@ -2,7 +2,7 @@
 
 struct AstGeneratedString
 {
-    buffer: [*] u8
+    buffer: #null [*] u8
     length: u64
 }
 
@@ -11,13 +11,13 @@ impl AstGeneratedString
     #[Implicit]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer, .length)
+        return @mkstring(.buffer orelse cast([*] u8) 1'u64, .length)
     }
 }
 
 struct AstGeneratedBuilder
 {
-    buffer:   [*] u8
+    buffer:   #null [*] u8
     length:   u64
     capacity: u64
 }
@@ -39,7 +39,7 @@ impl AstGeneratedBuilder
         if !.buffer
         {
             .capacity = 128
-            .buffer = cast([*] u8) @alloc(.capacity)
+            .buffer = cast(#null [*] u8) @alloc(.capacity)
         }
 
         @assert(.length + cast(u64) @countof(value) <= .capacity)

@@ -8,7 +8,7 @@ public struct CultureInfo
 var g_CultureInfo: CultureInfo
 
 // Returns the global culture info structure
-public func getCultureInfo()->#nonull *CultureInfo
+public func getCultureInfo()->*CultureInfo
 {
     return &g_CultureInfo
 }

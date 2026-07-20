@@ -320,7 +320,7 @@ namespace
 
         const TypeInfo& returnType = typeMgr.get(returnTypeRef);
         const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
-        if (returnType.isNullable() && dstType.isExplicitNonNull())
+        if (returnType.isNullable() && dstType.isNonNullable())
             return false;
         if (!returnType.isSupportsNullableQualifier() || !dstType.isSupportsNullableQualifier())
             return false;

@@ -10,7 +10,7 @@ interface IDepEvt
 
 struct DepEvtBase
 {
-    type:   typeinfo
+    type:   #null typeinfo
     tag:    s32
 }
 

@@ -3,7 +3,7 @@ using Core, Core.Math
 
 struct LinePathList
 {
-    paths:     Array'(#nonull *LinePath)
+    paths:     Array'(*LinePath)
     bvMin:     Vector2
     bvMax:     Vector2
 }
@@ -37,7 +37,7 @@ impl LinePathList
     }
 
     // Returns a new path
-    mtd newPath()->#nonull *LinePath
+    mtd newPath()->*LinePath
     {
         let ptr = Memory.new'LinePath()
         .paths.add(ptr)

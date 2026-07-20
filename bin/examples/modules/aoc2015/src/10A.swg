@@ -59,7 +59,7 @@ internal func day10RunStep(input: string, output: &String)
 
     let inputLen = @countof(input)
     var i        = 0'u64
-    var write    = output.buffer
+    var write    = assume output.buffer
     while i < inputLen
     {
         let digit = input[i]

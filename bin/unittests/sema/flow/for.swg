@@ -229,7 +229,7 @@ func semaTest027()
 
 func semaTest028()
 {
-    var str: string
+    var str: #null string
     for it in @countof(str) {}
     var v: u32
     for it in v {}

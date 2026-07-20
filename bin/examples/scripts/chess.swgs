@@ -40,8 +40,8 @@ enum ContentEnum: u8
 namespace Res
 {
     var piecesTexture: [2, 6] Texture
-    var font:          *Font
-    var smallfont:     *Font
+    var font:          #null *Font
+    var smallfont:     #null *Font
 }
 
 struct Cell
@@ -449,34 +449,34 @@ func paintStates(paintEvt: *PaintEvent)
 
     var y = BoardWithBorderSize + 12
     str = Format.toString("% player turn", g_Game.whiteTurn ? "White" : "Black")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("White king is %", isCheck(g_Board, true) ? "in check" : "safe")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("Black king is %", isCheck(g_Board, false) ? "in check" : "safe")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 
-    painter.drawString(0, y, g_Game.gameStatus, Res.smallfont, Argb.White)
+    painter.drawString(0, y, g_Game.gameStatus, assume Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("White little castle is %", g_Game.castle[0, 0] ? (g_Game.whiteTurn and moveIsPossible(6, 8) ? "possible now" : "available") : "not available anymore")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("White big castle is %", g_Game.castle[0, 1] ? (g_Game.whiteTurn and moveIsPossible(6, 4) ? "possible now" : "available") : "not available anymore")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("Black little castle is %", g_Game.castle[1, 0] ? (!g_Game.whiteTurn and moveIsPossible(90, 92) ? "possible now" : "available") : "not available anymore")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("Black big castle is %", g_Game.castle[1, 1] ? (!g_Game.whiteTurn and moveIsPossible(90, 88) ? "possible now" : "available") : "not available anymore")
-    painter.drawString(0, y, str, Res.smallfont, Argb.White)
+    painter.drawString(0, y, str, assume Res.smallfont, Argb.White)
     y += 12
 }
 
@@ -494,7 +494,7 @@ func pickCell(pos: Math.Point)->s8
     return cast(s8) (y * 12 + x + 2)
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

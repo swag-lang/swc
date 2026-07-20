@@ -28,15 +28,17 @@ impl ConstDataOfSpecBuffer
 
 func semaTest001()
 {
-    var a: [..] s32
+    var arr0: [3] s32
+    var a: [..] s32 = arr0
     var b = @dataof(a)
     #assert(#typeof(b) == [*] s32)
 
-    var c: string
+    var c: string = "x"
     var d = @dataof(c)
     #assert(#typeof(d) == const [*] u8)
 
-    var e: cstring
+    var ebuf: [2] u8 = ['x''u8, 0]
+    var e: cstring = cast(cstring) &ebuf[0]
     var f = @dataof(e)
     #assert(#typeof(f) == const [*] u8)
 
@@ -44,7 +46,7 @@ func semaTest001()
     var h = @dataof(g)
     #assert(#typeof(h) == [*] s32)
 
-    var i: any
+    var i: any = 0's32
     var j = @dataof(i)
     #assert(#typeof(j) == [*] void)
 }
@@ -69,7 +71,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    var s: string = null
+    var s: #null string = null
     var p = @dataof(s)
     #assert(#typeof(p) == const [*] u8)
 }

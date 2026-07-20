@@ -32,14 +32,14 @@ struct(T) Result
 }
 
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
-func isOption(oneArg: #nonull string, _options: ParseOptions)->bool
+func isOption(oneArg: string, _options: ParseOptions)->bool
 {
     if @countof(oneArg) == 0 do
         return false
     return oneArg[0] == '-'
 }
 
-func isValue(oneArg: #nonull string, typeField: #nonull typeinfo, options: ParseOptions)->bool
+func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
 {
     if !isOption(oneArg, options) do
         return true
@@ -64,11 +64,11 @@ func isValue(oneArg: #nonull string, typeField: #nonull typeinfo, options: Parse
 
 private struct SplitArgument
 {
-    value:         #nonull string
+    value:         string
     attachedValue: bool
 }
 
-private func splitArgumentsEx(args: #nonull const [..] #nonull string, options: ParseOptions)->Array'SplitArgument
+private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
 {
     var allArgs: retval
 
@@ -106,7 +106,7 @@ private func splitArgumentsEx(args: #nonull const [..] #nonull string, options: 
 
 // Clean and split a list of arguments
 // -option:value or -option=value => -option value
-func splitArguments(args: #nonull const [..] #nonull string, options: ParseOptions)->Array'(#nonull string)
+func splitArguments(args: const [..] string, options: ParseOptions)->Array'(string)
 {
     var allArgs: retval
 
@@ -124,7 +124,7 @@ struct FieldResult
     index: u64 = Swag.U64.Max
 }
 
-func getField(typeStruct: #nonull const *Swag.TypeInfoStruct, name: #nonull string)->FieldResult
+func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval
 
@@ -152,10 +152,10 @@ func getField(typeStruct: #nonull const *Swag.TypeInfoStruct, name: #nonull stri
 }
 
 // Parse all the arguments and fill the result
-func(T) parse(st: #nonull *T, args: #nonull const [..] #nonull string, options = ParseOptions{})->Result throw
+func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result throw
 {
 #[Swag.Mixin]
-    func checkNext(typeField: #nonull typeinfo) throw
+    func checkNext(typeField: typeinfo) throw
     {
         if itp + 1 == maxItp do
             throw SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
@@ -186,17 +186,17 @@ func(T) parse(st: #nonull *T, args: #nonull const [..] #nonull string, options =
         if !typeParam do
             throw SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
 
-        let field = typeParam orelse cast(#nonull const *Swag.TypeValue) 1'u64
+        let field = typeParam orelse cast(const *Swag.TypeValue) 1'u64
         let typeField = field.pointedType orelse #typeof(u8)
 
-        var addr = cast(#nonull [*] u8) st
+        var addr = cast([*] u8) st
         addr += field.offset
 
         // Bool: Result is true if the option does not have an associated value
         if Reflection.isBool(typeField) and
            (itp + 1 == maxItp or isOption(allArgs[itp + 1].value, options))
         {
-            dref cast(#nonull *bool) addr = true
+            dref cast(*bool) addr = true
         }
 
         // All types supported by 'Parse.pokeValue'
@@ -262,7 +262,7 @@ func(T) parse(st: #nonull *T, args: #nonull const [..] #nonull string, options =
         }
 
         // Set the associated 'isSet' boolean to true
-        var addrIsSet = cast(#nonull [*] bool) &result.isSet
+        var addrIsSet = cast([*] bool) &result.isSet
         addrIsSet += fieldResult.index
         dref addrIsSet = true
     }

@@ -12,7 +12,7 @@ public struct ByteStream
 public impl ByteStream
 {
     // Creates a byte stream for reading from a buffer
-    func openRead(readBuffer: #nonull const [..] u8)->ByteStream
+    func openRead(readBuffer: const [..] u8)->ByteStream
     {
         var result: retval
         result.readBuffer = readBuffer
@@ -20,7 +20,7 @@ public impl ByteStream
     }
 
     // Creates a byte stream for writing to a buffer
-    func openWrite(writeBuffer: #nonull *Array'u8)->ByteStream
+    func openWrite(writeBuffer: *Array'u8)->ByteStream
     {
         var result: retval
         result.writeBuffer = writeBuffer
@@ -34,7 +34,7 @@ public impl ByteStream
     }
 
     // Returns a string of unread bytes from the current seek to the end
-    mtd remainReadToString()->#nonull string
+    mtd remainReadToString()->string
     {
         return @mkstring(.readData() + .seek, .length() - .seek)
     }
@@ -46,7 +46,7 @@ public impl ByteStream
     }
 
     // Returns a pointer to the underlying read or write buffer
-    mtd readData()->#nonull const [*] u8
+    mtd readData()->const [*] u8
     {
         return .writeBuffer ? assume .writeBuffer.buffer : assume @dataof(.readBuffer)
     }
@@ -64,15 +64,15 @@ public impl ByteStream
 
         if seek + #sizeof(T) > writeBuffer.count do
             writeBuffer.reserve(seek + #sizeof(T))
-        let buffer = writeBuffer.buffer orelse cast(#nonull [*] u8) 1'u64
-        var ptr = cast(#nonull *T) (buffer + seek)
+        let buffer = writeBuffer.buffer orelse cast([*] u8) 1'u64
+        var ptr = cast(*T) (buffer + seek)
         dref ptr = val
         seek += #sizeof(T)
         writeBuffer.count = Math.max(writeBuffer.count, seek)
     }
 
     // Writes a slice of bytes to the stream
-    mtd writeBytes(slice: #nonull const [..] u8)
+    mtd writeBytes(slice: const [..] u8)
     {
         Debug.assert(.writeBuffer != null)
 
@@ -82,7 +82,7 @@ public impl ByteStream
 
         if .seek + count > .writeBuffer.count do
             .writeBuffer.reserve(.seek + count)
-        let buffer = .writeBuffer.buffer orelse cast(#nonull [*] u8) 1'u64
+        let buffer = .writeBuffer.buffer orelse cast([*] u8) 1'u64
         let ptr = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
         .seek += count
@@ -94,7 +94,7 @@ public impl ByteStream
     {
         if .seek + #sizeof(T) > .length() do
             throw OverflowError{"byte stream overflow"}
-        let val = dref cast(#nonull const *T) (.readData() + .seek)
+        let val = dref cast(const *T) (.readData() + .seek)
         .seek += #sizeof(T)
         return val
     }

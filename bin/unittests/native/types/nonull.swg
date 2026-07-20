@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct NativeNonNullItem
 {
@@ -12,17 +11,17 @@ const NATIVE_NONULL_FORWARD_ARRAY_REQUIRES_INIT =
 
 struct NativeNonNullForwardHolder
 {
-    required: #nonull *NativeNonNullItem
+    required: *NativeNonNullItem
 }
 
-alias NativeNonNullPointerAlias = #nonull *NativeNonNullItem
-alias NativeConstPointerAlias   = #nonull const *NativeNonNullItem
+alias NativeNonNullPointerAlias = *NativeNonNullItem
+alias NativeConstPointerAlias   = const *NativeNonNullItem
 
 const NATIVE_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
 struct NativeNonNullStringDefault
 {
-    value: #nonull string = "fallback"
+    value: string = "fallback"
 }
 
 struct(T) NativeNonNullGenericBox
@@ -51,7 +50,7 @@ const NATIVE_NONULL_PARTIAL_ARRAY: [2] NativeNonNullStringDefault = [{value: "ex
 
 struct NativeNonNullHolder
 {
-    required: #nonull *NativeNonNullItem
+    required: *NativeNonNullItem
     optional: #null *NativeNonNullItem
     legacy:   #null *NativeNonNullItem
     count:    s32 = 7
@@ -61,12 +60,12 @@ alias NativeNonNullHolderAlias = NativeNonNullHolder
 
 struct NativeNonNullPointerDefault
 {
-    required: #nonull const [*] u8 = @dataof(NATIVE_NONULL_POINTER_DEFAULT_TEXT)
+    required: const [*] u8 = @dataof(NATIVE_NONULL_POINTER_DEFAULT_TEXT)
 }
 
 struct NativeNonNullMoveDefault
 {
-    required: #nonull string = "move-default"
+    required: string = "move-default"
 }
 
 impl NativeNonNullMoveDefault
@@ -78,23 +77,23 @@ impl NativeNonNullMoveDefault
 
 struct NativeNonNullUndefinedHolder
 {
-    required: #nonull *NativeNonNullItem = undefined
+    required: *NativeNonNullItem = undefined
 }
 
 struct NativeNonNullBlockHolder
 {
-    required: #nonull [*] NativeNonNullItem
+    required: [*] NativeNonNullItem
 }
 
 struct NativeNonNullFamilies
 {
-    valuePointer:  #nonull *NativeNonNullItem
-    blockPointer:  #nonull [*] NativeNonNullItem
-    slice:         #nonull [..] NativeNonNullItem
-    text:          #nonull string
-    ctext:         #nonull cstring
-    boxed:         #nonull any
-    reflectedType: #nonull typeinfo
+    valuePointer:  *NativeNonNullItem
+    blockPointer:  [*] NativeNonNullItem
+    slice:         [..] NativeNonNullItem
+    text:          string
+    ctext:         cstring
+    boxed:         any
+    reflectedType: typeinfo
 }
 
 struct NativeNonNullNested
@@ -102,16 +101,14 @@ struct NativeNonNullNested
     holder: NativeNonNullHolder
 }
 
-func nativeHasNonNullFlags(type: #nonull typeinfo)->bool
+func nativeHasNonNullFlags(type: typeinfo)->bool
 {
-    if !(type.flags & Swag.TypeInfoFlags.ExplicitNonNull) do
-        return false
     if !(type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     return !(type.flags & Swag.TypeInfoFlags.Nullable)
 }
 
-func migrateNativeLegacyPointer(value: #nonull *NativeNonNullItem)->#nonull *NativeNonNullItem => value
+func migrateNativeLegacyPointer(value: *NativeNonNullItem)->*NativeNonNullItem => value
 
 func nativeNonNullConstruction()->bool
 {
@@ -120,40 +117,40 @@ func nativeNonNullConstruction()->bool
     var blockStorage: [2] NativeNonNullItem = [{value: 31}, {value: 32}]
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct: #nonull *NativeNonNullItem = &first
-    let block: #nonull [*] NativeNonNullItem = cast(#nonull [*] NativeNonNullItem) &blockStorage[0]
-    let slice: #nonull [..] NativeNonNullItem = blockStorage
-    let text: #nonull string = "nonull"
-    let ctext: #nonull cstring = cast(#nonull cstring) &cstringStorage[0]
-    let boxed: #nonull any = 123
-    let reflectedType: #nonull typeinfo = NativeNonNullItem
+    let direct: *NativeNonNullItem = &first
+    let block: [*] NativeNonNullItem = cast([*] NativeNonNullItem) &blockStorage[0]
+    let slice: [..] NativeNonNullItem = blockStorage
+    let text: string = "nonull"
+    let ctext: cstring = cast(cstring) &cstringStorage[0]
+    let boxed: any = 123
+    let reflectedType: typeinfo = NativeNonNullItem
     var nullableValuePointer: #null *NativeNonNullItem = null
     var nullableBlockPointer: #null [*] NativeNonNullItem = null
     var nullableSlice: #null [..] NativeNonNullItem = null
     var nullableString: #null string = null
     var nullableCString: #null cstring = null
     var nullableTypeInfo: #null typeinfo = null
-    let boxedNullableValuePointer: #nonull any = nullableValuePointer
-    let boxedNullableBlockPointer: #nonull any = nullableBlockPointer
-    let boxedNullableSlice: #nonull any = nullableSlice
-    let boxedNullableString: #nonull any = nullableString
-    let boxedNullableCString: #nonull any = nullableCString
-    let boxedNullableTypeInfo: #nonull any = nullableTypeInfo
+    let boxedNullableValuePointer: any = nullableValuePointer
+    let boxedNullableBlockPointer: any = nullableBlockPointer
+    let boxedNullableSlice: any = nullableSlice
+    let boxedNullableString: any = nullableString
+    let boxedNullableCString: any = nullableCString
+    let boxedNullableTypeInfo: any = nullableTypeInfo
     let aliasReadOnly: const NativeNonNullPointerAlias = &first
-    let aliasRequired: #nonull NativeConstPointerAlias = &first
-    let legacySource: #nonull *NativeNonNullItem = &first
-    let migrated: #nonull *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
+    let aliasRequired: NativeConstPointerAlias = &first
+    let legacySource: *NativeNonNullItem = &first
+    let migrated: *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
     let widened: #null *NativeNonNullItem = migrated
 
-    #assert(#typeof(aliasReadOnly) == #nonull const *NativeNonNullItem)
-    #assert(#typeof(aliasRequired) == #nonull const *NativeNonNullItem)
-    #assert(#typeof(direct) == #nonull *NativeNonNullItem)
-    #assert(#typeof(block) == #nonull [*] NativeNonNullItem)
-    #assert(#typeof(slice) == #nonull [..] NativeNonNullItem)
-    #assert(#typeof(text) == #nonull string)
-    #assert(#typeof(ctext) == #nonull cstring)
-    #assert(#typeof(boxed) == #nonull any)
-    #assert(#typeof(reflectedType) == #nonull typeinfo)
+    #assert(#typeof(aliasReadOnly) == const *NativeNonNullItem)
+    #assert(#typeof(aliasRequired) == const *NativeNonNullItem)
+    #assert(#typeof(direct) == *NativeNonNullItem)
+    #assert(#typeof(block) == [*] NativeNonNullItem)
+    #assert(#typeof(slice) == [..] NativeNonNullItem)
+    #assert(#typeof(text) == string)
+    #assert(#typeof(ctext) == cstring)
+    #assert(#typeof(boxed) == any)
+    #assert(#typeof(reflectedType) == typeinfo)
 
     if !nativeHasNonNullFlags(#typeof(direct)) or
        !nativeHasNonNullFlags(#typeof(block)) or
@@ -166,18 +163,18 @@ func nativeNonNullConstruction()->bool
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
     let aliasRequiredType = #typeof(aliasRequired)
-    if !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.ExplicitNonNull) or !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const) or !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const) or !(aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
-    if !(aliasRequiredType.flags & Swag.TypeInfoFlags.ExplicitNonNull) or !(aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or !(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if !(aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or !(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
 
-    let holderType = cast(#nonull const *Swag.TypeInfoStruct) #typeof(NativeNonNullHolder)
+    let holderType = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullHolder)
     let nestedType = #typeof(NativeNonNullNested)
     let holderArrayType = #typeof([2] NativeNonNullHolder)
-    let pointerArrayType = #typeof([2] #nonull *NativeNonNullItem)
+    let pointerArrayType = #typeof([2] *NativeNonNullItem)
     let defaultContainerType = #typeof(NativeNonNullDefaultContainer)
-    let genericRequiredType = cast(#nonull const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'(#nonull *NativeNonNullItem))
-    let genericDefaultType = cast(#nonull const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault)
+    let genericRequiredType = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'(*NativeNonNullItem))
+    let genericDefaultType = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault)
     if holderType.opInit != null or !(holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if !(nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
@@ -201,9 +198,9 @@ func nativeNonNullConstruction()->bool
         {required: &first},
         {required: &second, count: 8},
     ]
-    let genericRequired: NativeNonNullGenericBox'(#nonull *NativeNonNullItem) = {value: &first}
+    let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
     var genericDefault: NativeNonNullGenericBox'NativeNonNullStringDefault
-    let pointerArray: [2] #nonull *NativeNonNullItem = [&first, &second]
+    let pointerArray: [2] *NativeNonNullItem = [&first, &second]
     let aliasedHolder: NativeNonNullHolderAlias = {required: &first}
     let pointerDefault = NativeNonNullPointerDefault{}
     var moveDefaultSource = NativeNonNullMoveDefault{required: "explicit"}
@@ -218,19 +215,19 @@ func nativeNonNullConstruction()->bool
         reflectedType: reflectedType,
     }
 
-    #assert(#typeof(families.valuePointer) == #nonull *NativeNonNullItem)
-    #assert(#typeof(families.blockPointer) == #nonull [*] NativeNonNullItem)
-    #assert(#typeof(families.slice) == #nonull [..] NativeNonNullItem)
-    #assert(#typeof(families.text) == #nonull string)
-    #assert(#typeof(families.ctext) == #nonull cstring)
-    #assert(#typeof(families.boxed) == #nonull any)
-    #assert(#typeof(families.reflectedType) == #nonull typeinfo)
-    #assert(#typeof(pointerArray[0]) == #nonull *NativeNonNullItem)
+    #assert(#typeof(families.valuePointer) == *NativeNonNullItem)
+    #assert(#typeof(families.blockPointer) == [*] NativeNonNullItem)
+    #assert(#typeof(families.slice) == [..] NativeNonNullItem)
+    #assert(#typeof(families.text) == string)
+    #assert(#typeof(families.ctext) == cstring)
+    #assert(#typeof(families.boxed) == any)
+    #assert(#typeof(families.reflectedType) == typeinfo)
+    #assert(#typeof(pointerArray[0]) == *NativeNonNullItem)
     #assert(#typeof(aliasedHolder) == NativeNonNullHolder)
-    #assert(#typeof(aliasedHolder.required) == #nonull *NativeNonNullItem)
-    #assert(#typeof(pointerDefault.required) == #nonull const [*] u8)
-    #assert(#typeof(moveDefaultSource.required) == #nonull string)
-    #assert(#typeof(moveDefaultTarget.required) == #nonull string)
+    #assert(#typeof(aliasedHolder.required) == *NativeNonNullItem)
+    #assert(#typeof(pointerDefault.required) == const [*] u8)
+    #assert(#typeof(moveDefaultSource.required) == string)
+    #assert(#typeof(moveDefaultTarget.required) == string)
 
     if holder.required != &first or holder.required.value != 11 do
         return false
@@ -299,10 +296,10 @@ func nativeNonNullConstruction()->bool
         return false
 
     // 'undefined' remains an explicit low-level escape hatch; its value must not be read.
-    var undefinedPointer: #nonull *NativeNonNullItem = undefined
+    var undefinedPointer: *NativeNonNullItem = undefined
     var undefinedHolder = NativeNonNullUndefinedHolder{}
-    #assert(#typeof(undefinedPointer) == #nonull *NativeNonNullItem)
-    #assert(#typeof(undefinedHolder.required) == #nonull *NativeNonNullItem)
+    #assert(#typeof(undefinedPointer) == *NativeNonNullItem)
+    #assert(#typeof(undefinedHolder.required) == *NativeNonNullItem)
 
     // Explicitly nullable pointers keep their null default during migration.
     var nullablePointer: #null *NativeNonNullItem

@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct SortNamedItem
 {
@@ -7,14 +6,14 @@ struct SortNamedItem
     total: s64
 }
 
-func(T) pickCompare(values: #nonull [..] T, bigFirst = false)->s32
+func(T) pickCompare(values: [..] T, bigFirst = false)->s32
 {
     if bigFirst do
         return pickCompare(values, func(x, y: T)->s32 => y <=> x)
     return pickCompare(values, func(x, y: T)->s32 => x <=> y)
 }
 
-func(T) pickCompare(values: #nonull [..] T, cb: func||(T, T)->s32)->s32
+func(T) pickCompare(values: [..] T, cb: func||(T, T)->s32)->s32
 {
     return cb(values[0], values[1])
 }

@@ -5,8 +5,8 @@ using Swag, Core.Errors
 // Represents a folder mapping to a specific structure type with its data
 struct Folder
 {
-    type:     #nonull typeinfo     // Type information of the structure
-    data:     #nonull [*] void     // Pointer to the actual structure instance
+    type:     typeinfo     // Type information of the structure
+    data:     [*] void     // Pointer to the actual structure instance
 }
 
 // Represents a tweak file parser that can load configuration into registered folders
@@ -18,7 +18,7 @@ struct TweakFile
 impl TweakFile
 {
     // Registers a new structure to be parsed as a folder
-    mtd(T) registerFolder(folder: #nonull *T)
+    mtd(T) registerFolder(folder: *T)
     {
         #if !Reflection.isStruct(T) do
             #error("type should be a struct")
@@ -26,30 +26,30 @@ impl TweakFile
     }
 
     // Reads and parses a tweak file from disk
-    mtd parseFile(fileName: #nonull string) throw
+    mtd parseFile(fileName: string) throw
     {
         var buf   = try File.readAllBytes(fileName)
-        let lines = Tokenize.splitLines(cast(#nonull string) buf.toSlice())
+        let lines = Tokenize.splitLines(cast(string) buf.toSlice())
         try .parse(lines)
     }
 
     // Parses tweak content from a string
-    mtd parse(content: #nonull string) throw
+    mtd parse(content: string) throw
     {
         let lines = Tokenize.splitLines(content)
         try .parse(lines)
     }
 
     // Parses tweak content from an array of lines
-    mtd parse(lines: Array'(#nonull string)) throw
+    mtd parse(lines: Array'(string)) throw
     {
         Debug.assert(!.folders.isEmpty())
 
         struct Ref
         {
-            folder:     #nonull *Folder        // Folder where the reference is defined
-            src:        #nonull const *TypeValue     // Source field that is being referenced
-            dst:        #nonull const *TypeValue     // Destination field to copy to
+            folder:     *Folder        // Folder where the reference is defined
+            src:        const *TypeValue     // Source field that is being referenced
+            dst:        const *TypeValue     // Destination field to copy to
         }
 
         var refs:          Array'Ref     // Pending references to resolve
@@ -98,7 +98,7 @@ impl TweakFile
             let field = Reflection.getField(currentFolder.type, id)
             if !field do
                 throw SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
-            let safeField = field orelse cast(#nonull const *TypeValue) 1'u64
+            let safeField = field orelse cast(const *TypeValue) 1'u64
             one = Tokenize.eatCount(one, @countof(id))
             one = Tokenize.eatSpaces(one)
             if !@countof(one) do
@@ -111,10 +111,10 @@ impl TweakFile
                 let otherField = Reflection.getField(currentFolder.type, one)
                 if !otherField do
                     throw SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", one, currentFolder.type.name)), line: idx + 1}
-                let safeOtherField = otherField orelse cast(#nonull const *TypeValue) 1'u64
+                let safeOtherField = otherField orelse cast(const *TypeValue) 1'u64
                 if safeField.pointedType != safeOtherField.pointedType do
                     throw SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", one)), line: idx + 1}
-                let folder = currentFolder orelse cast(#nonull *Folder) 1'u64
+                let folder = currentFolder orelse cast(*Folder) 1'u64
                 let refr: Ref{folder, safeOtherField, safeField}
                 refs.add(refr)
                 continue
@@ -122,7 +122,7 @@ impl TweakFile
 
             // Parse and assign value to field
             let safePointedType = assume safeField.pointedType
-            let parsedOne: #null string = catch StrConv.parseValue(cast(#nonull [*] u8) currentFolder.data + safeField.offset, safePointedType, one)
+            let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + safeField.offset, safePointedType, one)
             if @err != null do
                 throw SyntaxError{"invalid value", line: idx + 1}
             one = parsedOne orelse ""
@@ -164,8 +164,8 @@ impl TweakFile
                     break
             }
 
-            let ptrDst = cast(#nonull [*] u8) refr.folder.data + refr.dst.offset
-            let ptrSrc = cast(#nonull [*] u8) refr.folder.data + refr.src.offset
+            let ptrDst = cast([*] u8) refr.folder.data + refr.dst.offset
+            let ptrSrc = cast([*] u8) refr.folder.data + refr.src.offset
             Reflection.copy(ptrDst, ptrSrc, refr.dst.pointedType)
 
             refs.removeAt(toDo)

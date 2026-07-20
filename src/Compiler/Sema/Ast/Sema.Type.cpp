@@ -80,85 +80,6 @@ namespace
         return TypeRef::invalid();
     }
 
-    bool isWrappedByContainerType(Sema& sema)
-    {
-        const AstNode* parentNode = sema.visit().parentNode();
-        if (!parentNode)
-            return false;
-
-        switch (parentNode->id())
-        {
-            case AstNodeId::QualifiedType:
-                return parentNode->cast<AstQualifiedType>().nodeTypeRef == sema.curNodeRef();
-            case AstNodeId::ValuePointerType:
-                return parentNode->cast<AstValuePointerType>().nodePointeeTypeRef == sema.curNodeRef();
-            case AstNodeId::BlockPointerType:
-                return parentNode->cast<AstBlockPointerType>().nodePointeeTypeRef == sema.curNodeRef();
-            case AstNodeId::SliceType:
-                return parentNode->cast<AstSliceType>().nodePointeeTypeRef == sema.curNodeRef();
-            case AstNodeId::ArrayType:
-                return parentNode->cast<AstArrayType>().nodePointeeTypeRef == sema.curNodeRef();
-            case AstNodeId::TypedVariadicType:
-                return parentNode->cast<AstTypedVariadicType>().nodeTypeRef == sema.curNodeRef();
-            default:
-                return false;
-        }
-    }
-
-    // A type appearing as a switch case expression or as a comparison operand is used
-    // as a typeinfo VALUE (`case string:`, `#typeof(x) == const *s32`); requiring an
-    // annotation there would be meaningless noise, and for comparisons against inferred
-    // (bare) types it would even change the result. Generic value parameters
-    // (`mtd(op: string)`) are compile-time constants, likewise irrelevant.
-    bool isNullabilityExemptContext(Sema& sema)
-    {
-        const AstNode* parentNode = sema.visit().parentNode();
-        // A parentless type node is a compiler-driven re-sema (e.g. a generic value
-        // parameter's type semaed in isolation during instantiation), never a user
-        // declaration site.
-        if (!parentNode)
-            return true;
-        switch (parentNode->id())
-        {
-            case AstNodeId::SwitchCaseStmt:
-            case AstNodeId::GenericParamValue:
-            case AstNodeId::RelationalExpr:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    Result checkExplicitNullability(Sema& sema, AstNodeRef typeNodeRef, TypeRef typeRef)
-    {
-        if (!sema.buildCfg().explicitNullability && !sema.frame().currentAttributes().explicitNullability)
-            return Result::Continue;
-
-        // Machine-generated import files (module exports) can carry inferred types without
-        // qualifiers; explicit nullability is a lint for hand-written source only.
-        const SourceFile* file = sema.file();
-        if (file && file->isImportedApi())
-            return Result::Continue;
-        if (isWrappedByContainerType(sema))
-            return Result::Continue;
-        if (isNullabilityExemptContext(sema))
-            return Result::Continue;
-
-        TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (unwrappedTypeRef.isInvalid())
-            unwrappedTypeRef = typeRef;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(unwrappedTypeRef);
-        if (!typeInfo.isSupportsNullableQualifier())
-            return Result::Continue;
-        if (typeInfo.isNullable() || typeInfo.isExplicitNonNull())
-            return Result::Continue;
-
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_nullability, typeNodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeInfo.toName(sema.ctx()));
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
 }
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
@@ -207,23 +128,23 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
             return Result::Continue;
         case TokenId::TypeString:
             sema.setType(nodeRef, typeMgr.typeString());
-            return checkExplicitNullability(sema, nodeRef, typeMgr.typeString());
+            return Result::Continue;
 
         case TokenId::TypeVoid:
             sema.setType(nodeRef, typeMgr.typeVoid());
             return Result::Continue;
         case TokenId::TypeAny:
             sema.setType(nodeRef, typeMgr.typeAny());
-            return checkExplicitNullability(sema, nodeRef, typeMgr.typeAny());
+            return Result::Continue;
         case TokenId::TypeCString:
             sema.setType(nodeRef, typeMgr.typeCString());
-            return checkExplicitNullability(sema, nodeRef, typeMgr.typeCString());
+            return Result::Continue;
         case TokenId::TypeRune:
             sema.setType(nodeRef, typeMgr.typeRune());
             return Result::Continue;
         case TokenId::TypeTypeInfo:
             sema.setType(nodeRef, typeMgr.typeTypeInfo());
-            return checkExplicitNullability(sema, nodeRef, typeMgr.typeTypeInfo());
+            return Result::Continue;
 
         default:
             break;
@@ -301,7 +222,7 @@ Result AstValuePointerType::semaPostNode(Sema& sema) const
     const TypeInfo     ty      = TypeInfo::makeValuePointer(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
+    return Result::Continue;
 }
 
 Result AstBlockPointerType::semaPostNode(Sema& sema) const
@@ -310,7 +231,7 @@ Result AstBlockPointerType::semaPostNode(Sema& sema) const
     const TypeInfo     ty      = TypeInfo::makeBlockPointer(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
+    return Result::Continue;
 }
 
 Result AstReferenceType::semaPostNode(Sema& sema) const
@@ -350,7 +271,7 @@ Result AstSliceType::semaPostNode(Sema& sema) const
     const TypeInfo ty      = TypeInfo::makeSlice(view.typeRef());
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
-    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
+    return Result::Continue;
 }
 
 Result AstQualifiedType::semaPostNode(Sema& sema) const
@@ -388,34 +309,20 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
         typeFlags.add(TypeInfoFlagsE::Const);
     }
 
-    TokenId        nullabilityTokenId = TokenId::Invalid;
-    TypeInfoFlagsE nullabilityFlag    = TypeInfoFlagsE::Zero;
+    // Non-null is the default: only #null carries information.
     if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
-    {
-        nullabilityTokenId = TokenId::ModifierNullable;
-        nullabilityFlag    = TypeInfoFlagsE::Nullable;
-    }
-    else if (this->hasFlag(AstQualifiedTypeFlagsE::ExplicitNonNull))
-    {
-        nullabilityTokenId = TokenId::ModifierNonNull;
-        nullabilityFlag    = TypeInfoFlagsE::ExplicitNonNull;
-    }
-
-    if (nullabilityFlag != TypeInfoFlagsE::Zero)
     {
         if (!qualifiedType.isSupportsNullableQualifier())
         {
             const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
-            const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {nullabilityTokenId});
+            const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
             auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        typeFlags.remove(TypeInfoFlagsE::Nullable);
-        typeFlags.remove(TypeInfoFlagsE::ExplicitNonNull);
-        typeFlags.add(nullabilityFlag);
+        typeFlags.add(TypeInfoFlagsE::Nullable);
     }
 
     TypeRef      typeRef;
@@ -465,9 +372,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     }
 
     sema.setType(sema.curNodeRef(), typeRef);
-    // A qualified type absorbs the nullability check of its wrapped type (the inner
-    // node defers to this wrapper): a bare `const *T` still requires #null/#nonull.
-    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
+    return Result::Continue;
 }
 
 Result AstNamedType::semaPostNode(Sema& sema) const

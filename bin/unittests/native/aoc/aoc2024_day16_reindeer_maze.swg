@@ -43,7 +43,7 @@ const End:   u8 = 'E'
 
 struct Maze
 {
-    cells: [*] u8
+    cells: #null [*] u8
     w:     u32
     h:     u32
     sr:    u32
@@ -55,7 +55,7 @@ struct Maze
 func mazeInit() -> Maze
 {
     var m: Maze
-    m.cells = cast([*] u8) @alloc(cast(u64) MaxCells)
+    m.cells = cast(#null [*] u8) @alloc(cast(u64) MaxCells)
     for MaxCells { m.cells[@index] = 0 }
     return m
 }
@@ -154,11 +154,11 @@ func solve(text: string) -> u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best = cast([*] u64) @alloc(cast(u64) stateCount * #sizeof(u64))
+    let best = cast([*] u64) assume @alloc(cast(u64) stateCount * #sizeof(u64))
     defer @free(best)
     for stateCount { best[@index] = Infinity }
 
-    let queue = cast([*] QEntry) @alloc(cast(u64) MaxQueue * #sizeof(QEntry))
+    let queue = cast([*] QEntry) assume @alloc(cast(u64) MaxQueue * #sizeof(QEntry))
     defer @free(queue)
     var head: u32
     var tail: u32

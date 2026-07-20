@@ -66,18 +66,18 @@ const MapCap = 4096'u32
 
 struct StoneMap
 {
-    keys:   [*] u64
-    counts: [*] u64
-    alive:  [*] bool
+    keys:   #null [*] u64
+    counts: #null [*] u64
+    alive:  #null [*] bool
     used:   u32
 }
 
 func mapInit()->StoneMap
 {
     var result: retval
-    result.keys   = cast([*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
-    result.counts = cast([*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
-    result.alive  = cast([*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
+    result.keys   = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
+    result.counts = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
+    result.alive  = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
     result.used = 0
     for i in MapCap
     {
@@ -116,7 +116,7 @@ func mapProbe(m: *StoneMap, key: u64)->u32
 }
 
 // Lookup returning a nullable pointer — enables orelse
-func mapLookup(m: *StoneMap, key: u64)->*u64
+func mapLookup(m: *StoneMap, key: u64)->#null *u64
 {
     let idx = mapProbe(m, key)
     if m.alive[idx] and m.keys[idx] == key do

@@ -20,28 +20,28 @@ impl StaticArray
 
     // Returns a raw, constant pointer to the array's buffer.
     #[Inline]
-    mtd opData()->#nonull const *T
+    mtd opData()->const *T
     {
         return &.buffer[0]
     }
 
     // Allows the array to be implicitly cast to a mutable slice.
     #[Inline]
-    mtd opCast()->#nonull [..] T
+    mtd opCast()->[..] T
     {
         return .toSlice()
     }
 
     // Allows the array to be implicitly cast to an immutable slice.
     #[Inline]
-    mtd opCast()->#nonull const [..] T
+    mtd opCast()->const [..] T
     {
         return .toSlice()
     }
 
     // Creates a slice from a sub-part of the array.
     #[Inline]
-    mtd opSlice(lower, upper: u64)->#nonull [..] T
+    mtd opSlice(lower, upper: u64)->[..] T
     {
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
@@ -91,7 +91,7 @@ impl StaticArray
         if countof
         {
             let dataof = @dataof(arr)
-            let buffer = cast(#nonull [*] T) &.buffer[0]
+            let buffer = cast([*] T) &.buffer[0]
             if dataof >= buffer and dataof < buffer + .count
             {
                 var copy: Array'T
@@ -132,9 +132,9 @@ impl StaticArray
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         #if back do
-            var scan = cast(#nonull [*] T) &.buffer[0] + .count
+            var scan = cast([*] T) &.buffer[0] + .count
         #else do
-            var scan = cast(#nonull [*] T) &.buffer[0] - 1
+            var scan = cast([*] T) &.buffer[0] - 1
 
         for .count
         {
@@ -170,7 +170,7 @@ impl StaticArray
 
     // Returns a mutable slice containing all valid elements of the array.
     #[Inline]
-    mtd toSlice()->#nonull [..] T
+    mtd toSlice()->[..] T
     {
         return @mkslice(&.buffer[0], .count)
     }
@@ -184,13 +184,13 @@ impl StaticArray
         Debug.assert(newCount <= N, "size is too big")
         if newCount > .count
         {
-            let data = cast(#nonull [*] T) &.buffer[0]
+            let data = cast([*] T) &.buffer[0]
             @init(data + .count, newCount - .count)
             .count = newCount
         }
         else
         {
-            let data = cast(#nonull [*] T) &.buffer[0]
+            let data = cast([*] T) &.buffer[0]
             let droppedCount = .count - newCount
             @drop(data + newCount, droppedCount)
             @init(data + newCount, droppedCount)
@@ -237,20 +237,20 @@ impl StaticArray
 
     // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
     // The new memory is not initialized. Asserts if the array does not have enough capacity.
-    mtd emplaceAddress(num: u32 = 1)->#nonull [*] T
+    mtd emplaceAddress(num: u32 = 1)->[*] T
     {
         Debug.assert(.count + num <= N, "the array is full")
         .count += num
-        return cast(#nonull [*] T) &.buffer[0] + .count - num
+        return cast([*] T) &.buffer[0] + .count - num
     }
 
     // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
     // The new memory is default-initialized. Asserts if the array does not have enough capacity.
-    mtd emplaceInitAddress(num: u32 = 1)->#nonull [*] T
+    mtd emplaceInitAddress(num: u32 = 1)->[*] T
     {
         Debug.assert(.count + num <= N, "the array is full")
         .count += num
-        var res = cast(#nonull [*] T) &.buffer[0] + .count - num
+        var res = cast([*] T) &.buffer[0] + .count - num
         @init(res, num)
         return res
     }
@@ -287,7 +287,7 @@ impl StaticArray
         var sliceCount = @countof(values)
         if !sliceCount do
             return
-        let buffer = cast(#nonull [*] T) &.buffer[0]
+        let buffer = cast([*] T) &.buffer[0]
         let dataof = @dataof(values)
         if dataof >= buffer and dataof < buffer + .count
         {
@@ -331,7 +331,7 @@ impl StaticArray
         var sliceCount = @countof(values)
         if !sliceCount do
             return
-        let buffer = cast(#nonull [*] T) &.buffer[0]
+        let buffer = cast([*] T) &.buffer[0]
         let dataof = @dataof(values)
         if dataof >= buffer and dataof < buffer + .count
         {
@@ -375,7 +375,7 @@ impl StaticArray
         var sliceCount = @countof(values)
         if !sliceCount do
             return
-        let buffer = cast(#nonull [*] T) &.buffer[0]
+        let buffer = cast([*] T) &.buffer[0]
         let dataof = @dataof(values)
         if dataof >= buffer and dataof < buffer + .count
         {
@@ -389,7 +389,7 @@ impl StaticArray
 
         #if Reflection.hasPostCopy(T)
         {
-            var destPtr = cast(#nonull [*] T) &.buffer[oldCount]
+            var destPtr = cast([*] T) &.buffer[oldCount]
             for sliceCount
             {
                 dref destPtr = #nodrop values[@index]
@@ -414,7 +414,7 @@ impl StaticArray
 
         #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
-            Memory.copyOver(cast(#nonull [*] T) &.buffer[0] + index, cast(#nonull [*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
+            Memory.copyOver(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
         }
         #else
         {
@@ -564,7 +564,7 @@ impl StaticArray
 
     // Returns a pointer to the first element of the array.
     // Asserts if the array is empty.
-    mtd frontPtr()->#nonull *T
+    mtd frontPtr()->*T
     {
         Debug.assert(.count > 0, "array is empty")
         return &.buffer[0]
@@ -581,7 +581,7 @@ impl StaticArray
 
     // Returns a pointer to the last element of the array.
     // Asserts if the array is empty.
-    mtd backPtr()->#nonull *T
+    mtd backPtr()->*T
     {
         Debug.assert(.count > 0, "array is empty")
         return &.buffer[.count - 1]

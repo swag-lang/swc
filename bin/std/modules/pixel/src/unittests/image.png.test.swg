@@ -1,14 +1,14 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func pngCanEncode(fileName: #nonull string)->bool
+func pngCanEncode(fileName: string)->bool
 {
     var enc: Png.Encoder
     let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodePng(result: #nonull *ConcatBuffer, image: Image, options: #null any = null) throw
+func encodePng(result: *ConcatBuffer, image: Image, options: #null any = null) throw
 {
     var enc: Png.Encoder
     let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)
@@ -25,7 +25,7 @@ func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
         @assert(img.pixels.buffer[idx + 3] == a)
 }
 
-func assertLoadedPng(fileName: #nonull string, width, height: s32, pf: PixelFormat, r, g, b, a: u8)
+func assertLoadedPng(fileName: string, width, height: s32, pf: PixelFormat, r, g, b, a: u8)
 {
     var img: Image
     img = catch Image.load(getTestDataPath(fileName))
@@ -40,7 +40,7 @@ func assertLoadedPng(fileName: #nonull string, width, height: s32, pf: PixelForm
     assertPngPixelAt(img, 0, 0, r, g, b, a)
 }
 
-func assertPngHasChunk(bytes: #nonull const [..] u8, c0, c1, c2, c3: u8)
+func assertPngHasChunk(bytes: const [..] u8, c0, c1, c2, c3: u8)
 {
     var i = 8'u64
     while i + 12 <= @countof(bytes)
@@ -78,7 +78,7 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
 
-func fillSolidPngImage(img: #nonull *Image, r, g, b, a: u8)
+func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 {
     var pix = img.pixels.buffer
     for img.width * img.height
@@ -208,7 +208,7 @@ func fillSolidPngImage(img: #nonull *Image, r, g, b, a: u8)
     @assert(img.isValid())
     @assert(img.metaDatas.count == 1)
     @assert(img.metaDatas[0].isTag("Captme.File"))
-    @assert(cast(#nonull string) img.metaDatas[0].toSlice() == "capture.captme")
+    @assert(cast(string) img.metaDatas[0].toSlice() == "capture.captme")
 }
 
 // Invalid and truncated buffers should fail without producing an image.

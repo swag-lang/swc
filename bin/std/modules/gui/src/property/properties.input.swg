@@ -36,9 +36,9 @@ internal impl Properties
         return null
     }
 
-    func onHookChildEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+    func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
     {
-        let prop = cast(#nonull *Properties) wnd
+        let prop = cast(*Properties) wnd
         if prop.editPopup
         {
             // While an editor popup (e.g. the color picker) is open the popup is anchored
@@ -197,7 +197,7 @@ internal impl Properties
         return false
     }
 
-    mtd onItemEvent(item: #nonull *PropertiesItem, wndItem: #nonull *Wnd, evt: IEvent)->bool
+    mtd onItemEvent(item: *PropertiesItem, wndItem: *Wnd, evt: IEvent)->bool
     {
         if wndItem.childs.isEmpty() do
             return false

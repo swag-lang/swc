@@ -1,11 +1,10 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func semaTest001()
 {
     var fn: func()
     fn()
-    var fn1: func(s: #nonull string)
+    var fn1: func(s: string)
     fn1("test")
 }
 
@@ -22,11 +21,11 @@ func semaTest002()
 
 func semaTest003()
 {
-    var fn3: func(v: #nonull string)
+    var fn3: func(v: string)
     fn3("ok")
 }
 
-func toto(message: #nonull string, loc: Swag.SourceCodeLocation)
+func toto(message: string, loc: Swag.SourceCodeLocation)
 {
     let cxt = @getcontext()
     cxt.panic(message, loc)

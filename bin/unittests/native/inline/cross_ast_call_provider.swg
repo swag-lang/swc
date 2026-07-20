@@ -290,11 +290,11 @@ struct InlinePixelProbe
 
 struct InlineJobProbe
 {
-    contextData: *void
+    contextData: #null *void
 }
 
 #[Swag.Macro]
-func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code(var buffer, data))
+func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: #null *void = null, stmt: #code(var buffer, data))
 {
     func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
@@ -408,7 +408,7 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
 {
     genericParallelVisitLike(@mkslice(dstImage.buffer, 1), 1, dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) data
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) assume data
         let x = 1
         let y = 1
         let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width

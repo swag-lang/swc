@@ -15,7 +15,7 @@ public struct RichEditView
 
 impl IWnd for RichEditView
 {
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         if .timerCaret
         {
@@ -36,13 +36,13 @@ impl IWnd for RichEditView
         .ed = null
     }
 
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if .ed and .ed.richEdFlags & .WordWrap do
             .ed.recomputeScroll = true
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
         switch evt.kind
@@ -103,7 +103,7 @@ impl IWnd for RichEditView
         }
     }
 
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind == .KeyPressed
         {
@@ -130,7 +130,7 @@ impl IWnd for RichEditView
         }
     }
 
-    mtd impl onFocusEvent(evt: #nonull *FocusEvent)
+    mtd impl onFocusEvent(evt: *FocusEvent)
     {
         switch evt.kind
         {
@@ -147,13 +147,13 @@ impl IWnd for RichEditView
         }
     }
 
-    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
+    mtd impl onTimerEvent(evt: *TimerEvent)
     {
         .visibleCaret = !.visibleCaret
         .invalidate()
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let painter = evt.bc.painter
         let colors  = .getThemeColors()
@@ -317,7 +317,7 @@ impl RichEditView
         }
     }
 
-    mtd paintString(bc: #nonull *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
+    mtd paintString(bc: *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
     {
         let painter = bc.painter
 
@@ -362,7 +362,7 @@ impl RichEditView
         return right
     }
 
-    mtd paintLine(bc: #nonull *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
+    mtd paintLine(bc: *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
     {
         let line = .ed.lines[lineIndex]
         let y    = py
@@ -375,8 +375,8 @@ impl RichEditView
         var pStyle     = line.styles.buffer
         if !count
         {
-            pChar  = cast(#nonull [*] rune) &dummyChar
-            pStyle = cast(#nonull [*] u8) &dummyStyle
+            pChar  = cast([*] rune) &dummyChar
+            pStyle = cast([*] u8) &dummyStyle
             count  = 1
         }
 

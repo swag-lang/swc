@@ -31,7 +31,7 @@ impl Application
         return Color.fromAbgr(col)
     }
 
-    mtd captureMouse(wnd: #nonull *Wnd)
+    mtd captureMouse(wnd: *Wnd)
     {
         .mouseCaptureWnd = wnd
         SetCapture(wnd.surface.native.hWnd)
@@ -56,8 +56,8 @@ impl Application
 
         // We need to have a unique id per shortcut
         var crc32: Hash.Crc32
-        crc32.update(@mkslice(cast(#nonull const [*] u8) &mod, 4))
-        crc32.update(@mkslice(cast(#nonull const [*] u8) &winkey, 4))
+        crc32.update(@mkslice(cast(const [*] u8) &mod, 4))
+        crc32.update(@mkslice(cast(const [*] u8) &winkey, 4))
         crc32.crc &= 0x7FFFFFFF
 
         catch UnregisterHotKey(null, crc32.crc)
@@ -136,13 +136,13 @@ impl Application
         return null
     }
 
-    mtd addIconToImageList(name: #nonull string, hIcon: HICON, small: bool)->Icon
+    mtd addIconToImageList(name: string, hIcon: HICON, small: bool)->Icon
     {
         var result: retval
 
         var index:      s32
-        var curImg:     #nonull *Image = undefined
-        var curImgList: #nonull *ImageList = undefined
+        var curImg:     *Image = undefined
+        var curImgList: *ImageList = undefined
 
         if small
         {
@@ -228,7 +228,7 @@ impl Application
         return .addIconToImageList(name, sgi.hIcon, small)
     }
 
-    mtd getFileDirectoryIcon(name: #nonull string, isDirectory: bool, small = true)->Icon
+    mtd getFileDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
     {
         var result: retval
         if !@countof(name) do

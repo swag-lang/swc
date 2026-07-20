@@ -10,7 +10,7 @@ const MinCapacity = 8'u64
 
 struct DynString
 {
-    data:     [*] u8
+    data:     #null [*] u8
     count:    u64
     capacity: u64
 }
@@ -32,9 +32,9 @@ func reserve(s: *DynString, want: u64)
         newCap *= 2
 
     if s.data do
-        s.data = cast([*] u8) @realloc(s.data, newCap)
+        s.data = cast(#null [*] u8) @realloc(s.data, newCap)
     else do
-        s.data = cast([*] u8) @alloc(newCap)
+        s.data = cast(#null [*] u8) @alloc(newCap)
     s.capacity = newCap
 }
 
@@ -46,7 +46,7 @@ func storeBytes(s: *DynString, src: const [*] u8, len: u64)
     s.count = len
 }
 
-func appendBytes(s: *DynString, src: const [*] u8, len: u64)
+func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
 {
     reserve(s, s.count + len)
     for i in len do

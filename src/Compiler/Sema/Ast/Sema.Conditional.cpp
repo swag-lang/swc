@@ -97,7 +97,6 @@ namespace
                 return TypeRef::invalid();
 
             TypeInfo resultType = valueType;
-            resultType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
             resultType.addFlag(TypeInfoFlagsE::Nullable);
             const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
             return preserveUnambiguousConditionalAlias(resultTypeRef, trueTypeRef, concreteTrueTypeRef, falseTypeRef, concreteFalseTypeRef);
@@ -108,18 +107,14 @@ namespace
 
         TypeInfo trueBaseType = trueType;
         trueBaseType.removeFlag(TypeInfoFlagsE::Nullable);
-        trueBaseType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
         TypeInfo falseBaseType = falseType;
         falseBaseType.removeFlag(TypeInfoFlagsE::Nullable);
-        falseBaseType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
         if (trueBaseType != falseBaseType)
             return TypeRef::invalid();
 
         TypeInfo resultType = trueBaseType;
         if (trueType.isNullable() || falseType.isNullable())
             resultType.addFlag(TypeInfoFlagsE::Nullable);
-        else if (trueType.isExplicitNonNull() && falseType.isExplicitNonNull())
-            resultType.addFlag(TypeInfoFlagsE::ExplicitNonNull);
 
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         return preserveUnambiguousConditionalAlias(resultTypeRef, trueTypeRef, concreteTrueTypeRef, falseTypeRef, concreteFalseTypeRef);
@@ -183,12 +178,11 @@ namespace
         const TypeInfo& rawLeftType         = sema.typeMgr().get(leftTypeRef);
         const TypeRef   concreteLeftTypeRef = rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias);
         const TypeInfo& leftType            = sema.typeMgr().get(concreteLeftTypeRef);
-        if (!leftType.isSupportsNullableQualifier() || leftType.isExplicitNonNull())
+        if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
             return leftTypeRef;
 
         TypeInfo resultType = leftType;
         resultType.removeFlag(TypeInfoFlagsE::Nullable);
-        resultType.removeFlag(TypeInfoFlagsE::ExplicitNonNull);
 
         // The left branch is selected only when it is present, so the fallback
         // determines the result contract. An explicit non-null lhs remains non-null.
@@ -197,8 +191,6 @@ namespace
         const TypeInfo& rightType            = sema.typeMgr().get(concreteRightTypeRef);
         if (rightType.isNull() || rightType.isNullable())
             resultType.addFlag(TypeInfoFlagsE::Nullable);
-        else if (rightType.isExplicitNonNull())
-            resultType.addFlag(TypeInfoFlagsE::ExplicitNonNull);
 
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         return resultTypeRef == concreteLeftTypeRef ? leftTypeRef : resultTypeRef;

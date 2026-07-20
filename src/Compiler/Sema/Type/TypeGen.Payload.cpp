@@ -305,8 +305,6 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
-        if (type.isExplicitNonNull())
-            addFlag(rtType, Runtime::TypeInfoFlags::ExplicitNonNull);
         if (type.isAggregateStruct())
             addFlag(rtType, Runtime::TypeInfoFlags::Tuple);
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))

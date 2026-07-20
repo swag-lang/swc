@@ -43,7 +43,7 @@ impl Icon
     }
 
     // Paint icon at the given position
-    mtd const paint(painter: #nonull *Painter, x, y: f32, color: Color = Argb.White)
+    mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
         if !.imageList or !.imageList.totalFrames do
             return

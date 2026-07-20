@@ -2,9 +2,9 @@ using Core, TrueType
 
 public struct TypeFace
 {
-    fullname:         #nonull string = ""
+    fullname:         string = ""
     buffer:           Array'u8
-    face:             #nonull *Face = undefined
+    face:             *Face = undefined
     forceBoldDiv:     u32 = 11
     forceItalic:      bool
     forceBold:        bool
@@ -23,7 +23,7 @@ impl TypeFace
 {
     var lock: Sync.Mutex
 
-    func addOutlineToPathList(pathList: #nonull *LinePathList, commands: #nonull const [..] OutlineCommand)
+    func addOutlineToPathList(pathList: *LinePathList, commands: const [..] OutlineCommand)
     {
         for cmd in commands
         {
@@ -64,10 +64,10 @@ public impl TypeFace
     mtd const isItalic()->bool => .face.isItalic()
 
     // Returns the underlying font family name
-    mtd const getFamilyName()->#nonull string => .face.familyName
+    mtd const getFamilyName()->string => .face.familyName
 
     // Release the given typeface
-    func release(typeface: #nonull *TypeFace)
+    func release(typeface: *TypeFace)
     {
         if !typeface do
             return
@@ -77,31 +77,31 @@ public impl TypeFace
     }
 
     // Get or create a new typeface from a memory buffer
-    func create(fullname: #nonull string, bytes: #nonull const [..] u8)->#nonull *TypeFace throw
+    func create(fullname: string, bytes: const [..] u8)->*TypeFace throw
     {
         Sync.scopedLock(&lock)
 
         let here = g_HashTypeFace.tryFind(fullname)
         if here do
-            return here.value orelse cast(#nonull *TypeFace) 1'u64
+            return here.value orelse cast(*TypeFace) 1'u64
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = bytes
-        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(#nonull *Face) 1'u64
+        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(*Face) 1'u64
 
         g_HashTypeFace.add(fullname, tf)
         return tf
     }
 
     // Get or load a new typeface
-    func load(fullname: #nonull string)->#nonull *TypeFace throw
+    func load(fullname: string)->*TypeFace throw
     {
         Sync.scopedLock(&lock)
 
         let here = g_HashTypeFace.tryFind(fullname)
         if here do
-            return here.value orelse cast(#nonull *TypeFace) 1'u64
+            return here.value orelse cast(*TypeFace) 1'u64
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
@@ -117,7 +117,7 @@ public impl TypeFace
             tf.buffer = File.readAllBytes(fullname)
         }
 
-        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(#nonull *Face) 1'u64
+        tf.face = (try Face.load(tf.buffer.toSlice())) orelse cast(*Face) 1'u64
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -146,13 +146,13 @@ public impl TypeFace
     }
 
     // Render one glyph (crisp bitmap path): stem darkening + vertical grid-fitting.
-    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->#nonull const *Bitmap throw
+    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
         return try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
     }
 
     // Render one glyph by glyph index (crisp bitmap path): stem darkening + vertical grid-fitting.
-    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->#nonull const *Bitmap throw
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
@@ -164,13 +164,13 @@ public impl TypeFace
     }
 
     // Render one glyph as a multi-channel signed distance field
-    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->#nonull const *Bitmap throw
+    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
         return try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
     }
 
     // Render one glyph by glyph index as a multi-channel signed distance field
-    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->#nonull const *Bitmap throw
+    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
@@ -181,7 +181,7 @@ public impl TypeFace
 
     // Convert a rune to its outline, at a given size
     #[Swag.Discardable]
-    mtd getRuneOutline(pathList: #nonull *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 throw
+    mtd getRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 throw
     {
         pathList.clear()
 
@@ -202,8 +202,8 @@ public impl TypeFace
         return embolden + (.face.glyph.advance.x / 64.0)
     }
 
-    // Convert a #nonull string to its outline, at a given size
-    mtd getStringOutline(pathList: #nonull *LinePathList, text: #nonull string, size: u32, embolden: u32 = 0) throw
+    // Convert a string to its outline, at a given size
+    mtd getStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) throw
     {
         pathList.clear()
 

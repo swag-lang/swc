@@ -7,9 +7,9 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
-    func attributeString(value: #null any)->#nonull string
+    func attributeString(value: #null any)->string
     {
-        return cast(#nonull string) assume value
+        return cast(string) assume value
     }
 
     // Display name of a field: its Properties.Name attribute, or its beautified raw name.
@@ -25,7 +25,7 @@ internal impl Properties
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
     // Public so custom editors registered with registerEditor (possibly authored in another
     // module) can build their row the same way the built-in editors do.
-    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->#nonull *PropertiesItem
+    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->*PropertiesItem
     {
         var line: #null *Wnd
 
@@ -253,7 +253,7 @@ internal impl Properties
         }
     }
 
-    mtd addStructInternal(typeStruct: #nonull const *Swag.TypeInfoStruct, addr: #null [*] u8, parentItem: #null *PropertiesItem, bindNotify = true)
+    mtd addStructInternal(typeStruct: const *Swag.TypeInfoStruct, addr: #null [*] u8, parentItem: #null *PropertiesItem, bindNotify = true)
     {
         var newParent = parentItem
 
@@ -343,7 +343,7 @@ internal impl Properties
     // A thin horizontal separator row, the same look as a Panel category divider. Public so a
     // host appending hand-made rows (addItem) after the generated content can separate them;
     // call endAppendRows once done. 'name' feeds the notify visibility dispatch and the filter.
-    public mtd addSeparator(name: #null string = null, parentItem: #null *PropertiesItem = null)->#nonull *PropertiesItem
+    public mtd addSeparator(name: #null string = null, parentItem: #null *PropertiesItem = null)->*PropertiesItem
     {
         let v: Swag.TypeValue{name: name}
         with let item = .addItem(v, null, parentItem, 1, .Zero)
@@ -368,7 +368,7 @@ internal impl Properties
     // parent is the section, not another category) stays at level 0 like a full-width divider; a
     // category nested under another keeps addItem's level (parent + 1) so it and its fields indent
     // one step further.
-    mtd addCategoryHeader(name: #null string, parentForCateg: #null *PropertiesItem)->#nonull *PropertiesItem
+    mtd addCategoryHeader(name: #null string, parentForCateg: #null *PropertiesItem)->*PropertiesItem
     {
         // Panel: a category paints as a thin separator line, not a titled header
         if .kind == .Panel
@@ -405,7 +405,7 @@ internal impl Properties
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
-    mtd addSpacerRow(parentItem: #null *PropertiesItem, size: s32)->#nonull *PropertiesItem
+    mtd addSpacerRow(parentItem: #null *PropertiesItem, size: s32)->*PropertiesItem
     {
         with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
         {
@@ -418,7 +418,7 @@ internal impl Properties
 
     // A non-collapsible bold divider label spanning the row (Unity [Header]-style), aligned with the
     // sibling fields it introduces.
-    mtd addHeaderRow(text: #null string, parentItem: #null *PropertiesItem)->#nonull *PropertiesItem
+    mtd addHeaderRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
     {
         let v: Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
@@ -434,7 +434,7 @@ internal impl Properties
     // An informational note spanning the row, styled like the info validation bar (icon + text on a
     // soft info background). The bar is painted by paintBackItem on the .Note flag; the label drawn
     // on top carries the icon and text.
-    mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->#nonull *PropertiesItem
+    mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
     {
         let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .Zero)
         item.level = parentItem.level

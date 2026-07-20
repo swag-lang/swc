@@ -15,15 +15,15 @@ struct Driver
     updateTh:                 Threading.Thread
     wakeupUpdate:             Sync.Event
     mutexVoicesToUpdate:      Sync.Mutex
-    voicesToUpdate:           Array'{ voice: #nonull *Voice, command: UpdateCommand }
+    voicesToUpdate:           Array'{ voice: *Voice, command: UpdateCommand }
 
     mutexRecycleVoices:       Sync.Mutex
-    activeVoices:             Array'(#nonull *Voice)
-    pendingRecycleVoices:     Array'(#nonull *Voice)
-    toRecycleVoices:          Array'(#nonull *Voice)
+    activeVoices:             Array'(*Voice)
+    pendingRecycleVoices:     Array'(*Voice)
+    toRecycleVoices:          Array'(*Voice)
 
     mutexBuses:               Sync.Mutex
-    buses:                    Array'(#nonull *Bus)
+    buses:                    Array'(*Bus)
 
     driverIsClosing:          bool
 }
@@ -172,7 +172,7 @@ impl Driver
         .destroyNative()
     }
 
-    mtd updateVoice(voice: #nonull *Voice, cmd: UpdateCommand)
+    mtd updateVoice(voice: *Voice, cmd: UpdateCommand)
     {
         // The no-sound driver has no real-time buffer feeding: its playback is advanced
         // deterministically by explicit updateNoSound() calls (used by tests). Letting the
@@ -190,7 +190,7 @@ impl Driver
         .wakeupUpdate.signal()
     }
 
-    mtd createVoice()->#nonull *Voice
+    mtd createVoice()->*Voice
     {
         var back: #null *Voice
         .mutexRecycleVoices.lock()

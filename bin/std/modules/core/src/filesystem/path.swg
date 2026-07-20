@@ -160,7 +160,7 @@ func getExtensionLowerCase(fullname: #null string)->String
 }
 
 // Returns true if the given file has the specified extension (case-insensitive)
-func isExtension(fullname, extension: #nonull string)->bool
+func isExtension(fullname, extension: string)->bool
 {
     return getExtensionLowerCase(fullname) == String.toLower(extension)
 }
@@ -212,13 +212,13 @@ func combine(fullnames: #null string...)->String
 }
 
 // Returns true if the two paths are equal (case-insensitive Latin1 comparison)
-func equals(path1, path2: #nonull string)->bool
+func equals(path1, path2: string)->bool
 {
     return Utf8.compare(path1, path2, .Latin1NoCase) == 0
 }
 
 // Normalizes the path by replacing '\' with '/' to conform to standard path format
-func normalize(fullname: #nonull *String)
+func normalize(fullname: *String)
 {
     fullname.replace("\\", "/")
 }

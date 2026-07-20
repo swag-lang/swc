@@ -85,18 +85,18 @@ const MapCap = 16384'u32
 
 struct Memo
 {
-    keys:   [*] u64
-    vals:   [*] u64
-    alive:  [*] bool
+    keys:   #null [*] u64
+    vals:   #null [*] u64
+    alive:  #null [*] bool
     used:   u32
 }
 
 func memoInit() -> Memo
 {
     var m: Memo
-    m.keys  = cast([*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
-    m.vals  = cast([*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
-    m.alive = cast([*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
+    m.keys  = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
+    m.vals  = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
+    m.alive = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
     for MapCap { m.alive[@index] = false }
     return m
 }

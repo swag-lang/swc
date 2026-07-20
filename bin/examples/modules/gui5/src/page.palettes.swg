@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createPalettesPage(parent: #nonull *Wnd)
+func createPalettesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Generated ramps", "PalettePicker can fill itself from hue, luminance and saturation helpers.", layout.left)

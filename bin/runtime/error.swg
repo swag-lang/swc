@@ -7,16 +7,16 @@ func __dropErr(err: #null any)
     if err == null do
         return
     let data = @dataof(err)
-    let type = cast(#nonull const *Swag.TypeInfoStruct) @kindof(err)
+    let type = cast(const *Swag.TypeInfoStruct) @kindof(err)
     if type.opDrop do
         type.opDrop(data)
 }
 
-func __setErrRaw(data: #nonull *void, type: #nonull const *Swag.TypeInfoStruct)
+func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 {
-    if type.kind == .Native and (cast(#nonull const *Swag.TypeInfoNative) type).nativeKind == .Any
+    if type.kind == .Native and (cast(const *Swag.TypeInfoNative) type).nativeKind == .Any
     {
-        __setErr(dref cast(#nonull *#nonull any) data)
+        __setErr(dref cast(*any) data)
         return
     }
 
@@ -39,10 +39,10 @@ func __setErrRaw(data: #nonull *void, type: #nonull const *Swag.TypeInfoStruct)
     cxt.hasError                     = 1
 }
 
-func __setErr(err: #nonull any)
+func __setErr(err: any)
 {
     let data = @dataof(err)
-    let type = cast(#nonull const *Swag.TypeInfoStruct) @kindof(err)
+    let type = cast(const *Swag.TypeInfoStruct) @kindof(err)
     __setErrRaw(data, type)
 }
 
@@ -129,7 +129,7 @@ func __failedAssume(loc: SourceCodeLocation)
 
     if type.kind == TypeInfoKind.Struct
     {
-        let typeStruct = cast(#nonull const *Swag.TypeInfoStruct) type
+        let typeStruct = cast(const *Swag.TypeInfoStruct) type
         if (@countof(typeStruct.fields) > 0 and typeStruct.fields[0].pointedType == Swag.BaseError) or
            (type == Swag.BaseError)
         {
@@ -229,7 +229,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
 
     // Print the calling stack trace
     @print("[runtime callstack]", "\n")
-    var arr: [64] #nonull *void = undefined
+    var arr: [64] *void = undefined
     let nb   = __captureStack(1, arr)
     __logStackTrace(@mkslice(&arr[0], nb))
     @print("\n")
@@ -284,7 +284,7 @@ func @panic(message: #null string, loc: SourceCodeLocation)
     len += @countof(loc.fileName)
     @memcpy(&str[len], @dataof(", line "), 7)
     len += 7
-    let dstLine = cast(#nonull [*] u8) &str[len]
+    let dstLine = cast([*] u8) &str[len]
     let cptLine = cast(u32) (__itoa(dstLine, cast(s64) loc.lineStart + 1) - dstLine)
     len += cptLine
     @memcpy(&str[len], @dataof("\n\n"), 2)
@@ -317,10 +317,10 @@ func @safetypanic(message: #null string, loc: SourceCodeLocation)
     @panic(message, loc)
 }
 
-func __panic(file: #nonull const [*] u8, line: u32, col: u32, message: #null const [*] u8)
+func __panic(file: const [*] u8, line: u32, col: u32, message: #null const [*] u8)
 {
     var loc: SourceCodeLocation
-    loc.fileName = @mkstring(file, @countof(cast(#nonull const cstring) file))
+    loc.fileName = @mkstring(file, @countof(cast(const cstring) file))
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd = col
 
@@ -328,10 +328,10 @@ func __panic(file: #nonull const [*] u8, line: u32, col: u32, message: #null con
     @panic(msg, loc)
 }
 
-func __compilerError(file: #nonull const [*] u8, line: u32, col: u32, message: #null const [*] u8)
+func __compilerError(file: const [*] u8, line: u32, col: u32, message: #null const [*] u8)
 {
     var loc: SourceCodeLocation
-    loc.fileName = @mkstring(file, @countof(cast(#nonull const cstring) file))
+    loc.fileName = @mkstring(file, @countof(cast(const cstring) file))
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd = col
 

@@ -162,14 +162,14 @@ impl RefCountedRuntime
     func countStringRef()->u64
     {
         var text = "hello"
-        var textRef: &#nonull string = &text
+        var textRef: &string = &text
         return @countof(textRef)
     }
 
     func loopStringRef()->u64
     {
         var text = "hello"
-        let textRef: const &#nonull string = &text
+        let textRef: const &string = &text
         var count: u64 = 0
         for textRef do
             count += 1

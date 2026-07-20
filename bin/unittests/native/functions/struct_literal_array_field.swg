@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 func freeStructLiteralLookup(valueIndex: u64) -> s32
 {

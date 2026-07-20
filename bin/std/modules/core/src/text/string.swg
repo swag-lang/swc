@@ -40,16 +40,16 @@ impl String
     }
 
     #[Implicit, Inline]
-    mtd const opCast()->#nonull string
+    mtd const opCast()->string
     {
-        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        let buffer = .buffer orelse cast([*] u8) 1'u64
         return @mkstring(buffer, .length)
     }
 
     #[Implicit, Inline]
-    mtd const opCast()->#nonull const [..] u8
+    mtd const opCast()->const [..] u8
     {
-        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        let buffer = .buffer orelse cast([*] u8) 1'u64
         return @mkslice(buffer, .length)
     }
 
@@ -81,7 +81,7 @@ impl String
         .buffer[.length] = 0
     }
 
-    mtd const opSlice(lower, upper: u64)->#nonull string
+    mtd const opSlice(lower, upper: u64)->string
     {
         Debug.assert(lower <= upper and lower < .length and upper < .length)
         return @mkstring(.buffer + lower, (upper + 1) - lower)
@@ -96,12 +96,12 @@ impl String
         return Memory.compare(.buffer, @dataof(other), .length) == 0
     }
 
-    mtd const opCompare(other: #nonull string)->s32
+    mtd const opCompare(other: string)->s32
     {
         return Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
     }
 
-    mtd(op: #nonull string) opIndexAssign(index: u64, value: u8)
+    mtd(op: string) opIndexAssign(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         #if op == "+=" do
@@ -118,7 +118,7 @@ impl String
         .buffer[index] = value
     }
 
-    mtd(op: #nonull string) opAssign(value: #null const [..] #null string)
+    mtd(op: string) opAssign(value: #null const [..] #null string)
     {
         #if op == "+=" do
             for v in value do
@@ -127,7 +127,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: #nonull string) opAssign(value: #nonull const [..] #nonull string)
+    mtd(op: string) opAssign(value: const [..] string)
     {
         #if op == "+=" do
             for v in value do
@@ -136,7 +136,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: #nonull string) opAssign(value: #nonull const [..] rune)
+    mtd(op: string) opAssign(value: const [..] rune)
     {
         #if op == "+=" do
             for v in value do
@@ -145,7 +145,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: #nonull string) opAssign(value: #nonull const [..] u8)
+    mtd(op: string) opAssign(value: const [..] u8)
     {
         #if op == "+=" do
             for v in value do
@@ -154,7 +154,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: #nonull string) opAssign(value: #null string)
+    mtd(op: string) opAssign(value: #null string)
     {
         #if op == "+=" do
             .append(value)
@@ -162,7 +162,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: #nonull string) opAssign(value: rune)
+    mtd(op: string) opAssign(value: rune)
     {
         #if op == "+=" do
             .append(value)
@@ -170,7 +170,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd(op: #nonull string) opAssign(value: u8)
+    mtd(op: string) opAssign(value: u8)
     {
         #if op == "+=" do
             .append(value)
@@ -345,7 +345,7 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    mtd replace(what: #nonull string, by: #null string, comparisonType = Utf8.ComparisonType.Latin1)
+    mtd replace(what: string, by: #null string, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = @countof(what)
         if !whatLength or whatLength > .length do
@@ -465,7 +465,7 @@ impl String
     }
 
     // Append a formatted string
-    mtd appendFormat(format: #nonull string, values: ...)
+    mtd appendFormat(format: string, values: ...)
     {
         .append(Format.toString(format, values))
     }
@@ -476,7 +476,7 @@ impl String
     {
         .grow(.length + 2)
         let buffer = assume .buffer
-        var ptr = cast(#nonull *u16) (buffer + .length)
+        var ptr = cast(*u16) (buffer + .length)
         dref ptr = value
         .length += 1
     }
@@ -659,25 +659,25 @@ impl String
 
     // Returns a string type
     #[Inline]
-    mtd const toString()->#nonull string
+    mtd const toString()->string
     {
-        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        let buffer = .buffer orelse cast([*] u8) 1'u64
         return @mkstring(buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
-    mtd toSlice()->#nonull [..] u8
+    mtd toSlice()->[..] u8
     {
-        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        let buffer = .buffer orelse cast([*] u8) 1'u64
         return @mkslice(buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
-    mtd const toSlice()->#nonull const [..] u8
+    mtd const toSlice()->const [..] u8
     {
-        let buffer = .buffer orelse cast(#nonull [*] u8) 1'u64
+        let buffer = .buffer orelse cast([*] u8) 1'u64
         return @mkslice(buffer, .length)
     }
 
@@ -751,14 +751,14 @@ impl String
         // Returns true if the string contains 'what'
         mtd const contains(what: u8)->bool            => Utf8.contains(.toSlice(), what)
         mtd const contains(what: rune)->bool          => Utf8.contains(.toSlice(), what)
-        mtd const contains(what: #nonull string)->bool        => Utf8.contains(.toSlice(), what)
-        mtd const contains(what: #nonull const [..] u8)->bool => Utf8.contains(.toSlice(), what)
+        mtd const contains(what: string)->bool        => Utf8.contains(.toSlice(), what)
+        mtd const contains(what: const [..] u8)->bool => Utf8.contains(.toSlice(), what)
 
         // Return true if the string starts with 'str'
-        mtd const startsWith(str: #nonull string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
+        mtd const startsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
 
         // Find 'what', and returns the byte index of it
-        mtd const indexOf(what: #nonull string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
+        mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
         mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64                                                => Utf8.indexOf(.toSlice(), what, startByteIndex)
     }
 }

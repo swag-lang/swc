@@ -94,7 +94,7 @@ public struct Encoder {}
 
 impl Encoder
 {
-    func writeU16(result: #nonull *ConcatBuffer, value: u16)
+    func writeU16(result: *ConcatBuffer, value: u16)
     {
         result.addNative(cast(u8) (value & 0xFF))
         result.addNative(cast(u8) (value >> 8))
@@ -118,7 +118,7 @@ impl Encoder
         return bits
     }
 
-    func readPixelColor(image: Image, pix: #nonull const [*] u8)->Color
+    func readPixelColor(image: Image, pix: const [*] u8)->Color
     {
         var result: retval = undefined
 
@@ -142,7 +142,7 @@ impl Encoder
         if !image.pf.hasAlpha() do
             return false
 
-        var pix = cast(#nonull [*] u8) (assume image.pixels.buffer)
+        var pix = cast([*] u8) (assume image.pixels.buffer)
         for image.width * image.height
         {
             let col = readPixelColor(image, pix)
@@ -177,7 +177,7 @@ impl Encoder
         return cast(u8) (1 + r * 25 + g * 5 + b)
     }
 
-    func fillOpaqueQuantizedPalette(data: #nonull *PaletteData)
+    func fillOpaqueQuantizedPalette(data: *PaletteData)
     {
         data.count = 128
         for r in 4
@@ -195,7 +195,7 @@ impl Encoder
         }
     }
 
-    func fillTransparentQuantizedPalette(data: #nonull *PaletteData)
+    func fillTransparentQuantizedPalette(data: *PaletteData)
     {
         data.transparentIndex = 0
         data.count = 126
@@ -216,7 +216,7 @@ impl Encoder
         }
     }
 
-    func resetPaletteResult(data: #nonull *PaletteData, pixelCount: u64)
+    func resetPaletteResult(data: *PaletteData, pixelCount: u64)
     {
         data.count            = 0
         data.tableBits        = 0
@@ -226,13 +226,13 @@ impl Encoder
         Memory.clear(&data.colors, #sizeof(data.colors))
     }
 
-    func finishPaletteResult(data: #nonull *PaletteData)
+    func finishPaletteResult(data: *PaletteData)
     {
         data.tableBits      = tableBitsForColorCount(Math.max(data.count, 2'u32))
         data.lzwMinCodeSize = Math.max(data.tableBits, 2'u8)
     }
 
-    func tryBuildExactPalette(data: #nonull *PaletteData, image: Image, hasTransparent: bool)->bool
+    func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
     {
         let pixelCount = cast(u64) image.width * image.height
         resetPaletteResult(data, pixelCount)
@@ -249,7 +249,7 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast(#nonull [*] u8) (assume image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
+            var pix = cast([*] u8) (assume image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -289,7 +289,7 @@ impl Encoder
         return true
     }
 
-    func buildQuantizedPalette(data: #nonull *PaletteData, image: Image, hasTransparent: bool)
+    func buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent: bool)
     {
         let pixelCount = cast(u64) image.width * image.height
         resetPaletteResult(data, pixelCount)
@@ -302,7 +302,7 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast(#nonull [*] u8) (assume image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
+            var pix = cast([*] u8) (assume image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -330,7 +330,7 @@ impl Encoder
         return result
     }
 
-    func lzwCompress(indexes: #nonull const [..] u8, minCodeSize: u8)->Array'u8
+    func lzwCompress(indexes: const [..] u8, minCodeSize: u8)->Array'u8
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
@@ -348,7 +348,7 @@ impl Encoder
         return enc.bits.bytes
     }
 
-    func writeColorTable(result: #nonull *ConcatBuffer, palette: PaletteData)
+    func writeColorTable(result: *ConcatBuffer, palette: PaletteData)
     {
         let tableSize = 1'u32 << palette.tableBits
         for i in tableSize
@@ -368,7 +368,7 @@ impl Encoder
         }
     }
 
-    func writeSubBlocks(result: #nonull *ConcatBuffer, bytes: #nonull const [..] u8)
+    func writeSubBlocks(result: *ConcatBuffer, bytes: const [..] u8)
     {
         var offset = 0'u64
         while offset < @countof(bytes)
@@ -385,12 +385,12 @@ impl Encoder
 
 public impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: #nonull string)->bool
+    mtd impl canEncode(fileName: string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".gif"
     }
 
-    mtd impl encode(result: #nonull *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
             throw InvalidFormatError{"invalid image"}

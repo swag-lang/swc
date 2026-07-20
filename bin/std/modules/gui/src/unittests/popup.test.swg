@@ -6,7 +6,7 @@ const PopupHeadless_Item2 = "PopupHeadless.Item2"
 
 var PopupHeadlessChangedCount: u32
 
-func popupHeadlessChanged(combo: #nonull *ComboBox, idx: u32)
+func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     discard combo
     discard idx

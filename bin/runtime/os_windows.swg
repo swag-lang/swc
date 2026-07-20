@@ -34,32 +34,32 @@ namespace __Win32RT
 
     #[Swag.Foreign("kernel32")]
     {
-        func RtlCaptureContext(contextRecord: #nonull *void);
-        func RtlRestoreContext(contextRecord: #nonull *void, exceptionRecord: #null *void);
-        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: #nonull *#nonull *void, backTraceHash: #null *ULONG)->USHORT;
+        func RtlCaptureContext(contextRecord: *void);
+        func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void);
+        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT;
         func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void;
-        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: #nonull *#null *void)->BOOL;
+        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL;
         func GetStdHandle(nStdHandle: u32)->HANDLE;
         func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
         func GetCurrentProcess()->HANDLE;
         func GetCurrentThreadId()->DWORD;
         func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->#null *void;
         func ExitProcess(uExitCode: u32);
-        func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: #nonull *const *void);
+        func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void);
         func DebugBreak();
-        func LoadLibraryA(name: #nonull const *u8)->#null *void;
+        func LoadLibraryA(name: const *u8)->#null *void;
         func TlsAlloc()->u32;
         func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void);
         func TlsGetValue(dwTlsIndex: u32)->#null *void;
-        func AcquireSRWLockExclusive(SRWLock: #nonull *SRWLOCK);
-        func ReleaseSRWLockExclusive(SRWLock: #nonull *SRWLOCK);
+        func AcquireSRWLockExclusive(SRWLock: *SRWLOCK);
+        func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK);
         func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void;
         func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL;
     }
 
     #[Swag.Foreign("user32")]
     {
-        func MessageBoxA(hWnd: #null const *void, lpText: #nonull const *void, lpCaption: #nonull const *void, uType: u32)->s32;
+        func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32;
     }
 }
 
@@ -276,15 +276,15 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
 
     let cxt = @getcontext()
     cxt.exceptionLoc       = loc
-    cxt.exceptionParams[0] = cast(#nonull const *void) &cxt.exceptionLoc
+    cxt.exceptionParams[0] = cast(const *void) &cxt.exceptionLoc
     cxt.exceptionParams[1] = cast(#null const *void) @dataof(message)
-    cxt.exceptionParams[2] = cast(#nonull const *void) cast(u64) @countof(message)
-    cxt.exceptionParams[3] = cast(#nonull const *void) cast(u64) kind
+    cxt.exceptionParams[2] = cast(const *void) cast(u64) @countof(message)
+    cxt.exceptionParams[3] = cast(const *void) cast(u64) kind
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
 ////////////////////////////////////////////////////////////
-func __loaddll(name: #nonull string)      => __Win32RT.LoadLibraryA(@dataof(name))
+func __loaddll(name: string)      => __Win32RT.LoadLibraryA(@dataof(name))
 
 func __exit()
 {
@@ -298,7 +298,7 @@ func __tlsGetValue(id: u64)->#null *void        => __Win32RT.TlsGetValue(cast(u3
 ////////////////////////////////////////////////////////////
 // Returns the current thread's runtime context, lazily creating it on a thread
 // the runtime has never seen (an OS-owned callback thread, e.g. xaudio2).
-func __tlsGetPtr(id: u64, size: u64, init: #nonull const *void)->#null *void
+func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
 {
     using __Win32RT
     var ptr = TlsGetValue(cast(u32) id)
@@ -340,11 +340,11 @@ var g_TestThreadId:   __Win32RT.DWORD
 var g_TestsExecuted:  u32
 var g_TestsFailedCnt: u32
 
-func __testResumeContext()->#nonull *void
+func __testResumeContext()->*void
 {
     // RtlCaptureContext/RtlRestoreContext require a 16-byte aligned CONTEXT.
     let addr = cast(u64) &g_TestContextBuf[0]
-    return cast(#nonull *void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
+    return cast(*void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
 }
 
 func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
@@ -359,12 +359,12 @@ func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
 // Last-chance rescue for hardware faults (access violation, division by zero...)
 // raised by the running test on the test thread. Anything else (worker threads,
 // faults outside a test) keeps the default fatal behavior.
-func __testUnhandledFilter(exceptionPointers: #nonull *void)->s32
+func __testUnhandledFilter(exceptionPointers: *void)->s32
 {
     if !g_TestRunning or __Win32RT.GetCurrentThreadId() != g_TestThreadId do
         return 0 // EXCEPTION_CONTINUE_SEARCH
 
-    let record = dref cast(#nonull *#nonull const *u32) exceptionPointers
+    let record = dref cast(*const *u32) exceptionPointers
     @print("\nhardware exception ", cast(s64) dref record, " in #test\n")
     g_TestFailed = true
     __Win32RT.RtlRestoreContext(__testResumeContext(), null)
@@ -390,7 +390,7 @@ func __isTestRun()->bool
 // this function with the registers captured before the test ran, so every local
 // must live on the stack, not in a register the test call could have recycled.
 #[Swag.Optimize(false)]
-func __runTest(fn: #nonull *void)
+func __runTest(fn: *void)
 {
     if !__isTestRun() do
         return
@@ -437,7 +437,7 @@ func __testsDone()
         __exitError()
 }
 
-func __panicBox(msg, title: #nonull string)
+func __panicBox(msg, title: string)
 {
     using __Win32RT
     let result = MessageBoxA(null, @dataof(msg), @dataof(title), MB_ICONERROR | MB_CANCELTRYCONTINUE)
@@ -452,7 +452,7 @@ func __panicBox(msg, title: #nonull string)
     }
 }
 
-func __captureStack(skip: u32, wh: #nonull [..] #nonull *void)->u32
+func __captureStack(skip: u32, wh: [..] *void)->u32
 {
     using __Win32RT
     let nb = RtlCaptureStackBackTrace(skip + 1, cast() @countof(wh), cast() @dataof(wh), null)
@@ -467,8 +467,8 @@ struct __SwagSym
 {
     found:   bool   = false
     hasLine: bool   = false
-    name:    #nonull string = ""
-    file:    #nonull string = ""
+    name:    string = ""
+    file:    string = ""
     line:    u32    = 0
 }
 
@@ -511,7 +511,7 @@ func __dbgFindSection(base: #null *void)
         if match
         {
             let rva           = __peU32(b, secOff + 12)
-            __dbgCacheSection = cast(#nonull [*] u8) &b[cast(u64) rva]
+            __dbgCacheSection = cast([*] u8) &b[cast(u64) rva]
             __dbgCacheCount   = __peU32(__dbgCacheSection, 8)
             __dbgCacheValid   = true
             return
@@ -520,22 +520,22 @@ func __dbgFindSection(base: #null *void)
     }
 }
 
-func __dbgStr(off: u32)->#nonull string
+func __dbgStr(off: u32)->string
 {
     if off == 0 do
         return ""
-    let p = cast(#nonull [*] u8) &__dbgCacheSection[cast(u64) off]
-    return @mkstring(p, @countof(cast(#nonull cstring) p))
+    let p = cast([*] u8) &__dbgCacheSection[cast(u64) off]
+    return @mkstring(p, @countof(cast(cstring) p))
 }
 
-func __symbolize(addr: #nonull *void)->__SwagSym
+func __symbolize(addr: *void)->__SwagSym
 {
     using __Win32RT
     var r: __SwagSym
 
     // GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS(4) | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT(2)
     var h: #null *void = null
-    if GetModuleHandleExA(6, cast(#nonull const *u8) addr, &h) == 0 do
+    if GetModuleHandleExA(6, cast(const *u8) addr, &h) == 0 do
         return r
     if h != __dbgCacheBase do
         __dbgFindSection(h)
@@ -566,7 +566,7 @@ func __symbolize(addr: #nonull *void)->__SwagSym
     return r
 }
 
-func __logStackTrace(wh: #nonull [..] #nonull *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
+func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
 {
     var hasStarted = false
 

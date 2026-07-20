@@ -55,7 +55,7 @@ impl FontFamily
     }
 
     // Set the font corresponding to a given style.
-    mtd setFont(fnt: #nonull *Font, style: FontFamilyStyle)
+    mtd setFont(fnt: *Font, style: FontFamilyStyle)
     {
         switch style
         {

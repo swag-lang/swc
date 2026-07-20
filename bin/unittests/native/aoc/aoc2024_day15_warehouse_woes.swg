@@ -68,7 +68,7 @@ const MaxDim = 64'u32
 
 struct Warehouse
 {
-    cells:  [*] Tile
+    cells:  #null [*] Tile
     w:      u32
     h:      u32
     robotR: u32
@@ -79,7 +79,7 @@ func warehouseInit() -> Warehouse
 {
     var wh: Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
-    wh.cells = cast([*] Tile) @alloc(size)
+    wh.cells = cast(#null [*] Tile) @alloc(size)
     for MaxDim * MaxDim
     {
         wh.cells[@index] = Tile.Empty
@@ -107,7 +107,7 @@ func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 struct Parsed
 {
     wh:    Warehouse
-    moves: [*] u8
+    moves: #null [*] u8
     nMoves: u32
 }
 
@@ -192,11 +192,11 @@ func parseInput(text: string) -> Parsed
             moveCount += 1
     }
 
-    result.moves = cast([*] u8) @alloc(cast(u64) moveCount)
+    result.moves = cast(#null [*] u8) @alloc(cast(u64) moveCount)
     result.nMoves = moveCount
 
     // @mkslice: create a slice view over the allocated move buffer
-    let moveSlice = @mkslice(result.moves, cast(u64) moveCount)
+    let moveSlice = @mkslice(assume result.moves, cast(u64) moveCount)
 
     // @dataof: verify the slice's data pointer matches the allocation
     @assert(@dataof(moveSlice) == result.moves)
@@ -390,7 +390,7 @@ func boxRmsBucket(wh: *Warehouse) -> s32 => cast(s32) @floor(boxRmsFromCentre(wh
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    let moveSlice = @mkslice(p.moves, cast(u64) p.nMoves)
+    let moveSlice = @mkslice(assume p.moves, cast(u64) p.nMoves)
     @assert(@countof(moveSlice) == cast(u64) p.nMoves)
     @assert(@dataof(moveSlice) == p.moves)
 

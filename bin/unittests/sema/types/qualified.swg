@@ -1,20 +1,19 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Strict]
-alias QualifiedStrictPtr = #nonull *s32
+alias QualifiedStrictPtr = *s32
 
 #[Swag.Strict]
-alias QualifiedStrictSlice = #nonull [..] s32
+alias QualifiedStrictSlice = [..] s32
 
 #[Swag.Strict]
-alias QualifiedStrictString = #nonull string
+alias QualifiedStrictString = string
 
 #[Swag.Strict]
-alias QualifiedStrictCString = #nonull cstring
+alias QualifiedStrictCString = cstring
 
 #[Swag.Strict]
-alias QualifiedStrictTypeInfo = #nonull typeinfo
+alias QualifiedStrictTypeInfo = typeinfo
 
 var D0: #null const *s32
 var D1: #null const [..] s32
@@ -24,11 +23,11 @@ var D4: const QualifiedStrictPtr = undefined
 var D5: const QualifiedStrictSlice = undefined
 
 #assert(#typeof(D3) == const [2] s32)
-#assert(#typeof(D4) == #nonull const *s32)
-#assert(#typeof(D5) == #nonull const [..] s32)
+#assert(#typeof(D4) == const *s32)
+#assert(#typeof(D5) == const [..] s32)
 
-func acceptConstAny(value: #nonull const any) {}
-func widenConstAny(value: #nonull any)->#nonull const any => value
+func acceptConstAny(value: const any) {}
+func widenConstAny(value: any)->const any => value
 
 var E0: #null *s32
 var E1: #null [..] s32
@@ -50,12 +49,12 @@ var E11: #null QualifiedStrictTypeInfo = null
 #assert(#typeof(E10) == #null cstring)
 #assert(#typeof(E11) == #null typeinfo)
 
-func widenNullablePointer(value: #nonull *s32)->#null *s32 => value
-func widenNullableString(value: #nonull string)->#null string => value
-func widenNullableSlice(value: #nonull [..] s32)->#null [..] s32 => value
-func widenNullableAny(value: #nonull any)->#null any => value
-func widenNullableCString(value: #nonull cstring)->#null cstring => value
-func widenNullableTypeInfo(value: #nonull typeinfo)->#null typeinfo => value
+func widenNullablePointer(value: *s32)->#null *s32 => value
+func widenNullableString(value: string)->#null string => value
+func widenNullableSlice(value: [..] s32)->#null [..] s32 => value
+func widenNullableAny(value: any)->#null any => value
+func widenNullableCString(value: cstring)->#null cstring => value
+func widenNullableTypeInfo(value: typeinfo)->#null typeinfo => value
 
 func acceptNullablePointer(value: #null *s32) {}
 func acceptNullableString(value: #null string) {}
@@ -67,14 +66,14 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
 func semaTest001()
 {
     var storage: s32 = 7
-    let ptr: #nonull *s32 = &storage
+    let ptr: *s32 = &storage
     let nullablePtr: #null *s32 = ptr
     let nullableStrictPtr: #null QualifiedStrictPtr = cast(QualifiedStrictPtr) ptr
     let widenedPtr: #null *s32 = widenNullablePointer(ptr)
     acceptNullablePointer(ptr)
     acceptNullablePointer(widenedPtr)
 
-    let text: #nonull string = "abc"
+    let text: string = "abc"
     let nullableText: #null string = text
     let nullableStrictText: #null QualifiedStrictString = cast(QualifiedStrictString) text
     let widenedText: #null string = widenNullableString(text)
@@ -82,33 +81,33 @@ func semaTest001()
     acceptNullableString(widenedText)
 
     let values: [3] s32 = [1, 2, 3]
-    let slice: #nonull [..] s32 = values
+    let slice: [..] s32 = values
     let nullableSlice: #null [..] s32 = slice
     let nullableStrictSlice: #null QualifiedStrictSlice = cast(QualifiedStrictSlice) slice
     let widenedSlice: #null [..] s32 = widenNullableSlice(slice)
     acceptNullableSlice(slice)
     acceptNullableSlice(widenedSlice)
 
-    let boxed: #nonull any = 123
+    let boxed: any = 123
     let nullableAny: #null any = boxed
     let widenedAny: #null any = widenNullableAny(boxed)
-    let constAny: #nonull const any = boxed
-    let widenedConstAny: #nonull const any = widenConstAny(boxed)
+    let constAny: const any = boxed
+    let widenedConstAny: const any = widenConstAny(boxed)
     acceptNullableAny(boxed)
     acceptNullableAny(widenedAny)
     acceptConstAny(boxed)
     acceptConstAny(widenedConstAny)
-    #assert(#typeof(constAny) == #nonull const any)
+    #assert(#typeof(constAny) == const any)
 
     var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
-    let cstr: #nonull cstring = cast(#nonull cstring) &cstrData[0]
+    let cstr: cstring = cast(cstring) &cstrData[0]
     let nullableCstr: #null cstring = cstr
     let nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr
     let widenedCstr: #null cstring = widenNullableCString(cstr)
     acceptNullableCString(cstr)
     acceptNullableCString(widenedCstr)
 
-    let info: #nonull typeinfo = s32
+    let info: typeinfo = s32
     let nullableInfo: #null typeinfo = info
     let nullableStrictInfo: #null QualifiedStrictTypeInfo = cast(QualifiedStrictTypeInfo) info
     let widenedInfo: #null typeinfo = widenNullableTypeInfo(info)

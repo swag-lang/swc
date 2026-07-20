@@ -22,7 +22,7 @@ struct C
 }
 
 var g_RD:   [MaxColumns] C
-var g_Font: *Font
+var g_Font: #null *Font
 var g_Rng:  Random.Rng
 
 func initC(i: s32)
@@ -34,7 +34,7 @@ func initC(i: s32)
     g_RD[i].y     = 0
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -91,7 +91,7 @@ func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 
                 str.clear()
                 str += c
-                painter.drawString(x, y, str, g_Font, color)
+                painter.drawString(x, y, str, assume g_Font, color)
             }
 
             g_RD[i].y += g_RD[i].speed * wnd.getApp().getDt()

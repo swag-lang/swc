@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    var a: any
+    var a: #null any
     var b = @kindof(a)
     #assert(#typeof(b) == typeinfo)
 }

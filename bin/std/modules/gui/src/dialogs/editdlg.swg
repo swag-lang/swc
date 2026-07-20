@@ -11,7 +11,7 @@ public struct EditDlg
 public impl EditDlg
 {
     // Creates the message box
-    func createSingleLine(from: #nonull *Surface)->#nonull *EditDlg
+    func createSingleLine(from: *Surface)->*EditDlg
     {
         let dlg     = Wnd.create'EditDlg()
         let metrics = from.wnd.getThemeMetrics()
@@ -35,7 +35,7 @@ public impl EditDlg
     }
 
     // Creates the message box
-    func createMultiLine(from: #nonull *Surface, heightEdit = 150)->#nonull *EditDlg
+    func createMultiLine(from: *Surface, heightEdit = 150)->*EditDlg
     {
         let dlg     = Wnd.create'EditDlg()
         let metrics = from.wnd.getThemeMetrics()
@@ -64,7 +64,7 @@ public impl EditDlg
     }
 
     // Set the text
-    mtd setText(text: #nonull string)
+    mtd setText(text: string)
     {
         if .edit do
             .edit.setText(text)
@@ -81,7 +81,7 @@ public impl EditDlg
     }
 
     // Associate a message above the editbox
-    mtd setMessage(message: #nonull string, height: s32 = 40)
+    mtd setMessage(message: string, height: s32 = 40)
     {
         if !.label
         {

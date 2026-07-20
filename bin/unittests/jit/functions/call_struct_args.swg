@@ -103,7 +103,7 @@ func PackedImageWrite(result: *PackedImageLike, header: PackedHeader18, pixelInd
 
 func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
 {
-    var result: retval
+    var result: retval = undefined
     result.width         = 2
     result.height        = 2
     result.bpp8          = 3
@@ -129,9 +129,7 @@ func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
     result.bpp       = 3
     result.buffer[3] = 40
 
-    var palette: PackedPaletteLike
-    palette.data  = result.buffer
-    palette.count = 1
+    var palette: PackedPaletteLike = {data: result.buffer, count: 1}
     result.buffer[0] = PackedForwardingCaller(&result, header, palette, 1, result.buffer)
     return result
 }
@@ -152,9 +150,7 @@ func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
     header.bpp           = 24
     @assert(PackedPointerAfterHeader(&target, header, 1) == 42)
 
-    var palette: PackedPaletteLike
-    palette.data  = target.buffer
-    palette.count = 1
+    var palette: PackedPaletteLike = {data: target.buffer, count: 1}
     @assert(PackedForwardingCaller(&target, header, palette, 1, target.buffer) == 42)
 
     let ret = PackedReturnValueCaller(header)

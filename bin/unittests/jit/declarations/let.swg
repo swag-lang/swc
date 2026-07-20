@@ -312,7 +312,7 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let p: *void = null
+            let p: #null *void = null
             if p == null
             {
                 return 1
@@ -609,11 +609,11 @@ enum IfElseKind: u16
         }
     }
 
-    func matrixPointer(flag: bool)->*void
+    func matrixPointer(flag: bool)->#null *void
     {
         if flag
         {
-            let v: *void = null
+            let v: #null *void = null
             return v
         }
         else
@@ -748,8 +748,8 @@ enum IfElseKind: u16
 
     const PTR0 = #run matrixPointer(true)
     const PTR1 = #run matrixPointer(false)
-    #assert(#typeof(PTR0) == *void)
-    #assert(#typeof(PTR1) == *void)
+    #assert(#typeof(PTR0) == #null *void)
+    #assert(#typeof(PTR1) == #null *void)
     #assert(PTR0 == null)
     #assert(PTR1 != null)
 }

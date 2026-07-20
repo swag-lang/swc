@@ -38,12 +38,12 @@ struct GridMap
     height: u32
     startX: u32
     startY: u32
-    cells:  [*] u8
+    cells:  #null [*] u8
 }
 
 struct IndexBuffer
 {
-    data:      [*] u32
+    data:      #null [*] u32
     count:     u32
     capacity:  u32
     growCount: u32
@@ -69,9 +69,9 @@ func cellIndex(x, y, width: u32)->u32
 
 func allocBytes(size: u32)->[*] u8
 {
-    let ptr = cast([*] u8) @alloc(cast(u64) size)
+    let ptr = cast(#null [*] u8) @alloc(cast(u64) size)
     @assert(ptr != null)
-    return ptr
+    return assume ptr
 }
 
 func zeroBytes(ptr: [*] u8, count: u32)
@@ -98,7 +98,7 @@ func initIndexBuffer(initialCapacity: u32)->IndexBuffer
 {
     var result: IndexBuffer
     result.capacity = initialCapacity
-    result.data = cast([*] u32) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
+    result.data = cast(#null [*] u32) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
     @assert(result.data != null)
     return result
 }
@@ -110,7 +110,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
     if result.count == result.capacity
     {
         let newCapacity = result.capacity * 2'u32
-        result.data = cast([*] u32) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
+        result.data = cast(#null [*] u32) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
         @assert(result.data != null)
         result.capacity = newCapacity
         result.growCount += 1'u32

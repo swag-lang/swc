@@ -16,7 +16,7 @@ struct AllocatorHeader
     next:          #null *AllocatorHeader
     prevFree:      #null *AllocatorHeader
     nextFree:      #null *AllocatorHeader
-    stack:         [16] #nonull *void = undefined
+    stack:         [16] *void = undefined
     stackCount:    u32
     allocId:       u32
     classIndex:    u32
@@ -102,23 +102,23 @@ struct Allocator
 
 private var g_DefaultAllocator: Allocator
 
-private func atomicLoadHeader(slot: #nonull *#null *AllocatorHeader)->#null *AllocatorHeader
+private func atomicLoadHeader(slot: *#null *AllocatorHeader)->#null *AllocatorHeader
 {
-    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(#nonull *u64) slot, 0'u64, 0'u64)
+    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(*u64) slot, 0'u64, 0'u64)
 }
 
-private func atomicExchangeHeader(slot: #nonull *#null *AllocatorHeader, value: #null *AllocatorHeader)->#null *AllocatorHeader
+private func atomicExchangeHeader(slot: *#null *AllocatorHeader, value: #null *AllocatorHeader)->#null *AllocatorHeader
 {
-    return cast(#null *AllocatorHeader) @atomxchg(cast(#nonull *u64) slot, cast(u64) value)
+    return cast(#null *AllocatorHeader) @atomxchg(cast(*u64) slot, cast(u64) value)
 }
 
-private func atomicCompareExchangeHeader(slot: #nonull *#null *AllocatorHeader, compareTo, exchangeWith: #null *AllocatorHeader)->#null *AllocatorHeader
+private func atomicCompareExchangeHeader(slot: *#null *AllocatorHeader, compareTo, exchangeWith: #null *AllocatorHeader)->#null *AllocatorHeader
 {
-    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(#nonull *u64) slot, cast(u64) compareTo, cast(u64) exchangeWith)
+    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(*u64) slot, cast(u64) compareTo, cast(u64) exchangeWith)
 }
 
-private func atomicGet(addr: #nonull *u32)->u32 => @atomcmpxchg(addr, 0, 0)
-private func atomicGet(addr: #nonull *u64)->u64 => @atomcmpxchg(addr, 0, 0)
+private func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
+private func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
 
 private func currentThreadId()->u64
 {
@@ -214,7 +214,7 @@ impl Allocator
 
     func memAlign(value: u64, alignment: u32)->u64
     {
-        let toAlign = cast(u64) (alignment orelse cast(u32) #sizeof(#nonull *void)) - 1
+        let toAlign = cast(u64) (alignment orelse cast(u32) #sizeof(*void)) - 1
         return (value + toAlign) & ~toAlign
     }
 
@@ -293,14 +293,14 @@ impl Allocator
 
     mtd rawAlloc(size: u64, alignment: u32 = 0)->#null [*] u8
     {
-        let align = cast(u64) (alignment orelse cast(u32) #sizeof(#nonull *void))
+        let align = cast(u64) (alignment orelse cast(u32) #sizeof(*void))
         let bytes = size + align - 1 + #sizeof(AllocatorRawBlock)
         let raw = .osAlloc(bytes)
         if !raw do
             return null
 
         var user = raw + #sizeof(AllocatorRawBlock)
-        user = cast(#nonull [*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
+        user = cast([*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
 
         let rawBlock = cast(#null *AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
         rawBlock.address = cast(#null [*] void) raw
@@ -367,13 +367,13 @@ impl Allocator
         return g_AllocatorThreadHeap
     }
 
-    mtd fastPathEnabled(request: #nonull *AllocatorRequest, classIndex: u32)->bool
+    mtd fastPathEnabled(request: *AllocatorRequest, classIndex: u32)->bool
     {
         if .diagnosticMode() do
             return false
         if classIndex == AllocatorInvalidClass do
             return false
-        if request.alignment > #sizeof(#nonull *void) do
+        if request.alignment > #sizeof(*void) do
             return false
         return true
     }
@@ -383,17 +383,17 @@ impl Allocator
         return .trackAllocations or .electricMode
     }
 
-    mtd statAdd(value: #nonull *u64, delta: u64)
+    mtd statAdd(value: *u64, delta: u64)
     {
         discard @atomadd(value, delta)
     }
 
-    mtd statAdd(value: #nonull *u32, delta: u32)
+    mtd statAdd(value: *u32, delta: u32)
     {
         discard @atomadd(value, delta)
     }
 
-    mtd statSub(value: #nonull *u64, delta: u64)
+    mtd statSub(value: *u64, delta: u64)
     {
         while true
         {
@@ -404,7 +404,7 @@ impl Allocator
         }
     }
 
-    mtd statSub(value: #nonull *u32, delta: u32)
+    mtd statSub(value: *u32, delta: u32)
     {
         while true
         {
@@ -432,7 +432,7 @@ impl Allocator
             return false
         if header.classIndex == AllocatorInvalidClass do
             return false
-        if header.alignment > #sizeof(#nonull *void) do
+        if header.alignment > #sizeof(*void) do
             return false
         if header.blockSize > .maxCachedSize do
             return false
@@ -785,9 +785,9 @@ impl Allocator
         return header
     }
 
-    mtd allocateBlock(request: #nonull *AllocatorRequest, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
+    mtd allocateBlock(request: *AllocatorRequest, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
     {
-        let alignment = request.alignment orelse cast(u32) #sizeof(#nonull *void)
+        let alignment = request.alignment orelse cast(u32) #sizeof(*void)
         let toAddAlign = memAlign(#sizeof(AllocatorHeader), alignment)
 
         let allocSize = toAddAlign + blockSize + #sizeof(AllocatorFooter)
@@ -807,7 +807,7 @@ impl Allocator
         return header
     }
 
-    mtd setupAllocatedHeader(header: #null *AllocatorHeader, request: #nonull *AllocatorRequest, heap: #null *AllocatorThreadHeap)
+    mtd setupAllocatedHeader(header: #null *AllocatorHeader, request: *AllocatorRequest, heap: #null *AllocatorThreadHeap)
     {
         header.magic      = MagicAlloc
         header.userSize   = request.size
@@ -837,7 +837,7 @@ impl Allocator
         request.address = .userAddress(header)
     }
 
-    mtd allocate(request: #nonull *AllocatorRequest)
+    mtd allocate(request: *AllocatorRequest)
     {
         // A zero-size reallocation with a live address never reaches this point:
         // 'reallocate' frees it before delegating.
@@ -871,7 +871,7 @@ impl Allocator
         .setupAllocatedHeader(header, request, heap)
     }
 
-    mtd reallocate(request: #nonull *AllocatorRequest)
+    mtd reallocate(request: *AllocatorRequest)
     {
         if !request.address
         {
@@ -928,7 +928,7 @@ impl Allocator
         request.address = allocReq.address
     }
 
-    mtd freeBlock(request: #nonull *AllocatorRequest)
+    mtd freeBlock(request: *AllocatorRequest)
     {
         if !request.address do
             return
@@ -1136,7 +1136,7 @@ impl IAllocator for Allocator
             .mutex.unlock()
     }
 
-    mtd impl alloc(request: #nonull *AllocatorRequest)
+    mtd impl alloc(request: *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
@@ -1144,21 +1144,21 @@ impl IAllocator for Allocator
         .allocate(request)
     }
 
-    mtd impl realloc(request: #nonull *AllocatorRequest)
+    mtd impl realloc(request: *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
         .reallocate(request)
     }
 
-    mtd impl free(request: #nonull *AllocatorRequest)
+    mtd impl free(request: *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
         .freeBlock(request)
     }
 
-    mtd impl freeAll(request: #nonull *AllocatorRequest)
+    mtd impl freeAll(request: *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
@@ -1166,7 +1166,7 @@ impl IAllocator for Allocator
         request.address = null
     }
 
-    mtd impl assertAllocated(request: #nonull *AllocatorRequest)
+    mtd impl assertAllocated(request: *AllocatorRequest)
     {
         let locked = .lockDiagnostic()
         defer .unlockDiagnostic(locked)
@@ -1174,7 +1174,7 @@ impl IAllocator for Allocator
     }
 }
 
-func defaultAllocator()->#nonull *Allocator
+func defaultAllocator()->*Allocator
 {
     return &g_DefaultAllocator
 }
@@ -1194,7 +1194,7 @@ func releaseAllocatorThreadCache()
         alloc.retireThreadHeap(heap)
 }
 
-func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->#nonull *Allocator
+func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->*Allocator
 {
     let cxt = @getcontext()
 

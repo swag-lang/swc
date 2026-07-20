@@ -2,12 +2,12 @@
 #global private
 using Swag
 
-func md5String(buffer: #nonull const [..] u8)->String
+func md5String(buffer: const [..] u8)->String
 {
     return Hash.Md5.toString(Hash.Md5.compute(buffer))
 }
 
-func assertMd5(buffer: #nonull const [..] u8, expected: #nonull string)
+func assertMd5(buffer: const [..] u8, expected: string)
 {
     @assert(md5String(buffer) == expected)
 
@@ -21,7 +21,7 @@ func assertMd5(buffer: #nonull const [..] u8, expected: #nonull string)
     @assert(Hash.Md5.toString(digest) == expected)
 }
 
-func assertMd5Split(buffer: #nonull const [..] u8, split0, split1: u64, expected: #nonull string)
+func assertMd5Split(buffer: const [..] u8, split0, split1: u64, expected: string)
 {
     var md5: Hash.Md5
     md5.init()
@@ -34,7 +34,7 @@ func assertMd5Split(buffer: #nonull const [..] u8, split0, split1: u64, expected
     @assert(Hash.Md5.toString(digest) == expected)
 }
 
-func fillMd5Pattern(buffer: #nonull [..] u8)
+func fillMd5Pattern(buffer: [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)

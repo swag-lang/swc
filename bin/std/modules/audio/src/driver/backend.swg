@@ -129,7 +129,7 @@ impl DriverNative
 
 impl Voice
 {
-    func createNative(voice: #nonull *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createNative(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
         switch g_Driver.kind
         {
@@ -293,7 +293,7 @@ public impl Voice
 
 impl Bus
 {
-    func createNative(bus: #nonull *Bus, numChannels: u32, parent: #null *Bus = null) throw
+    func createNative(bus: *Bus, numChannels: u32, parent: #null *Bus = null) throw
     {
         switch g_Driver.kind
         {

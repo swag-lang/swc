@@ -30,27 +30,27 @@ var g_Page: s32
 var g_TestFrame: s32
 var g_DarkTheme: bool
 
-func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
+func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
     let label = createText(parent, text, rect, .WordWrap | .LightText)
     label.vertAlignmentText = .Top
     return label
 }
 
-func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
+func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -62,7 +62,7 @@ func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Ma
     return view
 }
 
-func refreshLayoutTree(wnd: #nonull *Wnd)
+func refreshLayoutTree(wnd: *Wnd)
 {
     if !wnd do
         return
@@ -97,14 +97,14 @@ func sampleIcon(index: s32, size = 16'f32)->Icon
     }
 }
 
-func addListFlags(list: #nonull *ListCtrl)
+func addListFlags(list: *ListCtrl)
 {
     list.listFlags.add(.AlternateLines)
     list.listFlags.add(.HorzLines)
     list.listFlags.add(.VertLines)
 }
 
-func getPageLayout(parent: #nonull *Wnd)->PageLayout
+func getPageLayout(parent: *Wnd)->PageLayout
 {
     let rect = parent.getClientRect()
     let gap = 20.0
@@ -120,7 +120,7 @@ func getPageLayout(parent: #nonull *Wnd)->PageLayout
     return result
 }
 
-func pageTitle(page: s32)->#nonull string
+func pageTitle(page: s32)->string
 {
     switch page
     {
@@ -137,7 +137,7 @@ func pageTitle(page: s32)->#nonull string
     unreachable
 }
 
-func pageSubtitle(page: s32)->#nonull string
+func pageSubtitle(page: s32)->string
 {
     switch page
     {
@@ -181,7 +181,7 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: #nonull *Button)
+func toggleTheme(_btn: *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
@@ -279,7 +279,7 @@ func canUsePageArrows()->bool
     return !g_PageView.isParentOf(focus)
 }
 
-func onFrame(app: #nonull *Application)
+func onFrame(app: *Application)
 {
     if !g_Surface or !g_View or !g_PageView do
         return
@@ -290,7 +290,7 @@ func onFrame(app: #nonull *Application)
     updateTestMode()
 }
 
-func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {

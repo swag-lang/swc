@@ -1,6 +1,6 @@
 impl Properties
 {
-    mtd refreshNative(item: #nonull *PropertiesItem)
+    mtd refreshNative(item: *PropertiesItem)
     {
         let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
@@ -79,7 +79,7 @@ impl Properties
         }
     }
 
-    mtd validateNative(item: #nonull *PropertiesItem)
+    mtd validateNative(item: *PropertiesItem)
     {
         let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
@@ -156,7 +156,7 @@ impl Properties
     }
 
     // Panel row: a full-width self-labeled composite (labeled slider or labeled edit box)
-    mtd constructNativePanel(item: #nonull *PropertiesItem, value: Swag.TypeValue, typeNative: #nonull const *Swag.TypeInfoNative)
+    mtd constructNativePanel(item: *PropertiesItem, value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative)
     {
         var dispName = itemDisplayName(value)
 
@@ -175,7 +175,7 @@ impl Properties
 
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
             if unit != null do
-                slider.edit.unit = cast(#nonull string) (assume unit)
+                slider.edit.unit = cast(string) (assume unit)
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
             let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
@@ -208,7 +208,7 @@ impl Properties
 
         let unit = Reflection.getAttributeValue(value, .Unit, "value")
         if unit != null do
-            ctrl.edit.unit = cast(#nonull string) (assume unit)
+            ctrl.edit.unit = cast(string) (assume unit)
 
         item.editBox = ctrl.edit
 
@@ -241,7 +241,7 @@ impl Properties
         }
     }
 
-    mtd constructNative(value: Swag.TypeValue, typeNative: #nonull const *Swag.TypeInfoNative, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructNative(value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
 
@@ -272,7 +272,7 @@ impl Properties
 
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
             if unit != null do
-                slider.edit.unit = cast(#nonull string) (assume unit)
+                slider.edit.unit = cast(string) (assume unit)
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
             let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
@@ -297,7 +297,7 @@ impl Properties
             with let ed = EditBox.create(assume item.line, value.name)
             {
                 if unit != null do
-                    .unit = cast(#nonull string) (assume unit)
+                    .unit = cast(string) (assume unit)
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert

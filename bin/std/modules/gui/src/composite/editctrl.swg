@@ -13,7 +13,7 @@ struct EditCtrl
 
 impl IWnd for EditCtrl
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if !.label do
             return
@@ -33,7 +33,7 @@ impl IWnd for EditCtrl
 impl EditCtrl
 {
     // Create the popup list, but: not display it
-    func create(parent: #nonull *Wnd, name: #nonull string, text: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = Zero)->#nonull *EditCtrl
+    func create(parent: *Wnd, name: string, text: string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = Zero)->*EditCtrl
     {
         let metrics = parent.getThemeMetrics()
         var pos     = position

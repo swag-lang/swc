@@ -2,15 +2,15 @@ using Swag, Core, Core.Errors
 
 struct ImageEncoder
 {
-    type:     #nonull const *TypeInfoStruct
+    type:     const *TypeInfoStruct
     itf:      IImageEncoder
 }
 
 // Interface to decode a buffer
 public interface IImageEncoder
 {
-    mtd canEncode(filename: #nonull string)->bool;
-    mtd encode(buf: #nonull *ConcatBuffer, img: Image, opt: #null any) throw;
+    mtd canEncode(filename: string)->bool;
+    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) throw;
 }
 
 public impl Image
@@ -29,7 +29,7 @@ public impl Image
     }
 
     // Returns 'true' if the given filename has a corresponding encoder
-    func canSave(fileName: #nonull string)->bool
+    func canSave(fileName: string)->bool
     {
         for &encoder in encoders
         {
@@ -41,7 +41,7 @@ public impl Image
     }
 
     // Save the image to a file
-    mtd save(fileName: #nonull string, options: #null any = null) throw
+    mtd save(fileName: string, options: #null any = null) throw
     {
         Debug.assert(.pixels.buffer != null, "image is invalid")
 
@@ -58,7 +58,7 @@ public impl Image
 
         if !found do
             throw UnsupportedFormatError{"no matching image encoder"}
-        let safeFound = found orelse cast(#nonull *ImageEncoder) 1'u64
+        let safeFound = found orelse cast(*ImageEncoder) 1'u64
 
         // Create an encoder instance
         let ptrEncoder = Memory.new(safeFound.type)

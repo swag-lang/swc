@@ -45,7 +45,7 @@ public impl GlyphSlot
         if .outline.pointCount <= 0 do
             return
 
-        let points = .outline.points orelse cast(#nonull [*] Vector) 1'u64
+        let points = .outline.points orelse cast([*] Vector) 1'u64
         for cast(u32) .outline.pointCount do
             points[@index].x += cast(s32) Math.round(points[@index].y * 0.21256)
 
@@ -53,7 +53,7 @@ public impl GlyphSlot
     }
 }
 
-func clearOutline(slot: #nonull *GlyphSlot)
+func clearOutline(slot: *GlyphSlot)
 {
     slot.outline.contourCount = 0
     slot.outline.pointCount   = 0
@@ -63,7 +63,7 @@ func clearOutline(slot: #nonull *GlyphSlot)
     slot.outline.flags      = 0
 }
 
-func clearBitmap(slot: #nonull *GlyphSlot)
+func clearBitmap(slot: *GlyphSlot)
 {
     slot.bitmap.rows         = 0
     slot.bitmap.width        = 0
@@ -86,7 +86,7 @@ func computeOutlineBounds(outline: #null const *Outline)->{ minX: s32, minY: s32
     result.maxX = Swag.S32.Min
     result.maxY = Swag.S32.Min
 
-    let points = cast(#nonull const [*] Vector) (outline.points orelse cast(#nonull [*] Vector) 1'u64)
+    let points = cast(const [*] Vector) (outline.points orelse cast([*] Vector) 1'u64)
     for cast(u32) outline.pointCount
     {
         let pt = points[@index]
@@ -99,7 +99,7 @@ func computeOutlineBounds(outline: #null const *Outline)->{ minX: s32, minY: s32
     return result
 }
 
-func updateSlotMetrics(slot: #nonull *GlyphSlot)
+func updateSlotMetrics(slot: *GlyphSlot)
 {
     let bounds = computeOutlineBounds(&slot.outline)
     if slot.outline.pointCount <= 0

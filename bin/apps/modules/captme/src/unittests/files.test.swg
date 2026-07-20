@@ -3,7 +3,7 @@
 
 using Swag, Core, File
 
-func testPrepareSavedCapture(capture: #nonull *Capture)->String
+func testPrepareSavedCapture(capture: *Capture)->String
 {
     let path = testTempCapturePath()
     capture.file    = path
@@ -30,7 +30,7 @@ func testHasCaptmeFileMetadata(img: Image, captureFile: String)->bool
     {
         if md.isTag("Captme.File")
         {
-            if testSamePath(cast(#nonull string) md.toSlice(), captureFile) do
+            if testSamePath(cast(string) md.toSlice(), captureFile) do
                 return true
         }
     }
@@ -38,7 +38,7 @@ func testHasCaptmeFileMetadata(img: Image, captureFile: String)->bool
     return false
 }
 
-func testPrepareRecentLibrary(main: #nonull *MainWnd)
+func testPrepareRecentLibrary(main: *MainWnd)
 {
     catch Library.init()
     @assert(@err == null)

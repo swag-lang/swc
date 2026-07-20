@@ -49,7 +49,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     @assert(alloc.countAlloc == 1)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) (assume req.address) - #sizeof(AllocatorHeader))
     @assert(header == alloc.firstAlloc)
     @assert(header.stackCount == 0)
 
@@ -136,7 +136,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let ptr = cast([*] u8) req.address
+    let ptr = cast([*] u8) assume req.address
     for i in 96 do
         @assert(ptr[i] == Allocator.AllocByte)
 
@@ -164,7 +164,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     itf.alloc(&tracked)
     @assert(tracked.address != null)
 
-    let trackedHeader = cast(*AllocatorHeader) (cast([*] u8) tracked.address - #sizeof(AllocatorHeader))
+    let trackedHeader = cast(*AllocatorHeader) (cast([*] u8) (assume tracked.address) - #sizeof(AllocatorHeader))
     @assert(alloc.firstAlloc == trackedHeader)
     alloc.checkAllMemory()
 
@@ -193,8 +193,8 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         @assert(req.address != null)
         @assert(alloc.countOsAlloc >= 2)
 
-        let header = cast(*AllocatorHeader) (cast([*] u8) req.address - #sizeof(AllocatorHeader))
-        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) header.allocAddr - #sizeof(AllocatorRawBlock))
+        let header = cast(*AllocatorHeader) (cast([*] u8) (assume req.address) - #sizeof(AllocatorHeader))
+        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) (assume header.allocAddr) - #sizeof(AllocatorRawBlock))
         @assert(rawBlock.address != null)
         @assert(rawBlock.size >= header.allocSize + #sizeof(AllocatorRawBlock))
         @assert(cast(u64) rawBlock.address % 4096 == 0)

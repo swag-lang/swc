@@ -13,7 +13,7 @@ the variable’s type.
     let a: u32 = 1 // Immutable variable
     @assert(a == 1)
 
-    let b: #nonull string = "string"
+    let b: string = "string"
     @assert(b == "string")
 
     var c: s32 = 42 // Mutable variable
@@ -90,7 +90,7 @@ annotations.
 
     let b = "string"
     @assert(b == "string")
-    #assert(#typeof(b) == #nonull string)
+    #assert(#typeof(b) == string)
 
     let c = 1.5'f64
     @assert(c == 1.5)
@@ -112,7 +112,7 @@ Type inference also applies when declaring multiple variables simultaneously.
     @assert(c == 1.5)
     @assert(d == "string")
     #assert(#typeof(c) == f32)
-    #assert(#typeof(d) == #nonull string)
+    #assert(#typeof(d) == string)
 }
 
 /**

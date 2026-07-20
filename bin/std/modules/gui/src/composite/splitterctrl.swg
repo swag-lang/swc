@@ -36,7 +36,7 @@ struct SplitterCtrl
 
 impl IWnd for SplitterCtrl
 {
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = true
         let local = .surfaceToLocal(evt.surfacePos)
@@ -101,7 +101,7 @@ impl IWnd for SplitterCtrl
             .cursor.clear()
     }
 
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
 
@@ -154,7 +154,7 @@ impl IWnd for SplitterCtrl
         }
     }
 
-    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPostPaintEvent(evt: *PaintEvent)
     {
         if !.items.count do
             return
@@ -401,7 +401,7 @@ impl SplitterCtrl
 {
     // Creates a new SplitterCtrl instance
     #[Swag.Discardable]
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, vertical = false, id: #null WndId = null)->#nonull *SplitterCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: #null WndId = null)->*SplitterCtrl
     {
         Debug.assert(parent != null)
 
@@ -419,7 +419,7 @@ impl SplitterCtrl
 
     // Add a new pane
     #[Swag.Discardable]
-    mtd addPane(pane: #nonull *Wnd, paneSize: f32 = 100, title = false)->#nonull *SplitterItem
+    mtd addPane(pane: *Wnd, paneSize: f32 = 100, title = false)->*SplitterItem
     {
         pane.setParent(me)
         .numVisiblePanes += 1

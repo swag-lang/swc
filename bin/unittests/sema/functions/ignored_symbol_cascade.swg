@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 enum Shape: u8
 {

@@ -33,27 +33,27 @@ var g_TestFrame: s32
 var g_DarkTheme: bool
 var g_Color: Color = Argb.CornflowerBlue
 
-func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
+func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
     let label = createText(parent, text, rect, .WordWrap | .LightText)
     label.vertAlignmentText = .Top
     return label
 }
 
-func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
+func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -65,13 +65,13 @@ func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Ma
     return view
 }
 
-func createCaption(parent: #nonull *Wnd, text: #nonull string, x, y, width: f32)
+func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 22})
     label.labelFlags.add(.LightText)
 }
 
-func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
+func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
     let rect = parent.getClientRect()
     let width = Math.max(rect.width, 1.0)
@@ -88,7 +88,7 @@ func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
     return result
 }
 
-func pageTitle(page: s32)->#nonull string
+func pageTitle(page: s32)->string
 {
     switch page
     {
@@ -107,7 +107,7 @@ func pageTitle(page: s32)->#nonull string
     unreachable
 }
 
-func pageSubtitle(page: s32)->#nonull string
+func pageSubtitle(page: s32)->string
 {
     switch page
     {
@@ -162,13 +162,13 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: #nonull *Button)
+func toggleTheme(_btn: *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
 }
 
-func setSelectedColor(color: Color, source: #nonull string)
+func setSelectedColor(color: Color, source: string)
 {
     g_Color = color
     updateHeader()
@@ -177,7 +177,7 @@ func setSelectedColor(color: Color, source: #nonull string)
     app.invalidate()
 }
 
-func selectPaletteColor(palette: #nonull *PalettePicker, source: #nonull string, keepAlpha = true)
+func selectPaletteColor(palette: *PalettePicker, source: string, keepAlpha = true)
 {
     var color = palette.selectedColor
     if keepAlpha and color.a and g_Color.a do
@@ -200,13 +200,13 @@ func makePickerPalette()->Array'Color
     return pal
 }
 
-func addPaletteColors(picker: #nonull *PalettePicker, colors: Array'Color)
+func addPaletteColors(picker: *PalettePicker, colors: Array'Color)
 {
     for color in colors do
         picker.addColor(color)
 }
 
-func createQuickPalette(parent: #nonull *Wnd, rect: Math.Rectangle, title: #nonull string, keepAlpha = true)->#nonull *PalettePicker
+func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepAlpha = true)->*PalettePicker
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
@@ -220,7 +220,7 @@ func createQuickPalette(parent: #nonull *Wnd, rect: Math.Rectangle, title: #nonu
     return picker
 }
 
-func createModePicker(parent: #nonull *Wnd, title: #nonull string, rect: Math.Rectangle, mode: ColorPickerMode)->#nonull *ColorPicker
+func createModePicker(parent: *Wnd, title: string, rect: Math.Rectangle, mode: ColorPickerMode)->*ColorPicker
 {
     // Narrow pickers (vertical bars) still need a readable caption width.
     createCaption(parent, title, rect.x, rect.y - 28, Math.max(rect.width, 64.0))
@@ -234,7 +234,7 @@ func createModePicker(parent: #nonull *Wnd, title: #nonull string, rect: Math.Re
     return picker
 }
 
-func createPaletteRamp(parent: #nonull *Wnd, title: #nonull string, rect: Math.Rectangle, mode: s32, base: Color, keepAlpha = true)->#nonull *PalettePicker
+func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: s32, base: Color, keepAlpha = true)->*PalettePicker
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
@@ -272,7 +272,7 @@ func createPaletteRamp(parent: #nonull *Wnd, title: #nonull string, rect: Math.R
     return picker
 }
 
-func drawWrappedText(painter: #nonull *Painter, rect: Math.Rectangle, text: #nonull string, font: #nonull *Font, color: Color, maxLines = 1'u32)
+func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 1'u32)
 {
     var richText: RichString = text
     var format: RichStringFormat
@@ -283,7 +283,7 @@ func drawWrappedText(painter: #nonull *Painter, rect: Math.Rectangle, text: #non
     painter.drawRichString(rect, &richText, format)
 }
 
-func drawSwatch(painter: #nonull *Painter, rect: Math.Rectangle, label: #nonull string, color: Color, font: #nonull *Font, colors: #nonull *ThemeColors)
+func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: Color, font: *Font, colors: *ThemeColors)
 {
     if color.a != 255 do
         painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
@@ -292,7 +292,7 @@ func drawSwatch(painter: #nonull *Painter, rect: Math.Rectangle, label: #nonull 
     painter.drawString(rect.x, rect.bottom() + 8, label, font, colors.label_TextLight)
 }
 
-func drawLiveCard(painter: #nonull *Painter, rect: Math.Rectangle, colors: #nonull *ThemeColors)
+func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 {
     let titleFont = g_View.getTheme().createDefaultFont(24, .Bold)
     let bodyFont = g_View.getTheme().createDefaultFont(14)
@@ -317,7 +317,7 @@ func drawLiveCard(painter: #nonull *Painter, rect: Math.Rectangle, colors: #nonu
 
 // Lay labelled swatches in a single horizontal row that fits `rect`. Used by the
 // short, wide bottom panels where a tall card would overlap or clip.
-func drawColorRow(painter: #nonull *Painter, rect: Math.Rectangle, font: #nonull *Font, colors: #nonull *ThemeColors, names: Array'(#nonull string), cols: Array'Color)
+func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'(string), cols: Array'Color)
 {
     let n = Math.max(cast(f32) cols.count, 1.0)
     let pad = 16.0
@@ -330,7 +330,7 @@ func drawColorRow(painter: #nonull *Painter, rect: Math.Rectangle, font: #nonull
     }
 }
 
-func onLivePreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
+func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -358,7 +358,7 @@ func onLivePreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
         }
         else
         {
-            var names: Array'(#nonull string)
+            var names: Array'(string)
             var cols:  Array'Color
             names.add("selected");   cols.add(g_Color)
             names.add("lighter");    cols.add(Color.getLighter(g_Color, 0.34))
@@ -372,7 +372,7 @@ func onLivePreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
     return false
 }
 
-func onDerivedPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
+func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -384,7 +384,7 @@ func onDerivedPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
 
         painter.fillRect(rect, colors.view_Bk)
 
-        var names: Array'(#nonull string)
+        var names: Array'(string)
         var cols:  Array'Color
         names.add("selected");   cols.add(g_Color)
         names.add("analog -30"); cols.add(g_Color.rotateHue(-30))
@@ -418,7 +418,7 @@ func onDerivedPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
     return false
 }
 
-func onContrastPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
+func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -454,7 +454,7 @@ func onContrastPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
     return false
 }
 
-func createPreview(parent: #nonull *Wnd, rect: Math.Rectangle, hook: func(view: #nonull *Wnd, evt: IEvent)->bool)->#nonull *Wnd
+func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, evt: IEvent)->bool)->*Wnd
 {
     let view = Wnd.create'Wnd(parent, rect)
     view.hookOnEvent = hook
@@ -509,7 +509,7 @@ func layoutRootView()
     g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -576,7 +576,7 @@ func canUsePageArrows()->bool
     return !g_PageView.isParentOf(focus)
 }
 
-func onFrame(app: #nonull *Application)
+func onFrame(app: *Application)
 {
     if !g_Surface or !g_View or !g_PageView do
         return

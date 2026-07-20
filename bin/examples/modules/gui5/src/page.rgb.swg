@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createRgbModesPage(parent: #nonull *Wnd)
+func createRgbModesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "RGB planes", "ColorPicker can map two RGB channels at a time for direct component editing.", layout.left)

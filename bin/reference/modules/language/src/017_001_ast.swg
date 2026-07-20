@@ -85,7 +85,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
 #test
 {
     #[Swag.Compiler]
-    func append(buf: #nonull [*] u8, start: s32, val: #nonull string)->s32
+    func append(buf: [*] u8, start: s32, val: string)->s32
     {
         @memcpy(buf + start, @dataof(val), cast(u64) @countof(val))
         return start + cast(s32) @countof(val)
@@ -100,7 +100,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
             len = append(buf, len, "x: f32 = 1\n")
             len = append(buf, len, "y: f32 = 2\n")
             len = append(buf, len, "z: f32 = 3\n")
-            return cast(#nonull string) @mkslice(&buf[0], cast(u64) len)
+            return cast(string) @mkslice(&buf[0], cast(u64) len)
         }
     }
 

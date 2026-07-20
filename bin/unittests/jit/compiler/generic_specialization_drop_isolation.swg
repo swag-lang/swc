@@ -1,15 +1,15 @@
 #global private
 
-var LeakLastDropAddr: [*] void
-var LeakLastDropSelf: [*] u8
+var LeakLastDropAddr: #null [*] void
+var LeakLastDropSelf: #null [*] u8
 var LeakLastDropTag:  s32
-var LeakFirstDropAddr: [*] void
+var LeakFirstDropAddr: #null [*] void
 var LeakFirstDropTag:  s32
-var LeakSecondDropAddr: [*] void
+var LeakSecondDropAddr: #null [*] void
 var LeakSecondDropTag:  s32
 
-var LeakExpectedDropAddr: [*] void
-var LeakExpectedDropSelf: [*] u8
+var LeakExpectedDropAddr: #null [*] void
+var LeakExpectedDropSelf: #null [*] u8
 var LeakExpectedDropTag:  s32
 var LeakExpectDrop:       bool
 var LeakDropCount:        s32
@@ -68,7 +68,7 @@ struct LeakTrackedValue
 {
     tag:     s32
     storage: [16] u8
-    self:    [*] u8
+    self:    #null [*] u8
 }
 
 impl LeakTrackedValue
@@ -285,7 +285,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var byString: LeakTable'(string, LeakTrackedValue)
+        var byString: LeakTable'(string, LeakTrackedValue) = undefined
         var byInt:    LeakTable'(s32, LeakTrackedValue)
         var byWide:   LeakTable'(LeakWideKey, LeakTrackedValue)
 
@@ -336,7 +336,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var byString: LeakTable'(string, LeakTrackedValue)
+        var byString: LeakTable'(string, LeakTrackedValue) = undefined
         var byInt:    LeakTable'(s32, LeakTrackedValue)
         var byWide:   LeakTable'(LeakWideKey, LeakTrackedValue)
 
@@ -382,7 +382,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var boxedString: LeakBox'(string, LeakTrackedValue)
+        var boxedString: LeakBox'(string, LeakTrackedValue) = undefined
         var boxedInt:    LeakBox'(s32, LeakTrackedValue)
 
         boxedString.put(0, "left", 71)
@@ -414,7 +414,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var gridString: LeakGrid'(string, LeakTrackedValue)
+        var gridString: LeakGrid'(string, LeakTrackedValue) = undefined
         var gridWide:   LeakGrid'(LeakWideKey, LeakTrackedValue)
 
         gridString.put(0, 0, "north", 91)
@@ -444,7 +444,7 @@ impl LeakGrid
     {
         leakResetDropProbe()
 
-        var byString: LeakTable'(string, LeakTrackedValue)
+        var byString: LeakTable'(string, LeakTrackedValue) = undefined
         var byInt:    LeakTable'(s32, LeakTrackedValue)
 
         byString.put(0, "warmup", 111)

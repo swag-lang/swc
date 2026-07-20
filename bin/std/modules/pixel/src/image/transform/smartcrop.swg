@@ -11,9 +11,9 @@ public impl Image
 
     internal struct ScoreCtx
     {
-        iiS:         #nonull *Array'f32     // Integral image of saliency values (blurred/combined)
-        iiT:         #nonull *Array'f32     // Integral image of rule-of-thirds weights
-        iiE:         #nonull *Array'f32     // Integral image of edge distance values (high away from edges)
+        iiS:         *Array'f32     // Integral image of saliency values (blurred/combined)
+        iiT:         *Array'f32     // Integral image of rule-of-thirds weights
+        iiE:         *Array'f32     // Integral image of edge distance values (high away from edges)
         w, h:        s32
         imgArea:     f32
         thirdsW:     f32
@@ -167,11 +167,11 @@ public impl Image
     internal mtd const extractLumSat(lum: &Array'f32, sat: &Array'f32)
     {
         var f   = {lum: lum, sat: sat}
-        let mec = cast #unconst (#nonull *Image) me
+        let mec = cast #unconst (*Image) me
         mec.visitPixels(&f)
         {
             let p      = image.getPixelColor(x, y)
-            let params = cast(#nonull *#decltype(f)) (assume userData)
+            let params = cast(*#decltype(f)) (assume userData)
 
             // linear luminance
             params.lum.buffer[index] = p.getRelativeLuminance()

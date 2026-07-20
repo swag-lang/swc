@@ -66,14 +66,14 @@ struct ListCtrl
     selectionMode           = ListSelectionMode.Single
     leftTextMargin:         f32
 
-    sigSelChanged:          SigArray'func||(#nonull *ListCtrl)
-    sigCheckChanged:        SigArray'func||(#nonull *ListCtrl)
-    sigRightClick:          SigArray'func||(#nonull *ListCtrl, Math.Point)
-    sigLeftDoubleClick:     SigArray'func||(#nonull *ListCtrl, Math.Point)
-    sigExpand:              SigArray'func||(#nonull *ListCtrl, #nonull *ListLine)
-    sigCollapse:            SigArray'func||(#nonull *ListCtrl, #nonull *ListLine)
-    sigKeyPressed:          SigArray'func||(#nonull *ListCtrl, #nonull *KeyEvent)
-    sigVirtualFill:         func(#nonull *ListCtrl, #null *ListLine, u32)
+    sigSelChanged:          SigArray'func||(*ListCtrl)
+    sigCheckChanged:        SigArray'func||(*ListCtrl)
+    sigRightClick:          SigArray'func||(*ListCtrl, Math.Point)
+    sigLeftDoubleClick:     SigArray'func||(*ListCtrl, Math.Point)
+    sigExpand:              SigArray'func||(*ListCtrl, *ListLine)
+    sigCollapse:            SigArray'func||(*ListCtrl, *ListLine)
+    sigKeyPressed:          SigArray'func||(*ListCtrl, *KeyEvent)
+    sigVirtualFill:         func(*ListCtrl, #null *ListLine, u32)
     sigSort:                func(#null *ListLine, #null *ListLine, u32, bool)->s32
 
     toFreeLines:            ArrayPtr'ListLine
@@ -100,7 +100,7 @@ struct ListView
 
 impl ListLine
 {
-    mtd isParentOf(other: #nonull *ListLine)->bool
+    mtd isParentOf(other: *ListLine)->bool
     {
         var l = other.parent
         while l and l != me do
@@ -115,7 +115,7 @@ impl ListLine
     }
 
     // Get an item by index
-    mtd getItem(column: u32)->#nonull *ListItem
+    mtd getItem(column: u32)->*ListItem
     {
         Debug.assert(column < .items.count)
         for item in .items
@@ -129,7 +129,7 @@ impl ListLine
 
     // Initialize a given column item
     #[Swag.Discardable]
-    mtd setItem(column: u32, name: #nonull string, icon: Icon = {})->#nonull *ListItem
+    mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
     {
         for item in .items
         {
@@ -152,13 +152,13 @@ impl ListLine
 
 impl IWnd for ListView
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if .list do
             .list.computeLayout()
     }
 
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = true
         if evt.kind != .KeyPressed do
@@ -306,7 +306,7 @@ impl IWnd for ListView
         }
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .MouseLeave
         {
@@ -494,7 +494,7 @@ impl IWnd for ListView
             .list.sigSelChanged.call(.list)
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         if .list.getLineCount() == 0 do
             return
@@ -580,7 +580,7 @@ private impl ListView
         return x
     }
 
-    mtd paintLine(bc: PaintContext, idx: u32, line: #nonull *ListLine, rect: Math.Rectangle, reserveCheckMargin: bool)
+    mtd paintLine(bc: PaintContext, idx: u32, line: *ListLine, rect: Math.Rectangle, reserveCheckMargin: bool)
     {
         let painter = bc.painter
         let theme   = .getTheme()
@@ -772,7 +772,7 @@ private impl ListView
 impl ListCtrl
 {
     #[Swag.Discardable]
-    func createSimple(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ListCtrl
+    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
     {
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
         {
@@ -790,7 +790,7 @@ impl ListCtrl
     }
 
     #[Swag.Discardable]
-    func createMultiColumns(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ListCtrl
+    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
     {
         let list = Wnd.create'ListCtrl(parent, "", position, id)
 
@@ -804,7 +804,7 @@ impl ListCtrl
             if !evt is ResizeEvent do
                 return false
 
-            var list   = cast(#nonull *ListCtrl) wnd
+            var list   = cast(*ListCtrl) wnd
             var header = list.header
             if header.form == .Transparent do
                 return false
@@ -988,7 +988,7 @@ impl ListCtrl
     }
 
     // Add one new line
-    mtd createLine(parentLine: #null *ListLine)->#nonull *ListLine
+    mtd createLine(parentLine: #null *ListLine)->*ListLine
     {
         Debug.assert(!.isVirtual, "createLine cannot be called on a virtual list")
 
@@ -1014,7 +1014,7 @@ impl ListCtrl
 
     // Add one line, and set first column
     #[Swag.Discardable]
-    mtd createLine(name: #nonull string, icon: Icon = {}, parentLine: #null *ListLine = null)->#nonull *ListLine
+    mtd createLine(name: string, icon: Icon = {}, parentLine: #null *ListLine = null)->*ListLine
     {
         let line = .createLine(parentLine)
         line.setItem(0, name, icon)
@@ -1035,7 +1035,7 @@ impl ListCtrl
     }
 
     // Add one column in a multi columns list
-    mtd addColumn(name: #nonull string, width: f32 = 100, icon: Icon = {})
+    mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
     {
         Debug.assert(.header != null)
         .header.addItem(name, width, icon)
@@ -1178,7 +1178,7 @@ impl ListCtrl
             .idxLineToIdxList.add(l.index, cast(u32) idx)
     }
 
-    private mtd collectVisibleLines(result: #nonull *Array'(#null *ListLine), lines: #nonull [..] #null *ListLine)
+    private mtd collectVisibleLines(result: *Array'(#null *ListLine), lines: [..] #null *ListLine)
     {
         for l in lines
         {
@@ -1188,7 +1188,7 @@ impl ListCtrl
         }
     }
 
-    private mtd sort(column: u32, descentOrder: bool, toSort: #nonull *Array'(#null *ListLine))
+    private mtd sort(column: u32, descentOrder: bool, toSort: *Array'(#null *ListLine))
     {
         func sortFunc(column: u32, descentOrder: bool, a, b: #null *ListLine)->s32
         {
@@ -1266,7 +1266,7 @@ impl ListCtrl
     }
 
     // Expand the given line
-    mtd expand(line: #nonull *ListLine)
+    mtd expand(line: *ListLine)
     {
         if !line.canExpand() or line.expanded do
             return
@@ -1292,7 +1292,7 @@ impl ListCtrl
     }
 
     // Collapse the given line
-    mtd collapse(line: #nonull *ListLine)
+    mtd collapse(line: *ListLine)
     {
         if !line.canExpand() or !line.expanded do
             return
@@ -1339,7 +1339,7 @@ impl ListCtrl
     // Collapse all lines
     mtd collapseAll()
     {
-        func collapseRec(sl: #nonull [..] #null *ListLine)
+        func collapseRec(sl: [..] #null *ListLine)
         {
             for l in sl
             {
@@ -1359,7 +1359,7 @@ impl ListCtrl
     }
 
     // Collapse the given line
-    mtd toggleExpand(line: #nonull *ListLine)
+    mtd toggleExpand(line: *ListLine)
     {
         if line.expanded do
             .collapse(line)

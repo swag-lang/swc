@@ -46,7 +46,7 @@ struct(T, N: s32) BoxArray
 
 func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 {
-    var result: Pair'(T, T)
+    var result: Pair'(T, T) = undefined
     result.first = p.second
     result.second = p.first
     return result

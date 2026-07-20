@@ -551,7 +551,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
 #test
 {
-    var str: string
+    var str: #null string
     var count0 = 0
     for it in @countof(str) { count0 += 1 }
     var v: u32

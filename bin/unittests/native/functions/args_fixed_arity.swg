@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct FixedPair
 {
@@ -44,7 +43,7 @@ func callBoolRune(a: bool, b: rune, c: bool, d: rune, e: bool, f: rune)->s32
     return cast(s32) a + cast(s32) b + cast(s32) c + cast(s32) d + cast(s32) e + cast(s32) f
 }
 
-func callAggregate(a: FixedPair, b: [3] s32, c: #nonull string)->s32
+func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
 {
     return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
 }
@@ -54,9 +53,9 @@ func callPointerEnum(a: #null *void, b: FixedKind, c: s32)->u64
     return cast(u64) (a != null) + cast(u64) cast(u8) b + cast(u64) c
 }
 
-func callKindof(a: FixedPair, b: [3] s32, c: #nonull string, d: #nonull *void, e: FixedKind)->bool
+func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bool
 {
-    return #typeof(a) == FixedPair and #typeof(b[0]) == s32 and #typeof(c) == #nonull string and #typeof(d) == #nonull *void and #typeof(e) == FixedKind
+    return #typeof(a) == FixedPair and #typeof(b[0]) == s32 and #typeof(c) == string and #typeof(d) == *void and #typeof(e) == FixedKind
 }
 
 #test
@@ -88,12 +87,12 @@ func callKindof(a: FixedPair, b: [3] s32, c: #nonull string, d: #nonull *void, e
     let sum0 = callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
     let sum1 = callAggregate({a: -2, b: 14}, [4, 5, 6], "By")
     let ptr0 = callPointerEnum(null, FixedKind.A, 3)
-    let ptr1 = callPointerEnum(cast(#nonull *void) 0x45'u64, FixedKind.B, 7)
+    let ptr1 = callPointerEnum(cast(*void) 0x45'u64, FixedKind.B, 7)
 
     #assert(#typeof(ptr0) == u64)
     @assert(sum0 == 168)
     @assert(sum1 == 143)
     @assert(ptr0 == 8'u64)
     @assert(ptr1 == 17'u64)
-    @assert(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(#nonull *void) 0x10'u64, FixedKind.B))
+    @assert(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B))
 }

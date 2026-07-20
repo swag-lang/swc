@@ -9,7 +9,7 @@ interface IEvt
 
 struct EvtBase
 {
-    type:   typeinfo
+    type:   #null typeinfo
     tag:    s32
 }
 

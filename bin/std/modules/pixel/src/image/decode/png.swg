@@ -115,19 +115,19 @@ public struct Decoder
 
 impl Decoder
 {
-    func safeDatas(chunk: DecodeChunk)->#nonull const [..] u8
+    func safeDatas(chunk: DecodeChunk)->const [..] u8
     {
-        return cast(#nonull const [..] u8) (assume chunk.datas)
+        return cast(const [..] u8) (assume chunk.datas)
     }
 
-    mtd safeTRNSData()->#nonull const [..] u8
+    mtd safeTRNSData()->const [..] u8
     {
-        return cast(#nonull const [..] u8) (assume .chunkTRNS.datas)
+        return cast(const [..] u8) (assume .chunkTRNS.datas)
     }
 
-    mtd safeDstPixels()->#nonull [*] u8
+    mtd safeDstPixels()->[*] u8
     {
-        return .dstPixels orelse cast(#nonull [*] u8) 1'u64
+        return .dstPixels orelse cast([*] u8) 1'u64
     }
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk throw
@@ -147,11 +147,11 @@ impl Decoder
         .stream.curByte += ch.length
 
         var crc: Hash.Crc32
-        crc.update(@mkslice(cast(#nonull const [*] u8) &ch.type, 4))
+        crc.update(@mkslice(cast(const [*] u8) &ch.type, 4))
         crc.update(Decoder.safeDatas(result))
 
         var vcrc: u32
-        .stream.peek32Be(cast(#nonull [*] u8) &vcrc)
+        .stream.peek32Be(cast([*] u8) &vcrc)
         if vcrc != crc.crc do
             throw InvalidFormatError{"invalid checksum"}
 
@@ -161,7 +161,7 @@ impl Decoder
     mtd readHeader(ch: ChunkHeader) throw
     {
         let chunk = .readChunk(ch)
-        .header        = dref cast(#nonull const *Header) @dataof(Decoder.safeDatas(chunk))
+        .header        = dref cast(const *Header) @dataof(Decoder.safeDatas(chunk))
         .header.width  = Math.bigEndianToNative(.header.width)
         .header.height = Math.bigEndianToNative(.header.height)
 
@@ -217,7 +217,7 @@ impl Decoder
     }
 
     // Expand 1, 2, 4 bits to 8 bits
-    mtd expand8(width, height: u32, output: #nonull [*] u8)
+    mtd expand8(width, height: u32, output: [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
         let rowStrideOut = .inChannels * width
@@ -337,7 +337,7 @@ impl Decoder
         return cast(u64) .inChannels * width
     }
 
-    mtd defilter8(width, height: u32, input, output: #nonull [*] u8)
+    mtd defilter8(width, height: u32, input, output: [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
         let rowStrideOut = cast(u64) .inChannels * width
@@ -351,7 +351,7 @@ impl Decoder
         // A temporary line "before" the first one, if filter needs one
         var tmpRow: Array'u8
         tmpRow.resize(rowStrideOut)
-        let tmpRowBuffer = tmpRow.buffer orelse cast(#nonull [*] u8) 1'u64
+        let tmpRowBuffer = tmpRow.buffer orelse cast([*] u8) 1'u64
         Memory.clear(tmpRowBuffer, rowStrideOut)
         var up = tmpRowBuffer
 
@@ -446,7 +446,7 @@ impl Decoder
         }
     }
 
-    mtd defilter(width, height: u32, input, output: #nonull [*] u8)
+    mtd defilter(width, height: u32, input, output: [*] u8)
     {
         if .header.bitDepth < 8
         {
@@ -465,7 +465,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input   = .dcmpBuf.buffer orelse cast(#nonull [*] u8) 1'u64
+        var input   = .dcmpBuf.buffer orelse cast([*] u8) 1'u64
         for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -474,7 +474,7 @@ impl Decoder
                 continue
 
             tmpArr.resize(cast(u64) (x * y * .inChannels))
-            let tmpBuffer = tmpArr.buffer orelse cast(#nonull [*] u8) 1'u64
+            let tmpBuffer = tmpArr.buffer orelse cast([*] u8) 1'u64
             Memory.clear(tmpBuffer, tmpArr.count)
 
             .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
@@ -504,7 +504,7 @@ impl Decoder
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
-            let input = .dcmpBuf.buffer orelse cast(#nonull [*] u8) 1'u64
+            let input = .dcmpBuf.buffer orelse cast([*] u8) 1'u64
             .defilter(.header.width, .header.height, input, .safeDstPixels())
         }
         else
@@ -514,12 +514,12 @@ impl Decoder
         }
     }
 
-    mtd doIt(buffer: #nonull const [..] u8)->Image throw
+    mtd doIt(buffer: const [..] u8)->Image throw
     {
         .stream.init(buffer)
 
         var signature: u64 = undefined
-        .stream.peekBytes(#sizeof(signature), cast(#nonull [*] u8) &signature)
+        .stream.peekBytes(#sizeof(signature), cast([*] u8) &signature)
         if signature != 0x0a1a0a0d474e5089 do
             throw InvalidFormatError{"not a png"}
 
@@ -537,8 +537,8 @@ impl Decoder
             // Peek a chunk header only if it's not already done
             if !chIsHere
             {
-                .stream.peek32Be(cast(#nonull [*] u8) &ch.length)
-                .stream.peek32(cast(#nonull [*] u8) &ch.type)
+                .stream.peek32Be(cast([*] u8) &ch.length)
+                .stream.peek32(cast([*] u8) &ch.type)
             }
 
             chIsHere = false
@@ -572,8 +572,8 @@ impl Decoder
                 {
                     let chunk = .readChunk(ch)
                     iDataBuf.add(Decoder.safeDatas(chunk))
-                    .stream.peek32Be(cast(#nonull [*] u8) &ch.length)
-                    .stream.peek32(cast(#nonull [*] u8) &ch.type)
+                    .stream.peek32Be(cast([*] u8) &ch.length)
+                    .stream.peek32(cast([*] u8) &ch.type)
                     if .stream.eof do
                         throw InvalidFormatError{"invalid chunk"}
                 }
@@ -608,9 +608,9 @@ impl Decoder
                             sep += 1
 
                         var md: ImageMetaData
-                        md.tag = cast(#nonull string) Decoder.safeDatas(chunk)[ until sep]
+                        md.tag = cast(string) Decoder.safeDatas(chunk)[ until sep]
                         if sep + 1 < len do
-                            md.value = cast(#nonull string) Decoder.safeDatas(chunk)[sep + 1 to ]
+                            md.value = cast(string) Decoder.safeDatas(chunk)[sep + 1 to ]
                         result.metaDatas.add(md)
                     }
                 }
@@ -646,7 +646,7 @@ impl Decoder
         if .inChannels == .outChannels
         {
             result.allocPixels()
-            .dstPixels = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            .dstPixels = cast([*] u8) (assume result.pixels.buffer)
         }
         else
         {
@@ -670,7 +670,7 @@ impl Decoder
         return result
     }
 
-    mtd convert(result: #nonull *Image)
+    mtd convert(result: *Image)
     {
         defer Memory.free(.safeDstPixels(), .dstPixelsSize)
 
@@ -678,7 +678,7 @@ impl Decoder
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 let pal  = src[0]
@@ -695,7 +695,7 @@ impl Decoder
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 let pal  = src[0]
@@ -713,7 +713,7 @@ impl Decoder
         elif .inChannels == 1 and !.seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -731,7 +731,7 @@ impl Decoder
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
             var src = .safeDstPixels()
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -747,7 +747,7 @@ impl Decoder
         elif .inChannels == 2
         {
             var src = .safeDstPixels()
-            var dst = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -762,12 +762,12 @@ impl Decoder
         // Color without alpha but transparency
         elif .inChannels == 3 and .seenTRSN
         {
-            let key  = cast(#nonull const [*] u8) @dataof(.safeTRNSData())
+            let key  = cast(const [*] u8) @dataof(.safeTRNSData())
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]
             var src  = .safeDstPixels()
-            var dst  = cast(#nonull [*] u8) (assume result.pixels.buffer)
+            var dst  = cast([*] u8) (assume result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -786,12 +786,12 @@ impl Decoder
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: #nonull string)->bool
+    mtd impl canDecode(fileName: string)->bool
     {
         return Path.getExtensionLowerCase(fileName) == ".png"
     }
 
-    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
     {
         .decOptions = options
         return .doIt(buffer)

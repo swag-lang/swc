@@ -76,25 +76,25 @@ impl FaceImpl
     }
 }
 
-func getFaceImpl(face: #null *Face)->#nonull *FaceImpl throw
+func getFaceImpl(face: #null *Face)->*FaceImpl throw
 {
     if !face do
         fail(0x23)
-    let safeFace = face orelse cast(#nonull *Face) 1'u64
-    let faceData = cast(#nonull *FaceImpl) cast(#nonull *void) safeFace
+    let safeFace = face orelse cast(*Face) 1'u64
+    let faceData = cast(*FaceImpl) cast(*void) safeFace
     if !faceData do
         fail(0x23)
     return faceData
 }
 
-func getSlotImpl(slot: #null *GlyphSlot)->#nonull *FaceImpl throw
+func getSlotImpl(slot: #null *GlyphSlot)->*FaceImpl throw
 {
     if !slot do
         fail(0x25)
     return getFaceImpl(slot.face)
 }
 
-func findTable(faceData: #nonull *FaceImpl, tag: u32)->#null const *TableRecord
+func findTable(faceData: *FaceImpl, tag: u32)->#null const *TableRecord
 {
     for it in faceData.tables
     {
@@ -105,7 +105,7 @@ func findTable(faceData: #nonull *FaceImpl, tag: u32)->#null const *TableRecord
     return null
 }
 
-func getTableSlice(faceData: #nonull *FaceImpl, tag: u32, missingCode: u8)->#null const [..] u8 throw
+func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->#null const [..] u8 throw
 {
     let rec = findTable(faceData, tag)
     if !rec do

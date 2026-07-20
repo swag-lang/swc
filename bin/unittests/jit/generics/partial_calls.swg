@@ -14,7 +14,7 @@ func concreteLocalStructPartialTypeAnnotation()->bool
         third:  V
     }
 
-    var data: Local'bool
+    var data: Local'bool = undefined
     data.first = true
     data.second = "ok"
     data.third = 3.5
@@ -30,7 +30,7 @@ func(A, B) localStructPartialTypeAnnotation(value: A, tail: B)->bool
         third:  V
     }
 
-    var data: Local'A
+    var data: Local'A = undefined
     data.first = value
     data.second = "ok"
     data.third = tail

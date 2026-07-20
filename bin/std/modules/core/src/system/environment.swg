@@ -2,7 +2,7 @@
 #global namespace Env
 
 // Get the program command line arguments as a [..] string
-func getArgs()->#nonull const [..] #nonull string => @args
+func getArgs()->const [..] string => @args
 
 // Get a given argument, or null
 func getArg(idx: u32)->#null string
@@ -14,13 +14,13 @@ func getArg(idx: u32)->#null string
 }
 
 // Get a given argument, or null
-func hasArg(arg: #nonull string)->bool
+func hasArg(arg: string)->bool
 {
     return Slice.contains(@args, arg)
 }
 
 // Get current executable
-func getExe()->#nonull string
+func getExe()->string
 {
     let args = @args
     if @countof(args) == 0 do
@@ -113,7 +113,7 @@ func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
     return result
 }
 
-private var g_CmdLineArgs: #null const [..] #nonull string
+private var g_CmdLineArgs: #null const [..] string
 
 enum Metrics
 {

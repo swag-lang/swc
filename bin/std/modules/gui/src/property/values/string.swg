@@ -3,7 +3,7 @@ internal var g_PropSysFonts: Array'FontFamilyEnumerate
 
 impl Properties
 {
-    mtd validateDynamicString(item: #nonull *PropertiesItem)
+    mtd validateDynamicString(item: *PropertiesItem)
     {
         var data = cast(#null *String) item.data
         if item.editBox do
@@ -13,7 +13,7 @@ impl Properties
 
     // A String field carrying the FontName attribute: a combo of the system font
     // families. The first entry is the theme's default font and stores an empty name.
-    mtd refreshFontName(item: #nonull *PropertiesItem)
+    mtd refreshFontName(item: *PropertiesItem)
     {
         if !item.comboBox do
             return
@@ -35,7 +35,7 @@ impl Properties
         item.comboBox.selectItem(sel)
     }
 
-    mtd validateFontName(item: #nonull *PropertiesItem)
+    mtd validateFontName(item: *PropertiesItem)
     {
         let sel = item.comboBox.selectedIdx
         if sel == Swag.U32.Max do

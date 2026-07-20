@@ -128,7 +128,7 @@ struct TagBinTypeInfoPayload
 public interface ITagBinScore
 {
     mtd score()->s32;
-    mtd labelText()->#nonull string;
+    mtd labelText()->string;
 }
 
 public struct TagBinInterfaceProbe
@@ -140,7 +140,7 @@ public struct TagBinInterfaceProbe
 public impl ITagBinScore for TagBinInterfaceProbe
 {
     mtd impl score()->s32 => .value + 5
-    mtd impl labelText()->#nonull string => .label.toString()
+    mtd impl labelText()->string => .label.toString()
 }
 
 struct TagBinInterfacePayload
@@ -260,7 +260,7 @@ func(T) encodeTagBin(value: T)->String
     return buffer.toString()
 }
 
-func findTagBinFieldSeek(bytes: #nonull const [..] u8, fieldName: #nonull string)->u64
+func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
 {
     var stream = ByteStream.openRead(bytes)
     @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Root)
@@ -296,7 +296,7 @@ func findTagBinFieldSeek(bytes: #nonull const [..] u8, fieldName: #nonull string
     return 0
 }
 
-func corruptTagBinFieldType(bytes: String, fieldName: #nonull string, typeCrc: u32)->Array'u8
+func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
 {
     var result: retval
     result.add(bytes.toSlice())
@@ -308,7 +308,7 @@ func corruptTagBinFieldType(bytes: String, fieldName: #nonull string, typeCrc: u
     return result
 }
 
-func corruptTagBinInterfaceObjectType(bytes: String, fieldName: #nonull string, typeCrc: u32)->Array'u8
+func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
 {
     var result: retval
     result.add(bytes.toSlice())
@@ -320,7 +320,7 @@ func corruptTagBinInterfaceObjectType(bytes: String, fieldName: #nonull string, 
     return result
 }
 
-func assertS32Array(values: const &Array's32, expected: #nonull const [..] s32)->bool
+func assertS32Array(values: const &Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -348,7 +348,7 @@ func assertCompressedBlob(values: const &Array'u8)->bool
     return true
 }
 
-func assertU32Array(values: const &Array'u32, expected: #nonull const [..] u32)->bool
+func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -362,9 +362,9 @@ func assertU32Array(values: const &Array'u32, expected: #nonull const [..] u32)-
     return true
 }
 
-func releaseTagBinInterface(value: #nonull *ITagBinScore)
+func releaseTagBinInterface(value: *ITagBinScore)
 {
-    let runtime = cast(#nonull *Swag.Interface) value
+    let runtime = cast(*Swag.Interface) value
     if runtime.obj
     {
         Memory.delete(runtime.obj, #typeof(TagBinInterfaceProbe))
@@ -618,7 +618,7 @@ func releaseTagBinInterface(value: #nonull *ITagBinScore)
     @assert(decoded != null)
     @assert(decoded.other == 19)
 
-    let runtime = cast(#nonull *Swag.Interface) &decoded.score
+    let runtime = cast(*Swag.Interface) &decoded.score
     @assert(runtime.obj == null)
     @assert(runtime.itable == null)
 

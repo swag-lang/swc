@@ -27,7 +27,7 @@ func jitConditionalNonNullBranches(flag: bool)->bool
 
     let legacy: *JitConditionalNonNullItem          = &first
     let nullable: #null *JitConditionalNonNullItem  = &first
-    let required: #nonull *JitConditionalNonNullItem = &second
+    let required: *JitConditionalNonNullItem = &second
 
     let indexedNullLast  = flag ? indexed[0] : null
     let indexedNullFirst = flag ? null : indexed[0]
@@ -47,7 +47,7 @@ func jitConditionalNonNullBranches(flag: bool)->bool
     #assert(#typeof(legacyRequiredLast) == *JitConditionalNonNullItem)
     #assert(#typeof(nullableRequiredFirst) == #null *JitConditionalNonNullItem)
     #assert(#typeof(nullableRequiredLast) == #null *JitConditionalNonNullItem)
-    #assert(#typeof(requiredOnly) == #nonull *JitConditionalNonNullItem)
+    #assert(#typeof(requiredOnly) == *JitConditionalNonNullItem)
 
     if flag
     {

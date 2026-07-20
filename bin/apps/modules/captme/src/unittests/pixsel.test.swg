@@ -53,7 +53,7 @@ using Swag, Core
         let r = cast(u8) ((x * 17 + y * 3) % 255)
         let g = cast(u8) ((x * 5 + y * 19) % 255)
         let b = cast(u8) ((x * 29 + y * 7) % 255)
-        dref cast(#nonull *u32) pix = Color.fromArgb(255'u8, r, g, b).argb
+        dref cast(*u32) pix = Color.fromArgb(255'u8, r, g, b).argb
     }
 
     let before = f.capture.backImg.getPixelColor(12, 12)
@@ -98,7 +98,7 @@ using Swag, Core
     @assert(f.capture.selection[0] == 0)
     @assert(@kindof(f.capture.forms[0]) == FormImage)
 
-    let imgForm = cast(#nonull *FormImage) @dataof(f.capture.forms[0])
+    let imgForm = cast(*FormImage) @dataof(f.capture.forms[0])
     @assert(imgForm.kind == .Capture)
     @assert(imgForm.image.isValid())
     @assert(imgForm.image.width == 12)

@@ -5,8 +5,8 @@ using Win32
 
 private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
 {
-    let safeParam = param orelse cast(#nonull *void) 1'u64
-    let t = cast(#nonull *Timer) safeParam
+    let safeParam = param orelse cast(*void) 1'u64
+    let t = cast(*Timer) safeParam
     if !@getcontext() do
         @setcontext(t.context)
     t.userLambda(dref t)

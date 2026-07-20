@@ -47,7 +47,7 @@ enum StressKind: u16
         g *= 2.0'f64
         g /= 3.0'f64
 
-        var p: *void = null
+        var p: #null *void = null
         if p == null
         {
             p = cast(*void) 0x10'u64
@@ -185,7 +185,7 @@ enum StressKind: u16
         f -= 2.5'f32
         f /= 2.0'f32
 
-        var p: *void = null
+        var p: #null *void = null
         if (bits & 1'u32) != 0'u32
         {
             p = cast(*void) 0x111'u64

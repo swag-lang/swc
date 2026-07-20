@@ -240,7 +240,7 @@ impl Deflate
     }
 
     #[Swag.Safety(.All, false)]
-    mtd findMatch(laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: #nonull *u32)
+    mtd findMatch(laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: *u32)
     {
         let d = .state
 
@@ -249,7 +249,7 @@ impl Deflate
         var probePos = pos
 
         var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
-        var s: #nonull [*] u8 = &d.dict[0]
+        var s: [*] u8 = &d.dict[0]
         s += pos
         var c0            = d.dict[pos + matchLen]
         var c1            = d.dict[pos + matchLen - 1]
@@ -291,7 +291,7 @@ impl Deflate
                 break
 
             var p         = s
-            var q: #nonull [*] u8 = &d.dict[0]
+            var q: [*] u8 = &d.dict[0]
             q += probePos
             var probeLen: u32
             while probeLen < maxMatchLen
@@ -339,7 +339,7 @@ impl Deflate
         }
     }
 
-    func radixSortSyms(numSyms: u32, sym0, sym1: #nonull [*] SymFreq)->#nonull [*] SymFreq
+    func radixSortSyms(numSyms: u32, sym0, sym1: [*] SymFreq)->[*] SymFreq
     {
         var hist: [256 * 2] u32
         for i in numSyms
@@ -358,7 +358,7 @@ impl Deflate
         var passShift = 0'u16
         for pass in totalPasses
         {
-            let pHist  = cast(#nonull [*] u32) &hist[pass << 8]
+            let pHist  = cast([*] u32) &hist[pass << 8]
             var curOfs = 0
 
             var offsets: [256] u32 = undefined
@@ -383,7 +383,7 @@ impl Deflate
         return curSym
     }
 
-    func calculateMinimumRedundancy(symFreq: #nonull [*] SymFreq, n: u32)
+    func calculateMinimumRedundancy(symFreq: [*] SymFreq, n: u32)
     {
         if n == 0 do
             return
@@ -454,7 +454,7 @@ impl Deflate
         }
     }
 
-    func huffmanEnforceMaxCodeSize(numCodes: #nonull [*] s32, codeListLen, maxCodeSize: u32)
+    func huffmanEnforceMaxCodeSize(numCodes: [*] s32, codeListLen, maxCodeSize: u32)
     {
         if codeListLen <= 1 do
             return
@@ -691,7 +691,7 @@ impl Deflate
         }
 
         Memory.copy(&codeSizesToPack[0], &d.huffCodeSizes[0, 0], cast(u64) numLitCodes)
-        Memory.copy(cast(#nonull [*] u8) &codeSizesToPack[0] + numLitCodes, &d.huffCodeSizes[1, 0], cast(u64) numDistCodes)
+        Memory.copy(cast([*] u8) &codeSizesToPack[0] + numLitCodes, &d.huffCodeSizes[1, 0], cast(u64) numDistCodes)
         let totalCodeSizesToPack = numLitCodes + numDistCodes
         var numPackedCodeSizes   = 0
         var rleZCount            = 0
@@ -782,7 +782,7 @@ impl Deflate
     {
         let d     = .state
         var flags = 1'u32
-        for var lzCodes = cast(#nonull [*] u8) &d.lzCodeBuf[0]; lzCodes < d.lzCodeBufAddr; flags >>= 1
+        for var lzCodes = cast([*] u8) &d.lzCodeBuf[0]; lzCodes < d.lzCodeBufAddr; flags >>= 1
         {
             if flags == 1
             {
@@ -903,7 +903,7 @@ impl Deflate
         Memory.clear(&d.huffCount[0, 0], cast(u64) #sizeof(d.huffCount[0, 0]) * MaxHuffSymbols0)
         Memory.clear(&d.huffCount[1, 0], cast(u64) #sizeof(d.huffCount[1, 0]) * MaxHuffSymbols1)
 
-        d.lzCodeBufAddr = cast(#nonull [*] u8) &d.lzCodeBuf[0] + 1
+        d.lzCodeBufAddr = cast([*] u8) &d.lzCodeBuf[0] + 1
         d.lzFlags       = &d.lzCodeBuf[0]
         d.numFlagsLeft  = 8
         d.lzCodeBufDictPos += d.totalLzBytes
@@ -1070,8 +1070,8 @@ impl Deflate
             d.lookaheadSize -= lenToMove
             d.dictSize = Math.min(d.dictSize + lenToMove, cast(u32) LzDictSize)
 
-            if (d.lzCodeBufAddr > cast(#nonull [*] u8) &d.lzCodeBuf[LzCodeBufSize - 8]) or
-               ((d.totalLzBytes > 31 * 1024) and ((((cast(u32) (d.lzCodeBufAddr - cast(#nonull [*] u8) &d.lzCodeBuf[0]) * 115) >> 7) >= d.totalLzBytes) or (d.compressFlags & ForceAllRawBlocks)))
+            if (d.lzCodeBufAddr > cast([*] u8) &d.lzCodeBuf[LzCodeBufSize - 8]) or
+               ((d.totalLzBytes > 31 * 1024) and ((((cast(u32) (d.lzCodeBufAddr - cast([*] u8) &d.lzCodeBuf[0]) * 115) >> 7) >= d.totalLzBytes) or (d.compressFlags & ForceAllRawBlocks)))
             {
                 d.inSrc      = pSrc
                 d.srcBufLeft = srcBufLeft
@@ -1134,7 +1134,7 @@ public impl Deflate
     }
 
     // Compress the source buffer
-    mtd compress(result: #nonull *Array'u8, src: #nonull const [..] u8) throw
+    mtd compress(result: *Array'u8, src: const [..] u8) throw
     {
         if @countof(src) > Swag.U32.Max
         {

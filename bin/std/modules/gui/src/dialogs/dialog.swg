@@ -3,22 +3,22 @@
 struct Dialog
 {
     using wnd:            Wnd
-    wndBottom:            #nonull *StackLayoutCtrl = undefined
-    buttons:              Array'(#nonull *PushButton)
-    sigPressedButton:     func||(#nonull *Dialog, WndId)->bool
+    wndBottom:            *StackLayoutCtrl = undefined
+    buttons:              Array'(*PushButton)
+    sigPressedButton:     func||(*Dialog, WndId)->bool
     fromSurface:          #null *Surface
 }
 
 impl IWnd for Dialog
 {
-    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent)
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         if evt.kind == .Close do
             .validateId(BtnCancel)
         evt.accepted = true
     }
 
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind == .KeyPressed
         {
@@ -93,7 +93,7 @@ impl Dialog
     newCmdId("BtnCancel")
 
     // Creates a simple dialog box
-    func createDialog(from: #nonull *Surface, width = 512, height = 300, title: #null string = null, flags = SurfaceFlags.Zero)->#nonull *Dialog
+    func createDialog(from: *Surface, width = 512, height = 300, title: #null string = null, flags = SurfaceFlags.Zero)->*Dialog
     {
         let dlg = Wnd.create'Dialog()
         let srf = dlg.createSurface(from, 0, 0, width, height, flags)
@@ -104,7 +104,7 @@ impl Dialog
     }
 
     // Creates an associated surface
-    mtd createSurface(from: #nonull *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.Zero)->#nonull *Surface
+    mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.Zero)->*Surface
     {
         let surfaceFlags = SurfaceFlags.BigCaption | SurfaceFlags.Secondary | flags
         let srf = assume from.app.createSurface(x, y, width, height, surfaceFlags, me)
@@ -127,13 +127,13 @@ impl Dialog
     }
 
     // Returns the view where stuff can be put.
-    mtd getView()->#nonull *Wnd
+    mtd getView()->*Wnd
     {
         return assume .surface.wnd.view
     }
 
     // Display dialog as modal, and returns the user selected window id
-    mtd doModal()->#nonull string
+    mtd doModal()->WndId
     {
         .surface.bringToTop()
         .surface.show()
@@ -144,7 +144,7 @@ impl Dialog
 
     // Add a button
     #[Swag.Discardable]
-    mtd addButton(str: #nonull string, id: #nonull WndId, isDefault: bool = false)->#nonull *PushButton
+    mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {
         with let btn = PushButton.create(me.wndBottom, str, {}, id)
         {

@@ -1,13 +1,13 @@
 using Core, Gui, Pixel
 
-func createModesPage(parent: #nonull *Wnd)
+func createModesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 
     let left = createPanel(parent, "RichEditCtrl form", "Code-oriented chrome using gui3's own mode page source for a very different visual rhythm.", layout.left)
     {
         let rect = left.getClientRect()
-        discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(#nonull string) SourcePageModes, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
+        discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(string) SourcePageModes, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     }
 
     let right = createPanel(parent, "Edit form", "A softer document presentation for wrapped notes, review summaries and scratch prose.", layout.right)

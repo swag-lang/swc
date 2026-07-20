@@ -16,14 +16,14 @@ var g_StartDir: String
 // Modal dialog launchers (run on button click in interactive mode).
 //
 
-func onMsgOk(_b: #nonull *Button)          { MessageDlg.ok(assume g_Surface, "This is a simple information message.") }
-func onMsgOkCancel(_b: #nonull *Button)    { discard MessageDlg.okCancel(assume g_Surface, "Apply the pending changes?") }
-func onMsgYesNo(_b: #nonull *Button)       { discard MessageDlg.yesNo(assume g_Surface, "Do you enjoy this showcase?") }
-func onMsgYesNoCancel(_b: #nonull *Button) { discard MessageDlg.yesNoCancel(assume g_Surface, "Save the document before closing?") }
-func onMsgConfirm(_b: #nonull *Button)     { discard MessageDlg.confirm(assume g_Surface, "This will reset everything.") }
-func onMsgError(_b: #nonull *Button)       { MessageDlg.error(assume g_Surface, "Something went wrong while saving.") }
+func onMsgOk(_b: *Button)          { MessageDlg.ok(assume g_Surface, "This is a simple information message.") }
+func onMsgOkCancel(_b: *Button)    { discard MessageDlg.okCancel(assume g_Surface, "Apply the pending changes?") }
+func onMsgYesNo(_b: *Button)       { discard MessageDlg.yesNo(assume g_Surface, "Do you enjoy this showcase?") }
+func onMsgYesNoCancel(_b: *Button) { discard MessageDlg.yesNoCancel(assume g_Surface, "Save the document before closing?") }
+func onMsgConfirm(_b: *Button)     { discard MessageDlg.confirm(assume g_Surface, "This will reset everything.") }
+func onMsgError(_b: *Button)       { MessageDlg.error(assume g_Surface, "Something went wrong while saving.") }
 
-func onEditSingle(_b: #nonull *Button)
+func onEditSingle(_b: *Button)
 {
     with let dlg = EditDlg.createSingleLine(assume g_Surface)
     {
@@ -35,7 +35,7 @@ func onEditSingle(_b: #nonull *Button)
     discard dlg.doModal()
 }
 
-func onEditMulti(_b: #nonull *Button)
+func onEditMulti(_b: *Button)
 {
     with let dlg = EditDlg.createMultiLine(assume g_Surface)
     {
@@ -47,7 +47,7 @@ func onEditMulti(_b: #nonull *Button)
     discard dlg.doModal()
 }
 
-func onFileOpen(_b: #nonull *Button)
+func onFileOpen(_b: *Button)
 {
     var opt: FileDlgOptions
     opt.mode = .SelectOneFile
@@ -56,7 +56,7 @@ func onFileOpen(_b: #nonull *Button)
     discard FileDlg.create(assume g_Surface, opt).doModal()
 }
 
-func onFileSave(_b: #nonull *Button)
+func onFileSave(_b: *Button)
 {
     var opt: FileDlgOptions
     opt.mode      = .CreateFile
@@ -65,7 +65,7 @@ func onFileSave(_b: #nonull *Button)
     discard FileDlg.create(assume g_Surface, opt).doModal()
 }
 
-func onSelectFolder(_b: #nonull *Button)
+func onSelectFolder(_b: *Button)
 {
     var opt: FileDlgOptions
     opt.mode = .SelectFolder
@@ -76,7 +76,7 @@ func onSelectFolder(_b: #nonull *Button)
 // View
 //
 
-func addDlgButton(parent: #nonull *Wnd, text: #nonull string, fn: func(#nonull *Button))
+func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 {
     let btn = PushButton.create(parent, text, {0, 0, 240, 34})
     btn.sigPressed += fn
@@ -146,7 +146,7 @@ func createRootView()
     g_View.applyLayout()
 }
 
-func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 {
     if evt is DestroyEvent
     {

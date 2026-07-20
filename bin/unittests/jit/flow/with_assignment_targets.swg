@@ -123,8 +123,8 @@ func jitWithAssignedValueTarget()->s32
 func jitWithAssignmentsAndScopes()->s32
 {
     var point = jitWithAssignMakePoint(2, 4)
-    var ptr: *JitWithAssignPoint
-    var holder: JitWithAssignHolder
+    var ptr: *JitWithAssignPoint = undefined
+    var holder: JitWithAssignHolder = undefined
     var total = 0
 
     with ptr = &point
@@ -161,7 +161,7 @@ func jitWithAssignmentsAndScopes()->s32
 func jitWithNestedMemberTarget()->s32
 {
     var point = jitWithAssignMakePoint(4, 5)
-    var wrapper: JitWithAssignWrapper
+    var wrapper: JitWithAssignWrapper = undefined
     var total = 0
     wrapper.holder.ptr = &point
 
@@ -213,7 +213,7 @@ impl JitWithPrioInner
 struct JitWithPrioOwner
 {
     inner:  JitWithPrioInner
-    pInner: *JitWithPrioInner
+    pInner: #null *JitWithPrioInner
     hits:   s32
 }
 

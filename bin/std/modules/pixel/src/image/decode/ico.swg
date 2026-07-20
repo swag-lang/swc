@@ -43,7 +43,7 @@ struct DibHeader
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: #nonull const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) throw
 {
     if ptr + size > last do
         throw InvalidFormatError{"invalid source buffer"}
@@ -55,7 +55,7 @@ func dimFromByte(value: u8)->s32
     return value == 0 ? 256 : cast(s32) value
 }
 
-func isPngSignature(p: #nonull const [*] u8, size: u64)->bool
+func isPngSignature(p: const [*] u8, size: u64)->bool
 {
     if size < 8 do
         return false
@@ -68,7 +68,7 @@ func rowStride32(widthBits: u64)->u64
     return ((widthBits + 31) / 32) * 4
 }
 
-func packedIndex(src: #nonull const [*] u8, bitCount: u16, x: s32)->u32
+func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
 {
     switch bitCount
     {
@@ -82,13 +82,13 @@ func packedIndex(src: #nonull const [*] u8, bitCount: u16, x: s32)->u32
     }
 }
 
-func maskBit(andRow: #nonull const [*] u8, x: s32)->u32
+func maskBit(andRow: const [*] u8, x: s32)->u32
 {
     return cast(u32) ((andRow[x / 8] >> cast(u32) (7 - (x & 7))) & 1)
 }
 
 // Decode the embedded BITMAPINFOHEADER icon image into a BGRA8 result.
-func decodeDib(result: #nonull *Image, dib: DibHeader, src, last: #nonull const [*] u8) throw
+func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) throw
 {
     if dib.bitCount != 1 and dib.bitCount != 4 and dib.bitCount != 8 and dib.bitCount != 24 and dib.bitCount != 32 do
         throw UnsupportedFormatError{"unsupported icon bit count"}
@@ -125,7 +125,7 @@ func decodeDib(result: #nonull *Image, dib: DibHeader, src, last: #nonull const 
     {
         let xorRow = xorData + xorStride * cast(u64) y
         let andRow = andData + andStride * cast(u64) y
-        var dst    = cast(#nonull [*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8
+        var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8
 
         for x in width
         {
@@ -169,13 +169,13 @@ func decodeDib(result: #nonull *Image, dib: DibHeader, src, last: #nonull const 
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: #nonull string)->bool
+    mtd impl canDecode(fileName: string)->bool
     {
         let ext = Path.getExtensionLowerCase(fileName)
         return ext == ".ico" or ext == ".cur"
     }
 
-    mtd impl decode(buffer: #nonull const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
     {
         let base    = @dataof(buffer)
         let countof = @countof(buffer)
@@ -184,7 +184,7 @@ public impl IImageDecoder for Decoder
         if countof < #sizeof(IconDir) do
             throw InvalidFormatError{"invalid source buffer"}
 
-        let dir = dref cast(#nonull const *IconDir) base
+        let dir = dref cast(const *IconDir) base
         if dir.type != 1 and dir.type != 2 do
             throw InvalidFormatError{"not an icon"}
         if dir.count == 0 do
@@ -198,7 +198,7 @@ public impl IImageDecoder for Decoder
         var found:      bool
         for i in dir.count
         {
-            let entry = dref cast(#nonull const *IconDirEntry) (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))
+            let entry = dref cast(const *IconDirEntry) (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))
             let area  = cast(u64) dimFromByte(entry.width) * cast(u64) dimFromByte(entry.height)
             let score = (area << 16) + entry.bitCount
             if !found or score > bestScore
@@ -227,7 +227,7 @@ public impl IImageDecoder for Decoder
         if imgLen < #sizeof(DibHeader) do
             throw InvalidFormatError{"invalid source buffer"}
 
-        let dib = dref cast(#nonull const *DibHeader) imgPtr
+        let dib = dref cast(const *DibHeader) imgPtr
         if dib.size < #sizeof(DibHeader) do
             throw UnsupportedFormatError{"unsupported icon header"}
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do

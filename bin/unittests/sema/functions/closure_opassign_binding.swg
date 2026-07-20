@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 alias OpAssignClosure = func||(s32)->s32
 
@@ -10,7 +9,7 @@ struct CallbackList
 
 impl CallbackList
 {
-    mtd(op: #nonull string) opAssign(fn: OpAssignClosure)
+    mtd(op: string) opAssign(fn: OpAssignClosure)
     {
         #assert(op == "+=")
         .cb = fn

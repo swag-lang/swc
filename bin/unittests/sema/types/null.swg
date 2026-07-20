@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 const A: #null *s32 = null
 #assert(A == null)

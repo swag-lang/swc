@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Inline]
 func inlineConstRefAddress(value: const &s32)

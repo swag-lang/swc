@@ -7,17 +7,17 @@ struct AlignEditor {}
 
 impl IPropertyEditor for AlignEditor
 {
-    mtd impl canEdit(type: #nonull typeinfo)->bool
+    mtd impl canEdit(type: typeinfo)->bool
     {
         return type == FormTextAlign
     }
 
-    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #nonull [*] u8, parent: #nonull *PropertiesItem)->#nonull *PropertiesItem
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
     {
         parent.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parent)
-        let align = cast(#nonull *FormTextAlign) data
+        let align = cast(*FormTextAlign) data
         let vert  = value.name == #nameof(FormText.alignVert)
 
         const BtnW = 34
@@ -34,7 +34,7 @@ impl IPropertyEditor for AlignEditor
         const Values = [FormTextAlign.LeftTop, FormTextAlign.Center, FormTextAlign.RightBottom]
         const Labels = ["L", "C", "R"]
 
-        var btns: [3] #nonull *IconButton = undefined
+        var btns: [3] *IconButton = undefined
         for i in 3
         {
             with let btn = IconButton.create(line, {}, {0, 0, BtnW, lineH})

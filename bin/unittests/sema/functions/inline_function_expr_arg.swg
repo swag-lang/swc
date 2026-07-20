@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 alias InlineFunctionExprUnary = func||(s32)->s32
 

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertUtf8String(value: const &String, expected: #nonull string)->bool
+func assertUtf8String(value: const &String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and
@@ -11,7 +11,7 @@ func assertUtf8String(value: const &String, expected: #nonull string)->bool
         Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
-func firstNonAsciiRune(text: #nonull string)->rune
+func firstNonAsciiRune(text: string)->rune
 {
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
@@ -200,10 +200,10 @@ func firstNonAsciiRune(text: #nonull string)->rune
 {
     let text = "one fish two fish"
 
-    @assert(Utf8.contains(text, cast(#nonull string) "fish"))
+    @assert(Utf8.contains(text, cast(string) "fish"))
     @assert(Utf8.contains(text, 'f''u8))
     @assert(Utf8.contains(text, 'o''rune))
-    @assert(!Utf8.contains(text, cast(#nonull string) "bird"))
+    @assert(!Utf8.contains(text, cast(string) "bird"))
 
     @assert(Utf8.lastIndexOf(text, "fish") == 13)
     @assert(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)

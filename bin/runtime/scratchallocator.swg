@@ -12,7 +12,7 @@ impl ScratchAllocator
     // Adapt the value depending on the requested alignment
     func align(value: u64, alignment: u32)->u64
     {
-        let toAlign = alignment orelse #sizeof(#nonull *void)
+        let toAlign = alignment orelse #sizeof(*void)
         var result  = value & ~(toAlign - 1)
         if result < value do
             result += toAlign
@@ -83,7 +83,7 @@ impl ScratchAllocator
 
 impl IAllocator for ScratchAllocator
 {
-    mtd impl free(request: #nonull *AllocatorRequest)
+    mtd impl free(request: *AllocatorRequest)
     {
         @assert(.block != null)
         if !request.address do
@@ -124,7 +124,7 @@ impl IAllocator for ScratchAllocator
     // Shared allocation path: in the buffer when there is room, otherwise a tracked
     // leak allocation. A non-null incoming 'request.address' is a reallocation: the
     // old payload ('request.oldSize' bytes) is copied into the new block.
-    mtd allocBlock(request: #nonull *AllocatorRequest)
+    mtd allocBlock(request: *AllocatorRequest)
     {
         // Allocate in the buffer if there is enough room
         let usedAlign = ScratchAllocator.align(.used, request.alignment)
@@ -156,7 +156,7 @@ impl IAllocator for ScratchAllocator
         .maxLeak = @max(.maxLeak, .totalLeak)
     }
 
-    mtd impl alloc(request: #nonull *AllocatorRequest)
+    mtd impl alloc(request: *AllocatorRequest)
     {
         @assert(.block != null)
         if request.size == 0
@@ -169,7 +169,7 @@ impl IAllocator for ScratchAllocator
         .allocBlock(request)
     }
 
-    mtd impl realloc(request: #nonull *AllocatorRequest)
+    mtd impl realloc(request: *AllocatorRequest)
     {
         @assert(.block != null)
         if request.size == 0
@@ -182,14 +182,14 @@ impl IAllocator for ScratchAllocator
         .allocBlock(request)
     }
 
-    mtd impl freeAll(request: #nonull *AllocatorRequest)
+    mtd impl freeAll(request: *AllocatorRequest)
     {
         @assert(.block != null)
         .releaseAll()
         request.address = null
     }
 
-    mtd impl assertAllocated(request: #nonull *AllocatorRequest)
+    mtd impl assertAllocated(request: *AllocatorRequest)
     {
         // Not supported: the scratch allocator does not track individual blocks.
     }

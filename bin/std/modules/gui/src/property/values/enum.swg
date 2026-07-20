@@ -2,7 +2,7 @@ impl Properties
 {
     // Dynamic per-value filter of an enum field (IPropertyNotify.isEnumValueVisible):
     // consulted on the host notify and along the item's parent chain, at build time.
-    mtd isEnumValueShown(item: #nonull *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    mtd isEnumValueShown(item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
         if .hostNtfy and !.hostNtfy.isEnumValueVisible(me, item, enumValue) do
             return false
@@ -18,7 +18,7 @@ impl Properties
         return true
     }
 
-    mtd refreshEnumFlags(item: #nonull *PropertiesItem)
+    mtd refreshEnumFlags(item: *PropertiesItem)
     {
         if item.checkBox
         {
@@ -48,7 +48,7 @@ impl Properties
         }
     }
 
-    mtd refreshEnum(item: #nonull *PropertiesItem)
+    mtd refreshEnum(item: *PropertiesItem)
     {
         if item.comboBox
         {
@@ -112,7 +112,7 @@ impl Properties
         }
     }
 
-    mtd validateEnumFlags(item: #nonull *PropertiesItem)
+    mtd validateEnumFlags(item: *PropertiesItem)
     {
         if item.checkBox
         {
@@ -126,7 +126,7 @@ impl Properties
         .hasChanged(item)
     }
 
-    mtd validateEnum(item: #nonull *PropertiesItem)
+    mtd validateEnum(item: *PropertiesItem)
     {
         if item.comboBox
         {
@@ -167,7 +167,7 @@ impl Properties
         .hasChanged(item)
     }
 
-    mtd constructEnumFlags(value: Swag.TypeValue, typeEnum: #nonull const *Swag.TypeInfoEnum, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructEnumFlags(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
         item.flags.add(.NoSeparator | .Expanded)
@@ -223,7 +223,7 @@ impl Properties
             itemB.checkBox = ed
 
             let dispDesc = Reflection.getAttributeValue(v, Properties.Description, "desc")
-            let dispDescStr = dispDesc == null ? "" : cast(#nonull string) (assume dispDesc)
+            let dispDescStr = dispDesc == null ? "" : cast(string) (assume dispDesc)
             itemB.filter += dispDescStr
 
             var labelWidth = me.position.width - item.line.position.height
@@ -257,7 +257,7 @@ impl Properties
         item.numChilds = numChilds
     }
 
-    mtd constructEnum(value: Swag.TypeValue, typeEnum: #nonull const *Swag.TypeInfoEnum, data: #null *u8, parentItem: #null *PropertiesItem)
+    mtd constructEnum(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         if Reflection.hasAttribute(value.pointedType, Swag.EnumFlags)
         {
@@ -306,7 +306,7 @@ impl Properties
             if !.isEnumValueShown(item, v) do
                 continue
             let dn = Reflection.getAttributeValue(v, Properties.Name, "name")
-            item.comboBox.addItem(dn == null ? v.name : cast(#nonull string) (assume dn), userData0: cast(#null *void) idx)
+            item.comboBox.addItem(dn == null ? v.name : cast(string) (assume dn), userData0: cast(#null *void) idx)
         }
 
         .refreshEnum(item)

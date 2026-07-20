@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertBytes(actual: #nonull const [..] u8, expected: #nonull const [..] u8)->bool
+func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
     if @countof(actual) != @countof(expected) do
         return false

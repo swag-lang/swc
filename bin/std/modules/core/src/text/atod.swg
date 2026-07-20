@@ -840,7 +840,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
 }
 
 #[Swag.Safety(.NaN, false)]
-func special(s: #nonull const [..] u8)->{ value: f64, eat: u32 }
+func special(s: const [..] u8)->{ value: f64, eat: u32 }
 {
     var result: retval
 
@@ -863,7 +863,7 @@ func special(s: #nonull const [..] u8)->{ value: f64, eat: u32 }
     return result
 }
 
-public func parse(s: #nonull const [..] u8)->{ value: f64, eat: u32, ovf: bool } throw
+public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } throw
 {
     var result: retval
     let countof = @countof(s)

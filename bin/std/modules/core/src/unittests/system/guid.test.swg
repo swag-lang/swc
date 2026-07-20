@@ -13,7 +13,7 @@ using Swag
     @assert(GUID64.parse("0123456789ABCDEF") == guid)
     @assert(GUID64.parse("0x0123456789ABCDEF") == guid)
     @assert(GUID64.parse("A1zz").guid == 0xA1'u64)
-    @assert(Hash.hash32(guid) == Hash.Crc32.compute(@mkslice(cast(#nonull const [*] u8) &guid.guid, #sizeof(u64))))
+    @assert(Hash.hash32(guid) == Hash.Crc32.compute(@mkslice(cast(const [*] u8) &guid.guid, #sizeof(u64))))
 
     guid.clear()
     @assert(guid.isNull())

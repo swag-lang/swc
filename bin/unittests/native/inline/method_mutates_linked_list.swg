@@ -3,13 +3,13 @@
 struct InlineBug11Node
 {
     value: u32
-    next:  *InlineBug11Node
-    prev:  *InlineBug11Node
+    next:  #null *InlineBug11Node
+    prev:  #null *InlineBug11Node
 }
 
 struct InlineBug11List
 {
-    head: *InlineBug11Node
+    head: #null *InlineBug11Node
 }
 
 impl InlineBug11List
@@ -36,8 +36,8 @@ impl InlineBug11List
         if !.head do
             return false
 
-        dref outNode = .head
-        .unlink(.head)
+        dref outNode = assume .head
+        .unlink(assume .head)
         return true
     }
 }
@@ -51,7 +51,7 @@ impl InlineBug11List
     nodes[1].prev  = &nodes[0]
 
     var list = InlineBug11List{&nodes[0]}
-    var popped: *InlineBug11Node
+    var popped: *InlineBug11Node = undefined
     @assert(list.pop(&popped))
     @assert(popped == &nodes[0])
     @assert(list.head == &nodes[1])

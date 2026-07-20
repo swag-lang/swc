@@ -22,7 +22,7 @@ the array’s elements.
 */
 #test
 {
-    var a: #nonull const [..] u32 = [10, 20, 30, 40, 50]
+    var a: const [..] u32 = [10, 20, 30, 40, 50]
     @assert(@countof(a) == 5)
     @assert(a[0] == 10)
     @assert(a[4] == 50)
@@ -41,7 +41,7 @@ the number of elements.
 */
 #test
 {
-    var a:    #nonull const [..] u32 = [10, 20, 30, 40, 50]
+    var a:    const [..] u32 = [10, 20, 30, 40, 50]
     let count = @countof(a)
     let addr  = @dataof(a)
 
@@ -62,7 +62,7 @@ The '@mkslice' intrinsic creates a slice from a pointer and an element count.
 {
     var array: [4] u32 = [10, 20, 30, 40]
 
-    let slice: #nonull [..] u32 = @mkslice(cast(#nonull [*] u32) &array[0] + 2, 2)
+    let slice: [..] u32 = @mkslice(cast([*] u32) &array[0] + 2, 2)
     @assert(@countof(slice) == 2)
     @assert(slice[0] == 30)
     @assert(slice[1] == 40)
@@ -79,7 +79,7 @@ Strings can be sliced, but the result must be declared as 'const' since strings 
 #test
 {
     let str       = "string"
-    let strSlice: #nonull const [..] u8 = @mkslice(@dataof(str), 2)
+    let strSlice: const [..] u8 = @mkslice(@dataof(str), 2)
     @assert(strSlice[0] == 's')
     @assert(strSlice[1] == 't')
 }

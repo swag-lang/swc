@@ -20,16 +20,16 @@ func copiedContextAllocatorHasRuntimeShape()->bool
     return runtimeItf != null and runtimeItf.obj != null and runtimeItf.itable != null
 }
 
-func allocatorObject(allocator: IAllocator)->*void
+func allocatorObject(allocator: IAllocator)->#null *void
 {
     let runtimeItf = cast(const *Swag.Interface) &allocator
     return runtimeItf.obj
 }
 
-func allocatorITable(allocator: IAllocator)->const *void
+func allocatorITable(allocator: IAllocator)->#null const *void
 {
     let runtimeItf = cast(const *Swag.Interface) &allocator
-    return runtimeItf.itable
+    return cast(#null const *void) runtimeItf.itable
 }
 
 struct ContextTempAllocatorHolder

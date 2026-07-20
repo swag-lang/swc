@@ -49,7 +49,7 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
         if methodInfo.name != "count" do
             continue
 
-        let methodType = cast(const *Swag.TypeInfoFunc) methodInfo.pointedType
+        let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
         if methodInfo.pointedType.kind != .Func or
            @countof(methodType.parameters) != 1 or
            methodType.parameters[0].pointedType != #type &GenericLazyMethodBox'func||()->s32 or

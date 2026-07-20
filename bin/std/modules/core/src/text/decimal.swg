@@ -23,7 +23,7 @@ struct Decimal
 
 struct DecimalSlice
 {
-    d:          #nonull [..] u8
+    d:          [..] u8
     nd, dp:     s64
     neg:        bool
 }
@@ -31,7 +31,7 @@ struct DecimalSlice
 struct LeftCheat
 {
     delta:      s64        // number of new digits
-    cutoff:     #nonull string     // minus one digit if original < a.
+    cutoff:     string     // minus one digit if original < a.
 }
 
 var LeftCheats: [?] LeftCheat = [
@@ -271,7 +271,7 @@ impl Decimal
         .trim()
     }
 
-    func prefixIsLessThan(b: #nonull const [..] u8, s: #nonull string)->bool
+    func prefixIsLessThan(b: const [..] u8, s: string)->bool
     {
         for var i = 0; i < @countof(s); i += 1
         {
@@ -358,7 +358,7 @@ impl Decimal
         }
     }
 
-    mtd readF64(str: #nonull const [..] u8)->u32 throw
+    mtd readF64(str: const [..] u8)->u32 throw
     {
         var cpt     = 0'u32
         let countof = @countof(str)

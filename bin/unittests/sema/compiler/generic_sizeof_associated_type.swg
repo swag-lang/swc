@@ -9,7 +9,7 @@ struct(T) SemaGenericSizeEntry
 
 struct(T) SemaGenericSizeBox
 {
-    entries: [*] SemaGenericSizeEntry
+    entries: #null [*] SemaGenericSizeEntry
 }
 
 alias SemaGenericSizeEntryAlias = SemaGenericSizeEntry

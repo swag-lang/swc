@@ -1,7 +1,7 @@
 #global public
 using Core, Pixel
 
-alias HookEvent = func||(#nonull *Wnd, IEvent)->bool
+alias HookEvent = func||(*Wnd, IEvent)->bool
 
 // Automatic placement and size of the window in the parent client rectangle
 enum DockStyle
@@ -92,7 +92,7 @@ struct KeyShortcut
 {
     mdf:        Input.KeyModifiers = Zero
     key:        Input.Key = None
-    id:         #nonull WndId = undefined
+    id:         WndId = undefined
     target:     #null *Wnd
 }
 
@@ -101,26 +101,26 @@ interface IWnd
     mtd onEvent(evt: IEvent);
     mtd onHookEvent(evt: IEvent);
 
-    mtd onCreateEvent(evt: #nonull *CreateEvent);
-    mtd onDestroyEvent(evt: #nonull *DestroyEvent);
-    mtd onStateEvent(evt: #nonull *StateEvent);
-    mtd onResizeEvent(evt: #nonull *ResizeEvent);
-    mtd onPrePaintEvent(evt: #nonull *PaintEvent);
-    mtd onPaintEvent(evt: #nonull *PaintEvent);
-    mtd onPostPaintEvent(evt: #nonull *PaintEvent);
-    mtd onKeyEvent(evt: #nonull *KeyEvent);
-    mtd onMouseEvent(evt: #nonull *MouseEvent);
-    mtd onSysCommandEvent(evt: #nonull *SysCommandEvent);
-    mtd onSysUserEvent(evt: #nonull *SysUserEvent);
-    mtd onThemeEvent(evt: #nonull *ThemeEvent);
-    mtd onTimerEvent(evt: #nonull *TimerEvent);
-    mtd onFocusEvent(evt: #nonull *FocusEvent);
-    mtd onCommandEvent(evt: #nonull *CommandEvent);
-    mtd onComputeStateEvent(evt: #nonull *CommandStateEvent);
-    mtd onApplyStateEvent(evt: #nonull *CommandStateEvent);
-    mtd onFrameEvent(evt: #nonull *FrameEvent);
-    mtd onSerializeStateEvent(evt: #nonull *SerializeStateEvent);
-    mtd onNotifyEvent(evt: #nonull *NotifyEvent);
+    mtd onCreateEvent(evt: *CreateEvent);
+    mtd onDestroyEvent(evt: *DestroyEvent);
+    mtd onStateEvent(evt: *StateEvent);
+    mtd onResizeEvent(evt: *ResizeEvent);
+    mtd onPrePaintEvent(evt: *PaintEvent);
+    mtd onPaintEvent(evt: *PaintEvent);
+    mtd onPostPaintEvent(evt: *PaintEvent);
+    mtd onKeyEvent(evt: *KeyEvent);
+    mtd onMouseEvent(evt: *MouseEvent);
+    mtd onSysCommandEvent(evt: *SysCommandEvent);
+    mtd onSysUserEvent(evt: *SysUserEvent);
+    mtd onThemeEvent(evt: *ThemeEvent);
+    mtd onTimerEvent(evt: *TimerEvent);
+    mtd onFocusEvent(evt: *FocusEvent);
+    mtd onCommandEvent(evt: *CommandEvent);
+    mtd onComputeStateEvent(evt: *CommandStateEvent);
+    mtd onApplyStateEvent(evt: *CommandStateEvent);
+    mtd onFrameEvent(evt: *FrameEvent);
+    mtd onSerializeStateEvent(evt: *SerializeStateEvent);
+    mtd onNotifyEvent(evt: *NotifyEvent);
 }
 
 #[Swag.EnumFlags]
@@ -155,7 +155,7 @@ struct Wnd
 
     parent:                #null *Wnd
     owner:                 #null *Wnd
-    childs:                Array'(#nonull *Wnd)
+    childs:                Array'(*Wnd)
 
     name:                  RichString
     id:                    #null WndId
@@ -227,7 +227,7 @@ impl IWnd for Wnd
             if !.updateAction(ptr) do
                 .itf.onComputeStateEvent(ptr)
         case CommandStateEvent as ptr where ptr.kind == .ApplyCommandState:
-            .itf.onApplyStateEvent(cast(#nonull *CommandStateEvent) evt)
+            .itf.onApplyStateEvent(cast(*CommandStateEvent) evt)
         case FrameEvent as ptr:
             .itf.onFrameEvent(ptr)
         case SerializeStateEvent as ptr:
@@ -239,27 +239,27 @@ impl IWnd for Wnd
 
     mtd impl onHookEvent(evt: IEvent) {}
 
-    mtd impl onCreateEvent(evt: #nonull *CreateEvent) {}
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent) {}
-    mtd impl onStateEvent(evt: #nonull *StateEvent) {}
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent) {}
-    mtd impl onPrePaintEvent(evt: #nonull *PaintEvent) {}
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent) {}
-    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent) {}
-    mtd impl onThemeEvent(evt: #nonull *ThemeEvent) { .invalidate(); .sendResizeEvent(); }
-    mtd impl onTimerEvent(evt: #nonull *TimerEvent) {}
-    mtd impl onSerializeStateEvent(evt: #nonull *SerializeStateEvent) {}
-    mtd impl onFrameEvent(evt: #nonull *FrameEvent) {}
+    mtd impl onCreateEvent(evt: *CreateEvent) {}
+    mtd impl onDestroyEvent(evt: *DestroyEvent) {}
+    mtd impl onStateEvent(evt: *StateEvent) {}
+    mtd impl onResizeEvent(evt: *ResizeEvent) {}
+    mtd impl onPrePaintEvent(evt: *PaintEvent) {}
+    mtd impl onPaintEvent(evt: *PaintEvent) {}
+    mtd impl onPostPaintEvent(evt: *PaintEvent) {}
+    mtd impl onThemeEvent(evt: *ThemeEvent) { .invalidate(); .sendResizeEvent(); }
+    mtd impl onTimerEvent(evt: *TimerEvent) {}
+    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
+    mtd impl onFrameEvent(evt: *FrameEvent) {}
 
-    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent) { evt.accepted = false; }
-    mtd impl onSysUserEvent(evt: #nonull *SysUserEvent) { evt.accepted = false; }
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent) { evt.accepted = false; }
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent) { evt.accepted = false; }
-    mtd impl onFocusEvent(evt: #nonull *FocusEvent) { evt.accepted = false; }
-    mtd impl onCommandEvent(evt: #nonull *CommandEvent) { evt.accepted = false; }
-    mtd impl onComputeStateEvent(evt: #nonull *CommandStateEvent) { evt.accepted = false; }
-    mtd impl onApplyStateEvent(evt: #nonull *CommandStateEvent) { evt.accepted = false; }
-    mtd impl onNotifyEvent(evt: #nonull *NotifyEvent) { evt.accepted = false; }
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent) { evt.accepted = false; }
+    mtd impl onSysUserEvent(evt: *SysUserEvent) { evt.accepted = false; }
+    mtd impl onKeyEvent(evt: *KeyEvent) { evt.accepted = false; }
+    mtd impl onMouseEvent(evt: *MouseEvent) { evt.accepted = false; }
+    mtd impl onFocusEvent(evt: *FocusEvent) { evt.accepted = false; }
+    mtd impl onCommandEvent(evt: *CommandEvent) { evt.accepted = false; }
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent) { evt.accepted = false; }
+    mtd impl onApplyStateEvent(evt: *CommandStateEvent) { evt.accepted = false; }
+    mtd impl onNotifyEvent(evt: *NotifyEvent) { evt.accepted = false; }
 }
 
 impl Wnd
@@ -282,18 +282,18 @@ impl Wnd
     }
 
     #[Swag.Inline]
-    func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: HookEvent = null)->#nonull *T
+    func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: HookEvent = null)->*T
     {
         return create'T(parent, "", {}, id, hook)
     }
 
     #[Swag.Inline]
-    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->#nonull *T
+    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->*T
     {
         return create'T(parent, "", position, id, hook)
     }
 
-    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->#nonull *T
+    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->*T
     {
         let res = Memory.new'T()
         res.isAllocated = true
@@ -357,7 +357,7 @@ impl Wnd
     }
 
     // Set window parent
-    mtd setParent(who: #nonull *Wnd)
+    mtd setParent(who: *Wnd)
     {
         Debug.assert(who != null)
         if who == .parent do
@@ -462,7 +462,7 @@ impl Wnd
     // Returns true if window and all its parents are visible
     mtd isVisible(onlyMe = false)->bool
     {
-        var toCheck = &me
+        var toCheck: #null *Wnd = &me
         while toCheck
         {
             if toCheck.wndFlags.has(.Hidden) do
@@ -485,7 +485,7 @@ impl Wnd
     // Returns true if window, and all its parents, are enabled
     mtd isEnabled(onlyMe = false)->bool
     {
-        var toCheck = &me
+        var toCheck: #null *Wnd = &me
         while toCheck
         {
             if toCheck.wndFlags.has(.Disabled) do
@@ -515,7 +515,7 @@ impl Wnd
             .style.compute(me, &(assume .surface).app.style)
     }
 
-    mtd paint(bc: #nonull *PaintContext)
+    mtd paint(bc: *PaintContext)
     {
         let painter = bc.painter
         if painter.isEmptyClippingRect() do
@@ -945,7 +945,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    private mtd clampSize(pos: #nonull *Math.Rectangle)
+    private mtd clampSize(pos: *Math.Rectangle)
     {
         if .minSize.x > 0 do
             pos.width = Math.max(pos.width, .minSize.x)
@@ -993,7 +993,7 @@ impl Wnd
     {
         var clientRect = .getClientRectPadding()
 
-        var centerLayout: Array'(#nonull *Wnd)
+        var centerLayout: Array'(*Wnd)
         var oldSizes:     Array'Math.Point
 
         for c in .childs
@@ -1176,7 +1176,7 @@ impl Wnd
     }
 
     // Retrieve the child with the given id
-    mtd getChildById(childId: #nonull string)->#null *Wnd
+    mtd getChildById(childId: string)->#null *Wnd
     {
         for c in .childs
         {
@@ -1191,7 +1191,7 @@ impl Wnd
     }
 
     // Retrieve the parent with the given id
-    mtd getParentById(parentId: #nonull string)->#null *Wnd
+    mtd getParentById(parentId: string)->#null *Wnd
     {
         var p = .parent
         while p
@@ -1292,7 +1292,7 @@ impl Wnd
     }
 
     // Register a keyboard shortcut
-    mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: #nonull WndId)
+    mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId)
     {
         for &c in .keyShortcuts
         {
@@ -1322,7 +1322,7 @@ impl Wnd
     }
 
     // Get the name associated with a given id shortcut
-    mtd getKeyShortcutNameFor(wndId: #nonull WndId)->String
+    mtd getKeyShortcutNameFor(wndId: WndId)->String
     {
         var result: retval
         for c in .keyShortcuts
@@ -1345,7 +1345,7 @@ impl Wnd
     //////////////////////////////////////////////
 
     // Register a new timer for the given 'target'
-    mtd addTimer(time: Time.Duration)->#nonull *Timer
+    mtd addTimer(time: Time.Duration)->*Timer
     {
         return .getApp().addTimer(time, me)
     }
@@ -1554,7 +1554,7 @@ impl Wnd
         .actions.add(itfAct)
     }
 
-    private mtd updateAction(evt: #nonull *CommandStateEvent)->bool
+    private mtd updateAction(evt: *CommandStateEvent)->bool
     {
         var cxt = ActionContext{me, evt.id orelse ""}
 
@@ -1571,7 +1571,7 @@ impl Wnd
         return false
     }
 
-    private mtd executeAction(evt: #nonull *CommandEvent)->bool
+    private mtd executeAction(evt: *CommandEvent)->bool
     {
         var cxt = ActionContext{me, evt.id orelse ""}
 
@@ -1592,7 +1592,7 @@ impl Wnd
     // Serialization
     //////////////////////////////////////////////
 
-    mtd serializeState(ser: #nonull *Serialization.Serializer) throw
+    mtd serializeState(ser: *Serialization.Serializer) throw
     {
         var evt: SerializeStateEvent
         evt.accepted = false

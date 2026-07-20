@@ -22,7 +22,7 @@ enum CmdNeed
 struct CmdDesc
 {
     id:               WndId
-    name:             #nonull string
+    name:             string
     need:             CmdNeed = .Nothing
     hideDisabled:     bool          // hidden follows disabled (contextual commands)
 }
@@ -31,14 +31,14 @@ struct CmdDesc
 // declared in the table and derive the enabled state from the declared need.
 // Returns false when the command is not in the table, so the caller can handle
 // its custom commands afterwards.
-func updateFromTable(cxt: ActionContext, evt: #nonull *CommandStateEvent, table: #nonull const [..] CmdDesc)->bool
+func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [..] CmdDesc)->bool
 {
     for &d in table
     {
         if d.id != cxt.id do
             continue
 
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = main.getCapture()
 
         var disabled = false

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // 
 
 #global private
@@ -70,7 +69,7 @@ func floatDefault(a: f64 = 1.5, b: f64 = 2.0)->f64
     return a + b
 }
 
-func stringDefaultTag(value: #nonull string = "abc")->s32
+func stringDefaultTag(value: string = "abc")->s32
 {
     if value == "abc" do
         return 1

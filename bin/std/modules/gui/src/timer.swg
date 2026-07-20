@@ -4,7 +4,7 @@ using Core
 struct Timer
 {
     timeMs:        s32
-    target:        #nonull *Wnd = undefined
+    target:        *Wnd = undefined
     stopwatch:     Time.Stopwatch
     toDelete:      bool
 }

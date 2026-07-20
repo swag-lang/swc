@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 #global internal
 using Swag
 
@@ -38,7 +37,7 @@ namespace ClosureGenericCallbackSupport
     }
 
     #[Swag.NoInline]
-    func(T) allOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
+    func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
     {
         for v in values
         {

@@ -235,7 +235,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAny(values: ...)->#nonull string { return cast(#nonull string) values[0] }
+    func variadicAny(values: ...)->string { return cast(string) values[0] }
 
     const V0 = #run variadicAny("ab")
     #assert(V0 == "ab")
@@ -245,9 +245,9 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->u8
     {
-        let s0 = cast(#nonull string) values[0]
-        let s1 = cast(#nonull string) values[1]
-        let s2 = cast(#nonull string) values[2]
+        let s0 = cast(string) values[0]
+        let s1 = cast(string) values[1]
+        let s2 = cast(string) values[2]
         return cast #wrap(u8) (cast(u16) s0[0] + cast(u16) s1[0] + cast(u16) s2[0])
     }
 
@@ -260,8 +260,8 @@ enum VariadicKind: u16
 {
     func variadicAnyWithHead(a: string, values: ...)->u8
     {
-        let s0 = cast(#nonull string) values[0]
-        let s1 = cast(#nonull string) values[1]
+        let s0 = cast(string) values[0]
+        let s1 = cast(string) values[1]
         return a[0] + s0[0] + s1[0]
     }
 
@@ -277,7 +277,7 @@ enum VariadicKind: u16
         let p0 = cast(*s32) @dataof(values[0])
         let p1 = cast(*bool) @dataof(values[1])
         let p2 = cast(*f64) @dataof(values[2])
-        return dref p0 == 1 and dref p1 and dref p2 == 12.5'f64 and cast(#nonull string) values[3] == "ab"
+        return dref p0 == 1 and dref p1 and dref p2 == 12.5'f64 and cast(string) values[3] == "ab"
     }
 
     const V0 = #run variadicAny(1's32, true, 12.5'f64, "ab")
@@ -296,9 +296,9 @@ enum VariadicKind: u16
     func variadicAny(values: ...)->bool
     {
         let a = cast(s32) values[0]
-        let b = cast(#nonull string) values[1]
+        let b = cast(string) values[1]
         let c = cast(bool) values[2]
-        return #typeof(a) == s32 and #typeof(b) == #nonull string and #typeof(c) == bool
+        return #typeof(a) == s32 and #typeof(b) == string and #typeof(c) == bool
     }
 
     const V0 = #run variadicAny(1, "ab", true)
@@ -353,7 +353,7 @@ enum VariadicKind: u16
 {
     func variadicAny(values: ...)->bool
     {
-        return @kindof(values[0]) == s32 and @kindof(values[1]) == f64 and @kindof(values[2]) == bool and @kindof(values[3]) == #nonull string
+        return @kindof(values[0]) == s32 and @kindof(values[1]) == f64 and @kindof(values[2]) == bool and @kindof(values[3]) == string
     }
 
     const V0 = #run variadicAny(7's32, 8.5'f64, true, "ok")
@@ -425,7 +425,7 @@ enum VariadicKind: u16
     {
         let p0 = cast(*VariadicPayload) @dataof(values[0])
         let p1 = cast(*[2] u64) @dataof(values[1])
-        let s0 = cast(#nonull string) values[2]
+        let s0 = cast(string) values[2]
         let ptr = cast(*void) values[3]
         let v0 = dref p0
         let a1 = dref p1
@@ -479,7 +479,7 @@ enum VariadicKind: u16
             return false
         if @kindof(values[2]) != VariadicKind do
             return false
-        if @kindof(values[3]) != #nonull string do
+        if @kindof(values[3]) != string do
             return false
 
         return true
@@ -509,7 +509,7 @@ enum VariadicKind: u16
 
     func variadicAnyStressAString(values: ...)->bool
     {
-        let text = cast(#nonull string) values[3]
+        let text = cast(string) values[3]
         return text == "untyped-variadic-stress"
     }
 
@@ -630,7 +630,7 @@ enum VariadicKind: u16
         @assert(@kindof(values[0]) == VariadicPair)
         @assert(@kindof(values[1]) == VariadicPayload)
         @assert(@kindof(values[2]) == VariadicKind)
-        @assert(@kindof(values[3]) == #nonull string)
+        @assert(@kindof(values[3]) == string)
         @assert(@kindof(values[4]) == bool)
         @assert(@kindof(values[5]) == f32)
         @assert(@kindof(values[6]) == *void)
@@ -638,7 +638,7 @@ enum VariadicKind: u16
         let p = cast(VariadicPair) values[0]
         let payload = cast(VariadicPayload) values[1]
         let kind = cast(VariadicKind) values[2]
-        let text = cast(#nonull string) values[3]
+        let text = cast(string) values[3]
         let b = cast(bool) values[4]
         let f = cast(f32) values[5]
         let ptr = cast(*void) values[6]
@@ -716,7 +716,7 @@ enum VariadicKind: u16
                @kindof(values[3]) == f64 and
                @kindof(values[4]) == bool and
                @kindof(values[5]) == rune and
-               @kindof(values[6]) == #nonull string and
+               @kindof(values[6]) == string and
                @kindof(values[7]) == *void
     }
 

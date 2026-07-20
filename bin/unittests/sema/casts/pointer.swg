@@ -2,8 +2,9 @@
 
 func semaTest001()
 {
-    var x: *s32 = null
-    var b: [*]s32 = null
+    var ax: s32
+    var x: *s32 = &ax
+    var b = cast([*]s32) x
 
     var v: *s32 = b
     #assert(#typeof(v) == *s32)
@@ -14,8 +15,9 @@ func semaTest001()
 
 func semaTest002()
 {
-    var x: *s32 = null
-    var b: [*]s32 = null
+    var ax: s32
+    var x: *s32 = &ax
+    var b = cast([*]s32) x
 
     var v: *s32 = b
     #assert(#typeof(v) == *s32)
@@ -29,21 +31,24 @@ func semaTest002()
 
 func semaTest003()
 {
-    var x: *s32 = null
+    var ax: s32
+    var x: *s32 = &ax
     var y = cast(*u8) x
     #assert(#typeof(y) == *u8)
 }
 
 func semaTest004()
 {
-    var x: const *s32 = null
+    var ax: s32
+    var x: const *s32 = &ax
     var y = cast #unconst (*u8) x
     #assert(#typeof(y) == *u8)
 }
 
 func semaTest005()
 {
-    var x: [*]s32 = null
+    var ax: s32
+    var x = cast([*]s32) &ax
     var y = cast([*]u8) x
     #assert(#typeof(y) == [*]u8)
 }
@@ -63,28 +68,30 @@ func semaTest007()
 
 func semaTest008()
 {
-    var str1: string
+    var str1: string = "abc"
     let data1 = @dataof(str1)
     let data2: const [*] void = data1
 }
 
 func semaTest009()
 {
-    var a: typeinfo
+    var a: typeinfo = #typeof(s32)
     var b = cast(const *u8) a
     var c = cast(const *void) a
 }
 
 func semaTest010()
 {
-    var x: const *s32 = null
+    var ax: s32
+    var x: const *s32 = &ax
     var y = cast(const *u8) x
     #assert(#typeof(y) == const *u8)
 }
 
 func semaTest011()
 {
-    var x: const [*]s32 = null
+    var ax: s32
+    var x = cast(const [*]s32) &ax
     var y = cast(const [*]u8) x
     #assert(#typeof(y) == const [*]u8)
 }
@@ -112,7 +119,7 @@ func semaTest013()
 }
 
 #[Swag.Strict]
-alias StrictHandle = const *void
+alias StrictHandle = #null const *void
 
 func strictHandleSource()->StrictHandle
 {
@@ -124,7 +131,7 @@ func semaTest014()
     var handle: StrictHandle = null
     #assert(#typeof(handle) == StrictHandle)
 
-    var handleFromRaw: StrictHandle = cast(const *void) strictHandleSource()
+    var handleFromRaw: StrictHandle = cast(#null const *void) strictHandleSource()
     #assert(#typeof(handleFromRaw) == StrictHandle)
 }
 

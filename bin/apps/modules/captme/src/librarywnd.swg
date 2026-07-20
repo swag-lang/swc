@@ -243,10 +243,10 @@ impl LibraryWnd
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
-        var lastLine: #nonull *ListLine = undefined
-        var lastLineYear: #nonull *ListLine = undefined
-        var lastLineMonth: #nonull *ListLine = undefined
-        var lastLineDay: #nonull *ListLine = undefined
+        var lastLine: *ListLine = undefined
+        var lastLineYear: *ListLine = undefined
+        var lastLineMonth: *ListLine = undefined
+        var lastLineDay: *ListLine = undefined
 
         let icon1 = Icon.from(&.main.icons24, 3)
 
@@ -408,7 +408,7 @@ impl LibraryWnd
     }
 
     // Fill a level's drop-down with the real sub-directories of that level's folder.
-    mtd fillBreadcrumbMenu(bc: #nonull *BreadcrumbCtrl, index: u64, menu: #nonull *MenuCtrl)
+    mtd fillBreadcrumbMenu(bc: *BreadcrumbCtrl, index: u64, menu: *MenuCtrl)
     {
         if index >= bc.items.count do
             return
@@ -452,7 +452,7 @@ impl LibraryWnd
         .updateBreadcrumb()
     }
 
-    func create(parent: #nonull *MainWnd)->#nonull *LibraryWnd
+    func create(parent: *MainWnd)->*LibraryWnd
     {
         with let res = Wnd.create'LibraryWnd(parent, "captme.librarywnd")
         {

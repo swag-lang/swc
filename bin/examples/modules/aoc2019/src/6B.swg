@@ -60,7 +60,7 @@ func day6B()
         map.add(split[1], split[0])
     }
 
-    var you, san: Array'(#nonull string)
+    var you, san: Array'(string)
     var ity: #null const *HashTableEntry'(string, string) = map.find("YOU")
     var its: #null const *HashTableEntry'(string, string) = map.find("SAN")
 

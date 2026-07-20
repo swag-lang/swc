@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createListsPage(parent: #nonull *Wnd)
+func createListsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 

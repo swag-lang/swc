@@ -7,7 +7,7 @@ interface IDecoder
     mtd getVersion()->u32;
     mtd isTextual()->bool;
 
-    mtd start(input: #nonull const [..] u8) throw;
+    mtd start(input: const [..] u8) throw;
     mtd end() throw;
 
     mtd beginField(val: Swag.TypeValue)->bool throw;
@@ -15,7 +15,7 @@ interface IDecoder
     mtd beginSection(kind: SectionKind) throw;
     mtd endSection() throw;
 
-    mtd read(data: #nonull *void, dataType: #nonull typeinfo) throw;
+    mtd read(data: *void, dataType: typeinfo) throw;
     mtd readBufferU8(count: u64)->#null *u8 throw;
 
     mtd readBool()->bool throw;
@@ -57,7 +57,7 @@ struct(T) Decoder
 
 impl Decoder
 {
-    mtd inferStructTypeForInterface(itfType: #nonull typeinfo, fieldCrcs: #nonull const [..] u32)->#null typeinfo
+    mtd inferStructTypeForInterface(itfType: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
     {
         return Reflection.inferTypeWithInterfaceFields(itfType, fieldCrcs)
     }
@@ -73,7 +73,7 @@ impl Decoder
         .serializer.endElement(typedVal)
     }
 
-    mtd readTypedContent(data: #nonull [*] void, dataType: #null typeinfo) throw
+    mtd readTypedContent(data: [*] void, dataType: #null typeinfo) throw
     {
         if !dataType do
             throw SerializationError{"missing data type"}
@@ -90,27 +90,27 @@ impl Decoder
             switch typeNative.nativeKind
             {
             case Bool:
-                dref cast(#nonull *bool) data = .serializer.readNative'bool()
+                dref cast(*bool) data = .serializer.readNative'bool()
             case U8:
-                dref cast(#nonull *u8) data = .serializer.readNative'u8()
+                dref cast(*u8) data = .serializer.readNative'u8()
             case U16:
-                dref cast(#nonull *u16) data = .serializer.readNative'u16()
+                dref cast(*u16) data = .serializer.readNative'u16()
             case U32, Rune:
-                dref cast(#nonull *u32) data = .serializer.readNative'u32()
+                dref cast(*u32) data = .serializer.readNative'u32()
             case U64:
-                dref cast(#nonull *u64) data = .serializer.readNative'u64()
+                dref cast(*u64) data = .serializer.readNative'u64()
             case S8:
-                dref cast(#nonull *s8) data = .serializer.readNative's8()
+                dref cast(*s8) data = .serializer.readNative's8()
             case S16:
-                dref cast(#nonull *s16) data = .serializer.readNative's16()
+                dref cast(*s16) data = .serializer.readNative's16()
             case S32:
-                dref cast(#nonull *s32) data = .serializer.readNative's32()
+                dref cast(*s32) data = .serializer.readNative's32()
             case S64:
-                dref cast(#nonull *s64) data = .serializer.readNative's64()
+                dref cast(*s64) data = .serializer.readNative's64()
             case F32:
-                dref cast(#nonull *f32) data = .serializer.readNative'f32()
+                dref cast(*f32) data = .serializer.readNative'f32()
             case F64:
-                dref cast(#nonull *f64) data = .serializer.readNative'f64()
+                dref cast(*f64) data = .serializer.readNative'f64()
             }
 
             return
@@ -120,13 +120,13 @@ impl Decoder
         {
             let crc      = .serializer.readNative'u32()
             let typeType = Reflection.crcToType(crc)
-            dref cast(#nonull *#null typeinfo) data = typeType
+            dref cast(*#null typeinfo) data = typeType
             return
         }
 
         if Reflection.isInterface(type)
         {
-            let itf = cast(#nonull *Swag.Interface) data
+            let itf = cast(*Swag.Interface) data
 
             .serializer.beginSection(.Raw)
             defer #noerr .serializer.endSection()
@@ -181,7 +181,7 @@ impl Decoder
             // Core.String
             if type == String
             {
-                let strBuf = cast(#nonull *String) data
+                let strBuf = cast(*String) data
                 dref strBuf = #nodrop .serializer.readNative'String()
                 strBuf.opPostMove()
                 return
@@ -233,9 +233,9 @@ impl Decoder
                     throw SerializationError{"missing field pointed type"}
                 let fieldType = assume field.pointedType
 
-                if !itf or !itf.readElement(field, cast(#nonull [*] u8) data + field.offset, idecoder)
+                if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
                 {
-                    let fieldData = cast(#nonull [*] u8) data + field.offset
+                    let fieldData = cast([*] u8) data + field.offset
                     let doIt = catch .serializer.beginElement(field)
                     defer #noerr .serializer.endElement(field)
 
@@ -275,7 +275,7 @@ impl Decoder
             if treated do
                 return
 
-            var bufArr = cast(#nonull [*] u8) data
+            var bufArr = cast([*] u8) data
             for count
             {
                 .readTypedContent(bufArr, elemType)
@@ -287,7 +287,7 @@ impl Decoder
     }
 
     // Start reading
-    mtd start(input: #nonull const [..] u8) throw
+    mtd start(input: const [..] u8) throw
     {
         .serializer.startRead(input)
         .serializer.beginRoot()
@@ -300,7 +300,7 @@ impl Decoder
     }
 
     // Read a full struct
-    mtd(TR) readAll(input: #nonull const [..] u8)->#null *TR throw
+    mtd(TR) readAll(input: const [..] u8)->#null *TR throw
     {
         Debug.assert(Reflection.isStruct(TR))
 
@@ -318,7 +318,7 @@ impl Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl start(input: #nonull const [..] u8) throw
+    mtd impl start(input: const [..] u8) throw
     {
         .serializer.startRead(input)
         .serializer.beginRoot()
@@ -363,7 +363,7 @@ impl IDecoder for Decoder
         return .serializer.isTextual()
     }
 
-    mtd impl read(data: #nonull *void, dataType: #nonull typeinfo) throw
+    mtd impl read(data: *void, dataType: typeinfo) throw
     {
         .readTypedContent(data, dataType)
     }

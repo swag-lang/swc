@@ -3,7 +3,7 @@
 using Swag
 
 // Check if this is a valid 'fmt/values' pair, coherent with 'format' specification
-func checkFormat(fct: #nonull string, fmt: #nonull string, values: ...)
+func checkFormat(fct: string, fmt: string, values: ...)
 {
     let cptPercent = countPercent(fmt)
     if cptPercent != @countof(values)
@@ -17,7 +17,7 @@ func checkFormat(fct: #nonull string, fmt: #nonull string, values: ...)
 // Count the number of valid '%' placeholders in the string format.
 // Note that '%%' will not be counted, as this represents the '%' character
 #[ConstExpr]
-func countPercent(fmt: #nonull string)->u32
+func countPercent(fmt: string)->u32
 {
     var cptPercent = 0'u32
     for var i = 0; i < @countof(fmt); i += 1
@@ -36,7 +36,7 @@ func countPercent(fmt: #nonull string)->u32
 
 // Format a string in 'dest'.
 // Can be a lot faster than the convenient version which returns a String.
-func replaceString(dest: #nonull *String, fmt: #nonull string, values: ...)
+func replaceString(dest: *String, fmt: string, values: ...)
     verify
     {
         if !#isconstexpr(fmt) or !#isconstexpr(values) do
@@ -72,7 +72,7 @@ func replaceString(dest: #nonull *String, fmt: #nonull string, values: ...)
 // ```
 // * See [[ConvertFormatInt.setFormat]] for some valid format options
 // * See [[ConvertFormatFloat.setFormat]] for some valid format options
-func toString(fmt: #nonull string, values: ...)->String
+func toString(fmt: string, values: ...)->String
     verify
     {
         if !#isconstexpr(fmt) or !#isconstexpr(values) do
@@ -90,7 +90,7 @@ func toString(fmt: #nonull string, values: ...)->String
 }
 
 // Format a string and put the result in a ConcatBuffer.
-func append(buf: #nonull *ConcatBuffer, fmt: #nonull string, values: ...)
+func append(buf: *ConcatBuffer, fmt: string, values: ...)
     verify
     {
         if !#isconstexpr(fmt) or !#isconstexpr(values) do
@@ -114,7 +114,7 @@ func append(buf: #nonull *ConcatBuffer, fmt: #nonull string, values: ...)
         if ptr[nextIdx] == '%''u8
         {
             // Add remaining text, and starts again after the mark
-            buf.addBytes(cast(#nonull const [..] u8) @mkslice(ptr + idx, cast(u64) (nextIdx - idx)))
+            buf.addBytes(cast(const [..] u8) @mkslice(ptr + idx, cast(u64) (nextIdx - idx)))
             idx     = nextIdx + 1
             nextIdx = idx
 
@@ -159,7 +159,7 @@ func append(buf: #nonull *ConcatBuffer, fmt: #nonull string, values: ...)
 
     // Add remaining text
     if idx < nextIdx do
-        buf.addBytes(cast(#nonull const [..] u8) @mkslice(ptr + idx, cast(u64) nextIdx - idx))
+        buf.addBytes(cast(const [..] u8) @mkslice(ptr + idx, cast(u64) nextIdx - idx))
 }
 
 // String interpolation.
@@ -167,7 +167,7 @@ func append(buf: #nonull *ConcatBuffer, fmt: #nonull string, values: ...)
 // A mixin: the interpolated expressions are caller-side names, so the generated
 // code must resolve in the caller scope; the internal locals use "#uniq?".
 #[Mixin]
-func toInterp(buf: #nonull *ConcatBuffer, exp: #nonull string)
+func toInterp(buf: *ConcatBuffer, exp: string)
     verify
     {
         if !#isconstexpr(exp) do
@@ -228,7 +228,7 @@ func toInterp(buf: #nonull *ConcatBuffer, exp: #nonull string)
 
 // String interpolation.
 #[Mixin]
-func toInterp(exp: #nonull string)->String
+func toInterp(exp: string)->String
     verify
     {
         if !#isconstexpr(exp) do

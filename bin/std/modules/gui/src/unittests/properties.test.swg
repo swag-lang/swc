@@ -72,7 +72,7 @@ var g_PropRoDynamic: bool
 
 impl IPropertyNotify for PropHeadlessRoData
 {
-    mtd impl isItemReadOnly(_list: #nonull *Properties, item: #nonull *PropertiesItem)->bool
+    mtd impl isItemReadOnly(_list: *Properties, item: *PropertiesItem)->bool
     {
         if item.typeValue.name == #nameof(PropHeadlessRoData.dynamic) do
             return g_PropRoDynamic
@@ -263,7 +263,7 @@ struct PropHeadlessArrayData
     @assert(prop.items[1].label != null and prop.items[2].label != null and prop.items[4].label != null)
 
     // For each value row, the inner value line must start at or below the label bottom.
-    func assertBelowLabel(item: #nonull *PropertiesItem)
+    func assertBelowLabel(item: *PropertiesItem)
     {
         let labelBottom = item.label.position.bottom()
         for c in item.line.childs
@@ -295,7 +295,7 @@ struct PropHeadlessArrayData
     var desc: #null *Label
     for c in chk.parent.childs do
         if c != cast(#null *Wnd) chk do
-            desc = cast(#nonull *Label) c
+            desc = cast(*Label) c
     @assert(desc != null)
     @assert(desc.paddingText.y > 0)
     @assert(Math.abs(desc.paddingText.y + desc.paddingText.w) < 0.01)   // pure translation, no height loss
@@ -326,7 +326,7 @@ struct PropHeadlessColorData
 
     @assert(prop.scrollWnd.scrollSize.y > prop.position.height)         // content overflows -> scrollable
 
-    func sendWheel(p: #nonull *Properties, deltaY: f32)
+    func sendWheel(p: *Properties, deltaY: f32)
     {
         var wheel = MouseEvent{kind: .MouseWheel}
         wheel.move.y     = deltaY
@@ -354,12 +354,12 @@ struct PropHeadlessColorData
     host.shutdown()
 }
 
-private func findIconButton(w: #nonull *Wnd)->#null *IconButton
+private func findIconButton(w: *Wnd)->#null *IconButton
 {
     for c in w.childs
     {
         if c.type == IconButton do
-            return cast(#nonull *IconButton) c
+            return cast(*IconButton) c
         let sub = findIconButton(c)
         if sub do
             return sub
@@ -690,7 +690,7 @@ struct MultiTile
     pos:    Math.Point = {0, 0}
 }
 
-private func findFieldItem(prop: #nonull *Properties, name: #nonull string)->#null *PropertiesItem
+private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
 {
     for it in prop.items
     {
@@ -709,10 +709,10 @@ private func findFieldItem(prop: #nonull *Properties, name: #nonull string)->#nu
     var t0, t1, t2: MultiTile
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
 
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
-    bases.add(cast(#nonull *u8) &t2)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
+    bases.add(cast(*u8) &t2)
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -753,9 +753,9 @@ private func findFieldItem(prop: #nonull *Properties, name: #nonull string)->#nu
     t1.flag  = false                                       // differs -> mixed
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -786,8 +786,8 @@ private func findFieldItem(prop: #nonull *Properties, name: #nonull string)->#nu
     var t0: MultiTile
     t0.count = 3
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -803,12 +803,12 @@ private func findFieldItem(prop: #nonull *Properties, name: #nonull string)->#nu
     host.shutdown()
 }
 
-private func collectEditBoxes(w: #nonull *Wnd, out: #nonull *Array'(#null *EditBox))
+private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
     for c in w.childs
     {
         if c.type == EditBox do
-            out.add(cast(#nonull *EditBox) c)
+            out.add(cast(*EditBox) c)
         collectEditBoxes(c, out)
     }
 }
@@ -825,9 +825,9 @@ private func collectEditBoxes(w: #nonull *Wnd, out: #nonull *Array'(#null *EditB
     t1.pos = {2, 10}                                        // x differs (mixed), y uniform
 
     let prop = Properties.create(&host.root, {0, 0, 300, 360}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -868,8 +868,8 @@ private func collectEditBoxes(w: #nonull *Wnd, out: #nonull *Array'(#null *EditB
 
     var item: PropertiesItem
     item.type = MultiBadges
-    item.dataInstances.add(cast(#nonull *u8) &b0)
-    item.dataInstances.add(cast(#nonull *u8) &b1)
+    item.dataInstances.add(cast(*u8) &b0)
+    item.dataInstances.add(cast(*u8) &b1)
 
     let starMask = cast(u64) cast(s32) MultiBadges.Star
     let lockMask = cast(u64) cast(s32) MultiBadges.Lock
@@ -904,9 +904,9 @@ private func collectEditBoxes(w: #nonull *Wnd, out: #nonull *Array'(#null *EditB
     t1.name = "beta"                                       // differs -> mixed
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -939,9 +939,9 @@ private func collectEditBoxes(w: #nonull *Wnd, out: #nonull *Array'(#null *EditB
     t1.tint = Pixel.Argb.Blue                              // differs -> mixed
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
@@ -969,7 +969,7 @@ struct ValData
 
 impl Gui.IPropertyNotify for ValData
 {
-    mtd impl validateItem(_list: #nonull *Gui.Properties, item: #nonull *Gui.PropertiesItem)->Gui.PropValidationResult
+    mtd impl validateItem(_list: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
     {
         switch item.typeValue.crc
         {
@@ -1216,7 +1216,7 @@ impl IPropertyEditor for PropAngleEditor
         return type == PropHeadlessAngle
     }
 
-    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
         g_PropAngleEditorCalls += 1
 
@@ -1305,7 +1305,7 @@ struct PropDefaultCustom
 impl IPropertyNotify for PropDefaultCustom
 {
     // Force the modified state regardless of the actual value (the customizable test).
-    mtd impl isItemAtDefault(_list: #nonull *Properties, item: #nonull *PropertiesItem)->PropDefaultState
+    mtd impl isItemAtDefault(_list: *Properties, item: *PropertiesItem)->PropDefaultState
     {
         if item.typeValue.name == #nameof(PropDefaultCustom.val) do
             return g_PropDefForceModified ? .Modified : .AtDefault
@@ -1313,7 +1313,7 @@ impl IPropertyNotify for PropDefaultCustom
     }
 
     // Take over the reset itself.
-    mtd impl resetItemToDefault(_list: #nonull *Properties, item: #nonull *PropertiesItem)->bool
+    mtd impl resetItemToDefault(_list: *Properties, item: *PropertiesItem)->bool
     {
         if item.typeValue.name == #nameof(PropDefaultCustom.val)
         {
@@ -1535,9 +1535,9 @@ impl IPropertyNotify for PropDefaultCustom
     t1.count = 7                                           // differs
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
     prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
@@ -1637,9 +1637,9 @@ impl IPropertyNotify for PropDefaultCustom
 
     var t0, t1: PropHeadlessData                 // both count = 42
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(#nonull *u8)
-    bases.add(cast(#nonull *u8) &t0)
-    bases.add(cast(#nonull *u8) &t1)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8) &t0)
+    bases.add(cast(*u8) &t1)
     prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
@@ -1782,8 +1782,8 @@ struct PropHeadlessFontStyleData
     // items[0] is the implicit section; the editor stacks the B and I buttons in a sub-line
     let item      = prop.items[1]
     let stack     = item.line.childs[0]
-    let btnBold   = cast(#nonull *IconButton) stack.childs[0]
-    let btnItalic = cast(#nonull *IconButton) stack.childs[1]
+    let btnBold   = cast(*IconButton) stack.childs[0]
+    let btnItalic = cast(*IconButton) stack.childs[1]
 
     host.clickWnd(btnBold)
     @assert(data.style == .Bold)
@@ -1816,7 +1816,7 @@ struct PropHeadlessUsingDerived
     var host: Testing.HeadlessHost
     host.setup(260, 320)
 
-    func indexOf(prop: #nonull *Properties, name: #nonull string)->u64
+    func indexOf(prop: *Properties, name: string)->u64
     {
         for item, idx in prop.items
         {
@@ -1862,7 +1862,7 @@ struct PropFilterHost {}
 
 impl IPropertyNotify for PropFilterHost
 {
-    mtd impl isEnumValueVisible(list: #nonull *Properties, item: #nonull *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    mtd impl isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
         return enumValue.name != "Hidden"
     }
@@ -1974,7 +1974,7 @@ struct PropAlignData
     host.root.applyLayout()
     host.pump()
 
-    func assertAligned(prop: #nonull *Properties)
+    func assertAligned(prop: *Properties)
     {
         var right = -1.0'f32
         for item in prop.items

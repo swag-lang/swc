@@ -54,7 +54,7 @@ func getDeclaredType(useString: bool)->typeinfo
     const type0 = getDeclaredType(useString: false)
     const type1 = getDeclaredType(useString: true)
     var x: #decltype(type0)
-    var y: #decltype(type1)
+    var y: #decltype(type1) = undefined
     #assert(#typeof(x) == s32)
     #assert(#typeof(y) == string)
     @assert(x == 0)

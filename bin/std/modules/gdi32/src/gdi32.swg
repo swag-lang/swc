@@ -409,8 +409,8 @@ struct NEWTEXTMETRICW
     ntmAvgWidth:            UINT
 }
 
-alias FONTENUMPROCA = func(#nonull const *LOGFONTA, #nonull const *TEXTMETRICA, DWORD, LPARAM)->BOOL
-alias FONTENUMPROCW = func(#nonull const *LOGFONTW, #nonull const *TEXTMETRICW, DWORD, LPARAM)->BOOL
+alias FONTENUMPROCA = func(const *LOGFONTA, const *TEXTMETRICA, DWORD, LPARAM)->BOOL
+alias FONTENUMPROCW = func(const *LOGFONTW, const *TEXTMETRICW, DWORD, LPARAM)->BOOL
 
 #[Swag.Inline]
 func RGB(r, g, b: s32)->COLORREF
@@ -434,8 +434,8 @@ func RGB(r, g, b: s32)->COLORREF
 
     func EnumFontFamiliesA(hdc: HDC, lpLogfont: LPCSTR, lpProc: FONTENUMPROCA, lParam: LPARAM)->s32;
     func EnumFontFamiliesW(hdc: HDC, lpLogfont: LPCWSTR, lpProc: FONTENUMPROCW, lParam: LPARAM)->s32;
-    func EnumFontFamiliesExA(hdc: HDC, lpLogfont: #nonull const *LOGFONTA, lpProc: FONTENUMPROCA, lParam: LPARAM, dwFlags: DWORD)->s32;
-    func EnumFontFamiliesExW(hdc: HDC, lpLogfont: #nonull const *LOGFONTW, lpProc: FONTENUMPROCW, lParam: LPARAM, dwFlags: DWORD)->s32;
+    func EnumFontFamiliesExA(hdc: HDC, lpLogfont: const *LOGFONTA, lpProc: FONTENUMPROCA, lParam: LPARAM, dwFlags: DWORD)->s32;
+    func EnumFontFamiliesExW(hdc: HDC, lpLogfont: const *LOGFONTW, lpProc: FONTENUMPROCW, lParam: LPARAM, dwFlags: DWORD)->s32;
 
     func SetBkMode(hdc: HDC, mode: s32)->s32;
     func SetBkColor(hdc: HDC, color: COLORREF)->COLORREF;
@@ -452,10 +452,10 @@ internal namespace Gdi32Priv
 {
     #[Foreign("Gdi32")]
     {
-        func ChoosePixelFormat(hdc: HDC, ppfd: #nonull const *PIXELFORMATDESCRIPTOR)->s32;
-        func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: #nonull const *PIXELFORMATDESCRIPTOR)->BOOL;
+        func ChoosePixelFormat(hdc: HDC, ppfd: const *PIXELFORMATDESCRIPTOR)->s32;
+        func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: const *PIXELFORMATDESCRIPTOR)->BOOL;
         func SwapBuffers(arg1: HDC)->BOOL;
-        func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: #nonull *PIXELFORMATDESCRIPTOR)->s32;
+        func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: *PIXELFORMATDESCRIPTOR)->s32;
         func CreateCompatibleDC(hdc: HDC)->HDC;
         func CreateCompatibleBitmap(hdc: HDC, cx, cy: s32)->HBITMAP;
         func DeleteDC(hdc: HDC)->BOOL;
@@ -466,18 +466,18 @@ internal namespace Gdi32Priv
         func GetBitmapBits(hbit: HBITMAP, cb: LONG, lpvBits: LPVOID)->LONG;
         func SetBitmapBits(hbm: HBITMAP, cb: DWORD, pvBits: LPVOID)->LONG;
         func GetFontData(hdc: HDC, dwTable: DWORD, dwOffset: DWORD, pvBuffer: LPVOID, cjBuffer: DWORD)->DWORD;
-        func CreateFontIndirectA(lplf: #nonull const *LOGFONTA)->HFONT;
-        func CreateFontIndirectW(lplf: #nonull const *LOGFONTW)->HFONT;
+        func CreateFontIndirectA(lplf: const *LOGFONTA)->HFONT;
+        func CreateFontIndirectW(lplf: const *LOGFONTW)->HFONT;
         func CreateSolidBrush(color: COLORREF)->HBRUSH;
         func CreatePen(iStyle: s32, cWidth: s32, color: COLORREF)->HPEN;
-        func CreateDIBSection(hdc: HDC, pbmi: #nonull const *BITMAPINFO, usage: UINT, ppvBits: #nonull *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP;
-        func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: #nonull *BITMAPINFO, usage: UINT)->s32;
+        func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP;
+        func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: *BITMAPINFO, usage: UINT)->s32;
     }
 }
 
 #[Inline]
 {
-    func ChoosePixelFormat(hdc: HDC, ppfd: #nonull const *PIXELFORMATDESCRIPTOR)->s32 throw
+    func ChoosePixelFormat(hdc: HDC, ppfd: const *PIXELFORMATDESCRIPTOR)->s32 throw
     {
         let res = Gdi32Priv.ChoosePixelFormat(hdc, ppfd)
         if !res do
@@ -485,7 +485,7 @@ internal namespace Gdi32Priv
         return res
     }
 
-    func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: #nonull const *PIXELFORMATDESCRIPTOR) throw
+    func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: const *PIXELFORMATDESCRIPTOR) throw
     {
         if !Gdi32Priv.SetPixelFormat(hdc, fmt, ppfd) do
             throwWinError(GetLastError())
@@ -498,7 +498,7 @@ internal namespace Gdi32Priv
     }
 
     #[Discardable]
-    func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: #nonull *PIXELFORMATDESCRIPTOR)->s32 throw
+    func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: *PIXELFORMATDESCRIPTOR)->s32 throw
     {
         let res = Gdi32Priv.DescribePixelFormat(hdc, iPixelFormat, nBytes, ppfd)
         if !res do
@@ -579,7 +579,7 @@ internal namespace Gdi32Priv
         return res
     }
 
-    func CreateFontIndirectA(lplf: #nonull const *LOGFONTA)->HFONT throw
+    func CreateFontIndirectA(lplf: const *LOGFONTA)->HFONT throw
     {
         let res = Gdi32Priv.CreateFontIndirectA(lplf)
         if res == null do
@@ -587,7 +587,7 @@ internal namespace Gdi32Priv
         return res
     }
 
-    func CreateFontIndirectW(lplf: #nonull const *LOGFONTW)->HFONT throw
+    func CreateFontIndirectW(lplf: const *LOGFONTW)->HFONT throw
     {
         let res = Gdi32Priv.CreateFontIndirectW(lplf)
         if res == null do
@@ -612,7 +612,7 @@ internal namespace Gdi32Priv
     }
 
     #[Discardable]
-    func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: #nonull *BITMAPINFO, usage: UINT)->s32 throw
+    func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: *BITMAPINFO, usage: UINT)->s32 throw
     {
         let res = Gdi32Priv.GetDIBits(hdc, hbm, start, cLines, lpvBits, lpbmi, usage)
         if res == 0 do
@@ -620,7 +620,7 @@ internal namespace Gdi32Priv
         return res
     }
 
-    func CreateDIBSection(hdc: HDC, pbmi: #nonull const *BITMAPINFO, usage: UINT, ppvBits: #nonull *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP throw
+    func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP throw
     {
         let res = Gdi32Priv.CreateDIBSection(hdc, pbmi, usage, ppvBits, hSection, offset)
         if res == null do

@@ -15,7 +15,7 @@ func assertJpgPixelNear(img: Image, b, g, r: u8, tolerance: u8)
     assertNearByte(img.pixels.buffer[2], r, tolerance)
 }
 
-func assertLoadedJpg(fileName: #nonull string, width, height: s32, b, g, r: u8)
+func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
 {
     var img: Image
     img = catch Image.load(getTestDataPath(fileName))
@@ -30,21 +30,21 @@ func assertLoadedJpg(fileName: #nonull string, width, height: s32, b, g, r: u8)
     assertJpgPixelNear(img, b, g, r, 8'u8)
 }
 
-func jpgCanEncode(fileName: #nonull string)->bool
+func jpgCanEncode(fileName: string)->bool
 {
     var enc: Jpg.Encoder
     let itf = @mkinterface(&enc, #typeof(Jpg.Encoder), IImageEncoder)
     return itf.canEncode(fileName)
 }
 
-func encodeJpg(result: #nonull *ConcatBuffer, image: Image, options: #null any = null) throw
+func encodeJpg(result: *ConcatBuffer, image: Image, options: #null any = null) throw
 {
     var enc: Jpg.Encoder
     let itf = @mkinterface(&enc, #typeof(Jpg.Encoder), IImageEncoder)
     itf.encode(result, image, options)
 }
 
-func assertJpgHasMarker(bytes: #nonull const [..] u8, marker: u8)
+func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 {
     for var i = 0'u64; i + 1 < @countof(bytes); i += 1
     {
@@ -55,7 +55,7 @@ func assertJpgHasMarker(bytes: #nonull const [..] u8, marker: u8)
     @assert(false)
 }
 
-func fillSolidImage(img: #nonull *Image, b, g, r, a: u8)
+func fillSolidImage(img: *Image, b, g, r, a: u8)
 {
     var pix = img.pixels.buffer
     for img.width * img.height

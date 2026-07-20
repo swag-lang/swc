@@ -13,7 +13,7 @@ struct WrapLayoutCtrl
 
 impl IWnd for WrapLayoutCtrl
 {
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if !.childs.count
         {
@@ -59,7 +59,7 @@ impl IWnd for WrapLayoutCtrl
 impl WrapLayoutCtrl
 {
     // Create a layout control
-    func create(parent: #nonull *Wnd, position: Math.Rectangle = {})->#nonull *WrapLayoutCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl
     {
         let res = Wnd.create'WrapLayoutCtrl(parent, position)
         return res

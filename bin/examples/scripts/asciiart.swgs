@@ -7,9 +7,9 @@ using Gui, Core, Pixel
 
 var g_Img:     Image
 var g_Texture: Texture
-var g_Font:    *Font
+var g_Font:    #null *Font
 
-func openImage(surface: *Surface)
+func openImage(surface: #null *Surface)
 {
     var opt: FileDlgOptions
     with opt
@@ -26,13 +26,13 @@ func openImage(surface: *Surface)
         .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
     }
 
-    let dlg = FileDlg.create(surface, opt)
+    let dlg = FileDlg.create(assume surface, opt)
     if dlg.doModal() != Dialog.BtnOk do
         return
 
     g_Img = catch Image.load(dlg.getSelectedName())
     if @err != null do
-        MessageDlg.error(surface, "Failed to load image")
+        MessageDlg.error(assume surface, "Failed to load image")
 }
 
 func compute(render: *RenderOgl)
@@ -46,7 +46,7 @@ func compute(render: *RenderOgl)
     g_Texture = render.addImage(g_Img)
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -78,7 +78,7 @@ func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
                 let col = g_Img.getPixelColor(x, y)
                 let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) @countof(GrayRamp))
                 let v   = @mkstring(@dataof(GrayRamp) + cast(s32) idx, 1)
-                painter.drawString(x * size, y * size, v, g_Font, Argb.White)
+                painter.drawString(x * size, y * size, v, assume g_Font, Argb.White)
             }
         }
     }

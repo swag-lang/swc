@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 #global #if #os == Swag.TargetOs.Windows
 
 alias HANDLE     = #null const [*] void
@@ -25,7 +24,7 @@ struct CallbackData
 
 func threadCallback(param: #null *void)->DWORD
 {
-    let data = cast(#nonull *CallbackData) (assume param)
+    let data = cast(*CallbackData) (assume param)
     data.observed = data.value
     return 0
 }

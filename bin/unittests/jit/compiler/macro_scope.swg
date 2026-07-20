@@ -80,7 +80,7 @@ impl MemberMacroWalker
     }
 
     #[Swag.Macro]
-    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code(item: s32, out: *s32))
+    mtd visitWithData(userData: #null *s32 = null, scale: s32 = 1, stmt: #code(item: s32, out: #null *s32))
     {
         let values = .values
         for @countof(values)

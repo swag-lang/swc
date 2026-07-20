@@ -1,12 +1,12 @@
 impl Properties
 {
-    func setDescEditBox(item: #nonull *PropertiesItem)
+    func setDescEditBox(item: *PropertiesItem)
     {
         let arrData = cast(#null *Array'u8) item.data
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
-    mtd reconstructArray(item: #nonull *PropertiesItem)
+    mtd reconstructArray(item: *PropertiesItem)
     {
         let valueType        = assume Reflection.getStructArrayType(item.type)
         let arrData          = cast(#null *Array'u8) item.data
@@ -50,7 +50,7 @@ impl Properties
             .updateItemState(assume .items[itemIdx + i + 1])
     }
 
-    mtd refreshArray(item: #nonull *PropertiesItem)
+    mtd refreshArray(item: *PropertiesItem)
     {
         let arrData = cast(#null *Array'u8) item.data
         if arrData.count == cast(u64) item.userData0 do
@@ -62,7 +62,7 @@ impl Properties
         .edView.sendResizeEvent()
     }
 
-    mtd clearArray(item: #nonull *PropertiesItem)
+    mtd clearArray(item: *PropertiesItem)
     {
         let valueType = assume Reflection.getStructArrayType(item.type)
         Reflection.clearStructArray(item.data, valueType)
@@ -71,13 +71,13 @@ impl Properties
     }
 
     // True when 'item' wraps an array value: a fixed-size [N]T or a dynamic Core.Array.
-    mtd isArrayItem(item: #nonull *PropertiesItem)->bool
+    mtd isArrayItem(item: *PropertiesItem)->bool
     {
         return item.type and (Reflection.isStaticArray(item.type) or Reflection.isStructArray(item.type))
     }
 
     // Buffer base, element type and element count of an array item (static or dynamic).
-    mtd arrayElementInfo(arrayItem: #nonull *PropertiesItem)->{ base: #null [*] u8, valueType: #null typeinfo, count: u64 }
+    mtd arrayElementInfo(arrayItem: *PropertiesItem)->{ base: #null [*] u8, valueType: #null typeinfo, count: u64 }
     {
         if Reflection.isStructArray(arrayItem.type)
         {
@@ -92,7 +92,7 @@ impl Properties
 
     // Ordinal of an array element among the array's direct children. Robust for struct arrays,
     // whose element rows are interleaved with their field rows in the flat item list.
-    mtd arrayElementIndex(elemItem: #nonull *PropertiesItem)->u64
+    mtd arrayElementIndex(elemItem: *PropertiesItem)->u64
     {
         var idx = 0'u64
         for it in .items
@@ -107,7 +107,7 @@ impl Properties
 
     // Resolve the array element row (a direct child of an array) from the clicked item or one
     // of its ancestors, so right-clicking a struct element's field still targets the element.
-    mtd resolveArrayElement(item: #nonull *PropertiesItem)->#null *PropertiesItem
+    mtd resolveArrayElement(item: *PropertiesItem)->#null *PropertiesItem
     {
         var scan = cast(#null *PropertiesItem) item
         while scan and scan.parent
@@ -121,7 +121,7 @@ impl Properties
 
     // Reorder an array element by one slot (dir = -1 up, +1 down). Allowed for both static and
     // dynamic arrays — a reorder never changes the element count.
-    mtd moveArrayValue(elemItem: #nonull *PropertiesItem, dir: s32)
+    mtd moveArrayValue(elemItem: *PropertiesItem, dir: s32)
     {
         let arrayItem = elemItem.parent
         let info      = .arrayElementInfo(assume arrayItem)
@@ -134,7 +134,7 @@ impl Properties
         .hasChanged(assume arrayItem)
     }
 
-    mtd removeArrayValue(item: #nonull *PropertiesItem)
+    mtd removeArrayValue(item: *PropertiesItem)
     {
         let parentItem = item.parent
         let valueType  = assume Reflection.getStructArrayType(parentItem.type)
@@ -146,7 +146,7 @@ impl Properties
         .hasChanged(assume parentItem)
     }
 
-    mtd appendArrayValue(item: #nonull *PropertiesItem)
+    mtd appendArrayValue(item: *PropertiesItem)
     {
         let valueType = assume Reflection.getStructArrayType(item.type)
 

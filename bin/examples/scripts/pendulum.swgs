@@ -67,7 +67,7 @@ func stepPendulum(dt: f32)->bool
     return pendulumStateIsFinite()
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

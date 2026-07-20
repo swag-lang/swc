@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct Pair
 {
@@ -472,8 +471,8 @@ func runInlineClosureCaptureRef()->s32
     @assert(globalReader() == 42)
 
     var text = "abc"
-    let byValue: func||()->#nonull string = func|text|()->#nonull string { return text }
-    let byRef: func||()->#nonull string = func|&text|()->#nonull string { return text }
+    let byValue: func||()->string = func|text|()->string { return text }
+    let byRef: func||()->string = func|&text|()->string { return text }
 
     text = "zzz"
     @assert(byValue() == "abc")

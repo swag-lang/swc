@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 alias NestedUnary = func(s32)->s32
 

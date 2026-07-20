@@ -37,14 +37,14 @@ impl HashTable
         return result
     }
 
-    mtd tablePtr()->#nonull [*] HashTableEntry
+    mtd tablePtr()->[*] HashTableEntry
     {
-        return .table orelse cast(#nonull [*] HashTableEntry'(K, V)) 1'u64
+        return .table orelse cast([*] HashTableEntry'(K, V)) 1'u64
     }
 
-    mtd const constTablePtr()->#nonull const [*] HashTableEntry
+    mtd const constTablePtr()->const [*] HashTableEntry
     {
-        return cast(#nonull const [*] HashTableEntry'(K, V)) (.table orelse cast(#nonull [*] HashTableEntry'(K, V)) 1'u64)
+        return cast(const [*] HashTableEntry'(K, V)) (.table orelse cast([*] HashTableEntry'(K, V)) 1'u64)
     }
 
     // Returns the number of key-value pairs in the me.table.
@@ -79,7 +79,7 @@ impl HashTable
             .allocator = @getcontext().allocator
 
         let oldTable = .tablePtr()
-        let newTable = cast(#nonull [*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
+        let newTable = cast([*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
         Memory.clear(newTable, .capacity * #sizeof(HashTableEntry'(K, V)))
         #if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
         {
@@ -107,7 +107,7 @@ impl HashTable
     mtd const opIndex(key: K)->const &V
     {
         #[Global]
-        var d: V
+        var d: V = undefined
 
         let it = .find(key)
         if it do
@@ -121,7 +121,7 @@ impl HashTable
     mtd opIndex(key: K)->&V
     {
         #[Global]
-        var d: V
+        var d: V = undefined
 
         let it = .tryFind(key)
         if it do
@@ -237,7 +237,7 @@ impl HashTable
 
         if .allocator == null do
             .allocator = @getcontext().allocator
-        .table = cast(#nonull [*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -246,7 +246,7 @@ impl HashTable
         // Copy the last me.table to the new me.table, removing me.deleted entries
         let oldCapacity = .capacity
         .capacity = reqCapacity
-        let oldTablePtr = oldTable orelse cast(#nonull [*] HashTableEntry'(K, V)) 1'u64
+        let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V)) 1'u64
         for i in oldCapacity
         {
             let h = oldTablePtr[i].hash
@@ -293,7 +293,7 @@ impl HashTable
     // The value is copied; pass it with '#move' to move it instead.
     // If the key already exists, the value is updated if 'updateValue' is true.
     #[Discardable]
-    mtd add(key: K, value: #fwd V, updateValue = true)->#nonull *HashTableEntry
+    mtd add(key: K, value: #fwd V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()
@@ -330,7 +330,7 @@ impl HashTable
 
     // Internal helper to add a new element with a pre-computed hash. Use with care.
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->#nonull *HashTableEntry
+    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->*HashTableEntry
         where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
         .grow()
@@ -459,7 +459,7 @@ impl HashTable
 
     // Finds the entry for a given key.
     // Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.
-    mtd find(key: K)->#nonull *HashTableEntry
+    mtd find(key: K)->*HashTableEntry
     {
         Debug.assert(.table != null)
 
@@ -480,7 +480,7 @@ impl HashTable
 
     // Finds the entry for a given key.
     // Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.
-    mtd const find(key: K)->#nonull const *HashTableEntry
+    mtd const find(key: K)->const *HashTableEntry
     {
         Debug.assert(.table != null)
 
@@ -511,11 +511,11 @@ impl HashTable
 
     // Finds the entry for a key, or adds a new entry with a default-initialized value if not found.
     // Returns a pointer to the existing or new entry.
-    mtd findOrAdd(key: K)->#nonull *HashTableEntry
+    mtd findOrAdd(key: K)->*HashTableEntry
     {
         let it = .tryFind(key)
         if it do
-            return it orelse cast(#nonull *HashTableEntry) 1'u64
+            return it orelse cast(*HashTableEntry) 1'u64
         var val: V
         return .add(key, val)
     }
@@ -555,7 +555,7 @@ impl HashTable
 
 impl StrConv.IConvert for HashTable
 {
-    mtd const impl convert(buf: #nonull *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
         for k, v in me

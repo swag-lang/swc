@@ -45,7 +45,7 @@ impl FileAttributes
 }
 
 // Returns attributes associated to the given filename
-func getAttributes(fullName: #nonull string)->FileAttributes throw
+func getAttributes(fullName: string)->FileAttributes throw
 {
     let winPath    = Utf16.toZeroTerminated(fullName)
     let attributes = catch GetFileAttributesW(@dataof(winPath))

@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func drawLayerArtwork(painter: #nonull *Pixel.Painter, width, height: s32, label: #nonull string, accent: Color)
+func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string, accent: Color)
 {
     let w = cast(f32) width
     let h = cast(f32) height
@@ -31,7 +31,7 @@ func drawLayerArtwork(painter: #nonull *Pixel.Painter, width, height: s32, label
     painter.drawString(textX, textY, label, assume g_SubTitleFont, Argb.White)
 }
 
-func drawLayerCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title, subtitle: #nonull string, renderScale: s32, shadow: bool, angle: Math.Angle, accent: Color)
+func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, renderScale: s32, shadow: bool, angle: Math.Angle, accent: Color)
 {
     let body = drawPanel(painter, rect, title, subtitle)
     let layerWidth  = 310
@@ -62,7 +62,7 @@ func drawLayerCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title,
     painter.popTransform()
 }
 
-func drawLayerPipelinePage(painter: #nonull *Pixel.Painter)
+func drawLayerPipelinePage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel layers", "Page 11 : offscreen layers, supersample resolve, blur shadows and alpha-safe composition.")
     drawLayerCard(painter, {28, 104, 452, 258}, "Layer", "begin / paint / end records a transparent layer and keeps alpha coverage isolated.", 1, false, -4.0'deg, Argb.MidnightBlue)

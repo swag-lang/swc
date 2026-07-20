@@ -29,24 +29,24 @@ impl IForm for FormShape
         return .subKind == .None
     }
 
-    mtd impl isSame(ptr: #nonull *BaseForm)->bool
+    mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = cast(#nonull *FormShape) ptr
+        let other = cast(*FormShape) ptr
         return .isSameBase(ptr) and
                .kind == other.kind and
                .roundSize == other.roundSize
     }
 
-    mtd impl copy(dst, src: #nonull *BaseForm)
+    mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
-        let dstf = cast(#nonull *FormShape) dst
-        let srcf = cast(#nonull *FormShape) src
+        let dstf = cast(*FormShape) dst
+        let srcf = cast(*FormShape) src
         dstf.kind      = srcf.kind
         dstf.roundSize = srcf.roundSize
     }
 
-    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         let xa = cast(s32) (movingStart.x / zoom)
         let ya = cast(s32) (movingStart.y / zoom)
@@ -110,12 +110,12 @@ impl IForm for FormShape
         return .rectFormBound()
     }
 
-    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         return .gizmo.mouse(view, pos, evt)
     }
 
-    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -146,7 +146,7 @@ impl IForm for FormShape
         return BaseForm.drawHitTest(me, pt, z)
     }
 
-    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         var dash  = .dashStyle
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
@@ -202,7 +202,7 @@ impl IForm for FormShape
         }
     }
 
-    mtd impl setup(capt: #nonull *Capture)
+    mtd impl setup(capt: *Capture)
     {
         .capture = capt
         .gizmo.setupForForm(cast(IForm) me)

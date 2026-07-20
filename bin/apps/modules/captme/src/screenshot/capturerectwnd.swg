@@ -40,7 +40,7 @@ impl IWnd for CaptureRectWnd
         }
     }
 
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind == .KeyPressed and evt.key == .Escape do
             g_Exit = true
@@ -48,7 +48,7 @@ impl IWnd for CaptureRectWnd
         .invalidate()
     }
 
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         switch evt.kind
         {
@@ -118,7 +118,7 @@ impl IWnd for CaptureRectWnd
         }
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         var grabRect = getGrabRect()
 

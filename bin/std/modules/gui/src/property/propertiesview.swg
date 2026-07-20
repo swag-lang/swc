@@ -11,7 +11,7 @@ impl IWnd for PropertiesView
 {
     // The edView owns the keyboard focus while navigating the grid; forward keys
     // to the owning Properties so it can move the selection and start edition.
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if .ed do
             .ed.navKeyEvent(evt)
@@ -19,7 +19,7 @@ impl IWnd for PropertiesView
             evt.accepted = false
     }
 
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)
         if !.ed or !.ed.items.count do

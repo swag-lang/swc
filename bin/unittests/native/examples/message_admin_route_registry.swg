@@ -59,12 +59,12 @@ public func rebuildSearchCache(indexName: string, full: bool)
 
 struct AdminRouteRegistration
 {
-    type:        typeinfo
-    handlerName: string
-    method:      string
-    path:        string
-    permission:  string
-    auditCode:   string
+    type:        #null typeinfo
+    handlerName: string = ""
+    method:      string = ""
+    path:        string = ""
+    permission:  string = ""
+    auditCode:   string = ""
     critical:    bool
 }
 
@@ -149,7 +149,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     if msg == null or msg.type == null do
         return
 
-    let typeFunc = cast(const *TypeInfoFunc) msg.type
+    let typeFunc = cast(const *TypeInfoFunc) assume msg.type
 
     for attribute in typeFunc.attributes
     {
@@ -159,11 +159,11 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         @assert(g_AdminRouteCount < MaxAdminRoutes)
         g_AdminRoutes[g_AdminRouteCount] = {
             type: msg.type,
-            handlerName: msg.name,
-            method: cast(string) attribute.params[0].value,
-            path: cast(string) attribute.params[1].value,
-            permission: cast(string) attribute.params[2].value,
-            auditCode: cast(string) attribute.params[3].value,
+            handlerName: assume msg.name,
+            method: cast(string) assume attribute.params[0].value,
+            path: cast(string) assume attribute.params[1].value,
+            permission: cast(string) assume attribute.params[2].value,
+            auditCode: cast(string) assume attribute.params[3].value,
             critical: cast(bool) attribute.params[4].value,
         }
         g_AdminRouteCount += 1
@@ -179,7 +179,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     for var routeIndex = 0; routeIndex < g_AdminRouteCount; routeIndex += 1
     {
         let route    = g_AdminRoutes[routeIndex]
-        let typeFunc = cast(const *TypeInfoFunc) route.type
+        let typeFunc = cast(const *TypeInfoFunc) assume route.type
 
         len = appendAst(&buffer[0], len, "struct AdminRouteRequest_")
         len = appendAst(&buffer[0], len, route.handlerName)
@@ -187,9 +187,9 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         for parameter in typeFunc.parameters
         {
             len = appendAst(&buffer[0], len, "    ")
-            len = appendAst(&buffer[0], len, parameter.name)
+            len = appendAst(&buffer[0], len, assume parameter.name)
             len = appendAst(&buffer[0], len, ": ")
-            len = appendAst(&buffer[0], len, parameter.pointedType.name)
+            len = appendAst(&buffer[0], len, assume parameter.pointedType.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         len = appendAst(&buffer[0], len, "}\n\n")
@@ -202,7 +202,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         if typeFunc.returnType != null and typeFunc.returnType != void
         {
             len = appendAst(&buffer[0], len, "->")
-            len = appendAst(&buffer[0], len, typeFunc.returnType.name)
+            len = appendAst(&buffer[0], len, assume typeFunc.returnType.name)
         }
 
         len = appendAst(&buffer[0], len, "\n{\n    ")
@@ -216,7 +216,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             if index != 0 do
                 len = appendAst(&buffer[0], len, ", ")
             len = appendAst(&buffer[0], len, "request.")
-            len = appendAst(&buffer[0], len, parameter.name)
+            len = appendAst(&buffer[0], len, assume parameter.name)
         }
         len = appendAst(&buffer[0], len, ")\n}\n\n")
     }
@@ -242,7 +242,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     for var routeIndex = 0; routeIndex < g_AdminRouteCount; routeIndex += 1
     {
         let route        = g_AdminRoutes[routeIndex]
-        let typeFunc     = cast(const *TypeInfoFunc) route.type
+        let typeFunc     = cast(const *TypeInfoFunc) assume route.type
         let returnsValue = typeFunc.returnType != null and typeFunc.returnType != void
         len = appendAst(&buffer[0], len, "        case ")
         len = appendS32Literal(&buffer[0], len, routeIndex)
@@ -340,7 +340,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     for var routeIndex = 0; routeIndex < g_AdminRouteCount; routeIndex += 1
     {
         let route    = g_AdminRoutes[routeIndex]
-        let typeFunc = cast(const *TypeInfoFunc) route.type
+        let typeFunc = cast(const *TypeInfoFunc) assume route.type
         len = appendAst(&buffer[0], len, "        case ")
         len = appendS32Literal(&buffer[0], len, routeIndex)
         len = appendAst(&buffer[0], len, ": return ")
@@ -371,7 +371,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     for var routeIndex = 0; routeIndex < g_AdminRouteCount; routeIndex += 1
     {
         let route        = g_AdminRoutes[routeIndex]
-        let typeFunc     = cast(const *TypeInfoFunc) route.type
+        let typeFunc     = cast(const *TypeInfoFunc) assume route.type
         let returnsValue = typeFunc.returnType != null and typeFunc.returnType != void
         len = appendAst(&buffer[0], len, "        case ")
         len = appendS32Literal(&buffer[0], len, routeIndex)

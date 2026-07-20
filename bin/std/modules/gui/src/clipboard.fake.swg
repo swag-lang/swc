@@ -55,7 +55,7 @@ func fakeFind(fmt: ValueFormat)->#null *FakeTypedData
     return null
 }
 
-func fakeAddTypedData(fmt: ValueFormat, type: #null typeinfo, data: #nonull const [..] u8)
+func fakeAddTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 {
     var entry = fakeFind(fmt)
     if !entry

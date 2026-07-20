@@ -24,9 +24,9 @@ impl IActionUI for ActionFile
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -120,7 +120,7 @@ impl IActionUI for ActionFile
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id
@@ -257,7 +257,7 @@ impl IActionUI for ActionFile
 
         case FileDetails:
 
-            func addLine(lt: #nonull *Wnd, title, val: String)
+            func addLine(lt: *Wnd, title, val: String)
             {
                 let wnd = Wnd.create'StackLayoutCtrl(lt)
                 wnd.layoutKind      = .Left
@@ -317,7 +317,7 @@ impl MainWnd
             .newCapture(img, dlg.getSelectedName())
     }
 
-    mtd doSaveImage(capture: #nonull *Capture, img: #nonull *Image, nameFile: String)
+    mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
     {
         var optImg: #null any = null
         var optPng: Png.EncodeOptions

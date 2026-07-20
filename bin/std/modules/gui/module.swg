@@ -8,7 +8,6 @@
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace     = "Gui"
-    cfg.explicitNullability = true
     cfg.backendKind     = .SharedLibrary
     cfg.ignoreInWorkspace = false
 }

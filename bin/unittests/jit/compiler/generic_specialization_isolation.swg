@@ -87,7 +87,7 @@ func(T, const Pad: s32) readValue(store: const &GenericIsolationStore'(T, Pad), 
 
     var intsDefault: GenericIsolationStore's32
     var intsWide:    GenericIsolationStore'(s32, 9)
-    var texts:       GenericIsolationStore'string
+    var texts:       GenericIsolationStore'string = undefined
     var wides:       GenericIsolationStore'GenericIsolationWide
 
     intsDefault.salt = 100
@@ -138,7 +138,7 @@ func(T, const Pad: s32) readValue(store: const &GenericIsolationStore'(T, Pad), 
 {
     var intsDefault: GenericIsolationStore's32
     var intsWide:    GenericIsolationStore'(s32, 9)
-    var texts:       GenericIsolationStore'string
+    var texts:       GenericIsolationStore'string = undefined
     var wides:       GenericIsolationStore'GenericIsolationWide
 
     intsDefault.write(0, 5, 1, 2)

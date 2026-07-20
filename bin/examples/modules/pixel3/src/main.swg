@@ -23,11 +23,12 @@ var g_Renderer: Pixel.RenderOgl
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
+var g_FontPath:  String
 var g_FontBytes:   Array'u8
 var g_TypeFace:    #null *Pixel.TypeFace
 var g_HeaderFont:  #null *Pixel.Font
 
-func fontPath(fileName: #nonull string, loc = #callerlocation)->String
+func fontPath(fileName: string, loc = #callerlocation)->String
 {
     let srcPath = Path.getDirectoryName(loc.fileName)
     return Path.combine(Path.combine(srcPath, "data"), fileName)
@@ -35,7 +36,8 @@ func fontPath(fileName: #nonull string, loc = #callerlocation)->String
 
 func loadFonts() throw
 {
-    let path = fontPath("segoeui.ttf")
+    g_FontPath = fontPath("segoeui.ttf")
+    let path   = g_FontPath.toString()
 
     g_FontBytes  = File.readAllBytes(path)
     g_TypeFace   = TypeFace.create(path, g_FontBytes.toSlice())
@@ -43,7 +45,7 @@ func loadFonts() throw
 }
 
 // The three fonts for a given size (all cached after the first call).
-func fontsFor(size: u32)->{ bmp, msdf, auto: #nonull *Pixel.Font }
+func fontsFor(size: u32)->{ bmp, msdf, auto: *Pixel.Font }
 {
     var result: retval = undefined
     result.bmp  = Font.create(assume g_TypeFace, size, .Bitmap)
@@ -70,7 +72,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     return result
 }
 
-func drawScene(painter: #nonull *Pixel.Painter, layout: SceneLayout)
+func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
 {
     painter.clear(Argb.White)
     painter.setParams(.Antialiased)
@@ -115,7 +117,7 @@ func display()
     g_Renderer.end()
 }
 
-func onResize(_window: #nonull *Env.Window, width, height: s32)
+func onResize(_window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height

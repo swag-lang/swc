@@ -128,7 +128,7 @@ impl Circle
 struct ListNode
 {
     value: s32
-    next: *ListNode
+    next: #null *ListNode
 }
 
 impl ListNode

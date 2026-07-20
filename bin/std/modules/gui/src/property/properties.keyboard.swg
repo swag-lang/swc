@@ -43,7 +43,7 @@ internal impl Properties
 {
     // Navigation-mode key handling, driven by PropertiesView.onKeyEvent (the
     // edView owns the focus while navigating).
-    mtd navKeyEvent(evt: #nonull *KeyEvent)
+    mtd navKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -161,7 +161,7 @@ internal impl Properties
 
     // Edition-mode key interception, called from onHookChildEvent before the
     // focused editor processes the key. Returns true when the key is consumed.
-    mtd editKeyEvent(evt: #nonull *KeyEvent)->bool
+    mtd editKeyEvent(evt: *KeyEvent)->bool
     {
         if !.isEditing() do
             return false
@@ -260,7 +260,7 @@ private impl Properties
         return false
     }
 
-    mtd itemHasEditor(item: #nonull *PropertiesItem)->bool
+    mtd itemHasEditor(item: *PropertiesItem)->bool
     {
         return item.editBox != null or item.comboBox != null or item.sliderBox != null or item.checkBox != null
     }

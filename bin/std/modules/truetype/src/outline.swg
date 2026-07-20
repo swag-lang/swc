@@ -33,7 +33,7 @@ public impl Outline
         if .pointCount <= 0 do
             return
 
-        let points = .points orelse cast(#nonull [*] Vector) 1'u64
+        let points = .points orelse cast([*] Vector) 1'u64
         for cast(u32) .pointCount
         {
             points[@index].x += xOffset
@@ -46,7 +46,7 @@ public impl Outline
         if .pointCount <= 0 do
             return
 
-        let points = .points orelse cast(#nonull [*] Vector) 1'u64
+        let points = .points orelse cast([*] Vector) 1'u64
         for cast(u32) .pointCount
         {
             let pt = points[@index]
@@ -74,8 +74,8 @@ public impl Outline
         let perSide = cast(f64) strength * 0.5
 
         var start = 0'u32
-        let points   = .points orelse cast(#nonull [*] Vector) 1'u64
-        let contours = .contours orelse cast(#nonull [*] s16) 1'u64
+        let points   = .points orelse cast([*] Vector) 1'u64
+        let contours = .contours orelse cast([*] s16) 1'u64
         for cast(u32) .contourCount
         {
             let endIdx = cast(u32) contours[@index]
@@ -113,9 +113,9 @@ func buildOutlineCommands(outline: #null const *Outline)->Array'OutlineCommand
         return commands
 
     var contourStart = 0'u32
-    let points   = cast(#nonull const [*] Vector) (outline.points orelse cast(#nonull [*] Vector) 1'u64)
-    let tags     = cast(#nonull const [*] u8) (outline.tags orelse cast(#nonull [*] u8) 1'u64)
-    let contours = cast(#nonull const [*] s16) (outline.contours orelse cast(#nonull [*] s16) 1'u64)
+    let points   = cast(const [*] Vector) (outline.points orelse cast([*] Vector) 1'u64)
+    let tags     = cast(const [*] u8) (outline.tags orelse cast([*] u8) 1'u64)
+    let contours = cast(const [*] s16) (outline.contours orelse cast([*] s16) 1'u64)
     for cast(u32) outline.contourCount
     {
         let contourEnd = cast(u32) contours[@index]
@@ -179,7 +179,7 @@ func buildOutlineCommands(outline: #null const *Outline)->Array'OutlineCommand
     return commands
 }
 
-func contourSignedArea(points: #nonull const [..] Vector)->f64
+func contourSignedArea(points: const [..] Vector)->f64
 {
     if @countof(points) < 3 do
         return 0
@@ -198,15 +198,15 @@ func contourSignedArea(points: #nonull const [..] Vector)->f64
 // Sum the signed area of every contour. For a well-formed glyph the outer
 // contour dominates, so the sign gives the glyph orientation; the magnitude is
 // the net filled area (outer minus holes).
-func totalOutlineSignedArea(outline: #nonull const *Outline)->f64
+func totalOutlineSignedArea(outline: const *Outline)->f64
 {
     if outline.pointCount <= 0 or outline.contourCount <= 0 do
         return 0
 
     var total = 0.0'f64
     var start = 0'u32
-    let points   = cast(#nonull const [*] Vector) (outline.points orelse cast(#nonull [*] Vector) 1'u64)
-    let contours = cast(#nonull const [*] s16) (outline.contours orelse cast(#nonull [*] s16) 1'u64)
+    let points   = cast(const [*] Vector) (outline.points orelse cast([*] Vector) 1'u64)
+    let contours = cast(const [*] s16) (outline.contours orelse cast([*] s16) 1'u64)
     for cast(u32) outline.contourCount
     {
         let endIdx = cast(u32) contours[@index]
@@ -218,7 +218,7 @@ func totalOutlineSignedArea(outline: #nonull const *Outline)->f64
     return total
 }
 
-func applyEmboldenToContour(points: #nonull [..] Vector, strength: f64, ccw: bool)
+func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
 {
     if @countof(points) < 2 or Math.isZeroEpsilon(cast(f32) strength) do
         return

@@ -23,7 +23,7 @@ public struct SurfaceWnd
 
 impl IWnd for SurfaceWnd
 {
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         switch evt.kind
         {
@@ -125,13 +125,13 @@ impl IWnd for SurfaceWnd
         }
     }
 
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         let surface = assume .surface
         surface.app.destroySurface(surface)
     }
 
-    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent)
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         switch evt.kind
         {
@@ -146,7 +146,7 @@ impl IWnd for SurfaceWnd
         }
     }
 
-    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
+    mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         let clientRect = .getClientRect()
         let metrics    = .getThemeMetrics()
@@ -178,7 +178,7 @@ impl IWnd for SurfaceWnd
         .base.IWnd.onResizeEvent(evt)
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         if .isPendingDestroy do
             return
@@ -335,12 +335,12 @@ impl SurfaceWnd
         return newSizingBorder
     }
 
-    func onMinimize(btn: #nonull *Button)
+    func onMinimize(btn: *Button)
     {
         btn.surface.requestMinimize()
     }
 
-    func onMaximize(btn: #nonull *Button)
+    func onMaximize(btn: *Button)
     {
         if btn.surface.isMaximized do
             btn.surface.requestRestore()
@@ -348,7 +348,7 @@ impl SurfaceWnd
             btn.surface.requestMaximize()
     }
 
-    func onClose(btn: #nonull *Button)
+    func onClose(btn: *Button)
     {
         btn.surface.requestClose()
     }

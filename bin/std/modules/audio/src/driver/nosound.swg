@@ -46,7 +46,7 @@ impl NoSoundDriverNative
 
 impl Voice
 {
-    func createNoSound(voice: #nonull *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
         voice.handle = cast(VoiceHandle) Memory.new'NoSoundVoice()
         voice.requestedEncoding = voice.file.encoding
@@ -149,7 +149,7 @@ public impl Voice
 
 impl Bus
 {
-    func createNoSound(bus: #nonull *Bus, numChannels: u32, parent: #null *Bus = null) throw
+    func createNoSound(bus: *Bus, numChannels: u32, parent: #null *Bus = null) throw
     {
         if parent and !parent.handle do
             throw BadParameterError{"parent bus invalid"}

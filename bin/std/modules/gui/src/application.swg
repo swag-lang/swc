@@ -1,12 +1,12 @@
 #global public
 using Core, Serialization
 
-alias FrameCallback = func||(#nonull *Application)
+alias FrameCallback = func||(*Application)
 
 struct Application
 {
     using native:           ApplicationNative
-    sigFrame:               SigArray'func||(#nonull *Application)
+    sigFrame:               SigArray'func||(*Application)
 
     options:                ApplicationOptions
     appIcon:                Pixel.Image
@@ -17,9 +17,9 @@ struct Application
     mouse:                  Input.Mouse
     mainSurface:            #null *Surface
     postedEvents:           Array'(IEvent)
-    surfaces:               Array'(#nonull *Surface)
-    postDestroy:            Array'(#nonull *Wnd)
-    hookOnEvent:            Array'(#nonull *Wnd)
+    surfaces:               Array'(*Surface)
+    postDestroy:            Array'(*Wnd)
+    hookOnEvent:            Array'(*Wnd)
     frameCursor:            Cursor
     endModalExit:           #null WndId
     inModalLoop:            u32
@@ -34,12 +34,12 @@ struct Application
     mutexPostedEvents:      Sync.Mutex
 
     duringTimerEvents:      bool
-    timers:                 Array'(#nonull *Timer)
-    timersToAdd:            Array'(#nonull *Timer)
-    timersToDelete:         Array'(#nonull *Timer)
-    frameEvents:            Array'(#nonull *Wnd)
-    modalSurfaces:          Array'(#nonull *Surface)
-    toDelete:               Array'{ ptr: #null *void, type: #nonull const *Swag.TypeInfo }
+    timers:                 Array'(*Timer)
+    timersToAdd:            Array'(*Timer)
+    timersToDelete:         Array'(*Timer)
+    frameEvents:            Array'(*Wnd)
+    modalSurfaces:          Array'(*Surface)
+    toDelete:               Array'{ ptr: #null *void, type: const *Swag.TypeInfo }
     mouseEnterWnd:          #null *Wnd
     mouseCaptureWnd:        #null *Wnd
     keybFocusWnd:           #null *Wnd
@@ -65,7 +65,7 @@ private impl Application
             return
         }
 
-        let event = cast(#nonull *Event) evt
+        let event = cast(*Event) evt
 
         // Be sure we have a target
         if !event.target do
@@ -349,7 +349,7 @@ private impl Application
 
     // Remove and destroy the given surface
     // To cleanly close a surface, you should call surface.destroy()
-    mtd destroySurface(surface: #nonull *Surface)
+    mtd destroySurface(surface: *Surface)
     {
         .surfaces.remove(surface)
         if surface == .mainSurface do
@@ -362,7 +362,7 @@ private impl Application
         .toDelete.add({surface, #typeof(dref surface)})
     }
 
-    mtd unregisterWnd(wnd: #nonull *Wnd)
+    mtd unregisterWnd(wnd: *Wnd)
     {
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null
@@ -475,7 +475,7 @@ private impl Application
         .sigFrame.call(me)
     }
 
-    public mtd doModalLoop(surface: #null *Surface, cb: func||(#nonull *Application) = null)->#nonull WndId
+    public mtd doModalLoop(surface: #null *Surface, cb: func||(*Application) = null)->WndId
     {
         .inModalLoop += 1
         defer .inModalLoop -= 1
@@ -556,7 +556,7 @@ impl Application
         mtd const getDt() => .timing.dt
     }
 
-    mtd clearWndInputState(wnd: #nonull *Wnd)
+    mtd clearWndInputState(wnd: *Wnd)
     {
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null
@@ -577,7 +577,7 @@ impl Application
     // Create a main surface, and run.
     // When the application is launched with the 'swag.test' argument, it auto-exits
     // after 'testFrames' frames, so examples can be run headless by the test suite.
-    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(#nonull *Application) = null, testFrames: u32 = 50)
+    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 50)
     {
         var app: Application
 
@@ -642,7 +642,7 @@ impl Application
     }
 
     // Associate a configuration file
-    mtd setConfigPath(path: #nonull string)
+    mtd setConfigPath(path: string)
     {
         .configPath = path
     }
@@ -656,7 +656,7 @@ impl Application
     // Call it when the theme has changed
     mtd themeHasChanged()
     {
-        func updateTheme(wnd: #nonull *Wnd)
+        func updateTheme(wnd: *Wnd)
         {
             wnd.style.dirty = true
             wnd.computeStyle()
@@ -675,7 +675,7 @@ impl Application
             s.wnd.updateTheme()
     }
 
-    private mtd serializeState(ser: #nonull *Serializer) throw
+    private mtd serializeState(ser: *Serializer) throw
     {
         ser.beginSection(.Unordered)
         for s in .surfaces do
@@ -722,7 +722,7 @@ impl Application
 
     // Destroy a window
     // To cleanly close a window, you should call wnd.destroy()
-    mtd destroyWnd(wnd: #nonull *Wnd)
+    mtd destroyWnd(wnd: *Wnd)
     {
         var evt = DestroyEvent{}
         wnd.sendEvent(&evt)
@@ -798,7 +798,7 @@ impl Application
     }
 
     // Register a new timer for the given 'target'
-    mtd addTimer(time: Time.Duration, target: #nonull *Wnd)->#nonull *Timer
+    mtd addTimer(time: Time.Duration, target: *Wnd)->*Timer
     {
         let timer = Memory.new'Timer()
         timer.timeMs = time.toMs()
@@ -811,7 +811,7 @@ impl Application
     }
 
     // Delete and unregister timer
-    mtd deleteTimer(timer: #nonull *Timer)
+    mtd deleteTimer(timer: *Timer)
     {
         if .duringTimerEvents
         {
@@ -828,27 +828,27 @@ impl Application
     }
 
     // Register a window to receive a FrameEvent each running for
-    mtd registerFrameEvent(target: #nonull *Wnd)
+    mtd registerFrameEvent(target: *Wnd)
     {
         Debug.assert(!.frameEvents.contains(target))
         .frameEvents.add(target)
     }
 
     // Unregister a window that receives a FrameEvent each running for
-    mtd unregisterFrameEvent(target: #nonull *Wnd)
+    mtd unregisterFrameEvent(target: *Wnd)
     {
         .frameEvents.remove(target)
     }
 
     // Register a window to receive hook events
-    mtd registerHookEvents(target: #nonull *Wnd)
+    mtd registerHookEvents(target: *Wnd)
     {
         Debug.assert(!.hookOnEvent.contains(target))
         .hookOnEvent.add(target)
     }
 
     // Unregister a window to receive hook events
-    mtd unregisterHookEvents(target: #nonull *Wnd)
+    mtd unregisterHookEvents(target: *Wnd)
     {
         .hookOnEvent.remove(target)
     }
@@ -877,14 +877,14 @@ impl Application
     }
 
     // End current modal for
-    mtd exitModal(exitId: #nonull string = "")
+    mtd exitModal(exitId: string = "")
     {
         .endModal     = true
         .endModalExit = exitId
     }
 
-    mtd getFileIcon(name: #nonull string, small = true)->Icon      => .getFileDirectoryIcon(name, false, small)
-    mtd getDirectoryIcon(name: #nonull string, small = true)->Icon => .getFileDirectoryIcon(name, true, small)
+    mtd getFileIcon(name: string, small = true)->Icon      => .getFileDirectoryIcon(name, false, small)
+    mtd getDirectoryIcon(name: string, small = true)->Icon => .getFileDirectoryIcon(name, true, small)
 
     // Enable or disable the processing of hot keys
     mtd enableHotKeys(state = true)
@@ -899,7 +899,7 @@ impl Application
     }
 
     // Register a global os key action
-    mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: #nonull WndId, target: #nonull *Wnd) throw
+    mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId, target: *Wnd) throw
     {
         for &c in .hotKeys
         {
@@ -928,7 +928,7 @@ impl Application
     }
 
     // Get the name associated with a given id shortcut
-    mtd getHotKeyShortcutNameFor(wndId: #nonull WndId)->String
+    mtd getHotKeyShortcutNameFor(wndId: WndId)->String
     {
         var result: retval
         for c in .hotKeys

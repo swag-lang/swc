@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 alias ExactArrayParamNativeHistogram = [8] u16
 

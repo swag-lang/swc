@@ -70,13 +70,13 @@ impl ArrayPtr
 
     // Allocates memory for a new object of type T using the array's allocator.
     // Returns a pointer to the newly allocated memory.
-    mtd newPtr()->#nonull *T
+    mtd newPtr()->*T
     {
         return Memory.new'T(.allocator)
     }
 
     // Allocates a new object, adds its pointer to the end of the array, and returns the pointer.
-    mtd addNewPtr()->#nonull *T
+    mtd addNewPtr()->*T
     {
         let ptr = .newPtr()
         .add(ptr)
@@ -84,7 +84,7 @@ impl ArrayPtr
     }
 
     // Allocates a new object and inserts its pointer at 'index', returning the pointer.
-    mtd insertNewPtr(index: u64)->#nonull *T
+    mtd insertNewPtr(index: u64)->*T
     {
         let ptr = .newPtr()
         .insertAt(index, ptr)

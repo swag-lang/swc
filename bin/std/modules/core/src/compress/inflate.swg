@@ -77,7 +77,7 @@ internal
 
     impl HuffmanTable
     {
-        mtd init(codeLengths: #nonull const [..] u8) throw
+        mtd init(codeLengths: const [..] u8) throw
         {
             var sizes:    [HuffmanMaxBits + 1] u16
             var nextCode: [HuffmanMaxBits] u16
@@ -146,7 +146,7 @@ impl Inflate
 {
     public const InflateMaxDistance = 32768'u32
 
-    mtd decode(ht: #nonull *HuffmanTable)->u16 throw
+    mtd decode(ht: *HuffmanTable)->u16 throw
     {
         if .stream.numBits < 16
         {
@@ -182,7 +182,7 @@ impl Inflate
         return ht.value[b1]
     }
 
-    mtd parseBlock(repeatHt, repeatZ: #nonull *HuffmanTable, dest: #nonull *Array'u8) throw
+    mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array'u8) throw
     {
         let startBufCount = dest.count
 
@@ -241,7 +241,7 @@ impl Inflate
             if distance == 1
             {
                 // Repeat the last byte 'length' times
-                let buffer = dest.buffer orelse cast(#nonull [*] u8) 1'u64
+                let buffer = dest.buffer orelse cast([*] u8) 1'u64
                 let b      = buffer[dest.count - 1]
                 Memory.set(buffer + dest.count, b, cast(u64) length)
                 dest.count += length
@@ -252,7 +252,7 @@ impl Inflate
                 // own buffer, so a direct memory copy is used here: routing this through
                 // 'dest.add(slice)' would hit its self-aliasing guard and allocate a
                 // temporary array for every back-reference. Capacity is ensured by 'grow' above.
-                let buffer = dest.buffer orelse cast(#nonull [*] u8) 1'u64
+                let buffer = dest.buffer orelse cast([*] u8) 1'u64
                 Memory.copy(buffer + dest.count, buffer + dest.count - distance, cast(u64) length)
                 dest.count += length
             }
@@ -277,7 +277,7 @@ impl Inflate
     }
 
     // Decompress the associated stream
-    public mtd decompress(result: #nonull *Array'u8, buf: #nonull const [..] u8, winSize: u32 = InflateMaxDistance) throw
+    public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = InflateMaxDistance) throw
     {
         .stream.init(buf)
         .adler.init()

@@ -1,9 +1,8 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct NativeNonNullMoveArrayDefault
 {
-    value: #nonull string = "reset"
+    value: string = "reset"
 }
 
 impl NativeNonNullMoveArrayDefault
@@ -15,7 +14,7 @@ impl NativeNonNullMoveArrayDefault
 
 struct NativeNonNullMoveUndefinedEscape
 {
-    value: #nonull string = undefined
+    value: string = undefined
 }
 
 impl NativeNonNullMoveUndefinedEscape

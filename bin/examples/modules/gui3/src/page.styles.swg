@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func fillNarrativeEditor(ed: #nonull *RichEditCtrl)
+func fillNarrativeEditor(ed: *RichEditCtrl)
 {
     ed.styles[1].colFg = Argb.SteelBlue
     ed.styles[1].fontMode = .Bold
@@ -22,7 +22,7 @@ func fillNarrativeEditor(ed: #nonull *RichEditCtrl)
     ed.addText("This is especially useful for inspectors, changelogs and embedded documentation where code and prose live side by side.", 0)
 }
 
-func fillPaletteEditor(ed: #nonull *RichEditCtrl)
+func fillPaletteEditor(ed: *RichEditCtrl)
 {
     ed.styles[1].colFg = Argb.SeaGreen
     ed.styles[1].fontMode = .Bold
@@ -45,7 +45,7 @@ func fillPaletteEditor(ed: #nonull *RichEditCtrl)
     ed.addText("Links, diagnostics and tiny semantic chips can be modeled with a handful of styles.\n", 5)
 }
 
-func fillLogEditor(ed: #nonull *RichEditCtrl)
+func fillLogEditor(ed: *RichEditCtrl)
 {
     ed.styles[1].colFg = Argb.Gray
     ed.styles[2].colFg = Argb.SeaGreen
@@ -71,7 +71,7 @@ func fillLogEditor(ed: #nonull *RichEditCtrl)
     ed.addText("use styles to make dense text scannable without extra widgets", 0)
 }
 
-func createStylesPage(parent: #nonull *Wnd)
+func createStylesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 

@@ -74,7 +74,7 @@ impl RecentView
 
 impl IWnd for RecentView
 {
-    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
+    mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .MouseWheel do
             evt.accepted = false
@@ -128,7 +128,7 @@ impl IWnd for RecentView
         }
     }
 
-    func paintRecent(parent: #nonull *Wnd, painter: #nonull *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
+    func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
     {
         let colors = parent.getThemeColors()
 
@@ -178,7 +178,7 @@ impl IWnd for RecentView
             painter.drawRoundRect(rect, 8, 8, colors.hilightLight, 4)
     }
 
-    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
+    mtd impl onPaintEvent(evt: *PaintEvent)
     {
         let painter    = evt.bc.painter
         let clientRect = .getClientRectPadding()
@@ -222,7 +222,7 @@ struct RecentWnd
 
 impl IWnd for RecentWnd
 {
-    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         if .timer do
             .getApp().deleteTimer(assume .timer)
@@ -230,7 +230,7 @@ impl IWnd for RecentWnd
             .getApp().deleteTimer(assume .loadTimer)
     }
 
-    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
+    mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer == .loadTimer
         {
@@ -277,7 +277,7 @@ impl IWnd for RecentWnd
 
 impl RecentWnd
 {
-    func create(parent: #nonull *Wnd, main: #nonull *MainWnd)->#nonull *RecentWnd
+    func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
@@ -441,7 +441,7 @@ impl RecentWnd
         return loaded
     }
 
-    mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: #nonull string = "")
+    mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = "")
     {
         // Already there ?
         for it, i in .recentView.items

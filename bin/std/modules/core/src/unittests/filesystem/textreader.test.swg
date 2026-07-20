@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertString(value: const &String, expected: #nonull string)->bool
+func assertString(value: const &String, expected: string)->bool
 {
     return value == expected and @countof(value) == @countof(expected)
 }

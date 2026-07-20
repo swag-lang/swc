@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 var A: #null *s32
 #assert(#typeof(A) == #null *s32)

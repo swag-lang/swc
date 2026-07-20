@@ -18,14 +18,16 @@ func semaTest002()
 
 func semaTest003()
 {
-    var a6: [..] s32
+    var arr6: [2] s32
+    var a6: [..] s32 = arr6
     var b6 = a6[0]
     #assert(#typeof(b6) == s32)
 }
 
 func semaTest004()
 {
-    var a2: [..] s32
+    var arr2: [2] s32
+    var a2: [..] s32 = arr2
     var b2 = a2[0]
     #assert(#typeof(b2) == s32)
 }
@@ -39,7 +41,7 @@ func semaTest005()
 func semaTest006()
 {
     var text = "hello"
-    var textRef: &#nonull string = &text
+    var textRef: &string = &text
     var ch = textRef[1]
     #assert(#typeof(ch) == u8)
 

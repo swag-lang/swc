@@ -14,7 +14,7 @@ struct GizmoRect
     firstMoving:           bool
     movingRect:            Math.Rectangle
     movingStart:           Math.Point
-    sigChanged:            func||(#nonull *GizmoRect, bool, u32)
+    sigChanged:            func||(*GizmoRect, bool, u32)
     sigHasChanged:         func||()
 
     // Rotation: the whole gizmo (box + anchors + handle) rotates with the form
@@ -26,7 +26,7 @@ struct GizmoRect
     firstRotating:         bool
     rotateStartValue:      f32
     rotateStartAngle:      f32
-    sigRotate:             func||(#nonull *GizmoRect, bool, bool, f32)
+    sigRotate:             func||(*GizmoRect, bool, bool, f32)
 
     // Captured at the start of a resize so the math stays in the rotated frame
     gizmoRad:              f32
@@ -41,7 +41,7 @@ const RotateHandleDist = 26.0
 
 impl GizmoRect
 {
-    mtd mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
+    mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         let prop = (evt.modifiers & .Shift) and !(evt.modifiers & .Control)
 
@@ -324,7 +324,7 @@ impl GizmoRect
         return Math.Point{cx + r.x, cy + r.y}
     }
 
-    mtd paint(painter: #nonull *Painter, hot: bool, col: Color = Argb.White)
+    mtd paint(painter: *Painter, hot: bool, col: Color = Argb.White)
     {
         let anchorSize2 = .anchorSize * 0.5
 
@@ -413,7 +413,7 @@ impl GizmoRect
 
     mtd apply(iform: IForm, first: bool, hitMove: u32)
     {
-        let form    = cast(#nonull *BaseForm) @dataof(iform)
+        let form    = cast(*BaseForm) @dataof(iform)
         let capture = form.capture
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
@@ -505,7 +505,7 @@ impl GizmoRect
     // Rotate slider in the property window so undo/redo stays consistent.
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
-        let form    = cast(#nonull *BaseForm) @dataof(iform)
+        let form    = cast(*BaseForm) @dataof(iform)
         let capture = form.capture
         if !first do
             capture.undo()

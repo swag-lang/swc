@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Macro]
-func inlineLocalMacroInject(count: s32, contextData: *void = null, stmt: #code(data: *void))
+func inlineLocalMacroInject(count: s32, contextData: *void, stmt: #code(data: *void))
 {
     #[Swag.Inline]
     func doWork(n: s32, ctxData: *void)

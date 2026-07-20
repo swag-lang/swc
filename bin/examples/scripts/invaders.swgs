@@ -21,9 +21,9 @@ const LASER_LENGTH       = 25
 const SPEED_ALIEN_X      = 60
 const SPEED_ALIEN_Y      = 20
 
-var g_Wnd:      *Wnd
+var g_Wnd:      #null *Wnd
 var g_DataPath: String
-var g_Painter:  *Painter
+var g_Painter:  #null *Painter
 
 var g_MoveAlienDirection: f32 = 1
 var g_NumAlienLasers      = 0
@@ -40,12 +40,12 @@ var g_SoundMusic:     Audio.SoundFile
 var g_SoundLaser:     Audio.SoundFile
 var g_SoundExplosion: Audio.SoundFile
 
-var g_Font: *Font
+var g_Font: #null *Font
 
 struct Alien
 {
     x, y:     f32
-    type:     *Texture
+    type:     #null *Texture
     dead:     bool
 }
 
@@ -287,10 +287,10 @@ func display()
     }
 
     // Score
-    g_Painter.drawString(40, 0, Format.toString("score: %", g_Score), g_Font, Argb.White)
+    g_Painter.drawString(40, 0, Format.toString("score: %", g_Score), assume g_Font, Argb.White)
 }
 
-func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     g_Dt = wnd.getApp().getDt()
 
@@ -346,6 +346,6 @@ func loadBindTextures()
     assume Audio.createEngine()
     defer Audio.destroyEngine()
 
-    func muteForTest(app: #nonull *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
+    func muteForTest(app: *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
     Application.runSurface(100, 100, W - 46, H - 31, title: "Space-invaders", hook: &onEvent, init: &muteForTest)
 }

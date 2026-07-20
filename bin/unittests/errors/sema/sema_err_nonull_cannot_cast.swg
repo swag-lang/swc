@@ -7,7 +7,7 @@ struct NonNullCannotCastItem
 
 struct NonNullCannotCastDefaultField
 {
-    value: #nonull *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    value: *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 struct NonNullCannotCastOpCastBox
@@ -17,7 +17,7 @@ struct NonNullCannotCastOpCastBox
 impl NonNullCannotCastOpCastBox
 {
     #[Swag.ConstExpr, Swag.Implicit]
-    mtd const opCast()->*NonNullCannotCastItem => null
+    mtd const opCast()->#null *NonNullCannotCastItem => null
 }
 
 struct NonNullCannotCastNullableOpCastBox
@@ -30,65 +30,65 @@ impl NonNullCannotCastNullableOpCastBox
     mtd const opCast()->#null string => "present-but-optional"
 }
 
-func acceptNonNullCannotCast(value: #nonull *NonNullCannotCastItem)
+func acceptNonNullCannotCast(value: *NonNullCannotCastItem)
 {
 }
 
-func defaultNonNullCannotCast(value: #nonull *NonNullCannotCastItem = null) // swc-expected-error {{sema_err_cannot_cast}}
+func defaultNonNullCannotCast(value: *NonNullCannotCastItem = null) // swc-expected-error {{sema_err_cannot_cast}}
 {
 }
 
-func returnNonNullCannotCast()->#nonull *NonNullCannotCastItem
+func returnNonNullCannotCast()->*NonNullCannotCastItem
 {
     return null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull [*] NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: [*] NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull [..] NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: [..] NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull string = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: string = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull cstring = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: cstring = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull typeinfo = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: typeinfo = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: #nonull any = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: any = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     var item = NonNullCannotCastItem{value: 1}
-    var value: #nonull *NonNullCannotCastItem = &item
+    var value: *NonNullCannotCastItem = &item
     value = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     var item = NonNullCannotCastItem{value: 1}
-    var value: #nonull *NonNullCannotCastItem = &item
+    var value: *NonNullCannotCastItem = &item
     @init(&value)(null) // swc-expected-error {{sema_err_cannot_cast}}
 }
 
@@ -100,59 +100,59 @@ func returnNonNullCannotCast()->#nonull *NonNullCannotCastItem
 #test
 {
     var nullable: #null *NonNullCannotCastItem = null
-    let value: #nonull *NonNullCannotCastItem = nullable // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = nullable // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // A migration-compatible legacy type must not launder a constant known to be null.
-    let value: #nonull *NonNullCannotCastItem = cast(*NonNullCannotCastItem) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = cast(*NonNullCannotCastItem) null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    let value = cast(#nonull *NonNullCannotCastItem) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem) null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // The cast result, not just the source literal, must satisfy the contract.
-    let value = cast(#nonull *NonNullCannotCastItem) 0'u64 // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem) 0'u64 // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // Boxing null in 'any' must not hide it from the explicit non-null contract.
-    let value: #nonull any = cast(any) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value: any = cast(any) null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    let value = cast(#nonull any) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(any) null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // A boxed zero is a present 'any' value, not a null 'any'.
-    let direct: #nonull any = 0
-    let preboxed: #nonull any = cast(any) 0
+    let direct: any = 0
+    let preboxed: any = cast(any) 0
 
     // Boxing a typed null pointer also creates a present 'any' value.
-    let nullPointer: *NonNullCannotCastItem = null
-    let boxedPointer: #nonull any = cast(any) nullPointer
+    let nullPointer: #null *NonNullCannotCastItem = null
+    let boxedPointer: any = cast(any) nullPointer
     #assert(boxedPointer != null)
 }
 
 #test
 {
     // A constexpr opCast result must satisfy the destination contract after folding.
-    let value: #nonull *NonNullCannotCastItem = NonNullCannotCastOpCastBox{} // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = NonNullCannotCastOpCastBox{} // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // An explicitly nullable opCast result cannot promise a non-null contract.
-    let value: #nonull string = NonNullCannotCastNullableOpCastBox{} // swc-expected-error {{sema_err_cannot_cast}}
+    let value: string = NonNullCannotCastNullableOpCastBox{} // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -160,8 +160,8 @@ func returnNonNullCannotCast()->#nonull *NonNullCannotCastItem
     // Identical string bytes under distinct nullability contracts must keep distinct types.
     let legacy: string = "same-bytes"
     let optional: #null string = "same-bytes"
-    let required: #nonull string = "same-bytes"
+    let required: string = "same-bytes"
     #assert(#typeof(legacy) == string)
     #assert(#typeof(optional) == #null string)
-    #assert(#typeof(required) == #nonull string)
+    #assert(#typeof(required) == string)
 }

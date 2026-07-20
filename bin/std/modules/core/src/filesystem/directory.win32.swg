@@ -3,7 +3,7 @@
 #global namespace Directory
 using Win32
 
-func create(dirname: #nonull string) throw
+func create(dirname: string) throw
 {
     let winPath = Utf16.toZeroTerminated(dirname)
     catch CreateDirectoryW(@dataof(winPath), null)
@@ -11,7 +11,7 @@ func create(dirname: #nonull string) throw
 }
 
 // Returns true if the given directory exists
-func exists(dirName: #nonull string)->bool
+func exists(dirName: string)->bool
 {
     if @countof(dirName) == 0 do
         return false
@@ -39,7 +39,7 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
     var fileTime:  SYSTEMTIME
     var stackPath: Array'String
 
-    let dataof = cast(#nonull const [*] u16) @dataof(findfile.cFileName)
+    let dataof = cast(const [*] u16) @dataof(findfile.cFileName)
 
     stackPath.add(String.from(dirName))
     while !stackPath.isEmpty()
@@ -138,7 +138,7 @@ func getCurrent()->String throw
 }
 
 // Set the current directory
-func setCurrent(dirName: #nonull string) throw
+func setCurrent(dirName: string) throw
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch SetCurrentDirectoryW(@dataof(winPath))
@@ -155,10 +155,10 @@ func getDrives()->Array'String throw
     if slen >= MAX_PATH do
         return result
 
-    var ptr = cast(#nonull [*] u8) &volName[0]
+    var ptr = cast([*] u8) &volName[0]
     while ptr[0]
     {
-        let len = @countof(cast(#nonull cstring) ptr)
+        let len = @countof(cast(cstring) ptr)
         result.add(@mkstring(ptr, len))
         ptr += len + 1
     }
@@ -184,7 +184,7 @@ func getVolumes()->Array'String throw
         catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret)
         if @err == null
         {
-            let len = @countof(cast(#nonull cstring) driveName)
+            let len = @countof(cast(cstring) driveName)
             if len
             {
                 var str = String.from(@mkstring(&driveName[0], len))

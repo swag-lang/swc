@@ -184,7 +184,7 @@ func bfs(g: *Grid) -> s32
     }
     dist[0][0] = 0
 
-    let queue = cast([*] u32) @alloc(cast(u64) MaxQ * 2 * #sizeof(u32))
+    let queue = cast([*] u32) assume @alloc(cast(u64) MaxQ * 2 * #sizeof(u32))
     defer @free(queue)
     var head: u32
     var tail: u32

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // 
 
 #global private
@@ -38,7 +37,7 @@ func castVariadicValue(x: ...)
 #test
 {
     var value: CastWide
-    var boxed: #nonull any = value
+    var boxed: any = value
     let copyValue = cast(CastWide) boxed
     @assert(copyValue.value == 456)
     @assert(copyValue.value4 == 456)
@@ -47,7 +46,7 @@ func castVariadicValue(x: ...)
 #test
 {
     var value: CastTriple
-    var boxed: #nonull any = value
+    var boxed: any = value
     var copyValue = cast(CastTriple) boxed
     let refValue = cast(const &CastTriple) boxed
     copyValue.y = 99

@@ -12,7 +12,7 @@ attr Final()
 
 // Accept this other name for the struct field or the struct itself
 #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable | AttributeUsage.Multi)]
-attr Alias(name: #nonull string)
+attr Alias(name: string)
 
 // Do not serialize a struct or a field
 #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
@@ -46,7 +46,7 @@ impl Serializer
     mtd isReading() => !.isWrite
 
     // Start encoding
-    mtd startWrite(encoder: IEncoder, output: #nonull *ConcatBuffer) throw
+    mtd startWrite(encoder: IEncoder, output: *ConcatBuffer) throw
     {
         .encode  = encoder
         .isWrite = true
@@ -54,7 +54,7 @@ impl Serializer
     }
 
     // Start decoding
-    mtd startRead(decoder: IDecoder, input: #nonull const [..] u8) throw
+    mtd startRead(decoder: IDecoder, input: const [..] u8) throw
     {
         .decode  = decoder
         .isWrite = false
@@ -90,7 +90,7 @@ impl Serializer
 
     // Serialize one value
     #[Swag.Optimize(false)]
-    mtd(MT) serialize(name: #null string, crc: u32, res: #nonull *MT) throw
+    mtd(MT) serialize(name: #null string, crc: u32, res: *MT) throw
     {
         var value: Swag.TypeValue
         value.name        = name
@@ -162,7 +162,7 @@ impl Serializer
 
     // Serialize one value
     #[Swag.Mixin]
-    mtd(MT) serialize(name: #nonull string, res: #nonull *MT) throw
+    mtd(MT) serialize(name: string, res: *MT) throw
     {
         .serialize(name, Hash.Crc32.compute(name), res)
     }

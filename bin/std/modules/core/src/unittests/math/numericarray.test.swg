@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func expectNumericArray4(values: const &Math.NumericArray'(s32, 4'u32), expected: #nonull const [..] s32)
+func expectNumericArray4(values: const &Math.NumericArray'(s32, 4'u32), expected: const [..] s32)
 {
     @assert(@countof(expected) == 4)
     for i in 4

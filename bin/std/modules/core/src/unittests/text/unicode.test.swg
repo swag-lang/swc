@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertRuneArray(values: const &Array'rune, expected: #nonull const [..] rune)->bool
+func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
 {
     if values.count != @countof(expected) do
         return false

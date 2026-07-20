@@ -49,11 +49,11 @@ namespace NS {}
 
 func semaTest001()
 {
-    var a: string
+    var a: #null string
     var b = @countof(a)
     #assert(#typeof(b) == u64)
 
-    var cs: cstring
+    var cs: #null cstring
     var csc = @countof(cs)
     #assert(#typeof(csc) == u64)
 
@@ -84,7 +84,7 @@ func semaTest004()
     #assert(count == 9)
 }
 
-func countStringRef(value: &#nonull string)->u64
+func countStringRef(value: &string)->u64
 {
     return @countof(value)
 }
@@ -114,7 +114,7 @@ func countSpecOpRef(value: const &RefCountedBySpecOp)->u64
     return @countof(value)
 }
 
-func loopStringRef(value: const &#nonull string)->u64
+func loopStringRef(value: const &string)->u64
 {
     var count: u64 = 0
     for value do
@@ -149,7 +149,7 @@ func loopUnsignedRef(value: &u32)->u32
 func semaTest005()
 {
     var text = "hello"
-    var textRef: &#nonull string = &text
+    var textRef: &string = &text
     #assert(#typeof(@countof(textRef)) == u64)
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef)) == u64)

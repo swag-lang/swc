@@ -8,12 +8,12 @@ public struct PaintImage
     surface:     #null *Surface
     image:       Image
     w, h:        s32
-    paint:       func||(app: #nonull *Application, painter: #nonull *Painter)
+    paint:       func||(app: *Application, painter: *Painter)
 }
 
 impl PaintImage
 {
-    private func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
+    private func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
         if !evt is PaintEvent do
             return false
@@ -56,7 +56,7 @@ impl PaintImage
     }
 
     // Draw to an image by calling the func
-    public mtd draw(call: func||(#nonull *Application, #nonull *Painter))->Image
+    public mtd draw(call: func||(*Application, *Painter))->Image
     {
         .paint = call
         .surface.invalidate()
@@ -65,7 +65,7 @@ impl PaintImage
     }
 
     // One shot paint to image
-    public func draw(w, h: s32, call: func||(#nonull *Application, #nonull *Painter))->Image
+    public func draw(w, h: s32, call: func||(*Application, *Painter))->Image
     {
         var pt: PaintImage
         pt.init(w, h)

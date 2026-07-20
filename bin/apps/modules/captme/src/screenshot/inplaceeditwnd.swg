@@ -28,7 +28,7 @@ struct InPlaceEditWnd
 // The capture overlay spans the whole virtual desktop in physical pixels, so the
 // editor chrome must be sized for the DPI of the monitor the captured area is on,
 // otherwise the bars/buttons render at 96-DPI size and look tiny on a hi-DPI screen.
-func captureUIScale(capture: #nonull *Capture)->f32
+func captureUIScale(capture: *Capture)->f32
 {
     let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
     let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
@@ -43,7 +43,7 @@ func captureUIScale(capture: #nonull *Capture)->f32
 
 impl InPlaceEditWnd
 {
-    func create(capture: #nonull *Capture, main: #nonull *MainWnd, parent: #nonull *Wnd)->#nonull *InPlaceEditWnd
+    func create(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
@@ -57,7 +57,7 @@ impl InPlaceEditWnd
     }
 
     // Private helper methods
-    func createMainFrame(main: #nonull *MainWnd, parent: #nonull *Wnd, capture: #nonull *Capture)->#nonull *InPlaceEditWnd
+    func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
         let newMain = Wnd.create'MainWnd(main.parent, {})
         newMain.registerActions()
@@ -106,7 +106,7 @@ impl InPlaceEditWnd
         .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id orelse ""); }
     }
 
-    mtd createEditBar(main: #nonull *MainWnd)
+    mtd createEditBar(main: *MainWnd)
     {
         .editBar                 = IconBar.create(assume .editWnd.editView, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
@@ -145,7 +145,7 @@ impl InPlaceEditWnd
         btnColor.sigShowPopup += func|self = me|(btn)
         {
             let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
-            let picker = PropWnd.createColorPicker(cast(#nonull *IconButton) btn, color)
+            let picker = PropWnd.createColorPicker(cast(*IconButton) btn, color)
             picker.sigChanged += func|self, picker, btn|(pk)
             {
                 if self.editMode == .Marker do
@@ -158,26 +158,26 @@ impl InPlaceEditWnd
         }
     }
 
-    mtd setupCapture(capture: #nonull *Capture)
+    mtd setupCapture(capture: *Capture)
     {
         capture.gizmo.sigHasChanged = func|self = me|() { self.moveButtons(); }
         .moveButtons()
         .updateEditMode()
     }
 
-    mtd handleActionBarPress(actionId: #nonull string)
+    mtd handleActionBarPress(actionId: string)
     {
         switch actionId
         {
         case "copy":
-            let cap = me.capture orelse cast(#nonull *Capture) 1'u64
+            let cap = me.capture orelse cast(*Capture) 1'u64
             cap.crop()
             cap.copyAll()
             exitWithResult(false)
         case "close":
             exitWithResult(false)
         case "edit":
-            let cap = me.capture orelse cast(#nonull *Capture) 1'u64
+            let cap = me.capture orelse cast(*Capture) 1'u64
             cap.crop()
             exitWithResult(true)
         case "save":
@@ -187,7 +187,7 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if !fileName.isEmpty()
             {
-                let cap = me.capture orelse cast(#nonull *Capture) 1'u64
+                let cap = me.capture orelse cast(*Capture) 1'u64
                 cap.crop()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)
@@ -195,7 +195,7 @@ impl InPlaceEditWnd
         }
     }
 
-    mtd handleEditModeChange(toolId: #nonull string)
+    mtd handleEditModeChange(toolId: string)
     {
         switch toolId
         {
@@ -224,19 +224,19 @@ impl InPlaceEditWnd
         g_GrabDone = grabDone
     }
 
-    func crop(capture: #nonull *Capture)
+    func crop(capture: *Capture)
     {
         let grabRect = calculateGrabRect(capture)
         capture.applyGrabRect(grabRect)
         capture.updateCaptureState()
     }
 
-    func calculateGrabRect(capture: #nonull *Capture)->Math.Rectangle
+    func calculateGrabRect(capture: *Capture)->Math.Rectangle
     {
         return Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
     }
 
-    func applyGrabRect(capture: #nonull *Capture, rect: Math.Rectangle)
+    func applyGrabRect(capture: *Capture, rect: Math.Rectangle)
     {
         var grabRect = rect
 
@@ -245,7 +245,7 @@ impl InPlaceEditWnd
             capture.backImgOriginal = capture.backImg
     }
 
-    func updateCaptureState(capture: #nonull *Capture)
+    func updateCaptureState(capture: *Capture)
     {
         with capture
         {
@@ -376,7 +376,7 @@ impl InPlaceEditWnd
 
 impl IWnd for InPlaceEditWnd
 {
-    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
+    mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
         if evt.kind == .KeyPressed and evt.key == .Escape do

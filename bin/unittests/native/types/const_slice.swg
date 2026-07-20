@@ -1,12 +1,11 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
-func pick(values: #nonull const [..] s32, idx: s32)->s32
+func pick(values: const [..] s32, idx: s32)->s32
 {
     return values[idx]
 }
 
-func byteChecksum(values: #nonull const [..] u8)->u32
+func byteChecksum(values: const [..] u8)->u32
 {
     var result: u32
     for value in values do
@@ -14,7 +13,7 @@ func byteChecksum(values: #nonull const [..] u8)->u32
     return result
 }
 
-func containsRune(values: #nonull const [..] rune, what: rune)->bool
+func containsRune(values: const [..] rune, what: rune)->bool
 {
     for value in values where value == what do
         return true
@@ -28,11 +27,11 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
 
 struct ProductLine
 {
-    sku: #nonull string
+    sku: string
     qty: s32
 }
 
-func totalQty(lines: #nonull const [..] ProductLine)->s32
+func totalQty(lines: const [..] ProductLine)->s32
 {
     var result: s32
     for line in lines do
@@ -42,12 +41,12 @@ func totalQty(lines: #nonull const [..] ProductLine)->s32
 
 #test
 {
-    const s: #nonull const [..] s32 = [1, 2, 3]
+    const s: const [..] s32 = [1, 2, 3]
     #assert(s[0] == 1)
     #assert(s[2] == 3)
 
     const a: [3] s32 = [4, 5, 6]
-    const view: #nonull const [..] s32 = a
+    const view: const [..] s32 = a
     @assert(pick(a, 2) == 6)
     @assert(pick([10, 20, 30], 1) == 20)
     @assert(@countof(view) == 3)
@@ -56,7 +55,7 @@ func totalQty(lines: #nonull const [..] ProductLine)->s32
 
 #test
 {
-    const values: #nonull const [..] s32 = [10, 20, 30, 40, 50]
+    const values: const [..] s32 = [10, 20, 30, 40, 50]
     let mid = values[1 to 3]
     let tail = mid[1 to ]
 
@@ -70,8 +69,8 @@ func totalQty(lines: #nonull const [..] ProductLine)->s32
 
 #test
 {
-    let text: #nonull string = "const"
-    let bytes = cast(#nonull const [..] u8) text
+    let text: string = "const"
+    let bytes = cast(const [..] u8) text
     let head = bytes[ until 3]
     let tail = bytes[2 to ]
 
@@ -86,7 +85,7 @@ func totalQty(lines: #nonull const [..] ProductLine)->s32
 #test
 {
     const emptyText = ""
-    const emptyBytes = cast(#nonull const [..] u8) emptyText
+    const emptyBytes = cast(const [..] u8) emptyText
 
     @assert(@countof(emptyBytes) == 0)
     @assert(byteChecksum(emptyBytes) == 0'u32)
@@ -105,7 +104,7 @@ func totalQty(lines: #nonull const [..] ProductLine)->s32
         {sku: "cable", qty: 3},
     ]
 
-    const view: #nonull const [..] ProductLine = lines
+    const view: const [..] ProductLine = lines
     @assert(@countof(view) == 2)
     @assert(view[0].sku == "keyboard")
     @assert(view[1].sku == "cable")

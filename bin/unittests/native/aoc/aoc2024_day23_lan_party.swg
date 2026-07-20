@@ -44,7 +44,7 @@ const MaxEdges = 4096'u32
 
 struct Graph
 {
-    adj:      [*] bool   // MaxNodes * MaxNodes adjacency matrix
+    adj:      #null [*] bool   // MaxNodes * MaxNodes adjacency matrix
     names:    [MaxEdges] [2] u8  // node names (2 chars each)
     nodeUsed: [MaxNodes] bool
     count:    u32
@@ -53,7 +53,7 @@ struct Graph
 func graphInit() -> Graph
 {
     var g: Graph
-    g.adj = cast([*] bool) @alloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
+    g.adj = cast(#null [*] bool) @alloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
     for MaxNodes * MaxNodes { g.adj[@index] = false }
     return g
 }
@@ -216,7 +216,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
     if candCount == 0 do return
 
     // Copy candidates for iteration (we modify the set)
-    let iterBuf = cast([*] u32) @alloc(cast(u64) candCount * #sizeof(u32))
+    let iterBuf = cast([*] u32) assume @alloc(cast(u64) candCount * #sizeof(u32))
     defer @free(iterBuf)
     for i in candCount { iterBuf[i] = candidates[i] }
 
@@ -229,7 +229,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         state.curSize += 1
 
         // New candidates = candidates ∩ neighbors(v)
-        let newCand = cast([*] u32) @alloc(cast(u64) candCount * #sizeof(u32))
+        let newCand = cast([*] u32) assume @alloc(cast(u64) candCount * #sizeof(u32))
         var newCandCount: u32
         for i in candCount
         {
@@ -241,7 +241,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         }
 
         // New excluded = excluded ∩ neighbors(v)
-        let newExcl = cast([*] u32) @alloc(cast(u64) (exclCount + 1) * #sizeof(u32))
+        let newExcl = cast([*] u32) assume @alloc(cast(u64) (exclCount + 1) * #sizeof(u32))
         var newExclCount: u32
         for i in exclCount
         {

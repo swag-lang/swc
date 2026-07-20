@@ -2,13 +2,13 @@ using Core
 
 impl Image
 {
-    mtd const doFlip(dstImage: #nonull *Image)
+    mtd const doFlip(dstImage: *Image)
     {
-        let mec = cast #unconst (#nonull *Image) me
+        let mec = cast #unconst (*Image) me
         let f   = dstImage
         mec.visitPixels(f, stride: .width)
         {
-            let dstImage = cast(#nonull *Image) (assume userData)
+            let dstImage = cast(*Image) (assume userData)
             let w8       = image.width * image.bpp8
             Memory.copy(dstImage.pixels.buffer + (image.height - y - 1) * w8, pix, cast(u64) w8)
         }

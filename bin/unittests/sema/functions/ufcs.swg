@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 
 struct A {}
 
@@ -21,7 +20,7 @@ func semaTest001()
     var a: A
     a.toto(1)
     a.titi(10)
-    var b: #nonull *A = &a
+    var b: *A = &a
     b.toto(2)
 }
 
@@ -70,12 +69,12 @@ struct UfcsPoint
     x, y: s32
 }
 
-func setUfcsPoint(pt: #nonull *UfcsPoint, value: s32)
+func setUfcsPoint(pt: *UfcsPoint, value: s32)
 {
     pt.x, pt.y = value
 }
 
-func addUfcsPoint(pt: #nonull *UfcsPoint, dx: s32, dy: s32)
+func addUfcsPoint(pt: *UfcsPoint, dx: s32, dy: s32)
 {
     pt.x += dx
     pt.y += dy
@@ -86,13 +85,13 @@ struct UfcsComplex
     real, imag: f32
 }
 
-func multiplyUfcs(c: #nonull *UfcsComplex, scalar: f32)
+func multiplyUfcs(c: *UfcsComplex, scalar: f32)
 {
     c.real *= scalar
     c.imag *= scalar
 }
 
-func multiplyUfcs(c: #nonull *UfcsComplex, other: #nonull *UfcsComplex)
+func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
 {
     let r = (c.real * other.real) - (c.imag * other.imag)
     let i = (c.real * other.imag) + (c.imag * other.real)

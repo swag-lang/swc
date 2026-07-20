@@ -82,7 +82,7 @@ enum CmpEnum: u16
 
 #test
 {
-    func cmpPointer(a: *void, b: *void)->bool { return a != b }
+    func cmpPointer(a: #null *void, b: #null *void)->bool { return a != b }
     const V0 = #run cmpPointer(cast(*void) 0x1234'u64, cast(*void) 0x5678'u64)
     const V1 = #run cmpPointer(cast(*void) 0x1234'u64, cast(*void) 0x1234'u64)
     const V2 = #run cmpPointer(null, cast(*void) 0x1'u64)
@@ -193,13 +193,13 @@ enum CmpEnum: u16
 
 #test
 {
-    func cmpLogicalPointer(p: *void, flag: bool)->bool
+    func cmpLogicalPointer(p: #null *void, flag: bool)->bool
     {
         return p and flag
     }
 
     const V0 = #run cmpLogicalPointer(cast(*void) 0x1'u64, true)
-    const V1 = #run cmpLogicalPointer(cast(*void) 0'u64, true)
+    const V1 = #run cmpLogicalPointer(cast(#null *void) 0'u64, true)
     const V2 = #run cmpLogicalPointer(cast(*void) 0x1'u64, false)
     #assert(V0)
     #assert(!V1)
@@ -247,7 +247,7 @@ enum CmpEnum: u16
 
 #test
 {
-    func cmpLogicalStressPtr(p: *void, q: *void, x: s32, y: s32, flag: bool)->s32
+    func cmpLogicalStressPtr(p: #null *void, q: #null *void, x: s32, y: s32, flag: bool)->s32
     {
         var acc: s32 = 0
         if p and (x < y or flag) do

@@ -127,7 +127,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     @assert(!table.contains(2))
 }
 
-func assertTableStringValue(table: const &HashTable'(#nonull string, String), key: #nonull string, expected: #nonull string)->bool
+func assertTableStringValue(table: const &HashTable'(string, String), key: string, expected: string)->bool
 {
     let entry = table.tryFind(key)
     return entry != null and entry.value == expected and @countof(entry.value) == @countof(expected)
@@ -135,7 +135,7 @@ func assertTableStringValue(table: const &HashTable'(#nonull string, String), ke
 
 #test
 {
-    var original: HashTable'(#nonull string, s32)
+    var original: HashTable'(string, s32)
     original.add("alpha", 1)
 
     let entry = original.tryFind("alpha")
@@ -151,7 +151,7 @@ func assertTableStringValue(table: const &HashTable'(#nonull string, String), ke
 
 #test
 {
-    var original: HashTable'(#nonull string, String)
+    var original: HashTable'(string, String)
     original.add("alpha", "one")
 
     @assert(assertTableStringValue(original, "alpha", "one"))
@@ -159,7 +159,7 @@ func assertTableStringValue(table: const &HashTable'(#nonull string, String), ke
 
 #test
 {
-    var original: HashTable'(#nonull string, String)
+    var original: HashTable'(string, String)
     original.add("alpha", "one")
     original.add("beta", "two")
 
@@ -170,7 +170,7 @@ func assertTableStringValue(table: const &HashTable'(#nonull string, String), ke
 
 #test
 {
-    var original: HashTable'(#nonull string, String)
+    var original: HashTable'(string, String)
     original.add("alpha", "one")
     original.add("beta", "two")
 
@@ -189,7 +189,7 @@ func assertTableStringValue(table: const &HashTable'(#nonull string, String), ke
 
 #test
 {
-    var original: HashTable'(#nonull string, String)
+    var original: HashTable'(string, String)
     original.add("alpha", "one")
     original.add("beta", "two")
     original.remove("alpha")

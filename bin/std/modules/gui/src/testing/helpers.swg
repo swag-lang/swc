@@ -24,7 +24,7 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 // temp folder (created on demand). A dedicated folder keeps test files out of the
 // source tree and stays nearly empty, so tests that drive a real file dialog into
 // it only enumerate a handful of entries, not the whole system temp folder.
-func tempFilePath(prefix, extension: #nonull string)->String
+func tempFilePath(prefix, extension: string)->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     let folder  = Path.combine(tempDir.toString(), "swag-tests")
@@ -66,7 +66,7 @@ func countNonZeroBytes(img: Image)->u64
 }
 
 // Returns a command state event for the given command id.
-func commandState(id: #nonull WndId)->CommandStateEvent
+func commandState(id: WndId)->CommandStateEvent
 {
     var evt: CommandStateEvent
     @init(&evt.name, 1)
@@ -78,21 +78,21 @@ func commandState(id: #nonull WndId)->CommandStateEvent
 }
 
 // Asks action type T whether it accepts the command, through its IActionUI interface.
-func(T) actionAccept(wnd: #null *Wnd, id: #nonull WndId)->bool
+func(T) actionAccept(wnd: #null *Wnd, id: WndId)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.accept({wnd: wnd, id: id})
 }
 
 // Executes action type T through its IActionUI interface, as the command dispatch would.
-func(T) actionExecute(wnd: #null *Wnd, id: #nonull WndId)->bool
+func(T) actionExecute(wnd: #null *Wnd, id: WndId)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.execute({wnd: wnd, id: id})
 }
 
 // Updates the command state of action type T through its IActionUI interface.
-func(T) actionUpdate(wnd: #null *Wnd, id: #nonull WndId, evt: #nonull *CommandStateEvent)->bool
+func(T) actionUpdate(wnd: #null *Wnd, id: WndId, evt: *CommandStateEvent)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.update({wnd: wnd, id: id}, evt)

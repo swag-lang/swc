@@ -13,7 +13,7 @@ interface IEncoder
 {
     mtd isTextual()->bool;
 
-    mtd start(result: #nonull *ConcatBuffer) throw;
+    mtd start(result: *ConcatBuffer) throw;
     mtd end() throw;
 
     mtd beginField(val: Swag.TypeValue) throw;
@@ -21,7 +21,7 @@ interface IEncoder
     mtd beginSection(kind: SectionKind) throw;
     mtd endSection() throw;
 
-    mtd write(data: #nonull const [*] void, type: #nonull typeinfo) throw;
+    mtd write(data: const [*] void, type: typeinfo) throw;
     mtd writeBufferU8(data: #null const [*] u8, count: u64) throw;
 
     mtd writeBool(value: bool);
@@ -72,7 +72,7 @@ struct(T) Encoder
 impl Encoder
 {
     // Start serialization
-    mtd start(result: #nonull *ConcatBuffer) throw
+    mtd start(result: *ConcatBuffer) throw
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
@@ -97,7 +97,7 @@ impl Encoder
     }
 
     // Write a given value with a given type.
-    mtd writeValue(data: #nonull const [*] void, dataType: #null typeinfo) throw
+    mtd writeValue(data: const [*] void, dataType: #null typeinfo) throw
     {
         if !dataType do
             throw SerializationError{"missing data type"}
@@ -263,7 +263,7 @@ impl Encoder
             if treated do
                 return
 
-            var bufArr = cast(#nonull const [*] u8) data
+            var bufArr = cast(const [*] u8) data
             for typeArr.count
             {
                 .writeValue(bufArr, elemType)
@@ -279,7 +279,7 @@ impl Encoder
 
     // Write a full struct.
     // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
-    mtd writeAll(result: #nonull *ConcatBuffer, value: #nonull any) throw
+    mtd writeAll(result: *ConcatBuffer, value: any) throw
     {
         Debug.assert(Reflection.isStruct(@kindof(value)))
         start(me, result)
@@ -296,7 +296,7 @@ impl IEncoder for Encoder
     }
 
     // Start serialization
-    mtd impl start(result: #nonull *ConcatBuffer) throw
+    mtd impl start(result: *ConcatBuffer) throw
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
@@ -330,7 +330,7 @@ impl IEncoder for Encoder
         .serializer.endSection()
     }
 
-    mtd impl write(data: #nonull const [*] void, type: #nonull typeinfo) throw
+    mtd impl write(data: const [*] void, type: typeinfo) throw
     {
         .writeValue(data, type)
     }

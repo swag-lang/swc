@@ -144,7 +144,7 @@ public
 
 // Convert an utf8 buffer to a character sequence, and returns the
 // number of valid elements in the destination buffer
-public func fromUtf8(dest: #nonull [..] rune, src: #nonull const [..] u8)->u32
+public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 {
     var count     = 0'u32
     var srcPtr    = @dataof(src)
@@ -168,17 +168,17 @@ public func fromUtf8(dest: #nonull [..] rune, src: #nonull const [..] u8)->u32
 }
 
 // Convert an utf8 buffer to a character sequence
-public func fromUtf8(src: #nonull const [..] u8)->Array'rune
+public func fromUtf8(src: const [..] u8)->Array'rune
 {
     var result: retval
     result.reserve(@countof(src))
-    let buffer = result.buffer orelse cast(#nonull [*] rune) 1'u64
+    let buffer = result.buffer orelse cast([*] rune) 1'u64
     result.count = fromUtf8(@mkslice(buffer, @countof(src)), src)
     return result
 }
 
 // Make a rune buffer upper case
-public func makeUpper(buffer: #nonull [..] rune)
+public func makeUpper(buffer: [..] rune)
 {
     var p = @dataof(buffer)
     for @countof(buffer)
@@ -189,7 +189,7 @@ public func makeUpper(buffer: #nonull [..] rune)
 }
 
 // Make a rune buffer lower case
-public func makeLower(buffer: #nonull [..] rune)
+public func makeLower(buffer: [..] rune)
 {
     var p = @dataof(buffer)
     for @countof(buffer)
@@ -200,7 +200,7 @@ public func makeLower(buffer: #nonull [..] rune)
 }
 
 // Compare two unicode strings, and returns -1, 0 or 1
-func compare(src, dst: #nonull const [..] rune, ignoreCase = false, len: u64 = 0)->s32
+func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
 {
     let length      = @countof(src)
     let otherLength = @countof(dst)
@@ -267,7 +267,7 @@ enum WantedCase
     TitleCase
 }
 
-func isInTable(ranges: #nonull const [..] Range, r: rune)->bool
+func isInTable(ranges: const [..] Range, r: rune)->bool
 {
     // linear search for a small array or a latin1 character
     const LinearLimit = 18
@@ -305,7 +305,7 @@ func isInTable(ranges: #nonull const [..] Range, r: rune)->bool
     return false
 }
 
-func caseChangeTo(wCase: WantedCase, r: rune, caseRange: #nonull const [..] CaseRange)->{ mappedRune: rune, foundMapping: bool }
+func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->{ mappedRune: rune, foundMapping: bool }
 {
     var result: retval
 

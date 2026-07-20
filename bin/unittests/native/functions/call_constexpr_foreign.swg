@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.ExplicitNullability]
 #global #if #os == Swag.TargetOs.Windows
 
 #[Swag.ConstExpr]

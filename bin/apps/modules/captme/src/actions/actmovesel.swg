@@ -18,9 +18,9 @@ impl IActionUI for ActionMoveSel
 {
     acceptOwnCmdIds()
 
-    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(#nonull *MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) assume cxt.wnd
 
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
@@ -40,10 +40,10 @@ impl IActionUI for ActionMoveSel
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
-        var undo: #nonull *Undo = undefined
+        var undo: *Undo = undefined
         switch cxt.id
         {
         case Left1:

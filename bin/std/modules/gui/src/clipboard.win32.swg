@@ -8,7 +8,7 @@ alias ValueFormat = u64
 private var g_PngFormat: UINT
 
 // Register a new format
-func registerFormat(name: #nonull string)->ValueFormat throw
+func registerFormat(name: string)->ValueFormat throw
 {
     return try RegisterClipboardFormatA(@dataof(name))
 }
@@ -55,7 +55,7 @@ func hasTypedData(fmt: ValueFormat, type: #null typeinfo)->bool
 
 // Add data of a given format of the given 'type' to the clipboard
 // 'type' can be null to just check for the given clipboard format.
-func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: #nonull const [..] u8)
+func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 {
     if g_Fake.enabled do
         return fakeAddTypedData(fmt, type, data)
@@ -69,12 +69,12 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: #nonull const [.
     defer discard GlobalUnlock(pz)
 
     // Store type CRC
-    var pzi = cast(#nonull [*] u32) pz
+    var pzi = cast([*] u32) pz
     dref pzi = type ? type.crc : 0
     pzi += 1
 
     // Store data size
-    var pzu = cast(#nonull [*] u64) pzi
+    var pzu = cast([*] u64) pzi
     dref pzu = @countof(data)
     pzu += 1
 
@@ -105,17 +105,17 @@ func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
             defer discard GlobalUnlock(pz)
 
             // Get type CRC, check this is correct
-            var pzi = cast(#nonull [*] u32) pz
+            var pzi = cast([*] u32) pz
             if type and dref pzi != type.crc do
                 return result
             pzi += 1
 
             // Get data count
-            var pzu   = cast(#nonull [*] u64) pzi
+            var pzu   = cast([*] u64) pzi
             let count = dref pzu
             pzu += 1
 
-            result.add(@mkslice(cast(#nonull [*] u8) pzu, count))
+            result.add(@mkslice(cast([*] u8) pzu, count))
             return result
         }
     }
@@ -167,7 +167,7 @@ func addImage(image: Image)
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
         let buf   = assume cast(#null [*] u8) GlobalLock(hglob)
 
-        let header = cast(#nonull *Bmp.Header) buf
+        let header = cast(*Bmp.Header) buf
         header.biSize        = #sizeof(Bmp.Header)
         header.biWidth       = image.width
         header.biHeight      = image.height
@@ -248,7 +248,7 @@ func getImage()->Image
             let pz = assume cast(#null [*] u8) GlobalLock(hglob)
             defer discard GlobalUnlock(pz)
 
-            let header = cast(#nonull *Bmp.Header) pz
+            let header = cast(*Bmp.Header) pz
             let size   = #sizeof(Bmp.Header) + (header.biWidth * header.biHeight * header.biBitCount)
 
             var bmp: Bmp.Decoder
@@ -278,7 +278,7 @@ func hasString()->bool
 }
 
 // Add string to clipboard
-func addString(str: #nonull string)
+func addString(str: string)
 {
     if g_Fake.enabled
     {
@@ -349,7 +349,7 @@ func getString()->String
         if hglob
         {
             let pz = assume cast(#null [*] u8) GlobalLock(hglob)
-            result = @mkstring(pz, @countof(cast(#nonull cstring) pz))
+            result = @mkstring(pz, @countof(cast(cstring) pz))
             discard GlobalUnlock(pz)
             return result
         }

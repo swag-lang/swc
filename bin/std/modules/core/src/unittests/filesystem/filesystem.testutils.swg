@@ -2,7 +2,7 @@
 #global namespace CoreTests
 using Swag
 
-func makeFilesystemTestPath(name: #nonull string)->String
+func makeFilesystemTestPath(name: string)->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     Debug.assert(tempDir.length != 0, "missing temp directory")

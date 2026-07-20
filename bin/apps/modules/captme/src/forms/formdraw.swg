@@ -19,17 +19,17 @@ impl FormDraw
 
 impl IForm for FormDraw
 {
-    mtd impl isSame(ptr: #nonull *BaseForm)->bool
+    mtd impl isSame(ptr: *BaseForm)->bool
     {
         return .isSameBase(ptr)
     }
 
-    mtd impl copy(dst, src: #nonull *BaseForm)
+    mtd impl copy(dst, src: *BaseForm)
     {
         BaseForm.copyBase(dst, src)
     }
 
-    mtd impl edit(evt: #nonull *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
         if evt.kind == .MouseReleased and evt.button == .Left do
             return false
@@ -94,12 +94,12 @@ impl IForm for FormDraw
         return boundOfPoints(&.points, .borderSize * 0.5)
     }
 
-    mtd impl mouse(view: #nonull *EditView, pos: Math.Point, evt: #nonull *MouseEvent)->bool
+    mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         return false
     }
 
-    mtd impl paintGizmo(painter: #nonull *Painter, z: f32, flags: FormFlags)
+    mtd impl paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
     {
         if flags.has(.Hot | .Selected)
         {
@@ -126,7 +126,7 @@ impl IForm for FormDraw
         return BaseForm.drawHitTest(me, pt, z)
     }
 
-    mtd impl paint(painter: #nonull *Painter, cxt: FormPaintContext)
+    mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         var dash  = .dashStyle
         var bSize = BaseForm.adaptSize(.borderSize, MinBorderSize, MaxBorderSize, cxt)
@@ -160,7 +160,7 @@ impl IForm for FormDraw
         painter.drawPath(&pl, pen)
     }
 
-    mtd impl setup(capt: #nonull *Capture)
+    mtd impl setup(capt: *Capture)
     {
         .capture = capt
     }

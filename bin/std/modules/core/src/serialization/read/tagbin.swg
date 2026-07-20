@@ -67,7 +67,7 @@ private impl TagBin
 {
     // Create a new section for the deserialization stack.
     // Returns a pointer to a section object, either reused from the free pool or newly allocated.
-    mtd newSection()->#nonull *TagBinSection
+    mtd newSection()->*TagBinSection
     {
         if .freeSections.count
         {
@@ -89,7 +89,7 @@ private impl TagBin
         .freeSections.add(ptr)
     }
 
-    mtd acquireTmpBuf()->#nonull *Buffer
+    mtd acquireTmpBuf()->*Buffer
     {
         if .tmpPool.count
         {
@@ -101,7 +101,7 @@ private impl TagBin
         return .tmpPool.newPtr()
     }
 
-    mtd releaseTmpBuf(b: #nonull *Buffer)
+    mtd releaseTmpBuf(b: *Buffer)
     {
         b.clear()
         .tmpPool.add(b)
@@ -242,7 +242,7 @@ private impl TagBin
 
 impl TagBin
 {
-    mtd peekStructFieldCrcs(fieldCrcs: #nonull *Array'u32)->bool throw
+    mtd peekStructFieldCrcs(fieldCrcs: *Array'u32)->bool throw
     {
         let savedSeek = .stream.getSeek()
         defer .stream.setSeek(savedSeek)
@@ -278,7 +278,7 @@ impl TagBin
 
     // Initialize the deserializer with the given input byte array.
     // Sets up the private byte stream for reading from the provided data buffer.
-    mtd startRead(input: #nonull const [..] u8) throw
+    mtd startRead(input: const [..] u8) throw
     {
         .stream = ByteStream.openRead(input)
     }
@@ -589,7 +589,7 @@ impl TagBin
 
     // Begin reading a sequence (array) of elements of type 'typeElem'.
     // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
-    mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: #nonull *u64)->bool throw
+    mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: *u64)->bool throw
     {
         let orgCount = dref countElem
         if .convertValToArray
@@ -690,7 +690,7 @@ impl TagBin
     // Advance to the next element in the current sequence.
     // Decrements 'countElem' and returns false when no more elements remain.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd toNextSequenceElement(countElem: #nonull *u64)->bool
+    mtd toNextSequenceElement(countElem: *u64)->bool
     {
         if dref countElem == 0 do
             return false

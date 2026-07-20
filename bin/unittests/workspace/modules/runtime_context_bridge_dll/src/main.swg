@@ -109,33 +109,33 @@ public impl CtxSelfBufferSet
     mtd opPostMove()
     {
         if buffer do
-            buffer = cast(#nonull [*] u8) &storage[0]
+            buffer = cast([*] u8) &storage[0]
     }
 
     mtd opPostCopy()
     {
         if buffer do
-            buffer = cast(#nonull [*] u8) &storage[0]
+            buffer = cast([*] u8) &storage[0]
     }
 
     #[Swag.NoInline]
-    mtd const toSlice()->#nonull const [..] u8
+    mtd const toSlice()->const [..] u8
     {
-        @assert(buffer == cast(#nonull [*] u8) &storage[0])
+        @assert(buffer == cast([*] u8) &storage[0])
         return @mkslice(buffer, count)
     }
 
     #[Swag.NoInline]
     mtd const contains(value: u8)->bool
     {
-        @assert(buffer == cast(#nonull [*] u8) &storage[0])
+        @assert(buffer == cast([*] u8) &storage[0])
         return ctxSharedContains(.toSlice(), count, value)
     }
 
     #[Swag.NoInline]
     mtd const containsViaGeneric(value: u8)->bool
     {
-        @assert(buffer == cast(#nonull [*] u8) &storage[0])
+        @assert(buffer == cast([*] u8) &storage[0])
         return ctxSharedContainsGeneric(.toSlice(), count, value)
     }
 }
@@ -145,13 +145,13 @@ public func ctxSharedMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->
 {
     var result: retval = undefined
     result.storage = [a, b, c, d]
-    result.buffer  = cast(#nonull [*] u8) &result.storage[0]
+    result.buffer  = cast([*] u8) &result.storage[0]
     result.count   = count
     return result
 }
 
 #[Swag.NoInline]
-public func ctxSharedContains(values: #nonull const [..] u8, count: u32, value: u8)->bool
+public func ctxSharedContains(values: const [..] u8, count: u32, value: u8)->bool
 {
     for i in count
     {
@@ -163,7 +163,7 @@ public func ctxSharedContains(values: #nonull const [..] u8, count: u32, value: 
 }
 
 #[Swag.NoInline]
-public func(T) ctxSharedContainsGeneric(values: #nonull const [..] T, count: u32, value: T)->bool
+public func(T) ctxSharedContainsGeneric(values: const [..] T, count: u32, value: T)->bool
 {
     for i in count
     {
@@ -183,7 +183,7 @@ public impl CtxClosureByteSet
     }
 }
 
-public func ctxSharedPassString(text: #nonull string)->#nonull string
+public func ctxSharedPassString(text: string)->string
 {
     return text
 }
@@ -201,7 +201,7 @@ public func(T) ctxSharedInvokeGeneric(value: T, cb: func||(T)->bool)->bool
 }
 
 #[Swag.NoInline]
-public func(T) ctxSharedAllOf(values: #nonull const [..] T, cb: func||(T)->bool)->bool
+public func(T) ctxSharedAllOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
@@ -212,7 +212,7 @@ public func(T) ctxSharedAllOf(values: #nonull const [..] T, cb: func||(T)->bool)
     return true
 }
 
-public func ctxSharedPassStringAt(text: #nonull string, idx: s32)->u8
+public func ctxSharedPassStringAt(text: string, idx: s32)->u8
 {
     return text[idx]
 }
@@ -247,7 +247,7 @@ public func ctxSharedPassPointer(value: #null *void)->#null *void
     return value
 }
 
-public func ctxSharedPassMixed(a: s32, b: #nonull string, c: CtxAbiPair, d: [2] s32, e: #null *void)->s32
+public func ctxSharedPassMixed(a: s32, b: string, c: CtxAbiPair, d: [2] s32, e: #null *void)->s32
 {
     return a + cast(s32) b[0] + c.a + d[1] + cast(s32) (e != null)
 }
@@ -272,12 +272,12 @@ public func ctxSharedPassAliasEnum(a: s32, b: CtxAbiAlias, c: CtxAbiEnum, d: s32
     return a + b + cast(s32) cast(u16) c + d
 }
 
-public func ctxSharedPassSlice(values: #nonull const [..] s32, idx: s32)->s32
+public func ctxSharedPassSlice(values: const [..] s32, idx: s32)->s32
 {
     return values[idx]
 }
 
-public func ctxSharedPassAggregatePositions(a: #null *void, b: [2] s32, c: #nonull string, d: CtxAbiPair, e: CtxAbiPayload)->u64
+public func ctxSharedPassAggregatePositions(a: #null *void, b: [2] s32, c: string, d: CtxAbiPair, e: CtxAbiPayload)->u64
 {
     return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
 }
@@ -287,9 +287,9 @@ public func ctxSharedPassNested(value: CtxAbiNested, extra: s32)->u64
     return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
 }
 
-public func ctxSharedPassKindof(value: CtxAbiPair, payload: CtxAbiPayload, text: #nonull string, p: #null *void, values: [2] s32, e: CtxAbiEnum)->bool
+public func ctxSharedPassKindof(value: CtxAbiPair, payload: CtxAbiPayload, text: string, p: #null *void, values: [2] s32, e: CtxAbiEnum)->bool
 {
-    return #typeof(value) == CtxAbiPair and #typeof(payload) == CtxAbiPayload and #typeof(text) == #nonull string and #typeof(p) == #null *void and #typeof(values[1]) == s32 and #typeof(e) == CtxAbiEnum
+    return #typeof(value) == CtxAbiPair and #typeof(payload) == CtxAbiPayload and #typeof(text) == string and #typeof(p) == #null *void and #typeof(values[1]) == s32 and #typeof(e) == CtxAbiEnum
 }
 
 public func ctxSharedPassNestedArray(value: CtxAbiNested, array0: [2] CtxAbiPair)->s32
@@ -297,14 +297,14 @@ public func ctxSharedPassNestedArray(value: CtxAbiNested, array0: [2] CtxAbiPair
     return value.p.a + array0[0].b + array0[1].a
 }
 
-public func ctxSharedWritePair(dst: #nonull *CtxAbiPair, a: s32, b: s32)
+public func ctxSharedWritePair(dst: *CtxAbiPair, a: s32, b: s32)
 {
     @assert(dst != null)
     dst.a = a
     dst.b = b
 }
 
-public func ctxSharedWritePayload(dst: #nonull *CtxAbiPayload, seed: u64)
+public func ctxSharedWritePayload(dst: *CtxAbiPayload, seed: u64)
 {
     @assert(dst != null)
     dst.a0 = seed + 1

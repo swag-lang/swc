@@ -4,7 +4,7 @@
 using Win32
 
 // Returns various file informations
-func getInfo(fullname: #nonull string)->FileInfo throw
+func getInfo(fullname: string)->FileInfo throw
 {
     var result:    retval
     var attrDatas: WIN32_FILE_ATTRIBUTE_DATA

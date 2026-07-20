@@ -56,7 +56,7 @@ impl SoundFile
     // Load a 'SoundFile' from disk.
     // Will load the sound datas if 'loadDatas' is true.
     // Will load the sound metadatas if 'loadMetaData' is true.
-    func load(fullname: #nonull string, loadDatas = true, loadMetaDatas = false)->SoundFile throw
+    func load(fullname: string, loadDatas = true, loadMetaDatas = false)->SoundFile throw
     {
         if Path.getExtensionLowerCase(fullname) != ".wav" do
             throw UnsupportedFormatError{"unsupported file extension"}

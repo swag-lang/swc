@@ -50,7 +50,7 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
     return String.from(cast(#null string) raw)
 }
 
-func parseNames(faceData: #nonull *FaceImpl) throw
+func parseNames(faceData: *FaceImpl) throw
 {
     let nameTable    = getTableSlice(faceData, TAG_NAME, 0x91)
     let count        = readU16(nameTable, 2)
@@ -86,7 +86,7 @@ func parseNames(faceData: #nonull *FaceImpl) throw
         faceData.face.styleName = "Regular"
 }
 
-func parsePost(faceData: #nonull *FaceImpl) throw
+func parsePost(faceData: *FaceImpl) throw
 {
     let postTable = getTableSlice(faceData, TAG_POST, 0x94)
     let format    = readU32(postTable, 0)
@@ -99,7 +99,7 @@ func parsePost(faceData: #nonull *FaceImpl) throw
 
 // Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables
 // leave them at 0, which disables vertical hinting for that face.
-func parseOS2(faceData: #nonull *FaceImpl) throw
+func parseOS2(faceData: *FaceImpl) throw
 {
     let rec = findTable(faceData, TAG_OS2)
     if !rec do
@@ -117,7 +117,7 @@ func parseOS2(faceData: #nonull *FaceImpl) throw
     }
 }
 
-func parseCMap(faceData: #nonull *FaceImpl) throw
+func parseCMap(faceData: *FaceImpl) throw
 {
     let cmapTable = getTableSlice(faceData, TAG_CMAP, 0x92)
     let count     = readU16(cmapTable, 2)
@@ -158,7 +158,7 @@ func parseCMap(faceData: #nonull *FaceImpl) throw
     faceData.cmapFormat = bestFmt
 }
 
-func buildGlyphMetrics(faceData: #nonull *FaceImpl) throw
+func buildGlyphMetrics(faceData: *FaceImpl) throw
 {
     let hmtx = getTableSlice(faceData, TAG_HMTX, 0x93)
     faceData.glyphMetrics.resize(faceData.face.glyphCount)
@@ -185,7 +185,7 @@ func buildGlyphMetrics(faceData: #nonull *FaceImpl) throw
     }
 }
 
-func buildGlyphLocations(faceData: #nonull *FaceImpl) throw
+func buildGlyphLocations(faceData: *FaceImpl) throw
 {
     let loca = getTableSlice(faceData, TAG_LOCA, 0x90)
     faceData.glyphLocations.resize(faceData.face.glyphCount + 1)
@@ -204,7 +204,7 @@ func buildGlyphLocations(faceData: #nonull *FaceImpl) throw
 
 // Parse the legacy 'kern' table, keeping horizontal format-0 subtables only.
 // Missing or unsupported tables simply leave the kerning map empty.
-func parseKern(faceData: #nonull *FaceImpl) throw
+func parseKern(faceData: *FaceImpl) throw
 {
     let rec = findTable(faceData, TAG_KERN)
     if !rec do
@@ -254,7 +254,7 @@ func parseKern(faceData: #nonull *FaceImpl) throw
     }
 }
 
-func initFaceRecords(faceData: #nonull *FaceImpl)
+func initFaceRecords(faceData: *FaceImpl)
 {
     faceData.face.faceCount       = 1
     faceData.face.faceIndex       = 0
@@ -270,7 +270,7 @@ func initFaceRecords(faceData: #nonull *FaceImpl)
     faceData.face.charMap.encodingID = 1
 }
 
-func parseFace(faceData: #nonull *FaceImpl) throw
+func parseFace(faceData: *FaceImpl) throw
 {
     let data = faceData.fontData.toSlice()
     if @countof(data) < 12 do
@@ -329,9 +329,9 @@ func parseFace(faceData: #nonull *FaceImpl) throw
     parseOS2(faceData)
 
     faceData.face.style = .None
-    if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(#nonull string) "Bold") do
+    if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(string) "Bold") do
         faceData.face.style |= .Bold
-    if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains(cast(#nonull string) "Italic") do
+    if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains(cast(string) "Italic") do
         faceData.face.style |= .Italic
 
     initFaceRecords(faceData)

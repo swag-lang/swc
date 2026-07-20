@@ -1,7 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func assertFixtureFontLoads(fileName: #nonull string, expectedStyle: StyleFlag)
+func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init(fileName)

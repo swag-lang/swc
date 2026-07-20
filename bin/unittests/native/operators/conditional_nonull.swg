@@ -27,7 +27,7 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
 
     let legacy: *NativeConditionalNonNullItem          = &first
     let nullable: #null *NativeConditionalNonNullItem  = &first
-    let required: #nonull *NativeConditionalNonNullItem = &second
+    let required: *NativeConditionalNonNullItem = &second
 
     let indexedNullLast  = flag ? indexed[0] : null
     let indexedNullFirst = flag ? null : indexed[0]
@@ -47,7 +47,7 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
     #assert(#typeof(legacyRequiredLast) == *NativeConditionalNonNullItem)
     #assert(#typeof(nullableRequiredFirst) == #null *NativeConditionalNonNullItem)
     #assert(#typeof(nullableRequiredLast) == #null *NativeConditionalNonNullItem)
-    #assert(#typeof(requiredOnly) == #nonull *NativeConditionalNonNullItem)
+    #assert(#typeof(requiredOnly) == *NativeConditionalNonNullItem)
 
     if flag
     {

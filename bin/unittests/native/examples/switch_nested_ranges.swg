@@ -245,7 +245,7 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
 
 func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 {
-    var result: TriageDecision
+    var result: TriageDecision = undefined
     result.queue = routeQueue(ticket)
     result.responseTargetMinutes = computeResponseTargetMinutes(ticket)
     result.escalationLevel = computeEscalationLevel(ticket)

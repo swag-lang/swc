@@ -59,10 +59,10 @@ func backBucketCount(buffer: const &ConcatBuffer)->u64
 
 #test
 {
-    let storage = cast(#nonull [*] u8) Memory.alloc(8)
+    let storage = cast([*] u8) Memory.alloc(8)
     var buffer: ConcatBuffer
     buffer.setFirstBucket(@mkslice(storage, 8))
-    buffer.addBytes(cast(#nonull const [..] u8) "abc")
+    buffer.addBytes(cast(const [..] u8) "abc")
 
     let text = buffer.moveToString()
     storage[0] = 'z''u8

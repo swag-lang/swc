@@ -19,7 +19,7 @@ attr AttributeA()
 Attributes can accept parameters, similar to functions. Parameters let you
 customize how the attribute configures the annotated element.
 */
-attr AttributeB(x, y: s32, z: #nonull string)
+attr AttributeB(x, y: s32, z: string)
 // Attribute with multiple parameters
 
 /**
@@ -28,7 +28,7 @@ attr AttributeB(x, y: s32, z: #nonull string)
 Attributes may define default parameter values. When applied, omitted arguments
 fall back to their defaults.
 */
-attr AttributeBA(x: s32, y: #nonull string = "string")
+attr AttributeBA(x: s32, y: string = "string")
 // Attribute with a defaulted parameter
 
 /**
@@ -84,6 +84,6 @@ that adapts based on which attributes are present and how they are configured.
 
 #test
 {
-    let type = cast(#nonull const *Swag.TypeInfoFunc) #typeof(function2) // Reflect the function type
+    let type = cast(const *Swag.TypeInfoFunc) #typeof(function2) // Reflect the function type
     @assert(@countof(type.attributes) == 1) // Exactly one attribute on 'function2'
 }

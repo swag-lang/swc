@@ -3,8 +3,8 @@
 // null pointer literal
 #test
 {
-    var p: *s32 = null
-    #assert(#typeof(p) == *s32)
+    var p: #null *s32 = null
+    #assert(#typeof(p) == #null *s32)
     @assert(p == null)
     @assert(!p)
 }
@@ -13,7 +13,7 @@
 #test
 {
     var v: s32 = 42
-    var p: *s32 = &v
+    var p: #null *s32 = &v
 
     @assert(p != null)
     p = null
@@ -23,9 +23,9 @@
 // null for different pointer types
 #test
 {
-    var a: *u8   = null
-    var b: *f64  = null
-    var c: *void = null
+    var a: #null *u8   = null
+    var b: #null *f64  = null
+    var c: #null *void = null
     @assert(a == null)
     @assert(b == null)
     @assert(c == null)
@@ -34,7 +34,7 @@
 // null optional-style: pointer used as bool
 #test
 {
-    var p: *s32 = null
+    var p: #null *s32 = null
     @assert(!p)
 
     var v: s32 = 7

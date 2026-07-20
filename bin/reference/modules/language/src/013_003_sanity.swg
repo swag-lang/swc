@@ -49,7 +49,7 @@ The frame dies with the return, so the address of a local is always dangling
 */
 var sanityGlobalValue: s32
 
-func sanityGlobalAddress()->*s32
+func sanityGlobalAddress()->#nonull *s32
 {
     // var v: s32
     // return &v  // Uncomment: error, returns the address of a local
@@ -70,11 +70,11 @@ var sanityGlobalBuffer: [4] u8
 
 #test
 {
-    func makeView()->const [..] u8
+    func makeView()->#nonull const [..] u8
     {
         // var buf: [4] u8
         // return cast(const [..] u8) buf  // Uncomment: error, borrow escapes
-        return cast(const [..] u8) sanityGlobalBuffer // A global's storage is fine
+        return cast(#nonull const [..] u8) sanityGlobalBuffer // A global's storage is fine
     }
 
     @assert(@countof(makeView()) == 4)
@@ -91,17 +91,17 @@ borrow, and they cross module boundaries through the generated module API (the
 */
 #test
 {
-    func passthrough(p: *s32)->*s32
+    func passthrough(p: #nonull *s32)->#nonull *s32
     {
         return p
     }
 
-    func wrapper(p: *s32)->*s32
+    func wrapper(p: #nonull *s32)->#nonull *s32
     {
         return passthrough(p) // Inherits the summary of 'passthrough'
     }
 
-    func caller()->*s32
+    func caller()->#nonull *s32
     {
         // var v: s32
         // return wrapper(&v)  // Uncomment: error, borrows a local through the chain
@@ -123,12 +123,12 @@ through arbitrarily deep local call chains.
 {
     struct Views
     {
-        local:  *s32
-        global: *s32
+        local:  #nonull *s32
+        global: #nonull *s32
     }
 
     var local: s32
-    var views: Views
+    var views: Views = undefined
     views.local  = &local
     views.global = &sanityGlobalValue
     @assert(views.global == &sanityGlobalValue)
@@ -144,9 +144,9 @@ module boundaries the same way. Storing one parameter into storage reachable fro
 ANOTHER ('container.add(&item)') is summarized as a pair: the call site errors when
 the container argument is a global and the stored one borrows a local.
 */
-var sanityGlobalStash: *s32
+var sanityGlobalStash: #null *s32
 
-func sanityStash(p: *s32)
+func sanityStash(p: #nonull *s32)
 {
     sanityGlobalStash = p // Legal here: 'p' is caller-owned. Judged at call sites.
 }
@@ -177,7 +177,7 @@ again.
 */
 #test
 {
-    func exampleAlloc(size: u64)->*void
+    func exampleAlloc(size: u64)->#null *void
     {
         var req: Swag.AllocatorRequest
         req.size = size
@@ -185,7 +185,7 @@ again.
         return req.address
     }
 
-    func exampleFree(ptr: *void, size: u64)
+    func exampleFree(ptr: #null *void, size: u64)
     {
         var req: Swag.AllocatorRequest
         req.address = ptr
@@ -193,7 +193,7 @@ again.
         @getcontext().allocator.free(&req)
     }
 
-    let p = cast(*s32) exampleAlloc(4)
+    let p = cast(#nonull *s32) assume exampleAlloc(4)
     dref p = 1
     exampleFree(p, 4)
     // let x = dref p       // Uncomment: error, use of a freed pointer (proven)
@@ -227,7 +227,7 @@ Like safety, sanity can be disabled per scope with the attribute. Disabling
 '.Lifecycle' turns the whole borrow analysis off for that function.
 */
 #[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]
-func sanityOptedOut()->*s32
+func sanityOptedOut()->#nonull *s32
 {
     var v: s32
     return &v // Accepted: the analysis is off here

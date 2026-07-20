@@ -4,70 +4,70 @@ using Swag
 
 #[ConstExpr, Inline]
 {
-    func isNative(t: typeinfo)      => t.kind == .Native
-    func isPointer(t: typeinfo)     => t.kind == .Pointer
-    func isEnum(t: typeinfo)        => t.kind == .Enum
-    func isStruct(t: typeinfo)      => t.kind == .Struct
-    func isStaticArray(t: typeinfo) => t.kind == .Array
-    func isSlice(t: typeinfo)       => t.kind == .Slice
-    func isTypeAlias(t: typeinfo)   => t.kind == .Alias
-    func isInterface(t: typeinfo)   => t.kind == .Interface
+    func isNative(t: #null typeinfo)      => t and t.kind == .Native
+    func isPointer(t: #null typeinfo)     => t and t.kind == .Pointer
+    func isEnum(t: #null typeinfo)        => t and t.kind == .Enum
+    func isStruct(t: #null typeinfo)      => t and t.kind == .Struct
+    func isStaticArray(t: #null typeinfo) => t and t.kind == .Array
+    func isSlice(t: #null typeinfo)       => t and t.kind == .Slice
+    func isTypeAlias(t: #null typeinfo)   => t and t.kind == .Alias
+    func isInterface(t: #null typeinfo)   => t and t.kind == .Interface
 
-    func isInteger(t: typeinfo)           => t.flags & .Integer
-    func isFloat(t: typeinfo)             => t.flags & .Float
-    func isGeneric(t: typeinfo)           => t.flags & .Generic
-    func isTuple(t: typeinfo)             => t.flags & .Tuple
-    func isType(t: typeinfo)              => t.flags & .PointerTypeInfo
-    func isPointerRef(t: typeinfo)        => t.flags & .PointerRef
-    func isPointerArithmetic(t: typeinfo) => t.flags & .PointerArithmetic
+    func isInteger(t: #null typeinfo)           => t and t.flags & .Integer
+    func isFloat(t: #null typeinfo)             => t and t.flags & .Float
+    func isGeneric(t: #null typeinfo)           => t and t.flags & .Generic
+    func isTuple(t: #null typeinfo)             => t and t.flags & .Tuple
+    func isType(t: #null typeinfo)              => t and t.flags & .PointerTypeInfo
+    func isPointerRef(t: #null typeinfo)        => t and t.flags & .PointerRef
+    func isPointerArithmetic(t: #null typeinfo) => t and t.flags & .PointerArithmetic
 
-    func isEnumFlags(t: typeinfo)->bool
+    func isEnumFlags(t: #null typeinfo)->bool
     {
         return isEnum(t)
     }
 
-    func isSimpleNative(t: typeinfo)->bool
+    func isSimpleNative(t: #null typeinfo)->bool
     {
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t
+        let tt = cast(#nonull const *TypeInfoNative) assume t
         return tt.nativeKind != .Any and tt.nativeKind != .String
     }
 
-    func isRune(t: typeinfo)->bool
+    func isRune(t: #null typeinfo)->bool
     {
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t
+        let tt = cast(#nonull const *TypeInfoNative) assume t
         return tt.nativeKind == .Rune
     }
 
-    func isAny(t: typeinfo)->bool
+    func isAny(t: #null typeinfo)->bool
     {
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t
+        let tt = cast(#nonull const *TypeInfoNative) assume t
         return tt.nativeKind == .Any
     }
 
-    func isBool(t: typeinfo)->bool
+    func isBool(t: #null typeinfo)->bool
     {
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t
+        let tt = cast(#nonull const *TypeInfoNative) assume t
         return tt.nativeKind == .Bool
     }
 
-    func isString(t: typeinfo)->bool
+    func isString(t: #null typeinfo)->bool
     {
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) t
+        let tt = cast(#nonull const *TypeInfoNative) assume t
         return tt.nativeKind == .String
     }
 }
@@ -75,12 +75,12 @@ using Swag
 #[ConstExpr]
 {
     // In case this is a type alias, need to go deep inside it to find the right type
-    func makeConcreteAlias(type: typeinfo)->typeinfo
+    func makeConcreteAlias(type: #nonull typeinfo)->#nonull typeinfo
     {
         var result = type
         while isTypeAlias(result)
         {
-            let typeAlias = cast(const *TypeInfoAlias) result
+            let typeAlias = cast(#nonull const *TypeInfoAlias) result
             result = typeAlias.rawType
         }
 
@@ -88,7 +88,7 @@ using Swag
     }
 
     // Returns the maximum sizeof a bunch of 'typeinfo'
-    func maxSizeOf(v: const [..] typeinfo)->u64
+    func maxSizeOf(v: #nonull const [..] #nonull typeinfo)->u64
     {
         var res = 0'u32
         for p in v do
@@ -97,7 +97,7 @@ using Swag
     }
 
     // Make an union of flags of all types
-    func orFlags(v: const [..] typeinfo)->Swag.TypeInfoFlags
+    func orFlags(v: #nonull const [..] #nonull typeinfo)->Swag.TypeInfoFlags
     {
         var res: Swag.TypeInfoFlags = .Zero
         for p in v do
@@ -105,26 +105,38 @@ using Swag
         return res
     }
 
-    func copy(dst, src: *void, type: typeinfo)
+    func copy(dst, src: #null *void, type: #null typeinfo)
     {
-        Memory.copy(dst, src, cast(u64) type.sizeof)
-        Memory.postCopyType(dst, type)
+        if !dst or !src or !type do
+            return
+        let nnDst  = assume dst
+        let nnSrc  = assume src
+        let nnType = assume type
+        Memory.copy(nnDst, nnSrc, cast(u64) nnType.sizeof)
+        Memory.postCopyType(nnDst, nnType)
     }
 
-    func reset(dst: *void, type: typeinfo)
+    func reset(dst: #null *void, type: #null typeinfo)
     {
-        if !Memory.canDefaultInit(type)
+        if !dst or !type
+        {
+            @panic("Reflection.reset cannot reset a null type", #curlocation)
+            return
+        }
+        let nnDst  = assume dst
+        let nnType = assume type
+        if !Memory.canDefaultInit(nnType)
         {
             @panic("Reflection.reset cannot default-initialize this type", #curlocation)
             return
         }
-        Memory.dropType(dst, type)
-        Memory.defaultInit(dst, type)
+        Memory.dropType(nnDst, nnType)
+        Memory.defaultInit(nnDst, nnType)
     }
 }
 
-private var g_HashCrcToType: HashTable'(u32, typeinfo)
-private var g_HashNameToType: HashTable'(string, typeinfo)
+private var g_HashCrcToType: HashTable'(u32, #null typeinfo)
+private var g_HashNameToType: HashTable'(#null string, #null typeinfo)
 private var g_HashLock: Sync.RWLock
 
 private func typeValueCrc(val: Swag.TypeValue)->u32
@@ -134,14 +146,14 @@ private func typeValueCrc(val: Swag.TypeValue)->u32
     return Hash.Crc32.compute(val.name)
 }
 
-private func addCrcToTypeAlias(crc: u32, type: typeinfo)
+private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
 {
-    if !crc or g_HashCrcToType.contains(crc) do
+    if !crc or !type or g_HashCrcToType.contains(crc) do
         return
     g_HashCrcToType.add(crc, type)
 }
 
-private func registerTypeNoLock(type: typeinfo)->bool
+private func registerTypeNoLock(type: #null typeinfo)->bool
 {
     if type == null do
         return false
@@ -180,22 +192,22 @@ private func registerTypeGraphNoLock(type: typeinfo)
     switch type.kind
     {
     case .Alias:
-        let typeAlias = cast(const *TypeInfoAlias) type
+        let typeAlias = cast(#nonull const *TypeInfoAlias) type
         registerTypeGraphNoLock(typeAlias.rawType)
     case .Array:
-        let typeArray = cast(const *TypeInfoArray) type
+        let typeArray = cast(#nonull const *TypeInfoArray) type
         registerTypeGraphNoLock(typeArray.pointedType)
     case .Enum:
-        let typeEnum = cast(const *TypeInfoEnum) type
+        let typeEnum = cast(#nonull const *TypeInfoEnum) type
         registerTypeGraphNoLock(typeEnum.rawType)
     case .Pointer:
-        let typePointer = cast(const *TypeInfoPointer) type
+        let typePointer = cast(#nonull const *TypeInfoPointer) type
         registerTypeGraphNoLock(typePointer.pointedType)
     case .Slice:
-        let typeSlice = cast(const *TypeInfoSlice) type
+        let typeSlice = cast(#nonull const *TypeInfoSlice) type
         registerTypeGraphNoLock(typeSlice.pointedType)
     case .Struct:
-        let typeStruct = cast(const *TypeInfoStruct) type
+        let typeStruct = cast(#nonull const *TypeInfoStruct) type
         for &field in typeStruct.fields do
             registerTypeGraphNoLock(field.pointedType)
         for &generic in typeStruct.generics do
@@ -203,21 +215,21 @@ private func registerTypeGraphNoLock(type: typeinfo)
     }
 }
 
-func registerType(type: typeinfo)
+func registerType(type: #nonull typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
     registerTypeGraphNoLock(type)
 }
 
-func registerCrcToTypeAlias(crc: u32, type: typeinfo)
+func registerCrcToTypeAlias(crc: u32, type: #nonull typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
     addCrcToTypeAlias(crc, type)
 }
 
-func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
+func inferTypeWithInterfaceFields(itf: #nonull typeinfo, fieldCrcs: #nonull const [..] u32)->#null typeinfo
 {
-    var bestType:  typeinfo
+    var bestType:  #null typeinfo
     var bestScore: u64
     var ambiguous: bool
 
@@ -227,7 +239,7 @@ func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
         if !hasInterface(t, itf) do
             continue
 
-        let typeStruct = cast(const *TypeInfoStruct) t
+        let typeStruct = cast(#nonull const *TypeInfoStruct) assume t
         var score = 0'u64
         for streamCrc in fieldCrcs
         {

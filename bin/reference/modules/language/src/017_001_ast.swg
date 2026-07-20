@@ -64,18 +64,18 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
             return "x, y: " ++ #typeof(T).name
         }
 
-        z:   string
+        z:   #null string
     }
 
     let v: MyStruct'bool
     #assert(#typeof(v.x) == bool)
     #assert(#typeof(v.y) == bool)
-    #assert(#typeof(v.z) == string)
+    #assert(#typeof(v.z) == #null string)
 
     let v1: MyStruct'f64
     #assert(#typeof(v1.x) == f64)
     #assert(#typeof(v1.y) == f64)
-    #assert(#typeof(v1.z) == string)
+    #assert(#typeof(v1.z) == #null string)
 }
 
 /**
@@ -85,7 +85,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
 #test
 {
     #[Swag.Compiler]
-    func append(buf: [*] u8, start: s32, val: string)->s32
+    func append(buf: #nonull [*] u8, start: s32, val: #nonull string)->s32
     {
         @memcpy(buf + start, @dataof(val), cast(u64) @countof(val))
         return start + cast(s32) @countof(val)
@@ -100,7 +100,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
             len = append(buf, len, "x: f32 = 1\n")
             len = append(buf, len, "y: f32 = 2\n")
             len = append(buf, len, "z: f32 = 3\n")
-            return cast(string) @mkslice(&buf[0], cast(u64) len)
+            return cast(#nonull string) @mkslice(&buf[0], cast(u64) len)
         }
     }
 

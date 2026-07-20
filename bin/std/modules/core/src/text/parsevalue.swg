@@ -26,7 +26,7 @@ public func parseValue(addr: #nonull *void, type: #nonull typeinfo, buf: #nonull
         while @countof(one) and one[0] != '#'
         {
             let addrVal = Reflection.appendValueStructArray(addr, safeValueType)
-            one = (parseValue(addrVal, safeValueType, one) orelse "")
+            one = (parseValue(assume addrVal, safeValueType, one) orelse "")
             one = Tokenize.eatSpaces(one)
         }
 

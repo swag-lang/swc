@@ -4,24 +4,24 @@ using Swag
 
 // Returns true if this is a struct of the given 'name'.
 #[ConstExpr]
-func isStructOfName(type: typeinfo, name: string)->bool
+func isStructOfName(type: #null typeinfo, name: #null string)->bool
 {
     if !isStruct(type) do
         return false
 
-    let typeStruct = cast(const *TypeInfoStruct) type
+    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
     return typeStruct.structName == name
 }
 
 // Get information about a specific method in a given struct.
 // Returns null if the method does not exist
 #[ConstExpr]
-func getMethod(type: typeinfo, name: string)->#null const *TypeValue
+func getMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
 {
     if !isStruct(type) do
         return null
 
-    let typeStruct = cast(const *TypeInfoStruct) type
+    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
     for &it in typeStruct.methods where it.name == name do
         return it
     return null
@@ -30,12 +30,12 @@ func getMethod(type: typeinfo, name: string)->#null const *TypeValue
 // Get information about a specific field in a given struct
 // Returns null if the field does not exist
 #[ConstExpr]
-func getField(type: typeinfo, name: string)->#null const *TypeValue
+func getField(type: #null typeinfo, name: #null string)->#null const *TypeValue
 {
     if !isStruct(type) do
         return null
 
-    let typeStruct = cast(const *TypeInfoStruct) type
+    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
     for &it in typeStruct.fields where it.name == name do
         return it
     return null
@@ -45,7 +45,7 @@ func getField(type: typeinfo, name: string)->#null const *TypeValue
 // compiler exported in TypeValue.crc). Use it to switch on item.typeValue.crc without
 // recomputing the hash. Returns 0 if the field does not exist.
 #[ConstExpr]
-func fieldCrc(type: typeinfo, name: string)->u32
+func fieldCrc(type: #null typeinfo, name: #null string)->u32
 {
     let f = getField(type, name)
     return f ? f.crc : 0
@@ -53,34 +53,39 @@ func fieldCrc(type: typeinfo, name: string)->u32
 
 // Get a field value with a given runtime type.
 #[ConstExpr]
-func getFieldValue(dest: *void, type: const *TypeValue, src: *void, hardCast: bool = false)
+func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *void, hardCast: bool = false)
 {
-    let patch = cast([*] u8) src + type.offset
-    switch type.pointedType
+    if !dest or !type or !src do
+        return
+
+    let nnType = assume type
+    let patch  = cast(#nonull [*] u8) (assume src) + nnType.offset
+    let nnDest = assume dest
+    switch nnType.pointedType
     {
     case s8, u8, bool:
-        dref cast(*u8) dest = dref cast(*u8) patch
+        dref cast(#nonull *u8) nnDest = dref cast(#nonull *u8) patch
     case s16, u16:
-        dref cast(*u16) dest = dref cast(*u16) patch
+        dref cast(#nonull *u16) nnDest = dref cast(#nonull *u16) patch
     case s32, u32, f32, rune:
-        dref cast(*u32) dest = dref cast(*u32) patch
+        dref cast(#nonull *u32) nnDest = dref cast(#nonull *u32) patch
     case s64, u64, f64:
-        dref cast(*u64) dest = dref cast(*u64) patch
+        dref cast(#nonull *u64) nnDest = dref cast(#nonull *u64) patch
     case string:
-        dref cast(*string) dest = dref cast(*string) patch
+        dref cast(#nonull *#null string) nnDest = dref cast(#nonull *#null string) patch
     default:
         if !hardCast do
             Debug.assert(false, "unsupported getFieldValue type")
-        switch type.pointedType.sizeof
+        switch nnType.pointedType.sizeof
         {
         case 1:
-            dref cast(*u8) dest = dref cast(*u8) patch
+            dref cast(#nonull *u8) nnDest = dref cast(#nonull *u8) patch
         case 2:
-            dref cast(*u16) dest = dref cast(*u16) patch
+            dref cast(#nonull *u16) nnDest = dref cast(#nonull *u16) patch
         case 4:
-            dref cast(*u32) dest = dref cast(*u32) patch
+            dref cast(#nonull *u32) nnDest = dref cast(#nonull *u32) patch
         case 8:
-            dref cast(*u64) dest = dref cast(*u64) patch
+            dref cast(#nonull *u64) nnDest = dref cast(#nonull *u64) patch
         default:
             Debug.assert(false, "unsupported getFieldValue type")
         }
@@ -89,34 +94,39 @@ func getFieldValue(dest: *void, type: const *TypeValue, src: *void, hardCast: bo
 
 // Set a field value with a given runtime type.
 #[ConstExpr]
-func setFieldValue(dest: *void, type: const *TypeValue, src: const *void, hardCast: bool = false)
+func setFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null const *void, hardCast: bool = false)
 {
-    var patch = cast([*] u8) dest + type.offset
-    switch type.pointedType
+    if !dest or !type or !src do
+        return
+
+    let nnType = assume type
+    var patch  = cast(#nonull [*] u8) (assume dest) + nnType.offset
+    let nnSrc  = assume src
+    switch nnType.pointedType
     {
     case s8, u8, bool:
-        dref cast(*u8) patch = dref cast(const *u8) src
+        dref cast(#nonull *u8) patch = dref cast(#nonull const *u8) nnSrc
     case s16, u16:
-        dref cast(*u16) patch = dref cast(const *u16) src
+        dref cast(#nonull *u16) patch = dref cast(#nonull const *u16) nnSrc
     case s32, u32, f32, rune:
-        dref cast(*u32) patch = dref cast(const *u32) src
+        dref cast(#nonull *u32) patch = dref cast(#nonull const *u32) nnSrc
     case s64, u64, f64:
-        dref cast(*u64) patch = dref cast(const *u64) src
+        dref cast(#nonull *u64) patch = dref cast(#nonull const *u64) nnSrc
     case string:
-        dref cast(*string) patch = dref cast(const *string) src
+        dref cast(#nonull *#null string) patch = dref cast(#nonull const *#null string) nnSrc
     default:
         if !hardCast do
             Debug.assert(false, "unsupported setFieldValue type")
-        switch type.pointedType.sizeof
+        switch nnType.pointedType.sizeof
         {
         case 1:
-            dref cast(*u8) patch = dref cast(const *u8) src
+            dref cast(#nonull *u8) patch = dref cast(#nonull const *u8) nnSrc
         case 2:
-            dref cast(*u16) patch = dref cast(const *u16) src
+            dref cast(#nonull *u16) patch = dref cast(#nonull const *u16) nnSrc
         case 4:
-            dref cast(*u32) patch = dref cast(const *u32) src
+            dref cast(#nonull *u32) patch = dref cast(#nonull const *u32) nnSrc
         case 8:
-            dref cast(*u64) patch = dref cast(const *u64) src
+            dref cast(#nonull *u64) patch = dref cast(#nonull const *u64) nnSrc
         default:
             Debug.assert(false, "unsupported setFieldValue type")
         }
@@ -125,24 +135,28 @@ func setFieldValue(dest: *void, type: const *TypeValue, src: const *void, hardCa
 
 // Helper function to know if a struct has a special method
 #[ConstExpr]
-func hasMethod(type: typeinfo, name: string)->bool => getMethod(type, name) != null
+func hasMethod(type: #null typeinfo, name: #null string)->bool => getMethod(type, name) != null
 
 // Returns true if values of that type can use the default '<=>' comparison.
 #[ConstExpr]
-func canCompare(type: typeinfo)->bool
+func canCompare(type: #null typeinfo)->bool
 {
-    switch type.kind
+    if !type do
+        return false
+
+    let nnType = assume type
+    switch nnType.kind
     {
     case .Alias:
-        let typeAlias = cast(const *TypeInfoAlias) type
+        let typeAlias = cast(#nonull const *TypeInfoAlias) nnType
         return canCompare(typeAlias.rawType)
     case .Enum:
-        let typeEnum = cast(const *TypeInfoEnum) type
+        let typeEnum = cast(#nonull const *TypeInfoEnum) nnType
         return canCompare(typeEnum.rawType)
     case .Pointer:
         return true
     case .Native:
-        let typeNative = cast(const *TypeInfoNative) type
+        let typeNative = cast(#nonull const *TypeInfoNative) nnType
         switch typeNative.nativeKind
         {
         case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String:
@@ -159,21 +173,26 @@ func canCompare(type: typeinfo)->bool
 
 #[ConstExpr, Inline]
 {
-    func hasDrop(type: typeinfo)->bool     => (type.flags & TypeInfoFlags.HasDrop) ? true : false
-    func hasPostMove(type: typeinfo)->bool => (type.flags & TypeInfoFlags.HasPostMove) ? true : false
-    func hasPostCopy(type: typeinfo)->bool => (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
-    func canCopy(type: typeinfo)->bool     => (type.flags & TypeInfoFlags.CanCopy) ? true : false
-    func isPod(type: typeinfo)->bool       => (type.flags & (TypeInfoFlags.HasDrop | TypeInfoFlags.HasPostMove | TypeInfoFlags.HasPostCopy) ? false : true)
+    func hasDrop(type: #null typeinfo)->bool     => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
+    func hasPostMove(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
+    func hasPostCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
+    func canCopy(type: #null typeinfo)->bool     => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
+    func isPod(type: #null typeinfo)->bool
+    {
+        if !type do
+            return false
+        return type.flags & (TypeInfoFlags.HasDrop | TypeInfoFlags.HasPostMove | TypeInfoFlags.HasPostCopy) ? false : true
+    }
 }
 
 // Returns true if the interface 'itf' is implemented in the given structure type.
 #[ConstExpr]
-func hasInterface(type: typeinfo, itf: typeinfo)->bool
+func hasInterface(type: #null typeinfo, itf: #null typeinfo)->bool
 {
     if !isStruct(type) do
         return false
 
-    let typeStruct = cast(const *TypeInfoStruct) type
+    let typeStruct = cast(#nonull const *TypeInfoStruct) assume type
     for it in typeStruct.interfaces where it.name == itf.fullname do
         return true
     return false

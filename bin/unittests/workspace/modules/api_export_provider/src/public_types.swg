@@ -148,7 +148,7 @@ namespace DepTools
     }
 
     #[Swag.Mixin]
-    func depMakeGeneratedCommandId(name: string)
+    func depMakeGeneratedCommandId(name: #nonull string)
     {
         #ast "const " ++ name ++ " = \"DepTools.DepGeneratedCommandOwner." ++ name ++ "\""
     }
@@ -193,5 +193,5 @@ namespace DepSharedRng
         mtd nextU32()->u32 => 0x12345678
     }
 
-    public func shared(rng: *Rng'MWC)->*Rng'MWC => rng
+    public func shared(rng: #nonull *Rng'MWC)->#nonull *Rng'MWC => rng
 }

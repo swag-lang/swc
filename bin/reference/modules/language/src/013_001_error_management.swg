@@ -12,7 +12,7 @@ struct MyError
     code: s32 = 0
 }
 
-func count(name: string)->u64 throw
+func count(name: #null string)->u64 throw
 {
     if name == null do
         throw MyError{base: Swag.BaseError{"name cannot be null"}, code: 7}
@@ -40,7 +40,7 @@ type, and exposes the captured error through '@err'.
 'trycatch' dismisses the error and continues execution. The result becomes the
 default value of the returned type and '@err' is cleared.
 */
-func safeCount(name: string)->u64
+func safeCount(name: #null string)->u64
 {
     return trycatch count(name)
 }
@@ -58,7 +58,7 @@ func safeCount(name: string)->u64
 'try' propagates the current error to the caller, so it belongs inside a
 function that can itself return an error.
 */
-func propagateCount(name: string)->u64 throw
+func propagateCount(name: #null string)->u64 throw
 {
     return try count(name)
 }
@@ -85,7 +85,7 @@ func propagateCount(name: string)->u64 throw
 Inside a function declared with 'throw', calling another throwing function is
 an implicit propagation.
 */
-func implicitTryCount(name: string)->u64 throw
+func implicitTryCount(name: #null string)->u64 throw
 {
     return count(name)
 }
@@ -104,7 +104,7 @@ func implicitTryCount(name: string)->u64 throw
 # Error-Handling Blocks
 'try', 'catch', 'trycatch', and 'assume' can also guard a whole block of code.
 */
-func blockTry(name0: string, name1: string)->u64 throw
+func blockTry(name0: #null string, name1: #null string)->u64 throw
 {
     var total: u64 = 0
     try
@@ -131,7 +131,7 @@ func blockCatchCode()->s32
     return err.code
 }
 
-func blockTryCatch(name: string)->u64
+func blockTryCatch(name: #null string)->u64
 {
     trycatch
     {
@@ -181,7 +181,7 @@ A plain 'defer' still runs when a function exits through 'throw', because
 */
 var DeferTrace: s32 = 0
 
-func deferOnThrow(name: string)->u64 throw
+func deferOnThrow(name: #null string)->u64 throw
 {
     defer DeferTrace += 1
     return try count(name)

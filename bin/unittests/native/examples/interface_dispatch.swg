@@ -85,7 +85,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
 #test
 {
     var bulk: BulkDiscount
-    var rules: [1] IDiscountRule
+    var rules: [1] IDiscountRule = undefined
     rules[0] = cast(IDiscountRule) bulk
 
     var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
@@ -112,7 +112,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 50}
 
-    var rules: [3] IDiscountRule
+    var rules: [3] IDiscountRule = undefined
     rules[0] = cast(IDiscountRule) bulk
     rules[1] = cast(IDiscountRule) book
     rules[2] = cast(IDiscountRule) flat
@@ -129,7 +129,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
     var book: BookDiscount
     var flat: FlatDiscount = {amountCent: 25}
 
-    var rules: [3] IDiscountRule
+    var rules: [3] IDiscountRule = undefined
     rules[0] = cast(IDiscountRule) bulk
     rules[1] = cast(IDiscountRule) book
     rules[2] = cast(IDiscountRule) flat

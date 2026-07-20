@@ -262,7 +262,7 @@ func __runtimeAllocator()->IAllocator
             cxt.defaultAllocator = cxt.allocator
         }
     }
-    return cxt.allocator
+    return assume cxt.allocator
 }
 
 func __ensureRuntimeAllocator()

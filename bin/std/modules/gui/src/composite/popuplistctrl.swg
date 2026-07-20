@@ -16,7 +16,7 @@ struct PopupListCtrl
     maxHeightPopup:       f32 = 300
     simFitX, simFitY:     bool
 
-    sigSelected:          func||(*PopupListCtrl, u32)
+    sigSelected:          #null func||(*PopupListCtrl, u32)
 
     items:                ArrayPtr'PopupListCtrlItem
     selectedIdx           = Swag.U32.Max

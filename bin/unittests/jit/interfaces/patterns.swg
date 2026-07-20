@@ -23,7 +23,7 @@ impl IAction for RedoAction
 
 func runActionRegistry()->bool
 {
-    var actions: [2] IAction
+    var actions: [2] IAction = undefined
     var undo: UndoAction
     var redo: RedoAction
     actions[0] = cast(IAction) undo
@@ -44,7 +44,7 @@ interface IDispatch
 
 struct Base
 {
-    itf:   IDispatch
+    itf:   #null IDispatch
     value: s32 = 10
 }
 

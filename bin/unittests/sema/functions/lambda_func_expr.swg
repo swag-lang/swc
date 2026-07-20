@@ -188,7 +188,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    var predicate: LambdaBinaryPredicate
+    var predicate: LambdaBinaryPredicate = undefined
 
     predicate = func(left, right) => left == right
     #assert(#typeof(predicate) == LambdaBinaryPredicate)
@@ -207,7 +207,7 @@ func semaTest007()
 {
     let local = func(flag = true) => flag
 
-    var bound: func(flag: bool = true)->bool
+    var bound: func(flag: bool = true)->bool = undefined
     bound = func(flag)
     {
         #assert(#typeof(flag) == bool)

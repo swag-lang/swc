@@ -11,7 +11,7 @@ public enum JobState
 
 public struct Job
 {
-    lambda:     func(#null *void)
+    lambda:     #null func(#null *void)
     data:       #null *void
 
     // Internal state
@@ -35,7 +35,7 @@ public struct ForJob
     contextData:    #null *void
 }
 
-var g_Allocator:        Swag.IAllocator
+var g_Allocator:        #null Swag.IAllocator
 var g_mustEnd:          bool
 var g_numWorkers:       s32
 var g_workers:          Array'Thread

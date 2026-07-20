@@ -33,8 +33,8 @@ interface ISerialize
 
 struct Serializer
 {
-    encode:      IEncoder
-    decode:      IDecoder
+    encode:      #null IEncoder
+    decode:      #null IDecoder
     isWrite:     bool
 }
 

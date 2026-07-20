@@ -1085,15 +1085,18 @@ namespace
                 builder.placeLabel(fallbackLabel);
                 builder.emitLoadRegMem(dstPayload.reg, valueAddrReg, 0, valueBits);
                 builder.placeLabel(doneLabel);
+                SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, false, dstTypeRef));
                 return Result::Continue;
             }
 
             builder.emitLoadRegMem(dstPayload.reg, valueAddrReg, 0, valueBits);
+            SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, false, dstTypeRef));
             return Result::Continue;
         }
 
         const CodeGenNodePayload& dstPayload = codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.nextVirtualIntRegister(), dstTypeRef);
         builder.emitLoadRegReg(dstPayload.reg, valueAddrReg, MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, true, dstTypeRef));
         return Result::Continue;
     }
 
@@ -1191,6 +1194,7 @@ namespace
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(dstPayload.reg, finalValueAddrReg, MicroOpBits::B64);
+            SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, true, dstTypeRef));
             return Result::Continue;
         }
 
@@ -1200,11 +1204,13 @@ namespace
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitLoadRegMem(dstPayload.reg, finalValueAddrReg, 0, valueBits);
+            SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, false, dstTypeRef));
             return Result::Continue;
         }
 
         const CodeGenNodePayload& dstPayload = codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.nextVirtualIntRegister(), dstTypeRef);
         builder.emitLoadRegReg(dstPayload.reg, finalValueAddrReg, MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, true, dstTypeRef));
         return Result::Continue;
     }
 

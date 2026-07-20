@@ -14,7 +14,7 @@ public struct MessageDlgOptions
     iconColor:            Color
     horzAlignmentText     = StringHorzAlignment.Center
     vertAlignmentText     = StringVertAlignment.Center
-    sigCreate:            func||(*MessageDlg)
+    sigCreate:            #null func||(*MessageDlg)
 }
 
 public impl MessageDlg

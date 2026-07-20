@@ -459,7 +459,7 @@ enum VariadicKind: u16
     func variadicAny(values: ...)->bool
     {
         let p0 = cast(*void) values[0]
-        let p1 = cast(*void) values[1]
+        let p1 = cast(#null *void) values[1]
         return p0 == cast(*void) 0x1234'u64 and p1 == null
     }
 

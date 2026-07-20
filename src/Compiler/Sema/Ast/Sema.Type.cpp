@@ -364,6 +364,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
         case TypeInfoKind::Interface:
             typeRef = typeMgr.addType(TypeInfo::makeInterface(&qualifiedType.payloadSymInterface(), typeFlags));
             break;
+        case TypeInfoKind::Function:
+            typeRef = typeMgr.addType(TypeInfo::makeFunction(&qualifiedType.payloadSymFunction(), typeFlags));
+            break;
         case TypeInfoKind::TypeInfo:
             typeRef = typeMgr.addType(TypeInfo::makeTypeInfo(typeFlags));
             break;

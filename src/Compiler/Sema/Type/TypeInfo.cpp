@@ -1278,6 +1278,8 @@ bool TypeInfo::isSupportsNullableQualifier() const noexcept
         case TypeInfoKind::CString:
         case TypeInfoKind::Any:
         case TypeInfoKind::TypeInfo:
+        case TypeInfoKind::Function:
+        case TypeInfoKind::Interface:
             return true;
 
         default:

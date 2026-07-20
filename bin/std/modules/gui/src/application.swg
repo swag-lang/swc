@@ -475,7 +475,7 @@ private impl Application
         .sigFrame.call(me)
     }
 
-    public mtd doModalLoop(surface: #null *Surface, cb: func||(*Application) = null)->WndId
+    public mtd doModalLoop(surface: #null *Surface, cb: #null func||(*Application) = null)->WndId
     {
         .inModalLoop += 1
         defer .inModalLoop -= 1
@@ -577,7 +577,7 @@ impl Application
     // Create a main surface, and run.
     // When the application is launched with the 'swag.test' argument, it auto-exits
     // after 'testFrames' frames, so examples can be run headless by the test suite.
-    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 50)
+    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: #null HookEvent = null, init: #null func(*Application) = null, testFrames: u32 = 50)
     {
         var app: Application
 
@@ -597,7 +597,7 @@ impl Application
     }
 
     // Creates a new surface
-    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: HookEvent = null, surfaceID: #null string = null)->#null *Surface throw
+    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceID: #null string = null)->#null *Surface throw
     {
         let surface = Memory.new'Surface()
         surface.app       = me

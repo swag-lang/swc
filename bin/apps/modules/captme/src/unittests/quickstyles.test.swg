@@ -18,7 +18,7 @@ using Swag, Core
     @assert(@dataof(textPaint.itf) != @dataof(textItf))
     @assert(f.main.mdlFormText.text == "Keep me")
     @assert(textItf.boundRect() == textRectBefore)
-    @assert((cast(*FormText) @dataof(textPaint.itf)).text == "A")
+    @assert((cast(*FormText) @dataof(assume textPaint.itf)).text == "A")
     quickStyleReleasePaintForm(&textPaint)
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -31,7 +31,7 @@ using Swag, Core
     @assert(@dataof(polyPaint.itf) != @dataof(polyItf))
     @assert(f.main.mdlFormPolygon.points.count == 3)
     @assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    @assert((cast(*FormPolygon) @dataof(polyPaint.itf)).points.count == 6)
+    @assert((cast(*FormPolygon) @dataof(assume polyPaint.itf)).points.count == 6)
     quickStyleReleasePaintForm(&polyPaint)
 
     f.shutdown()

@@ -418,7 +418,7 @@ impl SurfaceWnd
         }
     }
 
-    mtd create(userView: #null *Wnd, hook: HookEvent)
+    mtd create(userView: #null *Wnd, hook: #null HookEvent)
     {
         .computeStyle()
 

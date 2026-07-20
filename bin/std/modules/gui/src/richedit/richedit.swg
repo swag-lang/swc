@@ -36,7 +36,7 @@ struct RichEditCtrl
     tabSize:                     s32 = 4
     marginLeft:                  f32
     marginRight:                 f32
-    lexer:                       IRichEditLexer
+    lexer:                       #null IRichEditLexer
     form                         = RichEditForm.RichEditCtrl
     sigIsReadOnly:               SigArray'func||(*bool)
     sigChanged:                  SigArray'func||(*RichEditCtrl)

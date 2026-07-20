@@ -67,7 +67,7 @@ struct IconButton
     sigHidePopup:        SigArray'func||(*IconButton)
     sigShowPopup:        SigArray'func||(*IconButton)
     sigCheckChanged:     SigArray'func||(*IconButton)
-    sigPaintIcon:        func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)
+    sigPaintIcon:        #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)
 
     aniBk:               BlendColor
     isChecked:           bool

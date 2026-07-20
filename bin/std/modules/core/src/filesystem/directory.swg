@@ -12,7 +12,7 @@ struct EnumerationOptions
     wantDirectories            = true                         // Whether to include directories in the results
     wantSpecialDirectories     = false                        // Whether to include "." and ".." in the results
 
-    filterLambda:              func(File.FileInfo)->bool      // Optional lambda to filter results
+    filterLambda:              #null func(File.FileInfo)->bool     // Optional lambda to filter results
 }
 
 // Gets all files in the specified directory

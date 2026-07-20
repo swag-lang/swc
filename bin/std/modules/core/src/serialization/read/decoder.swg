@@ -201,7 +201,7 @@ impl Decoder
                     Reflection.clearStructArray(data, safeValueType)
                     while .serializer.toNextSequenceElement(&count)
                     {
-                        let bufArr = Reflection.appendValueStructArray(data, safeValueType)
+                        let bufArr = Reflection.appendValueStructArray(data, safeValueType, defaultInitSlot: false)
                         .readTypedContent(assume bufArr, safeValueType)
                     }
                 }

@@ -52,7 +52,7 @@ func cstringFallback()->bool
 func interfaceFallback()->bool
 {
     var probe = OrelseProbe{value: 55}
-    var primary: IOrelseProbe = null
+    var primary: #null IOrelseProbe = null
     let fallback = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
     let resolved = primary orelse fallback
     return resolved.id() == 55

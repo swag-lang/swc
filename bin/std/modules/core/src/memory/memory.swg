@@ -73,7 +73,7 @@ func freeTemp()
 
 // Push a new allocator for the given block of code
 #[Swag.Macro]
-func pushAllocator(allocator: Swag.IAllocator, stmt: #code)
+func pushAllocator(allocator: #null Swag.IAllocator, stmt: #code)
 {
     let prev = @getcontext()
     defer @setcontext(prev)

@@ -163,7 +163,7 @@ impl CaptureClipboardForm
         }
     }
 
-    mtd toForm(capture: *Capture)->IForm
+    mtd toForm(capture: *Capture)->#null IForm
     {
         var result: retval
 
@@ -231,7 +231,7 @@ impl CaptureClipboardForms
         {
             let form = item.toForm(capture)
             if form do
-                result.add(form)
+                result.add(assume form)
         }
 
         return result
@@ -876,19 +876,12 @@ impl Capture
     // SNAP
     //////////////////////////////
 
-    mtd getSnapPoint(bound: Math.Rectangle, right, bottom: bool, nx, ny: s32, idxPt: u32, editForm: IForm = null)->Math.Point
+    mtd getSnapPoint(bound: Math.Rectangle, right, bottom: bool, nx, ny: s32, idxPt: u32, editForm: #null IForm = null)->Math.Point
     {
         var result: retval
 
-        var form: IForm
-        var type: typeinfo = undefined
-
-        if editForm do
-            form = editForm
-        else do
-            form = .forms[.selection[0]]
-
-        type = @kindof(form)
+        let form = editForm orelse .forms[.selection[0]]
+        let type = @kindof(form)
 
         if .selection.count == 1 and type == FormPolygon
         {
@@ -924,7 +917,7 @@ impl Capture
         return result
     }
 
-    mtd getSelectionBoundRect(editForm: IForm = null)->Math.Rectangle
+    mtd getSelectionBoundRect(editForm: #null IForm = null)->Math.Rectangle
     {
         if editForm do
             return editForm.boundRect()
@@ -942,7 +935,7 @@ impl Capture
         return bound
     }
 
-    mtd snap(x, y: #null *s32, right, bottom: bool, idxPt: u32 = 0, editForm: IForm = null)
+    mtd snap(x, y: #null *s32, right, bottom: bool, idxPt: u32 = 0, editForm: #null IForm = null)
     {
         const SnapToler = 10
 

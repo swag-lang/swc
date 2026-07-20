@@ -57,7 +57,7 @@ struct EditBox
     sigLoseFocus:         SigArray'func||(*EditBox)                // Emitted when the EditBox loses focus
     sigEnterPressed:      SigArray'func||(*EditBox)                // Emitted when Enter is pressed
     sigEscapePressed:     SigArray'func||(*EditBox)                // Emitted when Escape is pressed
-    sigCheckContent:      func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
+    sigCheckContent:      #null func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
 
     internal
     {

@@ -20,7 +20,7 @@ func resetLifecycleHooks()
     PostMoveCount = 0
 }
 
-func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
+func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
 {
     if !buffer do
         return
@@ -33,7 +33,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
     talloc.free(&req)
 }
 
-func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->#null [*] void
+func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null)->#null [*] void
 {
     var req: AllocatorRequest
     req.address = buffer
@@ -45,7 +45,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     return req.address
 }
 
-func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -60,7 +60,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: IAllocator = n
     talloc.free(&req)
 }
 
-func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
+func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -286,7 +286,7 @@ impl RemoveBuffer
 
 struct OwnedDropBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] DropOnlyTracked
     count: u64
     capacity: u64
@@ -311,7 +311,7 @@ impl OwnedDropBuffer
 
 struct ReallocDropBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] DropOnlyTracked
     count: u64
     capacity: u64
@@ -363,7 +363,7 @@ impl ReallocDropBuffer
 
 struct(T) GenericOwnedBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] T
     count: u64
     capacity: u64
@@ -415,7 +415,7 @@ impl GenericOwnedBuffer
 
 struct(T) LazyAllocatorGenericBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] T
     count: u64
     capacity: u64
@@ -469,7 +469,7 @@ impl LazyAllocatorGenericBuffer
 
 struct(T) HelperAllocatorGenericBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] T
     count: u64
     capacity: u64
@@ -514,7 +514,7 @@ impl HelperAllocatorGenericBuffer
 
 struct(T) MemoryAllocatorGenericBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] T
     count: u64
     capacity: u64
@@ -583,7 +583,7 @@ impl MemoryAllocatorGenericBuffer
 
 struct(T) PostCopyAllocatorGenericBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] T
     count: u64
     capacity: u64
@@ -1281,13 +1281,13 @@ func intrinsicInitRuntimeCountStructInfo()->s32
 
 func intrinsicInitRuntimeCountClosureInfo()->s32
 {
-    var values: [3] func||()->s32
+    var values: [3] #null func||()->s32
     values[0] = func()->s32 { return 4 }
     values[1] = func()->s32 { return 5 }
     values[2] = func()->s32 { return 6 }
     var start: u64 = 1
     var count: u64 = 2
-    @init(cast([*] func||()->s32) &values[0] + start, count)
+    @init(cast([*] #null func||()->s32) &values[0] + start, count)
     return values[0]() * 100 + cast(s32) (values[1] == null) * 10 + cast(s32) (values[2] == null)
 }
 

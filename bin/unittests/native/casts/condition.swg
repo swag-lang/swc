@@ -10,7 +10,7 @@
     if !c {}
     var d: #null [*] bool
     if !d {}
-    var e: func()
+    var e: #null func()
     if !e {}
     var f: #null typeinfo
     if !f {}

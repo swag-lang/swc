@@ -27,7 +27,7 @@ var missing = @mkinterface(null, MissingAction, IAction) // swc-expected-error {
 
 #test
 {
-    var actions: [2] IAction
+    var actions: [2] IAction = undefined
     actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
     actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
 

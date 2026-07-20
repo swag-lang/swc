@@ -66,3 +66,27 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
     @assert(value)
     @assert(LogCounter == 11)
 }
+
+// A logical operator whose left operand is a live bool storage (a parameter or local)
+// must not clobber that storage with the result of the whole expression.
+func logicalKeepsLeftOperand(flag: bool)->bool
+{
+    let d = false
+    let combined = flag and d
+    return flag
+}
+
+#test
+{
+    // flag stays true even though 'flag and false' is false.
+    @assert(logicalKeepsLeftOperand(true) == true)
+    @assert(logicalKeepsLeftOperand(false) == false)
+
+    var v = true
+    let a = v and false
+    @assert(v == true)
+
+    var u = false
+    let b = u or true
+    @assert(u == false)
+}

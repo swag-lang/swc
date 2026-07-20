@@ -132,7 +132,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: ReflectionProbe = {x: seed}
-    let ping = cast(ReflectionProbePingFn) method.value
+    let ping = cast(ReflectionProbePingFn) (assume method.value)
     let result = ping(&probe)
     ReflectionRuntimePointerCalls += 1
     return result == seed + 1

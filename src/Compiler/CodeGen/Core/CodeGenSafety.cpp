@@ -467,6 +467,45 @@ Result CodeGenSafety::emitAssumeCheck(CodeGen& codeGen, const AstNode& node)
     return emitRuntimePanicCall(codeGen, *panicFunction, node, "assume on null value");
 }
 
+// A dynamic extraction (from 'any') can carry a null payload into a bare, non-null
+// destination type: guard the produced value like an implicit 'assume'.
+Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, bool valueIsAddress, TypeRef resultTypeRef)
+{
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
+        return Result::Continue;
+
+    TypeRef resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), resultTypeRef);
+    if (resolvedTypeRef.isInvalid())
+        resolvedTypeRef = resultTypeRef;
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(resolvedTypeRef);
+    if (!typeInfo.isNonNullable())
+        return Result::Continue;
+
+    const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
+    auto           bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+    SWC_ASSERT(bits != MicroOpBits::Zero);
+
+    MicroBuilder&  builder     = codeGen.builder();
+    const MicroReg presenceReg = codeGen.nextVirtualIntRegister();
+    if (sizeOf > sizeof(uint64_t) || valueIsAddress)
+        builder.emitLoadRegMem(presenceReg, valueReg, 0, bits);
+    else
+        builder.emitLoadRegReg(presenceReg, valueReg, bits);
+
+    const MicroLabelRef presentLabel = builder.createLabel();
+    builder.emitCmpRegImm(presenceReg, ApInt(0, 64), bits);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
+
+    const IdentifierRef panicIdRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
+    SWC_ASSERT(panicIdRef.isValid());
+    SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(panicIdRef);
+    SWC_ASSERT(panicFunction != nullptr);
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "null value cast into a non-null type"));
+    builder.placeLabel(presentLabel);
+    return Result::Continue;
+}
+
 Result CodeGenSafety::emitOverflowCheck(CodeGen& codeGen, const AstNode& node)
 {
     if (!hasOverflowRuntimeSafety(codeGen))

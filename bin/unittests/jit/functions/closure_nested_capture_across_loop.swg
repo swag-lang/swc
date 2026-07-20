@@ -15,8 +15,8 @@
 
 struct Box { v: u32; a: u8 }
 
-var g_outer: func||(u32)
-var g_inner: func||(u32)
+var g_outer: #null func||(u32)
+var g_inner: #null func||(u32)
 var g_sink:  u32
 
 #[Swag.NoInline]

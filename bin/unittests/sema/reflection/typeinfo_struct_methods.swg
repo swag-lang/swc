@@ -167,7 +167,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: SimpleMethodProbe = {value: seed}
-    let method = cast(SimplePingFn) methodInfo.value
+    let method = cast(SimplePingFn) assume methodInfo.value
     return method(&probe) == seed + 1
 }
 
@@ -190,7 +190,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
 
     var probe: GenericMethodProbe's32 = {value: start}
     let values = [next, start]
-    let method = cast(GenericCopyFromFn) methodInfo.value
+    let method = cast(GenericCopyFromFn) assume methodInfo.value
     let result = method(&probe, values)
     return result == next and probe.value == next
 }
@@ -247,21 +247,21 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
        scoreInfo.value == null do
         return false
 
-    let scaleValue = cast(ExportedScaleValueFn) scaleInfo.value
+    let scaleValue = cast(ExportedScaleValueFn) assume scaleInfo.value
     if scaleValue(seed, 3) != seed * 3 do
         return false
 
     var probe: ExportedMethodProbe = {value: seed}
 
-    let add = cast(ExportedAddFn) addInfo.value
+    let add = cast(ExportedAddFn) assume addInfo.value
     if add(&probe, 5) != seed + 5 or probe.value != seed + 5 do
         return false
 
-    let scaled = cast(ExportedScaledFn) scaledInfo.value
+    let scaled = cast(ExportedScaledFn) assume scaledInfo.value
     if scaled(&probe, 2) != (seed + 5) * 2 do
         return false
 
-    let score = cast(ExportedScoreFn) scoreInfo.value
+    let score = cast(ExportedScoreFn) assume scoreInfo.value
     if score(&probe, 7) != seed + 12 do
         return false
 

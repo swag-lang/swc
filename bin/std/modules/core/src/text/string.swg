@@ -15,7 +15,7 @@ struct String
     buffer:        #null [*] u8
     length:        u64
     capacity:      u64
-    allocator:     IAllocator
+    allocator:     #null IAllocator
     padding:       [StringSmallSize] u8
 }
 

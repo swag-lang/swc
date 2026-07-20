@@ -198,7 +198,7 @@ func makeCounter(start: s32)->func||()->s32
 // Array of lambdas.
 #test
 {
-    var ops: [3] func||(s32)->s32
+    var ops: [3] func||(s32)->s32 = undefined
     ops[0] = func(x: s32)->s32 { return x + 1 }
     ops[1] = func(x: s32)->s32 { return x * 2 }
     ops[2] = func(x: s32)->s32 { return x * x }

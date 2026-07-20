@@ -3,7 +3,7 @@ using Swag
 
 namespace GenericMkSliceLazyCodegen
 {
-    func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
+    func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
     {
         if !buffer do
             return
@@ -16,7 +16,7 @@ namespace GenericMkSliceLazyCodegen
         talloc.free(&req)
     }
 
-    func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->#null [*] void
+    func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null)->#null [*] void
     {
         var req: AllocatorRequest
         req.address = buffer
@@ -43,7 +43,7 @@ namespace GenericMkSliceLazyCodegen
 
     struct(T) BufferBox
     {
-        allocator: IAllocator
+        allocator: #null IAllocator
         buffer:    #null [*] T
         count:     u64
         capacity:  u64

@@ -109,8 +109,11 @@ func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB:
     }
 }
 
-// Add an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)
-func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo)->#null *void
+// Add an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType).
+// With 'defaultInitSlot' false, the new slot is only zeroed and the CALLER must fully
+// initialize it (deserialization does): this supports element types that have no
+// implicit default, like non-null interfaces.
+func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, defaultInitSlot: bool = true)->#null *void
 {
     if !arrayPtr or !valueType
     {
@@ -119,7 +122,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo)->#
     }
 
     let nnType = assume valueType
-    if !Memory.canDefaultInit(nnType)
+    if defaultInitSlot and !Memory.canDefaultInit(nnType)
     {
         @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
         return null
@@ -164,7 +167,10 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo)->#
 
     let result = arr.buffer + (arr.count * nnType.sizeof)
     arr.count += 1
-    Memory.defaultInit(result, nnType)
+    if defaultInitSlot do
+        Memory.defaultInit(result, nnType)
+    else do
+        Memory.clear(assume result, nnType.sizeof)
 
     return result
 }

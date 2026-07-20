@@ -14,8 +14,8 @@ struct GizmoRect
     firstMoving:           bool
     movingRect:            Math.Rectangle
     movingStart:           Math.Point
-    sigChanged:            func||(*GizmoRect, bool, u32)
-    sigHasChanged:         func||()
+    sigChanged:            #null func||(*GizmoRect, bool, u32)
+    sigHasChanged:         #null func||()
 
     // Rotation: the whole gizmo (box + anchors + handle) rotates with the form
     rotateEnabled:         bool = false
@@ -26,7 +26,7 @@ struct GizmoRect
     firstRotating:         bool
     rotateStartValue:      f32
     rotateStartAngle:      f32
-    sigRotate:             func||(*GizmoRect, bool, bool, f32)
+    sigRotate:             #null func||(*GizmoRect, bool, bool, f32)
 
     // Captured at the start of a resize so the math stays in the rotated frame
     gizmoRad:              f32

@@ -98,7 +98,7 @@ func fallthroughToBase(evt: IEvent)->s32
     }
 }
 
-func classifyNil(evt: IEvent)->s32
+func classifyNil(evt: #null IEvent)->s32
 {
     switch evt
     {
@@ -115,7 +115,7 @@ func runInterfaceSwitch()->bool
     var mouse: MouseEvent
     var key:   KeyEvent
     var base:  EventBase
-    var empty: IEvent
+    var empty: #null IEvent
 
     return dispatchEvent(cast(IEvent) wheel) == 15 and
            dispatchEvent(cast(IEvent) mouse) == 12 and

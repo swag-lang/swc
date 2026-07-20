@@ -65,7 +65,7 @@ func semaTest002()
 func semaTest003()
 {
     var probe = OrelseProbe{value: 7}
-    var primary: IOrelseProbe = null
+    var primary: #null IOrelseProbe = null
     let fallback = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
     let resolved = primary orelse fallback
     #assert(#typeof(resolved) == IOrelseProbe)

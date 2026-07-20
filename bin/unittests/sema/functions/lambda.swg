@@ -2,15 +2,15 @@
 
 func semaTest001()
 {
-    var fn: func()
+    var fn: #null func()
     fn()
-    var fn1: func(s: string)
+    var fn1: #null func(s: string)
     fn1("test")
 }
 
 struct A
 {
-    fn: func()
+    fn: #null func()
 }
 
 func semaTest002()
@@ -21,7 +21,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    var fn3: func(v: string)
+    var fn3: #null func(v: string)
     fn3("ok")
 }
 

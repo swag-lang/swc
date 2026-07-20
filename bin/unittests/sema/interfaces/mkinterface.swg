@@ -25,7 +25,7 @@ impl IAction for RedoAction
 
 func semaTest001()
 {
-    var actions: [2] IAction
+    var actions: [2] IAction = undefined
     actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
     actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
 

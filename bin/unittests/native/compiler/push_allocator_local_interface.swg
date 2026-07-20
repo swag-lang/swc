@@ -2,7 +2,7 @@
 using Swag
 
 #[Swag.Macro]
-func pushAllocatorMacro(allocator: IAllocator, stmt: #code)
+func pushAllocatorMacro(allocator: #null IAllocator, stmt: #code)
 {
     let prev = @getcontext()
     defer @setcontext(prev)
@@ -14,13 +14,13 @@ func pushAllocatorMacro(allocator: IAllocator, stmt: #code)
     #inject(stmt)
 }
 
-func allocatorObject(allocator: IAllocator)->#null *void
+func allocatorObject(allocator: #null IAllocator)->#null *void
 {
     let runtimeItf = cast(const *Swag.Interface) &allocator
     return runtimeItf.obj
 }
 
-func allocatorITable(allocator: IAllocator)->#null const *void
+func allocatorITable(allocator: #null IAllocator)->#null const *void
 {
     let runtimeItf = cast(const *Swag.Interface) &allocator
     return cast(#null const *void) runtimeItf.itable

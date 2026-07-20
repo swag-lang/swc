@@ -9,7 +9,7 @@
 #[Swag.Sanity(.Null, true)]
 #test
 {
-    var f: func()->s32
+    var f: #null func()->s32
     let x = f() // swc-expected-error {{sanity_err_null_call}}
     discard x
 }
@@ -18,7 +18,7 @@
 #[Swag.Sanity(.Null, true)]
 #test
 {
-    var f: func()->s32
+    var f: #null func()->s32
     var g = f
     let x = g() // swc-expected-error {{sanity_err_null_call}}
     discard x

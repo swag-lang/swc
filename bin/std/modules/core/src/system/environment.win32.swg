@@ -279,8 +279,8 @@ public alias WindowResizeCallback = func||(*Window, s32, s32)
 
 public struct WindowCallbacks
 {
-    onPaint:      WindowPaintCallback
-    onResize:     WindowResizeCallback
+    onPaint:      #null WindowPaintCallback
+    onResize:     #null WindowResizeCallback
 }
 
 public struct WindowOptions

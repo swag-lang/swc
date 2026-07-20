@@ -67,7 +67,7 @@ impl ScratchAllocator
 
     // This will call 'release' prior to changing the capacity, so this must
     // be called at an early stage
-    mtd setCapacity(newCapacity: u64, allocator: IAllocator)
+    mtd setCapacity(newCapacity: u64, allocator: #null IAllocator)
     {
         @assert(allocator != null)
         .release()

@@ -57,7 +57,7 @@ impl Voice
     {
         if .codec == null do
             return
-        let decoder = cast(*Codec) @dataof(.codec)
+        let decoder = cast(*Codec) (assume @dataof(.codec))
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
         Memory.free(decoder, cast(u64) decoder.type.sizeof)

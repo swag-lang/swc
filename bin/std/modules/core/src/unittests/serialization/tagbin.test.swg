@@ -145,7 +145,7 @@ public impl ITagBinScore for TagBinInterfaceProbe
 
 struct TagBinInterfacePayload
 {
-    score: ITagBinScore
+    score: #null ITagBinScore
     other: s32
 }
 
@@ -362,7 +362,7 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
     return true
 }
 
-func releaseTagBinInterface(value: *ITagBinScore)
+func releaseTagBinInterface(value: *#null ITagBinScore)
 {
     let runtime = cast(*Swag.Interface) value
     if runtime.obj

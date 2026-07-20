@@ -10,7 +10,7 @@ func resetDropHooks()
     DropTrace = 0
 }
 
-func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
+func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
 {
     if !buffer do
         return
@@ -23,7 +23,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null)
     talloc.free(&req)
 }
 
-func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->#null [*] void
+func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null)->#null [*] void
 {
     var req: AllocatorRequest
     req.address = buffer
@@ -35,7 +35,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     return req.address
 }
 
-func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -50,7 +50,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: IAllocator = n
     talloc.free(&req)
 }
 
-func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
+func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -114,7 +114,7 @@ impl DropTracked
 
 struct DirectByteBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] u8
     count: u64
     capacity: u64
@@ -175,7 +175,7 @@ impl DirectByteBuffer
 
 struct HelperByteBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] u8
     count: u64
     capacity: u64
@@ -227,7 +227,7 @@ impl HelperByteBuffer
 
 struct MemoryTrackedBuffer
 {
-    allocator: IAllocator
+    allocator: #null IAllocator
     buffer: #null [*] DropTracked
     count: u64
     capacity: u64

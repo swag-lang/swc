@@ -217,7 +217,7 @@ impl IWnd for FrameWnd
 impl FrameWnd
 {
     #[Swag.Discardable]
-    mtd(T) createView(hook: HookEvent = null)->*T
+    mtd(T) createView(hook: #null HookEvent = null)->*T
     {
         .view                 = Wnd.create'T(me, "", .position, hook: hook)
         .view.backgroundStyle = .Transparent

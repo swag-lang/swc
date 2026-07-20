@@ -1,20 +1,20 @@
 #global private
 
-var A: func(s32)
+var A: func(s32) = undefined
 #assert(#nameof(#typeof(A)) == "func(s32)")
-var B: func(s32, bool)
+var B: func(s32, bool) = undefined
 #assert(#nameof(#typeof(B)) == "func(s32, bool)")
-var C: func(s32, bool)->string
+var C: func(s32, bool)->string = undefined
 #assert(#nameof(#typeof(C)) == "func(s32, bool)->string")
-var D: func(s32, string)->#null *s32 throw
+var D: func(s32, string)->#null *s32 throw = undefined
 #assert(#nameof(#typeof(D)) == "func(s32, string)->#null *s32 throw")
-var E: func||(s32)
+var E: func||(s32) = undefined
 #assert(#nameof(#typeof(E)) == "func||(s32)")
-var F: func||(s32, bool)
+var F: func||(s32, bool) = undefined
 #assert(#nameof(#typeof(F)) == "func||(s32, bool)")
-var G: func||(s32, bool)->string
+var G: func||(s32, bool)->string = undefined
 #assert(#nameof(#typeof(G)) == "func||(s32, bool)->string")
-var H: func||(s32, string)->#null *s32 throw
+var H: func||(s32, string)->#null *s32 throw = undefined
 #assert(#nameof(#typeof(H)) == "func||(s32, string)->#null *s32 throw")
 
 struct RecursiveFuncField
@@ -32,18 +32,18 @@ struct(T) LambdaTypeBox
     value: T
 }
 
-var LambdaBoxA: LambdaTypeBox'func||(s32)
-var LambdaBoxB: LambdaTypeBox'func||(s32)
+var LambdaBoxA: LambdaTypeBox'func||(s32) = undefined
+var LambdaBoxB: LambdaTypeBox'func||(s32) = undefined
 #assert(#typeof(LambdaBoxA) == #typeof(LambdaBoxB))
 
-var I: func() = null
-var J: func(...) = null
-var K: func(s32...) = null
+var I: func() = undefined
+var J: func(...) = undefined
+var K: func(s32...) = undefined
 #assert(#nameof(#typeof(I)) == "func()")
 #assert(#nameof(#typeof(J)) == "func(...)")
 #assert(#nameof(#typeof(K)) == "func(s32...)")
 
-var A0: func(a: s32)
+var A0: func(a: s32) = undefined
 #assert(#nameof(#typeof(A0)) == "func(a: s32)")
 
 func PtrMatch0() {}

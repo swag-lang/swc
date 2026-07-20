@@ -37,7 +37,7 @@ impl RegressionAstBuilder
 
 struct(T) RegressionArray
 {
-    values: [2] T
+    values: [2] T = undefined
     count:  u64
 }
 

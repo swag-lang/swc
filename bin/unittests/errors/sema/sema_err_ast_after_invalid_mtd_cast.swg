@@ -78,7 +78,7 @@ impl AstAfterInvalidCastSignal
 
 struct AstAfterInvalidCastOwner
 {
-    callback: func||(*AstAfterInvalidCastDialog, string)->bool
+    callback: #null func||(*AstAfterInvalidCastDialog, string)->bool
     signal:   AstAfterInvalidCastSignal'func||(*AstAfterInvalidCastOwner)
 }
 

@@ -18,7 +18,7 @@ struct(K) HashSet
     const HASH_FIRST       = 2'u32              // The first possible valid hash value.
     const HASH_MASK        = 2'u32              // A mask to ensure that valid hashes are >= HASH_FIRST.
 
-    allocator:             IAllocator           // The me.allocator used for memory operations.
+    allocator:             #null IAllocator           // The me.allocator used for memory operations.
     table:                 #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
     count:                 u64                  // The number of valid elements currently in the set.
     capacity:              u64                  // The total number of slots in the hash me.table.

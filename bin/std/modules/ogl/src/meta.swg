@@ -43,7 +43,7 @@ var g_Functions: Array'OneFunc
         // Declare a lambda variable for that extension.
         builderVars.appendString("var ext_")
         builderVars.appendString(e.name)
-        builderVars.appendString(": ")
+        builderVars.appendString(": #null ")
         builderVars.appendString(e.type.fullname)
         builderVars.appendString("\n")
 
@@ -87,7 +87,7 @@ var g_Functions: Array'OneFunc
         // Initialize the variable with the getExtensionAddress.
         builderInit.appendString("\text_")
         builderInit.appendString(e.name)
-        builderInit.appendString(" = cast(")
+        builderInit.appendString(" = cast(#null ")
         builderInit.appendString(e.type.fullname)
         builderInit.appendString(") getExtensionAddress(@dataof(\"")
         builderInit.appendString(e.name)

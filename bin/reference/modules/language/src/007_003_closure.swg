@@ -105,7 +105,7 @@ A closure variable can also hold a regular lambda (no captures).
 */
 #test
 {
-    var fct: func||(s32, s32)->s32
+    var fct: #null func||(s32, s32)->s32
 
     fct = func(x, y) => x + y
     @assert(fct(1, 2) == 3)
@@ -120,7 +120,7 @@ and are plain data (POD).
 #test
 {
     var x = [1, 2, 3]
-    var fct: func||(s32)->s32
+    var fct: #null func||(s32)->s32
     fct = func|x|(toAdd)
     {
         var res = 0

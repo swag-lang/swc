@@ -321,7 +321,7 @@ impl ICompareAllocator for CompareAllocator
 
 struct CompareAllocatorHolder
 {
-    allocator: ICompareAllocator
+    allocator: #null ICompareAllocator
 }
 
 impl CompareAllocatorHolder

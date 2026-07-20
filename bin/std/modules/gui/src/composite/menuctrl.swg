@@ -31,8 +31,8 @@ public struct PopupMenuItem
 public struct MenuCtrl
 {
     using frameWnd:       FrameWnd
-    onValidateResult:     func(*MenuCtrl, WndId)
-    onComputeItem:        func(*MenuCtrl, *PopupMenuItem)
+    onValidateResult:     #null func(*MenuCtrl, WndId)
+    onComputeItem:        #null func(*MenuCtrl, *PopupMenuItem)
     menuCtrlFlags:        MenuCtrlFlags = Zero
 
     paddingSel:           f32 = 4

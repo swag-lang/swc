@@ -141,12 +141,22 @@ func testCoreNonNullDynamicInitialization()->bool
     let appendedAliasPtr = Reflection.appendValueStructArray(&appendedAliases, defaultAliasType)
     let initializedAppendAlias = appendedAliasPtr and (cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr).value == "fallback"
 
-    return cxt.user0 == 6 and
-           rejectedNew and preservedReset and preservedArray and
-           rejectedZeroNew and preservedZeroReset and rejectedZeroAppend and
-           initializedNewArray and initializedNewAlias and initializedNestedAliasArray and initializedNestedArray and
-           initializedResetArray and initializedResetAlias and
-           initializedAppendArray and initializedAppendAlias
+    @assert(cxt.user0 == 6)
+    @assert(rejectedNew)
+    @assert(preservedReset)
+    @assert(preservedArray)
+    @assert(rejectedZeroNew)
+    @assert(preservedZeroReset)
+    @assert(rejectedZeroAppend)
+    @assert(initializedNewArray)
+    @assert(initializedNewAlias)
+    @assert(initializedNestedAliasArray)
+    @assert(initializedNestedArray)
+    @assert(initializedResetArray)
+    @assert(initializedResetAlias)
+    @assert(initializedAppendArray)
+    @assert(initializedAppendAlias)
+    return true
 }
 
 #test

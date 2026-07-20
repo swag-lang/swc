@@ -126,7 +126,7 @@ func squareValue(value: s32)->s32 => value * value
     }
 
     var holder: LambdaHolder = {cb: cb}
-    var callbacks: [2] LambdaAggregate
+    var callbacks: [2] LambdaAggregate = undefined
     callbacks[0] = holder.cb
     callbacks[1] = cb
 
@@ -210,7 +210,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    var cb: LambdaUnary
+    var cb: #null LambdaUnary
     @assert(cb == null)
 
     cb = &plusTen
@@ -232,7 +232,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    var predicate: LambdaBinaryPredicate
+    var predicate: LambdaBinaryPredicate = undefined
 
     predicate = func(left, right) => left == right
     @assert(predicate(10, 10))
@@ -264,7 +264,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    var bound: func(flag: bool = true)->bool
+    var bound: func(flag: bool = true)->bool = undefined
     bound = func(flag)
     {
         return flag

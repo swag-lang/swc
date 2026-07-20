@@ -28,7 +28,7 @@ interface IDispatch
 
 struct Base
 {
-    itf:   IDispatch
+    itf:   #null IDispatch
     value: s32 = 10
 }
 
@@ -55,7 +55,7 @@ func dispatch(base: *Base)->s32
 
 func semaTest001()
 {
-    var actions: [2] IAction
+    var actions: [2] IAction = undefined
     var undo: UndoAction
     var redo: RedoAction
     actions[0] = cast(IAction) undo

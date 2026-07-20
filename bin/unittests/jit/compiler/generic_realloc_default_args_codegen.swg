@@ -46,7 +46,7 @@ namespace GenericReallocDefaultArgsCodegen
 
     namespace LocalMemory
     {
-        func free(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+        func free(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
         {
             if !buffer do
                 return
@@ -61,7 +61,7 @@ namespace GenericReallocDefaultArgsCodegen
             talloc.free(&req)
         }
 
-        func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
+        func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
         {
             gLastCaller = loc
             gLastHintWasNull = hint == null
@@ -90,7 +90,7 @@ namespace GenericReallocDefaultArgsCodegen
 
     struct(T) Buffer
     {
-        allocator: IAllocator
+        allocator: #null IAllocator
         buffer:    #null [*] T
         count:     u64
         capacity:  u64

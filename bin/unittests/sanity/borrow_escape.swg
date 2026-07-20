@@ -1288,7 +1288,7 @@ func borrowEscapeDeepDeferredChain()->*s32
     return borrowEscapePassthrough(p3) // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
-var borrowEscapeRetainedVisitor: BorrowEscapeVisitor
+var borrowEscapeRetainedVisitor: #null BorrowEscapeVisitor
 
 #[Swag.NoInline]
 func borrowEscapeRetainVisitor(visitor: BorrowEscapeVisitor)

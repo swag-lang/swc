@@ -23,7 +23,7 @@ struct ConcatBufferSeek
 // making it efficient for building data piece by piece.
 struct ConcatBuffer
 {
-    allocator:           Swag.IAllocator         // The allocator to use for all memory operations.
+    allocator:           #null Swag.IAllocator         // The allocator to use for all memory operations.
 
     firstBucket:         #null *ConcatBufferBucket     // The first bucket in the chain.
     curBucket:           #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
@@ -442,7 +442,7 @@ impl ConcatBuffer
     // Converts the buffer to a 'String' by copying all its content.
     // The buffer remains valid after this call.
     // See [[moveToString]] for a more efficient version that avoids copying when possible.
-    mtd const toString(alloc: Swag.IAllocator = null)->String
+    mtd const toString(alloc: #null Swag.IAllocator = null)->String
     {
         var result: retval
         if !.firstBucket do

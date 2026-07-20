@@ -5,7 +5,7 @@ struct Dialog
     using wnd:            Wnd
     wndBottom:            *StackLayoutCtrl = undefined
     buttons:              Array'(*PushButton)
-    sigPressedButton:     func||(*Dialog, WndId)->bool
+    sigPressedButton:     #null func||(*Dialog, WndId)->bool
     fromSurface:          #null *Surface
 }
 

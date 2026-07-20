@@ -270,6 +270,11 @@ namespace
             case TypeInfoKind::TypeInfo:
                 return true;
 
+            case TypeInfoKind::Function:
+                return &srcType.payloadSymFunction() == &dstType.payloadSymFunction();
+            case TypeInfoKind::Interface:
+                return &srcType.payloadSymInterface() == &dstType.payloadSymInterface();
+
             default:
                 return false;
         }
@@ -452,10 +457,17 @@ namespace
         if (!dstUsesTypeInfoMatch)
             return Result::Continue;
 
+        // The 'any' payload may hold a null value: extracting it into a bare (non-null)
+        // destination is guarded like an implicit 'assume'.
+        const bool hasNullExtractSafety = dstType.isNonNullable() &&
+                                          sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Null);
+
         auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, nodeRef);
 
         if (hasDynCastSafety)
             payload.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
+        if (hasNullExtractSafety)
+            payload.addRuntimeSafety(Runtime::SafetyWhat::Null);
 
         if (!sema.isCurrentFunction())
             return Result::Continue;
@@ -463,8 +475,8 @@ namespace
         const auto& codeRef = sema.node(nodeRef).codeRef();
         SWC_RESULT(SemaHelpers::attachRuntimeAsFunctionToNode(sema, nodeRef, codeRef));
 
-        // Resolve panic function when DynCast safety is enabled
-        if (hasDynCastSafety)
+        // Resolve panic function when a runtime check is enabled
+        if (hasDynCastSafety || hasNullExtractSafety)
             SWC_RESULT(SemaHelpers::requireRuntimeSafetyPanicDependency(sema, codeRef));
 
         return Result::Continue;

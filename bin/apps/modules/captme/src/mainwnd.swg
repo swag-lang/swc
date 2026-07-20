@@ -55,7 +55,9 @@ struct MainWnd
     mdlFormText:                              FormText
     mdlFormDraw:                              FormDraw
     mdlFormCallout:                           FormCallout
-    mdlHighlight, mdlPixSel, mdlFavorite:     IForm
+    // Set right after construction (create/test fixtures), nullable so MainWnd
+    // keeps a valid implicit default for Wnd.create.
+    mdlHighlight, mdlPixSel, mdlFavorite:     #null IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
     mdlByType:                                Array'IForm
@@ -345,11 +347,11 @@ impl MainWnd
             .editMode = .Selection
             return edMode
         case Favorites:
-            return formToEditMode(.mdlFavorite)
+            return formToEditMode(assume .mdlFavorite)
         case Highlight:
-            return formToEditMode(.mdlHighlight)
+            return formToEditMode(assume .mdlHighlight)
         case PixSel:
-            return formToEditMode(.mdlPixSel)
+            return formToEditMode(assume .mdlPixSel)
         }
         return .editMode
     }

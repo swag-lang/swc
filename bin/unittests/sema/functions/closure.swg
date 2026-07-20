@@ -20,11 +20,11 @@ func semaTest001()
 {
     let fromLambda: ClosureUnary = func(value: s32)->s32 { return value + 10 }
     let fromFunction: ClosureUnary = &addOne
-    var nullable: ClosureNullary = null
+    var nullable: #null ClosureNullary = null
 
     #assert(#typeof(fromLambda) == ClosureUnary)
     #assert(#typeof(fromFunction) == ClosureUnary)
-    #assert(#typeof(nullable) == ClosureNullary)
+    #assert(#typeof(nullable) == #null ClosureNullary)
 }
 
 func semaTest002()

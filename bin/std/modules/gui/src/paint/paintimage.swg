@@ -8,7 +8,7 @@ public struct PaintImage
     surface:     #null *Surface
     image:       Image
     w, h:        s32
-    paint:       func||(app: *Application, painter: *Painter)
+    paint:       #null func||(app: *Application, painter: *Painter)
 }
 
 impl PaintImage

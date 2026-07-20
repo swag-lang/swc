@@ -193,7 +193,18 @@ func hasInterface(type: #null typeinfo, itf: #null typeinfo)->bool
         return false
 
     let typeStruct = cast(const *TypeInfoStruct) assume type
-    for it in typeStruct.interfaces where it.name == itf.fullname do
-        return true
+    for it in typeStruct.interfaces
+    {
+        // Compare with the canonical crc so a '#null'-qualified interface type matches the
+        // bare interface registered in the implementation list (same identity, different
+        // nullability qualifier). Fall back to the name for entries without a pointed type.
+        if it.pointedType
+        {
+            if it.pointedType.crc == itf.crc do
+                return true
+        }
+        elif it.name == itf.fullname do
+            return true
+    }
     return false
 }

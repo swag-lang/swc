@@ -7,7 +7,7 @@ using Swag
 public struct BitArray
 {
     buffer:        #null [*] u32  // Internal buffer storing the bits packed into 32-bit integers.
-    allocator:     IAllocator     // The allocator used for memory operations.
+    allocator:     #null IAllocator     // The allocator used for memory operations.
     count:         u64            // The number of bits in the array.
     capacity:      u64            // The total allocated capacity in bytes.
 }

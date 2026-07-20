@@ -104,8 +104,17 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
         LogicalExprCodeGenPayload& state   = ensureLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
         MicroBuilder&              builder = codeGen.builder();
-        state.reg                          = leftReg;
-        state.typeRef                      = codeGen.curViewType().typeRef();
+        // 'state.reg' becomes the result register, which the rhs branch overwrites. When the lhs
+        // operand is a bool value that materialized to a live storage register (a parameter or
+        // local), reusing it directly would clobber that variable — copy into a fresh register.
+        if (leftReg == leftPayload.reg)
+        {
+            const MicroReg resultReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(resultReg, leftReg, MicroOpBits::B8);
+            leftReg = resultReg;
+        }
+        state.reg     = leftReg;
+        state.typeRef = codeGen.curViewType().typeRef();
         state.setIsValue();
         state.doneLabel = builder.createLabel();
 

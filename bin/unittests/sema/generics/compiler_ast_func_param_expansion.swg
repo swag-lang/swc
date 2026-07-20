@@ -8,7 +8,7 @@ impl Signal
 {
     mtd call(params: ...)
     {
-        var fn: T
+        var fn: T = undefined
 
         #ast
         {

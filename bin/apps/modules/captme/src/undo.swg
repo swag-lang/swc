@@ -95,7 +95,7 @@ struct Undo
 {
     kind:            UndoKind
     capture:         #null *Capture
-    baseForm:        IForm
+    baseForm:        #null IForm
 
     selection:       Array'u64
 

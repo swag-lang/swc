@@ -160,7 +160,7 @@ struct Properties
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
     // does not own the displayed structs (an editor panel showing a document's objects) plugs
     // dynamic visibility, validation and change reactions.
-    hostNtfy:                 IPropertyNotify
+    hostNtfy:                 #null IPropertyNotify
 
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.

@@ -24,7 +24,7 @@ func allocZeroSizeMessage(kind: string, size: u64, hint: #null string, loc: Swag
 }
 
 // Check if a given pointer is allocated
-func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -40,7 +40,7 @@ func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: IAllocator 
 }
 
 // Free the specified memory block
-func free(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func free(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !buffer do
         return
@@ -56,7 +56,7 @@ func free(buffer: #null [*] void, size: u64, allocator: IAllocator = null, hint:
 }
 
 // Free all allocated memory of the given allocator if possible
-func freeAll(allocator: IAllocator, hint: #null string = null, loc = #callerlocation)
+func freeAll(allocator: #null IAllocator, hint: #null string = null, loc = #callerlocation)
 {
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -67,7 +67,7 @@ func freeAll(allocator: IAllocator, hint: #null string = null, loc = #callerloca
 }
 
 // Reallocate/allocate a given amount of bytes
-func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
+func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
     if !newSize do
         @panic(allocZeroSizeMessage("Memory.realloc", newSize, hint, loc), loc)
@@ -90,7 +90,7 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: IAll
 }
 
 // Allocate a given amount of bytes
-func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
+func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] void
 {
     if !size do
         @panic(allocZeroSizeMessage("Memory.alloc", size, hint, loc), loc)
@@ -129,7 +129,7 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #
 }
 
 // Allocate and initialize the given type
-func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#null *u8
+func new(type: typeinfo, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->#null *u8
 {
     let userHint = hint orelse type.fullname
     if !canDefaultInit(type)
@@ -144,7 +144,7 @@ func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint:
 }
 
 // Allocate and initialize the given type
-func(T) new(allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->*T
+func(T) new(allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
     let ptr      = cast(*T) alloc(#sizeof(T), allocator, alignment, userHint, loc)
@@ -153,7 +153,7 @@ func(T) new(allocator: IAllocator = null, alignment: u32 = 0, hint: #null string
 }
 
 // Drop and release memory of the given type
-func(T) delete(ptr: #null *T, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func(T) delete(ptr: #null *T, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !ptr do
         return
@@ -164,7 +164,7 @@ func(T) delete(ptr: #null *T, allocator: IAllocator = null, hint: #null string =
 }
 
 // Drop and release memory of the given type
-func delete(ptr: #null *void, type: typeinfo, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func delete(ptr: #null *void, type: typeinfo, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !ptr do
         return
@@ -182,7 +182,7 @@ func delete(ptr: #null *void, type: typeinfo, allocator: IAllocator = null, hint
 }
 
 // Allocate and initialize an array of the given type
-func(T) new(num: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] T
+func(T) new(num: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hint: #null string = null, loc = #callerlocation)->[*] T
 {
     Debug.assert(num > 0)
 
@@ -193,7 +193,7 @@ func(T) new(num: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: #n
 }
 
 // Drop and release memory of an array of the given type
-func(T) delete(ptr: #null [*] T, num: u64, allocator: IAllocator = null, hint: #null string = null, loc = #callerlocation)
+func(T) delete(ptr: #null [*] T, num: u64, allocator: #null IAllocator = null, hint: #null string = null, loc = #callerlocation)
 {
     if !ptr do
         return

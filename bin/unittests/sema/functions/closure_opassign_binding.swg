@@ -4,7 +4,7 @@ alias OpAssignClosure = func||(s32)->s32
 
 struct CallbackList
 {
-    cb: OpAssignClosure
+    cb: #null OpAssignClosure
 }
 
 impl CallbackList
@@ -37,5 +37,5 @@ func semaTest001()
     var owner: CallbackOwner
     owner.bind()
 
-    #assert(#typeof(owner.callbacks.cb) == OpAssignClosure)
+    #assert(#typeof(owner.callbacks.cb) == #null OpAssignClosure)
 }

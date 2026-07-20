@@ -173,7 +173,7 @@ struct EarlyReturnAndElifBox
     enabled: bool
     text:    EarlyReturnAndElifText
     button:  #null *EarlyReturnAndElifButton
-    cb:      func||()
+    cb:      #null func||()
     value:   s32
 }
 

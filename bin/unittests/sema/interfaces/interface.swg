@@ -21,7 +21,7 @@ struct S0 {}
 
 func semaTest001()
 {
-    var a: I0
+    var a: I0 = undefined
     a.toto()
 }
 

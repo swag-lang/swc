@@ -138,7 +138,7 @@ enum WndFlags
 
 struct Wnd
 {
-    itf:                   IWnd
+    itf:                   #null IWnd
     type:                  #null typeinfo
     surface:               #null *Surface
     style:                 ThemeStyle
@@ -182,8 +182,8 @@ struct Wnd
     layoutDirty:           bool = true
     managedByLayout:       bool
 
-    hookOnEvent:           HookEvent                         // Will be called before processing the event of the window
-    hookOnChildEvent:      HookEvent                         // Will be called before processing whatever event of a child window
+    hookOnEvent:           #null HookEvent                         // Will be called before processing the event of the window
+    hookOnChildEvent:      #null HookEvent                         // Will be called before processing whatever event of a child window
 }
 
 impl IWnd for Wnd
@@ -282,18 +282,18 @@ impl Wnd
     }
 
     #[Swag.Inline]
-    func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: HookEvent = null)->*T
+    func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: #null HookEvent = null)->*T
     {
         return create'T(parent, "", {}, id, hook)
     }
 
     #[Swag.Inline]
-    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->*T
+    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: #null HookEvent = null)->*T
     {
         return create'T(parent, "", position, id, hook)
     }
 
-    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->*T
+    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: #null WndId = null, hook: #null HookEvent = null)->*T
     {
         let res = Memory.new'T()
         res.isAllocated = true

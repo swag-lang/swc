@@ -87,7 +87,7 @@ struct PropertiesItem
     sigResize:          SigArray'func||(*PropertiesItem)
     sigRefresh:         SigArray'func||(*PropertiesItem)
 
-    ntfyItf:            IPropertyNotify
+    ntfyItf:            #null IPropertyNotify
 
     aniFocusBk:         BlendColor
     aniFocusBorder:     BlendColor

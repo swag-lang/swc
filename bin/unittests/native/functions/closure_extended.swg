@@ -8,12 +8,12 @@ struct Pair
 
 struct UnaryClosureHolder
 {
-    cb: func||(s32)->s32
+    cb: #null func||(s32)->s32
 }
 
 struct NullaryClosureHolder
 {
-    cb: func||()->s32
+    cb: #null func||()->s32
 }
 
 struct PathTarget
@@ -68,7 +68,7 @@ impl PathOwner
     }
 }
 
-func maybeInvoke(cb: func||()->s32 = null)->s32
+func maybeInvoke(cb: #null func||()->s32 = null)->s32
 {
     if cb do
         return cb()
@@ -232,7 +232,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var cb: func||(s32)->s32 = null
+    var cb: #null func||(s32)->s32 = null
     @assert(cb == null)
 
     cb = func(value: s32)->s32 { return value + 1 }
@@ -278,7 +278,7 @@ func runInlineClosureCaptureRef()->s32
 
     offset = 100
     @assert(holder.cb(4) == 9)
-    @assert(invokeUnary(holder.cb, 7) == 12)
+    @assert(invokeUnary(assume holder.cb, 7) == 12)
 }
 
 #test

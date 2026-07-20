@@ -51,7 +51,7 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
     let alternate: Transform = &scaleTransform
 
     var holder: TransformHolder = {cb: &addTransform}
-    var callbacks: [2] Transform
+    var callbacks: [2] Transform = undefined
     callbacks[0] = &addTransform
     callbacks[1] = alternate
 
@@ -66,7 +66,7 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
 #test
 {
     let reduce: Reducer = &sumReducer
-    var reducers: [2] Reducer
+    var reducers: [2] Reducer = undefined
     reducers[0] = reduce
     reducers[1] = &weightedReducer
 

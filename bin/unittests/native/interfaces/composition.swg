@@ -50,7 +50,7 @@ impl IValue for Counter
 // Interface stored as struct field and dispatched through it.
 struct Holder
 {
-    itf: IValue
+    itf: #null IValue
 }
 
 func increment(h: *Holder)
@@ -90,7 +90,7 @@ impl IValue for Tripler
 {
     var d: Doubler = {val: 5}
     var t: Tripler = {val: 5}
-    var items: [2] IValue
+    var items: [2] IValue = undefined
     items[0] = cast(IValue) d
     items[1] = cast(IValue) t
 
@@ -108,7 +108,7 @@ impl IValue for Tripler
     var b: Counter = {label: "b", count: 2}
     var c: Counter = {label: "c", count: 3}
 
-    var arr: [3] IValue
+    var arr: [3] IValue = undefined
     arr[0] = cast(IValue) a
     arr[1] = cast(IValue) b
     arr[2] = cast(IValue) c
@@ -151,7 +151,7 @@ func sumValues(items: [*] IValue, count: u32)->s32
     var d2: Doubler = {val: 7}
     var t1: Tripler = {val: 2}
 
-    var arr: [3] IValue
+    var arr: [3] IValue = undefined
     arr[0] = cast(IValue) d1
     arr[1] = cast(IValue) d2
     arr[2] = cast(IValue) t1

@@ -71,13 +71,13 @@ func(T) addStyleForm(qs: *QuickStyle, form: *T)
 struct QuickButton
 {
     using iconBtn:     IconButton
-    formItf:           IForm
+    formItf:           #null IForm
     quickWnd:          #null *QuickWnd
 }
 
 struct QuickStylePaintForm
 {
-    itf:       IForm
+    itf:       #null IForm
     title:     String
 }
 
@@ -277,7 +277,7 @@ impl QuickWnd
         if res == "0" and btn
         {
             let qbtn = cast(*QuickButton) assume btn
-            .currentStyle.remove(qbtn.formItf)
+            .currentStyle.remove(assume qbtn.formItf)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
@@ -720,10 +720,10 @@ impl QuickWnd
         func paintForm(painter: *Painter, btnp: *QuickButton)
         {
             painter.setParams(.Antialiased)
-            var paintForm = quickStyleNewPaintForm(btnp.formItf)
+            var paintForm = quickStyleNewPaintForm(assume btnp.formItf)
             defer quickStyleReleasePaintForm(&paintForm)
 
-            Capture.paintForm(painter, {}, {0, 0, 64, 64}, paintForm.itf, zoom: 1, quickMode: true)
+            Capture.paintForm(painter, {}, {0, 0, 64, 64}, assume paintForm.itf, zoom: 1, quickMode: true)
 
             if !paintForm.title.isEmpty()
             {
@@ -827,7 +827,7 @@ impl QuickWnd
             {
                 let quickBtn = cast(*QuickButton) btn
                 let quick    = quickBtn.quickWnd
-                let it       = quickBtn.formItf
+                let it       = assume quickBtn.formItf
                 if !btn.isChecked do
                     return
                 quick.main.updateModel(it)

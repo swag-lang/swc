@@ -32,7 +32,7 @@ impl IActionUI for ActionOptions
         let main = cast(#nonull *MainWnd) cxt.wnd
         let view = main.editWnd.editView
 
-        let dlg = Dialog.createDialog(view.surface, 800, 600, title: "Options", flags: .Border | .CloseBtn | .Sizeable)
+        let dlg = Dialog.createDialog(assume view.surface, 800, 600, title: "Options", flags: .Border | .CloseBtn | .Sizeable)
         dlg.addButton("Close", Dialog.BtnYes)
 
         let opt = PropertiesCtrl.create(dlg.getView(), flags: .SectionFilter | .FindBar)

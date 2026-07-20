@@ -4,16 +4,16 @@ internal
 {
     struct ToolTipVal
     {
-        owner:          *Wnd
+        owner:          #nonull *Wnd = undefined
         surfacePos:     Math.Point
         str:            String
         delay:          f32
         startDelay:     f32
     }
 
-    var g_Pending:      *ToolTipVal
-    var g_Current:      *FrameWnd
-    var g_CurrentOwner: *Wnd
+    var g_Pending:      #null *ToolTipVal
+    var g_Current:      #null *FrameWnd
+    var g_CurrentOwner: #null *Wnd
 }
 
 #drop
@@ -49,7 +49,7 @@ public func hide()
 }
 
 // Hide the current tooltip, if visible
-func hide(owner: *Wnd)
+func hide(owner: #nonull *Wnd)
 {
     if g_Pending and g_Pending.owner == owner do
         hide()
@@ -68,7 +68,7 @@ func resetTimer(mousePos: Math.Point)
 }
 
 // Show a tooltip
-public func show(owner: *Wnd, surfacePos: Math.Point, str: string, delay: Time.Duration = 500'ms)
+public func show(owner: #nonull *Wnd, surfacePos: Math.Point, str: #null string, delay: Time.Duration = 500'ms)
 {
     if str == null or @countof(str) == 0 do
         return

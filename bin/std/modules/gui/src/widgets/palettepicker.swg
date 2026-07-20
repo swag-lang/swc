@@ -100,7 +100,7 @@ impl IWnd for PalettePicker
 impl PalettePicker
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId = null)->*PalettePicker
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*PalettePicker
     {
         Debug.assert(parent != null)
         let ret = Wnd.create'PalettePicker(parent, null, position, id)

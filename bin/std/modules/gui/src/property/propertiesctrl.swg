@@ -25,7 +25,7 @@ impl PropertiesCtrl
 {
     // Creates a new Properties instance
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: WndId = null)->*PropertiesCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: #null WndId = null)->*PropertiesCtrl
     {
         let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
 

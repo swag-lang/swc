@@ -805,7 +805,7 @@ impl MenuCtrl
 public impl MenuCtrl
 {
     #[Swag.Discardable]
-    func createPopup(parent: *Wnd, id: WndId = null, owner: *Wnd = null)->*MenuCtrl
+    func createPopup(parent: *Wnd, id: #null WndId = null, owner: *Wnd = null)->*MenuCtrl
     {
         let popupParent = parent == parent.getTopWnd() ? parent : parent.getTopView()
         with let res = Wnd.create'MenuCtrl(popupParent, null, {}, id)
@@ -819,7 +819,7 @@ public impl MenuCtrl
     }
 
     #[Swag.Discardable]
-    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: WndId = null, owner: *Wnd = null)->*MenuCtrl
+    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: #null WndId = null, owner: *Wnd = null)->*MenuCtrl
     {
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
         {
@@ -835,34 +835,34 @@ public impl MenuCtrl
     }
 
     // Add a new item
-    mtd addItem(id: WndId)
+    mtd addItem(id: #nonull WndId)
     {
-        .addItem(name: null, id: id)
+        .addItem(null, id)
     }
 
     // Add a list of items
-    mtd addItems(ids: const [..] WndId)
+    mtd addItems(ids: #nonull const [..] WndId)
     {
         for id in ids do
-            .addItem(name: null, id: id)
+            .addItem(null, id)
     }
 
     // Add a list of items followed by a separator
-    mtd addGroup(ids: const [..] WndId)
+    mtd addGroup(ids: #nonull const [..] WndId)
     {
         .addItems(ids)
         .addSeparator()
     }
 
     // Add a new item
-    mtd addItem(name: #null string, id: WndId, icon: Icon = {}, rightName: string = null, disabled = false, checked = false)
+    mtd addItem(name: #null string, id: #nonull WndId, icon: Icon = {}, rightName: #null string = null, disabled = false, checked = false)
     {
         with let mitem = me.items.newPtr()
         {
             .name.set(name)
             .icon      = icon
             .id        = id
-            .rightName = rightName
+            .rightName = rightName orelse ""
             .disabled  = disabled
             .checked   = checked
         }
@@ -872,13 +872,13 @@ public impl MenuCtrl
     }
 
     // Add a new popup item
-    mtd addPopup(popup: *MenuCtrl, id: WndId)
+    mtd addPopup(popup: #nonull *MenuCtrl, id: #nonull WndId)
     {
         .addPopup(name: null, popup: popup, id: id)
     }
 
     // Add a new popup item
-    mtd addPopup(name: #null string, popup: *MenuCtrl, icon: Icon = {}, id: WndId = null)
+    mtd addPopup(name: #null string, popup: *MenuCtrl, icon: Icon = {}, id: #null WndId = null)
     {
         with let mitem = me.items.newPtr()
         {

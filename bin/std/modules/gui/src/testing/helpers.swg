@@ -66,7 +66,7 @@ func countNonZeroBytes(img: Image)->u64
 }
 
 // Returns a command state event for the given command id.
-func commandState(id: WndId)->CommandStateEvent
+func commandState(id: #nonull WndId)->CommandStateEvent
 {
     var evt: CommandStateEvent
     @init(&evt.name, 1)
@@ -78,21 +78,21 @@ func commandState(id: WndId)->CommandStateEvent
 }
 
 // Asks action type T whether it accepts the command, through its IActionUI interface.
-func(T) actionAccept(wnd: *Wnd, id: WndId)->bool
+func(T) actionAccept(wnd: *Wnd, id: #nonull WndId)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.accept({wnd: wnd, id: id})
 }
 
 // Executes action type T through its IActionUI interface, as the command dispatch would.
-func(T) actionExecute(wnd: *Wnd, id: WndId)->bool
+func(T) actionExecute(wnd: *Wnd, id: #nonull WndId)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.execute({wnd: wnd, id: id})
 }
 
 // Updates the command state of action type T through its IActionUI interface.
-func(T) actionUpdate(wnd: *Wnd, id: WndId, evt: *CommandStateEvent)->bool
+func(T) actionUpdate(wnd: *Wnd, id: #nonull WndId, evt: *CommandStateEvent)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.update({wnd: wnd, id: id}, evt)

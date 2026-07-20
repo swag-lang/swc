@@ -193,7 +193,7 @@ impl Label
     }
 
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: WndId = null, flags: LabelFlags = .Zero)->*Label
+    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .Zero)->*Label
     {
         Debug.assert(parent != null)
         var pos = position

@@ -51,7 +51,7 @@ impl IconBar
     }
 
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId = null)->*IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->*IconBar
     {
         Debug.assert(parent != null)
         var pos = position
@@ -63,7 +63,7 @@ impl IconBar
 
     // Add a new button
     #[Swag.Discardable]
-    mtd addItem(icon: Icon, btnId: WndId = null, iconBtnFlags = IconButtonFlags.Zero)->*IconButton
+    mtd addItem(icon: Icon, btnId: #null WndId = null, iconBtnFlags = IconButtonFlags.Zero)->*IconButton
     {
         var iconT = icon
         iconT.sizeX, iconT.sizeY = .iconSize
@@ -97,14 +97,14 @@ impl IconBar
 
     // Add a new checkable button
     #[Swag.Discardable]
-    mtd addCheckableItem(icon: Icon, btnId: WndId = null)->*IconButton
+    mtd addCheckableItem(icon: Icon, btnId: #null WndId = null)->*IconButton
     {
         return .addItem(icon, btnId, .Checkable)
     }
 
     // Add a new checkable button
     #[Swag.Discardable]
-    mtd addCheckableToggleItem(icon: Icon, btnId: WndId = null)->*IconButton
+    mtd addCheckableToggleItem(icon: Icon, btnId: #null WndId = null)->#nonull *IconButton
     {
         return .addItem(icon, btnId, .CheckableToggle)
     }
@@ -118,7 +118,7 @@ impl IconBar
     }
 
     // Returns the button with the given id
-    mtd getButton(btnId: string)->#null *IconButton
+    mtd getButton(btnId: #nonull string)->#null *IconButton
     {
         let btn = .getChildById(btnId)
         if !btn do

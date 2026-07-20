@@ -480,7 +480,7 @@ private impl Tab
 impl Tab
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId = null)->*Tab
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Tab
     {
         Debug.assert(parent != null)
         let res = Wnd.create'Tab(parent, null, position, id)
@@ -527,7 +527,7 @@ impl Tab
 
     // Add a new view
     #[Swag.Discardable]
-    mtd addItem(tabName: string, icon: Icon = {}, view: *Wnd = null)->*TabItem
+    mtd addItem(tabName: #nonull string, icon: Icon = {}, view: #null *Wnd = null)->#nonull *TabItem
     {
         if view
         {

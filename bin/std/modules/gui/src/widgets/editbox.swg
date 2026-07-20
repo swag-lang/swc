@@ -1034,7 +1034,7 @@ impl EditBox
 {
     // Factory method that creates a new EditBox instance.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: WndId = null, flags: EditBoxFlags = EditBoxFlags.AutoLoseFocus)->*EditBox
+    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = EditBoxFlags.AutoLoseFocus)->*EditBox
     {
         var pos = position
         if pos.height == 0 do

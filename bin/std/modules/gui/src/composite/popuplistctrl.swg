@@ -299,7 +299,7 @@ private impl PopupListView
 impl PopupListCtrl
 {
     // Create the popup list, but: not display it
-    func create(owner: *Wnd)->*PopupListCtrl
+    func create(owner: #nonull *Wnd)->#nonull *PopupListCtrl
     {
         let popup = Wnd.create'PopupListCtrl(owner.getTopView(), owner.position, owner.id)
 
@@ -352,7 +352,7 @@ impl PopupListCtrl
     }
 
     // Add a new item in the list
-    mtd addItem(name: string, id: WndId = null, icon: Icon = {}, userData0: *void = null, userData1: *void = null)
+    mtd addItem(name: #nonull string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)
     {
         let item = .items.newPtr()
         with item

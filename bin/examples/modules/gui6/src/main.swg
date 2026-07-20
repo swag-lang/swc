@@ -765,7 +765,7 @@ func canUsePageArrows()->bool
     return !g_PageView.isParentOf(focus)
 }
 
-func onFrame(app: *Application)
+func onFrame(app: #nonull *Application)
 {
     if !g_Surface or !g_View or !g_PageView do
         return

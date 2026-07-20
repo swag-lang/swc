@@ -7,8 +7,8 @@ struct EditCtrl
     labelSize:          f32 = 60
     editSize:           f32 = 60     // 0 to fit to parent size
 
-    label:              *Label
-    edit:               *EditBox
+    label:              #null *Label
+    edit:               #null *EditBox
 }
 
 impl IWnd for EditCtrl
@@ -33,7 +33,7 @@ impl IWnd for EditCtrl
 impl EditCtrl
 {
     // Create the popup list, but: not display it
-    func create(parent: *Wnd, name: string, text: string, position: Math.Rectangle = {}, id: WndId = null, flags: EditBoxFlags = Zero)->*EditCtrl
+    func create(parent: #nonull *Wnd, name: #nonull string, text: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = Zero)->#nonull *EditCtrl
     {
         let metrics = parent.getThemeMetrics()
         var pos     = position

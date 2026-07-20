@@ -85,7 +85,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let button = PushButton.create(surface.getView(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
     button.sigPressed += func(btn)
     {
-        btn.getApp().exitModal(btn.id)
+        btn.getApp().exitModal(btn.id orelse "")
     }
 
     @assert(surface.app == &host.app)

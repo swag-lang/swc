@@ -104,7 +104,7 @@ impl InPlaceEditWnd
         for action in actions do
             .actionBar.addItem(theme.getIcon24(action.item1), action.item0).toolTip = action.item2
 
-        .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id); }
+        .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id orelse ""); }
     }
 
     mtd createEditBar(main: #nonull *MainWnd)
@@ -125,7 +125,7 @@ impl InPlaceEditWnd
         for tool in editTools do
             .editBar.addCheckableItem(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2
 
-        .editBar.sigCheckChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id); }
+        .editBar.sigCheckChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id orelse ""); }
         .createColorPicker()
     }
 

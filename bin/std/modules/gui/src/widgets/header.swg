@@ -279,7 +279,7 @@ private impl Header
 impl Header
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId = null)->*Header
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Header
     {
         Debug.assert(parent != null)
 
@@ -295,7 +295,7 @@ impl Header
 
     // Add a new view
     #[Swag.Discardable]
-    mtd addItem(tabName: string, width = 100'f32, icon: Icon = {})->*HeaderItem
+    mtd addItem(tabName: #nonull string, width = 100'f32, icon: Icon = {})->#nonull *HeaderItem
     {
         let item = .items.newPtr()
         item.name   = tabName
@@ -307,7 +307,7 @@ impl Header
     }
 
     // Returns the given item, by index
-    mtd getItem(idx: u32)->*HeaderItem
+    mtd getItem(idx: u32)->#nonull *HeaderItem
     {
         Debug.assert(idx < .items.count)
         return .items[idx]

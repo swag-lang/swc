@@ -37,7 +37,7 @@ struct NativeSurface
 // Fixed notification-area icon id. A surface owns at most one tray icon.
 const TrayIconID = 1
 
-private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
+private func postSurfaceSysCommand(surface: #nonull *Surface, kind: SysCommandEvent.Kind)
 {
     if surface.wnd.isPendingDestroy do
         return
@@ -245,7 +245,7 @@ private impl Surface
     }
 
     // Creates a new (invisible) surface
-    func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: *Surface) throw
+    func createNative(app: #nonull *Application, result: #nonull *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
     {
         // Create class
         #[Swag.Global]
@@ -334,7 +334,7 @@ impl Surface
     // carries the mouse message directly in 'lParam', which is what the window proc
     // forwards as 'param1'. NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that
     // layout and is intentionally not used.
-    mtd setTrayIcon(icon: Pixel.Image, tip: string = null)
+    mtd setTrayIcon(icon: Pixel.Image, tip: #null string = null)
     {
         var img   = icon
         .trayIcon = catch img.toHICON()
@@ -396,7 +396,7 @@ impl Surface
     }
 
     // Send a custom message to the surface application with name 'surfaceID'
-    func sendCustomMessage(surfaceID: string, id: u32, param: u64)->bool
+    func sendCustomMessage(surfaceID: #nonull string, id: u32, param: u64)->bool
     {
         let hwnd = Win32.FindWindowA(@dataof("Swag.Gui.Surface"), @dataof(surfaceID))
         if !hwnd do
@@ -605,7 +605,7 @@ impl Surface
     }
 
     // Transform a point in screen space relative to the surface
-    mtd screenToSurface(pt: *Math.Point)
+    mtd screenToSurface(pt: #nonull *Math.Point)
     {
         if .app.renderer.headless
         {
@@ -621,7 +621,7 @@ impl Surface
     }
 
     // Transform a point relative to the surface in screen space
-    mtd surfaceToScreen(pt: *Math.Point)
+    mtd surfaceToScreen(pt: #nonull *Math.Point)
     {
         if .app.renderer.headless
         {

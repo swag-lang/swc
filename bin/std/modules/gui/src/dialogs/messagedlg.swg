@@ -3,9 +3,9 @@ using Core, Pixel
 public struct MessageDlg
 {
     using dialog:     Dialog
-    labelIcon:        *Label
-    label:            *Label
-    extension:        *Wnd
+    labelIcon:        #null *Label
+    label:            #null *Label
+    extension:        #null *Wnd
 }
 
 public struct MessageDlgOptions
@@ -14,13 +14,13 @@ public struct MessageDlgOptions
     iconColor:            Color
     horzAlignmentText     = StringHorzAlignment.Center
     vertAlignmentText     = StringVertAlignment.Center
-    sigCreate:            func||(*MessageDlg)
+    sigCreate:            func||(#nonull *MessageDlg)
 }
 
 public impl MessageDlg
 {
     // Creates the message box
-    func create(from: *Surface, message: string, options: MessageDlgOptions)->*MessageDlg
+    func create(from: #nonull *Surface, message: #nonull string, options: MessageDlgOptions)->#nonull *MessageDlg
     {
         let dlg = Wnd.create'MessageDlg()
         dlg.fromSurface = from
@@ -51,7 +51,7 @@ public impl MessageDlg
     }
 
     // Display the box, centered, and returns the id of the pressed button
-    mtd doModal(from: *Surface)->string
+    mtd doModal(from: #nonull *Surface)->#nonull string
     {
         .adaptSizeToMessage()
         .surface.center(from)
@@ -116,7 +116,7 @@ public impl MessageDlg
     }
 
     // Add a bottom extended window
-    mtd setExtension(wndExtension: *Wnd)
+    mtd setExtension(wndExtension: #nonull *Wnd)
     {
         Debug.assert(.extension == null)
         .extension           = wndExtension
@@ -152,7 +152,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'ok'
-    func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
+    func ok(from: #nonull *Surface, message: #nonull string, options: MessageDlgOptions = {})
     {
         with let dlg = create(from, message, options)
         {
@@ -163,7 +163,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'ok' and 'cancel' button
-    func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
+    func okCancel(from: #nonull *Surface, message: #nonull string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->#nonull WndId
     {
         with let dlg = create(from, message, options)
         {
@@ -175,7 +175,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'yes' and 'no' button
-    func yesNo(from: *Surface, message: string, title: string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
+    func yesNo(from: #nonull *Surface, message: #nonull string, title: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->#nonull WndId
     {
         var opt = options
         if !opt.icon.isValid()
@@ -195,7 +195,7 @@ public impl MessageDlg
     }
 
     // Message box with a 'yes' and 'no' button
-    func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
+    func yesNoCancel(from: #nonull *Surface, message: #nonull string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->#nonull WndId
     {
         var opt = options
         if !opt.icon.isValid()
@@ -215,7 +215,7 @@ public impl MessageDlg
     }
 
     // Message box to 'confirm' something
-    func confirm(from: *Surface, message: string, question: string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
+    func confirm(from: #nonull *Surface, message: #nonull string, question: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->#nonull WndId
     {
         var txt = String.from(message)
         while !txt.isEmpty() and txt.back() == '\n' do
@@ -228,7 +228,7 @@ public impl MessageDlg
 
     // Message box to show the current raised error.
     // @err must still contain the raised error.
-    func error(from: *Surface, message: string = null, options: MessageDlgOptions = {})
+    func error(from: #nonull *Surface, message: #null string = null, options: MessageDlgOptions = {})
     {
         var txt: String = String.from(message)
         if !txt.isEmpty() do

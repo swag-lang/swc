@@ -11,11 +11,11 @@ struct SurfaceState
 struct Surface
 {
     using native:      NativeSurface
-    app:               *Application
-    wnd:               *SurfaceWnd
+    app:               #nonull *Application = undefined
+    wnd:               #nonull *SurfaceWnd = undefined
     painter:           Painter
     rt:                RenderTarget
-    userData:          *void
+    userData:          #null *void
     surfaceID:         String
 
     rc:                RenderingContext
@@ -97,7 +97,7 @@ impl Surface
     }
 
     // Creates the surface
-    func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: *Surface) throw
+    func create(surface: #nonull *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
     {
         with surface
         {
@@ -136,7 +136,7 @@ impl Surface
     }
 
     // Returns inside view
-    mtd getView()->*Wnd
+    mtd getView()->#nonull *Wnd
     {
         return .wnd.view
     }
@@ -180,7 +180,7 @@ impl Surface
     }
 
     // Center this surface relative to 'from'
-    mtd center(from: *Surface)
+    mtd center(from: #nonull *Surface)
     {
         var pos = .position
         pos.x = from.position.horzCenter()
@@ -397,7 +397,7 @@ impl Surface
             .painter.fillRect(rect, Argb.Black)
     }
 
-    mtd setView(view: *Wnd)
+    mtd setView(view: #null *Wnd)
     {
         if .wnd.view do
             .wnd.view.destroy()

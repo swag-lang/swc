@@ -139,14 +139,14 @@ impl IActionUI for ActionProperties
         case Remove:
             if !arr.arrElem do
                 break
-            if MessageDlg.confirm(prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
+            if MessageDlg.confirm(assume prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
                 break
             prop.removeArrayValue(arr.arrElem)
 
         case RemoveAll:
             if !arr.arrItem do
                 break
-            if MessageDlg.confirm(prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
+            if MessageDlg.confirm(assume prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
                 break
             prop.clearArray(arr.arrItem)
         }

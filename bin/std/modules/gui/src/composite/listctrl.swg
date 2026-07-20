@@ -100,7 +100,7 @@ struct ListView
 
 impl ListLine
 {
-    mtd isParentOf(other: *ListLine)->bool
+    mtd isParentOf(other: #nonull *ListLine)->bool
     {
         var l = other.parent
         while l and l != me do
@@ -115,7 +115,7 @@ impl ListLine
     }
 
     // Get an item by index
-    mtd getItem(column: u32)->*ListItem
+    mtd getItem(column: u32)->#nonull *ListItem
     {
         Debug.assert(column < .items.count)
         for item in .items
@@ -129,7 +129,7 @@ impl ListLine
 
     // Initialize a given column item
     #[Swag.Discardable]
-    mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
+    mtd setItem(column: u32, name: #nonull string, icon: Icon = {})->#nonull *ListItem
     {
         for item in .items
         {
@@ -772,7 +772,7 @@ private impl ListView
 impl ListCtrl
 {
     #[Swag.Discardable]
-    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: WndId = null)->*ListCtrl
+    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
     {
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
         {
@@ -790,7 +790,7 @@ impl ListCtrl
     }
 
     #[Swag.Discardable]
-    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: WndId = null)->*ListCtrl
+    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
     {
         let list = Wnd.create'ListCtrl(parent, "", position, id)
 
@@ -1014,7 +1014,7 @@ impl ListCtrl
 
     // Add one line, and set first column
     #[Swag.Discardable]
-    mtd createLine(name: string, icon: Icon = {}, parentLine: *ListLine = null)->*ListLine
+    mtd createLine(name: #nonull string, icon: Icon = {}, parentLine: #null *ListLine = null)->#nonull *ListLine
     {
         let line = .createLine(parentLine)
         line.setItem(0, name, icon)
@@ -1035,7 +1035,7 @@ impl ListCtrl
     }
 
     // Add one column in a multi columns list
-    mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
+    mtd addColumn(name: #nonull string, width: f32 = 100, icon: Icon = {})
     {
         Debug.assert(.header != null)
         .header.addItem(name, width, icon)

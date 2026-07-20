@@ -321,7 +321,7 @@ private impl ComboBox
 impl ComboBox
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId = null, kind = ComboBoxKind.Select)->*ComboBox
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->*ComboBox
     {
         Debug.assert(parent != null)
         var pos = position
@@ -352,7 +352,7 @@ impl ComboBox
 
     // Add a new item
     #[Swag.Discardable]
-    mtd addItem(name: #null string, id: WndId = null, icon: Icon = {}, userData0: *void = null, userData1: *void = null)->*ComboBoxItem
+    mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: *void = null, userData1: *void = null)->*ComboBoxItem
     {
         let item = .items.newPtr()
         with item

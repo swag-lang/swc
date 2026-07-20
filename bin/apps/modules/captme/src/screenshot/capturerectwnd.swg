@@ -31,7 +31,7 @@ impl IWnd for CaptureRectWnd
     mtd testAutoGrab()
     {
         let pt = Input.getMousePos()
-        let r  = screenToDesktopRect(getWndRectAtPos(.surface, pt.x, pt.y))
+        let r  = screenToDesktopRect(getWndRectAtPos(assume .surface, pt.x, pt.y))
         if !r.isEmpty()
         {
             g_StartGrabX = r.x

@@ -234,7 +234,7 @@ impl MainWnd
     {
         catch capture.save()
         if @err != null do
-            MessageDlg.error(.surface, Format.toString("Failed to save capture file: %", capture.file))
+            MessageDlg.error(assume .surface, Format.toString("Failed to save capture file: %", capture.file))
     }
 
     // Change the user-defined name of a capture and persist it. The library shows
@@ -255,7 +255,7 @@ impl MainWnd
             let full: #null *Capture = catch Capture.load(file)
             if @err != null
             {
-                MessageDlg.error(.surface, "Failed to rename capture")
+                MessageDlg.error(assume .surface, "Failed to rename capture")
                 return
             }
 
@@ -285,7 +285,7 @@ impl MainWnd
         let full: #null *Capture = catch Capture.load(file)
         if @err != null
         {
-            MessageDlg.error(.surface, "Failed to copy image")
+            MessageDlg.error(assume .surface, "Failed to copy image")
             return
         }
 
@@ -305,7 +305,7 @@ impl MainWnd
         let imgToLoad = catch Image.load(arg)
         if @err != null
         {
-            MessageDlg.error(.surface, Format.toString("Failed to load file: %", arg))
+            MessageDlg.error(assume .surface, Format.toString("Failed to load file: %", arg))
             return
         }
 

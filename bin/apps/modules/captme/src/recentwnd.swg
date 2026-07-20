@@ -226,9 +226,9 @@ impl IWnd for RecentWnd
     mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         if .timer do
-            .getApp().deleteTimer(.timer)
+            .getApp().deleteTimer(assume .timer)
         if .loadTimer do
-            .getApp().deleteTimer(.loadTimer)
+            .getApp().deleteTimer(assume .loadTimer)
     }
 
     mtd impl onTimerEvent(evt: #nonull *TimerEvent)
@@ -394,7 +394,7 @@ impl RecentWnd
             return
 
         if .timer do
-            .getApp().deleteTimer(.timer)
+            .getApp().deleteTimer(assume .timer)
         .timer = .getApp().addTimer(1's, me)
 
         let capture = .main.getCapture()
@@ -416,7 +416,7 @@ impl RecentWnd
 
         // Be sure there's no pending save
         if .timer do
-            .getApp().deleteTimer(.timer)
+            .getApp().deleteTimer(assume .timer)
         .timer = null
 
         // Delete file

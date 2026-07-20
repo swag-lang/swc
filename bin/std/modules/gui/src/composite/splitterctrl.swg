@@ -401,7 +401,7 @@ impl SplitterCtrl
 {
     // Creates a new SplitterCtrl instance
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: WndId = null)->*SplitterCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: #null WndId = null)->*SplitterCtrl
     {
         Debug.assert(parent != null)
 

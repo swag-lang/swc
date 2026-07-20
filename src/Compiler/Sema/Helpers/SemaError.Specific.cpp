@@ -2,9 +2,6 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -205,26 +202,6 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
 
 Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef)
 {
-    fprintf(stderr, "[RAISE-BINOP] silent=%d left=%s right=%s\n", sema.ctx().silentDiagnostic() ? 1 : 0, sema.typeMgr().get(leftTypeRef).toName(sema.ctx()).c_str(), sema.typeMgr().get(rightTypeRef).toName(sema.ctx()).c_str());
-    {
-        const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
-        if (leftType.isStruct())
-        {
-            const SymbolStruct& st = leftType.payloadSymStruct();
-            fprintf(stderr, "[RAISE-BINOP-STRUCT] name=%.*s semaCompleted=%d impls=%zu\n", static_cast<int>(st.name(sema.ctx()).size()), st.name(sema.ctx()).data(), st.isSemaCompleted() ? 1 : 0, st.impls().size());
-            for (const SymbolImpl* symImpl : st.impls())
-            {
-                if (!symImpl)
-                    continue;
-                for (const SymbolFunction* symFunc : symImpl->specOps())
-                {
-                    if (!symFunc)
-                        continue;
-                    fprintf(stderr, "[RAISE-BINOP-SPECOP] fn=%.*s ignored=%d declared=%d typed=%d\n", static_cast<int>(symFunc->name(sema.ctx()).size()), symFunc->name(sema.ctx()).data(), symFunc->isIgnored() ? 1 : 0, symFunc->isDeclared() ? 1 : 0, symFunc->isTyped() ? 1 : 0);
-                }
-            }
-        }
-    }
     auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_LEFT, leftTypeRef);
     diag.addArgument(Diagnostic::ARG_RIGHT, rightTypeRef);

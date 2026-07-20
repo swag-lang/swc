@@ -1,27 +1,27 @@
 #global public
 using Core, Serialization
 
-alias FrameCallback = func||(*Application)
+alias FrameCallback = func||(#nonull *Application)
 
 struct Application
 {
     using native:           ApplicationNative
-    sigFrame:               SigArray'func||(*Application)
+    sigFrame:               SigArray'func||(#nonull *Application)
 
     options:                ApplicationOptions
     appIcon:                Pixel.Image
     renderer:               Pixel.RenderOgl
-    theme:                  *Theme
+    theme:                  #null *Theme
     style:                  ThemeStyle
     keyb:                   Input.Keyboard
     mouse:                  Input.Mouse
-    mainSurface:            *Surface
+    mainSurface:            #null *Surface
     postedEvents:           Array'(IEvent)
-    surfaces:               Array'(*Surface)
-    postDestroy:            Array'(*Wnd)
-    hookOnEvent:            Array'(*Wnd)
+    surfaces:               Array'(#nonull *Surface)
+    postDestroy:            Array'(#nonull *Wnd)
+    hookOnEvent:            Array'(#nonull *Wnd)
     frameCursor:            Cursor
-    endModalExit:           WndId
+    endModalExit:           #null WndId
     inModalLoop:            u32
     quitCode:               s32
     timing:                 Time.FrameTiming
@@ -34,15 +34,15 @@ struct Application
     mutexPostedEvents:      Sync.Mutex
 
     duringTimerEvents:      bool
-    timers:                 Array'(*Timer)
-    timersToAdd:            Array'(*Timer)
-    timersToDelete:         Array'(*Timer)
-    frameEvents:            Array'(*Wnd)
-    modalSurfaces:          Array'(*Surface)
-    toDelete:               Array'{ ptr: *void, type: const *Swag.TypeInfo }
-    mouseEnterWnd:          *Wnd
-    mouseCaptureWnd:        *Wnd
-    keybFocusWnd:           *Wnd
+    timers:                 Array'(#nonull *Timer)
+    timersToAdd:            Array'(#nonull *Timer)
+    timersToDelete:         Array'(#nonull *Timer)
+    frameEvents:            Array'(#nonull *Wnd)
+    modalSurfaces:          Array'(#nonull *Surface)
+    toDelete:               Array'{ ptr: #null *void, type: #nonull const *Swag.TypeInfo }
+    mouseEnterWnd:          #null *Wnd
+    mouseCaptureWnd:        #null *Wnd
+    keybFocusWnd:           #null *Wnd
     maxRunFrame:            u32
     configPath:             String
     hotKeys:                Array'KeyShortcut
@@ -118,7 +118,7 @@ private impl Application
         let mousePos = .mouse.getPosition()
 
         // Wnd that will receive the message
-        var targetWnd: *Wnd
+        var targetWnd: #null *Wnd
         if .mouseCaptureWnd do
             targetWnd = .mouseCaptureWnd
         else do
@@ -161,7 +161,7 @@ private impl Application
                 .sendEventPrivate(&evt, .mouseEnterWnd)
 
                 if targetWnd.toolTip.length do
-                    ToolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)
+                    ToolTip.show(assume targetWnd, evt.surfacePos, targetWnd.toolTip)
             }
 
             // Leave
@@ -172,7 +172,7 @@ private impl Application
                 evt.target     = .mouseEnterWnd
                 .sendEventPrivate(&evt, .mouseCaptureWnd)
 
-                ToolTip.hide(.mouseEnterWnd)
+                ToolTip.hide(assume .mouseEnterWnd)
             }
 
             .mouseEnterWnd = targetWnd
@@ -349,7 +349,7 @@ private impl Application
 
     // Remove and destroy the given surface
     // To cleanly close a surface, you should call surface.destroy()
-    mtd destroySurface(surface: *Surface)
+    mtd destroySurface(surface: #nonull *Surface)
     {
         .surfaces.remove(surface)
         if surface == .mainSurface do
@@ -362,7 +362,7 @@ private impl Application
         .toDelete.add({surface, #typeof(dref surface)})
     }
 
-    mtd unregisterWnd(wnd: *Wnd)
+    mtd unregisterWnd(wnd: #nonull *Wnd)
     {
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null
@@ -475,7 +475,7 @@ private impl Application
         .sigFrame.call(me)
     }
 
-    public mtd doModalLoop(surface: #null *Surface, cb: func||(*Application) = null)->WndId
+    public mtd doModalLoop(surface: #null *Surface, cb: func||(*Application) = null)->#nonull WndId
     {
         .inModalLoop += 1
         defer .inModalLoop -= 1
@@ -525,7 +525,7 @@ private impl Application
             surface.destroy()
 
         .endModal = false
-        return .endModalExit
+        return .endModalExit orelse ""
     }
 }
 
@@ -556,7 +556,7 @@ impl Application
         mtd const getDt() => .timing.dt
     }
 
-    mtd clearWndInputState(wnd: *Wnd)
+    mtd clearWndInputState(wnd: #nonull *Wnd)
     {
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null
@@ -577,7 +577,7 @@ impl Application
     // Create a main surface, and run.
     // When the application is launched with the 'swag.test' argument, it auto-exits
     // after 'testFrames' frames, so examples can be run headless by the test suite.
-    func runSurface(x, y, width, height: s32, title: string = null, view: *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 50)
+    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 50)
     {
         var app: Application
 
@@ -586,7 +586,8 @@ impl Application
             flags &= ~.Sizeable
         if !borders do
             flags &= ~.Border
-        let surface = assume app.createSurface(x, y, width, height, flags, view, hook)
+        var surface: #nonull *Surface = undefined
+        surface = catch app.createSurface(x, y, width, height, flags, view, hook)
         surface.setTitle(title)
         if init do
             init(&app)
@@ -597,7 +598,7 @@ impl Application
     }
 
     // Creates a new surface
-    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: *Wnd = null, hook: HookEvent = null, surfaceID: string = null)->*Surface throw
+    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: HookEvent = null, surfaceID: #null string = null)->*Surface throw
     {
         let surface = Memory.new'Surface()
         surface.app       = me
@@ -642,7 +643,7 @@ impl Application
     }
 
     // Associate a configuration file
-    mtd setConfigPath(path: string)
+    mtd setConfigPath(path: #nonull string)
     {
         .configPath = path
     }
@@ -656,7 +657,7 @@ impl Application
     // Call it when the theme has changed
     mtd themeHasChanged()
     {
-        func updateTheme(wnd: *Wnd)
+        func updateTheme(wnd: #nonull *Wnd)
         {
             wnd.style.dirty = true
             wnd.computeStyle()
@@ -715,14 +716,14 @@ impl Application
     }
 
     // Return the captured wnd for mouse
-    mtd getMouseCapture()->*Wnd
+    mtd getMouseCapture()->#null *Wnd
     {
         return .mouseCaptureWnd
     }
 
     // Destroy a window
     // To cleanly close a window, you should call wnd.destroy()
-    mtd destroyWnd(wnd: *Wnd)
+    mtd destroyWnd(wnd: #nonull *Wnd)
     {
         var evt = DestroyEvent{}
         wnd.sendEvent(&evt)
@@ -798,7 +799,7 @@ impl Application
     }
 
     // Register a new timer for the given 'target'
-    mtd addTimer(time: Time.Duration, target: *Wnd)->*Timer
+    mtd addTimer(time: Time.Duration, target: #nonull *Wnd)->#nonull *Timer
     {
         let timer = Memory.new'Timer()
         timer.timeMs = time.toMs()
@@ -811,7 +812,7 @@ impl Application
     }
 
     // Delete and unregister timer
-    mtd deleteTimer(timer: *Timer)
+    mtd deleteTimer(timer: #nonull *Timer)
     {
         if .duringTimerEvents
         {
@@ -828,27 +829,27 @@ impl Application
     }
 
     // Register a window to receive a FrameEvent each running for
-    mtd registerFrameEvent(target: *Wnd)
+    mtd registerFrameEvent(target: #nonull *Wnd)
     {
         Debug.assert(!.frameEvents.contains(target))
         .frameEvents.add(target)
     }
 
     // Unregister a window that receives a FrameEvent each running for
-    mtd unregisterFrameEvent(target: *Wnd)
+    mtd unregisterFrameEvent(target: #nonull *Wnd)
     {
         .frameEvents.remove(target)
     }
 
     // Register a window to receive hook events
-    mtd registerHookEvents(target: *Wnd)
+    mtd registerHookEvents(target: #nonull *Wnd)
     {
         Debug.assert(!.hookOnEvent.contains(target))
         .hookOnEvent.add(target)
     }
 
     // Unregister a window to receive hook events
-    mtd unregisterHookEvents(target: *Wnd)
+    mtd unregisterHookEvents(target: #nonull *Wnd)
     {
         .hookOnEvent.remove(target)
     }
@@ -877,14 +878,14 @@ impl Application
     }
 
     // End current modal for
-    mtd exitModal(exitId: string = "")
+    mtd exitModal(exitId: #nonull string = "")
     {
         .endModal     = true
         .endModalExit = exitId
     }
 
-    mtd getFileIcon(name: string, small = true)->Icon      => .getFileDirectoryIcon(name, false, small)
-    mtd getDirectoryIcon(name: string, small = true)->Icon => .getFileDirectoryIcon(name, true, small)
+    mtd getFileIcon(name: #nonull string, small = true)->Icon      => .getFileDirectoryIcon(name, false, small)
+    mtd getDirectoryIcon(name: #nonull string, small = true)->Icon => .getFileDirectoryIcon(name, true, small)
 
     // Enable or disable the processing of hot keys
     mtd enableHotKeys(state = true)
@@ -899,7 +900,7 @@ impl Application
     }
 
     // Register a global os key action
-    mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId, target: *Wnd) throw
+    mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: #nonull WndId, target: #nonull *Wnd) throw
     {
         for &c in .hotKeys
         {
@@ -916,7 +917,7 @@ impl Application
     }
 
     // Get the id associated with a shortcut. null if none
-    mtd getHotKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key)->{ id: WndId, wnd: *Wnd }
+    mtd getHotKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key)->{ id: #null WndId, wnd: #null *Wnd }
     {
         for c in .hotKeys
         {
@@ -928,7 +929,7 @@ impl Application
     }
 
     // Get the name associated with a given id shortcut
-    mtd getHotKeyShortcutNameFor(wndId: WndId)->String
+    mtd getHotKeyShortcutNameFor(wndId: #nonull WndId)->String
     {
         var result: retval
         for c in .hotKeys

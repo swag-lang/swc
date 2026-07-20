@@ -127,7 +127,8 @@ impl IWnd for SurfaceWnd
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        .surface.app.destroySurface(.surface)
+        let surface = assume .surface
+        surface.app.destroySurface(surface)
     }
 
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)

@@ -33,7 +33,7 @@ impl IActionUI for ActionAbout
 
         const Date = #run Time.DateTime.now()
 
-        var params: AboutDlgParams
+        var params: AboutDlgParams = undefined
         params.dlgTitle     = "About CaptMe"
         params.messageTitle = Format.toString("CaptMe %.%.%", #swcversion, #swcrevision, #swcbuildnum).toString()
 
@@ -50,7 +50,7 @@ impl IActionUI for ActionAbout
         params.bigIcon.sizeX, params.bigIcon.sizeY = 96
         params.bigIcon.color = Argb.White
 
-        let dlg = AboutDlg.create(view.surface, params, height: 330)
+        let dlg = AboutDlg.create(assume view.surface, params, height: 330)
         dlg.labelMessage.sigUrlClicked += func(lbl, txt)
         {
             switch txt
@@ -62,7 +62,7 @@ impl IActionUI for ActionAbout
             }
         }
 
-        dlg.doModal(view.surface)
+        dlg.doModal(assume view.surface)
 
         return true
     }

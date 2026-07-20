@@ -124,7 +124,7 @@ impl IWnd for RadioButton
 impl RadioButton
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId = null)->*RadioButton
+    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *RadioButton
     {
         Debug.assert(parent != null)
         var pos = position

@@ -128,7 +128,7 @@ private impl ColorPickerCtrl
 impl ColorPickerCtrl
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: WndId = null)->*ColorPickerCtrl
+    func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
     {
         var pos = position
         if pos.width == 0 do
@@ -351,7 +351,7 @@ impl ColorPickerCtrl
     // 'pal' should contain the palette colors. Maximum is 9 colors.
     // If less colors are provided, then default colors will be added instead (so if you keep 'pal' empty, all defaults colors will be added).
     #[Swag.Discardable]
-    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: WndId = null)->*ColorPickerCtrl
+    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
     {
         let picker = ColorPickerCtrl.create(parent, position, flags, id)
 

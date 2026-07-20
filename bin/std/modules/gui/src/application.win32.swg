@@ -31,7 +31,7 @@ impl Application
         return Color.fromAbgr(col)
     }
 
-    mtd captureMouse(wnd: *Wnd)
+    mtd captureMouse(wnd: #nonull *Wnd)
     {
         .mouseCaptureWnd = wnd
         SetCapture(wnd.surface.native.hWnd)
@@ -136,13 +136,13 @@ impl Application
         return null
     }
 
-    mtd addIconToImageList(name: string, hIcon: HICON, small: bool)->Icon
+    mtd addIconToImageList(name: #nonull string, hIcon: HICON, small: bool)->Icon
     {
         var result: retval
 
         var index:      s32
-        var curImg:     *Image
-        var curImgList: *ImageList
+        var curImg:     #nonull *Image = undefined
+        var curImgList: #nonull *ImageList = undefined
 
         if small
         {
@@ -228,7 +228,7 @@ impl Application
         return .addIconToImageList(name, sgi.hIcon, small)
     }
 
-    mtd getFileDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
+    mtd getFileDirectoryIcon(name: #nonull string, isDirectory: bool, small = true)->Icon
     {
         var result: retval
         if !@countof(name) do
@@ -286,11 +286,12 @@ impl Application
             }
         }
 
+        let safeExt = ext orelse ".txt"
         if !sfi.hIcon do
-            discard SHGetFileInfoA(@dataof(ext), isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL, &sfi, #sizeof(SHFILEINFOA), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)
+            discard SHGetFileInfoA(@dataof(safeExt), isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL, &sfi, #sizeof(SHFILEINFOA), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)
         if !sfi.hIcon do
             return result
 
-        return .addIconToImageList(ext, sfi.hIcon, small)
+        return .addIconToImageList(safeExt, sfi.hIcon, small)
     }
 }

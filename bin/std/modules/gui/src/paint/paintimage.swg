@@ -5,7 +5,7 @@ public struct PaintImage
 {
     app:         Application
     painter:     Painter
-    surface:     *Surface
+    surface:     #null *Surface
     image:       Image
     w, h:        s32
     paint:       func||(app: *Application, painter: *Painter)
@@ -49,7 +49,7 @@ impl PaintImage
     // First init the PaintImage instance
     public mtd init(w, h: s32)
     {
-        .surface          = assume .app.createSurface(0, 0, 1, 1, hook: &onEvent)
+        .surface          = catch .app.createSurface(0, 0, 1, 1, hook: &onEvent)
         .surface.userData = me
         .w                = w
         .h                = h

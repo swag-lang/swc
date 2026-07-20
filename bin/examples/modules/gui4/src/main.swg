@@ -644,7 +644,7 @@ func updateTestMode()
         Env.exit(0)
 }
 
-func onFrame(_app: *Application)
+func onFrame(_app: #nonull *Application)
 {
     updateTestMode()
 }

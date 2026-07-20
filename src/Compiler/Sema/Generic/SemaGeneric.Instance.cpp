@@ -151,19 +151,7 @@ namespace SemaGeneric
                     if (res != Result::Continue)
                     {
                         if (res == Result::Error)
-                        {
-                            fprintf(stderr, "[GEN-VAL-CASTFAIL] root=%.*s src=%s(f=%u,k=%u) dst=%s(f=%u,k=%u) diag=%d silent=%d\n",
-                                    static_cast<int>(root.name(sema.ctx()).size()), root.name(sema.ctx()).data(),
-                                    sema.typeMgr().get(sema.cstMgr().get(arg.cstRef).typeRef()).toName(sema.ctx()).c_str(),
-                                    static_cast<uint32_t>(sema.typeMgr().get(sema.cstMgr().get(arg.cstRef).typeRef()).flags().flags),
-                                    static_cast<uint32_t>(sema.typeMgr().get(sema.cstMgr().get(arg.cstRef).typeRef()).kind()),
-                                    sema.typeMgr().get(declaredTypeRef).toName(sema.ctx()).c_str(),
-                                    static_cast<uint32_t>(sema.typeMgr().get(declaredTypeRef).flags().flags),
-                                    static_cast<uint32_t>(sema.typeMgr().get(declaredTypeRef).kind()),
-                                    static_cast<int>(castRequest.failure.diagId),
-                                    sema.ctx().silentDiagnostic() ? 1 : 0);
                             return Cast::emitCastFailure(sema, castRequest.failure);
-                        }
                         return res;
                     }
 

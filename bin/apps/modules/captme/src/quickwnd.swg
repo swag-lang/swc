@@ -674,7 +674,7 @@ impl QuickWnd
         if !.currentStyle do
             return
 
-        let res = MessageDlg.confirm(.surface, "This will reset the styles to the default values.")
+        let res = MessageDlg.confirm(assume .surface, "This will reset the styles to the default values.")
         if res != MessageDlg.BtnYes do
             return
 

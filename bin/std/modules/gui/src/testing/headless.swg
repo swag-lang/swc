@@ -24,7 +24,7 @@ struct AutoStage
     file:       String
     label:      String
     edits:      Array'AutoEdit
-    button:     WndId
+    button: #nonull WndId = undefined
 }
 
 struct HeadlessHost
@@ -37,7 +37,7 @@ struct HeadlessHost
     mousePos:             Math.Point
     closed:               bool
     commandCount:         u32
-    lastCommand:          WndId
+    lastCommand:          #null WndId
 
     // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
     // is true once every armed stage has completed.
@@ -202,11 +202,11 @@ impl HeadlessHost
         .autoArmed     = true
     }
 
-    private mtd addAutoStage(kind: AutoStageKind, button: WndId = null, folder, file, label: string = null)->*AutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: #null WndId = null, folder, file, label: string = null)->*AutoStage
     {
         let stage = cast(*AutoStage) .autoStages.emplaceInitAddress()
         stage.kind   = kind
-        stage.button = button
+        stage.button = button orelse ""
         stage.folder = folder
         stage.file   = file
         stage.label  = label
@@ -218,7 +218,7 @@ impl HeadlessHost
     // opened by the code under test without any test-side closure. If the expected
     // UI never shows up within 'maxFrames' frames, the pending loop is cancelled and
     // 'autoHandled' stays false.
-    mtd clickModalButtonWhenShown(button: WndId, maxFrames: u32 = 60)
+    mtd clickModalButtonWhenShown(button: #nonull WndId, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.ModalButton, button)
@@ -227,7 +227,7 @@ impl HeadlessHost
     // Same auto-driver as clickModalButtonWhenShown for a file dialog: fills the
     // modal file browser with 'fileName' (folder + name), then accepts it with
     // 'button'. The folder part must exist.
-    mtd acceptModalFileDialog(fileName: string, button: WndId = Dialog.BtnOk, maxFrames: u32 = 60)
+    mtd acceptModalFileDialog(fileName: string, button: #nonull WndId = Dialog.BtnOk, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         let stage = .addAutoStage(.ModalButton, button)
@@ -237,7 +237,7 @@ impl HeadlessHost
 
     // Arms the auto UI driver to click item 'id' of the captured popup menu as soon
     // as the popup exists (e.g. after a right-click opening a context menu).
-    mtd clickPopupMenuItemWhenShown(id: WndId, maxFrames: u32 = 60)
+    mtd clickPopupMenuItemWhenShown(id: #nonull WndId, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupItem, id)
@@ -254,7 +254,7 @@ impl HeadlessHost
     // Appends one more step to the armed sequence: once the previous step succeeded,
     // click 'button' in the next modal that shows up (e.g. a nested overwrite
     // confirmation after accepting a file dialog).
-    mtd thenClickModalButton(button: WndId)
+    mtd thenClickModalButton(button: #nonull WndId)
     {
         Debug.assert(.autoArmed)
         discard .addAutoStage(.ModalButton, button)
@@ -262,7 +262,7 @@ impl HeadlessHost
 
     // Appends one more step to the armed sequence: click item 'id' of the captured
     // popup menu (e.g. inside a submenu opened by the previous step).
-    mtd thenClickPopupMenuItem(id: WndId)
+    mtd thenClickPopupMenuItem(id: #nonull WndId)
     {
         Debug.assert(.autoArmed)
         discard .addAutoStage(.PopupItem, id)
@@ -310,7 +310,7 @@ impl HeadlessHost
         }
     }
 
-    mtd closeOnCommand(cmdId: WndId)
+    mtd closeOnCommand(cmdId: #nonull WndId)
     {
         .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
         {
@@ -465,7 +465,7 @@ impl HeadlessHost
         .click(pt, button, modifiers)
     }
 
-    mtd clickModalButton(id: WndId)->bool
+    mtd clickModalButton(id: #nonull WndId)->bool
     {
         if .app.modalSurfaces.count == 0 do
             return false
@@ -580,7 +580,7 @@ impl HeadlessHost
         return menu
     }
 
-    mtd clickPopupMenuItem(id: WndId)->bool
+    mtd clickPopupMenuItem(id: #nonull WndId)->bool
     {
         let menu = .getCapturedPopupMenu()
         if !menu do

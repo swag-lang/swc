@@ -142,7 +142,7 @@ impl IWnd for CheckButton
 impl CheckButton
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId = null)->*CheckButton
+    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *CheckButton
     {
         Debug.assert(parent != null)
         var pos = position

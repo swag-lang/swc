@@ -14,7 +14,7 @@ struct Movie
     mustLoop:            bool = true
     inPause:             bool
     playFreq:            f32 = 0.05
-    sigFrameChanged:     SigArray'func||(*Movie)
+    sigFrameChanged:     SigArray'func||(#nonull *Movie)
 
     numFrames:           s32
     frameIndex:          s32
@@ -98,7 +98,7 @@ impl Movie
     }
 
     // Associate a filename
-    mtd set(fileName: string) throw
+    mtd set(fileName: #nonull string) throw
     {
         .clear()
         if .gif.IImageDecoder.canDecode(fileName)

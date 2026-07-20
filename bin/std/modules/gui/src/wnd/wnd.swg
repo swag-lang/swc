@@ -92,8 +92,8 @@ struct KeyShortcut
 {
     mdf:        Input.KeyModifiers = Zero
     key:        Input.Key = None
-    id:         WndId
-    target:     *Wnd
+    id:         #nonull WndId = undefined
+    target:     #null *Wnd
 }
 
 interface IWnd
@@ -101,26 +101,26 @@ interface IWnd
     mtd onEvent(evt: IEvent);
     mtd onHookEvent(evt: IEvent);
 
-    mtd onCreateEvent(evt: *CreateEvent);
-    mtd onDestroyEvent(evt: *DestroyEvent);
-    mtd onStateEvent(evt: *StateEvent);
-    mtd onResizeEvent(evt: *ResizeEvent);
-    mtd onPrePaintEvent(evt: *PaintEvent);
-    mtd onPaintEvent(evt: *PaintEvent);
-    mtd onPostPaintEvent(evt: *PaintEvent);
-    mtd onKeyEvent(evt: *KeyEvent);
-    mtd onMouseEvent(evt: *MouseEvent);
-    mtd onSysCommandEvent(evt: *SysCommandEvent);
-    mtd onSysUserEvent(evt: *SysUserEvent);
-    mtd onThemeEvent(evt: *ThemeEvent);
-    mtd onTimerEvent(evt: *TimerEvent);
-    mtd onFocusEvent(evt: *FocusEvent);
-    mtd onCommandEvent(evt: *CommandEvent);
-    mtd onComputeStateEvent(evt: *CommandStateEvent);
-    mtd onApplyStateEvent(evt: *CommandStateEvent);
-    mtd onFrameEvent(evt: *FrameEvent);
-    mtd onSerializeStateEvent(evt: *SerializeStateEvent);
-    mtd onNotifyEvent(evt: *NotifyEvent);
+    mtd onCreateEvent(evt: #nonull *CreateEvent);
+    mtd onDestroyEvent(evt: #nonull *DestroyEvent);
+    mtd onStateEvent(evt: #nonull *StateEvent);
+    mtd onResizeEvent(evt: #nonull *ResizeEvent);
+    mtd onPrePaintEvent(evt: #nonull *PaintEvent);
+    mtd onPaintEvent(evt: #nonull *PaintEvent);
+    mtd onPostPaintEvent(evt: #nonull *PaintEvent);
+    mtd onKeyEvent(evt: #nonull *KeyEvent);
+    mtd onMouseEvent(evt: #nonull *MouseEvent);
+    mtd onSysCommandEvent(evt: #nonull *SysCommandEvent);
+    mtd onSysUserEvent(evt: #nonull *SysUserEvent);
+    mtd onThemeEvent(evt: #nonull *ThemeEvent);
+    mtd onTimerEvent(evt: #nonull *TimerEvent);
+    mtd onFocusEvent(evt: #nonull *FocusEvent);
+    mtd onCommandEvent(evt: #nonull *CommandEvent);
+    mtd onComputeStateEvent(evt: #nonull *CommandStateEvent);
+    mtd onApplyStateEvent(evt: #nonull *CommandStateEvent);
+    mtd onFrameEvent(evt: #nonull *FrameEvent);
+    mtd onSerializeStateEvent(evt: #nonull *SerializeStateEvent);
+    mtd onNotifyEvent(evt: #nonull *NotifyEvent);
 }
 
 #[Swag.EnumFlags]
@@ -140,10 +140,10 @@ struct Wnd
 {
     itf:                   IWnd
     type:                  typeinfo
-    surface:               *Surface
+    surface:               #null *Surface
     style:                 ThemeStyle
     wndFlags               = WndFlags.ClipChildren
-    userData:              *void
+    userData:              #null *void
 
     position:              Math.Rectangle
     preferredSize:         Math.Point
@@ -153,12 +153,12 @@ struct Wnd
 
     invalidatePadding:     Math.Vector4
 
-    parent:                *Wnd
-    owner:                 *Wnd
-    childs:                Array'(*Wnd)
+    parent:                #null *Wnd
+    owner:                 #null *Wnd
+    childs:                Array'(#nonull *Wnd)
 
     name:                  RichString
-    id:                    WndId
+    id:                    #null WndId
     cursor:                Cursor
     toolTip:               String
 
@@ -239,27 +239,27 @@ impl IWnd for Wnd
 
     mtd impl onHookEvent(evt: IEvent) {}
 
-    mtd impl onCreateEvent(evt: *CreateEvent) {}
-    mtd impl onDestroyEvent(evt: *DestroyEvent) {}
-    mtd impl onStateEvent(evt: *StateEvent) {}
-    mtd impl onResizeEvent(evt: *ResizeEvent) {}
-    mtd impl onPrePaintEvent(evt: *PaintEvent) {}
-    mtd impl onPaintEvent(evt: *PaintEvent) {}
-    mtd impl onPostPaintEvent(evt: *PaintEvent) {}
-    mtd impl onThemeEvent(evt: *ThemeEvent) { .invalidate(); .sendResizeEvent(); }
-    mtd impl onTimerEvent(evt: *TimerEvent) {}
-    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
-    mtd impl onFrameEvent(evt: *FrameEvent) {}
+    mtd impl onCreateEvent(evt: #nonull *CreateEvent) {}
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent) {}
+    mtd impl onStateEvent(evt: #nonull *StateEvent) {}
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent) {}
+    mtd impl onPrePaintEvent(evt: #nonull *PaintEvent) {}
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent) {}
+    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent) {}
+    mtd impl onThemeEvent(evt: #nonull *ThemeEvent) { .invalidate(); .sendResizeEvent(); }
+    mtd impl onTimerEvent(evt: #nonull *TimerEvent) {}
+    mtd impl onSerializeStateEvent(evt: #nonull *SerializeStateEvent) {}
+    mtd impl onFrameEvent(evt: #nonull *FrameEvent) {}
 
-    mtd impl onSysCommandEvent(evt: *SysCommandEvent) { evt.accepted = false; }
-    mtd impl onSysUserEvent(evt: *SysUserEvent) { evt.accepted = false; }
-    mtd impl onKeyEvent(evt: *KeyEvent) { evt.accepted = false; }
-    mtd impl onMouseEvent(evt: *MouseEvent) { evt.accepted = false; }
-    mtd impl onFocusEvent(evt: *FocusEvent) { evt.accepted = false; }
-    mtd impl onCommandEvent(evt: *CommandEvent) { evt.accepted = false; }
-    mtd impl onComputeStateEvent(evt: *CommandStateEvent) { evt.accepted = false; }
-    mtd impl onApplyStateEvent(evt: *CommandStateEvent) { evt.accepted = false; }
-    mtd impl onNotifyEvent(evt: *NotifyEvent) { evt.accepted = false; }
+    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent) { evt.accepted = false; }
+    mtd impl onSysUserEvent(evt: #nonull *SysUserEvent) { evt.accepted = false; }
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent) { evt.accepted = false; }
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent) { evt.accepted = false; }
+    mtd impl onFocusEvent(evt: #nonull *FocusEvent) { evt.accepted = false; }
+    mtd impl onCommandEvent(evt: #nonull *CommandEvent) { evt.accepted = false; }
+    mtd impl onComputeStateEvent(evt: #nonull *CommandStateEvent) { evt.accepted = false; }
+    mtd impl onApplyStateEvent(evt: #nonull *CommandStateEvent) { evt.accepted = false; }
+    mtd impl onNotifyEvent(evt: #nonull *NotifyEvent) { evt.accepted = false; }
 }
 
 impl Wnd
@@ -270,30 +270,30 @@ impl Wnd
 
     #[Swag.Inline]
     {
-        mtd getApp()          => .surface.app
-        mtd getTopView()      => .surface.wnd.view
-        mtd getTopWnd()       => .surface.wnd
+        mtd getApp()          => (assume .surface).app
+        mtd getTopView()      => (assume .surface).wnd.view
+        mtd getTopWnd()       => (assume .surface).wnd
         mtd getTheme()        => .style.refr.theme
         mtd getThemeMetrics() => &.style.refr.theme.metrics
         mtd getThemeColors()  => &.style.refr.theme.colors
         mtd getThemeRects()   => &.style.refr.theme.rects
-        mtd getTiming()       => &.surface.app.timing
+        mtd getTiming()       => &(assume .surface).app.timing
         mtd getFont()         => .style.getFont()
     }
 
     #[Swag.Inline]
-    func(T) create(parent: *Wnd = null, id: WndId = null, hook: HookEvent = null)->*T
+    func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: HookEvent = null)->#nonull *T
     {
-        return create(parent, name: "", position: {}, id: id, hook: hook)
+        return create'T(parent, "", {}, id, hook)
     }
 
     #[Swag.Inline]
-    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: WndId = null, hook: HookEvent = null)->*T
+    func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->#nonull *T
     {
-        return create(parent, name: "", position: position, id: id, hook: hook)
+        return create'T(parent, "", position, id, hook)
     }
 
-    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: WndId = null, hook: HookEvent = null)->*T
+    func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: #null WndId = null, hook: HookEvent = null)->#nonull *T
     {
         let res = Memory.new'T()
         res.isAllocated = true
@@ -308,7 +308,7 @@ impl Wnd
 
         if parent
         {
-            res.setParent(parent)
+            res.setParent(assume parent)
             res.sendCreateEvent()
             res.sendResizeEvent()
         }
@@ -357,7 +357,7 @@ impl Wnd
     }
 
     // Set window parent
-    mtd setParent(who: *Wnd)
+    mtd setParent(who: #nonull *Wnd)
     {
         Debug.assert(who != null)
         if who == .parent do
@@ -393,7 +393,7 @@ impl Wnd
     }
 
     // Get the owner of the window
-    mtd getOwner()->*Wnd
+    mtd getOwner()->#null *Wnd
     {
         return .owner orelse .parent
     }
@@ -512,7 +512,7 @@ impl Wnd
     mtd computeStyle()
     {
         if .surface do
-            .style.compute(me, &.surface.app.style)
+            .style.compute(me, &(assume .surface).app.style)
     }
 
     mtd paint(bc: *PaintContext)
@@ -585,7 +585,7 @@ impl Wnd
                 painter.popState()
             }
 
-            if .managedByLayout and .surface.app.options.showLayoutRects
+            if .managedByLayout and .surface and (assume .surface).app.options.showLayoutRects
             {
                 painter.drawRect(.getClientRect(), Color.fromArgb(0x66FFCC00), 1)
             }
@@ -622,7 +622,8 @@ impl Wnd
     // Force o local position to be repainted
     mtd invalidateRect(rect: Math.Rectangle)
     {
-        .surface.invalidateRect(.localToSurface(rect))
+        if .surface do
+            .surface.invalidateRect(.localToSurface(rect))
     }
 
     //////////////////////////////////////////////
@@ -1143,7 +1144,7 @@ impl Wnd
     }
 
     // Returns true if 'child' is in the child hieararchy of 'me'
-    mtd isParentOf(child: *Wnd)->bool
+    mtd isParentOf(child: #null *Wnd)->bool
     {
         if !child do
             return false
@@ -1159,7 +1160,7 @@ impl Wnd
     }
 
     // Returns true if 'child' is in the owner/child hieararchy of 'me'
-    mtd isOwnerOf(child: *Wnd)->bool
+    mtd isOwnerOf(child: #null *Wnd)->bool
     {
         if !child do
             return false
@@ -1175,7 +1176,7 @@ impl Wnd
     }
 
     // Retrieve the child with the given id
-    mtd getChildById(childId: string)->#null *Wnd
+    mtd getChildById(childId: #nonull string)->#null *Wnd
     {
         for c in .childs
         {
@@ -1190,7 +1191,7 @@ impl Wnd
     }
 
     // Retrieve the parent with the given id
-    mtd getParentById(parentId: string)->#null *Wnd
+    mtd getParentById(parentId: #nonull string)->#null *Wnd
     {
         var p = .parent
         while p
@@ -1217,7 +1218,7 @@ impl Wnd
         .surface.app.releaseMouse()
     }
 
-    mtd getMouseCapture()->*Wnd
+    mtd getMouseCapture()->#null *Wnd
     {
         return .surface.app.getMouseCapture()
     }
@@ -1273,7 +1274,7 @@ impl Wnd
     }
 
     // Get the window with the keyboard focus
-    mtd getFocus()->*Wnd
+    mtd getFocus()->#null *Wnd
     {
         let surface = .surface
         if !surface do
@@ -1291,7 +1292,7 @@ impl Wnd
     }
 
     // Register a keyboard shortcut
-    mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId)
+    mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: #nonull WndId)
     {
         for &c in .keyShortcuts
         {
@@ -1321,7 +1322,7 @@ impl Wnd
     }
 
     // Get the name associated with a given id shortcut
-    mtd getKeyShortcutNameFor(wndId: WndId)->String
+    mtd getKeyShortcutNameFor(wndId: #nonull WndId)->String
     {
         var result: retval
         for c in .keyShortcuts
@@ -1344,7 +1345,7 @@ impl Wnd
     //////////////////////////////////////////////
 
     // Register a new timer for the given 'target'
-    mtd addTimer(time: Time.Duration)->*Timer
+    mtd addTimer(time: Time.Duration)->#nonull *Timer
     {
         return .getApp().addTimer(time, me)
     }
@@ -1425,12 +1426,13 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    mtd postCommandEvent(cmdId: WndId)
+    mtd postCommandEvent(cmdId: #null WndId)
     {
         if cmdId == null do
             return
+        let safeCmdId = cmdId orelse ""
         let evt = Event.create'CommandEvent()
-        evt.id     = cmdId
+        evt.id     = safeCmdId
         evt.source = me
         .postEvent(evt)
     }
@@ -1483,10 +1485,11 @@ impl Wnd
 
     // Send the command state event with the given id to the window.
     // Returns the updated command state.
-    mtd sendComputeCommandStateEvent(cmdId: WndId)->CommandStateEvent
+    mtd sendComputeCommandStateEvent(cmdId: #null WndId)->CommandStateEvent
     {
         if cmdId == null do
             return {}
+        let safeCmdId = cmdId orelse ""
 
         var evtState: retval
         @init(&evtState.name, 1)
@@ -1496,14 +1499,14 @@ impl Wnd
 
         // User will fill the state
         evtState.kind   = .ComputeCommandState
-        evtState.id     = cmdId
+        evtState.id     = safeCmdId
         evtState.source = me
         .sendEvent(&evtState)
 
         // Is there a keyboard shortcut or a global hot key ?
-        var sk = .getKeyShortcutNameFor(cmdId)
+        var sk = .getKeyShortcutNameFor(safeCmdId)
         if !sk.length do
-            sk = .getApp().getHotKeyShortcutNameFor(cmdId)
+            sk = .getApp().getHotKeyShortcutNameFor(safeCmdId)
         if sk.length
         {
             evtState.setFlags.add(.Shortcut)
@@ -1515,10 +1518,11 @@ impl Wnd
 
     // Send the command event with the given id to the window.
     // The command will be updated first, and if it is not disabled, it will be sent.
-    mtd sendCommandEvent(cmdId: WndId)
+    mtd sendCommandEvent(cmdId: #null WndId)
     {
         if cmdId == null do
             return
+        let safeCmdId = cmdId orelse ""
 
         // We first need to be sure that the target can deal with the event
         var evtState: CommandStateEvent
@@ -1527,14 +1531,14 @@ impl Wnd
         @init(&evtState.shortcut, 1)
         @init(&evtState.toolTip, 1)
         evtState.kind = .ComputeCommandState
-        evtState.id   = cmdId
+        evtState.id   = safeCmdId
         .sendEvent(&evtState)
 
         // If it's not disabled, then we can send
         if !evtState.setFlags.has(.Disabled) or !evtState.disabled
         {
             var evtc = CommandEvent{}
-            evtc.id = cmdId
+            evtc.id = safeCmdId
             .sendEvent(&evtc)
         }
     }
@@ -1550,11 +1554,9 @@ impl Wnd
         .actions.add(itfAct)
     }
 
-    private mtd updateAction(evt: *CommandStateEvent)->bool
+    private mtd updateAction(evt: #nonull *CommandStateEvent)->bool
     {
-        var cxt: ActionContext
-        cxt.wnd = me
-        cxt.id  = evt.id
+        var cxt = ActionContext{me, evt.id orelse ""}
 
         for act in .actions
         {
@@ -1569,11 +1571,9 @@ impl Wnd
         return false
     }
 
-    private mtd executeAction(evt: *CommandEvent)->bool
+    private mtd executeAction(evt: #nonull *CommandEvent)->bool
     {
-        var cxt: ActionContext
-        cxt.wnd = me
-        cxt.id  = evt.id
+        var cxt = ActionContext{me, evt.id orelse ""}
 
         for act in .actions
         {

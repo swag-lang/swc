@@ -8,7 +8,7 @@ alias ValueFormat = u64
 private var g_PngFormat: UINT
 
 // Register a new format
-func registerFormat(name: string)->ValueFormat throw
+func registerFormat(name: #nonull string)->ValueFormat throw
 {
     return try RegisterClipboardFormatA(@dataof(name))
 }
@@ -278,7 +278,7 @@ func hasString()->bool
 }
 
 // Add string to clipboard
-func addString(str: string)
+func addString(str: #nonull string)
 {
     if g_Fake.enabled
     {

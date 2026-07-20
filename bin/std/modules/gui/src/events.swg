@@ -8,13 +8,13 @@ interface IEvent
 struct Event
 {
     type:         typeinfo
-    target:       *Wnd
+    target:       #null *Wnd
     accepted:     bool
 }
 
 impl Event
 {
-    func(T) create()->*T
+    func(T) create()->#nonull *T
     {
         let res = Memory.new'T()
         res.type = #typeof(T)
@@ -29,8 +29,8 @@ impl IEvent for Event
 struct CommandEvent
 {
     using base:     Event
-    id:             WndId
-    source:         *Wnd
+    id:             #nonull WndId = undefined
+    source:         #null *Wnd
 }
 
 impl IEvent for CommandEvent
@@ -69,8 +69,8 @@ struct CommandStateEvent
 
     using base:        Event
     kind:              Kind
-    id:                WndId
-    source:            *Wnd
+    id:                #nonull WndId = undefined
+    source:            #null *Wnd
 
     icon:              Icon
     name:              String
@@ -91,7 +91,7 @@ impl IEvent for CommandStateEvent
 struct TimerEvent
 {
     using base:     Event
-    timer:          *Timer
+    timer:          #nonull *Timer = undefined
 }
 
 impl IEvent for TimerEvent
@@ -160,7 +160,7 @@ struct PaintEvent
 
     using base:     Event
     kind:           Kind = .Paint
-    bc:             *PaintContext
+    bc:             #nonull *PaintContext = undefined
 }
 
 impl IEvent for PaintEvent
@@ -256,7 +256,7 @@ struct FocusEvent
 
     using base:        Event
     kind:              Kind
-    other:             *Wnd
+    other:             #null *Wnd
     canChangeFocus     = true
 }
 
@@ -298,8 +298,8 @@ impl IEvent for SysCommandEvent
 struct ThemeEvent
 {
     using base:     Event
-    style:          *ThemeStyle
-    parent:         *ThemeStyle
+    style:          #nonull *ThemeStyle = undefined
+    parent:         #null *ThemeStyle
 }
 
 impl IEvent for ThemeEvent
@@ -309,7 +309,7 @@ impl IEvent for ThemeEvent
 struct SerializeStateEvent
 {
     using base:     Event
-    ser:            *Serialization.Serializer
+    ser:            #nonull *Serialization.Serializer = undefined
 }
 
 impl IEvent for SerializeStateEvent
@@ -327,7 +327,7 @@ struct NotifyEvent
     }
 
     ntfyKind:     Kind = undefined
-    from:         *Wnd
+    from:         #null *Wnd
 }
 
 impl IEvent for NotifyEvent

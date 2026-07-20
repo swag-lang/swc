@@ -615,13 +615,13 @@ impl PropWnd
 
     func editText(main: #nonull *MainWnd, curText: String)->String
     {
-        with let dlg = EditDlg.createMultiLine(main.surface)
+        with let dlg = EditDlg.createMultiLine(assume main.surface)
         {
             .setMessage("Press Shift+Enter to add a new line")
             .setText(curText)
             .richEdit.selectAll()
             .surface.setTitle("Enter Text")
-            .surface.center(main.surface)
+            .surface.center(assume main.surface)
             if main.inPlaceEdit do
                 .surface.setTopMost()
         }
@@ -675,10 +675,11 @@ impl PropWnd
         if curSel.subKind != .PixSel do
             return
 
-        discard PushButton.create(.topLayout, "", id: ActionPixSel.Fill)
-        discard PushButton.create(.topLayout, "", id: ActionPixSel.SmartFill)
-        discard PushButton.create(.topLayout, "", id: ActionPixSel.Clear)
-        discard PushButton.create(.topLayout, "", id: ActionPixSel.SmartMove)
+        let topLayout = assume .topLayout
+        discard PushButton.create(topLayout, "", id: ActionPixSel.Fill)
+        discard PushButton.create(topLayout, "", id: ActionPixSel.SmartFill)
+        discard PushButton.create(topLayout, "", id: ActionPixSel.Clear)
+        discard PushButton.create(topLayout, "", id: ActionPixSel.SmartMove)
     }
 
     // Position/size boxes: two compact hand-made rows (x/y and w/h) appended right after

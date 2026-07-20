@@ -5,9 +5,9 @@ struct Item
 {
     name:          RichString
     icon:          Icon
-    id:            WndId
-    userData0:     *void
-    userData1:     *void
+    id:            #null WndId
+    userData0:     #null *void
+    userData1:     #null *void
 }
 
 #[Swag.EnumFlags]

@@ -7,8 +7,8 @@ struct ComboCtrl
     labelSize:          f32 = 60
     comboSize:          f32 = 60     // 0 to fit to parent size
 
-    label:              *Label
-    combo:              *ComboBox
+    label:              #null *Label
+    combo:              #null *ComboBox
 }
 
 impl IWnd for ComboCtrl
@@ -29,7 +29,7 @@ impl IWnd for ComboCtrl
 
 impl ComboCtrl
 {
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId = null)->*ComboCtrl
+    func create(parent: #nonull *Wnd, name: #nonull string, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ComboCtrl
     {
         let metrics = parent.getThemeMetrics()
         var pos     = position

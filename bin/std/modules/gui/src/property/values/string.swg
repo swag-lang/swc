@@ -143,7 +143,7 @@ impl Properties
                 .dockStyle = .Right
                 .sigPressed += func|prop = me, item, ed|(btn)
                 {
-                    with let dlg = EditDlg.createMultiLine(prop.surface)
+                    with let dlg = EditDlg.createMultiLine(assume prop.surface)
                     {
                         .setText(ed.text)
                         .richEdit.selectAll()

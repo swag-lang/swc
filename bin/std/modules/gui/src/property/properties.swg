@@ -313,7 +313,7 @@ impl Properties
 {
     // Creates a new Properties instance
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: WndId = null)->*Properties
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: #null WndId = null)->*Properties
     {
         let ed = Wnd.create'Properties(parent, "", position, id)
 

@@ -20,14 +20,14 @@ struct FileDlgState
 
 struct FileDlgOptions
 {
-    title:          string
-    btnOkName:      string
-    openFolder:     string
-    editName:       string
+    title:          #nonull string = ""
+    btnOkName:      #nonull string = ""
+    openFolder:     #nonull string = ""
+    editName:       #nonull string = ""
     drivePane       = true
     mode:           FileDlgMode = SelectOneFile
-    filters:        Array'{ name: string, extensions: string }
-    shortcuts:      Array'{ type: Core.Env.SpecialDirectory, name: string }
+    filters:        Array'{ name: #nonull string, extensions: #nonull string }
+    shortcuts:      Array'{ type: Core.Env.SpecialDirectory, name: #nonull string }
     state:          *FileDlgState
 }
 
@@ -55,13 +55,13 @@ private impl FileDlg
     {
         let folderName: String = "New Folder"
 
-        with let dlg = EditDlg.createSingleLine(me.surface)
+        with let dlg = EditDlg.createSingleLine(assume me.surface)
         {
             .edit.setText(folderName)
             .edit.selectAll()
             .edit.setNote("Folder name")
             .surface.setTitle("Folder Name")
-            .surface.center(me.surface)
+            .surface.center(assume me.surface)
         }
 
         dlg.sigPressedButton = func|dlg, browser = me.browser|(fdlg, btnid)
@@ -80,7 +80,7 @@ private impl FileDlg
 
             if !Path.isValidFileName(folderName)
             {
-                MessageDlg.error(dlg.surface, "Invalid folder name")
+                MessageDlg.error(assume dlg.surface, "Invalid folder name")
                 dlg.edit.selectAll()
                 dlg.edit.setFocus()
                 return false
@@ -89,7 +89,7 @@ private impl FileDlg
             let path = Path.combine(browser.curFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(dlg.surface, "Folder already exists")
+                MessageDlg.error(assume dlg.surface, "Folder already exists")
                 dlg.edit.selectAll()
                 dlg.edit.setFocus()
                 return false
@@ -102,14 +102,14 @@ private impl FileDlg
             return
 
         if !.browser.createFolder(dlg.edit.text.toString()) do
-            MessageDlg.error(.surface, "Cannot create folder")
+            MessageDlg.error(assume .surface, "Cannot create folder")
     }
 }
 
 impl FileDlg
 {
     // Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.
-    func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
+    func create(from: #nonull *Surface, opt: FileDlgOptions = {})->#nonull *FileDlg
     {
         let dlg = Wnd.create'FileDlg()
         dlg.fromSurface = from
@@ -172,7 +172,7 @@ impl FileDlg
 
                 if dlg.dlgOptions.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(dlg.surface, "This file already exists.", "Do you want to replace it ?")
+                    let res = MessageDlg.confirm(assume dlg.surface, "This file already exists.", "Do you want to replace it ?")
                     return res == Dialog.BtnYes
                 }
             }

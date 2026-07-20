@@ -151,7 +151,7 @@ impl MainWnd
         let capture = assume .getCapture()
         let ratio   = cast(f32) capture.width / capture.height
 
-        let dlg = Dialog.createDialog(.surface, 350, 265, title: "Resize Image")
+        let dlg = Dialog.createDialog(assume .surface, 350, 265, title: "Resize Image")
         dlg.addButton("Resize", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, "Width", Format.toString("%", capture.width), {80, 15}, flags: .RightAlign)
@@ -235,7 +235,7 @@ impl MainWnd
 
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
-        let dlg = Dialog.createDialog(.surface, 350, 265, title: title)
+        let dlg = Dialog.createDialog(assume .surface, 350, 265, title: title)
         dlg.addButton("Resize", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
 

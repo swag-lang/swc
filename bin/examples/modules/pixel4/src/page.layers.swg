@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string, accent: Color)
+func drawLayerArtwork(painter: #nonull *Pixel.Painter, width, height: s32, label: #nonull string, accent: Color)
 {
     let w = cast(f32) width
     let h = cast(f32) height
@@ -22,16 +22,16 @@ func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string
     pen.joinStyle = .Round
     painter.drawPath(&path, pen)
 
-    let textSize = Painter.measureString(label, g_SubTitleFont)
+    let textSize = Painter.measureString(label, assume g_SubTitleFont)
     let textX = w * 0.5 - textSize.width * 0.5
     let textY = h - 52
     var textBack = accent
     textBack.a = 224
     painter.fillRoundRect(textX - 12, textY - 8, textSize.width + 24, textSize.height + 16, 10, 10, textBack)
-    painter.drawString(textX, textY, label, g_SubTitleFont, Argb.White)
+    painter.drawString(textX, textY, label, assume g_SubTitleFont, Argb.White)
 }
 
-func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, renderScale: s32, shadow: bool, angle: Math.Angle, accent: Color)
+func drawLayerCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title, subtitle: #nonull string, renderScale: s32, shadow: bool, angle: Math.Angle, accent: Color)
 {
     let body = drawPanel(painter, rect, title, subtitle)
     let layerWidth  = 310
@@ -62,7 +62,7 @@ func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitl
     painter.popTransform()
 }
 
-func drawLayerPipelinePage(painter: *Pixel.Painter)
+func drawLayerPipelinePage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel layers", "Page 11 : offscreen layers, supersample resolve, blur shadows and alpha-safe composition.")
     drawLayerCard(painter, {28, 104, 452, 258}, "Layer", "begin / paint / end records a transparent layer and keeps alpha coverage isolated.", 1, false, -4.0'deg, Argb.MidnightBlue)

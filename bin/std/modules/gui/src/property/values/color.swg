@@ -2,14 +2,14 @@ using Core, Pixel
 
 impl Properties
 {
-    mtd constructColor(value: Swag.TypeValue, data: [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
+    mtd constructColor(value: Swag.TypeValue, data: #null [*] u8, parentItem: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         // Custom struct editors keep the container row separator-less, like the inline-struct
         // path in addValue does (the registry path bypasses that, so replicate it here).
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = .addItem(value, data, parentItem)
-        let color = cast(*Color) data
+        let color = cast(#null *Color) data
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
@@ -86,7 +86,7 @@ impl Properties
                 flags.remove(ColorPickerFlags.Alpha)
 
             let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
-            picker.setColor(color)
+            picker.setColor(dref color)
             picker.sigChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {
                 var result = pk.getColor().argb
@@ -123,12 +123,12 @@ struct ColorEditor {}
 
 impl IPropertyEditor for ColorEditor
 {
-    mtd impl canEdit(type: typeinfo)->bool
+    mtd impl canEdit(type: #null typeinfo)->bool
     {
         return type == Color
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         return list.constructColor(value, data, parent)
     }

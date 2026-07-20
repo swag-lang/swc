@@ -87,7 +87,7 @@ impl NumericArray
     }
 
     #[Safety(.BoundCheck, false), Complete]
-    mtd opSet(what: const [..] T)
+    mtd opSet(what: #nonull const [..] T)
     {
         Debug.assert(@countof(what) == N)
         for i in N do

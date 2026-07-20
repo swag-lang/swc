@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct GizmoPoints
 {
     anchorSize:      f32 = 12

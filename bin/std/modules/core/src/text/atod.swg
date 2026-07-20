@@ -7,7 +7,6 @@
 
 #global namespace StrConv
 #global namespace Atod
-#global #[Swag.ExplicitNullability]
 #global #[Swag.CanOverflow(true)]
 using Globalization
 

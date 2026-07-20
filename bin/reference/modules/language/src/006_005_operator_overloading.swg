@@ -51,7 +51,7 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Access a value by slicing with the [low..up] notation. Returns a string or a slice.
-    func opSlice(me, low, up: u64)->string { return "true"; }
+    func opSlice(me, low, up: u64)->#nonull string { return "true"; }
 
     // Access a value by one or more indices. All index parameters must have the same type.
     func opIndex(me, index: OneType)->WhateverType { return true; }

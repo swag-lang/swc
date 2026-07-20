@@ -3,9 +3,9 @@ using Core, Gui
 const TestFrames = 50
 
 var app: Application
-var g_Button: *PushButton
+var g_Button: #null *PushButton
 
-func centerButton(view: *Wnd)
+func centerButton(view: #nonull *Wnd)
 {
     if !g_Button do
         return
@@ -16,7 +16,7 @@ func centerButton(view: *Wnd)
     g_Button.setPosition({x, y, g_Button.position.width, g_Button.position.height})
 }
 
-func onEvent(view: *Wnd, evt: IEvent)->bool
+func onEvent(view: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

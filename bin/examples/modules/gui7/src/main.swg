@@ -19,38 +19,38 @@ struct PageLayout
 }
 
 var app: Application
-var g_Surface: *Surface
-var g_View: *Wnd
-var g_Title: *Label
-var g_SubTitle: *Label
-var g_ThemeButton: *PushButton
-var g_PageView: *Wnd
-var g_Footer: *Label
+var g_Surface: #null *Surface
+var g_View: #null *Wnd
+var g_Title: #null *Label
+var g_SubTitle: #null *Label
+var g_ThemeButton: #null *PushButton
+var g_PageView: #null *Wnd
+var g_Footer: #null *Label
 var g_Page: s32
 var g_TestFrame: s32
 var g_DarkTheme: bool
 
-func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
+func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
 {
     let label = createText(parent, text, rect, .WordWrap | .LightText)
     label.vertAlignmentText = .Top
     return label
 }
 
-func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
+func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -62,7 +62,7 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     return view
 }
 
-func createPane(parent: *Wnd, title, text: string)->*FrameWnd
+func createPane(parent: #nonull *Wnd, title, text: #nonull string)->#nonull *FrameWnd
 {
     let frame = Wnd.create'FrameWnd(parent, {})
     frame.setFrameForm(.Round)
@@ -74,7 +74,7 @@ func createPane(parent: *Wnd, title, text: string)->*FrameWnd
     return frame
 }
 
-func refreshLayoutTree(wnd: *Wnd)
+func refreshLayoutTree(wnd: #nonull *Wnd)
 {
     if !wnd do
         return
@@ -86,7 +86,7 @@ func refreshLayoutTree(wnd: *Wnd)
     wnd.invalidate()
 }
 
-func createChip(parent: *Wnd, text: string, icon: ThemeIcons24 = .Options)->*PushButton
+func createChip(parent: #nonull *Wnd, text: #nonull string, icon: ThemeIcons24 = .Options)->#nonull *PushButton
 {
     let btn = PushButton.create(parent, text, {0, 0, 118, 32})
     btn.form = .Flat
@@ -94,7 +94,7 @@ func createChip(parent: *Wnd, text: string, icon: ThemeIcons24 = .Options)->*Pus
     return btn
 }
 
-func getPageLayout(parent: *Wnd)->PageLayout
+func getPageLayout(parent: #nonull *Wnd)->PageLayout
 {
     let rect = parent.getClientRect()
     let gap = 20.0
@@ -110,7 +110,7 @@ func getPageLayout(parent: *Wnd)->PageLayout
     return result
 }
 
-func pageTitle(page: s32)->string
+func pageTitle(page: s32)->#nonull string
 {
     switch page
     {
@@ -127,7 +127,7 @@ func pageTitle(page: s32)->string
     unreachable
 }
 
-func pageSubtitle(page: s32)->string
+func pageSubtitle(page: s32)->#nonull string
 {
     switch page
     {
@@ -171,7 +171,7 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: *Button)
+func toggleTheme(_btn: #nonull *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
@@ -191,18 +191,18 @@ func buildPage()
     switch g_Page
     {
     case 0:
-        createSplitterPage(g_PageView)
+        createSplitterPage(assume g_PageView)
     case 1:
-        createStackPage(g_PageView)
+        createStackPage(assume g_PageView)
     case 2:
-        createGridWrapPage(g_PageView)
+        createGridWrapPage(assume g_PageView)
     case 3:
-        createConstraintsPage(g_PageView)
+        createConstraintsPage(assume g_PageView)
     default:
         unreachable
     }
 
-    refreshLayoutTree(g_PageView)
+    refreshLayoutTree(assume g_PageView)
     g_PageView.invalidate()
 }
 
@@ -280,7 +280,7 @@ func onFrame(app: #nonull *Application)
     updateTestMode()
 }
 
-func onRootEvent(_view: *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -309,23 +309,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(g_View, "", {})
-    setLabelTextStyle(g_Title, .Left, .Center)
+    g_Title = Label.create(assume g_View, "", {})
+    setLabelTextStyle(assume g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(g_View, "", {})
+    g_ThemeButton = PushButton.create(assume g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(g_View, {})
+    g_PageView = Wnd.create'Wnd(assume g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(g_View, "", {})
-    setLabelTextStyle(g_Footer, .Left, .Center)
+    g_Footer = Label.create(assume g_View, "", {})
+    setLabelTextStyle(assume g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()

@@ -57,12 +57,12 @@ struct RichEditLexerSwag
     }
 
     mapStyles:     [256] RichEditStyleRef
-    mapWords:      HashTable'(string, s32)
+    mapWords:      HashTable'(#nonull string, s32)
 }
 
 impl IRichEditLexer for RichEditLexerSwag
 {
-    mtd impl setup(ed: *RichEditCtrl)
+    mtd impl setup(ed: #nonull *RichEditCtrl)
     {
         using RichEditLexerSwag.Style
         .mapStyles[State.LineComment]       = Comment
@@ -365,7 +365,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#nonull", State.Modifier)
     }
 
-    mtd impl setupTheme(ed: *RichEditCtrl)
+    mtd impl setupTheme(ed: #nonull *RichEditCtrl)
     {
         using RichEditLexerSwag.Style
         ed.styles[Comment].colFg      = 0xFF6A9955
@@ -384,7 +384,7 @@ impl IRichEditLexer for RichEditLexerSwag
         ed.styles[Error].colFg        = 0xFFF44747
     }
 
-    mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
+    mtd impl insertRune(ed: #nonull *RichEditCtrl, ch: rune)->bool
     {
         // Smart return
         if ch == '\n'
@@ -416,7 +416,7 @@ impl IRichEditLexer for RichEditLexerSwag
         return false
     }
 
-    mtd impl compute(linePrev: *RichEditLine, line: *RichEditLine, lineNext: *RichEditLine)
+    mtd impl compute(linePrev: #null *RichEditLine, line: #nonull *RichEditLine, lineNext: #null *RichEditLine)
     {
         var seek          = 0'u64
         var currentState  = linePrev ? linePrev.lexerEndingState : State.Default

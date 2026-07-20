@@ -7,7 +7,6 @@
 
 #global public
 #global namespace Latin1
-#global #[Swag.ExplicitNullability]
 
 #[Swag.EnumFlags]
 enum CharAttribute

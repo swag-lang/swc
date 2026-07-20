@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func assertRange(buffer: #null const [..] u8, offset, length: u64) throw

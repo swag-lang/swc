@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createProgressBarPage(parent: *Wnd)
+func createProgressBarPage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Finite", "Static progression values cover empty, partial, full and disabled bars.", layout.left)

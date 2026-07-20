@@ -30,11 +30,11 @@ struct ComboBox
     comboBoxFlags       = ComboBoxFlags.Zero    // Active behaviour flags
     minWidthPopup:      f32 = 100
     maxHeightPopup:     f32 = 300
-    sigChanged:         SigArray'func||(*ComboBox, u32)
+    sigChanged:         SigArray'func||(#nonull *ComboBox, u32)
 
-    editBox:            *EditBox
+    editBox:            #null *EditBox
     isHot:              bool
-    popup:              *PopupListCtrl
+    popup:              #null *PopupListCtrl
     items:              ArrayPtr'ComboBoxItem
     selectedIdx         = Swag.U32.Max
     maxIconSize:        s32
@@ -46,7 +46,7 @@ struct ComboBox
 
 impl IWnd for ComboBox
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         if .editBox
         {
@@ -58,7 +58,7 @@ impl IWnd for ComboBox
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc      = evt.bc
         let painter = evt.bc.painter
@@ -68,8 +68,8 @@ impl IWnd for ComboBox
         let metrics = .getThemeMetrics()
         let rects   = .getThemeRects()
 
-        var subRectBk:     *ThemeImageRect
-        var subRectBorder: *ThemeImageRect
+        var subRectBk:     #null *ThemeImageRect
+        var subRectBorder: #null *ThemeImageRect
         var colorBk:       Color = undefined
         var colorBorder:   Color = undefined
         var colorText:     Color = undefined
@@ -141,7 +141,7 @@ impl IWnd for ComboBox
         icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         switch evt.kind
         {
@@ -170,7 +170,7 @@ impl IWnd for ComboBox
     // Keyboard control of the focused combo box. Up/Left and Down/Right move the
     // selection to the previous/next selectable item; Home/End jump to the first/
     // last; Enter/Space (or Alt+Down) open the drop-down and Escape closes it.
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -321,7 +321,7 @@ private impl ComboBox
 impl ComboBox
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->*ComboBox
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->#nonull *ComboBox
     {
         Debug.assert(parent != null)
         var pos = position
@@ -352,7 +352,7 @@ impl ComboBox
 
     // Add a new item
     #[Swag.Discardable]
-    mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: *void = null, userData1: *void = null)->*ComboBoxItem
+    mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->#nonull *ComboBoxItem
     {
         let item = .items.newPtr()
         with item
@@ -379,7 +379,7 @@ impl ComboBox
     }
 
     // Returns the selected item
-    mtd getSelectedItem()->*ComboBoxItem
+    mtd getSelectedItem()->#null *ComboBoxItem
     {
         Debug.assert(.selectedIdx < .items.count)
         return .items[.selectedIdx]

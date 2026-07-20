@@ -41,7 +41,7 @@ for composition-like behavior, improving code readability and reducing nesting.
     @assert(&value.y == &value.base.y)
 
     // Automatic cast: Point3 can be treated as Point2.
-    func set1(ptr: *Point2)
+    func set1(ptr: #nonull *Point2)
     {
         ptr.x, ptr.y = 1
     }

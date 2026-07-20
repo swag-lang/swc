@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionQuickStyle {}
@@ -26,7 +25,7 @@ impl IActionUI for ActionQuickStyle
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) assume cxt.wnd
 
         switch cxt.id
         {

@@ -1,5 +1,4 @@
 #global using Core, Pixel, Gui
-#global #[Swag.ExplicitNullability]
 
 #message(Swag.CompilerMsgMask.PassBeforeOutput)
 {

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
+func assertUtf16(values: const &Array'u16, expected: #nonull const [..] u16)->bool
 {
     if values.count != @countof(expected) do
         return false

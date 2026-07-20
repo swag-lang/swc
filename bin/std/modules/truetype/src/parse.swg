@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 const NAME_ID_FAMILY = 1'u16

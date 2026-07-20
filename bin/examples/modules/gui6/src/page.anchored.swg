@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createTransientAnchorMenu(parent: *Wnd)->*MenuCtrl
+func createTransientAnchorMenu(parent: #nonull *Wnd)->#nonull *MenuCtrl
 {
     let menu = MenuCtrl.createPopup(parent, owner: g_View)
     menu.menuCtrlFlags |= .NoKeyShortcuts
@@ -13,7 +13,7 @@ func createTransientAnchorMenu(parent: *Wnd)->*MenuCtrl
     return menu
 }
 
-func showAnchorMenu(btn: *Button, pos: PopupPos)
+func showAnchorMenu(btn: #nonull *Button, pos: PopupPos)
 {
     let menu = createTransientAnchorMenu(btn)
     let rect = btn.getSurfaceRect()
@@ -31,7 +31,7 @@ func showAnchorMenu(btn: *Button, pos: PopupPos)
     discard menu.doModal(pt, pos, autoDestroy: true)
 }
 
-func createAnchoredPopupPage(parent: *Wnd)
+func createAnchoredPopupPage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 

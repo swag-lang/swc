@@ -1,6 +1,5 @@
 #global public
 #global namespace Atomic
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Inline, Swag.Discardable]
 {

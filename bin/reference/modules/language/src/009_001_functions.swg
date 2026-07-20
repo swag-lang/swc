@@ -38,7 +38,7 @@ parameter, you can omit the parentheses.
         func(K, V) myFunc(key: K, value: V) => value
 
         @assert(myFunc(2's32, "value") == "value") // K and V inferred from arguments.
-        @assert(myFunc'(s32, string)(2, "value") == "value") // K and V explicitly specified.
+        @assert(myFunc'(s32, #nonull string)(2, "value") == "value") // K and V explicitly specified.
 
         @assert(myFunc(2's32, true) == true) // Type deduction for both K and V.
         @assert(myFunc'(s32, bool)(2, true) == true) // Explicit type declaration for K and V.

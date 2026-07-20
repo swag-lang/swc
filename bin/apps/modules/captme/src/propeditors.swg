@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // Captme-specific property editors, plugged into the std Properties editor registry:
 // the generated panel builds these rows like any other field, undo included.
 
@@ -25,7 +24,7 @@ impl IPropertyEditor for AlignEditor
         let lineH  = list.getThemeMetrics().btnPush_Height
 
         // Centered as its own full-width row in the panel; packed left in a grid cell.
-        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(assume item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
         {
             .anchorStyle = .X
             .spacing     = 4

@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 #foreignlib("advapi32")
 using Swag
 

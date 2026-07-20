@@ -7,24 +7,24 @@ struct FontStyleEditor {}
 
 impl IPropertyEditor for FontStyleEditor
 {
-    mtd impl canEdit(type: typeinfo)->bool
+    mtd impl canEdit(type: #null typeinfo)->bool
     {
         return type == FontFamilyStyle
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         parent.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parent)
-        let style = cast(*FontFamilyStyle) data
+        let style = cast(#null *FontFamilyStyle) data
 
         const BtnW = 34
         let lineH  = list.getThemeMetrics().btnPush_Height
 
         // Grid mode packs the pair left in the value column; the panel/list modes center
         // it as its own full-width row.
-        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(assume item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
         {
             .anchorStyle = .X
             .spacing     = 4
@@ -46,7 +46,7 @@ impl IPropertyEditor for FontStyleEditor
             .iconBtnFlags.add(.CheckableToggle)
         }
 
-        func writeStyle(list: *Properties, item: *PropertiesItem, style: *FontFamilyStyle, btnBold, btnItalic: *IconButton)
+        func writeStyle(list: #nonull *Properties, item: #nonull *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: #nonull *IconButton)
         {
             let bold   = btnBold.isChecked
             let italic = btnItalic.isChecked

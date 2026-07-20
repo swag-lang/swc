@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
+func assertBytes(actual: #nonull const [..] u8, expected: #nonull const [..] u8)->bool
 {
     if @countof(actual) != @countof(expected) do
         return false
@@ -19,7 +19,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     let input: [3] u8 = [0xCA, 0x74, 0x05]
-    let start = cast(const [*] u8) @dataof(input)
+    let start = cast(#nonull const [*] u8) @dataof(input)
 
     var stream: Compress.BitStream
     stream.init(input)
@@ -89,7 +89,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     let input: [3] u8 = [0xAA, 0xBB, 0xCC]
-    let start = cast(const [*] u8) @dataof(input)
+    let start = cast(#nonull const [*] u8) @dataof(input)
 
     var stream: Compress.BitStream
     stream.init(input)

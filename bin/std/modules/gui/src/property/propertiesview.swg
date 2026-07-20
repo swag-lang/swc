@@ -4,14 +4,14 @@ using Core, Pixel
 public struct PropertiesView
 {
     using stackWnd:     StackLayoutCtrl
-    ed:                 *Properties
+    ed:                 #null *Properties
 }
 
 impl IWnd for PropertiesView
 {
     // The edView owns the keyboard focus while navigating the grid; forward keys
     // to the owning Properties so it can move the selection and start edition.
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         if .ed do
             .ed.navKeyEvent(evt)
@@ -19,7 +19,7 @@ impl IWnd for PropertiesView
             evt.accepted = false
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)
         if !.ed or !.ed.items.count do
@@ -46,7 +46,7 @@ impl IWnd for PropertiesView
 
         .computeLayout()
 
-        var lastItem: *PropertiesItem
+        var lastItem: #null *PropertiesItem
         for item in .ed.items
         {
             if item.label do
@@ -58,12 +58,12 @@ impl IWnd for PropertiesView
 
             // Line list-mode row action buttons up with the right edge of the value column
             // now that the row label has its final size (grid docks them, so this is a no-op).
-            .ed.positionListActionButton(item, item.arrayAddButton)
+            .ed.positionListActionButton(assume item, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass
             // and lay the row out again when it changed the sizing.
-            if item.validationLabel and .ed.syncValidationBar(item) do
+            if item.validationLabel and .ed.syncValidationBar(assume item) do
                 item.line.applyLayout()
 
             item.line.sendResizeEvent()

@@ -1,6 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
-#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -18,8 +17,8 @@ func testSetupPropWnd(f: #nonull *HeadlessFixture)->#nonull *PropWnd
     let splitter = f.main.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64
     f.main.quickWnd = QuickWnd.create(splitter, f.main)
     f.main.propWnd  = PropWnd.create(splitter, f.main)
-    discard f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
-    discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
+    discard f.main.quickStyleBar.addPane(assume f.main.quickWnd, title: true)
+    discard f.main.quickStyleBar.addPane(assume f.main.propWnd, title: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
     return f.main.propWnd orelse cast(#nonull *PropWnd) 1'u64
@@ -128,15 +127,15 @@ func testItemIndex(prop: #nonull *PropWnd, name: #nonull string)->u64
     @assert(sc.y > 0)
 
     let stack = posItem.line.childs[0]
-    f.gui.clickWnd((cast(#nonull *EditCtrl) stack.childs[0]).edit)
+    f.gui.clickWnd(assume (cast(#nonull *EditCtrl) stack.childs[0]).edit)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
-    f.gui.clickWnd((cast(#nonull *EditCtrl) stack.childs[1]).edit)
+    f.gui.clickWnd(assume (cast(#nonull *EditCtrl) stack.childs[1]).edit)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
-    f.gui.clickWnd(posItem.line)
+    f.gui.clickWnd(assume posItem.line)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
@@ -172,7 +171,7 @@ func testItemIndex(prop: #nonull *PropWnd, name: #nonull string)->u64
     prop.grid.scrollWnd.setScrollPos(0, 10000)
     f.gui.pump()
 
-    f.gui.clickWnd(posItem.line)
+    f.gui.clickWnd(assume posItem.line)
     f.gui.pump()
     @assert(prop.grid.selItem == posItem)
 

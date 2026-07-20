@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
+func assertBitArray(values: const &BitArray, expected: #nonull const [..] bool)->bool
 {
     if values.count != @countof(expected) do
         return false

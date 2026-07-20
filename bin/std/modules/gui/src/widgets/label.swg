@@ -15,7 +15,7 @@ struct Label
 {
     using wnd:            Wnd
 
-    sigUrlClicked:        SigArray'func||(*Label, string)
+    sigUrlClicked:        SigArray'func||(#nonull *Label, #nonull string)
 
     icon:                 Icon
     iconColor:            Color
@@ -28,12 +28,12 @@ struct Label
     paddingText:          Math.Vector4
     paddingIcon:          Math.Vector4
 
-    hotChunk:             *RichChunk
+    hotChunk:             #null *RichChunk
 }
 
 impl IWnd for Label
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
@@ -76,7 +76,7 @@ impl IWnd for Label
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc      = evt.bc
         let theme   = .getTheme()
@@ -193,7 +193,7 @@ impl Label
     }
 
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .Zero)->*Label
+    func create(parent: #nonull *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .Zero)->#nonull *Label
     {
         Debug.assert(parent != null)
         var pos = position
@@ -214,7 +214,7 @@ impl Label
     }
 
     // Get the text
-    mtd getText()->string
+    mtd getText()->#nonull string
     {
         return .name.raw
     }

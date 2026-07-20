@@ -16,14 +16,14 @@ struct IconBar
     iconSize:            f32
     iconPadding:         f32 = 4
 
-    sigUpdateState:      SigArray'func||(*CommandStateEvent)
-    sigCheckChanged:     SigArray'func||(*IconButton)
-    sigPressed:          SigArray'func||(*IconButton)
+    sigUpdateState:      SigArray'func||(#nonull *CommandStateEvent)
+    sigCheckChanged:     SigArray'func||(#nonull *IconButton)
+    sigPressed:          SigArray'func||(#nonull *IconButton)
 }
 
 impl IWnd for IconBar
 {
-    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    mtd impl onComputeStateEvent(evt: #nonull *CommandStateEvent)
     {
         evt.accepted = false
         .sigUpdateState.call(evt)
@@ -51,7 +51,7 @@ impl IconBar
     }
 
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->*IconBar
+    func create(parent: #nonull *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *IconBar
     {
         Debug.assert(parent != null)
         var pos = position
@@ -63,7 +63,7 @@ impl IconBar
 
     // Add a new button
     #[Swag.Discardable]
-    mtd addItem(icon: Icon, btnId: #null WndId = null, iconBtnFlags = IconButtonFlags.Zero)->*IconButton
+    mtd addItem(icon: Icon, btnId: #null WndId = null, iconBtnFlags = IconButtonFlags.Zero)->#nonull *IconButton
     {
         var iconT = icon
         iconT.sizeX, iconT.sizeY = .iconSize
@@ -87,7 +87,7 @@ impl IconBar
         {
             b.sigPressed += func|bar = me|(btn)
             {
-                bar.sigPressed.call(cast(*IconButton) btn)
+                bar.sigPressed.call(cast(#nonull *IconButton) btn)
             }
         }
 
@@ -97,7 +97,7 @@ impl IconBar
 
     // Add a new checkable button
     #[Swag.Discardable]
-    mtd addCheckableItem(icon: Icon, btnId: #null WndId = null)->*IconButton
+    mtd addCheckableItem(icon: Icon, btnId: #null WndId = null)->#nonull *IconButton
     {
         return .addItem(icon, btnId, .Checkable)
     }
@@ -123,6 +123,6 @@ impl IconBar
         let btn = .getChildById(btnId)
         if !btn do
             return null
-        return cast(*IconButton) btn
+        return cast(#null *IconButton) btn
     }
 }

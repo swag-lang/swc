@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 public enum Argb: u32
 {
     AliceBlue            = 0xFFF0F8FF

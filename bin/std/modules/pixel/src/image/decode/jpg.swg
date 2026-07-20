@@ -1,5 +1,4 @@
 #global namespace Jpg
-#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 private

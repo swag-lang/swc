@@ -1,5 +1,4 @@
 #global #if #os == Swag.TargetOs.Windows
-#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, TrueType
 
 impl TypeFace

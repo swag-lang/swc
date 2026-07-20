@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 #[Swag.EnumIndex]
 public enum HatchStyle
 {

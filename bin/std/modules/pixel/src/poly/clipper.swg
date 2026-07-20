@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 /*
     :LICENCE
     This code is based on the Clipper1 library (http://www.angusj.com/delphi/clipper.php)
@@ -1991,7 +1990,7 @@ impl Transform
                     j += 1
                 if j == .intersectList.count do
                     return false
-                swap(.intersectList.buffer + i, .intersectList.buffer + j)
+                swap(assume (.intersectList.buffer + i), assume (.intersectList.buffer + j))
             }
 
             .swapPositionsInSEL(.intersectList[i].edge1, .intersectList[i].edge2)

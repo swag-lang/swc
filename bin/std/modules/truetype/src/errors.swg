@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 var Errors: [0xFF] #null string = undefined

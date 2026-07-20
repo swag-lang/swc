@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionLibSort {}
@@ -17,7 +16,7 @@ impl IActionUI for ActionLibSort
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let libWnd = cast(#nonull *LibraryWnd) cxt.wnd
+        let libWnd = cast(#nonull *LibraryWnd) assume cxt.wnd
 
         switch cxt.id
         {
@@ -60,7 +59,7 @@ impl IActionUI for ActionLibSort
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(#nonull *LibraryWnd) cxt.wnd
+        let libWnd = cast(#nonull *LibraryWnd) assume cxt.wnd
 
         switch cxt.id
         {

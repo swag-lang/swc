@@ -3,7 +3,7 @@
 using Swag
 
 #[Swag.Safety(.Overflow, false)]
-func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
+func crc64Reference(buffer: #nonull const [..] u8, kind: Hash.Crc64Kind)->u64
 {
     var crc: u64
 
@@ -59,7 +59,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
     }
 }
 
-func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
+func assertCrc64Kind(buffer: #nonull const [..] u8, kind: Hash.Crc64Kind)
 {
     let expected = crc64Reference(buffer, kind)
 
@@ -74,14 +74,14 @@ func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
     @assert(crc.crc == expected)
 }
 
-func assertCrc64(buffer: const [..] u8)
+func assertCrc64(buffer: #nonull const [..] u8)
 {
     assertCrc64Kind(buffer, Hash.Crc64Kind.ECMA182)
     assertCrc64Kind(buffer, Hash.Crc64Kind.ISO)
     assertCrc64Kind(buffer, Hash.Crc64Kind.ISOXZ)
 }
 
-func fillCrc64Pattern(buffer: [..] u8)
+func fillCrc64Pattern(buffer: #nonull [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)

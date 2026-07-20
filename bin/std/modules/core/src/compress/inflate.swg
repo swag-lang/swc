@@ -77,7 +77,7 @@ internal
 
     impl HuffmanTable
     {
-        mtd init(codeLengths: const [..] u8) throw
+        mtd init(codeLengths: #nonull const [..] u8) throw
         {
             var sizes:    [HuffmanMaxBits + 1] u16
             var nextCode: [HuffmanMaxBits] u16
@@ -146,7 +146,7 @@ impl Inflate
 {
     public const InflateMaxDistance = 32768'u32
 
-    mtd decode(ht: *HuffmanTable)->u16 throw
+    mtd decode(ht: #nonull *HuffmanTable)->u16 throw
     {
         if .stream.numBits < 16
         {
@@ -182,7 +182,7 @@ impl Inflate
         return ht.value[b1]
     }
 
-    mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array'u8) throw
+    mtd parseBlock(repeatHt, repeatZ: #nonull *HuffmanTable, dest: #nonull *Array'u8) throw
     {
         let startBufCount = dest.count
 
@@ -277,7 +277,7 @@ impl Inflate
     }
 
     // Decompress the associated stream
-    public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = InflateMaxDistance) throw
+    public mtd decompress(result: #nonull *Array'u8, buf: #nonull const [..] u8, winSize: u32 = InflateMaxDistance) throw
     {
         .stream.init(buf)
         .adler.init()

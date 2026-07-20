@@ -78,7 +78,7 @@ public impl Stopwatch
 
     // Measures elapsed time for the current scope and prints the result when the scope ends
     #[Swag.Mixin]
-    func scopeMeasure(name: string = "stopwatch")
+    func scopeMeasure(name: #nonull string = "stopwatch")
     {
         var #uniq0: Time.Stopwatch
         #uniq0.start()

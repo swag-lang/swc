@@ -21,39 +21,39 @@ struct PagePanelLayout
 }
 
 var app: Application
-var g_Surface: *Surface
-var g_View: *Wnd
-var g_Title: *Label
-var g_SubTitle: *Label
-var g_ThemeButton: *PushButton
-var g_PageView: *Wnd
-var g_Footer: *Label
+var g_Surface: #null *Surface
+var g_View: #null *Wnd
+var g_Title: #null *Label
+var g_SubTitle: #null *Label
+var g_ThemeButton: #null *PushButton
+var g_PageView: #null *Wnd
+var g_Footer: #null *Label
 var g_Page: s32
 var g_TestFrame: s32
 var g_DarkTheme: bool
 var g_Color: Color = Argb.CornflowerBlue
 
-func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
+func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
 {
     let label = createText(parent, text, rect, .WordWrap | .LightText)
     label.vertAlignmentText = .Top
     return label
 }
 
-func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
+func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -65,13 +65,13 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     return view
 }
 
-func createCaption(parent: *Wnd, text: string, x, y, width: f32)
+func createCaption(parent: #nonull *Wnd, text: #nonull string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 22})
     label.labelFlags.add(.LightText)
 }
 
-func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
+func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
 {
     let rect = parent.getClientRect()
     let width = Math.max(rect.width, 1.0)
@@ -88,7 +88,7 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     return result
 }
 
-func pageTitle(page: s32)->string
+func pageTitle(page: s32)->#nonull string
 {
     switch page
     {
@@ -107,7 +107,7 @@ func pageTitle(page: s32)->string
     unreachable
 }
 
-func pageSubtitle(page: s32)->string
+func pageSubtitle(page: s32)->#nonull string
 {
     switch page
     {
@@ -162,13 +162,13 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: *Button)
+func toggleTheme(_btn: #nonull *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
 }
 
-func setSelectedColor(color: Color, source: string)
+func setSelectedColor(color: Color, source: #nonull string)
 {
     g_Color = color
     updateHeader()
@@ -177,7 +177,7 @@ func setSelectedColor(color: Color, source: string)
     app.invalidate()
 }
 
-func selectPaletteColor(palette: *PalettePicker, source: string, keepAlpha = true)
+func selectPaletteColor(palette: #nonull *PalettePicker, source: #nonull string, keepAlpha = true)
 {
     var color = palette.selectedColor
     if keepAlpha and color.a and g_Color.a do
@@ -200,13 +200,13 @@ func makePickerPalette()->Array'Color
     return pal
 }
 
-func addPaletteColors(picker: *PalettePicker, colors: Array'Color)
+func addPaletteColors(picker: #nonull *PalettePicker, colors: Array'Color)
 {
     for color in colors do
         picker.addColor(color)
 }
 
-func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepAlpha = true)->*PalettePicker
+func createQuickPalette(parent: #nonull *Wnd, rect: Math.Rectangle, title: #nonull string, keepAlpha = true)->#nonull *PalettePicker
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
@@ -220,7 +220,7 @@ func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepA
     return picker
 }
 
-func createModePicker(parent: *Wnd, title: string, rect: Math.Rectangle, mode: ColorPickerMode)->*ColorPicker
+func createModePicker(parent: #nonull *Wnd, title: #nonull string, rect: Math.Rectangle, mode: ColorPickerMode)->#nonull *ColorPicker
 {
     // Narrow pickers (vertical bars) still need a readable caption width.
     createCaption(parent, title, rect.x, rect.y - 28, Math.max(rect.width, 64.0))
@@ -234,7 +234,7 @@ func createModePicker(parent: *Wnd, title: string, rect: Math.Rectangle, mode: C
     return picker
 }
 
-func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: s32, base: Color, keepAlpha = true)->*PalettePicker
+func createPaletteRamp(parent: #nonull *Wnd, title: #nonull string, rect: Math.Rectangle, mode: s32, base: Color, keepAlpha = true)->#nonull *PalettePicker
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
@@ -272,7 +272,7 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
     return picker
 }
 
-func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 1'u32)
+func drawWrappedText(painter: #nonull *Painter, rect: Math.Rectangle, text: #nonull string, font: #nonull *Font, color: Color, maxLines = 1'u32)
 {
     var richText: RichString = text
     var format: RichStringFormat
@@ -283,7 +283,7 @@ func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font
     painter.drawRichString(rect, &richText, format)
 }
 
-func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: Color, font: *Font, colors: *ThemeColors)
+func drawSwatch(painter: #nonull *Painter, rect: Math.Rectangle, label: #nonull string, color: Color, font: #nonull *Font, colors: #nonull *ThemeColors)
 {
     if color.a != 255 do
         painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
@@ -292,7 +292,7 @@ func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: C
     painter.drawString(rect.x, rect.bottom() + 8, label, font, colors.label_TextLight)
 }
 
-func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
+func drawLiveCard(painter: #nonull *Painter, rect: Math.Rectangle, colors: #nonull *ThemeColors)
 {
     let titleFont = g_View.getTheme().createDefaultFont(24, .Bold)
     let bodyFont = g_View.getTheme().createDefaultFont(14)
@@ -317,7 +317,7 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 
 // Lay labelled swatches in a single horizontal row that fits `rect`. Used by the
 // short, wide bottom panels where a tall card would overlap or clip.
-func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'(#nonull string), cols: Array'Color)
+func drawColorRow(painter: #nonull *Painter, rect: Math.Rectangle, font: #nonull *Font, colors: #nonull *ThemeColors, names: Array'(#nonull string), cols: Array'Color)
 {
     let n = Math.max(cast(f32) cols.count, 1.0)
     let pad = 16.0
@@ -330,7 +330,7 @@ func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: 
     }
 }
 
-func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
+func onLivePreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -372,7 +372,7 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
-func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
+func onDerivedPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -418,7 +418,7 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
-func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
+func onContrastPreviewEvent(view: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -454,7 +454,7 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
-func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, evt: IEvent)->bool)->*Wnd
+func createPreview(parent: #nonull *Wnd, rect: Math.Rectangle, hook: func(view: #nonull *Wnd, evt: IEvent)->bool)->#nonull *Wnd
 {
     let view = Wnd.create'Wnd(parent, rect)
     view.hookOnEvent = hook
@@ -475,15 +475,15 @@ func buildPage()
     switch g_Page
     {
     case 0:
-        createCompositePage(g_PageView)
+        createCompositePage(assume g_PageView)
     case 1:
-        createHslModesPage(g_PageView)
+        createHslModesPage(assume g_PageView)
     case 2:
-        createRgbModesPage(g_PageView)
+        createRgbModesPage(assume g_PageView)
     case 3:
-        createPalettesPage(g_PageView)
+        createPalettesPage(assume g_PageView)
     case 4:
-        createPreviewPage(g_PageView)
+        createPreviewPage(assume g_PageView)
     default:
         unreachable
     }
@@ -509,7 +509,7 @@ func layoutRootView()
     g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(_view: *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -592,23 +592,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(g_View, "", {})
-    setLabelTextStyle(g_Title, .Left, .Center)
+    g_Title = Label.create(assume g_View, "", {})
+    setLabelTextStyle(assume g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(g_View, "", {})
+    g_ThemeButton = PushButton.create(assume g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(g_View, {})
+    g_PageView = Wnd.create'Wnd(assume g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(g_View, "", {})
-    setLabelTextStyle(g_Footer, .Left, .Center)
+    g_Footer = Label.create(assume g_View, "", {})
+    setLabelTextStyle(assume g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()

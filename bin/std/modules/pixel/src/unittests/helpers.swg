@@ -1,5 +1,4 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Returns the OWNED path: a '#nonull string' view would dangle as soon as the intermediate

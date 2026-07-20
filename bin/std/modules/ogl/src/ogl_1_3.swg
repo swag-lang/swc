@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 using Swag
 
 #[Extension, Swag.PlaceHolder]

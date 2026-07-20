@@ -2,7 +2,7 @@ using Core, Pixel
 
 public struct PaintContext
 {
-    painter:        *Painter
-    renderer:       *RenderOgl
+    painter:        #nonull *Painter = undefined
+    renderer:       #nonull *RenderOgl = undefined
     isDisabled:     bool
 }

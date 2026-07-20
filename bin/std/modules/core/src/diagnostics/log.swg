@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 
 // Flags to control the format of log output.
 #[Swag.EnumFlags]

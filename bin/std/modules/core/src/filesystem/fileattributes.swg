@@ -1,6 +1,5 @@
 #global public
 #global namespace File
-#global #[Swag.ExplicitNullability]
 
 #[Swag.EnumFlags]
 // Attributes that define file or directory characteristics

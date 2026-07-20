@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag
 
 // Manages a compact array of bit values.

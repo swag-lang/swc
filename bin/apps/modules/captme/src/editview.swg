@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct EditView
 {
     using wnd:       Wnd

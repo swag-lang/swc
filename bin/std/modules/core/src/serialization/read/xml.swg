@@ -10,7 +10,7 @@ public struct Xml
 {
     stream:        ByteStream
     line, col:     u64 = 1
-    stackTags:     Array'string
+    stackTags:     Array'(#nonull string)
 }
 
 public impl Xml
@@ -27,7 +27,7 @@ public impl Xml
         return true
     }
 
-    mtd readTag()->string throw
+    mtd readTag()->#nonull string throw
     {
         .zapBlanks()
 
@@ -43,10 +43,10 @@ public impl Xml
             throw .getError("malformed tag, missing closing [[>]]")
 
         let end = .stream.getSeek() - 1
-        return Latin1.trim(cast(string) .stream.readBuffer[start until end])
+        return Latin1.trim(cast(#nonull string) assume .stream.readBuffer[start until end])
     }
 
-    mtd readStartTag()->string throw
+    mtd readStartTag()->#nonull string throw
     {
         let tag = .readTag()
         .stackTags.add(tag)
@@ -61,7 +61,7 @@ public impl Xml
             throw .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
     }
 
-    mtd getError(val: string)->SyntaxError
+    mtd getError(val: #nonull string)->SyntaxError
     {
         var err: retval
         err.message = Errors.mkString(val)
@@ -91,12 +91,12 @@ public impl Xml
         }
     }
 
-    mtd startRead(input: const [..] u8)
+    mtd startRead(input: #nonull const [..] u8)
     {
         .stream = ByteStream.openRead(input)
     }
 
-    mtd toNextSequenceElement(_countElem: *u64)->bool
+    mtd toNextSequenceElement(_countElem: #nonull *u64)->bool
     {
         let c = .stream.peekU8()
         return c != '<'
@@ -137,9 +137,9 @@ public impl Xml
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
     {
-        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool throw { return false; }
+        mtd beginStruct(structType: #null typeinfo, structData: #null const *u8)->bool throw { return false; }
         mtd endStruct() throw {}
-        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw { return false; }
+        mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: #nonull *u64)->bool throw { return false; }
         mtd endSequence() throw {}
         mtd beginValue() throw {}
         mtd endValue() throw {}

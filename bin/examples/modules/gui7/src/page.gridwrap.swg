@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
+func createGridCell(parent: #nonull *Wnd, text: #nonull string, icon: ThemeIcons24)->#nonull *Label
 {
     let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
     label.backgroundStyle = .Window
@@ -12,14 +12,14 @@ func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
     return label
 }
 
-func createWrapTile(parent: *Wnd, text: string, icon: ThemeIcons24)
+func createWrapTile(parent: #nonull *Wnd, text: #nonull string, icon: ThemeIcons24)
 {
     let btn = PushButton.create(parent, text, {})
     btn.form = .Flat
     btn.icon = app.theme.getIcon24(icon, 16)
 }
 
-func createGridWrapPage(parent: *Wnd)
+func createGridWrapPage(parent: #nonull *Wnd)
 {
     let layout = getPageLayout(parent)
 

@@ -2,7 +2,7 @@ using Core, Pixel
 
 struct JoinCard
 {
-    label:        string
+    label:        #nonull string
     joinStyle:    JoinStyle
     color:        Color
 }
@@ -37,7 +37,7 @@ func getJoinCardRect(index: s32)->Math.Rectangle
     return {182 + (index - 3) * 308, 372, 288, 224}
 }
 
-func drawJoinCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)
+func drawJoinCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)
 {
     let body = drawPanel(painter, rect, card.label, "")
     var path = makeJoinPath(body)
@@ -56,7 +56,7 @@ func drawJoinCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)
     painter.drawPath(&path, pen)
 }
 
-func drawJoinsPage(painter: *Pixel.Painter)
+func drawJoinsPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel path drawing", "Page 2 : join handling on sharp bends and reflex angles.")
 

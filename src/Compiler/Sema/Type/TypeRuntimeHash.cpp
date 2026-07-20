@@ -108,12 +108,22 @@ namespace
         return h;
     }
 
+    // Nullability qualifiers must not affect runtime type identity: `#null string` and
+    // `string` are the same runtime type (mirrors the qualifier masking in `@typecmp`).
+    uint32_t identityFlags(const TypeInfo& typeInfo)
+    {
+        TypeInfoFlags flags = typeInfo.flags();
+        flags.remove(TypeInfoFlagsE::Nullable);
+        flags.remove(TypeInfoFlagsE::ExplicitNonNull);
+        return static_cast<uint32_t>(flags.get());
+    }
+
     uint32_t typeCycleHash(const TaskContext& ctx, TypeRef typeRef, uint32_t distance)
     {
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
         uint32_t        h        = cycleHash(K_TYPE_HASH_CYCLE, distance);
         h                        = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.kind()));
-        h                        = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags().get()));
+        h                        = Math::hashCombine(h, identityFlags(typeInfo));
         return h;
     }
 
@@ -361,7 +371,7 @@ uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeIn
 {
     RuntimeHashRootScope runtimeHashScope;
     uint32_t             h = Math::hash(static_cast<uint32_t>(typeInfo.kind_));
-    h                      = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags_.get()));
+    h                      = Math::hashCombine(h, identityFlags(typeInfo));
 
     switch (typeInfo.kind_)
     {

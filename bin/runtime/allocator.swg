@@ -1,6 +1,5 @@
 ﻿#global namespace Swag
 
-#global #[Swag.ExplicitNullability]
 
 const AllocatorClassCount   = 28'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct FormPolygon
 {
     using base:     BaseForm

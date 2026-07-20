@@ -171,13 +171,13 @@ func nativeNonNullConstruction()->bool
     if !(aliasRequiredType.flags & Swag.TypeInfoFlags.ExplicitNonNull) or !(aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or !(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
 
-    let holderType = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullHolder)
+    let holderType = cast(#nonull const *Swag.TypeInfoStruct) #typeof(NativeNonNullHolder)
     let nestedType = #typeof(NativeNonNullNested)
     let holderArrayType = #typeof([2] NativeNonNullHolder)
     let pointerArrayType = #typeof([2] #nonull *NativeNonNullItem)
     let defaultContainerType = #typeof(NativeNonNullDefaultContainer)
-    let genericRequiredType = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'(#nonull *NativeNonNullItem))
-    let genericDefaultType = cast(const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault)
+    let genericRequiredType = cast(#nonull const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'(#nonull *NativeNonNullItem))
+    let genericDefaultType = cast(#nonull const *Swag.TypeInfoStruct) #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault)
     if holderType.opInit != null or !(holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if !(nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do

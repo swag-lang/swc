@@ -33,7 +33,7 @@ struct ColorPicker
     hue, sat, lum:     f32
     a, r, g, b:        f32
     mode               = ColorPickerMode.SaturationLightness
-    sigChanged:        SigArray'func||(*ColorPicker)
+    sigChanged:        SigArray'func||(#nonull *ColorPicker)
 
     internal
     {
@@ -120,7 +120,7 @@ impl IWnd for ColorPicker
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc         = evt.bc
         let painter    = bc.painter
@@ -277,7 +277,7 @@ impl IWnd for ColorPicker
         (.hue, .sat, .lum) = c.toHsl()
     }
 
-    mtd impl onPostPaintEvent(evt: *PaintEvent)
+    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc         = evt.bc
         let painter    = bc.painter
@@ -307,7 +307,7 @@ impl IWnd for ColorPicker
         }
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         var pos        = .surfaceToLocal(evt.surfacePos)
         let clientRect = .getClientRect()
@@ -419,7 +419,7 @@ impl IWnd for ColorPicker
 impl ColorPicker
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ColorPicker
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ColorPicker
     {
         Debug.assert(parent != null)
         let ret = Wnd.create'ColorPicker(parent, null, position, id)

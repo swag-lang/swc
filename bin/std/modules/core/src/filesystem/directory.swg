@@ -1,6 +1,5 @@
 #global public
 #global namespace Directory
-#global #[Swag.ExplicitNullability]
 
 // Options for customizing file and directory enumeration
 struct EnumerationOptions

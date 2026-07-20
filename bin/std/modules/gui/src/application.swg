@@ -65,7 +65,7 @@ private impl Application
             return
         }
 
-        let event = cast(*Event) evt
+        let event = cast(#nonull *Event) evt
 
         // Be sure we have a target
         if !event.target do
@@ -75,7 +75,7 @@ private impl Application
         var scan = event.target.getOwner()
         while scan
         {
-            if scan.hookOnChildEvent and scan.hookOnChildEvent(scan, evt) do
+            if scan.hookOnChildEvent and scan.hookOnChildEvent(assume scan, evt) do
                 return
             scan = scan.getOwner()
         }
@@ -324,7 +324,7 @@ private impl Application
             if it is CommandEvent do
                 needUpdateState = true
 
-            .toDelete.add({evt, evt.type})
+            .toDelete.add({evt, assume evt.type})
         }
 
         if needUpdateState do
@@ -475,7 +475,7 @@ private impl Application
         .sigFrame.call(me)
     }
 
-    public mtd doModalLoop(surface: #null *Surface, cb: func||(*Application) = null)->#nonull WndId
+    public mtd doModalLoop(surface: #null *Surface, cb: func||(#nonull *Application) = null)->#nonull WndId
     {
         .inModalLoop += 1
         defer .inModalLoop -= 1
@@ -540,7 +540,7 @@ impl Application
         for it in .postedEvents
         {
             let ptr = it as Event
-            .toDelete.add({ptr, ptr.type})
+            .toDelete.add({ptr, assume ptr.type})
         }
 
         .deletePointers()
@@ -577,7 +577,7 @@ impl Application
     // Create a main surface, and run.
     // When the application is launched with the 'swag.test' argument, it auto-exits
     // after 'testFrames' frames, so examples can be run headless by the test suite.
-    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(*Application) = null, testFrames: u32 = 50)
+    func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: HookEvent = null, init: func(#nonull *Application) = null, testFrames: u32 = 50)
     {
         var app: Application
 
@@ -586,8 +586,7 @@ impl Application
             flags &= ~.Sizeable
         if !borders do
             flags &= ~.Border
-        var surface: #nonull *Surface = undefined
-        surface = catch app.createSurface(x, y, width, height, flags, view, hook)
+        let surface = assume app.createSurface(x, y, width, height, flags, view, hook)
         surface.setTitle(title)
         if init do
             init(&app)
@@ -598,7 +597,7 @@ impl Application
     }
 
     // Creates a new surface
-    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: HookEvent = null, surfaceID: #null string = null)->*Surface throw
+    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: HookEvent = null, surfaceID: #null string = null)->#null *Surface throw
     {
         let surface = Memory.new'Surface()
         surface.app       = me
@@ -608,7 +607,7 @@ impl Application
         if !.mainSurface
         {
             .theme = Memory.new'Theme()
-            .style.set(.theme)
+            .style.set(assume .theme)
         }
 
         try Surface.create(surface, x, y, width, height, flags, .mainSurface)
@@ -676,7 +675,7 @@ impl Application
             s.wnd.updateTheme()
     }
 
-    private mtd serializeState(ser: *Serializer) throw
+    private mtd serializeState(ser: #nonull *Serializer) throw
     {
         ser.beginSection(.Unordered)
         for s in .surfaces do
@@ -741,7 +740,7 @@ impl Application
 
         if wnd.isAllocated
         {
-            .toDelete.add({wnd, wnd.type})
+            .toDelete.add({wnd, assume wnd.type})
         }
     }
 

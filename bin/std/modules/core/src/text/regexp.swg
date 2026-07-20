@@ -1,5 +1,4 @@
 #global namespace Parser
-#global #[Swag.ExplicitNullability]
 using Errors
 
 const RuneAsciiDigit  = cast(rune) 0x8000_0000
@@ -337,7 +336,7 @@ impl RegExp
         if str == null do
             return null
         .resetMatchContext(true)
-        let beg  = cast(const [*] u8) @dataof(str)
+        let beg  = cast(#null const [*] u8) @dataof(str)
         let last = beg + @countof(str)
 
         let res = .matchInternal(@mkstring(beg, last - beg), true)
@@ -348,7 +347,7 @@ impl RegExp
 
     mtd internalGrep(str: #nonull string, atBufferStart = true, prevWasWord = false)->#null string
     {
-        var beg  = cast(const [*] u8) @dataof(str)
+        var beg  = cast(#null const [*] u8) @dataof(str)
         let last = beg + @countof(str)
         var atStart   = atBufferStart
         var wasWord   = prevWasWord
@@ -1972,7 +1971,7 @@ impl RegExp
         addParenthesis(&in32)
         in32.add(0'rune)
 
-        var pz    = cast(const [*] rune) in32.buffer
+        var pz    = cast(#null const [*] rune) in32.buffer
         let pzEnd = pz + in32.count
 
         var c = .ignoreCase ? Unicode.toUpper(pz[0]) : pz[0]

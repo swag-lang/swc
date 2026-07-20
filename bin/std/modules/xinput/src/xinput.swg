@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 #foreignlib("xinput")
 
 using Swag, Win32

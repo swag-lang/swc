@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
+func assertBytes(actual: #nonull const [..] u8, expected: #nonull const [..] u8)->bool
 {
     if @countof(actual) != @countof(expected) do
         return false
@@ -28,7 +28,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     @assert(stream.readU8() == 0x10)
     @assert(stream.getSeek() == 1)
     @assert(stream.peekU8() == 0x20)
-    @assert(assertBytes(stream.remainReadToSlice(), [0x20, 0x30, 0x40]))
+    @assert(assertBytes(assume stream.remainReadToSlice(), [0x20, 0x30, 0x40]))
     @assert(stream.remainReadToString() == "\x20\x30\x40")
 
     stream.moveSeek(2)
@@ -54,5 +54,5 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     @assert(!stream.isEof())
     @assert(stream.peekU8() == 0xAB)
     @assert(stream.readU8() == 0xAB)
-    @assert(assertBytes(stream.remainReadToSlice(), [0xCD, 0xEF]))
+    @assert(assertBytes(assume stream.remainReadToSlice(), [0xCD, 0xEF]))
 }

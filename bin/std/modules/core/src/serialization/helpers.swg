@@ -6,7 +6,7 @@ internal func getTypeValueCrc(val: Swag.TypeValue)->u32
         return val.crc
     if val.name == null do
         return 0
-    return Hash.Crc32.compute(val.name)
+    return Hash.Crc32.compute(assume val.name)
 }
 
 internal func getTypeInfoCrc(type: #null typeinfo)->u32
@@ -16,10 +16,10 @@ internal func getTypeInfoCrc(type: #null typeinfo)->u32
     if type.crc do
         return type.crc
     if type.fullname != null and type.fullname != "" do
-        return Hash.Crc32.compute(type.fullname)
+        return Hash.Crc32.compute(assume type.fullname)
     if type.name == null do
         return 0
-    return Hash.Crc32.compute(type.name)
+    return Hash.Crc32.compute(assume type.name)
 }
 
 // Determin if a type can be serialized by a simple copy

@@ -10,7 +10,7 @@
 
 #test
 {
-    var a: any
+    var a: #null any
 
     // Store an s32 literal value in the 'any'
     a = 6
@@ -18,7 +18,7 @@
 
     // Now store a string
     a = "string"
-    @assert(cast(string) a == "string")
+    @assert(cast(#nonull string) (assume a) == "string")
 
     // Now store a bool
     a = true
@@ -33,8 +33,8 @@ Use '@dataof' to access a pointer to the underlying value stored inside 'any'.
 
 #test
 {
-    let a:  any = 6
-    let ptr = cast(const *s32) @dataof(a)
+    let a:  #nonull any = 6
+    let ptr = cast(#nonull const *s32) @dataof(a)
     @assert(dref ptr == 6)
 }
 
@@ -47,8 +47,8 @@ Use '@kindof' to get the concrete runtime type of the referenced value.
 
 #test
 {
-    var a: any = "string"
-    #assert(#typeof(a) == any)
+    var a: #nonull any = "string"
+    #assert(#typeof(a) == #nonull any)
     @assert(@kindof(a) == #nonull string)
 
     a = true
@@ -63,15 +63,15 @@ You can retrieve the stored value directly or as a constant reference.
 
 #test
 {
-    let a: any = 42
-    #assert(#typeof(a) == any)
+    let a: #nonull any = 42
+    #assert(#typeof(a) == #nonull any)
     @assert(@kindof(a) == s32)
 
     let b = cast(s32) a // Get the value itself
     @assert(b == 42)
 
     let c = cast(const &s32) a // Get a constant reference to the value
-    let d = cast(const *s32) a // Get a constant pointer to the value
+    let d = cast(#nonull const *s32) a // Get a constant pointer to the value
     @assert(c == 42)
     @assert(dref d == 42)
 }
@@ -105,7 +105,7 @@ An 'any' value can be null, similar to pointers and other nullable types.
 
 #test
 {
-    var x: any
+    var x: #null any
     @assert(x == null)
 
     x = 6
@@ -114,7 +114,7 @@ An 'any' value can be null, similar to pointers and other nullable types.
 
     x = "string"
     @assert(x != null)
-    @assert(cast(#nonull string) x == "string")
+    @assert(cast(#nonull string) (assume x) == "string")
 
     x = null
     @assert(x == null)
@@ -129,7 +129,7 @@ This uses '@kindof' internally to compare the stored value's type.
 
 #test
 {
-    var x: any
+    var x: #null any
     @assert(x == null)
 
     x = 6

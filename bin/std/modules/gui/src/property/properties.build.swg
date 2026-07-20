@@ -25,15 +25,15 @@ internal impl Properties
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
     // Public so custom editors registered with registerEditor (possibly authored in another
     // module) can build their row the same way the built-in editors do.
-    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->*PropertiesItem
+    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->#nonull *PropertiesItem
     {
-        var line: *Wnd
+        var line: #null *Wnd
 
         if .isGridLike() do
             line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height orelse .gridLineHeight})
         else
         {
-            let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
+            let stk = StackLayoutCtrl.create(assume .edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
             stk.fitToContent = true
             line             = stk
         }
@@ -108,7 +108,7 @@ internal impl Properties
                 var labelWidth = cast(f32) .gridColumnSize
                 if !.isGridLike() do
                     labelWidth = .listContentWidth()
-                with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
+                with let label = Label.create(assume line, dispName, {0, 0, labelWidth, item.line.position.height})
                 {
                     if .isGridLike()
                     {
@@ -154,7 +154,7 @@ internal impl Properties
             {
                 if !.isGridLike() and .kind != .Panel
                 {
-                    with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
+                    with let labelDesc = Label.create(assume line, "", {0, 0, .listContentWidth(), 0})
                     {
                         .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top
@@ -170,7 +170,7 @@ internal impl Properties
         return item
     }
 
-    mtd addValue(value: Swag.TypeValue, data: [*] u8, parentItem: *PropertiesItem)
+    mtd addValue(value: Swag.TypeValue, data: #null [*] u8, parentItem: #null *PropertiesItem)
     {
         // The editor registry is the single dispatch for custom representations: the built-in
         // struct editors (Color, the vector family) register here too, and a later registration
@@ -190,7 +190,7 @@ internal impl Properties
         {
         case Reflection.isStaticArray(value.pointedType):
             let item           = .addItem(value, data, parentItem)
-            let typeArr        = cast(const *Swag.TypeInfoArray) value.pointedType
+            let typeArr        = cast(#null const *Swag.TypeInfoArray) value.pointedType
             let numItemsBefore = .items.count
 
             var newData = data
@@ -206,7 +206,7 @@ internal impl Properties
             item.numChilds += cast(u32) (.items.count - numItemsBefore)
 
         case Reflection.isEnum(value.pointedType):
-            let typeEnum = cast(const *Swag.TypeInfoEnum) value.pointedType
+            let typeEnum = assume cast(#null const *Swag.TypeInfoEnum) value.pointedType
             .constructEnum(value, typeEnum, data, parentItem)
 
         case value.pointedType == Core.String:
@@ -219,14 +219,14 @@ internal impl Properties
             .constructBool(value, data, parentItem)
 
         case Reflection.isInteger(value.pointedType) or Reflection.isFloat(value.pointedType):
-            let typeNative = cast(const *Swag.TypeInfoNative) value.pointedType
+            let typeNative = assume cast(#null const *Swag.TypeInfoNative) value.pointedType
             .constructNative(value, typeNative, data, parentItem)
 
         case value.pointedType == Array:
             .constructArray(value, data, parentItem)
 
         case Reflection.isStruct(value.pointedType):
-            let typeSubStruct = cast(const *Swag.TypeInfoStruct) value.pointedType
+            let typeSubStruct = assume cast(#null const *Swag.TypeInfoStruct) value.pointedType
             if typeSubStruct.fromGeneric == Array
             {
                 .constructArray(value, data, parentItem)
@@ -253,7 +253,7 @@ internal impl Properties
         }
     }
 
-    mtd addStructInternal(typeStruct: const *Swag.TypeInfoStruct, addr: [*] u8, parentItem: *PropertiesItem, bindNotify = true)
+    mtd addStructInternal(typeStruct: #nonull const *Swag.TypeInfoStruct, addr: #null [*] u8, parentItem: #null *PropertiesItem, bindNotify = true)
     {
         var newParent = parentItem
 
@@ -264,7 +264,7 @@ internal impl Properties
         // Currently open category path (nested subgroups). Each entry pairs a "/"-split name segment
         // with the header row created for it, so consecutive fields sharing a common prefix reuse the
         // same headers instead of recreating them.
-        var categPath: Array'{ name: string, item: *PropertiesItem }
+        var categPath: Array'{ name: #null string, item: #null *PropertiesItem }
 
         // Walk order: declaration order, except when 'usingFieldsLast' pushes the 'using' base
         // structs after the struct's own fields — a derived type then edits its most specific
@@ -343,7 +343,7 @@ internal impl Properties
     // A thin horizontal separator row, the same look as a Panel category divider. Public so a
     // host appending hand-made rows (addItem) after the generated content can separate them;
     // call endAppendRows once done. 'name' feeds the notify visibility dispatch and the filter.
-    public mtd addSeparator(name: string = null, parentItem: #null *PropertiesItem = null)->*PropertiesItem
+    public mtd addSeparator(name: #null string = null, parentItem: #null *PropertiesItem = null)->#nonull *PropertiesItem
     {
         let v: Swag.TypeValue{name: name}
         with let item = .addItem(v, null, parentItem, 1, .Zero)
@@ -368,7 +368,7 @@ internal impl Properties
     // parent is the section, not another category) stays at level 0 like a full-width divider; a
     // category nested under another keeps addItem's level (parent + 1) so it and its fields indent
     // one step further.
-    mtd addCategoryHeader(name: string, parentForCateg: *PropertiesItem)->*PropertiesItem
+    mtd addCategoryHeader(name: #null string, parentForCateg: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         // Panel: a category paints as a thin separator line, not a titled header
         if .kind == .Panel
@@ -391,7 +391,7 @@ internal impl Properties
 
     // Inject the decorator rows declared on 'value' (Space, Header, HelpBox) above the field, in a
     // fixed visual order. Grid modes only — list mode already stacks its own per-row description.
-    mtd addDecorators(value: Swag.TypeValue, parentItem: *PropertiesItem)
+    mtd addDecorators(value: Swag.TypeValue, parentItem: #null *PropertiesItem)
     {
         if !.isGridLike() do
             return
@@ -405,7 +405,7 @@ internal impl Properties
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
-    mtd addSpacerRow(parentItem: *PropertiesItem, size: s32)->*PropertiesItem
+    mtd addSpacerRow(parentItem: #null *PropertiesItem, size: s32)->#nonull *PropertiesItem
     {
         with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
         {
@@ -418,7 +418,7 @@ internal impl Properties
 
     // A non-collapsible bold divider label spanning the row (Unity [Header]-style), aligned with the
     // sibling fields it introduces.
-    mtd addHeaderRow(text: string, parentItem: *PropertiesItem)->*PropertiesItem
+    mtd addHeaderRow(text: #null string, parentItem: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         let v: Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
@@ -434,13 +434,13 @@ internal impl Properties
     // An informational note spanning the row, styled like the info validation bar (icon + text on a
     // soft info background). The bar is painted by paintBackItem on the .Note flag; the label drawn
     // on top carries the icon and text.
-    mtd addNoteRow(text: string, parentItem: *PropertiesItem)->*PropertiesItem
+    mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .Zero)
         item.level = parentItem.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
-        with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
+        with let lbl = Label.create(assume item.line, text, {0, 0, .position.width, item.line.position.height})
         {
             .focusStrategy     = .None
             .horzAlignmentText = .Left

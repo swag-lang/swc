@@ -6,7 +6,6 @@
 */
 
 #global namespace Png
-#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 private

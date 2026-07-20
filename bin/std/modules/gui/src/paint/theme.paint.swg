@@ -3,12 +3,12 @@ using Core, Pixel
 
 impl Theme
 {
-    mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
+    mtd drawSubRect(painter: #nonull *Painter, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         drawSubRect(painter, .res.imgWidgets, dstRect, subRect, color, center, interpol)
     }
 
-    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
+    func drawSubRect(painter: #nonull *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         if subRect == null or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
@@ -111,7 +111,7 @@ impl Theme
         }
     }
 
-    func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
+    func drawIconText(painter: #nonull *Painter, position: Math.Rectangle, icon: Icon, name: #nonull *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
     {
         let count = @countof(dref name)
         if count == 0 and !icon.isValid() do
@@ -143,7 +143,7 @@ impl Theme
         }
     }
 
-    mtd setTextColors(fmt: *RichStringFormat, mainColor: Color)
+    mtd setTextColors(fmt: #nonull *RichStringFormat, mainColor: Color)
     {
         fmt.palette[0] = mainColor
         fmt.palette[1] = .colors.richColor1

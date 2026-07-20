@@ -6,7 +6,6 @@
 */
 
 #global namespace Unicode
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Inline, Swag.ConstExpr]
 public

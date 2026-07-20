@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 struct ImageDecoder

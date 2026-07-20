@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createContextMenuModel(parent: *Wnd)
+func createContextMenuModel(parent: #nonull *Wnd)
 {
     g_ContextMenu = createTrackedPopup(parent)
     g_ContextMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.getIcon24(.Search, 18))
@@ -27,7 +27,7 @@ func showContextMenuAt(pt: Math.Point)
     discard g_ContextMenu.doModal(pt)
 }
 
-func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
+func onContextCanvasEvent(view: #nonull *Wnd, evt: IEvent)->bool
 {
     if let mouse = evt as MouseEvent where mouse.kind == .MouseAccept
     {
@@ -60,7 +60,7 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
-func createContextMenuPage(parent: *Wnd)
+func createContextMenuPage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     createContextMenuModel(parent)

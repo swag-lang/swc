@@ -1,6 +1,5 @@
 #global public
 #global namespace Threading
-#global #[Swag.ExplicitNullability]
 
 alias ThreadHandle = #null const *void
 

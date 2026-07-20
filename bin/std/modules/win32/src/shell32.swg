@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 #foreignlib("shell32")
 using Swag
 

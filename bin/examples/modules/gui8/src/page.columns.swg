@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createColumnsPage(parent: *Wnd)
+func createColumnsPage(parent: #nonull *Wnd)
 {
     let layout = getPageLayout(parent)
 

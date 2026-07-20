@@ -1,6 +1,6 @@
 using Core, Pixel
 
-func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawBlobSurface(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     var blob = makeBlobPath(rect)
     blob.flatten(.Normal)
@@ -16,9 +16,9 @@ func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawPath(&outline, pen, .Merge)
 }
 
-func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)
+func drawAlphaRow(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: #nonull string)
 {
-    painter.drawString(rect.x, rect.y + 10, label, g_LabelFont, Argb.DarkSlateGray)
+    painter.drawString(rect.x, rect.y + 10, label, assume g_LabelFont, Argb.DarkSlateGray)
 
     let pathRect = insetRect(rect, 150, 6, 16, 8)
     painter.drawLine(pathRect.x, pathRect.vertCenter(), pathRect.right(), pathRect.vertCenter(), Color.fromArgb(24, Argb.Black), 1)
@@ -31,7 +31,7 @@ func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, labe
     painter.drawPath(&path, pen)
 }
 
-func drawTransparencyPage(painter: *Pixel.Painter)
+func drawTransparencyPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel path drawing", "Page 3 : color stacking and alpha blending on a filled surface plus overlapping strokes.")
 

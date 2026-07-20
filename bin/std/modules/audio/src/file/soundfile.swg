@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 // Determins which informations in the [[SoundFile]] struct are valid.

@@ -291,7 +291,7 @@ When switching on `any` or `interface` types, cases match based on the **underly
 
 #test
 {
-    let x: any = "value"
+    let x: #nonull any = "value"
     switch x
     {
     case string:
@@ -314,10 +314,10 @@ Example 1: Simple Type Binding
 
 #test
 {
-    let x: any = "value"
+    let x: #nonull any = "value"
     switch x
     {
-    case string as str:
+    case #nonull string as str:
         @assert(str == "value")
         break
     default:
@@ -331,13 +331,13 @@ Example 2: Type Binding with 'where' Clause
 
 #test
 {
-    let x: any = "value"
+    let x: #nonull any = "value"
     switch x
     {
-    case string as str where str == "value":
+    case #nonull string as str where str == "value":
         @assert(str == "value")
         break
-    case string as str where str == "not_a_value":
+    case #nonull string as str where str == "not_a_value":
         @assert(str == "not_a_value")
         break
     default:

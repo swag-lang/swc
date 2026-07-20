@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Multi-channel signed distance field generation.

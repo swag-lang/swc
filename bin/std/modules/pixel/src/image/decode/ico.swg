@@ -1,5 +1,4 @@
 #global namespace Ico
-#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 // ICONDIR (6 bytes)

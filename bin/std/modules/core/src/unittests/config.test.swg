@@ -1,13 +1,13 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag
 
-#assert(BIG_ENDIAN == (#gettag("Swag.Endian", string, "little") == "big"))
+#assert(BIG_ENDIAN == (#gettag("Swag.Endian", #nonull string, "little") == "big"))
 #assert(WINDOWS == (#os == Swag.TargetOs.Windows))
 #assert(ASSERT == (#cfg == "debug" or #cfg == "fast-debug" or #hastag("Std.Core.Assert")))
 
 #test
 {
-    #if #gettag("Swag.Endian", string, "little") == "big" do
+    #if #gettag("Swag.Endian", #nonull string, "little") == "big" do
         @assert(BIG_ENDIAN)
     #else do
         @assert(!BIG_ENDIAN)

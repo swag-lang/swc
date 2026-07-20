@@ -1,6 +1,5 @@
 #global namespace File
 #global public
-#global #[Swag.ExplicitNullability]
 using Swag, Core.Errors
 
 // Represents a folder mapping to a specific structure type with its data

@@ -1,5 +1,4 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 // Test-only mirrors of the private ICO on-disk structures.

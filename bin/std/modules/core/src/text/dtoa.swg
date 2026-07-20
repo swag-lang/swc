@@ -7,7 +7,6 @@
 
 #global namespace StrConv
 #global namespace Dtoa
-#global #[Swag.ExplicitNullability]
 #global #[Swag.Safety(.Overflow|.NaN, false)]
 using Globalization
 

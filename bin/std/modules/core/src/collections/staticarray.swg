@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 using Swag
 
 // A stack-allocated array with a fixed capacity known at compile time.

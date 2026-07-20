@@ -1,6 +1,5 @@
 #global public
 #global namespace StrConv
-#global #[Swag.ExplicitNullability]
 
 // Converts a size in bytes into a human-readable string with units (bytes, Kb, Mb, Gb, Tb)
 func toDisplaySize(value: u64)->String

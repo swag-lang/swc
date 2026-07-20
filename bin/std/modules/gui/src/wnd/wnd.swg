@@ -1,7 +1,7 @@
 #global public
 using Core, Pixel
 
-alias HookEvent = func||(*Wnd, IEvent)->bool
+alias HookEvent = func||(#nonull *Wnd, IEvent)->bool
 
 // Automatic placement and size of the window in the parent client rectangle
 enum DockStyle
@@ -139,7 +139,7 @@ enum WndFlags
 struct Wnd
 {
     itf:                   IWnd
-    type:                  typeinfo
+    type:                  #null typeinfo
     surface:               #null *Surface
     style:                 ThemeStyle
     wndFlags               = WndFlags.ClipChildren
@@ -227,7 +227,7 @@ impl IWnd for Wnd
             if !.updateAction(ptr) do
                 .itf.onComputeStateEvent(ptr)
         case CommandStateEvent as ptr where ptr.kind == .ApplyCommandState:
-            .itf.onApplyStateEvent(cast(*CommandStateEvent) evt)
+            .itf.onApplyStateEvent(cast(#nonull *CommandStateEvent) evt)
         case FrameEvent as ptr:
             .itf.onFrameEvent(ptr)
         case SerializeStateEvent as ptr:
@@ -515,7 +515,7 @@ impl Wnd
             .style.compute(me, &(assume .surface).app.style)
     }
 
-    mtd paint(bc: *PaintContext)
+    mtd paint(bc: #nonull *PaintContext)
     {
         let painter = bc.painter
         if painter.isEmptyClippingRect() do
@@ -821,7 +821,7 @@ impl Wnd
     }
 
     // Get the wnd position relative to a given parent
-    mtd const getRectIn(wnd: *Wnd)->Math.Rectangle
+    mtd const getRectIn(wnd: #null *Wnd)->Math.Rectangle
     {
         var result: retval = .position
         var p       = .parent
@@ -916,7 +916,7 @@ impl Wnd
         if idx == idxToReplace do
             return
 
-        swap(.parent.childs.buffer + idx, .parent.childs.buffer + idxToReplace)
+        swap(assume .parent.childs.buffer + idx, assume .parent.childs.buffer + idxToReplace)
     }
 
     // Move and size the wnd
@@ -945,7 +945,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    private mtd clampSize(pos: *Math.Rectangle)
+    private mtd clampSize(pos: #nonull *Math.Rectangle)
     {
         if .minSize.x > 0 do
             pos.width = Math.max(pos.width, .minSize.x)
@@ -993,7 +993,7 @@ impl Wnd
     {
         var clientRect = .getClientRectPadding()
 
-        var centerLayout: Array'(*Wnd)
+        var centerLayout: Array'(#nonull *Wnd)
         var oldSizes:     Array'Math.Point
 
         for c in .childs
@@ -1592,7 +1592,7 @@ impl Wnd
     // Serialization
     //////////////////////////////////////////////
 
-    mtd serializeState(ser: *Serialization.Serializer) throw
+    mtd serializeState(ser: #nonull *Serialization.Serializer) throw
     {
         var evt: SerializeStateEvent
         evt.accepted = false

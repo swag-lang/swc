@@ -1,5 +1,4 @@
 #global #if #os == Swag.TargetOs.Windows
-#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors, Win32, XAudio2
 
 struct XAudio2DriverNative

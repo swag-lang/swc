@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, Pixel
 
 // Ease-out one component of the auto-selection rectangle toward its target. Advancing

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionLibTrash {}
@@ -17,7 +16,7 @@ impl IActionUI for ActionLibTrash
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let libWnd = cast(#nonull *LibraryWnd) cxt.wnd
+        let libWnd = cast(#nonull *LibraryWnd) assume cxt.wnd
         let hasSel = libWnd.view.focusItem != Swag.U32.Max
 
         switch cxt.id
@@ -47,7 +46,7 @@ impl IActionUI for ActionLibTrash
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(#nonull *LibraryWnd) cxt.wnd
+        let libWnd = cast(#nonull *LibraryWnd) assume cxt.wnd
 
         switch cxt.id
         {

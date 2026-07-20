@@ -86,31 +86,31 @@ impl Decoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast(const *TypeInfoNative) type
+            let typeNative = cast(#null const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
             case Bool:
-                dref cast(*bool) data = .serializer.readNative'bool()
+                dref cast(#nonull *bool) data = .serializer.readNative'bool()
             case U8:
-                dref cast(*u8) data = .serializer.readNative'u8()
+                dref cast(#nonull *u8) data = .serializer.readNative'u8()
             case U16:
-                dref cast(*u16) data = .serializer.readNative'u16()
+                dref cast(#nonull *u16) data = .serializer.readNative'u16()
             case U32, Rune:
-                dref cast(*u32) data = .serializer.readNative'u32()
+                dref cast(#nonull *u32) data = .serializer.readNative'u32()
             case U64:
-                dref cast(*u64) data = .serializer.readNative'u64()
+                dref cast(#nonull *u64) data = .serializer.readNative'u64()
             case S8:
-                dref cast(*s8) data = .serializer.readNative's8()
+                dref cast(#nonull *s8) data = .serializer.readNative's8()
             case S16:
-                dref cast(*s16) data = .serializer.readNative's16()
+                dref cast(#nonull *s16) data = .serializer.readNative's16()
             case S32:
-                dref cast(*s32) data = .serializer.readNative's32()
+                dref cast(#nonull *s32) data = .serializer.readNative's32()
             case S64:
-                dref cast(*s64) data = .serializer.readNative's64()
+                dref cast(#nonull *s64) data = .serializer.readNative's64()
             case F32:
-                dref cast(*f32) data = .serializer.readNative'f32()
+                dref cast(#nonull *f32) data = .serializer.readNative'f32()
             case F64:
-                dref cast(*f64) data = .serializer.readNative'f64()
+                dref cast(#nonull *f64) data = .serializer.readNative'f64()
             }
 
             return
@@ -120,20 +120,20 @@ impl Decoder
         {
             let crc      = .serializer.readNative'u32()
             let typeType = Reflection.crcToType(crc)
-            dref cast(*typeinfo) data = typeType
+            dref cast(#nonull *#null typeinfo) data = typeType
             return
         }
 
         if Reflection.isInterface(type)
         {
-            let itf = cast(*Swag.Interface) data
+            let itf = cast(#nonull *Swag.Interface) data
 
             .serializer.beginSection(.Raw)
             defer #noerr .serializer.endSection()
 
-            var objType, itfType: typeinfo
+            var objType, itfType: #null typeinfo
             var typeVal: TypeValue
-            typeVal.pointedType = typeinfo
+            typeVal.pointedType = #typeof(#null typeinfo)
 
             #if T == Read.TagBin
             {
@@ -164,10 +164,10 @@ impl Decoder
 
             if objType
             {
-                itf.itable = @tableof(cast(const *Swag.TypeInfoStruct) objType, cast(const *Swag.TypeInfoStruct) itfType)
+                itf.itable = @tableof(cast(#null const *Swag.TypeInfoStruct) objType, cast(#null const *Swag.TypeInfoStruct) itfType)
 
                 typeVal.pointedType = objType
-                itf.obj             = Memory.new(objType)
+                itf.obj             = Memory.new(assume objType)
                 if !itf.obj do
                     throw SerializationError{"cannot allocate interface object"}
                 .readTypeValue(typeVal, itf.obj)
@@ -181,7 +181,7 @@ impl Decoder
             // Core.String
             if type == String
             {
-                let strBuf = cast(*String) data
+                let strBuf = cast(#nonull *String) data
                 dref strBuf = #nodrop .serializer.readNative'String()
                 strBuf.opPostMove()
                 return
@@ -219,7 +219,7 @@ impl Decoder
             }
 
             // Generic struct load
-            let structType = cast(const *TypeInfoStruct) type
+            let structType = cast(#null const *TypeInfoStruct) type
             let treated    = .serializer.beginStruct(structType, data)
             defer #noerr .serializer.endStruct()
             if treated do
@@ -233,9 +233,9 @@ impl Decoder
                     throw SerializationError{"missing field pointed type"}
                 let fieldType = assume field.pointedType
 
-                if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
+                if !itf or !itf.readElement(field, cast(#nonull [*] u8) data + field.offset, idecoder)
                 {
-                    let fieldData = cast([*] u8) data + field.offset
+                    let fieldData = cast(#nonull [*] u8) data + field.offset
                     let doIt = catch .serializer.beginElement(field)
                     defer #noerr .serializer.endElement(field)
 
@@ -265,7 +265,7 @@ impl Decoder
         // Static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr = cast(const *TypeInfoArray) type
+            let typeArr = cast(#null const *TypeInfoArray) type
             if !typeArr.pointedType do
                 throw SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)
@@ -275,7 +275,7 @@ impl Decoder
             if treated do
                 return
 
-            var bufArr = cast([*] u8) data
+            var bufArr = cast(#nonull [*] u8) data
             for count
             {
                 .readTypedContent(bufArr, elemType)

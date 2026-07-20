@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 const CURVE_TAG_ON = 0x01'u8

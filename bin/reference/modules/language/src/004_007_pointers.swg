@@ -9,8 +9,8 @@ Pointers can reference any type of data and are fundamental for efficient memory
 */
 #test
 {
-    var ptr1: *u8      // Pointer to a single 'u8' value
-    var ptr2: **u8     // Pointer to another pointer to 'u8'
+    var ptr1: #null *u8            // Pointer to a single 'u8' value
+    var ptr2: #null *#null *u8     // Pointer to another pointer to 'u8'
 }
 
 /**
@@ -23,7 +23,7 @@ It is good practice to check for null pointers before dereferencing them to avoi
 */
 #test
 {
-    var ptr1: *u8
+    var ptr1: #null *u8
     @assert(ptr1 == null) // Uninitialized pointers are null by default
 }
 
@@ -78,7 +78,7 @@ This allows you to access or modify a variable indirectly via its memory address
 {
     var value = 1
     let ptr   = &value
-    @assert(#typeof(ptr) == *s32) // The pointer type matches the variable's type
+    @assert(#nameof(#typeof(ptr)) == "*s32") // The pointer type matches the variable's type
 }
 
 /**
@@ -104,7 +104,7 @@ Const pointers help guarantee that a pointer always refers to the same memory lo
 #test
 {
     let str  = "string"
-    let ptr: const *u8 = @dataof(str)
+    let ptr: #nonull const *u8 = @dataof(str)
     @assert(dref ptr == 's') // Access the first byte of the string
 }
 
@@ -121,9 +121,9 @@ This provides strong control over both pointer immutability and data mutability.
 */
 #test
 {
-    var ptr:  *const *u8           // Pointer to a const pointer
-    var ptr1: const *const *u8     // Const pointer to a const pointer
-    var ptr2: const **u8           // Const pointer to a mutable pointer
+    var ptr:  #null *#null const *u8           // Pointer to a const pointer
+    var ptr1: #null const *#null const *u8     // Const pointer to a const pointer
+    var ptr2: #null const *#null *u8           // Const pointer to a mutable pointer
 }
 
 /**
@@ -138,7 +138,7 @@ allowing indexed access and pointer movement through memory.
 #[Swag.Sanity(Swag.SafetyWhat.All, false)]
 #test
 {
-    var ptr: [*] u8 // Pointer to a block of 'u8' values
+    var ptr: #null [*] u8 // Pointer to a block of 'u8' values
     ptr = ptr - 1 // Move the pointer back by one element
 }
 
@@ -151,11 +151,11 @@ single element. Cast it to a multi-value pointer when pointer arithmetic is inte
 #test
 {
     var arr: [4] s32
-    var ptr  = cast([*] s32) &arr[1]
+    var ptr  = cast(#nonull [*] s32) &arr[1]
 
     // The pointer is treated as a multi-value pointer
     ptr = ptr - 1
-    #assert(#typeof(ptr) == [*] s32)
+    #assert(#typeof(ptr) == #nonull [*] s32)
 }
 
 /**
@@ -170,8 +170,8 @@ This is particularly useful when traversing arrays or buffers via pointers.
 #test
 {
     var arr = [1, 2, 3, 4]
-    let ptr = cast([*] s32) &arr[0]
-    @assert(#typeof(ptr) == [*] s32)
+    let ptr = cast(#nonull [*] s32) &arr[0]
+    @assert(#typeof(ptr) == #nonull [*] s32)
     let value1 = ptr[0]
     @assert(value1 == 1)
     #assert(#typeof(value1) == s32)

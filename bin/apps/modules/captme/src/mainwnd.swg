@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // Global variable
 var g_Main: #null *MainWnd
 
@@ -371,7 +370,7 @@ impl MainWnd
             if !capture do
                 return
 
-            .embInfoFreeze = EmbInfoCtrl.create(.editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
+            .embInfoFreeze = EmbInfoCtrl.create(assume .editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
             .embInfoFreeze.sigOnClose += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -520,7 +519,7 @@ impl MainWnd
                 {
                     var msg = Format.toString("Cannot register global shortcut '%'. ", Input.getKeyName(mdf, key))
                     msg += "Another running application is probably already using it!"
-                    discard EmbInfoCtrl.create(.editWnd, msg, .Critical)
+                    discard EmbInfoCtrl.create(assume .editWnd, msg, .Critical)
                 }
                 errorReg = true
             }
@@ -534,7 +533,7 @@ impl MainWnd
 
     mtd createTopMenu()
     {
-        with let topMenu = MenuCtrl.createBar(me.parent, owner: me)
+        with let topMenu = MenuCtrl.createBar(assume me.parent, owner: me)
         {
             .bringToFront()
             .position.height = Math.max(.position.height, me.parent.padding.y)
@@ -544,7 +543,7 @@ impl MainWnd
         }
 
         // File menu
-        with let fileMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let fileMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
         {
             .addGroup([ActionFile.NewImage, ActionFile.NewFromClipboard])
             .addGroup([ActionFile.OpenImage, ActionFile.SaveAsImage])
@@ -555,7 +554,7 @@ impl MainWnd
         }
 
         // Capture menu
-        with let captureMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let captureMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
@@ -587,7 +586,7 @@ impl MainWnd
         }
 
         // Edit menu
-        with let editMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let editMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
         {
             .addGroup([ActionUndo.DoUndo, ActionUndo.DoRedo])
             .addGroup([ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste])
@@ -600,7 +599,7 @@ impl MainWnd
         }
 
         // Image menu
-        with let imageMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let imageMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
         {
             .addGroup([ActionCopyPaste.CopyAsImage])
             .addGroup([ActionImage.RestoreOrg])
@@ -611,7 +610,7 @@ impl MainWnd
         }
 
         // View menu
-        with let viewMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let viewMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
         {
             .addGroup([ActionZoom.ZoomIn, ActionZoom.ZoomOut])
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
@@ -620,7 +619,7 @@ impl MainWnd
         }
 
         // Help menu
-        with let helpMenu = MenuCtrl.createPopup(me.parent, owner: me)
+        with let helpMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
         {
             .addItem(ActionOptions.Options)
             .addSeparator()
@@ -653,7 +652,7 @@ impl MainWnd
 
     mtd createToolbar()
     {
-        with me.editToolBar = StackLayoutCtrl.create(me.topBar, .HorzCenter, {0, 0, 64, 64})
+        with me.editToolBar = StackLayoutCtrl.create(assume me.topBar, .HorzCenter, {0, 0, 64, 64})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -668,7 +667,7 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me.editToolBar, {}, position: {0, 0, 60, 64})
+            with let b = IconButton.create(assume me.editToolBar, {}, position: {0, 0, 60, 64})
             {
                 .id = id
                 if id == ActionToolMode.Callout do
@@ -692,9 +691,9 @@ impl MainWnd
             }
         }
 
-        .captureBtn           = IconButton.create(.topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
+        .captureBtn           = IconButton.create(assume .topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
         .captureBtn.iconColor = Argb.White
-        .libraryBtn           = IconButton.create(.topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
+        .libraryBtn           = IconButton.create(assume .topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
     }
 
     mtd setTheme()
@@ -802,7 +801,7 @@ impl MainWnd
             .dockStyle = .Bottom
         }
 
-        with res.recentSizeBar = IconBar.create(res.recentBar, 20)
+        with res.recentSizeBar = IconBar.create(assume res.recentBar, 20)
         {
             .setIconBarFlags(.Vertical)
             .dockStyle   = .Left
@@ -828,13 +827,13 @@ impl MainWnd
         res.quickWnd = QuickWnd.create(res.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, res)
         res.propWnd  = PropWnd.create(res.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, res)
 
-        with let quickPane = res.quickStyleBar.addPane(res.quickWnd, title: true)
+        with let quickPane = res.quickStyleBar.addPane(assume res.quickWnd, title: true)
         {
             .tryPreserveSize = true
             .label.setText("Quick Styles")
         }
 
-        with let quickStyle = res.quickStyleBar.addPane(res.propWnd, title: true)
+        with let quickStyle = res.quickStyleBar.addPane(assume res.propWnd, title: true)
         {
             .label.setText("Tool Properties")
         }
@@ -849,7 +848,7 @@ impl MainWnd
         }
 
         let ic = res.getTheme().getIcon24(.Search, 20)
-        with res.zoomBtn = IconButton.create(res.editZoomBar, ic, {0, 0, 120, 32})
+        with res.zoomBtn = IconButton.create(assume res.editZoomBar, ic, {0, 0, 120, 32})
         {
             .iconBtnFlags.add(.Center)
             .textPos  = .Right

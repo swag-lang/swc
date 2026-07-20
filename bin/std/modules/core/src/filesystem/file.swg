@@ -1,6 +1,5 @@
 #global public
 #global namespace File
-#global #[Swag.ExplicitNullability]
 using Core.Errors
 
 // Origin from which to calculate seek offset in a file stream

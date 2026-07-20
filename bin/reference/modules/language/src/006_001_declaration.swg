@@ -10,7 +10,7 @@ Each field is defined with a specific type.
 {
     struct MyStruct
     {
-        name: string // Field 'name' of type 'string'
+        name: #null string // Field 'name' of type 'string'
     }
 
     struct MyStruct1
@@ -33,7 +33,7 @@ The trailing separator is optional and can be omitted.
     // Fields separated by commas
     struct MyStruct
     {
-        name: string, val1: bool
+        name: #null string, val1: bool
     }
 
     struct MyStruct1 { x: s32, y, z: s32, val: bool, myS: MyStruct }
@@ -90,8 +90,8 @@ providing a convenient way to ensure fields are set to a known state.
 {
     struct MyStruct
     {
-        x:     s32 = 666          // Field 'x' initialized with default value 666
-        y:     string = "454"     // Field 'y' initialized with default value '454'
+        x:     s32 = 666                  // Field 'x' initialized with default value 666
+        y:     #nonull string = "454"     // Field 'y' initialized with default value '454'
     }
 
     let v = MyStruct{} // Initializing struct with default values
@@ -144,7 +144,7 @@ at compile time. This ensures immutability throughout program execution.
     struct MyStruct
     {
         x:     s32 = 666
-        y:     string = "454"
+        y:     #nonull string = "454"
     }
 
     const X: MyStruct{50, "value"}

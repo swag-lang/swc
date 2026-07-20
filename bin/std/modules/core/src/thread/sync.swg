@@ -1,5 +1,4 @@
 #global namespace Sync
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Mixin]
 public func(T) scopedLock(syncObj: #nonull *T)

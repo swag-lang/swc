@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, Pixel
 
 enum CaptureMode

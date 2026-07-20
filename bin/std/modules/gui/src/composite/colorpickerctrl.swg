@@ -23,33 +23,33 @@ struct ColorPickerCtrl
 {
     using frameWnd:     FrameWnd
 
-    sigChanged:         SigArray'func||(*ColorPickerCtrl)
+    sigChanged:         SigArray'func||(#nonull *ColorPickerCtrl)
     oldColor:           Color
     color:              Color
     pickerFlags         = ColorPickerFlags.All
 
     oldColorDone:       bool
     mode                = ColorPickerViewMode.SaturationLightness
-    staticRes:          *Wnd
-    pickBox:            *ColorPicker
-    pickBar:            *ColorPicker
-    pickAlpha:          *ColorPicker
-    editA:              *EditBox
-    editR:              *EditBox
-    editG:              *EditBox
-    editB:              *EditBox
-    editH:              *EditBox
-    radioH:             *RadioButton
-    radioL:             *RadioButton
-    radioS:             *RadioButton
-    radioR:             *RadioButton
-    radioG:             *RadioButton
-    radioB:             *RadioButton
+    staticRes:          #null *Wnd
+    pickBox:            #null *ColorPicker
+    pickBar:            #null *ColorPicker
+    pickAlpha:          #null *ColorPicker
+    editA:              #null *EditBox
+    editR:              #null *EditBox
+    editG:              #null *EditBox
+    editB:              #null *EditBox
+    editH:              #null *EditBox
+    radioH:             #null *RadioButton
+    radioL:             #null *RadioButton
+    radioS:             #null *RadioButton
+    radioR:             #null *RadioButton
+    radioG:             #null *RadioButton
+    radioB:             #null *RadioButton
 }
 
 impl IWnd for ColorPickerCtrl
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         .frameWnd.IWnd.onPaintEvent(evt)
 
@@ -128,7 +128,7 @@ private impl ColorPickerCtrl
 impl ColorPickerCtrl
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
+    func create(parent: #nonull *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: #null WndId = null)->#nonull *ColorPickerCtrl
     {
         var pos = position
         if pos.width == 0 do
@@ -351,7 +351,7 @@ impl ColorPickerCtrl
     // 'pal' should contain the palette colors. Maximum is 9 colors.
     // If less colors are provided, then default colors will be added instead (so if you keep 'pal' empty, all defaults colors will be added).
     #[Swag.Discardable]
-    func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
+    func createWithPalette(parent: #nonull *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: #null WndId = null)->#nonull *ColorPickerCtrl
     {
         let picker = ColorPickerCtrl.create(parent, position, flags, id)
 

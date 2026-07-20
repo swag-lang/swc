@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func edgeDistanceSquared(edge: Edge, x, y: f64)->f64

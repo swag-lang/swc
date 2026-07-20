@@ -202,7 +202,7 @@ impl RichEditCtrl
         }
     }
 
-    mtd insertRunePrivate(cp: *RichEditCursor, c: rune, txtStyle: RichEditStyleRef)
+    mtd insertRunePrivate(cp: #nonull *RichEditCursor, c: rune, txtStyle: RichEditStyleRef)
     {
         if c == '\r' do
             return
@@ -213,7 +213,7 @@ impl RichEditCtrl
             discard .newLine(cp.lineIndex + 1)
             let line = .lines[cp.lineIndex + 1]
             if cp.charPosInLine < linep.length() do
-                line.insertRunes(0, linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
+                line.insertRunes(0, assume linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
             cp.lineIndex += 1
             cp.charPosInLine = 0
@@ -239,7 +239,7 @@ impl RichEditCtrl
         .recomputeScroll = true
     }
 
-    mtd insertTextPrivate(cp: *RichEditCursor, runes: Array'rune, nstyles: Array'u8, selRect: bool)
+    mtd insertTextPrivate(cp: #nonull *RichEditCursor, runes: Array'rune, nstyles: Array'u8, selRect: bool)
     {
         if runes.isEmpty() do
             return
@@ -298,7 +298,7 @@ impl RichEditCtrl
         .recomputeScroll = true
     }
 
-    mtd insertTextPrivate(cp: *RichEditCursor, text: string, txtStyle: RichEditStyleRef)
+    mtd insertTextPrivate(cp: #nonull *RichEditCursor, text: #nonull string, txtStyle: RichEditStyleRef)
     {
         if .lines.isEmpty() do
             .newLine(0)
@@ -348,7 +348,7 @@ impl RichEditCtrl
                 lineSrc.removeRunes(ps.charPosInLine, lineSrc.length() - ps.charPosInLine)
                 lineEnd.removeRunes(0, pe.charPosInLine)
                 if lineEnd.length() do
-                    lineSrc.insertRunes(ps.charPosInLine, lineEnd, 0, lineEnd.length())
+                    lineSrc.insertRunes(ps.charPosInLine, assume lineEnd, 0, lineEnd.length())
                 .deleteLine(pe.lineIndex)
             }
         }
@@ -442,7 +442,7 @@ public impl RichEditCtrl
     }
 
     // Set the text content
-    mtd setText(text: string)
+    mtd setText(text: #nonull string)
     {
         .clear()
 
@@ -454,7 +454,7 @@ public impl RichEditCtrl
     }
 
     // Append a text with a given style
-    mtd addText(text: string, txtStyle: RichEditStyleRef = 0)
+    mtd addText(text: #nonull string, txtStyle: RichEditStyleRef = 0)
     {
         var cp: RichEditCursor
         if .lines.count
@@ -468,7 +468,7 @@ public impl RichEditCtrl
     }
 
     // Insert a text with a given style
-    mtd insertText(text: string)
+    mtd insertText(text: #nonull string)
     {
         let undo = Memory.new'RichEditUndo()
         undo.type  = .Insert
@@ -486,7 +486,7 @@ public impl RichEditCtrl
     }
 
     // Insert a text with a style per character
-    mtd insertText(text: string, txtStyles: Array'u8)
+    mtd insertText(text: #nonull string, txtStyles: Array'u8)
     {
         let undo = Memory.new'RichEditUndo()
         undo.type       = .Insert
@@ -644,7 +644,7 @@ public impl RichEditCtrl
     }
 
     // Insert text at the start of each selected line
-    mtd insertBegLine(txt: string)
+    mtd insertBegLine(txt: #nonull string)
     {
         var first = true
 
@@ -697,7 +697,7 @@ public impl RichEditCtrl
     }
 
     // Delete a given text at the start of each selected line
-    mtd deleteBegLine(txt: string, lastLine: bool)
+    mtd deleteBegLine(txt: #nonull string, lastLine: bool)
     {
         var arrR   = Unicode.fromUtf8(txt)
         var first  = true

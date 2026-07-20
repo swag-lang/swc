@@ -2052,7 +2052,7 @@ func gameLoop()
         g_Ticks += 1
 }
 
-func onEvent(wnd: *Wnd, evt: IEvent)->bool
+func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
@@ -2224,6 +2224,6 @@ func loadBindTextures()
     assume Audio.createEngine()
     defer Audio.destroyEngine()
 
-    func muteForTest(app: *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
+    func muteForTest(app: #nonull *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
     Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)
 }

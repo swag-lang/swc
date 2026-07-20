@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 const MaxRecent = 15
 
 const RecentPadding = 8.0

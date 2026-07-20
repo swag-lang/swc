@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 using Swag
 
 // Represents a single entry within a HashSet.

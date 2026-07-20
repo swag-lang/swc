@@ -9,7 +9,7 @@ private const WaitManyDelayedSleepMs    = 1000'u32
 
 struct WaitManyPayload
 {
-    doneCount: *s32
+    doneCount: #nonull *s32
     sleepMs:   u32
 }
 
@@ -19,7 +19,7 @@ func idleThread(_th: Threading.Thread)
 
 func waitManyThread(th: Threading.Thread)
 {
-    let payload = cast(*WaitManyPayload) th.userParam
+    let payload = cast(#null *WaitManyPayload) th.userParam
     if payload.sleepMs != 0 do
         Sleep(payload.sleepMs)
     Atomic.add(payload.doneCount, 1)
@@ -62,7 +62,7 @@ func waitManyThreads(threads: &[WaitManyThreadCount] Threading.Thread)
 #test
 {
     var doneCount: s32 = 0
-    var payloads: [WaitManyThreadCount] WaitManyPayload
+    var payloads: [WaitManyThreadCount] WaitManyPayload = undefined
     var threads: [WaitManyThreadCount] Threading.Thread
 
     for i in WaitManyThreadCount

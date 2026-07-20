@@ -1,6 +1,5 @@
 #global public
 #global namespace Time
-#global #[Swag.ExplicitNullability]
 using Errors
 
 // Names of the months used for formatting and parsing

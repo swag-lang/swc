@@ -1,6 +1,5 @@
 ﻿#global public
 #global namespace Memory
-#global #[Swag.ExplicitNullability]
 using Swag
 
 func allocZeroSizeMessage(kind: #nonull string, size: u64, hint: #null string, loc: Swag.SourceCodeLocation)->String

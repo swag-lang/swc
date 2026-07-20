@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 /*
     :LICENCE
     This code is based on the libspng library by Randy (https://libspng.org/)

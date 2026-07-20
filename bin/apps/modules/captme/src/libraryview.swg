@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Threading, Time
 
 internal var g_UpdatingLib: bool
@@ -315,7 +314,7 @@ impl LibraryView
                 if @countof(search) != 0 do
                     continue
                 it.filtered = false
-                .items.add(it)
+                .items.add(assume it)
                 continue
             }
             let loaded = capture orelse cast(#nonull *Capture) 1'u64
@@ -327,11 +326,11 @@ impl LibraryView
                 continue
             if !loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
                 continue
-            if !.matchSearch(it, loaded, search) do
+            if !.matchSearch(assume it, loaded, search) do
                 continue
 
             it.filtered = false
-            .items.add(it)
+            .items.add(assume it)
         }
 
         .invalidate()
@@ -360,7 +359,7 @@ impl LibraryView
         // Work on a copy, as 'items' can be changed by sorting during loading
         var copy: Array'#nonull *LibraryItem
         for it in .allItems do
-            copy.add(it)
+            copy.add(assume it)
 
         for it in copy
         {

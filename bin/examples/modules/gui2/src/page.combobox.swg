@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func fillFlavorCombo(combo: *ComboBox)
+func fillFlavorCombo(combo: #nonull *ComboBox)
 {
     combo.addItem("Vanilla", "vanilla")
     combo.addItem("Chocolate", "chocolate", app.theme.getIcon24(ThemeIcons24.Filter, 18))
@@ -9,7 +9,7 @@ func fillFlavorCombo(combo: *ComboBox)
     combo.addItem("Seasonal special", "seasonal", app.theme.getIcon24(ThemeIcons24.More, 18))
 }
 
-func createComboBoxPage(parent: *Wnd)
+func createComboBoxPage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Select combos", "Regular popups with icons, separators and constrained height.", layout.left)

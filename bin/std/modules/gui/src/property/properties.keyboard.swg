@@ -43,7 +43,7 @@ internal impl Properties
 {
     // Navigation-mode key handling, driven by PropertiesView.onKeyEvent (the
     // edView owns the focus while navigating).
-    mtd navKeyEvent(evt: *KeyEvent)
+    mtd navKeyEvent(evt: #nonull *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -161,7 +161,7 @@ internal impl Properties
 
     // Edition-mode key interception, called from onHookChildEvent before the
     // focused editor processes the key. Returns true when the key is consumed.
-    mtd editKeyEvent(evt: *KeyEvent)->bool
+    mtd editKeyEvent(evt: #nonull *KeyEvent)->bool
     {
         if !.isEditing() do
             return false
@@ -214,7 +214,7 @@ private impl Properties
     mtd isEditing()->bool
     {
         let f = .getFocus()
-        if !f or f == cast(*Wnd) .edView do
+        if !f or f == cast(#null *Wnd) .edView do
             return false
         return .isEditorWnd(f)
     }
@@ -249,7 +249,7 @@ private impl Properties
             return false
         if !item.line.isVisible() do
             return false
-        if .itemHasEditor(item) do
+        if .itemHasEditor(assume item) do
             return true
         if item.data != null and item.type != null do
             return true
@@ -260,7 +260,7 @@ private impl Properties
         return false
     }
 
-    mtd itemHasEditor(item: *PropertiesItem)->bool
+    mtd itemHasEditor(item: #nonull *PropertiesItem)->bool
     {
         return item.editBox != null or item.comboBox != null or item.sliderBox != null or item.checkBox != null
     }
@@ -410,7 +410,7 @@ private impl Properties
     }
 
     // Scroll the grid so the given row is fully visible.
-    mtd ensureItemVisible(item: *PropertiesItem)
+    mtd ensureItemVisible(item: #null *PropertiesItem)
     {
         if !item or !item.line do
             return

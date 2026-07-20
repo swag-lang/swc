@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertUtf8String(value: const &String, expected: string)->bool
+func assertUtf8String(value: const &String, expected: #nonull string)->bool
 {
     let text = value.toString()
     return value == expected and
@@ -11,7 +11,7 @@ func assertUtf8String(value: const &String, expected: string)->bool
         Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
-func firstNonAsciiRune(text: string)->rune
+func firstNonAsciiRune(text: #nonull string)->rune
 {
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {

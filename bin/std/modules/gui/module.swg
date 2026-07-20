@@ -1,5 +1,3 @@
-#global #[Swag.ExplicitNullability]
-
 #import("pixel")
 
 #run
@@ -9,7 +7,8 @@
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
-    cfg.moduleNamespace = "Gui"
+    cfg.moduleNamespace     = "Gui"
+    cfg.explicitNullability = true
     cfg.backendKind     = .SharedLibrary
     cfg.ignoreInWorkspace = false
 }

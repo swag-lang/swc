@@ -5,7 +5,7 @@ using Pixel
 
 var ColorPickerHeadlessChangedCount: u32
 
-func colorPickerHeadlessChanged(c: *ColorPicker)
+func colorPickerHeadlessChanged(c: #nonull *ColorPicker)
 {
     discard c
     ColorPickerHeadlessChangedCount += 1

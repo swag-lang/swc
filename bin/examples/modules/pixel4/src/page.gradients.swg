@@ -8,16 +8,16 @@ func makeSunsetGradient(rect: Math.Rectangle)->Brush
     return brush
 }
 
-func drawSpreadSample(painter: *Pixel.Painter, rect: Math.Rectangle, title: string, spread: GradientSpread)
+func drawSpreadSample(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title: #nonull string, spread: GradientSpread)
 {
     let axisEnd = rect.x + rect.width * 0.28
     let brush   = Brush.createLinearGradient(rect.x, rect.y, axisEnd, rect.y, Argb.DeepSkyBlue, Argb.Tomato, spread)
     painter.fillRoundRect(rect, 12, 12, brush)
     painter.drawRoundRect(rect, 12, 12, Color.fromArgb(80, Argb.MidnightBlue), 1)
-    painter.drawString(rect.x + 12, rect.vertCenter() - 8, title, g_HelpFont, Argb.White)
+    painter.drawString(rect.x + 12, rect.vertCenter() - 8, title, assume g_HelpFont, Argb.White)
 }
 
-func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawGradientFillCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Gradient fills", "Linear, radial and sweep gradients are ordinary brushes, so every filled primitive can use them.")
     let gap = 16.0
@@ -46,7 +46,7 @@ func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawCircle(sweepCenter.x, sweepCenter.y, sweepRadius, Color.fromArgb(96, Argb.MidnightBlue), 2)
 }
 
-func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawGradientStrokeCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Gradient strokes", "The same brush can drive pens for paths, round rectangles and polygon outlines.")
 
@@ -64,7 +64,7 @@ func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawClosedOutline(painter, star[to], starPen)
 }
 
-func drawGradientSpreadCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawGradientSpreadCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Spread modes", "Clamp, repeat and mirror define what happens outside the first gradient interval.")
     let gap = 14.0
@@ -74,11 +74,11 @@ func drawGradientSpreadCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawSpreadSample(painter, {body.x + 18, body.y + 10 + (h + gap) * 2, body.width - 36, h}, "Mirror", .Mirror)
 }
 
-func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawGradientTextCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Gradient text", "drawString and translucent overlays use the same paint binding as shapes.")
     let text = "GRADIENT"
-    let size = Painter.measureString(text, g_TitleFont)
+    let size = Painter.measureString(text, assume g_TitleFont)
     let x = body.horzCenter() - size.width * 0.5
     let y = body.vertCenter() - g_TitleFont.height * 0.5
 
@@ -95,11 +95,11 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5}, 0.0'deg, 360.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
     brush.addGradientStop(0.45, Argb.Goldenrod)
     brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
-    painter.drawString(x, y, text, g_TitleFont, brush)
-    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityf + multiplyTint + drawString", g_HelpFont, Argb.DimGray)
+    painter.drawString(x, y, text, assume g_TitleFont, brush)
+    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityf + multiplyTint + drawString", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawGradientsPage(painter: *Pixel.Painter)
+func drawGradientsPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel gradient paints", "Page 6 : linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
 

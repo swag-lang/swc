@@ -1,7 +1,6 @@
 #global #if WINDOWS
 #global public
 #global namespace Directory
-#global #[Swag.ExplicitNullability]
 using Win32
 
 func create(dirname: #nonull string) throw
@@ -40,7 +39,7 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
     var fileTime:  SYSTEMTIME
     var stackPath: Array'String
 
-    let dataof = cast(const [*] u16) @dataof(findfile.cFileName)
+    let dataof = cast(#nonull const [*] u16) @dataof(findfile.cFileName)
 
     stackPath.add(String.from(dirName))
     while !stackPath.isEmpty()

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertIntList(values: &List's32, expected: const [..] s32)->bool
+func assertIntList(values: &List's32, expected: #nonull const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false

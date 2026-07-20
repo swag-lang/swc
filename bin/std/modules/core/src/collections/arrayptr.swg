@@ -6,7 +6,7 @@ using Swag
 // (allocation and deallocation) of the pointed-to objects.
 struct(T) ArrayPtr
 {
-    using base: Array'(*T)
+    using base: Array'(#null *T)
 }
 
 impl ArrayPtr

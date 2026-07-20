@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct EditWnd
 {
     using scrollWnd:     ScrollWnd

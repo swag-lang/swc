@@ -55,9 +55,9 @@ struct Circular
     rangeColor: Color // Color for the range arc (when in range mode)
 
     // Event signals
-    sigStartChange:     SigArray'func||(*Circular)     // Fired when user starts changing value
-    sigChanged:         SigArray'func||(*Circular)     // Fired when value changes
-    sigEndChange:       SigArray'func||(*Circular)     // Fired when user finishes changing value
+    sigStartChange:     SigArray'func||(#nonull *Circular)     // Fired when user starts changing value
+    sigChanged:         SigArray'func||(#nonull *Circular)     // Fired when value changes
+    sigEndChange:       SigArray'func||(#nonull *Circular)     // Fired when user finishes changing value
 
     internal
     {
@@ -85,7 +85,7 @@ struct Circular
 
 impl IWnd for Circular
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc     = evt.bc
         let colors = .getThemeColors()
@@ -152,7 +152,7 @@ impl IWnd for Circular
         }
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         let pos = .surfaceToLocal(evt.surfacePos)
         .updateGeometry()
@@ -321,7 +321,7 @@ private impl Circular
     }
 
     // Range arc drawing
-    mtd drawRangeArc(painter: *Painter)
+    mtd drawRangeArc(painter: #nonull *Painter)
     {
         let color    = .rangeColor.a ? .rangeColor : .getThemeColors().circular_RangeArc
         let penSize  = .circleGap ? .circleGap : 4.0
@@ -332,7 +332,7 @@ private impl Circular
     }
 
     // Main marker drawing dispatcher
-    mtd drawValueMarker(painter: *Painter, color: Color, value: f32)
+    mtd drawValueMarker(painter: #nonull *Painter, color: Color, value: f32)
     {
         #[Swag.Complete]
         switch .markerForm
@@ -347,7 +347,7 @@ private impl Circular
     }
 
     // Circle marker
-    mtd drawCircleMarker(painter: *Painter, color: Color, value: f32)
+    mtd drawCircleMarker(painter: #nonull *Painter, color: Color, value: f32)
     {
         let angle        = .valueToAngle(value)
         let pos          = .getPositionFromAngle(angle)
@@ -362,7 +362,7 @@ private impl Circular
     }
 
     // Needle marker (line from center to current position)
-    mtd drawNeedleMarker(painter: *Painter, color: Color, value: f32)
+    mtd drawNeedleMarker(painter: #nonull *Painter, color: Color, value: f32)
     {
         let angle     = .valueToAngle(value)
         let trackPos  = .getPositionFromAngle(angle)
@@ -385,7 +385,7 @@ private impl Circular
     }
 
     // Main step drawing dispatcher
-    mtd drawSteps(painter: *Painter, color: Color)
+    mtd drawSteps(painter: #nonull *Painter, color: Color)
     {
         #[Swag.Complete]
         switch .stepForm
@@ -400,7 +400,7 @@ private impl Circular
     }
 
     // Dots implementation
-    mtd drawStepDots(painter: *Painter, color: Color)
+    mtd drawStepDots(painter: #nonull *Painter, color: Color)
     {
         if .tickCount <= 1 do
             return
@@ -421,7 +421,7 @@ private impl Circular
     }
 
     // Tick marks implementation
-    mtd drawStepTicks(painter: *Painter, color: Color)
+    mtd drawStepTicks(painter: #nonull *Painter, color: Color)
     {
         if .tickCount <= 1 do
             return
@@ -443,7 +443,7 @@ private impl Circular
         }
     }
 
-    mtd drawCircularTrack(painter: *Painter, color: Color)
+    mtd drawCircularTrack(painter: #nonull *Painter, color: Color)
     {
         let pen = Pen.createSolid(color, 2.0)
         painter.drawCircle(.centerX, .centerY, .radius - .circleGap * 0.5, pen)
@@ -649,7 +649,7 @@ impl Circular
     }
 
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false)->*Circular
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false)->#nonull *Circular
     {
         Debug.assert(parent != null)
         var pos = position

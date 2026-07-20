@@ -1,5 +1,4 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func addOffsetRect(list: #nonull *Pixel.LinePathList, serial: s32, x, y: f32)

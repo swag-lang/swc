@@ -1,6 +1,6 @@
 impl Properties
 {
-    mtd refreshBool(item: *PropertiesItem)
+    mtd refreshBool(item: #nonull *PropertiesItem)
     {
         if item.checkBox
         {
@@ -8,7 +8,7 @@ impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.checked = .Undefined
             else do
-                item.checkBox.checked = dref cast(*bool) item.data ? .Checked : .UnChecked
+                item.checkBox.checked = dref cast(#null *bool) item.data ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
         elif item.comboBox
@@ -17,13 +17,13 @@ impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.selectItem(Swag.U32.Max)
             else do
-                item.comboBox.selectItem(dref cast(*bool) item.data ? 1 : 0)
+                item.comboBox.selectItem(dref cast(#null *bool) item.data ? 1 : 0)
         }
     }
 
-    mtd validateBool(item: *PropertiesItem)
+    mtd validateBool(item: #nonull *PropertiesItem)
     {
-        var data = cast(*bool) item.data
+        var data = cast(#null *bool) item.data
         if item.checkBox do
             dref data = item.checkBox.checked == .Checked ? true : false
         elif item.comboBox
@@ -40,13 +40,13 @@ impl Properties
 
     // Bool shown as a two-entries combo (the BoolCombo attribute): 'off' labels false,
     // 'on' labels true.
-    mtd constructBoolCombo(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    mtd constructBoolCombo(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
 
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(assume item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -59,7 +59,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with let ed = ComboBox.create(item.line, kind: .CheckBox)
+            with let ed = ComboBox.create(assume item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -84,7 +84,7 @@ impl Properties
         }
     }
 
-    mtd constructBool(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    mtd constructBool(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         if Reflection.hasAttribute(value, .BoolCombo)
         {
@@ -96,7 +96,7 @@ impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
-            with let ed = CheckButton.create(itemP.line, itemDisplayName(value).toString())
+            with let ed = CheckButton.create(assume itemP.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
             }

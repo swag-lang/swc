@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // Every command id minted by newCmdId embeds the owning scope name
 // ("ActionSelection.SelectAll"), so an action accepts a command exactly when the
 // id starts with its own scope. This mixin generates the accept() implementation
@@ -32,14 +31,14 @@ struct CmdDesc
 // declared in the table and derive the enabled state from the declared need.
 // Returns false when the command is not in the table, so the caller can handle
 // its custom commands afterwards.
-func updateFromTable(cxt: ActionContext, evt: #nonull *CommandStateEvent, table: const [..] CmdDesc)->bool
+func updateFromTable(cxt: ActionContext, evt: #nonull *CommandStateEvent, table: #nonull const [..] CmdDesc)->bool
 {
     for &d in table
     {
         if d.id != cxt.id do
             continue
 
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = main.getCapture()
 
         var disabled = false

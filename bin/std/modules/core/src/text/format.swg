@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 #global namespace Format
 using Swag
 
@@ -129,7 +128,7 @@ func append(buf: #nonull *ConcatBuffer, fmt: #nonull string, values: ...)
             }
 
             // Optional string format, like '%{whatever}'
-            var strFormat: const [..] u8
+            var strFormat: #null const [..] u8
             if ptr[nextIdx] == '{''u8
             {
                 nextIdx += 1

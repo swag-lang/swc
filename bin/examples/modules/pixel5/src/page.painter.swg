@@ -29,7 +29,7 @@ func buildPainterCards(_source: const &Image)
     setTextureCard(&g_PainterCards[7], "Wide source rect", "drawTexture(dstRect, srcRect)", g_SourceTexture, {sourceRect: wideRect})
 }
 
-func drawPainterPage(painter: *Pixel.Painter)
+func drawPainterPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel painter transforms", "Page 4 : draw-time rotation, sampling, source-rect zoom and scaled presentation on the same texture.")
     for i in CardsPerPage do

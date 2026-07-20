@@ -51,16 +51,16 @@ itself. This is useful for compile-time inspection and validation.
 {
     // Native type -> native typeinfo
     let ptr = bool
-    @assert(#typeof(ptr) == #typeof(const *Swag.TypeInfoNative))
+    @assert(#nameof(#typeof(ptr)) == "const *TypeInfoNative")
 
     // Use '#type' to disambiguate when the expression could be parsed as a value
     let ptr1 = #type [2] s32
-    @assert(#typeof(ptr1) == #typeof(const *Swag.TypeInfoArray))
+    @assert(#nameof(#typeof(ptr1)) == "const *TypeInfoArray")
     @assert(ptr1.name == "[2] s32")
 
     // Array literal -> array typeinfo
     let ptr2 = #typeof([1, 2, 3])
-    @assert(#typeof(ptr2) == #typeof(const *Swag.TypeInfoArray))
+    @assert(#nameof(#typeof(ptr2)) == "const *TypeInfoArray")
     @assert(ptr2.name == "const [3] s32")
 }
 
@@ -78,7 +78,7 @@ array, struct, etc. This is essential when handling types generically.
 
     // Compile-time checks of kind
     using Swag
-    #assert(#typeof(*u8).kind == TypeInfoKind.Pointer) // Pointer
+    #assert(#typeof(#null *u8).kind == TypeInfoKind.Pointer) // Pointer
     #assert(#typeof([1, 2, 3]).kind == TypeInfoKind.Array) // Array
     #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct) // Struct
 }
@@ -107,10 +107,10 @@ the corresponding type. This enables dynamic yet type-safe patterns.
 {
     // Return a typeinfo based on a constexpr condition
     #[Swag.ConstExpr]
-    func getType(needAString: bool)->typeinfo
+    func getType(needAString: bool)->#nonull typeinfo
     {
         if needAString do
-            return string
+            return #null string
         else do
             return s32
     }
@@ -121,6 +121,6 @@ the corresponding type. This enables dynamic yet type-safe patterns.
     x = 0
 
     var x1: #decltype(getType(needAString: true))
-    #assert(#typeof(x1) == string)
+    #assert(#typeof(x1) == #null string)
     x1 = "0"
 }

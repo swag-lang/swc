@@ -16,7 +16,7 @@ enum PropValidation
 struct PropValidationResult
 {
     state:   PropValidation = .None
-    message: string
+    message: #null string
 }
 
 internal impl Properties
@@ -77,7 +77,7 @@ internal impl Properties
     {
         var changed = false
         for it in .items do
-            if .updateItemValidation(it) do
+            if .updateItemValidation(assume it) do
                 changed = true
         return changed
     }
@@ -86,7 +86,7 @@ internal impl Properties
     // the most severe one wins. Items with no notify interface keep whatever was set
     // manually through setItemValidation.
     #[Swag.Discardable]
-    mtd updateItemValidation(item: *PropertiesItem)->bool
+    mtd updateItemValidation(item: #nonull *PropertiesItem)->bool
     {
         var hasNtfy = false
         var result:   PropValidationResult
@@ -118,7 +118,7 @@ internal impl Properties
 
     // Set the validation of an item directly (for validation not driven by a struct).
     #[Swag.Discardable]
-    mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: string = null)->bool
+    mtd setItemValidation(item: #nonull *PropertiesItem, state: PropValidation, message: #null string = null)->bool
     {
         return .applyItemValidation(item, state, message)
     }
@@ -126,7 +126,7 @@ internal impl Properties
     // Draw the colored background of a row's validation bar, in the row line's client space. The
     // severity icon and the message text are drawn by the Label itself (like EmbInfoCtrl), so they
     // stay vertically centered together — see applyValidationVisual for the icon/colors.
-    mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
+    mtd paintValidationBar(painter: #nonull *Painter, item: #nonull *PropertiesItem)
     {
         let lbl = item.validationLabel
         if item.validation == .None or !lbl or !lbl.isVisible() do
@@ -143,7 +143,7 @@ internal impl Properties
     // Apply the bar's theme visuals to the Label: the severity icon (getIcon64, native White tint,
     // like EmbInfoCtrl) plus the embInfo_* text color. Split out so it can be re-run on a theme
     // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
-    mtd applyValidationVisual(item: *PropertiesItem)
+    mtd applyValidationVisual(item: #nonull *PropertiesItem)
     {
         let lbl = item.validationLabel
         if !lbl or item.validation == .None do
@@ -151,14 +151,14 @@ internal impl Properties
         lbl.icon      = .validationIcon(item.validation)
         lbl.iconColor = Argb.White
         lbl.textColor = .validationTextColor(item.validation)
-        .syncValidationTextOffset(lbl)
+        .syncValidationTextOffset(assume lbl)
     }
 
     // Apply an info note's visuals to its label from the CURRENT theme: the info icon (native White
     // tint, like the validation bar) plus the embInfo info text color. Split out so it can be re-run
     // on a theme switch (see onThemeEvent) — a Label's icon/textColor are plain fields, not theme
     // styles, so a note built under one theme would otherwise keep stale colors under the next.
-    mtd applyNoteVisual(item: *PropertiesItem)
+    mtd applyNoteVisual(item: #nonull *PropertiesItem)
     {
         let lbl = item.label
         if !lbl do
@@ -168,7 +168,7 @@ internal impl Properties
         lbl.textColor = .getThemeColors().embInfo_InformationText
     }
 
-    mtd syncValidationTextOffset(lbl: *Label)
+    mtd syncValidationTextOffset(lbl: #nonull *Label)
     {
         let font = lbl.getFont().regular
         if font do
@@ -181,7 +181,7 @@ internal impl Properties
     // row grows downward to make room for it (and shrinks back when the bar is gone). Returns
     // true when it changed the row sizing, so the caller re-runs the row layout.
     #[Swag.Discardable]
-    mtd syncValidationBar(item: *PropertiesItem)->bool
+    mtd syncValidationBar(item: #nonull *PropertiesItem)->bool
     {
         let lbl     = item.validationLabel
         let visible = lbl != null and lbl.isVisible()
@@ -196,7 +196,7 @@ internal impl Properties
             var consume = 0'f32
             if visible
             {
-                .syncValidationTextOffset(lbl)
+                .syncValidationTextOffset(assume lbl)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
                 let cw     = item.line.getClientRect().width
@@ -225,7 +225,7 @@ internal impl Properties
         let w = .listContentWidth()
         lbl.maxSize.x      = w
         lbl.position.width = w
-        .syncValidationTextOffset(lbl)
+        .syncValidationTextOffset(assume lbl)
         lbl.autoHeight()
         return true
     }
@@ -236,7 +236,7 @@ private impl Properties
 {
     // Apply a validation state + message to an item: create/show/hide its message bar.
     // Returns true when the bar's presence or text changed (a relayout is then needed).
-    mtd applyItemValidation(item: *PropertiesItem, state: PropValidation, message: string)->bool
+    mtd applyItemValidation(item: #nonull *PropertiesItem, state: PropValidation, message: #null string)->bool
     {
         if item.validation == state and item.validationMsg == message do
             return false
@@ -263,12 +263,12 @@ private impl Properties
     }
 
     // Lazily create the message-bar label, stacked under the row editor.
-    mtd ensureValidationLabel(item: *PropertiesItem)
+    mtd ensureValidationLabel(item: #nonull *PropertiesItem)
     {
         if item.validationLabel do
             return
 
-        with let lbl = Label.create(item.line, "", {0, 0, .position.width, 0})
+        with let lbl = Label.create(assume item.line, "", {0, 0, .position.width, 0})
         {
             .labelFlags |= .WordWrap | .AutoHeight
             .horzAlignmentText = .Left

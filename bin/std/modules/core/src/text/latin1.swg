@@ -1,6 +1,5 @@
 #global public
 #global namespace Latin1
-#global #[Swag.ExplicitNullability]
 using Swag
 
 #[Inline, ConstExpr]

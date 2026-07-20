@@ -53,11 +53,11 @@ struct EditBox
     maxLength:            s32                                      // Maximum number of runes (0 = unlimited)
     rightMargin:          f32                                      // Extra right margin inside the client rectangle
 
-    sigChanged:           SigArray'func||(*EditBox)                // Emitted when the text changes
-    sigLoseFocus:         SigArray'func||(*EditBox)                // Emitted when the EditBox loses focus
-    sigEnterPressed:      SigArray'func||(*EditBox)                // Emitted when Enter is pressed
-    sigEscapePressed:     SigArray'func||(*EditBox)                // Emitted when Escape is pressed
-    sigCheckContent:      func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
+    sigChanged:           SigArray'func||(#nonull *EditBox)                // Emitted when the text changes
+    sigLoseFocus:         SigArray'func||(#nonull *EditBox)                // Emitted when the EditBox loses focus
+    sigEnterPressed:      SigArray'func||(#nonull *EditBox)                // Emitted when Enter is pressed
+    sigEscapePressed:     SigArray'func||(#nonull *EditBox)                // Emitted when Escape is pressed
+    sigCheckContent:      func||(#nonull *EditBox)->EditBoxCheckResult     // Optional custom validator
 
     internal
     {
@@ -78,8 +78,8 @@ struct EditBox
         isHot:              bool                     // True while the mouse is hovering
         isDragging:         bool                     // True while the user is selecting text
         selBeg, selEnd:     u64                      // Selection start/end (byte indices)
-        timerCaret:         *Timer                   // Blinking‑caret timer
-        clearBtn:           *IconButton              // Optional clear button instance
+        timerCaret:         #null *Timer                   // Blinking‑caret timer
+        clearBtn:           #null *IconButton              // Optional clear button instance
         clearBtnTextMargin: f32                      // Text margin reserved for the clear button
         visibleCaret:       bool                     // True when the caret should be visible
         posSelBeg:          f32                      // X‑position of selection start in pixels
@@ -92,7 +92,7 @@ struct EditBox
 impl IWnd for EditBox
 {
     // Handles gaining and losing keyboard focus.
-    mtd impl onFocusEvent(evt: *FocusEvent)
+    mtd impl onFocusEvent(evt: #nonull *FocusEvent)
     {
         switch evt.kind
         {
@@ -105,7 +105,7 @@ impl IWnd for EditBox
 
         case KillFocus:
             .sigLoseFocus.call(me)
-            .surface.app.deleteTimer(.timerCaret)
+            .surface.app.deleteTimer(assume .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -113,7 +113,7 @@ impl IWnd for EditBox
     }
 
     // Renders the EditBox, including background, border, text, selection and caret.
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         .syncClearButton()
 
@@ -125,8 +125,8 @@ impl IWnd for EditBox
         let metrics = .getThemeMetrics()
         let rects   = .getThemeRects()
 
-        var subRectBk:     *ThemeImageRect
-        var subRectBorder: *ThemeImageRect
+        var subRectBk:     #null *ThemeImageRect
+        var subRectBorder: #null *ThemeImageRect
         var colorBk:       Color = undefined
         var colorBorder:   Color = undefined
         var colorText:     Color = undefined
@@ -269,7 +269,7 @@ impl IWnd for EditBox
     }
 
     // Processes mouse interaction with the EditBox (clicks, drags, hover, wheel).
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
@@ -321,7 +321,7 @@ impl IWnd for EditBox
     }
 
     // Blinking caret timer handler.
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
     {
         .visibleCaret = !.visibleCaret
 
@@ -335,7 +335,7 @@ impl IWnd for EditBox
     }
 
     // Handles keyboard input (navigation, edition, clipboard shortcuts, etc.).
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         if evt.kind == .KeyPressed
         {
@@ -520,7 +520,7 @@ private impl EditBox
     }
 
     // Inserts a raw UTF‑8 slice without validation.
-    mtd insertUtf8(s: string)
+    mtd insertUtf8(s: #null string)
     {
         .deleteSelectionPrivate()
         .text.insert(.selEnd, s)
@@ -1034,7 +1034,7 @@ impl EditBox
 {
     // Factory method that creates a new EditBox instance.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = EditBoxFlags.AutoLoseFocus)->*EditBox
+    func create(parent: #nonull *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = EditBoxFlags.AutoLoseFocus)->#nonull *EditBox
     {
         var pos = position
         if pos.height == 0 do
@@ -1075,14 +1075,14 @@ impl EditBox
     }
 
     // Defines the placeholder (note) text.
-    mtd setNote(note: string)
+    mtd setNote(note: #nonull string)
     {
         .name = note
         .invalidate()
     }
 
     // Assigns the EditBox content without emitting change notifications.
-    mtd setTextSilent(str: string)
+    mtd setTextSilent(str: #null string)
     {
         .sigChanged.disable()
         .setText(str)
@@ -1103,7 +1103,7 @@ impl EditBox
     }
 
     // Returns the current text as a String.
-    mtd getText()->string
+    mtd getText()->#nonull string
     {
         return .text.toString()
     }

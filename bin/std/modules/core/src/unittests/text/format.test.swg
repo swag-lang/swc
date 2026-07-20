@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertFormatString(value: const &String, expected: string)->bool
+func assertFormatString(value: const &String, expected: #nonull string)->bool
 {
     let text = value.toString()
     return value == expected and

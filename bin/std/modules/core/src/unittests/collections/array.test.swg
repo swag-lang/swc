@@ -42,7 +42,7 @@ func resetArrayDropTrace()
     ArrayDropMask = 0
 }
 
-func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
+func assertIntArray(values: const &Array's32, expected: #nonull const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -56,7 +56,7 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     return true
 }
 
-func assertStringArray(values: const &Array'String, expected: const [..] string)->bool
+func assertStringArray(values: const &Array'String, expected: #nonull const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -70,7 +70,7 @@ func assertStringArray(values: const &Array'String, expected: const [..] string)
     return true
 }
 
-func assertStringSlice(values: const [..] String, expected: const [..] string)->bool
+func assertStringSlice(values: #nonull const [..] String, expected: #nonull const [..] string)->bool
 {
     if @countof(values) != @countof(expected) do
         return false
@@ -84,7 +84,7 @@ func assertStringSlice(values: const [..] String, expected: const [..] string)->
     return true
 }
 
-func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expected: const [..] string)->bool
+func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expected: #nonull const [..] string)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -169,7 +169,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     let seed: [4] s32 = [4, 1, 3, 2]
     values.add(seed)
 
-    let asSlice = cast([..] s32) values
+    let asSlice = cast(#nonull [..] s32) values
     @assert(@countof(asSlice) == 4)
     @assert(asSlice[0] == 4)
     @assert(asSlice[3] == 2)
@@ -270,7 +270,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     @assert(@countof(values) == 4)
-    let raw = cast(const [*] s32) @dataof(values)
+    let raw = cast(#null const [*] s32) @dataof(values)
     @assert(raw != null)
     @assert(raw[0] == 5)
     @assert(raw[3] == 3)
@@ -281,7 +281,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     let expectedAssigned: [4] s32 = [5, 9, 5, 3]
     @assert(assertIntArray(values, expectedAssigned))
 
-    var none: [..] s32 = null
+    var none: #null [..] s32 = null
     values.add(none)
     @assert(assertIntArray(values, expectedAssigned))
 

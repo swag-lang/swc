@@ -13,29 +13,29 @@ struct FileBrowserCtrl
 {
     using wnd:        Wnd
 
-    treeCtrl:         *ListCtrl
+    treeCtrl:         #null *ListCtrl
     treePathStr:      Array'String
-    listCtrl:         *ListCtrl
-    comboPath:        *ComboBox
+    listCtrl:         #null *ListCtrl
+    comboPath:        #null *ComboBox
     comboPathStr:     Array'String
-    editFile:         *EditBox
-    comboType:        *ComboBox
+    editFile:         #null *EditBox
+    comboType:        #null *ComboBox
     options:          FileDlgOptions
 
     curFolder:        String
     curList:          Array'FileInfo
 
     // A file/folder was activated (double-click or Enter on a non-directory).
-    sigAccept:        SigArray'func||(*FileBrowserCtrl)
+    sigAccept:        SigArray'func||(#nonull *FileBrowserCtrl)
     // The current folder changed.
-    sigFolderChanged: SigArray'func||(*FileBrowserCtrl)
+    sigFolderChanged: SigArray'func||(#nonull *FileBrowserCtrl)
     // The user requested the creation of a new folder (host shows the prompt).
-    sigNewFolder:     SigArray'func||(*FileBrowserCtrl)
+    sigNewFolder:     SigArray'func||(#nonull *FileBrowserCtrl)
 }
 
 impl IWnd for FileBrowserCtrl
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         if .options.state
         {
@@ -94,7 +94,7 @@ private impl FileBrowserCtrl
             var icon = .getApp().getSpecialDirectoryIcon(v.type, true)
             icon.color       = Pixel.Argb.White
             l                = .treeCtrl.createLine(v.name, icon)
-            l.userData0      = cast(*void) .treePathStr.count
+            l.userData0      = cast(#null *void) .treePathStr.count
             l.leftTextMargin = 10
             .treePathStr.add(c)
         }
@@ -109,7 +109,7 @@ private impl FileBrowserCtrl
             var icon = .getApp().getDirectoryIcon(v, true)
             icon.color       = Pixel.Argb.White
             l                = .treeCtrl.createLine(v.toString(), icon)
-            l.userData0      = cast(*void) .treePathStr.count
+            l.userData0      = cast(#null *void) .treePathStr.count
             l.leftTextMargin = 10
             .treePathStr.add(v)
         }
@@ -124,7 +124,7 @@ private impl FileBrowserCtrl
         }
     }
 
-    mtd createFileList(view: *Wnd)
+    mtd createFileList(view: #nonull *Wnd)
     {
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
@@ -152,7 +152,7 @@ private impl FileBrowserCtrl
                     let l = list.getFocusLine()
                     if !l do
                         break
-                    let fi = cast(const *FileInfo) l.userData0
+                    let fi = cast(#null const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurFolder(fi.fullname)
@@ -169,7 +169,7 @@ private impl FileBrowserCtrl
                 var l = list.getSelectedLine()
                 if !l do
                     return
-                var fi = cast(const *FileInfo) l.userData0
+                var fi = cast(#null const *FileInfo) l.userData0
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurFolder(fi.fullname)
@@ -186,7 +186,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = cast(const *FileInfo) l.userData0
+                    let fi = cast(#null const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -208,8 +208,8 @@ private impl FileBrowserCtrl
             }
             .sigSort = func(l1, l2, col, down)
             {
-                var fi1 = cast(*FileInfo) l1.userData0
-                var fi2 = cast(*FileInfo) l2.userData0
+                var fi1 = cast(#null *FileInfo) l1.userData0
+                var fi2 = cast(#null *FileInfo) l2.userData0
                 if fi1.isDirectory() and !fi2.isDirectory() do
                     return -1
                 if !fi1.isDirectory() and fi2.isDirectory() do
@@ -231,7 +231,7 @@ private impl FileBrowserCtrl
 impl FileBrowserCtrl
 {
     // Creates the file browser composite inside 'parent'.
-    func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
+    func create(parent: #nonull *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->#nonull *FileBrowserCtrl
     {
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
@@ -311,7 +311,7 @@ impl FileBrowserCtrl
                 .addItem("Folders")
             else do
                 for f, idx in opt.filters do
-                    .addItem(f.name, userData0: cast(*void) idx)
+                    .addItem(f.name, userData0: cast(#null *void) idx)
             .selectItem(0)
             .sigChanged += func|fileBrowser|(c, idx)
             {
@@ -352,9 +352,9 @@ impl FileBrowserCtrl
     }
 
     // Navigate to the given folder.
-    mtd setCurFolder(folder: string)
+    mtd setCurFolder(folder: #null string)
     {
-        if !@countof(folder) or !Directory.exists(folder) do
+        if !@countof(folder) or !Directory.exists(assume folder) do
             return
 
         .curFolder = folder
@@ -391,7 +391,7 @@ impl FileBrowserCtrl
 
         // SelectFolder mode has no file filters (it lists folders only): avoid
         // indexing the empty 'filters' array.
-        var filterExtensions: string
+        var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
             let item        = .comboType.getSelectedItem()
@@ -399,7 +399,7 @@ impl FileBrowserCtrl
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
         }
-        let tokens = Tokenize.split(filterExtensions, ';''rune)
+        let tokens = Tokenize.split(filterExtensions orelse "", ';''rune)
 
         for &fi in .curList
         {
@@ -436,7 +436,7 @@ impl FileBrowserCtrl
     }
 
     // Create a folder inside the current folder; returns true on success.
-    mtd createFolder(name: string)->bool
+    mtd createFolder(name: #nonull string)->bool
     {
         let path = Path.combine(.curFolder, name)
         catch Directory.create(path)
@@ -461,7 +461,7 @@ impl FileBrowserCtrl
         var result: retval
 
         // SelectFolder mode has no filters: do not index the empty 'filters' array.
-        var filterExtensions: string
+        var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
             let item        = .comboType.getSelectedItem()
@@ -487,9 +487,9 @@ impl FileBrowserCtrl
             var val = Path.combine(.curFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, filterExtensions)
+            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, assume filterExtensions)
             {
-                let exts = Tokenize.split(filterExtensions, ';''rune)
+                let exts = Tokenize.split(assume filterExtensions, ';''rune)
                 val += exts[0]
             }
 

@@ -52,12 +52,12 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     // Associate pointer to surface with 'hWnd'
     if msg == WM_CREATE
     {
-        let lpcs = cast(*CREATESTRUCTW) cast(u64) lParam
+        let lpcs = cast(#nonull *CREATESTRUCTW) cast(u64) lParam
         SetWindowLongPtrW(hWnd, GWLP_USERDATA, lpcs.lpCreateParams)
     }
 
     // Get 'Surface' pointer
-    let surface = cast(*Surface) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
+    let surface = cast(#null *Surface) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
     if surface
     {
         if msg >= WM_USER
@@ -73,7 +73,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         switch msg
         {
         case WM_CLOSE:
-            postSurfaceSysCommand(surface, .Close)
+            postSurfaceSysCommand(assume surface, .Close)
             return 0
 
         case WM_NCDESTROY:
@@ -174,7 +174,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_GETMINMAXINFO:
-            let mm = cast(*MINMAXINFO) cast(u64) lParam
+            let mm = cast(#nonull *MINMAXINFO) cast(u64) lParam
 
             // Enforce the surface min/max size during interactive (border-drag) resizing,
             // which is handled by the OS sizing loop and only honours the track sizes.
@@ -219,16 +219,16 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             switch wParam & 0xFFF0
             {
             case SC_MINIMIZE:
-                postSurfaceSysCommand(surface, .Minimize)
+                postSurfaceSysCommand(assume surface, .Minimize)
                 return 0
             case SC_MAXIMIZE:
-                postSurfaceSysCommand(surface, .Maximize)
+                postSurfaceSysCommand(assume surface, .Maximize)
                 return 0
             case SC_CLOSE:
-                postSurfaceSysCommand(surface, .Close)
+                postSurfaceSysCommand(assume surface, .Close)
                 return 0
             case SC_RESTORE:
-                postSurfaceSysCommand(surface, .Restore)
+                postSurfaceSysCommand(assume surface, .Restore)
                 return 0
             }
         }
@@ -264,7 +264,7 @@ private impl Surface
 
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
-            wc.cbWndExtra    = #sizeof(*void)
+            wc.cbWndExtra    = #sizeof(#null *void)
             wc.style         = CS_OWNDC | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW
             wc.lpfnWndProc   = cast() &winProc
             wc.hCursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
@@ -286,7 +286,7 @@ private impl Surface
         }
 
         // Create window
-        result.hWnd = cast(const *void) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
+        result.hWnd = cast(#null const *void) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
 
         result.applyNativeDwmStyle()
 

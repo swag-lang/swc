@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct ActionImage {}
 
 var g_KeepRatio:  bool = true
@@ -37,7 +36,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -53,7 +52,7 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         // The backImgOriginal snapshot (which enables "Restore to Original") is taken lazily

@@ -45,7 +45,7 @@ struct TabItem
     using item:     Item
     pos:            f32
     width:          f32
-    view:           *Wnd
+    view:           #null *Wnd
     aniImg:         BlendColor
     aniBorder:      BlendColor
     aniText:        BlendColor
@@ -63,11 +63,11 @@ struct Tab
     itemAutoLayoutMargin:     f32 = 25
     itemMinWidth:             f32 = 25
 
-    sigSelChanged:            SigArray'func||(*Tab)
+    sigSelChanged:            SigArray'func||(#nonull *Tab)
 
-    buttonPopup:              *IconButton
+    buttonPopup:              #null *IconButton
     views:                    ArrayPtr'TabItem
-    popup:                    *PopupListCtrl
+    popup:                    #null *PopupListCtrl
     selectedIdx:              u32
     firstVisibleIdx:          u32
     hotIdx:                   u32 = Swag.U32.Max
@@ -77,7 +77,7 @@ struct Tab
 
 impl IWnd for Tab
 {
-    mtd paintItem(painter: *Painter, v: *TabItem, idx: u32)
+    mtd paintItem(painter: #nonull *Painter, v: #nonull *TabItem, idx: u32)
     {
         var clientRect = .getClientRect()
         clientRect.height = Math.min(.barHeight, clientRect.height)
@@ -92,8 +92,8 @@ impl IWnd for Tab
         let rects   = .getThemeRects()
 
         // Item image
-        var subRect:       *ThemeImageRect
-        var subRectBorder: *ThemeImageRect
+        var subRect:       #null *ThemeImageRect
+        var subRectBorder: #null *ThemeImageRect
         var colorImg:      Color
         var colorText:     Color
         var colorBorder:   Color
@@ -203,7 +203,7 @@ impl IWnd for Tab
         Theme.drawIconText(painter, labelPos, v.icon, &v.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let painter = evt.bc.painter
         let theme   = .getTheme()
@@ -227,7 +227,7 @@ impl IWnd for Tab
         }
 
         // Paint border and back
-        var subRect: *ThemeImageRect
+        var subRect: #null *ThemeImageRect
         var colorBk: Color
 
         var clientRect = .getClientRect()
@@ -255,15 +255,15 @@ impl IWnd for Tab
                 let v = .views[idx]
                 if v.pos + v.width > clientRect.right() do
                     break
-                .paintItem(painter, v, cast(u32) idx)
+                .paintItem(painter, assume v, cast(u32) idx)
             }
 
             // Paint selected item
-            .paintItem(painter, .views[.selectedIdx], .selectedIdx)
+            .paintItem(painter, assume .views[.selectedIdx], .selectedIdx)
         }
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         if .views.isEmpty() do
             return
@@ -281,7 +281,7 @@ impl IWnd for Tab
         }
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         let hit = .hitTest(evt.surfacePos)
         if hit != .hotIdx
@@ -480,7 +480,7 @@ private impl Tab
 impl Tab
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Tab
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *Tab
     {
         Debug.assert(parent != null)
         let res = Wnd.create'Tab(parent, null, position, id)
@@ -573,7 +573,7 @@ impl Tab
     }
 
     // Returns the current selected item, or 'null'
-    mtd getSelectedItem()->*TabItem
+    mtd getSelectedItem()->#null *TabItem
     {
         Debug.assert(.selectedIdx < .views.count)
         return .views[.selectedIdx]

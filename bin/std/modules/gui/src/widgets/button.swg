@@ -5,8 +5,8 @@ public struct Button
     icon:                Icon
     iconSizeX:           f32
     iconSizeY:           f32
-    sigPressed:          SigArray'func||(*Button)
-    sigRightPressed:     SigArray'func||(*Button)
+    sigPressed:          SigArray'func||(#nonull *Button)
+    sigRightPressed:     SigArray'func||(#nonull *Button)
     isPressed:           bool
     isPressing:          bool
     isHot:               bool
@@ -15,13 +15,13 @@ public struct Button
 
 impl IWnd for Button
 {
-    mtd impl onStateEvent(evt: *StateEvent)
+    mtd impl onStateEvent(evt: #nonull *StateEvent)
     {
         if evt.kind == .Hide or evt.kind == .Disable do
             .clearPointerState()
     }
 
-    mtd impl onApplyStateEvent(evt: *CommandStateEvent)
+    mtd impl onApplyStateEvent(evt: #nonull *CommandStateEvent)
     {
         if evt.id != .id do
             return
@@ -59,7 +59,7 @@ impl Button
         .invalidate()
     }
 
-    mtd processMouseEvent(evt: *MouseEvent)->bool
+    mtd processMouseEvent(evt: #nonull *MouseEvent)->bool
     {
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind

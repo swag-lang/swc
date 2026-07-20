@@ -1,6 +1,6 @@
 #global public
 
-alias WndId = string
+alias WndId = #null string
 
 #[Swag.Mixin]
 func newCmdId(val: #nonull string)

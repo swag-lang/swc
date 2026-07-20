@@ -1,6 +1,5 @@
 #global #if WINDOWS
 #global namespace Env
-#global #[Swag.ExplicitNullability]
 using Win32
 
 public const EndLine = "\r\n"

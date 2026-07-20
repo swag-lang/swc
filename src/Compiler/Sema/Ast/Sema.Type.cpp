@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -104,11 +105,43 @@ namespace
         }
     }
 
+    // A type appearing as a switch case expression or as a comparison operand is used
+    // as a typeinfo VALUE (`case string:`, `#typeof(x) == const *s32`); requiring an
+    // annotation there would be meaningless noise, and for comparisons against inferred
+    // (bare) types it would even change the result. Generic value parameters
+    // (`mtd(op: string)`) are compile-time constants, likewise irrelevant.
+    bool isNullabilityExemptContext(Sema& sema)
+    {
+        const AstNode* parentNode = sema.visit().parentNode();
+        // A parentless type node is a compiler-driven re-sema (e.g. a generic value
+        // parameter's type semaed in isolation during instantiation), never a user
+        // declaration site.
+        if (!parentNode)
+            return true;
+        switch (parentNode->id())
+        {
+            case AstNodeId::SwitchCaseStmt:
+            case AstNodeId::GenericParamValue:
+            case AstNodeId::RelationalExpr:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     Result checkExplicitNullability(Sema& sema, AstNodeRef typeNodeRef, TypeRef typeRef)
     {
         if (!sema.buildCfg().explicitNullability && !sema.frame().currentAttributes().explicitNullability)
             return Result::Continue;
+
+        // Machine-generated import files (module exports) can carry inferred types without
+        // qualifiers; explicit nullability is a lint for hand-written source only.
+        const SourceFile* file = sema.file();
+        if (file && file->isImportedApi())
+            return Result::Continue;
         if (isWrappedByContainerType(sema))
+            return Result::Continue;
+        if (isNullabilityExemptContext(sema))
             return Result::Continue;
 
         TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -432,7 +465,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     }
 
     sema.setType(sema.curNodeRef(), typeRef);
-    return Result::Continue;
+    // A qualified type absorbs the nullability check of its wrapped type (the inner
+    // node defers to this wrapper): a bare `const *T` still requires #null/#nonull.
+    return checkExplicitNullability(sema, sema.curNodeRef(), typeRef);
 }
 
 Result AstNamedType::semaPostNode(Sema& sema) const

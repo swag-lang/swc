@@ -1,5 +1,4 @@
 #global namespace Tga
-#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 const TYPE_MAP      = 1

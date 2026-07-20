@@ -593,7 +593,7 @@ namespace Swag
     struct AttributeParam
     {
         name:      #null string     // Name of the attribute parameter
-        value:     any              // Optional default value
+        value:     #null any        // Optional default value
     }
 
     struct Attribute

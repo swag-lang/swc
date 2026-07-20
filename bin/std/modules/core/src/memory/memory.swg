@@ -1,6 +1,5 @@
 #global public
 #global namespace Memory
-#global #[Swag.ExplicitNullability]
 using Swag
 
 // Copy one block of memory to a given address

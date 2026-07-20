@@ -143,7 +143,9 @@ private func typeValueCrc(val: Swag.TypeValue)->u32
 {
     if val.crc do
         return val.crc
-    return Hash.Crc32.compute(val.name)
+    if val.name == null do
+        return 0
+    return Hash.Crc32.compute(assume val.name)
 }
 
 private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
@@ -177,37 +179,38 @@ private func registerTypeNoLock(type: #null typeinfo)->bool
         g_HashNameToType.add(type.name, type)
 
     if type.fullname != null and type.fullname != "" do
-        addCrcToTypeAlias(Hash.Crc32.compute(type.fullname), type)
+        addCrcToTypeAlias(Hash.Crc32.compute(assume type.fullname), type)
     if type.name != null and type.name != "" do
-        addCrcToTypeAlias(Hash.Crc32.compute(type.name), type)
+        addCrcToTypeAlias(Hash.Crc32.compute(assume type.name), type)
 
     return true
 }
 
-private func registerTypeGraphNoLock(type: typeinfo)
+private func registerTypeGraphNoLock(type: #null typeinfo)
 {
     if !registerTypeNoLock(type) do
         return
 
-    switch type.kind
+    let nnType = assume type
+    switch nnType.kind
     {
     case .Alias:
-        let typeAlias = cast(#nonull const *TypeInfoAlias) type
+        let typeAlias = cast(#nonull const *TypeInfoAlias) nnType
         registerTypeGraphNoLock(typeAlias.rawType)
     case .Array:
-        let typeArray = cast(#nonull const *TypeInfoArray) type
+        let typeArray = cast(#nonull const *TypeInfoArray) nnType
         registerTypeGraphNoLock(typeArray.pointedType)
     case .Enum:
-        let typeEnum = cast(#nonull const *TypeInfoEnum) type
+        let typeEnum = cast(#nonull const *TypeInfoEnum) nnType
         registerTypeGraphNoLock(typeEnum.rawType)
     case .Pointer:
-        let typePointer = cast(#nonull const *TypeInfoPointer) type
+        let typePointer = cast(#nonull const *TypeInfoPointer) nnType
         registerTypeGraphNoLock(typePointer.pointedType)
     case .Slice:
-        let typeSlice = cast(#nonull const *TypeInfoSlice) type
+        let typeSlice = cast(#nonull const *TypeInfoSlice) nnType
         registerTypeGraphNoLock(typeSlice.pointedType)
     case .Struct:
-        let typeStruct = cast(#nonull const *TypeInfoStruct) type
+        let typeStruct = cast(#nonull const *TypeInfoStruct) nnType
         for &field in typeStruct.fields do
             registerTypeGraphNoLock(field.pointedType)
         for &generic in typeStruct.generics do
@@ -310,7 +313,7 @@ func crcToType(crc: u32)->#null typeinfo
 }
 
 // Convert a crc to a registered typeinfo
-func nameToType(name: string)->#null typeinfo
+func nameToType(name: #nonull string)->#null typeinfo
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashNameToType.tryFind(name)

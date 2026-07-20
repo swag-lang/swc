@@ -1,5 +1,3 @@
-#global #[Swag.ExplicitNullability]
-
 #run
 {
     let itf = @compiler

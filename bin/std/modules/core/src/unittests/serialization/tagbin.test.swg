@@ -120,15 +120,15 @@ struct TagBinConversionTarget
 
 struct TagBinTypeInfoPayload
 {
-    primitive:   typeinfo
-    staticArray: typeinfo
-    payload:     typeinfo
+    primitive:   #null typeinfo
+    staticArray: #null typeinfo
+    payload:     #null typeinfo
 }
 
 public interface ITagBinScore
 {
     mtd score()->s32;
-    mtd labelText()->string;
+    mtd labelText()->#nonull string;
 }
 
 public struct TagBinInterfaceProbe
@@ -140,7 +140,7 @@ public struct TagBinInterfaceProbe
 public impl ITagBinScore for TagBinInterfaceProbe
 {
     mtd impl score()->s32 => .value + 5
-    mtd impl labelText()->string => .label.toString()
+    mtd impl labelText()->#nonull string => .label.toString()
 }
 
 struct TagBinInterfacePayload
@@ -164,7 +164,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
     mtd impl read(_decoder: Serialization.IDecoder)->bool throw => false
     mtd impl write(_encoder: Serialization.IEncoder)->bool throw => false
 
-    mtd impl readElement(type: TypeValue, data: *void, decoder: Serialization.IDecoder)->bool throw
+    mtd impl readElement(type: TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool throw
     {
         if type.name == "remapped"
         {
@@ -172,7 +172,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
                 return true
             defer #noerr decoder.endField(type)
 
-            dref cast(*s32) data = decoder.readS32() - 6
+            dref cast(#null *s32) data = decoder.readS32() - 6
             return true
         }
 
@@ -185,8 +185,8 @@ public impl Serialization.ISerialize for TagBinHookPayload
             let raw = decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
 
-            let values = cast(*Array'u8) data
-            let rawPtr = cast([*] u8) raw
+            let values = cast(#null *Array'u8) data
+            let rawPtr = cast(#null [*] u8) raw
             values.clear()
             for i in 4 do
                 values.add(rawPtr[3 - i])
@@ -196,14 +196,14 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl writeElement(type: TypeValue, data: const *void, encoder: Serialization.IEncoder)->bool throw
+    mtd impl writeElement(type: TypeValue, data: #null const *void, encoder: Serialization.IEncoder)->bool throw
     {
         if type.name == "remapped"
         {
             encoder.beginField(type)
             defer #noerr encoder.endField(type)
 
-            encoder.writeS32(dref cast(const *s32) data + 10)
+            encoder.writeS32(dref cast(#null const *s32) data + 10)
             return true
         }
 
@@ -212,7 +212,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             encoder.beginField(type)
             defer #noerr encoder.endField(type)
 
-            let values = cast(const *Array'u8) data
+            let values = cast(#null const *Array'u8) data
             encoder.writeBufferU8(values.buffer, values.count)
             return true
         }
@@ -220,9 +220,9 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl postRead(data: *void, _decoder: Serialization.IDecoder) throw
+    mtd impl postRead(data: #null *void, _decoder: Serialization.IDecoder) throw
     {
-        let value = cast(*TagBinHookPayload) data
+        let value = cast(#null *TagBinHookPayload) data
         value.postReadSeen = true
         value.direct += 1
     }
@@ -260,7 +260,7 @@ func(T) encodeTagBin(value: T)->String
     return buffer.toString()
 }
 
-func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
+func findTagBinFieldSeek(bytes: #nonull const [..] u8, fieldName: #nonull string)->u64
 {
     var stream = ByteStream.openRead(bytes)
     @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Root)
@@ -296,7 +296,7 @@ func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
     return 0
 }
 
-func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+func corruptTagBinFieldType(bytes: String, fieldName: #nonull string, typeCrc: u32)->Array'u8
 {
     var result: retval
     result.add(bytes.toSlice())
@@ -308,7 +308,7 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
     return result
 }
 
-func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+func corruptTagBinInterfaceObjectType(bytes: String, fieldName: #nonull string, typeCrc: u32)->Array'u8
 {
     var result: retval
     result.add(bytes.toSlice())
@@ -320,7 +320,7 @@ func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc:
     return result
 }
 
-func assertS32Array(values: const &Array's32, expected: const [..] s32)->bool
+func assertS32Array(values: const &Array's32, expected: #nonull const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -348,7 +348,7 @@ func assertCompressedBlob(values: const &Array'u8)->bool
     return true
 }
 
-func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
+func assertU32Array(values: const &Array'u32, expected: #nonull const [..] u32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -362,9 +362,9 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
     return true
 }
 
-func releaseTagBinInterface(value: *ITagBinScore)
+func releaseTagBinInterface(value: #nonull *ITagBinScore)
 {
-    let runtime = cast(*Swag.Interface) value
+    let runtime = cast(#nonull *Swag.Interface) value
     if runtime.obj
     {
         Memory.delete(runtime.obj, #typeof(TagBinInterfaceProbe))
@@ -618,7 +618,7 @@ func releaseTagBinInterface(value: *ITagBinScore)
     @assert(decoded != null)
     @assert(decoded.other == 19)
 
-    let runtime = cast(*Swag.Interface) &decoded.score
+    let runtime = cast(#nonull *Swag.Interface) &decoded.score
     @assert(runtime.obj == null)
     @assert(runtime.itable == null)
 

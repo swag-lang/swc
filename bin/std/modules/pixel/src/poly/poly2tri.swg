@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 /*
     :LICENCE
     This code is based on the Poly2Tri library (https://github.com/jhasse/poly2tri)

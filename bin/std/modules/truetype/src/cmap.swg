@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func lookupCMap4(cmap: #null const [..] u8, charCode: u32)->u32 throw

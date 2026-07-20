@@ -6,7 +6,7 @@ func(T) comparePair(values: [2] T, cb: func||(T, T)->s32)->bool
     return cb(values[0], values[1]) < 0
 }
 
-func(T, U) mapFirst(values: const [..] T, cb: func||(T)->U)->U
+func(T, U) mapFirst(values: #nonull const [..] T, cb: func||(T)->U)->U
 {
     return cb(values[0])
 }

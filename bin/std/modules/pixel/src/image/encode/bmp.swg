@@ -1,5 +1,4 @@
 #global namespace Bmp
-#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 public struct Encoder {}

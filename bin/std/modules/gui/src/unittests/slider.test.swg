@@ -6,9 +6,9 @@ var SliderHeadlessStartCount:   u32
 var SliderHeadlessChangedCount: u32
 var SliderHeadlessEndCount:     u32
 
-func sliderHeadlessStart(s: *Slider)   { discard s; SliderHeadlessStartCount += 1 }
-func sliderHeadlessChanged(s: *Slider) { discard s; SliderHeadlessChangedCount += 1 }
-func sliderHeadlessEnd(s: *Slider)     { discard s; SliderHeadlessEndCount += 1 }
+func sliderHeadlessStart(s: #nonull *Slider)   { discard s; SliderHeadlessStartCount += 1 }
+func sliderHeadlessChanged(s: #nonull *Slider) { discard s; SliderHeadlessChangedCount += 1 }
+func sliderHeadlessEnd(s: #nonull *Slider)     { discard s; SliderHeadlessEndCount += 1 }
 
 func sliderHeadlessReset()
 {

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertBytesEqual(lhs, rhs: const [..] u8)->bool
+func assertBytesEqual(lhs, rhs: #nonull const [..] u8)->bool
 {
     if @countof(lhs) != @countof(rhs) do
         return false
@@ -50,10 +50,10 @@ func pushAllocatorAcceptsNull()->bool
     @assert(Memory.align(13, 8) == 16)
     @assert(Memory.align(16, 8) == 16)
     @assert(Memory.align(17, 4) == 20)
-    @assert(Memory.align(13, 0) == #sizeof(*void) * 2)
+    @assert(Memory.align(13, 0) == #sizeof(#nonull *void) * 2)
 
     var buffer: [32] u8
-    let misaligned = cast([*] u8) @dataof(buffer) + 1
+    let misaligned = cast(#nonull [*] u8) @dataof(buffer) + 1
     @assert(cast(u64) misaligned == cast(u64) @dataof(buffer) + 1)
     let alignedValue = Memory.align(cast(u64) misaligned, 8)
     let aligned = Memory.align(misaligned, 8)

@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 
 // Throw a [[Swag.SystemError]]
 func throwWinError(errorMessageID: u32) throw

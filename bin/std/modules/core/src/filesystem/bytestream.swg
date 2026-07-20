@@ -1,10 +1,9 @@
-#global #[Swag.ExplicitNullability]
 using Core.Errors
 
 // A stream for reading from or writing to a byte buffer
 public struct ByteStream
 {
-    readBuffer:      const [..] u8     // Buffer used for reading
+    readBuffer:      #null const [..] u8     // Buffer used for reading
     writeBuffer:     #null *Array'u8   // Buffer used for writing
     seek:            u64               // Current read/write position
     eof:             bool              // End-of-file flag for reads
@@ -13,7 +12,7 @@ public struct ByteStream
 public impl ByteStream
 {
     // Creates a byte stream for reading from a buffer
-    func openRead(readBuffer: const [..] u8)->ByteStream
+    func openRead(readBuffer: #nonull const [..] u8)->ByteStream
     {
         var result: retval
         result.readBuffer = readBuffer
@@ -29,7 +28,7 @@ public impl ByteStream
     }
 
     // Returns a slice of unread bytes from the current seek to the end
-    mtd remainReadToSlice()->const [..] u8
+    mtd remainReadToSlice()->#null const [..] u8
     {
         return @mkslice(.readData() + .seek, .length() - .seek)
     }
@@ -49,7 +48,7 @@ public impl ByteStream
     // Returns a pointer to the underlying read or write buffer
     mtd readData()->#nonull const [*] u8
     {
-        return .writeBuffer ? .writeBuffer.buffer : @dataof(.readBuffer)
+        return .writeBuffer ? assume .writeBuffer.buffer : assume @dataof(.readBuffer)
     }
 
     // Returns true if the end of the buffer was reached during reading
@@ -73,7 +72,7 @@ public impl ByteStream
     }
 
     // Writes a slice of bytes to the stream
-    mtd writeBytes(slice: const [..] u8)
+    mtd writeBytes(slice: #nonull const [..] u8)
     {
         Debug.assert(.writeBuffer != null)
 

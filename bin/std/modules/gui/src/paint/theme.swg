@@ -45,7 +45,7 @@ private struct DefaultThemeImages
 
 private var g_DefaultThemeImages: DefaultThemeImages
 
-private func defaultThemeImages()->*DefaultThemeImages
+private func defaultThemeImages()->#nonull *DefaultThemeImages
 {
     let cache = &g_DefaultThemeImages
     Sync.scopedLock(&cache.lock)
@@ -64,17 +64,17 @@ private func defaultThemeImages()->*DefaultThemeImages
 struct ThemeResources
 {
     imgWidgets:              Texture
-    icons24:                 *ImageList
-    icons64:                 *ImageList
-    spin:                    *ImageList
-    defaultTypeFaceR:        *TypeFace
-    defaultTypeFaceB:        *TypeFace
-    defaultTypeFaceI:        *TypeFace
-    defaultTypeFaceBI:       *TypeFace
-    defaultFsTypeFaceR:      *TypeFace
-    defaultFsTypeFaceB:      *TypeFace
-    defaultFsTypeFaceI:      *TypeFace
-    defaultFsTypeFaceBI:     *TypeFace
+    icons24:                 #null *ImageList
+    icons64:                 #null *ImageList
+    spin:                    #null *ImageList
+    defaultTypeFaceR:        #null *TypeFace
+    defaultTypeFaceB:        #null *TypeFace
+    defaultTypeFaceI:        #null *TypeFace
+    defaultTypeFaceBI:       #null *TypeFace
+    defaultFsTypeFaceR:      #null *TypeFace
+    defaultFsTypeFaceB:      #null *TypeFace
+    defaultFsTypeFaceI:      #null *TypeFace
+    defaultFsTypeFaceBI:     #null *TypeFace
     fontDefault:             FontFamily
     fontDefaultFs:           FontFamily
 }
@@ -97,7 +97,7 @@ impl Theme
         Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: *RenderOgl)
+    private mtd setupDefault(renderer: #nonull *RenderOgl)
     {
         .intialized = true
         .colors.setDark()
@@ -140,15 +140,15 @@ impl Theme
             catch createGuiTypeFace(&.defaultFsTypeFaceI, DefaultFontFsItalicName, DefaultFontFsItalic)
             catch createGuiTypeFace(&.defaultFsTypeFaceBI, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
-            .fontDefault.regular    = Font.create(.defaultTypeFaceR, me.metrics.defaultFontSize)
-            .fontDefault.bold       = Font.create(.defaultTypeFaceB, me.metrics.defaultFontSize)
-            .fontDefault.italic     = Font.create(.defaultTypeFaceI, me.metrics.defaultFontSize)
-            .fontDefault.boldItalic = Font.create(.defaultTypeFaceBI, me.metrics.defaultFontSize)
+            .fontDefault.regular    = Font.create(assume .defaultTypeFaceR, me.metrics.defaultFontSize)
+            .fontDefault.bold       = Font.create(assume .defaultTypeFaceB, me.metrics.defaultFontSize)
+            .fontDefault.italic     = Font.create(assume .defaultTypeFaceI, me.metrics.defaultFontSize)
+            .fontDefault.boldItalic = Font.create(assume .defaultTypeFaceBI, me.metrics.defaultFontSize)
 
-            .fontDefaultFs.regular    = Font.create(.defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.bold       = Font.create(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.italic     = Font.create(.defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.boldItalic = Font.create(.defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.regular    = Font.create(assume .defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.bold       = Font.create(assume .defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.italic     = Font.create(assume .defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.boldItalic = Font.create(assume .defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
         }
     }
 
@@ -156,46 +156,46 @@ impl Theme
     mtd createDefaultFontfamily(size: u32)->FontFamily
     {
         var result: retval
-        result.regular    = Font.create(.res.defaultTypeFaceR, size)
-        result.bold       = Font.create(.res.defaultTypeFaceB, size)
-        result.italic     = Font.create(.res.defaultTypeFaceI, size)
-        result.boldItalic = Font.create(.res.defaultTypeFaceBI, size)
+        result.regular    = Font.create(assume .res.defaultTypeFaceR, size)
+        result.bold       = Font.create(assume .res.defaultTypeFaceB, size)
+        result.italic     = Font.create(assume .res.defaultTypeFaceI, size)
+        result.boldItalic = Font.create(assume .res.defaultTypeFaceBI, size)
         return result
     }
 
     // Create a default font with the given size
-    mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->*Font
+    mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->#nonull *Font
     {
         #[Swag.Complete]
         switch style
         {
         case Regular:
-            return Font.create(.res.defaultTypeFaceR, size)
+            return Font.create(assume .res.defaultTypeFaceR, size)
         case Bold:
-            return Font.create(.res.defaultTypeFaceB, size)
+            return Font.create(assume .res.defaultTypeFaceB, size)
         case Italic:
-            return Font.create(.res.defaultTypeFaceI, size)
+            return Font.create(assume .res.defaultTypeFaceI, size)
         case BoldItalic:
-            return Font.create(.res.defaultTypeFaceBI, size)
+            return Font.create(assume .res.defaultTypeFaceBI, size)
         }
 
         unreachable
     }
 
     // Create a default font (fixed size) with the given size
-    mtd createDefaultFontFS(size: u32, style = FontFamilyStyle.Regular)->*Font
+    mtd createDefaultFontFS(size: u32, style = FontFamilyStyle.Regular)->#nonull *Font
     {
         #[Swag.Complete]
         switch style
         {
         case Regular:
-            return Font.create(.res.defaultFsTypeFaceR, size)
+            return Font.create(assume .res.defaultFsTypeFaceR, size)
         case Bold:
-            return Font.create(.res.defaultFsTypeFaceB, size)
+            return Font.create(assume .res.defaultFsTypeFaceB, size)
         case Italic:
-            return Font.create(.res.defaultFsTypeFaceI, size)
+            return Font.create(assume .res.defaultFsTypeFaceI, size)
         case BoldItalic:
-            return Font.create(.res.defaultFsTypeFaceBI, size)
+            return Font.create(assume .res.defaultFsTypeFaceBI, size)
         }
 
         unreachable

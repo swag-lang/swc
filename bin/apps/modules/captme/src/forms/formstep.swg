@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 enum FormStepType
 {
     #[Properties.Name("1...2...3...")]

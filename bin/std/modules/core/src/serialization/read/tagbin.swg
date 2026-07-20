@@ -37,12 +37,12 @@ struct TagBin
     options:               TagBinOptions                                   // Configuration options for deserialization behavior
     freeSections:          ArrayPtr'TagBinSection                          // Pool of reusable section objects for memory efficiency
     sections:              ArrayPtr'TagBinSection                          // Stack of active sections during deserialization
-    convertNextNative:     const *Swag.TypeInfoNative                      // Type information for pending native type conversion
+    convertNextNative:     #null const *Swag.TypeInfoNative                      // Type information for pending native type conversion
     convertValToArray:     bool                                            // Flag indicating next value should be converted to array
     convertArrayToVal:     bool                                            // Flag indicating next array should be converted to single value
 
-    outStack:              Array'{ buf: const [..] u8, seek: u64 }
-    elemStack:             Array'{ compressed: bool, tmpBuf: *Buffer }
+    outStack:              Array'{ buf: #null const [..] u8, seek: u64 }
+    elemStack:             Array'{ compressed: bool, tmpBuf: #null *Buffer }
     tmpPool:               ArrayPtr'Buffer
 }
 
@@ -67,11 +67,11 @@ private impl TagBin
 {
     // Create a new section for the deserialization stack.
     // Returns a pointer to a section object, either reused from the free pool or newly allocated.
-    mtd newSection()->*TagBinSection
+    mtd newSection()->#nonull *TagBinSection
     {
         if .freeSections.count
         {
-            let ptr = .freeSections.popBack()
+            let ptr = assume .freeSections.popBack()
             ptr.mapSeek.clear()
             ptr.version = 0
             .sections.add(ptr)
@@ -89,11 +89,11 @@ private impl TagBin
         .freeSections.add(ptr)
     }
 
-    mtd acquireTmpBuf()->*Buffer
+    mtd acquireTmpBuf()->#nonull *Buffer
     {
         if .tmpPool.count
         {
-            let b = .tmpPool.popBack()
+            let b = assume .tmpPool.popBack()
             b.clear()
             return b
         }
@@ -101,7 +101,7 @@ private impl TagBin
         return .tmpPool.newPtr()
     }
 
-    mtd releaseTmpBuf(b: *Buffer)
+    mtd releaseTmpBuf(b: #nonull *Buffer)
     {
         b.clear()
         .tmpPool.add(b)
@@ -116,29 +116,29 @@ private impl TagBin
         if !toType or !fromType do
             return false
 
-        var fromStruct: const *Swag.TypeInfoStruct
-        var toStruct:   const *Swag.TypeInfoStruct
+        var fromStruct: #null const *Swag.TypeInfoStruct
+        var toStruct:   #null const *Swag.TypeInfoStruct
 
         if Reflection.isStruct(fromType) do
-            fromStruct = cast(const *Swag.TypeInfoStruct) fromType
+            fromStruct = cast(#null const *Swag.TypeInfoStruct) fromType
         if Reflection.isStruct(toType) do
-            toStruct = cast(const *Swag.TypeInfoStruct) toType
+            toStruct = cast(#null const *Swag.TypeInfoStruct) toType
 
         // s64/float/bool/rune to s64/float/bool/rune
         if Reflection.isSimpleNative(toType) and Reflection.isSimpleNative(fromType)
         {
-            .convertNextNative = cast(const *Swag.TypeInfoNative) fromType
+            .convertNextNative = cast(#null const *Swag.TypeInfoNative) fromType
             return true
         }
 
         if Reflection.isStaticArray(fromType)
         {
-            let fromArr = cast(const *Swag.TypeInfoArray) fromType
+            let fromArr = cast(#null const *Swag.TypeInfoArray) fromType
 
             // Array to array, this is fine, we will deal with size change
             if Reflection.isStaticArray(toType)
             {
-                let toArr = cast(const *Swag.TypeInfoArray) toType
+                let toArr = cast(#null const *Swag.TypeInfoArray) toType
                 if .canConvertType(toArr.pointedType, fromArr.pointedType) do
                     return true
             }
@@ -175,7 +175,7 @@ private impl TagBin
                 // Dynamic array to Static array
                 if Reflection.isStaticArray(toType)
                 {
-                    let toArr = cast(const *Swag.TypeInfoArray) toType
+                    let toArr = cast(#null const *Swag.TypeInfoArray) toType
                     if .canConvertType(toArr.pointedType, Reflection.getStructArrayType(fromStruct)) do
                         return true
                 }
@@ -198,7 +198,7 @@ private impl TagBin
 
         if Reflection.isStaticArray(toType)
         {
-            let toArr = cast(const *Swag.TypeInfoArray) toType
+            let toArr = cast(#null const *Swag.TypeInfoArray) toType
 
             // Conversion from simple value to array
             if .canConvertType(toArr.pointedType, fromType)
@@ -228,7 +228,7 @@ private impl TagBin
                 for al in aliases
                 {
                     let value = Reflection.getAttributeValue(al, "name")
-                    if cast(string) value == fromType.name
+                    if cast(#null string) value == fromType.name
                     {
                         return true
                     }
@@ -242,7 +242,7 @@ private impl TagBin
 
 impl TagBin
 {
-    mtd peekStructFieldCrcs(fieldCrcs: *Array'u32)->bool throw
+    mtd peekStructFieldCrcs(fieldCrcs: #nonull *Array'u32)->bool throw
     {
         let savedSeek = .stream.getSeek()
         defer .stream.setSeek(savedSeek)
@@ -278,7 +278,7 @@ impl TagBin
 
     // Initialize the deserializer with the given input byte array.
     // Sets up the private byte stream for reading from the provided data buffer.
-    mtd startRead(input: const [..] u8) throw
+    mtd startRead(input: #nonull const [..] u8) throw
     {
         .stream = ByteStream.openRead(input)
     }
@@ -364,7 +364,7 @@ impl TagBin
 
     // Begin reading a struct of the given 'structType'.
     // Returns false for normal struct processing, true for special handling cases.
-    mtd beginStruct(structType: typeinfo, _structData: [*] u8)->bool throw
+    mtd beginStruct(structType: #null typeinfo, _structData: #null [*] u8)->bool throw
     {
         var sig = .stream.readNative'u32()
         if sig == Write.TagBinSignatures.Raw
@@ -456,7 +456,7 @@ impl TagBin
                 {
                     let value = Reflection.getAttributeValue(al, "name")
                     Debug.assert(value != null)
-                    reqCrcName = Hash.Crc32.compute(cast(string) value)
+                    reqCrcName = Hash.Crc32.compute(assume cast(#null string) value)
                     ent        = sec.mapSeek.tryFind(reqCrcName)
                     if ent do
                         break
@@ -500,7 +500,7 @@ impl TagBin
 
                 // Here uncompress to 'tmp'
                 var decompressor: Core.Compress.Inflate
-                decompressor.decompress(decompressedBuffer, .stream.remainReadToSlice())
+                decompressor.decompress(decompressedBuffer, assume .stream.remainReadToSlice())
 
                 // track this element context
                 .elemStack.add({true, decompressedBuffer})
@@ -570,7 +570,7 @@ impl TagBin
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
         .stream.seek       = parentSeek
-        .releaseTmpBuf(ctx.tmpBuf)
+        .releaseTmpBuf(assume ctx.tmpBuf)
     }
 
     // Begin reading a value within the current context.
@@ -589,7 +589,7 @@ impl TagBin
 
     // Begin reading a sequence (array) of elements of type 'typeElem'.
     // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
-    mtd beginSequence(typeElem: typeinfo, data: *u8, countElem: *u64)->bool throw
+    mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: #nonull *u64)->bool throw
     {
         let orgCount = dref countElem
         if .convertValToArray
@@ -648,7 +648,7 @@ impl TagBin
                     throw SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let elemSize = valueType.sizeof
-                let bufArr   = cast(*Array'u8) data
+                let bufArr   = cast(#null *Array'u8) data
                 bufArr.count = dref countElem
                 bufArr.reserve(bufArr.count * elemSize)
                 bufArr.capacity = bufArr.count
@@ -690,7 +690,7 @@ impl TagBin
     // Advance to the next element in the current sequence.
     // Decrements 'countElem' and returns false when no more elements remain.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd toNextSequenceElement(countElem: *u64)->bool
+    mtd toNextSequenceElement(countElem: #nonull *u64)->bool
     {
         if dref countElem == 0 do
             return false

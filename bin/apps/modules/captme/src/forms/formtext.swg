@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 enum FormTextAlign
 {
     LeftTop

@@ -16,25 +16,25 @@ struct PopupListCtrl
     maxHeightPopup:       f32 = 300
     simFitX, simFitY:     bool
 
-    sigSelected:          func||(*PopupListCtrl, u32)
+    sigSelected:          func||(#nonull *PopupListCtrl, u32)
 
     items:                ArrayPtr'PopupListCtrlItem
     selectedIdx           = Swag.U32.Max
-    scrollWnd:            *ScrollWnd
+    scrollWnd:            #null *ScrollWnd
     maxIconSize:          s32
 }
 
 struct PopupListView
 {
     using wnd:     Wnd
-    list:          *PopupListCtrl
+    list:          #null *PopupListCtrl
     hotIdx:        u32 = Swag.U32.Max
     closing:       bool
 }
 
 impl IWnd for PopupListView
 {
-    mtd impl onFocusEvent(evt: *FocusEvent)
+    mtd impl onFocusEvent(evt: #nonull *FocusEvent)
     {
         switch evt.kind
         {
@@ -49,7 +49,7 @@ impl IWnd for PopupListView
     // Keyboard control of the popup when it holds the focus directly. The property
     // grid keeps the focus and forwards keys via PopupListCtrl.key* instead, but a
     // standalone focused popup still works through this path.
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         evt.accepted = false
         if evt.kind != .KeyPressed do
@@ -76,7 +76,7 @@ impl IWnd for PopupListView
         evt.accepted = true
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         let mouseInRect = .getSurfaceRect().contains(evt.surfacePos)
         let pos         = .surfaceToLocal(evt.surfacePos)
@@ -133,7 +133,7 @@ impl IWnd for PopupListView
         return Swag.U32.Max
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let painter = evt.bc.painter
 
@@ -227,11 +227,11 @@ private impl PopupListView
             return
         .closing = true
 
-        if .getApp().mouseCaptureWnd == cast(*Wnd) me do
+        if .getApp().mouseCaptureWnd == cast(#nonull *Wnd) me do
             .releaseMouse()
 
         if .list.sigSelected do
-            .list.sigSelected(.list, idx)
+            .list.sigSelected(assume .list, idx)
         else do
             .list.destroy()
     }
@@ -321,13 +321,13 @@ impl PopupListCtrl
     // Keyboard control forwarded by a host that keeps the focus (e.g. the property
     // grid drives the popup while keeping its own navigation focus, so the keys
     // never leave the page).
-    mtd keyMove(dir: s32)         { let view = cast(*PopupListView) .scrollWnd.view; view.moveHot(dir) }
-    mtd keyHome()                 { let view = cast(*PopupListView) .scrollWnd.view; view.moveHotEdge(forward: true) }
-    mtd keyEnd()                  { let view = cast(*PopupListView) .scrollWnd.view; view.moveHotEdge(forward: false) }
-    mtd keyCancel()               { let view = cast(*PopupListView) .scrollWnd.view; view.close(Swag.U32.Max) }
+    mtd keyMove(dir: s32)         { let view = cast(#null *PopupListView) .scrollWnd.view; view.moveHot(dir) }
+    mtd keyHome()                 { let view = cast(#null *PopupListView) .scrollWnd.view; view.moveHotEdge(forward: true) }
+    mtd keyEnd()                  { let view = cast(#null *PopupListView) .scrollWnd.view; view.moveHotEdge(forward: false) }
+    mtd keyCancel()               { let view = cast(#null *PopupListView) .scrollWnd.view; view.close(Swag.U32.Max) }
     mtd keyCommit()
     {
-        let view = cast(*PopupListView) .scrollWnd.view
+        let view = cast(#null *PopupListView) .scrollWnd.view
         view.close(view.hotIdx)
     }
 
@@ -337,7 +337,7 @@ impl PopupListCtrl
         .scrollWnd.setScrollSize(0, cast(f32) .items.count * .heightItem)
 
         // Highlight the current selection as the keyboard starting point.
-        let startView = cast(*PopupListView) .scrollWnd.view
+        let startView = cast(#null *PopupListView) .scrollWnd.view
         startView.hotIdx = .selectedIdx
 
         let pt  = .parent.surfaceToLocal({x, y})

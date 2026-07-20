@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionAbout {}
@@ -14,7 +13,7 @@ impl IActionUI for ActionAbout
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main = cast(#nonull *MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) assume cxt.wnd
         switch cxt.id
         {
         case About:
@@ -28,7 +27,7 @@ impl IActionUI for ActionAbout
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) assume cxt.wnd
         let view = main.editWnd.editView
 
         const Date = #run Time.DateTime.now()

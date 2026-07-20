@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func addTabSample(tab: *Tab, prefix: string)
+func addTabSample(tab: #nonull *Tab, prefix: #nonull string)
 {
     for 4
     {
@@ -11,7 +11,7 @@ func addTabSample(tab: *Tab, prefix: string)
     }
 }
 
-func createTabPage(parent: *Wnd)
+func createTabPage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Flat", "Classic tabs with real child views and a framed selected page.", layout.left)

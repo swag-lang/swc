@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createCompositePage(parent: *Wnd)
+func createCompositePage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "ColorPickerCtrl with alpha", "Full control with 2D color modes, hue/alpha bars, ARGB edits and screen picker button.", layout.left)

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func fillCity32Pattern(buffer: [..] u8)
+func fillCity32Pattern(buffer: #nonull [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)
@@ -12,7 +12,7 @@ func fillCity32Pattern(buffer: [..] u8)
     }
 }
 
-func assertCity32(buffer: const [..] u8, expected: u32)
+func assertCity32(buffer: #nonull const [..] u8, expected: u32)
 {
     @assert(Hash.City32.compute(buffer) == expected)
 

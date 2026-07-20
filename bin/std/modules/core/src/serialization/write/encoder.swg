@@ -110,31 +110,31 @@ impl Encoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast(const *TypeInfoNative) type
+            let typeNative = cast(#null const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
             case Bool:
-                .serializer.writeNative(dref cast(const *bool) data)
+                .serializer.writeNative(dref cast(#null const *bool) data)
             case U8:
-                .serializer.writeNative(dref cast(const *u8) data)
+                .serializer.writeNative(dref cast(#null const *u8) data)
             case U16:
-                .serializer.writeNative(dref cast(const *u16) data)
+                .serializer.writeNative(dref cast(#null const *u16) data)
             case U32, Rune:
-                .serializer.writeNative(dref cast(const *u32) data)
+                .serializer.writeNative(dref cast(#null const *u32) data)
             case U64:
-                .serializer.writeNative(dref cast(const *u64) data)
+                .serializer.writeNative(dref cast(#null const *u64) data)
             case S8:
-                .serializer.writeNative(dref cast(const *s8) data)
+                .serializer.writeNative(dref cast(#null const *s8) data)
             case S16:
-                .serializer.writeNative(dref cast(const *s16) data)
+                .serializer.writeNative(dref cast(#null const *s16) data)
             case S32:
-                .serializer.writeNative(dref cast(const *s32) data)
+                .serializer.writeNative(dref cast(#null const *s32) data)
             case S64:
-                .serializer.writeNative(dref cast(const *s64) data)
+                .serializer.writeNative(dref cast(#null const *s64) data)
             case F32:
-                .serializer.writeNative(dref cast(const *f32) data)
+                .serializer.writeNative(dref cast(#null const *f32) data)
             case F64:
-                .serializer.writeNative(dref cast(const *f64) data)
+                .serializer.writeNative(dref cast(#null const *f64) data)
             }
 
             return
@@ -142,27 +142,27 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = dref cast(const **TypeInfo) data
+            let typeType = dref cast(#null const **TypeInfo) data
             .serializer.writeNative(typeType ? typeType.crc : 0'u32)
             return
         }
 
         if Reflection.isInterface(type)
         {
-            let itf = cast(const *Swag.Interface) data
+            let itf = cast(#null const *Swag.Interface) data
 
             .serializer.beginSection(.Raw)
             defer #noerr .serializer.endSection()
 
-            var objType, itfType: typeinfo
+            var objType, itfType: #null typeinfo
             if itf.itable
             {
-                objType = dref cast(const *typeinfo) itf.itable
+                objType = dref cast(#null const *typeinfo) itf.itable
                 itfType = type
             }
 
             var typeVal: TypeValue
-            typeVal.pointedType = typeinfo
+            typeVal.pointedType = #typeof(#null typeinfo)
             .writeTypeValue(typeVal, &objType)
 
             if objType
@@ -189,7 +189,7 @@ impl Encoder
             // Core.String
             if type == Core.String
             {
-                let strBuf = cast(const *String) data
+                let strBuf = cast(#null const *String) data
                 .serializer.writeNative(strBuf.toString())
                 return
             }
@@ -199,16 +199,16 @@ impl Encoder
             if valueType
             {
                 let safeValueType = assume valueType
-                let ptrArr  = cast(const *Array'u8) data
+                let ptrArr  = cast(#null const *Array'u8) data
                 let treated = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
                 if !treated
                 {
-                    var bufArr = cast(const [*] u8) ptrArr.buffer
+                    var bufArr = cast(#null const [*] u8) ptrArr.buffer
                     for i in ptrArr.count
                     {
-                        .writeValue(bufArr, safeValueType)
+                        .writeValue(assume bufArr, safeValueType)
                         bufArr += safeValueType.sizeof
                     }
                 }
@@ -225,7 +225,7 @@ impl Encoder
             }
 
             // Start a fields section
-            let structType = cast(const *TypeInfoStruct) type
+            let structType = cast(#null const *TypeInfoStruct) type
             let treated    = .serializer.beginStruct(structType, data)
             defer #noerr .serializer.endStruct()
             if treated do
@@ -242,9 +242,9 @@ impl Encoder
                     throw SerializationError{"missing field pointed type"}
                 let fieldType = assume field.pointedType
 
-                if !itf or !itf.writeElement(field, cast(const [*] u8) data + field.offset, cast(IEncoder) dref &me)
+                if !itf or !itf.writeElement(field, cast(#null const [*] u8) data + field.offset, cast(IEncoder) dref &me)
                 {
-                    .writeTypeValue(field, cast(const [*] u8) data + field.offset)
+                    .writeTypeValue(field, cast(#null const [*] u8) data + field.offset)
                 }
             }
 
@@ -254,7 +254,7 @@ impl Encoder
         // A static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr = cast(const *TypeInfoArray) type
+            let typeArr = cast(#null const *TypeInfoArray) type
             if !typeArr.pointedType do
                 throw SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)
@@ -263,7 +263,7 @@ impl Encoder
             if treated do
                 return
 
-            var bufArr = cast(const [*] u8) data
+            var bufArr = cast(#nonull const [*] u8) data
             for typeArr.count
             {
                 .writeValue(bufArr, elemType)
@@ -279,7 +279,7 @@ impl Encoder
 
     // Write a full struct.
     // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
-    mtd writeAll(result: #nonull *ConcatBuffer, value: any) throw
+    mtd writeAll(result: #nonull *ConcatBuffer, value: #nonull any) throw
     {
         Debug.assert(Reflection.isStruct(@kindof(value)))
         start(me, result)

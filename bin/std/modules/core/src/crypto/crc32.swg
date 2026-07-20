@@ -505,7 +505,7 @@ public impl Crc32
         var length = @countof(data)
         if !length do
             return
-        var current = cast(const [*] u32) @dataof(data)
+        var current = cast(#null const [*] u32) @dataof(data)
 
         var cur           = ~.crc
         const unroll      = 4
@@ -555,7 +555,7 @@ public impl Crc32
             length -= bytesAtOnce
         }
 
-        var currentChar = cast(const [*] u8) current
+        var currentChar = cast(#null const [*] u8) current
         while length
         {
             cur = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]
@@ -568,7 +568,7 @@ public impl Crc32
 
     // Returns the hash value for the given buffer
     #[Swag.ConstExpr]
-    func compute(buffer: const [..] u8)->u32
+    func compute(buffer: #nonull const [..] u8)->u32
     {
         var v: Crc32
         v.init()

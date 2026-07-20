@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: bool, disabledClick: bool)
+func createHeaderBand(parent: #nonull *Wnd, rect: Math.Rectangle, title: #nonull string, round: bool, disabledClick: bool)
 {
     let panel = createPanel(parent, title, "Standalone Header items can be resized, clamped, decorated and marked as sorted.", rect)
     let header = Header.create(panel, {18, 94, rect.width - 36, 34})
@@ -31,7 +31,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     }
 }
 
-func createHeadersPage(parent: *Wnd)
+func createHeadersPage(parent: #nonull *Wnd)
 {
     let layout = getPageLayout(parent)
 

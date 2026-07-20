@@ -1,6 +1,5 @@
 #global public
 #global namespace Utf16
-#global #[Swag.ExplicitNullability]
 
 const RuneError = 0xFFFD'rune
 const Surr1     = 0xd800

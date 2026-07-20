@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionLibFilter {}
@@ -17,7 +16,7 @@ impl IActionUI for ActionLibFilter
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let libWnd = cast(#nonull *LibraryWnd) cxt.wnd
+        let libWnd = cast(#nonull *LibraryWnd) assume cxt.wnd
 
         switch cxt.id
         {
@@ -45,7 +44,7 @@ impl IActionUI for ActionLibFilter
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(#nonull *LibraryWnd) cxt.wnd
+        let libWnd = cast(#nonull *LibraryWnd) assume cxt.wnd
 
         switch cxt.id
         {

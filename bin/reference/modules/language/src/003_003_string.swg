@@ -87,7 +87,7 @@ whether a string has been assigned a value.
 */
 #test
 {
-    var a: string
+    var a: #null string
     @assert(a == null)
     a = "not null"
     @assert(a != null)

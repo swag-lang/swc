@@ -9,7 +9,7 @@ const ComboHeadless_Item3 = "ComboHeadless.Item3"
 var ComboHeadlessChangedCount: u32
 var ComboHeadlessLastIdx:      u32
 
-func comboHeadlessChanged(combo: *ComboBox, idx: u32)
+func comboHeadlessChanged(combo: #nonull *ComboBox, idx: u32)
 {
     discard combo
     ComboHeadlessChangedCount += 1

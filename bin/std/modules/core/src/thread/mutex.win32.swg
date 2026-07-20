@@ -1,7 +1,6 @@
 #global #if WINDOWS
 #global public
 #global namespace Sync
-#global #[Swag.ExplicitNullability]
 using Win32
 
 struct Mutex

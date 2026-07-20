@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 #foreignlib("kernel32")
 using Swag
 

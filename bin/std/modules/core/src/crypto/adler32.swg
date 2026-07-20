@@ -20,7 +20,7 @@ public impl Adler32
     }
 
     // Update the hash value with 'buffer' content
-    mtd update(buffer: const [..] u8)
+    mtd update(buffer: #nonull const [..] u8)
     {
         var s1 = .adler & 0xffff
         var s2 = (.adler >> 16) & 0xffff
@@ -103,7 +103,7 @@ public impl Adler32
 
     // Returns the adler32 hash value for the given buffer
     #[Swag.ConstExpr]
-    func compute(buffer: const [..] u8)->u32
+    func compute(buffer: #nonull const [..] u8)->u32
     {
         var v: Adler32
         v.init()

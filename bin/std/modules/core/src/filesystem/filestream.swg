@@ -1,6 +1,5 @@
 #global public
 #global namespace File
-#global #[Swag.ExplicitNullability]
 
 // Opaque handle to a file, used internally by FileStream
 alias FileHandle = #null const *void

@@ -1,6 +1,5 @@
 #global public
 #global namespace Tokenize
-#global #[Swag.ExplicitNullability]
 
 // Removes surrounding double quotes from the string, if present
 func eatQuotes(str: #nonull string)->#nonull string

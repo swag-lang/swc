@@ -6,7 +6,7 @@ struct ToggleButton
     using button:     Button
 
     isToggled:        bool
-    sigChanged:       func(*ToggleButton)
+    sigChanged:       func(#nonull *ToggleButton)
 
     aniBk:            BlendColor
     aniBorder:        BlendColor
@@ -15,7 +15,7 @@ struct ToggleButton
 
 impl IWnd for ToggleButton
 {
-    mtd impl onStateEvent(evt: *StateEvent)
+    mtd impl onStateEvent(evt: #nonull *StateEvent)
     {
         .button.IWnd.onStateEvent(evt)
         if evt.kind == .Hide or evt.kind == .Disable
@@ -26,16 +26,16 @@ impl IWnd for ToggleButton
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc     = evt.bc
         let theme  = .getTheme()
         let colors = .getThemeColors()
         let rects  = .getThemeRects()
 
-        var subRectBk:     *ThemeImageRect
-        var subRectBorder: *ThemeImageRect
-        var subRectMark:   *ThemeImageRect
+        var subRectBk:     #null *ThemeImageRect
+        var subRectBorder: #null *ThemeImageRect
+        var subRectMark:   #null *ThemeImageRect
         var colorBk:       Color = undefined
         var colorBorder:   Color = undefined
         var colorMark:     Color = undefined
@@ -82,7 +82,7 @@ impl IWnd for ToggleButton
         theme.drawSubRect(bc.painter, posBox, subRectMark, .aniMark.cur())
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if .processMouseEvent(evt)
         {
@@ -97,7 +97,7 @@ impl IWnd for ToggleButton
 impl ToggleButton
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ToggleButton
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ToggleButton
     {
         Debug.assert(parent != null)
         var pos = position

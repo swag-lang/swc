@@ -1,5 +1,4 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func audioAssertFloat(actual, expected: f32, epsilon = 0.0001'f32)

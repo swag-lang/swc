@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 using Swag
 
 alias GLintptr   = s64

@@ -1,7 +1,6 @@
 #global #if WINDOWS
 #global public
 #global namespace Debugger
-#global #[Swag.ExplicitNullability]
 using Win32
 
 // Returns true if a debugger is attached to the current process

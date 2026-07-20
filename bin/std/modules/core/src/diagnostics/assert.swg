@@ -1,6 +1,5 @@
 #global public
 #global namespace Debug
-#global #[Swag.ExplicitNullability]
 
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
 func assert(expr: #code->bool, message: #null string = null, loc = #callerlocation)

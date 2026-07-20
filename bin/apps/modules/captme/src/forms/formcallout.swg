@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // A speech-bubble annotation: a rounded-rectangle body holding centered text, with
 // a triangular tail whose tip is a freely movable point. The body reuses the shared
 // rect gizmo (resize/move) while the tail tip is a single-anchor point gizmo. Text is

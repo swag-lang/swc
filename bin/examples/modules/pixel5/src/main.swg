@@ -30,8 +30,8 @@ struct CardOptions
 
 struct TextureCard
 {
-    title:           string
-    subtitle:        string
+    title:           #null string
+    subtitle:        #null string
     texture:         Texture
     options:         CardOptions
 }
@@ -43,11 +43,11 @@ var g_RC:           Pixel.RenderingContext
 var g_Keyboard:     Input.Keyboard
 
 var g_FontBytes:    Array'u8
-var g_TypeFace:     *Pixel.TypeFace
-var g_TitleFont:    *Pixel.Font
-var g_SubTitleFont: *Pixel.Font
-var g_LabelFont:    *Pixel.Font
-var g_HelpFont:     *Pixel.Font
+var g_TypeFace:     #null *Pixel.TypeFace
+var g_TitleFont:    #null *Pixel.Font
+var g_SubTitleFont: #null *Pixel.Font
+var g_LabelFont:    #null *Pixel.Font
+var g_HelpFont:     #null *Pixel.Font
 
 var g_Page:         s32
 var g_TestFrame:    s32
@@ -59,7 +59,7 @@ var g_KernelCards:    [CardsPerPage] TextureCard
 var g_TransformCards: [CardsPerPage] TextureCard
 var g_PainterCards:   [CardsPerPage] TextureCard
 
-func dataPath(fileName: string, loc = #callerlocation)->String
+func dataPath(fileName: #nonull string, loc = #callerlocation)->String
 {
     let srcPath = Path.getDirectoryName(loc.fileName) orelse ""
     return Path.combine(Path.combine(srcPath, "data"), fileName)
@@ -70,10 +70,10 @@ func loadFonts() throw
     let path = dataPath("segoeui.ttf")
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont    = Font.create(g_TypeFace, 34)
-    g_SubTitleFont = Font.create(g_TypeFace, 18)
-    g_LabelFont    = Font.create(g_TypeFace, 15)
-    g_HelpFont     = Font.create(g_TypeFace, 13)
+    g_TitleFont    = Font.create(assume g_TypeFace, 34)
+    g_SubTitleFont = Font.create(assume g_TypeFace, 18)
+    g_LabelFont    = Font.create(assume g_TypeFace, 15)
+    g_HelpFont     = Font.create(assume g_TypeFace, 13)
 }
 
 func cloneImage(image: const &Image)->Image
@@ -96,7 +96,7 @@ func normalizeShowcaseImage(image: const &Image)->Image
     return result
 }
 
-func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Texture, options: CardOptions = {})
+func setTextureCard(card: #nonull *TextureCard, title, subtitle: #nonull string, texture: Texture, options: CardOptions = {})
 {
     card.title    = title
     card.subtitle = subtitle
@@ -104,7 +104,7 @@ func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Textur
     card.options  = options
 }
 
-func setImageCard(card: *TextureCard, title, subtitle: string, image: const &Image, options: CardOptions = {})
+func setImageCard(card: #nonull *TextureCard, title, subtitle: #nonull string, image: const &Image, options: CardOptions = {})
 {
     setTextureCard(card, title, subtitle, g_Renderer.addImage(image), options)
 }
@@ -137,7 +137,7 @@ func nextPage()
     g_Page = (g_Page + 1) % MaxPages
 }
 
-func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
+func drawWrappedText(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, text: #nonull string, font: #nonull *Pixel.Font, color: Color)
 {
     var richText: RichString = text
     var format: RichStringFormat
@@ -148,16 +148,16 @@ func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string
     painter.drawRichString(rect, &richText, format)
 }
 
-func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
+func drawPageHeader(painter: #nonull *Pixel.Painter, title, subtitle: #nonull string)
 {
-    painter.drawString(28, 22, title, g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, g_SubTitleFont, Argb.DimGray)
+    painter.drawString(28, 22, title, assume g_TitleFont, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, assume g_SubTitleFont, Argb.DimGray)
 }
 
-func drawFooter(painter: *Pixel.Painter)
+func drawFooter(painter: #nonull *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : tonal filters, kernels and grading, image transforms, painter transforms.", g_Page + 1, MaxPages)
-    painter.drawString(28, H - 24, pageText, g_HelpFont, Argb.DimGray)
+    painter.drawString(28, H - 24, pageText, assume g_HelpFont, Argb.DimGray)
 }
 
 func computeSceneLayout(width, height: s32)->SceneLayout
@@ -205,7 +205,7 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
     return {x, y, width, height}
 }
 
-func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
+func drawCardTexture(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
 {
     if !card.texture.isValid() do
         return
@@ -245,7 +245,7 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
     painter.popClippingRect()
 }
 
-func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
+func drawCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
 {
     let titleBarRect = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
     let previewRect  = insetRect(rect, 14, CardHeaderHeight + 14, 14, 14)
@@ -257,12 +257,12 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Textur
     painter.fillRoundRect(previewRect, 16, 16, Color.fromArgb(255, 246, 248, 250))
     painter.drawRoundRect(previewRect, 16, 16, Color.fromArgb(36, Argb.SlateGray), 1)
 
-    painter.drawString(rect.x + 14, rect.y + 12, card.title, g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, subtitleRect, card.subtitle, g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 12, assume card.title, assume g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, subtitleRect, assume card.subtitle, assume g_HelpFont, Argb.DimGray)
     drawCardTexture(painter, previewRect, card)
 }
 
-func drawScene(painter: *Pixel.Painter)
+func drawScene(painter: #nonull *Pixel.Painter)
 {
     painter.clear(Color.fromArgb(255, 245, 246, 249))
     painter.setParams(.Antialiased)

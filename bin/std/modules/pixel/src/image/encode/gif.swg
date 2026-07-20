@@ -1,5 +1,4 @@
 #global namespace Gif
-#global #[Swag.ExplicitNullability]
 using Swag, Core, Core.Errors
 
 private

@@ -24,7 +24,7 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 // temp folder (created on demand). A dedicated folder keeps test files out of the
 // source tree and stays nearly empty, so tests that drive a real file dialog into
 // it only enumerate a handful of entries, not the whole system temp folder.
-func tempFilePath(prefix, extension: string)->String
+func tempFilePath(prefix, extension: #nonull string)->String
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     let folder  = Path.combine(tempDir.toString(), "swag-tests")
@@ -47,7 +47,7 @@ func indexedImage(w, h: s32)->Image
         let value = cast(u8) ((1 + x + y * 17) % 251)
         let green = cast(u8) ((cast(u32) value + 3) % 251)
         let blue  = cast(u8) ((cast(u32) value + 7) % 251)
-        dref cast(*u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
+        dref cast(#null *u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
     }
     return result
 }
@@ -78,21 +78,21 @@ func commandState(id: #nonull WndId)->CommandStateEvent
 }
 
 // Asks action type T whether it accepts the command, through its IActionUI interface.
-func(T) actionAccept(wnd: *Wnd, id: #nonull WndId)->bool
+func(T) actionAccept(wnd: #null *Wnd, id: #nonull WndId)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.accept({wnd: wnd, id: id})
 }
 
 // Executes action type T through its IActionUI interface, as the command dispatch would.
-func(T) actionExecute(wnd: *Wnd, id: #nonull WndId)->bool
+func(T) actionExecute(wnd: #null *Wnd, id: #nonull WndId)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.execute({wnd: wnd, id: id})
 }
 
 // Updates the command state of action type T through its IActionUI interface.
-func(T) actionUpdate(wnd: *Wnd, id: #nonull WndId, evt: *CommandStateEvent)->bool
+func(T) actionUpdate(wnd: #null *Wnd, id: #nonull WndId, evt: #nonull *CommandStateEvent)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.update({wnd: wnd, id: id}, evt)

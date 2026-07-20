@@ -88,7 +88,7 @@ func createUI(wnd: *Wnd)
     }
 }
 
-func onEvent(wnd: *Wnd, evt: IEvent)->bool
+func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

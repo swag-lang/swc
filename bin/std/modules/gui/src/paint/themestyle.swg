@@ -3,13 +3,13 @@ using Core, Pixel
 
 struct ThemeStyleRef
 {
-    theme:     *Theme
+    theme:     #null *Theme
     count:     u32
 }
 
 struct ThemeStyle
 {
-    refr:                  *ThemeStyleRef
+    refr:                  #null *ThemeStyleRef
     dirty:                 bool
     styleSheetMetrics:     String
     styleSheetColors:      String
@@ -36,7 +36,7 @@ impl ThemeStyle
         }
     }
 
-    private mtd set(theme: *Theme)
+    private mtd set(theme: #nonull *Theme)
     {
         .refr       = Memory.new'ThemeStyleRef()
         .refr.theme = theme
@@ -44,7 +44,7 @@ impl ThemeStyle
     }
 
     // Create a specific style based on the parent
-    mtd create(parent: *ThemeStyle)
+    mtd create(parent: #null *ThemeStyle)
     {
         .free()
         var theme = Memory.new'Theme()
@@ -52,7 +52,7 @@ impl ThemeStyle
         .set(theme)
     }
 
-    private mtd compute(owner: *Wnd, parent: *ThemeStyle)
+    private mtd compute(owner: #nonull *Wnd, parent: #null *ThemeStyle)
     {
         // First time, initialize to parent
         if !.refr
@@ -118,26 +118,26 @@ impl ThemeStyle
         .dirty = true
     }
 
-    mtd setStyleSheetColors(str: string)
+    mtd setStyleSheetColors(str: #null string)
     {
         .styleSheetColors = str
         .dirty            = true
     }
 
-    mtd addStyleSheetColors(str: string)
+    mtd addStyleSheetColors(str: #null string)
     {
         .styleSheetColors.append("\n")
         .styleSheetColors.append(str)
         .dirty = true
     }
 
-    mtd setStyleSheetMetrics(str: string)
+    mtd setStyleSheetMetrics(str: #null string)
     {
         .styleSheetMetrics = str
         .dirty             = true
     }
 
-    mtd addStyleSheetMetrics(str: string)
+    mtd addStyleSheetMetrics(str: #null string)
     {
         .styleSheetMetrics.append("\n")
         .styleSheetMetrics.append(str)
@@ -161,7 +161,7 @@ impl ThemeStyle
         .dirty = true
     }
 
-    mtd setFont(fnt: *Font, style: FontFamilyStyle)
+    mtd setFont(fnt: #nonull *Font, style: FontFamilyStyle)
     {
         .font.setFont(fnt, style)
         .dirty = true

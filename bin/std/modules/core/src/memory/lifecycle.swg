@@ -1,5 +1,4 @@
 #global namespace Memory
-#global #[Swag.ExplicitNullability]
 using Swag
 
 internal func concreteRuntimeType(type: #nonull typeinfo)->#nonull typeinfo

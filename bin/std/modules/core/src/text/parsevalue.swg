@@ -1,5 +1,4 @@
 #global namespace StrConv
-#global #[Swag.ExplicitNullability]
 using Swag, Core.Errors
 
 // This function will parse the string 'buf' and decode the corresponding value in 'addr'.

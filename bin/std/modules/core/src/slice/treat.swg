@@ -1,6 +1,5 @@
 #global export
 #global namespace Slice
-#global #[Swag.ExplicitNullability]
 
 // Transform in place the content of a slice with a given lambda
 #[Swag.Inline]

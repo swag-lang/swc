@@ -1,15 +1,15 @@
 impl Properties
 {
-    func setDescEditBox(item: *PropertiesItem)
+    func setDescEditBox(item: #nonull *PropertiesItem)
     {
-        let arrData = cast(*Array'u8) item.data
+        let arrData = cast(#null *Array'u8) item.data
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
-    mtd reconstructArray(item: *PropertiesItem)
+    mtd reconstructArray(item: #nonull *PropertiesItem)
     {
         let valueType        = assume Reflection.getStructArrayType(item.type)
-        let arrData          = cast(*Array'u8) item.data
+        let arrData          = cast(#null *Array'u8) item.data
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -47,22 +47,22 @@ impl Properties
         // Update state of all newly added items
         item.numChilds = numAddedChilds
         for i in item.numChilds do
-            .updateItemState(.items[itemIdx + i + 1])
+            .updateItemState(assume .items[itemIdx + i + 1])
     }
 
-    mtd refreshArray(item: *PropertiesItem)
+    mtd refreshArray(item: #nonull *PropertiesItem)
     {
-        let arrData = cast(*Array'u8) item.data
+        let arrData = cast(#null *Array'u8) item.data
         if arrData.count == cast(u64) item.userData0 do
             return
-        item.userData0 = cast(*void) arrData.count
+        item.userData0 = cast(#null *void) arrData.count
 
         .reconstructArray(item)
         setDescEditBox(item)
         .edView.sendResizeEvent()
     }
 
-    mtd clearArray(item: *PropertiesItem)
+    mtd clearArray(item: #nonull *PropertiesItem)
     {
         let valueType = assume Reflection.getStructArrayType(item.type)
         Reflection.clearStructArray(item.data, valueType)
@@ -71,28 +71,28 @@ impl Properties
     }
 
     // True when 'item' wraps an array value: a fixed-size [N]T or a dynamic Core.Array.
-    mtd isArrayItem(item: *PropertiesItem)->bool
+    mtd isArrayItem(item: #nonull *PropertiesItem)->bool
     {
         return item.type and (Reflection.isStaticArray(item.type) or Reflection.isStructArray(item.type))
     }
 
     // Buffer base, element type and element count of an array item (static or dynamic).
-    mtd arrayElementInfo(arrayItem: *PropertiesItem)->{ base: [*] u8, valueType: typeinfo, count: u64 }
+    mtd arrayElementInfo(arrayItem: #nonull *PropertiesItem)->{ base: #null [*] u8, valueType: #null typeinfo, count: u64 }
     {
         if Reflection.isStructArray(arrayItem.type)
         {
             let vt  = assume Reflection.getStructArrayType(arrayItem.type)
-            let arr = cast(*Array'u8) arrayItem.data
+            let arr = cast(#null *Array'u8) arrayItem.data
             return {arr.buffer, vt, arr.count}
         }
 
-        let typeArr = cast(const *Swag.TypeInfoArray) arrayItem.type
-        return {cast([*] u8) arrayItem.data, typeArr.pointedType, typeArr.count}
+        let typeArr = cast(#null const *Swag.TypeInfoArray) arrayItem.type
+        return {cast(#null [*] u8) arrayItem.data, typeArr.pointedType, typeArr.count}
     }
 
     // Ordinal of an array element among the array's direct children. Robust for struct arrays,
     // whose element rows are interleaved with their field rows in the flat item list.
-    mtd arrayElementIndex(elemItem: *PropertiesItem)->u64
+    mtd arrayElementIndex(elemItem: #nonull *PropertiesItem)->u64
     {
         var idx = 0'u64
         for it in .items
@@ -107,12 +107,12 @@ impl Properties
 
     // Resolve the array element row (a direct child of an array) from the clicked item or one
     // of its ancestors, so right-clicking a struct element's field still targets the element.
-    mtd resolveArrayElement(item: *PropertiesItem)->#null *PropertiesItem
+    mtd resolveArrayElement(item: #nonull *PropertiesItem)->#null *PropertiesItem
     {
         var scan = cast(#null *PropertiesItem) item
         while scan and scan.parent
         {
-            if .isArrayItem(scan.parent) do
+            if .isArrayItem(assume scan.parent) do
                 return scan
             scan = scan.parent
         }
@@ -121,20 +121,20 @@ impl Properties
 
     // Reorder an array element by one slot (dir = -1 up, +1 down). Allowed for both static and
     // dynamic arrays — a reorder never changes the element count.
-    mtd moveArrayValue(elemItem: *PropertiesItem, dir: s32)
+    mtd moveArrayValue(elemItem: #nonull *PropertiesItem, dir: s32)
     {
         let arrayItem = elemItem.parent
-        let info      = .arrayElementInfo(arrayItem)
+        let info      = .arrayElementInfo(assume arrayItem)
         let idx       = .arrayElementIndex(elemItem)
         let target    = cast(s64) idx + dir
         if target < 0 or target >= cast(s64) info.count do
             return
 
         Reflection.swapValues(info.base, info.valueType, idx, cast(u64) target)
-        .hasChanged(arrayItem)
+        .hasChanged(assume arrayItem)
     }
 
-    mtd removeArrayValue(item: *PropertiesItem)
+    mtd removeArrayValue(item: #nonull *PropertiesItem)
     {
         let parentItem = item.parent
         let valueType  = assume Reflection.getStructArrayType(parentItem.type)
@@ -142,11 +142,11 @@ impl Properties
 
         Reflection.removeValueStructArray(parentItem.data, valueType, removeIdx)
 
-        .refreshArray(parentItem)
-        .hasChanged(parentItem)
+        .refreshArray(assume parentItem)
+        .hasChanged(assume parentItem)
     }
 
-    mtd appendArrayValue(item: *PropertiesItem)
+    mtd appendArrayValue(item: #nonull *PropertiesItem)
     {
         let valueType = assume Reflection.getStructArrayType(item.type)
 
@@ -156,17 +156,17 @@ impl Properties
         .hasChanged(item)
     }
 
-    mtd constructArray(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    mtd constructArray(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item           = .addItem(value, data, parentItem)
         let numItemsBefore = .items.count
         item.flags.add(.NoSeparator)
 
         let valueType = assume Reflection.getStructArrayType(item.type)
-        let arrData   = cast(*Array'u8) data
+        let arrData   = cast(#null *Array'u8) data
         var newData   = arrData.buffer
 
-        item.userData0 = cast(*void) arrData.count
+        item.userData0 = cast(#null *void) arrData.count
 
         for i in arrData.count
         {
@@ -177,8 +177,8 @@ impl Properties
             newData += valueType.sizeof
         }
 
-        let parentForBtn = .isGridLike() ? item.line : cast(*Wnd) item.label
-        let addBtn       = IconButton.create(parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
+        let parentForBtn = .isGridLike() ? item.line : cast(#null *Wnd) item.label
+        let addBtn       = IconButton.create(assume parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Round)
         item.arrayAddButton = addBtn
@@ -189,7 +189,7 @@ impl Properties
             prop.appendArrayValue(item)
         }
 
-        with item.editBox = EditBox.create(item.line, "")
+        with item.editBox = EditBox.create(assume item.line, "")
         {
             // Grid rows dock the read-only count field to the left of the cell; list
             // rows stack it under the name label (the row is a StackLayoutCtrl), where

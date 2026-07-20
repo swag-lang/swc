@@ -6,7 +6,6 @@
 */
 
 #global public
-#global #[Swag.ExplicitNullability]
 #global namespace Utf8
 
 const RuneError    = 0xFFFD'rune

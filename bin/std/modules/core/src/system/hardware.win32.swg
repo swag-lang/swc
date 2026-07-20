@@ -1,6 +1,5 @@
 #global #if WINDOWS
 #global namespace Hardware
-#global #[Swag.ExplicitNullability]
 using Win32
 
 // Number of processors

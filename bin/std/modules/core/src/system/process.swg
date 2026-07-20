@@ -1,6 +1,5 @@
 #global public
 #global namespace Env
-#global #[Swag.ExplicitNullability]
 
 alias ProcessHandle = #null const *void
 

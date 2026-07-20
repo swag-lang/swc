@@ -35,10 +35,10 @@ struct ListLine
 {
     colorBk:             Color
     colorFg:             Color
-    userData0:           *void
-    userData1:           *void
-    userData2:           *void
-    userData3:           *void
+    userData0:           #null *void
+    userData1:           #null *void
+    userData2:           #null *void
+    userData3:           #null *void
     leftTextMargin:      f32
     forceExpandMark:     bool
     canCheck:            bool
@@ -47,7 +47,7 @@ struct ListLine
 
     lines:               ArrayPtr'ListLine
     items:               ArrayPtr'ListItem
-    parent:              *ListLine
+    parent:              #null *ListLine
     index:               u32
     level:               u32
     expanded:            bool
@@ -66,27 +66,27 @@ struct ListCtrl
     selectionMode           = ListSelectionMode.Single
     leftTextMargin:         f32
 
-    sigSelChanged:          SigArray'func||(*ListCtrl)
-    sigCheckChanged:        SigArray'func||(*ListCtrl)
-    sigRightClick:          SigArray'func||(*ListCtrl, Math.Point)
-    sigLeftDoubleClick:     SigArray'func||(*ListCtrl, Math.Point)
-    sigExpand:              SigArray'func||(*ListCtrl, *ListLine)
-    sigCollapse:            SigArray'func||(*ListCtrl, *ListLine)
-    sigKeyPressed:          SigArray'func||(*ListCtrl, *KeyEvent)
-    sigVirtualFill:         func(*ListCtrl, *ListLine, u32)
-    sigSort:                func(*ListLine, *ListLine, u32, bool)->s32
+    sigSelChanged:          SigArray'func||(#nonull *ListCtrl)
+    sigCheckChanged:        SigArray'func||(#nonull *ListCtrl)
+    sigRightClick:          SigArray'func||(#nonull *ListCtrl, Math.Point)
+    sigLeftDoubleClick:     SigArray'func||(#nonull *ListCtrl, Math.Point)
+    sigExpand:              SigArray'func||(#nonull *ListCtrl, #nonull *ListLine)
+    sigCollapse:            SigArray'func||(#nonull *ListCtrl, #nonull *ListLine)
+    sigKeyPressed:          SigArray'func||(#nonull *ListCtrl, #nonull *KeyEvent)
+    sigVirtualFill:         func(#nonull *ListCtrl, #null *ListLine, u32)
+    sigSort:                func(#null *ListLine, #null *ListLine, u32, bool)->s32
 
     toFreeLines:            ArrayPtr'ListLine
-    lines:                  Array'*ListLine
+    lines:                  Array'(#null *ListLine)
     idxLineToIdxList:       HashTable'(u32, u32)
     selModel:               SelModel
     checkModel:             SelModel
     nextLineIndex:          u32
     focusIndex              = Swag.U32.Max
     hotIndex                = Swag.U32.Max
-    scrollWnd:              *ScrollWnd
-    listView:               *ListView
-    header:                 *Header
+    scrollWnd:              #null *ScrollWnd
+    listView:               #null *ListView
+    header:                 #null *Header
     virtualCount:           u32
     isVirtual:              bool
 }
@@ -94,7 +94,7 @@ struct ListCtrl
 struct ListView
 {
     using wnd:               Wnd
-    list:                    *ListCtrl
+    list:                    #null *ListCtrl
     discardMouseRelease:     bool
 }
 
@@ -121,7 +121,7 @@ impl ListLine
         for item in .items
         {
             if item.column == column do
-                return item
+                return assume item
         }
 
         unreachable
@@ -137,7 +137,7 @@ impl ListLine
             {
                 item.name = name
                 item.icon = icon
-                return item
+                return assume item
             }
         }
 
@@ -152,13 +152,13 @@ impl ListLine
 
 impl IWnd for ListView
 {
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         if .list do
             .list.computeLayout()
     }
 
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         evt.accepted = true
         if evt.kind != .KeyPressed do
@@ -170,7 +170,7 @@ impl IWnd for ListView
         if !lineCount do
             return
 
-        var focusLine: *ListLine
+        var focusLine: #null *ListLine
         if .list.focusIndex < .list.lines.count do
             focusLine = .list.lines[.list.focusIndex]
 
@@ -208,7 +208,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(focusLine)
+                .list.toggleExpand(assume focusLine)
             }
 
         case Enter where focusLine:
@@ -230,7 +230,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(focusLine)
+                .list.toggleExpand(assume focusLine)
             }
 
         case A:
@@ -269,9 +269,9 @@ impl IWnd for ListView
             selChanged = true
 
         case Left where focusLine:
-            .list.collapse(focusLine)
+            .list.collapse(assume focusLine)
         case Right where focusLine:
-            .list.expand(focusLine)
+            .list.expand(assume focusLine)
 
         case PageDown:
             let first = .list.getFirstVisibleLineIndex()
@@ -306,7 +306,7 @@ impl IWnd for ListView
         }
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if evt.kind == .MouseLeave
         {
@@ -389,7 +389,7 @@ impl IWnd for ListView
                     {
                         if evt.kind == .MouseReleased do
                             return
-                        .list.toggleExpand(.list.lines[idx])
+                        .list.toggleExpand(assume .list.lines[idx])
                         return
                     }
                 }
@@ -433,7 +433,7 @@ impl IWnd for ListView
         if evt.kind == .MouseDoubleClick
         {
             if idx != Swag.U32.Max and !.list.isVirtual do
-                .list.toggleExpand(.list.lines[idx])
+                .list.toggleExpand(assume .list.lines[idx])
             let pt = .surfaceToLocal(evt.surfacePos)
             .list.sigLeftDoubleClick.call(.list, pt)
             return
@@ -494,7 +494,7 @@ impl IWnd for ListView
             .list.sigSelChanged.call(.list)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         if .list.getLineCount() == 0 do
             return
@@ -528,7 +528,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 var line: ListLine
-                .list.sigVirtualFill(.list, &line, i)
+                .list.sigVirtualFill(assume .list, &line, i)
                 .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
@@ -541,7 +541,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 let line = .list.lines[i]
-                .paintLine(bc, i, line, rect, reserveCheckMargin)
+                .paintLine(bc, i, assume line, rect, reserveCheckMargin)
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorzLines) do
@@ -580,7 +580,7 @@ private impl ListView
         return x
     }
 
-    mtd paintLine(bc: PaintContext, idx: u32, line: *ListLine, rect: Math.Rectangle, reserveCheckMargin: bool)
+    mtd paintLine(bc: PaintContext, idx: u32, line: #nonull *ListLine, rect: Math.Rectangle, reserveCheckMargin: bool)
     {
         let painter = bc.painter
         let theme   = .getTheme()
@@ -695,7 +695,7 @@ private impl ListView
                 let widthCheck = Math.min(metrics.btnCheck_Size, .list.getLineHeight())
                 if line.canCheck
                 {
-                    var subRectBorder: *ThemeImageRect = &rects.btnCheck_NormalBorder
+                    var subRectBorder: #null *ThemeImageRect = &rects.btnCheck_NormalBorder
 
                     let idxLine = .list.isVirtual ? idx : line.index
                     let checked = .list.checkModel.isSelected(idxLine)
@@ -772,7 +772,7 @@ private impl ListView
 impl ListCtrl
 {
     #[Swag.Discardable]
-    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
+    func createSimple(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ListCtrl
     {
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
         {
@@ -790,7 +790,7 @@ impl ListCtrl
     }
 
     #[Swag.Discardable]
-    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
+    func createMultiColumns(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ListCtrl
     {
         let list = Wnd.create'ListCtrl(parent, "", position, id)
 
@@ -804,7 +804,7 @@ impl ListCtrl
             if !evt is ResizeEvent do
                 return false
 
-            var list   = cast(*ListCtrl) wnd
+            var list   = cast(#nonull *ListCtrl) wnd
             var header = list.header
             if header.form == .Transparent do
                 return false
@@ -960,7 +960,7 @@ impl ListCtrl
     }
 
     // Get a line by index
-    mtd getLine(idx: u32)->*ListLine
+    mtd getLine(idx: u32)->#null *ListLine
     {
         return .lines[idx]
     }
@@ -988,7 +988,7 @@ impl ListCtrl
     }
 
     // Add one new line
-    mtd createLine(parentLine: #null *ListLine)->*ListLine
+    mtd createLine(parentLine: #null *ListLine)->#nonull *ListLine
     {
         Debug.assert(!.isVirtual, "createLine cannot be called on a virtual list")
 
@@ -1122,7 +1122,7 @@ impl ListCtrl
     }
 
     // Get all the selected lines
-    mtd const getSelectedLines()->Array'(*ListLine)
+    mtd const getSelectedLines()->Array'(#null *ListLine)
     {
         var result: retval
         if .isVirtual or .selModel.isEmpty() do
@@ -1140,7 +1140,7 @@ impl ListCtrl
     }
 
     // Get all the checked lines
-    mtd const getCheckedLines()->Array'(*ListLine)
+    mtd const getCheckedLines()->Array'(#null *ListLine)
     {
         var result: retval
         if .isVirtual or .checkModel.isEmpty() do
@@ -1178,7 +1178,7 @@ impl ListCtrl
             .idxLineToIdxList.add(l.index, cast(u32) idx)
     }
 
-    private mtd collectVisibleLines(result: *Array'(*ListLine), lines: [..] *ListLine)
+    private mtd collectVisibleLines(result: #nonull *Array'(#null *ListLine), lines: #nonull [..] #null *ListLine)
     {
         for l in lines
         {
@@ -1188,9 +1188,9 @@ impl ListCtrl
         }
     }
 
-    private mtd sort(column: u32, descentOrder: bool, toSort: *Array'*ListLine)
+    private mtd sort(column: u32, descentOrder: bool, toSort: #nonull *Array'(#null *ListLine))
     {
-        func sortFunc(column: u32, descentOrder: bool, a, b: *ListLine)->s32
+        func sortFunc(column: u32, descentOrder: bool, a, b: #null *ListLine)->s32
         {
             let it0   = a.getItem(column)
             let it1   = b.getItem(column)
@@ -1202,16 +1202,16 @@ impl ListCtrl
             return res
         }
 
-        let cb = func|list = me, column, descentOrder|(a, b: *ListLine)->s32
+        let cb = func|list = me, column, descentOrder|(a, b: #null *ListLine)->s32
         {
             if list.sigSort do
                 return list.sigSort(a, b, column, descentOrder)
 
             if a.parent != b.parent
             {
-                if a.isParentOf(b) do
+                if a.isParentOf(assume b) do
                     return -1
-                if b.isParentOf(a) do
+                if b.isParentOf(assume a) do
                     return 1
 
                 var a1 = a
@@ -1266,7 +1266,7 @@ impl ListCtrl
     }
 
     // Expand the given line
-    mtd expand(line: *ListLine)
+    mtd expand(line: #nonull *ListLine)
     {
         if !line.canExpand() or line.expanded do
             return
@@ -1280,7 +1280,7 @@ impl ListCtrl
         if !res do
             return
 
-        var toInsert: Array'(*ListLine)
+        var toInsert: Array'(#null *ListLine)
         .collectVisibleLines(&toInsert, line.lines.toSlice())
         if toInsert.count
         {
@@ -1292,14 +1292,14 @@ impl ListCtrl
     }
 
     // Collapse the given line
-    mtd collapse(line: *ListLine)
+    mtd collapse(line: #nonull *ListLine)
     {
         if !line.canExpand() or !line.expanded do
             return
         line.expanded = false
         .sigCollapse.call(me, line)
 
-        var tmp: Array'(*ListLine)
+        var tmp: Array'(#null *ListLine)
         tmp.add(line)
 
         var removeCount = 0'u32
@@ -1339,7 +1339,7 @@ impl ListCtrl
     // Collapse all lines
     mtd collapseAll()
     {
-        func collapseRec(sl: [..] *ListLine)
+        func collapseRec(sl: #nonull [..] #null *ListLine)
         {
             for l in sl
             {
@@ -1351,7 +1351,7 @@ impl ListCtrl
         for l in .lines
         {
             if l.expanded do
-                .collapse(l)
+                .collapse(assume l)
         }
 
         collapseRec(.lines.toSlice())
@@ -1359,7 +1359,7 @@ impl ListCtrl
     }
 
     // Collapse the given line
-    mtd toggleExpand(line: *ListLine)
+    mtd toggleExpand(line: #nonull *ListLine)
     {
         if line.expanded do
             .collapse(line)

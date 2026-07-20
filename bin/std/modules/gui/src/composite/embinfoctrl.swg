@@ -20,29 +20,29 @@ enum EmbInfoCtrlFlags
 struct EmbInfoCtrl
 {
     using frameWnd:     FrameWnd
-    label:              *Label
-    iconBtn:            *IconButton
+    label:              #null *Label
+    iconBtn:            #null *IconButton
     ctrlFlags:          EmbInfoCtrlFlags = .Zero
-    sigOnClose:         SigArray'func||(*EmbInfoCtrl)
-    timer:              *Timer
+    sigOnClose:         SigArray'func||(#nonull *EmbInfoCtrl)
+    timer:              #null *Timer
     kind:               EmbInfoCtrlKind
 }
 
 impl IWnd for EmbInfoCtrl
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
     {
         .timer = null
         .destroy()
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         if .timer do
-            .getApp().deleteTimer(.timer)
+            .getApp().deleteTimer(assume .timer)
     }
 
-    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    mtd impl onNotifyEvent(evt: #nonull *NotifyEvent)
     {
         if evt.ntfyKind == .ThemeChanged
         {
@@ -86,7 +86,7 @@ impl EmbInfoCtrl
     }
 
     // Create the popup list, but do not display it
-    func create(parent: *Wnd, name: string, kind: EmbInfoCtrlKind, flags = EmbInfoCtrlFlags.Top, height = 40)->*EmbInfoCtrl
+    func create(parent: #nonull *Wnd, name: #null string, kind: EmbInfoCtrlKind, flags = EmbInfoCtrlFlags.Top, height = 40)->#nonull *EmbInfoCtrl
     {
         let theme = parent.getTheme()
         with let ctrl = Wnd.create'EmbInfoCtrl(parent, {0, 0, 0, height})
@@ -108,7 +108,7 @@ impl EmbInfoCtrl
             .dockStyle         = .Center
         }
 
-        with ctrl.iconBtn = IconButton.create(ctrl.label, theme.getIcon24(.WndClose, 18), {0, 0, 32, 32})
+        with ctrl.iconBtn = IconButton.create(assume ctrl.label, theme.getIcon24(.WndClose, 18), {0, 0, 32, 32})
         {
             .margin    = 5
             .dockStyle = .Right

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Core, Win32, Gdi32, Pixel
 
 enum InPlaceEditMode
@@ -91,7 +90,7 @@ impl InPlaceEditWnd
 
     mtd createActionBar()
     {
-        .actionBar                 = IconBar.create(.editWnd.editView, 24 * .uiScale, {})
+        .actionBar                 = IconBar.create(assume .editWnd.editView, 24 * .uiScale, {})
         .actionBar.backgroundStyle = .Window
 
         let actions = [
@@ -109,7 +108,7 @@ impl InPlaceEditWnd
 
     mtd createEditBar(main: #nonull *MainWnd)
     {
-        .editBar                 = IconBar.create(.editWnd.editView, 32 * .uiScale, {})
+        .editBar                 = IconBar.create(assume .editWnd.editView, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
         .editBar.setIconBarFlags(.Vertical)
 

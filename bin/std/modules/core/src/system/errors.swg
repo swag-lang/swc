@@ -1,6 +1,5 @@
 #global public
 #global namespace Errors
-#global #[Swag.ExplicitNullability]
 
 struct InvalidFormatError
 {

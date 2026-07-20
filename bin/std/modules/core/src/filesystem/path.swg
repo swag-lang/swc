@@ -1,6 +1,5 @@
 #global public
 #global namespace Path
-#global #[Swag.ExplicitNullability]
 using Swag
 
 const DirectorySeparatorChar    = '/''u8      // Default directory separator character

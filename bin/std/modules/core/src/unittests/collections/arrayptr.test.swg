@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
+func assertIntArrayPtr(values: &ArrayPtr's32, expected: #nonull const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false
@@ -43,7 +43,7 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
 {
     var values: ArrayPtr's32
     dref values.addNewPtr() = 7
-    values.add(cast(*s32) null)
+    values.add(cast(#null *s32) null)
     dref values.addNewPtr() = 9
 
     var copy = values
@@ -92,8 +92,8 @@ impl ApTracked
     let third = arr[2]
     @assert(arr.indexOf(third) == 2)
     @assert(arr.contains(third))
-    @assert(arr.indexOf(cast(*ApTracked) null) == Swag.U64.Max)
-    @assert(!arr.contains(cast(*ApTracked) null))
+    @assert(arr.indexOf(cast(#null *ApTracked) null) == Swag.U64.Max)
+    @assert(!arr.contains(cast(#null *ApTracked) null))
 
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)

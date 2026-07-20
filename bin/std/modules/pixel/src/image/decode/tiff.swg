@@ -1,5 +1,4 @@
 #global namespace Tiff
-#global #[Swag.ExplicitNullability]
 using Core, Core.Errors
 
 // Baseline TIFF tags

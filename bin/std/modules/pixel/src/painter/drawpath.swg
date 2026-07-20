@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Core
 
 public enum DrawPathListMode

@@ -10,7 +10,7 @@ struct ImageRect
 
 impl IWnd for ImageRect
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         if !.movie.isValid() do
             return
@@ -49,7 +49,7 @@ impl IWnd for ImageRect
 impl ImageRect
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ImageRect
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *ImageRect
     {
         Debug.assert(parent != null)
         let res = Wnd.create'ImageRect(parent, null, position, id)
@@ -105,7 +105,7 @@ impl ImageRect
     }
 
     // Load and set movie
-    mtd setFile(fileName: string) throw
+    mtd setFile(fileName: #nonull string) throw
     {
         .clear()
         try .movie.set(fileName)

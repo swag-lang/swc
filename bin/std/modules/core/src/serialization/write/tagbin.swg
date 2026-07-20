@@ -44,11 +44,11 @@ struct TagBin
     internal
     {
         compressor:       Core.Compress.Deflate
-        output:           *ConcatBuffer                                         // Output buffer where data is written
+        output:           #null *ConcatBuffer                                         // Output buffer where data is written
         freeSections:     ArrayPtr'TagBinSection                                // Pool of reusable section structures
         sections:         ArrayPtr'TagBinSection                                // Stack of currently active sections
-        outStack:         Array'*ConcatBuffer
-        elemStack:        Array'{ compressed: bool, tmpBuf: *ConcatBuffer }
+        outStack:         Array'(#null *ConcatBuffer)
+        elemStack:        Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }
         freeTmpBuf:       ArrayPtr'ConcatBuffer
     }
 }
@@ -56,11 +56,11 @@ struct TagBin
 private impl TagBin
 {
     // Creates or reuses a new section for writing
-    mtd newSection()->*TagBinSection
+    mtd newSection()->#nonull *TagBinSection
     {
         if .freeSections.count
         {
-            let ptr = .freeSections.popBack()
+            let ptr = assume .freeSections.popBack()
             ptr.mapSeek.clear()
             .sections.add(ptr)
             return ptr
@@ -76,11 +76,11 @@ private impl TagBin
         .freeSections.add(ptr)
     }
 
-    mtd acquireTmpBuf()->*ConcatBuffer
+    mtd acquireTmpBuf()->#nonull *ConcatBuffer
     {
         if .freeTmpBuf.count
         {
-            let b = .freeTmpBuf.popBack()
+            let b = assume .freeTmpBuf.popBack()
             b.clear()
             return b
         }
@@ -88,7 +88,7 @@ private impl TagBin
         return .freeTmpBuf.newPtr()
     }
 
-    mtd releaseTmpBuf(b: *ConcatBuffer)
+    mtd releaseTmpBuf(b: #nonull *ConcatBuffer)
     {
         b.clear()
         .freeTmpBuf.add(b)
@@ -105,7 +105,7 @@ impl TagBin
     }
 
     // Begins writing to a specified output buffer
-    mtd startWrite(buf: *ConcatBuffer)
+    mtd startWrite(buf: #nonull *ConcatBuffer)
     {
         .output = buf
         .outStack.clear()
@@ -168,7 +168,7 @@ impl TagBin
     }
 
     // Begins a new struct, writing versioning and section metadata
-    mtd beginStruct(structType: typeinfo, _structData: const [*] u8)->bool
+    mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool
     {
         let (pod, ?) = isPodFinal(structType)
         if pod
@@ -287,7 +287,7 @@ impl TagBin
 
         // Switch current 'output' back to parent and recycle tmp
         .output = parentOut
-        .releaseTmpBuf(ctx.tmpBuf)
+        .releaseTmpBuf(assume ctx.tmpBuf)
     }
 
     // Begins a value (stubbed out)

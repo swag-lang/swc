@@ -24,10 +24,10 @@ var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
 var g_FontBytes:   Array'u8
-var g_TypeFace:    *Pixel.TypeFace
-var g_HeaderFont:  *Pixel.Font
+var g_TypeFace:    #null *Pixel.TypeFace
+var g_HeaderFont:  #null *Pixel.Font
 
-func fontPath(fileName: string, loc = #callerlocation)->String
+func fontPath(fileName: #nonull string, loc = #callerlocation)->String
 {
     let srcPath = Path.getDirectoryName(loc.fileName)
     return Path.combine(Path.combine(srcPath, "data"), fileName)
@@ -39,16 +39,16 @@ func loadFonts() throw
 
     g_FontBytes  = File.readAllBytes(path)
     g_TypeFace   = TypeFace.create(path, g_FontBytes.toSlice())
-    g_HeaderFont = Font.create(g_TypeFace, 15)
+    g_HeaderFont = Font.create(assume g_TypeFace, 15)
 }
 
 // The three fonts for a given size (all cached after the first call).
-func fontsFor(size: u32)->{ bmp, msdf, auto: *Pixel.Font }
+func fontsFor(size: u32)->{ bmp, msdf, auto: #nonull *Pixel.Font }
 {
-    var result: retval
-    result.bmp  = Font.create(g_TypeFace, size, .Bitmap)
-    result.msdf = Font.create(g_TypeFace, size, .Msdf)
-    result.auto = Font.create(g_TypeFace, size, .Auto)
+    var result: retval = undefined
+    result.bmp  = Font.create(assume g_TypeFace, size, .Bitmap)
+    result.msdf = Font.create(assume g_TypeFace, size, .Msdf)
+    result.auto = Font.create(assume g_TypeFace, size, .Auto)
     return result
 }
 
@@ -70,7 +70,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     return result
 }
 
-func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
+func drawScene(painter: #nonull *Pixel.Painter, layout: SceneLayout)
 {
     painter.clear(Argb.White)
     painter.setParams(.Antialiased)
@@ -81,10 +81,10 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     painter.translateTransform(layout.rect.x, layout.rect.y)
 
     // Column headers
-    painter.drawString(ColPx, 16, "px", g_HeaderFont, Argb.DimGray)
-    painter.drawString(ColBitmap, 16, "Bitmap", g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColMsdf, 16, "MSDF", g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColAuto, 16, "Auto", g_HeaderFont, Argb.DarkGreen)
+    painter.drawString(ColPx, 16, "px", assume g_HeaderFont, Argb.DimGray)
+    painter.drawString(ColBitmap, 16, "Bitmap", assume g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColMsdf, 16, "MSDF", assume g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColAuto, 16, "Auto", assume g_HeaderFont, Argb.DarkGreen)
 
     var y = 46.0
     for size in Sizes
@@ -92,7 +92,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
         let usize = cast(u32) size
         let fonts = fontsFor(usize)
 
-        painter.drawString(ColPx, y, Format.toString("%", size), g_HeaderFont, Argb.DimGray)
+        painter.drawString(ColPx, y, Format.toString("%", size), assume g_HeaderFont, Argb.DimGray)
         painter.drawString(ColBitmap, y, Sample, fonts.bmp, Argb.Black)
         painter.drawString(ColMsdf, y, Sample, fonts.msdf, Argb.Black)
         painter.drawString(ColAuto, y, Sample, fonts.auto, Argb.Black)

@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func adler32Reference(buffer: const [..] u8)->u32
+func adler32Reference(buffer: #nonull const [..] u8)->u32
 {
     const Base = 65521'u32
     var s1 = 1'u32
@@ -17,7 +17,7 @@ func adler32Reference(buffer: const [..] u8)->u32
     return s1 | (s2 << 16)
 }
 
-func assertAdler32(buffer: const [..] u8)
+func assertAdler32(buffer: #nonull const [..] u8)
 {
     let expected = adler32Reference(buffer)
 
@@ -34,7 +34,7 @@ func assertAdler32(buffer: const [..] u8)
     @assert(adler.adler == expected)
 }
 
-func fillAdlerPattern(buffer: [..] u8)
+func fillAdlerPattern(buffer: #nonull [..] u8)
 {
     var i = 0'u64
     while i < @countof(buffer)

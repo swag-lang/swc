@@ -114,13 +114,13 @@ Example: compile-time string construction.
 */
 #test
 {
-    const MyString: string = #run
+    const MyString: #nonull string = #run
     {
         var str: [3] u8
         str[0] = 'a'
         str[1] = 'b'
         str[2] = str[1] + 1
-        return cast(string) str
+        return cast(#nonull string) str
     }
     #assert(MyString == "abc")
 }

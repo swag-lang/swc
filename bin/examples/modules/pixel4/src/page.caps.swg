@@ -2,7 +2,7 @@ using Core, Pixel
 
 struct CapRow
 {
-    label:        string
+    label:        #nonull string
     begCap:       LineCapStyle
     endCap:       LineCapStyle
     color:        Color
@@ -26,16 +26,16 @@ func makeCapPath(left, right, y: f32)->LinePath
     return path
 }
 
-func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
+func drawCapRow(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
 {
     let baselineY = Math.round(rect.vertCenter())
     let startX    = rect.x + 250
     let endX      = rect.right() - 32
 
     painter.fillRect(rect.x, rect.y + rect.height - 1, rect.width, 1, Color.fromArgb(30, Argb.SlateGray))
-    drawWrappedText(painter, {rect.x + 8, rect.y + 12, 220, 34}, row.label, g_LabelFont, Argb.DarkSlateGray)
-    painter.drawString(startX - 44, rect.y + 18, "start", g_HelpFont, Argb.LightSlateGray)
-    painter.drawString(endX - 16, rect.y + 18, "end", g_HelpFont, Argb.LightSlateGray)
+    drawWrappedText(painter, {rect.x + 8, rect.y + 12, 220, 34}, row.label, assume g_LabelFont, Argb.DarkSlateGray)
+    painter.drawString(startX - 44, rect.y + 18, "start", assume g_HelpFont, Argb.LightSlateGray)
+    painter.drawString(endX - 16, rect.y + 18, "end", assume g_HelpFont, Argb.LightSlateGray)
 
     painter.drawLine(startX, baselineY, endX, baselineY, Color.fromArgb(44, Argb.Black), 2)
     painter.fillCircle(startX, baselineY, 3, Argb.DarkSlateGray)
@@ -62,7 +62,7 @@ func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
     painter.drawPath(&path, pen)
 }
 
-func drawCapsPage(painter: *Pixel.Painter)
+func drawCapsPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel path drawing", "Page 1 : starts, endings and cap styles on the same straight segment.")
 

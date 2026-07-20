@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct FormDraw
 {
     using base:     BaseForm

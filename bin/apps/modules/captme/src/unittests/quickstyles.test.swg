@@ -1,6 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
-#global #[Swag.ExplicitNullability]
 
 using Swag, Core
 
@@ -52,11 +51,11 @@ using Swag, Core
 
     f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, f.main)
     f.main.propWnd  = PropWnd.create(f.main.quickStyleBar orelse cast(#nonull *SplitterCtrl) 1'u64, f.main)
-    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
+    with let quickPane = f.main.quickStyleBar.addPane(assume f.main.quickWnd, title: true)
     {
         .tryPreserveSize = true
     }
-    discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
+    discard f.main.quickStyleBar.addPane(assume f.main.propWnd, title: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
 
     f.main.quickWnd.setDefault()
@@ -75,7 +74,7 @@ using Swag, Core
     {
         if item.sliderBox
         {
-            sliderCtrlBefore = item.sliderBox
+            sliderCtrlBefore = assume item.sliderBox
             break
         }
     }

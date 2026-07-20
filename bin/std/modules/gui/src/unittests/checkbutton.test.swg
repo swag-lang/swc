@@ -6,7 +6,7 @@ const CheckButtonHeadless_Command = "CheckButtonHeadless.Command"
 
 var CheckButtonHeadlessChangedCount: u32
 
-func checkButtonHeadlessChanged(btn: *CheckButton)
+func checkButtonHeadlessChanged(btn: #nonull *CheckButton)
 {
     discard btn
     CheckButtonHeadlessChangedCount += 1

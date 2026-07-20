@@ -117,7 +117,7 @@ impl JSon
     }
 
     // Begins writing a struct (treated as a JSON object).
-    mtd beginStruct(_structType: typeinfo, _structData: const *u8)->bool
+    mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool
     {
         .beginSection(.Ordered)
         return false

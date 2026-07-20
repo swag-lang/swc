@@ -1,6 +1,6 @@
 using Core, Gui, Pixel
 
-func bindRadioGroup(r0, r1, r2: *RadioButton)
+func bindRadioGroup(r0, r1, r2: #nonull *RadioButton)
 {
     r0.sigChanged += func|r0, r1, r2|(btn)
     {
@@ -24,7 +24,7 @@ func bindRadioGroup(r0, r1, r2: *RadioButton)
     }
 }
 
-func createRadioButtonPage(parent: *Wnd)
+func createRadioButtonPage(parent: #nonull *Wnd)
 {
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "Exclusive group", "A small manual group checks the selected and unselected visual states.", layout.left)

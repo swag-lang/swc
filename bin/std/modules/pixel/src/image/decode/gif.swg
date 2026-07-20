@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // :LICENCE
 // This code is based on "gifdec" (https://github.com/lecram/gifdec)
 // The original code has been modified for Swag

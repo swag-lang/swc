@@ -46,7 +46,7 @@ func buildKernelCards(source: const &Image)
     setImageCard(&g_KernelCards[7], "Sepia blend", "grayScale + colorize", buildSepiaImage(source))
 }
 
-func drawKernelPage(painter: *Pixel.Painter)
+func drawKernelPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel kernels and grading", "Page 2 : convolution filters and simple color grading, all built from the local source image.")
     for i in CardsPerPage do

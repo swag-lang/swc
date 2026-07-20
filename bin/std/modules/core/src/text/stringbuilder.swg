@@ -1,6 +1,5 @@
 #global public
 #global namespace StrConv
-#global #[Swag.ExplicitNullability]
 
 struct StringBuilder
 {
@@ -46,7 +45,7 @@ impl StringBuilder
     }
 
     // Append a value
-    mtd appendAny(value: const any, strFormat: #null string = null)
+    mtd appendAny(value: #null const any, strFormat: #null string = null)
     {
         let convFmt: StrConv.ConvertFormat
         convertAny(&.buffer, value, convFmt, strFormat)

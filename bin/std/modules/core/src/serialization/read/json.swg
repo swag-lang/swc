@@ -27,7 +27,7 @@ public impl JSon
         return true
     }
 
-    mtd getError(val: string)->SyntaxError
+    mtd getError(val: #nonull string)->SyntaxError
     {
         var err: retval
         err.message = val
@@ -54,12 +54,12 @@ public impl JSon
         }
     }
 
-    mtd startRead(input: const [..] u8)
+    mtd startRead(input: #nonull const [..] u8)
     {
         .stream = ByteStream.openRead(input)
     }
 
-    mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw
+    mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: #nonull *u64)->bool throw
     {
         .zapBlanks()
         let c = .stream.readU8()
@@ -76,7 +76,7 @@ public impl JSon
             throw .getError("malformed array; missing closing [[?]]]")
     }
 
-    mtd toNextSequenceElement(_countElem: *u64)->bool
+    mtd toNextSequenceElement(_countElem: #nonull *u64)->bool
     {
         .zapBlanks()
         let c = .stream.peekU8()
@@ -109,7 +109,7 @@ public impl JSon
             throw .getError("malformed struct, missing closing [[}]]")
     }
 
-    mtd beginStruct(_structType: typeinfo, _structData: const *u8)->bool throw
+    mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool throw
     {
         .beginSection(.Ordered)
         return false

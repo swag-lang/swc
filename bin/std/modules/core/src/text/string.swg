@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 using Swag
 
 const StringSmallSize = 16'u64

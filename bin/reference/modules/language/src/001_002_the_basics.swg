@@ -64,7 +64,7 @@ You can also explicitly declare a type when desired.
 */
 #test
 {
-    let name:  string = "Alice"
+    let name:  #nonull string = "Alice"
     var score: s32 = 100
 }
 
@@ -257,7 +257,7 @@ Functions can also return multiple values via tuples.
 */
 #test
 {
-    func splitName()->{ x: string, y: string }
+    func splitName()->{ x: #nonull string, y: #nonull string }
     {
         return {"a", "b"}
     }

@@ -22,7 +22,7 @@ struct PushButton
 
 impl IWnd for PushButton
 {
-    mtd impl onStateEvent(evt: *StateEvent)
+    mtd impl onStateEvent(evt: #nonull *StateEvent)
     {
         .button.IWnd.onStateEvent(evt)
         if evt.kind == .Hide or evt.kind == .Disable
@@ -33,7 +33,7 @@ impl IWnd for PushButton
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let bc      = evt.bc
         let theme   = .getTheme()
@@ -41,8 +41,8 @@ impl IWnd for PushButton
         let colors  = .getThemeColors()
         let rects   = .getThemeRects()
 
-        var subRectBk:     *ThemeImageRect
-        var subRectBorder: *ThemeImageRect
+        var subRectBk:     #null *ThemeImageRect
+        var subRectBorder: #null *ThemeImageRect
         var colorBk:       Color = undefined
         var colorBorder:   Color = undefined
         var colorText:     Color = undefined
@@ -175,7 +175,7 @@ impl IWnd for PushButton
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if .processMouseEvent(evt) do
             .postCommandEvent(.id)

@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 #foreignlib("user32")
 using Swag
 
@@ -1115,8 +1114,8 @@ internal namespace User32Priv
 {
     #[Foreign("user32")]
     {
-        func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM;
-        func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM;
+        func RegisterClassA(lpWndClass: #nonull const *WNDCLASSA)->ATOM;
+        func RegisterClassW(lpWndClass: #nonull const *WNDCLASSW)->ATOM;
 
         func UpdateWindow(hWnd: HWND)->BOOL;
         func DestroyWindow(hWnd: HWND)->BOOL;
@@ -1169,7 +1168,7 @@ internal namespace User32Priv
     }
 
     #[Discardable]
-    func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM throw
+    func RegisterClassA(lpWndClass: #nonull const *WNDCLASSA)->ATOM throw
     {
         let res = User32Priv.RegisterClassA(lpWndClass)
         if !res do
@@ -1178,7 +1177,7 @@ internal namespace User32Priv
     }
 
     #[Discardable]
-    func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM throw
+    func RegisterClassW(lpWndClass: #nonull const *WNDCLASSW)->ATOM throw
     {
         let res = User32Priv.RegisterClassW(lpWndClass)
         if !res do

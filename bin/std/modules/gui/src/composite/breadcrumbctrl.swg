@@ -41,9 +41,9 @@ struct BreadcrumbCtrl
     arrowPad            = 6.0'f32
 
     // Clicking a level body: navigate to the level at this index.
-    sigItemPressed:     SigArray'func||(*BreadcrumbCtrl, u64)
+    sigItemPressed:     SigArray'func||(#nonull *BreadcrumbCtrl, u64)
     // Opening a level's chevron: the app fills 'menu' with the level's children.
-    sigFillMenu:        func||(*BreadcrumbCtrl, u64, *MenuCtrl)
+    sigFillMenu:        func||(#nonull *BreadcrumbCtrl, u64, #nonull *MenuCtrl)
     // A child was picked from a level's chevron menu; 'id' is the chosen menu item id.
     sigMenuSelected:    SigArray'func||(#nonull *BreadcrumbCtrl, u64, String)
 }
@@ -145,7 +145,7 @@ impl BreadcrumbCtrl
 
 impl IWnd for BreadcrumbCtrl
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if evt.kind == .MouseLeave
         {
@@ -214,7 +214,7 @@ impl IWnd for BreadcrumbCtrl
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         .layout()
 

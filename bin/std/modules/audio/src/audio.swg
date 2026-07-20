@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Core
 
 var g_Driver: Driver

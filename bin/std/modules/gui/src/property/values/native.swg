@@ -1,8 +1,8 @@
 impl Properties
 {
-    mtd refreshNative(item: *PropertiesItem)
+    mtd refreshNative(item: #nonull *PropertiesItem)
     {
-        let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType
+        let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
         if item.sliderBox
@@ -10,7 +10,7 @@ impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = cast(*T) data
+                let p = cast(#null *T) data
                 item.sliderBox.slider.setValue(cast(f32) dref p)
             }
 
@@ -39,14 +39,14 @@ impl Properties
                 setEd'f64()
             }
 
-            .setEditMixed(item, item.sliderBox.edit)
+            .setEditMixed(item, assume item.sliderBox.edit)
         }
         elif item.editBox
         {
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = cast(*T) data
+                let p = cast(#null *T) data
                 item.editBox.setText(Format.toString("%", dref p))
             }
 
@@ -75,13 +75,13 @@ impl Properties
                 setEd'f64()
             }
 
-            .setEditMixed(item, item.editBox)
+            .setEditMixed(item, assume item.editBox)
         }
     }
 
-    mtd validateNative(item: *PropertiesItem)
+    mtd validateNative(item: #nonull *PropertiesItem)
     {
-        let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType
+        let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
         if item.sliderBox
@@ -89,7 +89,7 @@ impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = cast(*T) data
+                var p = cast(#null *T) data
                 dref p = cast(T) item.sliderBox.slider.getValue()
             }
 
@@ -122,7 +122,7 @@ impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = cast(*T) data
+                var p = cast(#null *T) data
                 dref p = catch StrConv.toNum'T(txt)
             }
 
@@ -156,13 +156,13 @@ impl Properties
     }
 
     // Panel row: a full-width self-labeled composite (labeled slider or labeled edit box)
-    mtd constructNativePanel(item: *PropertiesItem, value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative)
+    mtd constructNativePanel(item: #nonull *PropertiesItem, value: Swag.TypeValue, typeNative: #nonull const *Swag.TypeInfoNative)
     {
         var dispName = itemDisplayName(value)
 
         if Reflection.hasAttribute(value, .SliderMinMax)
         {
-            with let slider = SliderCtrl.create(item.line, dispName.toString())
+            with let slider = SliderCtrl.create(assume item.line, dispName.toString())
             {
                 .anchorStyle  = .X
                 .autoEditSize = false
@@ -200,7 +200,7 @@ impl Properties
             return
         }
 
-        with let ctrl = EditCtrl.create(item.line, dispName.toString(), "", flags: .AutoLoseFocus)
+        with let ctrl = EditCtrl.create(assume item.line, dispName.toString(), "", flags: .AutoLoseFocus)
         {
             .anchorStyle = .X
             .editSize    = 0
@@ -241,7 +241,7 @@ impl Properties
         }
     }
 
-    mtd constructNative(value: Swag.TypeValue, typeNative: const *Swag.TypeInfoNative, data: *u8, parentItem: *PropertiesItem)
+    mtd constructNative(value: Swag.TypeValue, typeNative: #nonull const *Swag.TypeInfoNative, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
 
@@ -254,7 +254,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
-            with let slider = SliderCtrl.create(item.line, null)
+            with let slider = SliderCtrl.create(assume item.line, null)
             {
                 .labelSize = 0
                 .maxSize.x = editWidth
@@ -267,7 +267,7 @@ impl Properties
             }
 
             me.adaptCondensedControl(slider)
-            me.flattenCondensedEdit(slider.edit)
+            me.flattenCondensedEdit(assume slider.edit)
             item.sliderBox = slider
 
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
@@ -294,7 +294,7 @@ impl Properties
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
 
-            with let ed = EditBox.create(item.line, value.name)
+            with let ed = EditBox.create(assume item.line, value.name)
             {
                 if unit != null do
                     .unit = cast(#nonull string) (assume unit)

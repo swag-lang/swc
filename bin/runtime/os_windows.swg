@@ -1,5 +1,4 @@
 #global #if #os == Swag.TargetOs.Windows
-#global #[Swag.ExplicitNullability]
 #foreignlib("kernel32")
 #foreignlib("user32")
 #foreignlib("ucrt")
@@ -536,7 +535,7 @@ func __symbolize(addr: #nonull *void)->__SwagSym
 
     // GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS(4) | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT(2)
     var h: #null *void = null
-    if GetModuleHandleExA(6, cast(const *u8) addr, &h) == 0 do
+    if GetModuleHandleExA(6, cast(#nonull const *u8) addr, &h) == 0 do
         return r
     if h != __dbgCacheBase do
         __dbgFindSection(h)

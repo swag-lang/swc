@@ -1,6 +1,5 @@
 #global export
 #global namespace Slice
-#global #[Swag.ExplicitNullability]
 
 // Insertion sort algorithm (slow)
 func(T) insertionSort(values: #nonull [..] T, cb: func||(T, T)->s32)

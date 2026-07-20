@@ -1,12 +1,12 @@
 using Core, Pixel
 
-func drawTextCardSurface(painter: *Pixel.Painter, rect: Math.Rectangle, color: Color)
+func drawTextCardSurface(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, color: Color)
 {
     painter.fillRoundRect(rect, 14, 14, color)
     painter.drawRoundRect(rect, 14, 14, Color.fromArgb(34, Argb.SlateGray), 1)
 }
 
-func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawTextFlowCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Rich layout", "Styled runs, tabs, URL spans, alignment and clipping are resolved through drawRichString.")
     let gap = 14.0
@@ -47,14 +47,14 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawRichString(insetRect(right, 12, 12, 12, 12), &labels, labelFmt)
 }
 
-func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawPaintedGlyphCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Painted glyphs", "Gradient, sweep and texture brushes bind to shaped text just like regular vector fills.")
     let sample = insetRect(body, 20, 12, 20, 18)
     drawTextCardSurface(painter, sample, Color.fromArgb(255, 246, 248, 250))
 
     let headline = "SHAPED"
-    let headlineSize = Painter.measureString(headline, g_TitleFont)
+    let headlineSize = Painter.measureString(headline, assume g_TitleFont)
     let headlineX = sample.horzCenter() - headlineSize.width * 0.5
     let headlineY = sample.y + 24
     let headlineBoundsY = headlineY + g_TitleFont.height - headlineSize.height
@@ -62,24 +62,24 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     var headlineBrush = Brush.createLinearGradient(headlineX, headlineY, headlineX + headlineSize.width, headlineY + headlineSize.height, Argb.DeepSkyBlue, Argb.Crimson)
     headlineBrush.addGradientStop(0.48, Argb.Goldenrod)
     painter.fillRect(headlineX, headlineBoundsY, headlineSize.width, headlineSize.height, Color.fromArgb(22, Argb.DeepSkyBlue))
-    painter.drawString(headlineX, headlineY, headline, g_TitleFont, headlineBrush)
+    painter.drawString(headlineX, headlineY, headline, assume g_TitleFont, headlineBrush)
 
     let sweepText = "subpixel MSDF"
-    let sweepSize = Painter.measureString(sweepText, g_LabelFont)
+    let sweepSize = Painter.measureString(sweepText, assume g_LabelFont)
     let sweepX = sample.horzCenter() - sweepSize.width * 0.5
     let sweepY = headlineY + g_TitleFont.height + 12
     var sweepBrush = Brush.createSweepGradient(Math.Vector2{sweepX + sweepSize.width * 0.5, sweepY + sweepSize.height * 0.5}, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
     sweepBrush.addGradientStop(0.4, Argb.SeaGreen)
-    painter.drawString(sweepX, sweepY, sweepText, g_LabelFont, sweepBrush)
+    painter.drawString(sweepX, sweepY, sweepText, assume g_LabelFont, sweepBrush)
 
     let textureText = "texture brush + underline"
-    let textureSize = Painter.measureString(textureText, g_HelpFont)
+    let textureSize = Painter.measureString(textureText, assume g_HelpFont)
     let textureX = sample.horzCenter() - textureSize.width * 0.5
     let textureY = sample.bottom() - g_HelpFont.height - 12
-    painter.drawString(textureX, textureY, textureText, g_HelpFont, Brush.createTiled(g_TileTexture), UnderlineStyle.Underline)
+    painter.drawString(textureX, textureY, textureText, assume g_HelpFont, Brush.createTiled(g_TileTexture), UnderlineStyle.Underline)
 }
 
-func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawBaselineCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Metrics and baselines", "Mixed sizes share a baseline, with measured ink boxes shown against the font box.")
     let sample = insetRect(body, 20, 14, 20, 18)
@@ -90,8 +90,8 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     let big = "Ag"
     let small = "aligned text"
-    let bigMs = Painter.measureString(big, g_TitleFont)
-    let smallMs = Painter.measureString(small, g_HelpFont)
+    let bigMs = Painter.measureString(big, assume g_TitleFont)
+    let smallMs = Painter.measureString(small, assume g_HelpFont)
     let bigX = sample.x + 34
     let bigTop = baseline - g_TitleFont.ascent
     let smallX = bigX + bigMs.width + 18
@@ -99,8 +99,8 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.fillRect(bigX, baseline - bigMs.ascent, bigMs.width, bigMs.height, Color.fromArgb(24, Argb.DeepSkyBlue))
     painter.fillRect(smallX, baseline - smallMs.ascent, smallMs.width, smallMs.height, Color.fromArgb(24, Argb.Goldenrod))
-    painter.drawString(bigX, bigTop, big, g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(smallX, smallTop, small, g_HelpFont, Argb.DarkSlateGray)
+    painter.drawString(bigX, bigTop, big, assume g_TitleFont, Argb.MidnightBlue)
+    painter.drawString(smallX, smallTop, small, assume g_HelpFont, Argb.DarkSlateGray)
 
     var paragraph: RichString = "<b>Large</b> and regular spans\nadvance by per-line height.\nThis third line is intentionally clipped."
     var fmt: RichStringFormat
@@ -115,11 +115,11 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawRichString({sample.x + 24, sample.bottom() - 64, sample.width - 48, 52}, &paragraph, fmt)
 }
 
-func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawOutlineTextCard(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Vector outlines", "Typeface outlines become paths, so fills, strokes, clipping and textured pens all still apply.")
     let preview = insetRect(body, 20, 14, 20, 40)
-    let outlineSize = Painter.measureString("PIXEL", g_OutlineFont)
+    let outlineSize = Painter.measureString("PIXEL", assume g_OutlineFont)
     let outlineX = preview.horzCenter() - outlineSize.width * 0.5
     let outlineTop = preview.y + (preview.height - outlineSize.height) * 0.5
     let outlineY = outlineTop + g_OutlineFont.ascent
@@ -141,10 +141,10 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.popTransform()
     painter.popClippingRect()
-    drawWrappedText(painter, {body.x + 18, body.bottom() - 32, body.width - 36, 22}, "TypeFace.getStringOutline + gradient fill + textured outline", g_HelpFont, Argb.DimGray)
+    drawWrappedText(painter, {body.x + 18, body.bottom() - 32, body.width - 36, 22}, "TypeFace.getStringOutline + gradient fill + textured outline", assume g_HelpFont, Argb.DimGray)
 }
 
-func drawTextPage(painter: *Pixel.Painter)
+func drawTextPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel text rendering", "Page 7 : shaped runs, rich layout, painted glyphs, baseline metrics and vector outlines in one painter pass.")
     drawTextFlowCard(painter, {28, 104, 452, 280})

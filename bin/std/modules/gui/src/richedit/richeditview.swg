@@ -5,21 +5,21 @@ public struct RichEditView
 {
     using wnd:            Wnd
 
-    ed:                   *RichEditCtrl
+    ed:                   #null *RichEditCtrl
     visibleCaret:         bool
     selMode:              bool
-    timerCaret:           *Timer
+    timerCaret:           #null *Timer
     firstLineSelMode:     u64
     lastClientRect:       Math.Rectangle
 }
 
 impl IWnd for RichEditView
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         if .timerCaret
         {
-            .surface.app.deleteTimer(.timerCaret)
+            .surface.app.deleteTimer(assume .timerCaret)
             .timerCaret = null
         }
 
@@ -36,13 +36,13 @@ impl IWnd for RichEditView
         .ed = null
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         if .ed and .ed.richEdFlags & .WordWrap do
             .ed.recomputeScroll = true
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         evt.accepted = false
         switch evt.kind
@@ -103,7 +103,7 @@ impl IWnd for RichEditView
         }
     }
 
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         if evt.kind == .KeyPressed
         {
@@ -130,7 +130,7 @@ impl IWnd for RichEditView
         }
     }
 
-    mtd impl onFocusEvent(evt: *FocusEvent)
+    mtd impl onFocusEvent(evt: #nonull *FocusEvent)
     {
         switch evt.kind
         {
@@ -140,20 +140,20 @@ impl IWnd for RichEditView
             .invalidate()
 
         case KillFocus:
-            .surface.app.deleteTimer(.timerCaret)
+            .surface.app.deleteTimer(assume .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
         }
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
     {
         .visibleCaret = !.visibleCaret
         .invalidate()
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let painter = evt.bc.painter
         let colors  = .getThemeColors()
@@ -233,7 +233,7 @@ impl IWnd for RichEditView
                 {
                     let prevLine = i ? .ed.lines[i - 1] : null
                     let nextLine = i != .ed.lines.count - 1 ? .ed.lines[i + 1] : null
-                    .ed.lexer.compute(prevLine, l, nextLine)
+                    .ed.lexer.compute(prevLine, assume l, nextLine)
                 }
 
                 .ed.wrap(i)
@@ -317,7 +317,7 @@ impl RichEditView
         }
     }
 
-    mtd paintString(bc: *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
+    mtd paintString(bc: #nonull *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
     {
         let painter = bc.painter
 
@@ -362,7 +362,7 @@ impl RichEditView
         return right
     }
 
-    mtd paintLine(bc: *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
+    mtd paintLine(bc: #nonull *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
     {
         let line = .ed.lines[lineIndex]
         let y    = py
@@ -375,8 +375,8 @@ impl RichEditView
         var pStyle     = line.styles.buffer
         if !count
         {
-            pChar  = cast([*] rune) &dummyChar
-            pStyle = cast([*] u8) &dummyStyle
+            pChar  = cast(#nonull [*] rune) &dummyChar
+            pStyle = cast(#nonull [*] u8) &dummyStyle
             count  = 1
         }
 

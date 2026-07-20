@@ -1,17 +1,17 @@
 using Core, Gui, Pixel
 
-func createSplitterPane(parent: *Wnd, title, text: string)->*FrameWnd
+func createSplitterPane(parent: #nonull *Wnd, title, text: #nonull string)->#nonull *FrameWnd
 {
     let pane = createPane(parent, title, text)
     let view = pane.view
-    let focus = createChip(view, "Focus", .Search)
+    let focus = createChip(assume view, "Focus", .Search)
     focus.setPosition({12, 96, 94, 30})
-    let pin = createChip(view, "Pin", .Link)
+    let pin = createChip(assume view, "Pin", .Link)
     pin.setPosition({112, 96, 82, 30})
     return pane
 }
 
-func createSplitterPage(parent: *Wnd)
+func createSplitterPage(parent: #nonull *Wnd)
 {
     let layout = getPageLayout(parent)
     let page = createPanel(parent, "Nested splitters", "Drag the vertical and horizontal bars; side panes keep useful minimum sizes while the editor area absorbs most resize changes.", layout.full)

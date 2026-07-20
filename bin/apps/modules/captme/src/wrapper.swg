@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 // Single source of truth mapping a form type to its edit mode and to the tool
 // contexts it can serve as a model for. Every mode<->type<->model lookup below
 // derives from this table; MainWnd.mdlByType is built in the same order.

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 var g_Library: Library
 
 struct Library

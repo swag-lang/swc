@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 #global public
 using Core, Ogl, Core.Math
 

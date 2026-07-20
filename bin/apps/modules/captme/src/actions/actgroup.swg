@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionGroup {}
@@ -15,7 +14,7 @@ impl IActionUI for ActionGroup
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = main.getCapture()
         let isLib   = main.libraryMode
 
@@ -37,7 +36,7 @@ impl IActionUI for ActionGroup
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id

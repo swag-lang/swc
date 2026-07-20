@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct QuickStyle
 {
     forms: Array'IForm
@@ -294,7 +293,7 @@ impl QuickWnd
             .layout         = WrapLayoutCtrl.create(quick)
             .layout.padding = 6
             .layout.spacing = 6
-            .setView(quick.layout)
+            .setView(assume quick.layout)
 
             .main = main
         }

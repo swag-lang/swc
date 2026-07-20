@@ -1,5 +1,4 @@
 #global namespace Swag
-#global #[Swag.ExplicitNullability]
 
 impl ScratchAllocator
 {

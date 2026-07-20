@@ -13,7 +13,7 @@ the variable’s type.
     let a: u32 = 1 // Immutable variable
     @assert(a == 1)
 
-    let b: string = "string"
+    let b: #nonull string = "string"
     @assert(b == "string")
 
     var c: s32 = 42 // Mutable variable
@@ -55,7 +55,7 @@ and never left undefined.
     var a: bool
     @assert(a == false)
 
-    var b: string
+    var b: #null string
     @assert(b == null)
 
     var c: f64
@@ -72,7 +72,7 @@ should be used cautiously.
 #test
 {
     var a: bool = undefined
-    var b: string = undefined
+    var b: #null string = undefined
 }
 
 /**

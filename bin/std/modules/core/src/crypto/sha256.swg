@@ -33,7 +33,7 @@ impl Sha256
         func sig1(x: u32)        => (rotRight(x, 17) ^ rotRight(x, 19) ^ (x >> 10))
     }
 
-    mtd transform(buf: const [*] u8)
+    mtd transform(buf: #nonull const [*] u8)
     {
         var m: [64] u32
 
@@ -154,7 +154,7 @@ public impl Sha256
     }
 
     // Update the hash value with 'buffer' content
-    mtd update(buffer: const [..] u8)
+    mtd update(buffer: #nonull const [..] u8)
     {
         Debug.assert(@countof(buffer) <= Swag.U32.Max)
         let buf = @dataof(buffer)
@@ -174,7 +174,7 @@ public impl Sha256
     }
 
     // Returns the sha256 value for the given buffer
-    func compute(buffer: const [..] u8)->Digest
+    func compute(buffer: #nonull const [..] u8)->Digest
     {
         var v: Sha256
         v.init()

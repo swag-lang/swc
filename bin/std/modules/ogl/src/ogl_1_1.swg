@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 
 alias GLenum     = u32
 alias GLboolean  = u8

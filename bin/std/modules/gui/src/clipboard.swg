@@ -4,17 +4,17 @@ using Serialization
 var g_ValueFormat: ValueFormat
 
 // Add whatever value with a given 'type'
-public func addTypedValue(value: #nonull *void, type: typeinfo)
+public func addTypedValue(value: #nonull *void, type: #nonull typeinfo)
 {
     switch type
     {
     case string:
-        return addString(dref cast(*string) value)
+        return addString(dref cast(#nonull *string) value)
     case Core.String:
-        let str = cast(*Core.String) value
+        let str = cast(#nonull *Core.String) value
         return addString(str.toString())
     case Pixel.Image:
-        return addImage(dref cast(*Pixel.Image) value)
+        return addImage(dref cast(#nonull *Pixel.Image) value)
     }
 
     var buf:    ConcatBuffer
@@ -31,7 +31,7 @@ public func addTypedValue(value: #nonull *void, type: typeinfo)
 }
 
 // Get whatever value with a given 'type'
-public func hasTypedValue(type: typeinfo)->bool
+public func hasTypedValue(type: #nonull typeinfo)->bool
 {
     switch type
     {
@@ -45,7 +45,7 @@ public func hasTypedValue(type: typeinfo)->bool
 }
 
 // Get whatever value with a given 'type'
-public func getTypedValue(value: #nonull *void, type: typeinfo)->bool
+public func getTypedValue(value: #nonull *void, type: #nonull typeinfo)->bool
 {
     if !hasTypedValue(type) do
         return false
@@ -53,10 +53,10 @@ public func getTypedValue(value: #nonull *void, type: typeinfo)->bool
     switch type
     {
     case Core.String:
-        dref cast(*Core.String) value = getString()
+        dref cast(#nonull *Core.String) value = getString()
         return true
     case Pixel.Image:
-        dref cast(*Pixel.Image) value = getImage()
+        dref cast(#nonull *Pixel.Image) value = getImage()
         return true
     }
 

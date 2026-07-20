@@ -24,7 +24,7 @@ struct PropFieldValue
     isString:   bool
     n:          u64             // number of instances captured
     sz:         u64             // per-instance byte size (raw-bytes case only)
-    addrs:      Array'(*u8)     // field address in each captured instance
+    addrs:      Array'(#null *u8)     // field address in each captured instance
     bytes:      Array'u8        // n * sz contiguous raw bytes (raw-bytes case)
     strings:    Array'String    // n strings (String case)
 }
@@ -33,7 +33,7 @@ impl PropFieldValue
 {
     // True for the types the grid can snapshot/restore safely: dynamic String (by content) or
     // any POD value (native/enum/bool/color/vector/POD struct/static array of POD).
-    func canSnapshot(type: typeinfo)->bool
+    func canSnapshot(type: #null typeinfo)->bool
     {
         if !type do
             return false
@@ -44,7 +44,7 @@ impl PropFieldValue
 
     // Snapshot the current value of 'item' across all its edited instances. Leaves the value
     // invalid for rows that cannot be snapshotted.
-    mtd capture(prop: *Properties, item: *PropertiesItem)
+    mtd capture(prop: #nonull *Properties, item: #nonull *PropertiesItem)
     {
         .valid    = false
         .isString = false
@@ -75,7 +75,7 @@ impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for k in .n do
-                .strings.add(dref cast(*String) .addrs[k])
+                .strings.add(dref cast(#null *String) .addrs[k])
         }
         else
         {
@@ -84,7 +84,7 @@ impl PropFieldValue
                 return
             .bytes.resize(.n * .sz)
             for k in .n do
-                Memory.copy(cast([*] void) (.bytes.buffer + k * .sz), cast(const [*] void) .addrs[k], .sz)
+                Memory.copy(cast(#null [*] void) (.bytes.buffer + k * .sz), cast(#null const [*] void) .addrs[k], .sz)
         }
 
         .valid = true
@@ -101,17 +101,17 @@ impl PropFieldValue
         if .isString
         {
             for k in .n do
-                dref cast(*String) .addrs[k] = .strings[k]
+                dref cast(#null *String) .addrs[k] = .strings[k]
         }
         else
         {
             for k in .n do
-                Memory.copy(cast([*] void) .addrs[k], cast(const [*] void) (.bytes.buffer + k * .sz), .sz)
+                Memory.copy(cast(#null [*] void) .addrs[k], cast(#null const [*] void) (.bytes.buffer + k * .sz), .sz)
         }
     }
 
     // Value equality (used to skip recording a no-op change).
-    mtd isEqual(o: *PropFieldValue)->bool
+    mtd isEqual(o: #nonull *PropFieldValue)->bool
     {
         if .isString != o.isString do
             return false
@@ -147,7 +147,7 @@ impl PropFieldValue
 // skips the row refresh (the values still land at the right addresses).
 struct PropUndoCommand
 {
-    prop:           *Properties
+    prop:           #null *Properties
     generation:     u64
     oldVal:         PropFieldValue
     newVal:         PropFieldValue
@@ -175,14 +175,14 @@ internal impl Properties
     mtd assignUndoSnapshots(fromIdx: u64)
     {
         for i in fromIdx until .items.count do
-            .items[i].undoValue.capture(me, .items[i])
+            .items[i].undoValue.capture(me, assume .items[i])
     }
 
     // Diff the row's current value against its snapshot; on a real change, push one undo
     // command holding the before/after value, then resync the snapshot. Called from hasChanged.
     // While a slider drag is active on the row (beginItemDrag), every move after the first is
     // folded into the command recorded at the first move, so the whole drag is one undo step.
-    mtd recordUndo(item: *PropertiesItem)
+    mtd recordUndo(item: #nonull *PropertiesItem)
     {
         if !.undoEnabled do
             return
@@ -228,7 +228,7 @@ internal impl Properties
         // Resync every row snapshot with the restored values, so the next edit diffs against
         // the timeline position we just moved to.
         for it in .items do
-            it.undoValue.capture(me, it)
+            it.undoValue.capture(me, assume it)
 
         var relayout = .updateValidation()
         if .updateDefaults() do
@@ -250,7 +250,7 @@ internal impl Properties
     }
 
     // A slider drag started on 'item': coalesce the undo commands of the drag into one.
-    mtd beginItemDrag(item: *PropertiesItem)
+    mtd beginItemDrag(item: #nonull *PropertiesItem)
     {
         .dragItem = item
         .dragCmd  = null
@@ -300,7 +300,7 @@ public impl Properties
     {
         .activeUndoMgr().clear()
         for it in .items do
-            it.undoValue.capture(me, it)
+            it.undoValue.capture(me, assume it)
     }
 
     // Turn recording on/off (e.g. to batch programmatic changes without polluting the history).
@@ -312,10 +312,10 @@ public impl Properties
 
 internal impl Properties
 {
-    mtd activeUndoMgr()->*UndoManager
+    mtd activeUndoMgr()->#nonull *UndoManager
     {
         if .externUndoMgr do
-            return .externUndoMgr
+            return assume .externUndoMgr
         return &.undoMgr
     }
 }

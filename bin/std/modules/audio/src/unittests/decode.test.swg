@@ -1,6 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 #test

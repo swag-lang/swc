@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 
 const GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED = 0x8221
 const GL_MAX_VERTEX_ATTRIB_STRIDE                = 0x82E5

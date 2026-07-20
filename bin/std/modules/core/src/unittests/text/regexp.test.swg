@@ -539,7 +539,7 @@ using Swag
 
     let prefix = digits.partialMatch("123abc")
     @assert(prefix != null)
-    @assert(cast(string) prefix == "123")
+    @assert(cast(#null string) prefix == "123")
     @assert(digits.partialMatch("abc123") == null)
 }
 
@@ -549,12 +549,12 @@ using Swag
 
     let first = anchored.partialMatch("123abc")
     @assert(first != null)
-    @assert(cast(string) first == "123")
+    @assert(cast(#null string) first == "123")
     @assert(anchored.getCapture(1) == "123")
 
     let second = anchored.partialMatch("456def")
     @assert(second != null)
-    @assert(cast(string) second == "456")
+    @assert(cast(#null string) second == "456")
     @assert(anchored.getCapture(1) == "456")
 
     @assert(anchored.partialMatch("abc") == null)
@@ -571,7 +571,7 @@ using Swag
         {
             let prefix = anchored.partialMatch("789xyz")
             @assert(prefix != null)
-            @assert(cast(string) prefix == "789")
+            @assert(cast(#null string) prefix == "789")
             @assert(anchored.getCapture(1) == "789")
         }
     }
@@ -608,7 +608,7 @@ using Swag
         {
             let first = captures.grep("a12")
             @assert(first != null)
-            @assert(cast(string) first == "12")
+            @assert(cast(#null string) first == "12")
             @assert(captures.getCapture(1) == "12")
 
             @assert(captures.grep("abc") == null)
@@ -616,7 +616,7 @@ using Swag
 
             let second = captures.grep("34x")
             @assert(second != null)
-            @assert(cast(string) second == "34")
+            @assert(cast(#null string) second == "34")
             @assert(captures.getCapture(1) == "34")
         }
     }
@@ -628,7 +628,7 @@ using Swag
 
     let match = endOfBuffer.grep("abc")
     @assert(match != null)
-    @assert(cast(string) match == "")
+    @assert(cast(#null string) match == "")
 
     let all = endOfBuffer.grepAll("abc")
     @assert(all.count == 1)
@@ -641,7 +641,7 @@ using Swag
 
     let match = empty.grep("")
     @assert(match != null)
-    @assert(cast(string) match == "")
+    @assert(cast(#null string) match == "")
 
     let all = empty.grepAll("")
     @assert(all.count == 1)
@@ -655,9 +655,9 @@ using Swag
     let second = words.grep("\u00E9 scatter cat")
 
     @assert(first != null)
-    @assert(cast(string) first == "cat")
+    @assert(cast(#null string) first == "cat")
     @assert(second != null)
-    @assert(cast(string) second == "cat")
+    @assert(cast(#null string) second == "cat")
     @assert(words.grep("\u00E9 scatter catnap") == null)
 }
 
@@ -667,7 +667,7 @@ using Swag
 
     let word = boundary.grep("cat")
     @assert(word != null)
-    @assert(cast(string) word == "")
+    @assert(cast(#null string) word == "")
 
     @assert(boundary.grep("!?") == null)
     @assert(boundary.grep("") == null)
@@ -693,7 +693,7 @@ using Swag
 
     let atStart = anchored.grep("12 34")
     @assert(atStart != null)
-    @assert(cast(string) atStart == "12")
+    @assert(cast(#null string) atStart == "12")
     @assert(anchored.grep("aa12") == null)
 
     let all = anchored.grepAll("12 34")
@@ -709,7 +709,7 @@ using Swag
 
     let match = words.grep("\u00E9 cat")
     @assert(match != null)
-    @assert(cast(string) match == "cat")
+    @assert(cast(#null string) match == "cat")
 
     let all = words.grepAll("\u00E9 cat catnap cat")
     @assert(all.count == 2)
@@ -970,10 +970,10 @@ using Swag
     @assert(!innerEmptyAlt.match("bc"))
     let emptyPrefix = emptyExactZero.partialMatch("abc")
     @assert(emptyPrefix != null)
-    @assert(cast(string) emptyPrefix == "")
+    @assert(cast(#null string) emptyPrefix == "")
     let emptyFirst = emptyDigitZero.grep("abc")
     @assert(emptyFirst != null)
-    @assert(cast(string) emptyFirst == "")
+    @assert(cast(#null string) emptyFirst == "")
     let emptyAll = emptyGroupZero.grepAll("ab")
     @assert(emptyAll.count == 3)
     @assert(emptyAll[0] == "")

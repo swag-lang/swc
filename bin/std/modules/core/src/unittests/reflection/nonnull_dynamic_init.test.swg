@@ -9,7 +9,7 @@ struct CoreNonNullDynamicItem
 union CoreNonNullZeroUnion
 {
     bits:    u64
-    pointer: *CoreNonNullDynamicItem
+    pointer: #nonull *CoreNonNullDynamicItem = undefined
 }
 
 #[Swag.Strict]
@@ -45,7 +45,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let allocatedRequired = Memory.new(requiredType)
     let rejectedNew = allocatedRequired == null
     if allocatedRequired do
-        Memory.free(cast([*] void) allocatedRequired, cast(u64) requiredType.sizeof)
+        Memory.free(cast(#null [*] void) allocatedRequired, cast(u64) requiredType.sizeof)
 
     var resetSentinel: #nonull *CoreNonNullDynamicItem = &item
     Reflection.reset(&resetSentinel, requiredType)
@@ -56,7 +56,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and !rejectedArray.count and !rejectedArray.capacity
 
     let zeroType = #typeof(CoreNonNullZeroUnion)
-    let zeroStructType = cast(const *Swag.TypeInfoStruct) zeroType
+    let zeroStructType = cast(#nonull const *Swag.TypeInfoStruct) zeroType
     if zeroStructType.opInit != null or zeroType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 
@@ -72,7 +72,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let allocatedZero = Memory.new(zeroType)
     let rejectedZeroNew = allocatedZero == null
     if allocatedZero do
-        Memory.free(cast([*] void) allocatedZero, cast(u64) zeroType.sizeof)
+        Memory.free(cast(#null [*] void) allocatedZero, cast(u64) zeroType.sizeof)
 
     var resetZero = CoreNonNullZeroUnion{bits: 0xFFFF}
     Reflection.reset(&resetZero, zeroType)
@@ -90,35 +90,35 @@ func testCoreNonNullDynamicInitialization()->bool
         return false
 
     let allocatedDefaults = Memory.new(defaultArrayType)
-    let allocatedDefaultValues = cast(*[2] CoreNonNullRuntimeDefault) allocatedDefaults
+    let allocatedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) allocatedDefaults
     let initializedNewArray = allocatedDefaults and
                               (dref allocatedDefaultValues)[0].value == "fallback" and
                               (dref allocatedDefaultValues)[1].value == "fallback"
     if allocatedDefaults do
-        Memory.free(cast([*] void) allocatedDefaults, cast(u64) defaultArrayType.sizeof)
+        Memory.free(cast(#null [*] void) allocatedDefaults, cast(u64) defaultArrayType.sizeof)
 
     let allocatedAlias = Memory.new(defaultAliasType)
-    let initializedNewAlias = allocatedAlias and (cast(*CoreNonNullRuntimeDefault) allocatedAlias).value == "fallback"
+    let initializedNewAlias = allocatedAlias and (cast(#null *CoreNonNullRuntimeDefault) allocatedAlias).value == "fallback"
     if allocatedAlias do
-        Memory.free(cast([*] void) allocatedAlias, cast(u64) defaultAliasType.sizeof)
+        Memory.free(cast(#null [*] void) allocatedAlias, cast(u64) defaultAliasType.sizeof)
 
     let nestedAliasArrayType = #typeof([3] CoreNonNullRuntimeDefaultPair)
     let allocatedNestedAliasArray = Memory.new(nestedAliasArrayType)
-    let nestedAliasValues = cast([*] CoreNonNullRuntimeDefault) allocatedNestedAliasArray
+    let nestedAliasValues = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedAliasArray
     let initializedNestedAliasArray = allocatedNestedAliasArray and
                                       nestedAliasValues[0].value == "fallback" and
                                       nestedAliasValues[5].value == "fallback"
     if allocatedNestedAliasArray do
-        Memory.free(cast([*] void) allocatedNestedAliasArray, cast(u64) nestedAliasArrayType.sizeof)
+        Memory.free(cast(#null [*] void) allocatedNestedAliasArray, cast(u64) nestedAliasArrayType.sizeof)
 
     let nestedArrayType = #typeof([3][2] CoreNonNullRuntimeDefault)
     let allocatedNestedArray = Memory.new(nestedArrayType)
-    let nestedValues = cast([*] CoreNonNullRuntimeDefault) allocatedNestedArray
+    let nestedValues = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedArray
     let initializedNestedArray = allocatedNestedArray and
                                  nestedValues[0].value == "fallback" and
                                  nestedValues[5].value == "fallback"
     if allocatedNestedArray do
-        Memory.free(cast([*] void) allocatedNestedArray, cast(u64) nestedArrayType.sizeof)
+        Memory.free(cast(#null [*] void) allocatedNestedArray, cast(u64) nestedArrayType.sizeof)
 
     var resetDefaults: [2] CoreNonNullRuntimeDefault
     resetDefaults[0].value = "changed-0"
@@ -132,14 +132,14 @@ func testCoreNonNullDynamicInitialization()->bool
 
     var appendedDefaults: Array'CoreNonNullRuntimeDefaultPair
     let appendedDefaultsPtr = Reflection.appendValueStructArray(&appendedDefaults, defaultArrayType)
-    let appendedDefaultValues = cast(*[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
+    let appendedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
     let initializedAppendArray = appendedDefaultsPtr and
                                  (dref appendedDefaultValues)[0].value == "fallback" and
                                  (dref appendedDefaultValues)[1].value == "fallback"
 
     var appendedAliases: Array'CoreNonNullRuntimeDefaultAlias
     let appendedAliasPtr = Reflection.appendValueStructArray(&appendedAliases, defaultAliasType)
-    let initializedAppendAlias = appendedAliasPtr and (cast(*CoreNonNullRuntimeDefault) appendedAliasPtr).value == "fallback"
+    let initializedAppendAlias = appendedAliasPtr and (cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr).value == "fallback"
 
     return cxt.user0 == 6 and
            rejectedNew and preservedReset and preservedArray and

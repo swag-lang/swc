@@ -105,7 +105,7 @@ func totalQty(lines: #nonull const [..] ProductLine)->s32
         {sku: "cable", qty: 3},
     ]
 
-    const view: const [..] ProductLine = lines
+    const view: #nonull const [..] ProductLine = lines
     @assert(@countof(view) == 2)
     @assert(view[0].sku == "keyboard")
     @assert(view[1].sku == "cable")

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 const BtnColorWidth  = 68.0
 const BtnColorHeight = 88.0
 const BtnStyleWidth  = 88.0
@@ -193,7 +192,7 @@ impl PropWnd
 
         for i in @countof(FormShapeKind)
         {
-            let btn0 = IconButton.create(frame.view, {})
+            let btn0 = IconButton.create(assume frame.view, {})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.RoundSquare)
             if cur == i do
@@ -716,7 +715,7 @@ impl PropWnd
             let item = prop.grid.addItem(v, null, null, 40, .Zero)
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(item.line, .HorzFit, {0, 0, 0, 40})
+            return StackLayoutCtrl.create(assume item.line, .HorzFit, {0, 0, 0, 40})
         }
 
         discard .grid.addSeparator("Position")
@@ -785,7 +784,7 @@ impl PropWnd
             .grid.setUndoEnabled(true)
         }
 
-        .grid.addStructMulti(.gridBindType, cast(#nonull [..] *u8) bases.toSlice(), null, onlyNamed: true)
+        .grid.addStructMulti(.gridBindType, cast(#nonull [..] #nonull *u8) bases.toSlice(), null, onlyNamed: true)
 
         // The generated border-size slider serves every form as "Tickness"; a text form
         // edits its glyph outline instead: matching label and a much thinner range. The
@@ -815,7 +814,7 @@ impl PropWnd
             return
         }
 
-        let stack0 = StackLayoutCtrl.create(.topLayout, .HorzCenter, {0, 0, 0, BtnColorHeight + 12})
+        let stack0 = StackLayoutCtrl.create(assume .topLayout, .HorzCenter, {0, 0, 0, BtnColorHeight + 12})
         .propBackColor(stack0)
         .propBorderColor(stack0)
         .propCalloutText(stack0)
@@ -824,7 +823,7 @@ impl PropWnd
         if stack0.childs.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(.topLayout, .HorzCenter, {0, 0, 0, BtnStyleHeight + 12})
+        let stack1 = StackLayoutCtrl.create(assume .topLayout, .HorzCenter, {0, 0, 0, BtnStyleHeight + 12})
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
         .propEndCapStyle(stack1)

@@ -26,9 +26,9 @@ Variadic parameters are treated as slices of type 'any', allowing you to process
         // Check the number of arguments
         @assert(@countof(parameters) == 3)
         // Initially, each parameter is of type 'any'
-        #assert(#typeof(parameters[0]) == any)
-        #assert(#typeof(parameters[1]) == any)
-        #assert(#typeof(parameters[2]) == any)
+        #assert(#nameof(#typeof(parameters[0])) == "any")
+        #assert(#nameof(#typeof(parameters[1])) == "any")
+        #assert(#nameof(#typeof(parameters[2])) == "any")
         // Determine actual runtime types
         @assert(@kindof(parameters[0]) == s32)
         @assert(@kindof(parameters[1]) == #nonull string)
@@ -90,11 +90,11 @@ You can mix fixed parameters with variadic ones to make function calls more expr
 */
 internal func print()
 {
-    func logMessage(prefix: string, messages: ...)
+    func logMessage(prefix: #nonull string, messages: ...)
     {
         for msg in messages
         {
-            @print(prefix, " => ", cast(string) msg)
+            @print(prefix, " => ", cast(#nonull string) msg)
         }
     }
 

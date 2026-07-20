@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func assertString(value: const &String, expected: string)->bool
+func assertString(value: const &String, expected: #nonull string)->bool
 {
     let text  = value.toString()
     let slice = value.toSlice()
@@ -73,19 +73,19 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(value.isEmpty())
     @assert(value.isNullOrEmpty())
     @assert(assertString(value, ""))
-    let emptyCstr = cast(cstring) value
+    let emptyCstr = cast(#null cstring) value
     @assert(@countof(emptyCstr) == 0)
 
     value = "abc"
     @assert(assertString(value, "abc"))
-    let cstr = cast(cstring) value
+    let cstr = cast(#null cstring) value
     @assert(@countof(cstr) == 3)
 
-    let nullText: string = null
+    let nullText: #null string = null
     value = nullText
     @assert(value.isEmpty())
     @assert(assertString(value, ""))
-    let nullCstr = cast(cstring) value
+    let nullCstr = cast(#null cstring) value
     @assert(@countof(nullCstr) == 0)
 }
 
@@ -241,7 +241,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(value.contains(cast(#nonull string) "Caf"))
 
     let needle: [3] u8 = ['a''u8, 'f''u8, 0xc3]
-    @assert(value.contains(cast(const [..] u8) needle))
+    @assert(value.contains(cast(#nonull const [..] u8) needle))
 
     @assert(value.startsWith("Core"))
     @assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))

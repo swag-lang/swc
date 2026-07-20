@@ -35,9 +35,9 @@ impl IActionUI for ActionProperties
 
     // Provide each item's label, icon and enabled state from the current target row. This is the
     // logic that used to live inline in popupMenu next to each addItem.
-    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let prop = cast(*Properties) cxt.wnd
+        let prop = cast(#nonull *Properties) assume cxt.wnd
         let item = prop.menuItem
         if !item do
             return false
@@ -56,7 +56,7 @@ impl IActionUI for ActionProperties
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Paste"
             evt.icon     = theme.getIcon24(.Paste)
-            evt.disabled = !prop.canChangeItem(item) or !Clipboard.hasTypedValue(item.type)
+            evt.disabled = !prop.canChangeItem(assume item) or !Clipboard.hasTypedValue(assume item.type)
 
         case ResetDefault:
             evt.setFlags |= .Name | .Icon | .Disabled
@@ -68,7 +68,7 @@ impl IActionUI for ActionProperties
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Move Up"
             evt.icon     = theme.getIcon24(.SortArrowUp)
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem) or prop.arrayElementIndex(arr.arrElem) == 0
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(assume arr.arrItem) or prop.arrayElementIndex(assume arr.arrElem) == 0
 
         case MoveDown:
             evt.setFlags |= .Name | .Icon | .Disabled
@@ -77,16 +77,16 @@ impl IActionUI for ActionProperties
             var atEnd = true
             if arr.arrElem
             {
-                let info = prop.arrayElementInfo(arr.arrItem)
-                atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
+                let info = prop.arrayElementInfo(assume arr.arrItem)
+                atEnd = prop.arrayElementIndex(assume arr.arrElem) + 1 >= info.count
             }
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem) or atEnd
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(assume arr.arrItem) or atEnd
 
         case Remove:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Remove"
             evt.icon     = theme.getIcon24(.Remove)
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem)
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(assume arr.arrItem)
 
         case RemoveAll:
             evt.setFlags |= .Name | .Icon | .Disabled
@@ -95,10 +95,10 @@ impl IActionUI for ActionProperties
             var empty = true
             if arr.arrItem
             {
-                let arrData = cast(*Array'u8) arr.arrItem.data
+                let arrData = cast(#null *Array'u8) arr.arrItem.data
                 empty = arrData.isEmpty()
             }
-            evt.disabled = !arr.arrItem or !prop.canChangeItem(arr.arrItem) or empty
+            evt.disabled = !arr.arrItem or !prop.canChangeItem(assume arr.arrItem) or empty
         }
 
         return true
@@ -106,7 +106,7 @@ impl IActionUI for ActionProperties
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let prop = cast(*Properties) cxt.wnd
+        let prop = cast(#nonull *Properties) assume cxt.wnd
         let item = prop.menuItem
         if !item do
             return false
@@ -116,39 +116,39 @@ impl IActionUI for ActionProperties
         switch cxt.id
         {
         case Copy:
-            Clipboard.addTypedValue(item.data, item.type)
+            Clipboard.addTypedValue(assume item.data, assume item.type)
 
         case Paste:
-            if Clipboard.getTypedValue(item.data, item.type)
+            if Clipboard.getTypedValue(assume item.data, assume item.type)
             {
-                prop.refreshItem(item)
-                prop.hasChanged(item)
+                prop.refreshItem(assume item)
+                prop.hasChanged(assume item)
             }
 
         case ResetDefault:
-            prop.resetItemDefault(item)
+            prop.resetItemDefault(assume item)
 
         case MoveUp:
             if arr.arrElem do
-                prop.moveArrayValue(arr.arrElem, -1)
+                prop.moveArrayValue(assume arr.arrElem, -1)
 
         case MoveDown:
             if arr.arrElem do
-                prop.moveArrayValue(arr.arrElem, 1)
+                prop.moveArrayValue(assume arr.arrElem, 1)
 
         case Remove:
             if !arr.arrElem do
                 break
             if MessageDlg.confirm(assume prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
                 break
-            prop.removeArrayValue(arr.arrElem)
+            prop.removeArrayValue(assume arr.arrElem)
 
         case RemoveAll:
             if !arr.arrItem do
                 break
             if MessageDlg.confirm(assume prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
                 break
-            prop.clearArray(arr.arrItem)
+            prop.clearArray(assume arr.arrItem)
         }
 
         return true

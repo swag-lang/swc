@@ -33,7 +33,7 @@ struct HeadlessHost
     surface:              Surface
     surfaceWnd:           SurfaceWnd
     root:                 Wnd
-    theme:                *Theme
+    theme:                #null *Theme
     mousePos:             Math.Point
     closed:               bool
     commandCount:         u32
@@ -113,7 +113,7 @@ impl HeadlessHost
     // its own module-global Application (theme, renderer, options) while events flow
     // through the host. The renderer goes headless and the host's theme and style
     // are shared instead of being rebuilt.
-    mtd bindApplication(app: *Application)
+    mtd bindApplication(app: #nonull *Application)
     {
         app.renderer.setupHeadless()
         app.theme = .theme
@@ -135,7 +135,7 @@ impl HeadlessHost
         }
     }
 
-    private mtd runAutoStage(stage: *AutoStage)->bool
+    private mtd runAutoStage(stage: #nonull *AutoStage)->bool
     {
         switch stage.kind
         {
@@ -161,7 +161,7 @@ impl HeadlessHost
         return .clickModalButton(stage.button)
     }
 
-    private mtd driveAutoStages(app: *Application)
+    private mtd driveAutoStages(app: #nonull *Application)
     {
         if !.autoArmed do
             return
@@ -169,7 +169,7 @@ impl HeadlessHost
         .autoFrames += 1
 
         let stage = .autoStages.buffer + .autoStage
-        if .runAutoStage(stage)
+        if .runAutoStage(assume stage)
         {
             .autoStage += 1
             .autoFrames = 0
@@ -202,9 +202,9 @@ impl HeadlessHost
         .autoArmed     = true
     }
 
-    private mtd addAutoStage(kind: AutoStageKind, button: #null WndId = null, folder, file, label: string = null)->*AutoStage
+    private mtd addAutoStage(kind: AutoStageKind, button: #null WndId = null, folder, file, label: #null string = null)->#nonull *AutoStage
     {
-        let stage = cast(*AutoStage) .autoStages.emplaceInitAddress()
+        let stage = cast(#nonull *AutoStage) .autoStages.emplaceInitAddress()
         stage.kind   = kind
         stage.button = button orelse ""
         stage.folder = folder
@@ -227,7 +227,7 @@ impl HeadlessHost
     // Same auto-driver as clickModalButtonWhenShown for a file dialog: fills the
     // modal file browser with 'fileName' (folder + name), then accepts it with
     // 'button'. The folder part must exist.
-    mtd acceptModalFileDialog(fileName: string, button: #nonull WndId = Dialog.BtnOk, maxFrames: u32 = 60)
+    mtd acceptModalFileDialog(fileName: #nonull string, button: #nonull WndId = Dialog.BtnOk, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         let stage = .addAutoStage(.ModalButton, button)
@@ -245,7 +245,7 @@ impl HeadlessHost
 
     // Arms the auto UI driver to open the submenu labelled 'label' of the captured
     // popup menu as soon as the popup exists.
-    mtd openPopupSubMenuWhenShown(label: string, maxFrames: u32 = 60)
+    mtd openPopupSubMenuWhenShown(label: #nonull string, maxFrames: u32 = 60)
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupSubMenu, label: label)
@@ -270,7 +270,7 @@ impl HeadlessHost
 
     // Appends one more step to the armed sequence: open the submenu labelled 'label'
     // of the captured popup menu.
-    mtd thenOpenPopupSubMenu(label: string)
+    mtd thenOpenPopupSubMenu(label: #nonull string)
     {
         Debug.assert(.autoArmed)
         discard .addAutoStage(.PopupSubMenu, label: label)
@@ -278,11 +278,11 @@ impl HeadlessHost
 
     // Fills the labelled edit box of the modal with 'text' before the last armed
     // stage's button is clicked. May be called several times for several edits.
-    mtd withModalEdit(label, text: string)
+    mtd withModalEdit(label, text: #nonull string)
     {
         Debug.assert(.autoArmed and .autoStages.count > 0)
         let stage = .autoStages.buffer + .autoStages.count - 1
-        let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
+        let edit  = cast(#nonull *AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
         edit.text  = text
     }
@@ -362,14 +362,14 @@ impl HeadlessHost
         }
     }
 
-    mtd fireTimer(timer: *Timer)
+    mtd fireTimer(timer: #null *Timer)
     {
         if !timer or timer.toDelete do
             return
 
         .app.duringTimerEvents = true
         var evt = TimerEvent{}
-        evt.timer = timer
+        evt.timer = assume timer
         timer.target.sendEvent(&evt)
         .app.duringTimerEvents = false
 
@@ -420,14 +420,14 @@ impl HeadlessHost
         if target != .app.mouseEnterWnd
         {
             if target do
-                .sendMouseEvent(target, .MouseEnter, pt, Input.MouseButton.Left, modifiers)
+                .sendMouseEvent(assume target, .MouseEnter, pt, Input.MouseButton.Left, modifiers)
             if .app.mouseEnterWnd do
-                .sendMouseEvent(.app.mouseEnterWnd, .MouseLeave, pt, Input.MouseButton.Left, modifiers)
+                .sendMouseEvent(assume .app.mouseEnterWnd, .MouseLeave, pt, Input.MouseButton.Left, modifiers)
             .app.mouseEnterWnd = target
         }
 
         if target do
-            .sendMouseEvent(target, .MouseMove, pt, Input.MouseButton.Left, modifiers)
+            .sendMouseEvent(assume target, .MouseMove, pt, Input.MouseButton.Left, modifiers)
         .mousePos = pt
     }
 
@@ -438,7 +438,7 @@ impl HeadlessHost
         .app.mouse.currentState.pressed[button] = true
         let target = .getMouseTarget(pt)
         if target do
-            .sendMouseEvent(target, .MousePressed, pt, button, modifiers)
+            .sendMouseEvent(assume target, .MousePressed, pt, button, modifiers)
     }
 
     mtd mouseUp(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
@@ -446,7 +446,7 @@ impl HeadlessHost
         .app.mouse.currentState.pressed[button] = false
         let target = .getMouseTarget(pt)
         if target do
-            .sendMouseEvent(target, .MouseReleased, pt, button, modifiers)
+            .sendMouseEvent(assume target, .MouseReleased, pt, button, modifiers)
         .pump()
     }
 
@@ -456,7 +456,7 @@ impl HeadlessHost
         .mouseUp(pt, button, modifiers)
     }
 
-    mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    mtd clickWnd(wnd: #nonull *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
     {
         Debug.assert(wnd != null)
 
@@ -470,7 +470,7 @@ impl HeadlessHost
         if .app.modalSurfaces.count == 0 do
             return false
 
-        var wnd: *Wnd
+        var wnd: #null *Wnd
         for #reverse surface in .app.modalSurfaces
         {
             let view = surface.getView()
@@ -484,15 +484,15 @@ impl HeadlessHost
 
         if !wnd do
             return false
-        .clickWnd(wnd)
+        .clickWnd(assume wnd)
         return true
     }
 
-    mtd findEditCtrlByLabel(wnd: *Wnd, label: string)->#null *EditCtrl
+    mtd findEditCtrlByLabel(wnd: #nonull *Wnd, label: #nonull string)->#null *EditCtrl
     {
         if wnd.type == EditCtrl
         {
-            let ctrl = cast(*EditCtrl) wnd
+            let ctrl = cast(#nonull *EditCtrl) wnd
             if ctrl.label and ctrl.label.name.raw == label do
                 return ctrl
         }
@@ -507,12 +507,12 @@ impl HeadlessHost
         return null
     }
 
-    mtd setModalEditText(label: string, text: string)->bool
+    mtd setModalEditText(label: #nonull string, text: #nonull string)->bool
     {
         if .app.modalSurfaces.count == 0 do
             return false
 
-        let ctrl = .findEditCtrlByLabel(.app.modalSurfaces.back().wnd.view, label)
+        let ctrl = .findEditCtrlByLabel(assume .app.modalSurfaces.back().wnd.view, label)
         if !ctrl do
             return false
 
@@ -521,10 +521,10 @@ impl HeadlessHost
         return true
     }
 
-    mtd findFileBrowserCtrl(wnd: *Wnd)->#null *FileBrowserCtrl
+    mtd findFileBrowserCtrl(wnd: #nonull *Wnd)->#null *FileBrowserCtrl
     {
         if wnd.type == FileBrowserCtrl do
-            return cast(*FileBrowserCtrl) wnd
+            return cast(#nonull *FileBrowserCtrl) wnd
 
         for child in wnd.childs
         {
@@ -536,12 +536,12 @@ impl HeadlessHost
         return null
     }
 
-    mtd setModalFileSelection(folder: string, fileName: string)->bool
+    mtd setModalFileSelection(folder: #nonull string, fileName: #nonull string)->bool
     {
         if .app.modalSurfaces.count == 0 do
             return false
 
-        var browser: *FileBrowserCtrl
+        var browser: #null *FileBrowserCtrl
         for surface in .app.modalSurfaces
         {
             let view = surface.getView()
@@ -573,7 +573,7 @@ impl HeadlessHost
         if !.app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
             return null
 
-        let menu = cast(*MenuCtrl) .app.mouseCaptureWnd
+        let menu = cast(#null *MenuCtrl) .app.mouseCaptureWnd
         if menu.bar do
             return null
 
@@ -604,7 +604,7 @@ impl HeadlessHost
         return false
     }
 
-    mtd moveToPopupMenuItem(label: string)->bool
+    mtd moveToPopupMenuItem(label: #nonull string)->bool
     {
         let menu = .getCapturedPopupMenu()
         if !menu do
@@ -628,7 +628,7 @@ impl HeadlessHost
         return false
     }
 
-    mtd openPopupSubMenu(label: string)->bool
+    mtd openPopupSubMenu(label: #nonull string)->bool
     {
         let menu = .getCapturedPopupMenu()
         if !menu do
@@ -665,7 +665,7 @@ impl HeadlessHost
 
         let target = .getMouseTarget(pt)
         if target do
-            .sendMouseEvent(target, .MouseDoubleClick, pt, button, modifiers)
+            .sendMouseEvent(assume target, .MouseDoubleClick, pt, button, modifiers)
         .pump()
     }
 
@@ -696,7 +696,7 @@ impl HeadlessHost
         .pump()
     }
 
-    mtd focus(wnd: *Wnd)
+    mtd focus(wnd: #nonull *Wnd)
     {
         .app.keybFocusWnd = wnd
     }
@@ -764,7 +764,7 @@ impl HeadlessHost
         return target
     }
 
-    mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
+    mtd sendMouseEvent(target: #nonull *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
     {
         .setModifierKeys(modifiers, true)
         defer { me.setModifierKeys(modifiers, false) }
@@ -798,7 +798,7 @@ impl HeadlessHost
             if it is CommandEvent do
                 needUpdateState = true
 
-            Memory.delete(evt, evt.type)
+            Memory.delete(evt, assume evt.type)
         }
 
         if needUpdateState and !.root.isPendingDestroy do

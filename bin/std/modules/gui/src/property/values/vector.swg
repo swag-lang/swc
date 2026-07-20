@@ -2,7 +2,7 @@ using Core, Core.Math, Pixel
 
 impl Properties
 {
-    mtd constructVector(value: Swag.TypeValue, typeStruct: const *Swag.TypeInfoStruct, data: [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
+    mtd constructVector(value: Swag.TypeValue, typeStruct: #nonull const *Swag.TypeInfoStruct, data: #null [*] u8, parentItem: #null *PropertiesItem)->#nonull *PropertiesItem
     {
         // Custom struct editors keep the container row separator-less, like the inline-struct
         // path in addValue does (the registry path bypasses that, so replicate it here).
@@ -30,7 +30,7 @@ impl Properties
 
         for v in typeStruct.fields
         {
-            let dataField   = cast(*f32) (data + v.offset)
+            let dataField   = cast(#null *f32) (data + v.offset)
             let fieldOffset = cast(u64) v.offset
 
             with let label = Label.create(line, v.name[0 to 0], {0, 0, item.line.position.height})
@@ -72,7 +72,7 @@ struct VectorEditor {}
 
 impl IPropertyEditor for VectorEditor
 {
-    mtd impl canEdit(type: typeinfo)->bool
+    mtd impl canEdit(type: #null typeinfo)->bool
     {
         return type == Math.Vector2 or
                type == Math.Vector3 or
@@ -81,9 +81,9 @@ impl IPropertyEditor for VectorEditor
                type == Math.Rectangle
     }
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem
+    mtd impl construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem
     {
-        return list.constructVector(value, cast(const *Swag.TypeInfoStruct) value.pointedType, data, parent)
+        return list.constructVector(value, assume cast(#null const *Swag.TypeInfoStruct) value.pointedType, data, parent)
     }
 }
 

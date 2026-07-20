@@ -204,7 +204,7 @@ This is the callback that will deal with all gui events. This feels like *Window
 
 For a simple script, this is more easy to process events in that way.
 */
-func onEvent(wnd: *Wnd, evt: IEvent)->bool
+func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

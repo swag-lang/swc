@@ -1,7 +1,6 @@
 #global #if WINDOWS
 #global public
 #global namespace Threading
-#global #[Swag.ExplicitNullability]
 using Win32
 
 private func threadEntry(param: #null *void)->DWORD

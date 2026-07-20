@@ -35,8 +35,8 @@ struct Header
     form                  = HeaderForm.Flat
     headerFlags           = HeaderFlags.Clickable
     marginItems:          f32 = 5
-    sigLayoutChanged:     func||(*Header)
-    sigClicked:           func||(*Header, u32)
+    sigLayoutChanged:     func||(#nonull *Header)
+    sigClicked:           func||(#nonull *Header, u32)
 
     items:                ArrayPtr'HeaderItem
     hotIdx                = Swag.U32.Max
@@ -50,7 +50,7 @@ struct Header
 
 impl IWnd for Header
 {
-    mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
+    mtd paintItem(bc: PaintContext, item: #nonull *HeaderItem, idx: u32, x: f32)
     {
         let painter = bc.painter
 
@@ -111,7 +111,7 @@ impl IWnd for Header
         Theme.drawIconText(painter, labelPos, item.icon, &item.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         let painter = evt.bc.painter
         let theme   = .getTheme()
@@ -144,7 +144,7 @@ impl IWnd for Header
         var x = .padding.x
         for item, idx in .items
         {
-            .paintItem(evt.bc, item, cast(u32) idx, x)
+            .paintItem(evt.bc, assume item, cast(u32) idx, x)
             x += item.width
 
             var rect = clientRect
@@ -155,7 +155,7 @@ impl IWnd for Header
         }
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         if evt.kind == .MouseReleased and evt.button == .Left
         {
@@ -279,7 +279,7 @@ private impl Header
 impl Header
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Header
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *Header
     {
         Debug.assert(parent != null)
 
@@ -310,11 +310,11 @@ impl Header
     mtd getItem(idx: u32)->#nonull *HeaderItem
     {
         Debug.assert(idx < .items.count)
-        return .items[idx]
+        return assume .items[idx]
     }
 
     // Returns the given item, by column
-    mtd getItemByCol(column: u32)->*HeaderItem
+    mtd getItemByCol(column: u32)->#null *HeaderItem
     {
         Debug.assert(column < .items.count)
 

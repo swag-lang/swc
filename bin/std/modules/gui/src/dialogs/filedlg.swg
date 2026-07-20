@@ -28,20 +28,20 @@ struct FileDlgOptions
     mode:           FileDlgMode = SelectOneFile
     filters:        Array'{ name: #nonull string, extensions: #nonull string }
     shortcuts:      Array'{ type: Core.Env.SpecialDirectory, name: #nonull string }
-    state:          *FileDlgState
+    state:          #null *FileDlgState
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
 struct FileDlg
 {
     using dialog:     Dialog
-    browser:          *FileBrowserCtrl
+    browser:          #null *FileBrowserCtrl
     dlgOptions:       FileDlgOptions
 }
 
 impl IWnd for FileDlg
 {
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         // The browser saves the folder/column widths; the dialog owns the position.
         if .dlgOptions.state do

@@ -15,7 +15,7 @@ struct BlendColor
 impl BlendColor
 {
     // Apply the color lerp to reach 'target'
-    mtd apply(wnd: *Wnd, target: Color)
+    mtd apply(wnd: #nonull *Wnd, target: Color)
     {
         if wnd.getApp().dirtyTheme != .themeCrc
         {

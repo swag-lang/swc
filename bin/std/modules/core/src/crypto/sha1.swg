@@ -25,7 +25,7 @@ impl Sha1
 
     // Process a single 512-bit block of data.
     // Performs the main SHA-1 compression function on the provided 'buf'.
-    mtd transform(buf: const [*] u8)
+    mtd transform(buf: #nonull const [*] u8)
     {
         var w: [80] u32
 
@@ -158,7 +158,7 @@ public impl Sha1
 
     // Update the hash value with 'buffer' content.
     // Processes the input data in 512-bit blocks, buffering incomplete blocks for later processing.
-    mtd update(buffer: const [..] u8)
+    mtd update(buffer: #nonull const [..] u8)
     {
         Debug.assert(@countof(buffer) <= Swag.U32.Max)
         let buf = @dataof(buffer)
@@ -179,7 +179,7 @@ public impl Sha1
 
     // Returns the SHA-1 hash value for the given buffer.
     // Convenience function that performs the complete hash operation in a single call.
-    func compute(buffer: const [..] u8)->Digest
+    func compute(buffer: #nonull const [..] u8)->Digest
     {
         var v: Sha1
         v.init()

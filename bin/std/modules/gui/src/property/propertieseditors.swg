@@ -15,7 +15,7 @@ using Core, Pixel
 public interface IPropertyEditor
 {
     // Return true if this editor should handle a field of type 'type'.
-    mtd canEdit(type: typeinfo)->bool;
+    mtd canEdit(type: #null typeinfo)->bool;
 
     // Build the editor row(s) for 'value' (the field at 'data') under 'parent' and return the
     // created item — exactly like the built-in construct* methods. The recipe: call
@@ -26,7 +26,7 @@ public interface IPropertyEditor
     // An editor is a stateless singleton: it is invoked on a null instance (like canEdit), so
     // 'me' carries no per-field state — read any per-field configuration from 'value' (its
     // attributes), and wire 'data'/'item'/'list' into the widget callbacks.
-    mtd construct(list: *Properties, value: Swag.TypeValue, data: [*] u8, parent: *PropertiesItem)->*PropertiesItem;
+    mtd construct(list: #nonull *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->#nonull *PropertiesItem;
 }
 
 // One registered editor: the implementing type (used to instantiate a fresh editor per field)
@@ -34,7 +34,7 @@ public interface IPropertyEditor
 // ImageDecoder / ImageEncoder.
 struct PropertyEditorReg
 {
-    type: const *Swag.TypeInfoStruct
+    type: #nonull const *Swag.TypeInfoStruct
     itf:  IPropertyEditor
 }
 
@@ -58,7 +58,7 @@ impl Properties
 
     // Append a {type, itf} entry to the registry. Public so the generic registerEditor above can
     // call it from any module; the 'editors' static itself stays module-internal.
-    func addEditor(type: const *Swag.TypeInfoStruct, itf: IPropertyEditor)
+    func addEditor(type: #nonull const *Swag.TypeInfoStruct, itf: IPropertyEditor)
     {
         var reg: PropertyEditorReg = undefined
         reg.type = type
@@ -69,9 +69,9 @@ impl Properties
     // Find the editor that claims 'type', or null. Scans newest-first so a later registration
     // overrides an earlier one for the same type — this is what lets a user editor replace a
     // built-in (Color/vector) editor, which all live in this one registry.
-    func findEditor(type: typeinfo)->#null *PropertyEditorReg
+    func findEditor(type: #null typeinfo)->#null *PropertyEditorReg
     {
-        var found: *PropertyEditorReg
+        var found: #null *PropertyEditorReg
         var i     = Properties.editors.count
         while i > 0
         {

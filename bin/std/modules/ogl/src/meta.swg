@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Core, Swag, Core.StrConv
 
 #[AttrUsage(AttributeUsage.Function)]
@@ -6,7 +5,7 @@ attr Extension()
 
 struct OneFunc
 {
-    type:     const *TypeInfoFunc
+    type:     #null const *TypeInfoFunc
     name:     #nonull string
 }
 
@@ -24,7 +23,7 @@ var g_Functions: Array'OneFunc
     if msg.type.kind != TypeInfoKind.Func do
         return
 
-    let typeFunc = cast(const *TypeInfoFunc) msg.type
+    let typeFunc = cast(#nonull const *TypeInfoFunc) assume msg.type
     if !Reflection.hasAttribute(typeFunc, Extension) do
         return
     g_Functions.add({type: typeFunc, name: cast(#nonull string) (assume msg.name)})

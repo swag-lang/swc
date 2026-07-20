@@ -26,32 +26,32 @@ struct PagePanelLayout
 }
 
 var app: Application
-var g_Surface: *Surface
-var g_View: *Wnd
-var g_Title: *Label
-var g_SubTitle: *Label
-var g_ThemeButton: *PushButton
-var g_PageView: *Wnd
-var g_Footer: *Label
+var g_Surface: #null *Surface
+var g_View: #null *Wnd
+var g_Title: #null *Label
+var g_SubTitle: #null *Label
+var g_ThemeButton: #null *PushButton
+var g_PageView: #null *Wnd
+var g_Footer: #null *Label
 var g_Page: s32
 var g_TestFrame: s32
 var g_DarkTheme: bool
 var g_LexerSwag: RichEditLexerSwag
 
-func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
+func setLabelTextStyle(label: #nonull *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
     label.horzAlignmentText = horizontal
     label.vertAlignmentText = vertical
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle, flags = LabelFlags.Zero)->#nonull *Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
     return label
 }
 
-func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
+func createHelpText(parent: #nonull *Wnd, text: #nonull string, rect: Math.Rectangle)->#nonull *Label
 {
     let label = createText(parent, text, rect, .WordWrap)
     label.labelFlags.add(.LightText)
@@ -59,13 +59,13 @@ func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
     return label
 }
 
-func createCaption(parent: *Wnd, text: string, x, y, width: f32)
+func createCaption(parent: #nonull *Wnd, text: #nonull string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 24})
     label.labelFlags.add(.LightText)
 }
 
-func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
+func createPanel(parent: #nonull *Wnd, title, subtitle: #nonull string, rect: Math.Rectangle)->#nonull *Wnd
 {
     let frame = Wnd.create'FrameWnd(parent, rect)
     frame.setFrameForm(.Round)
@@ -77,7 +77,7 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     return view
 }
 
-func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
+func getPagePanelLayout(parent: #nonull *Wnd)->PagePanelLayout
 {
     let rect         = parent.getClientRect()
     let width        = Math.max(rect.width, 1.0)
@@ -94,13 +94,13 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     return result
 }
 
-func getFullPageRect(parent: *Wnd)->Math.Rectangle
+func getFullPageRect(parent: #nonull *Wnd)->Math.Rectangle
 {
     let rect = parent.getClientRect()
     return {0, 0, Math.max(rect.width, 1.0), Math.max(rect.height, 1.0)}
 }
 
-func pageTitle(page: s32)->string
+func pageTitle(page: s32)->#nonull string
 {
     switch page
     {
@@ -117,7 +117,7 @@ func pageTitle(page: s32)->string
     unreachable
 }
 
-func pageSubtitle(page: s32)->string
+func pageSubtitle(page: s32)->#nonull string
 {
     switch page
     {
@@ -164,13 +164,13 @@ func applyTheme()
     app.themeHasChanged()
 }
 
-func toggleTheme(_btn: *Button)
+func toggleTheme(_btn: #nonull *Button)
 {
     g_DarkTheme = !g_DarkTheme
     applyTheme()
 }
 
-func createDemoEditor(parent: *Wnd, rect: Math.Rectangle, flags: RichEditFlags, form = RichEditForm.RichEditCtrl)->*RichEditCtrl
+func createDemoEditor(parent: #nonull *Wnd, rect: Math.Rectangle, flags: RichEditFlags, form = RichEditForm.RichEditCtrl)->#nonull *RichEditCtrl
 {
     let ed = RichEditCtrl.create(parent, rect)
     ed.setFrameForm(.Round)
@@ -180,7 +180,7 @@ func createDemoEditor(parent: *Wnd, rect: Math.Rectangle, flags: RichEditFlags, 
     return ed
 }
 
-func createCodeEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->*RichEditCtrl
+func createCodeEditor(parent: #nonull *Wnd, rect: Math.Rectangle, text: #nonull string, flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->#nonull *RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags)
     ed.setLexer(cast(IRichEditLexer) g_LexerSwag)
@@ -190,7 +190,7 @@ func createCodeEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = 
     return ed
 }
 
-func createDocumentEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .WordWrap, form = RichEditForm.Edit)->*RichEditCtrl
+func createDocumentEditor(parent: #nonull *Wnd, rect: Math.Rectangle, text: #nonull string, flags = RichEditFlags.ShowFocusSel | .WordWrap, form = RichEditForm.Edit)->#nonull *RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags, form)
     ed.marginLeft  = 18
@@ -214,13 +214,13 @@ func buildPage()
     switch g_Page
     {
     case 0:
-        createLexerPage(g_PageView)
+        createLexerPage(assume g_PageView)
     case 1:
-        createStylesPage(g_PageView)
+        createStylesPage(assume g_PageView)
     case 2:
-        createModesPage(g_PageView)
+        createModesPage(assume g_PageView)
     case 3:
-        createWorkspacePage(g_PageView)
+        createWorkspacePage(assume g_PageView)
     default:
         unreachable
     }
@@ -246,7 +246,7 @@ func layoutRootView()
     g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
-func onRootEvent(_view: *Wnd, evt: IEvent)->bool
+func onRootEvent(_view: #nonull *Wnd, evt: IEvent)->bool
 {
     if evt is ResizeEvent
     {
@@ -329,23 +329,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(g_View, "", {})
-    setLabelTextStyle(g_Title, .Left, .Center)
+    g_Title = Label.create(assume g_View, "", {})
+    setLabelTextStyle(assume g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(g_View, "", {})
+    g_ThemeButton = PushButton.create(assume g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(g_View, {})
+    g_PageView = Wnd.create'Wnd(assume g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(g_View, "", {})
-    setLabelTextStyle(g_Footer, .Left, .Center)
+    g_Footer = Label.create(assume g_View, "", {})
+    setLabelTextStyle(assume g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()

@@ -38,9 +38,9 @@ struct RichEditCtrl
     marginRight:                 f32
     lexer:                       IRichEditLexer
     form                         = RichEditForm.RichEditCtrl
-    sigIsReadOnly:               SigArray'func||(*bool)
-    sigChanged:                  SigArray'func||(*RichEditCtrl)
-    sigModified:                 SigArray'func||(*RichEditCtrl)
+    sigIsReadOnly:               SigArray'func||(#nonull *bool)
+    sigChanged:                  SigArray'func||(#nonull *RichEditCtrl)
+    sigModified:                 SigArray'func||(#nonull *RichEditCtrl)
     bkColorModel:                String
 
     styles:                      [256] RichEditRuneStyle
@@ -49,8 +49,8 @@ struct RichEditCtrl
     selBeg:                      RichEditCursor
     lines:                       ArrayPtr'RichEditLine
     freeLines:                   ArrayPtr'RichEditLine
-    scrollWnd:                   *ScrollWnd
-    edView:                      *RichEditView
+    scrollWnd:                   #null *ScrollWnd
+    edView:                      #null *RichEditView
     selRectangle:                Math.Rectangle
 
     hasSelRect:                  bool
@@ -77,7 +77,7 @@ struct RichEditCtrl
 
 private impl IWnd for RichEditCtrl
 {
-    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    mtd impl onNotifyEvent(evt: #nonull *NotifyEvent)
     {
         if evt.ntfyKind == .ThemeChanged
         {
@@ -157,9 +157,9 @@ private impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    mtd newLine(index: u64)->*RichEditLine
+    mtd newLine(index: u64)->#nonull *RichEditLine
     {
-        var p: *RichEditLine
+        var p: #null *RichEditLine
 
         if .freeLines.count do
             p = .freeLines.popBack()
@@ -178,7 +178,7 @@ private impl RichEditCtrl
         .lines.insertAt(index, p)
         .recomputeScroll = true
 
-        return p
+        return assume p
     }
 
     mtd deleteLine(lineIndex: u64)
@@ -248,7 +248,7 @@ private impl RichEditCtrl
 impl RichEditCtrl
 {
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*RichEditCtrl
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->#nonull *RichEditCtrl
     {
         var pos = position
         if pos.height == 0 do
@@ -409,12 +409,12 @@ impl RichEditCtrl
         if !.lexer do
             return
 
-        var prev, cur, next: *RichEditLine
+        var prev, cur, next: #null *RichEditLine
         for i in @countof(.lines)
         {
             cur  = .lines[i]
             next = i == .lines.count - 1 ? null : .lines[i + 1]
-            .lexer.compute(prev, cur, next)
+            .lexer.compute(prev, assume cur, next)
             prev = cur
         }
     }

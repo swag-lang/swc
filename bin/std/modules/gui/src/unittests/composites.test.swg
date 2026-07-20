@@ -4,7 +4,7 @@ using Swag, Core
 
 var CompositeSliderChangedCount: u32
 
-func compositeSliderChanged(s: *SliderCtrl)
+func compositeSliderChanged(s: #nonull *SliderCtrl)
 {
     discard s
     CompositeSliderChangedCount += 1

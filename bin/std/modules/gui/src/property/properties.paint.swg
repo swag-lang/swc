@@ -7,7 +7,7 @@ using Core, Pixel
 // draws lives in validation.swg (paintValidationBar).
 internal impl Properties
 {
-    mtd getDisclosureIconPosition(item: *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
+    mtd getDisclosureIconPosition(item: #nonull *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
     {
         const OpticalTextCenterY = -2'f32
 
@@ -16,7 +16,7 @@ internal impl Properties
         return {iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
     }
 
-    mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)
+    mtd paintBackItem(painter: #nonull *Painter, item: #nonull *PropertiesItem, wndItem: #nonull *Wnd)
     {
         // Spacer decorator: a pure vertical gap — no background, border or content.
         if item.flags.has(.Spacer) do

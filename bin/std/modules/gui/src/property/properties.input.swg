@@ -16,7 +16,7 @@ internal impl Properties
     {
         if !target or !.edView do
             return false
-        let view = cast(*Wnd) .edView
+        let view = cast(#null *Wnd) .edView
         return target == view or view.isParentOf(target)
     }
 
@@ -36,9 +36,9 @@ internal impl Properties
         return null
     }
 
-    func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
+    func onHookChildEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
     {
-        let prop = cast(*Properties) wnd
+        let prop = cast(#nonull *Properties) wnd
         if prop.editPopup
         {
             // While an editor popup (e.g. the color picker) is open the popup is anchored
@@ -106,7 +106,7 @@ internal impl Properties
             if prop.isGridLike() and
                prop.selItem and
                prop.selItem.numChilds and
-               pt.x < cast(f32) prop.leftMargin + prop.itemIndent(prop.selItem)
+               pt.x < cast(f32) prop.leftMargin + prop.itemIndent(assume prop.selItem)
             {
                 prop.selItem.flags.toggle(.Expanded)
                 prop.updateStates()
@@ -143,7 +143,7 @@ internal impl Properties
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseLeave:
             if prop.hotItem and prop.isGridLike() do
-                ToolTip.hide(prop.hotItem.line)
+                ToolTip.hide(assume prop.hotItem.line)
             prop.hotItem = null
 
         case MouseEvent as mouseEvt where (mouseEvt.kind == .MouseMove or mouseEvt.kind == .MouseSetCursor):
@@ -163,14 +163,14 @@ internal impl Properties
             {
                 // Leaving a row: drop its tooltip so it does not linger over the next row.
                 if prop.hotItem do
-                    ToolTip.hide(prop.hotItem.line)
+                    ToolTip.hide(assume prop.hotItem.line)
                 prop.hotItem = hit
 
                 if hit and hit.label and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.getClientRect().contains(pt) do
-                        ToolTip.show(hit.line, mouseEvt.surfacePos, hit.description)
+                        ToolTip.show(assume hit.line, mouseEvt.surfacePos, hit.description)
                 }
 
                 wnd.invalidate()
@@ -197,7 +197,7 @@ internal impl Properties
         return false
     }
 
-    mtd onItemEvent(item: *PropertiesItem, wndItem: *Wnd, evt: IEvent)->bool
+    mtd onItemEvent(item: #nonull *PropertiesItem, wndItem: #nonull *Wnd, evt: IEvent)->bool
     {
         if wndItem.childs.isEmpty() do
             return false

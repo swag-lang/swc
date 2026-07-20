@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 using Swag
 
 /* ------------------------------ GL_KHR_debug ----------------------------- */

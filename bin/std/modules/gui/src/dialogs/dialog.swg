@@ -5,20 +5,20 @@ struct Dialog
     using wnd:            Wnd
     wndBottom:            #nonull *StackLayoutCtrl = undefined
     buttons:              Array'(#nonull *PushButton)
-    sigPressedButton:     func||(*Dialog, WndId)->bool
+    sigPressedButton:     func||(#nonull *Dialog, WndId)->bool
     fromSurface:          #null *Surface
 }
 
 impl IWnd for Dialog
 {
-    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent)
     {
         if evt.kind == .Close do
             .validateId(BtnCancel)
         evt.accepted = true
     }
 
-    mtd impl onKeyEvent(evt: *KeyEvent)
+    mtd impl onKeyEvent(evt: #nonull *KeyEvent)
     {
         if evt.kind == .KeyPressed
         {
@@ -107,8 +107,7 @@ impl Dialog
     mtd createSurface(from: #nonull *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.Zero)->#nonull *Surface
     {
         let surfaceFlags = SurfaceFlags.BigCaption | SurfaceFlags.Secondary | flags
-        var srf: #nonull *Surface = undefined
-        srf = catch from.app.createSurface(x, y, width, height, surfaceFlags, me)
+        let srf = assume from.app.createSurface(x, y, width, height, surfaceFlags, me)
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .getThemeMetrics()
@@ -124,13 +123,13 @@ impl Dialog
         }
 
         .setFocus()
-        return srf
+        return assume srf
     }
 
     // Returns the view where stuff can be put.
     mtd getView()->#nonull *Wnd
     {
-        return .surface.wnd.view
+        return assume .surface.wnd.view
     }
 
     // Display dialog as modal, and returns the user selected window id

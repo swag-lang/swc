@@ -7,7 +7,7 @@ interface IEvent
 
 struct Event
 {
-    type:         typeinfo
+    type:         #null typeinfo
     target:       #null *Wnd
     accepted:     bool
 }

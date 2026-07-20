@@ -1,5 +1,3 @@
-#global #[Swag.ExplicitNullability]
-
 using Swag
 
 // Special attribute that cannot be defined in the boostrap, because

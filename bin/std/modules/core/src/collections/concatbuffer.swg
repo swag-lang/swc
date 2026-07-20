@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 
 // Represents a single memory block (a bucket) within a ConcatBuffer.
 struct ConcatBufferBucket

@@ -1,5 +1,4 @@
 #global namespace File
-#global #[Swag.ExplicitNullability]
 
 // Text encoding formats supported for reading text files
 public enum TextEncoding

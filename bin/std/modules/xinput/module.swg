@@ -1,12 +1,12 @@
 // Wrapper for Microsoft DirectX Input.
 
-#global #[Swag.ExplicitNullability]
 #import("win32")
 
 #run
 {
     let itf = @compiler
     let cfg = itf.getBuildCfg()
+    cfg.explicitNullability = true
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum

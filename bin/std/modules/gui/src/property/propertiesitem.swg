@@ -34,12 +34,12 @@ enum ItemFlags
 struct PropertiesItem
 {
     filter:             String
-    line:               *Wnd
-    data:               *u8
+    line:               #null *Wnd
+    data:               #null *u8
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
     // array are left single (their element addresses are not at a fixed struct offset).
-    dataInstances:      Array'(*u8)
+    dataInstances:      Array'(#null *u8)
     // When set, the editor writes each instance itself (e.g. a vector component or an
     // enum-flags bit), so hasChanged must not blindly copy the whole field over the
     // others — that would clobber the components/bits the user did not touch.
@@ -53,8 +53,8 @@ struct PropertiesItem
     // revertButton is the lazily-created revert affordance shown while the row is modified.
     defaultData:        #null *u8
     isModified:         bool
-    revertButton:       *IconButton
-    arrayAddButton:     *IconButton
+    revertButton:       #null *IconButton
+    arrayAddButton:     #null *IconButton
 
     // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
     // field, kept per row so hasChanged can diff the new value against it and record one undo
@@ -62,30 +62,30 @@ struct PropertiesItem
     // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
     undoValue:          PropFieldValue
 
-    type:               typeinfo
+    type:               #null typeinfo
     typeValue:          Swag.TypeValue
-    parent:             *PropertiesItem
+    parent:             #null *PropertiesItem
     flags:              ItemFlags
-    userData0:          *void
-    userData1:          *void
+    userData0:          #null *void
+    userData1:          #null *void
 
-    label:              *Label
+    label:              #null *Label
     description:        String
-    labelDesc:          *Label
+    labelDesc:          #null *Label
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
     validation:         PropValidation
     validationMsg:      String
-    validationLabel:    *Label
+    validationLabel:    #null *Label
 
-    editBox:            *EditBox
-    checkBox:           *CheckButton
-    comboBox:           *ComboBox
-    sliderBox:          *SliderCtrl
+    editBox:            #null *EditBox
+    checkBox:           #null *CheckButton
+    comboBox:           #null *ComboBox
+    sliderBox:          #null *SliderCtrl
 
-    sigResize:          SigArray'func||(*PropertiesItem)
-    sigRefresh:         SigArray'func||(*PropertiesItem)
+    sigResize:          SigArray'func||(#nonull *PropertiesItem)
+    sigRefresh:         SigArray'func||(#nonull *PropertiesItem)
 
     ntfyItf:            IPropertyNotify
 

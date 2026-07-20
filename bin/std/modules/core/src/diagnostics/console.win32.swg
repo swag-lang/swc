@@ -1,6 +1,5 @@
 #global #if WINDOWS
 #global namespace Console
-#global #[Swag.ExplicitNullability]
 using Win32
 
 var g_ColorToWin: [@countof(Color)] u16 = undefined

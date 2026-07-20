@@ -1,7 +1,6 @@
 #global #if WINDOWS
 #global public
 #global namespace Env
-#global #[Swag.ExplicitNullability]
 using Win32, StrConv
 
 // Exit the current process

@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionCopyPaste {}
@@ -18,7 +17,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
@@ -81,7 +80,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id

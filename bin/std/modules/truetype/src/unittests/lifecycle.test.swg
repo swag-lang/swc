@@ -1,5 +1,4 @@
 #global #if #command == Swag.CompilerCommand.Test
-#global #[Swag.ExplicitNullability]
 using Swag, Core
 
 func assertFixtureFontLoads(fileName: #nonull string, expectedStyle: StyleFlag)

@@ -6,7 +6,7 @@ const PopupHeadless_Item2 = "PopupHeadless.Item2"
 
 var PopupHeadlessChangedCount: u32
 
-func popupHeadlessChanged(combo: *ComboBox, idx: u32)
+func popupHeadlessChanged(combo: #nonull *ComboBox, idx: u32)
 {
     discard combo
     discard idx
@@ -34,7 +34,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.popup != null)
 
     // Selecting item 1 via the popup routes back to the combobox.
-    combo.popup.sigSelected(combo.popup, 1)
+    combo.popup.sigSelected(assume combo.popup, 1)
     host.pump()
     @assert(combo.popup == null)
     @assert(combo.selectedIdx == 1)
@@ -59,7 +59,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.popup != null)
 
     // The open popup captured the mouse; closing it via its own dismiss path.
-    combo.popup.sigSelected(combo.popup, Swag.U32.Max)
+    combo.popup.sigSelected(assume combo.popup, Swag.U32.Max)
     host.pump()
     @assert(combo.popup == null)
     @assert(combo.selectedIdx == Swag.U32.Max)

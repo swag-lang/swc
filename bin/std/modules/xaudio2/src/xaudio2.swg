@@ -1,6 +1,5 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
-#global #[Swag.ExplicitNullability]
 #foreignlib("xaudio2")
 using Swag, Win32
 

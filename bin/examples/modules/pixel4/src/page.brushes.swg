@@ -1,18 +1,18 @@
 using Core, Pixel
 
-func drawBrushCellBackground(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawBrushCellBackground(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     painter.fillRoundRect(rect, 18, 18, Color.fromArgb(255, 250, 251, 252))
     painter.drawRoundRect(rect, 18, 18, Color.fromArgb(42, Argb.SlateGray), 1)
 }
 
-func drawBrushCellLabel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)
+func drawBrushCellLabel(painter: #nonull *Pixel.Painter, rect: Math.Rectangle, title, subtitle: #nonull string)
 {
-    painter.drawString(rect.x + 18, rect.bottom() - 48, title, g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, {rect.x + 18, rect.bottom() - 28, rect.width - 36, 24}, subtitle, g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 18, rect.bottom() - 48, title, assume g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, {rect.x + 18, rect.bottom() - 28, rect.width - 36, 24}, subtitle, assume g_HelpFont, Argb.DimGray)
 }
 
-func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawFilledBrushCells(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let cellGap    = 20.0
     let cellWidth  = (rect.width - 2 * cellGap) / 3.0
@@ -59,7 +59,7 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     }
 }
 
-func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
+func drawOutlinedBrushCells(painter: #nonull *Pixel.Painter, rect: Math.Rectangle)
 {
     let cellGap    = 20.0
     let cellWidth  = (rect.width - 2 * cellGap) / 3.0
@@ -102,7 +102,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     }
 }
 
-func drawBrushesPage(painter: *Pixel.Painter)
+func drawBrushesPage(painter: #nonull *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel brush rendering", "Page 5 : drawing and filling forms with texture, tiled and hatch brushes.")
 

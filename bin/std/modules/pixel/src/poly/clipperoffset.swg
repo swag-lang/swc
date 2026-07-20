@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 /*
     :LICENCE
     This code is based on the Clipper library (http://www.angusj.com)

@@ -3,7 +3,7 @@ using Core
 
 private impl RichEditCtrl
 {
-    mtd getSelectionRectRange(lineIndex: u64, rankBeg, rankEnd: *u64)->bool
+    mtd getSelectionRectRange(lineIndex: u64, rankBeg, rankEnd: #nonull *u64)->bool
     {
         let line = .lines[lineIndex]
         let len  = line.length()

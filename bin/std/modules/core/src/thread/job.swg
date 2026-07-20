@@ -1,5 +1,4 @@
 #global namespace Jobs
-#global #[Swag.ExplicitNullability]
 using Threading, Swag
 
 #[Swag.EnumFlags]

@@ -1,6 +1,5 @@
 #global public
 #global namespace File
-#global #[Swag.ExplicitNullability]
 using Time
 
 // Represents metadata and properties of a file or directory

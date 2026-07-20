@@ -30,7 +30,7 @@ struct FrameWnd
 {
     using wnd:       Wnd
 
-    view:            *Wnd
+    view:            #null *Wnd
     frameForm        = FrameWndForm.Transparent
     frameFlags       = FrameWndFlags.Borders
     anchor           = FrameWndAnchor.None
@@ -40,7 +40,7 @@ struct FrameWnd
 
 impl IWnd for FrameWnd
 {
-    mtd impl onPrePaintEvent(evt: *PaintEvent)
+    mtd impl onPrePaintEvent(evt: #nonull *PaintEvent)
     {
         if .frameFlags.has(.SmallShadow)
         {
@@ -57,7 +57,7 @@ impl IWnd for FrameWnd
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         if .frameForm == .Transparent do
             return
@@ -68,7 +68,7 @@ impl IWnd for FrameWnd
         let colors  = .getThemeColors()
         let rects   = .getThemeRects()
 
-        var subRectBk: *ThemeImageRect
+        var subRectBk: #null *ThemeImageRect
         var colorBk:   Color
 
         switch .frameForm
@@ -103,7 +103,7 @@ impl IWnd for FrameWnd
         .usedColorBk = colorBk
     }
 
-    mtd impl onPostPaintEvent(evt: *PaintEvent)
+    mtd impl onPostPaintEvent(evt: #nonull *PaintEvent)
     {
         if .frameForm == .Transparent do
             return
@@ -117,7 +117,7 @@ impl IWnd for FrameWnd
         let rects   = .getThemeRects()
         let metrics = .getThemeMetrics()
 
-        var subRectBorder: *ThemeImageRect
+        var subRectBorder: #null *ThemeImageRect
         var colorBorder:   Color = undefined
 
         switch .frameForm
@@ -204,7 +204,7 @@ impl IWnd for FrameWnd
         }
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         if !.view do
             return
@@ -217,15 +217,15 @@ impl IWnd for FrameWnd
 impl FrameWnd
 {
     #[Swag.Discardable]
-    mtd(T) createView(hook: HookEvent = null)->*T
+    mtd(T) createView(hook: HookEvent = null)->#nonull *T
     {
         .view                 = Wnd.create'T(me, "", .position, hook: hook)
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
-        return cast(*T) .view
+        return assume cast(#null *T) .view
     }
 
-    mtd setView(what: *Wnd)
+    mtd setView(what: #nonull *Wnd)
     {
         if .view do
             .view.destroy()

@@ -18,7 +18,7 @@ public struct PopupMenuItem
 {
     using item:     Item
     rightName:      RichString
-    popup:          *MenuCtrl
+    popup:          #null *MenuCtrl
     pos:            f32
     size:           f32
     rg:             CommandStateEvent.RenderingHint
@@ -31,8 +31,8 @@ public struct PopupMenuItem
 public struct MenuCtrl
 {
     using frameWnd:       FrameWnd
-    onValidateResult:     func(*MenuCtrl, WndId)
-    onComputeItem:        func(*MenuCtrl, *PopupMenuItem)
+    onValidateResult:     func(#nonull *MenuCtrl, WndId)
+    onComputeItem:        func(#nonull *MenuCtrl, #nonull *PopupMenuItem)
     menuCtrlFlags:        MenuCtrlFlags = Zero
 
     paddingSel:           f32 = 4
@@ -42,9 +42,9 @@ public struct MenuCtrl
     bar:                  bool
     endModal:             bool
     endModalResult:       WndId
-    ownerMenu:            *MenuCtrl
-    subVisible:           *MenuCtrl
-    timer:                *Timer
+    ownerMenu:            #null *MenuCtrl
+    subVisible:           #null *MenuCtrl
+    timer:                #null *Timer
     dirtyLayout:          bool
     paintByFrame:         bool
     popupBarItemIdx:      u32 = Swag.U32.Max
@@ -54,7 +54,7 @@ public struct MenuCtrl
 
 public impl IWnd for MenuCtrl
 {
-    private mtd paintBar(painter: *Painter)
+    private mtd paintBar(painter: #nonull *Painter)
     {
         let theme   = .getTheme()
         let colors  = .getThemeColors()
@@ -86,7 +86,7 @@ public impl IWnd for MenuCtrl
             if i.separator do
                 continue
 
-            labelPos = .getBarLabelRect(i)
+            labelPos = .getBarLabelRect(assume i)
 
             var format: RichStringFormat
             colorText      = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
@@ -136,7 +136,7 @@ public impl IWnd for MenuCtrl
         }
     }
 
-    private mtd paintPopup(painter: *Painter)
+    private mtd paintPopup(painter: #nonull *Painter)
     {
         let theme   = .getTheme()
         let colors  = .getThemeColors()
@@ -262,7 +262,7 @@ public impl IWnd for MenuCtrl
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         .frameWnd.IWnd.onPaintEvent(evt)
         if .bar do
@@ -271,14 +271,14 @@ public impl IWnd for MenuCtrl
             .paintPopup(evt.bc.painter)
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTimerEvent(evt: #nonull *TimerEvent)
     {
         .hideSubVisible()
         .deleteTimer()
         .showHotPopup()
     }
 
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         let hit = .hitTest(evt.surfacePos)
         if hit != .hotIdx
@@ -411,7 +411,7 @@ impl MenuCtrl
         return Math.min(.getClientRect().height, .getThemeMetrics().menuBar_Height)
     }
 
-    private mtd getBarLabelRect(item: *PopupMenuItem)->Math.Rectangle
+    private mtd getBarLabelRect(item: #nonull *PopupMenuItem)->Math.Rectangle
     {
         let clientRect = .getClientRect()
         let height     = .getBarItemHeight()
@@ -423,7 +423,7 @@ impl MenuCtrl
         }
     }
 
-    private mtd getBarItemRect(item: *PopupMenuItem)->Math.Rectangle
+    private mtd getBarItemRect(item: #nonull *PopupMenuItem)->Math.Rectangle
     {
         let metrics = .getThemeMetrics()
         var result  = .getBarLabelRect(item)
@@ -448,7 +448,7 @@ impl MenuCtrl
         return result
     }
 
-    private mtd paintPopupBarAnchor(painter: *Painter, bodyRect: Math.Rectangle)
+    private mtd paintPopupBarAnchor(painter: #nonull *Painter, bodyRect: Math.Rectangle)
     {
         if !.hasPopupBarAnchor() do
             return
@@ -540,7 +540,7 @@ impl MenuCtrl
     {
         if !.timer do
             return
-        .surface.app.deleteTimer(.timer)
+        .surface.app.deleteTimer(assume .timer)
         .timer = null
     }
 
@@ -590,7 +590,7 @@ impl MenuCtrl
         let hotItem = .items[.hotIdx]
         let metrics = .getThemeMetrics()
 
-        var anchorRect = .localToSurface(.getBarItemRect(hotItem))
+        var anchorRect = .localToSurface(.getBarItemRect(assume hotItem))
 
         var pos = anchorRect
         pos.x -= metrics.menuPopup_ShadowSize
@@ -669,7 +669,7 @@ impl MenuCtrl
             if i.separator do
                 continue
 
-            if .getBarItemRect(i).contains(pos) do
+            if .getBarItemRect(assume i).contains(pos) do
                 return cast(u32) idx
         }
 
@@ -721,7 +721,7 @@ impl MenuCtrl
             if i.hidden do
                 continue
             if .onComputeItem do
-                .onComputeItem(i)
+                .onComputeItem(assume i)
             i.pos = x + metrics.menuBar_SpaceBetween * 0.5
             fake.drawRichString({0, 0, 512, 0}, &i.name, rsf)
             i.size = i.name.boundRect.width
@@ -752,7 +752,7 @@ impl MenuCtrl
                 continue
 
             if .onComputeItem do
-                .onComputeItem(i)
+                .onComputeItem(assume i)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
             i.pos = .position.height
@@ -805,7 +805,7 @@ impl MenuCtrl
 public impl MenuCtrl
 {
     #[Swag.Discardable]
-    func createPopup(parent: *Wnd, id: #null WndId = null, owner: *Wnd = null)->*MenuCtrl
+    func createPopup(parent: #nonull *Wnd, id: #null WndId = null, owner: #null *Wnd = null)->#nonull *MenuCtrl
     {
         let popupParent = parent == parent.getTopWnd() ? parent : parent.getTopView()
         with let res = Wnd.create'MenuCtrl(popupParent, null, {}, id)
@@ -819,7 +819,7 @@ public impl MenuCtrl
     }
 
     #[Swag.Discardable]
-    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: #null WndId = null, owner: *Wnd = null)->*MenuCtrl
+    func createBar(parent: #nonull *Wnd, pos: Math.Rectangle = {}, id: #null WndId = null, owner: #null *Wnd = null)->#nonull *MenuCtrl
     {
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
         {
@@ -844,7 +844,7 @@ public impl MenuCtrl
     mtd addItems(ids: #nonull const [..] WndId)
     {
         for id in ids do
-            .addItem(null, id)
+            .addItem(null, assume id)
     }
 
     // Add a list of items followed by a separator
@@ -878,7 +878,7 @@ public impl MenuCtrl
     }
 
     // Add a new popup item
-    mtd addPopup(name: #null string, popup: *MenuCtrl, icon: Icon = {}, id: #null WndId = null)
+    mtd addPopup(name: #null string, popup: #nonull *MenuCtrl, icon: Icon = {}, id: #null WndId = null)
     {
         with let mitem = me.items.newPtr()
         {

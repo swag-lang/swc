@@ -1,6 +1,5 @@
 #global public
 #global namespace Console
-#global #[Swag.ExplicitNullability]
 
 #[Swag.EnumIndex]
 enum Color

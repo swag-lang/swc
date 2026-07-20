@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 struct FormPaintContext
 {
     z:             f32

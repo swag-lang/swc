@@ -1,6 +1,5 @@
 #global public
 #global namespace Env
-#global #[Swag.ExplicitNullability]
 
 // Get the program command line arguments as a [..] string
 func getArgs()->#nonull const [..] #nonull string => @args

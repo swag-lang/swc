@@ -14,16 +14,16 @@ public struct SurfaceWnd
 {
     using base:        FrameWnd
     icon:              Icon
-    minimizeBtn:       *IconButton
-    maximizeBtn:       *IconButton
-    closeBtn:          *IconButton
+    minimizeBtn:       #null *IconButton
+    maximizeBtn:       #null *IconButton
+    closeBtn:          #null *IconButton
     movingSurface:     bool
     sizingBorder:      SizingBorder = Zero
 }
 
 impl IWnd for SurfaceWnd
 {
-    mtd impl onMouseEvent(evt: *MouseEvent)
+    mtd impl onMouseEvent(evt: #nonull *MouseEvent)
     {
         switch evt.kind
         {
@@ -125,13 +125,13 @@ impl IWnd for SurfaceWnd
         }
     }
 
-    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    mtd impl onDestroyEvent(evt: #nonull *DestroyEvent)
     {
         let surface = assume .surface
         surface.app.destroySurface(surface)
     }
 
-    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    mtd impl onSysCommandEvent(evt: #nonull *SysCommandEvent)
     {
         switch evt.kind
         {
@@ -146,7 +146,7 @@ impl IWnd for SurfaceWnd
         }
     }
 
-    mtd impl onResizeEvent(evt: *ResizeEvent)
+    mtd impl onResizeEvent(evt: #nonull *ResizeEvent)
     {
         let clientRect = .getClientRect()
         let metrics    = .getThemeMetrics()
@@ -178,7 +178,7 @@ impl IWnd for SurfaceWnd
         .base.IWnd.onResizeEvent(evt)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaintEvent(evt: #nonull *PaintEvent)
     {
         if .isPendingDestroy do
             return
@@ -278,7 +278,7 @@ impl SurfaceWnd
         {
             if target.type == MenuCtrl
             {
-                let menu = cast(*MenuCtrl) target
+                let menu = cast(#null *MenuCtrl) target
                 if menu.bar and menu.hitTestBar(surfacePos) == Swag.U32.Max do
                     return true
             }
@@ -335,12 +335,12 @@ impl SurfaceWnd
         return newSizingBorder
     }
 
-    func onMinimize(btn: *Button)
+    func onMinimize(btn: #nonull *Button)
     {
         btn.surface.requestMinimize()
     }
 
-    func onMaximize(btn: *Button)
+    func onMaximize(btn: #nonull *Button)
     {
         if btn.surface.isMaximized do
             btn.surface.requestRestore()
@@ -348,7 +348,7 @@ impl SurfaceWnd
             btn.surface.requestMaximize()
     }
 
-    func onClose(btn: *Button)
+    func onClose(btn: #nonull *Button)
     {
         btn.surface.requestClose()
     }

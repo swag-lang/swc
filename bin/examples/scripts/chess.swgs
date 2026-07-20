@@ -494,7 +494,7 @@ func pickCell(pos: Math.Point)->s8
     return cast(s8) (y * 12 + x + 2)
 }
 
-func onEvent(wnd: *Wnd, evt: IEvent)->bool
+func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 {
     switch evt
     {

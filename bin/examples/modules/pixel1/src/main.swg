@@ -8,7 +8,7 @@ const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBO
 
 // Draw the same set of figures inside a column starting at 'ox'.
 // 'aa' toggles antialiasing so the two columns can be compared side by side.
-func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
+func drawFigures(painter: #nonull *Pixel.Painter, ox: f32, aa: bool)
 {
     painter.setAntialiased(aa)
 
@@ -68,7 +68,7 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
 }
 
 // Draw a closed polygon outline from a list of points.
-func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
+func drawClosedOutline(painter: #nonull *Pixel.Painter, points: #nonull [..] Math.Vector2, pen: Pen)
 {
     if @countof(points) < 2 do
         return
@@ -81,7 +81,7 @@ func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: 
     painter.drawPath(&path, pen)
 }
 
-func drawScene(painter: *Pixel.Painter)
+func drawScene(painter: #nonull *Pixel.Painter)
 {
     painter.clear(Argb.WhiteSmoke)
 

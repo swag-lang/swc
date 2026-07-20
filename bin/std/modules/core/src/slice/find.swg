@@ -1,6 +1,5 @@
 #global export
 #global namespace Slice
-#global #[Swag.ExplicitNullability]
 
 // Find 'value' in a slice by performing a binary search.
 // The slice must be sorted in ascending order

@@ -1,5 +1,4 @@
 #global export
-#global #[Swag.ExplicitNullability]
 using Swag
 
 // A generic, dynamic array that can hold elements of any type.
@@ -584,7 +583,7 @@ impl Array
             return
         Debug.safetyBoundCheck(idx0 < .count, "index out of range")
         Debug.safetyBoundCheck(idx1 < .count, "index out of range")
-        swap(.buffer + idx0, .buffer + idx1)
+        swap(assume (.buffer + idx0), assume (.buffer + idx1))
     }
 
     // Removes a specified number of elements starting from a given index.

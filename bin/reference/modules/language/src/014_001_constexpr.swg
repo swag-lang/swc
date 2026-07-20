@@ -73,7 +73,7 @@ func isEven(x: s32)->bool
 ConstExpr functions can iterate and compute over constant arrays.
 */
 #[Swag.ConstExpr]
-func arraySum(arr: const [..] s32)->s32
+func arraySum(arr: #nonull const [..] s32)->s32
 {
     var sum = 0
     for val in arr do

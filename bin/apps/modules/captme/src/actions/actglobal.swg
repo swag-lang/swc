@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionGlobal {}
@@ -17,7 +16,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main = cast(#nonull *MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) assume cxt.wnd
 
         switch cxt.id
         {
@@ -47,7 +46,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(#nonull *MainWnd) cxt.wnd
+        let main = cast(#nonull *MainWnd) assume cxt.wnd
 
         switch cxt.id
         {

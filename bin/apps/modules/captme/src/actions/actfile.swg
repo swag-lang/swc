@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 using Gui
 
 struct ActionFile {}
@@ -27,7 +26,7 @@ impl IActionUI for ActionFile
 
     mtd impl update(cxt: ActionContext, evt: #nonull *CommandStateEvent)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -121,7 +120,7 @@ impl IActionUI for ActionFile
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(#nonull *MainWnd) cxt.wnd
+        let main    = cast(#nonull *MainWnd) assume cxt.wnd
         let capture = assume main.getCapture()
 
         switch cxt.id
@@ -355,7 +354,7 @@ impl MainWnd
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
-        let emb = EmbInfoCtrl.create(.editWnd.view, txt, .Information, flags: .Bottom | .AutoHide)
+        let emb = EmbInfoCtrl.create(assume .editWnd.view, txt, .Information, flags: .Bottom | .AutoHide)
         emb.label.sigUrlClicked += func(lbl, msg)
         {
             Env.locateInExplorer(msg)

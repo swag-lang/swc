@@ -1,7 +1,6 @@
 #global #if WINDOWS
 #global public
 #global namespace File
-#global #[Swag.ExplicitNullability]
 using Win32
 
 // Delete the specified file

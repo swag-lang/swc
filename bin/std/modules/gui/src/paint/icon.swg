@@ -3,7 +3,7 @@ using Pixel
 
 struct Icon
 {
-    imageList:     *ImageList
+    imageList:     #null *ImageList
     index:         s32
     sizeX:         f32 = 24
     sizeY:         f32 = 24
@@ -22,7 +22,7 @@ impl Icon
     }
 
     // Initialize the icon from an image list
-    func from(imageList: *ImageList, index: s32, sizeX, sizeY: f32 = 0)->Icon
+    func from(imageList: #null *ImageList, index: s32, sizeX, sizeY: f32 = 0)->Icon
     {
         var result: retval
         let sx      = sizeX orelse cast(f32) imageList.frameSizeX
@@ -32,7 +32,7 @@ impl Icon
     }
 
     // Initialize the icon from an image list
-    mtd set(imageList: *ImageList, index: s32, sizeX, sizeY: f32 = 0)
+    mtd set(imageList: #null *ImageList, index: s32, sizeX, sizeY: f32 = 0)
     {
         .imageList = imageList
         .index     = index
@@ -43,7 +43,7 @@ impl Icon
     }
 
     // Paint icon at the given position
-    mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
+    mtd const paint(painter: #nonull *Painter, x, y: f32, color: Color = Argb.White)
     {
         if !.imageList or !.imageList.totalFrames do
             return

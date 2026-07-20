@@ -1,5 +1,4 @@
 #global namespace ImageStatistics
-#global #[Swag.ExplicitNullability]
 using Core, Core.Math
 
 func haarTransform2D(data: #nonull [*] f32, size: u32, output: #nonull [*] f32)

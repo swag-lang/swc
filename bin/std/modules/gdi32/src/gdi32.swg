@@ -1,6 +1,5 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
-#global #[Swag.ExplicitNullability]
 #foreignlib("gdi32")
 using Swag, Win32
 

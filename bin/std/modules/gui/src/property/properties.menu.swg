@@ -17,8 +17,8 @@ internal impl Properties
         if !.menuItem do
             return result
 
-        result.arrElem = .resolveArrayElement(.menuItem)
-        if .isArrayItem(.menuItem) do
+        result.arrElem = .resolveArrayElement(assume .menuItem)
+        if .isArrayItem(assume .menuItem) do
             result.arrItem = .menuItem
         elif result.arrElem do
             result.arrItem = result.arrElem.parent
@@ -26,14 +26,14 @@ internal impl Properties
         return result
     }
 
-    mtd popupMenu(item: *PropertiesItem, pt: Math.Point)
+    mtd popupMenu(item: #nonull *PropertiesItem, pt: Math.Point)
     {
-        ToolTip.hide(item.line)
+        ToolTip.hide(assume item.line)
 
         let menu = MenuCtrl.createPopup(me)
 
         // Custom items first, contributed by the notify interface(s) along the parent chain.
-        var scan = item
+        var scan = cast(#null *PropertiesItem) item
         while scan
         {
             if scan.ntfyItf do

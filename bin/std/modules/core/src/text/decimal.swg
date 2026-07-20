@@ -6,7 +6,6 @@
 */
 
 #global namespace StrConv
-#global #[Swag.ExplicitNullability]
 #global #[Swag.CanOverflow(true)]
 using Globalization, Errors
 

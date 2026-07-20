@@ -60,7 +60,7 @@ func parseAdvancedFailed(args: #nonull const [..] #nonull string)->bool
     return @err != null
 }
 
-func assertIntValues(values: const &Array's32, expected: const [..] s32)->bool
+func assertIntValues(values: const &Array's32, expected: #nonull const [..] s32)->bool
 {
     if values.count != @countof(expected) do
         return false

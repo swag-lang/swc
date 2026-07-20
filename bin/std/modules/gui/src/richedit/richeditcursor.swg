@@ -27,7 +27,7 @@ impl RichEditCtrl
         return Math.max(font.height + .lineSpacing, 1.0)
     }
 
-    mtd advanceRuneX(line: *RichEditLine, i: u64, x: f32)->f32
+    mtd advanceRuneX(line: #null *RichEditLine, i: u64, x: f32)->f32
     {
         if line.chars[i] == '\t' do
             return x + .getTabOffset(cast(s32) x)
@@ -54,7 +54,7 @@ impl RichEditCtrl
         return step.rightX
     }
 
-    mtd getRuneSize(line: *RichEditLine, i: u64, x: f32)->Math.Point
+    mtd getRuneSize(line: #null *RichEditLine, i: u64, x: f32)->Math.Point
     {
         var size: retval
         size.x = .advanceRuneX(line, i, x) - x
@@ -77,7 +77,7 @@ impl RichEditCtrl
         return result
     }
 
-    mtd getTabOffset(x: s32, numBlanks: *s32 = null)->s32
+    mtd getTabOffset(x: s32, numBlanks: #null *s32 = null)->s32
     {
         let of        = cast(s32) (x - .getMarginLeft())
         let fontR     = .getFont().getFont(.styles[0].fontMode)
@@ -261,7 +261,7 @@ impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    mtd moveCursorLeft(cp: *RichEditCursor)->bool
+    mtd moveCursorLeft(cp: #nonull *RichEditCursor)->bool
     {
         if cp.charPosInLine == 0
         {
@@ -280,7 +280,7 @@ impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    mtd moveCursorRight(cp: *RichEditCursor)->bool
+    mtd moveCursorRight(cp: #nonull *RichEditCursor)->bool
     {
         if cp.charPosInLine == .lines[cp.lineIndex].length()
         {
@@ -299,14 +299,14 @@ impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    mtd moveCursorUp(cp: *RichEditCursor)->bool
+    mtd moveCursorUp(cp: #nonull *RichEditCursor)->bool
     {
         let pt = .getCursorDisplayPos(cp)
         return .moveCursorUp(cp, pt)
     }
 
     #[Swag.Discardable]
-    private mtd moveCursorUp(cp: *RichEditCursor, posPrev: Math.Point)->bool
+    private mtd moveCursorUp(cp: #nonull *RichEditCursor, posPrev: Math.Point)->bool
     {
         let prev = .getPreviousVisibleLine(cp.lineIndex)
         if prev == cp.lineIndex do
@@ -341,14 +341,14 @@ impl RichEditCtrl
     }
 
     #[Swag.Discardable]
-    mtd moveCursorDown(cp: *RichEditCursor)->bool
+    mtd moveCursorDown(cp: #nonull *RichEditCursor)->bool
     {
         let pt = .getCursorDisplayPos(cp)
         return .moveCursorDown(cp, pt)
     }
 
     #[Swag.Discardable]
-    private mtd moveCursorDown(cp: *RichEditCursor, posPrev: Math.Point)->bool
+    private mtd moveCursorDown(cp: #nonull *RichEditCursor, posPrev: Math.Point)->bool
     {
         let next = .getNextVisibleLine(cp.lineIndex)
         if next == cp.lineIndex do
@@ -382,7 +382,7 @@ impl RichEditCtrl
         return true
     }
 
-    mtd moveCursorStartLine(cp: *RichEditCursor)
+    mtd moveCursorStartLine(cp: #nonull *RichEditCursor)
     {
         let line = .lines[cp.lineIndex]
         var i    = cast(s32) cp.charPosInLine
@@ -416,18 +416,18 @@ impl RichEditCtrl
         }
     }
 
-    mtd moveCursorEndLine(cp: *RichEditCursor)
+    mtd moveCursorEndLine(cp: #nonull *RichEditCursor)
     {
         cp.charPosInLine = .lines[cp.lineIndex].length()
     }
 
-    mtd moveCursorStartFile(cp: *RichEditCursor)
+    mtd moveCursorStartFile(cp: #nonull *RichEditCursor)
     {
         cp.lineIndex     = .getFirstVisibleLine()
         cp.charPosInLine = 0
     }
 
-    mtd moveCursorEndFile(cp: *RichEditCursor)
+    mtd moveCursorEndFile(cp: #nonull *RichEditCursor)
     {
         if .lines.isEmpty()
         {
@@ -439,7 +439,7 @@ impl RichEditCtrl
         cp.charPosInLine = .lines[cp.lineIndex].length()
     }
 
-    mtd moveCursorPageUp(cp: *RichEditCursor)
+    mtd moveCursorPageUp(cp: #nonull *RichEditCursor)
     {
         let client = .edView.getClientRect()
         var count  = cast(s64) (client.height / .getXExtent().y)
@@ -452,7 +452,7 @@ impl RichEditCtrl
         }
     }
 
-    mtd moveCursorPageDown(cp: *RichEditCursor)
+    mtd moveCursorPageDown(cp: #nonull *RichEditCursor)
     {
         let client = .edView.getClientRect()
         var count  = cast(s64) (client.height / .getXExtent().y)
@@ -465,7 +465,7 @@ impl RichEditCtrl
         }
     }
 
-    mtd moveCursorWordLeft(cp: *RichEditCursor)
+    mtd moveCursorWordLeft(cp: #nonull *RichEditCursor)
     {
         var line = .lines[cp.lineIndex]
         if cp.charPosInLine == 0
@@ -514,7 +514,7 @@ impl RichEditCtrl
         }
     }
 
-    mtd moveCursorWordRight(cp: *RichEditCursor, withSpace: bool)
+    mtd moveCursorWordRight(cp: #nonull *RichEditCursor, withSpace: bool)
     {
         var line = .lines[cp.lineIndex]
         if cp.charPosInLine == line.length() or Unicode.isSpace(line.chars[cp.charPosInLine])

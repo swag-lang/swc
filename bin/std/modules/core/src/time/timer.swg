@@ -1,7 +1,7 @@
 #global public
 #global namespace Time
 
-alias TimerHandle = const *void
+alias TimerHandle = #null const *void
 
 struct Timer
 {

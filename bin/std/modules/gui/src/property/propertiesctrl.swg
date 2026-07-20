@@ -14,10 +14,10 @@ struct PropertiesCtrl
 {
     using frameWnd:     FrameWnd
 
-    splitter:           *SplitterCtrl
-    list:               *ListCtrl
-    tab:                *Tab
-    prop:               *Properties
+    splitter:           #null *SplitterCtrl
+    list:               #null *ListCtrl
+    tab:                #null *Tab
+    prop:               #null *Properties
     propFlags:          PropertiesCtrlFlags
 }
 
@@ -25,7 +25,7 @@ impl PropertiesCtrl
 {
     // Creates a new Properties instance
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: #null WndId = null)->*PropertiesCtrl
+    func create(parent: #nonull *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: #null WndId = null)->#nonull *PropertiesCtrl
     {
         let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
 
@@ -36,23 +36,23 @@ impl PropertiesCtrl
             .splitter           = SplitterCtrl.create(ed, vertical: false)
             .splitter.dockStyle = .Center
 
-            .list = ListCtrl.createSimple(.splitter)
+            .list = ListCtrl.createSimple(assume .splitter)
             .list.listFlags.add(.ForceMarginExpandMark)
             .list.sigSelChanged += func|ed|(list)
             {
                 let sel = list.getFocusLine()
                 if !sel do
                     return
-                list.toggleExpand(sel)
-                let item = cast(*PropertiesItem) sel.userData0
+                list.toggleExpand(assume sel)
+                let item = cast(#null *PropertiesItem) sel.userData0
                 let pos  = item.label.getRectIn(ed.prop.edView)
                 ed.prop.scrollWnd.setScrollPos(0, pos.y)
             }
 
-            .prop = Properties.create(.splitter, kind: kind)
+            .prop = Properties.create(assume .splitter, kind: kind)
 
-            .splitter.addPane(.list)
-            .splitter.addPane(.prop)
+            .splitter.addPane(assume .list)
+            .splitter.addPane(assume .prop)
 
             if !flags.has(.SectionPane) do
                 .splitter.showPane(0, false)
@@ -97,10 +97,10 @@ impl PropertiesCtrl
         {
             .tab.clear()
             let tabItem = .tab.addItem("All")
-            tabItem.userData0 = cast(*void) .prop.sections.count
+            tabItem.userData0 = cast(#null *void) .prop.sections.count
         }
 
-        var parentLine: *ListLine
+        var parentLine: #null *ListLine
         for &it, idx in .prop.sections
         {
             let str   = it.item.label.getText()
@@ -110,7 +110,7 @@ impl PropertiesCtrl
             if .tab and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
-                tabItem.userData0 = cast(*void) idx
+                tabItem.userData0 = cast(#null *void) idx
             }
 
             // In the left pane
@@ -126,7 +126,7 @@ impl PropertiesCtrl
     }
 
     // Add a new struct to display
-    mtd addStruct(val: any, category: string = null)
+    mtd addStruct(val: #nonull any, category: #null string = null)
     {
         .prop.addStruct(val, category)
         .fillSections()

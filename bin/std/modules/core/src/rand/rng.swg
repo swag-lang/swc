@@ -165,7 +165,7 @@ impl Rng
     }
 
     // Randomly change the order of a slice
-    mtd(V) shuffle(slice: [..] V)
+    mtd(V) shuffle(slice: #nonull [..] V)
     {
         let countOf = @countof(slice)
         let dataOf  = @dataof(slice)

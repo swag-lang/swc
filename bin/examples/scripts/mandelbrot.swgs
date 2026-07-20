@@ -52,7 +52,7 @@ func compute()
     }
 }
 
-func onEvent(wnd: *Wnd, evt: IEvent)->bool
+func onEvent(wnd: #nonull *Wnd, evt: IEvent)->bool
 {
     let w = cast(s32) wnd.position.width
     let h = cast(s32) wnd.position.height

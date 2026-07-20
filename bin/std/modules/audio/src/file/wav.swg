@@ -1,5 +1,4 @@
 #global namespace Wav
-#global #[Swag.ExplicitNullability]
 using Core, Core.Errors, Win32
 
 struct ChunkHeader

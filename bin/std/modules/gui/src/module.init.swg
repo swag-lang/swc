@@ -1,4 +1,3 @@
-#global #[Swag.ExplicitNullability]
 #global using Core
 
 using Pixel

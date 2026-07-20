@@ -7,8 +7,8 @@ const IconBarHeadless_Btn1 = "IconBarHeadless.Btn1"
 var IconBarHeadlessPressedCount: u32
 var IconBarHeadlessCheckCount:   u32
 
-func iconBarHeadlessPressed(btn: *IconButton) { discard btn; IconBarHeadlessPressedCount += 1 }
-func iconBarHeadlessChecked(btn: *IconButton) { discard btn; IconBarHeadlessCheckCount += 1 }
+func iconBarHeadlessPressed(btn: #nonull *IconButton) { discard btn; IconBarHeadlessPressedCount += 1 }
+func iconBarHeadlessChecked(btn: #nonull *IconButton) { discard btn; IconBarHeadlessCheckCount += 1 }
 
 func iconBarHeadlessReset()
 {

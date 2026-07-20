@@ -3,9 +3,9 @@ internal var g_PropSysFonts: Array'FontFamilyEnumerate
 
 impl Properties
 {
-    mtd validateDynamicString(item: *PropertiesItem)
+    mtd validateDynamicString(item: #nonull *PropertiesItem)
     {
-        var data = cast(*String) item.data
+        var data = cast(#null *String) item.data
         if item.editBox do
             dref data = item.editBox.getText()
         .hasChanged(item)
@@ -13,7 +13,7 @@ impl Properties
 
     // A String field carrying the FontName attribute: a combo of the system font
     // families. The first entry is the theme's default font and stores an empty name.
-    mtd refreshFontName(item: *PropertiesItem)
+    mtd refreshFontName(item: #nonull *PropertiesItem)
     {
         if !item.comboBox do
             return
@@ -24,7 +24,7 @@ impl Properties
             return
         }
 
-        let cur = cast(*String) item.data
+        let cur = cast(#null *String) item.data
         var sel = 0'u32
         for &fnt, idx in g_PropSysFonts
         {
@@ -35,13 +35,13 @@ impl Properties
         item.comboBox.selectItem(sel)
     }
 
-    mtd validateFontName(item: *PropertiesItem)
+    mtd validateFontName(item: #nonull *PropertiesItem)
     {
         let sel = item.comboBox.selectedIdx
         if sel == Swag.U32.Max do
             return
 
-        var data = cast(*String) item.data
+        var data = cast(#null *String) item.data
         if sel == 0 do
             data.clear()
         else do
@@ -50,17 +50,17 @@ impl Properties
         .hasChanged(item)
     }
 
-    mtd constructFontName(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    mtd constructFontName(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
 
         if g_PropSysFonts.isEmpty() do
             g_PropSysFonts = FontFamily.enumerateFromOs()
 
-        var combo: *ComboBox
+        var combo: #null *ComboBox
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(assume item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -73,7 +73,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with combo = ComboBox.create(item.line, kind: .CheckBox)
+            with combo = ComboBox.create(assume item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -84,7 +84,7 @@ impl Properties
                     .comboBoxFlags.add(.Flat)
             }
 
-            me.adaptCondensedControl(combo)
+            me.adaptCondensedControl(assume combo)
         }
 
         item.comboBox = combo
@@ -100,7 +100,7 @@ impl Properties
         }
     }
 
-    mtd constructDynamicString(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    mtd constructDynamicString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         if Reflection.hasAttribute(value, .FontName)
         {
@@ -112,7 +112,7 @@ impl Properties
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, dref cast(*String) data)
+        with let ed = EditBox.create(assume item.line, dref cast(#null *String) data)
         {
             if me.kind == .Panel
             {
@@ -158,14 +158,14 @@ impl Properties
         }
     }
 
-    mtd constructStaticString(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
+    mtd constructStaticString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, dref cast(*string) data)
+        with let ed = EditBox.create(assume item.line, dref cast(#null *string) data)
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

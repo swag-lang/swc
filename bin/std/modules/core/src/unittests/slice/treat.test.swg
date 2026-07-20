@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-func sameValues(values: const [..] s32, expected: const [..] s32)->bool
+func sameValues(values: #nonull const [..] s32, expected: #nonull const [..] s32)->bool
 {
     return Slice.equals(values, expected)
 }
@@ -23,7 +23,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
         return value / 2
     })
     @assert(mapped.count == 4)
-    @assert(sameValues(cast([..] s32) mapped, [5, 6, 6, 7]))
+    @assert(sameValues(cast(#nonull [..] s32) mapped, [5, 6, 6, 7]))
 }
 
 #test
@@ -53,7 +53,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let values: [4] s32 = [2, 4, 6, 8]
-    var empty: [..] s32 = null
+    let empty = @mkslice(@dataof(values), 0)
 
     @assert(Slice.allOf(values, func(value: s32)->bool { return value % 2 == 0 }))
     @assert(!Slice.allOf(values, func(value: s32)->bool { return value < 8 }))

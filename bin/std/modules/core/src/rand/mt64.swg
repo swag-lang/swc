@@ -39,7 +39,7 @@ public impl Mt64
     }
 
     #[Swag.CanOverflow(true)]
-    mtd seedU64(seed: const [..] u64)
+    mtd seedU64(seed: #nonull const [..] u64)
     {
         let keyLength = @countof(seed)
 

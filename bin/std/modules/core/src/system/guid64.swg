@@ -1,5 +1,4 @@
 #global public
-#global #[Swag.ExplicitNullability]
 
 // Thread-local storage for random number generation and GUID counter.
 #[Swag.Tls]

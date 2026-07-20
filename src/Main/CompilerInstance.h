@@ -114,15 +114,15 @@ public:
 
     ExitCode run();
 
-    const Global&                   global() const { return *(global_); }
-    const CommandLine&              cmdLine() const { return *(cmdLine_); }
-    JobClientId                     jobClientId() const { return jobClientId_; }
+    const Global&      global() const { return *(global_); }
+    const CommandLine& cmdLine() const { return *(cmdLine_); }
+    JobClientId        jobClientId() const { return jobClientId_; }
 
     template<typename T, typename... ARGS>
     T* makeJob(ARGS&&... args) const
     {
-        auto job = std::make_unique<T>(std::forward<ARGS>(args)...);
-        T*   ptr = job.get();
+        auto                   job = std::make_unique<T>(std::forward<ARGS>(args)...);
+        T*                     ptr = job.get();
         const std::scoped_lock lock(ownedJobsMutex_);
         ownedJobs_.push_back(std::move(job));
         return ptr;

@@ -594,7 +594,7 @@ namespace
             if (slot < foundPayload->codeParamTypeNodes.size() && foundPayload->codeParamTypeNodes[slot].isValid() && foundPayload->codeParamSourceAst)
             {
                 const SemaClone::CloneContext typeCloneContext{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, foundPayload->codeParamSourceAst};
-                const AstNodeRef              typeCloneRef = SemaClone::cloneAst(sema, foundPayload->codeParamTypeNodes[slot], typeCloneContext);
+                const AstNodeRef              typeCloneRef             = SemaClone::cloneAst(sema, foundPayload->codeParamTypeNodes[slot], typeCloneContext);
                 sema.node(varRef).cast<AstSingleVarDecl>().nodeTypeRef = typeCloneRef;
             }
 
@@ -668,15 +668,14 @@ namespace
         if (clonedRef.isInvalid())
             return Result::Error;
 
-
         // Macro injects are hygienic by default: the injected code lives in a block
         // whose scope is parented to the caller, so user code cannot see the macro's
         // internals. The leading declarations of the block bind the '#code' parameter
         // values; their initializers resolve at the '#inject' site (macro scope).
         // Expression injects cannot be wrapped in a block and rely on caller
         // pre-resolution only.
-        AstNodeRef substituteRef = clonedRef;
-        const auto* injectNode   = sema.node(ownerRef).safeCast<AstCompilerInject>();
+        AstNodeRef  substituteRef = clonedRef;
+        const auto* injectNode    = sema.node(ownerRef).safeCast<AstCompilerInject>();
         if (injectNode && (injectNode->spanBindingNameRef.isValid() || (isMacroInject && injectsVoidCode)))
         {
             auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(sema.node(ownerRef).tokRef());

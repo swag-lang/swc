@@ -114,7 +114,7 @@ namespace
     {
         TypeInfoFlags flags = typeInfo.flags();
         flags.remove(TypeInfoFlagsE::Nullable);
-        return static_cast<uint32_t>(flags.get());
+        return flags.get();
     }
 
     uint32_t typeCycleHash(const TaskContext& ctx, TypeRef typeRef, uint32_t distance)

@@ -764,7 +764,9 @@ namespace
         {
             const SymbolStruct& targetStruct   = targetType.payloadSymStruct();
             const auto&         fields         = targetStruct.fields();
-            const auto          findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) { return targetStruct.tryGetFieldIndexByName(outIndex, idRef); };
+            const auto          findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) {
+                return targetStruct.tryGetFieldIndexByName(outIndex, idRef);
+            };
             if (!resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex) || fieldIndex >= fields.size() || !fields[fieldIndex])
                 return false;
             outComponent = {.kind = SemaEscapeProjectionKind::Field, .field = fields[fieldIndex]};
@@ -775,7 +777,9 @@ namespace
             return false;
 
         const auto& aggregate          = targetType.payloadAggregate();
-        const auto  resolveMemberIndex = [&](IdentifierRef idRef, size_t& outIndex) { return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef); };
+        const auto  resolveMemberIndex = [&](IdentifierRef idRef, size_t& outIndex) {
+            return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
+        };
         if (!resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex))
             return false;
         outComponent = {.kind = SemaEscapeProjectionKind::ConstantIndex, .index = fieldIndex};
@@ -994,7 +998,7 @@ namespace
     // identifier still types as the struct while the resolved cast types as the slice.
     TypeRef indexedElementTypeRef(Sema& sema, AstNodeRef indexedRef)
     {
-        const AstNodeRef resolvedRef  = sema.viewZero(indexedRef).nodeRef();
+        const AstNodeRef resolvedRef    = sema.viewZero(indexedRef).nodeRef();
         const TypeRef    indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef.isValid() ? resolvedRef : indexedRef));
         if (!indexedTypeRef.isValid())
             return TypeRef::invalid();
@@ -1142,7 +1146,7 @@ namespace
         uint32_t   unwrapGuard = 8;
         while (resolvedRef.isValid() && unwrapGuard--)
         {
-            const AstNode& node = sema.node(resolvedRef);
+            const AstNode& node     = sema.node(resolvedRef);
             AstNodeRef     innerRef = AstNodeRef::invalid();
             if (node.is(AstNodeId::ParenExpr))
                 innerRef = node.cast<AstParenExpr>().nodeExprRef;
@@ -1379,7 +1383,7 @@ namespace
         sema.appendResolvedCallArguments(resolvedRef, args);
 
         SmallVector<std::pair<uint32_t, SemaEscapeInfo>> argBorrows;
-        SmallVector<std::pair<uint32_t, uint32_t>>        parameterMappings;
+        SmallVector<std::pair<uint32_t, uint32_t>>       parameterMappings;
 
         size_t paramIndex = 0;
         for (const ResolvedCallArgument& arg : args)
@@ -1423,7 +1427,7 @@ namespace
                 const AstNodeRef      reqValueRef = argumentValueRef(sema, arg.argRef);
                 bool                  reqWhole    = false;
                 const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
-                const SemaEscapeInfo carried = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
+                const SemaEscapeInfo  carried     = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
                 if (carried.kind == SemaEscapeKind::Parameter)
                 {
                     SymbolFunction* callerFn = sema.currentFunction();
@@ -1483,8 +1487,8 @@ namespace
                     {
                         SemaEscapeDeferredCheck check = inner;
                         check.guards.push_back({inner.callee, inner.paramIndex});
-                        check.callee                  = fn;
-                        check.paramIndex              = static_cast<uint32_t>(thisParam);
+                        check.callee     = fn;
+                        check.paramIndex = static_cast<uint32_t>(thisParam);
                         outCapture.checks.push_back(std::move(check));
                     }
                 }
@@ -2084,7 +2088,7 @@ namespace
             SemaEscapeProjection projection = baseProjection;
             projection.components.push_back(component);
 
-            const AstNodeRef childValueRef = argumentValueRef(sema, childRef);
+            const AstNodeRef        childValueRef = argumentValueRef(sema, childRef);
             SmallVector<AstNodeRef> nestedChildren;
             if (aggregateLiteralChildren(sema, nestedChildren, childValueRef))
             {
@@ -2233,7 +2237,6 @@ namespace
 
             default:
                 ok = false;
-                return;
         }
     }
 
@@ -2570,8 +2573,8 @@ namespace SemaEscape
                 return Result::Continue;
         }
 
-        uint32_t             budget = K_EXPR_BUDGET;
-        SemaEscapeInfo       info   = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
+        uint32_t       budget = K_EXPR_BUDGET;
+        SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
         if (!info.hasBorrow())
             info = directTargetStorageBorrowInfo(sema, rightRef, targetTypeRef);
         if (!info.hasBorrow())
@@ -2647,7 +2650,7 @@ namespace SemaEscape
                 const SymbolVariable* dstParam = signatureParameterFor(sema, *pairRoot);
                 if (dstParam && !isByValueParameterStorage(sema, *dstParam))
                 {
-                    size_t intoIndex   = 0;
+                    size_t intoIndex = 0;
                     if (findCallerParameterIndex(*currentFn, *dstParam, intoIndex))
                     {
                         const uint64_t origins = parameterOriginsMask(*currentFn, info);

@@ -530,10 +530,10 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
         return Result::Error;
     rtLoc->fileName.length = fileNameLength;
     rtLoc->funcName.length = funcNameLength;
-    rtLoc->lineStart = codeRange.line;
-    rtLoc->colStart  = codeRange.column;
-    rtLoc->lineEnd   = codeRange.line;
-    rtLoc->colEnd    = codeRange.column + codeRange.len;
+    rtLoc->lineStart       = codeRange.line;
+    rtLoc->colStart        = codeRange.column;
+    rtLoc->lineEnd         = codeRange.line;
+    rtLoc->colEnd          = codeRange.column + codeRange.len;
 
     const auto    bytes  = std::span{storage, sizeof(Runtime::SourceCodeLocation)};
     ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);

@@ -76,20 +76,20 @@ public:
     bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
     bool                     resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const;
 
-    Result      computeLayout(TaskContext& ctx);
-    ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
-    void        computeImplicitDefaultFlags(Sema& sema) const;
-    bool        hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
-    bool        hasImplicitAllUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllUndefined); }
-    bool        hasImplicitUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultHasUndefined); }
-    bool        requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
+    Result        computeLayout(TaskContext& ctx);
+    ConstantRef   computeDefaultValue(Sema& sema, TypeRef typeRef);
+    void          computeImplicitDefaultFlags(Sema& sema) const;
+    bool          hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
+    bool          hasImplicitAllUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllUndefined); }
+    bool          hasImplicitUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultHasUndefined); }
+    bool          requiresExplicitInitialization() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultRequiresInit); }
     static Result waitTypeImplicitDefaultReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
-    static bool typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
-    static bool typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
-    static bool fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field);
+    static bool   typeRequiresExplicitInitialization(Sema& sema, TypeRef typeRef);
+    static bool   typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef);
+    static bool   fieldRequiresExplicitInitialization(Sema& sema, const SymbolVariable& field);
     static Result lowerTypeImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef);
-    ConstantRef resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const;
-    ConstantRef resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const;
+    ConstantRef   resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const;
+    ConstantRef   resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const;
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
     Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);

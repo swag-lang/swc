@@ -25,9 +25,9 @@ namespace TypeRuntimeHash
 
 enum class TypeInfoFlagsE : uint8_t
 {
-    Zero            = 0,
-    Const           = 1 << 0,
-    Nullable        = 1 << 1,
+    Zero     = 0,
+    Const    = 1 << 0,
+    Nullable = 1 << 1,
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 

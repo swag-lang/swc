@@ -960,8 +960,8 @@ namespace
 
         SWC_RESULT(validateFinalType(sema, context, finalTypeRef, isConst, isParameter, isUsing));
 
-        const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
-        const bool       isStructField     = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
+        const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
+        const bool       isStructField         = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
         const bool       directSelfStructField = explicitTypeRef.isValid() &&
                                            explicitType &&
                                            explicitType->isStruct() &&

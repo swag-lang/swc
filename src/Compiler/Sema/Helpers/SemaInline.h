@@ -43,9 +43,9 @@ struct SemaInlinePayload
     SmallVector2<AstNodeRef>    codeParamTypeNodes;
     const Ast*                  codeParamSourceAst = nullptr;
     uint32_t                    codeParamVarMask   = 0;
-    AstNodeRef                                       callRef          = AstNodeRef::invalid();
-    AstNodeRef                                       inlineRootRef    = AstNodeRef::invalid();
-    TypeRef                                          returnTypeRef    = TypeRef::invalid();
+    AstNodeRef                  callRef            = AstNodeRef::invalid();
+    AstNodeRef                  inlineRootRef      = AstNodeRef::invalid();
+    TypeRef                     returnTypeRef      = TypeRef::invalid();
 };
 
 namespace SemaInline

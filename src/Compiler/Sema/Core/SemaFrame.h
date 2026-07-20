@@ -63,7 +63,7 @@ struct SemaIterationBorrow
     // The loop body, used to spare the common safe pattern where the mutation is followed
     // by a loop exit ('for it in c { if hit { c.removeAt(i); return it } }'): the loop
     // never iterates again after the mutation, so the snapshot is never used stale.
-    AstNodeRef            bodyRef   = AstNodeRef::invalid();
+    AstNodeRef bodyRef = AstNodeRef::invalid();
 };
 
 enum class SemaFrameContextFlagsE

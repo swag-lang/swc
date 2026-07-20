@@ -80,7 +80,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         // The key is the suspended sema location, not just the function. The same
         // compile-time function can be requested from multiple nodes with different
         // completion payloads.
-        auto&                  slot = items_[key];
+        auto& slot = items_[key];
         if (!slot)
         {
             slot           = std::make_unique<Item>();

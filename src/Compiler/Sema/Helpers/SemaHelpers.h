@@ -148,7 +148,6 @@ namespace SemaHelpers
         SymbolMap* symbolMap  = SemaFrame::currentSymMap(sema);
         SemaScope* localScope = currentLocalSymbolScope(sema);
 
-
         if (localScope)
         {
             localScope->addSymbol(sym);

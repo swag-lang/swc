@@ -75,13 +75,13 @@ enum class SemaEscapeSummaryEdgeKind : uint8_t
 // transitive across chains of opaque calls (a wrapper level no longer hides a borrow).
 struct SemaEscapeSummaryEdge
 {
-    SymbolFunction*           caller           = nullptr;
-    const SymbolFunction*     callee           = nullptr;
-    uint32_t                  callerParamIndex = 0;
-    uint32_t                  calleeParamIndex = 0;
+    SymbolFunction*           caller               = nullptr;
+    const SymbolFunction*     callee               = nullptr;
+    uint32_t                  callerParamIndex     = 0;
+    uint32_t                  calleeParamIndex     = 0;
     uint32_t                  callerIntoParamIndex = 0;
     uint32_t                  calleeIntoParamIndex = 0;
-    SemaEscapeSummaryEdgeKind kind             = SemaEscapeSummaryEdgeKind::ReturnToReturn;
+    SemaEscapeSummaryEdgeKind kind                 = SemaEscapeSummaryEdgeKind::ReturnToReturn;
 };
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

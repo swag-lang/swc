@@ -79,9 +79,9 @@ namespace
         if (cst.isString())
             return !cst.getString().data();
 
-        const TypeInfo& rawSrcType     = sema.typeMgr().get(srcTypeRef);
-        const TypeRef   unwrappedRef   = rawSrcType.unwrap(sema.ctx(), srcTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& unwrappedType  = sema.typeMgr().get(unwrappedRef);
+        const TypeInfo& rawSrcType    = sema.typeMgr().get(srcTypeRef);
+        const TypeRef   unwrappedRef  = rawSrcType.unwrap(sema.ctx(), srcTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedRef);
         if (unwrappedType.isAny())
             return isProvablyNullRuntimeAnyConstant(cst);
 
@@ -1536,8 +1536,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const TypeInfo& resolvedSrcType    = sema.typeMgr().get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = sema.typeMgr().get(resolvedDstTypeRef);
 
-        const bool allowAliasBoolCast               = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
-        const bool allowAliasNullCast               = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
+        const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
+        const bool allowAliasNullCast = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
         // 'undefined' is the explicit low-level escape and is valid for ANY storage,
         // including strict aliases.
         const bool allowAliasUndefinedCast          = srcType.isUndefined();

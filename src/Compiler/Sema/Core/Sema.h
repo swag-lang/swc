@@ -139,7 +139,7 @@ struct SemaEscapeProjectionComponent
 
 struct SemaEscapeProjection
 {
-    const SymbolVariable*                         root = nullptr;
+    const SymbolVariable*                       root = nullptr;
     SmallVector4<SemaEscapeProjectionComponent> components;
 
     bool operator==(const SemaEscapeProjection& other) const noexcept
@@ -577,17 +577,17 @@ private:
     std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
     struct EscapeBranchState
     {
-        std::unordered_map<const SymbolVariable*, SemaEscapeInfo> entryState;
-        std::unordered_map<const SymbolVariable*, SemaEscapeInfo> mergedState;
+        std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          entryState;
+        std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          mergedState;
         std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> entryProjectionState;
         std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> mergedProjectionState;
     };
 
-    std::unordered_map<const SymbolVariable*, SemaEscapeInfo> variableEscapeInfos_;
+    std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          variableEscapeInfos_;
     std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> projectionEscapeInfos_;
-    std::unordered_map<const SymbolVariable*, uint32_t>       variableScopeDepths_;
-    std::vector<EscapeBranchState>                            escapeBranchStack_;
-    AstVisit                                                  visit_;
+    std::unordered_map<const SymbolVariable*, uint32_t>                                variableScopeDepths_;
+    std::vector<EscapeBranchState>                                                     escapeBranchStack_;
+    AstVisit                                                                           visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_   = nullptr;

@@ -110,25 +110,25 @@ namespace Runtime
 
     enum class TypeInfoFlags : uint32_t
     {
-        Zero              = 0x00000000,
-        PointerTypeInfo   = 0x00000001,
-        Integer           = 0x00000002,
-        Float             = 0x00000004,
-        Unsigned          = 0x00000008,
-        HasPostCopy       = 0x00000010,
-        HasPostMove       = 0x00000020,
-        HasDrop           = 0x00000040,
-        Strict            = 0x00000080,
-        CanCopy           = 0x00000100,
-        Tuple             = 0x00000200,
-        CString           = 0x00000400,
-        Generic           = 0x00000800,
-        PointerRef        = 0x00001000,
-        PointerMoveRef    = 0x00002000,
-        PointerArithmetic = 0x00004000,
-        Character         = 0x00008000,
-        Const             = 0x00010000,
-        Nullable          = 0x00020000,
+        Zero                 = 0x00000000,
+        PointerTypeInfo      = 0x00000001,
+        Integer              = 0x00000002,
+        Float                = 0x00000004,
+        Unsigned             = 0x00000008,
+        HasPostCopy          = 0x00000010,
+        HasPostMove          = 0x00000020,
+        HasDrop              = 0x00000040,
+        Strict               = 0x00000080,
+        CanCopy              = 0x00000100,
+        Tuple                = 0x00000200,
+        CString              = 0x00000400,
+        Generic              = 0x00000800,
+        PointerRef           = 0x00001000,
+        PointerMoveRef       = 0x00002000,
+        PointerArithmetic    = 0x00004000,
+        Character            = 0x00008000,
+        Const                = 0x00010000,
+        Nullable             = 0x00020000,
         RequiresExplicitInit = 0x00080000,
     };
 
@@ -349,19 +349,19 @@ namespace Runtime
 
     struct Context
     {
-        Interface                 allocator;
-        ScratchAllocator          tempAllocator;
-        ScratchAllocator          errorAllocator;
-        RuntimeFlags              runtimeFlags;
-        Interface                 defaultAllocator;
-        uint64_t                  user0;
-        uint64_t                  user1;
-        uint64_t                  user2;
-        uint64_t                  user3;
-        SourceCodeLocation        traces[32];
-        ErrorValue                errors[32];
-        SourceCodeLocation        exceptionLoc;
-        const void*               exceptionParams[4];
+        Interface          allocator;
+        ScratchAllocator   tempAllocator;
+        ScratchAllocator   errorAllocator;
+        RuntimeFlags       runtimeFlags;
+        Interface          defaultAllocator;
+        uint64_t           user0;
+        uint64_t           user1;
+        uint64_t           user2;
+        uint64_t           user3;
+        SourceCodeLocation traces[32];
+        ErrorValue         errors[32];
+        SourceCodeLocation exceptionLoc;
+        const void*        exceptionParams[4];
         void (*panic)(String, SourceCodeLocation);
         Any      curError;
         uint32_t errorIndex;

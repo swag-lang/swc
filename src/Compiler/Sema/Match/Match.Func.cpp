@@ -1092,7 +1092,7 @@ namespace
     {
         const TaskContext& ctx = sema.ctx();
 
-        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
+        Diagnostic         diag         = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
         DiagnosticElement& errorElement = primaryDiagnosticElement(diag);
         errorElement.addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
         fillMatchDiagnostic(sema, errorElement, diag, *primary.fn, primary.fail, args, ufcsArg, false);

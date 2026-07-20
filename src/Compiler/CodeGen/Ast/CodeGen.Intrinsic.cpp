@@ -370,8 +370,8 @@ namespace
         if (!dstAddressReg.isValid())
             return Result::Continue;
 
-        uint32_t        constantCount    = 0;
-        const bool      hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
+        uint32_t   constantCount    = 0;
+        const bool hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
         if (args.empty())
         {
             if (hasConstantCount)

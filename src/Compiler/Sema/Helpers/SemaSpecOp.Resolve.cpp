@@ -124,10 +124,10 @@ namespace
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::StringLiteral>(codeRef.tokRef);
         nodePtr->setCodeRef(codeRef);
 
-        const TaskContext&  ctx         = sema.ctx();
-        ConstantValue       constant    = ConstantValue::makeString(ctx, value);
+        const TaskContext& ctx      = sema.ctx();
+        ConstantValue      constant = ConstantValue::makeString(ctx, value);
         constant.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
-        const ConstantRef   constantRef = sema.cstMgr().addConstant(ctx, constant);
+        const ConstantRef constantRef = sema.cstMgr().addConstant(ctx, constant);
         sema.setConstant(nodeRef, constantRef);
         sema.setIsValue(*nodePtr);
         return nodeRef;

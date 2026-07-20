@@ -290,8 +290,8 @@ namespace
         if (!srcSlice.count || !elementSize)
         {
             const auto [dataOffset, dataStorage] = segment.reserveBytes(1, elementType.alignOf(ctx), true);
-            dstSlice.ptr   = dataStorage;
-            dstSlice.count = srcSlice.count;
+            dstSlice.ptr                         = dataStorage;
+            dstSlice.count                       = srcSlice.count;
             segment.addRelocation(payload.baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
             return Result::Continue;
         }

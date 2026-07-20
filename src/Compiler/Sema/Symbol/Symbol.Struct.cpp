@@ -218,7 +218,7 @@ namespace
             return Result::Continue;
         }
 
-        Result result = Result::Continue;
+        auto result = Result::Continue;
         if (type.isAlias())
         {
             result = sema.waitSemaCompleted(&type, waitNodeRef);

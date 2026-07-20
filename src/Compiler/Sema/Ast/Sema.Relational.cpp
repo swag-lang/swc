@@ -377,8 +377,8 @@ namespace
 
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
-            uint64_t leftAddress  = 0;
-            uint64_t rightAddress = 0;
+            uint64_t   leftAddress     = 0;
+            uint64_t   rightAddress    = 0;
             const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
             const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
             SWC_ASSERT(hasLeftAddress && hasRightAddress);
@@ -429,8 +429,8 @@ namespace
         const TypeInfo& compareRightType = aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
-            uint64_t leftAddress  = 0;
-            uint64_t rightAddress = 0;
+            uint64_t   leftAddress     = 0;
+            uint64_t   rightAddress    = 0;
             const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
             const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
             SWC_ASSERT(hasLeftAddress && hasRightAddress);
@@ -505,13 +505,14 @@ namespace
         const TypeInfo& compareRightType = aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
-            uint64_t leftAddress  = 0;
-            uint64_t rightAddress = 0;
+            uint64_t   leftAddress     = 0;
+            uint64_t   rightAddress    = 0;
             const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
             const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
             SWC_ASSERT(hasLeftAddress && hasRightAddress);
-            const int compareResult = leftAddress < rightAddress ? -1 : leftAddress > rightAddress ? 1 : 0;
-            result = sema.cstMgr().cstS32(compareResult);
+            const int compareResult = leftAddress < rightAddress ? -1 : leftAddress > rightAddress ? 1
+                                                                                                   : 0;
+            result                  = sema.cstMgr().cstS32(compareResult);
             return Result::Continue;
         }
 

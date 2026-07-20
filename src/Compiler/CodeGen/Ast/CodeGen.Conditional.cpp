@@ -20,9 +20,9 @@ namespace
 
     struct ConditionalExprCodeGenPayload : CodeGenNodePayload
     {
-        MicroLabelRef       falseLabel = MicroLabelRef::invalid();
-        MicroLabelRef       doneLabel  = MicroLabelRef::invalid();
-        ConditionalExprStage stage     = ConditionalExprStage::TrueBranch;
+        MicroLabelRef        falseLabel = MicroLabelRef::invalid();
+        MicroLabelRef        doneLabel  = MicroLabelRef::invalid();
+        ConditionalExprStage stage      = ConditionalExprStage::TrueBranch;
     };
 
     struct NullCoalescingCodeGenPayload : CodeGenNodePayload
@@ -128,10 +128,10 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     // When the conditional was wrapped by an implicit cast, the wrapper's type shows
     // through the resolved view. The selection must produce its own stored type; the
     // wrapping cast then converts the joined value.
-    const TypeRef resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const bool    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
-    MicroBuilder& builder       = codeGen.builder();
-    ConditionalExprCodeGenPayload* state = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const TypeRef                  resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const bool                     addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    MicroBuilder&                  builder       = codeGen.builder();
+    ConditionalExprCodeGenPayload* state         = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
 
     // Qualification casts can rewrite a direct child to a different resolved reference.
     // Child callbacks still arrive in source order, so track the lowering stage explicitly.
@@ -218,10 +218,10 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     SWC_ASSERT(resolvedChildRef.isValid());
 
     // Same stored-type rule as the conditional expression above.
-    const TypeRef resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const bool    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
-    MicroBuilder& builder       = codeGen.builder();
-    NullCoalescingCodeGenPayload* state = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const TypeRef                 resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const bool                    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    MicroBuilder&                 builder       = codeGen.builder();
+    NullCoalescingCodeGenPayload* state         = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
 
     // Qualification casts can also rewrite either coalescing operand. The first direct
     // callback is the lhs; the presence of lowering state identifies the rhs callback.

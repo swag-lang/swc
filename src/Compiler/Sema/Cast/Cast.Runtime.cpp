@@ -697,9 +697,9 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
             if (srcElemTypeRef != dstElemTypeRef)
             {
-                const uint64_t  s           = dstElemType.sizeOf(ctx);
-                const uint64_t  d           = srcType.sizeOf(ctx);
-                const bool      match       = s == 0 || (d / s * s == d);
+                const uint64_t s     = dstElemType.sizeOf(ctx);
+                const uint64_t d     = srcType.sizeOf(ctx);
+                const bool     match = s == 0 || (d / s * s == d);
                 if (!match)
                     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
@@ -708,9 +708,9 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
-                const uint64_t      sliceCount  = sliceCountFromArrayCast(ctx, srcType, dstElemType);
-                const ConstantValue sliceCst    = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, srcCst.getArray(), sliceCount, dstType.flags());
-                castRequest.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
+                const uint64_t      sliceCount = sliceCountFromArrayCast(ctx, srcType, dstElemType);
+                const ConstantValue sliceCst   = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, srcCst.getArray(), sliceCount, dstType.flags());
+                castRequest.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
             }
 
             return Result::Continue;

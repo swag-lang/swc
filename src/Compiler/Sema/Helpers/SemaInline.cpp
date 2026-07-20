@@ -2426,7 +2426,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             SWC_RESULT(validateInlineBindingOuterScopeVariables(sema, binding.exprRef));
     }
 
-
     SmallVector<DeclaredCodeParam> declaredCodeParams;
     appendDeclaredCodeParams(*declAst, *decl, declaredCodeParams);
 

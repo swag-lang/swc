@@ -572,12 +572,12 @@ namespace
         SWC_ASSERT(structSize);
 
         ByteArray                  buffer(structSize);
-        const std::span<std::byte> bytes        = buffer.span();
+        const std::span<std::byte> bytes = buffer.span();
         SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
-        const TypeRef              fieldTypeRef = field.typeRef();
-        const TypeInfo&            fieldType    = args.sema->typeMgr().get(fieldTypeRef);
-        const uint64_t             fieldSize    = fieldType.sizeOf(args.sema->ctx());
-        const uint64_t             fieldOffset  = field.offset();
+        const TypeRef   fieldTypeRef = field.typeRef();
+        const TypeInfo& fieldType    = args.sema->typeMgr().get(fieldTypeRef);
+        const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
+        const uint64_t  fieldOffset  = field.offset();
         SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
         SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, std::span{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldTypeRef));
 

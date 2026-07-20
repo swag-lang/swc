@@ -210,8 +210,8 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(ConstantManager_DistinguishesPresentEmptySlicePayloads)
 {
     const TypeRef sliceTypeRef = ctx.typeMgr().addType(TypeInfo::makeSlice(ctx.typeMgr().typeU8()));
-    std::array     firstSource{std::byte{0x11}};
-    std::array     secondSource{std::byte{0x22}};
+    std::array    firstSource{std::byte{0x11}};
+    std::array    secondSource{std::byte{0x22}};
 
     const std::span<const std::byte> firstEmpty{firstSource.data(), 0};
     const std::span<const std::byte> secondEmpty{secondSource.data(), 0};

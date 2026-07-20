@@ -4,12 +4,6 @@ using Swag, Core
 
 var TabHeadlessSelChangedCount: u32
 
-func tabHeadlessSelChanged(tab: *Tab)
-{
-    discard tab
-    TabHeadlessSelChangedCount += 1
-}
-
 // Adding tabs and selecting one updates the index and fires sigSelChanged.
 #test
 {
@@ -18,7 +12,7 @@ func tabHeadlessSelChanged(tab: *Tab)
     TabHeadlessSelChangedCount = 0
 
     let tab = Tab.create(&host.root, {10, 10, 300, 180})
-    tab.sigSelChanged += &tabHeadlessSelChanged
+    tab.sigSelChanged += func(tab) { TabHeadlessSelChangedCount += 1 }
 
     tab.addItem("A")
     tab.addItem("B")

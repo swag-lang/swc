@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 #import("pixel")
 
 #run

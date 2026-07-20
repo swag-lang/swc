@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 // The 'Std.core' module contains basic types and algorithms.
 // It is the base of all other modules of the standard 'Std' workspace.
 //

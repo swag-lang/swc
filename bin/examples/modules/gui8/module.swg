@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 #import("gui", location: "swag@std")
 
 #run

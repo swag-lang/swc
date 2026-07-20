@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 #import("api_export_provider")
 #import("api_static_provider", link: "static-library")
 #import("runtime_context_bridge_dll")

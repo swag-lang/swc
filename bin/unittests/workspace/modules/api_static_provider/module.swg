@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 #import("api_export_provider")
 
 #run

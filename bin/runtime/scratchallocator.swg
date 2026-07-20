@@ -128,7 +128,7 @@ impl IAllocator for ScratchAllocator
     mtd allocBlock(request: #nonull *AllocatorRequest)
     {
         // Allocate in the buffer if there is enough room
-        let usedAlign = align(.used, request.alignment)
+        let usedAlign = ScratchAllocator.align(.used, request.alignment)
         if usedAlign + request.size <= .capacity
         {
             let oldAddress = request.address

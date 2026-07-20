@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 #run
 {
     let cfg = @compiler.getBuildCfg()

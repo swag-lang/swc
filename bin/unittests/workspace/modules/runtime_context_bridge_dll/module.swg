@@ -1,3 +1,5 @@
+#global #[Swag.ExplicitNullability]
+
 #import("runtime_context_base_static", link: "static-library")
 #run
 {

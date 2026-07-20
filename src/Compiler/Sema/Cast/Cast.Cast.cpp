@@ -800,6 +800,10 @@ namespace
             return Result::Continue;
         if (srcType.isAggregate() || srcType.isArray())
             return Result::Continue;
+        // An explicit `undefined` initializer leaves the storage uninitialized:
+        // there is no per-element value to fill.
+        if (srcType.isUndefined())
+            return Result::Continue;
 
         const TypeRef fillTypeRef = arrayFillLeafTypeRef(sema, dstTypeRef);
         if (!fillTypeRef.isValid())
@@ -808,7 +812,10 @@ namespace
         CastRequest fillRequest(castKind);
         fillRequest.errorNodeRef = nodeRef;
         fillRequest.setConstantFoldingSrc(srcConstRef);
-        SWC_RESULT(Cast::castAllowed(sema, fillRequest, srcTypeRef, fillTypeRef));
+        const Result fillResult = Cast::castAllowed(sema, fillRequest, srcTypeRef, fillTypeRef);
+        if (fillResult == Result::Error)
+            return Cast::emitCastFailure(sema, fillRequest.failure);
+        SWC_RESULT(fillResult);
 
         ConstantRef fillCstRef = fillRequest.constantFoldingResult();
         if (fillCstRef.isInvalid())
@@ -1519,12 +1526,15 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
         const bool allowAliasBoolCast               = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
         const bool allowAliasNullCast               = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
+        // 'undefined' is the explicit low-level escape and is valid for ANY storage,
+        // including strict aliases.
+        const bool allowAliasUndefinedCast          = srcType.isUndefined();
         const bool allowAliasAnyCast                = dstType.isAny();
         const bool allowAliasNullableCast           = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
         const bool allowAliasUfcsReceiverCast       = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
         const bool allowAliasIndirectValueCast      = indirectValueTypeRef.isValid();
         const bool allowAliasUnderlyingToStrictCast = !srcType.isAlias() && dstType.isAlias() && resolvedSrcTypeRef == resolvedDstTypeRef;
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast && !allowAliasUnderlyingToStrictCast)
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasUndefinedCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast && !allowAliasUnderlyingToStrictCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 

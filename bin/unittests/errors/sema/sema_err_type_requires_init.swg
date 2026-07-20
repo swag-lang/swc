@@ -45,7 +45,7 @@ impl NonNullRequiresInitSetTarget
     }
 }
 
-var NonNullRequiresInitGlobal: *NonNullRequiresInitItem // swc-expected-error@(+0,+1) {{sema_err_type_requires_init}}
+var NonNullRequiresInitGlobal: *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
 var NonNullRequiresInitThrowableItem = NonNullRequiresInitItem{}
 
 func nonNullRequiresInitRetval()->*NonNullRequiresInitItem
@@ -81,7 +81,7 @@ func nonNullRequiresInitThrowable()->*NonNullRequiresInitItem throw
 
 #test
 {
-    var value: *NonNullRequiresInitItem // swc-expected-error@(+0,+1) {{sema_err_type_requires_init}}
+    var value: *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
@@ -171,4 +171,13 @@ func nonNullRequiresInitThrowable()->*NonNullRequiresInitItem throw
     var item = NonNullRequiresInitItem{value: 1}
     var value = NonNullRequiresInitHolder{required: &item}
     @init(value) // swc-expected-error {{sema_err_type_requires_init}}
+}
+
+// The diagnostic must point at the declaration itself, even when the check has to
+// wait for the completion of a struct declared later in the file.
+var NonNullLateGlobal: *NonNullLateStruct // swc-expected-error {{sema_err_type_requires_init}}
+
+struct NonNullLateStruct
+{
+    required: *NonNullRequiresInitItem
 }

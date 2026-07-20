@@ -182,12 +182,13 @@ AstNodeRef Parser::parseSubType()
 AstNodeRef Parser::parseSubTypeNoQualifiers()
 {
     // Left reference
-    if (consumeIf(TokenId::SymAmpersand).isValid())
+    const TokenRef tokAmpRef = consumeIf(TokenId::SymAmpersand);
+    if (tokAmpRef.isValid())
     {
         const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ReferenceType>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ReferenceType>(tokAmpRef);
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }
@@ -229,12 +230,13 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     }
 
     // Value pointer
-    if (consumeIf(TokenId::SymAsterisk).isValid())
+    const TokenRef tokStarRef = consumeIf(TokenId::SymAsterisk);
+    if (tokStarRef.isValid())
     {
         const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(tokStarRef);
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }

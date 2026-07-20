@@ -1549,10 +1549,10 @@ func intrinsicInitStrictPointerInfo()->bool
     var first: s32 = 42
     var second: s32 = 7
 
-    var value: IntrinsicStrictS32Ptr = cast(IntrinsicStrictS32Ptr) &second
+    var value: IntrinsicStrictS32Ptr = undefined
     @init(&value)(cast(IntrinsicStrictS32Ptr) &first)
 
-    var values: [2] IntrinsicStrictS32Ptr = [cast(IntrinsicStrictS32Ptr) &first, cast(IntrinsicStrictS32Ptr) &first]
+    var values: [2] IntrinsicStrictS32Ptr = undefined
     @init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
 
     return dref value == 42 and dref values[0] == 7 and dref values[1] == 7
@@ -1560,10 +1560,10 @@ func intrinsicInitStrictPointerInfo()->bool
 
 func intrinsicInitStrictStringInfo()->bool
 {
-    var value: IntrinsicStrictStringAlias = cast(IntrinsicStrictStringAlias) "seed"
+    var value: IntrinsicStrictStringAlias = undefined
     @init(&value)(cast(IntrinsicStrictStringAlias) "hello")
 
-    var values: [2] IntrinsicStrictStringAlias = [cast(IntrinsicStrictStringAlias) "seed", cast(IntrinsicStrictStringAlias) "seed"]
+    var values: [2] IntrinsicStrictStringAlias = undefined
     @init(&values, 2)(cast(IntrinsicStrictStringAlias) "world")
 
     return cast(string) value == "hello" and cast(string) values[0] == "world" and cast(string) values[1] == "world"

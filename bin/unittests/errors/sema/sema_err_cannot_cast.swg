@@ -126,3 +126,10 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16)
     var value: MoveBindVec
     takeMoveBind(&value) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    // An invalid scalar fill of an array must report the element cast failure
+    // (it used to be silently swallowed by the runtime-array-fill setup).
+    var values: [2] *s32 = 12 // swc-expected-error {{sema_err_cannot_cast}}
+}

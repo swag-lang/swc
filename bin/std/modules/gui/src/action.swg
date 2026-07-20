@@ -1,6 +1,6 @@
 public struct ActionContext
 {
-    wnd:     #nonull *Wnd
+    wnd:     #null *Wnd
     id:      #nonull WndId
 }
 

@@ -13,7 +13,7 @@ interface IEncoder
 {
     mtd isTextual()->bool;
 
-    mtd start(result: *ConcatBuffer) throw;
+    mtd start(result: #nonull *ConcatBuffer) throw;
     mtd end() throw;
 
     mtd beginField(val: Swag.TypeValue) throw;
@@ -21,8 +21,8 @@ interface IEncoder
     mtd beginSection(kind: SectionKind) throw;
     mtd endSection() throw;
 
-    mtd write(data: const [*] void, type: typeinfo) throw;
-    mtd writeBufferU8(data: const [*] u8, count: u64) throw;
+    mtd write(data: #nonull const [*] void, type: #nonull typeinfo) throw;
+    mtd writeBufferU8(data: #null const [*] u8, count: u64) throw;
 
     mtd writeBool(value: bool);
     mtd writeS8(value: s8);
@@ -35,7 +35,7 @@ interface IEncoder
     mtd writeU64(value: u64);
     mtd writeF32(value: f32);
     mtd writeF64(value: f64);
-    mtd writeString(value: string);
+    mtd writeString(value: #null string);
 }
 
 /*
@@ -72,7 +72,7 @@ struct(T) Encoder
 impl Encoder
 {
     // Start serialization
-    mtd start(result: *ConcatBuffer) throw
+    mtd start(result: #nonull *ConcatBuffer) throw
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
@@ -85,17 +85,23 @@ impl Encoder
     }
 
     // Write a given Swag.TypeValue.
-    mtd writeTypeValue(typeVal: TypeValue, data: const [*] void) throw
+    mtd writeTypeValue(typeVal: TypeValue, data: #null const [*] void) throw
     {
+        if !typeVal.pointedType do
+            throw SerializationError{"missing type value pointed type"}
+        if !data do
+            throw SerializationError{"missing data for type value"}
         .serializer.beginElement(typeVal)
-        .writeValue(data, typeVal.pointedType)
+        .writeValue(assume data, assume typeVal.pointedType)
         .serializer.endElement(typeVal)
     }
 
     // Write a given value with a given type.
-    mtd writeValue(data: const [*] void, dataType: typeinfo) throw
+    mtd writeValue(data: #nonull const [*] void, dataType: #null typeinfo) throw
     {
-        var type = Reflection.makeConcreteAlias(dataType)
+        if !dataType do
+            throw SerializationError{"missing data type"}
+        var type = Reflection.makeConcreteAlias(dataType orelse #typeof(u8))
         type = Reflection.makeConcreteEnum(type)
 
         .serializer.beginValue()
@@ -163,6 +169,8 @@ impl Encoder
             {
                 .writeTypeValue(typeVal, &itfType)
                 typeVal.pointedType = objType
+                if !itf.obj do
+                    throw SerializationError{"missing interface object"}
                 .writeTypeValue(typeVal, itf.obj)
             }
 
@@ -190,6 +198,7 @@ impl Encoder
             let valueType = Reflection.getStructArrayType(type)
             if valueType
             {
+                let safeValueType = assume valueType
                 let ptrArr  = cast(const *Array'u8) data
                 let treated = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
@@ -199,8 +208,8 @@ impl Encoder
                     var bufArr = cast(const [*] u8) ptrArr.buffer
                     for i in ptrArr.count
                     {
-                        .writeValue(bufArr, valueType)
-                        bufArr += valueType.sizeof
+                        .writeValue(bufArr, safeValueType)
+                        bufArr += safeValueType.sizeof
                     }
                 }
 
@@ -229,6 +238,9 @@ impl Encoder
                     continue
                 if Reflection.hasAttribute(field.pointedType, NoSerialize) do
                     continue
+                if !field.pointedType do
+                    throw SerializationError{"missing field pointed type"}
+                let fieldType = assume field.pointedType
 
                 if !itf or !itf.writeElement(field, cast(const [*] u8) data + field.offset, cast(IEncoder) dref &me)
                 {
@@ -243,7 +255,10 @@ impl Encoder
         if Reflection.isStaticArray(type)
         {
             let typeArr = cast(const *TypeInfoArray) type
-            let treated = .serializer.beginSequence(typeArr.pointedType, data, typeArr.count)
+            if !typeArr.pointedType do
+                throw SerializationError{"missing array pointed type"}
+            let elemType = typeArr.pointedType orelse #typeof(u8)
+            let treated = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()
             if treated do
                 return
@@ -251,8 +266,8 @@ impl Encoder
             var bufArr = cast(const [*] u8) data
             for typeArr.count
             {
-                .writeValue(bufArr, typeArr.pointedType)
-                bufArr += typeArr.pointedType.sizeof
+                .writeValue(bufArr, elemType)
+                bufArr += elemType.sizeof
             }
 
             return
@@ -264,7 +279,7 @@ impl Encoder
 
     // Write a full struct.
     // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
-    mtd writeAll(result: *ConcatBuffer, value: any) throw
+    mtd writeAll(result: #nonull *ConcatBuffer, value: any) throw
     {
         Debug.assert(Reflection.isStruct(@kindof(value)))
         start(me, result)
@@ -281,7 +296,7 @@ impl IEncoder for Encoder
     }
 
     // Start serialization
-    mtd impl start(result: *ConcatBuffer) throw
+    mtd impl start(result: #nonull *ConcatBuffer) throw
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
@@ -315,19 +330,26 @@ impl IEncoder for Encoder
         .serializer.endSection()
     }
 
-    mtd impl write(data: const [*] void, type: typeinfo) throw
+    mtd impl write(data: #nonull const [*] void, type: #nonull typeinfo) throw
     {
         .writeValue(data, type)
     }
 
-    mtd impl writeBufferU8(data: const [*] u8, count: u64) throw
+    mtd impl writeBufferU8(data: #null const [*] u8, count: u64) throw
     {
-        let treated = .serializer.beginSequence(u8, data, count)
+        if !data
+        {
+            if count do
+                throw SerializationError{"cannot write a null u8 buffer"}
+            return
+        }
+        let safeData = assume data
+        let treated = .serializer.beginSequence(u8, safeData, count)
         defer #noerr .serializer.endSequence()
 
         if !treated
         {
-            var ptr = data
+            var ptr = safeData
             for count
             {
                 .serializer.beginValue()
@@ -349,5 +371,5 @@ impl IEncoder for Encoder
     mtd impl writeU64(value: u64)       => .serializer.writeNative(value)
     mtd impl writeF32(value: f32)       => .serializer.writeNative(value)
     mtd impl writeF64(value: f64)       => .serializer.writeNative(value)
-    mtd impl writeString(value: string) => .serializer.writeNative(value)
+    mtd impl writeString(value: #null string) => .serializer.writeNative(value)
 }

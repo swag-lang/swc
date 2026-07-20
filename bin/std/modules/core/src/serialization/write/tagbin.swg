@@ -299,7 +299,7 @@ impl TagBin
     mtd endValue() {}
 
     // Begins a sequence and determines if elements can be written in bulk as raw data
-    mtd beginSequence(typeElem: typeinfo, data: const *void, countElem: u64)->bool
+    mtd beginSequence(typeElem: #null typeinfo, data: #null const *void, countElem: u64)->bool
     {
         .output.addNative(TagBinSignatures.Sequence)
         .output.addNative(countElem)
@@ -314,7 +314,9 @@ impl TagBin
             if raw
             {
                 .output.addNative(TagBinSignatures.Raw)
-                let bufArr = cast(const *Array'u8) data
+                if !data do
+                    return true
+                let bufArr = cast(#nonull const *Array'u8) assume data
                 .output.addBytes(@mkslice(bufArr.buffer, countElem * sizeof))
                 return true
             }
@@ -331,7 +333,9 @@ impl TagBin
             if raw
             {
                 .output.addNative(TagBinSignatures.Raw)
-                .output.addBytes(@mkslice(cast(const [*] u8) data, countElem * sizeof))
+                if !data do
+                    return true
+                .output.addBytes(@mkslice(cast(#nonull const [*] u8) assume data, countElem * sizeof))
                 return true
             }
             else

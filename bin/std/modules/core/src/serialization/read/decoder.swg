@@ -7,7 +7,7 @@ interface IDecoder
     mtd getVersion()->u32;
     mtd isTextual()->bool;
 
-    mtd start(input: const [..] u8) throw;
+    mtd start(input: #nonull const [..] u8) throw;
     mtd end() throw;
 
     mtd beginField(val: Swag.TypeValue)->bool throw;
@@ -15,8 +15,8 @@ interface IDecoder
     mtd beginSection(kind: SectionKind) throw;
     mtd endSection() throw;
 
-    mtd read(data: *void, dataType: typeinfo) throw;
-    mtd readBufferU8(count: u64)->*u8 throw;
+    mtd read(data: #nonull *void, dataType: #nonull typeinfo) throw;
+    mtd readBufferU8(count: u64)->#null *u8 throw;
 
     mtd readBool()->bool throw;
     mtd readS8()->s8 throw;
@@ -57,21 +57,27 @@ struct(T) Decoder
 
 impl Decoder
 {
-    mtd inferStructTypeForInterface(itfType: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
+    mtd inferStructTypeForInterface(itfType: #nonull typeinfo, fieldCrcs: #nonull const [..] u32)->#null typeinfo
     {
         return Reflection.inferTypeWithInterfaceFields(itfType, fieldCrcs)
     }
 
-    mtd readTypeValue(typedVal: TypeValue, data: [*] void) throw
+    mtd readTypeValue(typedVal: TypeValue, data: #null [*] void) throw
     {
+        if !typedVal.pointedType do
+            throw SerializationError{"missing type value pointed type"}
+        if !data do
+            throw SerializationError{"missing data for type value"}
         discard .serializer.beginElement(typedVal)
-        .readTypedContent(data, typedVal.pointedType)
+        .readTypedContent(assume data, assume typedVal.pointedType)
         .serializer.endElement(typedVal)
     }
 
-    mtd readTypedContent(data: [*] void, dataType: typeinfo) throw
+    mtd readTypedContent(data: #nonull [*] void, dataType: #null typeinfo) throw
     {
-        var type = Reflection.makeConcreteAlias(dataType)
+        if !dataType do
+            throw SerializationError{"missing data type"}
+        var type = Reflection.makeConcreteAlias(dataType orelse #typeof(u8))
         type = Reflection.makeConcreteEnum(type)
 
         .serializer.beginValue()
@@ -162,6 +168,8 @@ impl Decoder
 
                 typeVal.pointedType = objType
                 itf.obj             = Memory.new(objType)
+                if !itf.obj do
+                    throw SerializationError{"cannot allocate interface object"}
                 .readTypeValue(typeVal, itf.obj)
             }
 
@@ -183,17 +191,18 @@ impl Decoder
             let valueType = Reflection.getStructArrayType(type)
             if valueType
             {
+                let safeValueType = assume valueType
                 var count   = 0'u64
                 let treated = .serializer.beginSequence(type, data, &count)
                 defer #noerr .serializer.endSequence()
 
                 if !treated
                 {
-                    Reflection.clearStructArray(data, valueType)
+                    Reflection.clearStructArray(data, safeValueType)
                     while .serializer.toNextSequenceElement(&count)
                     {
-                        let bufArr = Reflection.appendValueStructArray(data, valueType)
-                        .readTypedContent(bufArr, valueType)
+                        let bufArr = Reflection.appendValueStructArray(data, safeValueType)
+                        .readTypedContent(assume bufArr, safeValueType)
                     }
                 }
 
@@ -220,6 +229,9 @@ impl Decoder
             {
                 if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
                     continue
+                if !field.pointedType do
+                    throw SerializationError{"missing field pointed type"}
+                let fieldType = assume field.pointedType
 
                 if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
                 {
@@ -232,10 +244,10 @@ impl Decoder
                     if !doIt do
                         continue
 
-                    catch .readTypedContent(fieldData, field.pointedType)
+                    catch .readTypedContent(fieldData, fieldType)
                     if @err != null and (.flags & .IgnoreStructFieldError)
                     {
-                        Reflection.reset(fieldData, field.pointedType)
+                        Reflection.reset(fieldData, fieldType)
                         continue
                     }
                     if @err != null and !(.flags & .IgnoreStructFieldError) do
@@ -254,8 +266,11 @@ impl Decoder
         if Reflection.isStaticArray(type)
         {
             let typeArr = cast(const *TypeInfoArray) type
+            if !typeArr.pointedType do
+                throw SerializationError{"missing array pointed type"}
+            let elemType = typeArr.pointedType orelse #typeof(u8)
             var count   = typeArr.count
-            let treated = .serializer.beginSequence(typeArr.pointedType, data, &count)
+            let treated = .serializer.beginSequence(elemType, data, &count)
             defer #noerr .serializer.endSequence()
             if treated do
                 return
@@ -263,8 +278,8 @@ impl Decoder
             var bufArr = cast([*] u8) data
             for count
             {
-                .readTypedContent(bufArr, typeArr.pointedType)
-                bufArr += typeArr.pointedType.sizeof
+                .readTypedContent(bufArr, elemType)
+                bufArr += elemType.sizeof
             }
 
             return
@@ -272,7 +287,7 @@ impl Decoder
     }
 
     // Start reading
-    mtd start(input: const [..] u8) throw
+    mtd start(input: #nonull const [..] u8) throw
     {
         .serializer.startRead(input)
         .serializer.beginRoot()
@@ -285,7 +300,7 @@ impl Decoder
     }
 
     // Read a full struct
-    mtd(TR) readAll(input: const [..] u8)->*TR throw
+    mtd(TR) readAll(input: #nonull const [..] u8)->#null *TR throw
     {
         Debug.assert(Reflection.isStruct(TR))
 
@@ -303,7 +318,7 @@ impl Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl start(input: const [..] u8) throw
+    mtd impl start(input: #nonull const [..] u8) throw
     {
         .serializer.startRead(input)
         .serializer.beginRoot()
@@ -348,25 +363,28 @@ impl IDecoder for Decoder
         return .serializer.isTextual()
     }
 
-    mtd impl read(data: *void, dataType: typeinfo) throw
+    mtd impl read(data: #nonull *void, dataType: #nonull typeinfo) throw
     {
         .readTypedContent(data, dataType)
     }
 
-    mtd impl readBufferU8(count: u64)->*u8 throw
+    mtd impl readBufferU8(count: u64)->#null *u8 throw
     {
         if !count do
             return null
 
-        let data = cast([*] u8) Memory.alloc(count)
+        let data = cast(#null [*] u8) Memory.alloc(count)
+        if !data do
+            return null
+        let safeData = assume data
 
         var cpt     = count
-        let treated = .serializer.beginSequence(u8, data, &cpt)
+        let treated = .serializer.beginSequence(u8, safeData, &cpt)
         defer #noerr .serializer.endSequence()
 
         if !treated
         {
-            var ptr = data
+            var ptr = safeData
             for Math.min(cpt, count)
             {
                 .serializer.beginValue()
@@ -376,7 +394,7 @@ impl IDecoder for Decoder
             }
         }
 
-        return data
+        return safeData
     }
 
     mtd impl readBool()->bool throw     => .serializer.readNative'bool()

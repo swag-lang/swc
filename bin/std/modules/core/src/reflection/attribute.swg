@@ -3,7 +3,7 @@
 using Swag
 
 #[ConstExpr]
-func sameAttributeType(left: typeinfo, right: typeinfo)->bool
+func sameAttributeType(left: #null typeinfo, right: #null typeinfo)->bool
 {
     if left == null or right == null do
         return false
@@ -16,7 +16,7 @@ func sameAttributeType(left: typeinfo, right: typeinfo)->bool
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, value: string)->#null any
+func getAttributeValue(type: #null const *Swag.TypeValue, attribute: #null typeinfo, value: #null string)->#null any
 {
     let attrib = getAttribute(type, attribute)
     if !attrib do
@@ -26,7 +26,7 @@ func getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, value: 
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func(T) getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, value: string, def: T)->T
+func(T) getAttributeValue(type: #null const *Swag.TypeValue, attribute: #null typeinfo, value: #null string, def: T)->T
 {
     let attrib = getAttribute(type, attribute)
     if !attrib do
@@ -39,7 +39,7 @@ func(T) getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, valu
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func getAttributeValue(type: typeinfo, attribute: typeinfo, value: string)->#null any
+func getAttributeValue(type: #null typeinfo, attribute: #null typeinfo, value: #null string)->#null any
 {
     let attrib = getAttribute(type, attribute)
     if !attrib do
@@ -49,8 +49,10 @@ func getAttributeValue(type: typeinfo, attribute: typeinfo, value: string)->#nul
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func getAttributeValue(attribute: const *Swag.Attribute, value: string)->#null any
+func getAttributeValue(attribute: #null const *Swag.Attribute, value: #null string)->#null any
 {
+    if !attribute do
+        return null
     for p in attribute.params where p.name == value do
         return p.value
     return null
@@ -58,9 +60,11 @@ func getAttributeValue(attribute: const *Swag.Attribute, value: string)->#null a
 
 // Returns the given associated attributes to 'value'
 #[ConstExpr]
-func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
+func getAttributes(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->Array'(#nonull const *Swag.Attribute)
 {
     var result: retval
+    if !value do
+        return result
     for &it in value.attributes where sameAttributeType(attribute, it.type) do
         result.add(it)
     return result
@@ -68,8 +72,10 @@ func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(co
 
 // Returns the given associated 'attribute' to 'value' or null
 #[ConstExpr]
-func getAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->#null const *Swag.Attribute
+func getAttribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->#null const *Swag.Attribute
 {
+    if !value do
+        return null
     for &it in value.attributes where sameAttributeType(attribute, it.type) do
         return it
     return null
@@ -77,30 +83,34 @@ func getAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->#null cons
 
 // Returns true if the given 'value' has the associated 'attribute'
 #[ConstExpr]
-func hasAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->bool
+func hasAttribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->bool
 {
     return getAttribute(value, attribute) != null
 }
 
 // Returns the given associated attributes to 'type'
 #[ConstExpr]
-func getAttributes(type: typeinfo, attribute: typeinfo)->Array'(const *Swag.Attribute)
+func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(#nonull const *Swag.Attribute)
 {
     var result: retval
-    switch type.kind
+    if !type do
+        return result
+
+    let safeType = assume type
+    switch safeType.kind
     {
     case Func:
-        let typeFunc = cast(const *TypeInfoFunc) type
+        let typeFunc = cast(#nonull const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case Struct:
-        let typeStruct = cast(const *TypeInfoStruct) type
+        let typeStruct = cast(#nonull const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
     case Enum:
-        let typeEnum = cast(const *TypeInfoEnum) type
+        let typeEnum = cast(#nonull const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
     }
@@ -110,22 +120,26 @@ func getAttributes(type: typeinfo, attribute: typeinfo)->Array'(const *Swag.Attr
 
 // Returns the given associated 'attribute' to 'type' or null
 #[ConstExpr]
-func getAttribute(type: typeinfo, attribute: typeinfo)->#null const *Swag.Attribute
+func getAttribute(type: #null typeinfo, attribute: #null typeinfo)->#null const *Swag.Attribute
 {
-    switch type.kind
+    if !type do
+        return null
+
+    let safeType = assume type
+    switch safeType.kind
     {
     case Func:
-        let typeFunc = cast(const *TypeInfoFunc) type
+        let typeFunc = cast(#nonull const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case Struct:
-        let typeStruct = cast(const *TypeInfoStruct) type
+        let typeStruct = cast(#nonull const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
     case Enum:
-        let typeEnum = cast(const *TypeInfoEnum) type
+        let typeEnum = cast(#nonull const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it
     }
@@ -135,7 +149,7 @@ func getAttribute(type: typeinfo, attribute: typeinfo)->#null const *Swag.Attrib
 
 // Returns true if the given 'type' has the associated 'attribute'
 #[ConstExpr]
-func hasAttribute(type: typeinfo, attribute: typeinfo)->bool
+func hasAttribute(type: #null typeinfo, attribute: #null typeinfo)->bool
 {
     return getAttribute(type, attribute) != null
 }

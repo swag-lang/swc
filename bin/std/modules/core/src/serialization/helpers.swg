@@ -4,15 +4,21 @@ internal func getTypeValueCrc(val: Swag.TypeValue)->u32
 {
     if val.crc do
         return val.crc
+    if val.name == null do
+        return 0
     return Hash.Crc32.compute(val.name)
 }
 
-internal func getTypeInfoCrc(type: typeinfo)->u32
+internal func getTypeInfoCrc(type: #null typeinfo)->u32
 {
+    if !type do
+        return 0
     if type.crc do
         return type.crc
     if type.fullname != null and type.fullname != "" do
         return Hash.Crc32.compute(type.fullname)
+    if type.name == null do
+        return 0
     return Hash.Crc32.compute(type.name)
 }
 

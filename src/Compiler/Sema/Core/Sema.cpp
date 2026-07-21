@@ -701,6 +701,14 @@ void Sema::pushFrame(const SemaFrame& frame)
     frames_.push_back(frame);
 }
 
+void Sema::addNullNarrowKillAllFrames(std::span<const Symbol* const> path)
+{
+    // A narrowing kill must survive the pop of every enclosing region that had proven the
+    // path non-null, so it is recorded in every live frame.
+    for (auto& frame : frames_)
+        frame.addNullNarrowFact(path, false);
+}
+
 void Sema::popFrame()
 {
     SWC_ASSERT(!frames_.empty());

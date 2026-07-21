@@ -288,6 +288,15 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
     if (node.modifierFlags.has(AstModifierFlagsE::Err) || node.modifierFlags.has(AstModifierFlagsE::NoErr))
         SWC_RESULT(SemaHelpers::requireRuntimeErrorContextDependency(sema, node.codeRef()));
 
+    // A defer body runs at scope exit, not here: narrowing facts valid at the declaration
+    // point may no longer hold when it executes.
+    if (sema.frame().hasNullNarrowFacts())
+    {
+        SemaFrame frame = sema.frame();
+        frame.clearNullNarrowFacts();
+        sema.pushFramePopOnPostNode(frame);
+    }
+
     return Result::Continue;
 }
 

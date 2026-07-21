@@ -587,6 +587,14 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         case TokenId::KwdDRef:
             return semaDRef(sema, *this, view);
         case TokenId::SymAmpersand:
+            // Taking the address of a tracked nullable path lets it be mutated through the
+            // alias: drop any active narrowing for it, then recompute the operand view so
+            // the resulting pointer targets the DECLARED storage type, not the narrowed one.
+            if (sema.frame().hasNullNarrowFacts())
+            {
+                SemaHelpers::killNullNarrowPathAfterStatement(sema, nodeExprRef, false);
+                view.recompute(sema);
+            }
             return semaTakeAddress(sema, *this, view);
         case TokenId::SymBang:
             return semaBang(sema, *this, view);

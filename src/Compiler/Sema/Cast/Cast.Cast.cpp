@@ -1762,10 +1762,28 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
                 return Result::Continue;
 
             AstNodeRef runtimeCastNodeRef = view.nodeRef();
+
+            // A flow-narrowed value meeting its own declared nullable type is not a real
+            // conversion: the node's stored type already IS the destination and the
+            // representation is identical. Materializing a cast here would change the
+            // expression's shape for downstream consumers (inline argument substitution,
+            // escape analysis) for no runtime effect.
+            bool narrowedIdentityWiden = false;
+            if (srcTypeRef != dstTypeRef && dstTypeRef.isValid())
+            {
+                const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+                if (dstType.isNullable() && sema.viewStored(view.nodeRef(), SemaNodeViewPartE::Type).typeRef() == dstTypeRef)
+                {
+                    TypeInfo nonNullType = dstType;
+                    nonNullType.removeFlag(TypeInfoFlagsE::Nullable);
+                    narrowedIdentityWiden = sema.typeMgr().addType(nonNullType) == srcTypeRef;
+                }
+            }
+
             // A contextual cast can carry flags like `UfcsArgument` even when the
             // source is already of the requested type. Re-wrapping the same node
             // in that case causes reentrant cast growth on revisits.
-            if (srcTypeRef == dstTypeRef)
+            if (srcTypeRef == dstTypeRef || narrowedIdentityWiden)
             {
                 if (castFlags.has(CastFlagsE::FromExplicitNode))
                     sema.setType(view.nodeRef(), dstTypeRef);

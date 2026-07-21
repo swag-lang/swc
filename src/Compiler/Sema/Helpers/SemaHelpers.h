@@ -26,6 +26,23 @@ namespace SemaHelpers
         SymbolFunction* calledFn = nullptr;
     };
 
+    // Nullable flow-narrowing facts implied by a boolean condition: the paths proven
+    // non-null when the condition is true, and those proven non-null when it is false
+    // (e.g. `if x != null and y` → whenTrue = {x, y}; `if !x` → whenFalse = {x}).
+    struct NullNarrowGuards
+    {
+        SmallVector2<SemaNullNarrowFact> whenTrue;
+        SmallVector2<SemaNullNarrowFact> whenFalse;
+    };
+
+    bool    extractNullNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
+    void    collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNarrowGuards& out);
+    TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
+    bool    nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef);
+    void    addNullNarrowFacts(SemaFrame& frame, std::span<const SemaNullNarrowFact> facts);
+    void    killNullNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
+    void    killNullNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);
+
     CodeGenLoweringPayload&  ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef);
     Result                   declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result                   ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef);

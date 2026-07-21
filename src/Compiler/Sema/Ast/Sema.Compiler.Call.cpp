@@ -1133,12 +1133,39 @@ namespace
         return Result::Continue;
     }
 
+    // Type introspection reflects the DECLARED type of its operand: metaprogramming that
+    // branches on `#typeof(x) == #null T` must not observe flow narrowing.
+    void unNarrowIntrospectionView(Sema& sema, AstNodeRef childRef, SemaNodeView& view)
+    {
+        if (!sema.frame().hasNullNarrowFacts() || !view.typeRef().isValid())
+            return;
+
+        SmallVector4<const Symbol*> path;
+        if (!SemaHelpers::extractNullNarrowPath(sema, childRef, path))
+            return;
+
+        TypeRef declaredTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), path.back()->typeRef());
+        if (declaredTypeRef.isInvalid())
+            declaredTypeRef = path.back()->typeRef();
+        if (!declaredTypeRef.isValid() || !sema.typeMgr().get(declaredTypeRef).isNullable())
+            return;
+
+        TypeInfo nonNullType = sema.typeMgr().get(declaredTypeRef);
+        nonNullType.removeFlag(TypeInfoFlagsE::Nullable);
+        if (sema.typeMgr().addType(nonNullType) != view.typeRef())
+            return;
+
+        view.typeRef() = declaredTypeRef;
+        view.type()    = &sema.typeMgr().get(declaredTypeRef);
+    }
+
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
         const AstNode&   child    = sema.node(childRef);
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
         SWC_ASSERT(view.typeRef().isValid());
+        unNarrowIntrospectionView(sema, childRef, view);
 
         SWC_RESULT(concretizeViewConstant(sema, view));
 
@@ -1190,7 +1217,8 @@ namespace
     {
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
-        TypeRef          typeRef  = TypeRef::invalid();
+        unNarrowIntrospectionView(sema, childRef, view);
+        TypeRef typeRef = TypeRef::invalid();
         SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
         sema.setType(sema.curNodeRef(), typeRef);

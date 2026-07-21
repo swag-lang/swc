@@ -344,6 +344,8 @@ namespace
         return storageRootVariableAt(sema, resolvedRef, forAssignment, outWholeVariable);
     }
 
+    bool storageProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& outProjection);
+
     bool storageProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& outProjection)
     {
         if (nodeRef.isInvalid())
@@ -353,6 +355,11 @@ namespace
         if (resolvedRef.isInvalid())
             return false;
 
+        return storageProjectionAt(sema, resolvedRef, outProjection);
+    }
+
+    bool storageProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& outProjection)
+    {
         const AstNode& node = sema.node(resolvedRef);
         switch (node.id())
         {
@@ -371,6 +378,17 @@ namespace
 
             case AstNodeId::AsCastExpr:
                 return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection);
+
+            case AstNodeId::CastExpr:
+            {
+                // An implicit conversion (e.g. the nullable widening synthesized when a
+                // flow-narrowed value meets a nullable target) must stay transparent for
+                // field-sensitive borrow tracking.
+                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
+                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                    return storageProjectionAt(sema, operandRef, outProjection);
+                return storageProjection(sema, operandRef, outProjection);
+            }
 
             case AstNodeId::MemberAccessExpr:
             {

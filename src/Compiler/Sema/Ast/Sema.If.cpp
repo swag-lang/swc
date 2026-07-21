@@ -323,11 +323,50 @@ namespace
 Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
+    {
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+
+        // Narrow the nullable paths proven by the condition inside the matching branch.
+        SemaHelpers::NullNarrowGuards guards;
+        SemaHelpers::collectNullNarrowGuards(sema, nodeConditionRef, guards);
+        const auto& facts = childRef == nodeIfBlockRef ? guards.whenTrue : guards.whenFalse;
+        if (!facts.empty())
+        {
+            SemaFrame frame = sema.frame();
+            SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+            sema.pushFramePopOnPostChild(frame, childRef);
+        }
+    }
 
     if (childRef == nodeIfBlockRef)
         sema.pushEscapeBranch();
 
+    return Result::Continue;
+}
+
+Result AstIfStmt::semaPostNode(Sema& sema) const
+{
+    // Guard-style early exits: when exactly one branch terminates the local flow, the
+    // statements after the `if` can only be reached through the surviving branch, so its
+    // narrowing facts hold for the remainder of the enclosing block.
+    const bool thenStops = SemaHelpers::nullNarrowStopsLocalFlow(sema, nodeIfBlockRef);
+    const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::nullNarrowStopsLocalFlow(sema, nodeElseBlockRef);
+    if (thenStops == elseStops)
+        return Result::Continue;
+
+    SemaHelpers::NullNarrowGuards guards;
+    SemaHelpers::collectNullNarrowGuards(sema, nodeConditionRef, guards);
+    const auto& facts = thenStops ? guards.whenFalse : guards.whenTrue;
+    if (facts.empty())
+        return Result::Continue;
+
+    const AstNodeRef parentRef = sema.visit().parentNodeRef();
+    if (parentRef.isInvalid())
+        return Result::Continue;
+
+    SemaFrame frame = sema.frame();
+    SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+    sema.pushFramePopOnPostNode(frame, parentRef);
     return Result::Continue;
 }
 
@@ -364,6 +403,27 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 {
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+
+    // `if let x = expr { ... }` only enters the block when `x` is truthy: a nullable
+    // binding is proven non-null inside it.
+    if (childRef == nodeIfBlockRef)
+    {
+        Symbol* conditionSym = nullptr;
+        if (singleIfVarDeclConditionSymbol(sema, nodeVarRef, conditionSym) && conditionSym && conditionSym->isVariable())
+        {
+            TypeRef bindingTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), conditionSym->typeRef());
+            if (bindingTypeRef.isInvalid())
+                bindingTypeRef = conditionSym->typeRef();
+
+            if (bindingTypeRef.isValid() && sema.typeMgr().get(bindingTypeRef).isNullable())
+            {
+                const std::array<const Symbol*, 1> path = {conditionSym};
+                SemaFrame                          frame = sema.frame();
+                frame.addNullNarrowFact({path.data(), path.size()}, true);
+                sema.pushFramePopOnPostChild(frame, childRef);
+            }
+        }
+    }
 
     return Result::Continue;
 }

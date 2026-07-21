@@ -76,6 +76,16 @@ enum class SemaFrameContextFlagsE
 };
 using SemaFrameContextFlags = EnumFlags<SemaFrameContextFlagsE>;
 
+// A flow-narrowing fact about a nullable access path (root variable followed by field
+// symbols, e.g. `p` or `me.lastBucket`). `nonNull == true` means the path is proven
+// non-null at this point of the walk; `nonNull == false` re-nullifies (kill) the path
+// and everything it prefixes (after an assignment or address-of).
+struct SemaNullNarrowFact
+{
+    SmallVector4<const Symbol*> path;
+    bool                        nonNull = true;
+};
+
 class SemaFrame
 {
 public:
@@ -187,6 +197,12 @@ public:
     void                             hideLookupSymbol(const Symbol* sym);
     bool                             isLookupSymbolHidden(const Symbol* sym) const;
 
+    void addNullNarrowFact(std::span<const Symbol* const> path, bool nonNull);
+    bool queryNullNarrowNonNull(std::span<const Symbol* const> path) const;
+    bool hasNullNarrowFacts() const { return !nullNarrowFacts_.empty(); }
+    void clearNullNarrowFacts() { nullNarrowFacts_.clear(); }
+    void killNullNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
+
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
 
@@ -224,6 +240,7 @@ private:
     SmallVector2<SymbolVariable*>       bindingVars_;
     SmallVector2<SemaIterationBorrow>   iterationBorrows_;
     SmallVector4<const Symbol*>         hiddenLookupSymbols_;
+    SmallVector2<SemaNullNarrowFact>    nullNarrowFacts_;
 };
 
 SWC_END_NAMESPACE();

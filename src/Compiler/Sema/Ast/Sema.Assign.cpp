@@ -509,6 +509,28 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaEscape::applyAssignment(sema, nodeLeftRef, nodeRightView.nodeRef()));
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
+
+    // Flow-narrowing gen/kill: assigning a nullable-declared path either re-nullifies it
+    // or proves it non-null when the right side statically is. The right side's stored
+    // (pre-cast) type is used: the implicit cast to the nullable target has already
+    // widened the live view by now.
+    if (tok.id == TokenId::SymEqual)
+    {
+        const TypeRef storedRightTypeRef = sema.viewStored(nodeRightRef, SemaNodeViewPartE::Type).typeRef();
+        TypeRef       rightTypeRef       = sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedRightTypeRef);
+        if (rightTypeRef.isInvalid())
+            rightTypeRef = storedRightTypeRef;
+
+        bool rightNonNull = false;
+        if (rightTypeRef.isValid())
+        {
+            const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
+            rightNonNull              = !rightType.isNullable() && !rightType.isNull();
+        }
+
+        SemaHelpers::killNullNarrowPathAfterStatement(sema, nodeLeftRef, rightNonNull);
+    }
+
     return Result::Continue;
 }
 

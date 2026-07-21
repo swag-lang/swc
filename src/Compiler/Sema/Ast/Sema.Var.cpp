@@ -956,6 +956,38 @@ namespace
 
         TypeRef finalTypeRef = deduceVarStorageTypeRef(explicitTypeRef, nodeInitView.typeRef());
 
+        // A local initialized from a flow-narrowed nullable value keeps the nullable
+        // declared storage type (a `var` must accept `null` again later, and baking the
+        // narrowed type into a `let` would surprise everything initialized from it); the
+        // proven non-null state is carried by a narrowing fact on the fresh symbol.
+        if (!isConst && !isParameter && explicitTypeRef.isInvalid() && finalTypeRef.isValid() && context.nodeInitRef.isValid())
+        {
+            SmallVector4<const Symbol*> initPath;
+            if (SemaHelpers::extractNullNarrowPath(sema, context.nodeInitRef, initPath))
+            {
+                TypeRef declaredInitTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), initPath.back()->typeRef());
+                if (declaredInitTypeRef.isInvalid())
+                    declaredInitTypeRef = initPath.back()->typeRef();
+
+                if (declaredInitTypeRef.isValid() && sema.typeMgr().get(declaredInitTypeRef).isNullable() && finalTypeRef != declaredInitTypeRef)
+                {
+                    TypeInfo nonNullType = sema.typeMgr().get(declaredInitTypeRef);
+                    nonNullType.removeFlag(TypeInfoFlagsE::Nullable);
+                    if (sema.typeMgr().addType(nonNullType) == finalTypeRef)
+                    {
+                        finalTypeRef = declaredInitTypeRef;
+                        for (Symbol* sym : symbols)
+                        {
+                            if (!sym)
+                                continue;
+                            const std::array<const Symbol*, 1> path = {sym};
+                            sema.frame().addNullNarrowFact({path.data(), path.size()}, true);
+                        }
+                    }
+                }
+            }
+        }
+
         SWC_RESULT(concretizeAggregateLiteralType(sema, context, explicitTypeRef, finalTypeRef, nodeInitView));
 
         SWC_RESULT(validateFinalType(sema, context, finalTypeRef, isConst, isParameter, isUsing));

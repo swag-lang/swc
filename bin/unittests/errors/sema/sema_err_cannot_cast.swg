@@ -133,3 +133,89 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16)
     // (it used to be silently swallowed by the runtime-array-fill setup).
     var values: [2] *s32 = 12 // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+// ----------------------------------------------------------------------------
+// Limits of nullable flow narrowing: outside a proven-non-null region, binding a
+// nullable pointer to a non-null parameter stays a cast error.
+
+struct NarrowLimitNode { value: s32 }
+func narrowLimitTakes(p: *NarrowLimitNode) {}
+
+#test
+{
+    // The else branch of a truthiness guard is exactly where the value IS null.
+    var p: #null *NarrowLimitNode
+    if p {}
+    else do
+        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    // A guard whose branch does not terminate proves nothing afterwards.
+    var p: #null *NarrowLimitNode
+    if p {}
+    narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    // Reassigning from a nullable source re-nullifies inside the guarded block.
+    var storage: NarrowLimitNode
+    var p: #null *NarrowLimitNode = &storage
+    if p
+    {
+        p = null
+        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+    }
+}
+
+#test
+{
+    // Taking the address of the guarded variable drops its narrowing.
+    var storage: NarrowLimitNode
+    var p: #null *NarrowLimitNode = &storage
+    if p
+    {
+        let pp = &p
+        dref pp = null
+        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+    }
+}
+
+#test
+{
+    // A loop body that reassigns the variable cannot rely on an outer guard: the
+    // reassignment flows back through the loop's back edge.
+    var storage: NarrowLimitNode
+    var p: #null *NarrowLimitNode = &storage
+    var i = 0
+    if p
+    {
+        while i < 2
+        {
+            narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+            p = null
+            i += 1
+        }
+    }
+}
+
+#test
+{
+    // A defer body runs at scope exit: narrowing at the declaration point does not hold.
+    var storage: NarrowLimitNode
+    var p: #null *NarrowLimitNode = &storage
+    if p
+    {
+        defer narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+    }
+}
+
+#test
+{
+    // `a or b` proves nothing about either operand when taken.
+    var p, q: #null *NarrowLimitNode
+    if p or q do
+        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+}

@@ -45,13 +45,17 @@ func semaTest001()
     @assert((a orelse 11) == 5)
 }
 
+// Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
+// side would make the `null` fallback uncastable (and pointless).
+func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
+
 func semaTest002()
 {
     var p: #null *s32
     var v: s32 = 10
     @assert((p orelse &v) == &v)
     p = &v
-    @assert((p orelse null) == &v)
+    @assert(nullCoalescingNullFallback(p) == &v)
 }
 
 func semaTest003()

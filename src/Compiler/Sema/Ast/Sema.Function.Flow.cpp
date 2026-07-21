@@ -426,8 +426,25 @@ namespace
 
         if (!payload.containsThrowable)
         {
-            if (tokenId == TokenId::KwdAssume && assumeNullableResultTypeRef(sema, managedChildRef).isValid())
-                return setupNullableAssume(sema, managedChildRef);
+            if (tokenId == TokenId::KwdAssume)
+            {
+                if (assumeNullableResultTypeRef(sema, managedChildRef).isValid())
+                    return setupNullableAssume(sema, managedChildRef);
+
+                // `assume` on a value that is already non-null (typically thanks to flow
+                // narrowing, or in generic code): a pass-through with no runtime check.
+                const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+                if (resolvedChildRef.isValid())
+                {
+                    const SemaNodeView childView = sema.viewType(resolvedChildRef);
+                    if (childView.typeRef().isValid())
+                    {
+                        SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
+                        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).assumeNullable = true;
+                        return Result::Continue;
+                    }
+                }
+            }
 
             return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
         }
@@ -1427,7 +1444,12 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     TypeRef     resultTypeRef  = exprView.typeRef();
     const auto* codeGenPayload = sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef());
     if (codeGenPayload && codeGenPayload->assumeNullable)
-        resultTypeRef = assumeNullableResultTypeRef(sema, nodeExprRef);
+    {
+        // A pass-through `assume` (operand already non-null) keeps the operand's type.
+        const TypeRef narrowedTypeRef = assumeNullableResultTypeRef(sema, nodeExprRef);
+        if (narrowedTypeRef.isValid())
+            resultTypeRef = narrowedTypeRef;
+    }
     sema.setType(sema.curNodeRef(), resultTypeRef);
     const bool requiresNullableAssumeRuntimeCheck = codeGenPayload && codeGenPayload->assumeNullable && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
     if (exprView.cstRef().isValid() && !requiresNullableAssumeRuntimeCheck)

@@ -197,6 +197,26 @@ namespace
     }
 }
 
+Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    // `cond ? a : b`: each branch only evaluates on the matching truth of the condition,
+    // so it inherits the condition's narrowing facts.
+    if (childRef == nodeTrueRef || childRef == nodeFalseRef)
+    {
+        SemaHelpers::NullNarrowGuards guards;
+        SemaHelpers::collectNullNarrowGuards(sema, nodeCondRef, guards);
+        const auto& facts = childRef == nodeTrueRef ? guards.whenTrue : guards.whenFalse;
+        if (!facts.empty())
+        {
+            SemaFrame frame = sema.frame();
+            SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+            sema.pushFramePopOnPostChild(frame, childRef);
+        }
+    }
+
+    return Result::Continue;
+}
+
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);

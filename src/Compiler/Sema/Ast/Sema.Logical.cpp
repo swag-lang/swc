@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -75,6 +76,28 @@ namespace
             return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
         return Result::Continue;
     }
+}
+
+Result AstLogicalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    // Short-circuit narrowing: in `a and b`, `b` only evaluates when `a` is true; in
+    // `a or b`, only when `a` is false. Apply the matching facts while visiting `b`.
+    if (childRef == nodeLeftRef)
+    {
+        SemaHelpers::NullNarrowGuards guards;
+        SemaHelpers::collectNullNarrowGuards(sema, nodeLeftRef, guards);
+
+        const TokenId op    = sema.token(codeRef()).id;
+        const auto&   facts = op == TokenId::KwdAnd ? guards.whenTrue : guards.whenFalse;
+        if (!facts.empty())
+        {
+            SemaFrame frame = sema.frame();
+            SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+            sema.pushFramePopOnPostChild(frame, nodeRightRef);
+        }
+    }
+
+    return Result::Continue;
 }
 
 Result AstLogicalExpr::semaPostNode(Sema& sema)

@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Assert.h"
 
@@ -14,6 +15,26 @@ SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
 }
 
 void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
+{
+    computeInner(sema, ref, part, mode);
+
+    // Flow-narrowing: when the current frame proves this access path non-null, expose the
+    // non-null type. Only live views narrow; stored views keep the declared type.
+    if (mode != SemaNodeViewResolveE::Stored &&
+        part.has(SemaNodeViewPartE::Type) &&
+        typeRef_.isValid() &&
+        sema.frame().hasNullNarrowFacts())
+    {
+        const TypeRef narrowedTypeRef = SemaHelpers::nullNarrowedTypeRef(sema, nodeRef_, typeRef_);
+        if (narrowedTypeRef.isValid())
+        {
+            typeRef_ = narrowedTypeRef;
+            type_    = &sema.typeMgr().get(typeRef_);
+        }
+    }
+}
+
+void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
     // Reset everything first, as compute() can be called multiple times on the same view.
     node_         = nullptr;

@@ -75,6 +75,61 @@ bool SemaFrame::isLookupSymbolHidden(const Symbol* sym) const
     return false;
 }
 
+void SemaFrame::addNullNarrowFact(std::span<const Symbol* const> path, bool nonNull)
+{
+    if (path.empty())
+        return;
+
+    auto& fact = nullNarrowFacts_.emplace_back();
+    fact.path.assign(path.begin(), path.end());
+    fact.nonNull = nonNull;
+}
+
+void SemaFrame::killNullNarrowFactsByRootId(std::span<const IdentifierRef> rootIds)
+{
+    SmallVector2<SemaNullNarrowFact> kept;
+    for (auto& fact : nullNarrowFacts_)
+    {
+        const IdentifierRef rootId = fact.path.empty() ? IdentifierRef::invalid() : fact.path.front()->idRef();
+
+        bool killed = false;
+        for (const IdentifierRef id : rootIds)
+        {
+            if (id == rootId)
+            {
+                killed = true;
+                break;
+            }
+        }
+
+        if (!killed)
+            kept.push_back(std::move(fact));
+    }
+
+    nullNarrowFacts_ = std::move(kept);
+}
+
+bool SemaFrame::queryNullNarrowNonNull(std::span<const Symbol* const> path) const
+{
+    if (path.empty())
+        return false;
+
+    // Newest fact wins: a kill pushed after a guard overrides it for the rest of its scope.
+    for (size_t factIndex = nullNarrowFacts_.size(); factIndex > 0; --factIndex)
+    {
+        const SemaNullNarrowFact& fact = nullNarrowFacts_[factIndex - 1];
+        if (fact.path.size() == path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
+            return fact.nonNull;
+
+        // A kill on a path also invalidates everything reached through it
+        // (assigning `x` re-nullifies `x.y.z`).
+        if (!fact.nonNull && fact.path.size() < path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
+            return false;
+    }
+
+    return false;
+}
+
 void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
 {
     breakable_.nodeRef = nodeRef;

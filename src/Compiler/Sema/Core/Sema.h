@@ -235,6 +235,7 @@ public:
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
+    void                       addNullNarrowKillAllFrames(std::span<const Symbol* const> path);
     SemaScope*                 curScopePtr() { return curScope_; }
     const SemaScope*           curScopePtr() const { return curScope_; }
     SemaScope&                 curScope() { return *(curScope_); }

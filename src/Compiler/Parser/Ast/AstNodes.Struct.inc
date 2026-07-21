@@ -617,6 +617,7 @@ struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 {
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -675,6 +676,7 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1447,6 +1449,7 @@ struct AstIfStmt : AstIfBaseT<AstNodeId::IfStmt>
 
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

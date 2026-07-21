@@ -29,7 +29,7 @@ func day4B()
 
         func jobEntry(jobData: #null *void)
         {
-            let oneJob = cast(*ForJob) jobData
+            let oneJob = cast(*ForJob) notnull jobData
             var index  = oneJob.start
             let offset = Jobs.getNumWorkers()
             var buffer: [16] u8

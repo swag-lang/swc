@@ -45,6 +45,7 @@ struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBloc
 {
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPreNode(Sema& sema);
+    static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     static Result codeGenPreNode(CodeGen& codeGen);
     static Result codeGenPostNode(CodeGen& codeGen);
 };

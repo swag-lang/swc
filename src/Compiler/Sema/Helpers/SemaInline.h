@@ -46,6 +46,11 @@ struct SemaInlinePayload
     AstNodeRef                  callRef            = AstNodeRef::invalid();
     AstNodeRef                  inlineRootRef      = AstNodeRef::invalid();
     TypeRef                     returnTypeRef      = TypeRef::invalid();
+    // First callee-origin statement of an ordinary-inline root. From that child on, the
+    // caller's flow-narrowing facts are dropped so the body typechecks exactly as it did
+    // standalone; the materialized argument bindings BEFORE it are caller code and keep
+    // the facts. Invalid for macros/mixins (textual expansions of caller code).
+    AstNodeRef narrowFactsBodyStartRef = AstNodeRef::invalid();
 };
 
 namespace SemaInline

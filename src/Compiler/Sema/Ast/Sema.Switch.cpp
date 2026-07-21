@@ -79,6 +79,24 @@ namespace
         const TypeRef enumTypeRef = switchEnumTypeRef(sema, switchTypeRef);
         if (enumTypeRef.isValid())
             return enumTypeRef;
+
+        // A switch case only COMPARES against the operand, it never writes through it:
+        // like relational comparisons, a non-null pointer operand can be compared with
+        // `case null` (statically always false). Case values therefore cast to the
+        // nullable form of the operand type. This also keeps compilation independent of
+        // inlining: an inlined body whose nullable parameter was materialized from a
+        // non-null argument must still accept its `case null`.
+        if (switchTypeRef.isValid())
+        {
+            const TypeInfo& switchType = sema.typeMgr().get(switchTypeRef);
+            if (switchType.isAnyPointer() && !switchType.isNullable())
+            {
+                TypeInfo widenedType = switchType;
+                widenedType.addFlag(TypeInfoFlagsE::Nullable);
+                return sema.typeMgr().addType(widenedType);
+            }
+        }
+
         return switchTypeRef;
     }
 

@@ -483,13 +483,20 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
         }
     }
 
-    TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-    if (nullableTypeRef.isInvalid())
-        nullableTypeRef = typeRef;
-
-    const TypeInfo& nullableType = sema.typeMgr().get(nullableTypeRef);
+    // Prefer stripping the Nullable flag from the type IN PLACE so the narrowed type
+    // keeps its exact structure (alias identity included); unwrap aliases only to find
+    // a flag hidden behind them.
+    TypeRef  nullableTypeRef = typeRef;
+    TypeInfo nullableType    = sema.typeMgr().get(typeRef);
     if (!nullableType.isNullable())
-        return TypeRef::invalid();
+    {
+        nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (nullableTypeRef.isInvalid())
+            return TypeRef::invalid();
+        nullableType = sema.typeMgr().get(nullableTypeRef);
+        if (!nullableType.isNullable())
+            return TypeRef::invalid();
+    }
 
     SmallVector4<const Symbol*> path;
     if (!extractNullNarrowPath(sema, nodeRef, path))

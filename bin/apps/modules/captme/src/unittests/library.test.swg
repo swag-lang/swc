@@ -297,3 +297,58 @@ using Swag, Core, File
 
     f.shutdown()
 }
+
+// Filling the date sidebar from a fresh (empty) list must open the year/month/day
+// group lines correctly: the group trackers start null and the FIRST file already
+// flushes/opens groups, so an uninitialized tracker would be read before any
+// assignment (this crashed in release when showing the library view).
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let libWnd = notnull f.main.libWnd
+
+    let oldLibraryLoaded = g_Library.loaded
+    defer
+    {
+        g_Library.files.clear()
+        g_Library.loaded = oldLibraryLoaded
+    }
+
+    g_Library.loaded = true
+    g_Library.files.clear()
+
+    var fi: File.FileInfo
+    fi.fullname               = "libfill_a.captme"
+    fi.lastWriteTime.year     = 2024
+    fi.lastWriteTime.month    = 5
+    fi.lastWriteTime.day      = 11
+    g_Library.files.add(fi)
+    fi.fullname               = "libfill_b.captme"
+    fi.lastWriteTime.day      = 10
+    g_Library.files.add(fi)
+    fi.fullname               = "libfill_c.captme"
+    fi.lastWriteTime.year     = 2023
+    fi.lastWriteTime.month    = 1
+    fi.lastWriteTime.day      = 2
+    g_Library.files.add(fi)
+
+    @assert(libWnd.listCtrl.getLineCount() == 0)
+    libWnd.fill()
+
+    // Root lines only: "All Captures" + the 2024 and 2023 year groups (months and
+    // days are children of their year/month lines).
+    @assert(libWnd.listCtrl.getLineCount() == 3)
+    @assert(libWnd.view.items.count == 3)
+
+    // A second fill with lines already present must keep the sidebar as is.
+    libWnd.fill()
+    @assert(libWnd.listCtrl.getLineCount() == 3)
+
+    libWnd.view.thread.safeForceEnd()
+    libWnd.view.thread.wait()
+
+    f.shutdown()
+}

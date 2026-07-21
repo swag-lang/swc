@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
@@ -1461,7 +1462,24 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     sema.setType(sema.curNodeRef(), resultTypeRef);
     const bool requiresNullableAssumeRuntimeCheck = codeGenPayload && codeGenPayload->assumeNullable && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
     if (exprView.cstRef().isValid() && !requiresNullableAssumeRuntimeCheck)
-        sema.setConstant(sema.curNodeRef(), exprView.cstRef());
+    {
+        // The node's stored payload holds EITHER a type or a constant, and downstream
+        // views derive the node's type from a stored constant: a nullable-unwrap must
+        // propagate the operand's constant RETYPED to the unwrapped type, or the
+        // `notnull` narrowing would silently revert to the operand's nullable type.
+        ConstantRef resultCstRef = exprView.cstRef();
+        if (codeGenPayload && codeGenPayload->assumeNullable && resultTypeRef.isValid())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(resultCstRef);
+            if (cst.typeRef().isValid() && cst.typeRef() != resultTypeRef)
+            {
+                ConstantValue narrowedCst = cst;
+                narrowedCst.setTypeRef(resultTypeRef);
+                resultCstRef = sema.cstMgr().addConstant(sema.ctx(), narrowedCst);
+            }
+        }
+        sema.setConstant(sema.curNodeRef(), resultCstRef);
+    }
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
     // A nullable `assume` never synthesizes a default result (it checks for null and

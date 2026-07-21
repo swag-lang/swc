@@ -271,6 +271,27 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
+{
+    // From the first callee-origin statement of an ordinary-inline root, drop the
+    // caller's flow-narrowing facts: the body typechecked standalone and its meaning
+    // must not depend on the call site (Auto inlining runs in release only). The
+    // materialized argument bindings before that statement are caller code and were
+    // sema'd with the facts still live.
+    const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+    if (inlinePayload &&
+        inlinePayload->inlineRootRef == sema.curNodeRef() &&
+        inlinePayload->narrowFactsBodyStartRef == childRef &&
+        sema.frame().hasNullNarrowFacts())
+    {
+        SemaFrame frame = sema.frame();
+        frame.clearNullNarrowFacts();
+        sema.pushFramePopOnPostNode(frame, sema.curNodeRef());
+    }
+
+    return Result::Continue;
+}
+
 Result AstDeferStmt::semaPreNode(Sema& sema)
 {
     const auto&                node    = sema.curNode().cast<AstDeferStmt>();

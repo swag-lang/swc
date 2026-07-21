@@ -1569,7 +1569,31 @@ namespace
         return Result::Continue;
     }
 
-    Result materializeInlineBindings(Sema& sema, const SymbolFunction& fn, const Ast& sourceAst, const AstFunctionDecl& decl, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
+    // An argument expression whose typing depends on a live flow-narrowing fact (a
+    // narrowed nullable local anywhere in its subtree). Substituted into the callee body
+    // it would be re-sema'd with the facts dropped and lose the narrowing it had at the
+    // call site, so such a binding must materialize into a prefix `let` instead.
+    bool inlineBindingDependsOnNarrowFact(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        SmallVector4<const Symbol*> path;
+        if (SemaHelpers::extractNullNarrowPath(sema, nodeRef, path) && sema.frame().queryNullNarrowNonNull({path.data(), path.size()}))
+            return true;
+
+        SmallVector<AstNodeRef> children;
+        sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingDependsOnNarrowFact(sema, childRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    Result materializeInlineBindings(Sema& sema, const SymbolFunction& fn, const Ast& sourceAst, const AstFunctionDecl& decl, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements, bool isOrdinaryInline)
     {
         if (ioBindings.empty())
             return Result::Continue;
@@ -1630,13 +1654,20 @@ namespace
             const bool forceRepeatedLValueMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsRepeatedLValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
             const bool bindingNeedsMutableMaterialization = inlineBindingNeedsMutableMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceBindingMaterialization        = forceExplicitMaterialization ||
+            const bool forceNarrowFactMaterialization     = isOrdinaryInline &&
+                                                        !bindingIsCaptured &&
+                                                        !paramType.isCodeBlock() &&
+                                                        !paramType.isAnyVariadic() &&
+                                                        !paramType.isReference() &&
+                                                        inlineBindingDependsOnNarrowFact(sema, binding.exprRef);
+            const bool forceBindingMaterialization = forceExplicitMaterialization ||
                                                      forceRuntimeSafetyMaterialization ||
                                                      forceVariadicMaterialization ||
                                                      forceIndexOrForeachMaterialization ||
                                                      forceAddressMaterialization ||
                                                      forceRepeatedRValueMaterialization ||
-                                                     forceRepeatedLValueMaterialization;
+                                                     forceRepeatedLValueMaterialization ||
+                                                     forceNarrowFactMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -2455,7 +2486,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Inline functions, mixins, and macros all substitute runtime bindings into the caller body.
     // Closure captures and non-addressable aggregate uses still need concrete locals before
     // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.
-    SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
+    SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings, isOrdinaryInline));
     SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     // An auto-selected inline body resolves in the callee's context: pin its already-resolved
     // identifier symbols so a same-Ast inline does not re-resolve the callee's private
@@ -2485,6 +2516,13 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->resultVar           = resultVar;
     inlinePayload->returnTypeRef       = returnTypeRef;
     inlinePayload->aliasIdentifiers    = aliasIdentifiers;
+    if (isOrdinaryInline)
+    {
+        SmallVector<AstNodeRef> rootChildren;
+        sema.node(inlineRootRef).collectChildrenFromAst(rootChildren, sema.ast());
+        if (materializedBindings.size() < rootChildren.size())
+            inlinePayload->narrowFactsBodyStartRef = rootChildren[materializedBindings.size()];
+    }
     if (!declaredCodeParams.empty())
         inlinePayload->codeParamSourceAst = declAst;
     for (uint32_t paramIndex = 0; paramIndex < declaredCodeParams.size(); ++paramIndex)
@@ -2514,6 +2552,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     frame.setInlineContextRootRef(inlineRootRef);
     if (isOrdinaryInline)
     {
+        // Caller flow-narrowing facts stay live inside an ordinary-inline expansion:
+        // substituted argument expressions are caller code and must keep the narrowing
+        // they had at the call site (an auto-inlined call must typecheck exactly like
+        // the non-inlined call). Callee-origin references use the callee's own symbols,
+        // which never match caller fact paths, so the body itself is not narrowed.
+
         const auto callerSafetyOverrides = frame.currentAttributes().runtimeSafetyOverrides;
         frame.currentAttributes()        = fn.attributes();
         // Inlining is transparent to the call site's disabled safety guards: a guard turned OFF at

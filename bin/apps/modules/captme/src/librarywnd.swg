@@ -243,10 +243,10 @@ impl LibraryWnd
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
-        var lastLine: *ListLine = undefined
-        var lastLineYear: *ListLine = undefined
-        var lastLineMonth: *ListLine = undefined
-        var lastLineDay: *ListLine = undefined
+        var lastLine: #null *ListLine
+        var lastLineYear: #null *ListLine
+        var lastLineMonth: #null *ListLine
+        var lastLineDay: #null *ListLine
 
         let icon1 = Icon.from(&.main.icons24, 3)
 

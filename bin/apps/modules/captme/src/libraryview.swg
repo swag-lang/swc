@@ -401,7 +401,7 @@ impl LibraryView
 
         var nitems: Array'*LibraryItem
 
-        var toCompare: *LibraryItem = undefined
+        var toCompare: #null *LibraryItem
         while !remaining.isEmpty()
         {
             // A capture with no Haar features (no preview) can't anchor a similarity

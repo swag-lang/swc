@@ -500,6 +500,8 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.setCurrentInlinePayload(nullptr);
     frame.setInlineContextRootRef(AstNodeRef::invalid());
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+    // A nested function body must not inherit the enclosing body's flow-narrowing facts.
+    frame.clearNullNarrowFacts();
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -531,6 +533,8 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     frame.setCurrentInlinePayload(nullptr);
     frame.setInlineContextRootRef(AstNodeRef::invalid());
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+    // A nested function body must not inherit the enclosing body's flow-narrowing facts.
+    frame.clearNullNarrowFacts();
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -562,6 +566,8 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
     frame.setCurrentInlinePayload(nullptr);
     frame.setInlineContextRootRef(AstNodeRef::invalid());
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+    // A nested function body must not inherit the enclosing body's flow-narrowing facts.
+    frame.clearNullNarrowFacts();
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }

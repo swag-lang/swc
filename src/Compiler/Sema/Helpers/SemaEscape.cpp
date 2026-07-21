@@ -328,37 +328,42 @@ namespace
         return typeRef.isValid() && sema.typeMgr().get(typeRef).isArray();
     }
 
-    const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable);
+    // Walkers below mix raw operand edges with substitute hops; a reentrant cast chain
+    // (an argument re-wrapped across sema revisits) can make that graph cyclic, so every
+    // recursive walk carries a depth budget and bails out conservatively when exceeded.
+    constexpr uint32_t K_STORAGE_WALK_BUDGET = 64;
+
+    const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable, uint32_t depth);
     bool                  typeHasBorrowableStorage(Sema& sema, TypeRef typeRef);
 
-    const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef, bool forAssignment, bool& outWholeVariable)
+    const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef, bool forAssignment, bool& outWholeVariable, uint32_t depth = 0)
     {
         outWholeVariable = false;
-        if (nodeRef.isInvalid())
+        if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return nullptr;
 
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isInvalid())
             return nullptr;
 
-        return storageRootVariableAt(sema, resolvedRef, forAssignment, outWholeVariable);
+        return storageRootVariableAt(sema, resolvedRef, forAssignment, outWholeVariable, depth + 1);
     }
 
-    bool storageProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& outProjection);
+    bool storageProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& outProjection, uint32_t depth);
 
-    bool storageProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& outProjection)
+    bool storageProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& outProjection, uint32_t depth = 0)
     {
-        if (nodeRef.isInvalid())
+        if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return false;
 
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isInvalid())
             return false;
 
-        return storageProjectionAt(sema, resolvedRef, outProjection);
+        return storageProjectionAt(sema, resolvedRef, outProjection, depth + 1);
     }
 
-    bool storageProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& outProjection)
+    bool storageProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& outProjection, uint32_t depth)
     {
         const AstNode& node = sema.node(resolvedRef);
         switch (node.id())
@@ -368,16 +373,16 @@ namespace
                 return outProjection.root != nullptr;
 
             case AstNodeId::ParenExpr:
-                return storageProjection(sema, node.cast<AstParenExpr>().nodeExprRef, outProjection);
+                return storageProjection(sema, node.cast<AstParenExpr>().nodeExprRef, outProjection, depth + 1);
 
             case AstNodeId::InitializerExpr:
-                return storageProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, outProjection);
+                return storageProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, outProjection, depth + 1);
 
             case AstNodeId::AutoCastExpr:
-                return storageProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, outProjection);
+                return storageProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, outProjection, depth + 1);
 
             case AstNodeId::AsCastExpr:
-                return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection);
+                return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection, depth + 1);
 
             case AstNodeId::CastExpr:
             {
@@ -386,13 +391,13 @@ namespace
                 // field-sensitive borrow tracking.
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
-                    return storageProjectionAt(sema, operandRef, outProjection);
-                return storageProjection(sema, operandRef, outProjection);
+                    return storageProjectionAt(sema, operandRef, outProjection, depth + 1);
+                return storageProjection(sema, operandRef, outProjection, depth + 1);
             }
 
             case AstNodeId::MemberAccessExpr:
             {
-                if (!storageProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, outProjection))
+                if (!storageProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, outProjection, depth + 1))
                     return false;
                 const SymbolVariable* field = identifierVariable(sema, resolvedRef);
                 if (!field || field == outProjection.root)
@@ -404,7 +409,7 @@ namespace
             case AstNodeId::IndexExpr:
             {
                 const auto& index = node.cast<AstIndexExpr>();
-                if (!storageProjection(sema, index.nodeExprRef, outProjection))
+                if (!storageProjection(sema, index.nodeExprRef, outProjection, depth + 1))
                     return false;
 
                 const SemaNodeView indexView = sema.viewConstant(index.nodeArgRef);
@@ -420,7 +425,7 @@ namespace
         }
     }
 
-    const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable)
+    const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable, uint32_t depth)
     {
         outWholeVariable = false;
 
@@ -432,23 +437,23 @@ namespace
                 return identifierVariable(sema, resolvedRef);
 
             case AstNodeId::ParenExpr:
-                return storageRootVariable(sema, node.cast<AstParenExpr>().nodeExprRef, forAssignment, outWholeVariable);
+                return storageRootVariable(sema, node.cast<AstParenExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
             case AstNodeId::InitializerExpr:
-                return storageRootVariable(sema, node.cast<AstInitializerExpr>().nodeExprRef, forAssignment, outWholeVariable);
+                return storageRootVariable(sema, node.cast<AstInitializerExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
             case AstNodeId::AutoCastExpr:
-                return storageRootVariable(sema, node.cast<AstAutoCastExpr>().nodeExprRef, forAssignment, outWholeVariable);
+                return storageRootVariable(sema, node.cast<AstAutoCastExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
             case AstNodeId::AsCastExpr:
-                return storageRootVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, outWholeVariable);
+                return storageRootVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
             case AstNodeId::CastExpr:
             {
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
-                    return storageRootVariableAt(sema, operandRef, forAssignment, outWholeVariable);
-                return storageRootVariable(sema, operandRef, forAssignment, outWholeVariable);
+                    return storageRootVariableAt(sema, operandRef, forAssignment, outWholeVariable, depth + 1);
+                return storageRootVariable(sema, operandRef, forAssignment, outWholeVariable, depth + 1);
             }
 
             case AstNodeId::MemberAccessExpr:
@@ -460,7 +465,7 @@ namespace
                     // Accessing storage through a pointer that itself borrows a known local
                     // stays inside that local's storage: keep tracking on the borrowed root.
                     bool leftWholeVariable = false;
-                    if (const SymbolVariable* leftVar = storageRootVariable(sema, leftRef, forAssignment, leftWholeVariable); leftVar && leftWholeVariable)
+                    if (const SymbolVariable* leftVar = storageRootVariable(sema, leftRef, forAssignment, leftWholeVariable, depth + 1); leftVar && leftWholeVariable)
                     {
                         const SemaEscapeInfo* leftInfo = sema.variableEscapeInfo(*leftVar);
                         if (leftInfo && leftInfo->isLocalBorrow())
@@ -489,7 +494,7 @@ namespace
                 // A member access never designates the WHOLE variable, whatever the
                 // recursion reports for the left side.
                 bool                  leftWhole = false;
-                const SymbolVariable* leftRoot  = storageRootVariable(sema, leftRef, forAssignment, leftWhole);
+                const SymbolVariable* leftRoot  = storageRootVariable(sema, leftRef, forAssignment, leftWhole, depth + 1);
                 outWholeVariable                = false;
                 return leftRoot;
             }
@@ -500,7 +505,7 @@ namespace
                 if (isArrayStorageExpr(sema, index.nodeExprRef))
                 {
                     bool                  indexedWhole = false;
-                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
+                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole, depth + 1);
                     outWholeVariable                   = false;
                     return indexedRoot;
                 }
@@ -514,7 +519,7 @@ namespace
                 if (isArrayStorageExpr(sema, index.nodeExprRef))
                 {
                     bool                  indexedWhole = false;
-                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole);
+                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole, depth + 1);
                     outWholeVariable                   = false;
                     return indexedRoot;
                 }
@@ -532,7 +537,7 @@ namespace
                 if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
                 {
                     bool operandWholeVariable = false;
-                    if (const SymbolVariable* operandVar = storageRootVariable(sema, unary.nodeExprRef, forAssignment, operandWholeVariable); operandVar && operandWholeVariable)
+                    if (const SymbolVariable* operandVar = storageRootVariable(sema, unary.nodeExprRef, forAssignment, operandWholeVariable, depth + 1); operandVar && operandWholeVariable)
                     {
                         const SemaEscapeInfo* operandInfo = sema.variableEscapeInfo(*operandVar);
                         if (operandInfo && operandInfo->isLocalBorrow())
@@ -558,7 +563,7 @@ namespace
                     return nullptr;
                 }
 
-                return forAssignment ? nullptr : storageRootVariable(sema, unary.nodeExprRef, forAssignment, outWholeVariable);
+                return forAssignment ? nullptr : storageRootVariable(sema, unary.nodeExprRef, forAssignment, outWholeVariable, depth + 1);
             }
 
             default:
@@ -2178,20 +2183,20 @@ namespace
     // 'storageProjection' - it sees through the implicit cast that a mutable-receiver
     // method inserts ('holder.other.add' wraps 'holder.other' in a receiver cast), so the
     // field path survives. 'ok' is false when no whole-storage path applies.
-    void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok);
+    void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok, uint32_t depth);
 
-    void iterationProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& out, bool& ok)
+    void iterationProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& out, bool& ok, uint32_t depth = 0)
     {
         ok = false;
-        if (nodeRef.isInvalid())
+        if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return;
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isInvalid())
             return;
-        iterationProjectionAt(sema, resolvedRef, out, ok);
+        iterationProjectionAt(sema, resolvedRef, out, ok, depth + 1);
     }
 
-    void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok)
+    void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok, uint32_t depth)
     {
         const AstNode& node = sema.node(resolvedRef);
         switch (node.id())
@@ -2202,31 +2207,31 @@ namespace
                 return;
 
             case AstNodeId::ParenExpr:
-                iterationProjection(sema, node.cast<AstParenExpr>().nodeExprRef, out, ok);
+                iterationProjection(sema, node.cast<AstParenExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
             case AstNodeId::InitializerExpr:
-                iterationProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, out, ok);
+                iterationProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
             case AstNodeId::AutoCastExpr:
-                iterationProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, out, ok);
+                iterationProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
             case AstNodeId::AsCastExpr:
-                iterationProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, out, ok);
+                iterationProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
 
             case AstNodeId::CastExpr:
             {
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
-                    iterationProjectionAt(sema, operandRef, out, ok);
+                    iterationProjectionAt(sema, operandRef, out, ok, depth + 1);
                 else
-                    iterationProjection(sema, operandRef, out, ok);
+                    iterationProjection(sema, operandRef, out, ok, depth + 1);
                 return;
             }
 
             case AstNodeId::MemberAccessExpr:
             {
-                iterationProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, out, ok);
+                iterationProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, out, ok, depth + 1);
                 if (!ok)
                     return;
                 const SymbolVariable* field = identifierVariable(sema, resolvedRef);
@@ -2242,7 +2247,7 @@ namespace
             case AstNodeId::IndexExpr:
             {
                 const auto& index = node.cast<AstIndexExpr>();
-                iterationProjection(sema, index.nodeExprRef, out, ok);
+                iterationProjection(sema, index.nodeExprRef, out, ok, depth + 1);
                 if (!ok)
                     return;
                 const SemaNodeView indexView = sema.viewConstant(index.nodeArgRef);

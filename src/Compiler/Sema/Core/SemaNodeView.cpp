@@ -30,6 +30,15 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
         {
             typeRef_ = narrowedTypeRef;
             type_    = &sema.typeMgr().get(typeRef_);
+
+            // A propagated null CONSTANT belongs to the un-taken path: inside the guarded
+            // region the value is proven non-null, so the constant must not flow further
+            // (e.g. an inlined `return null` folded into the guarded variable).
+            if (part.has(SemaNodeViewPartE::Constant) && cstRef_.isValid() && cst_ && cst_->isNull())
+            {
+                cstRef_ = ConstantRef::invalid();
+                cst_    = nullptr;
+            }
         }
     }
 }

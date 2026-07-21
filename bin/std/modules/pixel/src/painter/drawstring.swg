@@ -409,7 +409,7 @@ impl Painter
         var result: retval
         if !font do
             return result
-        let localFont = assume font
+        let localFont = font
         let desc = localFont.getGlyphDesc(c)
         let sc   = localFont.scale()
         result.x = desc.advanceX * sc

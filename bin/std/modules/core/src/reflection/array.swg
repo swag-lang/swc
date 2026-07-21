@@ -8,7 +8,7 @@ func isStructArray(t: #null typeinfo)->bool
     if !t or !isStruct(t) do
         return false
 
-    let tt           = cast(const *TypeInfoStruct) assume t
+    let tt           = cast(const *TypeInfoStruct) t
     let arrayGeneric = (cast(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
     if !tt.fromGeneric or !arrayGeneric do
         return false
@@ -32,8 +32,8 @@ func clearStructArray(arrayPtr: #null *void, valueType: #null typeinfo)
     if !arrayPtr or !valueType do
         return
 
-    let arr    = cast(*Array'u8) assume arrayPtr
-    let nnType = assume valueType
+    let arr    = cast(*Array'u8) arrayPtr
+    let nnType = valueType
 
     if hasDrop(nnType)
     {
@@ -55,8 +55,8 @@ func removeValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, in
         return
 
     // We will treat the array as a buffer of bytes, just to be able to access the fields
-    let arr       = cast(*Array'u8) assume arrayPtr
-    let nnType    = assume valueType
+    let arr       = cast(*Array'u8) arrayPtr
+    let nnType    = valueType
     let sizeValue = nnType.sizeof
 
     Debug.assert(index < arr.count)
@@ -87,9 +87,9 @@ func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB:
     if !basePtr or !valueType or indexA == indexB do
         return
 
-    let nnType = assume valueType
+    let nnType = valueType
     let size = nnType.sizeof
-    let base = cast([*] u8) assume basePtr
+    let base = cast([*] u8) basePtr
     let pa   = base + indexA * size
     let pb   = base + indexB * size
 
@@ -121,7 +121,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
         return null
     }
 
-    let nnType = assume valueType
+    let nnType = valueType
     if defaultInitSlot and !Memory.canDefaultInit(nnType)
     {
         @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
@@ -129,7 +129,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
     }
 
     // We will treat the array as a buffer of bytes, just to be able to access the fields
-    let arr       = cast(*Array'u8) assume arrayPtr
+    let arr       = cast(*Array'u8) arrayPtr
     let sizeValue = nnType.sizeof
 
     // If we need to reallocate the buffer, we will also have to deal with
@@ -145,7 +145,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
         let newBuffer   = cast(#null [*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
         if !newBuffer do
             return null
-        let safeNewBuffer = assume newBuffer
+        let safeNewBuffer = newBuffer
         Memory.clear(safeNewBuffer, newCapacity * sizeValue)
 
         // Move old values to the new buffer

@@ -231,7 +231,7 @@ impl CaptureClipboardForms
         {
             let form = item.toForm(capture)
             if form do
-                result.add(assume form)
+                result.add(form)
         }
 
         return result

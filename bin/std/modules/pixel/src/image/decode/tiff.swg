@@ -112,7 +112,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
     else
     {
         p = base + e.valoff
-        checkBuffer(cast(const [*] u8) (assume p), last, totalBytes)
+        checkBuffer(cast(const [*] u8) (p), last, totalBytes)
     }
 
     for i in e.count
@@ -137,7 +137,7 @@ func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValu
     let e = ifd.find(tag)
     if !e do
         return defValue
-    let values = try readValues(base, last, le, cast(*Entry) (assume e))
+    let values = try readValues(base, last, le, cast(*Entry) (e))
     if !values.count do
         return defValue
     return values[0]
@@ -255,7 +255,7 @@ public impl IImageDecoder for Decoder
         let bpsEntry = ifd.find(TAG_BITS_PER_SAMPLE)
         if bpsEntry
         {
-            let bps = try readValues(base, last, le, cast(*Entry) (assume bpsEntry))
+            let bps = try readValues(base, last, le, cast(*Entry) (bpsEntry))
             for b in bps
             {
                 if b != 8 do
@@ -295,7 +295,7 @@ public impl IImageDecoder for Decoder
             let cmEntry = ifd.find(TAG_COLOR_MAP)
             if !cmEntry do
                 throw InvalidFormatError{"missing color map"}
-            let cm = try readValues(base, last, le, cast(*Entry) (assume cmEntry))
+            let cm = try readValues(base, last, le, cast(*Entry) (cmEntry))
             let entries = cm.count / 3
             for i in entries
             {
@@ -311,8 +311,8 @@ public impl IImageDecoder for Decoder
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
         if !stripOffEntry or !stripCntEntry do
             throw InvalidFormatError{"missing strip data"}
-        let stripOffsets = try readValues(base, last, le, cast(*Entry) (assume stripOffEntry))
-        let stripCounts  = try readValues(base, last, le, cast(*Entry) (assume stripCntEntry))
+        let stripOffsets = try readValues(base, last, le, cast(*Entry) (stripOffEntry))
+        let stripCounts  = try readValues(base, last, le, cast(*Entry) (stripCntEntry))
         if stripOffsets.count != stripCounts.count or !stripOffsets.count do
             throw InvalidFormatError{"invalid strip data"}
 

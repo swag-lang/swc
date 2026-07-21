@@ -364,7 +364,7 @@ namespace ResizeTools
         {
             if !data do
                 return
-            let params = cast(*#decltype(f)) (assume data)
+            let params = cast(*#decltype(f)) (data)
             scaleCol(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
         }
     }
@@ -380,7 +380,7 @@ namespace ResizeTools
         {
             if !data do
                 return
-            let params = cast(*#decltype(f)) (assume data)
+            let params = cast(*#decltype(f)) (data)
             scaleRow(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
         }
     }

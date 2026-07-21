@@ -56,7 +56,7 @@ internal func defaultInit(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = assume dst
+    let data = dst
 
     let concreteType = concreteRuntimeType(type)
     if concreteType.kind == TypeInfoKind.Array
@@ -106,7 +106,7 @@ internal func dropType(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = assume dst
+    let data = dst
 
     if !(type.flags & TypeInfoFlags.HasDrop) do
         return
@@ -154,7 +154,7 @@ internal func postCopyType(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = assume dst
+    let data = dst
 
     if !(type.flags & TypeInfoFlags.HasPostCopy) do
         return
@@ -202,7 +202,7 @@ internal func postMoveType(dst: #null *void, type: typeinfo)
 {
     if !dst do
         return
-    let data = assume dst
+    let data = dst
 
     if !(type.flags & TypeInfoFlags.HasPostMove) do
         return

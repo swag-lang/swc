@@ -39,7 +39,7 @@ impl IWnd for EmbInfoCtrl
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         if .timer do
-            .getApp().deleteTimer(assume .timer)
+            .getApp().deleteTimer(.timer)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

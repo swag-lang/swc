@@ -391,7 +391,7 @@ impl LibraryWnd
             let parent = Path.getDirectoryName(p)
             if parent == null or @countof(parent) == 0 or parent == p do
                 break
-            p = assume parent
+            p = parent
         }
 
         // Add levels root-first.
@@ -549,7 +549,7 @@ impl LibraryWnd
         }
 
         // Image Size
-        with res.zoomBtn = IconButton.create(assume res.editZoomBar, res.getTheme().getIcon24(.Search), {0, 0, 120, 32})
+        with res.zoomBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Search), {0, 0, 120, 32})
         {
             .name.set("Size")
             .iconBtnFlags.add(.Center)
@@ -570,7 +570,7 @@ impl LibraryWnd
         }
 
         // Sort
-        with res.sortBtn = IconButton.create(assume res.editZoomBar, res.getTheme().getIcon24(.Sort), {0, 0, 120, 32})
+        with res.sortBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Sort), {0, 0, 120, 32})
         {
             .name.set("Sort")
             .iconBtnFlags.add(.Center)
@@ -593,7 +593,7 @@ impl LibraryWnd
         }
 
         // Filter
-        with res.filterBtn = IconButton.create(assume res.editZoomBar, res.getTheme().getIcon24(.Filter), {0, 0, 120, 32})
+        with res.filterBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Filter), {0, 0, 120, 32})
         {
             .name.set("Filter")
             .iconBtnFlags.add(.Center)
@@ -616,7 +616,7 @@ impl LibraryWnd
         }
 
         // Recycle bin
-        with res.trashBtn = IconButton.create(assume res.editZoomBar, res.getTheme().getIcon24(.Remove), {0, 0, 120, 32})
+        with res.trashBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Remove), {0, 0, 120, 32})
         {
             .name.set("Trash")
             .iconBtnFlags.add(.Center)
@@ -637,7 +637,7 @@ impl LibraryWnd
         }
 
         // Live search
-        with res.searchEdit = EditBox.create(assume res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .AutoLoseFocus)
+        with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .AutoLoseFocus)
         {
             .setForm(.Round)
             .setNote("Search")

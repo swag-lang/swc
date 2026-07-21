@@ -276,7 +276,7 @@ impl QuickWnd
         let res = menu.doModal(pos, autoDestroy: true)
         if res == "0" and btn
         {
-            let qbtn = cast(*QuickButton) assume btn
+            let qbtn = cast(*QuickButton) btn
             .currentStyle.remove(assume qbtn.formItf)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
@@ -293,7 +293,7 @@ impl QuickWnd
             .layout         = WrapLayoutCtrl.create(quick)
             .layout.padding = 6
             .layout.spacing = 6
-            .setView(assume quick.layout)
+            .setView(quick.layout)
 
             .main = main
         }

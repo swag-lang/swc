@@ -23,10 +23,10 @@ var g_Functions: Array'OneFunc
     if msg.type.kind != TypeInfoKind.Func do
         return
 
-    let typeFunc = cast(const *TypeInfoFunc) assume msg.type
+    let typeFunc = cast(const *TypeInfoFunc) msg.type
     if !Reflection.hasAttribute(typeFunc, Extension) do
         return
-    g_Functions.add({type: typeFunc, name: cast(string) (assume msg.name)})
+    g_Functions.add({type: typeFunc, name: cast(string) (msg.name)})
 }
 
 #message(CompilerMsgMask.PassAfterSemantic)

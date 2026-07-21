@@ -974,7 +974,7 @@ impl Painter
         if !tgt do
             return
         let cmd = .newCommand(.ReleaseRenderTarget)
-        cmd.renderTgt.tgt = assume tgt
+        cmd.renderTgt.tgt = tgt
     }
 
     // Set the current shader

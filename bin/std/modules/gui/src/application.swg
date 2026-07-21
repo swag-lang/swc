@@ -75,7 +75,7 @@ private impl Application
         var scan = event.target.getOwner()
         while scan
         {
-            if scan.hookOnChildEvent and scan.hookOnChildEvent(assume scan, evt) do
+            if scan.hookOnChildEvent and scan.hookOnChildEvent(scan, evt) do
                 return
             scan = scan.getOwner()
         }
@@ -103,7 +103,7 @@ private impl Application
         var scan = wnd
         while scan
         {
-            let cur = assume scan
+            let cur = scan
             if cur.isEnabled() do
                 break
             scan = cur.parent
@@ -161,7 +161,7 @@ private impl Application
                 .sendEventPrivate(&evt, .mouseEnterWnd)
 
                 if targetWnd.toolTip.length do
-                    ToolTip.show(assume targetWnd, evt.surfacePos, targetWnd.toolTip)
+                    ToolTip.show(targetWnd, evt.surfacePos, targetWnd.toolTip)
             }
 
             // Leave
@@ -172,7 +172,7 @@ private impl Application
                 evt.target     = .mouseEnterWnd
                 .sendEventPrivate(&evt, .mouseCaptureWnd)
 
-                ToolTip.hide(assume .mouseEnterWnd)
+                ToolTip.hide(.mouseEnterWnd)
             }
 
             .mouseEnterWnd = targetWnd
@@ -488,7 +488,7 @@ private impl Application
 
         if surface
         {
-            let modalSurface = assume surface
+            let modalSurface = surface
             modalSurface.enable()
             .modalSurfaces.add(modalSurface)
         }
@@ -607,7 +607,7 @@ impl Application
         if !.mainSurface
         {
             .theme = Memory.new'Theme()
-            .style.set(assume .theme)
+            .style.set(.theme)
         }
 
         try Surface.create(surface, x, y, width, height, flags, .mainSurface)
@@ -751,7 +751,7 @@ impl Application
         let targetSurface = .getSurfaceAt(mousePos.x, mousePos.y)
         if !targetSurface do
             return null
-        let surface = assume targetSurface
+        let surface = targetSurface
         surface.screenToSurface(&mousePos)
         if !surface.isMaximized and surface.wnd.hitTestBorders(mousePos) != SizingBorder.Zero do
             return surface.wnd

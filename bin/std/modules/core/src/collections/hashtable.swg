@@ -515,7 +515,7 @@ impl HashTable
     {
         let it = .tryFind(key)
         if it do
-            return assume it
+            return it
         var val: V
         return .add(key, val)
     }

@@ -95,7 +95,7 @@ public impl Image
         let found = getDecoder(fileName)
         if !found do
             throw UnsupportedFormatError{"no matching image decoder"}
-        return decode(cast(*ImageDecoder) (assume found), cast(const [..] u8) (assume bytes), options)
+        return decode(cast(*ImageDecoder) (found), cast(const [..] u8) (bytes), options)
     }
 
     // Load the given image file

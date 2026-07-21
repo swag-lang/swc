@@ -172,8 +172,8 @@ private impl GridLayoutCtrl
                     continue
                 done.add(child)
 
-                let sh = .spanH(col, row, assume child)
-                let sv = .spanV(col, row, assume child)
+                let sh = .spanH(col, row, child)
+                let sv = .spanV(col, row, child)
                 let hint = child.measure({client.width, client.height})
                 let margin = child.getLayoutMargin()
                 if columns
@@ -328,8 +328,8 @@ impl GridLayoutCtrl
                     continue
 
                 done.add(child)
-                let sh = .spanH(col, row, assume child)
-                let sv = .spanV(col, row, assume child)
+                let sh = .spanH(col, row, child)
+                let sv = .spanV(col, row, child)
 
                 var rect = Math.Rectangle{
                     client.x + .trackOffset(colWidths.toSlice(), col, .spacingHorz),

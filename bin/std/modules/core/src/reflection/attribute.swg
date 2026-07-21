@@ -96,7 +96,7 @@ func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(cons
     if !type do
         return result
 
-    let safeType = assume type
+    let safeType = type
     switch safeType.kind
     {
     case Func:
@@ -125,7 +125,7 @@ func getAttribute(type: #null typeinfo, attribute: #null typeinfo)->#null const 
     if !type do
         return null
 
-    let safeType = assume type
+    let safeType = type
     switch safeType.kind
     {
     case Func:

@@ -495,7 +495,7 @@ impl MenuCtrl
         while p.ownerMenu
         {
             p.hide()
-            p = assume p.ownerMenu
+            p = p.ownerMenu
         }
 
         p.endModal       = true
@@ -540,7 +540,7 @@ impl MenuCtrl
     {
         if !.timer do
             return
-        .surface.app.deleteTimer(assume .timer)
+        .surface.app.deleteTimer(.timer)
         .timer = null
     }
 

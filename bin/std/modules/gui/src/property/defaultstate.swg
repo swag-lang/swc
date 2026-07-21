@@ -57,7 +57,7 @@ impl Properties
             return
 
         // A pristine instance with every field at its declared default value.
-        let def = Memory.new(assume rootType)
+        let def = Memory.new(rootType)
         .defaultRoots.add({def, rootType})
 
         let defBase  = assume cast(#null [*] u8) def
@@ -276,7 +276,7 @@ impl Properties
             return
 
         let h = .revertButtonSize()
-        with item.revertButton = IconButton.create(assume host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
+        with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Round)
             .iconBtnFlags.add(.Overlay)      // elegant translucent hover, no opaque box

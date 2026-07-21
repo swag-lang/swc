@@ -108,7 +108,7 @@ internal impl Properties
                 var labelWidth = cast(f32) .gridColumnSize
                 if !.isGridLike() do
                     labelWidth = .listContentWidth()
-                with let label = Label.create(assume line, dispName, {0, 0, labelWidth, item.line.position.height})
+                with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
                 {
                     if .isGridLike()
                     {
@@ -154,7 +154,7 @@ internal impl Properties
             {
                 if !.isGridLike() and .kind != .Panel
                 {
-                    with let labelDesc = Label.create(assume line, "", {0, 0, .listContentWidth(), 0})
+                    with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
                         .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top
@@ -397,7 +397,7 @@ internal impl Properties
             return
 
         if let space = Reflection.getAttributeValue(value, .Gap, "size") do
-            .addSpacerRow(parentItem, cast(s32) assume space)
+            .addSpacerRow(parentItem, cast(s32) space)
         if let header = Reflection.getAttributeValue(value, .Heading, "text") do
             .addHeaderRow(attributeString(header), parentItem)
         if let help = Reflection.getAttributeValue(value, .HelpBox, "text") do

@@ -249,7 +249,7 @@ impl MainWnd
         {
             editCapture.title   = title
             editCapture.changed = true
-            .saveCapture(assume editCapture)
+            .saveCapture(editCapture)
         }
         else
         {
@@ -801,7 +801,7 @@ impl MainWnd
             .dockStyle = .Bottom
         }
 
-        with res.recentSizeBar = IconBar.create(assume res.recentBar, 20)
+        with res.recentSizeBar = IconBar.create(res.recentBar, 20)
         {
             .setIconBarFlags(.Vertical)
             .dockStyle   = .Left
@@ -811,7 +811,7 @@ impl MainWnd
             .addItem({}, ActionRecentSize.RecentBig, .Checkable)
         }
 
-        with res.recentWnd = RecentWnd.create(assume res.recentBar, res)
+        with res.recentWnd = RecentWnd.create(res.recentBar, res)
         {
             .dockStyle = .Center
         }
@@ -824,16 +824,16 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        res.quickWnd = QuickWnd.create(assume res.quickStyleBar, res)
-        res.propWnd  = PropWnd.create(assume res.quickStyleBar, res)
+        res.quickWnd = QuickWnd.create(res.quickStyleBar, res)
+        res.propWnd  = PropWnd.create(res.quickStyleBar, res)
 
-        with let quickPane = res.quickStyleBar.addPane(assume res.quickWnd, title: true)
+        with let quickPane = res.quickStyleBar.addPane(res.quickWnd, title: true)
         {
             .tryPreserveSize = true
             .label.setText("Quick Styles")
         }
 
-        with let quickStyle = res.quickStyleBar.addPane(assume res.propWnd, title: true)
+        with let quickStyle = res.quickStyleBar.addPane(res.propWnd, title: true)
         {
             .label.setText("Tool Properties")
         }
@@ -848,7 +848,7 @@ impl MainWnd
         }
 
         let ic = res.getTheme().getIcon24(.Search, 20)
-        with res.zoomBtn = IconButton.create(assume res.editZoomBar, ic, {0, 0, 120, 32})
+        with res.zoomBtn = IconButton.create(res.editZoomBar, ic, {0, 0, 120, 32})
         {
             .iconBtnFlags.add(.Center)
             .textPos  = .Right

@@ -127,7 +127,7 @@ func captureRect(main: *MainWnd)->#null *Capture throw
     let (img, sf) = try performScreenCapture(main)
     if !sf do
         return null
-    return try performInPlaceEdit(img, assume sf, main)
+    return try performInPlaceEdit(img, sf, main)
 }
 
 func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool

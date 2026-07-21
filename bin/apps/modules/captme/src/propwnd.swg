@@ -761,7 +761,7 @@ impl PropWnd
             var lineOnly = true
             var firstType: #null typeinfo
 
-            foreachSelected'BaseForm(assume capture, capture.selection)
+            foreachSelected'BaseForm(capture, capture.selection)
             {
                 let t = @kindof(itf)
                 if !firstType do

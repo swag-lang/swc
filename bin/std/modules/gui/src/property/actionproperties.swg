@@ -78,7 +78,7 @@ impl IActionUI for ActionProperties
             if arr.arrElem
             {
                 let info = prop.arrayElementInfo(assume arr.arrItem)
-                atEnd = prop.arrayElementIndex(assume arr.arrElem) + 1 >= info.count
+                atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
             }
             evt.disabled = !arr.arrElem or !prop.canChangeItem(assume arr.arrItem) or atEnd
 
@@ -98,7 +98,7 @@ impl IActionUI for ActionProperties
                 let arrData = cast(#null *Array'u8) arr.arrItem.data
                 empty = arrData.isEmpty()
             }
-            evt.disabled = !arr.arrItem or !prop.canChangeItem(assume arr.arrItem) or empty
+            evt.disabled = !arr.arrItem or !prop.canChangeItem(arr.arrItem) or empty
         }
 
         return true
@@ -121,34 +121,34 @@ impl IActionUI for ActionProperties
         case Paste:
             if Clipboard.getTypedValue(assume item.data, assume item.type)
             {
-                prop.refreshItem(assume item)
-                prop.hasChanged(assume item)
+                prop.refreshItem(item)
+                prop.hasChanged(item)
             }
 
         case ResetDefault:
-            prop.resetItemDefault(assume item)
+            prop.resetItemDefault(item)
 
         case MoveUp:
             if arr.arrElem do
-                prop.moveArrayValue(assume arr.arrElem, -1)
+                prop.moveArrayValue(arr.arrElem, -1)
 
         case MoveDown:
             if arr.arrElem do
-                prop.moveArrayValue(assume arr.arrElem, 1)
+                prop.moveArrayValue(arr.arrElem, 1)
 
         case Remove:
             if !arr.arrElem do
                 break
             if MessageDlg.confirm(assume prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
                 break
-            prop.removeArrayValue(assume arr.arrElem)
+            prop.removeArrayValue(arr.arrElem)
 
         case RemoveAll:
             if !arr.arrItem do
                 break
             if MessageDlg.confirm(assume prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
                 break
-            prop.clearArray(assume arr.arrItem)
+            prop.clearArray(arr.arrItem)
         }
 
         return true

@@ -36,8 +36,8 @@ impl InlineBug11List
         if !.head do
             return false
 
-        dref outNode = assume .head
-        .unlink(assume .head)
+        dref outNode = .head
+        .unlink(.head)
         return true
     }
 }

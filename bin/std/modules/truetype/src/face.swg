@@ -147,7 +147,7 @@ public impl Face
         let faceData = cast(#null *FaceImpl) cast(*void) me
         if !faceData do
             return 0
-        let safeFaceData = assume faceData
+        let safeFaceData = faceData
         let idx = catch lookupGlyphIndex(safeFaceData, cast(u32) charCode)
         return @err != null ? 0 : idx
     }

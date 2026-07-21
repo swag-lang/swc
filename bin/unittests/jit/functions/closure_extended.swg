@@ -159,7 +159,7 @@ func runMePathCapture()->s32
 
     offset = 100
     @assert(holder.cb(4) == 9)
-    @assert(invokeUnary(assume holder.cb, 7) == 12)
+    @assert(invokeUnary(holder.cb, 7) == 12)
 }
 
 #test

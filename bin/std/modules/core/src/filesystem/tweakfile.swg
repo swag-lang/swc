@@ -98,7 +98,7 @@ impl TweakFile
             let field = Reflection.getField(currentFolder.type, id)
             if !field do
                 throw SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
-            let safeField = assume field
+            let safeField = field
             one = Tokenize.eatCount(one, @countof(id))
             one = Tokenize.eatSpaces(one)
             if !@countof(one) do
@@ -111,10 +111,10 @@ impl TweakFile
                 let otherField = Reflection.getField(currentFolder.type, one)
                 if !otherField do
                     throw SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", one, currentFolder.type.name)), line: idx + 1}
-                let safeOtherField = assume otherField
+                let safeOtherField = otherField
                 if safeField.pointedType != safeOtherField.pointedType do
                     throw SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", one)), line: idx + 1}
-                let folder = assume currentFolder
+                let folder = currentFolder
                 let refr: Ref{folder, safeOtherField, safeField}
                 refs.add(refr)
                 continue

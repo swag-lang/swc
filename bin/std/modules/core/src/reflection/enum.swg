@@ -36,7 +36,7 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
     if !isEnum(type) or !valueAddr do
         return result
     let safeType  = assume type
-    let safeValue = assume valueAddr
+    let safeValue = valueAddr
     let typeEnum  = cast(const *TypeInfoEnum) safeType
     let isFlags  = hasAttribute(type, EnumFlags)
 
@@ -65,7 +65,7 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
     {
         if !it.value do
             continue
-        let safeItValue = assume it.value
+        let safeItValue = it.value
 
         // Get the enum value, as an 'u64' or a string
         var val2:  u64

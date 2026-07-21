@@ -149,7 +149,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     if msg == null or msg.type == null do
         return
 
-    let typeFunc = cast(const *TypeInfoFunc) assume msg.type
+    let typeFunc = cast(const *TypeInfoFunc) msg.type
 
     for attribute in typeFunc.attributes
     {

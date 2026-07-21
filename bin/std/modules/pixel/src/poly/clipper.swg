@@ -332,7 +332,7 @@ impl Transform
 
             e = .processBound(nnEdge(locMin.leftBound), leftBoundIsForward)
             if e.outIdx == Skip do
-                e = .processBound(assume e, leftBoundIsForward)
+                e = .processBound(e, leftBoundIsForward)
 
             var e2 = .processBound(nnEdge(locMin.rightBound), !leftBoundIsForward)
             if e2.outIdx == Skip do
@@ -1869,7 +1869,7 @@ impl Transform
                 var op: #null *OutPt
                 if e.outIdx >= 0 do
                     op = .addOutPt(nnEdge(e), nnEdge(e).top)
-                e = .updateEdgeIntoAEL(assume e)
+                e = .updateEdgeIntoAEL(e)
 
                 let ePrev = e.prevInAEL
                 let eNext = e.nextInAEL

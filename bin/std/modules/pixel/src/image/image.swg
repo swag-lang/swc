@@ -156,7 +156,7 @@ impl Image
         {
             if !data do
                 return
-            let p        = cast(*#decltype(p)) (assume data)
+            let p        = cast(*#decltype(p)) (data)
             let pixPtr   = cast([*] u8) buffer
             let pixIndex = cast(u64) (pixPtr - cast([*] u8) (assume p.image.pixels.buffer)) / p.image.bpp8
 

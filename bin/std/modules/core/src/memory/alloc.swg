@@ -86,7 +86,7 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #nul
     let address = req.address
     if !address do
         @panic("Memory.realloc returned null", loc)
-    return assume address
+    return address
 }
 
 // Allocate a given amount of bytes
@@ -107,7 +107,7 @@ func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hi
     let address = req.address
     if !address do
         @panic("Memory.alloc returned null", loc)
-    return assume address
+    return address
 }
 
 // Allocate a given amount of bytes in the temporary allocator
@@ -125,7 +125,7 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: #null string = null, loc = #
     let address = req.address
     if !address do
         @panic("Memory.tempAlloc returned null", loc)
-    return assume address
+    return address
 }
 
 // Allocate and initialize the given type

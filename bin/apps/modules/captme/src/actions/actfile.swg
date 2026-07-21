@@ -216,7 +216,7 @@ impl IActionUI for ActionFile
                 MessageDlg.error(assume main.surface, "Failed to duplicate capture")
                 break
             }
-            let loaded = assume newCapture
+            let loaded = newCapture
             loaded.file        = file
             loaded.linkedImage = ""
             loaded.changed     = true

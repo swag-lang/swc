@@ -56,7 +56,7 @@ impl ConcatBuffer
     {
         if !.firstBucket do
             return
-        let firstBucket = assume .firstBucket
+        let firstBucket = .firstBucket
         let lastBucket  = assume .lastBucket
 
         #if back
@@ -100,7 +100,7 @@ impl ConcatBuffer
 
         if .lastBucket
         {
-            let lastBucket = assume .lastBucket
+            let lastBucket = .lastBucket
             let currentSP  = assume .currentSP
             let datas      = assume lastBucket.datas
 
@@ -113,7 +113,7 @@ impl ConcatBuffer
             // can old the bytes (because of a previous clear())
             if lastBucket.next and numBytes <= lastBucket.next.size
             {
-                let nextBucket = assume lastBucket.next
+                let nextBucket = lastBucket.next
                 nextBucket.countBefore = lastBucket.countBefore + lastBucket.count
                 nextBucket.count       = 0
 
@@ -130,7 +130,7 @@ impl ConcatBuffer
 
         if .lastBucket
         {
-            let lastBucket = assume .lastBucket
+            let lastBucket = .lastBucket
             newBucket.next   = lastBucket.next
             lastBucket.next = newBucket
         }
@@ -176,7 +176,7 @@ impl ConcatBuffer
         var ptr = .firstBucket
         while ptr
         {
-            let bucket  = assume ptr
+            let bucket  = ptr
             let nextPtr = bucket.next
             Memory.free(bucket.datas, bucket.size, .allocator)
             if bucket != &.viewFirstBucket do
@@ -195,7 +195,7 @@ impl ConcatBuffer
         if !.firstBucket do
             return
 
-        let firstBucket = assume .firstBucket
+        let firstBucket = .firstBucket
         .curBucket, .lastBucket = firstBucket
         .currentSP = firstBucket.datas
         firstBucket.countBefore, firstBucket.count = 0

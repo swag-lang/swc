@@ -202,7 +202,7 @@ public impl Painter
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
                 serial = p.serial
-                .fillPathTriangulated(dirty ? &.tess : null, assume flush, pathList.bvMin, pathList.bvMax, brush)
+                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.bvMin, pathList.bvMax, brush)
                 flush = null
             }
 
@@ -215,7 +215,7 @@ public impl Painter
         }
 
         if flush do
-            .fillPathTriangulated(dirty ? &.tess : null, assume flush, pathList.bvMin, pathList.bvMax, brush)
+            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.bvMin, pathList.bvMax, brush)
     }
 
     // Fill the polygon with the given color

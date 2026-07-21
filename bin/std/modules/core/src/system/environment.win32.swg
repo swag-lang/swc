@@ -330,7 +330,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     let window = getWindowFromHandle(hWnd)
     if window
     {
-        let safeWindow = assume window
+        let safeWindow = window
         switch msg
         {
         case WM_PAINT:

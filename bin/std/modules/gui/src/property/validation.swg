@@ -151,7 +151,7 @@ internal impl Properties
         lbl.icon      = .validationIcon(item.validation)
         lbl.iconColor = Argb.White
         lbl.textColor = .validationTextColor(item.validation)
-        .syncValidationTextOffset(assume lbl)
+        .syncValidationTextOffset(lbl)
     }
 
     // Apply an info note's visuals to its label from the CURRENT theme: the info icon (native White

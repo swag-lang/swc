@@ -315,7 +315,7 @@ internal impl Properties
     mtd activeUndoMgr()->*UndoManager
     {
         if .externUndoMgr do
-            return assume .externUndoMgr
+            return .externUndoMgr
         return &.undoMgr
     }
 }

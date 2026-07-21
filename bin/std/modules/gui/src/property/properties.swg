@@ -219,8 +219,8 @@ impl IWnd for Properties
         {
             if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, assume item, assume evt.id)
             {
-                .refreshItem(assume item)
-                .hasChanged(assume item)
+                .refreshItem(item)
+                .hasChanged(item)
                 evt.accepted = true
                 return
             }
@@ -290,12 +290,12 @@ internal impl Properties
             elif Reflection.isString(pointed) and item.editBox
             {
                 item.editBox.setText(dref cast(#null *string) item.data)
-                .setEditMixed(item, assume item.editBox)
+                .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and item.editBox
             {
                 item.editBox.setText(dref cast(#null *String) item.data)
-                .setEditMixed(item, assume item.editBox)
+                .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and item.comboBox do
                 .refreshFontName(item)
@@ -702,7 +702,7 @@ impl Properties
             {
                 scan.line.show()
 
-                (?, mustEnable) = .getItemState(assume scan)
+                (?, mustEnable) = .getItemState(scan)
                 scan.line.enable(mustEnable)
 
                 scan = scan.parent

@@ -150,7 +150,7 @@ impl Properties
                 .dockStyle = .Center
                 .labelFlags |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
-                .setText(dispDesc == null ? "" : cast(string) (assume dispDesc))
+                .setText(dispDesc == null ? "" : cast(string) (dispDesc))
             }
 
             item.sigResize += func|label, line, lineHeight|(item)

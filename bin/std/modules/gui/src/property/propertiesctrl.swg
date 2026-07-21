@@ -36,23 +36,23 @@ impl PropertiesCtrl
             .splitter           = SplitterCtrl.create(ed, vertical: false)
             .splitter.dockStyle = .Center
 
-            .list = ListCtrl.createSimple(assume .splitter)
+            .list = ListCtrl.createSimple(.splitter)
             .list.listFlags.add(.ForceMarginExpandMark)
             .list.sigSelChanged += func|ed|(list)
             {
                 let sel = list.getFocusLine()
                 if !sel do
                     return
-                list.toggleExpand(assume sel)
+                list.toggleExpand(sel)
                 let item = cast(#null *PropertiesItem) sel.userData0
                 let pos  = item.label.getRectIn(ed.prop.edView)
                 ed.prop.scrollWnd.setScrollPos(0, pos.y)
             }
 
-            .prop = Properties.create(assume .splitter, kind: kind)
+            .prop = Properties.create(.splitter, kind: kind)
 
-            .splitter.addPane(assume .list)
-            .splitter.addPane(assume .prop)
+            .splitter.addPane(.list)
+            .splitter.addPane(.prop)
 
             if !flags.has(.SectionPane) do
                 .splitter.showPane(0, false)

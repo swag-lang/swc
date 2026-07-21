@@ -308,7 +308,7 @@ impl Wnd
 
         if parent
         {
-            res.setParent(assume parent)
+            res.setParent(parent)
             res.sendCreateEvent()
             res.sendResizeEvent()
         }
@@ -512,7 +512,7 @@ impl Wnd
     mtd computeStyle()
     {
         if .surface do
-            .style.compute(me, &(assume .surface).app.style)
+            .style.compute(me, &(.surface).app.style)
     }
 
     mtd paint(bc: *PaintContext)
@@ -585,7 +585,7 @@ impl Wnd
                 painter.popState()
             }
 
-            if .managedByLayout and .surface and (assume .surface).app.options.showLayoutRects
+            if .managedByLayout and .surface and (.surface).app.options.showLayoutRects
             {
                 painter.drawRect(.getClientRect(), Color.fromArgb(0x66FFCC00), 1)
             }

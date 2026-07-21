@@ -17,8 +17,8 @@ internal impl Properties
         if !.menuItem do
             return result
 
-        result.arrElem = .resolveArrayElement(assume .menuItem)
-        if .isArrayItem(assume .menuItem) do
+        result.arrElem = .resolveArrayElement(.menuItem)
+        if .isArrayItem(.menuItem) do
             result.arrItem = .menuItem
         elif result.arrElem do
             result.arrItem = result.arrElem.parent

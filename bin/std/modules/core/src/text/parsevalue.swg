@@ -21,7 +21,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
     let valueType = Reflection.getStructArrayType(type)
     if valueType
     {
-        let safeValueType = assume valueType
+        let safeValueType = valueType
         while @countof(one) and one[0] != '#'
         {
             let addrVal = Reflection.appendValueStructArray(addr, safeValueType)

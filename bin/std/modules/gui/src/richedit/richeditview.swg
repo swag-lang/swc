@@ -19,7 +19,7 @@ impl IWnd for RichEditView
     {
         if .timerCaret
         {
-            .surface.app.deleteTimer(assume .timerCaret)
+            .surface.app.deleteTimer(.timerCaret)
             .timerCaret = null
         }
 

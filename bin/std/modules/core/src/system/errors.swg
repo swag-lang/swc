@@ -70,5 +70,5 @@ func mkString(str: #null string)->#null string
     let safePtr = cast(#null [*] u8) ptr
     if !safePtr do
         return null
-    return @mkstring(assume safePtr, count)
+    return @mkstring(safePtr, count)
 }

@@ -75,7 +75,7 @@ impl Properties
                 setEd'f64()
             }
 
-            .setEditMixed(item, assume item.editBox)
+            .setEditMixed(item, item.editBox)
         }
     }
 
@@ -175,7 +175,7 @@ impl Properties
 
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
             if unit != null do
-                slider.edit.unit = cast(string) (assume unit)
+                slider.edit.unit = cast(string) (unit)
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
             let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
@@ -208,7 +208,7 @@ impl Properties
 
         let unit = Reflection.getAttributeValue(value, .Unit, "value")
         if unit != null do
-            ctrl.edit.unit = cast(string) (assume unit)
+            ctrl.edit.unit = cast(string) (unit)
 
         item.editBox = ctrl.edit
 
@@ -272,7 +272,7 @@ impl Properties
 
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
             if unit != null do
-                slider.edit.unit = cast(string) (assume unit)
+                slider.edit.unit = cast(string) (unit)
 
             let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
             let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
@@ -297,7 +297,7 @@ impl Properties
             with let ed = EditBox.create(assume item.line, value.name)
             {
                 if unit != null do
-                    .unit = cast(string) (assume unit)
+                    .unit = cast(string) (unit)
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert

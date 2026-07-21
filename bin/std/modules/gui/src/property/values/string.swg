@@ -84,7 +84,7 @@ impl Properties
                     .comboBoxFlags.add(.Flat)
             }
 
-            me.adaptCondensedControl(assume combo)
+            me.adaptCondensedControl(combo)
         }
 
         item.comboBox = combo

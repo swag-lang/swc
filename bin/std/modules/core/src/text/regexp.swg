@@ -452,7 +452,7 @@ impl RegExp
                     continue
                 }
 
-                let bufStart = assume .bufStart
+                let bufStart = .bufStart
                 let ptr = bufStart + curState.parseIdx
                 let (cr, eat) = Utf8.decodeRune(@mkslice(ptr, .bufLength - curState.parseIdx))
                 let c = .ignoreCase ? Unicode.toUpper(cr) : cr

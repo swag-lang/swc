@@ -69,7 +69,7 @@ impl Decoder
         if !data do
             throw SerializationError{"missing data for type value"}
         discard .serializer.beginElement(typedVal)
-        .readTypedContent(assume data, assume typedVal.pointedType)
+        .readTypedContent(data, typedVal.pointedType)
         .serializer.endElement(typedVal)
     }
 
@@ -167,7 +167,7 @@ impl Decoder
                 itf.itable = @tableof(cast(#null const *Swag.TypeInfoStruct) objType, cast(#null const *Swag.TypeInfoStruct) itfType)
 
                 typeVal.pointedType = objType
-                itf.obj             = Memory.new(assume objType)
+                itf.obj             = Memory.new(objType)
                 if !itf.obj do
                     throw SerializationError{"cannot allocate interface object"}
                 .readTypeValue(typeVal, itf.obj)
@@ -191,7 +191,7 @@ impl Decoder
             let valueType = Reflection.getStructArrayType(type)
             if valueType
             {
-                let safeValueType = assume valueType
+                let safeValueType = valueType
                 var count   = 0'u64
                 let treated = .serializer.beginSequence(type, data, &count)
                 defer #noerr .serializer.endSequence()
@@ -231,7 +231,7 @@ impl Decoder
                     continue
                 if !field.pointedType do
                     throw SerializationError{"missing field pointed type"}
-                let fieldType = assume field.pointedType
+                let fieldType = field.pointedType
 
                 if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
                 {
@@ -376,7 +376,7 @@ impl IDecoder for Decoder
         let data = cast(#null [*] u8) Memory.alloc(count)
         if !data do
             return null
-        let safeData = assume data
+        let safeData = data
 
         var cpt     = count
         let treated = .serializer.beginSequence(u8, safeData, &cpt)

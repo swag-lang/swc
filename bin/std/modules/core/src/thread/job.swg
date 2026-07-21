@@ -99,7 +99,7 @@ func peekExecJob()->bool
     let job = getJobToExec()
     if !job do
         return false
-    runJob(assume job)
+    runJob(job)
     return true
 }
 

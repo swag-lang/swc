@@ -369,7 +369,7 @@ impl HeadlessHost
 
         .app.duringTimerEvents = true
         var evt = TimerEvent{}
-        evt.timer = assume timer
+        evt.timer = timer
         timer.target.sendEvent(&evt)
         .app.duringTimerEvents = false
 
@@ -420,14 +420,14 @@ impl HeadlessHost
         if target != .app.mouseEnterWnd
         {
             if target do
-                .sendMouseEvent(assume target, .MouseEnter, pt, Input.MouseButton.Left, modifiers)
+                .sendMouseEvent(target, .MouseEnter, pt, Input.MouseButton.Left, modifiers)
             if .app.mouseEnterWnd do
-                .sendMouseEvent(assume .app.mouseEnterWnd, .MouseLeave, pt, Input.MouseButton.Left, modifiers)
+                .sendMouseEvent(.app.mouseEnterWnd, .MouseLeave, pt, Input.MouseButton.Left, modifiers)
             .app.mouseEnterWnd = target
         }
 
         if target do
-            .sendMouseEvent(assume target, .MouseMove, pt, Input.MouseButton.Left, modifiers)
+            .sendMouseEvent(target, .MouseMove, pt, Input.MouseButton.Left, modifiers)
         .mousePos = pt
     }
 
@@ -438,7 +438,7 @@ impl HeadlessHost
         .app.mouse.currentState.pressed[button] = true
         let target = .getMouseTarget(pt)
         if target do
-            .sendMouseEvent(assume target, .MousePressed, pt, button, modifiers)
+            .sendMouseEvent(target, .MousePressed, pt, button, modifiers)
     }
 
     mtd mouseUp(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
@@ -446,7 +446,7 @@ impl HeadlessHost
         .app.mouse.currentState.pressed[button] = false
         let target = .getMouseTarget(pt)
         if target do
-            .sendMouseEvent(assume target, .MouseReleased, pt, button, modifiers)
+            .sendMouseEvent(target, .MouseReleased, pt, button, modifiers)
         .pump()
     }
 
@@ -484,7 +484,7 @@ impl HeadlessHost
 
         if !wnd do
             return false
-        .clickWnd(assume wnd)
+        .clickWnd(wnd)
         return true
     }
 
@@ -665,7 +665,7 @@ impl HeadlessHost
 
         let target = .getMouseTarget(pt)
         if target do
-            .sendMouseEvent(assume target, .MouseDoubleClick, pt, button, modifiers)
+            .sendMouseEvent(target, .MouseDoubleClick, pt, button, modifiers)
         .pump()
     }
 

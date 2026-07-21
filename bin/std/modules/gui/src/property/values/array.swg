@@ -112,7 +112,7 @@ impl Properties
         var scan = cast(#null *PropertiesItem) item
         while scan and scan.parent
         {
-            if .isArrayItem(assume scan.parent) do
+            if .isArrayItem(scan.parent) do
                 return scan
             scan = scan.parent
         }

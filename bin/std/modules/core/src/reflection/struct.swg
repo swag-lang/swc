@@ -58,9 +58,9 @@ func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *
     if !dest or !type or !src do
         return
 
-    let nnType = assume type
-    let patch  = cast([*] u8) (assume src) + nnType.offset
-    let nnDest = assume dest
+    let nnType = type
+    let patch  = cast([*] u8) (src) + nnType.offset
+    let nnDest = dest
     switch nnType.pointedType
     {
     case s8, u8, bool:
@@ -99,9 +99,9 @@ func setFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null c
     if !dest or !type or !src do
         return
 
-    let nnType = assume type
-    var patch  = cast([*] u8) (assume dest) + nnType.offset
-    let nnSrc  = assume src
+    let nnType = type
+    var patch  = cast([*] u8) (dest) + nnType.offset
+    let nnSrc  = src
     switch nnType.pointedType
     {
     case s8, u8, bool:
@@ -144,7 +144,7 @@ func canCompare(type: #null typeinfo)->bool
     if !type do
         return false
 
-    let nnType = assume type
+    let nnType = type
     switch nnType.kind
     {
     case .Alias:

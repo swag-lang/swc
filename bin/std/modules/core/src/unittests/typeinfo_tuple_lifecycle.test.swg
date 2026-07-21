@@ -55,10 +55,10 @@ func testCoreTupleRuntimeLifecycle()->bool
     defer Memory.free(cast(#null [*] void) source, cast(u64) tupleType.sizeof)
     defer Memory.free(cast(#null [*] void) target, cast(u64) tupleType.sizeof)
 
-    let sourceFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (assume source), tupleStruct, 0)
-    let sourceSecond = coreTupleLifecycleProbeAt(cast([*] u8) (assume source), tupleStruct, 1)
-    let targetFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (assume target), tupleStruct, 0)
-    let targetSecond = coreTupleLifecycleProbeAt(cast([*] u8) (assume target), tupleStruct, 1)
+    let sourceFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (source), tupleStruct, 0)
+    let sourceSecond = coreTupleLifecycleProbeAt(cast([*] u8) (source), tupleStruct, 1)
+    let targetFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (target), tupleStruct, 0)
+    let targetSecond = coreTupleLifecycleProbeAt(cast([*] u8) (target), tupleStruct, 1)
     if sourceFirst.id != 7 or sourceSecond.id != 7 or
        sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
         return false
@@ -110,7 +110,7 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
         return false
     defer Memory.free(cast(#null [*] void) values, cast(u64) arrayType.sizeof)
 
-    let tuple0 = cast([*] u8) (assume values)
+    let tuple0 = cast([*] u8) (values)
     let tuple1 = tuple0 + arrayStruct.pointedType.sizeof
     let first0  = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 0)
     let second0 = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 1)
@@ -159,8 +159,8 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
         return false
     defer Memory.free(cast(#null [*] void) value, cast(u64) aliasType.sizeof)
 
-    let first  = coreTupleLifecycleProbeAt(cast([*] u8) (assume value), tupleStruct, 0)
-    let second = coreTupleLifecycleProbeAt(cast([*] u8) (assume value), tupleStruct, 1)
+    let first  = coreTupleLifecycleProbeAt(cast([*] u8) (value), tupleStruct, 0)
+    let second = coreTupleLifecycleProbeAt(cast([*] u8) (value), tupleStruct, 1)
     if first.id != 7 or second.id != 7 or
        first.value != "tuple-default" or second.value != "tuple-default" do
         return false

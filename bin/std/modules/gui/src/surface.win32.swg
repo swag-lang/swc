@@ -73,7 +73,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         switch msg
         {
         case WM_CLOSE:
-            postSurfaceSysCommand(assume surface, .Close)
+            postSurfaceSysCommand(surface, .Close)
             return 0
 
         case WM_NCDESTROY:
@@ -219,16 +219,16 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             switch wParam & 0xFFF0
             {
             case SC_MINIMIZE:
-                postSurfaceSysCommand(assume surface, .Minimize)
+                postSurfaceSysCommand(surface, .Minimize)
                 return 0
             case SC_MAXIMIZE:
-                postSurfaceSysCommand(assume surface, .Maximize)
+                postSurfaceSysCommand(surface, .Maximize)
                 return 0
             case SC_CLOSE:
-                postSurfaceSysCommand(assume surface, .Close)
+                postSurfaceSysCommand(surface, .Close)
                 return 0
             case SC_RESTORE:
-                postSurfaceSysCommand(assume surface, .Restore)
+                postSurfaceSysCommand(surface, .Restore)
                 return 0
             }
         }

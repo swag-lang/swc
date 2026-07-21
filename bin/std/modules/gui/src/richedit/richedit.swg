@@ -178,7 +178,7 @@ private impl RichEditCtrl
         .lines.insertAt(index, p)
         .recomputeScroll = true
 
-        return assume p
+        return p
     }
 
     mtd deleteLine(lineIndex: u64)

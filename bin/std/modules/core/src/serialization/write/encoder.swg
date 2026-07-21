@@ -92,7 +92,7 @@ impl Encoder
         if !data do
             throw SerializationError{"missing data for type value"}
         .serializer.beginElement(typeVal)
-        .writeValue(assume data, assume typeVal.pointedType)
+        .writeValue(data, typeVal.pointedType)
         .serializer.endElement(typeVal)
     }
 
@@ -198,7 +198,7 @@ impl Encoder
             let valueType = Reflection.getStructArrayType(type)
             if valueType
             {
-                let safeValueType = assume valueType
+                let safeValueType = valueType
                 let ptrArr  = cast(#null const *Array'u8) data
                 let treated = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
@@ -240,7 +240,7 @@ impl Encoder
                     continue
                 if !field.pointedType do
                     throw SerializationError{"missing field pointed type"}
-                let fieldType = assume field.pointedType
+                let fieldType = field.pointedType
 
                 if !itf or !itf.writeElement(field, cast(#null const [*] u8) data + field.offset, cast(IEncoder) dref &me)
                 {
@@ -343,7 +343,7 @@ impl IEncoder for Encoder
                 throw SerializationError{"cannot write a null u8 buffer"}
             return
         }
-        let safeData = assume data
+        let safeData = data
         let treated = .serializer.beginSequence(u8, safeData, count)
         defer #noerr .serializer.endSequence()
 

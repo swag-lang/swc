@@ -316,7 +316,7 @@ impl TagBin
                 .output.addNative(TagBinSignatures.Raw)
                 if !data do
                     return true
-                let bufArr = cast(const *Array'u8) assume data
+                let bufArr = cast(const *Array'u8) data
                 .output.addBytes(@mkslice(bufArr.buffer, countElem * sizeof))
                 return true
             }
@@ -335,7 +335,7 @@ impl TagBin
                 .output.addNative(TagBinSignatures.Raw)
                 if !data do
                     return true
-                .output.addBytes(@mkslice(cast(const [*] u8) assume data, countElem * sizeof))
+                .output.addBytes(@mkslice(cast(const [*] u8) data, countElem * sizeof))
                 return true
             }
             else

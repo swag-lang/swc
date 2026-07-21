@@ -109,9 +109,9 @@ using Swag
     {
         if !dst or !src or !type do
             return
-        let nnDst  = assume dst
-        let nnSrc  = assume src
-        let nnType = assume type
+        let nnDst  = dst
+        let nnSrc  = src
+        let nnType = type
         Memory.copy(nnDst, nnSrc, cast(u64) nnType.sizeof)
         Memory.postCopyType(nnDst, nnType)
     }
@@ -123,8 +123,8 @@ using Swag
             @panic("Reflection.reset cannot reset a null type", #curlocation)
             return
         }
-        let nnDst  = assume dst
-        let nnType = assume type
+        let nnDst  = dst
+        let nnType = type
         if !Memory.canDefaultInit(nnType)
         {
             @panic("Reflection.reset cannot default-initialize this type", #curlocation)
@@ -145,7 +145,7 @@ private func typeValueCrc(val: Swag.TypeValue)->u32
         return val.crc
     if val.name == null do
         return 0
-    return Hash.Crc32.compute(assume val.name)
+    return Hash.Crc32.compute(val.name)
 }
 
 private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
@@ -179,9 +179,9 @@ private func registerTypeNoLock(type: #null typeinfo)->bool
         g_HashNameToType.add(type.name, type)
 
     if type.fullname != null and type.fullname != "" do
-        addCrcToTypeAlias(Hash.Crc32.compute(assume type.fullname), type)
+        addCrcToTypeAlias(Hash.Crc32.compute(type.fullname), type)
     if type.name != null and type.name != "" do
-        addCrcToTypeAlias(Hash.Crc32.compute(assume type.name), type)
+        addCrcToTypeAlias(Hash.Crc32.compute(type.name), type)
 
     return true
 }

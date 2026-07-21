@@ -249,7 +249,7 @@ private impl Properties
             return false
         if !item.line.isVisible() do
             return false
-        if .itemHasEditor(assume item) do
+        if .itemHasEditor(item) do
             return true
         if item.data != null and item.type != null do
             return true

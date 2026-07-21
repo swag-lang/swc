@@ -374,6 +374,25 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
     return Result::Continue;
 }
 
+Result CodeGenSafety::emitUndefinedInitMarkers(CodeGen& codeGen, const MicroReg addrReg, const uint64_t sizeInBytes)
+{
+    if (sizeInBytes == 0 || !addrReg.isValid())
+        return Result::Continue;
+
+    // The 0xDD fill is the RUNTIME mitigation (Swag.Safety(.Lifecycle)): an accidental
+    // read of '= undefined' storage then sees a deterministic poison instead of whatever
+    // the frame happened to hold, so debug configurations fail loudly where release
+    // would misbehave at random.
+    if (hasLifecycleRuntimeSafety(codeGen))
+        SWC_RESULT(emitLifecyclePoison(codeGen, addrReg, sizeInBytes));
+
+    // The undefined marker feeds the STATIC sanitizer: it belongs to Swag.Sanity(.Lifecycle).
+    if (hasLifecycleSanity(codeGen))
+        codeGen.builder().emitSanityUndefined(addrReg, sizeInBytes);
+
+    return Result::Continue;
+}
+
 bool CodeGenSafety::hasOverflowRuntimeSafety(const CodeGen& codeGen)
 {
     return hasRuntimeSafety(codeGen, Runtime::SafetyWhat::Overflow);

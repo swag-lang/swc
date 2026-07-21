@@ -357,6 +357,18 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
+    for (auto it = into.undefinedInit.begin(); it != into.undefinedInit.end();)
+    {
+        const auto f = from.undefinedInit.find(it->first);
+        if (f == from.undefinedInit.end() || f->second != it->second)
+        {
+            it      = into.undefinedInit.erase(it);
+            changed = true;
+        }
+        else
+            ++it;
+    }
+
     if (into.flagsSubject.isValid() && into.flagsSubject != from.flagsSubject)
     {
         into.flagsSubject = MicroReg::invalid();
@@ -386,6 +398,19 @@ namespace
                 ++it;
         }
     }
+
+    void clearUndefinedInitOverlaps(SanitizerState& state, const int64_t slot)
+    {
+        for (auto it = state.undefinedInit.begin(); it != state.undefinedInit.end();)
+        {
+            const int64_t rangeStart = it->first;
+            const int64_t rangeEnd   = rangeStart + static_cast<int64_t>(it->second);
+            if (slot + static_cast<int64_t>(K_ASSUMED_STORE_SIZE) > rangeStart && slot < rangeEnd)
+                it = state.undefinedInit.erase(it);
+            else
+                ++it;
+        }
+    }
 }
 
 void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -405,6 +430,26 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 clearMovedFromOverlaps(state, slot);
             else
                 state.movedFrom.clear();
+        }
+    }
+
+    // Undefined-init ranges follow the moved-from discipline exactly: any store that
+    // could alias the range initializes it, a call can write through any escaped
+    // pointer (out-parameter fills) and forgets everything.
+    if (!state.undefinedInit.empty() && inst.op != MicroInstrOpcode::SanityUndefined)
+    {
+        if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            state.undefinedInit.clear();
+        }
+        else if (def.flags.has(MicroInstrFlagsE::WritesMemory))
+        {
+            int64_t slot = 0;
+            if (def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
+                resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+                clearUndefinedInitOverlaps(state, slot);
+            else
+                state.undefinedInit.clear();
         }
     }
 
@@ -436,6 +481,13 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
                 state.movedFrom[slot] = ops[1].valueU64;
+            return;
+        }
+        case MicroInstrOpcode::SanityUndefined:
+        {
+            int64_t slot = 0;
+            if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
+                state.undefinedInit[slot] = ops[1].valueU64;
             return;
         }
         case MicroInstrOpcode::LoadRegImm:

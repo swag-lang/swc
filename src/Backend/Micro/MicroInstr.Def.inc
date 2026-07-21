@@ -78,6 +78,20 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+// Sanitizer marker: the storage at [op0.reg .. op0.reg+op1.valueU64) was declared with an
+// explicit 'undefined' initializer (no initialization emitted). Consumed by the sanity
+// pass; encodes to nothing.
+SWC_MICRO_INSTR_DEF(
+    SanityUndefined,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
 SWC_MICRO_INSTR_DEF(
     Ret,
     MicroInstrDef{

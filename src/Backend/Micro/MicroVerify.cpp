@@ -195,6 +195,7 @@ namespace
             case MicroInstrOpcode::SetCondReg:
             case MicroInstrOpcode::ClearReg:
             case MicroInstrOpcode::SanityInvalidate:
+            case MicroInstrOpcode::SanityUndefined:
                 return 2;
 
             case MicroInstrOpcode::JumpCond:

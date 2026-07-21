@@ -50,6 +50,13 @@ struct SanitizerState
     // call itself re-marks its arguments afterwards).
     std::unordered_set<int64_t> freedPtrSlots;
 
+    // Frame ranges declared with an explicit 'undefined' initializer and not yet
+    // written, set by a 'SanityUndefined' marker: key = slot offset, value = size in
+    // bytes. Reading such a range is a proven read of uninitialized storage. Same
+    // discipline as movedFrom: join = intersection, any store that could alias the
+    // range initializes it, calls conservatively clear the set (out-parameters).
+    std::unordered_map<int64_t, uint64_t> undefinedInit;
+
     MicroReg flagsSubject = MicroReg::invalid();
 };
 

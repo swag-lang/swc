@@ -267,6 +267,7 @@
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.IntOverflow.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.StackEscape.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.BoundCheck.cpp"/>
+        <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.UndefinedRead.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.UseAfterFree.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.UseAfterMove.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMoveElision.cpp"/>
@@ -566,6 +567,7 @@
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.IntOverflow.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.StackEscape.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.BoundCheck.h"/>
+        <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.UndefinedRead.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.UseAfterFree.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Checks\Check.UseAfterMove.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMoveElision.h"/>

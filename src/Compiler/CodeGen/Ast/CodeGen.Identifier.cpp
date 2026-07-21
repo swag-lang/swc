@@ -689,6 +689,10 @@ namespace
                     SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
                 }
             }
+            else if (symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            {
+                SWC_RESULT(CodeGenSafety::emitUndefinedInitMarkers(codeGen, symbolPayload.reg, localSize));
+            }
             return Result::Continue;
         }
 

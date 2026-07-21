@@ -22,6 +22,7 @@ func(T) localAliasUnionValue()->ValueOrPtrAlias2
     }
 
     var data: Local = undefined
+    data.item.value = 0
     return data.item
 }
 

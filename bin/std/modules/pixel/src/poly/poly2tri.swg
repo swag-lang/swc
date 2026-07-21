@@ -731,7 +731,7 @@ impl Tessellate
             {
                 let nexti = (i + 1) % @countof(polyline)
                 let edge  = newEdge()
-                edge.set(polyline[i], polyline[nexti])
+                edge.set(pt, polyline[nexti])
                 .edges.add(edge)
             }
         }

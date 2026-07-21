@@ -444,7 +444,7 @@ impl LibraryView
 
         .mutexLoaded.lock()
         for it, i in nitems do
-            .items[i] = nitems[i]
+            .items[i] = it
         .mutexLoaded.unlock()
     }
 

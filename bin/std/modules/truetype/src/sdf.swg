@@ -29,7 +29,7 @@ func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
     return Math.sqrt(distSquared)
 }
 
-func renderCurrentOutlineSdf(slot: #null *GlyphSlot, spread: u32) throw
+func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
     let safeSlot = assume slot

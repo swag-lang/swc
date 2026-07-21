@@ -61,7 +61,7 @@ impl HashTable
     }
 
     // Replaces the content of the me.table with key-value pairs from a slice.
-    mtd opSet(slice: #null const [..] { k: K, v: V })
+    mtd opSet(slice: const [..] { k: K, v: V })
     {
         .clear()
         for v in slice do

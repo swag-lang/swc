@@ -637,7 +637,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
     }
     elif let state = evt as CommandStateEvent where state.kind == .ComputeCommandState
     {
-        if computeMenuCommandState(assume state)
+        if computeMenuCommandState(state)
         {
             state.accepted = true
             return true

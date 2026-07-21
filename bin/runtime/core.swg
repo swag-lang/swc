@@ -188,7 +188,7 @@ const __MAX_ARGUMENTS = 512
 var __argv:           [__MAX_ARGUMENTS] string = undefined
 var __argc            = 0'u32
 
-func __convertArgcArgv(args: #null const [*] u8)
+func __convertArgcArgv(args: const [*] u8)
 {
     if args == null do
         return

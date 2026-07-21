@@ -86,7 +86,7 @@ public struct GlyphCache
     underlineSize:     f32
 
     atlases:           Array'GlyphAtlas
-    glyphRef:          HashTable'(u32, #null *GlyphDesc)
+    glyphRef:          HashTable'(u32, *GlyphDesc)
 
     // Kerning between two glyph indices, in reference-size pixels (lazily filled).
     // Key = (leftGlyphIndex << 32) | rightGlyphIndex.
@@ -121,8 +121,8 @@ public struct Font
     drawResolveFont:   #null *Font
 }
 
-private var g_HashFont:       HashTable'(String, #null *Font)
-private var g_HashGlyphCache: HashTable'(String, #null *GlyphCache)
+private var g_HashFont:       HashTable'(String, *Font)
+private var g_HashGlyphCache: HashTable'(String, *GlyphCache)
 
 #drop
 {

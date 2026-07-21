@@ -69,7 +69,7 @@ public impl Face
 {
     // Load a face from an in-memory font file. The returned pointer aliases an
     // internal FaceImpl that owns a private copy of the bytes; release it with destroy().
-    func load(bytes: #null const [..] u8, faceIndex: u32 = 0)->#null *Face throw
+    func load(bytes: const [..] u8, faceIndex: u32 = 0)->#null *Face throw
     {
         if @countof(bytes) == 0 do
             fail(0x06)

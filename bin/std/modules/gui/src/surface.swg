@@ -397,7 +397,7 @@ impl Surface
             .painter.fillRect(rect, Argb.Black)
     }
 
-    mtd setView(view: #null *Wnd)
+    mtd setView(view: *Wnd)
     {
         if .wnd.view do
             .wnd.view.destroy()

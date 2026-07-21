@@ -116,7 +116,7 @@ impl String
         .buffer[index] = value
     }
 
-    mtd(op: string) opAssign(value: #null const [..] #null string)
+    mtd(op: string) opAssign(value: const [..] string)
     {
         #if op == "+=" do
             for v in value do
@@ -309,7 +309,7 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    mtd replace(what: rune, by: #null string)
+    mtd replace(what: rune, by: string)
     {
         if !.length do
             return
@@ -433,7 +433,7 @@ impl String
     }
 
     // Insert a substring at the given position
-    mtd insert(byteIndex: u64, value: #null string)
+    mtd insert(byteIndex: u64, value: string)
     {
         if byteIndex == .length
         {
@@ -517,7 +517,7 @@ impl String
     }
 
     // Join a list of strings to make a unique one
-    func join(values: #null string...)->String
+    func join(values: string...)->String
     {
         var result: String
         for values do
@@ -527,7 +527,7 @@ impl String
 
     // Join an list of strings to make a unique one, by using a given 'separator'
     // between them
-    func joinWith(separator: #null string, values: #null string...)->String
+    func joinWith(separator: string, values: string...)->String
     {
         var result: String
         for values
@@ -719,7 +719,7 @@ impl String
     }
 
     // Returns a new String in lower case
-    func toUpper(str: #null string, set = CharacterSet.Latin1)->String
+    func toUpper(str: string, set = CharacterSet.Latin1)->String
     {
         var result: retval = str
         result.makeUpper(set)

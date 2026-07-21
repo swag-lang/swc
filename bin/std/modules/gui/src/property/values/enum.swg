@@ -160,7 +160,7 @@ impl Properties
             case 8:
                 setEd'u64()
             case 16:
-                setEd'(#null string)()
+                setEd'string()
             }
         }
 

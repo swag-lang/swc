@@ -680,7 +680,7 @@ func startsWith(src: #null const [..] u8, str: string, comparisonType = Comparis
 }
 
 // Return true if the string ends with 'str'
-func endsWith(src: #null const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
+func endsWith(src: const [..] u8, str: string, comparisonType = ComparisonType.Latin1)->bool
 {
     let length = @countof(src)
     if !length do
@@ -693,7 +693,7 @@ func endsWith(src: #null const [..] u8, str: string, comparisonType = Comparison
 }
 
 // Returns the first rune of the slice
-func firstRune(src: #null const [..] u8)->rune
+func firstRune(src: const [..] u8)->rune
 {
     let countof = @countof(src)
     if !countof do
@@ -706,7 +706,7 @@ func firstRune(src: #null const [..] u8)->rune
 }
 
 // Returns the last rune of the slice
-func lastRune(src: #null const [..] u8)->rune
+func lastRune(src: const [..] u8)->rune
 {
     let countof = @countof(src)
     if !countof do

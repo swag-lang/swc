@@ -22,7 +22,7 @@ impl Icon
     }
 
     // Initialize the icon from an image list
-    func from(imageList: #null *ImageList, index: s32, sizeX, sizeY: f32 = 0)->Icon
+    func from(imageList: *ImageList, index: s32, sizeX, sizeY: f32 = 0)->Icon
     {
         var result: retval
         let sx      = sizeX orelse cast(f32) imageList.frameSizeX

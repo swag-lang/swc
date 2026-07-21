@@ -252,7 +252,7 @@ impl RegExp
     }
 
     // Compile and match the expression.
-    public mtd match(expr: string, str: #null string, ignoreCase = false)->bool throw
+    public mtd match(expr: string, str: string, ignoreCase = false)->bool throw
     {
         .compile(expr, ignoreCase)
         return .match(str)

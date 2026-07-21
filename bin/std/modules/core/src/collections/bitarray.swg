@@ -105,7 +105,7 @@ public impl BitArray
     }
 
     // Replaces the content of the bit array with values from a slice of booleans.
-    mtd opSet(what: #null const [..] bool)
+    mtd opSet(what: const [..] bool)
     {
         let len = @countof(what)
         .reserve(len)

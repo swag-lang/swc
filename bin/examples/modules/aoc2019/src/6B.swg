@@ -62,7 +62,7 @@ func day6B()
 
     var you, san: Array'(string)
     var ity: #null const *HashTableEntry'(string, string) = map.find("YOU")
-    var its: #null const *HashTableEntry'(string, string) = map.find("SAN")
+    var its: const *HashTableEntry'(string, string) = map.find("SAN")
 
     while ity
     {

@@ -273,7 +273,7 @@ public impl Voice
         }
     }
 
-    mtd setRooting(buses: #null const [..] #null *Bus) throw
+    mtd setRooting(buses: const [..] *Bus) throw
     {
         switch g_Driver.kind
         {

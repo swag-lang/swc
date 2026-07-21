@@ -172,7 +172,7 @@ using Swag, Core
     // Fill the drop-down for the captMe level (the last one).
     let idx  = lib.breadcrumb.items.count - 1
     let menu = MenuCtrl.createPopup(cast(*Wnd) lib)
-    lib.fillBreadcrumbMenu(assume lib.breadcrumb, idx, menu)
+    lib.fillBreadcrumbMenu(lib.breadcrumb, idx, menu)
 
     // Its recycle bin sub-folder is listed, with its path preserved in owned storage.
     @assert(!lib.menuPaths.isEmpty())

@@ -478,7 +478,7 @@ namespace Swag
         traces:              [MaxTraces] SourceCodeLocation            // Stack trace, in case of errors
         errors:              [MaxErrors] ErrorValue                    // All errors
         exceptionLoc:        SourceCodeLocation                        // When an exception is raised, this is the code location
-        exceptionParams:     [4] #null const *void                           // When an exception is raised, this are the parameters
+        exceptionParams:     [4] #null const *void                     // When an exception is raised, this are the parameters
         panic:               #null func(#null string, SourceCodeLocation)          // A function to call if there's a panic
         curError:            #null any                                       // The current raised error returns by @err
         errorIndex:          u32                                       // Number of errors in the array

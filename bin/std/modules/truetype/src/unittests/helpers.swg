@@ -58,7 +58,7 @@ func getFaceData(face: #null *Face)->*FaceImpl
     return cast(*FaceImpl) cast(*void) safeFace
 }
 
-func getOutlineBounds(outline: #null const *Outline)->BBox
+func getOutlineBounds(outline: const *Outline)->BBox
 {
     var result: retval
     result.xMin = Swag.S32.Max
@@ -84,7 +84,7 @@ func getOutlineBounds(outline: #null const *Outline)->BBox
     return result
 }
 
-func countBitmapCoverage(bitmap: #null const *Bitmap)->u32
+func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
     if !bitmap or !bitmap.buffer do
         return 0
@@ -99,7 +99,7 @@ func countBitmapCoverage(bitmap: #null const *Bitmap)->u32
     return count
 }
 
-func findPointWithNonZeroY(outline: #null const *Outline)->u32
+func findPointWithNonZeroY(outline: const *Outline)->u32
 {
     @assert(outline != null)
     for cast(u32) outline.pointCount

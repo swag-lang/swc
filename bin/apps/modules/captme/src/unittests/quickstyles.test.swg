@@ -49,13 +49,13 @@ using Swag, Core
         .splitterFlags.add(.HideBars)
     }
 
-    f.main.quickWnd = QuickWnd.create(assume f.main.quickStyleBar, f.main)
-    f.main.propWnd  = PropWnd.create(assume f.main.quickStyleBar, f.main)
-    with let quickPane = f.main.quickStyleBar.addPane(assume f.main.quickWnd, title: true)
+    f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar, f.main)
+    f.main.propWnd  = PropWnd.create(f.main.quickStyleBar, f.main)
+    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
     {
         .tryPreserveSize = true
     }
-    discard f.main.quickStyleBar.addPane(assume f.main.propWnd, title: true)
+    discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
 
     f.main.quickWnd.setDefault()
@@ -74,7 +74,7 @@ using Swag, Core
     {
         if item.sliderBox
         {
-            sliderCtrlBefore = assume item.sliderBox
+            sliderCtrlBefore = item.sliderBox
             break
         }
     }

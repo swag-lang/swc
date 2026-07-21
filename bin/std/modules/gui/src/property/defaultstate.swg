@@ -51,7 +51,7 @@ impl Properties
     // Build the default-constructed instance for the struct whose rows start at 'fromIdx', and
     // point every such row's defaultData into it. Called right after assignInstances, so it uses
     // the same fixed-offset trick: a field at offset O from the struct base sits at defBase + O.
-    mtd assignDefaults(fromIdx: u64, rootType: #null typeinfo, base0: #null [*] u8)
+    mtd assignDefaults(fromIdx: u64, rootType: typeinfo, base0: [*] u8)
     {
         if !rootType or rootType.kind != Swag.TypeInfoKind.Struct do
             return

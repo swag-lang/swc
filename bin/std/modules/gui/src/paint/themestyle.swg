@@ -52,7 +52,7 @@ impl ThemeStyle
         .set(theme)
     }
 
-    private mtd compute(owner: *Wnd, parent: #null *ThemeStyle)
+    private mtd compute(owner: *Wnd, parent: *ThemeStyle)
     {
         // First time, initialize to parent
         if !.refr
@@ -118,26 +118,26 @@ impl ThemeStyle
         .dirty = true
     }
 
-    mtd setStyleSheetColors(str: #null string)
+    mtd setStyleSheetColors(str: string)
     {
         .styleSheetColors = str
         .dirty            = true
     }
 
-    mtd addStyleSheetColors(str: #null string)
+    mtd addStyleSheetColors(str: string)
     {
         .styleSheetColors.append("\n")
         .styleSheetColors.append(str)
         .dirty = true
     }
 
-    mtd setStyleSheetMetrics(str: #null string)
+    mtd setStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics = str
         .dirty             = true
     }
 
-    mtd addStyleSheetMetrics(str: #null string)
+    mtd addStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics.append("\n")
         .styleSheetMetrics.append(str)

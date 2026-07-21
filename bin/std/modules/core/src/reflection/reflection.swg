@@ -5,21 +5,21 @@ using Swag
 #[ConstExpr, Inline]
 {
     func isNative(t: #null typeinfo)      => t and t.kind == .Native
-    func isPointer(t: #null typeinfo)     => t and t.kind == .Pointer
+    func isPointer(t: typeinfo)           => t and t.kind == .Pointer
     func isEnum(t: #null typeinfo)        => t and t.kind == .Enum
     func isStruct(t: #null typeinfo)      => t and t.kind == .Struct
     func isStaticArray(t: #null typeinfo) => t and t.kind == .Array
-    func isSlice(t: #null typeinfo)       => t and t.kind == .Slice
+    func isSlice(t: typeinfo)             => t and t.kind == .Slice
     func isTypeAlias(t: #null typeinfo)   => t and t.kind == .Alias
-    func isInterface(t: #null typeinfo)   => t and t.kind == .Interface
+    func isInterface(t: typeinfo)         => t and t.kind == .Interface
 
     func isInteger(t: #null typeinfo)           => t and t.flags & .Integer
     func isFloat(t: #null typeinfo)             => t and t.flags & .Float
     func isGeneric(t: #null typeinfo)           => t and t.flags & .Generic
-    func isTuple(t: #null typeinfo)             => t and t.flags & .Tuple
-    func isType(t: #null typeinfo)              => t and t.flags & .PointerTypeInfo
-    func isPointerRef(t: #null typeinfo)        => t and t.flags & .PointerRef
-    func isPointerArithmetic(t: #null typeinfo) => t and t.flags & .PointerArithmetic
+    func isTuple(t: typeinfo)                   => t and t.flags & .Tuple
+    func isType(t: typeinfo)                    => t and t.flags & .PointerTypeInfo
+    func isPointerRef(t: typeinfo)              => t and t.flags & .PointerRef
+    func isPointerArithmetic(t: typeinfo)       => t and t.flags & .PointerArithmetic
 
     func isEnumFlags(t: #null typeinfo)->bool
     {
@@ -44,7 +44,7 @@ using Swag
         return tt.nativeKind == .Rune
     }
 
-    func isAny(t: #null typeinfo)->bool
+    func isAny(t: typeinfo)->bool
     {
         if !isNative(t) do
             return false
@@ -135,8 +135,8 @@ using Swag
     }
 }
 
-private var g_HashCrcToType: HashTable'(u32, #null typeinfo)
-private var g_HashNameToType: HashTable'(#null string, #null typeinfo)
+private var g_HashCrcToType: HashTable'(u32, typeinfo)
+private var g_HashNameToType: HashTable'(string, typeinfo)
 private var g_HashLock: Sync.RWLock
 
 private func typeValueCrc(val: Swag.TypeValue)->u32

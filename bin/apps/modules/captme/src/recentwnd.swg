@@ -60,8 +60,8 @@ impl RecentView
             .selected = idx
             let previousCapture = .main.getCapture()
             if previousCapture do
-                .main.saveCapture(assume previousCapture)
-            view.setCapture(assume capture)
+                .main.saveCapture(previousCapture)
+            view.setCapture(capture)
             if item.zoom == 0 do
                 view.zoomToFit(false)
             else do
@@ -225,9 +225,9 @@ impl IWnd for RecentWnd
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         if .timer do
-            .getApp().deleteTimer(assume .timer)
+            .getApp().deleteTimer(.timer)
         if .loadTimer do
-            .getApp().deleteTimer(assume .loadTimer)
+            .getApp().deleteTimer(.loadTimer)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -249,7 +249,7 @@ impl IWnd for RecentWnd
         let maybeCapture = .main.getCapture()
         if maybeCapture
         {
-            let capture = assume maybeCapture
+            let capture = maybeCapture
             if !capture.changed do
                 return
 
@@ -393,7 +393,7 @@ impl RecentWnd
             return
 
         if .timer do
-            .getApp().deleteTimer(assume .timer)
+            .getApp().deleteTimer(.timer)
         .timer = .getApp().addTimer(1's, me)
 
         let capture = .main.getCapture()
@@ -415,7 +415,7 @@ impl RecentWnd
 
         // Be sure there's no pending save
         if .timer do
-            .getApp().deleteTimer(assume .timer)
+            .getApp().deleteTimer(.timer)
         .timer = null
 
         // Delete file

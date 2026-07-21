@@ -118,7 +118,7 @@ impl Array
     }
 
     // Replaces the content of the array with elements copied from a slice.
-    mtd opSet(arr: #null const [..] T)
+    mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
         let countof = @countof(arr)
@@ -443,7 +443,7 @@ impl Array
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    mtd insertAt(index: u64, values: #null const [..] T)
+    mtd insertAt(index: u64, values: const [..] T)
         where Reflection.canCopy(T)
     {
         var sliceCount = @countof(values)
@@ -490,7 +490,7 @@ impl Array
 
     // Moves elements from a slice at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    mtd emplaceAt(index: u64, values: #null [..] T)
+    mtd emplaceAt(index: u64, values: [..] T)
         where Reflection.canCopy(T)
     {
         var sliceCount = @countof(values)

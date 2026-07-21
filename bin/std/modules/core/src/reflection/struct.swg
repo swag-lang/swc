@@ -45,7 +45,7 @@ func getField(type: #null typeinfo, name: #null string)->#null const *TypeValue
 // compiler exported in TypeValue.crc). Use it to switch on item.typeValue.crc without
 // recomputing the hash. Returns 0 if the field does not exist.
 #[ConstExpr]
-func fieldCrc(type: #null typeinfo, name: #null string)->u32
+func fieldCrc(type: typeinfo, name: string)->u32
 {
     let f = getField(type, name)
     return f ? f.crc : 0
@@ -94,7 +94,7 @@ func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *
 
 // Set a field value with a given runtime type.
 #[ConstExpr]
-func setFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null const *void, hardCast: bool = false)
+func setFieldValue(dest: *void, type: #null const *TypeValue, src: const *void, hardCast: bool = false)
 {
     if !dest or !type or !src do
         return
@@ -176,7 +176,7 @@ func canCompare(type: #null typeinfo)->bool
     func hasDrop(type: #null typeinfo)->bool     => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
     func hasPostMove(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
     func hasPostCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
-    func canCopy(type: #null typeinfo)->bool     => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
+    func canCopy(type: typeinfo)->bool           => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
     func isPod(type: #null typeinfo)->bool
     {
         if !type do

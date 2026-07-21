@@ -292,7 +292,7 @@ func __exit()
 }
 
 func __tlsAlloc()                         => cast(u64) __Win32RT.TlsAlloc()
-func __tlsSetValue(id: u64, value: #null *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
+func __tlsSetValue(id: u64, value: *void)       => __Win32RT.TlsSetValue(cast(u32) id, value)
 func __tlsGetValue(id: u64)->#null *void        => __Win32RT.TlsGetValue(cast(u32) id)
 
 ////////////////////////////////////////////////////////////
@@ -477,7 +477,7 @@ var __dbgCacheSection: #null [*] u8 = null
 var __dbgCacheCount:   u32    = 0
 var __dbgCacheValid:   bool   = false
 
-func __peU16(p: #null [*] u8, off: u64)->u16 => dref cast(#null *u16) &p[off]
+func __peU16(p: [*] u8, off: u64)->u16 => dref cast(#null *u16) &p[off]
 func __peU32(p: #null [*] u8, off: u64)->u32 => dref cast(#null *u32) &p[off]
 
 func __dbgFindSection(base: #null *void)

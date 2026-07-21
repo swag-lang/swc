@@ -28,7 +28,7 @@ public impl ByteStream
     }
 
     // Returns a slice of unread bytes from the current seek to the end
-    mtd remainReadToSlice()->#null const [..] u8
+    mtd remainReadToSlice()->const [..] u8
     {
         return @mkslice(.readData() + .seek, .length() - .seek)
     }

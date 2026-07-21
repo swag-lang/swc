@@ -83,7 +83,7 @@ impl Log
     }
 
     // Set the logger prefix.
-    mtd setPrefix(prefix: #null string)
+    mtd setPrefix(prefix: string)
     {
         Sync.scopedLock(&.lock)
         .prefix = prefix

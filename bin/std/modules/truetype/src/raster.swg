@@ -53,7 +53,7 @@ func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64
     flattenQuadratic(edges, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
 }
 
-func buildEdges(outline: #null const *Outline)->Array'Edge
+func buildEdges(outline: const *Outline)->Array'Edge
 {
     var edges: Array'Edge
     let commands = buildOutlineCommands(outline)
@@ -193,7 +193,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     }
 }
 
-func renderCurrentOutline(slot: #null *GlyphSlot) throw
+func renderCurrentOutline(slot: *GlyphSlot) throw
 {
     let faceData = getSlotImpl(slot)
     let safeSlot = assume slot

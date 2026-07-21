@@ -90,7 +90,7 @@ impl Serializer
 
     // Serialize one value
     #[Swag.Optimize(false)]
-    mtd(MT) serialize(name: #null string, crc: u32, res: *MT) throw
+    mtd(MT) serialize(name: string, crc: u32, res: *MT) throw
     {
         var value: Swag.TypeValue
         value.name        = name

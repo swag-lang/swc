@@ -75,7 +75,7 @@ func clearBitmap(slot: *GlyphSlot)
     slot.bitmapTop          = 0
 }
 
-func computeOutlineBounds(outline: #null const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
+func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
 {
     var result: retval
     if !outline or outline.pointCount <= 0 do

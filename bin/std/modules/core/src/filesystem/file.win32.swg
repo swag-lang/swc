@@ -28,7 +28,7 @@ func touch(fullName: string) throw
 }
 
 // Returns true if the given file exists
-func exists(fullName: #null string)->bool
+func exists(fullName: string)->bool
 {
     if fullName == null do
         return false

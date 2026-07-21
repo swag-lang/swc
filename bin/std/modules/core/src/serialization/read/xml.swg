@@ -137,9 +137,9 @@ public impl Xml
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
     {
-        mtd beginStruct(structType: #null typeinfo, structData: #null const *u8)->bool throw { return false; }
+        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool throw { return false; }
         mtd endStruct() throw {}
-        mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: *u64)->bool throw { return false; }
+        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw { return false; }
         mtd endSequence() throw {}
         mtd beginValue() throw {}
         mtd endValue() throw {}

@@ -38,7 +38,7 @@ func readU32(buffer: #null const [..] u8, offset: u64)->u32 throw
     return cast(u32) buffer[offset] << 24 | cast(u32) buffer[offset + 1] << 16 | cast(u32) buffer[offset + 2] << 8 | buffer[offset + 3]
 }
 
-func readS32(buffer: #null const [..] u8, offset: u64)->s32 throw
+func readS32(buffer: const [..] u8, offset: u64)->s32 throw
 {
     let value = readU32(buffer, offset)
     if value <= 0x7FFF_FFFF do

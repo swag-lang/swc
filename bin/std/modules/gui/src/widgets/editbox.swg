@@ -520,7 +520,7 @@ private impl EditBox
     }
 
     // Inserts a raw UTF‑8 slice without validation.
-    mtd insertUtf8(s: #null string)
+    mtd insertUtf8(s: string)
     {
         .deleteSelectionPrivate()
         .text.insert(.selEnd, s)
@@ -1082,7 +1082,7 @@ impl EditBox
     }
 
     // Assigns the EditBox content without emitting change notifications.
-    mtd setTextSilent(str: #null string)
+    mtd setTextSilent(str: string)
     {
         .sigChanged.disable()
         .setText(str)

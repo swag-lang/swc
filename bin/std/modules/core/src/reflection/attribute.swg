@@ -60,7 +60,7 @@ func getAttributeValue(attribute: #null const *Swag.Attribute, value: #null stri
 
 // Returns the given associated attributes to 'value'
 #[ConstExpr]
-func getAttributes(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->Array'(const *Swag.Attribute)
+func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
     if !value do

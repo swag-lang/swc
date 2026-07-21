@@ -582,7 +582,7 @@ impl Properties
     }
 
     // Show hidden content depending on the input 'filter'.
-    mtd setStringFilter(filter: #null string)
+    mtd setStringFilter(filter: string)
     {
         if .stringFilter == filter do
             return

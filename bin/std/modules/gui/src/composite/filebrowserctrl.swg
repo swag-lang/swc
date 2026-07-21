@@ -352,7 +352,7 @@ impl FileBrowserCtrl
     }
 
     // Navigate to the given folder.
-    mtd setCurFolder(folder: #null string)
+    mtd setCurFolder(folder: string)
     {
         if !@countof(folder) or !Directory.exists(assume folder) do
             return

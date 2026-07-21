@@ -233,7 +233,7 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
         appendCompositeGlyph(faceData, data, xPpem, yPpem, depth)
 }
 
-func loadGlyphInternal(face: #null *Face, glyphIndex: u32) throw
+func loadGlyphInternal(face: *Face, glyphIndex: u32) throw
 {
     let faceData = getFaceImpl(face)
     let slot = &face.glyph

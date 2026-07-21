@@ -126,7 +126,7 @@ public impl Voice
         handle.frequencyRatio = ratio
     }
 
-    mtd setRootingNoSound(buses: #null const [..] #null *Bus) throw
+    mtd setRootingNoSound(buses: const [..] *Bus) throw
     {
         if !.handle do
             return

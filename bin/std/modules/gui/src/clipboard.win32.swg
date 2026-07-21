@@ -28,7 +28,7 @@ func hasFormat(fmt: ValueFormat)->bool
 
 // Returns true if the clipboard contains the given format of the given 'type'.
 // 'type' can be null to just check for the given clipboard format.
-func hasTypedData(fmt: ValueFormat, type: #null typeinfo)->bool
+func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
 {
     if g_Fake.enabled
     {

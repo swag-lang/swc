@@ -173,7 +173,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
 }
 
 // Build colored line segments from a glyph outline, in font pixel units (y up).
-func buildMsdfSegments(outline: #null const *Outline, segs: *Array'MsdfSeg)
+func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
 {
     let commands  = buildOutlineCommands(outline)
     let tolerance = 0.20 / OVERSAMPLE
@@ -477,7 +477,7 @@ const MsdfParallelMinSamples: u64 = 2000
 
 // Render the current glyph outline as a 3-channel (RGB) multi-channel SDF.
 // The output bitmap has 3 bytes per pixel (pitch = width * 3).
-func renderCurrentOutlineMsdf(slot: #null *GlyphSlot, spread: u32) throw
+func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
     let safeSlot = assume slot

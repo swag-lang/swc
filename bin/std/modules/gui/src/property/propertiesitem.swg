@@ -39,7 +39,7 @@ struct PropertiesItem
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
     // array are left single (their element addresses are not at a fixed struct offset).
-    dataInstances:      Array'(#null *u8)
+    dataInstances:      Array'(*u8)
     // When set, the editor writes each instance itself (e.g. a vector component or an
     // enum-flags bit), so hasChanged must not blindly copy the whole field over the
     // others — that would clobber the components/bits the user did not touch.

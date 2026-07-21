@@ -92,7 +92,7 @@ func(T) actionExecute(wnd: #null *Wnd, id: WndId)->bool
 }
 
 // Updates the command state of action type T through its IActionUI interface.
-func(T) actionUpdate(wnd: #null *Wnd, id: WndId, evt: *CommandStateEvent)->bool
+func(T) actionUpdate(wnd: *Wnd, id: WndId, evt: *CommandStateEvent)->bool
 {
     let act = @mkinterface(null, #typeof(T), IActionUI)
     return act.update({wnd: wnd, id: id}, evt)

@@ -188,13 +188,13 @@ public struct Transform
 impl Transform
 {
     #[Swag.Inline]
-    func nnEdge(e: #null *Edge)->*Edge => e orelse cast(*Edge) 1'u64
+    func nnEdge(e: #null *Edge)->*Edge => assume e
     #[Swag.Inline]
-    func nnOutPt(p: #null *OutPt)->*OutPt => p orelse cast(*OutPt) 1'u64
+    func nnOutPt(p: #null *OutPt)->*OutPt => assume p
     #[Swag.Inline]
-    func nnOutRec(r: #null *OutRec)->*OutRec => r orelse cast(*OutRec) 1'u64
+    func nnOutRec(r: #null *OutRec)->*OutRec => assume r
     #[Swag.Inline]
-    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => n orelse cast(*IntersectNode) 1'u64
+    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => assume n
 
     public mtd opDrop()
     {
@@ -387,7 +387,7 @@ impl Transform
         e.prev.next = e.next
         e.next.prev = e.prev
         e.prev      = null
-        return e.next orelse cast(*Edge) 1'u64
+        return assume e.next
     }
 
     mtd addJoin(op1, op2: *OutPt, offPt: IntPoint)
@@ -1237,7 +1237,7 @@ impl Transform
         var outrec = .polyOuts[idx]
         while outrec != .polyOuts[outrec.idx] do
             outrec = .polyOuts[outrec.idx]
-        return outrec orelse cast(*OutRec) 1'u64
+        return assume outrec
     }
 
     mtd joinPoints(j: *Join, outRec1, outRec2: *OutRec)->bool
@@ -1681,7 +1681,7 @@ impl Transform
             else do
                 holeStateRec = getLowermostRec(nnOutRec(outRec1), nnOutRec(outRec2))
 
-            if !.joinPoints(join orelse cast(*Join) 1'u64, outRec1, outRec2) do
+            if !.joinPoints(assume join, outRec1, outRec2) do
                 continue
 
             if (outRec1 == outRec2)

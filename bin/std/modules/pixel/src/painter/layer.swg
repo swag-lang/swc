@@ -67,7 +67,7 @@ impl Layer
         .active        = true
         .resolved      = .renderScale == 1
 
-        let paintTarget = .paintTarget orelse cast(*RenderTarget) 1'u64
+        let paintTarget = assume .paintTarget
         with painter
         {
             .bindRenderTarget(paintTarget, info.paintAlpha)

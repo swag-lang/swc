@@ -186,7 +186,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         if !typeParam do
             throw SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
 
-        let field = typeParam orelse cast(const *Swag.TypeValue) 1'u64
+        let field = assume typeParam
         let typeField = field.pointedType orelse #typeof(u8)
 
         var addr = cast([*] u8) st

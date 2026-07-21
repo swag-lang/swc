@@ -56,8 +56,8 @@ impl ConcatBuffer
     {
         if !.firstBucket do
             return
-        let firstBucket = .firstBucket orelse cast(*ConcatBufferBucket) 1'u64
-        let lastBucket  = .lastBucket orelse cast(*ConcatBufferBucket) 1'u64
+        let firstBucket = assume .firstBucket
+        let lastBucket  = assume .lastBucket
 
         #if back
         {
@@ -66,7 +66,7 @@ impl ConcatBuffer
             {
                 var reverseBucket = firstBucket
                 while reverseBucket.next != tail do
-                    reverseBucket = reverseBucket.next orelse cast(*ConcatBufferBucket) 1'u64
+                    reverseBucket = assume reverseBucket.next
 
                 #inject(stmt, bucket = reverseBucket)
 
@@ -79,7 +79,7 @@ impl ConcatBuffer
         var b = .firstBucket
         while b != lastBucket.next
         {
-            let bucket = b orelse cast(*ConcatBufferBucket) 1'u64
+            let bucket = assume b
             #inject(stmt, bucket = bucket)
 
             b = bucket.next
@@ -100,9 +100,9 @@ impl ConcatBuffer
 
         if .lastBucket
         {
-            let lastBucket = .lastBucket orelse cast(*ConcatBufferBucket) 1'u64
-            let currentSP  = .currentSP orelse cast([*] u8) 1'u64
-            let datas      = lastBucket.datas orelse cast([*] u8) 1'u64
+            let lastBucket = assume .lastBucket
+            let currentSP  = assume .currentSP
+            let datas      = assume lastBucket.datas
 
             // Enough room in the last bucket
             let seek = cast(u64) (currentSP - datas)
@@ -113,7 +113,7 @@ impl ConcatBuffer
             // can old the bytes (because of a previous clear())
             if lastBucket.next and numBytes <= lastBucket.next.size
             {
-                let nextBucket = lastBucket.next orelse cast(*ConcatBufferBucket) 1'u64
+                let nextBucket = assume lastBucket.next
                 nextBucket.countBefore = lastBucket.countBefore + lastBucket.count
                 nextBucket.count       = 0
 
@@ -130,7 +130,7 @@ impl ConcatBuffer
 
         if .lastBucket
         {
-            let lastBucket = .lastBucket orelse cast(*ConcatBufferBucket) 1'u64
+            let lastBucket = assume .lastBucket
             newBucket.next   = lastBucket.next
             lastBucket.next = newBucket
         }
@@ -146,7 +146,7 @@ impl ConcatBuffer
         .curBucket, .lastBucket = newBucket
 
         let bsize = Math.max(.granularity, numBytes)
-        let lastBucket = .lastBucket orelse cast(*ConcatBufferBucket) 1'u64
+        let lastBucket = assume .lastBucket
         lastBucket.datas = Memory.alloc(bsize, .allocator)
         lastBucket.size  = bsize
         .currentSP       = lastBucket.datas
@@ -176,7 +176,7 @@ impl ConcatBuffer
         var ptr = .firstBucket
         while ptr
         {
-            let bucket  = ptr orelse cast(*ConcatBufferBucket) 1'u64
+            let bucket  = assume ptr
             let nextPtr = bucket.next
             Memory.free(bucket.datas, bucket.size, .allocator)
             if bucket != &.viewFirstBucket do
@@ -195,7 +195,7 @@ impl ConcatBuffer
         if !.firstBucket do
             return
 
-        let firstBucket = .firstBucket orelse cast(*ConcatBufferBucket) 1'u64
+        let firstBucket = assume .firstBucket
         .curBucket, .lastBucket = firstBucket
         .currentSP = firstBucket.datas
         firstBucket.countBefore, firstBucket.count = 0
@@ -207,9 +207,9 @@ impl ConcatBuffer
     {
         if !.isAtEnd
         {
-            let curBucket = .curBucket orelse cast(*ConcatBufferBucket) 1'u64
-            let currentSP = .currentSP orelse cast([*] u8) 1'u64
-            let datas     = curBucket.datas orelse cast([*] u8) 1'u64
+            let curBucket = assume .curBucket
+            let currentSP = assume .currentSP
+            let datas     = assume curBucket.datas
 
             // If not enough room in the current bucket, then we
             // have to split the content with the next bucket
@@ -227,8 +227,8 @@ impl ConcatBuffer
         else
         {
             .grow(#sizeof(T))
-            let curBucket = .curBucket orelse cast(*ConcatBufferBucket) 1'u64
-            let currentSP = .currentSP orelse cast([*] u8) 1'u64
+            let curBucket = assume .curBucket
+            let currentSP = assume .currentSP
             dref cast(*T) currentSP = val
             .currentSP += #sizeof(T)
             curBucket.count += #sizeof(T)
@@ -420,10 +420,11 @@ impl ConcatBuffer
     // See [[makeLinear]].
     mtd toSlice()->#null [..] u8
     {
-        if .lastBucket == .firstBucket do
-            let firstBucket = .firstBucket orelse cast(*ConcatBufferBucket) 1'u64
-            let datas       = firstBucket.datas orelse cast([*] u8) 1'u64
-            return @mkslice(datas, firstBucket.count)
+        if .lastBucket == .firstBucket
+        {
+            let firstBucket = assume .firstBucket
+            return @mkslice(firstBucket.datas, firstBucket.count)
+        }
         return null
     }
 
@@ -466,8 +467,8 @@ impl ConcatBuffer
         // Must be linear ?
         Debug.assert(.lastBucket == .firstBucket)
 
-        let firstBucket = .firstBucket orelse cast(*ConcatBufferBucket) 1'u64
-        let rdata     = firstBucket.datas orelse cast([*] u8) 1'u64
+        let firstBucket = assume .firstBucket
+        let rdata     = assume firstBucket.datas
         let rcount    = firstBucket.count
         let rcapacity = firstBucket.size
 

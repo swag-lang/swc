@@ -339,7 +339,7 @@ public impl IImageDecoder for Decoder
             let srcPtr     = base + srcOff
             checkBuffer(srcPtr, last, srcCount)
 
-            let dstPtr = (decoded.buffer orelse cast([*] u8) 1'u64) + cast(u64) rowStart * rowBytes
+            let dstPtr = (assume decoded.buffer) + cast(u64) rowStart * rowBytes
 
             if compression == COMPRESSION_PACKBITS
             {

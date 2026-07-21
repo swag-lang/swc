@@ -72,7 +72,7 @@ impl Image
                 let colH1   = Color.getBlend(colors.topLeft, colors.topRight, factor0)
                 let colH0   = Color.getBlend(colors.bottomLeft, colors.bottomRight, factor0)
                 let col     = Color.getBlend(colH0, colH1, factor1)
-                convertToRGBA8'PF(pix orelse cast([*] u8) 1'u64, col.r, col.g, col.b, col.a)
+                convertToRGBA8'PF(pix, col.r, col.g, col.b, col.a)
             }
         }
 

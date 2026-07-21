@@ -58,7 +58,7 @@ public impl Image
 
         if !found do
             throw UnsupportedFormatError{"no matching image encoder"}
-        let safeFound = found orelse cast(*ImageEncoder) 1'u64
+        let safeFound = assume found
 
         // Create an encoder instance
         let ptrEncoder = Memory.new(safeFound.type)

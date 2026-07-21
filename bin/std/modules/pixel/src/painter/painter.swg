@@ -406,7 +406,7 @@ impl Painter
             cmd.drawTriangles.count = 0
         }
 
-        return cmd orelse cast(*Command) 1'u64
+        return assume cmd
     }
 
     private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
@@ -536,7 +536,7 @@ impl Painter
 
         // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count and .commandBuffer.buffer[.commandBuffer.count - 1].id == cmd do
-            return (.commandBuffer.buffer orelse cast([*] Command) 1'u64) + .commandBuffer.count - 1
+            return (assume .commandBuffer.buffer) + .commandBuffer.count - 1
 
         let ptr = .commandBuffer.emplaceAddress(1)
         ptr.id = cmd
@@ -974,7 +974,7 @@ impl Painter
         if !tgt do
             return
         let cmd = .newCommand(.ReleaseRenderTarget)
-        cmd.renderTgt.tgt = tgt orelse cast(*RenderTarget) 1'u64
+        cmd.renderTgt.tgt = assume tgt
     }
 
     // Set the current shader

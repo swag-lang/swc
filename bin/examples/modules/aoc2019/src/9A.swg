@@ -47,11 +47,11 @@ private func run(op: &Array's64, input: s64)->s64
         if offset >= op.count
         {
             op.grow(offset + 1)
-            Memory.clear((op.buffer orelse cast([*] s64) 1'u64) + op.count, (op.capacity - op.count) * #sizeof(s64))
+            Memory.clear((assume op.buffer) + op.count, (op.capacity - op.count) * #sizeof(s64))
             op.count = offset + 1
         }
 
-        return (op.buffer orelse cast([*] s64) 1'u64) + offset
+        return (assume op.buffer) + offset
     }
 
     while op[ip] != 99

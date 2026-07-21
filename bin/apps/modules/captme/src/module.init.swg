@@ -9,6 +9,5 @@
 
 func captmeFont(font: #null *Font)->*Font
 {
-    Debug.assert(font != null)
-    return font orelse cast(*Font) 1'u64
+    return assume font
 }

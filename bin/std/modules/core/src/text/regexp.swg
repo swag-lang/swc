@@ -1290,7 +1290,7 @@ impl RegExp
         nfaStart.addOnce(table.nodes.front())
         dfaEClosure(&nfaStart, &dfaStart)
 
-        var state = Memory.new'DfaNode() orelse cast(*DfaNode) 1'u64
+        var state = Memory.new'DfaNode()
         .setTable(state, &dfaStart)
         .dfaNodes.add(state)
 
@@ -1319,7 +1319,7 @@ impl RegExp
 
                 if !found
                 {
-                    let newNode = Memory.new'DfaNode() orelse cast(*DfaNode) 1'u64
+                    let newNode = Memory.new'DfaNode()
                     found = newNode
                     .setTable(newNode, &epsilonRes)
                     stack.add(newNode)

@@ -675,9 +675,7 @@ impl MainWnd
                 if id == ActionToolMode.Callout do
                     .sigPaintIcon = func(btn, bc, pos, flags)
                     {
-                        drawCalloutGlyph(btn orelse cast(*IconButton) 1'u64,
-                                         bc orelse cast(*PaintContext) 1'u64,
-                                         pos, flags)
+                        drawCalloutGlyph(btn, bc, pos, flags)
                     }
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedIcon         $btnIcon_CheckedMark")
@@ -813,7 +811,7 @@ impl MainWnd
             .addItem({}, ActionRecentSize.RecentBig, .Checkable)
         }
 
-        with res.recentWnd = RecentWnd.create(res.recentBar orelse cast(*Wnd) 1'u64, res)
+        with res.recentWnd = RecentWnd.create(assume res.recentBar, res)
         {
             .dockStyle = .Center
         }
@@ -826,8 +824,8 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        res.quickWnd = QuickWnd.create(res.quickStyleBar orelse cast(*SplitterCtrl) 1'u64, res)
-        res.propWnd  = PropWnd.create(res.quickStyleBar orelse cast(*SplitterCtrl) 1'u64, res)
+        res.quickWnd = QuickWnd.create(assume res.quickStyleBar, res)
+        res.propWnd  = PropWnd.create(assume res.quickStyleBar, res)
 
         with let quickPane = res.quickStyleBar.addPane(assume res.quickWnd, title: true)
         {

@@ -127,7 +127,7 @@ impl Decoder
 
     mtd safeDstPixels()->[*] u8
     {
-        return .dstPixels orelse cast([*] u8) 1'u64
+        return assume .dstPixels
     }
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk throw
@@ -351,7 +351,7 @@ impl Decoder
         // A temporary line "before" the first one, if filter needs one
         var tmpRow: Array'u8
         tmpRow.resize(rowStrideOut)
-        let tmpRowBuffer = tmpRow.buffer orelse cast([*] u8) 1'u64
+        let tmpRowBuffer = assume tmpRow.buffer
         Memory.clear(tmpRowBuffer, rowStrideOut)
         var up = tmpRowBuffer
 
@@ -465,7 +465,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input   = .dcmpBuf.buffer orelse cast([*] u8) 1'u64
+        var input   = assume .dcmpBuf.buffer
         for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -474,7 +474,7 @@ impl Decoder
                 continue
 
             tmpArr.resize(cast(u64) (x * y * .inChannels))
-            let tmpBuffer = tmpArr.buffer orelse cast([*] u8) 1'u64
+            let tmpBuffer = assume tmpArr.buffer
             Memory.clear(tmpBuffer, tmpArr.count)
 
             .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
@@ -504,7 +504,7 @@ impl Decoder
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
-            let input = .dcmpBuf.buffer orelse cast([*] u8) 1'u64
+            let input = assume .dcmpBuf.buffer
             .defilter(.header.width, .header.height, input, .safeDstPixels())
         }
         else

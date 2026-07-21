@@ -23,8 +23,7 @@ func audioAssertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 func audioAssertBufferBytes(actual: #null [*] void, actualSize: u64, expected: const [..] u8)
 {
     @assert(actualSize == @countof(expected))
-    let safeActual = actual orelse cast([*] void) 1'u64
-    @assert(audioAssertBytes(@mkslice(cast(const [*] u8) safeActual, actualSize), expected))
+    @assert(audioAssertBytes(@mkslice(cast(#null const [*] u8) actual, actualSize), expected))
 }
 
 func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
@@ -54,7 +53,7 @@ func audioDecodePcmToPcm16(srcEncoding: SoundFileEncoding, src: [..] u8, destCap
     var result: retval
     result.dest.resize(destCapacity)
     let itf = @mkinterface(&codec, #typeof(CodecPcmToPcm16), ICodec)
-    let destBuffer = result.dest.buffer orelse cast([*] u8) 1'u64
+    let destBuffer = assume result.dest.buffer
     result.used = itf.decode(destBuffer, result.dest.count, @dataof(src), @countof(src))
     return result
 }

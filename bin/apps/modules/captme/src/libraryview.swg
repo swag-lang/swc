@@ -317,7 +317,7 @@ impl LibraryView
                 .items.add(assume it)
                 continue
             }
-            let loaded = capture orelse cast(*Capture) 1'u64
+            let loaded = assume capture
             if !loaded.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
                 continue
             if loaded.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do

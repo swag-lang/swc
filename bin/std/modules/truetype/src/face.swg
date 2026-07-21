@@ -78,7 +78,7 @@ public impl Face
 
         let faceData = Memory.new'FaceImpl()
         faceData.fontData.resize(@countof(bytes))
-        let fontData = faceData.fontData.buffer orelse cast([*] u8) 1'u64
+        let fontData = assume faceData.fontData.buffer
         Memory.copy(fontData, @dataof(bytes), @countof(bytes))
         parseFace(faceData)
         return &faceData.face
@@ -147,7 +147,7 @@ public impl Face
         let faceData = cast(#null *FaceImpl) cast(*void) me
         if !faceData do
             return 0
-        let safeFaceData = faceData orelse cast(*FaceImpl) 1'u64
+        let safeFaceData = assume faceData
         let idx = catch lookupGlyphIndex(safeFaceData, cast(u32) charCode)
         return @err != null ? 0 : idx
     }

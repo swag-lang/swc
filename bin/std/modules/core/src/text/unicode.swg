@@ -172,8 +172,7 @@ public func fromUtf8(src: const [..] u8)->Array'rune
 {
     var result: retval
     result.reserve(@countof(src))
-    let buffer = result.buffer orelse cast([*] rune) 1'u64
-    result.count = fromUtf8(@mkslice(buffer, @countof(src)), src)
+    result.count = fromUtf8(@mkslice(result.buffer, @countof(src)), src)
     return result
 }
 

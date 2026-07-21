@@ -25,8 +25,8 @@ impl HeadlessFixture
         .main.editWnd.setPosition({x: 0, y: 0, width: width, height: height})
         .main.editWnd.editView.setPosition({x: 0, y: 0, width: width, height: height})
 
-        let editWnd = .main.editWnd orelse cast(*EditWnd) 1'u64
-        .editView        = editWnd.editView orelse cast(*EditView) 1'u64
+        let editWnd = assume .main.editWnd
+        .editView        = assume editWnd.editView
         let localCapture = Memory.new'Capture()
         localCapture.width, localCapture.widthOrg = 400
         localCapture.height, localCapture.heightOrg = 300
@@ -56,7 +56,7 @@ impl HeadlessFixture
         view.scrollWnd = scroll
         scroll.setView(view)
         .main.libWnd.view = view
-        return .main.libWnd orelse cast(*LibraryWnd) 1'u64
+        return assume .main.libWnd
     }
 
     mtd shutdown()

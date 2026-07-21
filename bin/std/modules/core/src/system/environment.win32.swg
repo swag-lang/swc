@@ -255,7 +255,7 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 var g_StoreArgs: String
 func getNativeArgs()->string
 {
-    let ptr = GetCommandLineW() orelse cast(const [*] u16) 1'u64
+    let ptr = GetCommandLineW()
     g_StoreArgs = Utf8.fromUtf16(@mkslice(ptr, Utf16.lengthZeroTerminated(ptr)))
 
     if @countof(@pinfos.args) do
@@ -320,7 +320,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     if msg == WM_CREATE
     {
         let createStruct = cast(*CREATESTRUCTA) cast(u64) lParam
-        let createParam = createStruct.lpCreateParams orelse cast(*void) 1'u64
+        let createParam = assume createStruct.lpCreateParams
         SetWindowLongPtrA(hWnd, GWLP_USERDATA, createParam)
 
         let window = cast(*Window) createParam
@@ -330,7 +330,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     let window = getWindowFromHandle(hWnd)
     if window
     {
-        let safeWindow = window orelse cast(*Window) 1'u64
+        let safeWindow = assume window
         switch msg
         {
         case WM_PAINT:

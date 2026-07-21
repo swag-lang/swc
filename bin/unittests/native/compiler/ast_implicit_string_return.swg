@@ -11,7 +11,7 @@ impl AstGeneratedString
     #[Implicit]
     mtd const opCast()->string
     {
-        return @mkstring(.buffer orelse cast([*] u8) 1'u64, .length)
+        return @mkstring(.buffer, .length)
     }
 }
 

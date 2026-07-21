@@ -175,7 +175,7 @@ impl MainWnd
         // Clone the model of the given mode, whatever its concrete type
         let mdlItf  = .editModeToModel(mode)
         let mdlType = @kindof(mdlItf)
-        let mdl     = cast(*BaseForm) (Memory.new(mdlType) orelse cast([*] u8) 1'u64)
+        let mdl     = cast(*BaseForm) assume Memory.new(mdlType)
         mdlItf.copy(mdl, cast(*BaseForm) @dataof(mdlItf))
 
         // A new form starts without the model content, just its style
@@ -203,7 +203,7 @@ impl MainWnd
 
     func newFormFromForm(it: IForm)->*BaseForm
     {
-        let mdlValue = cast(*BaseForm) (Memory.new(@kindof(it)) orelse cast([*] u8) 1'u64)
+        let mdlValue = cast(*BaseForm) assume Memory.new(@kindof(it))
         it.copy(mdlValue, cast(*BaseForm) @dataof(it))
         return mdlValue
     }

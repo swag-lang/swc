@@ -14,14 +14,14 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
         .splitterFlags.add(.HideBars)
     }
 
-    let splitter = f.main.quickStyleBar orelse cast(*SplitterCtrl) 1'u64
+    let splitter = assume f.main.quickStyleBar
     f.main.quickWnd = QuickWnd.create(splitter, f.main)
     f.main.propWnd  = PropWnd.create(splitter, f.main)
     discard f.main.quickStyleBar.addPane(assume f.main.quickWnd, title: true)
     discard f.main.quickStyleBar.addPane(assume f.main.propWnd, title: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
-    return f.main.propWnd orelse cast(*PropWnd) 1'u64
+    return assume f.main.propWnd
 }
 
 func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem

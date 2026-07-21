@@ -15,7 +15,7 @@ impl Image
                 let dstImage = cast(*Image) (assume userData)
                 var pixDst   = dstImage.pixels.buffer + (image.width - x - 1) * image.bpp8
                 pixDst += cast(u64) (y * (image.width * image.bpp8))
-                copyPixelDirect'BPP(cast([*] u8) (pixDst orelse cast([*] u8) 1'u64), cast([*] u8) (pix orelse cast([*] u8) 1'u64))
+                copyPixelDirect'BPP(cast([*] u8) (assume pixDst), cast([*] u8) pix)
             }
         }
 

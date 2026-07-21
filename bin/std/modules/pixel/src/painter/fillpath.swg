@@ -41,7 +41,7 @@ public impl Painter
         // Triangulation
         if p.triangles.triIndices.count == 0
         {
-            let tess = t orelse cast(*Poly2Tri.Tessellate) 1'u64
+            let tess = assume t
             tess.triangulate()
             p.triangles = tess.getResult()
             tess.clear()
@@ -202,7 +202,7 @@ public impl Painter
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
                 serial = p.serial
-                .fillPathTriangulated(dirty ? &.tess : null, flush orelse cast(*LinePath) 1'u64, pathList.bvMin, pathList.bvMax, brush)
+                .fillPathTriangulated(dirty ? &.tess : null, assume flush, pathList.bvMin, pathList.bvMax, brush)
                 flush = null
             }
 
@@ -215,7 +215,7 @@ public impl Painter
         }
 
         if flush do
-            .fillPathTriangulated(dirty ? &.tess : null, flush orelse cast(*LinePath) 1'u64, pathList.bvMin, pathList.bvMax, brush)
+            .fillPathTriangulated(dirty ? &.tess : null, assume flush, pathList.bvMin, pathList.bvMax, brush)
     }
 
     // Fill the polygon with the given color

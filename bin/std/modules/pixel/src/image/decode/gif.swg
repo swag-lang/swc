@@ -508,7 +508,7 @@ public impl Decoder
         {
             let size = cast(u64) .width * cast(u64) .height
             .frame.resize(4 * size)
-            let frame = .frame.buffer orelse cast([*] u8) 1'u64
+            let frame = assume .frame.buffer
             Memory.set(frame, .bgIndex, size)
             .canvas = &.frame.buffer[size]
 

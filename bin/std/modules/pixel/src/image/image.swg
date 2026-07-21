@@ -113,8 +113,7 @@ impl Image
 
     mtd safeWorkingBuffer()->*Image
     {
-        Debug.assert(.workingBuffer != null)
-        return .workingBuffer orelse cast(*Image) 1'u64
+        return assume .workingBuffer
     }
 
     // Free the working buffer if allocated
@@ -181,8 +180,7 @@ impl Image
     // Clear the content of the image
     mtd clear()
     {
-        Debug.assert(.pixels.buffer != null)
-        let pixels = .pixels.buffer orelse cast([*] u8) 1'u64
+        let pixels = assume .pixels.buffer
         Memory.clear(pixels, .size)
     }
 

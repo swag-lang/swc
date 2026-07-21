@@ -26,7 +26,7 @@ impl Image
                     let nx       = srcImage.width - y - 1
                     let ny       = x
                     let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bpp8) + (ny * srcImage.width8)
-                    copyPixelDirect'BPP(cast([*] u8) (pix orelse cast([*] u8) 1'u64), cast([*] u8) (pixSrc orelse cast([*] u8) 1'u64))
+                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (assume pixSrc))
                 }
 
             case T180:
@@ -37,7 +37,7 @@ impl Image
                     let nx       = srcImage.width - x - 1
                     let ny       = srcImage.height - y - 1
                     let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bpp8) + (ny * srcImage.width8)
-                    copyPixelDirect'BPP(cast([*] u8) (pix orelse cast([*] u8) 1'u64), cast([*] u8) (pixSrc orelse cast([*] u8) 1'u64))
+                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (assume pixSrc))
                 }
 
             case T270:
@@ -48,7 +48,7 @@ impl Image
                     let nx       = y
                     let ny       = srcImage.height - x - 1
                     let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bpp8) + (ny * srcImage.width8)
-                    copyPixelDirect'BPP(cast([*] u8) (pix orelse cast([*] u8) 1'u64), cast([*] u8) (pixSrc orelse cast([*] u8) 1'u64))
+                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (assume pixSrc))
                 }
             }
         }

@@ -94,8 +94,7 @@ func fromUtf8(src: const [..] u8)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src))
-    let buffer = result.buffer orelse cast([*] u16) 1'u64
-    result.count = fromUtf8(@mkslice(buffer, result.capacity), src)
+    result.count = fromUtf8(@mkslice(result.buffer, result.capacity), src)
     return result
 }
 
@@ -123,8 +122,7 @@ func fromUnicode(src: const [..] rune)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src))
-    let buffer = result.buffer orelse cast([*] u16) 1'u64
-    result.count = fromUnicode(@mkslice(buffer, result.capacity), src)
+    result.count = fromUnicode(@mkslice(result.buffer, result.capacity), src)
     return result
 }
 
@@ -133,7 +131,7 @@ func toZeroTerminated(src: string)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src) + 1)
-    let buffer = result.buffer orelse cast([*] u16) 1'u64
+    let buffer = assume result.buffer
     result.count             = Utf16.fromUtf8(@mkslice(buffer, result.capacity), src) + 1
     result[result.count - 1] = 0
     return result

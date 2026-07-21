@@ -49,8 +49,8 @@ using Swag, Core
         .splitterFlags.add(.HideBars)
     }
 
-    f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar orelse cast(*SplitterCtrl) 1'u64, f.main)
-    f.main.propWnd  = PropWnd.create(f.main.quickStyleBar orelse cast(*SplitterCtrl) 1'u64, f.main)
+    f.main.quickWnd = QuickWnd.create(assume f.main.quickStyleBar, f.main)
+    f.main.propWnd  = PropWnd.create(assume f.main.quickStyleBar, f.main)
     with let quickPane = f.main.quickStyleBar.addPane(assume f.main.quickWnd, title: true)
     {
         .tryPreserveSize = true

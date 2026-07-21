@@ -80,7 +80,7 @@ func getFaceImpl(face: #null *Face)->*FaceImpl throw
 {
     if !face do
         fail(0x23)
-    let safeFace = face orelse cast(*Face) 1'u64
+    let safeFace = assume face
     let faceData = cast(*FaceImpl) cast(*void) safeFace
     if !faceData do
         fail(0x23)

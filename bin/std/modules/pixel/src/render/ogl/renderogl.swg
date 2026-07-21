@@ -1249,7 +1249,7 @@ impl RenderOgl
             if rt.colorBuffer.width == w2 and rt.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(i)
-                return rt orelse cast(*RenderTarget) 1'u64
+                return assume rt
             }
         }
 
@@ -1258,7 +1258,7 @@ impl RenderOgl
             if rt.colorBuffer.width >= w2 and rt.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(i)
-                return rt orelse cast(*RenderTarget) 1'u64
+                return assume rt
             }
         }
 

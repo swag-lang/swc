@@ -77,8 +77,7 @@ impl Array
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
-        Debug.assert(.buffer != null)
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return @mkslice(buffer + lower, (upper + 1) - lower)
     }
 
@@ -87,8 +86,7 @@ impl Array
     mtd const opIndex(index: u64)->const &T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        Debug.assert(.buffer != null)
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return buffer + index
     }
 
@@ -97,8 +95,7 @@ impl Array
     mtd opIndex(index: u64)->&T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        Debug.assert(.buffer != null)
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return buffer + index
     }
 
@@ -166,7 +163,7 @@ impl Array
     {
         if !.count do
             return
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         #if back do
@@ -201,7 +198,7 @@ impl Array
     mtd ref1(x: u64)->&T
     {
         Debug.safetyBoundCheck(x < .count, "index out of range")
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return buffer + x
     }
 
@@ -211,7 +208,7 @@ impl Array
     mtd ref2(x, y, w: u64)->&T
     {
         Debug.safetyBoundCheck(x + y * w < .count, "index out of range")
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return buffer + x + y * w
     }
 
@@ -278,10 +275,10 @@ impl Array
     mtd const isEmpty() => .count == 0
 
     // Returns a mutable slice containing all elements of the array.
-    mtd toSlice()->[..] T => @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
+    mtd toSlice()->[..] T => @mkslice(.buffer, .count)
 
     // Returns an immutable slice containing all elements of the array.
-    mtd const toSlice()->const [..] T => @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
+    mtd const toSlice()->const [..] T => @mkslice(.buffer, .count)
 
     #[Inline]
     mtd initNewSlots(index, num: u64)
@@ -404,7 +401,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return buffer + .count - num
     }
 
@@ -414,7 +411,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         var res = buffer + .count - num
         @init(res, num)
         return res
@@ -698,7 +695,7 @@ impl Array
     {
         if .count <= 1 do
             return
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => x <=> y)
     }
 
@@ -708,7 +705,7 @@ impl Array
     {
         if .count <= 1 do
             return
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => y <=> x)
     }
 
@@ -718,7 +715,7 @@ impl Array
         Debug.assert(cb != null)
         if .count <= 1 do
             return
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         Slice.sort(@mkslice(buffer, .count), cb)
     }
 
@@ -736,7 +733,7 @@ impl Array
     mtd frontPtr()->*T
     {
         Debug.assert(.count > 0, "array is empty")
-        return .buffer orelse cast(*T) 1'u64
+        return assume .buffer
     }
 
     // Returns a copy of the last element of the array.
@@ -753,7 +750,7 @@ impl Array
     mtd backPtr()->*T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer = .buffer orelse cast([*] T) 1'u64
+        let buffer = assume .buffer
         return buffer + .count - 1
     }
 

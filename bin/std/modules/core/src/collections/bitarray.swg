@@ -27,12 +27,12 @@ impl BitArray
 
     mtd dataPtr()->[*] u32
     {
-        return .buffer orelse cast([*] u32) 1'u64
+        return assume .buffer
     }
 
     mtd const constDataPtr()->const [*] u32
     {
-        return cast(const [*] u32) (.buffer orelse cast([*] u32) 1'u64)
+        return cast(const [*] u32) (assume .buffer)
     }
 
     // Frees the memory allocated by the bit array.
@@ -152,7 +152,7 @@ public impl BitArray
         if totalWords << 5 < .count do
             totalWords += 1
         var countBits  = 0'u64
-        let buffer     = .buffer orelse cast([*] u32) 1'u64
+        let buffer     = assume .buffer
 
         #scope(Up)
         for idx in totalWords

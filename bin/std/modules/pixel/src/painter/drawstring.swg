@@ -409,7 +409,7 @@ impl Painter
         var result: retval
         if !font do
             return result
-        let localFont = font orelse cast(*Font) 1'u64
+        let localFont = assume font
         let desc = localFont.getGlyphDesc(c)
         let sc   = localFont.scale()
         result.x = desc.advanceX * sc
@@ -712,7 +712,7 @@ impl Painter
         {
             // Attributes
             let fs = c.hasFontStyle ? c.fontStyle : format.fontStyle
-            c.font = format.font.getFont(fs) orelse cast(*Font) 1'u64
+            c.font = assume format.font.getFont(fs)
 
             // Measure
             c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)

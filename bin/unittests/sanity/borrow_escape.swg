@@ -940,8 +940,7 @@ impl BorrowEscapeOwned
     #[Swag.Implicit, Swag.Inline]
     mtd const opCast()->string
     {
-        let buffer = .buffer orelse cast([*] u8) 1'u64
-        return @mkstring(buffer, .length)
+        return @mkstring(.buffer, .length)
     }
 }
 

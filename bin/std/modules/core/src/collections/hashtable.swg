@@ -515,7 +515,7 @@ impl HashTable
     {
         let it = .tryFind(key)
         if it do
-            return it orelse cast(*HashTableEntry) 1'u64
+            return assume it
         var val: V
         return .add(key, val)
     }

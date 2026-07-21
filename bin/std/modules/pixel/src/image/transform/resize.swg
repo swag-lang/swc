@@ -407,7 +407,7 @@ namespace ResizeTools
                 let fx     = cast(u32) (x * params.xscale)
                 let fy     = cast(u32) (y * params.yscale)
                 let pixSrc = params.srcImage.pixels.buffer + (fx * image.bpp8) + (fy * params.srcImage.width * image.bpp8)
-                Image.copyPixelDirect'BPP(cast([*] u8) (pix orelse cast([*] u8) 1'u64), cast([*] u8) (pixSrc orelse cast([*] u8) 1'u64))
+                Image.copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (assume pixSrc))
             }
         }
 

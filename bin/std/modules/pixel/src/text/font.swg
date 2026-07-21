@@ -164,7 +164,7 @@ private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, render
 
     let here = g_HashGlyphCache.tryFind(key)
     if here do
-        return here.value orelse cast(*GlyphCache) 1'u64
+        return assume here.value
 
     let cache = Memory.new'GlyphCache()
     cache.typeFace    = typeFace
@@ -260,7 +260,7 @@ public impl Font
 
         let here = g_HashFont.tryFind(str)
         if here do
-            return here.value orelse cast(*Font) 1'u64
+            return assume here.value
 
         let cache = acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
 
@@ -318,7 +318,7 @@ public impl Font
         // Fast path: same on-screen size as the previous draw (the common case for a
         // given widget) returns the already-resolved view with no lookup or lock.
         if px == font.drawResolvePx do
-            return font.drawResolveFont orelse cast(*Font) 1'u64
+            return assume font.drawResolveFont
 
         let view = createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
 
@@ -403,7 +403,7 @@ public impl GlyphCache
     {
         let entry = .glyphRef.tryFind(glyphIndex)
         if entry do
-            return cast(const *GlyphDesc) (entry.value orelse cast(*GlyphDesc) 1'u64)
+            return cast(const *GlyphDesc) (assume entry.value)
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
@@ -439,7 +439,7 @@ public impl GlyphCache
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide
             newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)
-            let datas = newAtlas.datas.buffer orelse cast([*] u8) 1'u64
+            let datas = assume newAtlas.datas.buffer
             Memory.clear(datas, newAtlas.datas.count)
             .atlases.add(newAtlas)
             atlas = &.atlases.buffer[.atlases.count - 1]

@@ -103,20 +103,17 @@ struct AdvancingFront
 
 func nnPoint(p: #null *Point)->*Point
 {
-    Debug.assert(p != null)
-    return p orelse cast(*Point) 1'u64
+    return assume p
 }
 
 func nnNode(n: #null *Node)->*Node
 {
-    Debug.assert(n != null)
-    return n orelse cast(*Node) 1'u64
+    return assume n
 }
 
 func nnTriangle(t: #null *Triangle)->*Triangle
 {
-    Debug.assert(t != null)
-    return t orelse cast(*Triangle) 1'u64
+    return assume t
 }
 
 impl Result

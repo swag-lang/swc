@@ -170,14 +170,14 @@ impl InPlaceEditWnd
         switch actionId
         {
         case "copy":
-            let cap = me.capture orelse cast(*Capture) 1'u64
+            let cap = assume me.capture
             cap.crop()
             cap.copyAll()
             exitWithResult(false)
         case "close":
             exitWithResult(false)
         case "edit":
-            let cap = me.capture orelse cast(*Capture) 1'u64
+            let cap = assume me.capture
             cap.crop()
             exitWithResult(true)
         case "save":
@@ -187,7 +187,7 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if !fileName.isEmpty()
             {
-                let cap = me.capture orelse cast(*Capture) 1'u64
+                let cap = assume me.capture
                 cap.crop()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)

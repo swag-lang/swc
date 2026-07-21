@@ -5,7 +5,7 @@ using Win32
 
 private func threadEntry(param: #null *void)->DWORD
 {
-    let safeParam = param orelse cast(*void) 1'u64
+    let safeParam = assume param
     let th = cast(*Thread) safeParam
     @setcontext(th.context)
     let lambda = th.userLambda

@@ -54,7 +54,7 @@ impl FaceScope
 
 func getFaceData(face: #null *Face)->*FaceImpl
 {
-    let safeFace = face orelse cast(*Face) 1'u64
+    let safeFace = assume face
     return cast(*FaceImpl) cast(*void) safeFace
 }
 

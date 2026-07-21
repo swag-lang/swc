@@ -49,7 +49,7 @@ namespace GenericCloneCodegenSupport
 
         mtd toSlice()->[..] T
         {
-            return @mkslice(.buffer orelse cast([*] T) 1'u64, .count)
+            return @mkslice(.buffer, .count)
         }
 
         mtd add(value: T)

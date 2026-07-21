@@ -222,8 +222,8 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeSampleBuf()->[*] u8 => .pSampleBuf orelse cast([*] u8) 1'u64
-    mtd safeInBufOfs()->[*] u8 => .inBufOfs orelse cast([*] u8) 1'u64
+    mtd safeSampleBuf()->[*] u8 => assume .pSampleBuf
+    mtd safeInBufOfs()->[*] u8 => assume .inBufOfs
 
     mtd init(buffer: const [..] u8) throw
     {
@@ -725,8 +725,8 @@ impl Decoder
 
     mtd transformRow()
     {
-        var psrcPtr = .blockSeg[0] orelse cast([*] s16) 1'u64
-        var pdstPtr = .pSampleBuf orelse cast([*] u8) 1'u64
+        var psrcPtr = assume .blockSeg[0]
+        var pdstPtr = assume .pSampleBuf
 
         for .maxBlocksPerRow
         {
@@ -1052,11 +1052,11 @@ impl Decoder
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
         .scanLine0.resize(cast(u64) .destBytesPerScanLine + 8)
-        let scanLine0 = .scanLine0.buffer orelse cast([*] u8) 1'u64
+        let scanLine0 = assume .scanLine0.buffer
         Memory.clear(scanLine0, cast(u64) .destBytesPerScanLine)
 
         .scanLine1.resize(cast(u64) .destBytesPerScanLine + 8)
-        let scanLine1 = .scanLine1.buffer orelse cast([*] u8) 1'u64
+        let scanLine1 = assume .scanLine1.buffer
         Memory.clear(scanLine1, cast(u64) .destBytesPerScanLine)
 
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu

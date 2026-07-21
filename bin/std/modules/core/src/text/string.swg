@@ -42,15 +42,13 @@ impl String
     #[Implicit, Inline]
     mtd const opCast()->string
     {
-        let buffer = .buffer orelse cast([*] u8) 1'u64
-        return @mkstring(buffer, .length)
+        return @mkstring(.buffer, .length)
     }
 
     #[Implicit, Inline]
     mtd const opCast()->const [..] u8
     {
-        let buffer = .buffer orelse cast([*] u8) 1'u64
-        return @mkslice(buffer, .length)
+        return @mkslice(.buffer, .length)
     }
 
     #[Implicit]
@@ -661,24 +659,21 @@ impl String
     #[Inline]
     mtd const toString()->string
     {
-        let buffer = .buffer orelse cast([*] u8) 1'u64
-        return @mkstring(buffer, .length)
+        return @mkstring(.buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
     mtd toSlice()->[..] u8
     {
-        let buffer = .buffer orelse cast([*] u8) 1'u64
-        return @mkslice(buffer, .length)
+        return @mkslice(.buffer, .length)
     }
 
     // Returns a slice type
     #[Inline]
     mtd const toSlice()->const [..] u8
     {
-        let buffer = .buffer orelse cast([*] u8) 1'u64
-        return @mkslice(buffer, .length)
+        return @mkslice(.buffer, .length)
     }
 
     // Convert the string inplace to upper case.

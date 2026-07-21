@@ -64,7 +64,7 @@ public impl ByteStream
 
         if seek + #sizeof(T) > writeBuffer.count do
             writeBuffer.reserve(seek + #sizeof(T))
-        let buffer = writeBuffer.buffer orelse cast([*] u8) 1'u64
+        let buffer = assume writeBuffer.buffer
         var ptr = cast(*T) (buffer + seek)
         dref ptr = val
         seek += #sizeof(T)
@@ -82,7 +82,7 @@ public impl ByteStream
 
         if .seek + count > .writeBuffer.count do
             .writeBuffer.reserve(.seek + count)
-        let buffer = .writeBuffer.buffer orelse cast([*] u8) 1'u64
+        let buffer = assume .writeBuffer.buffer
         let ptr = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
         .seek += count

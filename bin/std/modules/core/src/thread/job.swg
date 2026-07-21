@@ -99,7 +99,7 @@ func peekExecJob()->bool
     let job = getJobToExec()
     if !job do
         return false
-    runJob(job orelse cast(*Job) 1'u64)
+    runJob(assume job)
     return true
 }
 
@@ -225,7 +225,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
 
     func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(*SliceJob'T) (jobData orelse cast(*void) 1'u64)
+        let oneJob = cast(*SliceJob'T) (assume jobData)
         visitSlice(oneJob.buffer, oneJob.offset, oneJob.contextData)
     }
 
@@ -234,7 +234,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
         let scan = @dataof(sliceBuffer)
         if !scan do
             return
-        var safeScan = scan orelse cast(const [*] T) 1'u64
+        var safeScan = assume scan
         let countof = @countof(sliceBuffer)
         for countof / sliceOffset
         {
@@ -295,7 +295,7 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
 
     func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(*ForJob) (jobData orelse cast(*void) 1'u64)
+        let oneJob = cast(*ForJob) (assume jobData)
         visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.contextData)
     }
 

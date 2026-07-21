@@ -96,7 +96,7 @@ func localForMacroInject(count: s32, contextData: #null *void = null, stmt: #cod
     var runs = 0
     localForMacroInject(3, &runs)
     {
-        discard @atomadd(cast(*s32) (assume data), 1)
+        discard @atomadd(cast(*s32) (notnull data), 1)
     }
     @assert(runs == 3)
 }
@@ -132,7 +132,7 @@ func outerMacroDoubleInject(ctxData: #null *void = null, stmt: #code(data: #null
     var c = 0
     outerMacroDoubleInject(&c)
     {
-        discard @atomadd(cast(*s32) (assume data), 1)
+        discard @atomadd(cast(*s32) (notnull data), 1)
     }
     @assert(c == 3)
 }

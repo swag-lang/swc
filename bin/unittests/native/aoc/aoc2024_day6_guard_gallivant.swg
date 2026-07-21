@@ -71,7 +71,7 @@ func allocBytes(size: u32)->[*] u8
 {
     let ptr = cast(#null [*] u8) @alloc(cast(u64) size)
     @assert(ptr != null)
-    return assume ptr
+    return notnull ptr
 }
 
 func zeroBytes(ptr: [*] u8, count: u32)

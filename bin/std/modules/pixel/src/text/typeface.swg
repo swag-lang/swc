@@ -83,14 +83,14 @@ public impl TypeFace
 
         let here = g_HashTypeFace.tryFind(fullname)
         if here do
-            return assume here.value
+            return notnull here.value
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = bytes
 
         let face = try Face.load(tf.buffer.toSlice())
-        tf.face  = assume face
+        tf.face  = notnull face
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -103,7 +103,7 @@ public impl TypeFace
 
         let here = g_HashTypeFace.tryFind(fullname)
         if here do
-            return assume here.value
+            return notnull here.value
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
@@ -120,7 +120,7 @@ public impl TypeFace
         }
 
         let face = try Face.load(tf.buffer.toSlice())
-        tf.face  = assume face
+        tf.face  = notnull face
 
         g_HashTypeFace.add(fullname, tf)
         return tf

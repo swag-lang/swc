@@ -140,7 +140,7 @@ impl IWnd for RichEditView
             .invalidate()
 
         case KillFocus:
-            .surface.app.deleteTimer(assume .timerCaret)
+            .surface.app.deleteTimer(notnull .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -233,7 +233,7 @@ impl IWnd for RichEditView
                 {
                     let prevLine = i ? .ed.lines[i - 1] : null
                     let nextLine = i != .ed.lines.count - 1 ? .ed.lines[i + 1] : null
-                    .ed.lexer.compute(prevLine, assume l, nextLine)
+                    .ed.lexer.compute(prevLine, notnull l, nextLine)
                 }
 
                 .ed.wrap(i)

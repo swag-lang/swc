@@ -8,7 +8,7 @@ impl Properties
 
     mtd reconstructArray(item: *PropertiesItem)
     {
-        let valueType        = assume Reflection.getStructArrayType(item.type)
+        let valueType        = notnull Reflection.getStructArrayType(item.type)
         let arrData          = cast(#null *Array'u8) item.data
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
@@ -47,7 +47,7 @@ impl Properties
         // Update state of all newly added items
         item.numChilds = numAddedChilds
         for i in item.numChilds do
-            .updateItemState(assume .items[itemIdx + i + 1])
+            .updateItemState(notnull .items[itemIdx + i + 1])
     }
 
     mtd refreshArray(item: *PropertiesItem)
@@ -64,7 +64,7 @@ impl Properties
 
     mtd clearArray(item: *PropertiesItem)
     {
-        let valueType = assume Reflection.getStructArrayType(item.type)
+        let valueType = notnull Reflection.getStructArrayType(item.type)
         Reflection.clearStructArray(item.data, valueType)
         .refreshArray(item)
         .hasChanged(item)
@@ -81,7 +81,7 @@ impl Properties
     {
         if Reflection.isStructArray(arrayItem.type)
         {
-            let vt  = assume Reflection.getStructArrayType(arrayItem.type)
+            let vt  = notnull Reflection.getStructArrayType(arrayItem.type)
             let arr = cast(#null *Array'u8) arrayItem.data
             return {arr.buffer, vt, arr.count}
         }
@@ -124,31 +124,31 @@ impl Properties
     mtd moveArrayValue(elemItem: *PropertiesItem, dir: s32)
     {
         let arrayItem = elemItem.parent
-        let info      = .arrayElementInfo(assume arrayItem)
+        let info      = .arrayElementInfo(notnull arrayItem)
         let idx       = .arrayElementIndex(elemItem)
         let target    = cast(s64) idx + dir
         if target < 0 or target >= cast(s64) info.count do
             return
 
         Reflection.swapValues(info.base, info.valueType, idx, cast(u64) target)
-        .hasChanged(assume arrayItem)
+        .hasChanged(notnull arrayItem)
     }
 
     mtd removeArrayValue(item: *PropertiesItem)
     {
         let parentItem = item.parent
-        let valueType  = assume Reflection.getStructArrayType(parentItem.type)
+        let valueType  = notnull Reflection.getStructArrayType(parentItem.type)
         let removeIdx  = .arrayElementIndex(item)
 
         Reflection.removeValueStructArray(parentItem.data, valueType, removeIdx)
 
-        .refreshArray(assume parentItem)
-        .hasChanged(assume parentItem)
+        .refreshArray(notnull parentItem)
+        .hasChanged(notnull parentItem)
     }
 
     mtd appendArrayValue(item: *PropertiesItem)
     {
-        let valueType = assume Reflection.getStructArrayType(item.type)
+        let valueType = notnull Reflection.getStructArrayType(item.type)
 
         discard Reflection.appendValueStructArray(item.data, valueType)
 
@@ -162,7 +162,7 @@ impl Properties
         let numItemsBefore = .items.count
         item.flags.add(.NoSeparator)
 
-        let valueType = assume Reflection.getStructArrayType(item.type)
+        let valueType = notnull Reflection.getStructArrayType(item.type)
         let arrData   = cast(#null *Array'u8) data
         var newData   = arrData.buffer
 
@@ -178,7 +178,7 @@ impl Properties
         }
 
         let parentForBtn = .isGridLike() ? item.line : cast(#null *Wnd) item.label
-        let addBtn       = IconButton.create(assume parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
+        let addBtn       = IconButton.create(notnull parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Round)
         item.arrayAddButton = addBtn
@@ -189,7 +189,7 @@ impl Properties
             prop.appendArrayValue(item)
         }
 
-        with item.editBox = EditBox.create(assume item.line, "")
+        with item.editBox = EditBox.create(notnull item.line, "")
         {
             // Grid rows dock the read-only count field to the left of the cell; list
             // rows stack it under the name label (the row is a StackLayoutCtrl), where

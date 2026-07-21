@@ -60,7 +60,7 @@ impl Properties
         var combo: #null *ComboBox
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(assume item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(notnull item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -73,7 +73,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with combo = ComboBox.create(assume item.line, kind: .CheckBox)
+            with combo = ComboBox.create(notnull item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -112,7 +112,7 @@ impl Properties
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(assume item.line, dref cast(#null *String) data)
+        with let ed = EditBox.create(notnull item.line, dref cast(#null *String) data)
         {
             if me.kind == .Panel
             {
@@ -143,7 +143,7 @@ impl Properties
                 .dockStyle = .Right
                 .sigPressed += func|prop = me, item, ed|(btn)
                 {
-                    with let dlg = EditDlg.createMultiLine(assume prop.surface)
+                    with let dlg = EditDlg.createMultiLine(notnull prop.surface)
                     {
                         .setText(ed.text)
                         .richEdit.selectAll()
@@ -165,7 +165,7 @@ impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(assume item.line, dref cast(#null *string) data)
+        with let ed = EditBox.create(notnull item.line, dref cast(#null *string) data)
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

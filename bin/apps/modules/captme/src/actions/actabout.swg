@@ -13,7 +13,7 @@ impl IActionUI for ActionAbout
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
         switch cxt.id
         {
         case About:
@@ -27,7 +27,7 @@ impl IActionUI for ActionAbout
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
         let view = main.editWnd.editView
 
         const Date = #run Time.DateTime.now()
@@ -49,7 +49,7 @@ impl IActionUI for ActionAbout
         params.bigIcon.sizeX, params.bigIcon.sizeY = 96
         params.bigIcon.color = Argb.White
 
-        let dlg = AboutDlg.create(assume view.surface, params, height: 330)
+        let dlg = AboutDlg.create(notnull view.surface, params, height: 330)
         dlg.labelMessage.sigUrlClicked += func(lbl, txt)
         {
             switch txt
@@ -61,7 +61,7 @@ impl IActionUI for ActionAbout
             }
         }
 
-        dlg.doModal(assume view.surface)
+        dlg.doModal(notnull view.surface)
 
         return true
     }

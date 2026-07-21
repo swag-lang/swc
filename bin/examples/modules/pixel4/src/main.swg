@@ -41,11 +41,11 @@ func loadFonts() throw
     let path   = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont    = Font.create(assume g_TypeFace, 34)
-    g_OutlineFont  = Font.create(assume g_TypeFace, 84)
-    g_SubTitleFont = Font.create(assume g_TypeFace, 18)
-    g_LabelFont    = Font.create(assume g_TypeFace, 16)
-    g_HelpFont     = Font.create(assume g_TypeFace, 14)
+    g_TitleFont    = Font.create(notnull g_TypeFace, 34)
+    g_OutlineFont  = Font.create(notnull g_TypeFace, 84)
+    g_SubTitleFont = Font.create(notnull g_TypeFace, 18)
+    g_LabelFont    = Font.create(notnull g_TypeFace, 16)
+    g_HelpFont     = Font.create(notnull g_TypeFace, 14)
 }
 
 func buildFillBrushImage()->Image
@@ -156,22 +156,22 @@ func isAnchorCap(cap: LineCapStyle)->bool
 
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
-    painter.drawString(28, 22, title, assume g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, assume g_SubTitleFont, Argb.DimGray)
+    painter.drawString(28, 22, title, notnull g_TitleFont, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, notnull g_SubTitleFont, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, gradients, text, compositing, render targets, text effects, layers.", g_Page + 1, MaxPages)
-    painter.drawString(28, H - 26, pageText, assume g_HelpFont, Argb.DimGray)
+    painter.drawString(28, H - 26, pageText, notnull g_HelpFont, Argb.DimGray)
 }
 
 func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)->Math.Rectangle
 {
     painter.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Argb.White)
     painter.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Color.fromArgb(96, Argb.SlateGray), 2)
-    painter.drawString(rect.x + 18, rect.y + 12, title, assume g_SubTitleFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40}, subtitle, assume g_HelpFont, Argb.Gray)
+    painter.drawString(rect.x + 18, rect.y + 12, title, notnull g_SubTitleFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40}, subtitle, notnull g_HelpFont, Argb.Gray)
     return insetRect(rect, 18, PanelHeaderHeight, 18, 18)
 }
 

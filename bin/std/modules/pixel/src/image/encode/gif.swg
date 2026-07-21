@@ -142,7 +142,7 @@ impl Encoder
         if !image.pf.hasAlpha() do
             return false
 
-        var pix = cast([*] u8) (assume image.pixels.buffer)
+        var pix = cast([*] u8) (notnull image.pixels.buffer)
         for image.width * image.height
         {
             let col = readPixelColor(image, pix)
@@ -249,7 +249,7 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast([*] u8) (assume image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
+            var pix = cast([*] u8) (notnull image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -302,7 +302,7 @@ impl Encoder
         var dstIndex = 0'u64
         for y in image.height
         {
-            var pix = cast([*] u8) (assume image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
+            var pix = cast([*] u8) (notnull image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
             for image.width
             {
                 let col = readPixelColor(image, pix)

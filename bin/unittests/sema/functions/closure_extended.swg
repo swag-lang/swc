@@ -69,7 +69,7 @@ func semaTest002()
     holders[1].cb = func|pair|(value: s32)->s32 { return pair.base + pair.step + value }
 
     #assert(#typeof(holders[0].cb) == #null ClosureUnary)
-    #assert(#typeof(acceptUnary(assume holders[1].cb)) == ClosureUnary)
+    #assert(#typeof(acceptUnary(notnull holders[1].cb)) == ClosureUnary)
 }
 
 func semaTest003()

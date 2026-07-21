@@ -143,7 +143,7 @@ internal impl Properties
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseLeave:
             if prop.hotItem and prop.isGridLike() do
-                ToolTip.hide(assume prop.hotItem.line)
+                ToolTip.hide(notnull prop.hotItem.line)
             prop.hotItem = null
 
         case MouseEvent as mouseEvt where (mouseEvt.kind == .MouseMove or mouseEvt.kind == .MouseSetCursor):
@@ -163,14 +163,14 @@ internal impl Properties
             {
                 // Leaving a row: drop its tooltip so it does not linger over the next row.
                 if prop.hotItem do
-                    ToolTip.hide(assume prop.hotItem.line)
+                    ToolTip.hide(notnull prop.hotItem.line)
                 prop.hotItem = hit
 
                 if hit and hit.label and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.getClientRect().contains(pt) do
-                        ToolTip.show(assume hit.line, mouseEvt.surfacePos, hit.description)
+                        ToolTip.show(notnull hit.line, mouseEvt.surfacePos, hit.description)
                 }
 
                 wnd.invalidate()

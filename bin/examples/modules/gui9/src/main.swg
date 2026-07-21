@@ -16,33 +16,33 @@ var g_StartDir: String
 // Modal dialog launchers (run on button click in interactive mode).
 //
 
-func onMsgOk(_b: *Button)          { MessageDlg.ok(assume g_Surface, "This is a simple information message.") }
-func onMsgOkCancel(_b: *Button)    { discard MessageDlg.okCancel(assume g_Surface, "Apply the pending changes?") }
-func onMsgYesNo(_b: *Button)       { discard MessageDlg.yesNo(assume g_Surface, "Do you enjoy this showcase?") }
-func onMsgYesNoCancel(_b: *Button) { discard MessageDlg.yesNoCancel(assume g_Surface, "Save the document before closing?") }
-func onMsgConfirm(_b: *Button)     { discard MessageDlg.confirm(assume g_Surface, "This will reset everything.") }
-func onMsgError(_b: *Button)       { MessageDlg.error(assume g_Surface, "Something went wrong while saving.") }
+func onMsgOk(_b: *Button)          { MessageDlg.ok(notnull g_Surface, "This is a simple information message.") }
+func onMsgOkCancel(_b: *Button)    { discard MessageDlg.okCancel(notnull g_Surface, "Apply the pending changes?") }
+func onMsgYesNo(_b: *Button)       { discard MessageDlg.yesNo(notnull g_Surface, "Do you enjoy this showcase?") }
+func onMsgYesNoCancel(_b: *Button) { discard MessageDlg.yesNoCancel(notnull g_Surface, "Save the document before closing?") }
+func onMsgConfirm(_b: *Button)     { discard MessageDlg.confirm(notnull g_Surface, "This will reset everything.") }
+func onMsgError(_b: *Button)       { MessageDlg.error(notnull g_Surface, "Something went wrong while saving.") }
 
 func onEditSingle(_b: *Button)
 {
-    with let dlg = EditDlg.createSingleLine(assume g_Surface)
+    with let dlg = EditDlg.createSingleLine(notnull g_Surface)
     {
         .setMessage("Enter your name:")
         .setText("John Doe")
         .surface.setTitle("Single line edit")
-        .surface.center(assume g_Surface)
+        .surface.center(notnull g_Surface)
     }
     discard dlg.doModal()
 }
 
 func onEditMulti(_b: *Button)
 {
-    with let dlg = EditDlg.createMultiLine(assume g_Surface)
+    with let dlg = EditDlg.createMultiLine(notnull g_Surface)
     {
         .setMessage("Enter a description:")
         .setText("First line\nSecond line")
         .surface.setTitle("Multi line edit")
-        .surface.center(assume g_Surface)
+        .surface.center(notnull g_Surface)
     }
     discard dlg.doModal()
 }
@@ -53,7 +53,7 @@ func onFileOpen(_b: *Button)
     opt.mode = .SelectOneFile
     opt.filters.add({"All files", ""})
     opt.filters.add({"Images", ".png;.jpg;.bmp"})
-    discard FileDlg.create(assume g_Surface, opt).doModal()
+    discard FileDlg.create(notnull g_Surface, opt).doModal()
 }
 
 func onFileSave(_b: *Button)
@@ -62,14 +62,14 @@ func onFileSave(_b: *Button)
     opt.mode      = .CreateFile
     opt.btnOkName = "Save"
     opt.filters.add({"Text", ".txt"})
-    discard FileDlg.create(assume g_Surface, opt).doModal()
+    discard FileDlg.create(notnull g_Surface, opt).doModal()
 }
 
 func onSelectFolder(_b: *Button)
 {
     var opt: FileDlgOptions
     opt.mode = .SelectFolder
-    discard FileDlg.create(assume g_Surface, opt).doModal()
+    discard FileDlg.create(notnull g_Surface, opt).doModal()
 }
 
 //
@@ -88,7 +88,7 @@ func createRootView()
     g_View.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
-    with let title = Label.create(assume g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
+    with let title = Label.create(notnull g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
     {
         .dockStyle         = .Top
         .margin            = {16, 12, 16, 0}
@@ -98,7 +98,7 @@ func createRootView()
     }
 
     // Content area below the title.
-    let content = Wnd.create'Wnd(assume g_View, {})
+    let content = Wnd.create'Wnd(notnull g_View, {})
     content.dockStyle       = .Center
     content.backgroundStyle = .Transparent
 

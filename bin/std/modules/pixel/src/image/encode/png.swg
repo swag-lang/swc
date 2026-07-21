@@ -185,7 +185,7 @@ impl Encoder
         let dataPtr = .stream.currentSP
         .stream.moveSeek(chunkLength)
 
-        return cast([*] u8) (assume dataPtr)
+        return cast([*] u8) (notnull dataPtr)
     }
 
     mtd finishChunk()
@@ -335,7 +335,7 @@ impl Encoder
             var shiftAmount    = initialShift
 
             let row_uc = row
-            Memory.clear(cast([*] u8) (assume .scanline), cast(u64) .subimage[pass].scanlineWidth)
+            Memory.clear(cast([*] u8) (notnull .scanline), cast(u64) .subimage[pass].scanlineWidth)
 
             for k in .subimage[pass].width
             {
@@ -357,7 +357,7 @@ impl Encoder
                 }
             }
 
-            return .encodeScanLine(cast([*] u8) (assume .scanline))
+            return .encodeScanLine(cast([*] u8) (notnull .scanline))
         }
 
         for k in .subimage[pass].width
@@ -366,7 +366,7 @@ impl Encoder
             Memory.copy(.scanline + k * .pixelSize, row + ioffset, .pixelSize)
         }
 
-        return .encodeScanLine(cast([*] u8) (assume .scanline))
+        return .encodeScanLine(cast([*] u8) (notnull .scanline))
     }
 
     mtd getBestFilter(size: u32)->Filter
@@ -525,7 +525,7 @@ impl Encoder
                 // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
                 // of a full-desktop capture costs seconds in unoptimized builds.
                 let src   = cast(const [*] u32) sl
-                let dst   = cast([*] u32) (assume .scanline)
+                let dst   = cast([*] u32) (notnull .scanline)
                 let count = (scanlineWidth - 1) / 4
                 for i in count
                 {
@@ -541,12 +541,12 @@ impl Encoder
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
         if !.rowInfo.scanlineIdx and requiresPrevious do
-            Memory.clear(cast([*] u8) (assume .prevScanline), cast(u64) scanlineWidth)
+            Memory.clear(cast([*] u8) (notnull .prevScanline), cast(u64) scanlineWidth)
 
-        var filtered_sl = cast([*] u8) (assume .filteredScanline)
+        var filtered_sl = cast([*] u8) (notnull .filteredScanline)
         let filter      = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
-            filtered_sl = cast([*] u8) (assume .scanline)
+            filtered_sl = cast([*] u8) (notnull .scanline)
         filtered_sl -= 1
         filtered_sl[0] = cast(u8) filter
         filtered_sl += 1
@@ -614,7 +614,7 @@ public impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            .userOptions = dref cast(*EncodeOptions) (assume @dataof(options))
+            .userOptions = dref cast(*EncodeOptions) (notnull @dataof(options))
         }
 
         // unsupported pixel format
@@ -658,7 +658,7 @@ public impl IImageEncoder for Encoder
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 
-        let srcPixels = cast([*] u8) (assume image.pixels.buffer)
+        let srcPixels = cast([*] u8) (notnull image.pixels.buffer)
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bpp8

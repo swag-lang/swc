@@ -41,7 +41,7 @@ impl Image
         var f = {precalc: cast([*] f32) &convArr[0, 0], st: st}
         .visitPixels(&f)
         {
-            let params = cast(*#decltype(f)) (assume userData)
+            let params = cast(*#decltype(f)) (notnull userData)
             let min = Math.min(pix[0], pix[1], pix[2])
             let max = Math.max(pix[0], pix[1], pix[2])
             let lum = cast(u8) ((cast(s32) max + cast(s32) min) / 2)

@@ -9,5 +9,5 @@
 
 func captmeFont(font: #null *Font)->*Font
 {
-    return assume font
+    return notnull font
 }

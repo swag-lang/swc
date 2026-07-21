@@ -270,7 +270,7 @@ impl Properties
         // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(assume item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(notnull item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -283,7 +283,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
-            with let ed = ComboBox.create(assume item.line, kind: .CheckBox)
+            with let ed = ComboBox.create(notnull item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do

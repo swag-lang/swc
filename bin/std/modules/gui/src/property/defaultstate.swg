@@ -60,7 +60,7 @@ impl Properties
         let def = Memory.new(rootType)
         .defaultRoots.add({def, rootType})
 
-        let defBase  = assume cast(#null [*] u8) def
+        let defBase  = notnull cast(#null [*] u8) def
         let rootSize = cast(u64) rootType.sizeof
 
         for i in fromIdx until .items.count
@@ -73,7 +73,7 @@ impl Properties
 
             // Items under a dynamic array live in a heap buffer, not at a fixed offset from the
             // struct base — no meaningful declared default to compare against.
-            if .isUnderDynamicArray(assume it) do
+            if .isUnderDynamicArray(notnull it) do
                 continue
 
             if !canHaveDefault(it.type) do
@@ -91,7 +91,7 @@ impl Properties
     mtd freeDefaultRoots()
     {
         for r in .defaultRoots do
-            Memory.delete(assume r.base, assume r.type)
+            Memory.delete(notnull r.base, notnull r.type)
         .defaultRoots.clear()
     }
 
@@ -198,7 +198,7 @@ impl Properties
         var changed = false
         for it in .items
         {
-            if .updateItemDefaultState(assume it) do
+            if .updateItemDefaultState(notnull it) do
                 changed = true
         }
         return changed

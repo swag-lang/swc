@@ -62,7 +62,7 @@ public impl AboutDlg
         if params.bigIcon.isValid()
         {
             let widthIconPanel = params.bigIcon.sizeX + params.bigIcon.sizeX * 0.5
-            with dlg.labelIcon = Label.create(assume srf.wnd.view, "", {0, 0, widthIconPanel, 0})
+            with dlg.labelIcon = Label.create(notnull srf.wnd.view, "", {0, 0, widthIconPanel, 0})
             {
                 .dockStyle         = .Left
                 .padding.y         = params.bigIcon.sizeY * 0.25

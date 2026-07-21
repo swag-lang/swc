@@ -117,7 +117,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
 
     for i in e.count
     {
-        let q = cast(const [*] u8) (assume p) + cast(u64) i * ts
+        let q = cast(const [*] u8) (notnull p) + cast(u64) i * ts
         switch e.type
         {
         case TYPE_BYTE:
@@ -339,7 +339,7 @@ public impl IImageDecoder for Decoder
             let srcPtr     = base + srcOff
             checkBuffer(srcPtr, last, srcCount)
 
-            let dstPtr = (assume decoded.buffer) + cast(u64) rowStart * rowBytes
+            let dstPtr = (notnull decoded.buffer) + cast(u64) rowStart * rowBytes
 
             if compression == COMPRESSION_PACKBITS
             {
@@ -362,7 +362,7 @@ public impl IImageDecoder for Decoder
         {
             let srcRow = decoded.buffer + cast(u64) y * rowBytes
             let dstY   = result.height - y - 1
-            var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
+            var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8
 
             for x in cast(s32) width
             {

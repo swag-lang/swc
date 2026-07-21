@@ -11,7 +11,7 @@ using Swag, Core, File
     f.setup(registerHeadlessCommands: true)
 
     discard f.setupLibraryWnd()
-    let libWnd = cast(*Wnd) assume f.main.libWnd
+    let libWnd = cast(*Wnd) notnull f.main.libWnd
 
     var sizeEvt = Testing.commandState(ActionRecentSize.LibBig)
     @assert(Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
@@ -80,7 +80,7 @@ using Swag, Core, File
     var f: HeadlessFixture
     f.setup()
     let lib = f.setupLibraryWnd()
-    let view = assume lib.view
+    let view = notnull lib.view
     let wnd = cast(*Wnd) lib
 
     let old = testAddLibraryItem(view, "old.captme", 10, 1)
@@ -196,7 +196,7 @@ using Swag, Core, File
     g_Library.onDeleteFile.arr.clear()
 
     let lib  = f.setupLibraryWnd()
-    let view = assume lib.view
+    let view = notnull lib.view
 
     // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
     g_Library.onDeleteFile += func|libWnd = lib|(file)
@@ -272,7 +272,7 @@ using Swag, Core, File
     var f: HeadlessFixture
     f.setup()
     let lib  = f.setupLibraryWnd()
-    let view = assume lib.view
+    let view = notnull lib.view
 
     discard testAddLibraryItem(view, "alpha.captme", 10, 1, title: "Login screen")
     discard testAddLibraryItem(view, "beta.captme", 10, 2, "report.png", title: "Sales chart")

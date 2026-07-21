@@ -117,17 +117,17 @@ impl Decoder
 {
     func safeDatas(chunk: DecodeChunk)->const [..] u8
     {
-        return cast(const [..] u8) (assume chunk.datas)
+        return cast(const [..] u8) (notnull chunk.datas)
     }
 
     mtd safeTRNSData()->const [..] u8
     {
-        return cast(const [..] u8) (assume .chunkTRNS.datas)
+        return cast(const [..] u8) (notnull .chunkTRNS.datas)
     }
 
     mtd safeDstPixels()->[*] u8
     {
-        return assume .dstPixels
+        return notnull .dstPixels
     }
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk throw
@@ -351,7 +351,7 @@ impl Decoder
         // A temporary line "before" the first one, if filter needs one
         var tmpRow: Array'u8
         tmpRow.resize(rowStrideOut)
-        let tmpRowBuffer = assume tmpRow.buffer
+        let tmpRowBuffer = notnull tmpRow.buffer
         Memory.clear(tmpRowBuffer, rowStrideOut)
         var up = tmpRowBuffer
 
@@ -465,7 +465,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input   = assume .dcmpBuf.buffer
+        var input   = notnull .dcmpBuf.buffer
         for p in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -474,7 +474,7 @@ impl Decoder
                 continue
 
             tmpArr.resize(cast(u64) (x * y * .inChannels))
-            let tmpBuffer = assume tmpArr.buffer
+            let tmpBuffer = notnull tmpArr.buffer
             Memory.clear(tmpBuffer, tmpArr.count)
 
             .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
@@ -504,7 +504,7 @@ impl Decoder
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
-            let input = assume .dcmpBuf.buffer
+            let input = notnull .dcmpBuf.buffer
             .defilter(.header.width, .header.height, input, .safeDstPixels())
         }
         else
@@ -646,7 +646,7 @@ impl Decoder
         if .inChannels == .outChannels
         {
             result.allocPixels()
-            .dstPixels = cast([*] u8) (assume result.pixels.buffer)
+            .dstPixels = cast([*] u8) (notnull result.pixels.buffer)
         }
         else
         {
@@ -678,7 +678,7 @@ impl Decoder
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
                 let pal  = src[0]
@@ -695,7 +695,7 @@ impl Decoder
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
                 let pal  = src[0]
@@ -713,7 +713,7 @@ impl Decoder
         elif .inChannels == 1 and !.seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -731,7 +731,7 @@ impl Decoder
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -747,7 +747,7 @@ impl Decoder
         elif .inChannels == 2
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (assume result.pixels.buffer)
+            var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -767,7 +767,7 @@ impl Decoder
             let key1 = key[3]
             let key2 = key[5]
             var src  = .safeDstPixels()
-            var dst  = cast([*] u8) (assume result.pixels.buffer)
+            var dst  = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
                 dst[0] = src[0]

@@ -48,7 +48,7 @@ public impl ByteStream
     // Returns a pointer to the underlying read or write buffer
     mtd readData()->const [*] u8
     {
-        return .writeBuffer ? assume .writeBuffer.buffer : assume @dataof(.readBuffer)
+        return .writeBuffer ? notnull .writeBuffer.buffer : notnull @dataof(.readBuffer)
     }
 
     // Returns true if the end of the buffer was reached during reading
@@ -64,7 +64,7 @@ public impl ByteStream
 
         if seek + #sizeof(T) > writeBuffer.count do
             writeBuffer.reserve(seek + #sizeof(T))
-        let buffer = assume writeBuffer.buffer
+        let buffer = notnull writeBuffer.buffer
         var ptr = cast(*T) (buffer + seek)
         dref ptr = val
         seek += #sizeof(T)
@@ -82,7 +82,7 @@ public impl ByteStream
 
         if .seek + count > .writeBuffer.count do
             .writeBuffer.reserve(.seek + count)
-        let buffer = assume .writeBuffer.buffer
+        let buffer = notnull .writeBuffer.buffer
         let ptr = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
         .seek += count

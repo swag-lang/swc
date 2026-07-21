@@ -16,7 +16,7 @@ impl IActionUI for ActionLibSort
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let libWnd = cast(*LibraryWnd) assume cxt.wnd
+        let libWnd = cast(*LibraryWnd) notnull cxt.wnd
 
         switch cxt.id
         {
@@ -59,7 +59,7 @@ impl IActionUI for ActionLibSort
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(*LibraryWnd) assume cxt.wnd
+        let libWnd = cast(*LibraryWnd) notnull cxt.wnd
 
         switch cxt.id
         {

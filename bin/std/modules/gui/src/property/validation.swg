@@ -77,7 +77,7 @@ internal impl Properties
     {
         var changed = false
         for it in .items do
-            if .updateItemValidation(assume it) do
+            if .updateItemValidation(notnull it) do
                 changed = true
         return changed
     }
@@ -196,7 +196,7 @@ internal impl Properties
             var consume = 0'f32
             if visible
             {
-                .syncValidationTextOffset(assume lbl)
+                .syncValidationTextOffset(notnull lbl)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
                 let cw     = item.line.getClientRect().width
@@ -225,7 +225,7 @@ internal impl Properties
         let w = .listContentWidth()
         lbl.maxSize.x      = w
         lbl.position.width = w
-        .syncValidationTextOffset(assume lbl)
+        .syncValidationTextOffset(notnull lbl)
         lbl.autoHeight()
         return true
     }
@@ -268,7 +268,7 @@ private impl Properties
         if item.validationLabel do
             return
 
-        with let lbl = Label.create(assume item.line, "", {0, 0, .position.width, 0})
+        with let lbl = Label.create(notnull item.line, "", {0, 0, .position.width, 0})
         {
             .labelFlags |= .WordWrap | .AutoHeight
             .horzAlignmentText = .Left

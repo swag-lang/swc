@@ -105,7 +105,7 @@ impl IWnd for EditBox
 
         case KillFocus:
             .sigLoseFocus.call(me)
-            .surface.app.deleteTimer(assume .timerCaret)
+            .surface.app.deleteTimer(notnull .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()

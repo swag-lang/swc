@@ -9,7 +9,7 @@ func isStructOfName(type: #null typeinfo, name: #null string)->bool
     if !isStruct(type) do
         return false
 
-    let typeStruct = cast(const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) notnull type
     return typeStruct.structName == name
 }
 
@@ -21,7 +21,7 @@ func getMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
     if !isStruct(type) do
         return null
 
-    let typeStruct = cast(const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) notnull type
     for &it in typeStruct.methods where it.name == name do
         return it
     return null
@@ -35,7 +35,7 @@ func getField(type: #null typeinfo, name: #null string)->#null const *TypeValue
     if !isStruct(type) do
         return null
 
-    let typeStruct = cast(const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) notnull type
     for &it in typeStruct.fields where it.name == name do
         return it
     return null
@@ -192,7 +192,7 @@ func hasInterface(type: #null typeinfo, itf: #null typeinfo)->bool
     if !isStruct(type) do
         return false
 
-    let typeStruct = cast(const *TypeInfoStruct) assume type
+    let typeStruct = cast(const *TypeInfoStruct) notnull type
     for it in typeStruct.interfaces
     {
         // Compare with the canonical crc so a '#null'-qualified interface type matches the

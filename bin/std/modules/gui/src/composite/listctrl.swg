@@ -121,7 +121,7 @@ impl ListLine
         for item in .items
         {
             if item.column == column do
-                return assume item
+                return notnull item
         }
 
         unreachable
@@ -137,7 +137,7 @@ impl ListLine
             {
                 item.name = name
                 item.icon = icon
-                return assume item
+                return notnull item
             }
         }
 
@@ -208,7 +208,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(assume focusLine)
+                .list.toggleExpand(notnull focusLine)
             }
 
         case Enter where focusLine:
@@ -230,7 +230,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(assume focusLine)
+                .list.toggleExpand(notnull focusLine)
             }
 
         case A:
@@ -269,9 +269,9 @@ impl IWnd for ListView
             selChanged = true
 
         case Left where focusLine:
-            .list.collapse(assume focusLine)
+            .list.collapse(notnull focusLine)
         case Right where focusLine:
-            .list.expand(assume focusLine)
+            .list.expand(notnull focusLine)
 
         case PageDown:
             let first = .list.getFirstVisibleLineIndex()
@@ -389,7 +389,7 @@ impl IWnd for ListView
                     {
                         if evt.kind == .MouseReleased do
                             return
-                        .list.toggleExpand(assume .list.lines[idx])
+                        .list.toggleExpand(notnull .list.lines[idx])
                         return
                     }
                 }
@@ -433,7 +433,7 @@ impl IWnd for ListView
         if evt.kind == .MouseDoubleClick
         {
             if idx != Swag.U32.Max and !.list.isVirtual do
-                .list.toggleExpand(assume .list.lines[idx])
+                .list.toggleExpand(notnull .list.lines[idx])
             let pt = .surfaceToLocal(evt.surfacePos)
             .list.sigLeftDoubleClick.call(.list, pt)
             return
@@ -528,7 +528,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 var line: ListLine
-                .list.sigVirtualFill(assume .list, &line, i)
+                .list.sigVirtualFill(notnull .list, &line, i)
                 .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
@@ -541,7 +541,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 let line = .list.lines[i]
-                .paintLine(bc, i, assume line, rect, reserveCheckMargin)
+                .paintLine(bc, i, notnull line, rect, reserveCheckMargin)
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorzLines) do
@@ -1209,9 +1209,9 @@ impl ListCtrl
 
             if a.parent != b.parent
             {
-                if a.isParentOf(assume b) do
+                if a.isParentOf(notnull b) do
                     return -1
-                if b.isParentOf(assume a) do
+                if b.isParentOf(notnull a) do
                     return 1
 
                 var a1 = a
@@ -1351,7 +1351,7 @@ impl ListCtrl
         for l in .lines
         {
             if l.expanded do
-                .collapse(assume l)
+                .collapse(notnull l)
         }
 
         collapseRec(.lines.toSlice())

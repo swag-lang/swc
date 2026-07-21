@@ -52,21 +52,21 @@ impl Polygon
     #[Swag.Inline]
     mtd getPoint(i: u64)->&Vector2
     {
-        let points = assume .points.buffer
+        let points = notnull .points.buffer
         return points + i
     }
 
     #[Swag.Inline]
     mtd const getPoint(i: u64)->const &Vector2
     {
-        let points = assume .points.buffer
+        let points = notnull .points.buffer
         return points + i
     }
 
     // Get the given point, with an optional offset
     mtd const getPoint(i: u64, offset: f32 = 0)->Vector2
     {
-        let points = assume .points.buffer
+        let points = notnull .points.buffer
         if Math.isZeroEpsilon(offset) do
             return points[i]
 

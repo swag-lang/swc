@@ -75,7 +75,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = cast(*T) assume @alloc(#sizeof(T))
+            let ptr = cast(*T) notnull @alloc(#sizeof(T))
             dref ptr = value
             .values.add(ptr)
         }

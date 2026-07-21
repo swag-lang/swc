@@ -643,7 +643,7 @@ func assumeNullablePointerSuccess()->s32
 {
     var storage: s32 = 91
     let maybe: #null *s32 = &storage
-    let ptr = assume maybe
+    let ptr = notnull maybe
     #assert(#typeof(ptr) == *s32)
     return dref ptr
 }
@@ -652,7 +652,7 @@ func assumeNullableSliceSuccess()->s32
 {
     var values: [3] s32 = [4, 5, 6]
     let maybe: #null [..] s32 = values
-    let slice = assume maybe
+    let slice = notnull maybe
     #assert(#typeof(slice) == [..] s32)
     return slice[1] + cast(s32) @countof(slice)
 }

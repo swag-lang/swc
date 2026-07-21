@@ -17,7 +17,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) notnull cxt.wnd
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
@@ -80,8 +80,8 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) assume cxt.wnd
-        let capture = assume main.getCapture()
+        let main    = cast(*MainWnd) notnull cxt.wnd
+        let capture = notnull main.getCapture()
 
         switch cxt.id
         {

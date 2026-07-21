@@ -273,7 +273,7 @@ func rebuildInspector()
     if g_Props do
         g_Props.destroy()
 
-    g_Props           = Properties.create(assume g_ObjHost, {}, g_DisplayMode)
+    g_Props           = Properties.create(notnull g_ObjHost, {}, g_DisplayMode)
     g_Props.dockStyle = .Center
     g_Props.sizeEditValue = 320
     if g_Props.isGridLike() do
@@ -322,7 +322,7 @@ func createInspectorPage(parent: *Wnd)
     g_ObjHost.dockStyle = .Left
     g_ObjHost.margin.z  = SplitGap
 
-    let controls        = Wnd.create'Wnd(assume g_ObjHost, {0, 0, 0, 44})
+    let controls        = Wnd.create'Wnd(notnull g_ObjHost, {0, 0, 0, 44})
     controls.dockStyle  = .Top
     controls.margin.w   = 8
 
@@ -346,7 +346,7 @@ func createInspectorPage(parent: *Wnd)
         .sigChanged += func(_cb, idx) { setCardCount(cast(s32) idx + 1); }
     }
 
-    with let search = EditBox.create(assume g_ObjHost, "")
+    with let search = EditBox.create(notnull g_ObjHost, "")
     {
         .icon      = parent.getTheme().getIcon24(ThemeIcons24.Search, 18)
         .dockStyle = .Top
@@ -602,23 +602,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Title, .Left, .Center)
+    g_Title = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(assume g_View, "", {})
+    g_ThemeButton = PushButton.create(notnull g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(assume g_View, {})
+    g_PageView = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Footer, .Left, .Center)
+    g_Footer = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()
@@ -659,7 +659,7 @@ func onFrame(_app: *Application)
     g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
 
     createRootView()
-    createInspectorPage(assume g_PageView)
+    createInspectorPage(notnull g_PageView)
     updateHeader()
     applyTheme()
 

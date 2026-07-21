@@ -312,7 +312,7 @@ func paint(painter: *Painter)
     // Score
     if !g_FirstStart
     {
-        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), assume g_Font, Argb.White)
+        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), notnull g_Font, Argb.White)
     }
 
     // Message

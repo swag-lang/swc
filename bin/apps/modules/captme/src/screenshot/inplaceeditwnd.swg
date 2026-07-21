@@ -90,7 +90,7 @@ impl InPlaceEditWnd
 
     mtd createActionBar()
     {
-        .actionBar                 = IconBar.create(assume .editWnd.editView, 24 * .uiScale, {})
+        .actionBar                 = IconBar.create(notnull .editWnd.editView, 24 * .uiScale, {})
         .actionBar.backgroundStyle = .Window
 
         let actions = [
@@ -108,7 +108,7 @@ impl InPlaceEditWnd
 
     mtd createEditBar(main: *MainWnd)
     {
-        .editBar                 = IconBar.create(assume .editWnd.editView, 32 * .uiScale, {})
+        .editBar                 = IconBar.create(notnull .editWnd.editView, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
         .editBar.setIconBarFlags(.Vertical)
 
@@ -170,14 +170,14 @@ impl InPlaceEditWnd
         switch actionId
         {
         case "copy":
-            let cap = assume me.capture
+            let cap = notnull me.capture
             cap.crop()
             cap.copyAll()
             exitWithResult(false)
         case "close":
             exitWithResult(false)
         case "edit":
-            let cap = assume me.capture
+            let cap = notnull me.capture
             cap.crop()
             exitWithResult(true)
         case "save":
@@ -187,7 +187,7 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if !fileName.isEmpty()
             {
-                let cap = assume me.capture
+                let cap = notnull me.capture
                 cap.crop()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)
@@ -273,7 +273,7 @@ impl InPlaceEditWnd
 
         for m in modeMap
         {
-            let btn = assume .editBar.getButton(m.item0)
+            let btn = notnull .editBar.getButton(m.item0)
             btn.setCheck(.editMode == m.item1)
         }
     }

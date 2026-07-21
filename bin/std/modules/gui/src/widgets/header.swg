@@ -144,7 +144,7 @@ impl IWnd for Header
         var x = .padding.x
         for item, idx in .items
         {
-            .paintItem(evt.bc, assume item, cast(u32) idx, x)
+            .paintItem(evt.bc, notnull item, cast(u32) idx, x)
             x += item.width
 
             var rect = clientRect
@@ -310,7 +310,7 @@ impl Header
     mtd getItem(idx: u32)->*HeaderItem
     {
         Debug.assert(idx < .items.count)
-        return assume .items[idx]
+        return notnull .items[idx]
     }
 
     // Returns the given item, by column

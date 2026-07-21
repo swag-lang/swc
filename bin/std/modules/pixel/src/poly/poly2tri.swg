@@ -103,17 +103,17 @@ struct AdvancingFront
 
 func nnPoint(p: #null *Point)->*Point
 {
-    return assume p
+    return notnull p
 }
 
 func nnNode(n: #null *Node)->*Node
 {
-    return assume n
+    return notnull n
 }
 
 func nnTriangle(t: #null *Triangle)->*Triangle
 {
-    return assume t
+    return notnull t
 }
 
 impl Result

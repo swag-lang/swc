@@ -193,7 +193,7 @@ again.
         @getcontext().allocator.free(&req)
     }
 
-    let p = cast(*s32) assume exampleAlloc(4)
+    let p = cast(*s32) notnull exampleAlloc(4)
     dref p = 1
     exampleFree(p, 4)
     // let x = dref p       // Uncomment: error, use of a freed pointer (proven)

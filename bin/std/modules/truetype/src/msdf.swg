@@ -480,7 +480,7 @@ const MsdfParallelMinSamples: u64 = 2000
 func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = assume slot
+    let safeSlot = notnull slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -523,8 +523,8 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     // while keeping the expensive per-pixel winding test off the hot path.
     var rowVotes: Array's64
     rowVotes.resize(cast(u64) rows)
-    let channelsBuffer = assume channels.buffer
-    let rowVotesBuffer = assume rowVotes.buffer
+    let channelsBuffer = notnull channels.buffer
+    let rowVotesBuffer = notnull rowVotes.buffer
 
     var ctx = MsdfRowCtx{
         segs:     &segs,
@@ -541,7 +541,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     {
         Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
         {
-            let safeData = assume data
+            let safeData = notnull data
             msdfProcessRow(cast(*MsdfRowCtx) safeData, py)
         }
     }
@@ -559,7 +559,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
 
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
-    var dst = assume faceData.bitmapPixels.buffer
+    var dst = notnull faceData.bitmapPixels.buffer
     for i in count
     {
         let src = i * 4

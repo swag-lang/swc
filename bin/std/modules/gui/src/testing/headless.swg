@@ -169,7 +169,7 @@ impl HeadlessHost
         .autoFrames += 1
 
         let stage = .autoStages.buffer + .autoStage
-        if .runAutoStage(assume stage)
+        if .runAutoStage(notnull stage)
         {
             .autoStage += 1
             .autoFrames = 0
@@ -477,7 +477,7 @@ impl HeadlessHost
             if !view do
                 continue
 
-            wnd = view.getChildById(assume id)
+            wnd = view.getChildById(notnull id)
             if wnd do
                 break
         }
@@ -512,7 +512,7 @@ impl HeadlessHost
         if .app.modalSurfaces.count == 0 do
             return false
 
-        let ctrl = .findEditCtrlByLabel(assume .app.modalSurfaces.back().wnd.view, label)
+        let ctrl = .findEditCtrlByLabel(notnull .app.modalSurfaces.back().wnd.view, label)
         if !ctrl do
             return false
 
@@ -798,7 +798,7 @@ impl HeadlessHost
             if it is CommandEvent do
                 needUpdateState = true
 
-            Memory.delete(evt, assume evt.type)
+            Memory.delete(evt, notnull evt.type)
         }
 
         if needUpdateState and !.root.isPendingDestroy do

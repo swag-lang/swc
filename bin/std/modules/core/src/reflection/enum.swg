@@ -10,7 +10,7 @@ func makeConcreteEnum(type: typeinfo)->typeinfo
         return type
 
     let enumType = cast(const *TypeInfoEnum) type
-    return assume enumType.rawType
+    return notnull enumType.rawType
 }
 
 // Get information about a specific value in a given enum
@@ -21,7 +21,7 @@ func getEnumValue(type: #null typeinfo, name: #null string)->#null const *TypeVa
     if !isEnum(type) do
         return null
 
-    let typeEnum = cast(const *TypeInfoEnum) assume type
+    let typeEnum = cast(const *TypeInfoEnum) notnull type
     for &it in typeEnum.values where it.name == name do
         return it
     return null
@@ -35,7 +35,7 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
     var result: String
     if !isEnum(type) or !valueAddr do
         return result
-    let safeType  = assume type
+    let safeType  = notnull type
     let safeValue = valueAddr
     let typeEnum  = cast(const *TypeInfoEnum) safeType
     let isFlags  = hasAttribute(type, EnumFlags)

@@ -127,15 +127,15 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(sc.y > 0)
 
     let stack = posItem.line.childs[0]
-    f.gui.clickWnd(assume (cast(*EditCtrl) stack.childs[0]).edit)
+    f.gui.clickWnd(notnull (cast(*EditCtrl) stack.childs[0]).edit)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
-    f.gui.clickWnd(assume (cast(*EditCtrl) stack.childs[1]).edit)
+    f.gui.clickWnd(notnull (cast(*EditCtrl) stack.childs[1]).edit)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
-    f.gui.clickWnd(assume posItem.line)
+    f.gui.clickWnd(notnull posItem.line)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
 
@@ -171,7 +171,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     prop.grid.scrollWnd.setScrollPos(0, 10000)
     f.gui.pump()
 
-    f.gui.clickWnd(assume posItem.line)
+    f.gui.clickWnd(notnull posItem.line)
     f.gui.pump()
     @assert(prop.grid.selItem == posItem)
 

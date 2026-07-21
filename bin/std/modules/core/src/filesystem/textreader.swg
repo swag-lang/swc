@@ -33,7 +33,7 @@ impl TextReader
 
             if .encodingType == .Utf8
             {
-                let buffer = assume .buffer.buffer
+                let buffer = notnull .buffer.buffer
                 dref cast(*u32) buffer = 0
                 .buffer.count = .stream.read(buffer, .buffer.capacity)
 
@@ -88,9 +88,9 @@ public impl TextReader
 
         for
         {
-            var ptr  = (assume .buffer.buffer) + .byteSeek
+            var ptr  = (notnull .buffer.buffer) + .byteSeek
             let ptrB = ptr
-            let ptrE = (assume .buffer.buffer) + .buffer.count
+            let ptrE = (notnull .buffer.buffer) + .buffer.count
 
             // u64 by u64
             while ptr + 8'u64 <= ptrE

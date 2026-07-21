@@ -277,7 +277,7 @@ impl QuickWnd
         if res == "0" and btn
         {
             let qbtn = cast(*QuickButton) btn
-            .currentStyle.remove(assume qbtn.formItf)
+            .currentStyle.remove(notnull qbtn.formItf)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
@@ -673,7 +673,7 @@ impl QuickWnd
         if !.currentStyle do
             return
 
-        let res = MessageDlg.confirm(assume .surface, "This will reset the styles to the default values.")
+        let res = MessageDlg.confirm(notnull .surface, "This will reset the styles to the default values.")
         if res != MessageDlg.BtnYes do
             return
 
@@ -720,10 +720,10 @@ impl QuickWnd
         func paintForm(painter: *Painter, btnp: *QuickButton)
         {
             painter.setParams(.Antialiased)
-            var paintForm = quickStyleNewPaintForm(assume btnp.formItf)
+            var paintForm = quickStyleNewPaintForm(notnull btnp.formItf)
             defer quickStyleReleasePaintForm(&paintForm)
 
-            Capture.paintForm(painter, {}, {0, 0, 64, 64}, assume paintForm.itf, zoom: 1, quickMode: true)
+            Capture.paintForm(painter, {}, {0, 0, 64, 64}, notnull paintForm.itf, zoom: 1, quickMode: true)
 
             if !paintForm.title.isEmpty()
             {
@@ -827,12 +827,12 @@ impl QuickWnd
             {
                 let quickBtn = cast(*QuickButton) btn
                 let quick    = quickBtn.quickWnd
-                let it       = assume quickBtn.formItf
+                let it       = notnull quickBtn.formItf
                 if !btn.isChecked do
                     return
                 quick.main.updateModel(it)
 
-                var capture = assume quick.main.getCapture()
+                var capture = notnull quick.main.getCapture()
                 if capture.selection.count
                 {
                     let mdlValue = MainWnd.newFormFromForm(it)

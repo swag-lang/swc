@@ -188,13 +188,13 @@ public struct Transform
 impl Transform
 {
     #[Swag.Inline]
-    func nnEdge(e: #null *Edge)->*Edge => assume e
+    func nnEdge(e: #null *Edge)->*Edge => notnull e
     #[Swag.Inline]
-    func nnOutPt(p: #null *OutPt)->*OutPt => assume p
+    func nnOutPt(p: #null *OutPt)->*OutPt => notnull p
     #[Swag.Inline]
-    func nnOutRec(r: #null *OutRec)->*OutRec => assume r
+    func nnOutRec(r: #null *OutRec)->*OutRec => notnull r
     #[Swag.Inline]
-    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => assume n
+    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => notnull n
 
     public mtd opDrop()
     {
@@ -253,7 +253,7 @@ impl Transform
                     break
                 if e == eStart do
                     eStart = nnEdge(e.next)
-                e         = removeEdge(assume e)
+                e         = removeEdge(notnull e)
                 eLoopStop = e
                 continue
             }
@@ -266,7 +266,7 @@ impl Transform
             {
                 if e == eStart do
                     eStart = nnEdge(e.next)
-                e         = removeEdge(assume e)
+                e         = removeEdge(notnull e)
                 e         = e.prev
                 eLoopStop = e
                 continue
@@ -284,7 +284,7 @@ impl Transform
         e = eStart
         for
         {
-            initEdge2(assume e, polyType)
+            initEdge2(notnull e, polyType)
             e = nnEdge(e.next)
             if isFlat and e.curr.y != eStart.curr.y do
                 isFlat = false
@@ -303,7 +303,7 @@ impl Transform
         var eMin:               #null *Edge
         for
         {
-            e = findNextLocMin(assume e)
+            e = findNextLocMin(notnull e)
             if e == eMin do
                 break
             elif !eMin do
@@ -387,7 +387,7 @@ impl Transform
         e.prev.next = e.next
         e.next.prev = e.prev
         e.prev      = null
-        return assume e.next
+        return notnull e.next
     }
 
     mtd addJoin(op1, op2: *OutPt, offPt: IntPoint)
@@ -955,7 +955,7 @@ impl Transform
         e.nextInLML.windDelta = e.windDelta
         e.nextInLML.windCnt   = e.windCnt
         e.nextInLML.windCnt2  = e.windCnt2
-        let eNew = assume e.nextInLML
+        let eNew = notnull e.nextInLML
         eNew.curr             = eNew.bot
         eNew.prevInAEL        = aelPrev
         eNew.nextInAEL        = aelNext
@@ -1237,7 +1237,7 @@ impl Transform
         var outrec = .polyOuts[idx]
         while outrec != .polyOuts[outrec.idx] do
             outrec = .polyOuts[outrec.idx]
-        return assume outrec
+        return notnull outrec
     }
 
     mtd joinPoints(j: *Join, outRec1, outRec2: *OutRec)->bool
@@ -1681,7 +1681,7 @@ impl Transform
             else do
                 holeStateRec = getLowermostRec(nnOutRec(outRec1), nnOutRec(outRec2))
 
-            if !.joinPoints(assume join, outRec1, outRec2) do
+            if !.joinPoints(notnull join, outRec1, outRec2) do
                 continue
 
             if (outRec1 == outRec2)
@@ -1825,7 +1825,7 @@ impl Transform
                 // 2. promote horizontal edges, otherwise update curr.x and curr.y ...
                 if isIntermediate(nnEdge(e), topY) and isHorizontal(nnEdge(e.nextInLML))
                 {
-                    e = .updateEdgeIntoAEL(assume e)
+                    e = .updateEdgeIntoAEL(notnull e)
                     if e.outIdx >= 0 do
                         .addOutPt(nnEdge(e), nnEdge(e).bot)
                     .addEdgeToSEL(nnEdge(e))
@@ -1990,7 +1990,7 @@ impl Transform
                     j += 1
                 if j == .intersectList.count do
                     return false
-                swap(assume (.intersectList.buffer + i), assume (.intersectList.buffer + j))
+                swap(notnull (.intersectList.buffer + i), notnull (.intersectList.buffer + j))
             }
 
             .swapPositionsInSEL(.intersectList[i].edge1, .intersectList[i].edge2)

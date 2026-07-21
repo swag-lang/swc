@@ -25,7 +25,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
         while @countof(one) and one[0] != '#'
         {
             let addrVal = Reflection.appendValueStructArray(addr, safeValueType)
-            one = (parseValue(assume addrVal, safeValueType, one) orelse "")
+            one = (parseValue(notnull addrVal, safeValueType, one) orelse "")
             one = Tokenize.eatSpaces(one)
         }
 
@@ -66,7 +66,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
             let v  = Reflection.getEnumValue(type, id)
             if !v do
                 throw InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
-            let enumValue = assume v.value
+            let enumValue = notnull v.value
 
             if enumType.rawType == string
             {

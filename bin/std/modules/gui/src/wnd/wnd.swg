@@ -270,14 +270,14 @@ impl Wnd
 
     #[Swag.Inline]
     {
-        mtd getApp()          => (assume .surface).app
-        mtd getTopView()      => (assume .surface).wnd.view
-        mtd getTopWnd()       => (assume .surface).wnd
+        mtd getApp()          => (notnull .surface).app
+        mtd getTopView()      => (notnull .surface).wnd.view
+        mtd getTopWnd()       => (notnull .surface).wnd
         mtd getTheme()        => .style.refr.theme
         mtd getThemeMetrics() => &.style.refr.theme.metrics
         mtd getThemeColors()  => &.style.refr.theme.colors
         mtd getThemeRects()   => &.style.refr.theme.rects
-        mtd getTiming()       => &(assume .surface).app.timing
+        mtd getTiming()       => &(notnull .surface).app.timing
         mtd getFont()         => .style.getFont()
     }
 
@@ -916,7 +916,7 @@ impl Wnd
         if idx == idxToReplace do
             return
 
-        swap(assume .parent.childs.buffer + idx, assume .parent.childs.buffer + idxToReplace)
+        swap(notnull .parent.childs.buffer + idx, notnull .parent.childs.buffer + idxToReplace)
     }
 
     // Move and size the wnd

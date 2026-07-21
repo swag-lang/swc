@@ -191,18 +191,18 @@ func buildPage()
     switch g_Page
     {
     case 0:
-        createSplitterPage(assume g_PageView)
+        createSplitterPage(notnull g_PageView)
     case 1:
-        createStackPage(assume g_PageView)
+        createStackPage(notnull g_PageView)
     case 2:
-        createGridWrapPage(assume g_PageView)
+        createGridWrapPage(notnull g_PageView)
     case 3:
-        createConstraintsPage(assume g_PageView)
+        createConstraintsPage(notnull g_PageView)
     default:
         unreachable
     }
 
-    refreshLayoutTree(assume g_PageView)
+    refreshLayoutTree(notnull g_PageView)
     g_PageView.invalidate()
 }
 
@@ -309,23 +309,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Title, .Left, .Center)
+    g_Title = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(assume g_View, "", {})
+    g_ThemeButton = PushButton.create(notnull g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(assume g_View, {})
+    g_PageView = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Footer, .Left, .Center)
+    g_Footer = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()

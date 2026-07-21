@@ -408,7 +408,7 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
 {
     genericParallelVisitLike(@mkslice(dstImage.buffer, 1), 1, dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) assume data
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) notnull data
         let x = 1
         let y = 1
         let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width

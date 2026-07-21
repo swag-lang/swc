@@ -403,11 +403,11 @@ namespace ResizeTools
         {
             dstImage.visitPixels(&f)
             {
-                let params = cast(*#decltype(f)) (assume userData)
+                let params = cast(*#decltype(f)) (notnull userData)
                 let fx     = cast(u32) (x * params.xscale)
                 let fy     = cast(u32) (y * params.yscale)
                 let pixSrc = params.srcImage.pixels.buffer + (fx * image.bpp8) + (fy * params.srcImage.width * image.bpp8)
-                Image.copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (assume pixSrc))
+                Image.copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
             }
         }
 

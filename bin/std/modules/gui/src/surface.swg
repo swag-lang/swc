@@ -138,7 +138,7 @@ impl Surface
     // Returns inside view
     mtd getView()->*Wnd
     {
-        return assume .wnd.view
+        return notnull .wnd.view
     }
 
     // Set the surface icon
@@ -410,7 +410,7 @@ impl Surface
         // Save position and surface state
         if .wnd.view != null and .wnd.view.id != null
         {
-            catch ser.serialize(assume .wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(assume .wnd.view.id) : 0, &.state)
+            catch ser.serialize(notnull .wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(notnull .wnd.view.id) : 0, &.state)
             if @err == null and ser.isReading()
             {
                 if .isMaximized

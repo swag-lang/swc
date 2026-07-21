@@ -255,11 +255,11 @@ impl IWnd for Tab
                 let v = .views[idx]
                 if v.pos + v.width > clientRect.right() do
                     break
-                .paintItem(painter, assume v, cast(u32) idx)
+                .paintItem(painter, notnull v, cast(u32) idx)
             }
 
             // Paint selected item
-            .paintItem(painter, assume .views[.selectedIdx], .selectedIdx)
+            .paintItem(painter, notnull .views[.selectedIdx], .selectedIdx)
         }
     }
 

@@ -154,11 +154,11 @@ func solve(text: string) -> u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best = cast([*] u64) assume @alloc(cast(u64) stateCount * #sizeof(u64))
+    let best = cast([*] u64) notnull @alloc(cast(u64) stateCount * #sizeof(u64))
     defer @free(best)
     for stateCount { best[@index] = Infinity }
 
-    let queue = cast([*] QEntry) assume @alloc(cast(u64) MaxQueue * #sizeof(QEntry))
+    let queue = cast([*] QEntry) notnull @alloc(cast(u64) MaxQueue * #sizeof(QEntry))
     defer @free(queue)
     var head: u32
     var tail: u32

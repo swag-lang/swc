@@ -196,7 +196,7 @@ func parseInput(text: string) -> Parsed
     result.nMoves = moveCount
 
     // @mkslice: create a slice view over the allocated move buffer
-    let moveSlice = @mkslice(assume result.moves, cast(u64) moveCount)
+    let moveSlice = @mkslice(notnull result.moves, cast(u64) moveCount)
 
     // @dataof: verify the slice's data pointer matches the allocation
     @assert(@dataof(moveSlice) == result.moves)
@@ -390,7 +390,7 @@ func boxRmsBucket(wh: *Warehouse) -> s32 => cast(s32) @floor(boxRmsFromCentre(wh
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    let moveSlice = @mkslice(assume p.moves, cast(u64) p.nMoves)
+    let moveSlice = @mkslice(notnull p.moves, cast(u64) p.nMoves)
     @assert(@countof(moveSlice) == cast(u64) p.nMoves)
     @assert(@dataof(moveSlice) == p.moves)
 

@@ -16,7 +16,7 @@ impl IActionUI for ActionLibTrash
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let libWnd = cast(*LibraryWnd) assume cxt.wnd
+        let libWnd = cast(*LibraryWnd) notnull cxt.wnd
         let hasSel = libWnd.view.focusItem != Swag.U32.Max
 
         switch cxt.id
@@ -46,7 +46,7 @@ impl IActionUI for ActionLibTrash
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let libWnd = cast(*LibraryWnd) assume cxt.wnd
+        let libWnd = cast(*LibraryWnd) notnull cxt.wnd
 
         switch cxt.id
         {
@@ -54,7 +54,7 @@ impl IActionUI for ActionLibTrash
             libWnd.setTrashMode(!libWnd.trashMode)
 
         case Empty:
-        let res = MessageDlg.confirm(assume libWnd.main.surface, "This will permanently erase every capture in the recycle bin.")
+        let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase every capture in the recycle bin.")
             if res == MessageDlg.BtnYes
             {
                 Library.emptyTrash()
@@ -67,7 +67,7 @@ impl IActionUI for ActionLibTrash
             libWnd.restoreSelected()
 
         case DeleteForever:
-            let res = MessageDlg.confirm(assume libWnd.main.surface, "This will permanently erase the selected capture(s).")
+            let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase the selected capture(s).")
             if res == MessageDlg.BtnYes do
                 libWnd.deleteForeverSelected()
         }

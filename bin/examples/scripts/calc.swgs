@@ -55,7 +55,7 @@ func validateOp(str: string)
     }
 
     if g_Error do
-        g_Edit.setText(assume g_Error)
+        g_Edit.setText(notnull g_Error)
     else do
         g_Edit.setText(Format.toString("%", g_CurValue))
 }
@@ -69,7 +69,7 @@ func createBtn(str: string, x, y: s32)
         {
             validateOp(btn.name.raw)
         }
-        btn.style.setFont(assume g_FontBtn, .Regular)
+        btn.style.setFont(notnull g_FontBtn, .Regular)
         layout.setColRowChild(btn, x, y)
 
         switch str
@@ -101,9 +101,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         with g_Edit = EditBox.create(layout, "0")
         {
             .editBoxFlags = .ReadOnly | .RightAlign
-            .style.setFont(assume g_FontTxt, .Regular)
+            .style.setFont(notnull g_FontTxt, .Regular)
         }
-        layout.setColRowChild(assume g_Edit, 0, 0, 4)
+        layout.setColRowChild(notnull g_Edit, 0, 0, 4)
 
         createBtn("7", 0, 2)
         createBtn("8", 1, 2)

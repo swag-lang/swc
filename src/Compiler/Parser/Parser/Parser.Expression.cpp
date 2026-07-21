@@ -819,6 +819,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdCatch:
         case TokenId::KwdTryCatch:
         case TokenId::KwdAssume:
+        case TokenId::KwdNotNull:
             return parseTryCatchAssume();
 
         case TokenId::IntrinsicKindOf:

@@ -9,7 +9,7 @@ internal impl Properties
 {
     func attributeString(value: #null any)->string
     {
-        return cast(string) assume value
+        return cast(string) notnull value
     }
 
     // Display name of a field: its Properties.Name attribute, or its beautified raw name.
@@ -33,7 +33,7 @@ internal impl Properties
             line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height orelse .gridLineHeight})
         else
         {
-            let stk = StackLayoutCtrl.create(assume .edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
+            let stk = StackLayoutCtrl.create(notnull .edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
             stk.fitToContent = true
             line             = stk
         }
@@ -206,7 +206,7 @@ internal impl Properties
             item.numChilds += cast(u32) (.items.count - numItemsBefore)
 
         case Reflection.isEnum(value.pointedType):
-            let typeEnum = assume cast(#null const *Swag.TypeInfoEnum) value.pointedType
+            let typeEnum = notnull cast(#null const *Swag.TypeInfoEnum) value.pointedType
             .constructEnum(value, typeEnum, data, parentItem)
 
         case value.pointedType == Core.String:
@@ -219,14 +219,14 @@ internal impl Properties
             .constructBool(value, data, parentItem)
 
         case Reflection.isInteger(value.pointedType) or Reflection.isFloat(value.pointedType):
-            let typeNative = assume cast(#null const *Swag.TypeInfoNative) value.pointedType
+            let typeNative = notnull cast(#null const *Swag.TypeInfoNative) value.pointedType
             .constructNative(value, typeNative, data, parentItem)
 
         case value.pointedType == Array:
             .constructArray(value, data, parentItem)
 
         case Reflection.isStruct(value.pointedType):
-            let typeSubStruct = assume cast(#null const *Swag.TypeInfoStruct) value.pointedType
+            let typeSubStruct = notnull cast(#null const *Swag.TypeInfoStruct) value.pointedType
             if typeSubStruct.fromGeneric == Array
             {
                 .constructArray(value, data, parentItem)
@@ -440,7 +440,7 @@ internal impl Properties
         item.level = parentItem.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
-        with let lbl = Label.create(assume item.line, text, {0, 0, .position.width, item.line.position.height})
+        with let lbl = Label.create(notnull item.line, text, {0, 0, .position.width, item.line.position.height})
         {
             .focusStrategy     = .None
             .horzAlignmentText = .Left

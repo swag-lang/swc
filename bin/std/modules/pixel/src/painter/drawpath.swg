@@ -506,7 +506,7 @@ impl Painter
         case None:
             return
         case Pattern:
-            cxt.pattern      = cast(const [*] f32) (assume cxt.pen.pattern.buffer)
+            cxt.pattern      = cast(const [*] f32) (notnull cxt.pen.pattern.buffer)
             cxt.patternCount = cast(s32) cxt.pen.pattern.count
             if cxt.patternCount != 0 do
                 break

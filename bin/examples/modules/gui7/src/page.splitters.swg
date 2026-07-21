@@ -4,9 +4,9 @@ func createSplitterPane(parent: *Wnd, title, text: string)->*FrameWnd
 {
     let pane = createPane(parent, title, text)
     let view = pane.view
-    let focus = createChip(assume view, "Focus", .Search)
+    let focus = createChip(notnull view, "Focus", .Search)
     focus.setPosition({12, 96, 94, 30})
-    let pin = createChip(assume view, "Pin", .Link)
+    let pin = createChip(notnull view, "Pin", .Link)
     pin.setPosition({112, 96, 82, 30})
     return pane
 }

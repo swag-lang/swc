@@ -698,7 +698,7 @@ func firstRune(src: const [..] u8)->rune
     let countof = @countof(src)
     if !countof do
         return 0
-    let dataof = assume @dataof(src)
+    let dataof = notnull @dataof(src)
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
     let (c, ?) = Utf8.decodeRune(@mkslice(dataof, countof))
@@ -711,7 +711,7 @@ func lastRune(src: const [..] u8)->rune
     let countof = @countof(src)
     if !countof do
         return 0
-    let dataof = assume @dataof(src)
+    let dataof = notnull @dataof(src)
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
     let (c, ?) = Utf8.decodeLastRune(@mkslice(dataof, countof))

@@ -410,6 +410,12 @@ namespace
 
         auto          frame   = sema.frame();
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(sema.curNode().codeRef()).id);
+
+        // `notnull` is not an error handler: throwables inside its operand keep the
+        // surrounding error context (`try`/`catch`/... must be spelled explicitly).
+        if (tokenId == TokenId::KwdNotNull)
+            return Result::Continue;
+
         frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
         sema.pushFramePopOnPostChild(frame, childRef);
         return Result::Continue;
@@ -424,30 +430,32 @@ namespace
         if (tokenId == TokenId::KwdTry && !canPropagateThrowableResult(sema))
             return reportTryOutsideThrowableContext(sema, sema.curNodeRef());
 
-        if (!payload.containsThrowable)
+        // `notnull` asserts a non-nullity invariant: unwrap `#null T` to `T` (panicking
+        // under safety when the value IS null). On an operand that is already non-null
+        // (flow narrowing, generic instantiations) it is a tolerated pass-through. It
+        // never handles errors: a throwable operand must spell its own `try`/`assume`.
+        if (tokenId == TokenId::KwdNotNull)
         {
-            if (tokenId == TokenId::KwdAssume)
-            {
-                if (assumeNullableResultTypeRef(sema, managedChildRef).isValid())
-                    return setupNullableAssume(sema, managedChildRef);
+            if (assumeNullableResultTypeRef(sema, managedChildRef).isValid())
+                return setupNullableAssume(sema, managedChildRef);
 
-                // `assume` on a value that is already non-null (typically thanks to flow
-                // narrowing, or in generic code): a pass-through with no runtime check.
-                const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
-                if (resolvedChildRef.isValid())
+            const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+            if (resolvedChildRef.isValid())
+            {
+                const SemaNodeView childView = sema.viewType(resolvedChildRef);
+                if (childView.typeRef().isValid())
                 {
-                    const SemaNodeView childView = sema.viewType(resolvedChildRef);
-                    if (childView.typeRef().isValid())
-                    {
-                        SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
-                        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).assumeNullable = true;
-                        return Result::Continue;
-                    }
+                    SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
+                    SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).assumeNullable = true;
+                    return Result::Continue;
                 }
             }
 
-            return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_notnull_operand, sema.curNodeRef());
         }
+
+        if (!payload.containsThrowable)
+            return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
 
         payload.isThrowableResult = tokenId == TokenId::KwdTry;
         if (payload.isThrowableResult)

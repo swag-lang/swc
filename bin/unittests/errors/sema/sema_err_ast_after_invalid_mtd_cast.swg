@@ -64,7 +64,7 @@ impl AstAfterInvalidCastSignal
                     if i do
                         sb.append(",")
                     sb.append("cast(")
-                    sb.append(assume ts.parameters[i].pointedType.fullname)
+                    sb.append(notnull ts.parameters[i].pointedType.fullname)
                     sb.append(") params[")
                     sb.append("0")
                     sb.append("]")

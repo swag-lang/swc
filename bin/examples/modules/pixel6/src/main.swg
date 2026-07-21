@@ -45,9 +45,9 @@ const Samples = [
 func loadFonts() throw
 {
     g_TypeFace  = try TypeFace.load("segoeui.ttf")
-    g_TitleFont = Font.create(assume g_TypeFace, 34, .Bitmap)
-    g_LabelFont = Font.create(assume g_TypeFace, 16, .Bitmap)
-    g_HelpFont  = Font.create(assume g_TypeFace, 13, .Bitmap)
+    g_TitleFont = Font.create(notnull g_TypeFace, 34, .Bitmap)
+    g_LabelFont = Font.create(notnull g_TypeFace, 16, .Bitmap)
+    g_HelpFont  = Font.create(notnull g_TypeFace, 13, .Bitmap)
 }
 
 func gdipCheck(status: GpStatus)
@@ -145,9 +145,9 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     var measurePath: #null *GpPath
     var bounds: GpRectF
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &measurePath))
-    addGdiPathText(assume measurePath, assume text16.buffer, count16, assume family, assume format, emSize, 0, 0)
-    gdipCheck(GdipGetPathWorldBounds(assume measurePath, &bounds, null, null))
-    gdipCheck(GdipDeletePath(assume measurePath))
+    addGdiPathText(notnull measurePath, notnull text16.buffer, count16, notnull family, notnull format, emSize, 0, 0)
+    gdipCheck(GdipGetPathWorldBounds(notnull measurePath, &bounds, null, null))
+    gdipCheck(GdipDeletePath(notnull measurePath))
 
     let margin = cast(f32) OutlineShadowMargin
     let localW = Math.max(cast(s32) Math.ceil(bounds.width + border * 2 + margin * 2), 1)
@@ -159,31 +159,31 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     var bitmap: #null *GpBitmap
     var graphics: #null *GpGraphics
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
-    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) (assume bitmap), &graphics))
-    gdipCheck(GdipSetSmoothingMode(assume graphics, GdipSmoothingModeHighQuality))
-    gdipCheck(GdipSetPixelOffsetMode(assume graphics, GdipPixelOffsetModeHighQuality))
-    gdipCheck(GdipSetTextRenderingHint(assume graphics, GdipTextRenderingHintAAGridFit))
-    gdipCheck(GdipGraphicsClear(assume graphics, 0))
+    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) (notnull bitmap), &graphics))
+    gdipCheck(GdipSetSmoothingMode(notnull graphics, GdipSmoothingModeHighQuality))
+    gdipCheck(GdipSetPixelOffsetMode(notnull graphics, GdipPixelOffsetModeHighQuality))
+    gdipCheck(GdipSetTextRenderingHint(notnull graphics, GdipTextRenderingHintAAGridFit))
+    gdipCheck(GdipGraphicsClear(notnull graphics, 0))
 
     var path: #null *GpPath
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
-    addGdiPathText(assume path, assume text16.buffer, count16, assume family, assume format, emSize, margin + border - bounds.x, margin + border - bounds.y)
+    addGdiPathText(notnull path, notnull text16.buffer, count16, notnull family, notnull format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
     var pen: #null *GpPen
     var brush: #null *GpSolidFill
     gdipCheck(GdipCreatePen1(cast(u32) Argb.Crimson, border * 2, GdipUnitPixel, &pen))
-    gdipCheck(GdipSetPenLineJoin(assume pen, GdipLineJoinRound))
+    gdipCheck(GdipSetPenLineJoin(notnull pen, GdipLineJoinRound))
     gdipCheck(GdipCreateSolidFill(cast(u32) Argb.White, &brush))
-    gdipCheck(GdipDrawPath(assume graphics, assume pen, assume path))
-    gdipCheck(GdipFillPath(assume graphics, cast(*GpBrush) (assume brush), assume path))
+    gdipCheck(GdipDrawPath(notnull graphics, notnull pen, notnull path))
+    gdipCheck(GdipFillPath(notnull graphics, cast(*GpBrush) (notnull brush), notnull path))
 
-    gdipCheck(GdipDeletePen(assume pen))
-    gdipCheck(GdipDeleteBrush(cast(*GpBrush) (assume brush)))
-    gdipCheck(GdipDeletePath(assume path))
-    gdipCheck(GdipDeleteStringFormat(assume format))
-    gdipCheck(GdipDeleteFontFamily(assume family))
-    gdipCheck(GdipDeleteGraphics(assume graphics))
-    gdipCheck(GdipDisposeImage(cast(*GpImage) (assume bitmap)))
+    gdipCheck(GdipDeletePen(notnull pen))
+    gdipCheck(GdipDeleteBrush(cast(*GpBrush) (notnull brush)))
+    gdipCheck(GdipDeletePath(notnull path))
+    gdipCheck(GdipDeleteStringFormat(notnull format))
+    gdipCheck(GdipDeleteFontFamily(notnull family))
+    gdipCheck(GdipDeleteGraphics(notnull graphics))
+    gdipCheck(GdipDisposeImage(cast(*GpImage) (notnull bitmap)))
 
     flipImageVertical(&image)
     unpremultiplyImage(&image)
@@ -211,15 +211,15 @@ func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectan
 
 func drawHeader(painter: *Pixel.Painter)
 {
-    painter.drawString(34, 28, "Captme outline text quality", assume g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", assume g_HelpFont, Argb.DimGray)
+    painter.drawString(34, 28, "Captme outline text quality", notnull g_TitleFont, Argb.MidnightBlue)
+    painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", notnull g_HelpFont, Argb.DimGray)
 }
 
 func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 {
     painter.fillRoundRect(rect, 8, 8, Argb.White)
     painter.drawRoundRect(rect, 8, 8, Color.fromArgb(84, Argb.SlateGray), 1)
-    painter.drawString(rect.x + 12, rect.y + 10, title, assume g_LabelFont, Argb.DarkSlateBlue)
+    painter.drawString(rect.x + 12, rect.y + 10, title, notnull g_LabelFont, Argb.DarkSlateBlue)
 }
 
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
@@ -425,7 +425,7 @@ func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: str
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
-        painter.drawString(cell.x + 10, cell.y + 8, sample.label, assume g_HelpFont, Argb.DimGray)
+        painter.drawString(cell.x + 10, cell.y + 8, sample.label, notnull g_HelpFont, Argb.DimGray)
         let ss = mode == .PathStroke ? OutlineSuperSample : 1
         drawShadowedOutline(painter, insetRect(cell, 8, 22, 8, 8), "Captme", sample.scale, mode, ss)
     }
@@ -444,7 +444,7 @@ func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
-        painter.drawString(cell.x + 10, cell.y + 8, sample.label, assume g_HelpFont, Argb.DimGray)
+        painter.drawString(cell.x + 10, cell.y + 8, sample.label, notnull g_HelpFont, Argb.DimGray)
         drawShadowedTexture(painter, insetRect(cell, 8, 22, 8, 8), g_GdiText[idx])
     }
 }

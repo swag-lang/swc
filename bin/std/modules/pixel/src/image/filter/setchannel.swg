@@ -48,7 +48,7 @@ impl Image
         var f = {rmode: rmode, value: value, color: color}
         .visitPixels(&f)
         {
-            let params = cast(*#decltype(f)) (assume userData)
+            let params = cast(*#decltype(f)) (notnull userData)
             let mode   = params.rmode
 
             var channelValue: u8 = undefined

@@ -28,14 +28,14 @@ impl TypeFace
         let str  = String.from(fullname)
         let here = g_HashTypeFace.tryFind(str)
         if here do
-            return assume here.value
+            return notnull here.value
 
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = getDataFromHFONT(hf)
 
         let face = try Face.load(tf.buffer.toSlice())
-        tf.face  = assume face
+        tf.face  = notnull face
 
         g_HashTypeFace.add(str, tf)
         return tf

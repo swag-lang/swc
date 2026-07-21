@@ -26,7 +26,7 @@ impl IActionUI for ActionCapture
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
 
         switch cxt.id
         {
@@ -104,7 +104,7 @@ impl IActionUI for ActionCapture
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
 
         switch cxt.id
         {
@@ -161,7 +161,7 @@ impl MainWnd
             }
         }
 
-        let validCapture = assume capture
+        let validCapture = notnull capture
         with validCapture
         {
             .changed     = true

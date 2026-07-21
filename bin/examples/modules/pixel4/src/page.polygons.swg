@@ -71,7 +71,7 @@ func drawPolygonHoleCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     outlinePen.joinStyle   = .Round
     painter.drawPath(&list, outlinePen)
 
-    drawWrappedText(painter, {body.x + 22, body.bottom() - 38, body.width - 44, 24}, "Counter-wound inner contour", assume g_HelpFont, Argb.Indigo)
+    drawWrappedText(painter, {body.x + 22, body.bottom() - 38, body.width - 44, 24}, "Counter-wound inner contour", notnull g_HelpFont, Argb.Indigo)
 }
 
 func drawPolygonsPage(painter: *Pixel.Painter)

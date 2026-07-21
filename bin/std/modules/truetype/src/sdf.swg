@@ -32,7 +32,7 @@ func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
 func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = assume slot
+    let safeSlot = notnull slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -62,7 +62,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    let bitmapBuffer = assume faceData.bitmapPixels.buffer
+    let bitmapBuffer = notnull faceData.bitmapPixels.buffer
     var dst = bitmapBuffer
     let scale = 127.0 / cast(f64) safeSpread
 

@@ -20,7 +20,7 @@ impl Voice
             let orgSeek  = .streamCurSeek
             let readSize = (.file.datas.count - .streamCurSeek)
             .streamCurSeek = .file.datas.count
-            let datasBuffer = assume .file.datas.buffer
+            let datasBuffer = notnull .file.datas.buffer
             return {datasBuffer + orgSeek, readSize}
         }
 
@@ -28,7 +28,7 @@ impl Voice
         if !.decodedBuffers[.decodedBufferIdx].buffer do
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
-        let destBuffer = assume .decodedBuffers[.decodedBufferIdx].buffer
+        let destBuffer = notnull .decodedBuffers[.decodedBufferIdx].buffer
         let destSize   = .decodeData(destBuffer, DecodedBufferSize)
 
         .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
@@ -45,7 +45,7 @@ impl Voice
         let desc = getCodec(.requestedEncoding, .file.encoding)
         if !desc do
             throw UnsupportedFormatError{"unsupported encoding"}
-        let decoderData = assume Memory.new(desc.type)
+        let decoderData = notnull Memory.new(desc.type)
         let decoder = cast(*Codec) decoderData
         decoder.srcEncoding = .file.encoding
         decoder.dstEncoding = .requestedEncoding
@@ -57,7 +57,7 @@ impl Voice
     {
         if .codec == null do
             return
-        let decoder = cast(*Codec) (assume @dataof(.codec))
+        let decoder = cast(*Codec) (notnull @dataof(.codec))
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
         Memory.free(decoder, cast(u64) decoder.type.sizeof)
@@ -82,13 +82,13 @@ impl Voice
             assume .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
             let readStart = .streamCurSeek
-            let streamBuffer = assume .streamBuffer.buffer
+            let streamBuffer = notnull .streamBuffer.buffer
             .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
             .streamCurSeek      = readStart + .codec.init(streamBuffer, .streamBuffer.count)
         }
 
         let readStart = .streamCurSeek
-        let streamBuffer = assume .streamBuffer.buffer
+        let streamBuffer = notnull .streamBuffer.buffer
         .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
         let used = .codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
         .streamCurSeek = readStart + used.read
@@ -108,7 +108,7 @@ impl Voice
         if .streamCurSeek < .file.datas.count
         {
             let remain = Math.min(.file.datas.count - .streamCurSeek, length)
-            let datasBuffer = assume .file.datas.buffer
+            let datasBuffer = notnull .file.datas.buffer
             Memory.copy(destBuffer, datasBuffer + .streamCurSeek, remain)
             .streamCurSeek += remain
             if .streamCurSeek >= .file.dataSize do

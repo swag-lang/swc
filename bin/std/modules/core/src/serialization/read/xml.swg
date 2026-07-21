@@ -43,7 +43,7 @@ public impl Xml
             throw .getError("malformed tag, missing closing [[>]]")
 
         let end = .stream.getSeek() - 1
-        return Latin1.trim(cast(string) assume .stream.readBuffer[start until end])
+        return Latin1.trim(cast(string) notnull .stream.readBuffer[start until end])
     }
 
     mtd readStartTag()->string throw

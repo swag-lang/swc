@@ -91,7 +91,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
                 str.clear()
                 str += c
-                painter.drawString(x, y, str, assume g_Font, color)
+                painter.drawString(x, y, str, notnull g_Font, color)
             }
 
             g_RD[i].y += g_RD[i].speed * wnd.getApp().getDt()

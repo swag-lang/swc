@@ -131,7 +131,7 @@ func toZeroTerminated(src: string)->Array'u16
 {
     var result: retval
     result.reserve(2 * @countof(src) + 1)
-    let buffer = assume result.buffer
+    let buffer = notnull result.buffer
     result.count             = Utf16.fromUtf8(@mkslice(buffer, result.capacity), src) + 1
     result[result.count - 1] = 0
     return result

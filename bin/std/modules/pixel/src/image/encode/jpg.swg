@@ -382,8 +382,8 @@ impl Encoder
     {
         .categoryAlloc.resize(65535)
         .bitcodeAlloc.resize(65535)
-        .category = cast([*] u8) (assume .categoryAlloc.buffer) + 32767
-        .bitcode  = cast([*] BitString) (assume .bitcodeAlloc.buffer) + 32767
+        .category = cast([*] u8) (notnull .categoryAlloc.buffer) + 32767
+        .bitcode  = cast([*] BitString) (notnull .bitcodeAlloc.buffer) + 32767
 
         var nrlower = 1
         var nrupper = 2
@@ -754,7 +754,7 @@ public impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            opt = dref cast(*EncodeOptions) (assume @dataof(options))
+            opt = dref cast(*EncodeOptions) (notnull @dataof(options))
         }
 
         .stream      = result

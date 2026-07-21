@@ -140,15 +140,15 @@ impl Theme
             catch createGuiTypeFace(&.defaultFsTypeFaceI, DefaultFontFsItalicName, DefaultFontFsItalic)
             catch createGuiTypeFace(&.defaultFsTypeFaceBI, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
-            .fontDefault.regular    = Font.create(assume .defaultTypeFaceR, me.metrics.defaultFontSize)
-            .fontDefault.bold       = Font.create(assume .defaultTypeFaceB, me.metrics.defaultFontSize)
-            .fontDefault.italic     = Font.create(assume .defaultTypeFaceI, me.metrics.defaultFontSize)
-            .fontDefault.boldItalic = Font.create(assume .defaultTypeFaceBI, me.metrics.defaultFontSize)
+            .fontDefault.regular    = Font.create(notnull .defaultTypeFaceR, me.metrics.defaultFontSize)
+            .fontDefault.bold       = Font.create(notnull .defaultTypeFaceB, me.metrics.defaultFontSize)
+            .fontDefault.italic     = Font.create(notnull .defaultTypeFaceI, me.metrics.defaultFontSize)
+            .fontDefault.boldItalic = Font.create(notnull .defaultTypeFaceBI, me.metrics.defaultFontSize)
 
-            .fontDefaultFs.regular    = Font.create(assume .defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.bold       = Font.create(assume .defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.italic     = Font.create(assume .defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.boldItalic = Font.create(assume .defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.regular    = Font.create(notnull .defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.bold       = Font.create(notnull .defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.italic     = Font.create(notnull .defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.boldItalic = Font.create(notnull .defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
         }
     }
 
@@ -156,10 +156,10 @@ impl Theme
     mtd createDefaultFontfamily(size: u32)->FontFamily
     {
         var result: retval
-        result.regular    = Font.create(assume .res.defaultTypeFaceR, size)
-        result.bold       = Font.create(assume .res.defaultTypeFaceB, size)
-        result.italic     = Font.create(assume .res.defaultTypeFaceI, size)
-        result.boldItalic = Font.create(assume .res.defaultTypeFaceBI, size)
+        result.regular    = Font.create(notnull .res.defaultTypeFaceR, size)
+        result.bold       = Font.create(notnull .res.defaultTypeFaceB, size)
+        result.italic     = Font.create(notnull .res.defaultTypeFaceI, size)
+        result.boldItalic = Font.create(notnull .res.defaultTypeFaceBI, size)
         return result
     }
 
@@ -170,13 +170,13 @@ impl Theme
         switch style
         {
         case Regular:
-            return Font.create(assume .res.defaultTypeFaceR, size)
+            return Font.create(notnull .res.defaultTypeFaceR, size)
         case Bold:
-            return Font.create(assume .res.defaultTypeFaceB, size)
+            return Font.create(notnull .res.defaultTypeFaceB, size)
         case Italic:
-            return Font.create(assume .res.defaultTypeFaceI, size)
+            return Font.create(notnull .res.defaultTypeFaceI, size)
         case BoldItalic:
-            return Font.create(assume .res.defaultTypeFaceBI, size)
+            return Font.create(notnull .res.defaultTypeFaceBI, size)
         }
 
         unreachable
@@ -189,13 +189,13 @@ impl Theme
         switch style
         {
         case Regular:
-            return Font.create(assume .res.defaultFsTypeFaceR, size)
+            return Font.create(notnull .res.defaultFsTypeFaceR, size)
         case Bold:
-            return Font.create(assume .res.defaultFsTypeFaceB, size)
+            return Font.create(notnull .res.defaultFsTypeFaceB, size)
         case Italic:
-            return Font.create(assume .res.defaultFsTypeFaceI, size)
+            return Font.create(notnull .res.defaultFsTypeFaceI, size)
         case BoldItalic:
-            return Font.create(assume .res.defaultFsTypeFaceBI, size)
+            return Font.create(notnull .res.defaultFsTypeFaceBI, size)
         }
 
         unreachable

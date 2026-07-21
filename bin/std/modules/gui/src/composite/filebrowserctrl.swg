@@ -354,7 +354,7 @@ impl FileBrowserCtrl
     // Navigate to the given folder.
     mtd setCurFolder(folder: string)
     {
-        if !@countof(folder) or !Directory.exists(assume folder) do
+        if !@countof(folder) or !Directory.exists(notnull folder) do
             return
 
         .curFolder = folder
@@ -403,7 +403,7 @@ impl FileBrowserCtrl
 
         for &fi in .curList
         {
-            let fname = assume Path.getFileName(fi.fullname)
+            let fname = notnull Path.getFileName(fi.fullname)
 
             // Filter
             var show = true
@@ -487,9 +487,9 @@ impl FileBrowserCtrl
             var val = Path.combine(.curFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, assume filterExtensions)
+            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, notnull filterExtensions)
             {
-                let exts = Tokenize.split(assume filterExtensions, ';''rune)
+                let exts = Tokenize.split(notnull filterExtensions, ';''rune)
                 val += exts[0]
             }
 

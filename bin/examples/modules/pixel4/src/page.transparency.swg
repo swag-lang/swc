@@ -18,7 +18,7 @@ func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)
 {
-    painter.drawString(rect.x, rect.y + 10, label, assume g_LabelFont, Argb.DarkSlateGray)
+    painter.drawString(rect.x, rect.y + 10, label, notnull g_LabelFont, Argb.DarkSlateGray)
 
     let pathRect = insetRect(rect, 150, 6, 16, 8)
     painter.drawLine(pathRect.x, pathRect.vertCenter(), pathRect.right(), pathRect.vertCenter(), Color.fromArgb(24, Argb.Black), 1)

@@ -195,7 +195,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
     {
         let dstY   = topDown ? result.height - y - 1 : y
         let srcRow = src + stride * cast(u64) y
-        var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
+        var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8
         for x in result.width
         {
             writePalettePixel(dst, palette, paletteEntrySize, packedIndex(srcRow, bitCount, x), paletteCount)
@@ -213,7 +213,7 @@ func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount:
     for y in result.height
     {
         let dstY = topDown ? result.height - y - 1 : y
-        Memory.copy(cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
+        Memory.copy(cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * rowBytes, src + stride * cast(u64) y, rowBytes)
     }
 }
 
@@ -226,7 +226,7 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
     {
         let dstY   = topDown ? result.height - y - 1 : y
         var srcPix = src + stride * cast(u64) y
-        var dst    = cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8
+        var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8
         for result.width
         {
             writeMaskedPixel(dst, dref cast(const *u16) srcPix, masks, false)
@@ -254,7 +254,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if x + count > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for count
             {
                 writePalettePixel(dst, palette, paletteEntrySize, value, paletteCount)
@@ -288,7 +288,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if x + absoluteCount > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for i in absoluteCount
             {
                 writePalettePixel(dst, palette, paletteEntrySize, p[i], paletteCount)
@@ -326,7 +326,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if x + count > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for i in count
             {
                 writePalettePixel(dst, palette, paletteEntrySize, rle4Index(value, i), paletteCount)
@@ -361,7 +361,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if x + pixelCount > result.width do
                 throw InvalidFormatError{"invalid source buffer"}
 
-            var dst = cast([*] u8) (assume result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
+            var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for i in pixelCount
             {
                 writePalettePixel(dst, palette, paletteEntrySize, rle4Index(p[i / 2], i), paletteCount)

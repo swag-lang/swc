@@ -544,7 +544,7 @@ impl LibraryWnd
 
         with view.imgSpin = ImageRect.create(res, {4, 4, 24, 24})
         {
-            .setMovie(dref assume view.getTheme().res.spin)
+            .setMovie(dref notnull view.getTheme().res.spin)
             .hide()
         }
 

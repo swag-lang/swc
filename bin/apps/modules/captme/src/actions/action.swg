@@ -38,7 +38,7 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         if d.id != cxt.id do
             continue
 
-        let main    = cast(*MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) notnull cxt.wnd
         let capture = main.getCapture()
 
         var disabled = false

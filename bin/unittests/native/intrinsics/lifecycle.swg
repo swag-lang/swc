@@ -342,7 +342,7 @@ impl ReallocDropBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         return buffer + .count - num
     }
 
@@ -394,7 +394,7 @@ impl GenericOwnedBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         return buffer + .count - num
     }
 
@@ -448,7 +448,7 @@ impl LazyAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         return buffer + .count - num
     }
 
@@ -497,7 +497,7 @@ impl HelperAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         return buffer + .count - num
     }
 
@@ -542,7 +542,7 @@ impl MemoryAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         return buffer + .count - num
     }
 
@@ -615,7 +615,7 @@ impl PostCopyAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         return buffer + .count - num
     }
 
@@ -1324,7 +1324,7 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    let ptr = cast([*] DropOnlyTracked) assume req.address
+    let ptr = cast([*] DropOnlyTracked) notnull req.address
     @init(ptr, 3)
     for i in 3 do
         ptr[i].value = cast(s32) (i + 1)

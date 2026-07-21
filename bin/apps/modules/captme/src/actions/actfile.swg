@@ -26,7 +26,7 @@ impl IActionUI for ActionFile
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) assume cxt.wnd
+        let main    = cast(*MainWnd) notnull cxt.wnd
         let capture = main.getCapture()
 
         switch cxt.id
@@ -120,8 +120,8 @@ impl IActionUI for ActionFile
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) assume cxt.wnd
-        let capture = assume main.getCapture()
+        let main    = cast(*MainWnd) notnull cxt.wnd
+        let capture = notnull main.getCapture()
 
         switch cxt.id
         {
@@ -141,7 +141,7 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case UnlinkImage:
-            let res = MessageDlg.confirm(assume main.surface, "This will remove the image association.")
+            let res = MessageDlg.confirm(notnull main.surface, "This will remove the image association.")
             if res == MessageDlg.BtnYes
             {
                 capture.linkedImage.clear()
@@ -183,7 +183,7 @@ impl IActionUI for ActionFile
                     dlg.setExtension(chk)
                 }
 
-                if MessageDlg.confirm(assume main.surface, txt, options: opt) != Dialog.BtnYes do
+                if MessageDlg.confirm(notnull main.surface, txt, options: opt) != Dialog.BtnYes do
                     break
             }
 
@@ -192,7 +192,7 @@ impl IActionUI for ActionFile
             main.doSaveImage(capture, &img, capture.linkedImage)
 
         case DeleteCapture:
-            let res = MessageDlg.confirm(assume main.surface, "This will delete the capture file(s).")
+            let res = MessageDlg.confirm(notnull main.surface, "This will delete the capture file(s).")
             if res == MessageDlg.BtnYes
             {
                 if main.libraryMode do
@@ -213,7 +213,7 @@ impl IActionUI for ActionFile
             // so guard before dereferencing to avoid a null crash and abort the duplication.
             if newCapture == null
             {
-                MessageDlg.error(assume main.surface, "Failed to duplicate capture")
+                MessageDlg.error(notnull main.surface, "Failed to duplicate capture")
                 break
             }
             let loaded = newCapture
@@ -231,13 +231,13 @@ impl IActionUI for ActionFile
             // Snapshot the values now: 'capture' may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
             let file  = capture.file.toString()
-            let dlg   = EditDlg.createSingleLine(assume main.surface)
+            let dlg   = EditDlg.createSingleLine(notnull main.surface)
             dlg.setMessage("Capture name")
             dlg.setText(capture.title)
             dlg.edit.selectAll()
             // EditDlg.createSingleLine (unlike Dialog.createDialog) does not center itself;
             // do it here now the surface has its final size, so the box opens centered.
-            dlg.surface.center(assume main.surface)
+            dlg.surface.center(notnull main.surface)
             if dlg.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dlg.getText())
 
@@ -249,11 +249,11 @@ impl IActionUI for ActionFile
 
         case CaptureFileLocation:
             if !Env.locateInExplorer(capture.file) do
-                MessageDlg.error(assume main.surface, "Failed to locate capture file")
+                MessageDlg.error(notnull main.surface, "Failed to locate capture file")
 
         case LinkedFileLocation:
             if !Env.locateInExplorer(capture.linkedImage) do
-                MessageDlg.error(assume main.surface, "Failed to locate linked image")
+                MessageDlg.error(notnull main.surface, "Failed to locate linked image")
 
         case FileDetails:
 
@@ -268,7 +268,7 @@ impl IActionUI for ActionFile
                 lbl2.horzAlignmentText = .Left
             }
 
-            let dlg = Dialog.createDialog(assume main.surface, 600, 400, title: "Details", flags: .Border | .CloseBtn | .Sizeable)
+            let dlg = Dialog.createDialog(notnull main.surface, 600, 400, title: "Details", flags: .Border | .CloseBtn | .Sizeable)
             dlg.addButton("OK", Dialog.BtnOk, true)
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
@@ -306,13 +306,13 @@ impl MainWnd
             .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
         }
 
-        let dlg = FileDlg.create(assume .surface, opt)
+        let dlg = FileDlg.create(notnull .surface, opt)
         if dlg.doModal() != Dialog.BtnOk do
             return
 
         let img = catch Image.load(dlg.getSelectedName())
         if @err != null do
-            MessageDlg.error(assume .surface, "Failed to load image")
+            MessageDlg.error(notnull .surface, "Failed to load image")
         else do
             .newCapture(img, dlg.getSelectedName())
     }
@@ -343,7 +343,7 @@ impl MainWnd
         catch img.save(nameFile, optImg)
         if @err != null
         {
-            MessageDlg.error(assume .surface, "Failed to save file")
+            MessageDlg.error(notnull .surface, "Failed to save file")
             return
         }
 
@@ -354,7 +354,7 @@ impl MainWnd
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
-        let emb = EmbInfoCtrl.create(assume .editWnd.view, txt, .Information, flags: .Bottom | .AutoHide)
+        let emb = EmbInfoCtrl.create(notnull .editWnd.view, txt, .Information, flags: .Bottom | .AutoHide)
         emb.label.sigUrlClicked += func(lbl, msg)
         {
             Env.locateInExplorer(msg)
@@ -371,7 +371,7 @@ impl MainWnd
 
     mtd getSaveAsImageName()->String
     {
-        let capture = assume .getCapture()
+        let capture = notnull .getCapture()
 
         var opt: FileDlgOptions
         with opt
@@ -390,7 +390,7 @@ impl MainWnd
             .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
         }
 
-        let dlg = FileDlg.create(assume .surface, opt)
+        let dlg = FileDlg.create(notnull .surface, opt)
         if .inPlaceEdit do
             dlg.surface.setTopMost()
         if dlg.doModal() != Dialog.BtnOk do
@@ -400,7 +400,7 @@ impl MainWnd
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
-        let capture = assume .getCapture()
+        let capture = notnull .getCapture()
         Cursor.wait()
         var img = capture.toImage()
         if linked do
@@ -410,7 +410,7 @@ impl MainWnd
 
     mtd newImage()
     {
-        let dlg = Dialog.createDialog(assume .surface, 350, 235, title: "New Image")
+        let dlg = Dialog.createDialog(notnull .surface, 350, 235, title: "New Image")
         dlg.addButton("Create", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, "Width", "512", {90, 12}, flags: .RightAlign)

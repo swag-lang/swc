@@ -46,7 +46,7 @@ impl Properties
 
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(assume item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(notnull item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -59,7 +59,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with let ed = ComboBox.create(assume item.line, kind: .CheckBox)
+            with let ed = ComboBox.create(notnull item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -74,8 +74,8 @@ impl Properties
             item.comboBox = ed
         }
 
-        item.comboBox.addItem(cast(string) (assume Reflection.getAttributeValue(value, .BoolCombo, "off")))
-        item.comboBox.addItem(cast(string) (assume Reflection.getAttributeValue(value, .BoolCombo, "on")))
+        item.comboBox.addItem(cast(string) (notnull Reflection.getAttributeValue(value, .BoolCombo, "off")))
+        item.comboBox.addItem(cast(string) (notnull Reflection.getAttributeValue(value, .BoolCombo, "on")))
 
         .refreshBool(item)
         item.comboBox.sigChanged += func|prop = me, item|(ed, n)
@@ -96,7 +96,7 @@ impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
-            with let ed = CheckButton.create(assume itemP.line, itemDisplayName(value).toString())
+            with let ed = CheckButton.create(notnull itemP.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
             }

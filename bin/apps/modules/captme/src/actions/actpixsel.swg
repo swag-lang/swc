@@ -23,7 +23,7 @@ impl IActionUI for ActionPixSel
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
 
         switch cxt.id
         {
@@ -46,7 +46,7 @@ impl MainWnd
     mtd getPixSels()->Array'IForm
     {
         var result: retval
-        let capture = assume .getCapture()
+        let capture = notnull .getCapture()
         foreachSelected'BaseForm(capture, capture.selection)
         {
             if form.subKind == .PixSel do
@@ -73,7 +73,7 @@ impl MainWnd
         if forms.count == 0 do
             return
 
-        let capture = assume .getCapture()
+        let capture = notnull .getCapture()
         let undo    = capture.newUndo(.SetImage)
         undo.newImagePos = capture.backImagePos
         undo.newImg      = capture.backImg
@@ -85,7 +85,7 @@ impl MainWnd
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms, argb: argb}
         undo.newImg.visitPixels(&params)
         {
-            var p = cast(*#decltype(params)) assume userData
+            var p = cast(*#decltype(params)) notnull userData
             for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
@@ -111,7 +111,7 @@ impl MainWnd
         if forms.count == 0 do
             return
 
-        let capture = assume .getCapture()
+        let capture = notnull .getCapture()
         let undo    = capture.newUndo(.SetImage)
         undo.newImagePos = capture.backImagePos
         undo.newImg      = capture.backImg
@@ -152,7 +152,7 @@ impl MainWnd
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bpp8
                         pix32 += y1 * undo.newImg.width * undo.newImg.bpp8
-                        col1.argb = dref cast(*u32) assume pix32
+                        col1.argb = dref cast(*u32) notnull pix32
                         break
                     }
                     y1 += 1
@@ -168,7 +168,7 @@ impl MainWnd
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bpp8
                         pix32 += y2 * undo.newImg.width * undo.newImg.bpp8
-                        col2.argb = dref cast(*u32) assume pix32
+                        col2.argb = dref cast(*u32) notnull pix32
                         break
                     }
                     y2 -= 1
@@ -183,7 +183,7 @@ impl MainWnd
         var params = {capture: capture, infos: infos.buffer, forms: &forms, masks: masks}
         undo.newImg.visitPixels(&params)
         {
-            var p = cast(*#decltype(params)) assume userData
+            var p = cast(*#decltype(params)) notnull userData
             for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
@@ -212,7 +212,7 @@ impl MainWnd
                             {
                                 var pix1 = pmask.pixels.buffer + xx * pmask.bpp8
                                 pix1 += yy * pmask.width * pmask.bpp8
-                                dref cast(*u32) assume pix1 = 0xFFFFFFFF
+                                dref cast(*u32) notnull pix1 = 0xFFFFFFFF
                             }
                         }
 
@@ -236,7 +236,7 @@ impl MainWnd
         if forms.count == 0 do
             return
 
-        let capture = assume .getCapture()
+        let capture = notnull .getCapture()
 
         let serial = capture.undoMgr.newSerial()
 
@@ -273,7 +273,7 @@ impl MainWnd
         for f, idx in undo.oldForms
         {
             let nf = cast(*FormImage) f
-            nf.backCaptureMask(assume (masks.buffer + idx))
+            nf.backCaptureMask(notnull (masks.buffer + idx))
         }
 
         undo = capture.newUndo(.DeleteSelection)

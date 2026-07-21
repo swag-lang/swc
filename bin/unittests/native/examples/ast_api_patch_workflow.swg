@@ -45,13 +45,13 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
     for field in typeStruct.fields
     {
         len = appendAst(buffer, len, "has_")
-        len = appendAst(buffer, len, assume field.name)
+        len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": bool\n")
-        len = appendAst(buffer, len, assume field.name)
+        len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": ")
         if field.pointedType == string do
             len = appendAst(buffer, len, "#null ")
-        len = appendAst(buffer, len, assume field.pointedType.name)
+        len = appendAst(buffer, len, notnull field.pointedType.name)
         len = appendAst(buffer, len, "\n")
     }
 
@@ -80,7 +80,7 @@ func(T) clearPatch(patch: &ApiPatch'T)
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = false\n")
         }
         if len == 0 do
@@ -99,12 +99,12 @@ func(T) capturePatch(patch: &ApiPatch'T, value: const &T)
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = true\n")
             len = appendAst(&buffer[0], len, "patch.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = value.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do
@@ -124,7 +124,7 @@ func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    count += 1\n")
         }
@@ -147,7 +147,7 @@ func(T) patchChangedMask(patch: const &ApiPatch'T)->u64
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    mask |= bit\n")
             len = appendAst(&buffer[0], len, "bit <<= 1\n")
@@ -170,12 +170,12 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    result.")
-            len = appendAst(&buffer[0], len, assume field.name)
-            len = appendAst(&buffer[0], len, field.pointedType == string ? " = assume patch." : " = patch.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
+            len = appendAst(&buffer[0], len, field.pointedType == string ? " = notnull patch." : " = patch.")
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do

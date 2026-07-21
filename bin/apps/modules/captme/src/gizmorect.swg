@@ -512,7 +512,7 @@ impl GizmoRect
 
         let undo    = capture.newUndo(.SetTypedValue)
         undo.valU32 = cast #bit (u32) angle
-        undo.valRef = assume Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+        undo.valRef = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
         capture.pushUndo(undo)
 
         let main = capture.editView.main

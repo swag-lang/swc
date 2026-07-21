@@ -160,11 +160,11 @@ impl MainWnd
         switch mode
         {
         case Favorites, Selection:
-            return assume .mdlFavorite
+            return notnull .mdlFavorite
         case Highlight:
-            return assume .mdlHighlight
+            return notnull .mdlHighlight
         case PixSel:
-            return assume .mdlPixSel
+            return notnull .mdlPixSel
         }
 
         return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
@@ -175,7 +175,7 @@ impl MainWnd
         // Clone the model of the given mode, whatever its concrete type
         let mdlItf  = .editModeToModel(mode)
         let mdlType = @kindof(mdlItf)
-        let mdl     = cast(*BaseForm) assume Memory.new(mdlType)
+        let mdl     = cast(*BaseForm) notnull Memory.new(mdlType)
         mdlItf.copy(mdl, cast(*BaseForm) @dataof(mdlItf))
 
         // A new form starts without the model content, just its style
@@ -203,7 +203,7 @@ impl MainWnd
 
     func newFormFromForm(it: IForm)->*BaseForm
     {
-        let mdlValue = cast(*BaseForm) assume Memory.new(@kindof(it))
+        let mdlValue = cast(*BaseForm) notnull Memory.new(@kindof(it))
         it.copy(mdlValue, cast(*BaseForm) @dataof(it))
         return mdlValue
     }

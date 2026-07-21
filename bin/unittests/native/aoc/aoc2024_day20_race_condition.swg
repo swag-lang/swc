@@ -208,7 +208,7 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32) -> u64
 
     // Collect path cells into array for efficient pairwise iteration
     let pathSize = g.pathLen + 1
-    let pathBuf = cast([*] Pos) assume @alloc(cast(u64) pathSize * #sizeof(Pos))
+    let pathBuf = cast([*] Pos) notnull @alloc(cast(u64) pathSize * #sizeof(Pos))
     defer @free(pathBuf)
 
     // Fill path buffer in distance order

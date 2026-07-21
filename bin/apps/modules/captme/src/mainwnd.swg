@@ -235,7 +235,7 @@ impl MainWnd
     {
         catch capture.save()
         if @err != null do
-            MessageDlg.error(assume .surface, Format.toString("Failed to save capture file: %", capture.file))
+            MessageDlg.error(notnull .surface, Format.toString("Failed to save capture file: %", capture.file))
     }
 
     // Change the user-defined name of a capture and persist it. The library shows
@@ -256,11 +256,11 @@ impl MainWnd
             let full: #null *Capture = catch Capture.load(file)
             if @err != null
             {
-                MessageDlg.error(assume .surface, "Failed to rename capture")
+                MessageDlg.error(notnull .surface, "Failed to rename capture")
                 return
             }
 
-            let loaded = assume full
+            let loaded = notnull full
             loaded.title   = title
             loaded.changed = true
             .saveCapture(loaded)
@@ -286,11 +286,11 @@ impl MainWnd
         let full: #null *Capture = catch Capture.load(file)
         if @err != null
         {
-            MessageDlg.error(assume .surface, "Failed to copy image")
+            MessageDlg.error(notnull .surface, "Failed to copy image")
             return
         }
 
-        let loaded = assume full
+        let loaded = notnull full
         loaded.editView = .editWnd.editView
         Clipboard.addImage(loaded.toImage())
 
@@ -306,7 +306,7 @@ impl MainWnd
         let imgToLoad = catch Image.load(arg)
         if @err != null
         {
-            MessageDlg.error(assume .surface, Format.toString("Failed to load file: %", arg))
+            MessageDlg.error(notnull .surface, Format.toString("Failed to load file: %", arg))
             return
         }
 
@@ -347,11 +347,11 @@ impl MainWnd
             .editMode = .Selection
             return edMode
         case Favorites:
-            return formToEditMode(assume .mdlFavorite)
+            return formToEditMode(notnull .mdlFavorite)
         case Highlight:
-            return formToEditMode(assume .mdlHighlight)
+            return formToEditMode(notnull .mdlHighlight)
         case PixSel:
-            return formToEditMode(assume .mdlPixSel)
+            return formToEditMode(notnull .mdlPixSel)
         }
         return .editMode
     }
@@ -372,7 +372,7 @@ impl MainWnd
             if !capture do
                 return
 
-            .embInfoFreeze = EmbInfoCtrl.create(assume .editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
+            .embInfoFreeze = EmbInfoCtrl.create(notnull .editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
             .embInfoFreeze.sigOnClose += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -521,7 +521,7 @@ impl MainWnd
                 {
                     var msg = Format.toString("Cannot register global shortcut '%'. ", Input.getKeyName(mdf, key))
                     msg += "Another running application is probably already using it!"
-                    discard EmbInfoCtrl.create(assume .editWnd, msg, .Critical)
+                    discard EmbInfoCtrl.create(notnull .editWnd, msg, .Critical)
                 }
                 errorReg = true
             }
@@ -535,7 +535,7 @@ impl MainWnd
 
     mtd createTopMenu()
     {
-        with let topMenu = MenuCtrl.createBar(assume me.parent, owner: me)
+        with let topMenu = MenuCtrl.createBar(notnull me.parent, owner: me)
         {
             .bringToFront()
             .position.height = Math.max(.position.height, me.parent.padding.y)
@@ -545,7 +545,7 @@ impl MainWnd
         }
 
         // File menu
-        with let fileMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
+        with let fileMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
         {
             .addGroup([ActionFile.NewImage, ActionFile.NewFromClipboard])
             .addGroup([ActionFile.OpenImage, ActionFile.SaveAsImage])
@@ -556,7 +556,7 @@ impl MainWnd
         }
 
         // Capture menu
-        with let captureMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
+        with let captureMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
@@ -588,7 +588,7 @@ impl MainWnd
         }
 
         // Edit menu
-        with let editMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
+        with let editMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
         {
             .addGroup([ActionUndo.DoUndo, ActionUndo.DoRedo])
             .addGroup([ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste])
@@ -601,7 +601,7 @@ impl MainWnd
         }
 
         // Image menu
-        with let imageMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
+        with let imageMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
         {
             .addGroup([ActionCopyPaste.CopyAsImage])
             .addGroup([ActionImage.RestoreOrg])
@@ -612,7 +612,7 @@ impl MainWnd
         }
 
         // View menu
-        with let viewMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
+        with let viewMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
         {
             .addGroup([ActionZoom.ZoomIn, ActionZoom.ZoomOut])
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
@@ -621,7 +621,7 @@ impl MainWnd
         }
 
         // Help menu
-        with let helpMenu = MenuCtrl.createPopup(assume me.parent, owner: me)
+        with let helpMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
         {
             .addItem(ActionOptions.Options)
             .addSeparator()
@@ -654,7 +654,7 @@ impl MainWnd
 
     mtd createToolbar()
     {
-        with me.editToolBar = StackLayoutCtrl.create(assume me.topBar, .HorzCenter, {0, 0, 64, 64})
+        with me.editToolBar = StackLayoutCtrl.create(notnull me.topBar, .HorzCenter, {0, 0, 64, 64})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -669,7 +669,7 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(assume me.editToolBar, {}, position: {0, 0, 60, 64})
+            with let b = IconButton.create(notnull me.editToolBar, {}, position: {0, 0, 60, 64})
             {
                 .id = id
                 if id == ActionToolMode.Callout do
@@ -691,9 +691,9 @@ impl MainWnd
             }
         }
 
-        .captureBtn           = IconButton.create(assume .topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
+        .captureBtn           = IconButton.create(notnull .topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
         .captureBtn.iconColor = Argb.White
-        .libraryBtn           = IconButton.create(assume .topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
+        .libraryBtn           = IconButton.create(notnull .topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
     }
 
     mtd setTheme()

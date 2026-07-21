@@ -320,7 +320,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     if msg == WM_CREATE
     {
         let createStruct = cast(*CREATESTRUCTA) cast(u64) lParam
-        let createParam = assume createStruct.lpCreateParams
+        let createParam = notnull createStruct.lpCreateParams
         SetWindowLongPtrA(hWnd, GWLP_USERDATA, createParam)
 
         let window = cast(*Window) createParam

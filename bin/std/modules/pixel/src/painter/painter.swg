@@ -406,7 +406,7 @@ impl Painter
             cmd.drawTriangles.count = 0
         }
 
-        return assume cmd
+        return notnull cmd
     }
 
     private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
@@ -536,7 +536,7 @@ impl Painter
 
         // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count and .commandBuffer.buffer[.commandBuffer.count - 1].id == cmd do
-            return (assume .commandBuffer.buffer) + .commandBuffer.count - 1
+            return (notnull .commandBuffer.buffer) + .commandBuffer.count - 1
 
         let ptr = .commandBuffer.emplaceAddress(1)
         ptr.id = cmd

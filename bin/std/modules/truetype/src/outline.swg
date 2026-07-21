@@ -33,7 +33,7 @@ public impl Outline
         if .pointCount <= 0 do
             return
 
-        let points = assume .points
+        let points = notnull .points
         for cast(u32) .pointCount
         {
             points[@index].x += xOffset
@@ -46,7 +46,7 @@ public impl Outline
         if .pointCount <= 0 do
             return
 
-        let points = assume .points
+        let points = notnull .points
         for cast(u32) .pointCount
         {
             let pt = points[@index]
@@ -74,8 +74,8 @@ public impl Outline
         let perSide = cast(f64) strength * 0.5
 
         var start = 0'u32
-        let points   = assume .points
-        let contours = assume .contours
+        let points   = notnull .points
+        let contours = notnull .contours
         for cast(u32) .contourCount
         {
             let endIdx = cast(u32) contours[@index]
@@ -113,9 +113,9 @@ func buildOutlineCommands(outline: #null const *Outline)->Array'OutlineCommand
         return commands
 
     var contourStart = 0'u32
-    let points   = cast(const [*] Vector) (assume outline.points)
-    let tags     = cast(const [*] u8) (assume outline.tags)
-    let contours = cast(const [*] s16) (assume outline.contours)
+    let points   = cast(const [*] Vector) (notnull outline.points)
+    let tags     = cast(const [*] u8) (notnull outline.tags)
+    let contours = cast(const [*] s16) (notnull outline.contours)
     for cast(u32) outline.contourCount
     {
         let contourEnd = cast(u32) contours[@index]
@@ -205,8 +205,8 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
 
     var total = 0.0'f64
     var start = 0'u32
-    let points   = cast(const [*] Vector) (assume outline.points)
-    let contours = cast(const [*] s16) (assume outline.contours)
+    let points   = cast(const [*] Vector) (notnull outline.points)
+    let contours = cast(const [*] s16) (notnull outline.contours)
     for cast(u32) outline.contourCount
     {
         let endIdx = cast(u32) contours[@index]

@@ -37,7 +37,7 @@ func drawBlendSample(painter: *Pixel.Painter, rect: Math.Rectangle, mode: Blendi
 {
     painter.fillRoundRect(rect, 14, 14, Color.fromArgb(255, 245, 247, 250))
     painter.drawRoundRect(rect, 14, 14, Color.fromArgb(34, Argb.SlateGray), 1)
-    painter.drawString(rect.x + 14, rect.y + 10, label, assume g_HelpFont, Argb.DarkSlateGray)
+    painter.drawString(rect.x + 14, rect.y + 10, label, notnull g_HelpFont, Argb.DarkSlateGray)
 
     painter.setBlendingMode(mode)
     painter.fillRoundRect(rect.x + 24, rect.y + 42, 78, 78, 18, 18, Color.fromArgb(150, Argb.RoyalBlue))
@@ -85,8 +85,8 @@ func drawPathModeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.fillRoundRect(leftBox, 16, 16, Color.fromArgb(255, 247, 249, 251))
     painter.fillRoundRect(rightBox, 16, 16, Color.fromArgb(255, 247, 249, 251))
-    painter.drawString(leftBox.x + 14, leftBox.y + 12, "Separate", assume g_HelpFont, Argb.DarkSlateGray)
-    painter.drawString(rightBox.x + 14, rightBox.y + 12, "Merge + textured pen", assume g_HelpFont, Argb.DarkSlateGray)
+    painter.drawString(leftBox.x + 14, leftBox.y + 12, "Separate", notnull g_HelpFont, Argb.DarkSlateGray)
+    painter.drawString(rightBox.x + 14, rightBox.y + 12, "Merge + textured pen", notnull g_HelpFont, Argb.DarkSlateGray)
 
     var penL = Pen.createSolid(Color.fromArgb(146, Argb.SeaGreen), 28)
     penL.joinStyle = .Round

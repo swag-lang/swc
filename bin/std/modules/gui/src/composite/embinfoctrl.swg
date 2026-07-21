@@ -108,7 +108,7 @@ impl EmbInfoCtrl
             .dockStyle         = .Center
         }
 
-        with ctrl.iconBtn = IconButton.create(assume ctrl.label, theme.getIcon24(.WndClose, 18), {0, 0, 32, 32})
+        with ctrl.iconBtn = IconButton.create(notnull ctrl.label, theme.getIcon24(.WndClose, 18), {0, 0, 32, 32})
         {
             .margin    = 5
             .dockStyle = .Right

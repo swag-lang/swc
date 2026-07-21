@@ -28,7 +28,7 @@ internal impl Properties
 
     mtd popupMenu(item: *PropertiesItem, pt: Math.Point)
     {
-        ToolTip.hide(assume item.line)
+        ToolTip.hide(notnull item.line)
 
         let menu = MenuCtrl.createPopup(me)
 

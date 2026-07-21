@@ -86,7 +86,7 @@ public impl IWnd for MenuCtrl
             if i.separator do
                 continue
 
-            labelPos = .getBarLabelRect(assume i)
+            labelPos = .getBarLabelRect(notnull i)
 
             var format: RichStringFormat
             colorText      = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
@@ -590,7 +590,7 @@ impl MenuCtrl
         let hotItem = .items[.hotIdx]
         let metrics = .getThemeMetrics()
 
-        var anchorRect = .localToSurface(.getBarItemRect(assume hotItem))
+        var anchorRect = .localToSurface(.getBarItemRect(notnull hotItem))
 
         var pos = anchorRect
         pos.x -= metrics.menuPopup_ShadowSize
@@ -669,7 +669,7 @@ impl MenuCtrl
             if i.separator do
                 continue
 
-            if .getBarItemRect(assume i).contains(pos) do
+            if .getBarItemRect(notnull i).contains(pos) do
                 return cast(u32) idx
         }
 
@@ -721,7 +721,7 @@ impl MenuCtrl
             if i.hidden do
                 continue
             if .onComputeItem do
-                .onComputeItem(assume i)
+                .onComputeItem(notnull i)
             i.pos = x + metrics.menuBar_SpaceBetween * 0.5
             fake.drawRichString({0, 0, 512, 0}, &i.name, rsf)
             i.size = i.name.boundRect.width
@@ -752,7 +752,7 @@ impl MenuCtrl
                 continue
 
             if .onComputeItem do
-                .onComputeItem(assume i)
+                .onComputeItem(notnull i)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
             i.pos = .position.height
@@ -844,7 +844,7 @@ public impl MenuCtrl
     mtd addItems(ids: const [..] WndId)
     {
         for id in ids do
-            .addItem(null, assume id)
+            .addItem(null, notnull id)
     }
 
     // Add a list of items followed by a separator

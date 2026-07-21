@@ -26,7 +26,7 @@ impl HeadlessFixture
         .main.editWnd.editView.setPosition({x: 0, y: 0, width: width, height: height})
 
         let editWnd = .main.editWnd
-        .editView        = assume editWnd.editView
+        .editView        = notnull editWnd.editView
         let localCapture = Memory.new'Capture()
         localCapture.width, localCapture.widthOrg = 400
         localCapture.height, localCapture.heightOrg = 300

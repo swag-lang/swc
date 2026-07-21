@@ -150,7 +150,7 @@ public impl Argb
     {
         let t = #typeof(Argb)
         for it in t.values where it.name == name do
-            return dref cast(const *Argb) (assume it.value)
+            return dref cast(const *Argb) (notnull it.value)
         return Argb.Black
     }
 }

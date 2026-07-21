@@ -125,7 +125,7 @@ impl InlineBufferText
 
     mtd const asString()->string
     {
-        return @mkstring(assume .buffer, .length)
+        return @mkstring(notnull .buffer, .length)
     }
 
     mtd opPostCopy()
@@ -179,7 +179,7 @@ impl HashLikeTable
     {
         for i in .capacity where .entries[i].hash >= 1 do
             @drop(&.entries[i].value)
-        @free(assume .entries)
+        @free(notnull .entries)
         .entries = null
         .capacity = 0
     }
@@ -211,7 +211,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] CopySlot'SelfPointerValue) assume @alloc(#sizeof(CopySlot'SelfPointerValue))
+    let entries = cast([*] CopySlot'SelfPointerValue) notnull @alloc(#sizeof(CopySlot'SelfPointerValue))
     defer @free(entries)
     @memset(entries, 0, #sizeof(CopySlot'SelfPointerValue))
 
@@ -230,7 +230,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] CopySlot'InlineBufferText) assume @alloc(#sizeof(CopySlot'InlineBufferText))
+    let entries = cast([*] CopySlot'InlineBufferText) notnull @alloc(#sizeof(CopySlot'InlineBufferText))
     defer @free(entries)
     @memset(entries, 0, #sizeof(CopySlot'InlineBufferText))
 
@@ -251,7 +251,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     // Kept commented until that compiler bug is fixed.
     #test
     {
-        let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) assume @alloc(#sizeof(HashLikeEntry'(string, InlineBufferText)))
+        let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) notnull @alloc(#sizeof(HashLikeEntry'(string, InlineBufferText)))
         @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
         var table: HashLikeTable'(string, InlineBufferText)
@@ -277,7 +277,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) assume @alloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))
+    let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) notnull @alloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))
     @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
     var table: HashLikeTable'(s32, InlineBufferText)
@@ -300,7 +300,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 {
     #test
     {
-        let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) assume @alloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))
+        let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) notnull @alloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))
         @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
         var table: HashLikeTable'(s32, InlineBufferText)
@@ -322,7 +322,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
     #test
     {
-        let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) assume @alloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))
+        let entries = cast([*] HashLikeEntry'(s32, InlineBufferText)) notnull @alloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))
         @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
         var table: HashLikeTable'(s32, InlineBufferText)
@@ -349,7 +349,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     // can make this `string` specialization compare against the wrong drop slot.
     #test
     {
-        let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) assume @alloc(#sizeof(HashLikeEntry'(string, InlineBufferText)))
+        let entries = cast([*] HashLikeEntry'(string, InlineBufferText)) notnull @alloc(#sizeof(HashLikeEntry'(string, InlineBufferText)))
         @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
         var table: HashLikeTable'(string, InlineBufferText)

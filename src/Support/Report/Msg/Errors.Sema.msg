@@ -204,6 +204,7 @@ SWC_DIAG_DEF(sema_err_try_outside_throwable_context, Error, "'try' can only be u
 SWC_DIAG_DEF(sema_err_throw_outside_throwable_context, Error, "'throw' can only be used in a context that can propagate errors; [help] mark the enclosing function with 'throw', or use it inside 'catch'/'trycatch'")
 SWC_DIAG_DEF(sema_err_throwable_call_requires_handler, Error, "call to throwable function '{sym}' requires a throwable or handled context; [help] mark the enclosing function with 'throw', or use 'catch'/'trycatch' to handle it")
 SWC_DIAG_DEF(sema_err_error_mgmt_operand_not_throwable, Error, "'{tok}' requires a throwable expression or block; [help] apply it to a call to a function declared with 'throw', or to a block that contains one")
+SWC_DIAG_DEF(sema_err_notnull_operand, Error, "'notnull' requires a value expression; [help] apply it to a '#null'-qualified value to assert it is not null (a throwable call must handle its error itself, e.g. 'notnull try f()')")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#scope' named '{sym}'; [help] check the name, or add the matching enclosing scope")
 SWC_DIAG_DEF(sema_err_index_outside_loop, Error, "'@index' is used outside a loop statement; [help] use '@index' inside the loop or foreach that defines it")
 SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on values of type '{type}'; [help] use integer, float, bool, string, pointer, typeinfo, any, or interface values")

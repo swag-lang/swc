@@ -213,7 +213,7 @@ impl RichEditCtrl
             discard .newLine(cp.lineIndex + 1)
             let line = .lines[cp.lineIndex + 1]
             if cp.charPosInLine < linep.length() do
-                line.insertRunes(0, assume linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
+                line.insertRunes(0, notnull linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
             cp.lineIndex += 1
             cp.charPosInLine = 0
@@ -348,7 +348,7 @@ impl RichEditCtrl
                 lineSrc.removeRunes(ps.charPosInLine, lineSrc.length() - ps.charPosInLine)
                 lineEnd.removeRunes(0, pe.charPosInLine)
                 if lineEnd.length() do
-                    lineSrc.insertRunes(ps.charPosInLine, assume lineEnd, 0, lineEnd.length())
+                    lineSrc.insertRunes(ps.charPosInLine, notnull lineEnd, 0, lineEnd.length())
                 .deleteLine(pe.lineIndex)
             }
         }

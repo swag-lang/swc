@@ -33,13 +33,13 @@ using Swag, Core, File
     // filter extension when missing.
     fb.editFile.setText("notes")
     let name     = fb.getSelectedName()
-    let fileName = assume Path.getFileName(name.toString())
+    let fileName = notnull Path.getFileName(name.toString())
     @assert(fileName == "notes.txt")
 
     // A name that already carries the extension is kept as-is.
     fb.editFile.setText("report.txt")
     let name2     = fb.getSelectedName()
-    let fileName2 = assume Path.getFileName(name2.toString())
+    let fileName2 = notnull Path.getFileName(name2.toString())
     @assert(fileName2 == "report.txt")
 
     host.shutdown()
@@ -62,7 +62,7 @@ using Swag, Core, File
     // getSelectedName must not index the (empty) filter list in SelectFolder mode.
     fb.editFile.setText("myfolder")
     let name     = fb.getSelectedName()
-    let fileName = assume Path.getFileName(name.toString())
+    let fileName = notnull Path.getFileName(name.toString())
     @assert(fileName == "myfolder")
 
     host.shutdown()

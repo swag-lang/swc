@@ -443,7 +443,7 @@ impl RegExp
             while !pstack1.isEmpty()
             {
                 var curState = pstack1.popBack()
-                let curNode = assume curState.node
+                let curNode = notnull curState.node
                 if curNode.terminal and forGrep do
                     grepTerm = curState
                 if curState.parseIdx >= .bufLength
@@ -468,7 +468,7 @@ impl RegExp
                 if v.parseIdx >= .bufLength do
                     cptReachedEnd += 1
 
-                let node = assume v.node
+                let node = notnull v.node
                 if node.terminal and forGrep do
                     grepTerm = v
                 elif node.terminal and v.parseIdx >= .bufLength do
@@ -488,12 +488,12 @@ impl RegExp
             while !pstack1.isEmpty()
             {
                 var curState = pstack1.popBack()
-                let curNode = assume curState.node
+                let curNode = notnull curState.node
                 if curNode.terminal and (forGrep or curState.parseIdx >= .bufLength)
                 {
                     .closeGroup(&curState)
                     .groups = #move curState.groups
-                    let bufStart = assume .bufStart
+                    let bufStart = notnull .bufStart
                     return {true, bufStart + curState.parseIdx}
                 }
 
@@ -557,11 +557,11 @@ impl RegExp
 
     mtd backward(out: *Array'DfaState, what: rune, state: *DfaState)
     {
-        let stateNode = assume state.node
+        let stateNode = notnull state.node
         let grp = stateNode.transitions.tryFind(what)
         if grp
         {
-            let grpNode = assume grp.value
+            let grpNode = notnull grp.value
             var st = dref state
             .syncActiveGroups(&st, grpNode.rawGroup)
             var strGroup: string = ""
@@ -584,7 +584,7 @@ impl RegExp
 
             if hasGroup
             {
-                let bufStart = assume .bufStart
+                let bufStart = notnull .bufStart
                 let ptr = bufStart + st.parseIdx
                 if !@countof(strGroup) or Utf8.startsWith(@mkslice(ptr, .bufLength - st.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
                 {
@@ -609,7 +609,7 @@ impl RegExp
 
     mtd hasAvailableEmptyCapture(state: *DfaState, rank: u32)->bool
     {
-        let stateNode = assume state.node
+        let stateNode = notnull state.node
         for n in stateNode.table
         {
             if .groupTransform[n.group] == rank do
@@ -675,7 +675,7 @@ impl RegExp
         var bestDepth: u32
         let currentRaw  = state.activeGroups.count ? state.activeGroups.back().rawGroup : 0
         let currentRank = state.activeGroups.count ? state.activeGroups.back().rank : 0
-        let stateNode = assume state.node
+        let stateNode = notnull state.node
         for node in stateNode.table
         {
             let find = node.transitions.tryFind(c)
@@ -700,7 +700,7 @@ impl RegExp
     mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode, c: rune)->u32
     {
         var rank: retval
-        let stateNode = assume state.node
+        let stateNode = notnull state.node
         for n in stateNode.table
         {
             let grp = .groupTransform[n.group]
@@ -733,12 +733,12 @@ impl RegExp
         #[Swag.Mixin]
         mtd checkTr(c: rune, length: s32)
         {
-            let #uniq2 = assume curState.node
+            let #uniq2 = notnull curState.node
             let #uniq1 = #uniq2.transitions.tryFind(c)
             if #uniq1
             {
                 var st = dref curState
-                let #uniq3 = assume #uniq1.value
+                let #uniq3 = notnull #uniq1.value
                 let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq3, c)
                 if pendingEmptyGroup do
                     setCapture(&st, cast(s32) pendingEmptyGroup, "")

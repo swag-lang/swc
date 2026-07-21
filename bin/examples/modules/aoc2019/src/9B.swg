@@ -45,7 +45,7 @@ private func run(op: &Array's64, input: s64)->s64
     func val(offset: u64)->&s64
     {
         op.resize(Math.max(op.count, offset + 1))
-        return (assume op.buffer) + offset
+        return (notnull op.buffer) + offset
     }
 
     while op[ip] != 99

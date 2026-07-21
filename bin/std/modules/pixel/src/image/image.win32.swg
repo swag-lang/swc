@@ -31,7 +31,7 @@ impl Image
         infos.bmiHeader.biPlanes      = 1
         infos.bmiHeader.biBitCount    = bitmap.bmBitsPixel
         infos.bmiHeader.biCompression = BI_RGB
-        GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) (assume result.pixels.buffer), &infos, cast() DIB_RGB_COLORS)
+        GetDIBits(dc, hbitmap, 0, cast() bitmap.bmHeight, cast([*] u8) (notnull result.pixels.buffer), &infos, cast() DIB_RGB_COLORS)
 
         return result
     }

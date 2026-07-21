@@ -274,9 +274,9 @@ struct PropHeadlessArrayData
         }
     }
 
-    assertBelowLabel(assume prop.items[1])     // vector
-    assertBelowLabel(assume prop.items[2])     // array count editor
-    assertBelowLabel(assume prop.items[4])     // bool
+    assertBelowLabel(notnull prop.items[1])     // vector
+    assertBelowLabel(notnull prop.items[2])     // array count editor
+    assertBelowLabel(notnull prop.items[4])     // bool
 
     // Rows and labels span the whole control (the value editors keep their own cap)
     let rowWidth = prop.items[1].line.position.width
@@ -380,17 +380,17 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let btn = findIconButton(assume prop.items[9].line)                        // the color swatch button
+    let btn = findIconButton(notnull prop.items[9].line)                        // the color swatch button
     @assert(btn != null)
 
     // Hover the button (no popup yet) -> hot.
-    host.sendMouseEvent(assume btn, .MouseEnter, {0, 0}, .Left, .Zero)
+    host.sendMouseEvent(notnull btn, .MouseEnter, {0, 0}, .Left, .Zero)
     @assert(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
-    host.sendMouseEvent(assume btn, .MouseLeave, {0, 0}, .Left, .Zero)
+    host.sendMouseEvent(notnull btn, .MouseLeave, {0, 0}, .Left, .Zero)
     @assert(!btn.isHot)
 
     host.shutdown()
@@ -516,7 +516,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
-    host.sendMouseEvent(assume cast(#null *Wnd) pview, MouseEvent.Kind.MouseMove, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.Zero)
+    host.sendMouseEvent(notnull cast(#null *Wnd) pview, MouseEvent.Kind.MouseMove, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.Zero)
     @assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
@@ -718,12 +718,12 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 
     let countItem = findFieldItem(prop, "count")
     @assert(countItem != null)
-    @assert(prop.instanceCount(assume countItem) == 3)
-    @assert(!prop.fieldIsMixed(assume countItem))                  // all start equal (0)
+    @assert(prop.instanceCount(notnull countItem) == 3)
+    @assert(!prop.fieldIsMixed(notnull countItem))                  // all start equal (0)
 
     // Edit the native field: all three instances change together.
     countItem.editBox.setText("9")
-    prop.validateNative(assume countItem)
+    prop.validateNative(notnull countItem)
     @assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
 
     // Bool toggle propagates to all.
@@ -760,18 +760,18 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     prop.edView.sendResizeEvent()
 
     let countItem = findFieldItem(prop, "count")
-    @assert(prop.fieldIsMixed(assume countItem))
+    @assert(prop.fieldIsMixed(notnull countItem))
     @assert(countItem.editBox.getText() == "")             // blank when mixed
 
     let flagItem = findFieldItem(prop, "flag")
-    @assert(prop.fieldIsMixed(assume flagItem))
+    @assert(prop.fieldIsMixed(notnull flagItem))
     @assert(flagItem.checkBox.checked == .Undefined)       // indeterminate when mixed
 
     // Editing the mixed native field sets both instances and clears the mixed state.
     countItem.editBox.setText("7")
-    prop.validateNative(assume countItem)
+    prop.validateNative(notnull countItem)
     @assert(t0.count == 7 and t1.count == 7)
-    @assert(!prop.fieldIsMixed(assume countItem))
+    @assert(!prop.fieldIsMixed(notnull countItem))
     @assert(countItem.editBox.getText() == "7")
 
     host.shutdown()
@@ -792,12 +792,12 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     prop.edView.sendResizeEvent()
 
     let countItem = findFieldItem(prop, "count")
-    @assert(prop.instanceCount(assume countItem) == 1)
-    @assert(!prop.fieldIsMixed(assume countItem))
+    @assert(prop.instanceCount(notnull countItem) == 1)
+    @assert(!prop.fieldIsMixed(notnull countItem))
     @assert(countItem.editBox.getText() == "3")
 
     countItem.editBox.setText("8")
-    prop.validateNative(assume countItem)
+    prop.validateNative(notnull countItem)
     @assert(t0.count == 8)
 
     host.shutdown()
@@ -835,11 +835,11 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     @assert(posItem != null)
 
     // x component differs -> mixed; y component is uniform -> not mixed.
-    @assert(prop.subFieldIsMixed(assume posItem, 0, #sizeof(f32)))
-    @assert(!prop.subFieldIsMixed(assume posItem, #sizeof(f32), #sizeof(f32)))
+    @assert(prop.subFieldIsMixed(notnull posItem, 0, #sizeof(f32)))
+    @assert(!prop.subFieldIsMixed(notnull posItem, #sizeof(f32), #sizeof(f32)))
 
     var boxes: Array'(#null *EditBox)
-    collectEditBoxes(assume posItem.line, &boxes)
+    collectEditBoxes(notnull posItem.line, &boxes)
     @assert(boxes.count == 2)                               // x and y
 
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
@@ -847,7 +847,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     boxes[0].sigLoseFocus.call(boxes[0])
     @assert(t0.pos.x == 5 and t1.pos.x == 5)
     @assert(t0.pos.y == 10 and t1.pos.y == 10)             // untouched
-    @assert(!prop.subFieldIsMixed(assume posItem, 0, #sizeof(f32)))
+    @assert(!prop.subFieldIsMixed(notnull posItem, 0, #sizeof(f32)))
 
     host.shutdown()
 }
@@ -912,18 +912,18 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 
     let nameItem = findFieldItem(prop, "name")
     @assert(nameItem != null)
-    @assert(prop.fieldIsMixed(assume nameItem))
+    @assert(prop.fieldIsMixed(notnull nameItem))
     @assert(nameItem.editBox.getText() == "")
 
     nameItem.editBox.setText("shared")
-    prop.validateDynamicString(assume nameItem)
+    prop.validateDynamicString(notnull nameItem)
     @assert(t0.name == "shared" and t1.name == "shared")
-    @assert(!prop.fieldIsMixed(assume nameItem))
+    @assert(!prop.fieldIsMixed(notnull nameItem))
 
     // Same content in distinct buffers must not read as mixed.
     t0.name = "same"
     t1.name = "same"
-    @assert(!prop.fieldIsMixed(assume nameItem))
+    @assert(!prop.fieldIsMixed(notnull nameItem))
 
     host.shutdown()
 }
@@ -947,12 +947,12 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 
     let tintItem = findFieldItem(prop, "tint")
     @assert(tintItem != null)
-    @assert(prop.fieldIsMixed(assume tintItem))
+    @assert(prop.fieldIsMixed(notnull tintItem))
 
     // Make them equal and refresh: no longer mixed.
     t1.tint = Pixel.Argb.Red
     prop.refresh()
-    @assert(!prop.fieldIsMixed(assume tintItem))
+    @assert(!prop.fieldIsMixed(notnull tintItem))
 
     host.shutdown()
 }
@@ -1008,14 +1008,14 @@ impl Gui.IPropertyNotify for ValData
 
     // Editing into an invalid range raises a warning.
     countItem.editBox.setText("150")
-    prop.validateNative(assume countItem)
+    prop.validateNative(notnull countItem)
     @assert(data.count == 150)
     @assert(countItem.validation == .Warning)
     @assert(countItem.validationMsg == "Count is unusually large.")
 
     // Fixing the name clears its error.
     nameItem.editBox.setText("hello")
-    prop.validateDynamicString(assume nameItem)
+    prop.validateDynamicString(notnull nameItem)
     @assert(nameItem.validation == .None)
 
     host.shutdown()
@@ -1035,14 +1035,14 @@ impl Gui.IPropertyNotify for ValData
     let it = findFieldItem(prop, "count")
     @assert(it != null)
 
-    prop.setItemValidation(assume it, .Error, "bad value")
+    prop.setItemValidation(notnull it, .Error, "bad value")
     @assert(it.validation == .Error and it.validationMsg == "bad value")
 
     // updateValidation must not clobber a manual state when there is no notify interface.
     prop.updateValidation()
     @assert(it.validation == .Error)
 
-    prop.setItemValidation(assume it, .None)
+    prop.setItemValidation(notnull it, .None)
     @assert(it.validation == .None)
 
     host.shutdown()
@@ -1072,17 +1072,17 @@ impl Gui.IPropertyNotify for ValData
     @assert(!normalItem.editBox.editBoxFlags.has(.ReadOnly))
     @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
     @assert(dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(prop.canChangeItem(assume normalItem))
-    @assert(!prop.canChangeItem(assume lockedItem))
-    @assert(!prop.canChangeItem(assume dynamicItem))
+    @assert(prop.canChangeItem(notnull normalItem))
+    @assert(!prop.canChangeItem(notnull lockedItem))
+    @assert(!prop.canChangeItem(notnull dynamicItem))
 
     // Clearing the dynamic flag releases only that field; the attribute one stays locked.
     g_PropRoDynamic = false
     prop.setCurrentSection(Swag.U32.Max)
     @assert(!dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(prop.canChangeItem(assume dynamicItem))
+    @assert(prop.canChangeItem(notnull dynamicItem))
     @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(!prop.canChangeItem(assume lockedItem))
+    @assert(!prop.canChangeItem(notnull lockedItem))
 
     host.shutdown()
 }
@@ -1114,18 +1114,18 @@ impl Gui.IPropertyNotify for ValData
     @assert(elems.count == 3)
 
     // Move element 0 down -> [20,10,30], then element 2 up -> [20,30,10].
-    prop.moveArrayValue(assume elems[0], 1)
+    prop.moveArrayValue(notnull elems[0], 1)
     @assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
-    prop.moveArrayValue(assume elems[2], -1)
+    prop.moveArrayValue(notnull elems[2], -1)
     @assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
 
     // Move at the boundaries is a no-op.
-    prop.moveArrayValue(assume elems[0], -1)
+    prop.moveArrayValue(notnull elems[0], -1)
     @assert(data.dyn[0].id == 20)
 
     // Remove the element at index 1 (id 30) -> [20,10]. Used to compute an out-of-bounds index
     // for struct arrays with more than one element.
-    prop.removeArrayValue(assume elems[1])
+    prop.removeArrayValue(notnull elems[1])
     @assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
 
     // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
@@ -1135,7 +1135,7 @@ impl Gui.IPropertyNotify for ValData
     for it in prop.items where it.parent == statArr do
         statElems.add(it)
     @assert(statElems.count == 3)
-    prop.moveArrayValue(assume statElems[0], 1)
+    prop.moveArrayValue(notnull statElems[0], 1)
     @assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
 
     host.shutdown()
@@ -1164,7 +1164,7 @@ impl Gui.IPropertyNotify for ValData
     prop.menuItem = idField
     prop.sendCommandEvent(ActionProperties.Copy)
     var got: s32
-    @assert(Clipboard.getTypedValue(&got, assume idField.type) and got == 10)
+    @assert(Clipboard.getTypedValue(&got, notnull idField.type) and got == 10)
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(#null *PropertiesItem)
@@ -1223,7 +1223,7 @@ impl IPropertyEditor for PropAngleEditor
         let item  = list.addItem(value, data, parent)
         let angle = cast(#null *PropHeadlessAngle) data
 
-        with let ed = EditBox.create(assume item.line, "", {0, 0, 120, 24})
+        with let ed = EditBox.create(notnull item.line, "", {0, 0, 120, 24})
         {
             // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
             // writer parses the leading number out of the free text.
@@ -1344,13 +1344,13 @@ impl IPropertyNotify for PropDefaultCustom
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     @assert(!countItem.isModified)
-    @assert(prop.canReset(assume countItem))
+    @assert(prop.canReset(notnull countItem))
     @assert(countItem.revertButton == null or !countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
     let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))
     @assert(nameItem != null)
-    @assert(!prop.canReset(assume nameItem))
+    @assert(!prop.canReset(notnull nameItem))
     @assert(!nameItem.isModified)
 
     // Bool list rows span the whole row (the side description wraps over the control
@@ -1367,13 +1367,13 @@ impl IPropertyNotify for PropDefaultCustom
 
     // Edit the value away from its default: the row becomes modified (no button either).
     countItem.editBox.setText("99")
-    prop.validateNative(assume countItem)
+    prop.validateNative(notnull countItem)
     @assert(data.count == 99)
     @assert(countItem.isModified)
     @assert(countItem.revertButton == null)
 
     // Reset (the context-menu action path) restores the declared default.
-    prop.resetItemDefault(assume countItem)
+    prop.resetItemDefault(notnull countItem)
     @assert(data.count == 42)
     @assert(!countItem.isModified)
 
@@ -1433,7 +1433,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
-    prop.resetItemDefault(assume valItem)
+    prop.resetItemDefault(notnull valItem)
     @assert(g_PropDefResetCalls == 1)
 
     // Flipping the override back reports "at default".
@@ -1481,7 +1481,7 @@ impl IPropertyNotify for PropDefaultCustom
     btn.aniBk.themeCrc = 42'u32
     host.app.mouseEnterWnd = btn
     host.app.mouseCaptureWnd = btn
-    prop.resetItemDefault(assume countItem)
+    prop.resetItemDefault(notnull countItem)
     @assert(!countItem.isModified and btn.isDisabled())
     @assert(countItem.editBox.position.width == editWidthClean)
     @assert(!btn.icon.isValid())
@@ -1544,7 +1544,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(countItem != null)
     @assert(countItem.isModified)                         // one instance differs
 
-    prop.resetItemDefault(assume countItem)
+    prop.resetItemDefault(notnull countItem)
     @assert(t0.count == 42 and t1.count == 42)
     @assert(!countItem.isModified)
 
@@ -1569,16 +1569,16 @@ impl IPropertyNotify for PropDefaultCustom
 
     // Writing the same value back records nothing.
     dref cast(#null *s32) it.data = 42
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(!prop.canUndo())
 
     // Two real edits.
     dref cast(#null *s32) it.data = 100
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
 
     dref cast(#null *s32) it.data = 7
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(data.count == 7)
 
     prop.undo()
@@ -1595,7 +1595,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.undo()                                  // -> 100
     prop.undo()                                  // -> 42
     dref cast(#null *s32) it.data = 55
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(data.count == 55 and !prop.canRedo())
     prop.undo()
     @assert(data.count == 42)
@@ -1618,7 +1618,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(it != null)
 
     dref cast(#null *String) it.data = "beta"
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(data.name == "beta")
 
     prop.undo()
@@ -1646,7 +1646,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(it != null)
 
     dref cast(#null *s32) it.data = 100                 // edit instance 0; hasChanged propagates
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(t0.count == 100 and t1.count == 100)
 
     prop.undo()
@@ -1670,7 +1670,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
     dref cast(#null *s32) it.data = 100
-    prop.hasChanged(assume it)
+    prop.hasChanged(notnull it)
     @assert(data.count == 100)
 
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
@@ -1730,10 +1730,10 @@ struct PropDecorData
     let px    = findFieldItem(prop, #nameof(PropDecorData.px))
     let shear = findFieldItem(prop, #nameof(PropDecorData.shear))
     @assert(px != null and shear != null)
-    @assert(prop.itemIndent(assume px) == 0)
-    @assert(prop.itemIndent(assume transform) == 0)
-    @assert(prop.itemIndent(assume shear) > prop.itemIndent(assume px))
-    @assert(prop.itemIndent(assume advanced) == prop.itemIndent(assume shear))   // subgroup header aligns with its field
+    @assert(prop.itemIndent(notnull px) == 0)
+    @assert(prop.itemIndent(notnull transform) == 0)
+    @assert(prop.itemIndent(notnull shear) > prop.itemIndent(notnull px))
+    @assert(prop.itemIndent(notnull advanced) == prop.itemIndent(notnull shear))   // subgroup header aligns with its field
 
     // The three decorators on 'mass' produced three extra rows before it, all under Physics.
     var spacer, heading, note: #null *PropertiesItem

@@ -241,7 +241,7 @@ impl Inflate
             if distance == 1
             {
                 // Repeat the last byte 'length' times
-                let buffer = assume dest.buffer
+                let buffer = notnull dest.buffer
                 let b      = buffer[dest.count - 1]
                 Memory.set(buffer + dest.count, b, cast(u64) length)
                 dest.count += length
@@ -252,7 +252,7 @@ impl Inflate
                 // own buffer, so a direct memory copy is used here: routing this through
                 // 'dest.add(slice)' would hit its self-aliasing guard and allocate a
                 // temporary array for every back-reference. Capacity is ensured by 'grow' above.
-                let buffer = assume dest.buffer
+                let buffer = notnull dest.buffer
                 Memory.copy(buffer + dest.count, buffer + dest.count - distance, cast(u64) length)
                 dest.count += length
             }

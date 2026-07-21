@@ -13,7 +13,7 @@ impl IActionUI for ActionOptions
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
 
         switch cxt.id
         {
@@ -28,10 +28,10 @@ impl IActionUI for ActionOptions
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
         let view = main.editWnd.editView
 
-        let dlg = Dialog.createDialog(assume view.surface, 800, 600, title: "Options", flags: .Border | .CloseBtn | .Sizeable)
+        let dlg = Dialog.createDialog(notnull view.surface, 800, 600, title: "Options", flags: .Border | .CloseBtn | .Sizeable)
         dlg.addButton("Close", Dialog.BtnYes)
 
         let opt = PropertiesCtrl.create(dlg.getView(), flags: .SectionFilter | .FindBar)

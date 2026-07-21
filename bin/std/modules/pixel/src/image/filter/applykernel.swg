@@ -45,13 +45,13 @@ impl Image
         var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
         .visitPixels(&f)
         {
-            let params     = cast(*#decltype(f)) (assume userData)
+            let params     = cast(*#decltype(f)) (notnull userData)
             let kernelSize = params.kernel[0] / 2
             let b8         = image.bpp8
             let w8         = image.width8
             let w          = image.width
             let h          = image.height
-            let px         = cast([*] u8) (assume image.pixels.buffer)
+            let px         = cast([*] u8) (notnull image.pixels.buffer)
             var ks         = @dataof(params.kernel) + 2
 
             var bs, gs, rs: s32

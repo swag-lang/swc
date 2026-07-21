@@ -171,7 +171,7 @@ public impl Image
         mec.visitPixels(&f)
         {
             let p      = image.getPixelColor(x, y)
-            let params = cast(*#decltype(f)) (assume userData)
+            let params = cast(*#decltype(f)) (notnull userData)
 
             // linear luminance
             params.lum.buffer[index] = p.getRelativeLuminance()

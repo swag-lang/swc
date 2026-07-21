@@ -26,13 +26,13 @@ func openImage(surface: #null *Surface)
         .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
     }
 
-    let dlg = FileDlg.create(assume surface, opt)
+    let dlg = FileDlg.create(notnull surface, opt)
     if dlg.doModal() != Dialog.BtnOk do
         return
 
     g_Img = catch Image.load(dlg.getSelectedName())
     if @err != null do
-        MessageDlg.error(assume surface, "Failed to load image")
+        MessageDlg.error(notnull surface, "Failed to load image")
 }
 
 func compute(render: *RenderOgl)
@@ -78,7 +78,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 let col = g_Img.getPixelColor(x, y)
                 let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) @countof(GrayRamp))
                 let v   = @mkstring(@dataof(GrayRamp) + cast(s32) idx, 1)
-                painter.drawString(x * size, y * size, v, assume g_Font, Argb.White)
+                painter.drawString(x * size, y * size, v, notnull g_Font, Argb.White)
             }
         }
     }

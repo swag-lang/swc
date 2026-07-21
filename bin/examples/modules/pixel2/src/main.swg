@@ -36,9 +36,9 @@ func loadFonts() throw
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", g_Face.familyName, g_Face.styleName, g_Face.glyphCount, g_FontBytes.count)
 
     g_TypeFace  = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont = Font.create(assume g_TypeFace, 54)
-    g_BodyFont  = Font.create(assume g_TypeFace, 34)
-    g_InfoFont  = Font.create(assume g_TypeFace, 18)
+    g_TitleFont = Font.create(notnull g_TypeFace, 54)
+    g_BodyFont  = Font.create(notnull g_TypeFace, 34)
+    g_InfoFont  = Font.create(notnull g_TypeFace, 18)
 }
 
 func dropFonts()
@@ -63,17 +63,17 @@ func drawScene(painter: *Pixel.Painter)
     painter.fillCircle(650, 128, 98, glowColor)
     painter.drawRoundRect(56, 58, 688, 320, 24, 24, Argb.DarkSlateBlue, 3)
 
-    painter.drawString(88, 92, "TrueType text", assume g_TitleFont, Argb.White)
-    painter.drawString(92, 176, "Sphinx of black quartz, judge my vow.", assume g_BodyFont, Argb.LightCyan)
-    painter.drawString(92, 240, "Loaded from src/data/segoeui.ttf", assume g_InfoFont, Argb.LightSteelBlue)
-    painter.drawString(92, 270, g_FontInfo, assume g_InfoFont, Argb.PaleGoldenrod)
+    painter.drawString(88, 92, "TrueType text", notnull g_TitleFont, Argb.White)
+    painter.drawString(92, 176, "Sphinx of black quartz, judge my vow.", notnull g_BodyFont, Argb.LightCyan)
+    painter.drawString(92, 240, "Loaded from src/data/segoeui.ttf", notnull g_InfoFont, Argb.LightSteelBlue)
+    painter.drawString(92, 270, g_FontInfo, notnull g_InfoFont, Argb.PaleGoldenrod)
 
     var baseline = Pen.createSolid(Argb.CadetBlue, 2)
     baseline.begCapStyle = .Round
     baseline.endCapStyle = .Round
     painter.drawLine(88, 324, 708, 324, baseline)
 
-    painter.drawStringCenter(W * 0.5, 414, "Pixel + TrueType", assume g_BodyFont, Argb.DarkSlateGray)
+    painter.drawStringCenter(W * 0.5, 414, "Pixel + TrueType", notnull g_BodyFont, Argb.DarkSlateGray)
 }
 
 func display()

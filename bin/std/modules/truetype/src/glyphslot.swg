@@ -45,7 +45,7 @@ public impl GlyphSlot
         if .outline.pointCount <= 0 do
             return
 
-        let points = assume .outline.points
+        let points = notnull .outline.points
         for cast(u32) .outline.pointCount do
             points[@index].x += cast(s32) Math.round(points[@index].y * 0.21256)
 
@@ -86,7 +86,7 @@ func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX
     result.maxX = Swag.S32.Min
     result.maxY = Swag.S32.Min
 
-    let points = cast(const [*] Vector) (assume outline.points)
+    let points = cast(const [*] Vector) (notnull outline.points)
     for cast(u32) outline.pointCount
     {
         let pt = points[@index]

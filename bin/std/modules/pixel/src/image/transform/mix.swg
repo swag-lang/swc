@@ -20,7 +20,7 @@ impl Image
         {
             mec.visitPixels(&f)
             {
-                let params   = cast(*#decltype(f)) (assume userData)
+                let params   = cast(*#decltype(f)) (notnull userData)
                 let dstImage = cast(*Image) params.dstImage
                 let srcImage = cast(const *Image) params.srcImage
 
@@ -32,7 +32,7 @@ impl Image
                    x >= params.x + srcImage.width or
                    y >= params.y + srcImage.height
                 {
-                    copyPixelDirect'BPP(cast([*] u8) (assume pixDst), cast([*] u8) pix) // copy current dst pixel back (no change)
+                    copyPixelDirect'BPP(cast([*] u8) (notnull pixDst), cast([*] u8) pix) // copy current dst pixel back (no change)
                 }
                 else
                 {
@@ -45,11 +45,11 @@ impl Image
                     switch params.mode
                     {
                     case Copy:
-                        copyPixelDirect'BPP(assume pixDst, assume pixSrc)
+                        copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
 
                     case AlphaBlend:
                         if BPP != 32 do
-                            copyPixelDirect'BPP(assume pixDst, assume pixSrc)
+                            copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
                         else
                         {
                             let bf = pixSrc[3] / 255.0

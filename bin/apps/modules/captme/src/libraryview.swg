@@ -314,7 +314,7 @@ impl LibraryView
                 if @countof(search) != 0 do
                     continue
                 it.filtered = false
-                .items.add(assume it)
+                .items.add(notnull it)
                 continue
             }
             let loaded = capture
@@ -326,11 +326,11 @@ impl LibraryView
                 continue
             if !loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
                 continue
-            if !.matchSearch(assume it, loaded, search) do
+            if !.matchSearch(notnull it, loaded, search) do
                 continue
 
             it.filtered = false
-            .items.add(assume it)
+            .items.add(notnull it)
         }
 
         .invalidate()
@@ -359,7 +359,7 @@ impl LibraryView
         // Work on a copy, as 'items' can be changed by sorting during loading
         var copy: Array'*LibraryItem
         for it in .allItems do
-            copy.add(assume it)
+            copy.add(notnull it)
 
         for it in copy
         {

@@ -22,7 +22,7 @@ func getStructArrayType(t: #null typeinfo)->#null typeinfo
     if !isStructArray(t) do
         return null
 
-    let tt = cast(const *TypeInfoStruct) assume t
+    let tt = cast(const *TypeInfoStruct) notnull t
     return tt.generics[0].pointedType
 }
 
@@ -170,7 +170,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
     if defaultInitSlot do
         Memory.defaultInit(result, nnType)
     else do
-        Memory.clear(assume result, nnType.sizeof)
+        Memory.clear(notnull result, nnType.sizeof)
 
     return result
 }

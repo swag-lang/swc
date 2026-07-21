@@ -123,13 +123,13 @@ impl Dialog
         }
 
         .setFocus()
-        return assume srf
+        return notnull srf
     }
 
     // Returns the view where stuff can be put.
     mtd getView()->*Wnd
     {
-        return assume .surface.wnd.view
+        return notnull .surface.wnd.view
     }
 
     // Display dialog as modal, and returns the user selected window id

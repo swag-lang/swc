@@ -33,7 +33,7 @@ impl Image
         result.init(width, height, pf)
         result.allocPixels()
         if buffer do
-            Memory.copy(cast([*] u8) (assume result.pixels.buffer), @dataof(buffer), @countof(buffer))
+            Memory.copy(cast([*] u8) (notnull result.pixels.buffer), @dataof(buffer), @countof(buffer))
         return result
     }
 
@@ -113,7 +113,7 @@ impl Image
 
     mtd safeWorkingBuffer()->*Image
     {
-        return assume .workingBuffer
+        return notnull .workingBuffer
     }
 
     // Free the working buffer if allocated
@@ -152,13 +152,13 @@ impl Image
 
         let self: const &Image = me
         var p = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(@mkslice(cast([*] u8) (assume self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
+        Jobs.parallelVisit(@mkslice(cast([*] u8) (notnull self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
         {
             if !data do
                 return
             let p        = cast(*#decltype(p)) (data)
             let pixPtr   = cast([*] u8) buffer
-            let pixIndex = cast(u64) (pixPtr - cast([*] u8) (assume p.image.pixels.buffer)) / p.image.bpp8
+            let pixIndex = cast(u64) (pixPtr - cast([*] u8) (notnull p.image.pixels.buffer)) / p.image.bpp8
 
             #inject(stmt,
                     pix = pixPtr,
@@ -180,7 +180,7 @@ impl Image
     // Clear the content of the image
     mtd clear()
     {
-        let pixels = assume .pixels.buffer
+        let pixels = notnull .pixels.buffer
         Memory.clear(pixels, .size)
     }
 

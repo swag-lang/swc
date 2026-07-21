@@ -237,7 +237,7 @@ impl String
             return
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
 
         #if back do
             var scan = buffer + .length
@@ -473,7 +473,7 @@ impl String
     mtd append(value: u8)
     {
         .grow(.length + 2)
-        let buffer = assume .buffer
+        let buffer = notnull .buffer
         var ptr = cast(*u16) (buffer + .length)
         dref ptr = value
         .length += 1

@@ -24,7 +24,7 @@ struct CallbackData
 
 func threadCallback(param: #null *void)->DWORD
 {
-    let data = cast(*CallbackData) (assume param)
+    let data = cast(*CallbackData) (notnull param)
     data.observed = data.value
     return 0
 }

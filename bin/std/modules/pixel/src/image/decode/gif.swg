@@ -86,10 +86,10 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeStream()->const [*] u8 => cast(const [*] u8) (assume .stream)
-    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) (assume .streamStart)
-    mtd safePalette()->*Palette => cast(*Palette) (assume .palette)
-    mtd safeCanvas()->[*] u8 => cast([*] u8) (assume .canvas)
+    mtd safeStream()->const [*] u8 => cast(const [*] u8) (notnull .stream)
+    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) (notnull .streamStart)
+    mtd safePalette()->*Palette => cast(*Palette) (notnull .palette)
+    mtd safeCanvas()->[*] u8 => cast([*] u8) (notnull .canvas)
 
     mtd seek(len: u64) throw
     {
@@ -508,7 +508,7 @@ public impl Decoder
         {
             let size = cast(u64) .width * cast(u64) .height
             .frame.resize(4 * size)
-            let frame = assume .frame.buffer
+            let frame = notnull .frame.buffer
             Memory.set(frame, .bgIndex, size)
             .canvas = &.frame.buffer[size]
 
@@ -549,7 +549,7 @@ public impl Decoder
             return false
         }
 
-        .renderFrame(cast([*] u8) (assume img.pixels.buffer), img.pf)
+        .renderFrame(cast([*] u8) (notnull img.pixels.buffer), img.pf)
         return true
     }
 
@@ -596,7 +596,7 @@ public impl IImageDecoder for Decoder
         if !options.decodePixels do
             return result
 
-        .renderFrame(cast([*] u8) (assume result.pixels.buffer), result.pf)
+        .renderFrame(cast([*] u8) (notnull result.pixels.buffer), result.pf)
         return result
     }
 }

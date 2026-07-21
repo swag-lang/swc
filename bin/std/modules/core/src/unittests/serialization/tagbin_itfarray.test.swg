@@ -53,9 +53,9 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 
     buffer.makeLinear()
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    var loaded  = catch decoder.readAll'TagBinArrayHolder(assume buffer.toSlice())
+    var loaded  = catch decoder.readAll'TagBinArrayHolder(notnull buffer.toSlice())
     @assert(@err == null)
-    defer releaseTagBinArrayHolder(assume loaded)
+    defer releaseTagBinArrayHolder(notnull loaded)
 
     @assert(loaded.things.count == 3)
     for it, i in loaded.things do

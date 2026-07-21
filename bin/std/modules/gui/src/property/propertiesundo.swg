@@ -175,7 +175,7 @@ internal impl Properties
     mtd assignUndoSnapshots(fromIdx: u64)
     {
         for i in fromIdx until .items.count do
-            .items[i].undoValue.capture(me, assume .items[i])
+            .items[i].undoValue.capture(me, notnull .items[i])
     }
 
     // Diff the row's current value against its snapshot; on a real change, push one undo
@@ -228,7 +228,7 @@ internal impl Properties
         // Resync every row snapshot with the restored values, so the next edit diffs against
         // the timeline position we just moved to.
         for it in .items do
-            it.undoValue.capture(me, assume it)
+            it.undoValue.capture(me, notnull it)
 
         var relayout = .updateValidation()
         if .updateDefaults() do
@@ -300,7 +300,7 @@ public impl Properties
     {
         .activeUndoMgr().clear()
         for it in .items do
-            it.undoValue.capture(me, assume it)
+            it.undoValue.capture(me, notnull it)
     }
 
     // Turn recording on/off (e.g. to batch programmatic changes without polluting the history).

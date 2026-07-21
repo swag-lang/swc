@@ -31,7 +31,7 @@ func @is(toType, fromType: typeinfo)->bool
 
     for ft in fromStruct.usingFields
     {
-        let usingType = __concreteAlias(assume ft.pointedType)
+        let usingType = __concreteAlias(notnull ft.pointedType)
         if usingType.kind == .Struct
         {
             let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
@@ -67,7 +67,7 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
 
     for ft in fromStruct.usingFields
     {
-        let usingType = __concreteAlias(assume ft.pointedType)
+        let usingType = __concreteAlias(notnull ft.pointedType)
         if usingType.kind == .Struct
         {
             let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
@@ -154,7 +154,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
             if !namesAreEqual and field1.name != field2.name do
                 return false
 
-            if !@typecmp(assume field1.pointedType, assume field2.pointedType, cmpFlags) do
+            if !@typecmp(notnull field1.pointedType, notnull field2.pointedType, cmpFlags) do
                 return false
         }
 
@@ -262,7 +262,7 @@ func __runtimeAllocator()->IAllocator
             cxt.defaultAllocator = cxt.allocator
         }
     }
-    return assume cxt.allocator
+    return notnull cxt.allocator
 }
 
 func __ensureRuntimeAllocator()

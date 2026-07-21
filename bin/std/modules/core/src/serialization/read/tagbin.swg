@@ -71,7 +71,7 @@ private impl TagBin
     {
         if .freeSections.count
         {
-            let ptr = assume .freeSections.popBack()
+            let ptr = notnull .freeSections.popBack()
             ptr.mapSeek.clear()
             ptr.version = 0
             .sections.add(ptr)
@@ -93,7 +93,7 @@ private impl TagBin
     {
         if .tmpPool.count
         {
-            let b = assume .tmpPool.popBack()
+            let b = notnull .tmpPool.popBack()
             b.clear()
             return b
         }
@@ -456,7 +456,7 @@ impl TagBin
                 {
                     let value = Reflection.getAttributeValue(al, "name")
                     Debug.assert(value != null)
-                    reqCrcName = Hash.Crc32.compute(assume cast(#null string) value)
+                    reqCrcName = Hash.Crc32.compute(notnull cast(#null string) value)
                     ent        = sec.mapSeek.tryFind(reqCrcName)
                     if ent do
                         break
@@ -500,7 +500,7 @@ impl TagBin
 
                 // Here uncompress to 'tmp'
                 var decompressor: Core.Compress.Inflate
-                decompressor.decompress(decompressedBuffer, assume .stream.remainReadToSlice())
+                decompressor.decompress(decompressedBuffer, notnull .stream.remainReadToSlice())
 
                 // track this element context
                 .elemStack.add({true, decompressedBuffer})
@@ -570,7 +570,7 @@ impl TagBin
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
         .stream.seek       = parentSeek
-        .releaseTmpBuf(assume ctx.tmpBuf)
+        .releaseTmpBuf(notnull ctx.tmpBuf)
     }
 
     // Begin reading a value within the current context.

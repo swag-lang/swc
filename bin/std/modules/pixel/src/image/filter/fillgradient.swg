@@ -27,7 +27,7 @@ impl Image
                 var a       = 255'u8
                 if PF.bpp() == 32 do
                     a = cast(u8) Math.lerp(cast(f32) color0.a, cast(f32) color1.a, factor0)
-                convertToRGBA8'PF(cast([*] u8) (assume pix), r, g, b, a)
+                convertToRGBA8'PF(cast([*] u8) (notnull pix), r, g, b, a)
                 pix += .bpp8
             }
         }
@@ -48,7 +48,7 @@ impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) (assume image.pixels.buffer), cast(u64) image.width * image.bpp8)
+            Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
         }
     }
 
@@ -66,7 +66,7 @@ impl Image
         {
             .visitPixels(&ctx)
             {
-                let colors  = cast(*FillGradient4Context) (assume userData)
+                let colors  = cast(*FillGradient4Context) (notnull userData)
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let colH1   = Color.getBlend(colors.topLeft, colors.topRight, factor0)

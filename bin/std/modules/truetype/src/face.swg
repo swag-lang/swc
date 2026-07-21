@@ -78,7 +78,7 @@ public impl Face
 
         let faceData = Memory.new'FaceImpl()
         faceData.fontData.resize(@countof(bytes))
-        let fontData = assume faceData.fontData.buffer
+        let fontData = notnull faceData.fontData.buffer
         Memory.copy(fontData, @dataof(bytes), @countof(bytes))
         parseFace(faceData)
         return &faceData.face

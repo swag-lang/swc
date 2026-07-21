@@ -15,7 +15,7 @@ impl Image
             var pix = .pixels.buffer
             for x in .width
             {
-                convertToRGBA8'PF(cast([*] u8) (assume pix), color.r, color.g, color.b, color.a)
+                convertToRGBA8'PF(cast([*] u8) (notnull pix), color.r, color.g, color.b, color.a)
                 pix += .bpp8
             }
         }
@@ -36,7 +36,7 @@ impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) (assume image.pixels.buffer), cast(u64) image.width * image.bpp8)
+            Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
         }
     }
 }

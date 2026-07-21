@@ -231,7 +231,7 @@ private impl PopupListView
             .releaseMouse()
 
         if .list.sigSelected do
-            .list.sigSelected(assume .list, idx)
+            .list.sigSelected(notnull .list, idx)
         else do
             .list.destroy()
     }

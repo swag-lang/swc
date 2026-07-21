@@ -44,19 +44,19 @@ func appendAuditDiffFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
     for field in typeStruct.fields
     {
         len = appendAst(buffer, len, "changed_")
-        len = appendAst(buffer, len, assume field.name)
+        len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": bool\n")
 
         len = appendAst(buffer, len, "old_")
-        len = appendAst(buffer, len, assume field.name)
+        len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, assume field.pointedType.name)
+        len = appendAst(buffer, len, notnull field.pointedType.name)
         len = appendAst(buffer, len, "\n")
 
         len = appendAst(buffer, len, "new_")
-        len = appendAst(buffer, len, assume field.name)
+        len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, assume field.pointedType.name)
+        len = appendAst(buffer, len, notnull field.pointedType.name)
         len = appendAst(buffer, len, "\n")
     }
 
@@ -86,23 +86,23 @@ func(T) buildAuditDiff(before: const &T, after: const &T)->AuditDiff'T
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "result.changed_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = before.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " != after.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, "\n")
 
             len = appendAst(&buffer[0], len, "result.old_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = before.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, "\n")
 
             len = appendAst(&buffer[0], len, "result.new_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = after.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do
@@ -123,7 +123,7 @@ func(T) auditChangedCount(diff: const &AuditDiff'T)->s32
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    count += 1\n")
         }
@@ -145,12 +145,12 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    result.")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, " = diff.new_")
-            len = appendAst(&buffer[0], len, assume field.name)
+            len = appendAst(&buffer[0], len, notnull field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do

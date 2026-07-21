@@ -14,7 +14,7 @@ func drawSpreadSample(painter: *Pixel.Painter, rect: Math.Rectangle, title: stri
     let brush   = Brush.createLinearGradient(rect.x, rect.y, axisEnd, rect.y, Argb.DeepSkyBlue, Argb.Tomato, spread)
     painter.fillRoundRect(rect, 12, 12, brush)
     painter.drawRoundRect(rect, 12, 12, Color.fromArgb(80, Argb.MidnightBlue), 1)
-    painter.drawString(rect.x + 12, rect.vertCenter() - 8, title, assume g_HelpFont, Argb.White)
+    painter.drawString(rect.x + 12, rect.vertCenter() - 8, title, notnull g_HelpFont, Argb.White)
 }
 
 func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -78,7 +78,7 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     let body = drawPanel(painter, rect, "Gradient text", "drawString and translucent overlays use the same paint binding as shapes.")
     let text = "GRADIENT"
-    let size = Painter.measureString(text, assume g_TitleFont)
+    let size = Painter.measureString(text, notnull g_TitleFont)
     let x = body.horzCenter() - size.width * 0.5
     let y = body.vertCenter() - g_TitleFont.height * 0.5
 
@@ -95,8 +95,8 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5}, 0.0'deg, 360.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
     brush.addGradientStop(0.45, Argb.Goldenrod)
     brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
-    painter.drawString(x, y, text, assume g_TitleFont, brush)
-    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityf + multiplyTint + drawString", assume g_HelpFont, Argb.DimGray)
+    painter.drawString(x, y, text, notnull g_TitleFont, brush)
+    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityf + multiplyTint + drawString", notnull g_HelpFont, Argb.DimGray)
 }
 
 func drawGradientsPage(painter: *Pixel.Painter)

@@ -133,6 +133,7 @@ SWC_TOKEN_DEF(KwdTry, "try",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdTryCatch, "trycatch",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdCatch, "catch",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdAssume, "assume",  TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdNotNull, "notnull",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdThrow, "throw",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdDiscard, "discard",  TokenIdKindE::Keyword)
 

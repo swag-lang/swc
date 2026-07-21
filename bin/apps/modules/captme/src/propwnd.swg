@@ -73,7 +73,7 @@ impl PropWnd
             return cast(*BaseForm) @dataof(iform)
         }
 
-        return assume capture.getSelectedBaseForm()
+        return notnull capture.getSelectedBaseForm()
     }
 
     mtd getSelectedFormType()->typeinfo
@@ -85,7 +85,7 @@ impl PropWnd
             return @kindof(iform)
         }
 
-        return assume capture.getSelectedFormType()
+        return notnull capture.getSelectedFormType()
     }
 
     mtd pushTypedValue(val: u32, type: typeinfo, name: String, first: bool, common = false)
@@ -96,7 +96,7 @@ impl PropWnd
         if !capture or !capture.selection.count
         {
             let form   = .getSelectedBaseForm()
-            let field  = assume Reflection.getField(type, name)
+            let field  = notnull Reflection.getField(type, name)
             var valU32 = val
             Reflection.setFieldValue(form, field, &valU32, true)
         }
@@ -110,7 +110,7 @@ impl PropWnd
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
-            undo.valRef = assume Reflection.getField(type, name)
+            undo.valRef = notnull Reflection.getField(type, name)
             capture.pushUndo(undo)
         }
 
@@ -171,7 +171,7 @@ impl PropWnd
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
         {
             var val: u32
-            let field = assume Reflection.getField(type, fieldName)
+            let field = notnull Reflection.getField(type, fieldName)
             Reflection.getFieldValue(&val, field, prop.getSelectedBaseForm(), true)
             return cast(FormShapeKind) val
         }
@@ -192,7 +192,7 @@ impl PropWnd
 
         for i in @countof(FormShapeKind)
         {
-            let btn0 = IconButton.create(assume frame.view, {})
+            let btn0 = IconButton.create(notnull frame.view, {})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.RoundSquare)
             if cur == i do
@@ -614,19 +614,19 @@ impl PropWnd
 
     func editText(main: *MainWnd, curText: String)->String
     {
-        with let dlg = EditDlg.createMultiLine(assume main.surface)
+        with let dlg = EditDlg.createMultiLine(notnull main.surface)
         {
             .setMessage("Press Shift+Enter to add a new line")
             .setText(curText)
             .richEdit.selectAll()
             .surface.setTitle("Enter Text")
-            .surface.center(assume main.surface)
+            .surface.center(notnull main.surface)
             if main.inPlaceEdit do
                 .surface.setTopMost()
         }
         if dlg.doModal() != Dialog.BtnOk do
             return curText
-        let capture = assume main.getCapture()
+        let capture = notnull main.getCapture()
         let undo    = capture.newUndo(.SetText)
         undo.text = dlg.getText()
         capture.pushUndo(undo)
@@ -674,7 +674,7 @@ impl PropWnd
         if curSel.subKind != .PixSel do
             return
 
-        let topLayout = assume .topLayout
+        let topLayout = notnull .topLayout
         discard PushButton.create(topLayout, "", id: ActionPixSel.Fill)
         discard PushButton.create(topLayout, "", id: ActionPixSel.SmartFill)
         discard PushButton.create(topLayout, "", id: ActionPixSel.Clear)
@@ -715,7 +715,7 @@ impl PropWnd
             let item = prop.grid.addItem(v, null, null, 40, .Zero)
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(assume item.line, .HorzFit, {0, 0, 0, 40})
+            return StackLayoutCtrl.create(notnull item.line, .HorzFit, {0, 0, 0, 40})
         }
 
         discard .grid.addSeparator("Position")
@@ -814,7 +814,7 @@ impl PropWnd
             return
         }
 
-        let stack0 = StackLayoutCtrl.create(assume .topLayout, .HorzCenter, {0, 0, 0, BtnColorHeight + 12})
+        let stack0 = StackLayoutCtrl.create(notnull .topLayout, .HorzCenter, {0, 0, 0, BtnColorHeight + 12})
         .propBackColor(stack0)
         .propBorderColor(stack0)
         .propCalloutText(stack0)
@@ -823,7 +823,7 @@ impl PropWnd
         if stack0.childs.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(assume .topLayout, .HorzCenter, {0, 0, 0, BtnStyleHeight + 12})
+        let stack1 = StackLayoutCtrl.create(notnull .topLayout, .HorzCenter, {0, 0, 0, BtnStyleHeight + 12})
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
         .propEndCapStyle(stack1)

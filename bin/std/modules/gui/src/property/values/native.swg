@@ -39,7 +39,7 @@ impl Properties
                 setEd'f64()
             }
 
-            .setEditMixed(item, assume item.sliderBox.edit)
+            .setEditMixed(item, notnull item.sliderBox.edit)
         }
         elif item.editBox
         {
@@ -162,7 +162,7 @@ impl Properties
 
         if Reflection.hasAttribute(value, .SliderMinMax)
         {
-            with let slider = SliderCtrl.create(assume item.line, dispName.toString())
+            with let slider = SliderCtrl.create(notnull item.line, dispName.toString())
             {
                 .anchorStyle  = .X
                 .autoEditSize = false
@@ -177,8 +177,8 @@ impl Properties
             if unit != null do
                 slider.edit.unit = cast(string) (unit)
 
-            let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
-            let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
+            let minV = cast(f32) notnull Reflection.getAttributeValue(value, .SliderMinMax, "min")
+            let maxV = cast(f32) notnull Reflection.getAttributeValue(value, .SliderMinMax, "max")
 
             // Whole bounds read as an integer slider (no trailing decimals), even for a
             // float field whose values are conceptually whole (a size, an angle...).
@@ -200,7 +200,7 @@ impl Properties
             return
         }
 
-        with let ctrl = EditCtrl.create(assume item.line, dispName.toString(), "", flags: .AutoLoseFocus)
+        with let ctrl = EditCtrl.create(notnull item.line, dispName.toString(), "", flags: .AutoLoseFocus)
         {
             .anchorStyle = .X
             .editSize    = 0
@@ -217,8 +217,8 @@ impl Properties
         if Reflection.hasAttribute(value, .MinMax)
         {
             hasMinMax = true
-            minV      = cast(s64) assume Reflection.getAttributeValue(value, .MinMax, "min")
-            maxV      = cast(s64) assume Reflection.getAttributeValue(value, .MinMax, "max")
+            minV      = cast(s64) notnull Reflection.getAttributeValue(value, .MinMax, "min")
+            maxV      = cast(s64) notnull Reflection.getAttributeValue(value, .MinMax, "max")
         }
 
         switch typeNative.nativeKind
@@ -254,7 +254,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
-            with let slider = SliderCtrl.create(assume item.line, null)
+            with let slider = SliderCtrl.create(notnull item.line, null)
             {
                 .labelSize = 0
                 .maxSize.x = editWidth
@@ -267,15 +267,15 @@ impl Properties
             }
 
             me.adaptCondensedControl(slider)
-            me.flattenCondensedEdit(assume slider.edit)
+            me.flattenCondensedEdit(notnull slider.edit)
             item.sliderBox = slider
 
             let unit = Reflection.getAttributeValue(value, .Unit, "value")
             if unit != null do
                 slider.edit.unit = cast(string) (unit)
 
-            let minV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "min")
-            let maxV = cast(f32) assume Reflection.getAttributeValue(value, .SliderMinMax, "max")
+            let minV = cast(f32) notnull Reflection.getAttributeValue(value, .SliderMinMax, "min")
+            let maxV = cast(f32) notnull Reflection.getAttributeValue(value, .SliderMinMax, "max")
 
             switch typeNative.nativeKind
             {
@@ -294,7 +294,7 @@ impl Properties
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
 
-            with let ed = EditBox.create(assume item.line, value.name)
+            with let ed = EditBox.create(notnull item.line, value.name)
             {
                 if unit != null do
                     .unit = cast(string) (unit)
@@ -313,8 +313,8 @@ impl Properties
             if Reflection.hasAttribute(value, .MinMax)
             {
                 hasMinMax = true
-                minV      = cast(s64) assume Reflection.getAttributeValue(value, .MinMax, "min")
-                maxV      = cast(s64) assume Reflection.getAttributeValue(value, .MinMax, "max")
+                minV      = cast(s64) notnull Reflection.getAttributeValue(value, .MinMax, "min")
+                maxV      = cast(s64) notnull Reflection.getAttributeValue(value, .MinMax, "max")
             }
 
             item.editBox = ed

@@ -41,16 +41,16 @@ func loadFonts() throw
 
     g_FontBytes  = File.readAllBytes(path)
     g_TypeFace   = TypeFace.create(path, g_FontBytes.toSlice())
-    g_HeaderFont = Font.create(assume g_TypeFace, 15)
+    g_HeaderFont = Font.create(notnull g_TypeFace, 15)
 }
 
 // The three fonts for a given size (all cached after the first call).
 func fontsFor(size: u32)->{ bmp, msdf, auto: *Pixel.Font }
 {
     var result: retval = undefined
-    result.bmp  = Font.create(assume g_TypeFace, size, .Bitmap)
-    result.msdf = Font.create(assume g_TypeFace, size, .Msdf)
-    result.auto = Font.create(assume g_TypeFace, size, .Auto)
+    result.bmp  = Font.create(notnull g_TypeFace, size, .Bitmap)
+    result.msdf = Font.create(notnull g_TypeFace, size, .Msdf)
+    result.auto = Font.create(notnull g_TypeFace, size, .Auto)
     return result
 }
 
@@ -83,10 +83,10 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     painter.translateTransform(layout.rect.x, layout.rect.y)
 
     // Column headers
-    painter.drawString(ColPx, 16, "px", assume g_HeaderFont, Argb.DimGray)
-    painter.drawString(ColBitmap, 16, "Bitmap", assume g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColMsdf, 16, "MSDF", assume g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColAuto, 16, "Auto", assume g_HeaderFont, Argb.DarkGreen)
+    painter.drawString(ColPx, 16, "px", notnull g_HeaderFont, Argb.DimGray)
+    painter.drawString(ColBitmap, 16, "Bitmap", notnull g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColMsdf, 16, "MSDF", notnull g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColAuto, 16, "Auto", notnull g_HeaderFont, Argb.DarkGreen)
 
     var y = 46.0
     for size in Sizes
@@ -94,7 +94,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
         let usize = cast(u32) size
         let fonts = fontsFor(usize)
 
-        painter.drawString(ColPx, y, Format.toString("%", size), assume g_HeaderFont, Argb.DimGray)
+        painter.drawString(ColPx, y, Format.toString("%", size), notnull g_HeaderFont, Argb.DimGray)
         painter.drawString(ColBitmap, y, Sample, fonts.bmp, Argb.Black)
         painter.drawString(ColMsdf, y, Sample, fonts.msdf, Argb.Black)
         painter.drawString(ColAuto, y, Sample, fonts.auto, Argb.Black)

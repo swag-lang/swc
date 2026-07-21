@@ -61,7 +61,7 @@ impl PathOwner
     {
         return func|me.target, me.bias|()->s32
         {
-            let safeTarget = assume target
+            let safeTarget = notnull target
             safeTarget.value += bias
             return safeTarget.value
         }

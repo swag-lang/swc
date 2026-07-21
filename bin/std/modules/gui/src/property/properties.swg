@@ -196,9 +196,9 @@ impl IWnd for Properties
         for it in .items
         {
             if it.validationLabel and it.validation != .None do
-                .applyValidationVisual(assume it)
+                .applyValidationVisual(notnull it)
             if it.flags.has(.Note) do
-                .applyNoteVisual(assume it)
+                .applyNoteVisual(notnull it)
         }
     }
 
@@ -217,7 +217,7 @@ impl IWnd for Properties
         var scan = cast(#null *PropertiesItem) item
         while scan
         {
-            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, assume item, assume evt.id)
+            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, notnull item, notnull evt.id)
             {
                 .refreshItem(item)
                 .hasChanged(item)
@@ -508,7 +508,7 @@ impl Properties
             if !it.data do
                 continue
 
-            if .isUnderDynamicArray(assume it)
+            if .isUnderDynamicArray(notnull it)
             {
                 it.dataInstances.add(it.data)
                 continue
@@ -524,7 +524,7 @@ impl Properties
     mtd refresh()
     {
         for it in .items do
-            .refreshItem(assume it)
+            .refreshItem(notnull it)
     }
 
     // To be called when a value has changed.
@@ -718,7 +718,7 @@ impl Properties
         .computeLevelMarks()
 
         for it in .items do
-            .updateItemState(assume it)
+            .updateItemState(notnull it)
         .updateValidation()
         .updateDefaults()
         .applyLayout()

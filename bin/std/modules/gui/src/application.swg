@@ -324,7 +324,7 @@ private impl Application
             if it is CommandEvent do
                 needUpdateState = true
 
-            .toDelete.add({evt, assume evt.type})
+            .toDelete.add({evt, notnull evt.type})
         }
 
         if needUpdateState do
@@ -540,7 +540,7 @@ impl Application
         for it in .postedEvents
         {
             let ptr = it as Event
-            .toDelete.add({ptr, assume ptr.type})
+            .toDelete.add({ptr, notnull ptr.type})
         }
 
         .deletePointers()
@@ -740,7 +740,7 @@ impl Application
 
         if wnd.isAllocated
         {
-            .toDelete.add({wnd, assume wnd.type})
+            .toDelete.add({wnd, notnull wnd.type})
         }
     }
 

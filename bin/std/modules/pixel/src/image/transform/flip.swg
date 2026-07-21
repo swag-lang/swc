@@ -8,7 +8,7 @@ impl Image
         let f   = dstImage
         mec.visitPixels(f, stride: .width)
         {
-            let dstImage = cast(*Image) (assume userData)
+            let dstImage = cast(*Image) (notnull userData)
             let w8       = image.width * image.bpp8
             Memory.copy(dstImage.pixels.buffer + (image.height - y - 1) * w8, pix, cast(u64) w8)
         }

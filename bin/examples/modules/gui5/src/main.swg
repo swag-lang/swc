@@ -475,15 +475,15 @@ func buildPage()
     switch g_Page
     {
     case 0:
-        createCompositePage(assume g_PageView)
+        createCompositePage(notnull g_PageView)
     case 1:
-        createHslModesPage(assume g_PageView)
+        createHslModesPage(notnull g_PageView)
     case 2:
-        createRgbModesPage(assume g_PageView)
+        createRgbModesPage(notnull g_PageView)
     case 3:
-        createPalettesPage(assume g_PageView)
+        createPalettesPage(notnull g_PageView)
     case 4:
-        createPreviewPage(assume g_PageView)
+        createPreviewPage(notnull g_PageView)
     default:
         unreachable
     }
@@ -592,23 +592,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Title, .Left, .Center)
+    g_Title = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(assume g_View, "", {})
+    g_ThemeButton = PushButton.create(notnull g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(assume g_View, {})
+    g_PageView = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Footer, .Left, .Center)
+    g_Footer = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()

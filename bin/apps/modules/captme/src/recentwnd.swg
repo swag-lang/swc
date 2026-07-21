@@ -377,7 +377,7 @@ impl RecentWnd
             if idx == 0 and !.main.editWnd.editView.capture
             {
                 .recentView.selected = 0
-                .main.editWnd.editView.setCapture(assume capture)
+                .main.editWnd.editView.setCapture(notnull capture)
             }
             else do
                 Memory.delete(capture)
@@ -425,7 +425,7 @@ impl RecentWnd
     mtd addRecent(file: String, front = true, sel = false)->#null *Capture throw
     {
         let capture = try Capture.load(file)
-        let loaded  = assume capture
+        let loaded  = notnull capture
         .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
 
         // Too much recent. Remove the oldest

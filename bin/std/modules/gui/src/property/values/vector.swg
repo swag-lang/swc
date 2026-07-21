@@ -83,7 +83,7 @@ impl IPropertyEditor for VectorEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        return list.constructVector(value, assume cast(#null const *Swag.TypeInfoStruct) value.pointedType, data, parent)
+        return list.constructVector(value, notnull cast(#null const *Swag.TypeInfoStruct) value.pointedType, data, parent)
     }
 }
 

@@ -146,7 +146,7 @@ namespace GenericForeachLazyCodegen
 
     func allocS32(value: s32)->*s32
     {
-        let ptr = assume cast(#null *s32) @alloc(#sizeof(s32))
+        let ptr = notnull cast(#null *s32) @alloc(#sizeof(s32))
         dref ptr = value
         return ptr
     }

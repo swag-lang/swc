@@ -222,8 +222,8 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeSampleBuf()->[*] u8 => assume .pSampleBuf
-    mtd safeInBufOfs()->[*] u8 => assume .inBufOfs
+    mtd safeSampleBuf()->[*] u8 => notnull .pSampleBuf
+    mtd safeInBufOfs()->[*] u8 => notnull .inBufOfs
 
     mtd init(buffer: const [..] u8) throw
     {
@@ -267,7 +267,7 @@ impl Decoder
                     break
 
                 var pdest1 = pdest
-                var psrc   = cast([*] u8) (assume scanLineOfs)
+                var psrc   = cast([*] u8) (notnull scanLineOfs)
                 for .imageSizeX
                 {
                     pdest1[0] = dref psrc
@@ -290,7 +290,7 @@ impl Decoder
             {
                 if .decode(&scanLineOfs, &scanLineLen) do
                     break
-                Memory.copy(pdest, cast(*void) (assume scanLineOfs), cast(u64) .imageSizeX * 3)
+                Memory.copy(pdest, cast(*void) (notnull scanLineOfs), cast(u64) .imageSizeX * 3)
                 pdest -= .imageSizeX * 3
             }
         }
@@ -300,7 +300,7 @@ impl Decoder
     {
         Debug.assert(blkX < cb.blockNumX)
         Debug.assert(blkY < cb.blockNumY)
-        return cast([*] s16) (cast([*] u8) (assume cb.pdata.buffer) + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
+        return cast([*] s16) (cast([*] u8) (notnull cb.pdata.buffer) + blkX * cb.blockSize + blkY * (cb.blockSize * cb.blockNumX))
     }
 
     mtd loadNextRow() throw
@@ -725,8 +725,8 @@ impl Decoder
 
     mtd transformRow()
     {
-        var psrcPtr = assume .blockSeg[0]
-        var pdstPtr = assume .pSampleBuf
+        var psrcPtr = notnull .blockSeg[0]
+        var pdstPtr = notnull .pSampleBuf
 
         for .maxBlocksPerRow
         {
@@ -1052,11 +1052,11 @@ impl Decoder
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
         .scanLine0.resize(cast(u64) .destBytesPerScanLine + 8)
-        let scanLine0 = assume .scanLine0.buffer
+        let scanLine0 = notnull .scanLine0.buffer
         Memory.clear(scanLine0, cast(u64) .destBytesPerScanLine)
 
         .scanLine1.resize(cast(u64) .destBytesPerScanLine + 8)
-        let scanLine1 = assume .scanLine1.buffer
+        let scanLine1 = notnull .scanLine1.buffer
         Memory.clear(scanLine1, cast(u64) .destBytesPerScanLine)
 
         .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
@@ -1066,7 +1066,7 @@ impl Decoder
         .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
         for i in .maxBlocksPerRow
         {
-            .blockSeg[i]       = cast([*] s16) (cast([*] u8) (assume .quantBuf.buffer) + i * 64 * #sizeof(s16))
+            .blockSeg[i]       = cast([*] s16) (cast([*] u8) (notnull .quantBuf.buffer) + i * 64 * #sizeof(s16))
             .blockMaxZagSet[i] = 64
         }
 
@@ -2135,7 +2135,7 @@ public impl IImageDecoder for Decoder
             return result
         result.allocPixels()
 
-        .doit(cast([*] u8) (assume result.pixels.buffer))
+        .doit(cast([*] u8) (notnull result.pixels.buffer))
         result.metaDatas = #move .metaDatas
 
         return result

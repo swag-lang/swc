@@ -60,7 +60,7 @@ private impl TagBin
     {
         if .freeSections.count
         {
-            let ptr = assume .freeSections.popBack()
+            let ptr = notnull .freeSections.popBack()
             ptr.mapSeek.clear()
             .sections.add(ptr)
             return ptr
@@ -80,7 +80,7 @@ private impl TagBin
     {
         if .freeTmpBuf.count
         {
-            let b = assume .freeTmpBuf.popBack()
+            let b = notnull .freeTmpBuf.popBack()
             b.clear()
             return b
         }
@@ -287,7 +287,7 @@ impl TagBin
 
         // Switch current 'output' back to parent and recycle tmp
         .output = parentOut
-        .releaseTmpBuf(assume ctx.tmpBuf)
+        .releaseTmpBuf(notnull ctx.tmpBuf)
     }
 
     // Begins a value (stubbed out)

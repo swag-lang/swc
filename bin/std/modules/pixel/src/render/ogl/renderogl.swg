@@ -534,7 +534,7 @@ impl RenderOgl
 
         var result: retval = Image.create(w, h, .BGRA8)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, .curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (assume result.pixels.buffer))
+        glReadPixels(x, .curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
         .unbindRenderTarget()
         return result
     }
@@ -695,7 +695,7 @@ impl RenderOgl
         glGenTextures(1, &textureID)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) (assume image.pixels.buffer))
+        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) (notnull image.pixels.buffer))
 
         var result: retval
         result.handle = cast(TextureHandle) textureID
@@ -1249,7 +1249,7 @@ impl RenderOgl
             if rt.colorBuffer.width == w2 and rt.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(i)
-                return assume rt
+                return notnull rt
             }
         }
 
@@ -1258,7 +1258,7 @@ impl RenderOgl
             if rt.colorBuffer.width >= w2 and rt.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(i)
-                return assume rt
+                return notnull rt
             }
         }
 

@@ -8,8 +8,8 @@ func drawBrushCellBackground(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawBrushCellLabel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)
 {
-    painter.drawString(rect.x + 18, rect.bottom() - 48, title, assume g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, {rect.x + 18, rect.bottom() - 28, rect.width - 36, 24}, subtitle, assume g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 18, rect.bottom() - 48, title, notnull g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, {rect.x + 18, rect.bottom() - 28, rect.width - 36, 24}, subtitle, notnull g_HelpFont, Argb.DimGray)
 }
 
 func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)

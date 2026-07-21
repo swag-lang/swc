@@ -208,7 +208,7 @@ impl Encoder
                     var bufArr = cast(#null const [*] u8) ptrArr.buffer
                     for i in ptrArr.count
                     {
-                        .writeValue(assume bufArr, safeValueType)
+                        .writeValue(notnull bufArr, safeValueType)
                         bufArr += safeValueType.sizeof
                     }
                 }

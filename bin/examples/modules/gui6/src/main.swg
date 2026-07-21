@@ -686,13 +686,13 @@ func buildPage()
     switch g_Page
     {
     case 0:
-        createMenuBarPage(assume g_PageView)
+        createMenuBarPage(notnull g_PageView)
     case 1:
-        createContextMenuPage(assume g_PageView)
+        createContextMenuPage(notnull g_PageView)
     case 2:
-        createCommandStatePage(assume g_PageView)
+        createCommandStatePage(notnull g_PageView)
     case 3:
-        createAnchoredPopupPage(assume g_PageView)
+        createAnchoredPopupPage(notnull g_PageView)
     default:
         unreachable
     }
@@ -796,23 +796,23 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Title, .Left, .Center)
+    g_Title = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(assume g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(assume g_SubTitle, .Left, .Top)
+    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
+    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(assume g_View, "", {})
+    g_ThemeButton = PushButton.create(notnull g_View, "", {})
     g_ThemeButton.form = .Flat
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(assume g_View, {})
+    g_PageView = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(assume g_View, "", {})
-    setLabelTextStyle(assume g_Footer, .Left, .Center)
+    g_Footer = Label.create(notnull g_View, "", {})
+    setLabelTextStyle(notnull g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
 
     registerMenuShortcuts()

@@ -126,6 +126,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("catch", State.Keyword)
         .mapWords.add("trycatch", State.Keyword)
         .mapWords.add("assume", State.Keyword)
+        .mapWords.add("notnull", State.Keyword)
         .mapWords.add("throw", State.Keyword)
         .mapWords.add("discard", State.Keyword)
 

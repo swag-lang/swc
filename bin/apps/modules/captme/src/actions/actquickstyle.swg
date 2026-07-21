@@ -25,7 +25,7 @@ impl IActionUI for ActionQuickStyle
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) assume cxt.wnd
+        let main = cast(*MainWnd) notnull cxt.wnd
 
         switch cxt.id
         {

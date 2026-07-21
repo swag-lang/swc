@@ -31,7 +31,7 @@ using Swag
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) assume t
+        let tt = cast(const *TypeInfoNative) notnull t
         return tt.nativeKind != .Any and tt.nativeKind != .String
     }
 
@@ -40,7 +40,7 @@ using Swag
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) assume t
+        let tt = cast(const *TypeInfoNative) notnull t
         return tt.nativeKind == .Rune
     }
 
@@ -49,7 +49,7 @@ using Swag
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) assume t
+        let tt = cast(const *TypeInfoNative) notnull t
         return tt.nativeKind == .Any
     }
 
@@ -58,7 +58,7 @@ using Swag
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) assume t
+        let tt = cast(const *TypeInfoNative) notnull t
         return tt.nativeKind == .Bool
     }
 
@@ -67,7 +67,7 @@ using Swag
         if !isNative(t) do
             return false
 
-        let tt = cast(const *TypeInfoNative) assume t
+        let tt = cast(const *TypeInfoNative) notnull t
         return tt.nativeKind == .String
     }
 }
@@ -191,7 +191,7 @@ private func registerTypeGraphNoLock(type: #null typeinfo)
     if !registerTypeNoLock(type) do
         return
 
-    let nnType = assume type
+    let nnType = notnull type
     switch nnType.kind
     {
     case .Alias:
@@ -242,7 +242,7 @@ func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
         if !hasInterface(t, itf) do
             continue
 
-        let typeStruct = cast(const *TypeInfoStruct) assume t
+        let typeStruct = cast(const *TypeInfoStruct) notnull t
         var score = 0'u64
         for streamCrc in fieldCrcs
         {

@@ -7,7 +7,7 @@ impl Image
         var f = {img: me}
         dstImage.visitPixels(&f)
         {
-            let data       = cast(*#decltype(f)) (assume userData)
+            let data       = cast(*#decltype(f)) (notnull userData)
             let srcImage   = cast(const *Image) data.img
             let b8         = srcImage.bpp8
             let w8         = srcImage.width * b8

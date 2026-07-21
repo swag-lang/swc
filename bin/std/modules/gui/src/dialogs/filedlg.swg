@@ -55,13 +55,13 @@ private impl FileDlg
     {
         let folderName: String = "New Folder"
 
-        with let dlg = EditDlg.createSingleLine(assume me.surface)
+        with let dlg = EditDlg.createSingleLine(notnull me.surface)
         {
             .edit.setText(folderName)
             .edit.selectAll()
             .edit.setNote("Folder name")
             .surface.setTitle("Folder Name")
-            .surface.center(assume me.surface)
+            .surface.center(notnull me.surface)
         }
 
         dlg.sigPressedButton = func|dlg, browser = me.browser|(fdlg, btnid)
@@ -80,7 +80,7 @@ private impl FileDlg
 
             if !Path.isValidFileName(folderName)
             {
-                MessageDlg.error(assume dlg.surface, "Invalid folder name")
+                MessageDlg.error(notnull dlg.surface, "Invalid folder name")
                 dlg.edit.selectAll()
                 dlg.edit.setFocus()
                 return false
@@ -89,7 +89,7 @@ private impl FileDlg
             let path = Path.combine(browser.curFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(assume dlg.surface, "Folder already exists")
+                MessageDlg.error(notnull dlg.surface, "Folder already exists")
                 dlg.edit.selectAll()
                 dlg.edit.setFocus()
                 return false
@@ -102,7 +102,7 @@ private impl FileDlg
             return
 
         if !.browser.createFolder(dlg.edit.text.toString()) do
-            MessageDlg.error(assume .surface, "Cannot create folder")
+            MessageDlg.error(notnull .surface, "Cannot create folder")
     }
 }
 
@@ -172,7 +172,7 @@ impl FileDlg
 
                 if dlg.dlgOptions.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(assume dlg.surface, "This file already exists.", "Do you want to replace it ?")
+                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.", "Do you want to replace it ?")
                     return res == Dialog.BtnYes
                 }
             }

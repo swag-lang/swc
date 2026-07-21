@@ -712,7 +712,7 @@ impl Painter
         {
             // Attributes
             let fs = c.hasFontStyle ? c.fontStyle : format.fontStyle
-            c.font = assume format.font.getFont(fs)
+            c.font = notnull format.font.getFont(fs)
 
             // Measure
             c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)

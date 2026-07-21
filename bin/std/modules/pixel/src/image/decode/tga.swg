@@ -168,7 +168,7 @@ func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
     let srcY = cast(s32) (pixelIndex / header.width)
     let dstX = header.descriptorByte & DESC_ORIGIN_RIGHT ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - srcY - 1 : srcY
-    return cast([*] u8) (assume result.pixels.buffer) + cast(u64) dstY * result.width8 + cast(u64) dstX * result.bpp8
+    return cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8 + cast(u64) dstX * result.bpp8
 }
 
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
@@ -183,7 +183,7 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) throw
     if index < palette.first or index >= cast(u32) palette.first + palette.count do
         throw InvalidFormatError{"invalid palette index"}
 
-    let paletteData = cast(const [*] u8) (assume palette.data)
+    let paletteData = cast(const [*] u8) (notnull palette.data)
     let entry = paletteData + cast(u64) (index - palette.first) * palette.bpp8
     switch palette.bpp
     {

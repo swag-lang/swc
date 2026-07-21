@@ -121,7 +121,7 @@ impl TweakFile
             }
 
             // Parse and assign value to field
-            let safePointedType = assume safeField.pointedType
+            let safePointedType = notnull safeField.pointedType
             let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + safeField.offset, safePointedType, one)
             if @err != null do
                 throw SyntaxError{"invalid value", line: idx + 1}

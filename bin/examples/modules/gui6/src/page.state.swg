@@ -3,11 +3,11 @@ using Core, Gui, Pixel
 func createStateMenuModel(parent: *Wnd)
 {
     g_StateMenu = createTrackedPopup(parent)
-    addViewItems(assume g_StateMenu)
+    addViewItems(notnull g_StateMenu)
     g_StateMenu.addSeparator()
-    addThemeItems(assume g_StateMenu)
+    addThemeItems(notnull g_StateMenu)
     g_StateMenu.addSeparator()
-    addDocumentItems(assume g_StateMenu)
+    addDocumentItems(notnull g_StateMenu)
 }
 
 func showStateMenuFrom(btn: *Button)

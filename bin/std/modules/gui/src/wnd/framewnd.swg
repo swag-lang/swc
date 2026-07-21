@@ -222,7 +222,7 @@ impl FrameWnd
         .view                 = Wnd.create'T(me, "", .position, hook: hook)
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
-        return assume cast(#null *T) .view
+        return notnull cast(#null *T) .view
     }
 
     mtd setView(what: *Wnd)

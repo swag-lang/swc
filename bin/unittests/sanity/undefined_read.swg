@@ -1,13 +1,15 @@
 #global private
 
 // '= undefined' skips a local's initialization. That is an optimization contract: the
-// variable must be written before it is read. Two nets catch violations:
-// - 'Swag.Sanity(.Lifecycle)', the static check: a PROVEN read of the untouched
-//   storage (on every path, no call in between) is a compile-time error;
+// variable must be written before it is read. Three nets catch violations:
+// - the SEMA definite-assignment analysis: any read not provably preceded by an
+//   initialization on every path is a compile-time error (sema_err_undefined_use);
+// - 'Swag.Sanity(.Lifecycle)', the static backend check: catches proven reads the
+//   sema analysis had to give up on (address escapes, out-parameter fills that the
+//   callee does not actually perform);
 // - 'Swag.Safety(.Lifecycle)', the runtime poisoning: the storage is filled with 0xDD
-//   at the declaration, so a read the static check cannot prove (first loop iteration,
-//   opaque-call barriers) sees a deterministic poison instead of whatever the frame
-//   happened to hold.
+//   at the declaration, so an unproven read sees a deterministic poison instead of
+//   whatever the frame happened to hold.
 
 struct UndItem
 {
@@ -17,12 +19,14 @@ struct UndItem
 
 var g_undSink: u32
 
-// An opaque call: the static check conservatively forgets undefined ranges across
-// calls (out-parameter fills), which lets the runtime-poison tests below observe the
-// 0xDD pattern.
-func undOpaque()
+// An opaque touch: taking the address counts as an initialization for the sema
+// analysis, and the call makes the static backend check conservatively forget the
+// undefined range (out-parameter fills). The poison written at the declaration is
+// untouched, which lets the runtime tests below observe the 0xDD pattern.
+func undOpaqueTouch(v: *UndItem)
 {
     g_undSink += 1
+    discard v
 }
 
 func undFill(v: *UndItem)
@@ -32,7 +36,7 @@ func undFill(v: *UndItem)
 }
 
 // ---------------------------------------------------------------------------
-// Static check: proven reads of '= undefined' storage.
+// Definite assignment: proven reads of '= undefined' storage are sema errors.
 // ---------------------------------------------------------------------------
 
 // Reading a field of an '= undefined' struct before any store.
@@ -40,7 +44,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    @assert(a.x == 1) // swc-expected-error {{sanity_err_undefined_read}}
+    @assert(a.x == 1) // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // Reading the second field: the whole declared range is undefined.
@@ -48,7 +52,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    @assert(a.y == 2) // swc-expected-error {{sanity_err_undefined_read}}
+    @assert(a.y == 2) // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // The captme shape: a pointer declared '= undefined' tested as a guard before any
@@ -58,7 +62,7 @@ func undFill(v: *UndItem)
 {
     var item: UndItem
     var last: #null *UndItem = undefined
-    if last do // swc-expected-error {{sanity_err_undefined_read}}
+    if last do // swc-expected-error {{sema_err_undefined_use}}
         g_undSink += 1
     last = &item
     discard last
@@ -89,7 +93,7 @@ func undFill(v: *UndItem)
     @assert(a.y == 8)
 }
 
-// A store on only one path is not a proven undefined read at the join.
+// A store on every path is definitely assigned at the join.
 var g_undTakeBranch = false
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -104,16 +108,16 @@ var g_undTakeBranch = false
 }
 
 // ---------------------------------------------------------------------------
-// Runtime poison: reads the static check cannot prove see 0xDD deterministically.
+// Runtime poison: reads no static net can prove see 0xDD deterministically.
 // ---------------------------------------------------------------------------
 
-// The opaque call clears the static knowledge, but the poison filled at the
-// declaration is still there.
+// The address escape silences both static nets, but nothing was written: the
+// poison filled at the declaration is still there.
 #[Swag.Safety(.Lifecycle, true)]
 #test
 {
     var a: UndItem = undefined
-    undOpaque()
+    undOpaqueTouch(&a)
     @assert(a.x == 0xDDDDDDDD)
     @assert(a.y == 0xDDDDDDDD)
 }
@@ -125,7 +129,7 @@ var g_undTakeBranch = false
     var a: UndItem = undefined
     a.x = 11
     a.y = 12
-    undOpaque()
+    undOpaqueTouch(&a)
     @assert(a.x == 11)
     @assert(a.y == 12)
 }

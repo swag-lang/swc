@@ -202,6 +202,10 @@ public:
     bool                            isCompilerEvalContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::CompilerEval); }
     bool                            isDeclPass() const { return declPass_; }
     bool                            enteringState() const { return visit_.enteringState(); }
+    // Cheap gate for the definite-assignment post-pass: set when this job declares a
+    // '= undefined' local, so functions without one skip the analysis entirely.
+    void                            noteExplicitUndefinedLocal() { hasExplicitUndefinedLocals_ = true; }
+    bool                            hasExplicitUndefinedLocals() const { return hasExplicitUndefinedLocals_; }
 
     ConstantManager&                               cstMgr();
     const ConstantManager&                         cstMgr() const;
@@ -593,8 +597,9 @@ private:
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_   = nullptr;
     SemaScope*                              curScope_      = nullptr;
-    bool                                    declPass_      = false;
-    bool                                    rootVisitDone_ = false;
+    bool                                    declPass_                  = false;
+    bool                                    rootVisitDone_             = false;
+    bool                                    hasExplicitUndefinedLocals_ = false;
 
     std::vector<SemaFrame> frames_;
 

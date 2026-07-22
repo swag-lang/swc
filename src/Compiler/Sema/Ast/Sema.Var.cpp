@@ -1096,7 +1096,11 @@ namespace
                 if (implicitStructNoInit && !forceRetValDefaultInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
                 if (isExplicitUndefinedInit)
+                {
                     symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+                    if (sema.isCurrentFunction())
+                        sema.noteExplicitUndefinedLocal();
+                }
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
                 if (!implicitStructNoInit || implicitStructPartInit || forceRetValDefaultInit)

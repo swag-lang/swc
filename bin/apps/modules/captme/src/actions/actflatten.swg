@@ -31,6 +31,8 @@ impl IActionUI for ActionFlatten
             undo = capture.newUndo(.Flatten)
         case FlattenAll:
             undo = capture.newUndo(.FlattenAll)
+        default:
+            return false
         }
 
         Debug.assert(undo != null)

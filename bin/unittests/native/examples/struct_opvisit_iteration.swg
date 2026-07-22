@@ -85,7 +85,7 @@ impl ShelfBins
                 case 0: visitItem = me.evening
                 case 1: visitItem = me.afternoon
                 case 2: visitItem = me.lunch
-                case 3: visitItem = me.morning
+                default: visitItem = me.morning
                 }
 
                 #inject(stmt, item = visitItem, index = @index)
@@ -102,7 +102,7 @@ impl ShelfBins
             case 0: visitItem = me.morning
             case 1: visitItem = me.lunch
             case 2: visitItem = me.afternoon
-            case 3: visitItem = me.evening
+            default: visitItem = me.evening
             }
 
             #inject(stmt, item = visitItem, index = @index)

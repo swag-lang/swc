@@ -543,7 +543,7 @@ namespace compiler3325
                     T = f32
                 case 1:
                     T = s8
-                case 2:
+                default:
                     T = bool
                 }
 

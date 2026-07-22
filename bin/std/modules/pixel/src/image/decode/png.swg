@@ -525,7 +525,9 @@ impl Decoder
 
         var result:   retval
         var iDataBuf: Array'u8
-        var ch:       ChunkHeader = undefined
+        // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
+        // was already loaded by the look-ahead; the flow analysis cannot prove it.
+        var ch: ChunkHeader
 
         var firstChunk = true
         var seenIEND   = false

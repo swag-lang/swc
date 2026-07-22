@@ -70,6 +70,8 @@ impl IActionUI for ActionMoveSel
         case Bottom:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = 5
+        default:
+            return false
         }
 
         Debug.assert(undo != null)

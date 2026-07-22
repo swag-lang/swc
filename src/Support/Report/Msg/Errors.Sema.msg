@@ -254,3 +254,6 @@ SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no matching overload found for 
 SWC_DIAG_DEF(sema_err_cst_struct_member_type, Error, "struct field type '{type}' cannot be evaluated at compile time; [help] use a field type that is known at compile time")
 SWC_DIAG_DEF(sema_err_empty_array_literal, Error, "array literal must have at least one element; [help] add an element, or provide explicit type context elsewhere")
 SWC_DIAG_DEF(sema_err_cannot_infer_aggregate_field_type, Error, "cannot infer the type of this value in the aggregate literal; [help] provide explicit type context, for example qualify an enum value as '<Type>.value'")
+SWC_DIAG_DEF(sema_err_undefined_use, Error, "'{sym}' may be used before being initialized; [help] it was declared with '= undefined': give it a value on every path before this use")
+SWC_DIAG_DEF(sema_err_undefined_field_use, Error, "field '{value}' of '{sym}' may be used before being initialized; [help] the variable was declared with '= undefined': assign the field on every path before this use")
+SWC_DIAG_DEF(sema_err_undefined_drop, Error, "'{sym}' may be dropped here while not fully initialized; [help] its type has a drop lifecycle and it was declared with '= undefined': initialize it before this exit or error-propagation point, or remove the '= undefined'")

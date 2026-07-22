@@ -19,7 +19,8 @@ impl IActionUI for ActionEdit
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
-        var lastSelType: typeinfo = undefined
+        // Null-initialized: '!lastSelType' below is a genuine "no selection" test.
+        var lastSelType: #null typeinfo
         if capture
         {
             if capture.selection.count

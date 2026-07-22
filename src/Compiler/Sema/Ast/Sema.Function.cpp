@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
+#include "Compiler/Sema/Helpers/SemaUndefined.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -1632,6 +1633,9 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
+    if (sema.hasExplicitUndefinedLocals())
+        SWC_RESULT(SemaUndefined::checkFunction(sema, sema.curNode().cast<AstFunctionDecl>().nodeBodyRef));
+
     SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
@@ -1647,6 +1651,9 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
+    if (sema.hasExplicitUndefinedLocals())
+        SWC_RESULT(SemaUndefined::checkFunction(sema, nodeBodyRef));
+
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
@@ -1661,6 +1668,10 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
+
+    if (sema.hasExplicitUndefinedLocals())
+        SWC_RESULT(SemaUndefined::checkFunction(sema, nodeBodyRef));
+
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))

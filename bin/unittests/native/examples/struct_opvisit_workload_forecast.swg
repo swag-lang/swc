@@ -66,7 +66,7 @@ impl WorkloadForecast
             case 1: visitItem = me.tuesday
             case 2: visitItem = me.wednesday
             case 3: visitItem = me.thursday
-            case 4: visitItem = me.friday
+            default: visitItem = me.friday
             }
 
             #inject(stmt, item = visitItem, index = @index)

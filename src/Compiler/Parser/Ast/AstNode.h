@@ -32,6 +32,10 @@ enum class AstModifierFlagsE : uint32_t
     Promote  = 1 << 4,
     Wrap     = 1 << 5,
     NoDrop   = 1 << 6,
+    // Compiler-internal (no source token): set by the definite-assignment analysis on
+    // an assignment whose destination is a provably uninitialized '= undefined' local,
+    // so codegen compiles it as an initialization (no destination drop).
+    UndefinedInit = 1 << 7,
     Reverse  = 1 << 9,
     Move     = 1 << 10,
     Relocate = 1 << 11, // raw relocation: uninitialized target, abandoned source (no reset)

@@ -238,6 +238,9 @@ impl IWnd for ColorPicker
                     modeFill = .SaturationVert
                 case SaturationHorz:
                     modeFill = .SaturationHorz
+                default:
+                    // The gradient modes are all handled by the branches above.
+                    unreachable
                 }
 
                 .img.fillHsl(modeFill, Color.fromHsl(.hue, .sat, .lum))

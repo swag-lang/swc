@@ -413,7 +413,7 @@ namespace
 
         const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
         const bool                   isRelocate        = modifierFlags.has(AstModifierFlagsE::Relocate);
-        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || isRelocate;
+        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::UndefinedInit) || isRelocate;
         const CodeGen::LifecycleKind postKind          = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
         const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);

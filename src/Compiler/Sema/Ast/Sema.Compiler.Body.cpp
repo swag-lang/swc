@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Helpers/SemaUndefined.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
@@ -682,6 +683,9 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     auto& sym = symView.sym()->cast<SymbolFunction>();
     if (sym.isIgnored())
         return Result::Continue;
+
+    if (sema.hasExplicitUndefinedLocals())
+        SWC_RESULT(SemaUndefined::checkFunction(sema, nodeBodyRef));
 
     const TokenId tokenId = sema.token(codeRef()).id;
     if (tokenId == TokenId::CompilerAst)

@@ -1101,6 +1101,10 @@ namespace
                     if (sema.isCurrentFunction())
                         sema.noteExplicitUndefinedLocal();
                 }
+                // Struct defaults leaving fields undefined (all or some) expose the
+                // same garbage-read risk: gate the definite-assignment pass too.
+                if ((implicitStructNoInit || implicitStructPartInit) && sema.isCurrentFunction())
+                    sema.noteExplicitUndefinedLocal();
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
                 if (!implicitStructNoInit || implicitStructPartInit || forceRetValDefaultInit)

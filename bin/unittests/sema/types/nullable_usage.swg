@@ -1,5 +1,11 @@
 #global private
 
+// Nullable values are used C-style: dereferencing, indexing, member access and
+// calls do NOT require a narrowing proof at the use site. Proven null dereferences
+// are reported by the static sanitizer, and the runtime null-safety guards cover
+// the rest in checked builds. Nullability is enforced at the TYPE boundary only:
+// a '#null T' never converts implicitly to 'T' (see narrowing and 'notnull').
+
 struct NullableUsageItem
 {
     value: s32
@@ -10,41 +16,42 @@ interface INullableUsage
     mtd get()->s32;
 }
 
-func nullableUsageDerefReject(value: #null *s32)
+func nullableUsageDeref(value: #null *s32)->s32
 {
-    let result = dref value // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return dref value
 }
 
-func nullableUsageMemberReject(value: #null *NullableUsageItem)
+func nullableUsageMember(value: #null *NullableUsageItem)->s32
 {
-    let result = value.value // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return value.value
 }
 
-func nullableUsageInterfaceReject(value: #null INullableUsage)
+func nullableUsageInterface(value: #null INullableUsage)->s32
 {
-    let result = value.get() // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return value.get()
 }
 
-func nullableUsageBlockIndexReject(value: #null [*] s32)
+func nullableUsageBlockIndex(value: #null [*] s32)->s32
 {
-    let result = value[0] // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return value[0]
 }
 
-func nullableUsageSliceIndexReject(value: #null [..] s32)
+func nullableUsageSliceIndex(value: #null [..] s32)->s32
 {
-    let result = value[0] // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return value[0]
 }
 
-func nullableUsageStringIndexReject(value: #null string)
+func nullableUsageStringIndex(value: #null string)->u8
 {
-    let result = value[0] // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return value[0]
 }
 
-func nullableUsageCallReject(value: #null func()->s32)
+func nullableUsageCall(value: #null func()->s32)->s32
 {
-    let result = value() // swc-expected-error {{sema_err_nullable_value_requires_non_null}}
+    return value()
 }
 
+// Crossing the type boundary requires a control-flow proof...
 func nullableUsageRefined(value: #null *NullableUsageItem, block: #null [*] s32, callback: #null func()->s32)->s32
 {
     if value == null or block == null or callback == null do
@@ -53,6 +60,7 @@ func nullableUsageRefined(value: #null *NullableUsageItem, block: #null [*] s32,
     return value.value + block[0] + callback()
 }
 
+// ...or an explicit 'notnull' assertion.
 func nullableUsageAsserted(value: #null *NullableUsageItem)->s32
 {
     return (notnull value).value

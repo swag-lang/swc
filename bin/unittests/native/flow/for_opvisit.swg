@@ -26,7 +26,7 @@ impl FieldVisits
                 {
                 case 0: visitItem = me.z
                 case 1: visitItem = me.y
-                case 2: visitItem = me.x
+                default: visitItem = me.x
                 }
 
                 #inject(stmt, item = visitItem, index = @index)
@@ -42,7 +42,7 @@ impl FieldVisits
             {
             case 0: visitItem = me.x
             case 1: visitItem = me.y
-            case 2: visitItem = me.z
+            default: visitItem = me.z
             }
 
             #inject(stmt, item = visitItem, index = @index)

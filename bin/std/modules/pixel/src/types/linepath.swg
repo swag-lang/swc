@@ -26,7 +26,7 @@ public struct LinePath
     serial:         s32
 
     // Flatten infos
-    flattenQuality:     PaintQuality = undefined
+    flattenQuality:     PaintQuality
     isPolyOnly:         bool
     isFlatten:          bool
     bvMin:              Vector2

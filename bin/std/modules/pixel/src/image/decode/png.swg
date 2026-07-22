@@ -56,7 +56,7 @@ private
     struct ChunkHeader
     {
         length:     u32
-        type:       ChunkType = undefined
+        type:       ChunkType
     }
 
     enum InterlaceMethod: u8

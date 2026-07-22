@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -754,7 +755,7 @@ namespace
     {
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
-            if (!field || field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            if (!field)
                 continue;
 
             const TypeRef   fieldTypeRef = field->typeRef();
@@ -762,6 +763,21 @@ namespace
             const uint32_t  fieldSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
             if (!fieldSize)
                 continue;
+
+            if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            {
+                // The field's '= undefined' default skips its initialization: under
+                // lifecycle safety, poison the skipped range on every construction
+                // path (locals and heap alike). No static marker here: this helper
+                // also fills literal TEMPORARIES, whose whole-struct copy into the
+                // destination legitimately reads the skipped range.
+                if (CodeGenSafety::hasLifecycleRuntimeSafety(codeGen))
+                {
+                    const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field->offset());
+                    SWC_RESULT(CodeGenSafety::emitLifecyclePoison(codeGen, fieldAddressReg, fieldSize));
+                }
+                continue;
+            }
 
             const MicroReg    fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field->offset());
             const ConstantRef defaultValueRef = field->defaultValueRef();

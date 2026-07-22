@@ -35,7 +35,6 @@ namespace
         uint64_t              dropMask    = 0; // bits of fields with a drop lifecycle
         bool                  typeHasDrop = false;
         bool                  isRetVal    = false;
-        bool                  isPlainPod  = false; // struct without any lifecycle: partial copies tolerated
         bool                  isArray     = false; // static array: passed by address, filled element-wise
         bool                  errored     = false; // one report per variable
         uint32_t              blockDepth  = 0;
@@ -120,6 +119,7 @@ namespace
         uint32_t                loopDepth_    = 0;
         uint32_t                deferDepth_   = 0;
         uint32_t                handledDepth_ = 0; // catch/trycatch/assume wrappers
+        uint32_t                inlineDepth_  = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
         uint32_t                nodeCount_    = 0;
         uint32_t                errorCount_   = 0;
         bool                    aborted_      = false;
@@ -335,8 +335,10 @@ namespace
             SemaError::setReportArguments(sema_, diag, var.sym);
             if (fieldIndex >= 0 && var.fieldStruct)
                 diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_.ctx())});
-            if (var.sym->codeRef().isValid())
-                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared with '= undefined' here");
+            // A span must stay within the element's source view (inlined bodies can
+            // place the declaration in another file).
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_.node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared with undefined content here");
             diag.report(sema_.ctx());
         }
 
@@ -350,8 +352,8 @@ namespace
 
             auto diag = SemaError::report(sema_, DiagnosticId::sema_err_undefined_drop, atRef);
             SemaError::setReportArguments(sema_, diag, var.sym);
-            if (var.sym->codeRef().isValid())
-                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared with '= undefined' here");
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_.node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared with undefined content here");
             diag.report(sema_.ctx());
         }
 
@@ -437,10 +439,11 @@ namespace
             }
             else
             {
-                // Whole-variable read. A struct without any lifecycle tolerates a
-                // partial copy (unwritten fields are just bits); everything else,
-                // and any fully untouched variable, must be complete.
-                if (var.isPlainPod && bits != 0)
+                // Whole-variable read. A struct tolerates a partial copy as long as
+                // its droppable parts are complete: unwritten plain fields are just
+                // bits, and the runtime poison covers their reads. A fully untouched
+                // variable, and non-struct values, must be complete.
+                if (var.fieldStruct && bits != 0 && (bits & var.dropMask) == var.dropMask)
                     return;
                 if (path.indexed && bits != 0)
                     return;
@@ -479,14 +482,20 @@ namespace
 
         // -------------------------------------------------------------------------
 
-        void trackDecl(FlowState& state, AstNodeRef declRef, const SymbolVariable& symVar)
+        void trackDecl(FlowState& state, AstNodeRef declRef, const SymbolVariable& symVar, bool hasInitExpr)
         {
             if (deferDepth_)
                 return;
-            if (!symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-                return;
             if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasGlobalStorage())
                 return;
+
+            // Explicit '= undefined' is always tracked. Without an initializer, a
+            // struct whose defaults leave fields undefined (some or all) is tracked
+            // too, starting from the defaulted fields.
+            const bool explicitUndef = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+            if (!explicitUndef && hasInitExpr)
+                return;
+
             if (vars_.size() >= K_MAX_TRACKED_VARS)
             {
                 aborted_ = true;
@@ -500,7 +509,9 @@ namespace
             var.blockDepth = blockDepth_;
             var.loopDepth  = loopDepth_;
 
-            const TypeRef typeRef = symVar.typeRef();
+            uint64_t      presetBits = 0;
+            bool          tracked    = explicitUndef;
+            const TypeRef typeRef    = symVar.typeRef();
             if (typeRef.isValid())
             {
                 const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_.ctx(), typeRef);
@@ -535,7 +546,18 @@ namespace
                                     var.dropMask |= 1ull << i;
                             }
                         }
-                        var.isPlainPod = !lifecycle.hasDrop && !lifecycle.hasPostCopy && !lifecycle.hasPostMove;
+                        if (!explicitUndef)
+                        {
+                            symStruct.computeImplicitDefaultFlags(sema_);
+                            if (!symStruct.hasImplicitUndefinedDefault())
+                                return;
+                            tracked = true;
+                            for (uint32_t i = 0; i < var.fieldCount; i++)
+                            {
+                                if (!symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                                    presetBits |= 1ull << i;
+                            }
+                        }
                     }
                     else
                     {
@@ -548,12 +570,15 @@ namespace
                 }
             }
 
+            if (!tracked)
+                return;
+
             const uint32_t index = static_cast<uint32_t>(vars_.size());
             vars_.push_back(var);
-            state.set(index, 0, 0);
+            state.set(index, presetBits, presetBits);
         }
 
-        void trackDeclNode(FlowState& state, AstNodeRef declRef)
+        void trackDeclNode(FlowState& state, AstNodeRef declRef, bool hasInitExpr)
         {
             const SemaNodeView view = sema_.viewSymbol(declRef);
             if (!view.hasSymbol())
@@ -563,7 +588,7 @@ namespace
             for (Symbol* sym : symbols)
             {
                 if (sym && sym->isVariable())
-                    trackDecl(state, declRef, sym->cast<SymbolVariable>());
+                    trackDecl(state, declRef, sym->cast<SymbolVariable>(), hasInitExpr);
             }
         }
 
@@ -643,9 +668,22 @@ namespace
                     applyCallArguments(rawRef, rawNode, state);
             }
 
+            // An inline/mixin expansion is a region of its own: a 'return' inside it
+            // resumes the caller's flow right after the expansion.
+            const bool inlineRoot = sema_.hasInlinePayload(ref) || (rawRef != ref && sema_.hasInlinePayload(rawRef));
+            if (inlineRoot)
+                inlineDepth_++;
+
             activeRefs_.push_back(ref);
-            const FlowExit exit = walkDispatch(ref, node, state);
+            FlowExit exit = walkDispatch(ref, node, state);
             activeRefs_.pop_back();
+
+            if (inlineRoot)
+            {
+                inlineDepth_--;
+                if (exit == FlowExit::Jumped)
+                    exit = FlowExit::Normal;
+            }
             return exit;
         }
 
@@ -671,7 +709,7 @@ namespace
                                               : static_cast<const AstVarDeclBase*>(&node.cast<AstMultiVarDecl>());
                     if (varBase->nodeInitRef.isValid())
                         walk(varBase->nodeInitRef, state);
-                    trackDeclNode(state, ref);
+                    trackDeclNode(state, ref, varBase->nodeInitRef.isValid());
                     return FlowExit::Normal;
                 }
 
@@ -766,7 +804,10 @@ namespace
                 {
                     const auto& returnStmt = node.cast<AstReturnStmt>();
                     walk(returnStmt.nodeExprRef, state);
-                    checkDropsOnExit(state, ref, 0);
+                    // A return inside an inline/mixin expansion only exits the
+                    // expansion: the caller's locals are not dropped.
+                    if (inlineDepth_ == 0)
+                        checkDropsOnExit(state, ref, 0);
                     return FlowExit::Jumped;
                 }
 
@@ -1397,6 +1438,12 @@ namespace
             case AstNodeId::SingleVarDecl:
             case AstNodeId::MultiVarDecl:
             {
+                const AstNode& declNode = sema.node(ref);
+                const auto*    varBase  = declNode.is(AstNodeId::SingleVarDecl)
+                                              ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
+                                              : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
+                const bool hasInitExpr = varBase->nodeInitRef.isValid();
+
                 const SemaNodeView view = sema.viewSymbol(ref);
                 if (!view.hasSymbol())
                     return Result::Continue;
@@ -1407,7 +1454,10 @@ namespace
                     if (!sym || !sym->isVariable())
                         continue;
                     const auto& symVar = sym->cast<SymbolVariable>();
-                    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                    // Explicit '= undefined', or an uninitialized declaration whose
+                    // struct defaults may leave fields undefined: both need the
+                    // struct's final lifecycle facts.
+                    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) && hasInitExpr)
                         continue;
                     TypeRef typeRef = symVar.typeRef();
                     for (uint32_t guard = 0; guard < 8 && typeRef.isValid(); guard++)

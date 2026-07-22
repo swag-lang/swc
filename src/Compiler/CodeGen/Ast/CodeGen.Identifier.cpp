@@ -689,8 +689,10 @@ namespace
                     SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
                 }
             }
-            else if (symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            else if (symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) || symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit))
             {
+                // Explicit '= undefined', or a struct whose fields all default to
+                // 'undefined': either way the storage starts as garbage.
                 SWC_RESULT(CodeGenSafety::emitUndefinedInitMarkers(codeGen, symbolPayload.reg, localSize));
             }
             return Result::Continue;

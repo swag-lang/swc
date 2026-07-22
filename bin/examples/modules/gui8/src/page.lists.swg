@@ -23,6 +23,8 @@ func createListsPage(parent: *Wnd)
     virtualList.horizontalExtent = 620
     virtualList.sigVirtualFill = func(list, line, idx)
     {
+        if line == null do
+            return
         line.setItem(0, Format.toString("virtual result %     cache line %", idx, idx % 64), sampleIcon(cast(s32) idx))
     }
     virtualList.setVirtualCount(1_000_000)

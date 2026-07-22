@@ -46,10 +46,17 @@ namespace
     // points); 'may' = initialized on at least one path (a drop may only be elided
     // when even 'may' is empty). Entries beyond a state's size behave as K_ALL_BITS
     // (variable not in scope on that path, hence inert).
+    //
+    // '#null' parameter contract (one bit per nullable parameter): 'paramVirgin' =
+    // the parameter has not been used yet on any path (first use pending);
+    // 'paramDoomed' = on every path the first use was an address-requiring operation,
+    // so a null argument is guaranteed to fault.
     struct FlowState
     {
         SmallVector<uint64_t, 8> must;
         SmallVector<uint64_t, 8> may;
+        uint64_t                 paramVirgin = K_ALL_BITS;
+        uint64_t                 paramDoomed = 0;
 
         uint64_t getMust(uint32_t i) const { return i < must.size() ? must[i] : K_ALL_BITS; }
         uint64_t getMay(uint32_t i) const { return i < may.size() ? may[i] : K_ALL_BITS; }
@@ -68,6 +75,9 @@ namespace
 
     void joinInto(FlowState& dst, const FlowState& src)
     {
+        dst.paramVirgin &= src.paramVirgin;
+        dst.paramDoomed &= src.paramDoomed;
+
         const uint32_t common = std::min(dst.must.size32(), src.must.size32());
         for (uint32_t i = 0; i < common; i++)
         {
@@ -98,15 +108,47 @@ namespace
     class Walker
     {
     public:
-        explicit Walker(Sema& sema) :
+        Walker(Sema& sema, const SymbolFunction& sym) :
             sema_(sema)
         {
+            for (SymbolVariable* param : sym.parameters())
+            {
+                if (!param || nullableParams_.size() >= 64)
+                    continue;
+                if (isNullableTypeRef(param->typeRef()))
+                {
+                    nullableParams_.push_back(param);
+                    paramDoomSites_.push_back(AstNodeRef::invalid());
+                }
+            }
         }
 
         Result run(AstNodeRef bodyRef)
         {
-            FlowState state;
-            walk(bodyRef, state);
+            FlowState      state;
+            const FlowExit exit = walk(bodyRef, state);
+            if (exit == FlowExit::Normal)
+                accumulateExit(state);
+
+            // A parameter declared '#null' whose first use is an address-requiring
+            // operation on every path to an exit can never survive a null argument:
+            // the signature promises what the body forbids.
+            for (uint32_t i = 0; i < nullableParams_.size32(); i++)
+            {
+                if (!exitSeen_ || !(exitDoomAccum_ & (1ull << i)) || aborted_)
+                    continue;
+                hadError_ = true;
+
+                const SymbolVariable* param = nullableParams_[i];
+                auto                  diag  = SemaError::report(sema_, DiagnosticId::sema_err_nullable_param_contract, *param);
+                SemaError::setReportArguments(sema_, diag, param);
+                const AstNodeRef siteRef = paramDoomSites_[i];
+                if (siteRef.isValid() && sema_.node(siteRef).codeRef().isValid() &&
+                    sema_.node(siteRef).codeRef().srcViewRef == param->codeRef().srcViewRef)
+                    diag.last().addSpan(sema_.node(siteRef).codeRange(sema_.ctx()), "dereferenced here without a null test");
+                diag.report(sema_.ctx());
+            }
+
             return hadError_ ? Result::Error : Result::Continue;
         }
 
@@ -124,6 +166,11 @@ namespace
         uint32_t                errorCount_   = 0;
         bool                    aborted_      = false;
         bool                    hadError_     = false;
+        // '#null' parameter contract tracking.
+        SmallVector<const SymbolVariable*, 8> nullableParams_;
+        SmallVector<AstNodeRef, 8>            paramDoomSites_;
+        uint64_t                              exitDoomAccum_ = K_ALL_BITS;
+        bool                                  exitSeen_      = false;
         // Active recursion stack: a child ref can resolve back to an ancestor through
         // the substitution table (self-substituted casts); never re-enter one.
         SmallVector<AstNodeRef, 32> activeRefs_;
@@ -378,6 +425,57 @@ namespace
                 state.add(path.varIndex, 1ull << path.fieldIndex);
             else
                 state.set(path.varIndex, vars_[path.varIndex].fullMask, vars_[path.varIndex].fullMask);
+        }
+
+        bool isNullableTypeRef(TypeRef typeRef) const
+        {
+            if (!typeRef.isValid())
+                return false;
+            const TypeInfo& type = sema_.typeMgr().get(typeRef);
+            if (type.isNullable())
+                return true;
+            const TypeRef unwrapped = sema_.typeMgr().unwrapAliasEnum(sema_.ctx(), typeRef);
+            return unwrapped.isValid() && sema_.typeMgr().get(unwrapped).isNullable();
+        }
+
+        // Registers a use of a '#null' parameter. The FIRST use on a path decides:
+        // an address-requiring operation dooms the path (a null argument faults);
+        // any other use (condition, copy, argument, 'notnull', ...) counts as a test.
+        void noteParamUse(FlowState& state, AstNodeRef operandRef, bool addressOp)
+        {
+            if (nullableParams_.empty())
+                return;
+            const AstNodeRef identRef = unwrap(operandRef);
+            if (identRef.isInvalid() || sema_.node(identRef).isNot(AstNodeId::Identifier))
+                return;
+            const SymbolVariable* symVar = identifierVariable(identRef);
+            if (!symVar)
+                return;
+            for (uint32_t i = 0; i < nullableParams_.size32(); i++)
+            {
+                if (nullableParams_[i] != symVar)
+                    continue;
+                const uint64_t bit = 1ull << i;
+                if (addressOp && !deferDepth_ && (state.paramVirgin & bit))
+                {
+                    state.paramDoomed |= bit;
+                    if (paramDoomSites_[i].isInvalid())
+                        paramDoomSites_[i] = identRef;
+                }
+                state.paramVirgin &= ~bit;
+                return;
+            }
+        }
+
+        // A point where the current execution can leave the function (return,
+        // fall-off, error propagation): the parameter contract verdict is the AND
+        // over every such exit.
+        void accumulateExit(const FlowState& state)
+        {
+            if (nullableParams_.empty() || deferDepth_)
+                return;
+            exitDoomAccum_ &= state.paramDoomed;
+            exitSeen_ = true;
         }
 
         bool isArrayTypeRef(TypeRef typeRef) const
@@ -807,7 +905,10 @@ namespace
                     // A return inside an inline/mixin expansion only exits the
                     // expansion: the caller's locals are not dropped.
                     if (inlineDepth_ == 0)
+                    {
                         checkDropsOnExit(state, ref, 0);
+                        accumulateExit(state);
+                    }
                     return FlowExit::Jumped;
                 }
 
@@ -857,7 +958,10 @@ namespace
                 {
                     walk(node.cast<AstThrowExpr>().nodeExprRef, state);
                     if (handledDepth_ == 0)
+                    {
                         checkDropsOnExit(state, ref, 0);
+                        accumulateExit(state);
+                    }
                     return FlowExit::Jumped;
                 }
 
@@ -872,8 +976,10 @@ namespace
                     {
                         const FlowExit exit = walk(innerRef, state);
                         // The wrapped call may unwind out of the function: whatever is
-                        // registered for an implicit drop must be safe to drop.
+                        // registered for an implicit drop must be safe to drop, and the
+                        // throwing execution is a survivable exit for '#null' params.
                         checkDropsOnExit(state, ref, 0);
+                        accumulateExit(state);
                         return exit;
                     }
                     handledDepth_++;
@@ -891,6 +997,7 @@ namespace
                     AccessPath path;
                     if (accessPath(ref, path))
                         checkRead(state, ref, path);
+                    noteParamUse(state, ref, false);
                     return FlowExit::Normal;
                 }
 
@@ -898,6 +1005,11 @@ namespace
                 case AstNodeId::AutoMemberAccessExpr:
                 case AstNodeId::IndexExpr:
                 {
+                    if (node.is(AstNodeId::MemberAccessExpr))
+                        noteParamUse(state, node.cast<AstMemberAccessExpr>().nodeLeftRef, true);
+                    else if (node.is(AstNodeId::IndexExpr))
+                        noteParamUse(state, node.cast<AstIndexExpr>().nodeExprRef, true);
+
                     AccessPath path;
                     if (accessPath(ref, path))
                     {
@@ -922,6 +1034,10 @@ namespace
                             markEscaped(state, path);
                             return FlowExit::Normal;
                         }
+                    }
+                    else if (tokenId == TokenId::KwdDRef)
+                    {
+                        noteParamUse(state, unary.nodeExprRef, true);
                     }
                     return walkChildren(node, state);
                 }
@@ -1307,6 +1423,23 @@ namespace
         // check. Returns false when no resolved arguments are attached.
         bool applyCallArguments(AstNodeRef callRef, const AstNode& node, FlowState& state)
         {
+            // Calling a nullable function value, or dispatching through a nullable
+            // receiver, requires its address.
+            {
+                const AstNodeRef calleeRef = node.is(AstNodeId::CallExpr)
+                                                 ? node.cast<AstCallExpr>().nodeExprRef
+                                                 : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                const AstNodeRef resolvedCalleeRef = resolve(calleeRef);
+                if (resolvedCalleeRef.isValid())
+                {
+                    const AstNode& calleeNode = sema_.node(resolvedCalleeRef);
+                    if (calleeNode.is(AstNodeId::MemberAccessExpr))
+                        noteParamUse(state, calleeNode.cast<AstMemberAccessExpr>().nodeLeftRef, true);
+                    else
+                        noteParamUse(state, resolvedCalleeRef, true);
+                }
+            }
+
             SmallVector<ResolvedCallArgument> args;
             sema_.appendResolvedCallArguments(callRef, args);
 
@@ -1398,7 +1531,10 @@ namespace
 
             // An unhandled throwable call can unwind out of the function.
             if (calledFn && calledFn->isThrowable() && handledDepth_ == 0)
+            {
                 checkDropsOnExit(state, callRef, 0);
+                accumulateExit(state);
+            }
 
             return !args.empty();
         }
@@ -1496,14 +1632,33 @@ namespace
     }
 }
 
-Result SemaUndefined::checkFunction(Sema& sema, AstNodeRef bodyRef)
+bool SemaUndefined::wantsCheck(Sema& sema, const SymbolFunction& sym)
+{
+    if (sema.hasExplicitUndefinedLocals())
+        return true;
+
+    for (const SymbolVariable* param : sym.parameters())
+    {
+        if (!param || !param->typeRef().isValid())
+            continue;
+        if (sema.typeMgr().get(param->typeRef()).isNullable())
+            return true;
+        const TypeRef unwrapped = sema.typeMgr().unwrapAliasEnum(sema.ctx(), param->typeRef());
+        if (unwrapped.isValid() && sema.typeMgr().get(unwrapped).isNullable())
+            return true;
+    }
+
+    return false;
+}
+
+Result SemaUndefined::checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
 {
     if (bodyRef.isInvalid())
         return Result::Continue;
 
     SWC_RESULT(waitTrackedTypes(sema, bodyRef, 0));
 
-    Walker walker(sema);
+    Walker walker(sema, sym);
     return walker.run(bodyRef);
 }
 

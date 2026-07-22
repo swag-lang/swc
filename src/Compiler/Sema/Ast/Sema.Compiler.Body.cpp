@@ -684,8 +684,8 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     if (sym.isIgnored())
         return Result::Continue;
 
-    if (sema.hasExplicitUndefinedLocals())
-        SWC_RESULT(SemaUndefined::checkFunction(sema, nodeBodyRef));
+    if (SemaUndefined::wantsCheck(sema, sym))
+        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
 
     const TokenId tokenId = sema.token(codeRef()).id;
     if (tokenId == TokenId::CompilerAst)

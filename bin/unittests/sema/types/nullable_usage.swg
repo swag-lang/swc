@@ -1,10 +1,12 @@
 #global private
 
-// Nullable values are used C-style: dereferencing, indexing, member access and
-// calls do NOT require a narrowing proof at the use site. Proven null dereferences
-// are reported by the static sanitizer, and the runtime null-safety guards cover
-// the rest in checked builds. Nullability is enforced at the TYPE boundary only:
-// a '#null T' never converts implicitly to 'T' (see narrowing and 'notnull').
+// Nullable VALUES are used C-style: dereferencing, indexing, member access and
+// calls do not require a narrowing proof at the use site. Proven null reads are
+// reported by the static sanitizer and the runtime null-safety guards cover the
+// rest in checked builds. Two limits frame that freedom:
+// - the TYPE boundary: a '#null T' never converts implicitly to 'T';
+// - the PARAMETER contract: a '#null' parameter whose first use on every path
+//   requires its address is a compile-time error (see nullable_param_contract.swg).
 
 struct NullableUsageItem
 {
@@ -16,39 +18,29 @@ interface INullableUsage
     mtd get()->s32;
 }
 
-func nullableUsageDeref(value: #null *s32)->s32
+var g_nullableUsageStorage: s32
+
+// C-like operations through nullable LOCALS.
+func nullableUsageLocalDeref()->s32
 {
-    return dref value
+    var p: #null *s32 = &g_nullableUsageStorage
+    return dref p
 }
 
-func nullableUsageMember(value: #null *NullableUsageItem)->s32
+func nullableUsageLocalIndex(count: u64)->s32
 {
-    return value.value
+    var block: #null [*] s32
+    if count do
+        block = cast(#null [*] s32) &g_nullableUsageStorage
+    return block[0]
 }
 
-func nullableUsageInterface(value: #null INullableUsage)->s32
+// A '#null' parameter used conditionally keeps its contract alive.
+func nullableUsageConditional(value: #null *NullableUsageItem, use: bool)->s32
 {
-    return value.get()
-}
-
-func nullableUsageBlockIndex(value: #null [*] s32)->s32
-{
-    return value[0]
-}
-
-func nullableUsageSliceIndex(value: #null [..] s32)->s32
-{
-    return value[0]
-}
-
-func nullableUsageStringIndex(value: #null string)->u8
-{
-    return value[0]
-}
-
-func nullableUsageCall(value: #null func()->s32)->s32
-{
-    return value()
+    if use do
+        return value.value
+    return 0
 }
 
 // Crossing the type boundary requires a control-flow proof...

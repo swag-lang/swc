@@ -1633,8 +1633,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    if (sema.hasExplicitUndefinedLocals())
-        SWC_RESULT(SemaUndefined::checkFunction(sema, sema.curNode().cast<AstFunctionDecl>().nodeBodyRef));
+    if (SemaUndefined::wantsCheck(sema, sym))
+        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, sema.curNode().cast<AstFunctionDecl>().nodeBodyRef));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
@@ -1651,8 +1651,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
-    if (sema.hasExplicitUndefinedLocals())
-        SWC_RESULT(SemaUndefined::checkFunction(sema, nodeBodyRef));
+    if (SemaUndefined::wantsCheck(sema, sym))
+        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
@@ -1669,8 +1669,8 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
 
-    if (sema.hasExplicitUndefinedLocals())
-        SWC_RESULT(SemaUndefined::checkFunction(sema, nodeBodyRef));
+    if (SemaUndefined::wantsCheck(sema, sym))
+        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());

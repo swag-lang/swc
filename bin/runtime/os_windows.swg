@@ -478,7 +478,7 @@ var __dbgCacheCount:   u32    = 0
 var __dbgCacheValid:   bool   = false
 
 func __peU16(p: [*] u8, off: u64)->u16 => dref cast(#null *u16) &p[off]
-func __peU32(p: #null [*] u8, off: u64)->u32 => dref cast(#null *u32) &p[off]
+func __peU32(p: [*] u8, off: u64)->u32 => dref cast(#null *u32) &p[off]
 
 func __dbgFindSection(base: #null *void)
 {
@@ -489,7 +489,7 @@ func __dbgFindSection(base: #null *void)
     if base == null do
         return
 
-    let b      = cast(#null [*] u8) base
+    let b      = cast([*] u8) base
     let ntOff  = cast(u64) __peU32(b, 0x3C)
     let nSec   = __peU16(b, ntOff + 6)
     let optSz  = __peU16(b, ntOff + 20)
@@ -511,8 +511,9 @@ func __dbgFindSection(base: #null *void)
         if match
         {
             let rva           = __peU32(b, secOff + 12)
-            __dbgCacheSection = cast([*] u8) &b[cast(u64) rva]
-            __dbgCacheCount   = __peU32(__dbgCacheSection, 8)
+            let secPtr        = cast([*] u8) &b[cast(u64) rva]
+            __dbgCacheSection = secPtr
+            __dbgCacheCount   = __peU32(secPtr, 8)
             __dbgCacheValid   = true
             return
         }
@@ -543,7 +544,8 @@ func __symbolize(addr: *void)->__SwagSym
         return r
 
     let rva = cast(u32) (cast(u64) addr - cast(u64) h)
-    let sec = __dbgCacheSection
+    // '__dbgCacheValid' guarantees the section pointer.
+    let sec = notnull __dbgCacheSection
     for i in __dbgCacheCount
     {
         let e     = 16 + cast(u64) i * 20

@@ -2,7 +2,7 @@ using Core, Core.Math, Pixel
 
 impl Properties
 {
-    mtd constructVector(value: Swag.TypeValue, typeStruct: const *Swag.TypeInfoStruct, data: #null [*] u8, parentItem: #null *PropertiesItem)->*PropertiesItem
+    mtd constructVector(value: Swag.TypeValue, typeStruct: const *Swag.TypeInfoStruct, data: #null [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
         // Custom struct editors keep the container row separator-less, like the inline-struct
         // path in addValue does (the registry path bypasses that, so replicate it here).
@@ -83,7 +83,7 @@ impl IPropertyEditor for VectorEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        return list.constructVector(value, notnull cast(#null const *Swag.TypeInfoStruct) value.pointedType, data, parent)
+        return list.constructVector(value, notnull cast(#null const *Swag.TypeInfoStruct) value.pointedType, data, notnull parent)
     }
 }
 

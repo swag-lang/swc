@@ -44,7 +44,7 @@ impl ThemeStyle
     }
 
     // Create a specific style based on the parent
-    mtd create(parent: #null *ThemeStyle)
+    mtd create(parent: *ThemeStyle)
     {
         .free()
         var theme = Memory.new'Theme()

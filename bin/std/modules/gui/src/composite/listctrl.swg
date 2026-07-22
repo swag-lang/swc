@@ -1192,6 +1192,9 @@ impl ListCtrl
     {
         func sortFunc(column: u32, descentOrder: bool, a, b: #null *ListLine)->s32
         {
+            if a == null or b == null do
+                return 0
+
             let it0   = a.getItem(column)
             let it1   = b.getItem(column)
             let sort0 = it0.sortKey.isEmpty() ? &it0.name.raw : &it0.sortKey
@@ -1204,6 +1207,9 @@ impl ListCtrl
 
         let cb = func|list = me, column, descentOrder|(a, b: #null *ListLine)->s32
         {
+            if a == null or b == null do
+                return 0
+
             if list.sigSort do
                 return list.sigSort(a, b, column, descentOrder)
 

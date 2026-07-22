@@ -2,8 +2,12 @@
 
 // Dereferencing a `#null` pointer (here through a method-call receiver) is allowed
 // without any guard: it simply dereferences the pointer, C-like. It may fault at
-// runtime if the pointer is actually null, but the compiler no longer rejects it.
-// Only binding a `#null` pointer to a non-null reference/pointer storage stays an error.
+// runtime if the pointer is actually null, but the compiler does not force a proof
+// at the use site. Two boundaries frame that freedom:
+// - binding a `#null` pointer to a non-null reference/pointer storage is an error;
+// - a `#null` PARAMETER whose first use on every path requires its address is a
+//   dead contract (sema_err_nullable_param_contract), so the unguarded dereference
+//   below lives behind a reachable early-out.
 
 struct NullableDerefNode
 {
@@ -19,8 +23,11 @@ impl NullableDerefNode
     }
 }
 
-func nullableDerefUnguarded(n: #null *NullableDerefNode)->s32
+func nullableDerefUnguarded(n: #null *NullableDerefNode, skip: bool)->s32
 {
+    if skip do
+        return 0
+
     // No `if n do ...` guard: calling a method on the nullable pointer just derefs it.
     return n.bump()
 }
@@ -28,7 +35,8 @@ func nullableDerefUnguarded(n: #null *NullableDerefNode)->s32
 #test
 {
     var node = NullableDerefNode{value: 41}
-    let r    = nullableDerefUnguarded(&node)
+    let r    = nullableDerefUnguarded(&node, false)
     @assert(r == 42)
     @assert(node.value == 42)
+    @assert(nullableDerefUnguarded(&node, true) == 0)
 }

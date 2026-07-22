@@ -1044,7 +1044,7 @@ impl Tessellate
         }
     }
 
-    func isEdgeSideOfTriangle(triangle:     #null *Triangle, ep, eq: *Point)->bool
+    func isEdgeSideOfTriangle(triangle: *Triangle, ep, eq: *Point)->bool
     {
         let index = triangle.edgeIndex(ep, eq)
         if index != -1

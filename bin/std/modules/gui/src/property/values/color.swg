@@ -2,7 +2,7 @@ using Core, Pixel
 
 impl Properties
 {
-    mtd constructColor(value: Swag.TypeValue, data: #null [*] u8, parentItem: #null *PropertiesItem)->*PropertiesItem
+    mtd constructColor(value: Swag.TypeValue, data: #null [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
         // Custom struct editors keep the container row separator-less, like the inline-struct
         // path in addValue does (the registry path bypasses that, so replicate it here).
@@ -130,7 +130,7 @@ impl IPropertyEditor for ColorEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        return list.constructColor(value, data, parent)
+        return list.constructColor(value, data, notnull parent)
     }
 }
 

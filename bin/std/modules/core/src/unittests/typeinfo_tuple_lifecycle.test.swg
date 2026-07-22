@@ -33,7 +33,7 @@ impl CoreTupleLifecycleProbe
 #[Swag.Strict]
 alias CoreTupleLifecycleStrict = #decltype({first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}})
 
-func coreTupleLifecycleProbeAt(base: [*] u8, type: #null const *TypeInfoStruct, index: u64)->*CoreTupleLifecycleProbe
+func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index: u64)->*CoreTupleLifecycleProbe
 {
     return cast(*CoreTupleLifecycleProbe) (base + type.fields[index].offset)
 }
@@ -104,7 +104,7 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     if !(arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast(#null const *TypeInfoStruct) arrayStruct.pointedType
+    let tupleStruct = notnull cast(#null const *TypeInfoStruct) arrayStruct.pointedType
     let values      = Memory.new(arrayType)
     if !values do
         return false
@@ -153,7 +153,7 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
     if !(rawType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast(#null const *TypeInfoStruct) rawType
+    let tupleStruct = notnull cast(#null const *TypeInfoStruct) rawType
     let value       = Memory.new(aliasType)
     if !value do
         return false

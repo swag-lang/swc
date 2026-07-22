@@ -208,6 +208,9 @@ private impl FileBrowserCtrl
             }
             .sigSort = func(l1, l2, col, down)
             {
+                if l1 == null or l2 == null do
+                    return 0
+
                 var fi1 = cast(#null *FileInfo) l1.userData0
                 var fi2 = cast(#null *FileInfo) l2.userData0
                 if fi1.isDirectory() and !fi2.isDirectory() do

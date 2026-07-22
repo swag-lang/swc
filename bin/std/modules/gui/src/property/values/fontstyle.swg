@@ -14,9 +14,10 @@ impl IPropertyEditor for FontStyleEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        parent.flags.add(.NoSeparator | .NoFocus)
+        let parentItem = notnull parent
+        parentItem.flags.add(.NoSeparator | .NoFocus)
 
-        let item  = list.addItem(value, data, parent)
+        let item  = list.addItem(value, data, parentItem)
         let style = cast(#null *FontFamilyStyle) data
 
         const BtnW = 34
@@ -48,6 +49,8 @@ impl IPropertyEditor for FontStyleEditor
 
         func writeStyle(list: *Properties, item: *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: *IconButton)
         {
+            if style == null do
+                return
             let bold   = btnBold.isChecked
             let italic = btnItalic.isChecked
             if bold and italic do

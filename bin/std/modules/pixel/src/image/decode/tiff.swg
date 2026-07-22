@@ -73,7 +73,7 @@ struct Entry
     type:    u32
     count:   u32
     valoff:  u32     // raw value/offset field
-    fieldAt: #null const [*] u8   // address of the 4-byte value/offset field
+    fieldAt: const [*] u8         // address of the 4-byte value/offset field
 }
 
 struct Ifd
@@ -104,20 +104,16 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
         throw UnsupportedFormatError{"unsupported field type"}
 
     let totalBytes = cast(u64) e.count * ts
-    var p: #null const [*] u8
-    if totalBytes <= 4
-    {
-        p = e.fieldAt
-    }
-    else
+    var p: const [*] u8 = e.fieldAt
+    if totalBytes > 4
     {
         p = base + e.valoff
-        checkBuffer(cast(const [*] u8) (p), last, totalBytes)
+        checkBuffer(p, last, totalBytes)
     }
 
     for i in e.count
     {
-        let q = cast(const [*] u8) (notnull p) + cast(u64) i * ts
+        let q = p + cast(u64) i * ts
         switch e.type
         {
         case TYPE_BYTE:

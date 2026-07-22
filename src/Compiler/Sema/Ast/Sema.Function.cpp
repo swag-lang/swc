@@ -1634,7 +1634,14 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     }
 
     if (SemaUndefined::wantsCheck(sema, sym))
-        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, sema.curNode().cast<AstFunctionDecl>().nodeBodyRef));
+    {
+        // The return contract only binds a signature the function owns: interface
+        // impls conform to the interface, and a throwable function's 'catch' error
+        // path synthesizes a zero (null) result.
+        const auto& declNode            = sema.curNode().cast<AstFunctionDecl>();
+        const bool  checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isThrowable();
+        SWC_RESULT(SemaUndefined::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
+    }
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);

@@ -86,9 +86,8 @@ public impl Face
 
     mtd destroy()
     {
-        let faceData = cast(#null *FaceImpl) cast(*void) me
-        if faceData do
-            Memory.delete(faceData)
+        let faceData = cast(*FaceImpl) cast(*void) me
+        Memory.delete(faceData)
     }
 
     mtd const isBold()->bool => .style.has(.Bold)
@@ -144,11 +143,8 @@ public impl Face
 
     mtd glyphIndex(charCode: rune)->u32
     {
-        let faceData = cast(#null *FaceImpl) cast(*void) me
-        if !faceData do
-            return 0
-        let safeFaceData = faceData
-        let idx = catch lookupGlyphIndex(safeFaceData, cast(u32) charCode)
+        let faceData = cast(*FaceImpl) cast(*void) me
+        let idx = catch lookupGlyphIndex(faceData, cast(u32) charCode)
         return @err != null ? 0 : idx
     }
 

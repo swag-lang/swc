@@ -1455,7 +1455,7 @@ impl Tessellate
             .meshClean(t)
     }
 
-    mtd meshClean(triangle:     #null *Triangle)
+    mtd meshClean(triangle: *Triangle)
     {
         var stack: Array'#null *Triangle
         stack.add(triangle)

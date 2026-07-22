@@ -8,12 +8,14 @@ struct JitOrelseNonNullItem
 #[Swag.Strict]
 alias JitOrelseNullablePointerAlias = #null *JitOrelseNonNullItem
 
+func jitOrelseMaybe(p: *JitOrelseNonNullItem)->#null *JitOrelseNonNullItem => p
+
 func jitOrelseNonNullBranches()->bool
 {
     var primaryItem  = JitOrelseNonNullItem{value: 11}
     var fallbackItem = JitOrelseNonNullItem{value: 22}
     var nullPointer: #null *JitOrelseNonNullItem = null
-    var presentPointer: #null *JitOrelseNonNullItem = &primaryItem
+    var presentPointer: #null *JitOrelseNonNullItem = jitOrelseMaybe(&primaryItem)
     let fallbackPointer: *JitOrelseNonNullItem = &fallbackItem
     let selectedPointerFallback = nullPointer orelse fallbackPointer
     let selectedPointerPrimary  = presentPointer orelse fallbackPointer

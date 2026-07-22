@@ -20,7 +20,7 @@ impl ScratchAllocator
     }
 
     // Free a block, if possible.
-    mtd freeMem(addr: #null *void, size: u64)
+    mtd freeMem(addr: *void, size: u64)
     {
         @assert(.allocator != null)
         var req: AllocatorRequest
@@ -58,7 +58,7 @@ impl ScratchAllocator
         .used = 0
         while .firstLeak
         {
-            let p = cast(#null *LeakHeader) .firstLeak
+            let p = cast(*LeakHeader) .firstLeak
             let n = p.next
             .freeMem(p, p.size)
             .firstLeak = n
@@ -67,9 +67,8 @@ impl ScratchAllocator
 
     // This will call 'release' prior to changing the capacity, so this must
     // be called at an early stage
-    mtd setCapacity(newCapacity: u64, allocator: #null IAllocator)
+    mtd setCapacity(newCapacity: u64, allocator: IAllocator)
     {
-        @assert(allocator != null)
         .release()
         .allocator = allocator
         .capacity  = newCapacity
@@ -88,6 +87,7 @@ impl IAllocator for ScratchAllocator
         @assert(.block != null)
         if !request.address do
             return
+        let reqAddr = request.address
 
         // If this is the last allocated block in the buffer, we can free it
         // by changing the allocated used size
@@ -108,7 +108,7 @@ impl IAllocator for ScratchAllocator
 
         // Otherwise we assume it's a leak. We unlink it, and free it with
         // the allocator
-        var leak = cast(#null [*] LeakHeader) request.address
+        var leak = cast([*] LeakHeader) reqAddr
         leak -= 1
         if !leak.prev do
             .firstLeak = leak.next

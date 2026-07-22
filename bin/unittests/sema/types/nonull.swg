@@ -186,7 +186,9 @@ func semaNonNullConstruction()
     // A bare (non-null) pointer can widen to '#null'.
     let legacySource: *SemaNonNullItem = &first
     let migrated: *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
-    let widened: #null *SemaNonNullItem = migrated
+    var widened: #null *SemaNonNullItem = migrated
+    widened = null // the qualifier is real: null flows into it below
+    widened = migrated
     let completeSet = cast(SemaNonNullCompleteSet) &first
     let genericRequired: SemaNonNullGenericBox'(*SemaNonNullItem) = {value: &first}
     var genericDefault: SemaNonNullGenericBox'SemaNonNullStringDefault

@@ -58,7 +58,7 @@ impl Voice
     {
         if !.handle do
             return
-        Memory.delete(cast(#null *NoSoundVoice) .handle)
+        Memory.delete(cast(*NoSoundVoice) .handle)
         .handle = null
     }
 
@@ -106,7 +106,7 @@ public impl Voice
     {
         if !.handle do
             return
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice) .handle
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
@@ -114,7 +114,7 @@ public impl Voice
     {
         if !.handle do
             return 0
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice) .handle
         return handle.volume
     }
 
@@ -122,7 +122,7 @@ public impl Voice
     {
         if !.handle do
             return
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice) .handle
         handle.frequencyRatio = ratio
     }
 
@@ -131,7 +131,7 @@ public impl Voice
         if !.handle do
             return
 
-        let handle = cast(#null *NoSoundVoice) .handle
+        let handle = cast(*NoSoundVoice) .handle
         let count = @countof(buses)
         if count >= @countof(handle.buses) do
             throw SystemError{"too many buses", errorID: count}
@@ -164,7 +164,7 @@ impl Bus
     {
         if !.handle do
             return
-        Memory.delete(cast(#null *NoSoundBus) .handle)
+        Memory.delete(cast(*NoSoundBus) .handle)
         .handle = null
     }
 }
@@ -175,7 +175,7 @@ public impl Bus
     {
         if !.handle do
             return
-        let handle = cast(#null *NoSoundBus) .handle
+        let handle = cast(*NoSoundBus) .handle
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
@@ -183,7 +183,7 @@ public impl Bus
     {
         if !.handle do
             return 0
-        let handle = cast(#null *NoSoundBus) .handle
+        let handle = cast(*NoSoundBus) .handle
         return handle.volume
     }
 }

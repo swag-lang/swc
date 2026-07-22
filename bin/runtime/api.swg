@@ -351,8 +351,8 @@ namespace Swag
     // Defined a global variable that needs to be dropped when exiting
     struct Gvtd
     {
-        ptr:        #null *void           // Pointer to the global variable memory
-        opDrop:     #null func(#null *void)     // The 'opDrop' function to call when the process must exit
+        ptr:        *void                 // Pointer to the global variable memory
+        opDrop:     func(#null *void)     // The 'opDrop' function to call when the process must exit
         sizeOf:     u32             // Size of one element
         count:      u32             // Number of elements to drop
     }

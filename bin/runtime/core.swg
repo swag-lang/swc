@@ -322,7 +322,7 @@ func __dropGlobalVariables()
 {
     for g in @gvtd
     {
-        var ptr = cast(#null [*] u8) g.ptr
+        var ptr = cast([*] u8) g.ptr
         for x in g.count
         {
             g.opDrop(ptr)

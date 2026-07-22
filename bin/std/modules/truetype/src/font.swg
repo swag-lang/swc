@@ -87,10 +87,8 @@ func getFaceImpl(face: #null *Face)->*FaceImpl throw
     return faceData
 }
 
-func getSlotImpl(slot: #null *GlyphSlot)->*FaceImpl throw
+func getSlotImpl(slot: *GlyphSlot)->*FaceImpl throw
 {
-    if !slot do
-        fail(0x25)
     return getFaceImpl(slot.face)
 }
 

@@ -106,10 +106,10 @@ func isOnCurve(tag: u8)->bool
     return (tag & CURVE_TAG_ON) != 0
 }
 
-func buildOutlineCommands(outline: #null const *Outline)->Array'OutlineCommand
+func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
 {
     var commands: Array'OutlineCommand
-    if !outline or outline.contourCount <= 0 or outline.pointCount <= 0 do
+    if outline.contourCount <= 0 or outline.pointCount <= 0 do
         return commands
 
     var contourStart = 0'u32

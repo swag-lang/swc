@@ -20,10 +20,12 @@ interface INullableUsage
 
 var g_nullableUsageStorage: s32
 
-// C-like operations through nullable LOCALS.
-func nullableUsageLocalDeref()->s32
+// C-like operations through nullable LOCALS: the dereference needs no proof.
+func nullableUsageLocalDeref(use: bool)->s32
 {
-    var p: #null *s32 = &g_nullableUsageStorage
+    var p: #null *s32
+    if use do
+        p = &g_nullableUsageStorage
     return dref p
 }
 

@@ -695,7 +695,7 @@ private impl ListView
                 let widthCheck = Math.min(metrics.btnCheck_Size, .list.getLineHeight())
                 if line.canCheck
                 {
-                    var subRectBorder: #null *ThemeImageRect = &rects.btnCheck_NormalBorder
+                    var subRectBorder: *ThemeImageRect = &rects.btnCheck_NormalBorder
 
                     let idxLine = .list.isVirtual ? idx : line.index
                     let checked = .list.checkModel.isSelected(idxLine)

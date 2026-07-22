@@ -187,7 +187,7 @@ func canCompare(type: #null typeinfo)->bool
 
 // Returns true if the interface 'itf' is implemented in the given structure type.
 #[ConstExpr]
-func hasInterface(type: #null typeinfo, itf: #null typeinfo)->bool
+func hasInterface(type: #null typeinfo, itf: typeinfo)->bool
 {
     if !isStruct(type) do
         return false

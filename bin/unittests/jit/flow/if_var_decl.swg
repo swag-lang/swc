@@ -92,10 +92,12 @@
 
 #test
 {
+    func ifDeclMaybePtr(p: *s32)->#null *s32 => p
+
     func ifDeclNullablePointer()->s32
     {
         var base = 42
-        if var x: #null *s32 = &base where x != null
+        if var x: #null *s32 = ifDeclMaybePtr(&base) where x != null
         {
             return 1
         }

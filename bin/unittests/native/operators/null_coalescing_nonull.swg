@@ -8,12 +8,14 @@ struct NativeOrelseNonNullItem
 #[Swag.Strict]
 alias NativeOrelseNullablePointerAlias = #null *NativeOrelseNonNullItem
 
+func nativeOrelseMaybe(p: *NativeOrelseNonNullItem)->#null *NativeOrelseNonNullItem => p
+
 func nativeOrelseNonNullBranches()->bool
 {
     var primaryItem  = NativeOrelseNonNullItem{value: 11}
     var fallbackItem = NativeOrelseNonNullItem{value: 22}
     var nullPointer: #null *NativeOrelseNonNullItem = null
-    var presentPointer: #null *NativeOrelseNonNullItem = &primaryItem
+    var presentPointer: #null *NativeOrelseNonNullItem = nativeOrelseMaybe(&primaryItem)
     let fallbackPointer: *NativeOrelseNonNullItem = &fallbackItem
     let selectedPointerFallback = nullPointer orelse fallbackPointer
     let selectedPointerPrimary  = presentPointer orelse fallbackPointer

@@ -19,6 +19,8 @@ impl NativeConditionalIndex
     }
 }
 
+func nativeConditionalMaybe(p: *NativeConditionalNonNullItem)->#null *NativeConditionalNonNullItem => p
+
 func nativeConditionalNonNullBranches(flag: bool)->bool
 {
     var first  = NativeConditionalNonNullItem{value: 11}
@@ -26,7 +28,7 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
     var indexed = NativeConditionalIndex'(*NativeConditionalNonNullItem){values: [&first]}
 
     let legacy: *NativeConditionalNonNullItem          = &first
-    let nullable: #null *NativeConditionalNonNullItem  = &first
+    let nullable: #null *NativeConditionalNonNullItem  = nativeConditionalMaybe(&first)
     let required: *NativeConditionalNonNullItem = &second
 
     let indexedNullLast  = flag ? indexed[0] : null

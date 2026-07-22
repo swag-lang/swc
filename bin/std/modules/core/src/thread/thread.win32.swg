@@ -70,10 +70,11 @@ impl Thread
         // Get a copy of current context, and initialize a temporary allocator for that thread
         .context = dref @getcontext()
         @init(&.context.tempAllocator, 1)
+        let alloc = notnull .context.allocator
         if tempAllocSize < 0 do
-            .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, .context.allocator)
+            .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, alloc)
         elif tempAllocSize != 0 do
-            .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, .context.allocator)
+            .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, alloc)
 
         .handle     = try CreateThread(null, 0, &threadEntry, me, CREATE_SUSPENDED, &.id)
         .userLambda = lambda

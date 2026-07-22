@@ -108,8 +108,9 @@ namespace
     class Walker
     {
     public:
-        Walker(Sema& sema, const SymbolFunction& sym) :
-            sema_(sema)
+        Walker(Sema& sema, const SymbolFunction& sym, bool checkReturnContract) :
+            sema_(sema),
+            sym_(sym)
         {
             for (SymbolVariable* param : sym.parameters())
             {
@@ -121,6 +122,8 @@ namespace
                     paramDoomSites_.push_back(AstNodeRef::invalid());
                 }
             }
+
+            returnContract_ = checkReturnContract && isNullableTypeRef(sym.returnTypeRef());
         }
 
         Result run(AstNodeRef bodyRef)
@@ -149,11 +152,37 @@ namespace
                 diag.report(sema_.ctx());
             }
 
+            // A '#null' return type that no return path can produce promises a null
+            // that never happens: callers pay guards for nothing.
+            if (returnContract_ && returnSeen_ && !mayReturnNull_ && !aborted_)
+            {
+                hadError_ = true;
+                auto diag = SemaError::report(sema_, DiagnosticId::sema_err_nullable_return_contract, sym_);
+                SemaError::setReportArguments(sema_, diag, &sym_);
+                diag.report(sema_.ctx());
+            }
+
+            // A local annotated '#null' whose every incoming value is provably
+            // non-null (and whose address never escapes) wears a dead qualifier.
+            if (!aborted_)
+            {
+                for (const NullableLocal& local : nullableLocals_)
+                {
+                    if (!local.sawValue || local.keepNull)
+                        continue;
+                    hadError_ = true;
+                    auto diag = SemaError::report(sema_, DiagnosticId::sema_err_nullable_local_contract, *local.sym);
+                    SemaError::setReportArguments(sema_, diag, local.sym);
+                    diag.report(sema_.ctx());
+                }
+            }
+
             return hadError_ ? Result::Error : Result::Continue;
         }
 
     private:
-        Sema&                   sema_;
+        Sema&                 sema_;
+        const SymbolFunction& sym_;
         std::vector<TrackedVar> vars_;
         std::vector<BreakCtx*>  breakables_;
         SmallVector<int32_t, 4> withTargets_; // tracked index or -1, innermost last
@@ -171,6 +200,69 @@ namespace
         SmallVector<AstNodeRef, 8>            paramDoomSites_;
         uint64_t                              exitDoomAccum_ = K_ALL_BITS;
         bool                                  exitSeen_      = false;
+        // '#null' return contract tracking.
+        bool returnContract_ = false;
+        bool returnSeen_     = false;
+        bool mayReturnNull_  = false;
+        // '#null' local contract tracking (function-global, not path-based): a local
+        // is reported when every value it can ever hold is provably non-null.
+        struct NullableLocal
+        {
+            const SymbolVariable* sym      = nullptr;
+            bool                  keepNull = false; // saw a possibly-null value or an escape
+            bool                  sawValue = false;
+        };
+        SmallVector<NullableLocal, 8> nullableLocals_;
+
+        int32_t nullableLocalIndex(const SymbolVariable* sym) const
+        {
+            if (!sym)
+                return -1;
+            for (uint32_t i = 0; i < nullableLocals_.size32(); i++)
+            {
+                if (nullableLocals_[i].sym == sym)
+                    return static_cast<int32_t>(i);
+            }
+            return -1;
+        }
+
+        // Shape-based proof that an expression's value cannot be null (the nodes are
+        // retyped in place by implicit widening, so declared types are consulted).
+        bool valueShapeIsNonNull(AstNodeRef exprRef) const
+        {
+            const AstNodeRef ref = unwrap(exprRef);
+            if (ref.isInvalid())
+                return false;
+
+            const AstNode& node = sema_.node(ref);
+            switch (node.id())
+            {
+                case AstNodeId::UnaryExpr:
+                    return tokenIdOf(node, TokenId::KwdDRef) == TokenId::SymAmpersand;
+
+                case AstNodeId::Identifier:
+                {
+                    const SymbolVariable* symVar = identifierVariable(ref);
+                    return symVar && isNonNullPointerLikeTypeRef(symVar->typeRef());
+                }
+
+                case AstNodeId::CallExpr:
+                case AstNodeId::IntrinsicCallExpr:
+                {
+                    const SemaNodeView view = sema_.viewSymbol(ref);
+                    Symbol*            sym  = view.hasSymbol() ? view.singleSymbol() : nullptr;
+                    return sym && sym->isFunction() && isNonNullPointerLikeTypeRef(sym->cast<SymbolFunction>().returnTypeRef());
+                }
+
+                case AstNodeId::TryCatchExpr:
+                    // 'notnull x' asserts non-null; other wrappers stay conservative.
+                    return tokenIdOf(node, TokenId::KwdCatch) == TokenId::KwdNotNull &&
+                           valueShapeIsNonNull(node.cast<AstTryCatchExpr>().nodeExprRef);
+
+                default:
+                    return false;
+            }
+        }
         // Active recursion stack: a child ref can resolve back to an ancestor through
         // the substitution table (self-substituted casts); never re-enter one.
         SmallVector<AstNodeRef, 32> activeRefs_;
@@ -478,6 +570,35 @@ namespace
             exitSeen_ = true;
         }
 
+        bool isNonNullPointerLikeTypeRef(TypeRef typeRef) const
+        {
+            if (!typeRef.isValid() || isNullableTypeRef(typeRef))
+                return false;
+            TypeRef       finalTypeRef = typeRef;
+            const TypeRef unwrapped    = sema_.typeMgr().unwrapAliasEnum(sema_.ctx(), typeRef);
+            if (unwrapped.isValid())
+                finalTypeRef = unwrapped;
+            const TypeInfo& type = sema_.typeMgr().get(finalTypeRef);
+            return type.isPointerLike() || type.isReference();
+        }
+
+        // Records whether a function-level return can produce a null value. The
+        // returned expression is widened IN PLACE to the declared '#null' type, so
+        // the proof works on the expression's SHAPE: an address-of is never null, an
+        // identifier follows its declared type, a call follows the callee's declared
+        // return type. Everything else conservatively counts as nullable.
+        void noteReturnValue(AstNodeRef exprRef)
+        {
+            if (!returnContract_ || deferDepth_ || mayReturnNull_)
+                return;
+            if (exprRef.isInvalid())
+                return;
+            returnSeen_ = true;
+
+            if (!valueShapeIsNonNull(exprRef))
+                mayReturnNull_ = true;
+        }
+
         bool isArrayTypeRef(TypeRef typeRef) const
         {
             if (!typeRef.isValid())
@@ -690,6 +811,65 @@ namespace
             }
         }
 
+        // Registers the locals with an EXPLICIT '#null' annotation (an inferred type
+        // has nothing to remove). Without an initializer the storage defaults to
+        // null, which keeps the qualifier meaningful.
+        void trackNullableLocals(AstNodeRef declRef, const AstVarDeclBase* varBase)
+        {
+            // Inside an inline/mixin expansion the declaration belongs to the callee's
+            // generic code: its qualifier must stay valid across ALL instantiations.
+            if (deferDepth_ || inlineDepth_ || varBase->nodeTypeRef.isInvalid())
+                return;
+
+            const SemaNodeView view = sema_.viewSymbol(declRef);
+            if (!view.hasSymbol())
+                return;
+            SmallVector<Symbol*> symbols;
+            view.getSymbols(symbols);
+            for (Symbol* sym : symbols)
+            {
+                if (!sym || !sym->isVariable())
+                    continue;
+                const auto& symVar = sym->cast<SymbolVariable>();
+                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                    symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
+                    symVar.hasGlobalStorage())
+                    continue;
+                if (!isNullableTypeRef(symVar.typeRef()))
+                    continue;
+                if (nullableLocals_.size() >= 64)
+                    return;
+
+                NullableLocal local;
+                local.sym = &symVar;
+                if (varBase->nodeInitRef.isValid())
+                {
+                    local.sawValue = true;
+                    local.keepNull = !valueShapeIsNonNull(varBase->nodeInitRef);
+                }
+                else
+                {
+                    local.keepNull = true; // defaults to null
+                }
+                nullableLocals_.push_back(local);
+            }
+        }
+
+        // A value flows into a nullable local, or its address escapes.
+        void noteNullableLocalWrite(AstNodeRef targetRef, AstNodeRef valueRef, bool escape)
+        {
+            const AstNodeRef identRef = unwrap(targetRef);
+            if (identRef.isInvalid() || sema_.node(identRef).isNot(AstNodeId::Identifier))
+                return;
+            const int32_t index = nullableLocalIndex(identifierVariable(identRef));
+            if (index < 0)
+                return;
+            NullableLocal& local = nullableLocals_[index];
+            local.sawValue       = true;
+            if (escape || valueRef.isInvalid() || !valueShapeIsNonNull(valueRef))
+                local.keepNull = true;
+        }
+
         // -------------------------------------------------------------------------
 
         void collectChildren(const AstNode& node, SmallVector<AstNodeRef>& out) const
@@ -707,9 +887,13 @@ namespace
             const AstNode& node = sema_.node(ref);
             if (node.is(AstNodeId::Identifier))
             {
-                const int32_t idx = trackedIndex(identifierVariable(ref));
+                const SymbolVariable* symVar = identifierVariable(ref);
+                const int32_t         idx    = trackedIndex(symVar);
                 if (idx >= 0)
                     state.set(idx, vars_[idx].fullMask, vars_[idx].fullMask);
+                const int32_t localIdx = nullableLocalIndex(symVar);
+                if (localIdx >= 0)
+                    nullableLocals_[localIdx].keepNull = true;
                 return;
             }
             SmallVector<AstNodeRef> children;
@@ -808,6 +992,7 @@ namespace
                     if (varBase->nodeInitRef.isValid())
                         walk(varBase->nodeInitRef, state);
                     trackDeclNode(state, ref, varBase->nodeInitRef.isValid());
+                    trackNullableLocals(ref, varBase);
                     return FlowExit::Normal;
                 }
 
@@ -908,6 +1093,7 @@ namespace
                     {
                         checkDropsOnExit(state, ref, 0);
                         accumulateExit(state);
+                        noteReturnValue(returnStmt.nodeExprRef);
                     }
                     return FlowExit::Jumped;
                 }
@@ -1028,6 +1214,7 @@ namespace
                     const TokenId tokenId = tokenIdOf(node, TokenId::SymAmpersand);
                     if (tokenId == TokenId::SymAmpersand)
                     {
+                        noteNullableLocalWrite(unary.nodeExprRef, AstNodeRef::invalid(), true);
                         AccessPath path;
                         if (accessPath(unary.nodeExprRef, path))
                         {
@@ -1329,7 +1516,10 @@ namespace
                     if (accessPath(resolvedRef, path))
                         markInit(state, path);
                     else
+                    {
+                        noteNullableLocalWrite(resolvedRef, AstNodeRef::invalid(), false);
                         walk(resolvedRef, state);
+                    }
                 }
                 return FlowExit::Normal;
             }
@@ -1337,6 +1527,10 @@ namespace
             AccessPath path;
             if (!accessPath(leftRef, path))
             {
+                // A whole assignment into a '#null' local feeds its contract; a
+                // compound one keeps the qualifier (conservative).
+                noteNullableLocalWrite(leftRef, tokenId == TokenId::SymEqual ? assignStmt.nodeRightRef : AstNodeRef::invalid(), false);
+
                 // Not rooted at a tracked variable: ordinary reads inside the target
                 // expression (indices, pointers) still need checking.
                 walk(leftRef, state);
@@ -1474,6 +1668,11 @@ namespace
 
                     if (argRef.isInvalid())
                         continue;
+
+                    // A reference-binding argument hands the local's address to the
+                    // callee, which may store null through it.
+                    if (arg.bindsReferenceToValue)
+                        noteNullableLocalWrite(argRef, AstNodeRef::invalid(), true);
 
                     AccessPath path;
                     if (!accessPath(argRef, path))
@@ -1632,33 +1831,44 @@ namespace
     }
 }
 
+namespace
+{
+    bool nullableTypeRefForCheck(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+        if (sema.typeMgr().get(typeRef).isNullable())
+            return true;
+        const TypeRef unwrapped = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        return unwrapped.isValid() && sema.typeMgr().get(unwrapped).isNullable();
+    }
+}
+
 bool SemaUndefined::wantsCheck(Sema& sema, const SymbolFunction& sym)
 {
     if (sema.hasExplicitUndefinedLocals())
         return true;
 
+    if (nullableTypeRefForCheck(sema, sym.returnTypeRef()))
+        return true;
+
     for (const SymbolVariable* param : sym.parameters())
     {
-        if (!param || !param->typeRef().isValid())
-            continue;
-        if (sema.typeMgr().get(param->typeRef()).isNullable())
-            return true;
-        const TypeRef unwrapped = sema.typeMgr().unwrapAliasEnum(sema.ctx(), param->typeRef());
-        if (unwrapped.isValid() && sema.typeMgr().get(unwrapped).isNullable())
+        if (param && nullableTypeRefForCheck(sema, param->typeRef()))
             return true;
     }
 
     return false;
 }
 
-Result SemaUndefined::checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
+Result SemaUndefined::checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract)
 {
     if (bodyRef.isInvalid())
         return Result::Continue;
 
     SWC_RESULT(waitTrackedTypes(sema, bodyRef, 0));
 
-    Walker walker(sema, sym);
+    Walker walker(sema, sym, checkReturnContract);
     return walker.run(bodyRef);
 }
 

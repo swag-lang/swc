@@ -111,3 +111,91 @@ func npcOkUnused(x: #null *s32)->s32
 {
     return 1
 }
+
+// -----------------------------------------------------------------------------
+// Return contracts: a '#null' return type that no return path can produce is
+// the dual dead contract.
+// -----------------------------------------------------------------------------
+
+var g_npcStorage: s32
+
+func npcErrReturnNeverNull(c: bool)->#null *s32 // swc-expected-error {{sema_err_nullable_return_contract}}
+{
+    if c do
+        return &g_npcStorage
+    return &g_npcStorage
+}
+
+// An explicit null return keeps the contract alive.
+func npcOkReturnNull(c: bool)->#null *s32
+{
+    if c do
+        return null
+    return &g_npcStorage
+}
+
+// Returning a nullable value keeps it alive too.
+func npcOkReturnNullable(x: #null *s32)->#null *s32
+{
+    return x
+}
+
+// A throwable function is exempt: its 'catch' error path synthesizes null.
+func npcOkReturnThrowable()->#null *s32 throw
+{
+    if g_npcStorage == 0 do
+        throw Swag.BaseError{"boom"}
+    return &g_npcStorage
+}
+
+// -----------------------------------------------------------------------------
+// Local contracts: a '#null' local whose every value is provably non-null wears
+// a dead qualifier.
+// -----------------------------------------------------------------------------
+
+func npcMayNull()->#null *s32 => null
+
+func npcFillPtrPtr(pp: *#null *s32)
+{
+    dref pp = null
+}
+
+func npcErrLocalNeverNull()->s32
+{
+    var p: #null *s32 = &g_npcStorage // swc-expected-error {{sema_err_nullable_local_contract}}
+    return dref p
+}
+
+// No initializer: the local defaults to null.
+func npcOkLocalDefaultsNull(use: bool)->s32
+{
+    var p: #null *s32
+    if use do
+        p = &g_npcStorage
+    return p == null ? 0 : dref p
+}
+
+// Reassigned with a possibly-null value.
+func npcOkLocalNullableValue()->s32
+{
+    var p: #null *s32 = &g_npcStorage
+    p = npcMayNull()
+    return p == null ? 0 : dref p
+}
+
+// Explicit null assignment.
+func npcOkLocalNullAssign(c: bool)->s32
+{
+    var p: #null *s32 = &g_npcStorage
+    if c do
+        p = null
+    return p == null ? 0 : dref p
+}
+
+// Address escape: the callee may store null through it.
+func npcOkLocalEscaped()->s32
+{
+    var p: #null *s32 = &g_npcStorage
+    npcFillPtrPtr(&p)
+    return p == null ? 0 : dref p
+}

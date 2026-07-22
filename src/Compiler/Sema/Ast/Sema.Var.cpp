@@ -1105,6 +1105,11 @@ namespace
                 // same garbage-read risk: gate the definite-assignment pass too.
                 if ((implicitStructNoInit || implicitStructPartInit) && sema.isCurrentFunction())
                     sema.noteExplicitUndefinedLocal();
+                // A '#null'-typed local gates the pass as well: its qualifier is
+                // checked for liveness (dead-contract elimination).
+                if (sema.isCurrentFunction() && finalTypeRef.isValid() &&
+                    sema.typeMgr().get(finalTypeRef).isNullable())
+                    sema.noteExplicitUndefinedLocal();
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
                 if (!implicitStructNoInit || implicitStructPartInit || forceRetValDefaultInit)

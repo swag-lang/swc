@@ -110,31 +110,31 @@ impl Encoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast(#null const *TypeInfoNative) type
+            let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
             case Bool:
-                .serializer.writeNative(dref cast(#null const *bool) data)
+                .serializer.writeNative(dref cast(const *bool) data)
             case U8:
-                .serializer.writeNative(dref cast(#null const *u8) data)
+                .serializer.writeNative(dref cast(const *u8) data)
             case U16:
-                .serializer.writeNative(dref cast(#null const *u16) data)
+                .serializer.writeNative(dref cast(const *u16) data)
             case U32, Rune:
-                .serializer.writeNative(dref cast(#null const *u32) data)
+                .serializer.writeNative(dref cast(const *u32) data)
             case U64:
-                .serializer.writeNative(dref cast(#null const *u64) data)
+                .serializer.writeNative(dref cast(const *u64) data)
             case S8:
-                .serializer.writeNative(dref cast(#null const *s8) data)
+                .serializer.writeNative(dref cast(const *s8) data)
             case S16:
-                .serializer.writeNative(dref cast(#null const *s16) data)
+                .serializer.writeNative(dref cast(const *s16) data)
             case S32:
-                .serializer.writeNative(dref cast(#null const *s32) data)
+                .serializer.writeNative(dref cast(const *s32) data)
             case S64:
-                .serializer.writeNative(dref cast(#null const *s64) data)
+                .serializer.writeNative(dref cast(const *s64) data)
             case F32:
-                .serializer.writeNative(dref cast(#null const *f32) data)
+                .serializer.writeNative(dref cast(const *f32) data)
             case F64:
-                .serializer.writeNative(dref cast(#null const *f64) data)
+                .serializer.writeNative(dref cast(const *f64) data)
             }
 
             return
@@ -149,7 +149,7 @@ impl Encoder
 
         if Reflection.isInterface(type)
         {
-            let itf = cast(#null const *Swag.Interface) data
+            let itf = cast(const *Swag.Interface) data
 
             .serializer.beginSection(.Raw)
             defer #noerr .serializer.endSection()
@@ -189,7 +189,7 @@ impl Encoder
             // Core.String
             if type == Core.String
             {
-                let strBuf = cast(#null const *String) data
+                let strBuf = cast(const *String) data
                 .serializer.writeNative(strBuf.toString())
                 return
             }
@@ -199,7 +199,7 @@ impl Encoder
             if valueType
             {
                 let safeValueType = valueType
-                let ptrArr  = cast(#null const *Array'u8) data
+                let ptrArr  = cast(const *Array'u8) data
                 let treated = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
@@ -225,7 +225,7 @@ impl Encoder
             }
 
             // Start a fields section
-            let structType = cast(#null const *TypeInfoStruct) type
+            let structType = cast(const *TypeInfoStruct) type
             let treated    = .serializer.beginStruct(structType, data)
             defer #noerr .serializer.endStruct()
             if treated do
@@ -254,7 +254,7 @@ impl Encoder
         // A static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr = cast(#null const *TypeInfoArray) type
+            let typeArr = cast(const *TypeInfoArray) type
             if !typeArr.pointedType do
                 throw SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)

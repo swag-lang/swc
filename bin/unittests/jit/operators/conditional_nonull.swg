@@ -19,6 +19,8 @@ impl JitConditionalIndex
     }
 }
 
+func jitConditionalMaybe(p: *JitConditionalNonNullItem)->#null *JitConditionalNonNullItem => p
+
 func jitConditionalNonNullBranches(flag: bool)->bool
 {
     var first  = JitConditionalNonNullItem{value: 11}
@@ -26,7 +28,7 @@ func jitConditionalNonNullBranches(flag: bool)->bool
     var indexed = JitConditionalIndex'(*JitConditionalNonNullItem){values: [&first]}
 
     let legacy: *JitConditionalNonNullItem          = &first
-    let nullable: #null *JitConditionalNonNullItem  = &first
+    let nullable: #null *JitConditionalNonNullItem  = jitConditionalMaybe(&first)
     let required: *JitConditionalNonNullItem = &second
 
     let indexedNullLast  = flag ? indexed[0] : null

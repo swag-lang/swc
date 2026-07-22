@@ -639,10 +639,12 @@ func errIsAsNullInfo()->ErrNullCastInfo
     return result
 }
 
+func assumeMaybePtr(p: *s32)->#null *s32 => p
+
 func assumeNullablePointerSuccess()->s32
 {
     var storage: s32 = 91
-    let maybe: #null *s32 = &storage
+    let maybe: #null *s32 = assumeMaybePtr(&storage)
     let ptr = notnull maybe
     #assert(#typeof(ptr) == *s32)
     return dref ptr

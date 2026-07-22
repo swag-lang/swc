@@ -140,7 +140,9 @@ func jitNonNullConstruction()->bool
     let aliasRequired: JitConstPointerAlias = &first
     let legacySource: *JitNonNullItem = &first
     let migrated: *JitNonNullItem = migrateJitLegacyPointer(legacySource)
-    let widened: #null *JitNonNullItem = migrated
+    var widened: #null *JitNonNullItem = migrated
+    widened = null // the qualifier is real: null flows into it
+    widened = migrated
 
     #assert(#typeof(aliasReadOnly) == const *JitNonNullItem)
     #assert(#typeof(aliasRequired) == const *JitNonNullItem)

@@ -23,7 +23,12 @@ namespace SemaUndefined
     // Also validates the '#null' parameter contract: a parameter whose FIRST use on
     // every path to an exit is an address-requiring operation (dereference, member
     // access, indexing, call) can never survive a null argument.
-    Result checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef);
+    //
+    // When 'checkReturnContract' is set (plain functions only: interface impls have
+    // an imposed signature, and a throwable function synthesizes a zero — hence null
+    // — result on its 'catch' error path), a '#null' return type that no return
+    // path can produce is reported as a dead contract too.
+    Result checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract = false);
 }
 
 SWC_END_NAMESPACE();

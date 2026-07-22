@@ -86,7 +86,7 @@ impl Decoder
         // Native
         if type.kind == .Native
         {
-            let typeNative = cast(#null const *TypeInfoNative) type
+            let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
             case Bool:
@@ -219,7 +219,7 @@ impl Decoder
             }
 
             // Generic struct load
-            let structType = cast(#null const *TypeInfoStruct) type
+            let structType = cast(const *TypeInfoStruct) type
             let treated    = .serializer.beginStruct(structType, data)
             defer #noerr .serializer.endStruct()
             if treated do
@@ -265,7 +265,7 @@ impl Decoder
         // Static array
         if Reflection.isStaticArray(type)
         {
-            let typeArr = cast(#null const *TypeInfoArray) type
+            let typeArr = cast(const *TypeInfoArray) type
             if !typeArr.pointedType do
                 throw SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)
@@ -373,10 +373,7 @@ impl IDecoder for Decoder
         if !count do
             return null
 
-        let data = cast(#null [*] u8) Memory.alloc(count)
-        if !data do
-            return null
-        let safeData = data
+        let safeData = cast([*] u8) Memory.alloc(count)
 
         var cpt     = count
         let treated = .serializer.beginSequence(u8, safeData, &cpt)

@@ -302,8 +302,8 @@ impl Allocator
         var user = raw + #sizeof(AllocatorRawBlock)
         user = cast([*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
 
-        let rawBlock = cast(#null *AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
-        rawBlock.address = cast(#null [*] void) raw
+        let rawBlock = cast(*AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
+        rawBlock.address = cast([*] void) raw
         rawBlock.size = bytes
         .statAdd(&.countOsAlloc, 1)
         .statAdd(&.sizeOsAlloc, bytes)
@@ -315,7 +315,7 @@ impl Allocator
         if !address do
             return
 
-        let rawBlock = cast(#null *AllocatorRawBlock) (cast(#null [*] u8) address - #sizeof(AllocatorRawBlock))
+        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) address - #sizeof(AllocatorRawBlock))
         .statAdd(&.countOsFree, 1)
         .statAdd(&.sizeOsFree, rawBlock.size)
         .osFree(rawBlock.address)
@@ -331,10 +331,8 @@ impl Allocator
         return heap
     }
 
-    mtd retireThreadHeap(heap: #null *AllocatorThreadHeap)
+    mtd retireThreadHeap(heap: *AllocatorThreadHeap)
     {
-        if !heap do
-            return
         if @atomxchg(&heap.retired, 1) != 0 do
             return
 
@@ -414,7 +412,7 @@ impl Allocator
         }
     }
 
-    mtd decActive(heap: #null *AllocatorThreadHeap)->u32
+    mtd decActive(heap: *AllocatorThreadHeap)->u32
     {
         while true
         {
@@ -551,7 +549,7 @@ impl Allocator
         }
     }
 
-    mtd releaseThreadHeapRecord(heap: #null *AllocatorThreadHeap)
+    mtd releaseThreadHeapRecord(heap: *AllocatorThreadHeap)
     {
         .rawFree(heap)
     }
@@ -605,17 +603,17 @@ impl Allocator
         return header
     }
 
-    mtd userAddress(header: #null *AllocatorHeader)->#null [*] u8
+    mtd userAddress(header: *AllocatorHeader)->[*] u8
     {
-        return cast(#null [*] u8) header + #sizeof(AllocatorHeader)
+        return cast([*] u8) header + #sizeof(AllocatorHeader)
     }
 
-    mtd footer(header: #null *AllocatorHeader)->#null *AllocatorFooter
+    mtd footer(header: *AllocatorHeader)->*AllocatorFooter
     {
-        return cast(#null *AllocatorFooter) (.userAddress(header) + header.userSize)
+        return cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
     }
 
-    mtd checkFree(header: #null *AllocatorHeader)
+    mtd checkFree(header: *AllocatorHeader)
     {
         let foot = .footer(header)
         if header.magic != MagicFree or foot.magic != MagicFree
@@ -624,7 +622,7 @@ impl Allocator
         }
     }
 
-    mtd checkAllocated(header: #null *AllocatorHeader, callerLoc = #callerlocation)
+    mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
         let foot = .footer(header)
         if (header.magic != MagicAlloc and header.magic != MagicFree) or
@@ -645,7 +643,7 @@ impl Allocator
         if !addr do
             return
 
-        let header = cast(#null *AllocatorHeader) (cast(#null [*] u8) addr - #sizeof(AllocatorHeader))
+        let header = cast(*AllocatorHeader) (cast([*] u8) addr - #sizeof(AllocatorHeader))
         .checkAllocated(header, callerLoc)
     }
 
@@ -794,10 +792,10 @@ impl Allocator
         if !address do
             return null
 
-        var userAddr = cast(#null [*] u8) address
+        var userAddr = cast([*] u8) address
         userAddr += toAddAlign
 
-        let header = cast(#null *AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
+        let header = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
         header.allocAddr  = address
         header.allocSize  = allocSize
         header.blockSize  = blockSize
@@ -885,7 +883,7 @@ impl Allocator
         }
 
         let oldAddress = request.address
-        let oldHeader  = cast(#null *AllocatorHeader) (cast(#null [*] u8) oldAddress - #sizeof(AllocatorHeader))
+        let oldHeader  = cast(*AllocatorHeader) (cast([*] u8) oldAddress - #sizeof(AllocatorHeader))
         .checkAllocated(oldHeader, request.callerLoc)
 
         if request.size <= oldHeader.blockSize and (request.alignment == 0 or request.alignment <= oldHeader.alignment)
@@ -1003,7 +1001,8 @@ impl Allocator
         {
             let header = .firstAlloc
             .unlinkAllocated(header)
-            discard .decActive(cast(#null *AllocatorThreadHeap) header.ownerHeap)
+            // Every tracked allocated block records its owner heap ('setupAllocatedHeader').
+            discard .decActive(notnull cast(#null *AllocatorThreadHeap) header.ownerHeap)
             .statSub(&.countAlloc, 1)
             .statSub(&.sizeAlloc, header.userSize)
 

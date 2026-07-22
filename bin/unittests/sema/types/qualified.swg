@@ -67,15 +67,15 @@ func semaTest001()
 {
     var storage: s32 = 7
     let ptr: *s32 = &storage
-    let nullablePtr: #null *s32 = ptr
-    let nullableStrictPtr: #null QualifiedStrictPtr = cast(QualifiedStrictPtr) ptr
+    var nullablePtr: #null *s32 = ptr
+    var nullableStrictPtr: #null QualifiedStrictPtr = cast(QualifiedStrictPtr) ptr
     let widenedPtr: #null *s32 = widenNullablePointer(ptr)
     acceptNullablePointer(ptr)
     acceptNullablePointer(widenedPtr)
 
     let text: string = "abc"
     let nullableText: #null string = text
-    let nullableStrictText: #null QualifiedStrictString = cast(QualifiedStrictString) text
+    var nullableStrictText: #null QualifiedStrictString = cast(QualifiedStrictString) text
     let widenedText: #null string = widenNullableString(text)
     acceptNullableString(text)
     acceptNullableString(widenedText)
@@ -83,7 +83,7 @@ func semaTest001()
     let values: [3] s32 = [1, 2, 3]
     let slice: [..] s32 = values
     let nullableSlice: #null [..] s32 = slice
-    let nullableStrictSlice: #null QualifiedStrictSlice = cast(QualifiedStrictSlice) slice
+    var nullableStrictSlice: #null QualifiedStrictSlice = cast(QualifiedStrictSlice) slice
     let widenedSlice: #null [..] s32 = widenNullableSlice(slice)
     acceptNullableSlice(slice)
     acceptNullableSlice(widenedSlice)
@@ -101,15 +101,15 @@ func semaTest001()
 
     var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
     let cstr: cstring = cast(cstring) &cstrData[0]
-    let nullableCstr: #null cstring = cstr
-    let nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr
+    var nullableCstr: #null cstring = cstr
+    var nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr
     let widenedCstr: #null cstring = widenNullableCString(cstr)
     acceptNullableCString(cstr)
     acceptNullableCString(widenedCstr)
 
     let info: typeinfo = s32
     let nullableInfo: #null typeinfo = info
-    let nullableStrictInfo: #null QualifiedStrictTypeInfo = cast(QualifiedStrictTypeInfo) info
+    var nullableStrictInfo: #null QualifiedStrictTypeInfo = cast(QualifiedStrictTypeInfo) info
     let widenedInfo: #null typeinfo = widenNullableTypeInfo(info)
     acceptNullableTypeInfo(info)
     acceptNullableTypeInfo(widenedInfo)
@@ -129,6 +129,15 @@ func semaTest001()
     @assert(@countof(nullableCstr) == 3)
     @assert(nullableInfo == s32)
     @assert(nullableStrictInfo == s32)
+
+    // The '#null' qualifiers above are real: null flows into every widened local.
+    nullablePtr        = null
+    nullableStrictPtr  = null
+    nullableCstr       = null
+    nullableStrictCstr = null
+    nullableStrictText = null
+    nullableStrictSlice = null
+    nullableStrictInfo = null
 }
 
 namespace NS {}

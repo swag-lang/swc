@@ -1671,15 +1671,16 @@ impl Transform
             if outRec1.isOpen or outRec2.isOpen do
                 continue
 
-            var holeStateRec: #null *OutRec
-            if outRec1 == outRec2 do
-                holeStateRec = outRec1
-            elif outRec1RightOfOutRec2(nnOutRec(outRec1), nnOutRec(outRec2)) do
-                holeStateRec = outRec2
-            elif outRec1RightOfOutRec2(nnOutRec(outRec2), nnOutRec(outRec1)) do
-                holeStateRec = outRec1
-            else do
-                holeStateRec = getLowermostRec(nnOutRec(outRec1), nnOutRec(outRec2))
+            var holeStateRec = outRec1
+            if outRec1 != outRec2
+            {
+                if outRec1RightOfOutRec2(outRec1, outRec2) do
+                    holeStateRec = outRec2
+                elif outRec1RightOfOutRec2(outRec2, outRec1) do
+                    holeStateRec = outRec1
+                else do
+                    holeStateRec = getLowermostRec(outRec1, outRec2)
+            }
 
             if !.joinPoints(notnull join, outRec1, outRec2) do
                 continue
@@ -2481,7 +2482,7 @@ impl Transform
     #[Swag.Discardable]
     mtd addLocalMinPoly(e1, e2: *Edge, pt: IntPoint)->*OutPt
     {
-        var result: #null *OutPt
+        var result: *OutPt = undefined
         var e:      *Edge = undefined
         var prevE:  #null *Edge
 
@@ -2520,11 +2521,11 @@ impl Transform
                .slopesEqual(IntPoint{xPrev, pt.y}, prevE.top, IntPoint{xE, pt.y}, e.top)
             {
                 let outPt = .addOutPt(nnEdge(prevE), pt)
-                .addJoin(nnOutPt(result), outPt, e.top)
+                .addJoin(result, outPt, e.top)
             }
         }
 
-        return nnOutPt(result)
+        return result
     }
 
     mtd addEdgeToSEL(edge: *Edge)
@@ -2708,16 +2709,16 @@ impl Transform
 
     mtd appendPolygon(e1, e2: *Edge)
     {
-        let outRec1 = .polyOuts[e1.outIdx]
-        let outRec2 = .polyOuts[e2.outIdx]
+        let outRec1 = nnOutRec(.polyOuts[e1.outIdx])
+        let outRec2 = nnOutRec(.polyOuts[e2.outIdx])
 
-        var holeStateRec: #null *OutRec
-        if outRec1RightOfOutRec2(nnOutRec(outRec1), nnOutRec(outRec2)) do
+        var holeStateRec: *OutRec = undefined
+        if outRec1RightOfOutRec2(outRec1, outRec2) do
             holeStateRec = outRec2
-        elif outRec1RightOfOutRec2(nnOutRec(outRec2), nnOutRec(outRec1)) do
+        elif outRec1RightOfOutRec2(outRec2, outRec1) do
             holeStateRec = outRec1
         else do
-            holeStateRec = getLowermostRec(nnOutRec(outRec1), nnOutRec(outRec2))
+            holeStateRec = getLowermostRec(outRec1, outRec2)
 
         let p1_lft = outRec1.pts
         let p1_rt  = p1_lft.prev

@@ -94,7 +94,7 @@ func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB:
     let pb   = base + indexB * size
 
     let allocator = @getcontext().allocator
-    let tmp       = cast(#null [*] u8) Memory.alloc(size, allocator)
+    let tmp       = cast([*] u8) Memory.alloc(size, allocator)
     defer Memory.free(tmp, size, allocator)
 
     Memory.copy(tmp, pa, size)
@@ -142,17 +142,14 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
         let oldBuffer   = arr.buffer
         let oldCapacity = arr.capacity
         let newCapacity = Math.max(arr.count + 1, arr.capacity * 2)
-        let newBuffer   = cast(#null [*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
-        if !newBuffer do
-            return null
-        let safeNewBuffer = newBuffer
-        Memory.clear(safeNewBuffer, newCapacity * sizeValue)
+        let newBuffer = cast([*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
+        Memory.clear(newBuffer, newCapacity * sizeValue)
 
         // Move old values to the new buffer
-        Memory.copy(safeNewBuffer, oldBuffer, arr.count * sizeValue)
+        Memory.copy(newBuffer, oldBuffer, arr.count * sizeValue)
         if hasPostMove(nnType)
         {
-            var buf = safeNewBuffer
+            var buf = newBuffer
             for arr.count
             {
                 Memory.postMoveType(buf, nnType)
@@ -161,7 +158,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
         }
 
         Memory.free(oldBuffer, oldCapacity * sizeValue, arr.allocator)
-        arr.buffer = safeNewBuffer
+        arr.buffer = newBuffer
         arr.capacity = newCapacity
     }
 

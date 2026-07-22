@@ -391,22 +391,17 @@ impl Painter
 
     private mtd pushTriangleCmd()->*Command
     {
-        var cmd: #null *Command
         if .commandBuffer.count
         {
             let last = .commandBuffer.buffer + .commandBuffer.count - 1
             if last.id == CommandId.DrawTriangles do
-                cmd = last
+                return notnull last
         }
 
-        if !cmd
-        {
-            cmd                     = .newCommand(.DrawTriangles)
-            cmd.drawTriangles.start = cast(u32) .vertexBuffer.count
-            cmd.drawTriangles.count = 0
-        }
-
-        return notnull cmd
+        let cmd                 = .newCommand(.DrawTriangles)
+        cmd.drawTriangles.start = cast(u32) .vertexBuffer.count
+        cmd.drawTriangles.count = 0
+        return cmd
     }
 
     private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64

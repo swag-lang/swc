@@ -140,7 +140,9 @@ func nativeNonNullConstruction()->bool
     let aliasRequired: NativeConstPointerAlias = &first
     let legacySource: *NativeNonNullItem = &first
     let migrated: *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
-    let widened: #null *NativeNonNullItem = migrated
+    var widened: #null *NativeNonNullItem = migrated
+    widened = null // the qualifier is real: null flows into it
+    widened = migrated
 
     #assert(#typeof(aliasReadOnly) == const *NativeNonNullItem)
     #assert(#typeof(aliasRequired) == const *NativeNonNullItem)

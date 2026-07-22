@@ -1759,7 +1759,6 @@ struct PropDecorData
     host.shutdown()
 }
 
-
 struct PropHeadlessFontStyleData
 {
     style = Pixel.FontFamilyStyle.Regular
@@ -1796,7 +1795,6 @@ struct PropHeadlessFontStyleData
 
     host.shutdown()
 }
-
 
 struct PropHeadlessUsingBase
 {
@@ -1843,7 +1841,6 @@ struct PropHeadlessUsingDerived
 
     host.shutdown()
 }
-
 
 enum PropFilterChoice
 {
@@ -1897,7 +1894,6 @@ impl IPropertyNotify for PropFilterHost
     host.shutdown()
 }
 
-
 struct PropSameCategData
 {
     #[Properties.Category("Debug"), Properties.Name("First"), Properties.Description("A long description that should wrap over the full control width, not over the value column")]
@@ -1946,7 +1942,6 @@ struct PropSameCategData
 
     host.shutdown()
 }
-
 
 enum PropAlignChoice { A, B, C }
 

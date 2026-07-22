@@ -27,4 +27,3 @@ using Swag, Core
     @assert(Math.abs(rotated.y - 10) < 0.001)
 }
 
-

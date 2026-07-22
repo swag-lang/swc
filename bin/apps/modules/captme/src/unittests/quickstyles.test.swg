@@ -111,7 +111,6 @@ using Swag, Core
     f.shutdown()
 }
 
-
 // Default quick styles cover every visible Captme tool family with subkind tagging.
 #test
 {

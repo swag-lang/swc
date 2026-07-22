@@ -38,7 +38,6 @@ using Swag, Core
     f.shutdown()
 }
 
-
 // newFormFromModel clones every standard model and clears point/image payloads when requested.
 #test
 {

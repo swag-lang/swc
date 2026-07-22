@@ -237,7 +237,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
     attr Warning(what: string, level: WarningLevel)
 
-
     #[Swag.EnumFlags]
     enum MatchWhat: u32
     {

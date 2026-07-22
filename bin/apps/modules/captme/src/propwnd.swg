@@ -6,7 +6,6 @@ const BtnStyleHeight = 68.0
 const CapSize  = 8.0
 const DashSize = 8.0
 
-
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
 func(T) enumToUserData(value: T)->*void => cast(*void) cast(u64) value

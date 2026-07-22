@@ -22,7 +22,6 @@ func eatCount(str: string, count: u64)->string
     return @mkstring(@dataof(str) + cpt, countof - cpt)
 }
 
-
 // Removes leading space characters from the string and returns the trimmed result
 func eatSpaces(str: string)->string
 {

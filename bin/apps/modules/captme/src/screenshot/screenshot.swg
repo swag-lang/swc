@@ -56,7 +56,9 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } th
     g_App.disableHotKeys()
     defer g_App.enableHotKeys()
 
-    var result: retval = undefined
+    // Must be zero-initialized: 'img' has a drop lifecycle, and the assignment below
+    // drops the previous content. '= undefined' here means dropping garbage memory.
+    var result: retval
     result.img       = getDesktopImage(main.captureOptions.captureCursor)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)

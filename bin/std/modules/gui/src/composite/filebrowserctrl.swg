@@ -223,10 +223,8 @@ private impl FileBrowserCtrl
                     return 1
                 switch col
                 {
-                case 0:
-                    return (fi1.fullname <=> fi2.fullname) * (down ? -1 : 1)
-                case 1:
-                    return (fi1.lastWriteTime <=> fi2.lastWriteTime) * (down ? -1 : 1)
+                case 0: return (fi1.fullname <=> fi2.fullname) * (down ? -1 : 1)
+                case 1: return (fi1.lastWriteTime <=> fi2.lastWriteTime) * (down ? -1 : 1)
                 }
 
                 return 0

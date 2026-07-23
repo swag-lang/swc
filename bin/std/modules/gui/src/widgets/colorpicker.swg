@@ -74,48 +74,62 @@ impl IWnd for ColorPicker
         case HueSaturation:
             .xCur = cast() (.hue * clientRect.width)
             .yCur = cast() ((1 - .sat) * clientRect.height)
+
         case HueLightness:
             .xCur = cast() (.hue * clientRect.width)
             .yCur = cast() ((1 - .lum) * clientRect.height)
+
         case GreenBlue:
             .xCur = cast() (.g * clientRect.width)
             .yCur = cast() (.b * clientRect.height)
+
         case RedBlue:
             .xCur = cast() (.r * clientRect.width)
             .yCur = cast() (.b * clientRect.height)
+
         case RedGreen:
             .xCur = cast() (.r * clientRect.width)
             .yCur = cast() (.g * clientRect.height)
 
         case HueVert:
             .yCur = cast() (.hue * clientRect.height)
+
         case HueHorz:
             .xCur = cast() (.hue * clientRect.width)
 
         case LightnessVert:
             .yCur = cast() (.lum * clientRect.height)
+
         case LightnessHorz:
             .xCur = cast() (.lum * clientRect.width)
 
         case SaturationVert:
             .yCur = cast() (.sat * clientRect.height)
+
         case SaturationHorz:
             .xCur = cast() (.sat * clientRect.width)
 
         case AlphaHorz:
             .xCur = cast() (.a * clientRect.width)
+
         case AlphaVert:
             .yCur = cast() (.a * clientRect.height)
+
         case RedHorz:
             .xCur = cast() (.r * clientRect.width)
+
         case RedVert:
             .yCur = cast() (.r * clientRect.height)
+
         case GreenHorz:
             .xCur = cast() (.g * clientRect.width)
+
         case GreenVert:
             .yCur = cast() (.g * clientRect.height)
+
         case BlueHorz:
             .xCur = cast() (.b * clientRect.width)
+
         case BlueVert:
             .yCur = cast() (.b * clientRect.height)
         }
@@ -217,28 +231,40 @@ impl IWnd for ColorPicker
                 {
                 case SaturationLightness:
                     modeFill = .SaturationLightness
+
                 case HueSaturation:
                     modeFill = .HueSaturation
+
                 case HueLightness:
                     modeFill = .HueLightness
+
                 case GreenBlue:
                     modeFill = .GreenBlue
+
                 case RedBlue:
                     modeFill = .RedBlue
+
                 case RedGreen:
                     modeFill = .RedGreen
+
                 case HueVert:
                     modeFill = .HueVert
+
                 case HueHorz:
                     modeFill = .HueHorz
+
                 case LightnessVert:
                     modeFill = .LightnessVert
+
                 case LightnessHorz:
                     modeFill = .LightnessHorz
+
                 case SaturationVert:
                     modeFill = .SaturationVert
+
                 case SaturationHorz:
                     modeFill = .SaturationHorz
+
                 default:
 
                     // The gradient modes are all handled by the branches above.
@@ -343,63 +369,82 @@ impl IWnd for ColorPicker
                     .sat = Math.clamp(x, 0, 1)
                     let l1 = Math.lerp(1, 0.5, .sat)
                     .lum = Math.lerp(l1, 0, y)
+
                 case HueSaturation:
                     .hue = x
                     .sat = 1 - y
                     .computeRGB()
+
                 case HueLightness:
                     .hue = x
                     .lum = 1 - y
                     .computeRGB()
+
                 case GreenBlue:
                     .g = x
                     .b = y
                     .computeHsl()
+
                 case RedBlue:
                     .r = x
                     .b = y
                     .computeHsl()
+
                 case RedGreen:
                     .r = x
                     .g = y
                     .computeHsl()
+
                 case HueHorz:
                     .hue = x
                     .computeRGB()
+
                 case HueVert:
                     .hue = y
                     .computeRGB()
+
                 case LightnessHorz:
                     .lum = x
                     .computeRGB()
+
                 case LightnessVert:
                     .lum = y
                     .computeRGB()
+
                 case SaturationHorz:
                     .sat = x
                     .computeRGB()
+
                 case SaturationVert:
                     .sat = y
                     .computeRGB()
+
                 case AlphaHorz:
                     .a = x
+
                 case AlphaVert:
                     .a = y
+
                 case RedHorz:
                     .r = x
                     .computeHsl()
+
                 case RedVert:
                     .r = y
                     .computeHsl()
+
                 case GreenHorz:
                     .g = x
                     .computeHsl()
+
                 case GreenVert:
                     .g = y
                     .computeHsl()
+
                 case BlueHorz:
                     .b = x
                     .computeHsl()
+
                 case BlueVert:
                     .b = y
                     .computeHsl()

@@ -195,22 +195,14 @@ impl Painter
         #[Swag.Complete]
         switch capStyle
         {
-        case None:
-            return
-        case Triangle:
-            .drawCapTriangle(p, d, sens, pen)
-        case Round:
-            .drawCapRound(p, d, sens, pen)
-        case Square:
-            .drawCapSquare(p, d, sens, pen)
-        case SquareAnchor:
-            .drawCapSquareAnchor(p, d, sens, pen, start)
-        case ArrowAnchor:
-            .drawCapArrowAnchor(p, d, sens, pen, start)
-        case ArrowAnchor2:
-            .drawCapArrowAnchor2(p, d, sens, pen, start)
-        case RoundAnchor:
-            .drawCapRoundAnchor(p, d, pen, start)
+        case None:         return
+        case Triangle:     .drawCapTriangle(p, d, sens, pen)
+        case Round:        .drawCapRound(p, d, sens, pen)
+        case Square:       .drawCapSquare(p, d, sens, pen)
+        case SquareAnchor: .drawCapSquareAnchor(p, d, sens, pen, start)
+        case ArrowAnchor:  .drawCapArrowAnchor(p, d, sens, pen, start)
+        case ArrowAnchor2: .drawCapArrowAnchor2(p, d, sens, pen, start)
+        case RoundAnchor:  .drawCapRoundAnchor(p, d, pen, start)
         }
     }
 
@@ -222,14 +214,10 @@ impl Painter
         #[Swag.Complete]
         switch capStyle
         {
-        case None:
-            break
-        case Triangle:
-            .drawCapTriangle(p, d, sens, dref cxt.pen)
-        case Round:
-            .drawCapRound(p, d, sens, dref cxt.pen)
-        case Square:
-            .drawCapSquare(p, d, sens, dref cxt.pen)
+        case None:     break
+        case Triangle: .drawCapTriangle(p, d, sens, dref cxt.pen)
+        case Round:    .drawCapRound(p, d, sens, dref cxt.pen)
+        case Square:   .drawCapSquare(p, d, sens, dref cxt.pen)
         }
     }
 
@@ -382,16 +370,11 @@ impl Painter
         #[Swag.Complete]
         switch cxt.pen.joinStyle
         {
-        case None:
-            break
-        case Bevel:
-            .drawJoinBevel(p, d1, d2, dref cxt.pen)
-        case Round:
-            .drawJoinRound(p, d1, d2, dref cxt.pen)
-        case Miter:
-            .drawJoinMiter(p, d1, d2, true, dref cxt.pen)
-        case MiterBevel:
-            .drawJoinMiter(p, d1, d2, false, dref cxt.pen)
+        case None:       break
+        case Bevel:      .drawJoinBevel(p, d1, d2, dref cxt.pen)
+        case Round:      .drawJoinRound(p, d1, d2, dref cxt.pen)
+        case Miter:      .drawJoinMiter(p, d1, d2, true, dref cxt.pen)
+        case MiterBevel: .drawJoinMiter(p, d1, d2, false, dref cxt.pen)
         }
     }
 
@@ -505,6 +488,7 @@ impl Painter
         {
         case None:
             return
+
         case Pattern:
             cxt.pattern      = cast(const [*] f32) (notnull cxt.pen.pattern.buffer)
             cxt.patternCount = cast(s32) cxt.pen.pattern.count
@@ -513,14 +497,17 @@ impl Painter
             const P = [1.0, 1.0]
             cxt.pattern      = @dataof(P)
             cxt.patternCount = 2
+
         case Dot:
             const P = [1.0, 1.0]
             cxt.pattern      = @dataof(P)
             cxt.patternCount = 2
+
         case Dash:
             const P = [2.0, 1.0]
             cxt.pattern      = @dataof(P)
             cxt.patternCount = 2
+
         case DashDot:
             const P = [2.0, 1.0, 1.0, 1.0]
             cxt.pattern      = @dataof(P)
@@ -943,22 +930,14 @@ public impl Painter
         #[Swag.Complete]
         switch capStyle
         {
-        case None:
-            return {lineSize * 0.5, 0}
-        case Triangle:
-            return {lineSize * 0.5, lineSize * 0.5}
-        case Round:
-            return {lineSize * 0.5, lineSize * 0.5}
-        case Square:
-            return {lineSize * 0.5, lineSize * 0.5}
-        case ArrowAnchor:
-            return {lineSize * 0.5 * capScale, 0}
-        case ArrowAnchor2:
-            return {lineSize * 0.5 * capScale, 0}
-        case SquareAnchor:
-            return {lineSize * 0.5 * capScale, lineSize * 0.5 * capScale}
-        case RoundAnchor:
-            return {lineSize * 0.5 * capScale, lineSize * 0.5 * capScale}
+        case None:         return {lineSize * 0.5, 0}
+        case Triangle:     return {lineSize * 0.5, lineSize * 0.5}
+        case Round:        return {lineSize * 0.5, lineSize * 0.5}
+        case Square:       return {lineSize * 0.5, lineSize * 0.5}
+        case ArrowAnchor:  return {lineSize * 0.5 * capScale, 0}
+        case ArrowAnchor2: return {lineSize * 0.5 * capScale, 0}
+        case SquareAnchor: return {lineSize * 0.5 * capScale, lineSize * 0.5 * capScale}
+        case RoundAnchor:  return {lineSize * 0.5 * capScale, lineSize * 0.5 * capScale}
         }
 
         return {0, 0}

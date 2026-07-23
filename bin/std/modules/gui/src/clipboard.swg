@@ -11,9 +11,11 @@ public func addTypedValue(value: *void, type: typeinfo)
     {
     case string:
         return addString(dref cast(*string) value)
+
     case Core.String:
         let str = cast(*Core.String) value
         return addString(str.toString())
+
     case Pixel.Image:
         return addImage(dref cast(*Pixel.Image) value)
     }
@@ -36,10 +38,8 @@ public func hasTypedValue(type: typeinfo)->bool
 {
     switch type
     {
-    case string, Core.String:
-        return hasString()
-    case Pixel.Image:
-        return hasImage()
+    case string, Core.String: return hasString()
+    case Pixel.Image:         return hasImage()
     }
 
     return hasTypedData(g_ValueFormat, type)
@@ -56,6 +56,7 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
     case Core.String:
         dref cast(*Core.String) value = getString()
         return true
+
     case Pixel.Image:
         dref cast(*Pixel.Image) value = getImage()
         return true

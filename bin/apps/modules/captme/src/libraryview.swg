@@ -250,9 +250,11 @@ impl LibraryView
         case Small:
             H = 128
             W = H * 4.0 / 3.0
+
         case Medium:
             H = 256
             W = H * 4.0 / 3.0
+
         case Big:
             H = 512
             W = H * 4.0 / 3.0
@@ -457,10 +459,8 @@ impl LibraryView
 
             switch libWnd.sortMethod
             {
-            case Recent:
-                value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
-            case FileSize:
-                value = b.fi.size <=> a.fi.size
+            case Recent:   value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
+            case FileSize: value = b.fi.size <=> a.fi.size
             }
 
             if libWnd.invertSort do

@@ -49,6 +49,7 @@ private impl Movie
         {
         case None:
             break
+
         case SpriteSheet:
             break
 
@@ -125,12 +126,9 @@ impl Movie
         #[Swag.Complete]
         switch .source
         {
-        case None:
-            return false
-        case SpriteSheet:
-            return .imgList.texture.valid
-        case Gif:
-            return .frame.pixels.buffer != null
+        case None:        return false
+        case SpriteSheet: return .imgList.texture.valid
+        case Gif:         return .frame.pixels.buffer != null
         }
 
         return false
@@ -148,6 +146,7 @@ impl Movie
         {
         case None:
             break
+
         case Gif:
             .frameIndex = Math.min(idx, .numFrames)
             if .frameIndex < .cacheFrames.count

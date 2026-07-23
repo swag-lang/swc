@@ -385,12 +385,16 @@ impl IForm for FormImage
                 case Image:
                     painter.fillRect(pp, .backColor)
                     icon = Icon.from(&g_Main.icons48, 13)
+
                 case Blur:
                     icon = Icon.from(&g_Main.icons48, 14)
+
                 case Pixelate:
                     icon = Icon.from(&g_Main.icons48, 15)
+
                 case Zoom:
                     icon = Icon.from(&g_Main.icons48, 16)
+
                 case Capture:
                     icon = Icon.from(&g_Main.icons48, 18)
                 }
@@ -419,6 +423,7 @@ impl IForm for FormImage
                 {
                 case Frame:
                     painter.drawTexture(pp, .texture)
+
                 case Center:
                     var pp1 = pp
                     pp1.x      = pp.horzCenter() - (.texture.width / 2) * z
@@ -426,6 +431,7 @@ impl IForm for FormImage
                     pp1.width  = .texture.width * z
                     pp1.height = .texture.height * z
                     painter.drawTexture(pp1, .texture)
+
                 case Free:
                     var pp1 = pp
                     pp1.offset(.freePos.x * z, .freePos.y * z)

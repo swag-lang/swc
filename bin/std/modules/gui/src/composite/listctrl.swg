@@ -271,6 +271,7 @@ impl IWnd for ListView
 
         case Left where focusLine:
             .list.collapse(notnull focusLine)
+
         case Right where focusLine:
             .list.expand(notnull focusLine)
 
@@ -622,11 +623,14 @@ private impl ListView
         {
         case bc.isDisabled:
             colorText, colorExpand = colors.listItem_DisabledText
+
         case isSelected:
             colorText, colorExpand = .hasFocus() ? colors.listItem_FocusSelectedText : colors.listItem_SelectedText
+
         case line.colorFg.a:
             colorText   = line.colorFg
             colorExpand = colors.listItem_Text
+
         default:
             if line.separator do
                 colorText, colorExpand = colors.listItem_Separator
@@ -816,9 +820,11 @@ impl ListCtrl
             case Round:
                 header.form   = .Round
                 header.margin = -wnd.getThemeMetrics().frameWnd_RoundPadding
+
             case Square:
                 header.form   = .Flat
                 header.margin = -wnd.getThemeMetrics().frameWnd_SquarePadding
+
             case Transparent:
                 header.form   = .Flat
                 header.margin = -wnd.getThemeMetrics().frameWnd_FlatPadding

@@ -92,16 +92,11 @@ func pageTitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Composite"
-    case 1:
-        return "HSL modes"
-    case 2:
-        return "RGB modes"
-    case 3:
-        return "Palettes"
-    case 4:
-        return "Preview"
+    case 0: return "Composite"
+    case 1: return "HSL modes"
+    case 2: return "RGB modes"
+    case 3: return "Palettes"
+    case 4: return "Preview"
     }
 
     unreachable
@@ -111,16 +106,11 @@ func pageSubtitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "ColorPickerCtrl variants, with and without alpha, plus shared quick palettes and a live preview."
-    case 1:
-        return "Low-level ColorPicker HSL planes and hue, saturation, lightness and alpha bars."
-    case 2:
-        return "RGB channel planes and red, green, blue sliders in horizontal and vertical forms."
-    case 3:
-        return "PalettePicker ramps for hue families, luminance, saturation, alpha and named color sets."
-    case 4:
-        return "Derived colors, contrast decisions, alpha compositing and selected-color rendering."
+    case 0: return "ColorPickerCtrl variants, with and without alpha, plus shared quick palettes and a live preview."
+    case 1: return "Low-level ColorPicker HSL planes and hue, saturation, lightness and alpha bars."
+    case 2: return "RGB channel planes and red, green, blue sliders in horizontal and vertical forms."
+    case 3: return "PalettePicker ramps for hue families, luminance, saturation, alpha and named color sets."
+    case 4: return "Derived colors, contrast decisions, alpha compositing and selected-color rendering."
     }
 
     unreachable
@@ -240,14 +230,17 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
     case 0:
         picker.addHueColors(10, 0.86, 0.52)
         picker.addHueColors(10, 0.54, 0.36)
+
     case 1:
         picker.addLumColors(12, base)
         picker.addColor(Argb.Black)
         picker.addColor(Argb.White)
+
     case 2:
         picker.addSatColors(12, base)
         picker.addColor(base.getComplementary())
         picker.addColor(base.adjustSaturation(-0.70))
+
     case 3:
         picker.addColor(base.withAlpha(20'u8))
         picker.addColor(base.withAlpha(48'u8))
@@ -465,18 +458,12 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:
-        createCompositePage(notnull g_PageView)
-    case 1:
-        createHslModesPage(notnull g_PageView)
-    case 2:
-        createRgbModesPage(notnull g_PageView)
-    case 3:
-        createPalettesPage(notnull g_PageView)
-    case 4:
-        createPreviewPage(notnull g_PageView)
-    default:
-        unreachable
+    case 0:  createCompositePage(notnull g_PageView)
+    case 1:  createHslModesPage(notnull g_PageView)
+    case 2:  createRgbModesPage(notnull g_PageView)
+    case 3:  createPalettesPage(notnull g_PageView)
+    case 4:  createPreviewPage(notnull g_PageView)
+    default: unreachable
     }
 
     g_PageView.invalidate()

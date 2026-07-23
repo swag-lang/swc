@@ -38,6 +38,7 @@ func day1A()
         case 'R':
             swap(&x, &y)
             y = -y
+
         case 'L':
             swap(&x, &y)
             x = -x

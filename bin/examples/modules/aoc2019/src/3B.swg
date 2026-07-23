@@ -45,14 +45,10 @@ func day3B()
             let val = assume StrConv.toF32(v[1 to])
             switch v[0]
             {
-            case 'U':
-                pos += {0, -val}
-            case 'D':
-                pos += {0, val}
-            case 'R':
-                pos += {-val, 0}
-            case 'L':
-                pos += {val, 0}
+            case 'U': pos += {0, -val}
+            case 'D': pos += {0, val}
+            case 'R': pos += {-val, 0}
+            case 'L': pos += {val, 0}
             }
 
             result.add(pos)

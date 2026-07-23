@@ -69,14 +69,10 @@ impl IWnd for SurfaceWnd
 
             switch .sizingBorder
             {
-            case Left, Right:
-                .surface.app.setFrameCursor(Cursor.from(.SizeWE))
-            case Top, Bottom:
-                .surface.app.setFrameCursor(Cursor.from(.SizeNS))
-            case Right | Bottom, Left | Top:
-                .surface.app.setFrameCursor(Cursor.from(.SizeNWSE))
-            case Right | Top, Left | Bottom:
-                .surface.app.setFrameCursor(Cursor.from(.SizeNESW))
+            case Left, Right:                .surface.app.setFrameCursor(Cursor.from(.SizeWE))
+            case Top, Bottom:                .surface.app.setFrameCursor(Cursor.from(.SizeNS))
+            case Right | Bottom, Left | Top: .surface.app.setFrameCursor(Cursor.from(.SizeNWSE))
+            case Right | Top, Left | Bottom: .surface.app.setFrameCursor(Cursor.from(.SizeNESW))
             }
 
             if !.movingSurface do
@@ -135,14 +131,10 @@ impl IWnd for SurfaceWnd
     {
         switch evt.kind
         {
-        case Maximize:
-            .surface.showMaximized()
-        case Minimize:
-            .surface.showMinimized()
-        case Restore:
-            .surface.showNormal()
-        case Close:
-            .surface.destroy()
+        case Maximize: .surface.showMaximized()
+        case Minimize: .surface.showMinimized()
+        case Restore:  .surface.showNormal()
+        case Close:    .surface.destroy()
         }
     }
 

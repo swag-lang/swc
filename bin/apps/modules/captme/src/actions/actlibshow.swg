@@ -24,6 +24,7 @@ impl IActionUI for ActionLibFilter
             evt.setFlags |= .Name | .Checked
             evt.name     = "Up To Date Linked Image"
             evt.checked  = libWnd.showUpToDateLinkedImage
+
         case UnSavedLinkedImage:
             evt.setFlags |= .Name | .Checked
             evt.name     = "UnSaved Linked Image"
@@ -33,6 +34,7 @@ impl IActionUI for ActionLibFilter
             evt.setFlags |= .Name | .Checked
             evt.name     = "Has Linked Image"
             evt.checked  = libWnd.showLinkedImage
+
         case UnLinkedImage:
             evt.setFlags |= .Name | .Checked
             evt.name     = "Doesn't Have Linked Image"
@@ -51,12 +53,15 @@ impl IActionUI for ActionLibFilter
         case UpToDateLinkedImage:
             libWnd.showUpToDateLinkedImage = !libWnd.showUpToDateLinkedImage
             libWnd.view.filter()
+
         case UnSavedLinkedImage:
             libWnd.showUnSavedLinkedImage = !libWnd.showUnSavedLinkedImage
             libWnd.view.filter()
+
         case LinkedImage:
             libWnd.showLinkedImage = !libWnd.showLinkedImage
             libWnd.view.filter()
+
         case UnLinkedImage:
             libWnd.showUnLinkedImage = !libWnd.showUnLinkedImage
             libWnd.view.filter()

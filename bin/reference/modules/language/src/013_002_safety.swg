@@ -241,10 +241,8 @@ With '#[Swag.Complete]', Swag panics if a switch does not cover all cases.
         // #[Swag.Complete]
         switch color
         {
-        case Color.Red:
-            return "Red"
-        case Color.Green:
-            return "Green"
+        case Color.Red:   return "Red"
+        case Color.Green: return "Green"
         }
 
         return ""

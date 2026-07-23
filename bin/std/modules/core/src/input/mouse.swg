@@ -53,16 +53,11 @@ impl Mouse
         using MouseButton
         switch button
         {
-        case Left:
-            return Keyboard.isKeyPressed(Input.Key.LButton)
-        case Middle:
-            return Keyboard.isKeyPressed(Input.Key.MButton)
-        case Right:
-            return Keyboard.isKeyPressed(Input.Key.RButton)
-        case XButton1:
-            return Keyboard.isKeyPressed(Input.Key.XButton1)
-        case XButton2:
-            return Keyboard.isKeyPressed(Input.Key.XButton2)
+        case Left:     return Keyboard.isKeyPressed(Input.Key.LButton)
+        case Middle:   return Keyboard.isKeyPressed(Input.Key.MButton)
+        case Right:    return Keyboard.isKeyPressed(Input.Key.RButton)
+        case XButton1: return Keyboard.isKeyPressed(Input.Key.XButton1)
+        case XButton2: return Keyboard.isKeyPressed(Input.Key.XButton2)
         }
 
         return false

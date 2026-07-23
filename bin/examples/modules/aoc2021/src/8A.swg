@@ -84,8 +84,7 @@ func day8A()
         {
             switch @countof(it)
             {
-            case 2, 3, 4, 7:
-                total += 1
+            case 2, 3, 4, 7: total += 1
             }
         }
     }

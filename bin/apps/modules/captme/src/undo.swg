@@ -37,10 +37,8 @@ func formEditableText(f: IForm)->#null *String
 {
     switch f
     {
-    case FormText as b:
-        return &b.text
-    case FormCallout as b:
-        return &b.text
+    case FormText as b:    return &b.text
+    case FormCallout as b: return &b.text
     }
 
     return null
@@ -61,10 +59,8 @@ func formFontNamePtr(f: IForm)->#null *String
 {
     switch f
     {
-    case FormText as b:
-        return &b.fontName
-    case FormCallout as b:
-        return &b.fontName
+    case FormText as b:    return &b.fontName
+    case FormCallout as b: return &b.fontName
     }
 
     return null
@@ -74,10 +70,8 @@ func formFontStylePtr(f: IForm)->#null *FontFamilyStyle
 {
     switch f
     {
-    case FormText as b:
-        return &b.fontStyle
-    case FormCallout as b:
-        return &b.fontStyle
+    case FormText as b:    return &b.fontStyle
+    case FormCallout as b: return &b.fontStyle
     }
 
     return null

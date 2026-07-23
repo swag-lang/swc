@@ -95,18 +95,14 @@ impl IWnd for Label
 
             switch .horzAlignmentIcon
             {
-            case Right:
-                posIcon.x = posIcon.right() - .icon.sizeX
-            case Center:
-                posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
+            case Right:  posIcon.x = posIcon.right() - .icon.sizeX
+            case Center: posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
             }
 
             switch .vertAlignmentIcon
             {
-            case Bottom:
-                posIcon.y = posIcon.bottom() - .icon.sizeY
-            case Center:
-                posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
+            case Bottom: posIcon.y = posIcon.bottom() - .icon.sizeY
+            case Center: posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
             }
 
             // Icon

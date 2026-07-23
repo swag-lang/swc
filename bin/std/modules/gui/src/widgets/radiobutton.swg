@@ -49,21 +49,25 @@ impl IWnd for RadioButton
             colorBorder = colors.btnCheck_DisabledBorder
             colorMark   = colors.btnCheck_DisabledMark
             colorText   = colors.btnCheck_DisabledText
+
         case .isPressed:
             colorBk     = colors.btnCheck_PressedBk
             colorBorder = colors.btnCheck_PressedBorder
             colorMark   = colors.btnCheck_PressedMark
             colorText   = colors.btnCheck_PressedText
+
         case .isHot:
             colorBk     = colors.btnCheck_HotBk
             colorBorder = colors.btnCheck_HotBorder
             colorMark   = colors.btnCheck_HotMark
             colorText   = colors.btnCheck_HotText
+
         case .checked:
             colorBk     = colors.btnCheck_CheckedBk
             colorText   = colors.btnCheck_CheckedText
             colorBorder = colors.btnCheck_CheckedBorder
             colorMark   = colors.btnCheck_CheckedMark
+
         default:
             colorBk     = colors.btnCheck_Bk
             colorBorder = colors.btnCheck_Border

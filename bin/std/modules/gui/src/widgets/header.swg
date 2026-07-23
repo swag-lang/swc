@@ -77,12 +77,9 @@ impl IWnd for Header
         var colorText: Color
         switch
         {
-        case bc.isDisabled:
-            colorText = colors.headerItem_DisabledText
-        case idx == .hotIdx:
-            colorText = colors.headerItem_HotText
-        default:
-            colorText = colors.headerItem_Text
+        case bc.isDisabled:  colorText = colors.headerItem_DisabledText
+        case idx == .hotIdx: colorText = colors.headerItem_HotText
+        default:             colorText = colors.headerItem_Text
         }
 
         // Sort mark
@@ -125,12 +122,9 @@ impl IWnd for Header
         clientRect.offset(.scrollPos)
         switch .form
         {
-        case Flat:
-            theme.drawSubRect(painter, clientRect, &rects.header_FlatBk, colors.header_Bk)
-        case Round:
-            theme.drawSubRect(painter, clientRect, &rects.header_RoundBk, colors.header_Bk)
-        case Transparent:
-            painter.drawLine(clientRect.x, clientRect.bottom() - 1, clientRect.right(), clientRect.bottom() - 1, colors.headerItem_Separator, 1)
+        case Flat:        theme.drawSubRect(painter, clientRect, &rects.header_FlatBk, colors.header_Bk)
+        case Round:       theme.drawSubRect(painter, clientRect, &rects.header_RoundBk, colors.header_Bk)
+        case Transparent: painter.drawLine(clientRect.x, clientRect.bottom() - 1, clientRect.right(), clientRect.bottom() - 1, colors.headerItem_Separator, 1)
         }
 
         // Clipping, take care of padding

@@ -67,15 +67,18 @@ func fillSolidImage(img: *Image, b, g, r, a: u8)
             pix[0] = b
             pix[1] = g
             pix[2] = r
+
         case RGB8:
             pix[0] = r
             pix[1] = g
             pix[2] = b
+
         case BGRA8:
             pix[0] = b
             pix[1] = g
             pix[2] = r
             pix[3] = a
+
         case RGBA8:
             pix[0] = r
             pix[1] = g

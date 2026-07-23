@@ -38,6 +38,7 @@ impl Painter
             t += o
             w -= 2 * o
             h -= 2 * o
+
         case Inside:
             let o = 0.5 + pen.size * 0.5
             l += o
@@ -146,6 +147,7 @@ impl Painter
             t += o
             w -= 2 * o
             h -= 2 * o
+
         case Inside:
             let o = 0.5 + pen.size * 0.5
             l += o

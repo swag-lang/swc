@@ -153,11 +153,13 @@ impl IForm for FormStep
             {
             case Number:
                 t = Format.toString("%", curIndex)
+
             case LetterUp:
 
                 // Wrap with modulo 26 so indices past 26 cycle back through A..Z
                 // instead of spilling past 'Z' into punctuation glyphs.
                 t = Format.toString("%", cast(rune) ('A''rune + (curIndex - 1) % 26))
+
             case LetterDown:
                 t = Format.toString("%", cast(rune) ('a''rune + (curIndex - 1) % 26))
             }

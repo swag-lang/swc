@@ -63,21 +63,25 @@ impl IActionUI for ActionImage
         {
         case ResizeImage:
             main.resizeImage()
+
         case ExpandImage:
             main.expandImage()
 
         case FlipImage:
             main.doProcessImage(FlipImage)
+
         case MirrorImage:
             main.doProcessImage(MirrorImage)
 
         case RotateImageRight:
             main.doProcessImage(RotateImageRight)
+
         case RotateImageLeft:
             main.doProcessImage(RotateImageLeft)
 
         case ExpandCapture:
             main.expandCapture()
+
         case TrimCapture:
             main.trimCapture()
 
@@ -109,18 +113,12 @@ impl MainWnd
 
         switch cmdId
         {
-        case ActionImage.ResizeImage:
-            img.resize(w, h, .Bilinear)
-        case ActionImage.ExpandImage:
-            img.expand(l, t, r, b)
-        case ActionImage.FlipImage:
-            img.flip()
-        case ActionImage.MirrorImage:
-            img.mirror()
-        case ActionImage.RotateImageRight:
-            img.turn(.T90)
-        case ActionImage.RotateImageLeft:
-            img.turn(.T270)
+        case ActionImage.ResizeImage:      img.resize(w, h, .Bilinear)
+        case ActionImage.ExpandImage:      img.expand(l, t, r, b)
+        case ActionImage.FlipImage:        img.flip()
+        case ActionImage.MirrorImage:      img.mirror()
+        case ActionImage.RotateImageRight: img.turn(.T90)
+        case ActionImage.RotateImageLeft:  img.turn(.T270)
         }
 
         let undo1 = capture.newUndo(.SetImage)
@@ -315,8 +313,10 @@ impl MainWnd
         {
         case 1, 4, 7:
             r += cw
+
         case 2, 5, 8:
             l += cw / 2; r += cw / 2
+
         case 3, 6, 9:
             l += cw
         }
@@ -325,8 +325,10 @@ impl MainWnd
         {
         case 1, 2, 3:
             b += ch
+
         case 4, 5, 6:
             t += ch / 2; b += ch / 2
+
         case 7, 8, 9:
             t += ch
         }
@@ -359,18 +361,14 @@ impl MainWnd
 
         switch g_ResizeMode
         {
-        case 2, 5, 8:
-            undo.newPosX = nw / 2
-        case 3, 6, 9:
-            undo.newPosX = nw
+        case 2, 5, 8: undo.newPosX = nw / 2
+        case 3, 6, 9: undo.newPosX = nw
         }
 
         switch g_ResizeMode
         {
-        case 4, 5, 6:
-            undo.newPosY = nh / 2
-        case 7, 8, 9:
-            undo.newPosY = nh
+        case 4, 5, 6: undo.newPosY = nh / 2
+        case 7, 8, 9: undo.newPosY = nh
         }
 
         capture.pushUndo(undo)

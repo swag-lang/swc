@@ -83,6 +83,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_SYSKEYDOWN, WM_SYSKEYUP, WM_SYSCHAR:
             return 0
+
         case WM_KEYDOWN, WM_KEYUP:
             return 0
 
@@ -114,6 +115,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             let z = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA
             surface.app.sendMouseWheelEvent(z)
             return 0
+
         case WM_SETCURSOR:
             return 0
 
@@ -123,10 +125,13 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_ERASEBKGND:
             return 0
+
         case WM_NCPAINT:
             return 0
+
         case WM_NCCALCSIZE:
             return 0
+
         case WM_NCHITTEST:
             var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
             surface.screenToSurface(&pt)
@@ -139,22 +144,14 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 let sizingBorder = surface.wnd.hitTestBorders(pt)
                 switch sizingBorder
                 {
-                case Left | Top:
-                    return HTTOPLEFT
-                case Right | Top:
-                    return HTTOPRIGHT
-                case Left | Bottom:
-                    return HTBOTTOMLEFT
-                case Right | Bottom:
-                    return HTBOTTOMRIGHT
-                case Left:
-                    return HTLEFT
-                case Right:
-                    return HTRIGHT
-                case Top:
-                    return HTTOP
-                case Bottom:
-                    return HTBOTTOM
+                case Left | Top:     return HTTOPLEFT
+                case Right | Top:    return HTTOPRIGHT
+                case Left | Bottom:  return HTBOTTOMLEFT
+                case Right | Bottom: return HTBOTTOMRIGHT
+                case Left:           return HTLEFT
+                case Right:          return HTRIGHT
+                case Top:            return HTTOP
+                case Bottom:         return HTBOTTOM
                 }
             }
 
@@ -214,6 +211,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             // positive value and corrupt every screenToSurface() mouse mapping.
             surface.position.x = GET_X_LPARAM(lParam)
             surface.position.y = GET_Y_LPARAM(lParam)
+
         case WM_SIZE:
             surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
 
@@ -223,12 +221,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             case SC_MINIMIZE:
                 postSurfaceSysCommand(surface, .Minimize)
                 return 0
+
             case SC_MAXIMIZE:
                 postSurfaceSysCommand(surface, .Maximize)
                 return 0
+
             case SC_CLOSE:
                 postSurfaceSysCommand(surface, .Close)
                 return 0
+
             case SC_RESTORE:
                 postSurfaceSysCommand(surface, .Restore)
                 return 0

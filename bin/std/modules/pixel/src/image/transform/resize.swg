@@ -78,20 +78,13 @@ namespace ResizeTools
     {
         switch rmode
         {
-        case Bilinear:
-            return 1
-        case Hermite:
-            return 1
-        case Hamming:
-            return 1
-        case Quadratic:
-            return 1.5
-        case Bicubic:
-            return 2
-        case Catrom:
-            return 2
-        case Gaussian:
-            return 3
+        case Bilinear:  return 1
+        case Hermite:   return 1
+        case Hamming:   return 1
+        case Quadratic: return 1.5
+        case Bicubic:   return 2
+        case Catrom:    return 2
+        case Gaussian:  return 3
         }
 
         return 0
@@ -104,6 +97,7 @@ namespace ResizeTools
         case Bilinear:
             let res = Math.abs(resf)
             return res < 1 ? 1 - res : 0
+
         case Bicubic:
             if resf < -2.0 do
                 return 0
@@ -116,10 +110,12 @@ namespace ResizeTools
             if resf < 2.0 do
                 return ((2.0 - resf) * (2.0 - resf) * (2.0 - resf) / 6.0)
             return 0
+
         case Gaussian:
             if Math.abs(resf) > 3.0 do
                 return 0
             return Math.exp(-resf * resf * 0.5) / 0.79788456080287
+
         case Hermite:
             if resf < -1.0 do
                 return 0
@@ -128,6 +124,7 @@ namespace ResizeTools
             if resf < 1.0 do
                 return (2.0 * resf - 3.0) * resf * resf + 1.0
             return 0
+
         case Hamming:
             if resf < -1.0 do
                 return 0.0
@@ -136,6 +133,7 @@ namespace ResizeTools
             if resf < 1.0 do
                 return 0.92 * (2.0 * resf - 3.0) * resf * resf + 1.0
             return 0
+
         case Catrom:
             if resf < -2.0 do
                 return 0
@@ -148,6 +146,7 @@ namespace ResizeTools
             if resf < 2.0 do
                 return (0.5 * (4.0 + resf * (-8.0 + resf * (5.0 - resf))))
             return 0
+
         case Quadratic:
             if resf < -1.5 do
                 return 0.0
@@ -288,12 +287,9 @@ namespace ResizeTools
 
         switch imgSrc.bpp
         {
-        case 24:
-            doIt'24()
-        case 32:
-            doIt'32()
-        default:
-            Debug.assert(false)
+        case 24: doIt'24()
+        case 32: doIt'32()
+        default: Debug.assert(false)
         }
     }
 
@@ -344,12 +340,9 @@ namespace ResizeTools
 
         switch imgSrc.bpp
         {
-        case 24:
-            doIt'24()
-        case 32:
-            doIt'32()
-        default:
-            Debug.assert(false)
+        case 24: doIt'24()
+        case 32: doIt'32()
+        default: Debug.assert(false)
         }
     }
 
@@ -413,12 +406,9 @@ namespace ResizeTools
 
         switch srcImage.bpp
         {
-        case 24:
-            doIt'24()
-        case 32:
-            doIt'32()
-        default:
-            Debug.assert(false)
+        case 24: doIt'24()
+        case 32: doIt'32()
+        default: Debug.assert(false)
         }
     }
 
@@ -426,10 +416,8 @@ namespace ResizeTools
     {
         switch mode
         {
-        case Raw:
-            doResizeRaw(dstImage, srcImage)
-        default:
-            doResizeFilter(dstImage, srcImage, mode)
+        case Raw: doResizeRaw(dstImage, srcImage)
+        default:  doResizeFilter(dstImage, srcImage, mode)
         }
     }
 }

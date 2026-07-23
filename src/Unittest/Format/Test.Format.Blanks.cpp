@@ -436,6 +436,77 @@ SWC_TEST_BEGIN(FormatBlanks_AfterGlobalThenUsingBlocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBlanks_BetweenCasesMultiLine)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: bar()\n"
+        "    case 2: bar()\n"
+        "    case 3:\n"
+        "        bar()\n"
+        "        bar()\n"
+        "    case 4: bar()\n"
+        "    }\n"
+        "}\n"
+        "func bar() {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: bar()\n"
+        "    case 2: bar()\n"
+        "\n"
+        "    case 3:\n"
+        "        bar()\n"
+        "        bar()\n"
+        "\n"
+        "    case 4: bar()\n"
+        "    }\n"
+        "}\n"
+        "func bar() {}\n";
+
+    FormatOptions options;
+    options.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BetweenCasesNeverRemovesBlanks)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: bar()\n"
+        "\n"
+        "    case 2: bar()\n"
+        "    }\n"
+        "}\n"
+        "func bar() {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: bar()\n"
+        "    case 2: bar()\n"
+        "    }\n"
+        "}\n"
+        "func bar() {}\n";
+
+    FormatOptions options;
+    options.blankLineBetweenCases = FormatCaseBlankStyle::Never;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBlanks_AfterBlocksInsertsBlank)
 {
     static constexpr std::string_view SOURCE =

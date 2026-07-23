@@ -339,16 +339,11 @@ public impl LinePath
             #[Swag.Complete]
             switch elem.type
             {
-            case Line:
-                .flattenLine(pos)
-            case Bezier1:
-                .flattenBezier(pos, elem.p1, quality)
-            case Bezier2:
-                .flattenBezier(pos, elem.p1, elem.p2, quality)
-            case Curve:
-                .flattenCurve(pos, i, quality)
-            case Arc:
-                .flattenArc(pos, elem.p1, elem.p2, quality)
+            case Line:    .flattenLine(pos)
+            case Bezier1: .flattenBezier(pos, elem.p1, quality)
+            case Bezier2: .flattenBezier(pos, elem.p1, elem.p2, quality)
+            case Curve:   .flattenCurve(pos, i, quality)
+            case Arc:     .flattenArc(pos, elem.p1, elem.p2, quality)
             }
         }
 
@@ -363,12 +358,9 @@ impl LinePath
         var minDist = 0'f32
         switch quality
         {
-        case Draft:
-            minDist = 1
-        case Normal:
-            minDist = 0.2
-        case High:
-            minDist = 0.05
+        case Draft:  minDist = 1
+        case Normal: minDist = 0.2
+        case High:   minDist = 0.05
         }
 
         return minDist

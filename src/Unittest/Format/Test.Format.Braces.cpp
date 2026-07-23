@@ -311,7 +311,7 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseSplits)
         "func bar() {}\n";
 
     FormatOptions options;
-    options.allowShortCaseOnSingleLine = false;
+    options.caseBodyStyle = FormatCaseBodyStyle::NextLine;
     return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -340,7 +340,77 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseJoins)
         "func bar() {}\n";
 
     FormatOptions options;
-    options.allowShortCaseOnSingleLine = true;
+    options.caseBodyStyle = FormatCaseBodyStyle::SameLine;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_CaseUniformJoinsJumpTable)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1:\n"
+        "        return 8\n"
+        "    case 2:\n"
+        "        return 16\n"
+        "    default:\n"
+        "        return 0\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: return 8\n"
+        "    case 2: return 16\n"
+        "    default: return 0\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_CaseUniformExpandsMixedSwitch)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: return 8\n"
+        "    case 2:\n"
+        "        bar()\n"
+        "        return 16\n"
+        "    }\n"
+        "    return 0\n"
+        "}\n"
+        "func bar() {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1:\n"
+        "        return 8\n"
+        "    case 2:\n"
+        "        bar()\n"
+        "        return 16\n"
+        "    }\n"
+        "    return 0\n"
+        "}\n"
+        "func bar() {}\n";
+
+    FormatOptions options;
+    options.caseBodyStyle = FormatCaseBodyStyle::Uniform;
     return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

@@ -68,23 +68,12 @@ impl IActionUI for ActionRecentSize
 
         switch cxt.id
         {
-        case RecentSmall:
-            main.setBottomSize(.Small)
-
-        case RecentMedium:
-            main.setBottomSize(.Medium)
-
-        case RecentBig:
-            main.setBottomSize(.Big)
-
-        case LibSmall:
-            main.libWnd.setPreviewSize(PreviewSize.Small)
-
-        case LibMedium:
-            main.libWnd.setPreviewSize(PreviewSize.Medium)
-
-        case LibBig:
-            main.libWnd.setPreviewSize(PreviewSize.Big)
+        case RecentSmall:  main.setBottomSize(.Small)
+        case RecentMedium: main.setBottomSize(.Medium)
+        case RecentBig:    main.setBottomSize(.Big)
+        case LibSmall:     main.libWnd.setPreviewSize(PreviewSize.Small)
+        case LibMedium:    main.libWnd.setPreviewSize(PreviewSize.Medium)
+        case LibBig:       main.libWnd.setPreviewSize(PreviewSize.Big)
         }
 
         return true
@@ -98,12 +87,9 @@ impl MainWnd
         .bottomSize = bottomSize
         switch .bottomSize
         {
-        case Small:
-            .recentBar.resize(0, 80)
-        case Medium:
-            .recentBar.resize(0, 128)
-        case Big:
-            .recentBar.resize(0, 224)
+        case Small:  .recentBar.resize(0, 80)
+        case Medium: .recentBar.resize(0, 128)
+        case Big:    .recentBar.resize(0, 224)
         }
 
         .applyLayout({.position.width, .position.height})

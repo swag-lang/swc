@@ -137,11 +137,8 @@ impl HeadlessHost
     {
         switch stage.kind
         {
-        case PopupSubMenu:
-            return .openPopupSubMenu(stage.label.toString())
-
-        case PopupItem:
-            return .clickPopupMenuItem(stage.button)
+        case PopupSubMenu: return .openPopupSubMenu(stage.label.toString())
+        case PopupItem:    return .clickPopupMenuItem(stage.button)
         }
 
         if !stage.file.isEmpty()

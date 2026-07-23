@@ -180,15 +180,20 @@ func computeMoves()
         case Pawn:
             getPawnMoves(g_Board, i, &moves)
             getPawnAttacks(g_Board, i, &moves)
+
         case Knight:
             getKnightMoves(g_Board, i, &moves)
+
         case Bishop:
             getBishopMoves(g_Board, i, &moves)
+
         case Rook:
             getRookMoves(g_Board, i, &moves)
+
         case Queen:
             getBishopMoves(g_Board, i, &moves)
             getRookMoves(g_Board, i, &moves)
+
         case King:
             getKingMoves(g_Board, i, &moves)
         }

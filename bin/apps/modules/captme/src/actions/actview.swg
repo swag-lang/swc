@@ -35,8 +35,7 @@ impl IActionUI for ActionView
         let main = cast(*MainWnd) notnull cxt.wnd
         switch cxt.id
         {
-        case Clip:
-            main.editorOptions.clipToSelection = !main.editorOptions.clipToSelection
+        case Clip: main.editorOptions.clipToSelection = !main.editorOptions.clipToSelection
         }
 
         return true

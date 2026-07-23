@@ -311,6 +311,7 @@ impl Inflate
                 .adler.update(newSlice)
                 result.add(newSlice)
                 .stream.curByte += uncompressedLen
+
             case 1:
                 repeatHt.init(FixedLength)
                 repeatZ.init(FixedDist)
@@ -318,6 +319,7 @@ impl Inflate
 
             case 3:
                 throw InvalidFormatError{"invalid block type"}
+
             default:
                 var lenCodes:        [286 + 32 + 137] u8
                 var codeLengthSizes: [19] u8
@@ -356,10 +358,13 @@ impl Inflate
                             if n == 0 do
                                 throw InvalidFormatError{"bad code lengths"}
                             fill = lenCodes[n - 1]
+
                         case 17:
                             c = cast(u16) (.stream.readBitsNoRefill(3) + 3)
+
                         case 18:
                             c = cast(u16) (.stream.readBitsNoRefill(7) + 11)
+
                         default:
                             throw InvalidFormatError{"bad code lengths"}
                         }

@@ -307,30 +307,18 @@ func drawScene(painter: *Pixel.Painter)
 
     switch g_Page
     {
-    case 0:
-        drawCapsPage(painter)
-    case 1:
-        drawJoinsPage(painter)
-    case 2:
-        drawTransparencyPage(painter)
-    case 3:
-        drawPolygonsPage(painter)
-    case 4:
-        drawBrushesPage(painter)
-    case 5:
-        drawGradientsPage(painter)
-    case 6:
-        drawTextPage(painter)
-    case 7:
-        drawCompositingPage(painter)
-    case 8:
-        drawRenderTargetPage(painter)
-    case 9:
-        drawTextEffectsPage(painter)
-    case 10:
-        drawLayerPipelinePage(painter)
-    default:
-        unreachable
+    case 0:  drawCapsPage(painter)
+    case 1:  drawJoinsPage(painter)
+    case 2:  drawTransparencyPage(painter)
+    case 3:  drawPolygonsPage(painter)
+    case 4:  drawBrushesPage(painter)
+    case 5:  drawGradientsPage(painter)
+    case 6:  drawTextPage(painter)
+    case 7:  drawCompositingPage(painter)
+    case 8:  drawRenderTargetPage(painter)
+    case 9:  drawTextEffectsPage(painter)
+    case 10: drawLayerPipelinePage(painter)
+    default: unreachable
     }
 
     drawFooter(painter)

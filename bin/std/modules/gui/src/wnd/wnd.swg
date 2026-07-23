@@ -195,44 +195,63 @@ impl IWnd for Wnd
         {
         case CreateEvent as ptr:
             .itf.onCreateEvent(ptr)
+
         case DestroyEvent as ptr:
             .itf.onDestroyEvent(ptr)
+
         case StateEvent as ptr:
             .itf.onStateEvent(ptr)
+
         case ResizeEvent as ptr:
             .itf.onResizeEvent(ptr)
+
         case PaintEvent as ptr where ptr.kind == .PrePaint:
             .itf.onPrePaintEvent(ptr)
+
         case PaintEvent as ptr where ptr.kind == .Paint:
             .itf.onPaintEvent(ptr)
+
         case PaintEvent as ptr where ptr.kind == .PostPaint:
             .itf.onPostPaintEvent(ptr)
+
         case SysCommandEvent as ptr:
             .itf.onSysCommandEvent(ptr)
+
         case SysUserEvent as ptr:
             .itf.onSysUserEvent(ptr)
+
         case KeyEvent as ptr:
             .itf.onKeyEvent(ptr)
+
         case MouseEvent as ptr where ptr.kind != .MouseAccept:
             .itf.onMouseEvent(ptr)
+
         case ThemeEvent as ptr:
             .itf.onThemeEvent(ptr)
+
         case TimerEvent as ptr:
             .itf.onTimerEvent(ptr)
+
         case FocusEvent as ptr:
             .itf.onFocusEvent(ptr)
+
         case CommandEvent as ptr:
             if !.executeAction(ptr) do
                 .itf.onCommandEvent(ptr)
+
         case CommandStateEvent as ptr where ptr.kind == .ComputeCommandState:
             if !.updateAction(ptr) do
                 .itf.onComputeStateEvent(ptr)
+
         case CommandStateEvent as ptr where ptr.kind == .ApplyCommandState:
             .itf.onApplyStateEvent(cast(*CommandStateEvent) evt)
+
         case FrameEvent as ptr:
             .itf.onFrameEvent(ptr)
+
         case SerializeStateEvent as ptr:
             .itf.onSerializeStateEvent(ptr)
+
         case NotifyEvent as ptr:
             .itf.onNotifyEvent(ptr)
         }
@@ -575,14 +594,10 @@ impl Wnd
         let theme = .getTheme()
         switch .backgroundStyle
         {
-        case Window:
-            painter.fillRect(.position, theme.colors.wnd_Bk)
-        case Dialog:
-            painter.fillRect(.position, theme.colors.dlg_Bk)
-        case View:
-            painter.fillRect(.position, theme.colors.view_Bk)
-        case DialogBar:
-            theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
+        case Window:    painter.fillRect(.position, theme.colors.wnd_Bk)
+        case Dialog:    painter.fillRect(.position, theme.colors.dlg_Bk)
+        case View:      painter.fillRect(.position, theme.colors.view_Bk)
+        case DialogBar: theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
         }
 
         painter.translateTransform(.position.x, .position.y)

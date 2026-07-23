@@ -18,6 +18,7 @@ namespace
         EnumValues,
         Attributes,
         FatArrows,
+        CaseBodies,
     };
 
     class AlignPass
@@ -39,6 +40,7 @@ namespace
             runCategory(AlignCategory::EnumValues, options_->alignEnumValues);
             runCategory(AlignCategory::Attributes, options_->alignAttributes);
             runCategory(AlignCategory::FatArrows, options_->alignFatArrows);
+            runCategory(AlignCategory::CaseBodies, options_->alignCaseBodies);
             runArrayColumns();
             runTrailingComments();
         }
@@ -97,6 +99,11 @@ namespace
                     if (!first.hasRole(FormatRoleE::FuncDeclStart))
                         return INVALID_PIECE;
                     return findRole(FormatRoleE::FatArrow, false);
+
+                case AlignCategory::CaseBodies:
+                    if (!first.hasRole(FormatRoleE::CaseLabel))
+                        return INVALID_PIECE;
+                    return findRole(FormatRoleE::CaseColon, true);
 
                 case AlignCategory::Attributes:
                 {

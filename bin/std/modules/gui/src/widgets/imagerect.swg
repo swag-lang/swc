@@ -35,9 +35,11 @@ impl IWnd for ImageRect
         {
         case None:
             break
+
         case SpriteSheet:
             let icon = Icon.from(&.movie.imgList, .movie.frameIndex, rect.width, rect.height)
             icon.paint(painter, rect.x, rect.y, color)
+
         case Gif:
             painter.drawTexture(rect, .textureFrame, color)
         }

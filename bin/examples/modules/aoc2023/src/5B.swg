@@ -59,21 +59,27 @@ func day5B()
         case "seed-to-soil map:":
             mode     = .ToSoil
             isHeader = true
+
         case "soil-to-fertilizer map:":
             mode     = .ToFertilizer
             isHeader = true
+
         case "fertilizer-to-water map:":
             mode     = .ToWater
             isHeader = true
+
         case "water-to-light map:":
             mode     = .ToLight
             isHeader = true
+
         case "light-to-temperature map:":
             mode     = .ToTemperature
             isHeader = true
+
         case "temperature-to-humidity map:":
             mode     = .ToHumidity
             isHeader = true
+
         case "humidity-to-location map:":
             mode     = .ToLocation
             isHeader = true

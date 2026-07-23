@@ -25,6 +25,6 @@
     switch a
     {
     case s32: break
-    default: break
+    default:  break
     }
 }

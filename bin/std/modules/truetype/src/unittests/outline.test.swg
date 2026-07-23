@@ -43,17 +43,10 @@ using Swag, Core
     {
         switch cmd.kind
         {
-        case MoveTo:
-            counter.moves += 1
-
-        case LineTo:
-            counter.lines += 1
-
-        case ConicTo:
-            counter.conics += 1
-
-        case CubicTo:
-            discard cmd
+        case MoveTo:  counter.moves += 1
+        case LineTo:  counter.lines += 1
+        case ConicTo: counter.conics += 1
+        case CubicTo: discard cmd
         }
     }
 

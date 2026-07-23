@@ -290,14 +290,10 @@ impl Image
         #[Swag.Complete]
         switch .pf
         {
-        case RGBA8:
-            return .getPixelColorDirect'RGBA8(pixX, pixY)
-        case RGB8:
-            return .getPixelColorDirect'RGB8(pixX, pixY)
-        case BGRA8:
-            return .getPixelColorDirect'BGRA8(pixX, pixY)
-        case BGR8:
-            return .getPixelColorDirect'BGR8(pixX, pixY)
+        case RGBA8: return .getPixelColorDirect'RGBA8(pixX, pixY)
+        case RGB8:  return .getPixelColorDirect'RGB8(pixX, pixY)
+        case BGRA8: return .getPixelColorDirect'BGRA8(pixX, pixY)
+        case BGR8:  return .getPixelColorDirect'BGR8(pixX, pixY)
         }
 
         Debug.assert(false)

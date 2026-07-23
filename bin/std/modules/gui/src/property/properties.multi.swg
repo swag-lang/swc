@@ -215,14 +215,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1:
-            return cast(u64) dref cast(#null *u8) addr
-        case 2:
-            return cast(u64) dref cast(#null *u16) addr
-        case 4:
-            return cast(u64) dref cast(#null *u32) addr
-        case 8:
-            return dref cast(#null *u64) addr
+        case 1: return cast(u64) dref cast(#null *u8) addr
+        case 2: return cast(u64) dref cast(#null *u16) addr
+        case 4: return cast(u64) dref cast(#null *u32) addr
+        case 8: return dref cast(#null *u64) addr
         }
 
         return 0
@@ -232,14 +228,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1:
-            dref cast(#null *u8) addr = cast(u8) val
-        case 2:
-            dref cast(#null *u16) addr = cast(u16) val
-        case 4:
-            dref cast(#null *u32) addr = cast(u32) val
-        case 8:
-            dref cast(#null *u64) addr = val
+        case 1: dref cast(#null *u8) addr = cast(u8) val
+        case 2: dref cast(#null *u16) addr = cast(u16) val
+        case 4: dref cast(#null *u32) addr = cast(u32) val
+        case 8: dref cast(#null *u64) addr = val
         }
     }
 }

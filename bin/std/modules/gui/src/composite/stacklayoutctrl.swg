@@ -39,8 +39,7 @@ private impl StackLayoutCtrl
     {
         switch .layoutKind
         {
-        case Left, Right, HorzCenter, HorzCenterVertCenter, HorzFit:
-            return true
+        case Left, Right, HorzCenter, HorzCenterVertCenter, HorzFit: return true
         }
 
         return false

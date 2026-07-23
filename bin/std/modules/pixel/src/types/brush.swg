@@ -56,6 +56,7 @@ impl Brush
         {
         case SolidColor, Texture, Hatch:
             return .color.a != 0
+
         case LinearGradient, RadialGradient, SweepGradient:
             if .color.a == 0 do
                 return false
@@ -77,8 +78,10 @@ impl Brush
         {
         case SolidColor, Hatch:
             return .color.a == 255
+
         case Texture:
             return .color.a == 255 and !.texture.pf.hasAlpha()
+
         case LinearGradient, RadialGradient, SweepGradient:
             if .color.a != 255 do
                 return false

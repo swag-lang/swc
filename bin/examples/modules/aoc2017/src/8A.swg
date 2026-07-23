@@ -48,18 +48,12 @@ func day8A()
         var valid = false
         switch re[5]
         {
-        case "==":
-            valid = test == v1
-        case "!=":
-            valid = test != v1
-        case ">=":
-            valid = test >= v1
-        case "<=":
-            valid = test <= v1
-        case ">":
-            valid = test > v1
-        case "<":
-            valid = test < v1
+        case "==": valid = test == v1
+        case "!=": valid = test != v1
+        case ">=": valid = test >= v1
+        case "<=": valid = test <= v1
+        case ">":  valid = test > v1
+        case "<":  valid = test < v1
         }
 
         if valid do

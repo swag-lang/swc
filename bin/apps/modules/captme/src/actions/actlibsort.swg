@@ -63,15 +63,10 @@ impl IActionUI for ActionLibSort
 
         switch cxt.id
         {
-        case Recent:
-            libWnd.setSortMethod(.Recent)
-        case FileSize:
-            libWnd.setSortMethod(.FileSize)
-        case Similar:
-            libWnd.setSortMethod(.Similar)
-
-        case Invert:
-            libWnd.setSortOrder(!libWnd.invertSort)
+        case Recent:   libWnd.setSortMethod(.Recent)
+        case FileSize: libWnd.setSortMethod(.FileSize)
+        case Similar:  libWnd.setSortMethod(.Similar)
+        case Invert:   libWnd.setSortOrder(!libWnd.invertSort)
         }
 
         return true

@@ -44,12 +44,9 @@ func day2A()
         let val = assume StrConv.toS32(cmd[1])
         switch cmd[0]
         {
-        case "forward":
-            h += val
-        case "down":
-            d += val
-        case "up":
-            d -= val
+        case "forward": h += val
+        case "down":    d += val
+        case "up":      d -= val
         }
     }
 

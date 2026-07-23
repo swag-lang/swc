@@ -86,22 +86,30 @@ impl MainWnd
         {
         case FormShape as b:
             .mdlFormShape = dref b
+
         case FormImage as b:
             .mdlFormImage = dref b
+
         case FormStep as b:
             .mdlFormStep    = dref b
             .mdlFormStep.ws = b.w
             .mdlFormStep.hs = b.h
+
         case FormArrow as b:
             .mdlFormArrow = dref b
+
         case FormLine as b:
             .mdlFormLine = dref b
+
         case FormPolygon as b:
             .mdlFormPolygon = dref b
+
         case FormText as b:
             .mdlFormText = dref b
+
         case FormDraw as b:
             .mdlFormDraw = dref b
+
         case FormCallout as b:
             .mdlFormCallout = dref b
         }
@@ -159,12 +167,9 @@ impl MainWnd
     {
         switch mode
         {
-        case Favorites, Selection:
-            return notnull .mdlFavorite
-        case Highlight:
-            return notnull .mdlHighlight
-        case PixSel:
-            return notnull .mdlPixSel
+        case Favorites, Selection: return notnull .mdlFavorite
+        case Highlight:            return notnull .mdlHighlight
+        case PixSel:               return notnull .mdlPixSel
         }
 
         return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)
@@ -186,12 +191,15 @@ impl MainWnd
             case FormImage:
                 let f = cast(*FormImage) mdl
                 f.image.release()
+
             case FormPolygon:
                 let f = cast(*FormPolygon) mdl
                 f.points.clear()
+
             case FormDraw:
                 let f = cast(*FormDraw) mdl
                 f.points.clear()
+
             case FormCallout:
                 let f = cast(*FormCallout) mdl
                 f.text.clear()

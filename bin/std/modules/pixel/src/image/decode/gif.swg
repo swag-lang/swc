@@ -205,16 +205,11 @@ impl Decoder
         let label = .readU8()
         switch label
         {
-        case 0x01:
-            .readPlainTextExt()
-        case 0xF9:
-            .readGraphicControlExt()
-        case 0xFE:
-            .readCommentExt()
-        case 0xFF:
-            .readApplicationExt()
-        default:
-            throw UnsupportedFormatError{Errors.mkString(Format.toString("unknown extension: %", label))}
+        case 0x01: .readPlainTextExt()
+        case 0xF9: .readGraphicControlExt()
+        case 0xFE: .readCommentExt()
+        case 0xFF: .readApplicationExt()
+        default:   throw UnsupportedFormatError{Errors.mkString(Format.toString("unknown extension: %", label))}
         }
     }
 

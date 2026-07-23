@@ -99,14 +99,10 @@ func palettePixelBytes(bpp: u8)->u8 throw
 {
     switch bpp
     {
-    case 15, 16:
-        return 2
-    case 24:
-        return 3
-    case 32:
-        return 4
-    default:
-        throw UnsupportedFormatError{"unsupported palette bit depth"}
+    case 15, 16: return 2
+    case 24:     return 3
+    case 32:     return 4
+    default:     throw UnsupportedFormatError{"unsupported palette bit depth"}
     }
 }
 
@@ -188,14 +184,10 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) throw
     let entry = paletteData + cast(u64) (index - palette.first) * palette.bpp8
     switch palette.bpp
     {
-    case 15:
-        writeTga16Pixel(dst, dref cast(const *u16) entry, false, false)
-    case 16:
-        writeTga16Pixel(dst, dref cast(const *u16) entry, true, true)
-    case 24:
-        writeBgrPixel(dst, entry[0], entry[1], entry[2])
-    case 32:
-        writeBgraPixel(dst, entry[0], entry[1], entry[2], entry[3])
+    case 15: writeTga16Pixel(dst, dref cast(const *u16) entry, false, false)
+    case 16: writeTga16Pixel(dst, dref cast(const *u16) entry, true, true)
+    case 24: writeBgrPixel(dst, entry[0], entry[1], entry[2])
+    case 32: writeBgraPixel(dst, entry[0], entry[1], entry[2], entry[3])
     }
 }
 
@@ -221,14 +213,10 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 
     switch header.bpp
     {
-    case 15:
-        writeTga16Pixel(dst, dref cast(const *u16) src, false, false)
-    case 16:
-        writeTga16Pixel(dst, dref cast(const *u16) src, true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
-    case 24:
-        writeBgrPixel(dst, src[0], src[1], src[2])
-    case 32:
-        writeBgraPixel(dst, src[0], src[1], src[2], src[3])
+    case 15: writeTga16Pixel(dst, dref cast(const *u16) src, false, false)
+    case 16: writeTga16Pixel(dst, dref cast(const *u16) src, true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
+    case 24: writeBgrPixel(dst, src[0], src[1], src[2])
+    case 32: writeBgraPixel(dst, src[0], src[1], src[2], src[3])
     }
 }
 

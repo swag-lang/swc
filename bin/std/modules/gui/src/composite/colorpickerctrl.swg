@@ -212,24 +212,29 @@ impl ColorPickerCtrl
                     let c = Color.fromHsl(v.pickBar.hue, cb.sat, cb.lum)
                     v.color.setArgb(v.color.a, c.r, c.g, c.b)
                     v.pickAlpha.change(s: cb.sat, l: cb.lum)
+
                 case HueSaturation:
                     let c = Color.fromHsl(cb.hue, cb.sat, v.pickBar.lum)
                     v.color.setArgb(v.color.a, c.r, c.g, c.b)
                     v.pickBar.change(h: cb.hue, s: cb.sat)
                     v.pickAlpha.change(h: cb.hue, s: cb.sat)
+
                 case HueLightness:
                     let c = Color.fromHsl(cb.hue, v.pickBar.sat, cb.lum)
                     v.color.setArgb(v.color.a, c.r, c.g, c.b)
                     v.pickBar.change(h: cb.hue, l: cb.lum)
                     v.pickAlpha.change(h: cb.hue, l: cb.lum)
+
                 case GreenBlue:
                     v.color.g = cast(u8) (cb.g * 255)
                     v.color.b = cast(u8) (cb.b * 255)
                     v.updatePickers()
+
                 case RedBlue:
                     v.color.r = cast(u8) (cb.r * 255)
                     v.color.b = cast(u8) (cb.b * 255)
                     v.updatePickers()
+
                 case RedGreen:
                     v.color.r = cast(u8) (cb.r * 255)
                     v.color.g = cast(u8) (cb.g * 255)
@@ -248,22 +253,27 @@ impl ColorPickerCtrl
                     v.color.setArgb(v.color.a, c.r, c.g, c.b)
                     v.pickBox.change(h: cb.hue)
                     v.pickAlpha.change(h: cb.hue)
+
                 case HueSaturation:
                     let c = Color.fromHsl(v.pickBox.hue, v.pickBox.sat, v.pickBar.lum)
                     v.color.setArgb(v.color.a, c.r, c.g, c.b)
                     v.pickBox.change(l: cb.lum)
                     v.pickAlpha.change(l: cb.lum)
+
                 case HueLightness:
                     let c = Color.fromHsl(v.pickBox.hue, v.pickBar.sat, v.pickBox.lum)
                     v.color.setArgb(v.color.a, c.r, c.g, c.b)
                     v.pickBox.change(s: cb.sat)
                     v.pickAlpha.change(s: cb.sat)
+
                 case GreenBlue:
                     v.color.r = cast(u8) (cb.r * 255)
                     v.updatePickers()
+
                 case RedBlue:
                     v.color.g = cast(u8) (cb.g * 255)
                     v.updatePickers()
+
                 case RedGreen:
                     v.color.b = cast(u8) (cb.b * 255)
                     v.updatePickers()
@@ -368,20 +378,28 @@ impl ColorPickerCtrl
                     {
                     case 0:
                         .addColor(Argb.White)
+
                     case 1:
                         .addColor(Argb.Gray)
+
                     case 2:
                         .addColor(Argb.Black)
+
                     case 3:
                         .addColor(Argb.Red)
+
                     case 4:
                         .addColor(Argb.Green)
+
                     case 5:
                         .addColor(Argb.Blue)
+
                     case 6:
                         .addColor(Argb.Yellow)
+
                     case 7:
                         .addColor(Argb.Purple)
+
                     case 8:
                         if flags.has(.Alpha) do
                             .addColor(Color.fromArgb(0))
@@ -417,18 +435,23 @@ impl ColorPickerCtrl
         case SaturationLightness:
             .pickBox.setMode(.SaturationLightness)
             .pickBar.setMode(.HueHorz)
+
         case HueSaturation:
             .pickBox.setMode(.HueSaturation)
             .pickBar.setMode(.LightnessHorz)
+
         case HueLightness:
             .pickBox.setMode(.HueLightness)
             .pickBar.setMode(.SaturationHorz)
+
         case GreenBlue:
             .pickBox.setMode(.GreenBlue)
             .pickBar.setMode(.RedHorz)
+
         case RedBlue:
             .pickBox.setMode(.RedBlue)
             .pickBar.setMode(.GreenHorz)
+
         case RedGreen:
             .pickBox.setMode(.RedGreen)
             .pickBar.setMode(.BlueHorz)

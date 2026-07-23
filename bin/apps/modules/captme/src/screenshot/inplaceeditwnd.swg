@@ -175,12 +175,15 @@ impl InPlaceEditWnd
             cap.crop()
             cap.copyAll()
             exitWithResult(false)
+
         case "close":
             exitWithResult(false)
+
         case "edit":
             let cap = notnull me.capture
             cap.crop()
             exitWithResult(true)
+
         case "save":
 
             // On a cancelled save dialog getSaveAsImageName() returns "": keep the
@@ -201,20 +204,13 @@ impl InPlaceEditWnd
     {
         switch toolId
         {
-        case "draw":
-            .editMode = .Draw
-        case "line":
-            .editMode = .Line
-        case "circle":
-            .editMode = .Circle
-        case "rect":
-            .editMode = .Rect
-        case "arrow":
-            .editMode = .Arrow
-        case "text":
-            .editMode = .Text
-        case "marker":
-            .editMode = .Marker
+        case "draw":   .editMode = .Draw
+        case "line":   .editMode = .Line
+        case "circle": .editMode = .Circle
+        case "rect":   .editMode = .Rect
+        case "arrow":  .editMode = .Arrow
+        case "text":   .editMode = .Text
+        case "marker": .editMode = .Marker
         }
 
         .updateEditMode()

@@ -121,10 +121,8 @@ Handle mixed-type parameters dynamically, performing type-specific actions.
         {
             switch @kindof(p)
             {
-            case s32:
-                sum += 1
-            case string:
-                sum += 10
+            case s32:    sum += 1
+            case string: sum += 10
             }
         }
 

@@ -220,12 +220,9 @@ public impl IWnd for ScrollWnd
         var colorBk: Color
         switch
         {
-        case .scrollWndFlags.has(.TransparentBar):
-            break
-        case bc.isDisabled:
-            colorBk = colors.scrollBar_DisabledBk
-        default:
-            colorBk = colors.scrollBar_Bk
+        case .scrollWndFlags.has(.TransparentBar): break
+        case bc.isDisabled:                        colorBk = colors.scrollBar_DisabledBk
+        default:                                   colorBk = colors.scrollBar_Bk
         }
 
         // Vertical bar

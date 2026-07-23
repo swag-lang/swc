@@ -327,12 +327,9 @@ func parseBool(str: string)->{ value: bool, eat: u32 } throw
     let sub = Tokenize.getWhileAlnum(str)
     switch sub
     {
-    case "1", "true", "TRUE", "True":
-        result.value = true
-    case "0", "false", "FALSE", "False":
-        result.value = false
-    default:
-        throw SyntaxError{}
+    case "1", "true", "TRUE", "True":    result.value = true
+    case "0", "false", "FALSE", "False": result.value = false
+    default:                             throw SyntaxError{}
     }
 
     result.eat = cast(u32) @countof(sub)
@@ -396,12 +393,9 @@ func parseString(result: *String, str: string)->u32 throw
                 throw SyntaxError{}
             switch str[cpt]
             {
-            case 't''u8:
-                dref result += '\t''u8
-            case 'n''u8:
-                dref result += '\n''u8
-            default:
-                dref result += str[cpt]
+            case 't''u8: dref result += '\t''u8
+            case 'n''u8: dref result += '\n''u8
+            default:     dref result += str[cpt]
             }
         }
         else do

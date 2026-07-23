@@ -67,24 +67,15 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
 
         switch c.val
         {
-        case 0:
-            color = Color.fromRgb(204, 192, 178)
-        case 2:
-            color = Color.fromRgb(238, 238, 218)
-        case 4:
-            color = Color.fromRgb(236, 224, 201)
-        case 8:
-            color = Color.fromRgb(242, 177, 122)
-        case 16:
-            color = Color.fromRgb(246, 149, 100)
-        case 32:
-            color = Color.fromRgb(248, 124, 96)
-        case 64:
-            color = Color.fromRgb(245, 94, 57)
-        case 128:
-            color = Color.fromRgb(237, 208, 115)
-        default:
-            color = Color.fromRgb(238, 194, 46)
+        case 0:   color = Color.fromRgb(204, 192, 178)
+        case 2:   color = Color.fromRgb(238, 238, 218)
+        case 4:   color = Color.fromRgb(236, 224, 201)
+        case 8:   color = Color.fromRgb(242, 177, 122)
+        case 16:  color = Color.fromRgb(246, 149, 100)
+        case 32:  color = Color.fromRgb(248, 124, 96)
+        case 64:  color = Color.fromRgb(245, 94, 57)
+        case 128: color = Color.fromRgb(237, 208, 115)
+        default:  color = Color.fromRgb(238, 194, 46)
         }
 
         let off = (1 - c.z) * 40
@@ -216,16 +207,11 @@ func keyboard(wnd: *Wnd)
 
     switch
     {
-    case kb.isKeyJustPressed(.Left):
-        g_MoveDirX = -1
-    case kb.isKeyJustPressed(.Right):
-        g_MoveDirX = 1
-    case kb.isKeyJustPressed(.Up):
-        g_MoveDirY = -1
-    case kb.isKeyJustPressed(.Down):
-        g_MoveDirY = 1
-    default:
-        g_MoveDirX, g_MoveDirY = 0
+    case kb.isKeyJustPressed(.Left):  g_MoveDirX = -1
+    case kb.isKeyJustPressed(.Right): g_MoveDirX = 1
+    case kb.isKeyJustPressed(.Up):    g_MoveDirY = -1
+    case kb.isKeyJustPressed(.Down):  g_MoveDirY = 1
+    default:                          g_MoveDirX, g_MoveDirY = 0
     }
 
     var recom = true

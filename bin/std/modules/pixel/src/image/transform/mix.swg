@@ -65,12 +65,9 @@ impl Image
 
         switch .bpp
         {
-        case 24:
-            doIt'24()
-        case 32:
-            doIt'32()
-        default:
-            Debug.assert(false)
+        case 24: doIt'24()
+        case 32: doIt'32()
+        default: Debug.assert(false)
         }
     }
 

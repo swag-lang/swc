@@ -93,14 +93,17 @@ func day4B0()
                 let val = catch StrConv.toS32(res1[1])
                 if val >= 1920 and val <= 2002 do
                     pass |= 1
+
             case "iyr":
                 let val = catch StrConv.toS32(res1[1])
                 if val >= 2010 and val <= 2020 do
                     pass |= 2
+
             case "eyr":
                 let val = catch StrConv.toS32(res1[1])
                 if val >= 2020 and val <= 2030 do
                     pass |= 4
+
             case "hgt":
                 let val = catch StrConv.parseS32(res1[1])
                 if @err != null do
@@ -114,15 +117,18 @@ func day4B0()
                     pass |= 8
                 elif sub == "in" and val.value >= 59 and val.value <= 76 do
                     pass |= 8
+
             case "hcl":
                 if @countof(res1[1]) != 7 or res1[1][0] != '#' do
                     break
                 discard catch StrConv.parseX64(res1[1][1 to])
                 if @err == null do
                     pass |= 16
+
             case "ecl":
                 if Slice.contains(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"], res1[1]) do
                     pass |= 32
+
             case "pid":
                 discard catch StrConv.toS32(res1[1])
                 if @err == null and @countof(res1[1]) == 9 do

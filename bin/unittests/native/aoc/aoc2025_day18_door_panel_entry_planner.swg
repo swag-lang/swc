@@ -126,7 +126,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         case '>''u8: x += 1
         case '^''u8: y -= 1
         case 'v''u8: y += 1
-        default: @assert(false)
+        default:     @assert(false)
         }
 
         if directionalPad
@@ -152,7 +152,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         case '>''u8: x += 1
         case '^''u8: y -= 1
         case 'v''u8: y += 1
-        default: @assert(false)
+        default:     @assert(false)
         }
 
         if directionalPad

@@ -31,12 +31,9 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         // Precision for shortest representation mode.
         switch fmt
         {
-        case 'e''u8, 'E''u8:
-            prec = digs.nd - 1
-        case 'f''u8:
-            prec = Math.max(digs.nd - digs.dp, 0)
-        case 'g''u8, 'G''u8:
-            prec = digs.nd
+        case 'e''u8, 'E''u8: prec = digs.nd - 1
+        case 'f''u8:         prec = Math.max(digs.nd - digs.dp, 0)
+        case 'g''u8, 'G''u8: prec = digs.nd
         }
     }
     else
@@ -44,12 +41,9 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         // Round appropriately.
         switch fmt
         {
-        case 'e''u8, 'E''u8:
-            d.round(prec + 1)
-        case 'f''u8:
-            d.round(d.dp + prec)
-        case 'g''u8, 'G''u8:
-            d.round(prec == 0 ? 1 : prec)
+        case 'e''u8, 'E''u8: d.round(prec + 1)
+        case 'f''u8:         d.round(d.dp + prec)
+        case 'g''u8, 'G''u8: d.round(prec == 0 ? 1 : prec)
         }
 
         digs.d  = d.d
@@ -153,9 +147,11 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     case exp < 10:
         dst.addNative('0''u8)
         dst.addNative(cast(u8) (exp + '0''u8))
+
     case exp < 100:
         dst.addNative(cast(u8) ((exp / 10) + '0''u8))
         dst.addNative(cast(u8) ((exp % 10) + '0''u8))
+
     default:
         dst.addNative(cast(u8) ((exp / 100) + '0''u8))
         dst.addNative(cast(u8) (((exp / 10) % 10) + '0''u8))
@@ -315,12 +311,14 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
             // m = 12345xxx
             // u = 12347xxx
             upperdelta = 2
+
         case upperdelta == 0 and m != u:
 
             // Example:
             // m = 12345xxx
             // u = 12346xxx
             upperdelta = 1
+
         case upperdelta == 1 and (m != '9''u8 or u != '0''u8):
 
             // Example:
@@ -340,9 +338,11 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
         case okdown and okup:
             d.round(mi + 1)
             return
+
         case okdown:
             d.roundDown(mi + 1)
             return
+
         case okup:
             d.roundUp(mi + 1)
             return
@@ -375,12 +375,9 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         var s: string = undefined
         switch
         {
-        case mant != 0:
-            s = "NaN"
-        case neg:
-            s = "-Inf"
-        default:
-            s = "+Inf"
+        case mant != 0: s = "NaN"
+        case neg:       s = "-Inf"
+        default:        s = "+Inf"
         }
 
         buf.addBytes(s)
@@ -412,12 +409,9 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
             // Precision for shortest representation mode.
             switch fmt
             {
-            case 'e''u8, 'E''u8:
-                prec = Math.max(digs.nd - 1, 0)
-            case 'f''u8:
-                prec = Math.max(digs.nd - digs.dp, 0)
-            case 'g''u8, 'G''u8:
-                prec = digs.nd
+            case 'e''u8, 'E''u8: prec = Math.max(digs.nd - 1, 0)
+            case 'f''u8:         prec = Math.max(digs.nd - digs.dp, 0)
+            case 'g''u8, 'G''u8: prec = digs.nd
             }
 
             return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt)
@@ -431,6 +425,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         {
         case 'e''u8, 'E''u8:
             digits += 1
+
         case 'g''u8, 'G''u8:
             if prec == 0 do
                 prec = 1

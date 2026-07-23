@@ -354,10 +354,8 @@ func convertFloat(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormat
     var value64: f64
     switch kindof.nativeKind
     {
-    case F32:
-        value64 = cast(f64) dref cast(#null const *f32) dataof
-    case F64:
-        value64 = dref cast(#null const *f64) dataof
+    case F32: value64 = cast(f64) dref cast(#null const *f32) dataof
+    case F64: value64 = dref cast(#null const *f64) dataof
     }
 
     Dtoa.parse(buf, value64, fmt.fmt, cast(s64) fmt.precision, fmt.forceSign)
@@ -382,24 +380,31 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
     case S8:
         signedValue = cast(s64) dref cast(#null const *s8) dataof
         value64     = cast(u64) Math.abs(signedValue)
+
     case S16:
         signedValue = cast(s64) dref cast(#null const *s16) dataof
         value64     = cast(u64) Math.abs(signedValue)
+
     case S32:
         signedValue = cast(s64) dref cast(#null const *s32) dataof
         value64     = cast(u64) Math.abs(signedValue)
+
     case S64:
         signedValue = dref cast(#null const *s64) dataof
         if signedValue == Swag.S64.Min do
             overflowS64 = true
         else do
             value64 = cast(u64) Math.abs(signedValue)
+
     case U8:
         value64 = cast(u64) dref cast(#null const *u8) dataof
+
     case U16:
         value64 = cast(u64) dref cast(#null const *u16) dataof
+
     case U32:
         value64 = cast(u64) dref cast(#null const *u32) dataof
+
     case U64:
         value64 = dref cast(#null const *u64) dataof
     }
@@ -418,12 +423,9 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
         cpt, bits -= 1
         switch fmt.base
         {
-        case 2:
-            value64 = 4611686018427387904
-        case 10:
-            value64 = 922337203685477580
-        case 16:
-            value64 = 576460752303423488
+        case 2:  value64 = 4611686018427387904
+        case 10: value64 = 922337203685477580
+        case 16: value64 = 576460752303423488
         }
     }
 

@@ -83,14 +83,10 @@ impl IWnd for MainWnd
             {
                 switch idx
                 {
-                case 0:
-                    .addItem(ActionCapture.Screen0)
-                case 1:
-                    .addItem(ActionCapture.Screen1)
-                case 2:
-                    .addItem(ActionCapture.Screen2)
-                case 3:
-                    .addItem(ActionCapture.Screen3)
+                case 0: .addItem(ActionCapture.Screen0)
+                case 1: .addItem(ActionCapture.Screen1)
+                case 2: .addItem(ActionCapture.Screen2)
+                case 3: .addItem(ActionCapture.Screen3)
                 }
             }
 
@@ -348,10 +344,13 @@ impl MainWnd
             let edMode = .editMode
             .editMode = .Selection
             return edMode
+
         case Favorites:
             return formToEditMode(notnull .mdlFavorite)
+
         case Highlight:
             return formToEditMode(notnull .mdlHighlight)
+
         case PixSel:
             return formToEditMode(notnull .mdlPixSel)
         }

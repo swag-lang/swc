@@ -230,6 +230,68 @@ namespace
         }
     }
 
+    // Blank lines between the arms of a switch. `multi-line` airs the arms
+    // that span several lines and keeps runs of one-line arms tight.
+    void applyBlankLinesBetweenCases(FormatModel& model)
+    {
+        const FormatOptions&       options = model.options();
+        const FormatCaseBlankStyle style   = options.blankLineBetweenCases;
+        if (style == FormatCaseBlankStyle::Preserve)
+            return;
+
+        for (const FormatBlock& block : model.blocks())
+        {
+            if (block.kind != FormatBlockKind::Switch)
+                continue;
+
+            // Label lines of THIS switch.
+            std::vector<uint32_t> labels;
+            const uint32_t        labelDepth = model.piece(block.openPiece).depth + 1;
+            for (uint32_t p = block.openPiece + 1; p < block.closePiece; ++p)
+            {
+                const FormatPiece& piece = model.piece(p);
+                if (!piece.removed && piece.hasRole(FormatRoleE::CaseLabel) && piece.depth == labelDepth &&
+                    model.lineStartOf(p) == p)
+                    labels.push_back(p);
+            }
+
+            for (size_t i = 1; i < labels.size(); ++i)
+            {
+                // The blank goes before the comments attached to the label.
+                const uint32_t target = declGroupStart(model, labels[i]);
+                const uint32_t prev   = model.prevPiece(target);
+                if (prev == INVALID_PIECE || model.piece(prev).is(TokenId::SymLeftCurly))
+                    continue;
+
+                bool wantBlank = false;
+                switch (style)
+                {
+                    case FormatCaseBlankStyle::Always:
+                        wantBlank = true;
+                        break;
+                    case FormatCaseBlankStyle::Never:
+                        wantBlank = false;
+                        break;
+                    case FormatCaseBlankStyle::MultiLine:
+                    {
+                        // Blank when the previous arm or the current one spans
+                        // several lines.
+                        const bool prevMulti = model.lineStartOf(prev) != model.lineStartOf(labels[i - 1]);
+                        const uint32_t currEnd = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1]))
+                                                                       : model.prevPiece(block.closePiece);
+                        const bool currMulti = currEnd != INVALID_PIECE && model.lineStartOf(currEnd) != model.lineStartOf(labels[i]);
+                        wantBlank            = prevMulti || currMulti;
+                        break;
+                    }
+                    case FormatCaseBlankStyle::Preserve:
+                        break;
+                }
+
+                forceGapNewlines(model, target, wantBlank ? 2u : 1u, !wantBlank);
+            }
+        }
+    }
+
     // Blank line after the `}` of a multi-line block when another statement
     // follows: separates the block from the next "paragraph". `else`, `case`,
     // and closing braces stay attached.
@@ -269,6 +331,7 @@ namespace FormatPass
         applyBlankLineAfterUsingBlock(model);
         applyBlankLinesBetweenDefinitions(model);
         applyBlankLinesBeforeComments(model);
+        applyBlankLinesBetweenCases(model);
         applyBlankLinesAfterBlocks(model);
     }
 }

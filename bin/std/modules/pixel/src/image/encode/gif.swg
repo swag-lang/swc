@@ -127,12 +127,16 @@ impl Encoder
         {
         case BGR8:
             result.setArgb(255, pix[2], pix[1], pix[0])
+
         case BGRA8:
             result.setArgb(pix[3], pix[2], pix[1], pix[0])
+
         case RGB8:
             result.setArgb(255, pix[0], pix[1], pix[2])
+
         case RGBA8:
             result.setArgb(pix[3], pix[0], pix[1], pix[2])
+
         default:
 
             // Unsupported pixel format: opaque black rather than garbage.

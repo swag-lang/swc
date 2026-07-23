@@ -979,6 +979,7 @@ impl Gui.IPropertyNotify for ValData
         case Reflection.fieldCrc(ValData, #nameof(ValData.name)):
             if .name.length == 0 do
                 return {.Error, "Name is required."}
+
         case Reflection.fieldCrc(ValData, #nameof(ValData.count)):
             if .count > 100 do
                 return {.Warning, "Count is unusually large."}

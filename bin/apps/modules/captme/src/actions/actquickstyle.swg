@@ -29,8 +29,7 @@ impl IActionUI for ActionQuickStyle
 
         switch cxt.id
         {
-        case Reset:
-            main.quickWnd.resetQuickStyles()
+        case Reset: main.quickWnd.resetQuickStyles()
         }
 
         return true

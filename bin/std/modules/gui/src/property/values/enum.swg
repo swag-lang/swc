@@ -28,12 +28,15 @@ impl Properties
             case 1:
                 val1 = cast(u64) dref cast(#null *u8) item.data
                 val2 = cast(u64) dref cast(#null const *u8) item.typeValue.value
+
             case 2:
                 val1 = cast(u64) dref cast(#null *u16) item.data
                 val2 = cast(u64) dref cast(#null const *u16) item.typeValue.value
+
             case 4:
                 val1 = cast(u64) dref cast(#null *u32) item.data
                 val2 = cast(u64) dref cast(#null const *u32) item.typeValue.value
+
             case 8:
                 val1 = cast(u64) dref cast(#null *u64) item.data
                 val2 = cast(u64) dref cast(#null const *u64) item.typeValue.value
@@ -58,16 +61,11 @@ impl Properties
             var val1s, val2s: #null string
             switch typeEnum.rawType.sizeof
             {
-            case 1:
-                val1 = cast(u64) dref cast(#null *u8) item.data
-            case 2:
-                val1 = cast(u64) dref cast(#null *u16) item.data
-            case 4:
-                val1 = cast(u64) dref cast(#null *u32) item.data
-            case 8:
-                val1 = cast(u64) dref cast(#null *u64) item.data
-            case 16:
-                val1s = dref cast(#null *string) item.data
+            case 1:  val1 = cast(u64) dref cast(#null *u8) item.data
+            case 2:  val1 = cast(u64) dref cast(#null *u16) item.data
+            case 4:  val1 = cast(u64) dref cast(#null *u32) item.data
+            case 8:  val1 = cast(u64) dref cast(#null *u64) item.data
+            case 16: val1s = dref cast(#null *string) item.data
             }
 
             var idxSel = 0'u64
@@ -75,16 +73,11 @@ impl Properties
             {
                 switch typeEnum.rawType.sizeof
                 {
-                case 1:
-                    val2 = cast(u64) dref cast(#null const *u8) v.value
-                case 2:
-                    val2 = cast(u64) dref cast(#null const *u16) v.value
-                case 4:
-                    val2 = cast(u64) dref cast(#null const *u32) v.value
-                case 8:
-                    val2 = cast(u64) dref cast(#null const *u64) v.value
-                case 16:
-                    val2s = dref cast(#null const *string) v.value
+                case 1:  val2 = cast(u64) dref cast(#null const *u8) v.value
+                case 2:  val2 = cast(u64) dref cast(#null const *u16) v.value
+                case 4:  val2 = cast(u64) dref cast(#null const *u32) v.value
+                case 8:  val2 = cast(u64) dref cast(#null const *u64) v.value
+                case 16: val2s = dref cast(#null const *string) v.value
                 }
 
                 if val1 == val2 and val1s == val2s do
@@ -151,16 +144,11 @@ impl Properties
 
             switch typeEnum.rawType.sizeof
             {
-            case 1:
-                setEd'u8()
-            case 2:
-                setEd'u16()
-            case 4:
-                setEd'u32()
-            case 8:
-                setEd'u64()
-            case 16:
-                setEd'string()
+            case 1:  setEd'u8()
+            case 2:  setEd'u16()
+            case 4:  setEd'u32()
+            case 8:  setEd'u64()
+            case 16: setEd'string()
             }
         }
 

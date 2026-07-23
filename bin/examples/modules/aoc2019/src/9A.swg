@@ -87,25 +87,33 @@ private func run(op: &Array's64, input: s64)->s64
         case 1:
             addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 + param1
             ip                                         += 4
+
         case 2:
             addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 * param1
             ip                                         += 4
+
         case 3:
             addr(op[ip + 1] + (mode0 == 2 ? base : 0)) = input
             ip                                         += 2
+
         case 4:
             output = param0
             ip     += 2
+
         case 5:
             ip = param0 ? param1 : ip + 3
+
         case 6:
             ip = !param0 ? param1 : ip + 3
+
         case 7:
             addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 < param1 ? 1 : 0
             ip                                         += 4
+
         case 8:
             addr(op[ip + 3] + (mode2 == 2 ? base : 0)) = param0 == param1 ? 1 : 0
             ip                                         += 4
+
         case 9:
             base += param0
             ip   += 2

@@ -218,12 +218,9 @@ impl IWnd for Tab
             clientRect.height = .barHeight
             switch .barForm
             {
-            case Flat:
-                painter.fillRect(clientRect, colors.tabBar_FlatBk)
-            case FlatRound:
-                theme.drawSubRect(painter, clientRect, &rects.tabBar_FlatRoundBk, colors.tabBar_FlatBk)
-            case Round:
-                theme.drawSubRect(painter, clientRect, &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
+            case Flat:      painter.fillRect(clientRect, colors.tabBar_FlatBk)
+            case FlatRound: theme.drawSubRect(painter, clientRect, &rects.tabBar_FlatRoundBk, colors.tabBar_FlatBk)
+            case Round:     theme.drawSubRect(painter, clientRect, &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
             }
         }
 
@@ -238,6 +235,7 @@ impl IWnd for Tab
         case Flat:
             subRect = &rects.tabView_FlatBk
             colorBk = colors.tabView_FlatBk
+
         case Round:
             subRect = &rects.tabView_RoundBk
             colorBk = colors.tabView_RoundBk

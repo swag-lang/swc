@@ -77,28 +77,20 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
             {
                 switch enumType.sizeof
                 {
-                case 1:
-                    dref cast(*u8) patch = dref cast(const *u8) enumValue
-                case 2:
-                    dref cast(*u16) patch = dref cast(const *u16) enumValue
-                case 4:
-                    dref cast(*u32) patch = dref cast(const *u32) enumValue
-                case 8:
-                    dref cast(*u64) patch = dref cast(const *u64) enumValue
+                case 1: dref cast(*u8) patch = dref cast(const *u8) enumValue
+                case 2: dref cast(*u16) patch = dref cast(const *u16) enumValue
+                case 4: dref cast(*u32) patch = dref cast(const *u32) enumValue
+                case 8: dref cast(*u64) patch = dref cast(const *u64) enumValue
                 }
             }
             else
             {
                 switch enumType.sizeof
                 {
-                case 1:
-                    dref cast(*u8) patch |= dref cast(const *u8) enumValue
-                case 2:
-                    dref cast(*u16) patch |= dref cast(const *u16) enumValue
-                case 4:
-                    dref cast(*u32) patch |= dref cast(const *u32) enumValue
-                case 8:
-                    dref cast(*u64) patch |= dref cast(const *u64) enumValue
+                case 1: dref cast(*u8) patch |= dref cast(const *u8) enumValue
+                case 2: dref cast(*u16) patch |= dref cast(const *u16) enumValue
+                case 4: dref cast(*u32) patch |= dref cast(const *u32) enumValue
+                case 8: dref cast(*u64) patch |= dref cast(const *u64) enumValue
                 }
             }
 

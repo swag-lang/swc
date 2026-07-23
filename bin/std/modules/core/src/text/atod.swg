@@ -32,6 +32,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
         result.f  = f
         result.ok = true
         return result
+
     case exp > 0 and exp <= 15 + 22:
 
         // If exponent is big but number of digits is not'f64, can #move a few zeros
@@ -49,6 +50,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
         result.f  = f * Pow10[exp]
         result.ok = true
         return result
+
     case exp < 0 and exp >= -22:
         result.f  = f / Pow10[-exp]
         result.ok = true
@@ -851,12 +853,15 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
     case !Latin1.compare(s, "NaN", ignoreCase: true):
         result.value = Swag.F64.NaN
         result.eat   = 3
+
     case !Latin1.compare(s, "Inf", ignoreCase: true):
         result.value = Swag.F64.Inf
         result.eat   = 3
+
     case !Latin1.compare(s, "+Inf", ignoreCase: true):
         result.value = Swag.F64.Inf
         result.eat   = 4
+
     case !Latin1.compare(s, "-Inf", ignoreCase: true):
         result.value = Swag.F64.NegInf
         result.eat   = 4

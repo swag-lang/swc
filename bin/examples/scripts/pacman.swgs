@@ -301,9 +301,11 @@ impl Ghost
         case RED:
             .dir = .LEFT
             .ai  = g_Wave
+
         case PINK:
             .dir = .DOWN
             .ai  = .LEAVE     // PINK starts in LEAVE mode, leaving the SPAWN pen straight away
+
         case BLUE, YELLOW:
 
             // YELLOW and BLUE both start facing UP, trapped within the SPAWN
@@ -421,10 +423,8 @@ impl Ghost
             // Switch direction upon hitting a WALL
             switch .dir
             {
-            case UP:
-                .dir = DOWN
-            case DOWN:
-                .dir = UP
+            case UP:   .dir = DOWN
+            case DOWN: .dir = UP
             }
         }
     }
@@ -479,14 +479,10 @@ impl Ghost
         // Each colour selects a unique corner to target
         switch .colour
         {
-        case RED:
-            target = {25, 33}
-        case PINK:
-            target = {2, 33}
-        case BLUE:
-            target = {27, -2}
-        case YELLOW:
-            target = {0, -2}
+        case RED:    target = {25, 33}
+        case PINK:   target = {2, 33}
+        case BLUE:   target = {27, -2}
+        case YELLOW: target = {0, -2}
         }
 
         // Set direction at junction to head towards SCATTER point
@@ -507,14 +503,10 @@ impl Ghost
         // Apply offset to correct coordinate based on Pacman's direction
         switch g_PacMan.dir
         {
-        case UP:
-            offset.y += offsetSize
-        case RIGHT:
-            offset.x += offsetSize
-        case DOWN:
-            offset.y -= offsetSize
-        case LEFT:
-            offset.x -= offsetSize
+        case UP:    offset.y += offsetSize
+        case RIGHT: offset.x += offsetSize
+        case DOWN:  offset.y -= offsetSize
+        case LEFT:  offset.x -= offsetSize
         }
 
         return offset
@@ -556,6 +548,7 @@ impl Ghost
 
             // BLUE's target is then twice the change in X and Y from RED's position
             target = {redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy}
+
         case YELLOW:
             if distanceBetween(currentPos, target) <= 8 do
                 target = {0, -2}
@@ -693,14 +686,10 @@ impl Ghost
     {
         switch .dir
         {
-        case UP:
-            .dir = DOWN
-        case RIGHT:
-            .dir = LEFT
-        case DOWN:
-            .dir = UP
-        case LEFT:
-            .dir = RIGHT
+        case UP:    .dir = DOWN
+        case RIGHT: .dir = LEFT
+        case DOWN:  .dir = UP
+        case LEFT:  .dir = RIGHT
         }
 
         .reverse = false
@@ -802,16 +791,11 @@ impl Ghost
         // Return next tile in given direction
         switch d
         {
-        case UP:
-            return getTile(.getX(), .getY() + 1)
-        case RIGHT:
-            return getTile(.getX() + 1, .getY())
-        case DOWN:
-            return getTile(.getX(), .getY() - 1)
-        case LEFT:
-            return getTile(.getX() - 1, .getY())
-        default:
-            return getTile(.getX(), .getY())
+        case UP:    return getTile(.getX(), .getY() + 1)
+        case RIGHT: return getTile(.getX() + 1, .getY())
+        case DOWN:  return getTile(.getX(), .getY() - 1)
+        case LEFT:  return getTile(.getX() - 1, .getY())
+        default:    return getTile(.getX(), .getY())
         }
     }
 
@@ -862,14 +846,10 @@ impl Ghost
         {
             switch .ai
             {
-            case SCATTER:
-                .aiScatter()
-            case CHASE:
-                .aiChase(redGhost)
-            case FRIGHTENED:
-                .aiFrightened()
-            case DEAD:
-                .aiDead()
+            case SCATTER:    .aiScatter()
+            case CHASE:      .aiChase(redGhost)
+            case FRIGHTENED: .aiFrightened()
+            case DEAD:       .aiDead()
             }
         }
 
@@ -885,14 +865,17 @@ impl Ghost
             .x -= .dPos
             if .ai != .LEAVE do
                 .y = Math.round(.y)
+
         case RIGHT:
             .x += .dPos
             if .ai != .LEAVE do
                 .y = Math.round(.y)
+
         case UP:
             .y += .dPos
             if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
                 .x = Math.round(.x)
+
         case DOWN:
             .y -= .dPos
             if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
@@ -954,14 +937,10 @@ impl Ghost
             // If not in FRIGHTENED or DEAD AI, draw the ghost according to colour
             switch .colour
             {
-            case RED:
-                ghostTex = g_GhostTexR[ghostAlt]
-            case PINK:
-                ghostTex = g_GhostTexP[ghostAlt]
-            case BLUE:
-                ghostTex = g_GhostTexB[ghostAlt]
-            case YELLOW:
-                ghostTex = g_GhostTexY[ghostAlt]
+            case RED:    ghostTex = g_GhostTexR[ghostAlt]
+            case PINK:   ghostTex = g_GhostTexP[ghostAlt]
+            case BLUE:   ghostTex = g_GhostTexB[ghostAlt]
+            case YELLOW: ghostTex = g_GhostTexY[ghostAlt]
             }
         }
 
@@ -976,14 +955,10 @@ impl Ghost
             var eyesTex: Texture
             switch .dir
             {
-            case LEFT:
-                eyesTex = g_EyeTexL
-            case RIGHT:
-                eyesTex = g_EyeTexR
-            case UP:
-                eyesTex = g_EyeTexD
-            case DOWN:
-                eyesTex = g_EyeTexU
+            case LEFT:  eyesTex = g_EyeTexL
+            case RIGHT: eyesTex = g_EyeTexR
+            case UP:    eyesTex = g_EyeTexD
+            case DOWN:  eyesTex = g_EyeTexU
             }
 
             // Draw direction-based eyes sprite atop ghost body
@@ -1086,22 +1061,14 @@ impl Pacman
             g_Fruits       += 1
             switch g_Fruits - 1
             {
-            case 0:
-                return 100
-            case 1:
-                return 300
-            case 2:
-                return 500
-            case 3:
-                return 700
-            case 4:
-                return 1000
-            case 5:
-                return 2000
-            case 6:
-                return 3000
-            case 7:
-                return 5000
+            case 0: return 100
+            case 1: return 300
+            case 2: return 500
+            case 3: return 700
+            case 4: return 1000
+            case 5: return 2000
+            case 6: return 3000
+            case 7: return 5000
             }
 
         default:
@@ -1125,16 +1092,11 @@ impl Pacman
     {
         switch d
         {
-        case UP:
-            return getTile(.getX(), .getY() + 1)
-        case RIGHT:
-            return getTile(.getX() + 1, .getY())
-        case DOWN:
-            return getTile(.getX(), .getY() - 1)
-        case LEFT:
-            return getTile(.getX() - 1, .getY())
-        default:
-            return getTile(.getX(), .getY())
+        case UP:    return getTile(.getX(), .getY() + 1)
+        case RIGHT: return getTile(.getX() + 1, .getY())
+        case DOWN:  return getTile(.getX(), .getY() - 1)
+        case LEFT:  return getTile(.getX() - 1, .getY())
+        default:    return getTile(.getX(), .getY())
         }
     }
 
@@ -1168,15 +1130,19 @@ impl Pacman
         case LEFT:
             .x -= 0.1
             .y = Math.round(.y)
+
         case RIGHT:
             .x += 0.1
             .y = Math.round(.y)
+
         case UP:
             .y += 0.1
             .x = Math.round(.x)
+
         case DOWN:
             .y -= 0.1
             .x = Math.round(.x)
+
         default:
             if .ready
             {
@@ -1261,14 +1227,10 @@ impl Pacman
         // Determine rotation angle of sprite based on direction
         switch .dir
         {
-        case UP:
-            .angle = 270.0
-        case RIGHT:
-            .angle = 180.0
-        case DOWN:
-            .angle = 90.0
-        case LEFT:
-            .angle = 0.0
+        case UP:    .angle = 270.0
+        case RIGHT: .angle = 180.0
+        case DOWN:  .angle = 90.0
+        case LEFT:  .angle = 0.0
         }
 
         g_Painter.rotateTransformInPlace(Math.toRadians(.angle))
@@ -1324,12 +1286,9 @@ func drawMap()
 
             switch getTile(x, y)
             {
-            case o:
-                g_Painter.drawTexture(0, 0, 8, 8, g_PillTex)
-            case O:
-                g_Painter.drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
-            case F:
-                drawFruit(x, y)
+            case o: g_Painter.drawTexture(0, 0, 8, 8, g_PillTex)
+            case O: g_Painter.drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
+            case F: drawFruit(x, y)
             }
 
             translateMapCoords(0, 1)
@@ -1356,26 +1315,16 @@ func drawNumberAsSprite(number: s32)
     {
         switch str[i]
         {
-        case '0':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num0Tex)
-        case '1':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num1Tex)
-        case '2':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num2Tex)
-        case '3':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num3Tex)
-        case '4':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num4Tex)
-        case '5':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num5Tex)
-        case '6':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num6Tex)
-        case '7':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num7Tex)
-        case '8':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num8Tex)
-        case '9':
-            g_Painter.drawTexture(0, 0, 8, 8, g_Num9Tex)
+        case '0': g_Painter.drawTexture(0, 0, 8, 8, g_Num0Tex)
+        case '1': g_Painter.drawTexture(0, 0, 8, 8, g_Num1Tex)
+        case '2': g_Painter.drawTexture(0, 0, 8, 8, g_Num2Tex)
+        case '3': g_Painter.drawTexture(0, 0, 8, 8, g_Num3Tex)
+        case '4': g_Painter.drawTexture(0, 0, 8, 8, g_Num4Tex)
+        case '5': g_Painter.drawTexture(0, 0, 8, 8, g_Num5Tex)
+        case '6': g_Painter.drawTexture(0, 0, 8, 8, g_Num6Tex)
+        case '7': g_Painter.drawTexture(0, 0, 8, 8, g_Num7Tex)
+        case '8': g_Painter.drawTexture(0, 0, 8, 8, g_Num8Tex)
+        case '9': g_Painter.drawTexture(0, 0, 8, 8, g_Num9Tex)
         }
 
         translateMapCoords(-1, 0)
@@ -1909,10 +1858,8 @@ func resetMap()
         {
             switch getTile(x, y)
             {
-            case F, e:
-                setTile(x, y, .o)
-            case E:
-                setTile(x, y, .O)
+            case F, e: setTile(x, y, .o)
+            case E:    setTile(x, y, .O)
             }
         }
     }
@@ -2136,10 +2083,13 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         case Left:
             g_PacMan.tempDir = .LEFT
+
         case Right:
             g_PacMan.tempDir = .RIGHT
+
         case Down:
             g_PacMan.tempDir = .UP
+
         case Up:
             g_PacMan.tempDir = .DOWN
 

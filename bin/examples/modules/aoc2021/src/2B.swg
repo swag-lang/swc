@@ -41,8 +41,10 @@ func day2B()
         case "forward":
             h += val
             d += a * val
+
         case "down":
             a += val
+
         case "up":
             a -= val
         }

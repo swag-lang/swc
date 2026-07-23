@@ -34,12 +34,9 @@ impl GamePadState
         let res    = XInputGetState(padIndex, &state)
         switch res
         {
-        case ERROR_SUCCESS:
-            break
-        case ERROR_DEVICE_NOT_CONNECTED:
-            throw Swag.SystemError{"not connected"}
-        default:
-            Win32.throwWinError(res)
+        case ERROR_SUCCESS:              break
+        case ERROR_DEVICE_NOT_CONNECTED: throw Swag.SystemError{"not connected"}
+        default:                         Win32.throwWinError(res)
         }
 
         // GamePadButton pressed state

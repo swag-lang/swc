@@ -64,25 +64,33 @@ private func run(op: &Array's64, input: s64)->s64
         case 1:
             val(param2) = val(param0) + val(param1)
             ip          += 4
+
         case 2:
             val(param2) = val(param0) * val(param1)
             ip          += 4
+
         case 3:
             val(param0) = input
             ip          += 2
+
         case 4:
             output = val(param0)
             ip     += 2
+
         case 5:
             ip = val(param0) ? val(param1) : ip + 3
+
         case 6:
             ip = !val(param0) ? val(param1) : ip + 3
+
         case 7:
             val(param2) = val(param0) < val(param1) ? 1 : 0
             ip          += 4
+
         case 8:
             val(param2) = val(param0) == val(param1) ? 1 : 0
             ip          += 4
+
         case 9:
             base += val(param0)
             ip   += 2

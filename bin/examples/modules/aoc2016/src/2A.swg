@@ -45,12 +45,15 @@ func day2A()
             case 'U':
                 if y do
                     y -= 1
+
             case 'D':
                 if y != 2 do
                     y += 1
+
             case 'L':
                 if x do
                     x -= 1
+
             case 'R':
                 if x != 2 do
                     x += 1

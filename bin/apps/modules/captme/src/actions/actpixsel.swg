@@ -27,14 +27,10 @@ impl IActionUI for ActionPixSel
 
         switch cxt.id
         {
-        case Clear:
-            main.pixSelClear()
-        case Fill:
-            main.pixSelFill()
-        case SmartFill:
-            main.pixSelSmartFill()
-        case SmartMove:
-            main.pixSelSmartMove()
+        case Clear:     main.pixSelClear()
+        case Fill:      main.pixSelFill()
+        case SmartFill: main.pixSelSmartFill()
+        case SmartMove: main.pixSelSmartMove()
         }
 
         return true

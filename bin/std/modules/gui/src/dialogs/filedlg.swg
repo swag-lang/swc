@@ -128,14 +128,10 @@ impl FileDlg
                 #[Swag.Complete]
                 switch opt.mode
                 {
-                case CreateFile:
-                    .setTitle("Create File")
-                case SelectOneFile:
-                    .setTitle("Select File")
-                case SelectMultiFiles:
-                    .setTitle("Select Files")
-                case SelectFolder:
-                    .setTitle("Select Folder")
+                case CreateFile:       .setTitle("Create File")
+                case SelectOneFile:    .setTitle("Select File")
+                case SelectMultiFiles: .setTitle("Select Files")
+                case SelectFolder:     .setTitle("Select Folder")
                 }
             }
         }

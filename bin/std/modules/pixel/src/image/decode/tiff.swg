@@ -57,14 +57,10 @@ func typeSize(type: u32)->u32
 {
     switch type
     {
-    case TYPE_BYTE:
-        return 1
-    case TYPE_SHORT:
-        return 2
-    case TYPE_LONG:
-        return 4
-    default:
-        return 0
+    case TYPE_BYTE:  return 1
+    case TYPE_SHORT: return 2
+    case TYPE_LONG:  return 4
+    default:         return 0
     }
 }
 
@@ -118,12 +114,9 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
         let q = p + cast(u64) i * ts
         switch e.type
         {
-        case TYPE_BYTE:
-            result.add(cast(u32) q[0])
-        case TYPE_SHORT:
-            result.add(rd16(q, le))
-        case TYPE_LONG:
-            result.add(rd32(q, le))
+        case TYPE_BYTE:  result.add(cast(u32) q[0])
+        case TYPE_SHORT: result.add(rd16(q, le))
+        case TYPE_LONG:  result.add(rd32(q, le))
         }
     }
 

@@ -25,16 +25,11 @@ impl IActionUI for ActionCaptureDelay
             evt.setFlags |= .Name
             switch main.captureOptions.delay
             {
-            case 0:
-                evt.name = "Delay Before Capture"
-            case 1:
-                evt.name = "Delay Before Capture (1 second)"
-            case 2:
-                evt.name = "Delay Before Capture (2 seconds)"
-            case 5:
-                evt.name = "Delay Before Capture (5 seconds)"
-            case 9:
-                evt.name = "Delay Before Capture (9 seconds)"
+            case 0: evt.name = "Delay Before Capture"
+            case 1: evt.name = "Delay Before Capture (1 second)"
+            case 2: evt.name = "Delay Before Capture (2 seconds)"
+            case 5: evt.name = "Delay Before Capture (5 seconds)"
+            case 9: evt.name = "Delay Before Capture (9 seconds)"
             }
 
         case Delay0:
@@ -42,21 +37,25 @@ impl IActionUI for ActionCaptureDelay
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "No Delay"
             evt.checked       = main.captureOptions.delay == 0
+
         case Delay1:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "1 second"
             evt.checked       = main.captureOptions.delay == 1
+
         case Delay2:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "2 seconds"
             evt.checked       = main.captureOptions.delay == 2
+
         case Delay5:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "5 seconds"
             evt.checked       = main.captureOptions.delay == 5
+
         case Delay9:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
@@ -72,16 +71,11 @@ impl IActionUI for ActionCaptureDelay
         let main = cast(*MainWnd) notnull cxt.wnd
         switch cxt.id
         {
-        case Delay0:
-            main.captureOptions.delay = 0
-        case Delay1:
-            main.captureOptions.delay = 1
-        case Delay2:
-            main.captureOptions.delay = 2
-        case Delay5:
-            main.captureOptions.delay = 5
-        case Delay9:
-            main.captureOptions.delay = 9
+        case Delay0: main.captureOptions.delay = 0
+        case Delay1: main.captureOptions.delay = 1
+        case Delay2: main.captureOptions.delay = 2
+        case Delay5: main.captureOptions.delay = 5
+        case Delay9: main.captureOptions.delay = 9
         }
 
         return true

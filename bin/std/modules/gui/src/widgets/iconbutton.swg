@@ -153,12 +153,9 @@ impl IWnd for IconButton
 
         switch .form
         {
-        case Square:
-            subRectBk = &rects.btnIcon_SquareBk
-        case Round:
-            subRectBk = &rects.btnIcon_RoundBk
-        case RoundSquare:
-            subRectBk = &rects.btnIcon_RoundSquareBk
+        case Square:      subRectBk = &rects.btnIcon_SquareBk
+        case Round:       subRectBk = &rects.btnIcon_RoundBk
+        case RoundSquare: subRectBk = &rects.btnIcon_RoundSquareBk
         }
 
         var paintFlags: PaintItemFlags = .Zero
@@ -169,21 +166,25 @@ impl IWnd for IconButton
             colorIcon    = .isChecked ? colors.btnIcon_CheckedDisabledIcon : colors.btnIcon_DisabledIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedDisabledText : colors.btnIcon_DisabledText
             colorChecked = colors.btnIcon_CheckedDisabledMark
+
         case (.isPressed or .isChecked) and .checkedForm == .None:
             colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
             colorIcon    = colors.btnIcon_PressedIcon
             colorText    = colors.btnIcon_PressedText
             colorChecked = colors.btnIcon_CheckedPressedMark
+
         case .isPressed:
             colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
             colorIcon    = .isChecked ? colors.btnIcon_CheckedPressedIcon : colors.btnIcon_PressedIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedPressedText : colors.btnIcon_PressedText
             colorChecked = colors.btnIcon_CheckedPressedMark
+
         case .isHot:
             colorBk      = .isChecked ? colors.btnIcon_CheckedHotBk : colors.btnIcon_HotBk
             colorIcon    = .isChecked ? colors.btnIcon_CheckedHotIcon : colors.btnIcon_HotIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedHotText : colors.btnIcon_HotText
             colorChecked = colors.btnIcon_CheckedHotMark
+
         default:
             colorBk      = .isChecked ? colors.btnIcon_CheckedBk : colors.btnIcon_Bk
             colorIcon    = .isChecked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
@@ -227,12 +228,16 @@ impl IWnd for IconButton
             {
             case Bottom:
                 subRectBk = &rects.btnIcon_CheckedBottom
+
             case Top:
                 subRectBk = &rects.btnIcon_CheckedTop
+
             case Left:
                 subRectBk = &rects.btnIcon_CheckedLeft
+
             case Right:
                 subRectBk = &rects.btnIcon_CheckedRight
+
             case Full:
                 if .form == .Square do
                     subRectBk = &rects.btnIcon_CheckedSquare
@@ -263,12 +268,9 @@ impl IWnd for IconButton
             #[Swag.Complete]
             switch .arrowPos
             {
-            case Left, Right, RightUp, RightDown:
-                nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
-            case Top, Bottom:
-                nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
-            case None:
-                break
+            case Left, Right, RightUp, RightDown: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
+            case Top, Bottom:                     nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
+            case None:                            break
             }
 
             let fontR = nnFont(.getFont().regular)
@@ -284,6 +286,7 @@ impl IWnd for IconButton
                 case Left, Right:
                     nw += metrics.btnIcon_SpacingTextH
                     nw += .icon.sizeX
+
                 case Top, Bottom:
                     nh += metrics.btnIcon_SpacingTextV
                     nh += .icon.sizeY
@@ -469,13 +472,16 @@ impl IWnd for IconButton
                 pos.x = pos.right() - .icon.sizeX
                 pos.y = pos.vertCenter() - .icon.sizeY * 0.5
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
+
             case Right:
                 pos.y = pos.vertCenter() - .icon.sizeY * 0.5
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
+
             case Top:
                 pos.x = pos.horzCenter() - .icon.sizeX * 0.5
                 pos.y = pos.bottom() - .icon.sizeY
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
+
             case Bottom:
                 pos.x = pos.horzCenter() - .icon.sizeX * 0.5
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
@@ -491,12 +497,9 @@ impl IWnd for IconButton
             var a = 0'f32
             switch
             {
-            case .isPressed:
-                a = 0.14
-            case .isChecked:
-                a = 0.10
-            case .isHot:
-                a = 0.07
+            case .isPressed: a = 0.14
+            case .isChecked: a = 0.10
+            case .isHot:     a = 0.07
             }
 
             // Animate the alpha in/out for a smooth fade (aniBk is unused in overlay mode).
@@ -517,12 +520,9 @@ impl IWnd for IconButton
         let m = Math.min(r.width, r.height)
         switch .form
         {
-        case Round:
-            return m * 0.5
-        case RoundSquare:
-            return Math.min(m * 0.28, 8.0)
-        case Square:
-            return 3
+        case Round:       return m * 0.5
+        case RoundSquare: return Math.min(m * 0.28, 8.0)
+        case Square:      return 3
         }
 
         return 4

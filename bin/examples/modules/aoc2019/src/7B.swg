@@ -58,24 +58,31 @@ internal func run(op: &Array's32, input: const [2] s32, ip: &s32)->{ output: s32
         case 1:
             op[op[ip + 3]] = param0 + param1
             ip             += 4
+
         case 2:
             op[op[ip + 3]] = param0 * param1
             ip             += 4
+
         case 3:
             op[op[ip + 1]] = phaseDone ? input[1] : input[0]
             ip             += 2
             phaseDone      = true
+
         case 4:
             output = param0
             ip     += 2
             return {output, false}
+
         case 5:
             ip = param0 ? param1 : ip + 3
+
         case 6:
             ip = !param0 ? param1 : ip + 3
+
         case 7:
             op[op[ip + 3]] = param0 < param1 ? 1 : 0
             ip             += 4
+
         case 8:
             op[op[ip + 3]] = param0 == param1 ? 1 : 0
             ip             += 4

@@ -139,62 +139,34 @@ impl Allocator
     {
         switch index
         {
-        case 0:
-            return 8
-        case 1:
-            return 16
-        case 2:
-            return 24
-        case 3:
-            return 32
-        case 4:
-            return 48
-        case 5:
-            return 64
-        case 6:
-            return 80
-        case 7:
-            return 96
-        case 8:
-            return 128
-        case 9:
-            return 160
-        case 10:
-            return 192
-        case 11:
-            return 256
-        case 12:
-            return 320
-        case 13:
-            return 384
-        case 14:
-            return 512
-        case 15:
-            return 768
-        case 16:
-            return 1024
-        case 17:
-            return 1536
-        case 18:
-            return 2048
-        case 19:
-            return 3072
-        case 20:
-            return 4096
-        case 21:
-            return 6144
-        case 22:
-            return 8192
-        case 23:
-            return 12288
-        case 24:
-            return 16384
-        case 25:
-            return 24576
-        case 26:
-            return 32768
-        case 27:
-            return 65536
+        case 0:  return 8
+        case 1:  return 16
+        case 2:  return 24
+        case 3:  return 32
+        case 4:  return 48
+        case 5:  return 64
+        case 6:  return 80
+        case 7:  return 96
+        case 8:  return 128
+        case 9:  return 160
+        case 10: return 192
+        case 11: return 256
+        case 12: return 320
+        case 13: return 384
+        case 14: return 512
+        case 15: return 768
+        case 16: return 1024
+        case 17: return 1536
+        case 18: return 2048
+        case 19: return 3072
+        case 20: return 4096
+        case 21: return 6144
+        case 22: return 8192
+        case 23: return 12288
+        case 24: return 16384
+        case 25: return 24576
+        case 26: return 32768
+        case 27: return 65536
         }
 
         return 0

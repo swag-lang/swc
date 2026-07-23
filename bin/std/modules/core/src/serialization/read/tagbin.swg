@@ -737,33 +737,43 @@ impl TagBin
                 case Bool:
                     let v = .stream.readNative'bool()
                     return cast(NT) v
+
                 case U8:
                     let v = .stream.readNative'u8()
                     return cast(NT) v
+
                 case U16:
                     let v = .stream.readNative'u16()
                     return cast(NT) v
+
                 case U32, Rune:
                     let v = .stream.readNative'u32()
                     return cast(NT) v
+
                 case U64:
                     let v = .stream.readNative'u64()
                     return cast(NT) v
+
                 case S8:
                     let v = .stream.readNative's8()
                     return cast(NT) v
+
                 case S16:
                     let v = .stream.readNative's16()
                     return cast(NT) v
+
                 case S32:
                     let v = .stream.readNative's32()
                     return cast(NT) v
+
                 case S64:
                     let v = .stream.readNative's64()
                     return cast(NT) v
+
                 case F32:
                     let v = .stream.readNative'f32()
                     return cast(NT) v
+
                 case F64:
                     let v = .stream.readNative'f64()
                     return cast(NT) v

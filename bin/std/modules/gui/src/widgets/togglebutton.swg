@@ -47,14 +47,17 @@ impl IWnd for ToggleButton
             colorBk     = colors.btnToggle_DisabledBk
             colorBorder = colors.btnToggle_DisabledBorder
             colorMark   = colors.btnToggle_DisabledMark
+
         case .isPressed:
             colorBk     = .isToggled ? colors.btnToggle_OnPressedBk : colors.btnToggle_OffPressedBk
             colorBorder = .isToggled ? colors.btnToggle_OnPressedBorder : colors.btnToggle_OffPressedBorder
             colorMark   = .isToggled ? colors.btnToggle_OnPressedMark : colors.btnToggle_OffPressedMark
+
         case .isHot:
             colorBk     = .isToggled ? colors.btnToggle_OnHotBk : colors.btnToggle_OffHotBk
             colorBorder = .isToggled ? colors.btnToggle_OnHotBorder : colors.btnToggle_OffHotBorder
             colorMark   = .isToggled ? colors.btnToggle_OnHotMark : colors.btnToggle_OffHotMark
+
         default:
             colorBk     = .isToggled ? colors.btnToggle_OnBk : colors.btnToggle_OffBk
             colorBorder = .isToggled ? colors.btnToggle_OnBorder : colors.btnToggle_OffBorder

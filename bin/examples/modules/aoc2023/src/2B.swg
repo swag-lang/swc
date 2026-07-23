@@ -44,12 +44,9 @@ func day2B()
                 let one = Tokenize.split(v, ' ''u8)
                 switch one[1]
                 {
-                case "red":
-                    game.r = Math.max(game.r, assume StrConv.toS32(one[0]))
-                case "green":
-                    game.g = Math.max(game.g, assume StrConv.toS32(one[0]))
-                case "blue":
-                    game.b = Math.max(game.b, assume StrConv.toS32(one[0]))
+                case "red":   game.r = Math.max(game.r, assume StrConv.toS32(one[0]))
+                case "green": game.g = Math.max(game.g, assume StrConv.toS32(one[0]))
+                case "blue":  game.b = Math.max(game.b, assume StrConv.toS32(one[0]))
                 }
             }
         }

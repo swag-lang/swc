@@ -38,6 +38,7 @@ impl IWnd for ProgressBar
             colorBk     = colors.progressBar_DisabledBk
             colorBorder = colors.progressBar_DisabledBorder
             colorMark   = colors.progressBar_DisabledMark
+
         default:
             colorBk     = colors.progressBar_Bk
             colorBorder = colors.progressBar_Border

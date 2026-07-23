@@ -89,7 +89,9 @@ namespace
 
         schema.add("allow-short-if-statements-on-single-line", &options.allowShortIfStatementsOnSingleLine, "Keep short `if x do ...` and `if x { ... }` statements on one line");
         schema.add("allow-short-loops-on-single-line", &options.allowShortLoopsOnSingleLine, "Keep short `while` and `for` bodies on one line");
-        schema.add("allow-short-case-on-single-line", &options.allowShortCaseOnSingleLine, "Keep single-statement `case` arms on one line");
+
+        schema.addEnum("case-body-style", &options.caseBodyStyle, {{"preserve", FormatCaseBodyStyle::Preserve}, {"next-line", FormatCaseBodyStyle::NextLine}, {"same-line", FormatCaseBodyStyle::SameLine}, {"uniform", FormatCaseBodyStyle::Uniform}}, "Choose how `case` bodies are laid out");
+        schema.addEnum("blank-line-between-cases", &options.blankLineBetweenCases, {{"preserve", FormatCaseBlankStyle::Preserve}, {"never", FormatCaseBlankStyle::Never}, {"always", FormatCaseBlankStyle::Always}, {"multi-line", FormatCaseBlankStyle::MultiLine}}, "Choose the blank lines between `case` arms");
 
         schema.add("remove-redundant-semicolons", &options.removeRedundantSemicolons, "Drop `;` at end of line when the grammar does not require it");
         schema.add("remove-condition-parentheses", &options.removeConditionParentheses, "Drop the parentheses wrapping a whole control-statement condition");
@@ -111,6 +113,7 @@ namespace
         schema.addEnum("align-enum-values", &options.alignEnumValues, alignChoices, "Align `=` in adjacent enum value definitions");
         schema.addEnum("align-attributes", &options.alignAttributes, alignChoices, "Align adjacent attribute annotations");
         schema.addEnum("align-fat-arrows", &options.alignFatArrows, alignChoices, "Align `=>` of adjacent short function bodies");
+        schema.addEnum("align-case-bodies", &options.alignCaseBodies, alignChoices, "Align the bodies of consecutive one-line `case` arms");
 
         schema.add("align-trailing-comments", &options.alignTrailingComments, "Align trailing `//` comments into a shared column");
         schema.add("trailing-comment-min-spaces", &options.trailingCommentMinSpaces, "Set the minimum spaces between code and a trailing `//` comment");

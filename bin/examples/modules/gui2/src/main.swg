@@ -93,22 +93,14 @@ func pageTitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "PushButton"
-    case 1:
-        return "CheckButton"
-    case 2:
-        return "RadioButton"
-    case 3:
-        return "EditBox"
-    case 4:
-        return "Slider"
-    case 5:
-        return "ComboBox"
-    case 6:
-        return "Tab"
-    case 7:
-        return "ProgressBar"
+    case 0: return "PushButton"
+    case 1: return "CheckButton"
+    case 2: return "RadioButton"
+    case 3: return "EditBox"
+    case 4: return "Slider"
+    case 5: return "ComboBox"
+    case 6: return "Tab"
+    case 7: return "ProgressBar"
     }
 
     unreachable
@@ -118,22 +110,14 @@ func pageSubtitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Forms, icons, disabled state and command feedback for push buttons."
-    case 1:
-        return "Unchecked, checked, tri-state, right-aligned and disabled check boxes."
-    case 2:
-        return "Radio button groups, right alignment and disabled selections."
-    case 3:
-        return "Text entry forms, notes, icons, numeric modes, clear button and read-only fields."
-    case 4:
-        return "Horizontal, range, stepped, vertical and disabled sliders."
-    case 5:
-        return "Select, editable, rich text, separators, constrained popups and disabled combos."
-    case 6:
-        return "Flat, round, button and push-button tab presentations with real child views."
-    case 7:
-        return "Finite, infinite, disabled and frame-driven progress indicators."
+    case 0: return "Forms, icons, disabled state and command feedback for push buttons."
+    case 1: return "Unchecked, checked, tri-state, right-aligned and disabled check boxes."
+    case 2: return "Radio button groups, right alignment and disabled selections."
+    case 3: return "Text entry forms, notes, icons, numeric modes, clear button and read-only fields."
+    case 4: return "Horizontal, range, stepped, vertical and disabled sliders."
+    case 5: return "Select, editable, rich text, separators, constrained popups and disabled combos."
+    case 6: return "Flat, round, button and push-button tab presentations with real child views."
+    case 7: return "Finite, infinite, disabled and frame-driven progress indicators."
     }
 
     unreachable
@@ -189,24 +173,15 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:
-        createPushButtonPage(notnull g_PageView)
-    case 1:
-        createCheckButtonPage(notnull g_PageView)
-    case 2:
-        createRadioButtonPage(notnull g_PageView)
-    case 3:
-        createEditBoxPage(notnull g_PageView)
-    case 4:
-        createSliderPage(notnull g_PageView)
-    case 5:
-        createComboBoxPage(notnull g_PageView)
-    case 6:
-        createTabPage(notnull g_PageView)
-    case 7:
-        createProgressBarPage(notnull g_PageView)
-    default:
-        unreachable
+    case 0:  createPushButtonPage(notnull g_PageView)
+    case 1:  createCheckButtonPage(notnull g_PageView)
+    case 2:  createRadioButtonPage(notnull g_PageView)
+    case 3:  createEditBoxPage(notnull g_PageView)
+    case 4:  createSliderPage(notnull g_PageView)
+    case 5:  createComboBoxPage(notnull g_PageView)
+    case 6:  createTabPage(notnull g_PageView)
+    case 7:  createProgressBarPage(notnull g_PageView)
+    default: unreachable
     }
 
     g_PageView.invalidate()

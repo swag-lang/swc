@@ -11,6 +11,7 @@ impl Image
         {
         case RGB8:
             break
+
         case RGBA8:
             mec.visitPixels(dstImage)
             {
@@ -42,6 +43,7 @@ impl Image
         {
         case RGBA8:
             break
+
         case BGRA8:
             mec.visitPixels(dstImage)
             {
@@ -86,6 +88,7 @@ impl Image
         {
         case BGR8:
             break
+
         case BGRA8:
             mec.visitPixels(dstImage)
             {
@@ -117,6 +120,7 @@ impl Image
         {
         case BGRA8:
             break
+
         case BGR8:
             mec.visitPixels(dstImage)
             {
@@ -157,14 +161,10 @@ impl Image
         #[Swag.Complete]
         switch dstImage.pf
         {
-        case RGB8:
-            .doRGB8(dstImage)
-        case RGBA8:
-            .doRGBA8(dstImage)
-        case BGR8:
-            .doBGR8(dstImage)
-        case BGRA8:
-            .doBGRA8(dstImage)
+        case RGB8:  .doRGB8(dstImage)
+        case RGBA8: .doRGBA8(dstImage)
+        case BGR8:  .doBGR8(dstImage)
+        case BGRA8: .doBGRA8(dstImage)
         }
     }
 

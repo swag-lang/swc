@@ -59,20 +59,13 @@ impl IWnd for PopupListView
 
         switch evt.key
         {
-        case Up:
-            .moveHot(-1)
-        case Down:
-            .moveHot(1)
-        case Home:
-            .moveHotEdge(forward: true)
-        case End:
-            .moveHotEdge(forward: false)
-        case Return, Space:
-            .close(.hotIdx)
-        case Escape:
-            .close(Swag.U32.Max)
-        default:
-            return
+        case Up:            .moveHot(-1)
+        case Down:          .moveHot(1)
+        case Home:          .moveHotEdge(forward: true)
+        case End:           .moveHotEdge(forward: false)
+        case Return, Space: .close(.hotIdx)
+        case Escape:        .close(Swag.U32.Max)
+        default:            return
         }
 
         evt.accepted = true

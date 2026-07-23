@@ -920,9 +920,11 @@ public impl MenuCtrl
         case AnchorTopCenter:
             .paintByFrame = true
             .padding.y    += 4
+
         case AnchorBottomCenter:
             .paintByFrame = true
             .padding.w    += 4
+
         default:
             .paintByFrame = false
         }

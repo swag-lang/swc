@@ -2332,12 +2332,15 @@ impl Transform
         case EvenOdd:
             if edge.windDelta == 0 and edge.windCnt != 1 do
                 return false
+
         case NonZero:
             if Math.abs(edge.windCnt) != 1 do
                 return false
+
         case Positive:
             if edge.windCnt != 1 do
                 return false
+
         default:
             if edge.windCnt != -1 do
                 return false
@@ -2348,23 +2351,17 @@ impl Transform
         case Intersection:
             switch pft2
             {
-            case EvenOdd, NonZero:
-                return edge.windCnt2 != 0
-            case Positive:
-                return edge.windCnt2 > 0
-            default:
-                return edge.windCnt2 < 0
+            case EvenOdd, NonZero: return edge.windCnt2 != 0
+            case Positive:         return edge.windCnt2 > 0
+            default:               return edge.windCnt2 < 0
             }
 
         case Union:
             switch pft2
             {
-            case EvenOdd, NonZero:
-                return edge.windCnt2 == 0
-            case Positive:
-                return edge.windCnt2 <= 0
-            default:
-                return edge.windCnt2 >= 0
+            case EvenOdd, NonZero: return edge.windCnt2 == 0
+            case Positive:         return edge.windCnt2 <= 0
+            default:               return edge.windCnt2 >= 0
             }
 
         case Difference:
@@ -2372,24 +2369,18 @@ impl Transform
             {
                 switch pft2
                 {
-                case EvenOdd, NonZero:
-                    return edge.windCnt2 == 0
-                case Positive:
-                    return edge.windCnt2 <= 0
-                default:
-                    return edge.windCnt2 >= 0
+                case EvenOdd, NonZero: return edge.windCnt2 == 0
+                case Positive:         return edge.windCnt2 <= 0
+                default:               return edge.windCnt2 >= 0
                 }
             }
             else
             {
                 switch pft2
                 {
-                case EvenOdd, NonZero:
-                    return edge.windCnt2 != 0
-                case Positive:
-                    return edge.windCnt2 > 0
-                default:
-                    return edge.windCnt2 < 0
+                case EvenOdd, NonZero: return edge.windCnt2 != 0
+                case Positive:         return edge.windCnt2 > 0
+                default:               return edge.windCnt2 < 0
                 }
             }
 
@@ -2398,12 +2389,9 @@ impl Transform
             {
                 switch pft2
                 {
-                case EvenOdd, NonZero:
-                    return edge.windCnt2 == 0
-                case Positive:
-                    return edge.windCnt2 <= 0
-                default:
-                    return edge.windCnt2 >= 0
+                case EvenOdd, NonZero: return edge.windCnt2 == 0
+                case Positive:         return edge.windCnt2 <= 0
+                default:               return edge.windCnt2 >= 0
                 }
             }
         }
@@ -2903,22 +2891,16 @@ impl Transform
         var e1Wc, e2Wc: CInt
         switch e1FillType
         {
-        case Positive:
-            e1Wc = e1.windCnt
-        case Negative:
-            e1Wc = -e1.windCnt
-        default:
-            e1Wc = Math.abs(e1.windCnt)
+        case Positive: e1Wc = e1.windCnt
+        case Negative: e1Wc = -e1.windCnt
+        default:       e1Wc = Math.abs(e1.windCnt)
         }
 
         switch e2FillType
         {
-        case Positive:
-            e2Wc = e2.windCnt
-        case Negative:
-            e2Wc = -e2.windCnt
-        default:
-            e2Wc = Math.abs(e2.windCnt)
+        case Positive: e2Wc = e2.windCnt
+        case Negative: e2Wc = -e2.windCnt
+        default:       e2Wc = Math.abs(e2.windCnt)
         }
 
         if e1Contributing and e2Contributing
@@ -2958,22 +2940,16 @@ impl Transform
             var e1Wc2, e2Wc2: CInt
             switch e1FillType2
             {
-            case Positive:
-                e1Wc2 = e1.windCnt2
-            case Negative:
-                e1Wc2 = -e1.windCnt2
-            default:
-                e1Wc2 = Math.abs(e1.windCnt2)
+            case Positive: e1Wc2 = e1.windCnt2
+            case Negative: e1Wc2 = -e1.windCnt2
+            default:       e1Wc2 = Math.abs(e1.windCnt2)
             }
 
             switch e2FillType2
             {
-            case Positive:
-                e2Wc2 = e2.windCnt2
-            case Negative:
-                e2Wc2 = -e2.windCnt2
-            default:
-                e2Wc2 = Math.abs(e2.windCnt2)
+            case Positive: e2Wc2 = e2.windCnt2
+            case Negative: e2Wc2 = -e2.windCnt2
+            default:       e2Wc2 = Math.abs(e2.windCnt2)
             }
 
             if e1.polyType != e2.polyType
@@ -2987,13 +2963,16 @@ impl Transform
                 case Intersection:
                     if e1Wc2 > 0 and e2Wc2 > 0 do
                         .addLocalMinPoly(e1, e2, pt)
+
                 case Union:
                     if e1Wc2 <= 0 and e2Wc2 <= 0 do
                         .addLocalMinPoly(e1, e2, pt)
+
                 case Difference:
                     if ((e1.polyType == .Clip) and (e1Wc2 > 0) and (e2Wc2 > 0)) or
                        ((e1.polyType == .Subject) and (e1Wc2 <= 0) and (e2Wc2 <= 0)) do
                         .addLocalMinPoly(e1, e2, pt)
+
                 case Xor:
                     .addLocalMinPoly(e1, e2, pt)
                 }

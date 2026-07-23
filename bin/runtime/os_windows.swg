@@ -261,12 +261,9 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
         {
             switch kind
             {
-            case Assert:
-                msg = "assertion does not hold"
-            case Safety:
-                msg = "runtime safety contract does not hold"
-            default:
-                msg = "runtime error"
+            case Assert: msg = "assertion does not hold"
+            case Safety: msg = "runtime safety contract does not hold"
+            default:     msg = "runtime error"
             }
         }
 
@@ -443,12 +440,9 @@ func __panicBox(msg, title: string)
     let result = MessageBoxA(null, @dataof(msg), @dataof(title), MB_ICONERROR | MB_CANCELTRYCONTINUE)
     switch result
     {
-    case IDCANCEL:
-        __exitError()
-    case IDTRYAGAIN:
-        DebugBreak()
-    case IDCONTINUE:
-        break
+    case IDCANCEL:   __exitError()
+    case IDTRYAGAIN: DebugBreak()
+    case IDCONTINUE: break
     }
 }
 

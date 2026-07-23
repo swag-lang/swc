@@ -72,21 +72,27 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
     case 7:
         h ^= cast(u64) data2[6] << 48
         fallthrough
+
     case 6:
         h ^= cast(u64) data2[5] << 40
         fallthrough
+
     case 5:
         h ^= cast(u64) data2[4] << 32
         fallthrough
+
     case 4:
         h ^= cast(u64) data2[3] << 24
         fallthrough
+
     case 3:
         h ^= cast(u64) data2[2] << 16
         fallthrough
+
     case 2:
         h ^= cast(u64) data2[1] << 8
         fallthrough
+
     case 1:
         h ^= cast(u64) data2[0]
         h *= M

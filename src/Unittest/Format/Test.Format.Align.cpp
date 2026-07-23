@@ -296,6 +296,36 @@ SWC_TEST_BEGIN(FormatAlign_SingletonTightensStalePadding)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_CaseBodiesConsecutive)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1: return 8\n"
+        "    case 100: return 192\n"
+        "    default: return 0\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: s32)->s32\n"
+        "{\n"
+        "    switch x\n"
+        "    {\n"
+        "    case 1:   return 8\n"
+        "    case 100: return 192\n"
+        "    default:  return 0\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignCaseBodies = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_ArrayColumns)
 {
     static constexpr std::string_view SOURCE =

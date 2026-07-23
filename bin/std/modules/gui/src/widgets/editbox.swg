@@ -138,9 +138,11 @@ impl IWnd for EditBox
         case Square, Transparent:
             subRectBk     = &rects.edit_SquareBk
             subRectBorder = &rects.edit_SquareBorder
+
         case Round:
             subRectBk     = &rects.edit_RoundBk
             subRectBorder = &rects.edit_RoundBorder
+
         case Flat:
             subRectBk     = &rects.edit_FlatBk
             subRectBorder = &rects.edit_FlatBorder
@@ -155,9 +157,11 @@ impl IWnd for EditBox
             colorBorder = colors.edit_DisabledBorder
             colorBk     = colors.edit_DisabledBk
             colorText   = colors.edit_DisabledText
+
         case .isInvalid:
             colorBorder = colors.edit_ErrorBorder
             colorBk     = colors.edit_ErrorBk
+
         case .editBoxFlags.has(.ReadOnly):
 
             // Shown but not editable: render like a disabled box so it reads as read-only,
@@ -165,12 +169,15 @@ impl IWnd for EditBox
             colorBorder = colors.edit_DisabledBorder
             colorBk     = colors.edit_DisabledBk
             colorText   = colors.edit_DisabledText
+
         case .hasFocus():
             colorBorder = colors.edit_FocusBorder
             colorBk     = colors.edit_FocusBk
+
         case .isHot:
             colorBorder = colors.edit_HotBorder
             colorBk     = colors.edit_HotBk
+
         default:
             colorBorder = colors.edit_Border
             colorBk     = colors.edit_Bk
@@ -691,14 +698,10 @@ private impl EditBox
         #[Swag.Complete]
         switch .form
         {
-        case Square:
-            return .getThemeMetrics().editBox_SquarePadding
-        case Round:
-            return .getThemeMetrics().editBox_RoundPadding
-        case Flat:
-            return .getThemeMetrics().editBox_FlatPadding
-        case Transparent:
-            break
+        case Square:      return .getThemeMetrics().editBox_SquarePadding
+        case Round:       return .getThemeMetrics().editBox_RoundPadding
+        case Flat:        return .getThemeMetrics().editBox_FlatPadding
+        case Transparent: break
         }
 
         return {}
@@ -720,12 +723,15 @@ private impl EditBox
         case U64:
             lo = Format.toString("%", .minMaxU64.min)
             hi = Format.toString("%", .minMaxU64.max)
+
         case S64:
             lo = Format.toString("%", .minMaxS64.min)
             hi = Format.toString("%", .minMaxS64.max)
+
         case F64:
             lo = Format.toString("%{f2}", .minMaxF64.min)
             hi = Format.toString("%{f2}", .minMaxF64.max)
+
         default:
             return 0
         }
@@ -1158,14 +1164,10 @@ impl EditBox
         #[Swag.Complete]
         switch .form
         {
-        case Square:
-            .setAllPaddings(.getThemeMetrics().editBox_SquarePadding)
-        case Round:
-            .setAllPaddings(.getThemeMetrics().editBox_RoundPadding)
-        case Flat:
-            .setAllPaddings(.getThemeMetrics().editBox_FlatPadding)
-        case Transparent:
-            .setAllPaddings(0)
+        case Square:      .setAllPaddings(.getThemeMetrics().editBox_SquarePadding)
+        case Round:       .setAllPaddings(.getThemeMetrics().editBox_RoundPadding)
+        case Flat:        .setAllPaddings(.getThemeMetrics().editBox_FlatPadding)
+        case Transparent: .setAllPaddings(0)
         }
 
         .invalidate()

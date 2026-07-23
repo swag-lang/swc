@@ -59,14 +59,10 @@ impl FontFamily
     {
         switch style
         {
-        case Regular:
-            .regular = fnt
-        case Bold:
-            .bold = fnt
-        case Italic:
-            .italic = fnt
-        case BoldItalic:
-            .boldItalic = fnt
+        case Regular:    .regular = fnt
+        case Bold:       .bold = fnt
+        case Italic:     .italic = fnt
+        case BoldItalic: .boldItalic = fnt
         }
     }
 }

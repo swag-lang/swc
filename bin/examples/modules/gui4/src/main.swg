@@ -102,10 +102,8 @@ impl IPropertyNotify for SceneCard
     {
         switch item.typeValue.name
         {
-        case #nameof(SceneCard.radius):
-            return .shape != CardShape.Pill
-        case #nameof(SceneCard.shadowKind):
-            return .castShadow
+        case #nameof(SceneCard.radius):     return .shape != CardShape.Pill
+        case #nameof(SceneCard.shadowKind): return .castShadow
         }
 
         return true
@@ -244,12 +242,9 @@ func displayModeIndex(kind: PropertiesKind)->u32
 {
     switch kind
     {
-    case Grid:
-        return 0
-    case Condensed:
-        return 1
-    case List:
-        return 2
+    case Grid:      return 0
+    case Condensed: return 1
+    case List:      return 2
     }
 
     return 0
@@ -259,12 +254,9 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
 {
     switch idx
     {
-    case 0:
-        return .Grid
-    case 1:
-        return .Condensed
-    case 2:
-        return .List
+    case 0: return .Grid
+    case 1: return .Condensed
+    case 2: return .List
     }
 
     return .Grid
@@ -385,12 +377,9 @@ func cardRadius(card: *SceneCard, h: f32)->f32
 {
     switch card.shape
     {
-    case Card:
-        return card.radius
-    case Banner:
-        return Math.min(card.radius, 12)
-    case Pill:
-        return h * 0.5
+    case Card:   return card.radius
+    case Banner: return Math.min(card.radius, 12)
+    case Pill:   return h * 0.5
     }
 
     return card.radius

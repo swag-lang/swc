@@ -64,9 +64,11 @@ func day8B()
             case "nop":
                 ip  += cpt == fix ? v : 1
                 cpt += 1
+
             case "acc":
                 total += v
                 ip    += 1
+
             case "jmp":
                 ip  += cpt == fix ? 1 : v
                 cpt += 1

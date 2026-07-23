@@ -110,26 +110,24 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     case FormPolygon:
         let poly = cast(*FormPolygon) @dataof(paintItf)
         poly.setDefaultShape()
+
     case FormDraw:
         let poly = cast(*FormDraw) @dataof(paintItf)
         poly.setDefaultShape()
+
     case FormText:
         let txt = cast(*FormText) @dataof(paintItf)
         txt.text = "A"
+
     case FormImage:
         let img = cast(*FormImage) @dataof(paintItf)
         switch img.kind
         {
-        case Image:
-            result.title = "image"
-        case Blur:
-            result.title = "blur"
-        case Pixelate:
-            result.title = "pixelate"
-        case Zoom:
-            result.title = "zoom"
-        case Capture:
-            result.title = "capture"
+        case Image:    result.title = "image"
+        case Blur:     result.title = "blur"
+        case Pixelate: result.title = "pixelate"
+        case Zoom:     result.title = "zoom"
+        case Capture:  result.title = "capture"
         }
     }
 
@@ -685,32 +683,19 @@ impl QuickWnd
         #[Swag.Complete]
         switch .main.editMode
         {
-        case Arrow:
-            .defaultQuickStyleArrow()
-        case Shape:
-            .defaultQuickStyleShape()
-        case Image:
-            .defaultQuickStyleImage()
-        case Step:
-            .defaultQuickStyleStep()
-        case Line:
-            .defaultQuickStyleLine()
-        case Polygon:
-            .defaultQuickStylePolygon()
-        case Text:
-            .defaultQuickStyleText()
-        case Draw:
-            .defaultQuickStyleDraw()
-        case Highlight:
-            .defaultQuickStyleHighlight()
-        case PixSel:
-            .defaultQuickStylePixSel()
-        case Callout:
-            .defaultQuickStyleCallout()
-        case Favorites:
-            break
-        case Selection:
-            break
+        case Arrow:     .defaultQuickStyleArrow()
+        case Shape:     .defaultQuickStyleShape()
+        case Image:     .defaultQuickStyleImage()
+        case Step:      .defaultQuickStyleStep()
+        case Line:      .defaultQuickStyleLine()
+        case Polygon:   .defaultQuickStylePolygon()
+        case Text:      .defaultQuickStyleText()
+        case Draw:      .defaultQuickStyleDraw()
+        case Highlight: .defaultQuickStyleHighlight()
+        case PixSel:    .defaultQuickStylePixSel()
+        case Callout:   .defaultQuickStyleCallout()
+        case Favorites: break
+        case Selection: break
         }
 
         .updateQuickStyles(forceRebuild: true)
@@ -739,32 +724,19 @@ impl QuickWnd
         #[Swag.Complete]
         switch edMode
         {
-        case Arrow:
-            .currentStyle = &.qsArrow
-        case Shape:
-            .currentStyle = &.qsShape
-        case Image:
-            .currentStyle = &.qsImage
-        case Step:
-            .currentStyle = &.qsStep
-        case Line:
-            .currentStyle = &.qsLine
-        case Polygon:
-            .currentStyle = &.qsPolygon
-        case Text:
-            .currentStyle = &.qsText
-        case Favorites:
-            .currentStyle = &.qsFavorites
-        case Draw:
-            .currentStyle = &.qsDraw
-        case Highlight:
-            .currentStyle = &.qsHighlight
-        case PixSel:
-            .currentStyle = &.qsPixSel
-        case Callout:
-            .currentStyle = &.qsCallout
-        case Selection:
-            return
+        case Arrow:     .currentStyle = &.qsArrow
+        case Shape:     .currentStyle = &.qsShape
+        case Image:     .currentStyle = &.qsImage
+        case Step:      .currentStyle = &.qsStep
+        case Line:      .currentStyle = &.qsLine
+        case Polygon:   .currentStyle = &.qsPolygon
+        case Text:      .currentStyle = &.qsText
+        case Favorites: .currentStyle = &.qsFavorites
+        case Draw:      .currentStyle = &.qsDraw
+        case Highlight: .currentStyle = &.qsHighlight
+        case PixSel:    .currentStyle = &.qsPixSel
+        case Callout:   .currentStyle = &.qsCallout
+        case Selection: return
         }
 
         if !.currentStyle do

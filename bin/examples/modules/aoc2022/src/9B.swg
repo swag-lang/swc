@@ -453,14 +453,10 @@ func day9B()
         var incx, incy = 0
         switch cmd[0]
         {
-        case "R":
-            incx += 1
-        case "L":
-            incx -= 1
-        case "U":
-            incy -= 1
-        case "D":
-            incy += 1
+        case "R": incx += 1
+        case "L": incx -= 1
+        case "U": incy -= 1
+        case "D": incy += 1
         }
 
         for cpt
@@ -481,8 +477,10 @@ func day9B()
                 {
                 case dx > 1 and !dy:
                     rope[i].x += sdx
+
                 case dy > 1 and !dx:
                     rope[i].y += sdy
+
                 case dx + dy > 2:
                     rope[i].x += sdx; rope[i].y += sdy
                 }

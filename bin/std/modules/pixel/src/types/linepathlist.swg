@@ -83,12 +83,9 @@ impl LinePathList
         var joinType = Clipper.JoinType.Square
         switch joinStyle
         {
-        case Round:
-            joinType = .Round
-        case Bevel:
-            joinType = .Square
-        case Miter:
-            joinType = .Miter
+        case Round: joinType = .Round
+        case Bevel: joinType = .Square
+        case Miter: joinType = .Miter
         }
 
         var newList: LinePathList

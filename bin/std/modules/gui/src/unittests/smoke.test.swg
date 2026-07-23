@@ -57,8 +57,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     {
         switch evt
         {
-        case TimerEvent:
-            dref count += 1
+        case TimerEvent: dref count += 1
         }
 
         return false

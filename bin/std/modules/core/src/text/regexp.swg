@@ -1101,8 +1101,7 @@ impl RegExp
     {
         switch c
         {
-        case '\\', '(', ')', '*', '?', '+', '.', '|', '[', ']', '{', '}', '/', '^', '$', '-':
-            return true
+        case '\\', '(', ')', '*', '?', '+', '.', '|', '[', ']', '{', '}', '/', '^', '$', '-': return true
         }
 
         return false
@@ -1705,6 +1704,7 @@ impl RegExp
                 case 'l':
                     .preprocessed.add(.ignoreCase ? RuneUnicodeLetter : RuneUnicodeLetterLower)
                     return pz + 4
+
                 case 'u':
                     .preprocessed.add(.ignoreCase ? RuneUnicodeLetter : RuneUnicodeLetterUpper)
                     return pz + 4
@@ -1726,9 +1726,11 @@ impl RegExp
         case 'L':
             .preprocessed.add(RuneUnicodeLetter)
             return pz + 1
+
         case 'N':
             .preprocessed.add(RuneUnicodeNumber)
             return pz + 1
+
         case 'S':
             .preprocessed.add(RuneUnicodeSymbol)
             return pz + 1
@@ -1758,57 +1760,75 @@ impl RegExp
             case 'd':
                 .preprocessInter(#runes("[[:digit:]]"))
                 return pz + 2
+
             case 'D':
                 .preprocessInter(#runes("[^[:digit:]]"))
                 return pz + 2
+
             case 'w':
                 .preprocessInter(#runes("[[:word:]]"))
                 return pz + 2
+
             case 'W':
                 .preprocessInter(#runes("[^[:word:]]"))
                 return pz + 2
+
             case 's':
                 .preprocessInter(#runes("[[:space:]]"))
                 return pz + 2
+
             case 'S':
                 .preprocessInter(#runes("[^[:space:]]"))
                 return pz + 2
+
             case 'l':
                 .preprocessInter(#runes("[[:lower:]]"))
                 return pz + 2
+
             case 'L':
                 .preprocessInter(#runes("[^[:lower:]]"))
                 return pz + 2
+
             case 'u':
                 .preprocessInter(#runes("[[:upper:]]"))
                 return pz + 2
+
             case 'U':
                 .preprocessInter(#runes("[^[:upper:]]"))
                 return pz + 2
+
             case 'a':
                 .preprocessed.add('\a')
                 return pz + 2
+
             case 'b':
                 .preprocessed.add(inInter ? '\b' : RuneWordSwap)
                 return pz + 2
+
             case 'f':
                 .preprocessed.add('\f')
                 return pz + 2
+
             case 'n':
                 .preprocessed.add('\n')
                 return pz + 2
+
             case 'r':
                 .preprocessed.add('\r')
                 return pz + 2
+
             case 't':
                 .preprocessed.add('\t')
                 return pz + 2
+
             case 'v':
                 .preprocessed.add('\v')
                 return pz + 2
+
             case 'p':
                 pz = .preprocessUnicode(sl)
                 return pz
+
             case '1', '2', '3', '4', '5', '6', '7', '8', '9':
                 .preprocessed.add(RuneGroup1 + (pz[1] - '1'))
                 return pz + 2
@@ -1874,32 +1894,39 @@ impl RegExp
                         if isEscaped(uni32, iminus) do
                             break
                         cpt0 += 1
+
                     case ')':
                         if isEscaped(uni32, iminus) do
                             break
                         cpt1 += 1
+
                     case RuneCloseParen:
                         cpt1 += 1
+
                     case '}':
                         if isEscaped(uni32, iminus) do
                             break
                         cpt2 += 1
+
                     case '[':
                         if isEscaped(uni32, iminus) do
                             break
                         if cpt0 == 0 do
                             break to Loop
                         cpt0 -= 1
+
                     case '(':
                         if isEscaped(uni32, iminus) do
                             break
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
+
                     case RuneOpenParen:
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
+
                     case '{':
                         if isEscaped(uni32, iminus) do
                             break
@@ -1925,32 +1952,39 @@ impl RegExp
                         if isEscaped(uni32, iplus) do
                             break
                         cpt0 += 1
+
                     case '(':
                         if isEscaped(uni32, iplus) do
                             break
                         cpt1 += 1
+
                     case RuneOpenParen:
                         cpt1 += 1
+
                     case '{':
                         if isEscaped(uni32, iplus) do
                             break
                         cpt2 += 1
+
                     case ']':
                         if isEscaped(uni32, iplus) do
                             break
                         if cpt0 == 0 do
                             break to Loop
                         cpt0 -= 1
+
                     case ')':
                         if isEscaped(uni32, iplus) do
                             break
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
+
                     case RuneCloseParen:
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
+
                     case '}':
                         if isEscaped(uni32, iplus) do
                             break
@@ -1982,12 +2016,9 @@ impl RegExp
         {
             switch c
             {
-            case '[':
-                pz = .preprocessInter(@mkslice(pz, pzEnd - pz))
-            case '{':
-                pz = .preprocessEnum(@mkslice(pz, pzEnd - pz))
-            default:
-                pz = .preprocessEscape(@mkslice(pz, pzEnd - pz))
+            case '[': pz = .preprocessInter(@mkslice(pz, pzEnd - pz))
+            case '{': pz = .preprocessEnum(@mkslice(pz, pzEnd - pz))
+            default:  pz = .preprocessEscape(@mkslice(pz, pzEnd - pz))
             }
 
             if !pz do

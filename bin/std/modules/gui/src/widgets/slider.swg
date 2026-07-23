@@ -335,20 +335,13 @@ impl IWnd for Slider
 
         switch evt.key
         {
-        case Left, Down:
-            .stepBy(-1)
-        case Right, Up:
-            .stepBy(1)
-        case PageDown:
-            .stepValue1(-bigBy)
-        case PageUp:
-            .stepValue1(bigBy)
-        case Home:
-            .stepValue1To(0)
-        case End:
-            .stepValue1To(1)
-        default:
-            return
+        case Left, Down: .stepBy(-1)
+        case Right, Up:  .stepBy(1)
+        case PageDown:   .stepValue1(-bigBy)
+        case PageUp:     .stepValue1(bigBy)
+        case Home:       .stepValue1To(0)
+        case End:        .stepValue1To(1)
+        default:         return
         }
 
         evt.accepted = true

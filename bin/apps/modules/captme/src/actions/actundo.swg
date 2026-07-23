@@ -42,10 +42,8 @@ impl IActionUI for ActionUndo
 
         switch cxt.id
         {
-        case DoUndo:
-            capture.undo()
-        case DoRedo:
-            capture.redo()
+        case DoUndo: capture.undo()
+        case DoRedo: capture.redo()
         }
 
         capture.selectionHasChanged()

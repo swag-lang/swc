@@ -13,12 +13,9 @@ providing a streamlined and efficient way to process each item.
         let a = @index
         switch a
         {
-        case 0:
-            @assert(value == 'A')
-        case 1:
-            @assert(value == 'B')
-        case 2:
-            @assert(value == 'C')
+        case 0: @assert(value == 'A')
+        case 1: @assert(value == 'B')
+        case 2: @assert(value == 'C')
         }
     }
 }
@@ -36,12 +33,9 @@ especially in nested loops or with complex data structures.
         let a = index
         switch a
         {
-        case 0:
-            @assert(value == 'A')
-        case 1:
-            @assert(value == 'B')
-        case 2:
-            @assert(value == 'C')
+        case 0: @assert(value == 'A')
+        case 1: @assert(value == 'B')
+        case 2: @assert(value == 'C')
         }
     }
 }
@@ -61,9 +55,11 @@ Iterate from the last element to the first by adding the '#reverse' modifier.
         case 0:
             @assert(value == 'C')
             @assert(@index == 2)
+
         case 1:
             @assert(value == 'B')
             @assert(@index == 1)
+
         case 2:
             @assert(value == 'A')
             @assert(@index == 0)

@@ -27,8 +27,7 @@ impl IActionUI for ActionProperties
     {
         switch cxt.id
         {
-        case Copy, Paste, ResetDefault, MoveUp, MoveDown, Remove, RemoveAll:
-            return true
+        case Copy, Paste, ResetDefault, MoveUp, MoveDown, Remove, RemoveAll: return true
         }
 
         return false

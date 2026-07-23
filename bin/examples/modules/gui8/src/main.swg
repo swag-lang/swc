@@ -78,22 +78,14 @@ func sampleIcon(index: s32, size = 16'f32)->Icon
 {
     switch index % 8
     {
-    case 0:
-        return app.theme.getIcon24(.Search, size)
-    case 1:
-        return app.theme.getIcon24(.OpenFile, size)
-    case 2:
-        return app.theme.getIcon24(.Edit, size)
-    case 3:
-        return app.theme.getIcon24(.Filter, size)
-    case 4:
-        return app.theme.getIcon24(.Options, size)
-    case 5:
-        return app.theme.getIcon24(.Download, size)
-    case 6:
-        return app.theme.getIcon24(.Link, size)
-    default:
-        return app.theme.getIcon24(.Sort, size)
+    case 0:  return app.theme.getIcon24(.Search, size)
+    case 1:  return app.theme.getIcon24(.OpenFile, size)
+    case 2:  return app.theme.getIcon24(.Edit, size)
+    case 3:  return app.theme.getIcon24(.Filter, size)
+    case 4:  return app.theme.getIcon24(.Options, size)
+    case 5:  return app.theme.getIcon24(.Download, size)
+    case 6:  return app.theme.getIcon24(.Link, size)
+    default: return app.theme.getIcon24(.Sort, size)
     }
 }
 
@@ -124,14 +116,10 @@ func pageTitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Lists"
-    case 1:
-        return "Columns"
-    case 2:
-        return "Trees"
-    case 3:
-        return "Headers"
+    case 0: return "Lists"
+    case 1: return "Columns"
+    case 2: return "Trees"
+    case 3: return "Headers"
     }
 
     unreachable
@@ -141,14 +129,10 @@ func pageSubtitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Simple, checkable and virtual ListCtrl configurations with selection and scrolling."
-    case 1:
-        return "Multi-column ListCtrl pages with clickable headers, icons, sorted columns and grid lines."
-    case 2:
-        return "Tree-shaped ListCtrl data with expanded branches, nested rows and multi-column metadata."
-    case 3:
-        return "Standalone Header controls with sizing constraints, sort marks and matching list headers."
+    case 0: return "Simple, checkable and virtual ListCtrl configurations with selection and scrolling."
+    case 1: return "Multi-column ListCtrl pages with clickable headers, icons, sorted columns and grid lines."
+    case 2: return "Tree-shaped ListCtrl data with expanded branches, nested rows and multi-column metadata."
+    case 3: return "Standalone Header controls with sizing constraints, sort marks and matching list headers."
     }
 
     unreachable
@@ -200,16 +184,11 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:
-        createListsPage(notnull g_PageView)
-    case 1:
-        createColumnsPage(notnull g_PageView)
-    case 2:
-        createTreesPage(notnull g_PageView)
-    case 3:
-        createHeadersPage(notnull g_PageView)
-    default:
-        unreachable
+    case 0:  createListsPage(notnull g_PageView)
+    case 1:  createColumnsPage(notnull g_PageView)
+    case 2:  createTreesPage(notnull g_PageView)
+    case 3:  createHeadersPage(notnull g_PageView)
+    default: unreachable
     }
 
     refreshLayoutTree(notnull g_PageView)

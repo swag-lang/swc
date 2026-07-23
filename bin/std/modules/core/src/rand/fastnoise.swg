@@ -182,22 +182,14 @@ impl FastNoise
         #[Swag.Complete]
         switch .kind
         {
-        case Perlin:
-            result = Noise.perlin(xi, yi, .seed)
-        case PerlinFractalFBM:
-            result = .perlinFractalFBM(xi, yi)
-        case PerlinFractalBillow:
-            result = .perlinFractalBillow(xi, yi)
-        case PerlinFractalRigidMulti:
-            result = .perlinFractalRigidMulti(xi, yi)
-        case Value:
-            result = Noise.value(xi, yi, .seed)
-        case ValueFractalFBM:
-            result = .valueFractalFBM(xi, yi)
-        case ValueFractalBillow:
-            result = .valueFractalBillow(xi, yi)
-        case ValueFractalRigidMulti:
-            result = .valueFractalRigidMulti(xi, yi)
+        case Perlin:                  result = Noise.perlin(xi, yi, .seed)
+        case PerlinFractalFBM:        result = .perlinFractalFBM(xi, yi)
+        case PerlinFractalBillow:     result = .perlinFractalBillow(xi, yi)
+        case PerlinFractalRigidMulti: result = .perlinFractalRigidMulti(xi, yi)
+        case Value:                   result = Noise.value(xi, yi, .seed)
+        case ValueFractalFBM:         result = .valueFractalFBM(xi, yi)
+        case ValueFractalBillow:      result = .valueFractalBillow(xi, yi)
+        case ValueFractalRigidMulti:  result = .valueFractalRigidMulti(xi, yi)
         }
 
         return Math.clamp(result, -1.0, 1.0)

@@ -21,12 +21,9 @@ public impl GamePad
         let res = XInputSetState(padIndex, &vibration)
         switch res
         {
-        case ERROR_SUCCESS:
-            return
-        case ERROR_DEVICE_NOT_CONNECTED:
-            throw Swag.SystemError{"not connected"}
-        default:
-            Win32.throwWinError(res)
+        case ERROR_SUCCESS:              return
+        case ERROR_DEVICE_NOT_CONNECTED: throw Swag.SystemError{"not connected"}
+        default:                         Win32.throwWinError(res)
         }
     }
 }

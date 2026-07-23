@@ -340,12 +340,9 @@ private impl Circular
         #[Swag.Complete]
         switch .markerForm
         {
-        case .None:
-            return
-        case .Circle:
-            .drawCircleMarker(painter, color, value)
-        case .Needle:
-            .drawNeedleMarker(painter, color, value)
+        case .None:   return
+        case .Circle: .drawCircleMarker(painter, color, value)
+        case .Needle: .drawNeedleMarker(painter, color, value)
         }
     }
 
@@ -393,12 +390,9 @@ private impl Circular
         #[Swag.Complete]
         switch .stepForm
         {
-        case .None:
-            return
-        case .Dot:
-            .drawStepDots(painter, color)
-        case .Tick:
-            .drawStepTicks(painter, color)
+        case .None: return
+        case .Dot:  .drawStepDots(painter, color)
+        case .Tick: .drawStepTicks(painter, color)
         }
     }
 

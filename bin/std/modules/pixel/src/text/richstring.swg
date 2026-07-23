@@ -151,18 +151,22 @@ impl RichString
                 scan    += 3
                 count   -= 3
                 handled = true
+
             case Utf8.startsWith(sl, "</u>"), Utf8.startsWith(sl, "</b>"), Utf8.startsWith(sl, "</i>"), Utf8.startsWith(sl, "</p>"):
                 scan    += 4
                 count   -= 4
                 handled = true
+
             case Utf8.startsWith(sl, "<p1>"), Utf8.startsWith(sl, "<p2>"), Utf8.startsWith(sl, "<p3>"):
                 scan    += 4
                 count   -= 4
                 handled = true
+
             case Utf8.startsWith(sl, "<url>"):
                 scan    += 5
                 count   -= 5
                 handled = true
+
             case Utf8.startsWith(sl, "</url>"):
                 scan    += 6
                 count   -= 6
@@ -246,12 +250,14 @@ impl RichString
             {
             case sl[0] != '<':
                 break
+
             case Utf8.startsWith(sl, "<u>"):
                 .addChunk(byteIdx)
                 under.add(UnderlineStyle.Underline)
                 byteIdx, scan, startChunk += 3
                 count                     -= 3
                 handled                   = true
+
             case Utf8.startsWith(sl, "</u>"):
                 .addChunk(byteIdx)
                 if under.count > 1 do
@@ -266,6 +272,7 @@ impl RichString
                 byteIdx, scan, startChunk += 3
                 count                     -= 3
                 handled                   = true
+
             case Utf8.startsWith(sl, "</b>"):
                 .addChunk(byteIdx)
                 if isBold.count > 1 do
@@ -280,6 +287,7 @@ impl RichString
                 byteIdx, scan, startChunk += 3
                 count                     -= 3
                 handled                   = true
+
             case Utf8.startsWith(sl, "</i>"):
                 .addChunk(byteIdx)
                 if isItalic.count > 1 do
@@ -294,12 +302,14 @@ impl RichString
                 byteIdx, scan, startChunk += 4
                 count                     -= 4
                 handled                   = true
+
             case Utf8.startsWith(sl, "<p2>"):
                 .addChunk(byteIdx)
                 colorFg.add(2)
                 byteIdx, scan, startChunk += 4
                 count                     -= 4
                 handled                   = true
+
             case Utf8.startsWith(sl, "<p3>"):
                 .addChunk(byteIdx)
                 colorFg.add(3)
@@ -321,6 +331,7 @@ impl RichString
                 byteIdx, scan, startChunk += 5
                 count                     -= 5
                 handled                   = true
+
             case Utf8.startsWith(sl, "</url>"):
                 .addChunk(byteIdx)
                 if isUrl.count > 1 do

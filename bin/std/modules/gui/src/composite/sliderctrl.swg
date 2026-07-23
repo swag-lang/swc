@@ -76,12 +76,9 @@ impl SliderCtrl
                 var val: String
                 switch ctrl.edit.inputMode
                 {
-                case .U64:
-                    val = Format.toString("%", cast(u64) wnd.getValue())
-                case .S64:
-                    val = Format.toString("%", cast(s64) wnd.getValue())
-                case .F64:
-                    val = Format.toString("%{f2}", wnd.getValue())
+                case .U64: val = Format.toString("%", cast(u64) wnd.getValue())
+                case .S64: val = Format.toString("%", cast(s64) wnd.getValue())
+                case .F64: val = Format.toString("%{f2}", wnd.getValue())
                 }
 
                 ctrl.edit.setText(val)
@@ -99,9 +96,11 @@ impl SliderCtrl
                 case .U64:
                     let (val, ?, ?) = catch StrConv.parseU64(edit.text)
                     ctrl.slider.setValue(cast(f32) val)
+
                 case .S64:
                     let (val, ?, ?) = catch StrConv.parseS64(edit.text)
                     ctrl.slider.setValue(cast(f32) val)
+
                 case .F64:
                     let (val, ?, ?) = catch StrConv.parseF64(edit.text)
                     ctrl.slider.setValue(cast(f32) val)

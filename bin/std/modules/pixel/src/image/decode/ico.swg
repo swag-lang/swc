@@ -75,9 +75,11 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
     {
     case 1:
         return cast(u32) ((src[x / 8] >> cast(u32) (7 - (x & 7))) & 1)
+
     case 4:
         let b = src[x / 2]
         return cast(u32) ((x & 1) ? (b & 0x0F) : (b >> 4))
+
     default:
         return src[x]
     }

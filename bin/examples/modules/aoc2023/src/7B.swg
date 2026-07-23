@@ -98,18 +98,12 @@ func day7B()
 
         switch
         {
-        case card.countV[5]:
-            card.value = 6
-        case card.countV[4]:
-            card.value = 5
-        case card.countV[3] and card.countV[2]:
-            card.value = 4
-        case card.countV[3]:
-            card.value = 3
-        case card.countV[2] == 2:
-            card.value = 2
-        case card.countV[2]:
-            card.value = 1
+        case card.countV[5]:                    card.value = 6
+        case card.countV[4]:                    card.value = 5
+        case card.countV[3] and card.countV[2]: card.value = 4
+        case card.countV[3]:                    card.value = 3
+        case card.countV[2] == 2:               card.value = 2
+        case card.countV[2]:                    card.value = 1
         }
 
         card.val = first[0]

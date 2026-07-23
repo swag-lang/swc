@@ -85,6 +85,7 @@ impl Painter
         {
         case None:
             break
+
         case Inside:
             rX -= pen.size * 0.5
             rY -= pen.size * 0.5

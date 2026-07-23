@@ -91,14 +91,10 @@ func day5B1()
         {
             switch
             {
-            case c < 7 and l[c] == 'F':
-                row1 = (row1 + row0) / 2
-            case c < 7:
-                row0 = 1 + (row1 + row0) / 2
-            case l[c] == 'L':
-                col1 = (col1 + col0) / 2
-            default:
-                col0 = 1 + (col1 + col0) / 2
+            case c < 7 and l[c] == 'F': row1 = (row1 + row0) / 2
+            case c < 7:                 row0 = 1 + (row1 + row0) / 2
+            case l[c] == 'L':           col1 = (col1 + col0) / 2
+            default:                    col0 = 1 + (col1 + col0) / 2
             }
         }
 

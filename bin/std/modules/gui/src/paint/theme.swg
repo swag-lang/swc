@@ -174,14 +174,10 @@ impl Theme
         #[Swag.Complete]
         switch style
         {
-        case Regular:
-            return Font.create(.res.defaultTypeFaceR, size)
-        case Bold:
-            return Font.create(.res.defaultTypeFaceB, size)
-        case Italic:
-            return Font.create(.res.defaultTypeFaceI, size)
-        case BoldItalic:
-            return Font.create(.res.defaultTypeFaceBI, size)
+        case Regular:    return Font.create(.res.defaultTypeFaceR, size)
+        case Bold:       return Font.create(.res.defaultTypeFaceB, size)
+        case Italic:     return Font.create(.res.defaultTypeFaceI, size)
+        case BoldItalic: return Font.create(.res.defaultTypeFaceBI, size)
         }
 
         unreachable
@@ -193,14 +189,10 @@ impl Theme
         #[Swag.Complete]
         switch style
         {
-        case Regular:
-            return Font.create(.res.defaultFsTypeFaceR, size)
-        case Bold:
-            return Font.create(.res.defaultFsTypeFaceB, size)
-        case Italic:
-            return Font.create(.res.defaultFsTypeFaceI, size)
-        case BoldItalic:
-            return Font.create(.res.defaultFsTypeFaceBI, size)
+        case Regular:    return Font.create(.res.defaultFsTypeFaceR, size)
+        case Bold:       return Font.create(.res.defaultFsTypeFaceB, size)
+        case Italic:     return Font.create(.res.defaultFsTypeFaceI, size)
+        case BoldItalic: return Font.create(.res.defaultFsTypeFaceBI, size)
         }
 
         unreachable

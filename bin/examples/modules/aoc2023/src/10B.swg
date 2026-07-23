@@ -132,16 +132,22 @@ func day10B()
             {
             case '-':
                 one = .West | .East
+
             case '|':
                 one = .North | .South
+
             case 'L':
                 one = .North | .East
+
             case 'J':
                 one = .North | .West
+
             case '7':
                 one = .South | .West
+
             case 'F':
                 one = .South | .East
+
             case 'S':
                 startX = col
                 startY = line
@@ -174,12 +180,15 @@ func day10B()
         case one & .East and !(mp(visitX + 1, visitY) & .Edge):
             visitX += 1
             moved  = true
+
         case one & .West and !(mp(visitX - 1, visitY) & .Edge):
             visitX -= 1
             moved  = true
+
         case one & .North and !(mp(visitX, visitY - 1) & .Edge):
             visitY -= 1
             moved  = true
+
         case one & .South and !(mp(visitX, visitY + 1) & .Edge):
             visitY += 1
             moved  = true

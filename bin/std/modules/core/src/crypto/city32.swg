@@ -76,12 +76,9 @@ impl City32
 
         switch
         {
-        case len <= 4:
-            return .len0to4(data)
-        case len <= 12:
-            return .len5to12(data)
-        case len <= 24:
-            return .len13to24(data)
+        case len <= 4:  return .len0to4(data)
+        case len <= 12: return .len5to12(data)
+        case len <= 24: return .len13to24(data)
         }
 
         let seed = .crc

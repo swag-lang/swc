@@ -90,28 +90,17 @@ impl Decoder
             let typeNative = cast(const *TypeInfoNative) type
             switch typeNative.nativeKind
             {
-            case Bool:
-                dref cast(*bool) data = .serializer.readNative'bool()
-            case U8:
-                dref cast(*u8) data = .serializer.readNative'u8()
-            case U16:
-                dref cast(*u16) data = .serializer.readNative'u16()
-            case U32, Rune:
-                dref cast(*u32) data = .serializer.readNative'u32()
-            case U64:
-                dref cast(*u64) data = .serializer.readNative'u64()
-            case S8:
-                dref cast(*s8) data = .serializer.readNative's8()
-            case S16:
-                dref cast(*s16) data = .serializer.readNative's16()
-            case S32:
-                dref cast(*s32) data = .serializer.readNative's32()
-            case S64:
-                dref cast(*s64) data = .serializer.readNative's64()
-            case F32:
-                dref cast(*f32) data = .serializer.readNative'f32()
-            case F64:
-                dref cast(*f64) data = .serializer.readNative'f64()
+            case Bool:      dref cast(*bool) data = .serializer.readNative'bool()
+            case U8:        dref cast(*u8) data = .serializer.readNative'u8()
+            case U16:       dref cast(*u16) data = .serializer.readNative'u16()
+            case U32, Rune: dref cast(*u32) data = .serializer.readNative'u32()
+            case U64:       dref cast(*u64) data = .serializer.readNative'u64()
+            case S8:        dref cast(*s8) data = .serializer.readNative's8()
+            case S16:       dref cast(*s16) data = .serializer.readNative's16()
+            case S32:       dref cast(*s32) data = .serializer.readNative's32()
+            case S64:       dref cast(*s64) data = .serializer.readNative's64()
+            case F32:       dref cast(*f32) data = .serializer.readNative'f32()
+            case F64:       dref cast(*f64) data = .serializer.readNative'f64()
             }
 
             return

@@ -222,12 +222,9 @@ impl FloatExt
             let exp1 = .exp + powersOfTen[i].exp + 64
             switch
             {
-            case exp1 < expMin:
-                i += 1
-            case exp1 > expMax:
-                i -= 1
-            default:
-                break to Loop
+            case exp1 < expMin: i += 1
+            case exp1 > expMax: i -= 1
+            default:            break to Loop
             }
         }
 

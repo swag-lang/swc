@@ -200,18 +200,23 @@ private func registerTypeGraphNoLock(type: #null typeinfo)
     case .Alias:
         let typeAlias = cast(const *TypeInfoAlias) nnType
         registerTypeGraphNoLock(typeAlias.rawType)
+
     case .Array:
         let typeArray = cast(const *TypeInfoArray) nnType
         registerTypeGraphNoLock(typeArray.pointedType)
+
     case .Enum:
         let typeEnum = cast(const *TypeInfoEnum) nnType
         registerTypeGraphNoLock(typeEnum.rawType)
+
     case .Pointer:
         let typePointer = cast(const *TypeInfoPointer) nnType
         registerTypeGraphNoLock(typePointer.pointedType)
+
     case .Slice:
         let typeSlice = cast(const *TypeInfoSlice) nnType
         registerTypeGraphNoLock(typeSlice.pointedType)
+
     case .Struct:
         let typeStruct = cast(const *TypeInfoStruct) nnType
         for &field in typeStruct.fields do

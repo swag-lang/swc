@@ -135,30 +135,39 @@ impl CaptureClipboardForm
         case FormArrow as form:
             .kind  = .Arrow
             .arrow = dref form
+
         case FormDraw as form:
             .kind = .Draw
             .draw = dref form
+
         case FormImage as form:
             .kind  = .Image
             .image = dref form
+
         case FormLine as form:
             .kind = .Line
             .line = dref form
+
         case FormPolygon as form:
             .kind    = .Polygon
             .polygon = dref form
+
         case FormShape as form:
             .kind  = .Shape
             .shape = dref form
+
         case FormStep as form:
             .kind = .Step
             .step = dref form
+
         case FormText as form:
             .kind = .Text
             .text = dref form
+
         case FormCallout as form:
             .kind    = .Callout
             .callout = dref form
+
         default:
             .kind = .None
         }
@@ -174,38 +183,47 @@ impl CaptureClipboardForm
             let form = Memory.new'FormArrow()
             dref form = .arrow
             result    = cast(IForm) form
+
         case Draw:
             let form = Memory.new'FormDraw()
             dref form = .draw
             result    = cast(IForm) form
+
         case Image:
             let form = Memory.new'FormImage()
             dref form = .image
             result    = cast(IForm) form
+
         case Line:
             let form = Memory.new'FormLine()
             dref form = .line
             result    = cast(IForm) form
+
         case Polygon:
             let form = Memory.new'FormPolygon()
             dref form = .polygon
             result    = cast(IForm) form
+
         case Shape:
             let form = Memory.new'FormShape()
             dref form = .shape
             result    = cast(IForm) form
+
         case Step:
             let form = Memory.new'FormStep()
             dref form = .step
             result    = cast(IForm) form
+
         case Text:
             let form = Memory.new'FormText()
             dref form = .text
             result    = cast(IForm) form
+
         case Callout:
             let form = Memory.new'FormCallout()
             dref form = .callout
             result    = cast(IForm) form
+
         case None:
             return result
         }

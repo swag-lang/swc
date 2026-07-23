@@ -103,12 +103,9 @@ private impl GridLayoutCtrl
         var result: retval
         switch track.kind
         {
-        case Fixed:
-            result = track.value
-        case Content:
-            result = content
-        case Fraction, Fill:
-            result = track.min
+        case Fixed:          result = track.value
+        case Content:        result = content
+        case Fraction, Fill: result = track.min
         }
 
         result = Math.max(result, track.min)

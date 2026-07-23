@@ -114,14 +114,10 @@ func pageTitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Nested splitters"
-    case 1:
-        return "Stack layouts"
-    case 2:
-        return "Grid and wrap"
-    case 3:
-        return "Docking constraints"
+    case 0: return "Nested splitters"
+    case 1: return "Stack layouts"
+    case 2: return "Grid and wrap"
+    case 3: return "Docking constraints"
     }
 
     unreachable
@@ -131,14 +127,10 @@ func pageSubtitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Resizable panes with nested horizontal and vertical splitters, minimum sizes and preserved side panels."
-    case 1:
-        return "Top, left, fitted and centered stacks arranging ordinary controls inside pane-sized regions."
-    case 2:
-        return "A spanning grid paired with a wrapping tile strip to show fixed cells and adaptive rows."
-    case 3:
-        return "Docking, margins, min/max sizes and anchors sharing the same parent rectangle."
+    case 0: return "Resizable panes with nested horizontal and vertical splitters, minimum sizes and preserved side panels."
+    case 1: return "Top, left, fitted and centered stacks arranging ordinary controls inside pane-sized regions."
+    case 2: return "A spanning grid paired with a wrapping tile strip to show fixed cells and adaptive rows."
+    case 3: return "Docking, margins, min/max sizes and anchors sharing the same parent rectangle."
     }
 
     unreachable
@@ -190,16 +182,11 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:
-        createSplitterPage(notnull g_PageView)
-    case 1:
-        createStackPage(notnull g_PageView)
-    case 2:
-        createGridWrapPage(notnull g_PageView)
-    case 3:
-        createConstraintsPage(notnull g_PageView)
-    default:
-        unreachable
+    case 0:  createSplitterPage(notnull g_PageView)
+    case 1:  createStackPage(notnull g_PageView)
+    case 2:  createGridWrapPage(notnull g_PageView)
+    case 3:  createConstraintsPage(notnull g_PageView)
+    default: unreachable
     }
 
     refreshLayoutTree(notnull g_PageView)

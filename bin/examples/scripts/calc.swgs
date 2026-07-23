@@ -36,15 +36,19 @@ func validateOp(str: string)
         {
         case "+":
             g_ComputeValue += g_CurValue
+
         case "-":
             g_ComputeValue -= g_CurValue
+
         case Mul:
             g_ComputeValue *= g_CurValue
+
         case Div:
             if g_CurValue == 0 do
                 g_Error = "divide by zero"
             else do
                 g_ComputeValue /= g_CurValue
+
         default:
             g_ComputeValue = g_CurValue
         }
@@ -71,10 +75,8 @@ func createBtn(str: string, x, y: s32)
 
         switch str
         {
-        case "=":
-            btn.style.addStyleSheetColors("btnPush_Bk 0xFF880000")
-        case "+", "-", Mul, Div:
-            btn.style.addStyleSheetColors("btnPush_Bk 0xFF008800")
+        case "=":                btn.style.addStyleSheetColors("btnPush_Bk 0xFF880000")
+        case "+", "-", Mul, Div: btn.style.addStyleSheetColors("btnPush_Bk 0xFF008800")
         }
     }
 }

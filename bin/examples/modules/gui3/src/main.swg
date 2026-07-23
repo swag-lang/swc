@@ -104,14 +104,10 @@ func pageTitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Lexer"
-    case 1:
-        return "Styles"
-    case 2:
-        return "Modes"
-    case 3:
-        return "Workspace"
+    case 0: return "Lexer"
+    case 1: return "Styles"
+    case 2: return "Modes"
+    case 3: return "Workspace"
     }
 
     unreachable
@@ -121,14 +117,10 @@ func pageSubtitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Swag highlighting, margins, wrapping and visible blanks in large editors."
-    case 1:
-        return "Manual rich spans, inline emphasis and log-like styling without leaving the control."
-    case 2:
-        return "RichEditCtrl versus Edit form, read-only states and mixed flag combinations."
-    case 3:
-        return "A richer composition inspired by the wnd sample: split panes, notes and code side by side."
+    case 0: return "Swag highlighting, margins, wrapping and visible blanks in large editors."
+    case 1: return "Manual rich spans, inline emphasis and log-like styling without leaving the control."
+    case 2: return "RichEditCtrl versus Edit form, read-only states and mixed flag combinations."
+    case 3: return "A richer composition inspired by the wnd sample: split panes, notes and code side by side."
     }
 
     unreachable
@@ -213,16 +205,11 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:
-        createLexerPage(notnull g_PageView)
-    case 1:
-        createStylesPage(notnull g_PageView)
-    case 2:
-        createModesPage(notnull g_PageView)
-    case 3:
-        createWorkspacePage(notnull g_PageView)
-    default:
-        unreachable
+    case 0:  createLexerPage(notnull g_PageView)
+    case 1:  createStylesPage(notnull g_PageView)
+    case 2:  createModesPage(notnull g_PageView)
+    case 3:  createWorkspacePage(notnull g_PageView)
+    default: unreachable
     }
 
     g_PageView.invalidate()

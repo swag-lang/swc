@@ -260,26 +260,16 @@ impl DateTime
         #[Swag.Complete]
         switch fmt
         {
-        case DateIso:
-            return Format.toString("%-%{02}-%{02}", .year, .month, .day)
-        case TimeIso:
-            return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
-        case TimeIsoMs:
-            return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
-        case TimeIsoHM:
-            return Format.toString("%{02}:%{02}", .hour, .minute)
-        case Date:
-            return Format.toString("% % % %", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year)
-        case DateTime:
-            return Format.toString("% % % % %{02}:%{02}:%{02}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second)
-        case DateTimeMs:
-            return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second, .millisecond)
-        case DateTimeIso:
-            return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", .year, .month, .day, .hour, .minute, .second)
-        case DateTimeIsoMs:
-            return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}", .year, .month, .day, .hour, .minute, .second, .millisecond)
-        case DateTimeIsoHM:
-            return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
+        case DateIso:       return Format.toString("%-%{02}-%{02}", .year, .month, .day)
+        case TimeIso:       return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
+        case TimeIsoMs:     return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
+        case TimeIsoHM:     return Format.toString("%{02}:%{02}", .hour, .minute)
+        case Date:          return Format.toString("% % % %", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year)
+        case DateTime:      return Format.toString("% % % % %{02}:%{02}:%{02}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second)
+        case DateTimeMs:    return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second, .millisecond)
+        case DateTimeIso:   return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", .year, .month, .day, .hour, .minute, .second)
+        case DateTimeIsoMs: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}", .year, .month, .day, .hour, .minute, .second, .millisecond)
+        case DateTimeIsoHM: return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
         }
 
         var result: retval
@@ -340,28 +330,17 @@ impl StrConv.IConvert for DateTime
         {
             switch strFormat[0]
             {
-            case 'a':
-                str = .toString(.DateTime)
-            case 'b':
-                str = .toString(.DateTimeMs)
-            case 'c':
-                str = .toString(.DateTimeIso)
-            case 'd':
-                str = .toString(.DateTimeIsoMs)
-            case 'e':
-                str = .toString(.DateTimeIsoHM)
-            case 'f':
-                str = .toString(.DateIso)
-            case 'g':
-                str = .toString(.TimeIso)
-            case 'h':
-                str = .toString(.TimeIsoMs)
-            case 'i':
-                str = .toString(.TimeIsoHM)
-            case 'j':
-                str = .toString(.Date)
-            default:
-                str = .toString(.DateTime)
+            case 'a': str = .toString(.DateTime)
+            case 'b': str = .toString(.DateTimeMs)
+            case 'c': str = .toString(.DateTimeIso)
+            case 'd': str = .toString(.DateTimeIsoMs)
+            case 'e': str = .toString(.DateTimeIsoHM)
+            case 'f': str = .toString(.DateIso)
+            case 'g': str = .toString(.TimeIso)
+            case 'h': str = .toString(.TimeIsoMs)
+            case 'i': str = .toString(.TimeIsoHM)
+            case 'j': str = .toString(.Date)
+            default:  str = .toString(.DateTime)
             }
         }
 

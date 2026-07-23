@@ -271,16 +271,11 @@ func drawScene(painter: *Pixel.Painter)
 
     switch g_Page
     {
-    case 0:
-        drawTonalPage(painter)
-    case 1:
-        drawKernelPage(painter)
-    case 2:
-        drawTransformPage(painter)
-    case 3:
-        drawPainterPage(painter)
-    default:
-        unreachable
+    case 0:  drawTonalPage(painter)
+    case 1:  drawKernelPage(painter)
+    case 2:  drawTransformPage(painter)
+    case 3:  drawPainterPage(painter)
+    default: unreachable
     }
 
     drawFooter(painter)

@@ -14,12 +14,9 @@ impl Image
 
         switch bitmap.bmBitsPixel
         {
-        case 24:
-            result = create(bitmap.bmWidth, bitmap.bmHeight, PixelFormat.BGR8)
-        case 32:
-            result = create(bitmap.bmWidth, bitmap.bmHeight, PixelFormat.BGRA8)
-        default:
-            throw UnsupportedFormatError{"unsupported bit depth"}
+        case 24: result = create(bitmap.bmWidth, bitmap.bmHeight, PixelFormat.BGR8)
+        case 32: result = create(bitmap.bmWidth, bitmap.bmHeight, PixelFormat.BGRA8)
+        default: throw UnsupportedFormatError{"unsupported bit depth"}
         }
 
         let dc = GetDC(null)

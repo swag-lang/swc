@@ -66,29 +66,29 @@ func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *
     {
     case s8, u8, bool:
         dref cast(*u8) nnDest = dref cast(*u8) patch
+
     case s16, u16:
         dref cast(*u16) nnDest = dref cast(*u16) patch
+
     case s32, u32, f32, rune:
         dref cast(*u32) nnDest = dref cast(*u32) patch
+
     case s64, u64, f64:
         dref cast(*u64) nnDest = dref cast(*u64) patch
+
     case string:
         dref cast(*#null string) nnDest = dref cast(*#null string) patch
+
     default:
         if !hardCast do
             Debug.assert(false, "unsupported getFieldValue type")
         switch nnType.pointedType.sizeof
         {
-        case 1:
-            dref cast(*u8) nnDest = dref cast(*u8) patch
-        case 2:
-            dref cast(*u16) nnDest = dref cast(*u16) patch
-        case 4:
-            dref cast(*u32) nnDest = dref cast(*u32) patch
-        case 8:
-            dref cast(*u64) nnDest = dref cast(*u64) patch
-        default:
-            Debug.assert(false, "unsupported getFieldValue type")
+        case 1:  dref cast(*u8) nnDest = dref cast(*u8) patch
+        case 2:  dref cast(*u16) nnDest = dref cast(*u16) patch
+        case 4:  dref cast(*u32) nnDest = dref cast(*u32) patch
+        case 8:  dref cast(*u64) nnDest = dref cast(*u64) patch
+        default: Debug.assert(false, "unsupported getFieldValue type")
         }
     }
 }
@@ -107,29 +107,29 @@ func setFieldValue(dest: *void, type: #null const *TypeValue, src: const *void, 
     {
     case s8, u8, bool:
         dref cast(*u8) patch = dref cast(const *u8) nnSrc
+
     case s16, u16:
         dref cast(*u16) patch = dref cast(const *u16) nnSrc
+
     case s32, u32, f32, rune:
         dref cast(*u32) patch = dref cast(const *u32) nnSrc
+
     case s64, u64, f64:
         dref cast(*u64) patch = dref cast(const *u64) nnSrc
+
     case string:
         dref cast(*#null string) patch = dref cast(const *#null string) nnSrc
+
     default:
         if !hardCast do
             Debug.assert(false, "unsupported setFieldValue type")
         switch nnType.pointedType.sizeof
         {
-        case 1:
-            dref cast(*u8) patch = dref cast(const *u8) nnSrc
-        case 2:
-            dref cast(*u16) patch = dref cast(const *u16) nnSrc
-        case 4:
-            dref cast(*u32) patch = dref cast(const *u32) nnSrc
-        case 8:
-            dref cast(*u64) patch = dref cast(const *u64) nnSrc
-        default:
-            Debug.assert(false, "unsupported setFieldValue type")
+        case 1:  dref cast(*u8) patch = dref cast(const *u8) nnSrc
+        case 2:  dref cast(*u16) patch = dref cast(const *u16) nnSrc
+        case 4:  dref cast(*u32) patch = dref cast(const *u32) nnSrc
+        case 8:  dref cast(*u64) patch = dref cast(const *u64) nnSrc
+        default: Debug.assert(false, "unsupported setFieldValue type")
         }
     }
 }
@@ -151,23 +151,25 @@ func canCompare(type: #null typeinfo)->bool
     case .Alias:
         let typeAlias = cast(const *TypeInfoAlias) nnType
         return canCompare(typeAlias.rawType)
+
     case .Enum:
         let typeEnum = cast(const *TypeInfoEnum) nnType
         return canCompare(typeEnum.rawType)
+
     case .Pointer:
         return true
+
     case .Native:
         let typeNative = cast(const *TypeInfoNative) nnType
         switch typeNative.nativeKind
         {
-        case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String:
-            return true
-        default:
-            return false
+        case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String: return true
+        default:                                                                       return false
         }
 
     case .Struct:
         return true
+
     default:
         return false
     }

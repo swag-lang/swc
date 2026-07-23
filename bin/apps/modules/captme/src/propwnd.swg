@@ -26,8 +26,10 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
     case Ellipse:
         let radius = rect.width * 0.5
         painter.drawEllipse(pos.horzCenter(), pos.vertCenter(), radius, radius, color, 5)
+
     case Rectangle:
         painter.drawRect(rect, color, 5)
+
     case RoundRectangle:
         painter.drawRoundRect(rect, 5, 5, color, 5)
     }
@@ -351,12 +353,9 @@ impl PropWnd
         let curSelType = .getSelectedFormType()
         switch curSelType
         {
-        case FormLine, FormArrow, FormDraw:
-            btn.name = "Color"
-        case FormStep:
-            btn.name = "Text"
-        default:
-            btn.name = "Outline"
+        case FormLine, FormArrow, FormDraw: btn.name = "Color"
+        case FormStep:                      btn.name = "Text"
+        default:                            btn.name = "Outline"
         }
 
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)

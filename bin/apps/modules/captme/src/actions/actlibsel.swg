@@ -38,18 +38,12 @@ impl IActionUI for ActionLibSel
 
         switch cxt.id
         {
-        case Left:
-            libWnd.moveSelLeft()
-        case Up:
-            libWnd.moveSelTop()
-        case Right:
-            libWnd.moveSelRight()
-        case Down:
-            libWnd.moveSelBottom()
-        case Home:
-            libWnd.moveSelHome()
-        case End:
-            libWnd.moveSelEnd()
+        case Left:  libWnd.moveSelLeft()
+        case Up:    libWnd.moveSelTop()
+        case Right: libWnd.moveSelRight()
+        case Down:  libWnd.moveSelBottom()
+        case Home:  libWnd.moveSelHome()
+        case End:   libWnd.moveSelEnd()
         }
 
         return true

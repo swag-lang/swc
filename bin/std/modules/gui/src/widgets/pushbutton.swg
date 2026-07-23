@@ -58,18 +58,21 @@ impl IWnd for PushButton
                 colorText     = colors.btnPushDefault_DisabledText
                 subRectBk     = &rects.btnPush_Disabled
                 subRectBorder = &rects.btnPush_DisabledBorder
+
             case .isPressed:
                 colorBk       = colors.btnPushDefault_PressedBk
                 colorBorder   = colors.btnPushDefault_PressedBorder
                 colorText     = colors.btnPushDefault_PressedText
                 subRectBk     = &rects.btnPush_Pressed
                 subRectBorder = &rects.btnPush_PressedBorder
+
             case .isHot:
                 colorBk       = colors.btnPushDefault_HotBk
                 colorBorder   = colors.btnPushDefault_HotBorder
                 colorText     = colors.btnPushDefault_HotText
                 subRectBk     = &rects.btnPush_Hot
                 subRectBorder = &rects.btnPush_HotBorder
+
             default:
                 colorBk       = colors.btnPushDefault_Bk
                 colorBorder   = colors.btnPushDefault_Border
@@ -88,18 +91,21 @@ impl IWnd for PushButton
                 colorText     = colors.btnPushFlat_DisabledText
                 subRectBk     = &rects.btnPush_Disabled
                 subRectBorder = &rects.btnPush_DisabledBorder
+
             case .isPressed:
                 colorBk       = colors.btnPushFlat_PressedBk
                 colorBorder   = colors.btnPushFlat_PressedBorder
                 colorText     = colors.btnPushFlat_PressedText
                 subRectBk     = &rects.btnPush_Pressed
                 subRectBorder = &rects.btnPush_PressedBorder
+
             case .isHot:
                 colorBk       = colors.btnPushFlat_HotBk
                 colorBorder   = colors.btnPushFlat_HotBorder
                 colorText     = colors.btnPushFlat_HotText
                 subRectBk     = &rects.btnPush_Hot
                 subRectBorder = &rects.btnPush_HotBorder
+
             default:
                 colorBk       = colors.btnPushFlat_Bk
                 colorBorder   = colors.btnPushFlat_Border

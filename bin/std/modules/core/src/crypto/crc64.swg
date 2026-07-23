@@ -24,8 +24,7 @@ impl Crc64
         #[Swag.Complete]
         switch kind
         {
-        case ECMA182, ISO, ISOXZ:
-            .crc = 0
+        case ECMA182, ISO, ISOXZ: .crc = 0
         }
     }
 

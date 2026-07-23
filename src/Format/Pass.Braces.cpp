@@ -398,62 +398,133 @@ namespace
             }
         }
 
+        struct CaseArm
+        {
+            uint32_t colon      = INVALID_PIECE; // the `:` of the label
+            uint32_t body       = INVALID_PIECE; // first body piece (INVALID when the arm is empty)
+            bool     editable   = false;
+            bool     oneLine    = false; // body shares the label line
+            bool     joinable   = false; // single one-line statement, no comments, no braces
+            bool     splittable = false; // plain statement body (braced / commented arms keep their layout)
+        };
+
+        CaseArm analyzeArm(const uint32_t colonPiece) const
+        {
+            CaseArm arm;
+            arm.colon = colonPiece;
+
+            const uint32_t body = model_->nextPiece(colonPiece);
+            if (body == INVALID_PIECE)
+                return arm;
+
+            const FormatPiece& bodyPiece = model_->piece(body);
+            if (bodyPiece.roles.hasAny({FormatRoleE::CaseLabel}) || bodyPiece.is(TokenId::SymRightCurly))
+                return arm; // empty arm
+
+            arm.body     = body;
+            arm.editable = FormatPassUtil::canEditGap(*model_, body);
+            arm.oneLine  = !model_->gapHasNewline(body);
+            if (bodyPiece.is(TokenId::SymLeftCurly) || bodyPiece.isComment)
+                return arm; // braced or commented bodies keep their layout
+            arm.splittable = true;
+
+            const uint32_t caseEnd = findCaseBodyEnd(colonPiece);
+            if (caseEnd == INVALID_PIECE)
+                return arm;
+
+            uint32_t stmtCount = 0;
+            bool     joinable  = true;
+            for (uint32_t p = body; p <= caseEnd && joinable; p = model_->nextPiece(p))
+            {
+                if (p == INVALID_PIECE)
+                    break;
+                const FormatPiece& cur = model_->piece(p);
+                if (cur.isComment)
+                    joinable = false;
+                if (cur.roles.hasAny({FormatRoleE::StmtStart}) && cur.depth == model_->piece(colonPiece).depth)
+                    stmtCount++;
+                if (p != body && model_->gapHasNewline(p))
+                    joinable = false;
+                if (p == caseEnd)
+                    break;
+            }
+
+            arm.joinable = joinable && stmtCount <= 1;
+            return arm;
+        }
+
+        void splitArm(const CaseArm& arm) const
+        {
+            if (arm.editable && arm.oneLine && arm.splittable)
+                model_->setGapBreak(arm.body, 1, FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(arm.colon)).view());
+        }
+
+        void joinArm(const CaseArm& arm) const
+        {
+            if (arm.editable && !arm.oneLine && arm.joinable)
+                model_->setGapSpaces(arm.body, 1);
+        }
+
+        // `case` bodies per switch: `uniform` joins every arm onto its label
+        // only when the WHOLE switch is made of single-statement arms (jump
+        // tables), and expands everything otherwise.
         void runShortCases() const
         {
-            if (!options_->allowShortCaseOnSingleLine)
+            const FormatCaseBodyStyle style = options_->caseBodyStyle;
+            if (style == FormatCaseBodyStyle::Preserve)
                 return;
-            const bool allow = *options_->allowShortCaseOnSingleLine;
 
-            for (uint32_t i = 0; i < model_->numPieces(); ++i)
+            for (const FormatBlock& block : model_->blocks())
             {
-                const FormatPiece& piece = model_->piece(i);
-                if (piece.removed || !piece.hasRole(FormatRoleE::CaseColon))
+                if (block.kind != FormatBlockKind::Switch)
+                    continue;
+                if (!rangeEditable(*model_, block.openPiece, block.closePiece))
                     continue;
 
-                const uint32_t body = model_->nextPiece(i);
-                if (body == INVALID_PIECE || !FormatPassUtil::canEditGap(*model_, body))
-                    continue;
-
-                const FormatPiece& bodyPiece = model_->piece(body);
-                if (bodyPiece.roles.hasAny({FormatRoleE::CaseLabel}) || bodyPiece.is(TokenId::SymRightCurly))
-                    continue; // empty case
-                if (bodyPiece.is(TokenId::SymLeftCurly) || bodyPiece.isComment)
-                    continue; // braced bodies are handled as blocks
-
-                const uint32_t caseEnd = findCaseBodyEnd(i);
-                if (caseEnd == INVALID_PIECE)
-                    continue;
-
-                if (!allow)
+                std::vector<CaseArm> arms;
+                const uint32_t       labelDepth = model_->piece(block.openPiece).depth + 1;
+                for (uint32_t p = block.openPiece + 1; p < block.closePiece; ++p)
                 {
-                    if (!model_->gapHasNewline(body))
-                        model_->setGapBreak(body, 1, FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(i)).view());
-                    continue;
+                    const FormatPiece& piece = model_->piece(p);
+                    if (!piece.removed && piece.hasRole(FormatRoleE::CaseColon) && piece.depth == labelDepth)
+                        arms.push_back(analyzeArm(p));
                 }
-
-                // Join a single-statement, single-line body onto the label line.
-                if (!model_->gapHasNewline(body))
+                if (arms.empty())
                     continue;
 
-                uint32_t stmtCount = 0;
-                bool     joinable  = true;
-                for (uint32_t p = body; p <= caseEnd && joinable; p = model_->nextPiece(p))
+                switch (style)
                 {
-                    if (p == INVALID_PIECE)
+                    case FormatCaseBodyStyle::NextLine:
+                        for (const CaseArm& arm : arms)
+                            splitArm(arm);
                         break;
-                    const FormatPiece& cur = model_->piece(p);
-                    if (cur.isComment)
-                        joinable = false;
-                    if (cur.roles.hasAny({FormatRoleE::StmtStart}) && cur.depth == piece.depth)
-                        stmtCount++;
-                    if (p != body && model_->gapHasNewline(p))
-                        joinable = false;
-                    if (p == caseEnd)
+
+                    case FormatCaseBodyStyle::SameLine:
+                        for (const CaseArm& arm : arms)
+                            joinArm(arm);
+                        break;
+
+                    case FormatCaseBodyStyle::Uniform:
+                    {
+                        bool allShort = true;
+                        for (const CaseArm& arm : arms)
+                        {
+                            if (arm.body != INVALID_PIECE && !arm.joinable)
+                                allShort = false;
+                        }
+                        for (const CaseArm& arm : arms)
+                        {
+                            if (allShort)
+                                joinArm(arm);
+                            else
+                                splitArm(arm);
+                        }
+                        break;
+                    }
+
+                    case FormatCaseBodyStyle::Preserve:
                         break;
                 }
-
-                if (joinable && stmtCount <= 1)
-                    model_->setGapSpaces(body, 1);
             }
         }
 

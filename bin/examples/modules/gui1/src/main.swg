@@ -20,8 +20,7 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
-    case ResizeEvent:
-        centerButton(view)
+    case ResizeEvent: centerButton(view)
     }
 
     return false

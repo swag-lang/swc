@@ -25,12 +25,9 @@ func day1B()
         {
             switch
             {
-            case one > count[0]:
-                count[0] = one
-            case one > count[1]:
-                count[1] = one
-            case one > count[2]:
-                count[2] = one
+            case one > count[0]: count[0] = one
+            case one > count[1]: count[1] = one
+            case one > count[2]: count[2] = one
             }
 
             Slice.sort(count[to])

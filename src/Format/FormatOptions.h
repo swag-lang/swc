@@ -97,6 +97,22 @@ enum class FormatBinPackStyle : uint8_t
     OnePerLine, // One argument per line once wrapping kicks in
 };
 
+enum class FormatCaseBodyStyle : uint8_t
+{
+    Preserve,
+    NextLine, // The body always starts on the line after the label
+    SameLine, // Single-statement bodies join their label
+    Uniform,  // One line only when EVERY arm of the switch is a single statement
+};
+
+enum class FormatCaseBlankStyle : uint8_t
+{
+    Preserve,
+    Never,     // No blank line between arms
+    Always,    // A blank line between every arm
+    MultiLine, // Blank around multi-line arms; one-line arms stay tight
+};
+
 struct FormatOptions
 {
     // -----------------------------------------------------------------------
@@ -161,7 +177,13 @@ struct FormatOptions
     FormatShortBlockStyle allowShortClosuresOnSingleLine  = FormatShortBlockStyle::Preserve; // When to keep closure bodies embedded in expressions on one line
     std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // Allow `if cond do stmt` on one line
     std::optional<bool>   allowShortLoopsOnSingleLine;                                       // Allow short `while`/`for` bodies on one line
-    std::optional<bool>   allowShortCaseOnSingleLine;                                        // Allow single-statement `case` arms on one line
+
+    // -----------------------------------------------------------------------
+    // Switch
+    // -----------------------------------------------------------------------
+    FormatCaseBodyStyle  caseBodyStyle         = FormatCaseBodyStyle::Preserve;  // How `case` bodies are laid out
+    FormatCaseBlankStyle blankLineBetweenCases = FormatCaseBlankStyle::Preserve; // Blank lines between `case` arms
+    FormatAlignMode      alignCaseBodies       = FormatAlignMode::Preserve;      // Align the bodies of consecutive one-line `case` arms
 
     // -----------------------------------------------------------------------
     // Statements

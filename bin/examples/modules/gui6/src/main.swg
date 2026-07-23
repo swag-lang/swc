@@ -152,14 +152,10 @@ func pageTitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "Menu bar"
-    case 1:
-        return "Context menus"
-    case 2:
-        return "Command state"
-    case 3:
-        return "Anchored popups"
+    case 0: return "Menu bar"
+    case 1: return "Context menus"
+    case 2: return "Command state"
+    case 3: return "Anchored popups"
     }
 
     unreachable
@@ -169,14 +165,10 @@ func pageSubtitle(page: s32)->string
 {
     switch page
     {
-    case 0:
-        return "A desktop-style menu bar with grouped items, icons, shortcuts and nested popups."
-    case 1:
-        return "Reusable right-click menus with separators, submenus and destructive commands."
-    case 2:
-        return "Checked, radio-style and disabled rows driven by CommandStateEvent."
-    case 3:
-        return "Small menus anchored to buttons, suitable for compact toolbars and split-button flows."
+    case 0: return "A desktop-style menu bar with grouped items, icons, shortcuts and nested popups."
+    case 1: return "Reusable right-click menus with separators, submenus and destructive commands."
+    case 2: return "Checked, radio-style and disabled rows driven by CommandStateEvent."
+    case 3: return "Small menus anchored to buttons, suitable for compact toolbars and split-button flows."
     }
 
     unreachable
@@ -186,12 +178,9 @@ func currentModeName()->string
 {
     switch g_Mode
     {
-    case Compact:
-        return "compact"
-    case Detailed:
-        return "detailed"
-    case Columns:
-        return "columns"
+    case Compact:  return "compact"
+    case Detailed: return "detailed"
+    case Columns:  return "columns"
     }
 
     unreachable
@@ -464,21 +453,26 @@ func processMenuCommand(id: WndId)->bool
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus("Created a new menu sample document.")
+
     case MenuCmd.OpenFile:
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus("Opened a simulated document from the File menu.")
+
     case MenuCmd.SaveFile:
         g_DocumentDirty = false
         g_ActionCount   += 1
         setStatus("Saved the current document; Save is now disabled until the next edit.")
+
     case MenuCmd.SaveAs:
         g_DocumentDirty = false
         g_ActionCount   += 1
         setStatus("Saved a copy through the Save As command.")
+
     case MenuCmd.Export:
         g_ActionCount += 1
         setStatus("Export command selected from a grouped menu section.")
+
     case MenuCmd.Quit:
         if g_Surface do
             g_Surface.destroy()
@@ -487,21 +481,26 @@ func processMenuCommand(id: WndId)->bool
         g_DocumentDirty = false
         g_ActionCount   += 1
         setStatus("Undo consumed the simulated dirty state.")
+
     case MenuCmd.Redo:
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus("Redo restored the simulated dirty state.")
+
     case MenuCmd.Cut:
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus("Cut command selected.")
+
     case MenuCmd.Copy:
         g_ActionCount += 1
         setStatus("Copy command selected.")
+
     case MenuCmd.Paste:
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus("Paste command selected.")
+
     case MenuCmd.Duplicate:
         g_DocumentDirty = true
         g_ActionCount   += 1
@@ -512,25 +511,31 @@ func processMenuCommand(id: WndId)->bool
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus(Format.toString("Grid visibility is now %.", boolWord(g_ShowGrid)))
+
     case MenuCmd.ToggleGuides:
         g_ShowGuides    = !g_ShowGuides
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus(Format.toString("Guide visibility is now %.", boolWord(g_ShowGuides)))
+
     case MenuCmd.ModeCompact:
         g_ActionCount += 1
         setMode(.Compact)
+
     case MenuCmd.ModeDetailed:
         g_ActionCount += 1
         setMode(.Detailed)
+
     case MenuCmd.ModeColumns:
         g_ActionCount += 1
         setMode(.Columns)
+
     case MenuCmd.ThemeLight:
         g_DarkTheme   = false
         g_ActionCount += 1
         applyTheme()
         setStatus("Light theme selected from a menu.")
+
     case MenuCmd.ThemeDark:
         g_DarkTheme   = true
         g_ActionCount += 1
@@ -540,32 +545,41 @@ func processMenuCommand(id: WndId)->bool
     case MenuCmd.ContextInspect:
         g_ActionCount += 1
         setStatus("Inspect command selected from the context menu.")
+
     case MenuCmd.ContextRename:
         g_DocumentDirty = true
         g_ActionCount   += 1
         setStatus("Rename command selected from the context menu.")
+
     case MenuCmd.ContextPin:
         g_ContextPinned = !g_ContextPinned
         g_ActionCount   += 1
         setStatus(Format.toString("Context item pinned state is now %.", boolWord(g_ContextPinned)))
+
     case MenuCmd.ContextArchive:
         g_ActionCount += 1
         setStatus("Archive command selected.")
+
     case MenuCmd.ContextDelete:
         g_ActionCount += 1
         setStatus("Delete command selected; destructive entries can live in their own group.")
+
     case MenuCmd.AlignLeft:
         g_ActionCount += 1
         setStatus("Aligned context selection left.")
+
     case MenuCmd.AlignCenter:
         g_ActionCount += 1
         setStatus("Aligned context selection center.")
+
     case MenuCmd.AlignRight:
         g_ActionCount += 1
         setStatus("Aligned context selection right.")
+
     case MenuCmd.About:
         g_ActionCount += 1
         setStatus("Menus support bars, popup menus, submenus, check marks, radio groups, shortcuts and command state.")
+
     default:
         return false
     }
@@ -580,44 +594,56 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
     case MenuCmd.SaveFile:
         evt.setFlags |= .Disabled
         evt.disabled = !g_DocumentDirty
+
     case MenuCmd.Undo:
         evt.setFlags |= .Disabled
         evt.disabled = !g_DocumentDirty
+
     case MenuCmd.Redo:
         evt.setFlags |= .Disabled
         evt.disabled = g_DocumentDirty
+
     case MenuCmd.ToggleGrid:
         evt.setFlags |= .Checked
         evt.checked  = g_ShowGrid
+
     case MenuCmd.ToggleGuides:
         evt.setFlags |= .Checked
         evt.checked  = g_ShowGuides
+
     case MenuCmd.ModeCompact:
         evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Compact
+
     case MenuCmd.ModeDetailed:
         evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Detailed
+
     case MenuCmd.ModeColumns:
         evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Columns
+
     case MenuCmd.ThemeLight:
         evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = !g_DarkTheme
+
     case MenuCmd.ThemeDark:
         evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_DarkTheme
+
     case MenuCmd.ContextPin:
         evt.setFlags |= .Checked
         evt.checked  = g_ContextPinned
+
     case MenuCmd.ContextDelete:
         evt.setFlags |= .Disabled
         evt.disabled = g_ContextPinned
+
     default:
         return false
     }
@@ -685,16 +711,11 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:
-        createMenuBarPage(notnull g_PageView)
-    case 1:
-        createContextMenuPage(notnull g_PageView)
-    case 2:
-        createCommandStatePage(notnull g_PageView)
-    case 3:
-        createAnchoredPopupPage(notnull g_PageView)
-    default:
-        unreachable
+    case 0:  createMenuBarPage(notnull g_PageView)
+    case 1:  createContextMenuPage(notnull g_PageView)
+    case 2:  createCommandStatePage(notnull g_PageView)
+    case 3:  createAnchoredPopupPage(notnull g_PageView)
+    default: unreachable
     }
 
     updateStatusLabel()

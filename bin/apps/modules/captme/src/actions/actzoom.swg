@@ -54,17 +54,10 @@ impl IActionUI for ActionZoom
 
         switch cxt.id
         {
-        case Zoom1:
-            view.setZoom(1)
-
-        case ZoomFit:
-            view.zoomToFit()
-
-        case ZoomIn:
-            view.zoomIn()
-
-        case ZoomOut:
-            view.zoomOut()
+        case Zoom1:   view.setZoom(1)
+        case ZoomFit: view.zoomToFit()
+        case ZoomIn:  view.zoomIn()
+        case ZoomOut: view.zoomOut()
         }
 
         return true

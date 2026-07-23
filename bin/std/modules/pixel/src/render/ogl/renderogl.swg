@@ -279,26 +279,32 @@ private impl RenderOgl
         {
         case Copy:
             glDisable(GL_BLEND)
+
         case Alpha:
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             glBlendEquation(GL_FUNC_ADD)
+
         case Add:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_FUNC_ADD)
+
         case Sub:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_FUNC_SUBTRACT)
+
         case SubDst:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_FUNC_REVERSE_SUBTRACT)
+
         case Min:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_MIN)
+
         case Max:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
@@ -684,11 +690,14 @@ impl RenderOgl
         {
         case BGR8:
             fmt = GL_BGR
+
         case BGRA8:
             fmt       = GL_BGRA
             tinternal = GL_RGBA
+
         case RGB8:
             fmt = GL_RGB
+
         case RGBA8:
             fmt       = GL_RGBA
             tinternal = GL_RGBA
@@ -714,14 +723,10 @@ impl RenderOgl
         #[Swag.Complete]
         switch pf
         {
-        case BGR8:
-            return GL_BGR
-        case BGRA8:
-            return GL_BGRA
-        case RGB8:
-            return GL_RGB
-        case RGBA8:
-            return GL_RGBA
+        case BGR8:  return GL_BGR
+        case BGRA8: return GL_BGRA
+        case RGB8:  return GL_RGB
+        case RGBA8: return GL_RGBA
         }
 
         return GL_RGBA
@@ -935,8 +940,10 @@ impl RenderOgl
 
         case StartFont:
             .setShader(&.shaderFont)
+
         case StartMsdfFont:
             .setShader(&.shaderFontMsdf)
+
         case EndFont:
             .setShader(&.shaderAA)
 
@@ -1034,14 +1041,17 @@ impl RenderOgl
             case SolidColor:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
                 glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+
             case Texture:
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) params.texture.handle)
                 glUniform1f(cast(GLint) .curShader.textureW, cast(GLfloat) params.texture.width)
                 glUniform1f(cast(GLint) .curShader.textureH, cast(GLfloat) params.texture.height)
                 glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+
             case Hatch:
                 glBindTexture(GL_TEXTURE_2D, .hatchTextures[params.hatch])
                 glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+
             case LinearGradient, RadialGradient, SweepGradient:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
                 glUniform1f(cast(GLint) .curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
@@ -1069,6 +1079,7 @@ impl RenderOgl
             case Fill, FillSubRect:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+
             case Tile:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
@@ -1080,6 +1091,7 @@ impl RenderOgl
             case Pixel:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+
             case Linear:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
@@ -1108,8 +1120,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case Transform, StartFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, SetFontEffect, DrawTriangles:
-                        .executeCommand(dc, cmd1, cast(u64) i, width, height)
+                    case Transform, StartFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, SetFontEffect, DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }
             }
@@ -1128,12 +1139,9 @@ impl RenderOgl
             let params = &cmd.shaderParam
             switch params.type
             {
-            case s32:
-                glUniform1i(cast(GLint) params.param, params._s32)
-            case f32:
-                glUniform1f(cast(GLint) params.param, params._f32)
-            default:
-                Debug.assert(false)
+            case s32: glUniform1i(cast(GLint) params.param, params._s32)
+            case f32: glUniform1f(cast(GLint) params.param, params._f32)
+            default:  Debug.assert(false)
             }
 
         case SetFontEffect:
@@ -1170,6 +1178,7 @@ impl RenderOgl
                 case Clear:
                     if .curRT do
                         .clearHeadlessTexture(.curRT.colorBuffer, cmd.clear.color)
+
                 case BindRenderTarget:
                     .bindRenderTarget(cmd.renderTgt.tgt)
                     if .curRT
@@ -1181,8 +1190,10 @@ impl RenderOgl
                 case UnbindRenderTarget:
                     if .curRT do
                         .unbindRenderTarget()
+
                 case ReleaseRenderTarget:
                     .releaseRenderTarget(cmd.renderTgt.tgt)
+
                 default:
                     continue
                 }

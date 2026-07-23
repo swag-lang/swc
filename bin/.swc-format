@@ -177,8 +177,20 @@ allow-short-if-statements-on-single-line = false
 # Allow `while`/`for` bodies on one line.
 allow-short-loops-on-single-line = false
 
-# Allow single-statement `case` arms to stay on one line.
-allow-short-case-on-single-line = false
+# ----------------------------------------------------------------------------
+# Switch
+# ----------------------------------------------------------------------------
+
+# How `case` bodies are laid out. `uniform` puts every arm on one line when
+# the WHOLE switch is made of single-statement arms (jump tables), and
+# expands everything otherwise.
+# Possible values: preserve, next-line, same-line, uniform
+case-body-style = uniform
+
+# Blank lines between `case` arms: `multi-line` keeps runs of one-line arms
+# tight and airs the arms that span several lines.
+# Possible values: preserve, never, always, multi-line
+blank-line-between-cases = multi-line
 
 # ----------------------------------------------------------------------------
 # Statements
@@ -224,6 +236,10 @@ align-attributes = consecutive
 # Align `=>` of adjacent short function bodies.
 # Possible values: preserve, none, consecutive, across-blanks, all
 align-fat-arrows = consecutive
+
+# Align the bodies of consecutive one-line `case` arms.
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-case-bodies = consecutive
 
 # Align `//` trailing comments into a shared column.
 align-trailing-comments = true

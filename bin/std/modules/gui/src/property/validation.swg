@@ -28,12 +28,9 @@ internal impl Properties
         let colors = .getThemeColors()
         switch state
         {
-        case Error:
-            return colors.embInfo_CriticalBk
-        case Warning:
-            return colors.embInfo_MessageBk
-        case Info:
-            return colors.embInfo_InformationBk
+        case Error:   return colors.embInfo_CriticalBk
+        case Warning: return colors.embInfo_MessageBk
+        case Info:    return colors.embInfo_InformationBk
         }
 
         return Color.fromArgb(0)
@@ -45,12 +42,9 @@ internal impl Properties
         let colors = .getThemeColors()
         switch state
         {
-        case Error:
-            return colors.embInfo_CriticalText
-        case Warning:
-            return colors.embInfo_MessageText
-        case Info:
-            return colors.embInfo_InformationText
+        case Error:   return colors.embInfo_CriticalText
+        case Warning: return colors.embInfo_MessageText
+        case Info:    return colors.embInfo_InformationText
         }
 
         return colors.label_Text
@@ -62,12 +56,9 @@ internal impl Properties
         let theme = .getTheme()
         switch state
         {
-        case Error:
-            return theme.getIcon64(.Critical, .valBarIconSize)
-        case Warning:
-            return theme.getIcon64(.Warning, .valBarIconSize)
-        case Info:
-            return theme.getIcon64(.Information, .valBarIconSize)
+        case Error:   return theme.getIcon64(.Critical, .valBarIconSize)
+        case Warning: return theme.getIcon64(.Warning, .valBarIconSize)
+        case Info:    return theme.getIcon64(.Information, .valBarIconSize)
         }
 
         return theme.getIcon64(.Information, .valBarIconSize)

@@ -85,16 +85,11 @@ impl IActionUI for ActionCopyPaste
 
         switch cxt.id
         {
-        case Copy:
-            capture.copy()
-        case Cut:
-            capture.cut()
-        case Paste:
-            capture.paste()
-        case PasteImageInside:
-            capture.pasteImageInside()
-        case CopyAsImage:
-            capture.copyAll()
+        case Copy:             capture.copy()
+        case Cut:              capture.cut()
+        case Paste:            capture.paste()
+        case PasteImageInside: capture.pasteImageInside()
+        case CopyAsImage:      capture.copyAll()
         }
 
         return true

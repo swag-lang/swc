@@ -136,6 +136,7 @@ impl IForm for FormShape
             let pos = Math.Vector2{pt.x, pt.y}
             let cen = Math.Vector2{br.horzCenter(), br.vertCenter()}
             return Math.Geometry.isInEllipse(pos, cen, br.width * 0.5, br.height * 0.5)
+
         default:
             return true
         }

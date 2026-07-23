@@ -45,18 +45,12 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         #[Swag.Complete]
         switch d.need
         {
-        case Nothing:
-            break
-        case Capture:
-            disabled = !capture
-        case Selection:
-            disabled = !capture or !capture.selection.count
-        case MultiSel:
-            disabled = !capture or capture.selection.count < 2
-        case Forms:
-            disabled = !capture or !capture.forms.count
-        case PixSel:
-            disabled = !capture or !capture.hasSelectedPixSel()
+        case Nothing:   break
+        case Capture:   disabled = !capture
+        case Selection: disabled = !capture or !capture.selection.count
+        case MultiSel:  disabled = !capture or capture.selection.count < 2
+        case Forms:     disabled = !capture or !capture.forms.count
+        case PixSel:    disabled = !capture or !capture.hasSelectedPixSel()
         }
 
         evt.setFlags |= .Name | .Disabled

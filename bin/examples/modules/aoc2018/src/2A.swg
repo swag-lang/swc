@@ -43,8 +43,10 @@ func day2A()
         case count[0] == 3 and count[1] == 2:
             total2 += 1
             total3 += 1
+
         case count[0] == 3:
             total3 += 1
+
         case count[0] == 2:
             total2 += 1
         }

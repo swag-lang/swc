@@ -24,8 +24,8 @@ impl SemaFieldVisits
                 var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: visitItem = me.z
-                case 1: visitItem = me.y
+                case 0:  visitItem = me.z
+                case 1:  visitItem = me.y
                 default: visitItem = me.x
                 }
 
@@ -40,8 +40,8 @@ impl SemaFieldVisits
             var visitItem: s32 = undefined
             switch idx
             {
-            case 0: visitItem = me.x
-            case 1: visitItem = me.y
+            case 0:  visitItem = me.x
+            case 1:  visitItem = me.y
             default: visitItem = me.z
             }
 

@@ -352,8 +352,10 @@ impl Offset
                     .doMiter(j, k, r)
                 else do
                     .doSquare(j, k)
+
             case Square:
                 .doSquare(j, k)
+
             case Round:
                 .doRound(j, k)
             }

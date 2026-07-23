@@ -15,6 +15,6 @@ func semaTest002()
     switch a
     {
     case s32: break
-    default: break
+    default:  break
     }
 }

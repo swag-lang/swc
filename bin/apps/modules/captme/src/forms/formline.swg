@@ -99,9 +99,11 @@ impl IForm for FormLine
         case 0:
             .xa += newPosX
             .ya += newPosY
+
         case 1:
             .xb += newPosX
             .yb += newPosY
+
         case 2:
             .xc += newPosX
             .yc += newPosY

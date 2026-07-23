@@ -74,10 +74,8 @@ impl IWnd for FrameWnd
 
         switch .frameForm
         {
-        case Square:
-            subRectBk = &rects.frameWnd_SquareBk
-        case Round:
-            subRectBk = &rects.frameWnd_RoundBk
+        case Square: subRectBk = &rects.frameWnd_SquareBk
+        case Round:  subRectBk = &rects.frameWnd_RoundBk
         }
 
         // Display focus borders when the focus wnd is a child of me
@@ -91,12 +89,9 @@ impl IWnd for FrameWnd
 
         switch
         {
-        case bc.isDisabled:
-            colorBk = colors.frameWnd_DisabledBk
-        case showFocus:
-            colorBk = colors.frameWnd_FocusBk
-        default:
-            colorBk = colors.frameWnd_Bk
+        case bc.isDisabled: colorBk = colors.frameWnd_DisabledBk
+        case showFocus:     colorBk = colors.frameWnd_FocusBk
+        default:            colorBk = colors.frameWnd_Bk
         }
 
         let clientRect = .getClientRect()
@@ -123,10 +118,8 @@ impl IWnd for FrameWnd
 
         switch .frameForm
         {
-        case Square:
-            subRectBorder = &rects.frameWnd_SquareBorder
-        case Round:
-            subRectBorder = &rects.frameWnd_RoundBorder
+        case Square: subRectBorder = &rects.frameWnd_SquareBorder
+        case Round:  subRectBorder = &rects.frameWnd_RoundBorder
         }
 
         // Display focus borders when the focus wnd is a child of me
@@ -140,12 +133,9 @@ impl IWnd for FrameWnd
 
         switch
         {
-        case bc.isDisabled:
-            colorBorder = colors.frameWnd_DisabledBorder
-        case showFocus:
-            colorBorder = colors.frameWnd_FocusBorder
-        default:
-            colorBorder = colors.frameWnd_Border
+        case bc.isDisabled: colorBorder = colors.frameWnd_DisabledBorder
+        case showFocus:     colorBorder = colors.frameWnd_FocusBorder
+        default:            colorBorder = colors.frameWnd_Border
         }
 
         var clientRect = .getClientRect()
@@ -158,10 +148,8 @@ impl IWnd for FrameWnd
             var marginA: f32
             switch .frameForm
             {
-            case Square:
-                marginA = metrics.frameWnd_AnchorSquareBorderMargin
-            case Round:
-                marginA = metrics.frameWnd_AnchorRoundBorderMargin
+            case Square: marginA = metrics.frameWnd_AnchorSquareBorderMargin
+            case Round:  marginA = metrics.frameWnd_AnchorRoundBorderMargin
             }
 
             switch .anchor
@@ -265,9 +253,11 @@ impl FrameWnd
         case Square:
             .wndFlags.add(.PostChildsPaint)
             .setAllPaddings(.getThemeMetrics().frameWnd_SquarePadding)
+
         case Round:
             .wndFlags.add(.PostChildsPaint)
             .setAllPaddings(.getThemeMetrics().frameWnd_RoundPadding)
+
         case Transparent:
             .wndFlags.remove(.PostChildsPaint)
             .setAllPaddings(0)

@@ -64,6 +64,7 @@ internal impl Properties
                     .undo()
                 evt.accepted = true
                 return
+
             case Y:
                 .redo()
                 evt.accepted = true
@@ -78,20 +79,13 @@ internal impl Properties
             let popup = .selItem.comboBox.popup
             switch evt.key
             {
-            case Up:
-                popup.keyMove(-1)
-            case Down:
-                popup.keyMove(1)
-            case Home:
-                popup.keyHome()
-            case End:
-                popup.keyEnd()
-            case Return, Space:
-                popup.keyCommit()
-            case Escape:
-                popup.keyCancel()
-            default:
-                return
+            case Up:            popup.keyMove(-1)
+            case Down:          popup.keyMove(1)
+            case Home:          popup.keyHome()
+            case End:           popup.keyEnd()
+            case Return, Space: popup.keyCommit()
+            case Escape:        popup.keyCancel()
+            default:            return
             }
 
             evt.accepted = true
@@ -105,14 +99,19 @@ internal impl Properties
         {
         case Up:
             .moveSel(-1)
+
         case Down:
             .moveSel(1)
+
         case Home:
             .setSelItem(.firstNavigable(forward: true))
+
         case End:
             .setSelItem(.firstNavigable(forward: false))
+
         case PageUp:
             .pageMove(-1)
+
         case PageDown:
             .pageMove(1)
 

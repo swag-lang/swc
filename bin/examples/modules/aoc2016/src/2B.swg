@@ -46,12 +46,15 @@ func day2B()
             case 'U':
                 if pad[y - 1, x] do
                     y -= 1
+
             case 'D':
                 if pad[y + 1, x] do
                     y += 1
+
             case 'L':
                 if pad[y, x - 1] do
                     x -= 1
+
             case 'R':
                 if pad[y, x + 1] do
                     x += 1

@@ -197,14 +197,10 @@ impl IForm for FormText
         {
             switch .fontStyle
             {
-            case Regular:
-                face = g_App.theme.res.defaultTypeFaceR
-            case Bold:
-                face = g_App.theme.res.defaultTypeFaceB
-            case Italic:
-                face = g_App.theme.res.defaultTypeFaceI
-            case BoldItalic:
-                face = g_App.theme.res.defaultTypeFaceBI
+            case Regular:    face = g_App.theme.res.defaultTypeFaceR
+            case Bold:       face = g_App.theme.res.defaultTypeFaceB
+            case Italic:     face = g_App.theme.res.defaultTypeFaceI
+            case BoldItalic: face = g_App.theme.res.defaultTypeFaceBI
             }
         }
 
@@ -292,12 +288,9 @@ impl IForm for FormText
         let aH = cxt.quickMode ? FormTextAlign.Center : .alignHorz
         switch aV
         {
-        case LeftTop:
-            y0 = pp.y + addSize
-        case Center:
-            y0 = pp.vertCenter() - (totalYZ * 0.5)
-        case RightBottom:
-            y0 = pp.bottom() - addSize - totalYZ
+        case LeftTop:     y0 = pp.y + addSize
+        case Center:      y0 = pp.vertCenter() - (totalYZ * 0.5)
+        case RightBottom: y0 = pp.bottom() - addSize - totalYZ
         }
 
         for &pathl, idx in .paths
@@ -309,12 +302,9 @@ impl IForm for FormText
             var x0 = 0'f32
             switch aH
             {
-            case LeftTop:
-                x0 = pp.x + addSize
-            case Center:
-                x0 = pp.horzCenter() - (wt * 0.5)
-            case RightBottom:
-                x0 = pp.right() - (wt + addSize)
+            case LeftTop:     x0 = pp.x + addSize
+            case Center:      x0 = pp.horzCenter() - (wt * 0.5)
+            case RightBottom: x0 = pp.right() - (wt + addSize)
             }
 
             let tt  = painter.curState.transform

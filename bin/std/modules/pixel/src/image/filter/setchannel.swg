@@ -55,16 +55,11 @@ impl Image
             #[Swag.Complete]
             switch params.value
             {
-            case Color:
-                channelValue = params.color
-            case MinRGB:
-                channelValue = Math.min(pix[0], pix[1], pix[2])
-            case MaxRGB:
-                channelValue = Math.max(pix[0], pix[1], pix[2])
-            case MeanRGB:
-                channelValue = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
-            case Alpha:
-                channelValue = pix[3]
+            case Color:   channelValue = params.color
+            case MinRGB:  channelValue = Math.min(pix[0], pix[1], pix[2])
+            case MaxRGB:  channelValue = Math.max(pix[0], pix[1], pix[2])
+            case MeanRGB: channelValue = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
+            case Alpha:   channelValue = pix[3]
             }
 
             if mode & .Blue do

@@ -1780,16 +1780,22 @@ impl Decoder
             {
             case M_SOF0, M_SOF1, M_SOF2, M_SOF3, M_SOF5, M_SOF6, M_SOF7, M_SOF9, M_SOF10, M_SOF11, M_SOF13, M_SOF14, M_SOF15, M_SOI, M_EOI, M_SOS:
                 return c
+
             case M_JPG, M_RST0, M_RST1, M_RST2, M_RST3, M_RST4, M_RST5, M_RST6, M_RST7, M_TEM:
                 throw InvalidFormatError{"unexpected marker"}
+
             case M_DAC:
                 throw UnsupportedFormatError{"no arithmetic support"}
+
             case M_DHT:
                 .readDhtMarker()
+
             case M_DQT:
                 .readDqtMarker()
+
             case M_DRI:
                 .readDriMarker()
+
             default:
                 if cast(u32) c & cast(u32) M_APP0 == cast(u32) M_APP0 do
                     .readAppMarker(c)
@@ -2066,10 +2072,13 @@ impl Decoder
         case M_SOF2:
             .progressiveFlag = true
             try .readSofMarker()
+
         case M_SOF0, M_SOF1:
             .readSofMarker()
+
         case M_SOF9:
             throw UnsupportedFormatError{"no arithmetic support"}
+
         default:
             throw UnsupportedFormatError{"unsupported marker"}
         }

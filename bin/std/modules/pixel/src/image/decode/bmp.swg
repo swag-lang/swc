@@ -179,9 +179,11 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
     {
     case 1:
         return cast(u32) ((src[x / 8] >> cast(u32) (7 - (x & 7))) & 1)
+
     case 4:
         let b = src[x / 2]
         return cast(u32) ((x & 1) ? (b & 0x0F) : (b >> 4))
+
     default:
         return src[x]
     }
@@ -488,12 +490,9 @@ public impl IImageDecoder for Decoder
 
         switch bh.biBitCount
         {
-        case 1, 4, 8, 16, 24:
-            result.init(bh.biWidth, height, PixelFormat.BGR8)
-        case 32:
-            result.init(bh.biWidth, height, PixelFormat.BGRA8)
-        default:
-            throw UnsupportedFormatError{"unsupported bit count"}
+        case 1, 4, 8, 16, 24: result.init(bh.biWidth, height, PixelFormat.BGR8)
+        case 32:              result.init(bh.biWidth, height, PixelFormat.BGRA8)
+        default:              throw UnsupportedFormatError{"unsupported bit count"}
         }
 
         if bh.biCompression == BI_RLE8 and bh.biBitCount != 8 do
@@ -540,12 +539,9 @@ public impl IImageDecoder for Decoder
         {
             switch bh.biBitCount
             {
-            case 1, 4, 8:
-                decodePackedPalette(&result, dataof, last, palette, paletteEntrySize, paletteCount, bh.biBitCount, topDown)
-            case 16:
-                decode16(&result, dataof, last, masks, topDown)
-            case 24, 32:
-                decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
+            case 1, 4, 8: decodePackedPalette(&result, dataof, last, palette, paletteEntrySize, paletteCount, bh.biBitCount, topDown)
+            case 16:      decode16(&result, dataof, last, masks, topDown)
+            case 24, 32:  decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
             }
         }
 

@@ -44,12 +44,9 @@ impl MyStruct
             var visitItem: s32 = undefined
             switch idx
             {
-            case 0:
-                visitItem = me.x
-            case 1:
-                visitItem = me.y
-            default:
-                visitItem = me.z
+            case 0:  visitItem = me.x
+            case 1:  visitItem = me.y
+            default: visitItem = me.z
             }
 
             #inject(stmt, item = visitItem, index = @index)
@@ -72,12 +69,9 @@ rename the block parameters positionally.
     {
         switch i
         {
-        case 0:
-            @assert(v == 10)
-        case 1:
-            @assert(v == 20)
-        case 2:
-            @assert(v == 30)
+        case 0: @assert(v == 10)
+        case 1: @assert(v == 20)
+        case 2: @assert(v == 30)
         }
 
         cpt += 1
@@ -101,12 +95,9 @@ impl MyStruct
             var visitItem: s32 = undefined
             switch idx
             {
-            case 0:
-                visitItem = me.z
-            case 1:
-                visitItem = me.y
-            default:
-                visitItem = me.x
+            case 0:  visitItem = me.z
+            case 1:  visitItem = me.y
+            default: visitItem = me.x
             }
 
             #inject(stmt, item = visitItem, index = @index)
@@ -128,12 +119,9 @@ Using 'opVisitReverse' to iterate fields from last to first.
     {
         switch i
         {
-        case 0:
-            @assert(v == 30)
-        case 1:
-            @assert(v == 20)
-        case 2:
-            @assert(v == 10)
+        case 0: @assert(v == 30)
+        case 1: @assert(v == 20)
+        case 2: @assert(v == 10)
         }
 
         cpt += 1

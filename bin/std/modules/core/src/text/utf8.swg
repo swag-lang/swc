@@ -353,10 +353,8 @@ func isValidRune(c: rune)->bool
 {
     switch
     {
-    case 0 <= c and c < SurrogateMin:
-        return true
-    case SurrogateMax < c and c <= MaxRunes:
-        return true
+    case 0 <= c and c < SurrogateMin:        return true
+    case SurrogateMax < c and c <= MaxRunes: return true
     }
 
     return false

@@ -30,6 +30,7 @@ impl IActionUI for ActionMoveSel
         case Left, Top, Right, Bottom:
             evt.setFlags |= .Disabled
             evt.disabled = !hasSel
+
         case Left1, Top1, Right1, Bottom1:
             evt.setFlags |= .Disabled
             evt.disabled = !hasSel
@@ -49,27 +50,35 @@ impl IActionUI for ActionMoveSel
         case Left1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = -1
+
         case Top1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = -1
+
         case Right1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = 1
+
         case Bottom1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = 1
+
         case Left:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = -5
+
         case Top:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = -5
+
         case Right:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = 5
+
         case Bottom:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = 5
+
         default:
             return false
         }

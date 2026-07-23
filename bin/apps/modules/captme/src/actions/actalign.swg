@@ -76,28 +76,17 @@ impl IActionUI for ActionAlign
         var undo: *Undo = undefined
         switch cxt.id
         {
-        case AlignLeft:
-            undo = capture.newUndo(.AlignLeft)
-        case AlignCenter:
-            undo = capture.newUndo(.AlignCenter)
-        case AlignRight:
-            undo = capture.newUndo(.AlignRight)
-        case AlignTop:
-            undo = capture.newUndo(.AlignTop)
-        case AlignMiddle:
-            undo = capture.newUndo(.AlignMiddle)
-        case AlignBottom:
-            undo = capture.newUndo(.AlignBottom)
-        case SendToFront:
-            undo = capture.newUndo(.MoveToFront)
-        case SendToBack:
-            undo = capture.newUndo(.MoveToBack)
-        case MoveForward:
-            undo = capture.newUndo(.MoveForward)
-        case MoveBackward:
-            undo = capture.newUndo(.MoveBackward)
-        default:
-            return false
+        case AlignLeft:    undo = capture.newUndo(.AlignLeft)
+        case AlignCenter:  undo = capture.newUndo(.AlignCenter)
+        case AlignRight:   undo = capture.newUndo(.AlignRight)
+        case AlignTop:     undo = capture.newUndo(.AlignTop)
+        case AlignMiddle:  undo = capture.newUndo(.AlignMiddle)
+        case AlignBottom:  undo = capture.newUndo(.AlignBottom)
+        case SendToFront:  undo = capture.newUndo(.MoveToFront)
+        case SendToBack:   undo = capture.newUndo(.MoveToBack)
+        case MoveForward:  undo = capture.newUndo(.MoveForward)
+        case MoveBackward: undo = capture.newUndo(.MoveBackward)
+        default:           return false
         }
 
         Debug.assert(undo != null)

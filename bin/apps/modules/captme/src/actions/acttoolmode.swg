@@ -132,32 +132,19 @@ impl IActionUI for ActionToolMode
         let main = cast(*MainWnd) notnull cxt.wnd
         switch cxt.id
         {
-        case Shape:
-            main.editMode = EditMode.Shape
-        case Arrow:
-            main.editMode = EditMode.Arrow
-        case Line:
-            main.editMode = EditMode.Line
-        case Poly:
-            main.editMode = EditMode.Polygon
-        case Text:
-            main.editMode = EditMode.Text
-        case Draw:
-            main.editMode = EditMode.Draw
-        case Highlight:
-            main.editMode = EditMode.Highlight
-        case Step:
-            main.editMode = EditMode.Step
-        case Img:
-            main.editMode = EditMode.Image
-        case PixSel:
-            main.editMode = EditMode.PixSel
-        case Callout:
-            main.editMode = EditMode.Callout
-        case Favorites:
-            main.editMode = EditMode.Favorites
-        case Selection:
-            main.editMode = EditMode.Selection
+        case Shape:     main.editMode = EditMode.Shape
+        case Arrow:     main.editMode = EditMode.Arrow
+        case Line:      main.editMode = EditMode.Line
+        case Poly:      main.editMode = EditMode.Polygon
+        case Text:      main.editMode = EditMode.Text
+        case Draw:      main.editMode = EditMode.Draw
+        case Highlight: main.editMode = EditMode.Highlight
+        case Step:      main.editMode = EditMode.Step
+        case Img:       main.editMode = EditMode.Image
+        case PixSel:    main.editMode = EditMode.PixSel
+        case Callout:   main.editMode = EditMode.Callout
+        case Favorites: main.editMode = EditMode.Favorites
+        case Selection: main.editMode = EditMode.Selection
         }
 
         main.updateState()

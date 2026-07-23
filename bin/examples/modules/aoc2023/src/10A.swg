@@ -129,16 +129,22 @@ func day10A()
             {
             case '-':
                 one = .West | .East
+
             case '|':
                 one = .North | .South
+
             case 'L':
                 one = .North | .East
+
             case 'J':
                 one = .North | .West
+
             case '7':
                 one = .South | .West
+
             case 'F':
                 one = .South | .East
+
             case 'S':
                 startX = col
                 startY = line
@@ -169,12 +175,15 @@ func day10A()
         case one & .East:
             visitX             += 1
             mp(visitX, visitY) &= ~.West
+
         case one & .West:
             visitX             -= 1
             mp(visitX, visitY) &= ~.East
+
         case one & .North:
             visitY             -= 1
             mp(visitX, visitY) &= ~.South
+
         case one & .South:
             visitY             += 1
             mp(visitX, visitY) &= ~.North

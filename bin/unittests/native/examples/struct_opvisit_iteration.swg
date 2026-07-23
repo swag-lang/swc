@@ -82,9 +82,9 @@ impl ShelfBins
                 var visitItem: s32 = undefined
                 switch idx
                 {
-                case 0: visitItem = me.evening
-                case 1: visitItem = me.afternoon
-                case 2: visitItem = me.lunch
+                case 0:  visitItem = me.evening
+                case 1:  visitItem = me.afternoon
+                case 2:  visitItem = me.lunch
                 default: visitItem = me.morning
                 }
 
@@ -99,9 +99,9 @@ impl ShelfBins
             var visitItem: s32 = undefined
             switch idx
             {
-            case 0: visitItem = me.morning
-            case 1: visitItem = me.lunch
-            case 2: visitItem = me.afternoon
+            case 0:  visitItem = me.morning
+            case 1:  visitItem = me.lunch
+            case 2:  visitItem = me.afternoon
             default: visitItem = me.evening
             }
 

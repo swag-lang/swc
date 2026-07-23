@@ -62,10 +62,10 @@ impl WorkloadForecast
             var visitItem: s32 = undefined
             switch idx
             {
-            case 0: visitItem = me.monday
-            case 1: visitItem = me.tuesday
-            case 2: visitItem = me.wednesday
-            case 3: visitItem = me.thursday
+            case 0:  visitItem = me.monday
+            case 1:  visitItem = me.tuesday
+            case 2:  visitItem = me.wednesday
+            case 3:  visitItem = me.thursday
             default: visitItem = me.friday
             }
 

@@ -40,14 +40,9 @@ impl IPropertyNotify for NoiseParams
 
         switch item.typeValue.name
         {
-        case #nameof(NoiseParams.octaves):
-            return isFractal
-
-        case #nameof(NoiseParams.lacunarity):
-            return isFractal and .octaves > 1
-
-        case #nameof(NoiseParams.gain):
-            return isFractal and .octaves > 1
+        case #nameof(NoiseParams.octaves):    return isFractal
+        case #nameof(NoiseParams.lacunarity): return isFractal and .octaves > 1
+        case #nameof(NoiseParams.gain):       return isFractal and .octaves > 1
         }
 
         return true

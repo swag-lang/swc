@@ -54,18 +54,12 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     var wMode: DWORD
     switch mode
     {
-    case Append:
-        wMode = OPEN_ALWAYS
-    case Create:
-        wMode = CREATE_ALWAYS
-    case CreateNew:
-        wMode = CREATE_NEW
-    case Open:
-        wMode = OPEN_EXISTING
-    case OpenOrCreate:
-        wMode = OPEN_ALWAYS
-    case Truncate:
-        wMode = TRUNCATE_EXISTING
+    case Append:       wMode = OPEN_ALWAYS
+    case Create:       wMode = CREATE_ALWAYS
+    case CreateNew:    wMode = CREATE_NEW
+    case Open:         wMode = OPEN_EXISTING
+    case OpenOrCreate: wMode = OPEN_ALWAYS
+    case Truncate:     wMode = TRUNCATE_EXISTING
     }
 
     // Read/Write mode

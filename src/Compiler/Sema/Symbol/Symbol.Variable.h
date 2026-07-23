@@ -25,6 +25,7 @@ enum class SymbolVariableFlagsE : uint16_t
     GlobalStorage           = 1 << 12,
     FwdCopy                 = 1 << 13, // copy variant of a '#fwd' parameter: requires a copyable type at match time
     ClosureCapture          = 1 << 14,
+    LateInit                = 1 << 15, // '#late' struct field: non-null type, null storage until first assignment
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

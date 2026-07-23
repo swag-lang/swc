@@ -26,6 +26,11 @@ struct CodeGenLoweringPayload
         runtimeSafetyMask |= SemaSafety::mask(what);
     }
 
+    void removeRuntimeSafety(Runtime::SafetyWhat what)
+    {
+        runtimeSafetyMask &= static_cast<uint16_t>(~SemaSafety::mask(what));
+    }
+
     bool hasRuntimeSafety(Runtime::SafetyWhat what) const
     {
         return SemaSafety::hasMask(runtimeSafetyMask, what);

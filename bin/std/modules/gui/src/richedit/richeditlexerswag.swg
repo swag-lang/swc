@@ -171,6 +171,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#gettag", State.Intrinsic)
         .mapWords.add("#runes", State.Intrinsic)
         .mapWords.add("#safety", State.Intrinsic)
+        .mapWords.add("#isset", State.Intrinsic)
         .mapWords.add("#include", State.Intrinsic)
 
         .mapWords.add("#uniq0", State.Intrinsic)
@@ -363,6 +364,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#fwd", State.Modifier)
         .mapWords.add("#reverse", State.Modifier)
         .mapWords.add("#null", State.Modifier)
+        .mapWords.add("#late", State.Modifier)
 
     }
 

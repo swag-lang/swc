@@ -5,6 +5,8 @@
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -373,6 +375,32 @@ namespace
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
+    // '#isset(expr.field)' tests whether a '#late' field has received its value.
+    Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    {
+        const SemaNodeView view   = sema.viewNode(children[0]);
+        const AstNode*     opNode = view.node();
+
+        bool isLateFieldAccess = opNode && opNode->is(AstNodeId::MemberAccessExpr);
+        if (isLateFieldAccess)
+        {
+            const SemaNodeView rightView = sema.viewSymbol(opNode->cast<AstMemberAccessExpr>().nodeRightRef);
+            const Symbol*      sym       = rightView.sym();
+            isLateFieldAccess            = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
+        }
+        if (!isLateFieldAccess)
+            return SemaError::raise(sema, DiagnosticId::sema_err_isset_not_late_field, children[0]);
+
+        // '#isset' inspects the storage, it never reads the value: cancel the read guard.
+        // Late members are never constant-extracted, so the operand always has
+        // runtime storage to inspect.
+        SemaHelpers::clearLateFieldReadGuard(sema, children[0]);
+
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+        sema.setIsValue(node);
+        return Result::Continue;
+    }
+
     bool isTypeInfoOperand(Sema& sema, const SemaNodeView& view)
     {
         if (view.type() && (view.type()->isAnyTypeInfo(sema.ctx()) || view.type()->isTypeValue()))
@@ -641,6 +669,8 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicKindOf(sema, *this, children);
         case TokenId::IntrinsicCountOf:
             return semaIntrinsicCountOf(sema, *this, children);
+        case TokenId::IntrinsicIsSet:
+            return semaIntrinsicIsSet(sema, *this, children);
         case TokenId::IntrinsicMakeAny:
             return semaIntrinsicMakeAny(sema, *this, children);
         case TokenId::IntrinsicMakeSlice:

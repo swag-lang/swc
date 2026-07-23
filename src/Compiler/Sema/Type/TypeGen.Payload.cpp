@@ -861,6 +861,8 @@ namespace
                 tv.offset                 = symField->offset();
                 if (symField->isUsingField())
                     tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
+                if (symField->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                    tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::LateInit);
 
                 entry.structFieldTypes.push_back(symField->typeRef());
 

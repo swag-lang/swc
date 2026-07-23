@@ -1296,6 +1296,7 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
     Parameter = 1 << 3,
     Using     = 1 << 4,
     FwdCopy   = 1 << 5, // copy variant of a '#fwd' parameter: requires a copyable type at match time
+    Late      = 1 << 6, // '#late' struct field: non-null type, null storage until first assignment
 };
 
 struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlagsE>, AstVarDeclBase

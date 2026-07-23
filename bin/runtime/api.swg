@@ -603,6 +603,7 @@ namespace Swag
         Zero     = 0
         AutoName
         HasUsing
+        LateInit        // '#late' field: starts null, receives its value later
     }
 
     // Represents a value, like a function parameter or an enum value

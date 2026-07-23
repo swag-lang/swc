@@ -137,6 +137,7 @@ namespace Runtime
         Zero     = 0,
         AutoName = 1,
         HasUsing = 2,
+        LateInit = 4,
     };
 
     enum class RuntimeFlags : uint64_t

@@ -1185,6 +1185,42 @@ namespace
         return Result::Continue;
     }
 
+    // '#isset(x.field)': the operand payload is the '#late' field address; the
+    // field is set iff its presence word is non-zero.
+    Result codeGenIsSet(CodeGen& codeGen, const AstIntrinsicCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(!children.empty());
+
+        const AstNodeRef          exprRef     = children[0];
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
+        const TypeRef             exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+
+        TypeRef resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), exprTypeRef);
+        if (resolvedTypeRef.isInvalid())
+            resolvedTypeRef = exprTypeRef;
+        const TypeInfo& fieldType = codeGen.typeMgr().get(resolvedTypeRef);
+
+        const uint64_t sizeOf = fieldType.sizeOf(codeGen.ctx());
+        const auto     bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(fieldType, codeGen.ctx());
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+
+        MicroBuilder&  builder     = codeGen.builder();
+        const MicroReg presenceReg = codeGen.nextVirtualIntRegister();
+        if (exprPayload.isAddress() || sizeOf > sizeof(uint64_t))
+            builder.emitLoadRegMem(presenceReg, exprPayload.reg, 0, bits);
+        else
+            builder.emitLoadRegReg(presenceReg, exprPayload.reg, bits);
+
+        CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        result.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitCmpRegImm(presenceReg, ApInt(0, 64), bits);
+        builder.emitSetCondReg(result.reg, MicroCond::NotEqual);
+        return Result::Continue;
+    }
+
     Result codeGenKindOf(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
         SmallVector<AstNodeRef> children;
@@ -1987,6 +2023,8 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenDataOf(codeGen, *this);
         case TokenId::IntrinsicKindOf:
             return codeGenKindOf(codeGen, *this);
+        case TokenId::IntrinsicIsSet:
+            return codeGenIsSet(codeGen, *this);
         case TokenId::IntrinsicMakeAny:
             return codeGenMakeAny(codeGen, *this);
         case TokenId::IntrinsicMakeSlice:

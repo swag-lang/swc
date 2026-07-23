@@ -205,7 +205,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|fullnameof|nameof|isconstexpr|location|decltype|hastag|gettag|runes|safety|sanity|include)"
+          "match": "(#)(defined|offsetof|typeof|kindof|alignof|sizeof|stringof|fullnameof|nameof|isconstexpr|isset|location|decltype|hastag|gettag|runes|safety|sanity|include)"
         }
       ]
     },
@@ -221,7 +221,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|err|noerr)\\b"
+          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|late|err|noerr)\\b"
         }
       ]
     },

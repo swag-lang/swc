@@ -464,15 +464,26 @@ namespace
 
     Result lowerTypeImplicitDefaultBytesRec(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef)
     {
+        // Non-null types reached here are '#late' fields (fields requiring explicit
+        // initialization were skipped by the caller): their default is the null
+        // 'unset' state. The destination buffer is not always pre-zeroed.
         const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
         if (declaredType.isNonNullable())
+        {
+            if (!dstBytes.empty())
+                std::memset(dstBytes.data(), 0, dstBytes.size());
             return Result::Continue;
+        }
 
         typeRef = implicitDefaultStorageTypeRef(sema, typeRef);
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isNonNullable())
+        {
+            if (!dstBytes.empty())
+                std::memset(dstBytes.data(), 0, dstBytes.size());
             return Result::Continue;
+        }
         if (type.isStruct())
         {
             for (const SymbolVariable* field : type.payloadSymStruct().fields())
@@ -532,6 +543,11 @@ namespace
     {
         if (field.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
             return ImplicitDefaultKind::AllUndefined;
+
+        // A '#late' field is typed non-null but its storage legitimately starts
+        // null: it never blocks default initialization.
+        if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
+            return ImplicitDefaultKind::AllZero;
 
         const ConstantRef valueRef = field.defaultValueRef();
         if (valueRef.isValid())

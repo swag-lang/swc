@@ -371,6 +371,7 @@ namespace
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
             SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, true));
             markAssignmentTargetAddressableStorage(leftView);
+            SemaHelpers::clearLateFieldReadGuard(sema, leftRef);
 
             SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef()));
         }
@@ -420,6 +421,7 @@ namespace
                 SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), leftView.typeRef(), modifierFlags, false));
                 SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
                 SWC_RESULT(SemaEscape::applyAssignment(sema, leftRef, nodeRightView.nodeRef()));
+                SemaHelpers::clearLateFieldReadGuard(sema, leftRef);
             }
             else
                 SWC_RESULT(tryCompoundAssignmentCast(sema, tok.id, leftRef, leftView, nodeRightView, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
@@ -506,7 +508,12 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
     SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
     if (tok.id == TokenId::SymEqual)
+    {
         SWC_RESULT(SemaEscape::applyAssignment(sema, nodeLeftRef, nodeRightView.nodeRef()));
+        // A pure store never reads the target: a '#late' field as assignment
+        // target is its initialization, not a guarded read.
+        SemaHelpers::clearLateFieldReadGuard(sema, nodeLeftRef);
+    }
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
 

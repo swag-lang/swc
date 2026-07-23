@@ -525,6 +525,42 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
     return Result::Continue;
 }
 
+// Guard for reading a '#late' struct field: the storage stays null until the
+// first assignment while the declared type is non-null.
+Result CodeGenSafety::emitLateFieldReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef fieldTypeRef)
+{
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
+        return Result::Continue;
+
+    TypeRef resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), fieldTypeRef);
+    if (resolvedTypeRef.isInvalid())
+        resolvedTypeRef = fieldTypeRef;
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(resolvedTypeRef);
+    if (!typeInfo.isNonNullable())
+        return Result::Continue;
+
+    const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
+    const auto     bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+    SWC_ASSERT(bits != MicroOpBits::Zero);
+
+    MicroBuilder&  builder     = codeGen.builder();
+    const MicroReg presenceReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegMem(presenceReg, addrReg, 0, bits);
+
+    const MicroLabelRef presentLabel = builder.createLabel();
+    builder.emitCmpRegImm(presenceReg, ApInt(0, 64), bits);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
+
+    const IdentifierRef panicIdRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
+    SWC_ASSERT(panicIdRef.isValid());
+    SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(panicIdRef);
+    SWC_ASSERT(panicFunction != nullptr);
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "late field read before initialization"));
+    builder.placeLabel(presentLabel);
+    return Result::Continue;
+}
+
 Result CodeGenSafety::emitOverflowCheck(CodeGen& codeGen, const AstNode& node)
 {
     if (!hasOverflowRuntimeSafety(codeGen))

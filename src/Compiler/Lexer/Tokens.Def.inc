@@ -208,6 +208,7 @@ SWC_TOKEN_DEF(ModifierRelocate, "#relocate",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierFwd, "#fwd",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierReverse, "#reverse",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierNullable, "#null",  TokenIdKindE::Modifier)
+SWC_TOKEN_DEF(ModifierLate, "#late",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierErr, "#err",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierNoErr, "#noerr",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierBit, "#bit",  TokenIdKindE::Modifier)
@@ -294,6 +295,7 @@ SWC_TOKEN_DEF(IntrinsicPostCopy, "@postcopy",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicKindOf, "@kindof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicCountOf, "@countof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicDataOf, "@dataof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicIsSet, "#isset",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - CONSTRUCTORS
 

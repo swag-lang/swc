@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -284,6 +285,13 @@ namespace
         }
 
         builder.emitLoadAddressRegMem(payload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
+
+        // '#late' field: reading a value that was never assigned is a guarded
+        // fault. Consumers that never read (pure store target, address-of,
+        // '#isset') cleared the safety payload during sema.
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
+            SWC_RESULT(CodeGenSafety::emitLateFieldReadCheck(codeGen, node, payload.reg, memberTypeRef));
+
         return Result::Continue;
     }
 

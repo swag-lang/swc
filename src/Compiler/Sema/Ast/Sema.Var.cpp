@@ -994,6 +994,29 @@ namespace
 
         const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
         const bool       isStructField         = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
+
+        // '#late' declares a deferred non-null field: null storage until first
+        // assignment, non-null type at every read (guarded under null safety).
+        if (context.flags.has(AstVarDeclFlagsE::Late))
+        {
+            if (!isStructField)
+                return SemaError::raise(sema, DiagnosticId::sema_err_late_not_field, finalTypeErrorRef(sema, context));
+            if (context.nodeInitRef.isValid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_late_with_initializer, sema.node(context.nodeInitRef).codeRef());
+
+            TypeRef lateTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), finalTypeRef);
+            if (lateTypeRef.isInvalid())
+                lateTypeRef = finalTypeRef;
+            if (lateTypeRef.isInvalid() || !sema.typeMgr().get(lateTypeRef).isNonNullable())
+                return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_late_bad_type, finalTypeErrorRef(sema, context), finalTypeRef);
+
+            for (Symbol* s : symbols)
+            {
+                if (auto* symVar = getVariableSymbol(s))
+                    symVar->addExtraFlag(SymbolVariableFlagsE::LateInit);
+            }
+        }
+
         const bool       directSelfStructField = explicitTypeRef.isValid() &&
                                            explicitType &&
                                            explicitType->isStruct() &&

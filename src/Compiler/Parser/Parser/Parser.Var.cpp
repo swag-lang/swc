@@ -144,8 +144,13 @@ AstNodeRef Parser::parseVarDecl()
         // Type
         AstNodeRef nodeType     = AstNodeRef::invalid();
         bool       fwdCopyParam = false;
+        bool       lateField    = false;
         if (consumeIf(TokenId::SymColon).isValid())
         {
+            // '#late' is a storage policy of the declaration (struct fields only,
+            // validated in sema), not a type qualifier: the type stays non-null.
+            lateField = consumeIf(TokenId::ModifierLate).isValid();
+
             const PushContextFlags scopedContext{this, ParserContextFlagsE::InVarDeclType};
             const bool             prevFwdSeen = fwdSeenParam_;
             nodeType                           = parseType();
@@ -167,6 +172,8 @@ AstNodeRef Parser::parseVarDecl()
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
+            if (lateField)
+                nodePtr->addFlag(AstVarDeclFlagsE::Late);
             nodePtr->tokNameRef  = tokNames[0];
             nodePtr->nodeTypeRef = nodeType;
             nodePtr->nodeInitRef = nodeInit;
@@ -180,6 +187,8 @@ AstNodeRef Parser::parseVarDecl()
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
+            if (lateField)
+                nodePtr->addFlag(AstVarDeclFlagsE::Late);
             nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
             nodePtr->nodeTypeRef  = nodeType;
             nodePtr->nodeInitRef  = nodeInit;

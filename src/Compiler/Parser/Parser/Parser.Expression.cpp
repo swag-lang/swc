@@ -825,6 +825,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicCountOf:
         case TokenId::IntrinsicDataOf:
+        case TokenId::IntrinsicIsSet:
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
             return parseIntrinsicCall(1);

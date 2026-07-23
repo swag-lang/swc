@@ -1244,6 +1244,11 @@ namespace
             const TypeInfo&       fieldRealType = unwrappedRef.isValid() ? sema.typeMgr().get(unwrappedRef) : fieldType;
             if (fieldRealType.isFunction())
                 canExtractConstantMember = false;
+            // A '#late' field's value only exists at runtime: extracting the
+            // constant would leak the null 'unset' state into a non-null type
+            // and bypass both the read guard and '#isset'.
+            if (fieldVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                canExtractConstantMember = false;
         }
 
         if (nodeLeftView.cst() && canExtractConstantMember && finalSymCount == 1 && symbols[0]->isVariable())
@@ -1255,6 +1260,14 @@ namespace
 
         if (throughPointerOrRef || sema.isLValue(node.nodeLeftRef))
             sema.setIsLValue(node);
+
+        // Reading a '#late' field is guarded: its storage stays null until the first
+        // assignment while its type is non-null. Request the null-safety payload;
+        // consumers that never read the value (pure assignment target, address-of,
+        // '#isset') clear it back.
+        if (finalSymCount == 1 && symbols[0]->isVariable() &&
+            symbols[0]->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
+            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, targetNodeRef, Runtime::SafetyWhat::Null, codeRef));
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
             SWC_RESULT(ensureMemberRuntimeStorage(sema, targetNodeRef, node));

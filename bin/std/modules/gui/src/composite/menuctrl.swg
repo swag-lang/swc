@@ -105,13 +105,13 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x     -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            if selected and #isset(i.popup) and .subVisible == i.popup
+            if selected and @isset(i.popup) and .subVisible == i.popup
             {
                 backPos.height += metrics.menuPopup_BarItemOverlap
                 theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
-            elif selected and #isset(i.popup)
+            elif selected and @isset(i.popup)
             {
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
@@ -254,7 +254,7 @@ public impl IWnd for MenuCtrl
             }
 
             // Right icon
-            if #isset(i.popup)
+            if @isset(i.popup)
             {
                 let icon = theme.getIcon24(ThemeIcons24.RightPopupArrow)
                 icon.paint(painter, labelPos.right(), textCenterY - icon.sizeY * 0.5, colorText)
@@ -354,7 +354,7 @@ public impl IWnd for MenuCtrl
             if .hotIdx != Swag.U32.Max
             {
                 let hotItem = .items[.hotIdx]
-                if #isset(hotItem.popup)
+                if @isset(hotItem.popup)
                 {
                     .hideSubVisible()
                     .deleteTimer()
@@ -647,7 +647,7 @@ impl MenuCtrl
 
     mtd showHotPopup()
     {
-        if .hotIdx == Swag.U32.Max or !#isset(.items[.hotIdx].popup)
+        if .hotIdx == Swag.U32.Max or !@isset(.items[.hotIdx].popup)
         {
             .selectedIdx = Swag.U32.Max
             return

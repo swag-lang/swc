@@ -261,7 +261,7 @@ struct PropHeadlessArrayData
     prop.edView.sendResizeEvent()
 
     // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
-    @assert(#isset(prop.items[1].label) and #isset(prop.items[2].label) and #isset(prop.items[4].label))
+    @assert(@isset(prop.items[1].label) and @isset(prop.items[2].label) and @isset(prop.items[4].label))
 
     // For each value row, the inner value line must start at or below the label bottom.
     func assertBelowLabel(item: *PropertiesItem)
@@ -287,7 +287,7 @@ struct PropHeadlessArrayData
 
     let actionsItem = prop.items[2]
     let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
-    @assert(#isset(actionsItem.arrayAddButton))
+    @assert(@isset(actionsItem.arrayAddButton))
     @assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
     // The bool description is nudged down to optically center on the box: it carries a
@@ -1007,7 +1007,7 @@ impl Gui.IPropertyNotify for ValData
     @assert(nameItem.validation == .Error)     // empty name flagged on build
     @assert(nameItem.validationMsg == "Name is required.")
     @assert(countItem.validation == .None)
-    @assert(#isset(nameItem.validationLabel) and nameItem.validationLabel.isVisible())
+    @assert(@isset(nameItem.validationLabel) and nameItem.validationLabel.isVisible())
     @assert(nameItem.validationLabel.paddingText.y > 0)
     @assert(Math.abs(nameItem.validationLabel.paddingText.y + nameItem.validationLabel.paddingText.w) < 0.01)
 
@@ -1070,7 +1070,7 @@ impl Gui.IPropertyNotify for ValData
     let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
     let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
     @assert(normalItem != null and lockedItem != null and dynamicItem != null)
-    @assert(#isset(normalItem.editBox) and #isset(lockedItem.editBox) and #isset(dynamicItem.editBox))
+    @assert(@isset(normalItem.editBox) and @isset(lockedItem.editBox) and @isset(dynamicItem.editBox))
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
     // read-only fields (attribute + dynamic) are. They are not changeable either.
@@ -1272,13 +1272,13 @@ impl IPropertyEditor for PropAngleEditor
 
     let rot = findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
     @assert(rot != null)
-    @assert(#isset(rot.editBox))
+    @assert(@isset(rot.editBox))
     @assert(rot.numChilds == 0)
     @assert(rot.editBox.getText() == "45 deg")
 
     // A plain field next to it still uses the built-in editor.
     let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
-    @assert(name != null and #isset(name.editBox))
+    @assert(name != null and @isset(name.editBox))
 
     // The registry resolves the editor for the angle type, but not for an unrelated one.
     @assert(Properties.findEditor(PropHeadlessAngle) != null)
@@ -1348,7 +1348,7 @@ impl IPropertyNotify for PropDefaultCustom
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     @assert(!countItem.isModified)
     @assert(prop.canReset(notnull countItem))
-    @assert(!#isset(countItem.revertButton) or !countItem.revertButton.isVisible())
+    @assert(!@isset(countItem.revertButton) or !countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
     let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))
@@ -1360,11 +1360,11 @@ impl IPropertyNotify for PropDefaultCustom
     // width). List mode has NO revert button: a modified row is marked by the painted
     // vertical accent bar (VSCode-style), and reset lives in the context menu.
     let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))
-    @assert(enabledItem != null and #isset(enabledItem.checkBox))
+    @assert(enabledItem != null and @isset(enabledItem.checkBox))
     data.enabled = false
     prop.updateStates()
     @assert(enabledItem.isModified)
-    @assert(!#isset(enabledItem.revertButton))
+    @assert(!@isset(enabledItem.revertButton))
     let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
     @assert(enabledItem.checkBox.parent.position.width > contentWidth)
 
@@ -1373,7 +1373,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.validateNative(notnull countItem)
     @assert(data.count == 99)
     @assert(countItem.isModified)
-    @assert(!#isset(countItem.revertButton))
+    @assert(!@isset(countItem.revertButton))
 
     // Reset (the context-menu action path) restores the declared default.
     prop.resetItemDefault(notnull countItem)
@@ -1460,7 +1460,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null and #isset(countItem.editBox))
+    @assert(countItem != null and @isset(countItem.editBox))
 
     // The revert arrow is docked to the right of the row (the trailing action margin) and present
     // from the start; while at its default the arrow is hidden (disabled) but the column stays
@@ -1511,7 +1511,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null and #isset(countItem.revertButton))
+    @assert(countItem != null and @isset(countItem.revertButton))
 
     let btn = countItem.revertButton
     @assert(btn.position.height == PropCondensedControlHeight)
@@ -1754,7 +1754,7 @@ struct PropDecorData
     @assert(heading.parent == physics and spacer.parent == physics and note.parent == physics)
     @assert(heading.typeValue.name == "Body")
     @assert(spacer.line.position.height == 16)     // Gap(16)
-    @assert(#isset(note.label))                    // the info bar label
+    @assert(@isset(note.label))                    // the info bar label
 
     // Decorators are inert: not focusable and never expandable.
     @assert(heading.flags.has(.NoFocus) and spacer.flags.has(.NoFocus) and note.flags.has(.NoFocus))
@@ -1883,7 +1883,7 @@ impl IPropertyNotify for PropFilterHost
     prop.addStruct(data)
 
     let item = prop.items[1]
-    @assert(#isset(item.comboBox))
+    @assert(@isset(item.comboBox))
     @assert(item.comboBox.items.count == 3)
 
     // Medium is enum value 2 but combo slot 1 (Hidden is filtered out)
@@ -1942,7 +1942,7 @@ struct PropSameCategData
             descItem = item
     }
 
-    @assert(descItem != null and #isset(descItem.checkBox))
+    @assert(descItem != null and @isset(descItem.checkBox))
     @assert(descItem.checkBox.parent.position.width > cast(f32) opt.prop.sizeEditValue)
 
     host.shutdown()
@@ -1980,11 +1980,11 @@ struct PropAlignData
         for item in prop.items
         {
             var w: #null *Wnd
-            if #isset(item.sliderBox) do
+            if @isset(item.sliderBox) do
                 w = item.sliderBox
-            elif #isset(item.comboBox) do
+            elif @isset(item.comboBox) do
                 w = item.comboBox
-            elif #isset(item.editBox) do
+            elif @isset(item.editBox) do
                 w = item.editBox
             if !w do
                 continue

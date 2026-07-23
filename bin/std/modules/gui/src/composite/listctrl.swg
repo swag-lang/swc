@@ -155,7 +155,7 @@ impl IWnd for ListView
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if #isset(.list) do
+        if @isset(.list) do
             .list.computeLayout()
     }
 
@@ -551,7 +551,7 @@ impl IWnd for ListView
             }
         }
 
-        if #isset(.list.header) and .list.listFlags.has(.VertLines)
+        if @isset(.list.header) and .list.listFlags.has(.VertLines)
         {
             rect = .getClientRectPadding()
             for idx in 1 until .list.header.items.count
@@ -655,7 +655,7 @@ private impl ListView
             var labelPos = rect
 
             // Right
-            if #isset(.list.header)
+            if @isset(.list.header)
             {
                 labelPos.x     = .getXPos(item.column)
                 labelPos.width = .list.header.getItemWidthByCol(item.column)
@@ -726,7 +726,7 @@ private impl ListView
             }
 
             // Take care of header item margin
-            if #isset(.list.header) do
+            if @isset(.list.header) do
                 labelPos.moveLeft(.list.header.marginItems)
 
             // Left margin, or icon
@@ -810,7 +810,7 @@ impl ListCtrl
                 return false
 
             var list = cast(*ListCtrl) wnd
-            if !#isset(list.header) do
+            if !@isset(list.header) do
                 return false
             var header = list.header
             if header.form == .Transparent do
@@ -947,7 +947,7 @@ impl ListCtrl
         var scrollWidth: f32 = undefined
         if .horizontalExtent > 0 do
             scrollWidth = .horizontalExtent
-        elif #isset(.header) do
+        elif @isset(.header) do
             scrollWidth = .header.getTotalItemsWidth()
         else do
             scrollWidth = clientRect.width
@@ -1040,14 +1040,14 @@ impl ListCtrl
     // Add one column in a multi columns list
     mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
     {
-        Debug.assert(#isset(.header))
+        Debug.assert(@isset(.header))
         .header.addItem(name, width, icon)
     }
 
     // Set the column width
     mtd setColumnWidth(idx: u32, width: f32)
     {
-        Debug.assert(#isset(.header))
+        Debug.assert(@isset(.header))
         .header.setItemWidth(idx, width)
     }
 
@@ -1255,7 +1255,7 @@ impl ListCtrl
         .sort(column, descentOrder, &.lines)
         .mapIndexes()
 
-        if #isset(.header) and persistent
+        if @isset(.header) and persistent
         {
             .header.sortColumn = column
             .header.sortMark   = descentOrder ? -1 : 1
@@ -1268,7 +1268,7 @@ impl ListCtrl
     // Sort list as before
     mtd sort()
     {
-        if #isset(.header) and .header.sortMark != 0 do
+        if @isset(.header) and .header.sortMark != 0 do
             .sort(.header.sortColumn, .header.sortMark == -1 ? true : false)
         else do
             .sort(0)
@@ -1282,7 +1282,7 @@ impl ListCtrl
         line.expanded = true
         .sigExpand.call(me, line)
 
-        if #isset(.header) and .header.sortMark do
+        if @isset(.header) and .header.sortMark do
             .sort(.header.sortColumn, .header.sortMark == -1 ? true : false, &line.lines)
 
         let res = .idxLineToIdxList.tryFind(line.index)

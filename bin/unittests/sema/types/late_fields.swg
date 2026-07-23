@@ -1,7 +1,7 @@
 #global private
 
 // A '#late' field defers its initialization: the storage starts null while the
-// declared type stays NON-null. Reads are guarded under null safety, '#isset'
+// declared type stays NON-null. Reads are guarded under null safety, '@isset'
 // observes the transition, and the struct remains default-initializable.
 
 struct SemaLateItem
@@ -27,7 +27,7 @@ func semaLateDefaultConstructible()->bool
 func semaLateLiteralOmits()->bool
 {
     let b = SemaLateBox{count: 2}
-    return !#isset(b.item)
+    return !@isset(b.item)
 }
 
 // The field type is plain non-null at every read: no proof, no 'notnull'.
@@ -40,14 +40,14 @@ func semaLateTypeIsNonNull(it: *SemaLateItem)->bool
     return p == it
 }
 
-// '#isset' observes the set transition.
+// '@isset' observes the set transition.
 func semaLateIsSet(it: *SemaLateItem)->bool
 {
     var b: SemaLateBox
-    if #isset(b.item) do
+    if @isset(b.item) do
         return false
     b.item = it
-    return #isset(b.item)
+    return @isset(b.item)
 }
 
 // -----------------------------------------------------------------------------
@@ -108,23 +108,23 @@ func semaLateOkEscaped()->bool
 {
     var b: SemaLateBox
     semaLateFill(&b.item)
-    return #isset(b.item)
+    return @isset(b.item)
 }
 
-// '#isset' before any assignment is not a read.
+// '@isset' before any assignment is not a read.
 func semaLateOkIsSetFirst()->bool
 {
     var b: SemaLateBox
-    return #isset(b.item)
+    return @isset(b.item)
 }
 
-// '#isset' only applies to late field accesses.
+// '@isset' only applies to late field accesses.
 func semaLateErrIsSetValue(v: s32)->bool
 {
-    return #isset(v)     // swc-expected-error {{sema_err_isset_not_late_field}}
+    return @isset(v)     // swc-expected-error {{sema_err_isset_not_late_field}}
 }
 
 func semaLateErrIsSetPlainField(b: *SemaLateBox)->bool
 {
-    return #isset(b.count)     // swc-expected-error {{sema_err_isset_not_late_field}}
+    return @isset(b.count)     // swc-expected-error {{sema_err_isset_not_late_field}}
 }

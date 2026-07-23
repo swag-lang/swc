@@ -26,7 +26,7 @@ public impl Properties
     // navigable row when none is selected yet.
     mtd focusNav(fallbackToFirst = true)
     {
-        if !#isset(.edView) do
+        if !@isset(.edView) do
             return
 
         // Keep the current selection (e.g. the row just clicked, even when it is a
@@ -74,7 +74,7 @@ internal impl Properties
 
         // An open combo drop-down is driven here (the grid keeps the focus), so the
         // arrows move the popup selection instead of the grid rows or the page.
-        if .selItem and #isset(.selItem.comboBox) and .selItem.comboBox.popup
+        if .selItem and @isset(.selItem.comboBox) and .selItem.comboBox.popup
         {
             let popup = .selItem.comboBox.popup
             switch evt.key
@@ -119,7 +119,7 @@ internal impl Properties
             .activateSel()
 
         case Space:
-            if .selItem and #isset(.selItem.checkBox) do
+            if .selItem and @isset(.selItem.checkBox) do
                 .selItem.checkBox.toggle()
             else do
                 .activateSel()
@@ -128,7 +128,7 @@ internal impl Properties
 
             // A slider steps right away (and stays focused for further steps), so
             // the very first press already changes the value.
-            if .selItem and #isset(.selItem.sliderBox)
+            if .selItem and @isset(.selItem.sliderBox)
             {
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(1)
@@ -142,7 +142,7 @@ internal impl Properties
                 .activateSel()
 
         case Left:
-            if .selItem and #isset(.selItem.sliderBox)
+            if .selItem and @isset(.selItem.sliderBox)
             {
                 .selItem.sliderBox.slider.setFocus()
                 .selItem.sliderBox.slider.stepBy(-1)
@@ -246,7 +246,7 @@ private impl Properties
     // section/category headers (no data, no type, no editor) are skipped.
     mtd isNavigable(item: #null *PropertiesItem)->bool
     {
-        if !item or !#isset(item.line) do
+        if !item or !@isset(item.line) do
             return false
         if !item.line.isVisible() do
             return false
@@ -263,7 +263,7 @@ private impl Properties
 
     mtd itemHasEditor(item: *PropertiesItem)->bool
     {
-        return #isset(item.editBox) or #isset(item.comboBox) or #isset(item.sliderBox) or #isset(item.checkBox)
+        return @isset(item.editBox) or @isset(item.comboBox) or @isset(item.sliderBox) or @isset(item.checkBox)
     }
 
     mtd firstNavigable(forward: bool)->#null *PropertiesItem
@@ -355,20 +355,20 @@ private impl Properties
         if !item do
             return
 
-        if #isset(item.checkBox)
+        if @isset(item.checkBox)
         {
             item.checkBox.toggle()
             return
         }
 
-        if #isset(item.editBox)
+        if @isset(item.editBox)
         {
             item.editBox.setFocus()
             item.editBox.selectAll()
             return
         }
 
-        if #isset(item.comboBox)
+        if @isset(item.comboBox)
         {
             // Open the drop-down so the new item is chosen from the list, rather than
             // silently cycling values in place. The grid keeps the focus and forwards
@@ -377,7 +377,7 @@ private impl Properties
             return
         }
 
-        if #isset(item.sliderBox)
+        if @isset(item.sliderBox)
         {
             // Edit the value box like a plain editbox row: focus it and select its
             // text so the value can be typed over right away. The slider track stays
@@ -406,14 +406,14 @@ private impl Properties
     // path (e.g. EditBox.sigLoseFocus -> validateNative).
     mtd commitEdit()
     {
-        if #isset(.edView) do
+        if @isset(.edView) do
             .edView.setFocus()
     }
 
     // Scroll the grid so the given row is fully visible.
     mtd ensureItemVisible(item: #null *PropertiesItem)
     {
-        if !item or !#isset(item.line) do
+        if !item or !@isset(item.line) do
             return
 
         let lineTop       = item.line.position.y

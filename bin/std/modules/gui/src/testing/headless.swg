@@ -488,7 +488,7 @@ impl HeadlessHost
         if wnd.type == EditCtrl
         {
             let ctrl = cast(*EditCtrl) wnd
-            if #isset(ctrl.label) and ctrl.label.name.raw == label do
+            if @isset(ctrl.label) and ctrl.label.name.raw == label do
                 return ctrl
         }
 
@@ -548,7 +548,7 @@ impl HeadlessHost
                 break
         }
 
-        if !browser or !#isset(browser.editFile) do
+        if !browser or !@isset(browser.editFile) do
             return false
 
         if folder

@@ -295,7 +295,7 @@ SWC_TOKEN_DEF(IntrinsicPostCopy, "@postcopy",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicKindOf, "@kindof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicCountOf, "@countof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicDataOf, "@dataof",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicIsSet, "#isset",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicIsSet, "@isset",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - CONSTRUCTORS
 

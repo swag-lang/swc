@@ -21,7 +21,7 @@ impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !#isset(.label) do
+        if !@isset(.label) do
             return
         let rect    = .getClientRect()
         let metrics = .getThemeMetrics()

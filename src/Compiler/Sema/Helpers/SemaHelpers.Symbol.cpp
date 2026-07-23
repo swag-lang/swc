@@ -1246,7 +1246,7 @@ namespace
                 canExtractConstantMember = false;
             // A '#late' field's value only exists at runtime: extracting the
             // constant would leak the null 'unset' state into a non-null type
-            // and bypass both the read guard and '#isset'.
+            // and bypass both the read guard and '@isset'.
             if (fieldVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
                 canExtractConstantMember = false;
         }
@@ -1264,7 +1264,7 @@ namespace
         // Reading a '#late' field is guarded: its storage stays null until the first
         // assignment while its type is non-null. Request the null-safety payload;
         // consumers that never read the value (pure assignment target, address-of,
-        // '#isset') clear it back.
+        // '@isset') clear it back.
         if (finalSymCount == 1 && symbols[0]->isVariable() &&
             symbols[0]->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
         {

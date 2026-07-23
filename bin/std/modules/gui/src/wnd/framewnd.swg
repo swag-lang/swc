@@ -195,7 +195,7 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !#isset(.view) do
+        if !@isset(.view) do
             return
         var rect = .getClientRectPadding()
         rect.applyPadding(.view.margin)
@@ -216,7 +216,7 @@ impl FrameWnd
 
     mtd setView(what: *Wnd)
     {
-        if #isset(.view) do
+        if @isset(.view) do
             .view.destroy()
         what.setParent(me)
         .view = what

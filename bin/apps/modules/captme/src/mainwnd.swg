@@ -266,7 +266,7 @@ impl MainWnd
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
-        if #isset(.libWnd) and #isset(.libWnd.view)
+        if @isset(.libWnd) and @isset(.libWnd.view)
         {
             for it in .libWnd.view.items where it.capture and it.fi.fullname == file do
                 it.capture.title = title
@@ -396,18 +396,18 @@ impl MainWnd
     mtd updateState()
     {
         .updateCommandState()
-        if #isset(.propWnd) do
+        if @isset(.propWnd) do
             .propWnd.selectionHasChanged()
-        if #isset(.quickWnd) do
+        if @isset(.quickWnd) do
             .quickWnd.updateQuickStyles()
     }
 
     mtd captureHasChanged()
     {
         .updateSizeDisplay()
-        if #isset(.recentWnd)
+        if @isset(.recentWnd)
         {
-            if #isset(.editToolBar) do
+            if @isset(.editToolBar) do
                 .editToolBar.updateCommandState()
             .updateRecent()
         }
@@ -422,7 +422,7 @@ impl MainWnd
 
     mtd updateRecent()
     {
-        if #isset(.recentWnd) do
+        if @isset(.recentWnd) do
             .recentWnd.updateRecent()
     }
 

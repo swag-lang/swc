@@ -783,7 +783,7 @@ namespace
 
             // A '#late' field is typed non-null, so the generic implicit-default
             // path would skip it ("requires explicit initialization"). Its storage
-            // must instead start as null so '#isset' reads false: zero it.
+            // must instead start as null so '@isset' reads false: zero it.
             if (field->hasExtraFlag(SymbolVariableFlagsE::LateInit))
             {
                 CodeGenMemoryHelpers::emitMemZero(codeGen, fieldAddressReg, fieldSize);

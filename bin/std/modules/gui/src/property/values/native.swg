@@ -5,7 +5,7 @@ impl Properties
         let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
-        if #isset(item.sliderBox)
+        if @isset(item.sliderBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -31,7 +31,7 @@ impl Properties
 
             .setEditMixed(item, item.sliderBox.edit)
         }
-        elif #isset(item.editBox)
+        elif @isset(item.editBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -64,7 +64,7 @@ impl Properties
         let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
-        if #isset(item.sliderBox)
+        if @isset(item.sliderBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -87,7 +87,7 @@ impl Properties
             case F64: setEd'f64()
             }
         }
-        elif #isset(item.editBox)
+        elif @isset(item.editBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -340,7 +340,7 @@ impl Properties
 
         .refreshNative(item)
 
-        if #isset(item.sliderBox)
+        if @isset(item.sliderBox)
         {
             item.sliderBox.sigChanged += func|prop = me, item|(ed) { prop.validateNative(item) }
 
@@ -348,7 +348,7 @@ impl Properties
             item.sliderBox.slider.sigStartChange += func|prop = me, item|(s) { prop.beginItemDrag(item) }
             item.sliderBox.slider.sigEndChange   += func|prop = me|(s) { prop.endItemDrag() }
         }
-        elif #isset(item.editBox)
+        elif @isset(item.editBox)
         {
             item.editBox.sigLoseFocus += func|prop = me, item|(ed)
             {

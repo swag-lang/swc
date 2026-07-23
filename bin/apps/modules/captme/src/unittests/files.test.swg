@@ -45,7 +45,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     g_Library.files.clear()
     g_Library.loaded = true
 
-    if !#isset(main.recentWnd) do
+    if !@isset(main.recentWnd) do
         main.recentWnd = RecentWnd.create(main, main)
 }
 

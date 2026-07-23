@@ -372,7 +372,7 @@ impl LibraryWnd
     // each carrying its full path in 'tag' so navigation can act on it.
     mtd updateBreadcrumb()
     {
-        if !#isset(.breadcrumb) do
+        if !@isset(.breadcrumb) do
             return
         .breadcrumb.clear()
 

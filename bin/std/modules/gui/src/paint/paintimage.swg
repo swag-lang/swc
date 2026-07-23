@@ -42,7 +42,7 @@ impl PaintImage
 
     public mtd opDrop()
     {
-        if #isset(.surface) do
+        if @isset(.surface) do
             .surface.destroy()
     }
 

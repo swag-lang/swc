@@ -1255,7 +1255,7 @@ namespace
 
                 case AstNodeId::IntrinsicCall:
                 {
-                    // '#isset(x.f)' inspects a '#late' field's storage: neither a
+                    // '@isset(x.f)' inspects a '#late' field's storage: neither a
                     // read of the value nor an escape of the variable.
                     if (tokenIdOf(node, TokenId::IntrinsicKindOf) == TokenId::IntrinsicIsSet)
                         return FlowExit::Normal;

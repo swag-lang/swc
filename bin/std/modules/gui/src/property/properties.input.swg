@@ -15,7 +15,7 @@ internal impl Properties
     // a row through the bar.
     mtd isOverRows(target: #null *Wnd)->bool
     {
-        if !target or !#isset(.edView) do
+        if !target or !@isset(.edView) do
             return false
         let view = cast(#null *Wnd) .edView
         return target == view or view.isParentOf(target)
@@ -136,7 +136,7 @@ internal impl Properties
             }
 
             // Toggle checkbox
-            elif #isset(prop.selItem.checkBox)
+            elif @isset(prop.selItem.checkBox)
             {
                 prop.selItem.checkBox.toggle()
             }
@@ -169,7 +169,7 @@ internal impl Properties
                     ToolTip.hide(notnull prop.hotItem.line)
                 prop.hotItem = hit
 
-                if hit and #isset(hit.label) and prop.isGridLike()
+                if hit and @isset(hit.label) and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.getClientRect().contains(pt) do

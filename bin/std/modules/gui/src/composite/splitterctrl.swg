@@ -475,7 +475,7 @@ impl SplitterCtrl
 
         .numVisiblePanes += show ? 1 : -1
         pane.visible     = show
-        if #isset(pane.view) do
+        if @isset(pane.view) do
             pane.view.show(show)
 
         if show

@@ -20,7 +20,7 @@ impl Properties
 
     mtd refreshEnumFlags(item: *PropertiesItem)
     {
-        if #isset(item.checkBox)
+        if @isset(item.checkBox)
         {
             var val1, val2: u64
             switch item.typeValue.pointedType.sizeof
@@ -53,7 +53,7 @@ impl Properties
 
     mtd refreshEnum(item: *PropertiesItem)
     {
-        if #isset(item.comboBox)
+        if @isset(item.comboBox)
         {
             let typeEnum = cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
 
@@ -107,7 +107,7 @@ impl Properties
 
     mtd validateEnumFlags(item: *PropertiesItem)
     {
-        if #isset(item.checkBox)
+        if @isset(item.checkBox)
         {
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
@@ -121,7 +121,7 @@ impl Properties
 
     mtd validateEnum(item: *PropertiesItem)
     {
-        if #isset(item.comboBox)
+        if @isset(item.comboBox)
         {
             #[Swag.Mixin]
             func(T) setEd()

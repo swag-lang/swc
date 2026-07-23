@@ -13,7 +13,7 @@ impl IWnd for PropertiesView
     // to the owning Properties so it can move the selection and start edition.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if #isset(.ed) do
+        if @isset(.ed) do
             .ed.navKeyEvent(evt)
         else do
             evt.accepted = false
@@ -22,7 +22,7 @@ impl IWnd for PropertiesView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .stackWnd.IWnd.onResizeEvent(evt)
-        if !#isset(.ed) or !.ed.items.count do
+        if !@isset(.ed) or !.ed.items.count do
             return
 
         .ed.refreshGridColumnLayout()
@@ -37,9 +37,9 @@ impl IWnd for PropertiesView
             for item in .ed.items
             {
                 item.line.maxSize.x = cw
-                if #isset(item.label) do
+                if @isset(item.label) do
                     item.label.position.width = contentW
-                if #isset(item.labelDesc) do
+                if @isset(item.labelDesc) do
                     item.labelDesc.position.width = contentW
             }
         }
@@ -49,22 +49,22 @@ impl IWnd for PropertiesView
         var lastItem: #null *PropertiesItem
         for item in .ed.items
         {
-            if #isset(item.label) do
+            if @isset(item.label) do
                 item.label.autoHeight()
-            if #isset(item.labelDesc) do
+            if @isset(item.labelDesc) do
                 item.labelDesc.autoHeight()
             item.sigResize.call(item)
             item.line.applyLayout()
 
             // Line list-mode row action buttons up with the right edge of the value column
             // now that the row label has its final size (grid docks them, so this is a no-op).
-            if #isset(item.arrayAddButton) do
+            if @isset(item.arrayAddButton) do
                 .ed.positionListActionButton(notnull item, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass
             // and lay the row out again when it changed the sizing.
-            if #isset(item.validationLabel) and .ed.syncValidationBar(notnull item) do
+            if @isset(item.validationLabel) and .ed.syncValidationBar(notnull item) do
                 item.line.applyLayout()
 
             item.line.sendResizeEvent()

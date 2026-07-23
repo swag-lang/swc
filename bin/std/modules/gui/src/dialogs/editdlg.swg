@@ -83,7 +83,7 @@ public impl EditDlg
     // Associate a message above the editbox
     mtd setMessage(message: string, height: s32 = 40)
     {
-        if !#isset(.label)
+        if !@isset(.label)
         {
             .label = Label.create(.surface.getView(), message, {0, 0, 0, height})
             with me.label

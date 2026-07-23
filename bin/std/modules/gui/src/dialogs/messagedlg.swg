@@ -93,7 +93,7 @@ public impl MessageDlg
 
         // Height
         var h = Math.min(512, .label.name.boundRect.height + .label.padding.y + .label.padding.w)
-        if #isset(.labelIcon) do
+        if @isset(.labelIcon) do
             h += .labelIcon.position.height
         else do
             h += metrics.dialog_Padding
@@ -128,7 +128,7 @@ public impl MessageDlg
     // Set big icon color (icon must has been set before)
     mtd setIconColor(color: Color)
     {
-        Debug.assert(#isset(.labelIcon))
+        Debug.assert(@isset(.labelIcon))
         .labelIcon.iconColor = color
     }
 
@@ -138,7 +138,7 @@ public impl MessageDlg
         if !icon.isValid() do
             return
 
-        if !#isset(.labelIcon) do
+        if !@isset(.labelIcon) do
             .labelIcon   = Label.create(.surface.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 

@@ -428,7 +428,7 @@ internal impl Properties
         let v: Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
         {
-            if #isset(.label) do
+            if @isset(.label) do
                 .label.style.setFont(&.fontCategory)
             .level = parentItem.level
             .flags.add(.Header | .NoSeparator | .NoFocus)

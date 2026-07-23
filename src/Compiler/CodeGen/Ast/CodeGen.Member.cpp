@@ -289,7 +289,7 @@ namespace
 
         // '#late' field: reading a value that was never assigned is a guarded
         // fault. Consumers that never read (pure store target, address-of,
-        // '#isset') cleared the safety payload during sema.
+        // '@isset') cleared the safety payload during sema.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
             SWC_RESULT(CodeGenSafety::emitLateFieldReadCheck(codeGen, node, payload.reg, memberTypeRef));
 

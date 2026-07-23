@@ -74,7 +74,7 @@ using Swag, Core
     var sliderCtrlBefore: #null *SliderCtrl
     for item in f.main.propWnd.grid.items
     {
-        if #isset(item.sliderBox)
+        if @isset(item.sliderBox)
         {
             sliderCtrlBefore = item.sliderBox
             break

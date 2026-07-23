@@ -375,7 +375,7 @@ namespace
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
-    // '#isset(expr.field)' tests whether a '#late' field has received its value.
+    // '@isset(expr.field)' tests whether a '#late' field has received its value.
     Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         const SemaNodeView view   = sema.viewNode(children[0]);
@@ -391,7 +391,7 @@ namespace
         if (!isLateFieldAccess)
             return SemaError::raise(sema, DiagnosticId::sema_err_isset_not_late_field, children[0]);
 
-        // '#isset' inspects the storage, it never reads the value: cancel the read guard.
+        // '@isset' inspects the storage, it never reads the value: cancel the read guard.
         // Late members are never constant-extracted, so the operand always has
         // runtime storage to inspect.
         SemaHelpers::clearLateFieldReadGuard(sema, children[0]);

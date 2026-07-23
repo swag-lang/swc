@@ -247,7 +247,7 @@ impl Properties
 
         if .canReset(item) do
             .ensureRevertButton(item)
-        if !#isset(item.revertButton) do
+        if !@isset(item.revertButton) do
             return false
 
         let btn = item.revertButton
@@ -274,7 +274,7 @@ impl Properties
     // the painted modified bar instead (see updateItemDefaultState).
     mtd ensureRevertButton(item: *PropertiesItem)
     {
-        if #isset(item.revertButton) or !.isGridLike() do
+        if @isset(item.revertButton) or !.isGridLike() do
             return
 
         let host = .rowActionArea(item)

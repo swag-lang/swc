@@ -6,7 +6,7 @@ impl Properties
     mtd validateDynamicString(item: *PropertiesItem)
     {
         var data = cast(#null *String) item.data
-        if #isset(item.editBox) do
+        if @isset(item.editBox) do
             dref data = item.editBox.getText()
         .hasChanged(item)
     }
@@ -15,7 +15,7 @@ impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if !#isset(item.comboBox) do
+        if !@isset(item.comboBox) do
             return
 
         if .fieldIsMixed(item)

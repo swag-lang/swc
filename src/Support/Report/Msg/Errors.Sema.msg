@@ -264,5 +264,5 @@ SWC_DIAG_DEF(sema_err_nullable_local_contract, Error, "'{sym}' is declared '#nul
 SWC_DIAG_DEF(sema_err_late_not_field, Error, "'#late' can only qualify a struct field; [help] for a local, use '= undefined' with definite assignment instead")
 SWC_DIAG_DEF(sema_err_late_with_initializer, Error, "a '#late' field cannot have an initializer; [help] '#late' means the field starts unset and receives its value later: remove the initializer or the '#late'")
 SWC_DIAG_DEF(sema_err_late_bad_type, Error, "'#late' requires a non-null nullable-capable type, not '{type}'; [help] '#late' defers the initialization of a pointer-like field: use a pointer, slice, string, interface or function type without '#null'")
-SWC_DIAG_DEF(sema_err_isset_not_late_field, Error, "'#isset' requires a '#late' struct field access; [help] '#isset' tests whether a deferred field has received its value: it has no meaning for other expressions")
-SWC_DIAG_DEF(sema_err_late_read_never_set, Error, "'#late' field '{value}' of '{sym}' is read here, but no path assigns it first; [help] assign the field before this read, or test it with '#isset'")
+SWC_DIAG_DEF(sema_err_isset_not_late_field, Error, "'@isset' requires a '#late' struct field access; [help] '@isset' tests whether a deferred field has received its value: it has no meaning for other expressions")
+SWC_DIAG_DEF(sema_err_late_read_never_set, Error, "'#late' field '{value}' of '{sym}' is read here, but no path assigns it first; [help] assign the field before this read, or test it with '@isset'")

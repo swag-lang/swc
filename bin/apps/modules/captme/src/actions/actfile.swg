@@ -353,7 +353,7 @@ impl MainWnd
         capture.changed        = true
         capture.linkedUpToDate = true
         .saveCapture(capture)
-        if #isset(.recentWnd) do
+        if @isset(.recentWnd) do
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)

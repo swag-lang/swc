@@ -94,11 +94,11 @@ impl Theme
     private mtd freeDefault()
     {
         // A fonts-only theme (headless text measurement) never created the image lists.
-        if #isset(.res.icons24) do
+        if @isset(.res.icons24) do
             Memory.delete(.res.icons24)
-        if #isset(.res.icons64) do
+        if @isset(.res.icons64) do
             Memory.delete(.res.icons64)
-        if #isset(.res.spin) do
+        if @isset(.res.spin) do
             Memory.delete(.res.spin)
     }
 
@@ -132,7 +132,7 @@ impl Theme
     {
         with me.res
         {
-            if #isset(.defaultTypeFaceR) do
+            if @isset(.defaultTypeFaceR) do
                 return
 
             catch createGuiTypeFace(&.defaultTypeFaceR, DefaultFontRegularName, DefaultFontRegular)

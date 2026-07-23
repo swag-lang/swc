@@ -223,7 +223,7 @@ impl IWnd for Properties
     {
         for it in .items
         {
-            if #isset(it.validationLabel) and it.validation != .None do
+            if @isset(it.validationLabel) and it.validation != .None do
                 .applyValidationVisual(notnull it)
             if it.flags.has(.Note) do
                 .applyNoteVisual(notnull it)
@@ -316,17 +316,17 @@ internal impl Properties
                 .refreshBool(item)
             elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed) do
                 .refreshNative(item)
-            elif Reflection.isString(pointed) and #isset(item.editBox)
+            elif Reflection.isString(pointed) and @isset(item.editBox)
             {
                 item.editBox.setText(dref cast(#null *string) item.data)
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and #isset(item.editBox)
+            elif pointed == Core.String and @isset(item.editBox)
             {
                 item.editBox.setText(dref cast(#null *String) item.data)
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and #isset(item.comboBox) do
+            elif pointed == Core.String and @isset(item.comboBox) do
                 .refreshFontName(item)
             elif Reflection.isStruct(pointed)
             {
@@ -668,7 +668,7 @@ impl Properties
         var scan = cast(#null *PropertiesItem) item
         while scan
         {
-            if #isset(scan.line) and scan.line.isDisabled() do
+            if @isset(scan.line) and scan.line.isDisabled() do
                 return false
             scan = scan.parent
         }
@@ -701,7 +701,7 @@ impl Properties
         // exactly like a static string; any other editor (slider, combo, checkbox, ...) is
         // grayed instead, since those have no read-only mode.
         let readOnly = .isItemReadOnly(item)
-        if #isset(item.editBox)
+        if @isset(item.editBox)
         {
             if readOnly do
                 item.editBox.editBoxFlags.add(.ReadOnly)
@@ -711,18 +711,18 @@ impl Properties
 
         for c in item.line.childs
         {
-            if #isset(item.label) and c == item.label do
+            if @isset(item.label) and c == item.label do
                 continue
-            if #isset(item.labelDesc) and c == item.labelDesc do
+            if @isset(item.labelDesc) and c == item.labelDesc do
                 continue
-            if #isset(item.validationLabel) and c == item.validationLabel do
+            if @isset(item.validationLabel) and c == item.validationLabel do
                 continue
-            if #isset(item.editBox) and c == cast(#null *Wnd) item.editBox do
+            if @isset(item.editBox) and c == cast(#null *Wnd) item.editBox do
                 continue
 
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if #isset(item.revertButton) and c == cast(#null *Wnd) item.revertButton do
+            if @isset(item.revertButton) and c == cast(#null *Wnd) item.revertButton do
                 continue
             c.enable(!readOnly)
         }

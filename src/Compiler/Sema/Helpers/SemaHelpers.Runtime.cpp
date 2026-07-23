@@ -397,7 +397,7 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
 
 // A '#late' field access requests a null-safety read guard when it resolves
 // (memberStruct). Consumers that never read the field value — pure assignment
-// target, address-of, '#isset' — call this to cancel the guard.
+// target, address-of, '@isset' — call this to cancel the guard.
 void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())

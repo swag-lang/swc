@@ -1351,7 +1351,7 @@ impl Capture
                 // A body-drag move ends here (it does NOT go through GizmoRect/sigHasChanged,
                 // unlike a resize). Refresh the Properties panel so x/y reflect the new
                 // position, mirroring the rotate path.
-                if wasMoving and #isset(view.main.propWnd) do
+                if wasMoving and @isset(view.main.propWnd) do
                     view.main.propWnd.selectionHasChanged()
             }
         }

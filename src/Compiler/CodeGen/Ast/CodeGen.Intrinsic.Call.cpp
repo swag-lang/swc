@@ -1185,7 +1185,7 @@ namespace
         return Result::Continue;
     }
 
-    // '#isset(x.field)': the operand payload is the '#late' field address; the
+    // '@isset(x.field)': the operand payload is the '#late' field address; the
     // field is set iff its presence word is non-zero.
     Result codeGenIsSet(CodeGen& codeGen, const AstIntrinsicCall& node)
     {

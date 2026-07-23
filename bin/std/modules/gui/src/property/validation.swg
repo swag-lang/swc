@@ -124,7 +124,7 @@ internal impl Properties
     // stay vertically centered together — see applyValidationVisual for the icon/colors.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
-        if item.validation == .None or !#isset(item.validationLabel) do
+        if item.validation == .None or !@isset(item.validationLabel) do
             return
         let lbl = item.validationLabel
         if !lbl.isVisible() do
@@ -143,7 +143,7 @@ internal impl Properties
     // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
     mtd applyValidationVisual(item: *PropertiesItem)
     {
-        if !#isset(item.validationLabel) or item.validation == .None do
+        if !@isset(item.validationLabel) or item.validation == .None do
             return
         let lbl = item.validationLabel
         lbl.icon      = .validationIcon(item.validation)
@@ -158,7 +158,7 @@ internal impl Properties
     // styles, so a note built under one theme would otherwise keep stale colors under the next.
     mtd applyNoteVisual(item: *PropertiesItem)
     {
-        if !#isset(item.label) do
+        if !@isset(item.label) do
             return
         let lbl = item.label
         lbl.icon      = .getTheme().getIcon64(.Information, .valBarIconSize)
@@ -181,7 +181,7 @@ internal impl Properties
     #[Swag.Discardable]
     mtd syncValidationBar(item: *PropertiesItem)->bool
     {
-        // The only caller guards on '#isset(item.validationLabel)'.
+        // The only caller guards on '@isset(item.validationLabel)'.
         let lbl     = item.validationLabel
         let visible = lbl.isVisible()
 
@@ -244,7 +244,7 @@ private impl Properties
 
         if state == .None
         {
-            if #isset(item.validationLabel) and item.validationLabel.isVisible() do
+            if @isset(item.validationLabel) and item.validationLabel.isVisible() do
                 item.validationLabel.show(false)
         }
         else
@@ -255,7 +255,7 @@ private impl Properties
             item.validationLabel.show(true)
         }
 
-        if #isset(item.line) do
+        if @isset(item.line) do
             item.line.invalidate()
         return true
     }
@@ -263,7 +263,7 @@ private impl Properties
     // Lazily create the message-bar label, stacked under the row editor.
     mtd ensureValidationLabel(item: *PropertiesItem)
     {
-        if #isset(item.validationLabel) do
+        if @isset(item.validationLabel) do
             return
 
         with let lbl = Label.create(item.line, "", {0, 0, .position.width, 0})

@@ -2,7 +2,7 @@ impl Properties
 {
     mtd refreshBool(item: *PropertiesItem)
     {
-        if #isset(item.checkBox)
+        if @isset(item.checkBox)
         {
             // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
             if .fieldIsMixed(item) do
@@ -11,7 +11,7 @@ impl Properties
                 item.checkBox.checked = dref cast(#null *bool) item.data ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
-        elif #isset(item.comboBox)
+        elif @isset(item.comboBox)
         {
             // Multi-selection: clear the selection when the instances disagree.
             if .fieldIsMixed(item) do
@@ -24,9 +24,9 @@ impl Properties
     mtd validateBool(item: *PropertiesItem)
     {
         var data = cast(#null *bool) item.data
-        if #isset(item.checkBox) do
+        if @isset(item.checkBox) do
             dref data = item.checkBox.checked == .Checked ? true : false
-        elif #isset(item.comboBox)
+        elif @isset(item.comboBox)
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
             let sel = item.comboBox.selectedIdx
@@ -127,7 +127,7 @@ impl Properties
         else do
             line.layoutSpec.alignX = .Stretch
 
-        if !#isset(item.label)
+        if !@isset(item.label)
         {
             line.margin.y = .listNameMarginBefore
             line.margin.w = .listNameMarginAfter

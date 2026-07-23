@@ -52,7 +52,7 @@ struct LateBox
 }
 
 // =============================================
-// '#isset' and pure stores never trip the guard
+// '@isset' and pure stores never trip the guard
 // =============================================
 
 #test
@@ -62,10 +62,10 @@ struct LateBox
     {
         var item = LateItem{value: 1}
         var b: LateBox
-        if #isset(b.item) do
+        if @isset(b.item) do
             return false
         b.item = &item
-        return #isset(b.item)
+        return @isset(b.item)
     }
 
     const value = #run lateIsSetNoPanic()
@@ -82,7 +82,7 @@ struct LateBox
     func lateNoSafety()->bool
     {
         var b: LateBox
-        return #isset(b.item) == false
+        return @isset(b.item) == false
     }
 
     const value = #run lateNoSafety()

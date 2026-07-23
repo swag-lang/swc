@@ -94,7 +94,7 @@ impl PropertiesCtrl
         .list.clear()
 
         // In the filter bar
-        if #isset(.tab)
+        if @isset(.tab)
         {
             .tab.clear()
             let tabItem = .tab.addItem("All")
@@ -108,7 +108,7 @@ impl PropertiesCtrl
             let naked = RichString.getNaked(str)
 
             // In the filter bar
-            if #isset(.tab) and it.lvl == 0
+            if @isset(.tab) and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
                 tabItem.userData0 = cast(#null *void) idx

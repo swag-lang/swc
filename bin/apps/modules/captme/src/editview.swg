@@ -178,7 +178,7 @@ impl EditView
         .capture = c
         if .capture do
             .capture.setup(me)
-        if #isset(.main) do
+        if @isset(.main) do
             .main.captureHasChanged()
         .invalidate()
     }

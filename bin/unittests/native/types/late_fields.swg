@@ -18,12 +18,12 @@ func nativeLateLifecycle()->bool
     var first = NativeLateItem{value: 7}
     var box: NativeLateBox
 
-    if #isset(box.item) or #isset(box.name) do
+    if @isset(box.item) or @isset(box.name) do
         return false
 
     box.item = &first
     box.name = "hello"
-    if !#isset(box.item) or !#isset(box.name) do
+    if !@isset(box.item) or !@isset(box.name) do
         return false
 
     let p: *NativeLateItem = box.item
@@ -43,14 +43,14 @@ func nativeLateAddressOf()->bool
     var box: NativeLateBox
     let slot = &box.item
     dref slot = &it
-    return #isset(box.item) and box.item.value == 3
+    return @isset(box.item) and box.item.value == 3
 }
 
 // Struct literals omit late fields; they start unset.
 func nativeLateLiteral()->bool
 {
     let box = NativeLateBox{count: 4}
-    return box.count == 4 and !#isset(box.item) and !#isset(box.name)
+    return box.count == 4 and !@isset(box.item) and !@isset(box.name)
 }
 
 #test

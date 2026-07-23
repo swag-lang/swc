@@ -14,7 +14,7 @@ func injectStmtInLocalFunction(stmt: #code)
 func bad(topLeft: s32)->s32
 {
     var result = 0
-    injectStmtInLocalFunction()
+    injectStmtInLocalFunction() // swc-expected-note {{sema_note_expansion_invoked_here}}
     {
         result = topLeft // swc-expected-error {{sema_err_local_function_outer_scope_variable}}
     }

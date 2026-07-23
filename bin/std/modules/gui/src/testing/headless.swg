@@ -33,7 +33,7 @@ struct HeadlessHost
     surface:              Surface
     surfaceWnd:           SurfaceWnd
     root:                 Wnd
-    theme:                #null *Theme
+    theme:                #late *Theme
     mousePos:             Math.Point
     closed:               bool
     commandCount:         u32
@@ -493,7 +493,7 @@ impl HeadlessHost
         if wnd.type == EditCtrl
         {
             let ctrl = cast(*EditCtrl) wnd
-            if ctrl.label and ctrl.label.name.raw == label do
+            if #isset(ctrl.label) and ctrl.label.name.raw == label do
                 return ctrl
         }
 
@@ -512,7 +512,7 @@ impl HeadlessHost
         if .app.modalSurfaces.count == 0 do
             return false
 
-        let ctrl = .findEditCtrlByLabel(notnull .app.modalSurfaces.back().wnd.view, label)
+        let ctrl = .findEditCtrlByLabel(.app.modalSurfaces.back().wnd.view, label)
         if !ctrl do
             return false
 
@@ -553,7 +553,7 @@ impl HeadlessHost
                 break
         }
 
-        if !browser or !browser.editFile do
+        if !browser or !#isset(browser.editFile) do
             return false
 
         if folder

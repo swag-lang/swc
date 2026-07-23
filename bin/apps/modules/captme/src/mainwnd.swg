@@ -21,16 +21,17 @@ enum BottomSize
 struct MainWnd
 {
     using wnd:                                    Wnd
-    topBar, editToolBar, recentBar:               #null *Wnd
-    editWnd:                                      #null *EditWnd
-    quickWnd:                                     #null *QuickWnd
-    propWnd:                                      #null *PropWnd
-    libWnd:                                       #null *LibraryWnd
-    recentWnd:                                    #null *RecentWnd
-    recentSizeBar:                                #null *IconBar
-    quickStyleBar:                                #null *SplitterCtrl
-    editZoomBar:                                  #null *StackLayoutCtrl
-    captureBtn, libraryBtn, zoomBtn, sizeBtn:     #null *IconButton
+    topBar, editToolBar, recentBar:               #late *Wnd
+    editWnd:                                      #late *EditWnd
+    quickWnd:                                     #late *QuickWnd
+    propWnd:                                      #late *PropWnd
+    libWnd:                                       #late *LibraryWnd
+    recentWnd:                                    #late *RecentWnd
+    recentSizeBar:                                #late *IconBar
+    quickStyleBar:                                #late *SplitterCtrl
+    editZoomBar:                                  #late *StackLayoutCtrl
+    captureBtn, libraryBtn, zoomBtn:              #late *IconButton
+    sizeBtn:                                      #null *IconButton
     embInfoFreeze:                                #null *EmbInfoCtrl
     icons24, icons48, appIcon:                    ImageList
     monitors:                                     Array'Env.Monitor
@@ -55,9 +56,8 @@ struct MainWnd
     mdlFormText:                              FormText
     mdlFormDraw:                              FormDraw
     mdlFormCallout:                           FormCallout
-    // Set right after construction (create/test fixtures), nullable so MainWnd
-    // keeps a valid implicit default for Wnd.create.
-    mdlHighlight, mdlPixSel, mdlFavorite:     #null IForm
+    // Set right after construction (create/test fixtures).
+    mdlHighlight, mdlPixSel, mdlFavorite:     #late IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
     mdlByType:                                Array'IForm
@@ -268,7 +268,7 @@ impl MainWnd
         }
 
         // Reflect the new title on the library preview(s) that reference this file.
-        if .libWnd and .libWnd.view
+        if #isset(.libWnd) and #isset(.libWnd.view)
         {
             for it in .libWnd.view.items where it.capture and it.fi.fullname == file do
                 it.capture.title = title
@@ -394,18 +394,18 @@ impl MainWnd
     mtd updateState()
     {
         .updateCommandState()
-        if .propWnd do
+        if #isset(.propWnd) do
             .propWnd.selectionHasChanged()
-        if .quickWnd do
+        if #isset(.quickWnd) do
             .quickWnd.updateQuickStyles()
     }
 
     mtd captureHasChanged()
     {
         .updateSizeDisplay()
-        if .recentWnd
+        if #isset(.recentWnd)
         {
-            if .editToolBar do
+            if #isset(.editToolBar) do
                 .editToolBar.updateCommandState()
             .updateRecent()
         }
@@ -420,7 +420,7 @@ impl MainWnd
 
     mtd updateRecent()
     {
-        if .recentWnd do
+        if #isset(.recentWnd) do
             .recentWnd.updateRecent()
     }
 

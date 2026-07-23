@@ -49,7 +49,7 @@ public struct Codec
 {
     srcEncoding:     SoundFileEncoding              // The original encoding
     dstEncoding:     SoundFileEncoding              // The requested encoding
-    type:            #null const *Swag.TypeInfoStruct       // The real type of the codec
+    type:            #late const *Swag.TypeInfoStruct       // The real type of the codec
 }
 
 // Initialize predefined codecs

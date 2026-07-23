@@ -118,7 +118,7 @@ public struct Font
     // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
     // size of 0 is never resolved, so it doubles as the "empty" sentinel.
     drawResolvePx:     s32
-    drawResolveFont:   #null *Font
+    drawResolveFont:   #late *Font
 }
 
 private var g_HashFont:       HashTable'(String, *Font)
@@ -318,7 +318,7 @@ public impl Font
         // Fast path: same on-screen size as the previous draw (the common case for a
         // given widget) returns the already-resolved view with no lookup or lock.
         if px == font.drawResolvePx do
-            return notnull font.drawResolveFont
+            return font.drawResolveFont
 
         let view = createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
 

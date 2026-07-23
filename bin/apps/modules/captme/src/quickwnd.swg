@@ -72,7 +72,7 @@ struct QuickButton
 {
     using iconBtn:     IconButton
     formItf:           #null IForm
-    quickWnd:          #null *QuickWnd
+    quickWnd:          #late *QuickWnd
 }
 
 struct QuickStylePaintForm
@@ -157,8 +157,8 @@ struct QuickWnd
 {
     using scrollWnd:     ScrollWnd
 
-    layout:              #null *WrapLayoutCtrl
-    main:                #null *MainWnd
+    layout:              #late *WrapLayoutCtrl
+    main:                #late *MainWnd
 
     qsArrow:             QuickStyle
     qsShape:             QuickStyle

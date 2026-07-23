@@ -794,6 +794,8 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 
     CodeGenNodePayload& dstPayload = setPayload(dstNodeRef, typeRef);
     dstPayload.reg                 = srcPayloadCopy.reg;
+    if (srcPayloadCopy.sourceCodeRef.isValid())
+        dstPayload.sourceCodeRef = srcPayloadCopy.sourceCodeRef;
     dstPayload.storageKind         = srcPayloadCopy.storageKind;
     if (srcPayloadCopy.hasMaterializedPointerLikeValue())
         dstPayload.markMaterializedPointerLikeValue();
@@ -829,9 +831,16 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 
     CodeGenNodePayload& nodePayload = ensureNodePayload<CodeGenNodePayload>(nodeRef);
 
-    nodePayload.reg         = nextVirtualRegister();
-    nodePayload.typeRef     = typeRef;
-    nodePayload.storageKind = CodeGenNodePayload::StorageKind::Value;
+    nodePayload.reg           = nextVirtualRegister();
+    nodePayload.sourceCodeRef = node(nodeRef).codeRef();
+    if (const auto* memberAccess = node(nodeRef).safeCast<AstMemberAccessExpr>())
+    {
+        const CodeGenNodePayload* leftPayload = safePayload(memberAccess->nodeLeftRef);
+        if (leftPayload && leftPayload->sourceCodeRef.isValid())
+            nodePayload.sourceCodeRef = leftPayload->sourceCodeRef;
+    }
+    nodePayload.typeRef       = typeRef;
+    nodePayload.storageKind   = CodeGenNodePayload::StorageKind::Value;
     nodePayload.clearMaterializedPointerLikeValue();
     mergeLoweringNodePayloadMetadata(nodePayload, nodeRef);
     return nodePayload;

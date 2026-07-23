@@ -76,6 +76,7 @@ public:
     void               addDidYouMeanNote(const std::optional<Utf8>& suggestion);
     DiagnosticElement& last() const { return *(elements_.back().get()); }
     void               addArgument(std::string_view name, std::string_view arg);
+    void               removeArgument(std::string_view name);
 
     static Diagnostic                        get(DiagnosticId id, FileRef file = FileRef::invalid());
     static std::string_view                  diagIdMessage(DiagnosticId id);

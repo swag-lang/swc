@@ -68,6 +68,18 @@ func undFill(v: *UndItem)
     discard last
 }
 
+// Taking an address is conservatively treated as initialization by sema because an
+// out-parameter may fill the value. Without a call, the backend can still prove that
+// no write occurred and pinpoints the first actual read.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var a: UndItem = undefined
+    let address = &a
+    discard address
+    @assert(a.x == 1) // swc-expected-error {{sanity_err_undefined_read}}
+}
+
 // ---------------------------------------------------------------------------
 // Valid programs: must NOT be flagged.
 // ---------------------------------------------------------------------------

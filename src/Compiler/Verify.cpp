@@ -191,6 +191,9 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     {
         const std::shared_ptr<DiagnosticElement>& elem      = diag.elements()[elemIndex];
         const SourceCodeRange                     codeRange = elem->codeRange(0, ctx);
+        if (codeRange.srcView && codeRange.srcView->file() && codeRange.srcView->file() != file_)
+            continue;
+
         for (const VerifyDirective& directive : directives_)
         {
             if (directive.touched)

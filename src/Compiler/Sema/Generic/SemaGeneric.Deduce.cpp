@@ -73,7 +73,7 @@ namespace
 
     Result deduceFromTypePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef, AstNodeRef argExprRef, uint32_t callArgIndex, CastFailure* outFailure, DeductionMode mode);
 
-    void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, TypeRef newTypeRef)
+    void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, AstNodeRef currentArgRef, TypeRef newTypeRef)
     {
         outFailure            = {};
         outFailure.diagId     = DiagnosticId::sema_err_generic_type_deduction_conflict;
@@ -84,12 +84,13 @@ namespace
             outFailure.addArgument(K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
         if (previousArg.diagRef.isValid())
         {
-            outFailure.noteId  = DiagnosticId::sema_note_generic_previous_deduction;
-            outFailure.nodeRef = previousArg.diagRef;
+            outFailure.noteId      = DiagnosticId::sema_note_generic_previous_deduction;
+            outFailure.noteNodeRef = previousArg.diagRef;
         }
+        outFailure.nodeRef = currentArgRef;
     }
 
-    void setGenericValueDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, ConstantRef newCstRef)
+    void setGenericValueDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, AstNodeRef currentArgRef, ConstantRef newCstRef)
     {
         outFailure        = {};
         outFailure.diagId = DiagnosticId::sema_err_generic_value_deduction_conflict;
@@ -100,9 +101,10 @@ namespace
             outFailure.addArgument(K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
         if (previousArg.diagRef.isValid())
         {
-            outFailure.noteId  = DiagnosticId::sema_note_generic_previous_deduction;
-            outFailure.nodeRef = previousArg.diagRef;
+            outFailure.noteId      = DiagnosticId::sema_note_generic_previous_deduction;
+            outFailure.noteNodeRef = previousArg.diagRef;
         }
+        outFailure.nodeRef = currentArgRef;
     }
 
     uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg, bool prependUfcsArg)
@@ -510,7 +512,7 @@ namespace
                 return true;
 
             if (outFailure)
-                setGenericTypeDeductionFailure(sema, *outFailure, idRef, arg, typeRef);
+                setGenericTypeDeductionFailure(sema, *outFailure, idRef, arg, exprRef, typeRef);
             return false;
         }
 
@@ -542,7 +544,7 @@ namespace
                 return true;
 
             if (outFailure)
-                setGenericValueDeductionFailure(sema, *outFailure, idRef, arg, cstRef);
+                setGenericValueDeductionFailure(sema, *outFailure, idRef, arg, exprRef, cstRef);
             return false;
         }
 

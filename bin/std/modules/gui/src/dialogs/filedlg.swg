@@ -35,7 +35,7 @@ struct FileDlgOptions
 struct FileDlg
 {
     using dialog:     Dialog
-    browser:          #null *FileBrowserCtrl
+    browser:          #late *FileBrowserCtrl
     dlgOptions:       FileDlgOptions
 }
 

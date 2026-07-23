@@ -99,12 +99,34 @@ namespace
         return Result::Continue;
     }
 
-    Result raiseIntrinsicFoldError(Sema& sema, const SymbolFunction& fn, AstNodeRef argRef, Math::FoldStatus status)
+    Utf8 intrinsicDomainHelp(const TaskContext& ctx, const SymbolFunction& fn)
+    {
+        std::string_view name = fn.name(ctx);
+        if (name.starts_with('@'))
+            name.remove_prefix(1);
+
+        if (name == "sqrt")
+            return "expected a value greater than or equal to zero";
+        if (name == "asin" || name == "acos")
+            return "expected a value between -1 and 1, inclusive";
+        if (name == "log" || name == "log2" || name == "log10")
+            return "expected a value greater than zero";
+        if (name == "pow")
+            return "this base and exponent combination has no real-valued result";
+        return {};
+    }
+
+    Result raiseIntrinsicFoldError(Sema& sema, const SymbolFunction& fn, AstNodeRef argRef, Math::FoldStatus status, AstNodeRef relatedArgRef = AstNodeRef::invalid())
     {
         const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
         SWC_ASSERT(diagId != DiagnosticId::None);
         const auto diag = SemaError::report(sema, diagId, argRef);
+        if (relatedArgRef.isValid())
+            diag.last().addSpan(sema.node(relatedArgRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
+        const Utf8 domainHelp = intrinsicDomainHelp(sema.ctx(), fn);
+        if (!domainHelp.empty())
+            diag.last().addArgument(Diagnostic::ARG_WHAT, domainHelp);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -546,7 +568,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             double                 foldedValue = 0.0;
             const Math::FoldStatus foldStatus  = Math::foldIntrinsicBinaryFloat(foldedValue, a, b, Math::FoldIntrinsicBinaryFloatOp::Pow);
             if (foldStatus != Math::FoldStatus::Ok)
-                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus, args[1]);
 
             return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }

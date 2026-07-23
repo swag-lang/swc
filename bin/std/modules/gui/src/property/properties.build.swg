@@ -33,7 +33,7 @@ internal impl Properties
             line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height orelse .gridLineHeight})
         else
         {
-            let stk = StackLayoutCtrl.create(notnull .edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
+            let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
             stk.fitToContent = true
             line             = stk
         }
@@ -66,7 +66,7 @@ internal impl Properties
 
         with let item = .items.addNewPtr()
         {
-            .line      = line
+            .line      = notnull line
             .type      = value.pointedType
             .typeValue = value
             .data      = data
@@ -423,7 +423,7 @@ internal impl Properties
         let v: Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
         {
-            if .label do
+            if #isset(.label) do
                 .label.style.setFont(&.fontCategory)
             .level = parentItem.level
             .flags.add(.Header | .NoSeparator | .NoFocus)
@@ -440,7 +440,7 @@ internal impl Properties
         item.level = parentItem.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
-        with let lbl = Label.create(notnull item.line, text, {0, 0, .position.width, item.line.position.height})
+        with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
         {
             .focusStrategy     = .None
             .horzAlignmentText = .Left

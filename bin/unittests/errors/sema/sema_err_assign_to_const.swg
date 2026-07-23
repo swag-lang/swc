@@ -51,6 +51,18 @@ func macroAssignConstParam(payload: InlineConstAssignPayload)
     payload.total += 1 // swc-expected-error {{sema_err_assign_to_const}}
 }
 
+#[Swag.Macro]
+func macroAssignSecondConstParam(first, second: InlineConstAssignPayload)
+{
+    second.total += first.total // swc-expected-error {{sema_err_assign_to_const}}
+}
+
+#[Swag.Macro]
+func macroNestedAssignConstParam(payload: InlineConstAssignPayload)
+{
+    macroAssignConstParam(payload) // swc-expected-note {{sema_note_expansion_invoked_here}}
+}
+
 #[Swag.Mixin]
 func mixinAssignConstParam(values: [2] s32)
 {
@@ -220,26 +232,32 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 
 #test
 {
+    var values: [2] s32 = [1, 2]
+    mixinAssignConstParam(values) // swc-expected-note {{sema_note_expansion_invoked_here}}
+}
+
+#test
+{
     var payload = InlineConstAssignPayload{total: 41}
-    macroAssignConstParam(payload)
+    macroNestedAssignConstParam(payload) // swc-expected-note {{sema_note_expansion_invoked_here}}
+}
+
+#test
+{
+    var payload = InlineConstAssignPayload{total: 41}
+    macroAssignSecondConstParam(payload, payload) // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test
 {
     var values: [2] s32 = [1, 2]
-    mixinAssignConstParam(values)
+    macroForeachWriteConstParam(values) // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test
 {
     var values: [2] s32 = [1, 2]
-    macroForeachWriteConstParam(values)
-}
-
-#test
-{
-    var values: [2] s32 = [1, 2]
-    mixinForeachWriteConstParam(values)
+    mixinForeachWriteConstParam(values) // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test

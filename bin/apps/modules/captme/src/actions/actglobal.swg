@@ -59,7 +59,7 @@ impl IActionUI for ActionGlobal
 
         case Exit:
             main.saveAppState()
-            if main.libWnd do
+            if #isset(main.libWnd) do
                 main.libWnd.requestClose()
             main.postQuitEvent()
 

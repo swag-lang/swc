@@ -790,6 +790,15 @@ bool Sema::isConstAssignBindingStored(AstNodeRef ref) const
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::ConstAssignBinding)) != 0;
 }
 
+const SymbolVariable* Sema::constAssignSourceParameter(AstNodeRef ref) const
+{
+    if (const SymbolVariable* sourceParam = nodePayloadContext().getConstAssignSourceParameter(ref))
+        return sourceParam;
+
+    const AstNodeRef resolvedRef = resolvedNodeRef(ref);
+    return resolvedRef != ref ? nodePayloadContext().getConstAssignSourceParameter(resolvedRef) : nullptr;
+}
+
 bool Sema::isConstAssignTargetStored(AstNodeRef ref) const
 {
     if (ref.isInvalid())

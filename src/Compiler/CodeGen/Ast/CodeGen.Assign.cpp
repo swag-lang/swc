@@ -588,7 +588,10 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }
 
-    const Token&       tok                  = codeGen.token(codeRef());
+    const Token&               tok               = codeGen.token(codeRef());
+    const CodeGenNodePayload*  leftPayload       = codeGen.safePayload(nodeLeftRef);
+    const SourceCodeRef        leftSourceCodeRef = leftPayload && leftPayload->sourceCodeRef.isValid() ? leftPayload->sourceCodeRef : codeGen.node(nodeLeftRef).codeRef();
+    const ScopedDebugSource    debugSource(codeGen.builder(), leftSourceCodeRef);
     CodeGenNodePayload rightPayload         = codeGen.payload(nodeRightRef);
     const SemaNodeView rightView            = codeGen.viewType(nodeRightRef);
     const TypeRef      originalRightTypeRef = rightView.typeRef();

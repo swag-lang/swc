@@ -597,32 +597,8 @@ namespace
                 const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
                 if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
                     return Result::Continue;
-                if (initPayload.isAddress())
-                {
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                    SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                }
-                else
-                {
-                    if (localSize > 8)
-                    {
-                        CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                        SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                        return Result::Continue;
-                    }
-
-                    auto copyBits = MicroOpBits::Zero;
-                    if (localSize == 1)
-                        copyBits = MicroOpBits::B8;
-                    else if (localSize == 2)
-                        copyBits = MicroOpBits::B16;
-                    else if (localSize == 4)
-                        copyBits = MicroOpBits::B32;
-                    else
-                        copyBits = MicroOpBits::B64;
-                    builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload.reg, copyBits);
-                    SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                }
+                CodeGenMemoryHelpers::storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, localSize);
+                SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
             }
             else
             {
@@ -657,32 +633,8 @@ namespace
                     const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
                     if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
                         return Result::Continue;
-                    if (initPayload.isAddress())
-                    {
-                        CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                        SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                    }
-                    else
-                    {
-                        if (localSize > 8)
-                        {
-                            CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                            SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                            return Result::Continue;
-                        }
-
-                        auto copyBits = MicroOpBits::Zero;
-                        if (localSize == 1)
-                            copyBits = MicroOpBits::B8;
-                        else if (localSize == 2)
-                            copyBits = MicroOpBits::B16;
-                        else if (localSize == 4)
-                            copyBits = MicroOpBits::B32;
-                        else
-                            copyBits = MicroOpBits::B64;
-                        builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload.reg, copyBits);
-                        SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                    }
+                    CodeGenMemoryHelpers::storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, localSize);
+                    SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
                 }
                 else
                 {

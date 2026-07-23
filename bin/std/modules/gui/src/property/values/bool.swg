@@ -2,7 +2,7 @@ impl Properties
 {
     mtd refreshBool(item: *PropertiesItem)
     {
-        if item.checkBox
+        if #isset(item.checkBox)
         {
             // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
             if .fieldIsMixed(item) do
@@ -11,7 +11,7 @@ impl Properties
                 item.checkBox.checked = dref cast(#null *bool) item.data ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
-        elif item.comboBox
+        elif #isset(item.comboBox)
         {
             // Multi-selection: clear the selection when the instances disagree.
             if .fieldIsMixed(item) do
@@ -24,9 +24,9 @@ impl Properties
     mtd validateBool(item: *PropertiesItem)
     {
         var data = cast(#null *bool) item.data
-        if item.checkBox do
+        if #isset(item.checkBox) do
             dref data = item.checkBox.checked == .Checked ? true : false
-        elif item.comboBox
+        elif #isset(item.comboBox)
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
             let sel = item.comboBox.selectedIdx
@@ -46,7 +46,7 @@ impl Properties
 
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(notnull item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -59,7 +59,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with let ed = ComboBox.create(notnull item.line, kind: .CheckBox)
+            with let ed = ComboBox.create(item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -132,7 +132,7 @@ impl Properties
         else do
             line.layoutSpec.alignX = .Stretch
 
-        if !item.label
+        if !#isset(item.label)
         {
             line.margin.y = .listNameMarginBefore
             line.margin.w = .listNameMarginAfter

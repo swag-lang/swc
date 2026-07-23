@@ -189,7 +189,7 @@ impl Properties
             prop.appendArrayValue(item)
         }
 
-        with item.editBox = EditBox.create(notnull item.line, "")
+        with item.editBox = EditBox.create(item.line, "")
         {
             // Grid rows dock the read-only count field to the left of the cell; list
             // rows stack it under the name label (the row is a StackLayoutCtrl), where

@@ -260,7 +260,7 @@ struct PropHeadlessArrayData
     prop.edView.sendResizeEvent()
 
     // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
-    @assert(prop.items[1].label != null and prop.items[2].label != null and prop.items[4].label != null)
+    @assert(#isset(prop.items[1].label) and #isset(prop.items[2].label) and #isset(prop.items[4].label))
 
     // For each value row, the inner value line must start at or below the label bottom.
     func assertBelowLabel(item: *PropertiesItem)
@@ -286,7 +286,7 @@ struct PropHeadlessArrayData
 
     let actionsItem = prop.items[2]
     let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
-    @assert(actionsItem.arrayAddButton != null)
+    @assert(#isset(actionsItem.arrayAddButton))
     @assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
     // The bool description is nudged down to optically center on the box: it carries a
@@ -839,7 +839,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     @assert(!prop.subFieldIsMixed(notnull posItem, #sizeof(f32), #sizeof(f32)))
 
     var boxes: Array'(#null *EditBox)
-    collectEditBoxes(notnull posItem.line, &boxes)
+    collectEditBoxes(posItem.line, &boxes)
     @assert(boxes.count == 2)                               // x and y
 
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
@@ -1002,7 +1002,7 @@ impl Gui.IPropertyNotify for ValData
     @assert(nameItem.validation == .Error)                 // empty name flagged on build
     @assert(nameItem.validationMsg == "Name is required.")
     @assert(countItem.validation == .None)
-    @assert(nameItem.validationLabel != null and nameItem.validationLabel.isVisible())
+    @assert(#isset(nameItem.validationLabel) and nameItem.validationLabel.isVisible())
     @assert(nameItem.validationLabel.paddingText.y > 0)
     @assert(Math.abs(nameItem.validationLabel.paddingText.y + nameItem.validationLabel.paddingText.w) < 0.01)
 
@@ -1065,7 +1065,7 @@ impl Gui.IPropertyNotify for ValData
     let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
     let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
     @assert(normalItem != null and lockedItem != null and dynamicItem != null)
-    @assert(normalItem.editBox != null and lockedItem.editBox != null and dynamicItem.editBox != null)
+    @assert(#isset(normalItem.editBox) and #isset(lockedItem.editBox) and #isset(dynamicItem.editBox))
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
     // read-only fields (attribute + dynamic) are. They are not changeable either.
@@ -1223,7 +1223,7 @@ impl IPropertyEditor for PropAngleEditor
         let item  = list.addItem(value, data, parent)
         let angle = cast(#null *PropHeadlessAngle) data
 
-        with let ed = EditBox.create(notnull item.line, "", {0, 0, 120, 24})
+        with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
         {
             // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
             // writer parses the leading number out of the free text.
@@ -1270,13 +1270,13 @@ impl IPropertyEditor for PropAngleEditor
 
     let rot = findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
     @assert(rot != null)
-    @assert(rot.editBox != null)
+    @assert(#isset(rot.editBox))
     @assert(rot.numChilds == 0)
     @assert(rot.editBox.getText() == "45 deg")
 
     // A plain field next to it still uses the built-in editor.
     let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
-    @assert(name != null and name.editBox != null)
+    @assert(name != null and #isset(name.editBox))
 
     // The registry resolves the editor for the angle type, but not for an unrelated one.
     @assert(Properties.findEditor(PropHeadlessAngle) != null)
@@ -1345,7 +1345,7 @@ impl IPropertyNotify for PropDefaultCustom
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     @assert(!countItem.isModified)
     @assert(prop.canReset(notnull countItem))
-    @assert(countItem.revertButton == null or !countItem.revertButton.isVisible())
+    @assert(!#isset(countItem.revertButton) or !countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
     let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))
@@ -1357,11 +1357,11 @@ impl IPropertyNotify for PropDefaultCustom
     // width). List mode has NO revert button: a modified row is marked by the painted
     // vertical accent bar (VSCode-style), and reset lives in the context menu.
     let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))
-    @assert(enabledItem != null and enabledItem.checkBox != null)
+    @assert(enabledItem != null and #isset(enabledItem.checkBox))
     data.enabled = false
     prop.updateStates()
     @assert(enabledItem.isModified)
-    @assert(enabledItem.revertButton == null)
+    @assert(!#isset(enabledItem.revertButton))
     let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
     @assert(enabledItem.checkBox.parent.position.width > contentWidth)
 
@@ -1370,7 +1370,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.validateNative(notnull countItem)
     @assert(data.count == 99)
     @assert(countItem.isModified)
-    @assert(countItem.revertButton == null)
+    @assert(!#isset(countItem.revertButton))
 
     // Reset (the context-menu action path) restores the declared default.
     prop.resetItemDefault(notnull countItem)
@@ -1457,7 +1457,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null and countItem.editBox != null)
+    @assert(countItem != null and #isset(countItem.editBox))
 
     // The revert arrow is docked to the right of the row (the trailing action margin) and present
     // from the start; while at its default the arrow is hidden (disabled) but the column stays
@@ -1508,7 +1508,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null and countItem.revertButton != null)
+    @assert(countItem != null and #isset(countItem.revertButton))
 
     let btn = countItem.revertButton
     @assert(btn.position.height == PropCondensedControlHeight)
@@ -1750,7 +1750,7 @@ struct PropDecorData
     @assert(heading.parent == physics and spacer.parent == physics and note.parent == physics)
     @assert(heading.typeValue.name == "Body")
     @assert(spacer.line.position.height == 16)                     // Gap(16)
-    @assert(note.label != null)                                    // the info bar label
+    @assert(#isset(note.label))                                    // the info bar label
 
     // Decorators are inert: not focusable and never expandable.
     @assert(heading.flags.has(.NoFocus) and spacer.flags.has(.NoFocus) and note.flags.has(.NoFocus))
@@ -1879,7 +1879,7 @@ impl IPropertyNotify for PropFilterHost
     prop.addStruct(data)
 
     let item = prop.items[1]
-    @assert(item.comboBox != null)
+    @assert(#isset(item.comboBox))
     @assert(item.comboBox.items.count == 3)
 
     // Medium is enum value 2 but combo slot 1 (Hidden is filtered out)
@@ -1937,7 +1937,7 @@ struct PropSameCategData
         if item.typeValue.name == "first" do
             descItem = item
     }
-    @assert(descItem != null and descItem.checkBox != null)
+    @assert(descItem != null and #isset(descItem.checkBox))
     @assert(descItem.checkBox.parent.position.width > cast(f32) opt.prop.sizeEditValue)
 
     host.shutdown()
@@ -1975,11 +1975,11 @@ struct PropAlignData
         for item in prop.items
         {
             var w: #null *Wnd
-            if item.sliderBox != null do
+            if #isset(item.sliderBox) do
                 w = item.sliderBox
-            elif item.comboBox != null do
+            elif #isset(item.comboBox) do
                 w = item.comboBox
-            elif item.editBox != null do
+            elif #isset(item.editBox) do
                 w = item.editBox
             if !w do
                 continue

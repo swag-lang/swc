@@ -6,7 +6,7 @@ impl Properties
     mtd validateDynamicString(item: *PropertiesItem)
     {
         var data = cast(#null *String) item.data
-        if item.editBox do
+        if #isset(item.editBox) do
             dref data = item.editBox.getText()
         .hasChanged(item)
     }
@@ -15,7 +15,7 @@ impl Properties
     // families. The first entry is the theme's default font and stores an empty name.
     mtd refreshFontName(item: *PropertiesItem)
     {
-        if !item.comboBox do
+        if !#isset(item.comboBox) do
             return
 
         if .fieldIsMixed(item)
@@ -60,7 +60,7 @@ impl Properties
         var combo: #null *ComboBox
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(notnull item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -73,7 +73,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with combo = ComboBox.create(notnull item.line, kind: .CheckBox)
+            with combo = ComboBox.create(item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -87,7 +87,7 @@ impl Properties
             me.adaptCondensedControl(combo)
         }
 
-        item.comboBox = combo
+        item.comboBox = notnull combo
         combo.addItem(.getTheme().res.defaultTypeFaceR.getFamilyName())
         combo.addSeparator()
         for &fnt in g_PropSysFonts do
@@ -112,7 +112,7 @@ impl Properties
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(notnull item.line, dref cast(#null *String) data)
+        with let ed = EditBox.create(item.line, dref cast(#null *String) data)
         {
             if me.kind == .Panel
             {
@@ -165,7 +165,7 @@ impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(notnull item.line, dref cast(#null *string) data)
+        with let ed = EditBox.create(item.line, dref cast(#null *string) data)
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

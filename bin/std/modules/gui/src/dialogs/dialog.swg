@@ -129,7 +129,7 @@ impl Dialog
     // Returns the view where stuff can be put.
     mtd getView()->*Wnd
     {
-        return notnull .surface.wnd.view
+        return .surface.wnd.view
     }
 
     // Display dialog as modal, and returns the user selected window id

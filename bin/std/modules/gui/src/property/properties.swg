@@ -115,8 +115,8 @@ struct Properties
     fontSection:              FontFamily
     fontCategory:             FontFamily
     fontName:                 FontFamily
-    scrollWnd:                #null *ScrollWnd
-    edView:                   #null *PropertiesView
+    scrollWnd:                #late *ScrollWnd
+    edView:                   #late *PropertiesView
     items:                    ArrayPtr'PropertiesItem
     sections:                 Array'{ item: #null *PropertiesItem, lvl: s32 }
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
@@ -195,7 +195,7 @@ impl IWnd for Properties
     {
         for it in .items
         {
-            if it.validationLabel and it.validation != .None do
+            if #isset(it.validationLabel) and it.validation != .None do
                 .applyValidationVisual(notnull it)
             if it.flags.has(.Note) do
                 .applyNoteVisual(notnull it)
@@ -287,17 +287,17 @@ internal impl Properties
                 .refreshBool(item)
             elif Reflection.isInteger(pointed) or Reflection.isFloat(pointed) do
                 .refreshNative(item)
-            elif Reflection.isString(pointed) and item.editBox
+            elif Reflection.isString(pointed) and #isset(item.editBox)
             {
                 item.editBox.setText(dref cast(#null *string) item.data)
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and item.editBox
+            elif pointed == Core.String and #isset(item.editBox)
             {
                 item.editBox.setText(dref cast(#null *String) item.data)
                 .setEditMixed(item, item.editBox)
             }
-            elif pointed == Core.String and item.comboBox do
+            elif pointed == Core.String and #isset(item.comboBox) do
                 .refreshFontName(item)
             elif Reflection.isStruct(pointed)
             {
@@ -639,7 +639,7 @@ impl Properties
         var scan = cast(#null *PropertiesItem) item
         while scan
         {
-            if scan.line and scan.line.isDisabled() do
+            if #isset(scan.line) and scan.line.isDisabled() do
                 return false
             scan = scan.parent
         }
@@ -672,7 +672,7 @@ impl Properties
         // exactly like a static string; any other editor (slider, combo, checkbox, ...) is
         // grayed instead, since those have no read-only mode.
         let readOnly = .isItemReadOnly(item)
-        if item.editBox
+        if #isset(item.editBox)
         {
             if readOnly do
                 item.editBox.editBoxFlags.add(.ReadOnly)
@@ -682,13 +682,17 @@ impl Properties
 
         for c in item.line.childs
         {
-            if c == item.label or c == item.labelDesc or c == item.validationLabel do
+            if #isset(item.label) and c == item.label do
                 continue
-            if item.editBox and c == cast(#null *Wnd) item.editBox do
+            if #isset(item.labelDesc) and c == item.labelDesc do
+                continue
+            if #isset(item.validationLabel) and c == item.validationLabel do
+                continue
+            if #isset(item.editBox) and c == cast(#null *Wnd) item.editBox do
                 continue
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
-            if item.revertButton and c == cast(#null *Wnd) item.revertButton do
+            if #isset(item.revertButton) and c == cast(#null *Wnd) item.revertButton do
                 continue
             c.enable(!readOnly)
         }

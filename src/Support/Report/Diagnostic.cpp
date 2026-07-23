@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Report/Diagnostic.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -88,6 +89,58 @@ namespace
             return false;
 
         return isFrontEndError(diagnostic);
+    }
+
+    bool addGeneratedSourceOrigin(TaskContext& ctx, Diagnostic& diagnostic)
+    {
+        if (!ctx.hasCompiler() || diagnostic.elements().empty())
+            return false;
+
+        const DiagnosticElement& primary = *diagnostic.elements().front();
+        if (!primary.hasSpans() || primary.id() == DiagnosticId::sema_err_ast_recursive_expansion)
+            return false;
+
+        const SourceView* sourceView = primary.srcView();
+        if (!sourceView)
+            return false;
+
+        std::vector<SourceCodeRange>       originRanges;
+        std::unordered_set<SourceViewRef> visitedViews;
+        visitedViews.insert(sourceView->ref());
+
+        constexpr size_t maxOriginDepth = 256;
+        while (originRanges.size() < maxOriginDepth)
+        {
+            const SourceCodeRef originRef = sourceView->debugSourceCodeRef();
+            if (!originRef.isValid() || !visitedViews.insert(originRef.srcViewRef).second)
+                break;
+
+            SourceCodeRange originRange;
+            if (!ctx.compiler().tryTokenCodeRange(ctx, originRange, originRef))
+                break;
+
+            originRanges.push_back(originRange);
+            sourceView = &ctx.compiler().srcView(originRef.srcViewRef);
+        }
+
+        if (originRanges.empty())
+            return false;
+
+        constexpr size_t maxDisplayedOrigins = 4;
+        const size_t sequentialOrigins = originRanges.size() > maxDisplayedOrigins ? maxDisplayedOrigins - 1 : originRanges.size();
+        for (size_t idx = 0; idx < sequentialOrigins; idx++)
+        {
+            diagnostic.addNote(DiagnosticId::sema_note_generated_source_origin);
+            diagnostic.last().addSpan(originRanges[idx]);
+        }
+
+        if (originRanges.size() > maxDisplayedOrigins)
+        {
+            diagnostic.addNote(DiagnosticId::sema_note_generated_source_root);
+            diagnostic.last().addSpan(originRanges.back());
+        }
+
+        return true;
     }
 }
 
@@ -219,6 +272,11 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     arguments_.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
 }
 
+void Diagnostic::removeArgument(const std::string_view name)
+{
+    std::erase_if(arguments_, [name](const Argument& argument) { return argument.name == name; });
+}
+
 Diagnostic Diagnostic::get(DiagnosticId id, FileRef file)
 {
     Diagnostic diag(file);
@@ -233,7 +291,11 @@ void Diagnostic::report(TaskContext& ctx) const
     if (silent() || ctx.silentDiagnostic())
         return;
 
-    DiagnosticBuilder eng(ctx, *this);
+    Diagnostic          contextualDiagnostic = *this;
+    const bool          contextualized        = addGeneratedSourceOrigin(ctx, contextualDiagnostic);
+    const Diagnostic&   reportedDiagnostic    = contextualized ? contextualDiagnostic : *this;
+
+    DiagnosticBuilder eng(ctx, reportedDiagnostic);
     const Utf8        msg     = eng.build();
     bool              dismiss = false;
 
@@ -245,10 +307,21 @@ void Diagnostic::report(TaskContext& ctx) const
     {
         SWC_ASSERT(ctx.hasCompiler());
         const SourceFile& file = ctx.compiler().file(fileOwner_);
-        dismiss                = file.unitTest().verifyExpected(ctx, *this);
+        dismiss                = file.unitTest().verifyExpected(ctx, reportedDiagnostic);
+
+        std::unordered_set<const SourceFile*> verifiedFiles = {&file};
+        for (const std::shared_ptr<DiagnosticElement>& element : reportedDiagnostic.elements())
+        {
+            const SourceView* sourceView = element->srcView();
+            const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
+            if (!sourceFile || !verifiedFiles.insert(sourceFile).second)
+                continue;
+
+            dismiss = sourceFile->unitTest().verifyExpected(ctx, reportedDiagnostic) || dismiss;
+        }
     }
 
-    if (dismiss && shouldReportExpectedFrontEndError(ctx, *this))
+    if (dismiss && shouldReportExpectedFrontEndError(ctx, reportedDiagnostic))
         dismiss = false;
 
     // Count only diagnostics that are not suppressed by source-driven expectations.
@@ -299,7 +372,7 @@ void Diagnostic::report(TaskContext& ctx) const
             dismiss = false;
         else
         {
-            for (const std::shared_ptr<DiagnosticElement>& e : elements_)
+            for (const std::shared_ptr<DiagnosticElement>& e : reportedDiagnostic.elements())
             {
                 if (e->idName().find(filter) != Utf8::npos)
                     dismiss = false;

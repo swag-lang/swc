@@ -68,7 +68,9 @@ namespace
 
         const MicroReg referenceSlotReg = ioPayload.reg;
         ioPayload.reg                   = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
+        MicroBuilder& builder = codeGen.builder();
+        const ScopedDebugSource debugSource(builder, ioPayload.sourceCodeRef);
+        builder.emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
         ioPayload.setIsAddress();
     }
 
@@ -136,7 +138,10 @@ namespace
 
         MicroBuilder& builder = codeGen.builder();
         if (operandPayload.isAddress() || (operandPayload.isValue() && isAddressBackedValue))
+        {
+            const ScopedDebugSource debugSource(builder, operandPayload.sourceCodeRef);
             builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
+        }
         else
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
     }
@@ -223,7 +228,9 @@ namespace
         if (operandType.isAny())
         {
             outReg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegMem(outReg, payload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+            MicroBuilder& builder = codeGen.builder();
+            const ScopedDebugSource debugSource(builder, payload.sourceCodeRef);
+            builder.emitLoadRegMem(outReg, payload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
             return;
         }
 

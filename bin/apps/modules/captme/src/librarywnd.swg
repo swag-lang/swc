@@ -18,16 +18,16 @@ struct LibraryWnd
 {
     using wnd:                   Wnd
 
-    main:                        #null *MainWnd
-    view:                        #null *LibraryView
-    listCtrl:                    #null *ListCtrl
-    editZoomBar:                 #null *Wnd
-    zoomBtn:                     #null *IconButton
-    sortBtn:                     #null *IconButton
-    filterBtn:                   #null *IconButton
-    trashBtn:                    #null *IconButton
-    searchEdit:                  #null *EditBox
-    breadcrumb:                  #null *BreadcrumbCtrl
+    main:                        #late *MainWnd
+    view:                        #late *LibraryView
+    listCtrl:                    #late *ListCtrl
+    editZoomBar:                 #late *Wnd
+    zoomBtn:                     #late *IconButton
+    sortBtn:                     #late *IconButton
+    filterBtn:                   #late *IconButton
+    trashBtn:                    #late *IconButton
+    searchEdit:                  #late *EditBox
+    breadcrumb:                  #late *BreadcrumbCtrl
     previewSize:                 PreviewSize
 
     searchText:                  String
@@ -373,7 +373,7 @@ impl LibraryWnd
     // each carrying its full path in 'tag' so navigation can act on it.
     mtd updateBreadcrumb()
     {
-        if !.breadcrumb do
+        if !#isset(.breadcrumb) do
             return
         .breadcrumb.clear()
 

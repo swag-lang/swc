@@ -30,8 +30,8 @@ struct CardOptions
 
 struct TextureCard
 {
-    title:           #null string
-    subtitle:        #null string
+    title:           #late string
+    subtitle:        #late string
     texture:         Texture
     options:         CardOptions
 }
@@ -259,8 +259,8 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Textur
     painter.fillRoundRect(previewRect, 16, 16, Color.fromArgb(255, 246, 248, 250))
     painter.drawRoundRect(previewRect, 16, 16, Color.fromArgb(36, Argb.SlateGray), 1)
 
-    painter.drawString(rect.x + 14, rect.y + 12, notnull card.title, notnull g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, subtitleRect, notnull card.subtitle, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 12, card.title, notnull g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, subtitleRect, card.subtitle, notnull g_HelpFont, Argb.DimGray)
     drawCardTexture(painter, previewRect, card)
 }
 

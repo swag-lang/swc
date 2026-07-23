@@ -12,6 +12,6 @@ SWC_DIAG_DEF(sanity_err_use_after_free, Error, "use of a freed pointer; [help] t
 SWC_DIAG_DEF(sanity_err_double_free, Error, "the pointer is freed twice; [help] the pointed memory was already released")
 SWC_DIAG_DEF(sanity_err_borrow_escape, Error, "borrowed data from local variable '{sym}' may escape through {what}; [help] copy the data or keep the owner alive longer")
 SWC_DIAG_DEF(sanity_err_borrow_scope_escape, Error, "borrowed data from local variable '{sym}' does not live as long as '{value}'; [help] declare '{sym}' in the same scope or copy the data")
-SWC_DIAG_DEF(sanity_err_borrow_temporary, Error, "borrowed data from a temporary value may escape through {what}; [help] the temporary is destroyed at the end of the statement; store it in a variable first")
+SWC_DIAG_DEF(sanity_err_borrow_temporary, Error, "borrowed data from a temporary value may escape through {what}; [help] the temporary is destroyed at the end of the statement, so store it in a variable first")
 SWC_DIAG_DEF(sanity_err_borrow_materialized, Error, "borrowed data backed by function-local storage may escape through {what}; [help] copy the data into caller-owned storage")
 SWC_DIAG_DEF(sanity_err_collection_mutated, Error, "'{sym}' is structurally modified by '{value}' while it is being iterated; [help] the loop reads a snapshot of the collection and '{value}' can move or free its storage: break out of the loop, or collect the changes and apply them afterwards")

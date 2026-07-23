@@ -1613,7 +1613,10 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     MicroReg                               closureContextReg = MicroReg::invalid();
 
     if (calleePayload)
+    {
+        const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
         callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, *calledFunction, callConv, closureContextReg);
+    }
 
     // Lower calls in three phases: prepare semantic arguments, let ABICall perform
     // ABI placement and call emission, then materialize the return and post-call

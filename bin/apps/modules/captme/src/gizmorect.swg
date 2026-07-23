@@ -516,9 +516,9 @@ impl GizmoRect
         capture.pushUndo(undo)
 
         let main = capture.editView.main
-        if main.quickWnd do
+        if #isset(main.quickWnd) do
             main.quickWnd.updateSelection()
-        if last and main.propWnd do
+        if last and #isset(main.propWnd) do
             main.propWnd.selectionHasChanged()
         main.editWnd.invalidate()
     }

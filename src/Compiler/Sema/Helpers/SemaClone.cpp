@@ -448,7 +448,7 @@ namespace
             if (paramType.isReference() && !paramType.isConst())
                 return targetRef;
 
-            sema.setConstAssignBinding(targetRef);
+            sema.setConstAssignBinding(targetRef, binding.sourceParam);
             if (!paramType.isPointerOrReference() || paramType.isReference())
                 sema.setConstAssignTarget(targetRef);
         }

@@ -45,7 +45,7 @@ var g_Font: #null *Font
 struct Alien
 {
     x, y:     f32
-    type:     #null *Texture
+    type:     #late *Texture
     dead:     bool
 }
 

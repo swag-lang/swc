@@ -66,7 +66,7 @@ public impl IWnd for ScrollWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .computeLayout()
-        if !.view do
+        if !#isset(.view) do
             return
         var rect = .getClientRectPadding()
         rect.width -= .paddingZ

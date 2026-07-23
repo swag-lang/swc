@@ -1,8 +1,8 @@
 struct EditView
 {
     using wnd:       Wnd
-    main:            #null *MainWnd
-    scroll:          #null *ScrollWnd
+    main:            #late *MainWnd
+    scroll:          #late *ScrollWnd
     capture:         #null *Capture
     zoom:            f32 = 1
     viewMargin:      f32 = 32
@@ -177,7 +177,7 @@ impl EditView
         .capture = c
         if .capture do
             .capture.setup(me)
-        if .main do
+        if #isset(.main) do
             .main.captureHasChanged()
         .invalidate()
     }

@@ -154,7 +154,7 @@ func parseCMap(faceData: *FaceImpl) throw
     if bestFmt != 4 and bestFmt != 12 do
         fail(0x96)
 
-    faceData.chosenCMap = bestSlice
+    faceData.chosenCMap = notnull bestSlice
     faceData.cmapFormat = bestFmt
 }
 

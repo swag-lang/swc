@@ -38,7 +38,7 @@ struct FaceImpl
     tables:              Array'TableRecord
     glyphMetrics:        Array'GlyphMetric
     glyphLocations:      Array'u32
-    chosenCMap:          #null const [..] u8
+    chosenCMap:          #late const [..] u8
     cmapFormat:          u16
     unitsPerEm:          u16
     numLongMetrics:      u16

@@ -25,7 +25,7 @@ impl IPropertyEditor for FontStyleEditor
 
         // Grid mode packs the pair left in the value column; the panel/list modes center
         // it as its own full-width row.
-        with let line = StackLayoutCtrl.create(notnull item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
         {
             .anchorStyle = .X
             .spacing     = 4

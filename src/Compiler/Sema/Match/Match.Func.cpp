@@ -25,6 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
+
     void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
     {
         outArgs.clear();
@@ -774,6 +776,20 @@ namespace
         return nullptr;
     }
 
+    const uint32_t* castFailureUIntArgument(const CastFailure& failure, std::string_view name)
+    {
+        for (const auto& arg : failure.arguments)
+        {
+            if (arg.name != name)
+                continue;
+
+            if (const auto* value = std::get_if<uint32_t>(&arg.val))
+                return value;
+        }
+
+        return nullptr;
+    }
+
     Utf8 formatFunctionWhereFailureBindings(const CastFailure& failure)
     {
         const Utf8* values = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUES);
@@ -845,16 +861,16 @@ namespace
                 {
                     const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
                     if (const SymbolVariable* param = failedParameter(fn, fail))
-                        return std::format("its '#fwd' parameter '{}' cannot take a copy of non-copyable type '{}'; pass the value with '#move'", param->name(ctx), typeName);
-                    return std::format("its '#fwd' parameter cannot take a copy of non-copyable type '{}'; pass the value with '#move'", typeName);
+                        return std::format("its '#fwd' parameter '{}' cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", param->name(ctx), typeName);
+                    return std::format("its '#fwd' parameter cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", typeName);
                 }
 
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_not_copyable)
                 {
                     const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
                     if (const SymbolVariable* param = failedParameter(fn, fail))
-                        return std::format("its '#move' parameter '{}' cannot take a copy of non-copyable type '{}'; pass the value with '#move'", param->name(ctx), typeName);
-                    return std::format("its '#move' parameter cannot take a copy of non-copyable type '{}'; pass the value with '#move'", typeName);
+                        return std::format("its '#move' parameter '{}' cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", param->name(ctx), typeName);
+                    return std::format("its '#move' parameter cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", typeName);
                 }
 
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_param_not_move)
@@ -875,6 +891,40 @@ namespace
         }
 
         return Utf8{Diagnostic::diagIdMessage(DiagnosticId::sema_note_not_viable)};
+    }
+
+    Utf8 makeGenericInstantiationFailureText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
+    {
+        const CastFailure& failure = fail.castFailure;
+        const Utf8*        param         = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUE);
+        const Utf8         paramName     = param ? *param : Utf8{"<unknown>"};
+        const uint32_t*    previousIndex = castFailureUIntArgument(failure, K_ARG_PREV_INDEX);
+
+        if (failure.diagId == DiagnosticId::sema_err_generic_type_deduction_conflict &&
+            failure.srcTypeRef.isValid() &&
+            failure.dstTypeRef.isValid())
+        {
+            const Utf8 previousType = ctx.typeMgr().get(failure.srcTypeRef).toName(ctx);
+            const Utf8 currentType  = ctx.typeMgr().get(failure.dstTypeRef).toName(ctx);
+            if (previousIndex)
+                return std::format("generic parameter '{}' is deduced as '{}' by argument {}, but as '{}' by argument {}", paramName, previousType, *previousIndex, currentType, fail.argIndex + 1);
+            return std::format("generic parameter '{}' is deduced as both '{}' and '{}'", paramName, previousType, currentType);
+        }
+
+        if (failure.diagId == DiagnosticId::sema_err_generic_value_deduction_conflict)
+        {
+            const Utf8* previousValue = castFailureUtf8Argument(failure, Diagnostic::ARG_LEFT);
+            const Utf8* currentValue  = castFailureUtf8Argument(failure, Diagnostic::ARG_RIGHT);
+            if (previousValue && currentValue && previousIndex)
+                return std::format("generic parameter '{}' is deduced as {} by argument {}, but as {} by argument {}", paramName, *previousValue, *previousIndex, *currentValue, fail.argIndex + 1);
+            if (previousValue && currentValue)
+                return std::format("generic parameter '{}' is deduced as both {} and {}", paramName, *previousValue, *currentValue);
+        }
+
+        if (failure.diagId == DiagnosticId::sema_err_generic_parameter_not_deduced)
+            return std::format("generic parameter '{}' cannot be deduced from this call and must be specified explicitly", paramName);
+
+        return makeCandidateFailureText(fn, fail, ctx);
     }
 
     DiagnosticId overloadCandidateDiagnosticId(const MatchFailure& fail)
@@ -1092,9 +1142,10 @@ namespace
     {
         const TaskContext& ctx = sema.ctx();
 
-        Diagnostic         diag         = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
+        Diagnostic         diag         = reportMatchFailure(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee, primary.fail, args, ufcsArg);
         DiagnosticElement& errorElement = primaryDiagnosticElement(diag);
         errorElement.addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
+        errorElement.addArgument(Diagnostic::ARG_WHAT, makeGenericInstantiationFailureText(*primary.fn, primary.fail, ctx));
         fillMatchDiagnostic(sema, errorElement, diag, *primary.fn, primary.fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;

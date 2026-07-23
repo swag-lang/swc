@@ -83,6 +83,7 @@ public:
     MicroBuilderFlags                                          flags() const { return flags_; }
     bool                                                       hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
     void                                                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
+    const SourceCodeRef&                                       currentDebugSourceCodeRef() const { return currentDebugSourceInfo_.sourceCodeRef; }
     void                                                       setCurrentDebugNoStep(bool value);
     bool                                                       currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
     void                                                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }

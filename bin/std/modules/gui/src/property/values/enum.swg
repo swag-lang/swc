@@ -20,7 +20,7 @@ impl Properties
 
     mtd refreshEnumFlags(item: *PropertiesItem)
     {
-        if item.checkBox
+        if #isset(item.checkBox)
         {
             var val1, val2: u64
             switch item.typeValue.pointedType.sizeof
@@ -50,7 +50,7 @@ impl Properties
 
     mtd refreshEnum(item: *PropertiesItem)
     {
-        if item.comboBox
+        if #isset(item.comboBox)
         {
             let typeEnum = cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
 
@@ -114,7 +114,7 @@ impl Properties
 
     mtd validateEnumFlags(item: *PropertiesItem)
     {
-        if item.checkBox
+        if #isset(item.checkBox)
         {
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
@@ -128,7 +128,7 @@ impl Properties
 
     mtd validateEnum(item: *PropertiesItem)
     {
-        if item.comboBox
+        if #isset(item.comboBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -270,7 +270,7 @@ impl Properties
         // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
-            with let ctrl = ComboCtrl.create(notnull item.line, itemDisplayName(value).toString())
+            with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .X
                 .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
@@ -283,7 +283,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
-            with let ed = ComboBox.create(notnull item.line, kind: .CheckBox)
+            with let ed = ComboBox.create(item.line, kind: .CheckBox)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do

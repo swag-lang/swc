@@ -138,8 +138,8 @@ enum WndFlags
 
 struct Wnd
 {
-    itf:                   #null IWnd
-    type:                  #null typeinfo
+    itf:                   #late IWnd
+    type:                  #late typeinfo
     surface:               #null *Surface
     style:                 ThemeStyle
     wndFlags               = WndFlags.ClipChildren

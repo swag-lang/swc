@@ -14,10 +14,10 @@ struct PropertiesCtrl
 {
     using frameWnd:     FrameWnd
 
-    splitter:           #null *SplitterCtrl
-    list:               #null *ListCtrl
-    tab:                #null *Tab
-    prop:               #null *Properties
+    splitter:           #late *SplitterCtrl
+    list:               #late *ListCtrl
+    tab:                #late *Tab
+    prop:               #late *Properties
     propFlags:          PropertiesCtrlFlags
 }
 
@@ -93,7 +93,7 @@ impl PropertiesCtrl
         .list.clear()
 
         // In the filter bar
-        if .tab
+        if #isset(.tab)
         {
             .tab.clear()
             let tabItem = .tab.addItem("All")
@@ -107,7 +107,7 @@ impl PropertiesCtrl
             let naked = RichString.getNaked(str)
 
             // In the filter bar
-            if .tab and it.lvl == 0
+            if #isset(.tab) and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
                 tabItem.userData0 = cast(#null *void) idx

@@ -230,9 +230,10 @@ namespace
         const SymbolVariable* concreteSymVar = CodeGenStructHelpers::tryResolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaSymVar);
         const SymbolVariable& symVar         = concreteSymVar ? *concreteSymVar : semaSymVar;
 
-        const TypeRef                    memberTypeRef = symVar.typeRef();
-        const CodeGenNodePayload&        payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
-        MicroBuilder&                    builder       = codeGen.builder();
+        const TypeRef             memberTypeRef = symVar.typeRef();
+        const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
         SmallVector<StructUsingPathStep> usingPath;
         if (leftTypeRef.isValid())
             resolveStructMemberPath(codeGen, leftTypeRef, symVar, usingPath);
@@ -307,9 +308,10 @@ namespace
         if (!resolveAggregateMemberInfo(codeGen, codeGen.typeMgr().get(aggregateTypeRef), node.nodeRightRef, memberInfo))
             SWC_UNREACHABLE();
 
-        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
-        MicroBuilder&             builder = codeGen.builder();
-        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftPayload.effectiveTypeRef(leftTypeView.typeRef()), leftPayload);
+        const CodeGenNodePayload& payload     = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
+        MicroBuilder&             builder     = codeGen.builder();
+        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
+        const MicroReg            baseReg     = resolveAggregateMemberBaseAddress(codeGen, leftPayload.effectiveTypeRef(leftTypeView.typeRef()), leftPayload);
         builder.emitLoadAddressRegMem(payload.reg, baseReg, memberInfo.offset, MicroOpBits::B64);
         return Result::Continue;
     }
@@ -318,6 +320,7 @@ namespace
     {
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
+        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
 
         // Interface methods can be overloaded ('#fwd' variants): the right identifier may
         // still reference the first homonym, so prefer the overload selected by the call

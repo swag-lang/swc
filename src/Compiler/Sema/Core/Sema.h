@@ -454,8 +454,14 @@ public:
     bool isConstAssignBinding(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
     bool isConstAssignBinding(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignBinding); }
     bool isConstAssignBindingStored(AstNodeRef ref) const;
+    const SymbolVariable* constAssignSourceParameter(AstNodeRef ref) const;
     void setConstAssignBinding(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
     void setConstAssignBinding(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
+    void setConstAssignBinding(AstNodeRef ref, const SymbolVariable* sourceParam)
+    {
+        NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding);
+        nodePayloadContext().setConstAssignSourceParameter(ref, sourceParam);
+    }
     void unsetConstAssignBinding(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
     void unsetConstAssignBinding(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
     bool isConstAssignTarget(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignTarget); }

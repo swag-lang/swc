@@ -19,9 +19,9 @@ using Swag, Core, File
     opt.filters.add({"Text", ".txt"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    @assert(fb.editFile != null)
-    @assert(fb.comboType != null)
-    @assert(fb.listCtrl != null)
+    @assert(#isset(fb.editFile))
+    @assert(#isset(fb.comboType))
+    @assert(#isset(fb.listCtrl))
     @assert(fb.comboType.items.count == 1)
 
     // The file list is multi-column with fixed default widths.
@@ -57,7 +57,7 @@ using Swag, Core, File
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     @assert(fb.comboType.items.count == 1)
-    @assert(fb.editFile != null)
+    @assert(#isset(fb.editFile))
 
     // getSelectedName must not index the (empty) filter list in SelectFolder mode.
     fb.editFile.setText("myfolder")

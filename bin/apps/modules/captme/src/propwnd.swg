@@ -41,9 +41,9 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 struct PropWnd
 {
     using frameWnd:     FrameWnd
-    topLayout:          #null *StackLayoutCtrl
-    grid:               #null *Properties
-    main:               #null *MainWnd
+    topLayout:          #late *StackLayoutCtrl
+    grid:               #late *Properties
+    main:               #late *MainWnd
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
     gridBindType:       typeinfo = undefined

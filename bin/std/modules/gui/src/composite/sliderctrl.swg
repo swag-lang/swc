@@ -11,16 +11,16 @@ struct SliderCtrl
 
     sigChanged:         SigArray'func||(*SliderCtrl)
 
-    label:              #null *Label
-    slider:             #null *Slider
-    edit:               #null *EditBox
+    label:              #late *Label
+    slider:             #late *Slider
+    edit:               #late *EditBox
 }
 
 impl IWnd for SliderCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !.label do
+        if !#isset(.label) do
             return
         let rect    = .getClientRect()
         let metrics = .getThemeMetrics()

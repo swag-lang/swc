@@ -16,7 +16,7 @@ struct CaptureRectWnd
 {
     using wnd:         Wnd
 
-    main:              #null *MainWnd
+    main:              #late *MainWnd
     startGrab:         bool
     cancelGrab:        bool
     tryStartGrab:      bool

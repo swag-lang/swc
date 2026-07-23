@@ -34,7 +34,7 @@ enum ItemFlags
 struct PropertiesItem
 {
     filter:             String
-    line:               #null *Wnd
+    line:               #late *Wnd
     data:               #null *u8
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
@@ -53,8 +53,8 @@ struct PropertiesItem
     // revertButton is the lazily-created revert affordance shown while the row is modified.
     defaultData:        #null *u8
     isModified:         bool
-    revertButton:       #null *IconButton
-    arrayAddButton:     #null *IconButton
+    revertButton:       #late *IconButton
+    arrayAddButton:     #late *IconButton
 
     // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
     // field, kept per row so hasChanged can diff the new value against it and record one undo
@@ -69,20 +69,20 @@ struct PropertiesItem
     userData0:          #null *void
     userData1:          #null *void
 
-    label:              #null *Label
+    label:              #late *Label
     description:        String
-    labelDesc:          #null *Label
+    labelDesc:          #late *Label
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
     validation:         PropValidation
     validationMsg:      String
-    validationLabel:    #null *Label
+    validationLabel:    #late *Label
 
-    editBox:            #null *EditBox
-    checkBox:           #null *CheckButton
-    comboBox:           #null *ComboBox
-    sliderBox:          #null *SliderCtrl
+    editBox:            #late *EditBox
+    checkBox:           #late *CheckButton
+    comboBox:           #late *ComboBox
+    sliderBox:          #late *SliderCtrl
 
     sigResize:          SigArray'func||(*PropertiesItem)
     sigRefresh:         SigArray'func||(*PropertiesItem)

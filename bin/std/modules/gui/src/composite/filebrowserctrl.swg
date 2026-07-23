@@ -15,11 +15,11 @@ struct FileBrowserCtrl
 
     treeCtrl:         #null *ListCtrl
     treePathStr:      Array'String
-    listCtrl:         #null *ListCtrl
-    comboPath:        #null *ComboBox
+    listCtrl:         #late *ListCtrl
+    comboPath:        #late *ComboBox
     comboPathStr:     Array'String
-    editFile:         #null *EditBox
-    comboType:        #null *ComboBox
+    editFile:         #late *EditBox
+    comboType:        #late *ComboBox
     options:          FileDlgOptions
 
     curFolder:        String

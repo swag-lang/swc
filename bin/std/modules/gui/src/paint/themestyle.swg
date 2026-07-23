@@ -3,7 +3,7 @@ using Core, Pixel
 
 struct ThemeStyleRef
 {
-    theme:     #null *Theme
+    theme:     #late *Theme
     count:     u32
 }
 

@@ -5,7 +5,7 @@ public struct PaintImage
 {
     app:         Application
     painter:     Painter
-    surface:     #null *Surface
+    surface:     #late *Surface
     image:       Image
     w, h:        s32
     paint:       #null func||(app: *Application, painter: *Painter)
@@ -42,14 +42,14 @@ impl PaintImage
 
     public mtd opDrop()
     {
-        if .surface do
+        if #isset(.surface) do
             .surface.destroy()
     }
 
     // First init the PaintImage instance
     public mtd init(w, h: s32)
     {
-        .surface          = assume .app.createSurface(0, 0, 1, 1, hook: &onEvent)
+        .surface          = notnull assume .app.createSurface(0, 0, 1, 1, hook: &onEvent)
         .surface.userData = me
         .w                = w
         .h                = h

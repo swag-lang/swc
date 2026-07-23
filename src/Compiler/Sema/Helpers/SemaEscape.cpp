@@ -1464,7 +1464,8 @@ namespace
                     check.paramIndex  = static_cast<uint32_t>(thisParam);
                     check.judgeAlways = true;
                     fillDeferredCheckDiag(sema, check, carried);
-                    check.diagId = DiagnosticId::sanity_err_free_borrowed;
+                    check.diagId    = DiagnosticId::sanity_err_free_borrowed;
+                    check.siteRange = sema.node(arg.argRef).codeRangeWithChildren(sema.ctx(), sema.ast());
                     outCapture.checks.push_back(std::move(check));
                 }
             }
@@ -1592,7 +1593,7 @@ namespace
             return;
 
         const FileRef         fileRef   = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
-        const SourceCodeRange siteRange = sema.node(atNodeRef).codeRange(sema.ctx());
+        const SourceCodeRange siteRange = sema.node(atNodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
 
         for (const SemaEscapeDeferredCheck& checkTemplate : capture.checks)
         {
@@ -1600,7 +1601,8 @@ namespace
             check.judgeStores             = judgeStores;
             check.what                    = what;
             check.fileRef                 = fileRef;
-            check.siteRange               = siteRange;
+            if (!check.siteRange.srcView)
+                check.siteRange = siteRange;
             sema.ctx().compiler().addDeferredEscapeCheck(std::move(check));
         }
 

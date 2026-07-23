@@ -26,6 +26,32 @@ func opaqueF32(v: f32)->f32
     return v
 }
 
+// Constant-domain failures are caught during semantic folding and retain the
+// intrinsic argument as their primary location.
+#[Swag.Safety(.Math, true)]
+func invalidConstantSqrt()->f64
+{
+    return @sqrt(-1.0'f64) // swc-expected-error {{safety_err_invalid_argument}}
+}
+
+#[Swag.Safety(.Math, true)]
+func invalidConstantAsin()->f64
+{
+    return @asin(1.5'f64) // swc-expected-error {{safety_err_invalid_argument}}
+}
+
+#[Swag.Safety(.Math, true)]
+func invalidConstantLog()->f64
+{
+    return @log(0.0'f64) // swc-expected-error {{safety_err_invalid_argument}}
+}
+
+#[Swag.Safety(.Math, true)]
+func invalidConstantPow()->f64
+{
+    return @pow(-1.0'f64, 0.5'f64) // swc-expected-error {{safety_err_invalid_argument}}
+}
+
 #test
 {
     const cfg      = #run dref @compiler.getBuildCfg()

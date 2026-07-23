@@ -452,7 +452,9 @@ namespace
                 }
             }
 
-            return SemaError::raise(sema, DiagnosticId::sema_err_notnull_operand, sema.curNodeRef());
+            // An invalid or untyped child already emitted its own diagnostic. Avoid
+            // adding a secondary "notnull operand" error that hides the root cause.
+            return Result::Error;
         }
 
         if (!payload.containsThrowable)

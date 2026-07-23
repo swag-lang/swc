@@ -3,8 +3,8 @@ using Core, Pixel
 public struct MessageDlg
 {
     using dialog:     Dialog
-    labelIcon:        #null *Label
-    label:            #null *Label
+    labelIcon:        #late *Label
+    label:            #late *Label
     extension:        #null *Wnd
 }
 
@@ -92,7 +92,7 @@ public impl MessageDlg
 
         // Height
         var h = Math.min(512, .label.name.boundRect.height + .label.padding.y + .label.padding.w)
-        if .labelIcon do
+        if #isset(.labelIcon) do
             h += .labelIcon.position.height
         else do
             h += metrics.dialog_Padding
@@ -127,7 +127,7 @@ public impl MessageDlg
     // Set big icon color (icon must has been set before)
     mtd setIconColor(color: Color)
     {
-        Debug.assert(.labelIcon != null)
+        Debug.assert(#isset(.labelIcon))
         .labelIcon.iconColor = color
     }
 
@@ -137,8 +137,8 @@ public impl MessageDlg
         if !icon.isValid() do
             return
 
-        if !.labelIcon do
-            .labelIcon = Label.create(notnull .surface.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+        if !#isset(.labelIcon) do
+            .labelIcon = Label.create(.surface.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon

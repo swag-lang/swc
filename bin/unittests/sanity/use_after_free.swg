@@ -59,6 +59,18 @@ func myFree(ptr: *void, size: u64)
     myFree(p, 4) // swc-expected-error {{sanity_err_double_free}}
 }
 
+// Stack storage is borrowed, never allocator-owned. Passing it to free is a
+// certain fault and should explain that ownership distinction at the call site.
+#[Swag.Sanity(.Lifecycle, true)]
+func rejectFreeBorrowed()
+{
+    var value: s32
+    var req: AllocatorRequest
+    req.address = &value
+    req.size    = #sizeof(s32)
+    @getcontext().allocator.free(&req) // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
 // Reassigning the pointer revalidates it.
 #[Swag.Sanity(.Lifecycle, true)]
 #test

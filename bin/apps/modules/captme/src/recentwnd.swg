@@ -24,8 +24,8 @@ struct RecentView
 {
     using wnd:     Wnd
 
-    main:          #null *MainWnd
-    recentWnd:     #null *RecentWnd
+    main:          #late *MainWnd
+    recentWnd:     #late *RecentWnd
     items:         ArrayPtr'RecentItem
     selected:      u64 = Swag.U64.Max
     hotItem:       u64 = Swag.U64.Max
@@ -210,8 +210,8 @@ impl IWnd for RecentView
 struct RecentWnd
 {
     using scrollWnd:     ScrollWnd
-    main:                #null *MainWnd
-    recentView:          #null *RecentView
+    main:                #late *MainWnd
+    recentView:          #late *RecentView
     timer:               #null *Gui.Timer
     loadTimer:           #null *Gui.Timer
     pendingRecentFiles:  Array'String

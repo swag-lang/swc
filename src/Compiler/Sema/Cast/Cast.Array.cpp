@@ -126,10 +126,18 @@ namespace
     CastRequest makeElemCastRequest(const CastArrayArgs& args, const ArrayElemLocation& location)
     {
         CastRequest elemCtx(args.castRequest->kind);
-        elemCtx.flags        = args.castRequest->flags;
-        elemCtx.errorNodeRef = location.nodeRef.isValid() ? location.nodeRef : args.castRequest->errorNodeRef;
-        elemCtx.errorCodeRef = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
-        elemCtx.probing      = args.castRequest->probing;
+        elemCtx.flags   = args.castRequest->flags;
+        elemCtx.probing = args.castRequest->probing;
+        if (location.nodeRef.isValid())
+        {
+            elemCtx.errorNodeRef = location.nodeRef;
+            elemCtx.errorCodeRef = SourceCodeRef::invalid();
+        }
+        else
+        {
+            elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
+            elemCtx.errorCodeRef = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
+        }
         return elemCtx;
     }
 

@@ -11,7 +11,7 @@ enum SplitterFlags
 
 struct SplitterItem
 {
-    view:                #null *Wnd
+    view:                #late *Wnd
     size:                f32
     minSize:             f32 = 5
     maxSize:             f32 = 0
@@ -474,7 +474,7 @@ impl SplitterCtrl
 
         .numVisiblePanes += show ? 1 : -1
         pane.visible = show
-        if pane.view do
+        if #isset(pane.view) do
             pane.view.show(show)
 
         if show

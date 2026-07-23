@@ -30,7 +30,7 @@ struct FrameWnd
 {
     using wnd:       Wnd
 
-    view:            #null *Wnd
+    view:            #late *Wnd
     frameForm        = FrameWndForm.Transparent
     frameFlags       = FrameWndFlags.Borders
     anchor           = FrameWndAnchor.None
@@ -206,7 +206,7 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !.view do
+        if !#isset(.view) do
             return
         var rect = .getClientRectPadding()
         rect.applyPadding(.view.margin)
@@ -227,7 +227,7 @@ impl FrameWnd
 
     mtd setView(what: *Wnd)
     {
-        if .view do
+        if #isset(.view) do
             .view.destroy()
         what.setParent(me)
         .view = what

@@ -708,7 +708,7 @@ namespace
         const bool savedSilent = sema.ctx().silentDiagnostic();
         sema.ctx().setSilentDiagnostic(true);
 
-        const Result assignableResult = SemaCheck::isAssignable(sema, sema.curNodeRef(), leftExprRef, leftView);
+        const Result assignableResult = SemaCheck::isAssignable(sema, leftExprRef, leftView);
         if (assignableResult == Result::Pause)
         {
             sema.ctx().setSilentDiagnostic(savedSilent);
@@ -1523,7 +1523,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         return Result::Continue;
 
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
+    SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
 
     SmallVector<Symbol*> candidates;
     SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));

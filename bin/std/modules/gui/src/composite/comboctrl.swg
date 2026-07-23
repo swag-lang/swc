@@ -7,15 +7,15 @@ struct ComboCtrl
     labelSize:          f32 = 60
     comboSize:          f32 = 60     // 0 to fit to parent size
 
-    label:              #null *Label
-    combo:              #null *ComboBox
+    label:              #late *Label
+    combo:              #late *ComboBox
 }
 
 impl IWnd for ComboCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !.label do
+        if !#isset(.label) do
             return
 
         let rect    = .getClientRect()

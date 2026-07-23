@@ -5,7 +5,7 @@ impl Properties
         let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
-        if item.sliderBox
+        if #isset(item.sliderBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -39,9 +39,9 @@ impl Properties
                 setEd'f64()
             }
 
-            .setEditMixed(item, notnull item.sliderBox.edit)
+            .setEditMixed(item, item.sliderBox.edit)
         }
-        elif item.editBox
+        elif #isset(item.editBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -84,7 +84,7 @@ impl Properties
         let typeNative = cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
-        if item.sliderBox
+        if #isset(item.sliderBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -117,7 +117,7 @@ impl Properties
                 setEd'f64()
             }
         }
-        elif item.editBox
+        elif #isset(item.editBox)
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -162,7 +162,7 @@ impl Properties
 
         if Reflection.hasAttribute(value, .SliderMinMax)
         {
-            with let slider = SliderCtrl.create(notnull item.line, dispName.toString())
+            with let slider = SliderCtrl.create(item.line, dispName.toString())
             {
                 .anchorStyle  = .X
                 .autoEditSize = false
@@ -200,7 +200,7 @@ impl Properties
             return
         }
 
-        with let ctrl = EditCtrl.create(notnull item.line, dispName.toString(), "", flags: .AutoLoseFocus)
+        with let ctrl = EditCtrl.create(item.line, dispName.toString(), "", flags: .AutoLoseFocus)
         {
             .anchorStyle = .X
             .editSize    = 0
@@ -254,7 +254,7 @@ impl Properties
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
-            with let slider = SliderCtrl.create(notnull item.line, null)
+            with let slider = SliderCtrl.create(item.line, null)
             {
                 .labelSize = 0
                 .maxSize.x = editWidth
@@ -294,7 +294,7 @@ impl Properties
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)
 
-            with let ed = EditBox.create(notnull item.line, value.name)
+            with let ed = EditBox.create(item.line, value.name)
             {
                 if unit != null do
                     .unit = cast(string) (unit)
@@ -372,7 +372,7 @@ impl Properties
 
         .refreshNative(item)
 
-        if item.sliderBox
+        if #isset(item.sliderBox)
         {
             item.sliderBox.sigChanged += func|prop = me, item|(ed)
             {
@@ -389,7 +389,7 @@ impl Properties
                 prop.endItemDrag()
             }
         }
-        elif item.editBox
+        elif #isset(item.editBox)
         {
             item.editBox.sigLoseFocus += func|prop = me, item|(ed)
             {

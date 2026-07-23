@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolNamespace;
 class Symbol;
+class SymbolVariable;
 class SemaScope;
 
 constexpr uint16_t        NODE_PAYLOAD_KIND_MASK   = 0x000F;
@@ -156,6 +157,8 @@ protected:
     void  setSemaPayload(AstNodeRef nodeRef, void* payload);
     void* getSemaPayload(AstNodeRef nodeRef) const;
     void  clearSemaPayload(AstNodeRef nodeRef);
+    void  setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
+    const SymbolVariable* getConstAssignSourceParameter(AstNodeRef nodeRef) const;
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -206,12 +209,14 @@ private:
         mutable std::shared_mutex             inlinePayloadsMutex;
         mutable std::shared_mutex             inlineContextOverridesMutex;
         mutable std::shared_mutex             semaPayloadsMutex;
+        mutable std::shared_mutex             constAssignSourceParametersMutex;
         mutable std::shared_mutex             resolvedCallArgsMutex;
         PagedStore                            store;
-        std::unordered_map<AstNodeRef, void*> loweringPayloads;
-        std::unordered_map<AstNodeRef, void*> inlinePayloads;
-        std::unordered_map<AstNodeRef, void*> inlineContextOverrides;
-        std::unordered_map<AstNodeRef, void*> semaPayloads;
+        std::unordered_map<AstNodeRef, void*>                  loweringPayloads;
+        std::unordered_map<AstNodeRef, void*>                  inlinePayloads;
+        std::unordered_map<AstNodeRef, void*>                  inlineContextOverrides;
+        std::unordered_map<AstNodeRef, void*>                  semaPayloads;
+        std::unordered_map<AstNodeRef, const SymbolVariable*> constAssignSourceParameters;
 
         // Resolved call arguments are stored inline (not in `store`) so writing them only
         // contends on `resolvedCallArgsMutex`, never on the hot `storeMutex` shared with the

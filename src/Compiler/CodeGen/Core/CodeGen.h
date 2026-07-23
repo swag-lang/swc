@@ -59,6 +59,25 @@ struct ScopedDebugNoStep final
     bool          savedValue = false;
 };
 
+struct ScopedDebugSource final
+{
+    ScopedDebugSource(MicroBuilder& builder, const SourceCodeRef& value) :
+        builder(&builder),
+        savedValue(builder.currentDebugSourceCodeRef())
+    {
+        if (value.isValid())
+            builder.setCurrentDebugSourceCodeRef(value);
+    }
+
+    ~ScopedDebugSource()
+    {
+        builder->setCurrentDebugSourceCodeRef(savedValue);
+    }
+
+    MicroBuilder* builder = nullptr;
+    SourceCodeRef savedValue;
+};
+
 struct CodeGenDeferredAction
 {
     enum class Kind : uint8_t

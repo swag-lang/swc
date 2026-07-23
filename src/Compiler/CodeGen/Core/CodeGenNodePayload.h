@@ -14,11 +14,12 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     };
 
     MicroReg      reg;
-    TypeRef       typeRef                  = TypeRef::invalid();
-    StorageKind   storageKind              = StorageKind::Value;
+    SourceCodeRef sourceCodeRef                = SourceCodeRef::invalid();
+    TypeRef       typeRef                      = TypeRef::invalid();
+    StorageKind   storageKind                  = StorageKind::Value;
     bool          materializedPointerLikeValue = false;
-    bool          runtimeStorageOverridden = false;
-    bool          throwableWrapperConsumed = false;
+    bool          runtimeStorageOverridden     = false;
+    bool          throwableWrapperConsumed     = false;
     MicroLabelRef throwableFailLabel       = MicroLabelRef::invalid();
     MicroLabelRef throwableDoneLabel       = MicroLabelRef::invalid();
     MicroLabelRef throwableFunctionFailLabel = MicroLabelRef::invalid();

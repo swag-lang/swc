@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -143,6 +144,58 @@ namespace
             addGenericContextNotesFromSymbolMap(sema, diag, sema.curScopePtr() ? sema.curSymMap() : sema.topSymMap(), seen);
     }
 
+    void addExpansionContextNotes(Sema& sema, Diagnostic& diag, const DiagnosticId id)
+    {
+        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
+            return;
+        if (sema.ctx().silentDiagnostic())
+            return;
+
+        constexpr uint32_t expansionLimit = 4;
+        uint32_t           expansionCount = 0;
+        std::unordered_set<const SemaInlinePayload*> seenPayloads;
+
+        const auto addPayloadChain = [&](const SemaInlinePayload* payload)
+        {
+            while (payload && expansionCount < expansionLimit)
+            {
+                if (!seenPayloads.insert(payload).second)
+                {
+                    payload = payload->parentInlinePayload;
+                    continue;
+                }
+
+                const SymbolFunction* function = payload->sourceFunction;
+                if (function && payload->callRef.isValid())
+                {
+                    const bool isMacro = function->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+                    const bool isMixin = function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+                    if (isMacro || isMixin)
+                    {
+                        diag.addNote(DiagnosticId::sema_note_expansion_invoked_here);
+                        diag.last().addArgument(Diagnostic::ARG_WHAT, isMacro ? "macro" : "mixin");
+                        diag.last().addArgument(Diagnostic::ARG_SYM, function->name(sema.ctx()));
+                        SemaError::addSpan(sema, diag.last(), payload->callRef);
+                        ++expansionCount;
+                    }
+                }
+
+                payload = payload->parentInlinePayload;
+            }
+        };
+
+        addPayloadChain(SemaHelpers::effectiveInlinePayload(sema));
+        addPayloadChain(sema.frame().currentInlinePayload());
+
+        for (uint32_t i = 0; expansionCount < expansionLimit; i++)
+        {
+            const AstNodeRef nodeRef = i ? sema.visit().parentNodeRef(i - 1) : sema.curNodeRef();
+            if (nodeRef.isInvalid())
+                break;
+            addPayloadChain(sema.inlinePayload(nodeRef));
+        }
+    }
+
     Diagnostic buildDiagnostic(DiagnosticId id, FileRef fileRef, const SourceCodeRange& codeRange)
     {
         Diagnostic diag = Diagnostic::get(id, fileRef);
@@ -266,6 +319,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& a
 
     Diagnostic diag = build(sema, id, atCodeRef);
     addGenericContextNotes(sema, diag, id);
+    addExpansionContextNotes(sema, diag, id);
     return diag;
 }
 
@@ -290,6 +344,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, 
 
     Diagnostic diag = build(sema, id, atNodeRef, location);
     addGenericContextNotes(sema, diag, id);
+    addExpansionContextNotes(sema, diag, id);
     return diag;
 }
 

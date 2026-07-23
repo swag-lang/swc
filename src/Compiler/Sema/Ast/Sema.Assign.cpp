@@ -346,7 +346,7 @@ namespace
 
         if (leftRefs.size() > fields.size())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, sema.curNodeRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, leftRefs[fields.size()]);
             diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
             diag.report(sema.ctx());
             return Result::Error;
@@ -354,7 +354,7 @@ namespace
 
         if (leftRefs.size() < fields.size())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, sema.curNodeRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, leftRefs.empty() ? sema.curNodeRef() : leftRefs.back());
             diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
             diag.report(sema.ctx());
             return Result::Error;
@@ -369,7 +369,7 @@ namespace
                 continue;
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, true));
+            SWC_RESULT(SemaCheck::isAssignable(sema, leftRef, leftView, true));
             markAssignmentTargetAddressableStorage(leftView);
             SemaHelpers::clearLateFieldReadGuard(sema, leftRef);
 
@@ -406,7 +406,7 @@ namespace
                 continue;
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, true));
+            SWC_RESULT(SemaCheck::isAssignable(sema, leftRef, leftView, true));
             markAssignmentTargetAddressableStorage(leftView);
 
             if (tok.id != TokenId::SymEqual)
@@ -479,7 +479,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (handled)
         return Result::Continue;
 
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView, true));
+    SWC_RESULT(SemaCheck::isAssignable(sema, nodeLeftRef, nodeLeftView, true));
     markAssignmentTargetAddressableStorage(nodeLeftView);
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)

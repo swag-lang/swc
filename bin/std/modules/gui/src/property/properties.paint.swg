@@ -12,7 +12,7 @@ internal impl Properties
         const OpticalTextCenterY = -2'f32
 
         let iconX       = r.x + .itemIndent(item) + Math.max(.leftMargin - icon.sizeX, 0.0) * 0.5
-        let iconCenterY = item.label ? item.label.position.vertCenter() : r.vertCenter()
+        let iconCenterY = #isset(item.label) ? item.label.position.vertCenter() : r.vertCenter()
         return {iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
     }
 
@@ -72,7 +72,7 @@ internal impl Properties
         // box) wraps the whole thing so the bar reads as part of the row. The column separator
         // is the exception: it must stop at the value cell, since the bar spans full width.
         var valueCellBottom = r.bottom()
-        if .isGridLike() and item.validationLabel and item.validationLabel.isVisible() do
+        if .isGridLike() and #isset(item.validationLabel) and item.validationLabel.isVisible() do
             valueCellBottom = item.validationLabel.position.y - .valBarPaddingY
 
         // Background. Group headers (section/category) get a band; data rows stay transparent —

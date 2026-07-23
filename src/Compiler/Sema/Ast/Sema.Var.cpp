@@ -1374,7 +1374,8 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     if (tokNames.size() > fieldCount)
     {
-        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, nodeRef(sema.ast()));
+        const SourceCodeRef extraNameRef{srcViewRef(), tokNames[fieldCount]};
+        Diagnostic          diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, extraNameRef);
         diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
         diag.report(sema.ctx());
         return Result::Error;
@@ -1382,7 +1383,9 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     if (tokNames.size() < fieldCount)
     {
-        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()));
+        Diagnostic diag = tokNames.empty()
+                              ? SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()))
+                              : SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, SourceCodeRef{srcViewRef(), tokNames.back()});
         diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
         diag.report(sema.ctx());
         return Result::Error;

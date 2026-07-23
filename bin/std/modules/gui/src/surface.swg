@@ -138,7 +138,7 @@ impl Surface
     // Returns inside view
     mtd getView()->*Wnd
     {
-        return notnull .wnd.view
+        return .wnd.view
     }
 
     // Set the surface icon
@@ -399,7 +399,7 @@ impl Surface
 
     mtd setView(view: *Wnd)
     {
-        if .wnd.view do
+        if #isset(.wnd.view) do
             .wnd.view.destroy()
         .wnd.view = view
         .wnd.sendResizeEvent()
@@ -408,9 +408,9 @@ impl Surface
     private mtd serializeState(ser: *Serializer) throw
     {
         // Save position and surface state
-        if .wnd.view != null and .wnd.view.id != null
+        if #isset(.wnd.view) and .wnd.view.id != null
         {
-            catch ser.serialize(notnull .wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(notnull .wnd.view.id) : 0, &.state)
+            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state)
             if @err == null and ser.isReading()
             {
                 if .isMaximized

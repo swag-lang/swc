@@ -829,6 +829,30 @@ void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
     shard->semaPayloads.erase(nodeRef);
 }
 
+void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(sourceParam);
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*                 shard    = ensureShard(shardIdx);
+    const std::unique_lock lock(shard->constAssignSourceParametersMutex);
+    shard->constAssignSourceParameters[nodeRef] = sourceParam;
+}
+
+const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return nullptr;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
+    if (!shard)
+        return nullptr;
+
+    const std::shared_lock lock(shard->constAssignSourceParametersMutex);
+    const auto             it = shard->constAssignSourceParameters.find(nodeRef);
+    return it == shard->constAssignSourceParameters.end() ? nullptr : it->second;
+}
+
 void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
 {
     const uint16_t srcBits = nodeSrc.payloadBits();

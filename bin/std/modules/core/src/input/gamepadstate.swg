@@ -1,13 +1,14 @@
 #global public
 #global namespace Input
+
 using Math
 
 // Represents specific information about the state of the controller,
 // including the current state of buttons and sticks
 struct GamePadState
 {
-    pressed:      [@countof(GamePadButton)] bool
-    position:     [@countof(GamePadButton)] Point
+    pressed:  [@countof(GamePadButton)] bool
+    position: [@countof(GamePadButton)] Point
 }
 
 impl GamePadState

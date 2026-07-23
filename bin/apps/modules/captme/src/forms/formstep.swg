@@ -24,7 +24,7 @@ struct FormStep
         isDirty:    bool = true
         cachefSize: f32
         cacheTypeIndex     = FormStepType.Number
-        pathl:             LinePathList
+        pathl: LinePathList
     }
 }
 
@@ -145,7 +145,7 @@ impl IForm for FormStep
             .cacheTypeIndex = .typeIndex
             .pathl.clear()
 
-            var t:       String
+            var t: String
             let curIndex = cxt.quickMode ? 1 : .index
 
             #[Swag.Complete]

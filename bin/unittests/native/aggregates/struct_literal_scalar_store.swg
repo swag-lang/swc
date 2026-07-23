@@ -11,7 +11,7 @@ struct MutationSpan
 func buildMutationMap(text: string)->[3] MutationSpan
 {
     var nextId: s64
-    var map: [3] MutationSpan
+    var map:    [3] MutationSpan
     for ch in text
     {
         let runLength = ch - '0'

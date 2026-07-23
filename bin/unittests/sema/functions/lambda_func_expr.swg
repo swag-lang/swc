@@ -8,8 +8,8 @@ struct LambdaPair
 
 struct LambdaPayload
 {
-    base: s32
-    step: s32
+    base:  s32
+    step:  s32
     marks: [3] u16
 }
 

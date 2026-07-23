@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
 // Header columns are added with a name and width.

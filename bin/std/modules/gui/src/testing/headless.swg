@@ -1,5 +1,6 @@
 #global public
 #global namespace Testing
+
 using Swag, Core
 
 // One labelled edit box of a modal to fill before accepting it.

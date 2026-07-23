@@ -32,7 +32,7 @@ struct GlyphMetric
 // that a *Face can be reinterpreted as a *FaceImpl and vice versa.
 struct FaceImpl
 {
-    face:                Face
+    face: Face
 
     fontData:       Array'u8
     tables:         Array'TableRecord
@@ -57,7 +57,7 @@ struct FaceImpl
 
     // Horizontal kerning pairs from the legacy 'kern' table (format 0).
     // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.
-    kernPairs:           HashTable'(u32, s16)
+    kernPairs: HashTable'(u32, s16)
 }
 
 impl FaceImpl

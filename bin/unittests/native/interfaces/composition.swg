@@ -88,8 +88,8 @@ impl IValue for Tripler
 
 #test
 {
-    var d: Doubler = {val: 5}
-    var t: Tripler = {val: 5}
+    var d:     Doubler = {val: 5}
+    var t:     Tripler = {val: 5}
     var items: [2] IValue = undefined
     items[0] = cast(IValue) d
     items[1] = cast(IValue) t

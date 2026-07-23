@@ -1,6 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global #if WINDOWS
 #global private
+
 using Jobs, Win32
 
 struct ReusedJobData

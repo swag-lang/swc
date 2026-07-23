@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 var ArrayDropCount: s32 = 0
@@ -166,7 +167,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 #test
 {
     var values: Array's32
-    let seed: [4] s32 = [4, 1, 3, 2]
+    let seed:   [4] s32 = [4, 1, 3, 2]
     values.add(seed)
 
     let asSlice = cast([..] s32) values
@@ -215,8 +216,8 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 
 #test
 {
-    var values: Array's32
-    let seed: [3] s32 = [1, 2, 3]
+    var values:   Array's32
+    let seed:     [3] s32 = [1, 2, 3]
     let inserted: [2] s32 = [7, 8]
     values.add(seed)
 
@@ -251,7 +252,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 #test
 {
     var values: Array's32
-    let seed: [6] s32 = [0, 1, 2, 3, 4, 5]
+    let seed:   [6] s32 = [0, 1, 2, 3, 4, 5]
     values.add(seed)
 
     values.remove(2, 2)
@@ -317,7 +318,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     dref backPtr  = 7
 
     let expectedOriginal: [3] s32 = [1, 2, 3]
-    let expectedCopy: [3] s32 = [9, 2, 7]
+    let expectedCopy:     [3] s32 = [9, 2, 7]
     @assert(assertIntArray(values, expectedOriginal))
     @assert(assertIntArray(copy, expectedCopy))
 
@@ -354,7 +355,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 {
     var values: Array's32
 
-    let seed: [3] s32 = [1, 4, 5]
+    let seed:     [3] s32 = [1, 4, 5]
     let inserted: [2] s32 = [2, 3]
     values.add(seed)
     values.emplaceAt(1, inserted)
@@ -377,7 +378,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 #test
 {
     var values: Array's32
-    let seed: [4] s32 = [10, 20, 30, 40]
+    let seed:   [4] s32 = [10, 20, 30, 40]
     values.add(seed)
 
     var reverseIndex = Swag.U64.Max

@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 using Swag, Core, Core.Errors, Win32, XAudio2
 
 struct XAudio2DriverNative
@@ -342,7 +343,7 @@ public impl Voice
     // An empty 'buses' slice roots the voice only to the main bus (the default).
     mtd setRootingXAudio2(buses: const [..] *Bus) throw
     {
-        const MaxBus      = 16
+        const MaxBus = 16
         var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR = undefined
         var sfxSendList:  XAUDIO2_VOICE_SENDS = undefined
         var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS

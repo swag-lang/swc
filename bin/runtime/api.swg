@@ -448,7 +448,7 @@ namespace Swag
     struct SystemError
     {
         using base:     Swag.BaseError
-        errorID:        u64
+        errorID: u64
     }
 
     // Store a 'throw' error information
@@ -466,27 +466,27 @@ namespace Swag
     {
         // Must stay first, in that order, for backend generation
 
-        allocator:          #null IAllocator     // The current allocator interface
+        allocator: #null IAllocator     // The current allocator interface
 
         // Other fields, can be in any order
 
-        tempAllocator:    ScratchAllocator                           // A temporary allocator for the user
-        errorAllocator:   ScratchAllocator                           // A temporary allocator to store the error values
-        runtimeFlags:     RuntimeFlags                               // As initialized by the runtime
-        defaultAllocator: #null IAllocator                           // The default allocator, to restore after a temporary change of 'allocator'
-        user0:            u64                                        // For user usage
-        user1:            u64                                        // For user usage
-        user2:            u64                                        // For user usage
-        user3:            u64                                        // For user usage
-        traces:              [MaxTraces] SourceCodeLocation          // Stack trace, in case of errors
-        errors:              [MaxErrors] ErrorValue                  // All errors
-        exceptionLoc:        SourceCodeLocation                      // When an exception is raised, this is the code location
-        exceptionParams:     [4] #null const *void                   // When an exception is raised, this are the parameters
-        panic:      #null func(#null string, SourceCodeLocation)     // A function to call if there's a panic
-        curError:   #null any                                        // The current raised error returns by @err
-        errorIndex: u32                                              // Number of errors in the array
-        traceIndex: u32                                              // Number of traces in the array
-        hasError:   u32                                              // <> 0 if an error is raised
+        tempAllocator:    ScratchAllocator                                 // A temporary allocator for the user
+        errorAllocator:   ScratchAllocator                                 // A temporary allocator to store the error values
+        runtimeFlags:     RuntimeFlags                                     // As initialized by the runtime
+        defaultAllocator: #null IAllocator                                 // The default allocator, to restore after a temporary change of 'allocator'
+        user0:            u64                                              // For user usage
+        user1:            u64                                              // For user usage
+        user2:            u64                                              // For user usage
+        user3:            u64                                              // For user usage
+        traces:           [MaxTraces] SourceCodeLocation                   // Stack trace, in case of errors
+        errors:           [MaxErrors] ErrorValue                           // All errors
+        exceptionLoc:     SourceCodeLocation                               // When an exception is raised, this is the code location
+        exceptionParams:  [4] #null const *void                            // When an exception is raised, this are the parameters
+        panic:            #null func(#null string, SourceCodeLocation)     // A function to call if there's a panic
+        curError:         #null any                                        // The current raised error returns by @err
+        errorIndex:       u32                                              // Number of errors in the array
+        traceIndex:       u32                                              // Number of traces in the array
+        hasError:         u32                                              // <> 0 if an error is raised
     }
 
     // #########################################################
@@ -585,8 +585,8 @@ namespace Swag
 
     struct ClosureValue
     {
-        invoke:     #null *void
-        capture:    [ClosureCaptureBufferSize] u8
+        invoke:  #null *void
+        capture: [ClosureCaptureBufferSize] u8
     }
 
     struct AttributeParam
@@ -604,7 +604,7 @@ namespace Swag
     #[EnumFlags]
     enum TypeValueFlags
     {
-        Zero     = 0
+        Zero = 0
         AutoName
         HasUsing
         LateInit     // '#late' field: starts null, receives its value later
@@ -632,31 +632,31 @@ namespace Swag
         crc:      u32                            // A unique CRC to identify the type
         flags         = TypeInfoFlags.Zero       // Some additional flags
         kind          = TypeInfoKind.Invalid     // The kind of the type
-        padding:      [3] u8
+        padding: [3] u8
     }
 
     struct TypeInfoNative
     {
         using base:     TypeInfo
-        nativeKind:     TypeInfoNativeKind = TypeInfoNativeKind.Void
+        nativeKind: TypeInfoNativeKind = TypeInfoNativeKind.Void
     }
 
     struct TypeInfoPointer
     {
         using base:      TypeInfo
-        pointedType:     const *TypeInfo     // The pointed type
+        pointedType: const *TypeInfo     // The pointed type
     }
 
     struct TypeInfoAlias
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo     // The underlying type
+        rawType: const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoCodeBlock
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo     // The underlying type
+        rawType: const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoStruct
@@ -705,19 +705,19 @@ namespace Swag
     struct TypeInfoSlice
     {
         using base:      TypeInfo
-        pointedType:     const *TypeInfo     // The underlying type
+        pointedType: const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoVariadic
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo     // The underlying type
+        rawType: const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoGeneric
     {
         using base:     TypeInfo
-        rawType:        const *TypeInfo
+        rawType: const *TypeInfo
     }
 
     struct TypeInfoNamespace
@@ -772,7 +772,7 @@ namespace Swag
     // Backend options
     struct BuildCfgBackend
     {
-        optimize:               bool
+        optimize: bool
         debugInfo               = false     // Output debug information if 'true'
         enableExceptions        = true      // Generate unwind info for JIT code and register SEH function tables
         fpMathFma:          bool            // true in 'release'
@@ -880,7 +880,7 @@ namespace Swag
         outDir:  #null string     // Artifact output directory
         workDir: #null string     // Work directory
 
-        backend:                       BuildCfgBackend     // Backend options
+        backend: BuildCfgBackend     // Backend options
 
         repoPath:          #null string                                         // Repository access path to the module
         resAppIcoFileName: #null string                                         // For an executable, the associated icon file name

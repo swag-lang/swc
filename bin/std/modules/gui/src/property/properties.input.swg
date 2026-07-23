@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Input handling for the property control: hit-testing, the container-level child-event hook

@@ -13,9 +13,9 @@ impl I for A
 
 impl GenericSample
 {
-    func(var U) pairWith(me, other: U)->U => other
-    func(var U, var V) makeTriple(me, other: U, tail: V)->V => tail
-    func(const Left: s32, const Right: s32) pickPair(me)->s32 => Left + Right
+    func(var U) pairWith(me, other: U)->U                                                               => other
+    func(var U, var V) makeTriple(me, other: U, tail: V)->V                                             => tail
+    func(const Left: s32, const Right: s32) pickPair(me)->s32                                           => Left + Right
     func(var U, var V, const Left: s32, const Right: s32) makeIndexedTriple(me, other: U, tail: V)->s32 => Left + Right
-    mtd(var U, const N: s32) tagged(other: U)->s32 => N
+    mtd(var U, const N: s32) tagged(other: U)->s32                                                      => N
 }

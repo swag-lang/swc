@@ -6,7 +6,7 @@ public alias VirtualKey = u32
 #[Swag.EnumFlags]
 public enum KeyModifiers
 {
-    Zero      = 0
+    Zero = 0
     Shift
     Control
     Alt

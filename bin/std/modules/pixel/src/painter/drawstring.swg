@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 enum StringHorzAlignment
@@ -36,10 +37,10 @@ public struct TextEffect
     outlineColor: Color = Color.fromArgb(Argb.Black)
 
     // Grows (+) or shrinks (-) the glyph face; ~ -0.3..0.3.
-    faceDilate:      f32
+    faceDilate: f32
 
     // Edge softness in distance-field units; 0 = crisp, > 0 = feathered.
-    softness:        f32
+    softness: f32
 
     // Soft halo around the glyph. A fully transparent color disables it.
     glowColor:  Color
@@ -49,7 +50,7 @@ public struct TextEffect
     glowPower:  f32 = 1.0
 
     // Distance-field emboss amount, lit from the upper-left; 0 disables it (~0..1).
-    bevel:           f32
+    bevel: f32
 
     // Soft drop shadow (offset second pass). A transparent color disables it.
     shadowColor:    Color
@@ -155,9 +156,9 @@ public struct TextDrawInfo
 
 struct RichStringFormat
 {
-    font:      FontFamily
-    fontStyle: FontFamilyStyle = Regular
-    palette:           [4] Color                          // Color of text between <p?>...<p?> markers
+    font:          FontFamily
+    fontStyle:     FontFamilyStyle = Regular
+    palette:       [4] Color                              // Color of text between <p?>...<p?> markers
     colorUrl:      Color = Color.fromArgb(Argb.White)     // Color of text between <url>...<url> markers
     colorHotUrl:   Color = Color.fromArgb(Argb.Blue)      // Color of text between <url>...<url> markers when mouse is inside
     brush:         Brush

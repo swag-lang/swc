@@ -147,7 +147,7 @@ impl GUID64
     // Parse GUID64 from hex string (with or without 0x prefix)
     func parse(str: string)->GUID64
     {
-        var result:  retval = undefined
+        var result: retval = undefined
         var startIdx = 0
 
         // Skip "0x" prefix if present

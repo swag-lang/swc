@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
 var BreadcrumbPressedIndex: u64 = Swag.U64.Max

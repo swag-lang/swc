@@ -71,9 +71,9 @@ struct(T, Rows: s32, Cols: s32) Matrix
 impl Matrix
 {
     mtd at(row: s32, col: s32)->T => .data[row * Cols + col]
-    mtd rows()->s32 => Rows
-    mtd cols()->s32 => Cols
-    mtd totalSize()->s32 => Rows * Cols
+    mtd rows()->s32               => Rows
+    mtd cols()->s32               => Cols
+    mtd totalSize()->s32          => Rows * Cols
 }
 
 // --- Tests ---

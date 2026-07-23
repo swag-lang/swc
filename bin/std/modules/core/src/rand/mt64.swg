@@ -20,8 +20,8 @@ const LM       = 0x7FFFFFFF'u64
 
 public struct Mt64
 {
-    mt:      [NN] u64
-    mti:     u64
+    mt:  [NN] u64
+    mti: u64
 }
 
 public impl Mt64

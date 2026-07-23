@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("iphlpapi")
 using Swag
 
@@ -30,12 +31,12 @@ struct IP_ADDR_STRING
 
 struct IP_ADAPTER_INFO
 {
-    next:       #null *IP_ADAPTER_INFO
-    comboIndex: DWORD
-    adapterName:             [MAX_ADAPTER_NAME_LENGTH + 4] u8
-    description:             [MAX_ADAPTER_DESCRIPTION_LENGTH + 4] u8
-    addressLength:           UINT
-    address:                 [MAX_ADAPTER_ADDRESS_LENGTH] BYTE
+    next:                #null *IP_ADAPTER_INFO
+    comboIndex:          DWORD
+    adapterName:         [MAX_ADAPTER_NAME_LENGTH + 4] u8
+    description:         [MAX_ADAPTER_DESCRIPTION_LENGTH + 4] u8
+    addressLength:       UINT
+    address:             [MAX_ADAPTER_ADDRESS_LENGTH] BYTE
     index:               DWORD
     type:                UINT
     dhcpEnabled:         UINT

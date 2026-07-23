@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("advapi32")
 using Swag
 

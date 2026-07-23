@@ -144,7 +144,7 @@ func countTrianglesWithT(g: *Graph)->u64
 
     // Collect actual node indices
     var nodes: [MaxEdges] u32
-    var nn: u32
+    var nn:    u32
     for i in MaxNodes
     {
         if g.nodeUsed[i]
@@ -271,7 +271,7 @@ func findLargestClique(g: *Graph)->CliqueState
 
     // Build initial candidate list (all nodes)
     var nodes: [MaxEdges] u32
-    var nn: u32
+    var nn:    u32
     for i in MaxNodes
     {
         if g.nodeUsed[i]
@@ -422,7 +422,7 @@ func solve(text: string)->SolveResult
     defer graphFree(&g)
 
     var nodes: [MaxEdges] u32
-    var nn: u32
+    var nn:    u32
     for i in MaxNodes
     {
         if g.nodeUsed[i] { nodes[nn] = i; nn += 1 }
@@ -501,7 +501,7 @@ func makeIdx(a: u8, b: u8)->{ idx: u32 }
 struct NameBuf
 {
     data: [4] u8
-    len: u32
+    len:  u32
 }
 
 impl NameBuf

@@ -41,7 +41,7 @@ struct Transfer
 
 struct Ledger
 {
-    accounts:    [MaxAccounts] Account
+    accounts:   [MaxAccounts] Account
     committed:  s32
     rolledBack: s32
     totalOps:   s32

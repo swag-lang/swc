@@ -1,4 +1,5 @@
 #global namespace Hash
+
 using Swag
 
 public interface IHash32

@@ -6,6 +6,7 @@
 */
 
 #global namespace Compress
+
 using Core.Errors
 
 internal
@@ -67,12 +68,12 @@ internal
 
     struct HuffmanTable
     {
-        fast:            [1 << FastBits] u16
-        firstCode:       [16] u16
-        maxCode:         [17] s64
-        firstSymbol:     [16] u16
-        size:            [288] u8
-        value:           [288] u16
+        fast:        [1 << FastBits] u16
+        firstCode:   [16] u16
+        maxCode:     [17] s64
+        firstSymbol: [16] u16
+        size:        [288] u8
+        value:       [288] u16
     }
 
     impl HuffmanTable

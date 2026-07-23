@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Env
+
 using Win32
 
 public const EndLine = "\r\n"
@@ -74,7 +75,7 @@ public func getMonitors()->Array'Monitor
         if @err != null do
             return TRUE
 
-        var m:  Monitor
+        var m: Monitor
         let ptr = cast(*Array'Monitor) cast(u64) lParam
 
         m.rect.x      = mi.rcMonitor.left

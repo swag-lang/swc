@@ -13,7 +13,7 @@ struct GenericUsingBase
 
 impl IGenericUsingCast for GenericUsingBase
 {
-    mtd impl baseValue()->s32 => .valueField
+    mtd impl baseValue()->s32    => .valueField
     mtd impl partialValue()->s32 => -1
 }
 
@@ -35,7 +35,7 @@ impl IGenericUsingCast for GenericUsingPartial
 struct GenericUsingWrapper
 {
     using partial: GenericUsingPartial
-    other:      s32
+    other: s32
 }
 
 // The returned interface borrows the storage it was created from, so the caller

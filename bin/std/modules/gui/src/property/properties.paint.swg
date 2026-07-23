@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Rendering of the property control: the per-row background/focus/hot chrome, the grid borders

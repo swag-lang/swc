@@ -1,4 +1,5 @@
 #global public
+
 using Core, Ogl, Core.Math
 
 enum DefaultShaderId
@@ -57,7 +58,7 @@ enum PaintParams
 {
     Zero
     Antialiased
-    Default     = Antialiased
+    Default = Antialiased
 }
 
 enum PaintQuality
@@ -121,7 +122,7 @@ struct FontEffectParams
 
 struct Command
 {
-    id:  CommandId = undefined
+    id: CommandId = undefined
 
         using params: union
     {
@@ -163,8 +164,8 @@ struct Command
             gradientAngle0:    f32
             gradientAngle1:    f32
             gradientSpread:    GradientSpread = undefined
-            gradientStops:         [MaxGradientStops] GradientStop
-            gradientStopCount:     u8
+            gradientStops:     [MaxGradientStops] GradientStop
+            gradientStopCount: u8
         }
     }
 }
@@ -211,7 +212,7 @@ struct Painter
 
     // Reusable shaped run for the immediate drawString path, so per-frame text drawing
     // shapes without allocating a fresh glyph buffer on every call.
-    scratchShaped:          ShapedRun
+    scratchShaped: ShapedRun
 
     drawingBegin:   bool
     overlapMode:    bool

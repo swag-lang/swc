@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 using Win32
 
 public struct NativeCursor

@@ -1,5 +1,6 @@
 #global public
 #global namespace Reflection
+
 using Swag
 
 #[ConstExpr, Inline]
@@ -13,13 +14,13 @@ using Swag
     func isTypeAlias(t: #null typeinfo)   => t and t.kind == .Alias
     func isInterface(t: typeinfo)         => t and t.kind == .Interface
 
-    func isInteger(t: #null typeinfo)           => t and t.flags & .Integer
-    func isFloat(t: #null typeinfo)             => t and t.flags & .Float
-    func isGeneric(t: #null typeinfo)           => t and t.flags & .Generic
-    func isTuple(t: typeinfo)                   => t and t.flags & .Tuple
-    func isType(t: typeinfo)                    => t and t.flags & .PointerTypeInfo
-    func isPointerRef(t: typeinfo)              => t and t.flags & .PointerRef
-    func isPointerArithmetic(t: typeinfo)       => t and t.flags & .PointerArithmetic
+    func isInteger(t: #null typeinfo)     => t and t.flags & .Integer
+    func isFloat(t: #null typeinfo)       => t and t.flags & .Float
+    func isGeneric(t: #null typeinfo)     => t and t.flags & .Generic
+    func isTuple(t: typeinfo)             => t and t.flags & .Tuple
+    func isType(t: typeinfo)              => t and t.flags & .PointerTypeInfo
+    func isPointerRef(t: typeinfo)        => t and t.flags & .PointerRef
+    func isPointerArithmetic(t: typeinfo) => t and t.flags & .PointerArithmetic
 
     func isEnumFlags(t: #null typeinfo)->bool
     {

@@ -1,4 +1,5 @@
 #global public
+
 using Swag
 
 const StringSmallSize = 16'u64
@@ -16,7 +17,7 @@ struct String
     length:    u64
     capacity:  u64
     allocator: #null IAllocator
-    padding:       [StringSmallSize] u8
+    padding:   [StringSmallSize] u8
 }
 
 impl String

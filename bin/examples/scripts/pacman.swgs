@@ -48,8 +48,8 @@ var g_Wnd:      #null *Wnd
 var g_DataPath: String
 var g_Painter:  #null *Painter
 
-var g_MapTex:  Texture
-var g_PillTex: Texture
+var g_MapTex:      Texture
+var g_PillTex:     Texture
 var g_BigPillTex:  [2] Texture
 var g_Pac0Tex:     Texture
 var g_Pac1Tex:     Texture
@@ -76,12 +76,12 @@ var g_GhostTexP:   [2] Texture      // Array storing pink       ghost sprites
 var g_GhostTexB:   [2] Texture      // Array storing blue       ghost sprites
 var g_GhostTexY:   [2] Texture      // Array storing yellow     ghost sprites
 var g_GhostTexF:   [4] Texture      // Array storing frightened ghost sprites
-var g_EyeTexU:  Texture
-var g_EyeTexR:  Texture
-var g_EyeTexD:  Texture
-var g_EyeTexL:  Texture
-var g_LifeTex:  Texture
-var g_OneUpTex: Texture
+var g_EyeTexU:     Texture
+var g_EyeTexR:     Texture
+var g_EyeTexD:     Texture
+var g_EyeTexL:     Texture
+var g_LifeTex:     Texture
+var g_OneUpTex:    Texture
 var g_FruitsTex:   [8] Texture     // Array storing all fruit textures
 var g_FScoreTex:   [8] Texture     // Array storing all fruit score textures
 var g_GScoreTex:   [4] Texture     // Array storing all ghosts score textures
@@ -119,7 +119,7 @@ var g_FruitSpawned = false
 var g_GhostsEaten: s32                    // Counts how many ghosts have been eaten since consuming the last big pill
 var g_FruitTimer   = -1                   // Fruit timer incremented with each frame - fruit is removed after approx 10s if not eaten
 var g_Wave         = Movement.SCATTER     // Ghost AI targeting is wave-based, varying between CHASE and SCATTER over time
-var g_Ticks:       s32                    // Game ticks, effectively enacting a frame counter
+var g_Ticks: s32                          // Game ticks, effectively enacting a frame counter
 
 /**
  * Timestamp represents symbolic points in the game, allowing specific frame-based timing from a certain tick:
@@ -623,9 +623,9 @@ impl Ghost
      */
     mtd targetTile(target: Dest)->Direction
     {
-        var nextPos: Dest          // Initialize next position, updated in each possible direction
-        var distance = 999.0       // Set max distance to unreachable value
-        var newDir:  Direction     // Initialize returned direction
+        var nextPos: Dest         // Initialize next position, updated in each possible direction
+        var distance = 999.0      // Set max distance to unreachable value
+        var newDir: Direction     // Initialize returned direction
 
         // Check UP exit
         // UP exits have an additional condition such that, at 4 specific intersections, the ghost cannot opt to travel UP
@@ -1298,7 +1298,7 @@ func translateMapOrigin()          => g_Painter.translateTransform(38.0, 26.0)
 func translateMapCoords(x, y: f32) => g_Painter.translateTransform(x * 8 * Scale, y * 8 * Scale)
 func isImpassible(t: Tile)         => t == .W or t == .G
 
-func getTile(x, y: s32)          => g_Map[x, y]
+func getTile(x, y: s32) => g_Map[x, y]
 
 func setTile(x, y: s32, t: Tile)
 {

@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool

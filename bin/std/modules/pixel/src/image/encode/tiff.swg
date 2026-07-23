@@ -1,4 +1,5 @@
 #global namespace Tiff
+
 using Core, Core.Errors
 
 public struct Encoder {}

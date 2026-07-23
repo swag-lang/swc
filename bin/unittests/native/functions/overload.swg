@@ -79,7 +79,7 @@ impl ReceiverConstMethodOverload
 
 func preferFloatLiteral(x, y: f32)->f32 => x + y
 func preferFloatLiteral(x, y: f64)->f64 => x + y
-func(T) preferFloatLiteral(x, y: T)->T => y
+func(T) preferFloatLiteral(x, y: T)->T  => y
 
 #test
 {

@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using FormatPassUtil::INVALID_PIECE;
+    using FormatPassUtil::PieceColumn;
 
     struct OpenBracket
     {
@@ -101,8 +102,9 @@ namespace
 
             const uint32_t oldCols = FormatModel::textColumns(model_->lineIndentOf(lineStart), std::max(options_->tabWidth, 1u));
 
-            uint32_t newCols = 0;
-            if (isStatementLine(piece))
+            uint32_t   newCols     = 0;
+            const bool isStatement = isStatementLine(piece);
+            if (isStatement)
             {
                 newCols = statementColumns(lineStart, piece);
                 if (piece.hasRole(FormatRoleE::AttrOpen) && !options_->indentAttributes.value_or(true))
@@ -112,7 +114,7 @@ namespace
             }
             else
             {
-                newCols = continuationColumns(oldCols);
+                newCols = continuationColumns(lineStart, oldCols);
             }
 
             flushComments(newCols);
@@ -121,7 +123,37 @@ namespace
             if (editable && newCols != oldCols)
                 setLineIndent(lineStart, newCols);
 
+            if (isStatement)
+                lastStmtOperandCol_ = operandAnchorColumn(lineStart);
+            const uint32_t lineEnd = FormatPassUtil::lineEndOf(*model_, lineStart);
+            prevLineEndsBinaryOp_  = model_->piece(lineEnd).roles.hasAny({FormatRoleE::BinaryOp, FormatRoleE::TernaryOp});
+
             trackBrackets(lineStart);
+        }
+
+        // Column of the first operand of a statement line: what wrapped
+        // operand lines align with under `align-operands`. The operand starts
+        // after a leading control keyword, or after the assignment operator
+        // when the line has one.
+        uint32_t operandAnchorColumn(const uint32_t lineStart) const
+        {
+            std::vector<PieceColumn> columns;
+            FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
+            if (columns.empty())
+                return UINT32_MAX;
+
+            uint32_t anchor = UINT32_MAX;
+            for (size_t c = 0; c < columns.size(); ++c)
+            {
+                const FormatPiece& piece = model_->piece(columns[c].piece);
+                if (piece.roles.hasAny({FormatRoleE::AssignOp, FormatRoleE::InitAssign}))
+                    return c + 1 < columns.size() ? columns[c + 1].column : UINT32_MAX;
+                if (c == 0 && piece.hasRole(FormatRoleE::ControlKeyword))
+                    anchor = columns.size() > 1 ? columns[1].column : UINT32_MAX;
+                else if (c == 0)
+                    anchor = columns[0].column;
+            }
+            return anchor;
         }
 
         uint32_t statementColumns(const uint32_t lineStart, const FormatPiece& piece)
@@ -164,17 +196,25 @@ namespace
             return depth * indentWidth;
         }
 
-        uint32_t continuationColumns(const uint32_t oldCols) const
+        uint32_t continuationColumns(const uint32_t lineStart, const uint32_t oldCols) const
         {
             if (options_->alignAfterOpenBracket.value_or(false) && !parenStack_.empty())
                 return parenStack_.back().column + 1;
 
+            // Operand lines of a wrapped binary expression align with the
+            // first operand of the statement.
+            if (options_->alignOperands.value_or(false) && lastStmtOperandCol_ != UINT32_MAX &&
+                (prevLineEndsBinaryOp_ || model_->piece(lineStart).roles.hasAny({FormatRoleE::BinaryOp, FormatRoleE::TernaryOp})))
+                return lastStmtOperandCol_;
+
+            // Inside brackets, force the canonical continuation indent instead
+            // of keeping the relative one.
+            if (options_->indentInsideParens.value_or(false) && !parenStack_.empty())
+                return lastStmtNewCols_ + std::max(options_->continuationIndentWidth, 1u);
+
             const int32_t relative = static_cast<int32_t>(oldCols) - static_cast<int32_t>(lastStmtOldCols_);
             if (relative > 0)
                 return lastStmtNewCols_ + static_cast<uint32_t>(relative);
-
-            if (options_->indentInsideParens.value_or(false) && !parenStack_.empty())
-                return lastStmtNewCols_ + std::max(options_->continuationIndentWidth, 1u);
 
             return lastStmtNewCols_ + std::max(options_->continuationIndentWidth, 1u);
         }
@@ -230,10 +270,12 @@ namespace
         std::vector<StackEntry>  blockStack_;
         std::vector<OpenBracket> parenStack_;
         std::vector<uint32_t>    pendingComments_;
-        size_t                   nextBlock_       = 0;
-        uint32_t                 lastStmtOldCols_ = 0;
-        uint32_t                 lastStmtNewCols_ = 0;
-        uint32_t                 lastCodeCols_    = 0;
+        size_t                   nextBlock_           = 0;
+        uint32_t                 lastStmtOldCols_     = 0;
+        uint32_t                 lastStmtNewCols_     = 0;
+        uint32_t                 lastCodeCols_        = 0;
+        uint32_t                 lastStmtOperandCol_  = UINT32_MAX;
+        bool                     prevLineEndsBinaryOp_ = false;
     };
 }
 

@@ -1,4 +1,5 @@
 #global public
+
 using Swag, Core, Ogl, Core.Math
 
 private
@@ -51,18 +52,18 @@ struct HeadlessTexture
 struct RenderOgl
 {
     using native:        NativeRenderOgl
-    vertexbuffer:   GLuint
-    shaderSimple:   ShaderSimple
-    shaderAA:       ShaderAA
-    shaderBlur:     ShaderBlur
-    shaderResolve:  ShaderResolve
-    shaderFont:     ShaderFont
-    shaderFontMsdf: ShaderFont
-    worldTransform: Transform2
-    orthoMatrix:    Matrix4x4
-    modelMatrix:    Matrix4x4
-    whiteTexture:   GLuint
-    hatchTextures:       [@countof(HatchStyle)] GLuint
+    vertexbuffer:    GLuint
+    shaderSimple:    ShaderSimple
+    shaderAA:        ShaderAA
+    shaderBlur:      ShaderBlur
+    shaderResolve:   ShaderResolve
+    shaderFont:      ShaderFont
+    shaderFontMsdf:  ShaderFont
+    worldTransform:  Transform2
+    orthoMatrix:     Matrix4x4
+    modelMatrix:     Matrix4x4
+    whiteTexture:    GLuint
+    hatchTextures:   [@countof(HatchStyle)] GLuint
     blendingMode:    BlendingMode = .Alpha
     curRC:           RenderingContext
     stackReleasedRT: Array'#null *RenderTarget
@@ -675,7 +676,7 @@ impl RenderOgl
             return result
         }
 
-        var fmt:      GLenum = 0
+        var fmt: GLenum = 0
         var tinternal = GL_RGB
 
         #[Swag.Complete]

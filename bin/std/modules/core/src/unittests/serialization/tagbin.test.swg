@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 #[Serialization.Final]
@@ -30,19 +31,19 @@ struct TagBinFinalMigrationPoint
 
 struct TagBinPayload
 {
-    id:     u32
-    active: bool
-    name:   String
-    counts: Array's32
-    pair:   TagBinPair
+    id:         u32
+    active:     bool
+    name:       String
+    counts:     Array's32
+    pair:       TagBinPair
     fixed:      [3] u8
     finalPoint: TagBinFinalPoint
 
     #[Serialization.Compress]
-    blob:       Array'u8
+    blob: Array'u8
 
     #[Serialization.NoSerialize]
-    transient:  s32
+    transient: s32
 }
 
 #[Serialization.Version(1)]
@@ -94,8 +95,8 @@ struct TagBinCurrentNested
 
 struct TagBinConversionSource
 {
-    small:    s16
-    floating: f32
+    small:          s16
+    floating:       f32
     staticToStatic: [3] u8
     staticToArray:  [3] s16
     arrayToStatic:  Array's8
@@ -107,15 +108,15 @@ struct TagBinConversionSource
 
 struct TagBinConversionTarget
 {
-    small:    s64
-    floating: f64
+    small:          s64
+    floating:       f64
     staticToStatic: [5] u16
     staticToArray:  Array's32
     arrayToStatic:  [4] s32
     singleToStatic: [3] s32
-    singleToArray: Array'u32
-    arrayToSingle: s64
-    nested:        TagBinCurrentNested
+    singleToArray:  Array'u32
+    arrayToSingle:  s64
+    nested:         TagBinCurrentNested
 }
 
 struct TagBinTypeInfoPayload
@@ -139,7 +140,7 @@ public struct TagBinInterfaceProbe
 
 public impl ITagBinScore for TagBinInterfaceProbe
 {
-    mtd impl score()->s32 => .value + 5
+    mtd impl score()->s32        => .value + 5
     mtd impl labelText()->string => .label.toString()
 }
 
@@ -161,7 +162,7 @@ public struct TagBinHookPayload
 
 public impl Serialization.ISerialize for TagBinHookPayload
 {
-    mtd impl read(_decoder: Serialization.IDecoder)->bool throw => false
+    mtd impl read(_decoder: Serialization.IDecoder)->bool throw  => false
     mtd impl write(_encoder: Serialization.IEncoder)->bool throw => false
 
     mtd impl readElement(type: TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool throw
@@ -627,7 +628,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 
 #test
 {
-    var payload: TagBinHookPayload
+    var payload:  TagBinHookPayload
     let rawBytes: [4] u8 = [1, 3, 5, 7]
 
     payload.direct   = 20
@@ -659,7 +660,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 
 #test
 {
-    var source: TagBinConversionSource
+    var source:        TagBinConversionSource
     let staticToArray: [3] s16 = [-7, 8, 19]
     let arrayToStatic: [3] s8 = [-2, 4, 9]
     let arrayToSingle: [2] s16 = [55, 66]
@@ -672,7 +673,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     source.singleToStatic = 42
     source.singleToArray  = 12
     source.arrayToSingle.add(arrayToSingle)
-    source.nested         = TagBinLegacyNested{left: -5, right: 23}
+    source.nested = TagBinLegacyNested{left: -5, right: 23}
 
     Reflection.registerType(#typeof(TagBinConversionSource))
     @assert(Reflection.crcToType(#typeof(#type [3] u8).crc) == #typeof(#type [3] u8))

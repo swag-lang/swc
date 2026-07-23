@@ -17,7 +17,7 @@ struct InPlaceEditWnd
     editWnd:              #late *EditWnd
     actionBar:            #late *IconBar
     editBar:              #late *IconBar
-    capture:              #null *Capture
+    capture: #null *Capture
     newMain:              #late *MainWnd
     editMode:         InPlaceEditMode = .Arrow
     editColor:        Color = Argb.Red

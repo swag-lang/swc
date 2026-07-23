@@ -95,9 +95,9 @@ func ftoaTestZero()->bool
     var buf: [64] u8
     ftoaCopy(&buf[0], 0.0)
     return buf[0] == '0' and
-        buf[1] == '.' and
-        buf[2] == '0' and
-        buf[3] == 0
+           buf[1] == '.' and
+           buf[2] == '0' and
+           buf[3] == 0
 }
 
 func ftoaTestFraction()->bool
@@ -105,18 +105,18 @@ func ftoaTestFraction()->bool
     var buf: [64] u8
     ftoaCopy(&buf[0], 123.5)
     return buf[0] == '1' and
-        buf[1] == '2' and
-        buf[2] == '3' and
-        buf[3] == '.' and
-        buf[4] == '5' and
-        buf[5] == '0' and
-        buf[6] == '0' and
-        buf[7] == '0' and
-        buf[8] == '0' and
-        buf[9] == '0' and
-        buf[10] == '0' and
-        buf[11] == '0' and
-        buf[12] == 0
+           buf[1] == '2' and
+           buf[2] == '3' and
+           buf[3] == '.' and
+           buf[4] == '5' and
+           buf[5] == '0' and
+           buf[6] == '0' and
+           buf[7] == '0' and
+           buf[8] == '0' and
+           buf[9] == '0' and
+           buf[10] == '0' and
+           buf[11] == '0' and
+           buf[12] == 0
 }
 
 func ftoaTestNegative()->bool
@@ -124,17 +124,17 @@ func ftoaTestNegative()->bool
     var buf: [64] u8
     ftoaCopy(&buf[0], -0.25)
     return buf[0] == '-' and
-        buf[1] == '0' and
-        buf[2] == '.' and
-        buf[3] == '2' and
-        buf[4] == '5' and
-        buf[5] == '0' and
-        buf[6] == '0' and
-        buf[7] == '0' and
-        buf[8] == '0' and
-        buf[9] == '0' and
-        buf[10] == '0' and
-        buf[11] == 0
+           buf[1] == '0' and
+           buf[2] == '.' and
+           buf[3] == '2' and
+           buf[4] == '5' and
+           buf[5] == '0' and
+           buf[6] == '0' and
+           buf[7] == '0' and
+           buf[8] == '0' and
+           buf[9] == '0' and
+           buf[10] == '0' and
+           buf[11] == 0
 }
 
 #test

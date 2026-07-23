@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace Input
+
 using Win32, Math
 
 // Returns the current mouse position

@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 struct HeadlessFixture
@@ -26,13 +27,13 @@ impl HeadlessFixture
         .main.editWnd.editView.setPosition({x: 0, y: 0, width: width, height: height})
 
         let editWnd = .main.editWnd
-        .editView        = notnull editWnd.editView
+        .editView = notnull editWnd.editView
         let localCapture = Memory.new'Capture()
         localCapture.width, localCapture.widthOrg   = 400
         localCapture.height, localCapture.heightOrg = 300
         localCapture.backImg                        = Image.create(400, 300, .BGRA8)
         .editView.setCapture(localCapture)
-        .capture         = localCapture
+        .capture = localCapture
 
         if registerHeadlessCommands do
             .registerHeadlessCommands()

@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 using Win32, Core, Pixel, Gdi32
 
 public struct ApplicationNative
@@ -11,7 +12,7 @@ public struct ApplicationNative
     fileBigIconsImageList: ImageList
     mapFileBigIcons:       HashTable'(String, s32)
 
-    hotKeysDisabled:             bool
+    hotKeysDisabled: bool
 }
 
 impl Application
@@ -118,7 +119,7 @@ impl Application
             return null
         }
 
-        let pt:  POINT{cast(s32) x, cast(s32) y}
+        let pt: POINT{cast(s32) x, cast(s32) y}
         let hWnd = WindowFromPoint(pt)
         if hWnd == null do
             return null

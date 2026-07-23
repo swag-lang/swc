@@ -64,8 +64,8 @@ func __pushErr()
     cxt.errors[cxt.errorIndex].pushUsedAlloc  = cast(u32) cxt.errorAllocator.used
     cxt.errors[cxt.errorIndex].pushHasError   = cxt.hasError
 
-    cxt.hasError = 0
-    cxt.curError = null
+    cxt.hasError   = 0
+    cxt.curError   = null
     cxt.errorIndex += 1
 }
 
@@ -89,7 +89,7 @@ func __catchErr()
     if !cxt.hasError do
         cxt.curError = null
     else do
-        cxt.curError = cxt.errors[cxt.errorIndex].value
+        cxt.curError        = cxt.errors[cxt.errorIndex].value
     cxt.errorAllocator.used = cxt.errorIndex ? cxt.errors[cxt.errorIndex - 1].pushUsedAlloc : 0
     cxt.hasError            = 0
     if cxt.errorIndex do
@@ -117,15 +117,15 @@ func __failedAssume(loc: SourceCodeLocation)
     len += @countof(U)
     var maxLen = @min(@countof(type.fullname), 128)
     str[len] = '['
-    len += 1
+    len      += 1
     str[len] = '['
-    len += 1
+    len      += 1
     @memcpy(&str[len], @dataof(type.fullname), maxLen)
-    len += maxLen
+    len      += maxLen
     str[len] = ']'
-    len += 1
+    len      += 1
     str[len] = ']'
-    len += 1
+    len      += 1
 
     if type.kind == TypeInfoKind.Struct
     {
@@ -139,11 +139,11 @@ func __failedAssume(loc: SourceCodeLocation)
             if maxLen
             {
                 str[len] = ' '
-                len += 1
+                len      += 1
                 str[len] = '$'
-                len += 1
+                len      += 1
                 str[len] = ' '
-                len += 1
+                len      += 1
                 @memcpy(&str[len], @dataof(val.message), maxLen)
                 len += maxLen
             }
@@ -164,7 +164,7 @@ func __stackTrace(loc: SourceCodeLocation)
     if cxt.traceIndex >= MaxTraces do
         return
     cxt.traces[cxt.traceIndex] = loc
-    cxt.traceIndex += 1
+    cxt.traceIndex             += 1
 }
 
 ////////////////////////////////////////////////////////////
@@ -270,7 +270,7 @@ func @panic(message: #null string, loc: SourceCodeLocation)
         @memcpy(&str[0], @dataof(message), len)
         str[len]     = '\n'
         str[len + 1] = '\n'
-        len += 2
+        len          += 2
     }
 
     // Source location
@@ -296,7 +296,7 @@ Continue: ignore the panic
 
     str[len] = 0
 
-    //__panicBox(cast(string) str, title)
+//__panicBox(cast(string) str, title)
 }
 
 #[Swag.Safety(.All, false)]
@@ -314,9 +314,9 @@ func @safetypanic(message: string, loc: SourceCodeLocation)
 func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
 {
     var loc: SourceCodeLocation
-    loc.fileName = @mkstring(file, @countof(cast(const cstring) file))
+    loc.fileName               = @mkstring(file, @countof(cast(const cstring) file))
     loc.lineStart, loc.lineEnd = line
-    loc.colStart, loc.colEnd = col
+    loc.colStart, loc.colEnd   = col
 
     let msg = message ? @mkstring(message, @countof(cast(const cstring) message)) : "panic"
     @panic(msg, loc)
@@ -325,9 +325,9 @@ func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
 func __compilerError(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
 {
     var loc: SourceCodeLocation
-    loc.fileName = @mkstring(file, @countof(cast(const cstring) file))
+    loc.fileName               = @mkstring(file, @countof(cast(const cstring) file))
     loc.lineStart, loc.lineEnd = line
-    loc.colStart, loc.colEnd = col
+    loc.colStart, loc.colEnd   = col
 
     let msg = message ? @mkstring(message, @countof(cast(const cstring) message)) : "compiler error"
     @compilererror(msg, loc)

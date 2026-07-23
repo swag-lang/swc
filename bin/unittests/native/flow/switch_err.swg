@@ -43,7 +43,7 @@
 
 #test
 {
-    var a : [4] s32
+    var a: [4] s32
     var hit = 0
     switch
     {

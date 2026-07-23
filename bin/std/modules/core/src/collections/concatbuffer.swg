@@ -23,7 +23,7 @@ struct ConcatBufferSeek
 // making it efficient for building data piece by piece.
 struct ConcatBuffer
 {
-    allocator:           #null Swag.IAllocator     // The allocator to use for all memory operations.
+    allocator: #null Swag.IAllocator     // The allocator to use for all memory operations.
 
     firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
     curBucket:       #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.

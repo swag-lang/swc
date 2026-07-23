@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global namespace CoreTests
+
 using Swag
 
 func makeFilesystemTestPath(name: string)->String

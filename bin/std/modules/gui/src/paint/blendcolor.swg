@@ -1,4 +1,5 @@
 #global public
+
 using Pixel
 
 // Used to animate the blending of a color.

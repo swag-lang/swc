@@ -11,7 +11,7 @@
 #[Swag.EnumFlags]
 enum CharAttribute
 {
-    Zero      = 0
+    Zero = 0
     Control
     Punctuation
     BinDigit

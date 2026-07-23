@@ -33,7 +33,7 @@ struct Capture
     linkedUpToDate: bool = true
 
     // User-defined name shown in the library (empty = fall back to the file name).
-    title:                   String
+    title: String
 
     // Dyn
     #[NoSerialize]
@@ -66,7 +66,7 @@ struct Capture
         inPlacePosX: f32
         inPlacePosY: f32
 
-        haar:                  ImageStatistics.HaarFeatures
+        haar: ImageStatistics.HaarFeatures
     }
 }
 

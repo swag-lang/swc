@@ -68,7 +68,7 @@ func jitLateLiteral()->bool
 // zeroed on every construction path.
 struct JitLateDirty
 {
-    tag:   s32 = 5
+    tag: s32 = 5
     item:  #late *JitLateItem
     ratio: f32 = 1.5
 }

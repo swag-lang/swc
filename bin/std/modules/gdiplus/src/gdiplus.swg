@@ -1,5 +1,6 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
+
 #foreignlib("gdiplus")
 using Win32
 

@@ -1,7 +1,7 @@
 #global private
 
 func(T) identity(value: T)->T => value
-func(T) double(value: T)->T => value + value
+func(T) double(value: T)->T   => value + value
 
 func(T) minVal(a: T, b: T)->T
 {
@@ -38,7 +38,7 @@ func(A, B) castTo(value: A)->B => cast(B) value
 
 // Generic with const params and expressions
 func(N: s32, M: s32) constProduct()->s32 => N * M
-func(N: s32) constDoubled()->s32 => N + N
+func(N: s32) constDoubled()->s32         => N + N
 
 struct(T) Box
 {

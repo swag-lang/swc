@@ -49,11 +49,11 @@ var E11: #null QualifiedStrictTypeInfo = null
 #assert(#typeof(E10) == #null cstring)
 #assert(#typeof(E11) == #null typeinfo)
 
-func widenNullablePointer(value: *s32)->#null *s32 => value
-func widenNullableString(value: string)->#null string => value
-func widenNullableSlice(value: [..] s32)->#null [..] s32 => value
-func widenNullableAny(value: any)->#null any => value
-func widenNullableCString(value: cstring)->#null cstring => value
+func widenNullablePointer(value: *s32)->#null *s32          => value
+func widenNullableString(value: string)->#null string       => value
+func widenNullableSlice(value: [..] s32)->#null [..] s32    => value
+func widenNullableAny(value: any)->#null any                => value
+func widenNullableCString(value: cstring)->#null cstring    => value
 func widenNullableTypeInfo(value: typeinfo)->#null typeinfo => value
 
 func acceptNullablePointer(value: #null *s32) {}
@@ -80,8 +80,8 @@ func semaTest001()
     acceptNullableString(text)
     acceptNullableString(widenedText)
 
-    let values: [3] s32 = [1, 2, 3]
-    let slice: [..] s32 = values
+    let values:              [3] s32 = [1, 2, 3]
+    let slice:               [..] s32 = values
     let nullableSlice:       #null [..] s32 = slice
     var nullableStrictSlice: #null QualifiedStrictSlice = cast(QualifiedStrictSlice) slice
     let widenedSlice:        #null [..] s32 = widenNullableSlice(slice)
@@ -99,7 +99,7 @@ func semaTest001()
     acceptConstAny(widenedConstAny)
     #assert(#typeof(constAny) == const any)
 
-    var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
+    var cstrData:           [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
     let cstr:               cstring = cast(cstring) &cstrData[0]
     var nullableCstr:       #null cstring = cstr
     var nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr

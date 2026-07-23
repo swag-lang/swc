@@ -1,5 +1,6 @@
 #global public
 #global namespace File
+
 using Core.Errors
 
 // Origin from which to calculate seek offset in a file stream
@@ -34,7 +35,7 @@ enum FileMode
 // File sharing options
 enum FileShare
 {
-    Zero      = 0                // No sharing
+    Zero = 0                     // No sharing
     Delete                       // Allows the file to be deleted by others
     Inheritable                  // File handle is inheritable
     Read                         // Allows shared read access

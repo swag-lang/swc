@@ -124,8 +124,8 @@ func badgeMask(first, second, third: const [..] u8)->u64
 
 func solveClean(bytes: const [..] u8)->RucksackReport
 {
-    var result:    RucksackReport
-    var lineStart: u64
+    var result:     RucksackReport
+    var lineStart:  u64
     var groupMasks: [3] u64
     var groupCount: u32
 
@@ -229,7 +229,7 @@ func declareFeatureState()
     var featurePartOne:       u64
     var featurePartTwo:       u64
     var featureState          = GroupState.NeedFirst
-    var featureMasks:         [3] u64
+    var featureMasks: [3] u64
 }
 
 #[Swag.Macro]

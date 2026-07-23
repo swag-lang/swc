@@ -33,7 +33,7 @@ impl IEvt for CreateEvt {}
 struct ResizeEvt
 {
     using base: EvtBase
-    extra:      s32
+    extra: s32
 }
 
 impl IEvt for ResizeEvt {}

@@ -1,12 +1,12 @@
 #global private
 
-func(T) identity(value: T)->T => value
-func(T) keepDeducedType(value, low, high: T)->T => value
-func(T) doubleLeftLiteral(value: T) => 2 * value
-func(T = s32, V = s32) mixedMultiply(a: T, b: V) => a * b
-func(T = s32) defaultTypeValue()->T => 42
-func(N: s32 = 3) defaultConstValue()->s32 => N
-func(T, N: s32) arrayCount(values: [N] T)->s32 => N
+func(T) identity(value: T)->T                        => value
+func(T) keepDeducedType(value, low, high: T)->T      => value
+func(T) doubleLeftLiteral(value: T)                  => 2 * value
+func(T = s32, V = s32) mixedMultiply(a: T, b: V)     => a * b
+func(T = s32) defaultTypeValue()->T                  => 42
+func(N: s32 = 3) defaultConstValue()->s32            => N
+func(T, N: s32) arrayCount(values: [N] T)->s32       => N
 func(T, N: s32 = 2) partialCount(values: [N] T)->s32 => N
 
 struct(T, N: s32) Buffer
@@ -128,7 +128,7 @@ func semaTest003()
 func semaTest004()
 {
     let values: [4] u16 = [10'u16, 20, 30, 40]
-    let pair: [2] s32 = [1, 2]
+    let pair:   [2] s32 = [1, 2]
 
     #assert(arrayCount'(u16, 4)(values) == 4)
     #assert(arrayCount(values) == 4)
@@ -137,7 +137,7 @@ func semaTest004()
 
 func semaTest005()
 {
-    func(T) localDouble(value: T) => 2 * value
+    func(T) localDouble(value: T)                         => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
     #assert(localDouble'(s32)(21) == 42)

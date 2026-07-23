@@ -1,4 +1,5 @@
 #global public
+
 using Swag
 
 // Desribe the layout format of one image pixel

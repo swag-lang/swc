@@ -62,6 +62,7 @@ Result Formatter::prepare(const Global& global, const std::string_view source)
     constexpr ParserJobOptions parserOptions = {
         .emitTrivia                 = true,
         .ignoreGlobalCompilerIfSkip = true,
+        .allowReservedIdentifiers   = true,
     };
 
     SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, parserOptions));

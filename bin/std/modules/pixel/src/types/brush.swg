@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 enum BrushType
@@ -35,15 +36,15 @@ struct Brush
     uvMode:  UVMode = Fill
     uvRect:  Math.Rectangle
 
-    gradientStart:   Math.Vector2
-    gradientEnd:     Math.Vector2
-    gradientRadius0: f32
-    gradientRadius1: f32
-    gradientAngle0:  f32
-    gradientAngle1:  f32
-    gradientSpread:  GradientSpread = Clamp
-    gradientStops:      [MaxGradientStops] GradientStop
-    gradientStopCount:  u8
+    gradientStart:     Math.Vector2
+    gradientEnd:       Math.Vector2
+    gradientRadius0:   f32
+    gradientRadius1:   f32
+    gradientAngle0:    f32
+    gradientAngle1:    f32
+    gradientSpread:    GradientSpread = Clamp
+    gradientStops:     [MaxGradientStops] GradientStop
+    gradientStopCount: u8
 }
 
 impl Brush

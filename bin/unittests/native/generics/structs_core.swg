@@ -11,7 +11,7 @@ struct(T, N: s32) Buffer
 }
 
 func(T, N: s32) bufferCount(buffer: Buffer'(T, N))->s32 => N
-func(T) unbox(box: Box'T)->T => box.value
+func(T) unbox(box: Box'T)->T                            => box.value
 
 func sumFour(buffer: Buffer'(s32, 4))->s32
 {

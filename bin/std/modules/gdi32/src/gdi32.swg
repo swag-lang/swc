@@ -1,5 +1,6 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
+
 #foreignlib("gdi32")
 using Swag, Win32
 
@@ -132,8 +133,8 @@ struct BITMAPINFOHEADER
 
 struct BITMAPINFO
 {
-    bmiHeader:     BITMAPINFOHEADER
-    bmiColors:     [1] RGBQUAD
+    bmiHeader: BITMAPINFOHEADER
+    bmiColors: [1] RGBQUAD
 }
 
 const LF_FACESIZE       = 32
@@ -267,7 +268,7 @@ struct LOGFONTA
     lfClipPrecision:  BYTE
     lfQuality:        BYTE
     lfPitchAndFamily: BYTE
-    lfFaceName:           [LF_FACESIZE] CHAR
+    lfFaceName:       [LF_FACESIZE] CHAR
 }
 
 struct LOGFONTW
@@ -285,25 +286,25 @@ struct LOGFONTW
     lfClipPrecision:  BYTE
     lfQuality:        BYTE
     lfPitchAndFamily: BYTE
-    lfFaceName:           [LF_FACESIZE] WCHAR
+    lfFaceName:       [LF_FACESIZE] WCHAR
 }
 
 const LF_FULLFACESIZE = 64
 
 struct ENUMLOGFONTEXA
 {
-    elfLogFont:      LOGFONTA
-    elfFullName:     [LF_FULLFACESIZE] BYTE
-    elfStyle:        [LF_FACESIZE] BYTE
-    elfScript:       [LF_FACESIZE] BYTE
+    elfLogFont:  LOGFONTA
+    elfFullName: [LF_FULLFACESIZE] BYTE
+    elfStyle:    [LF_FACESIZE] BYTE
+    elfScript:   [LF_FACESIZE] BYTE
 }
 
 struct ENUMLOGFONTEXW
 {
-    elfLogFont:      LOGFONTW
-    elfFullName:     [LF_FULLFACESIZE] WCHAR
-    elfStyle:        [LF_FACESIZE] WCHAR
-    elfScript:       [LF_FACESIZE] WCHAR
+    elfLogFont:  LOGFONTW
+    elfFullName: [LF_FULLFACESIZE] WCHAR
+    elfStyle:    [LF_FACESIZE] WCHAR
+    elfScript:   [LF_FACESIZE] WCHAR
 }
 
 struct TEXTMETRICA

@@ -4,7 +4,7 @@
 #[Swag.EnumFlags]
 enum LogFlags
 {
-    Zero    = 0                                                 // No flags set.
+    Zero = 0                                                    // No flags set.
     Prefix                                                      // Include custom prefix in log output.
     Date                                                        // Include date (YYYY/MM/DD).
     Time                                                        // Include time (HH:MM:SS:ms).

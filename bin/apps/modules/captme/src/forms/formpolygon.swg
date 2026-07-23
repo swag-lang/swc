@@ -1,7 +1,7 @@
 struct FormPolygon
 {
     using base:     BaseForm
-    points:         Array'Math.Vector2
+    points: Array'Math.Vector2
 
     #[Serialization.NoSerialize]
     {

@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // The property grid's built-in context-menu commands, exposed through the shared gui action

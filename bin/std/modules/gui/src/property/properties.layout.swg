@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Layout geometry of the property control: grid/condensed column metrics, list useful/content

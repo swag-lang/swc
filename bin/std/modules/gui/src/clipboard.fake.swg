@@ -1,4 +1,5 @@
 #global namespace Clipboard
+
 using Core, Pixel
 
 // In-memory fake clipboard, enabled by the headless test host (see Testing.HeadlessHost).

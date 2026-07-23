@@ -319,7 +319,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 
 #test
 {
-    var grid: [2, 3] u32
+    var grid:     [2, 3] u32
     var valueRef: &u32 = &grid[1, 2]
 
     valueRef += 1'u32

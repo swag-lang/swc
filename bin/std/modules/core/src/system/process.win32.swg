@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace Env
+
 using Win32, StrConv
 
 // Exit the current process

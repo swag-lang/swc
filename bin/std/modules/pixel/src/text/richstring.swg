@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 struct RichChunk
@@ -221,7 +222,7 @@ impl RichString
             return
 
         var startChunk = 0'u64
-        var chunk:     RichChunk
+        var chunk: RichChunk
 
         var byteIdx   = 0'u64
         var isBold:   Array'bool

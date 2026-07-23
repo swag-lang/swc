@@ -65,7 +65,7 @@ struct FlatDiscount { amountCent: s32 }
 impl IDiscountRule for FlatDiscount
 {
     mtd impl apply(line: &OrderLine)->s32 => me.amountCent
-    mtd impl tag()->string => "flat"
+    mtd impl tag()->string                => "flat"
 }
 
 // Apply all rules to a single line, return best discount.
@@ -84,7 +84,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
 // Basic: single rule, single line.
 #test
 {
-    var bulk: BulkDiscount
+    var bulk:  BulkDiscount
     var rules: [1] IDiscountRule = undefined
     rules[0] = cast(IDiscountRule) bulk
 

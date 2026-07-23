@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("shell32")
 using Swag
 
@@ -197,25 +198,25 @@ enum SHSTOCKICONID
     SIID_MEDIABDRE      = 139     // BluRay RE Media (Rewriable and RAM)
     SIID_CLUSTEREDDRIVE = 140     // Clustered disk
     // 160+ are for Windows 7 icons
-    SIID_MAX_ICONS         = 181
+    SIID_MAX_ICONS = 181
 }
 
 struct SHFILEINFOA
 {
-    hIcon:        HICON
-    iIcon:        s32
-    dwAttributes: DWORD
-    szDisplayName:     [MAX_PATH] CHAR
-    szTypeName:        [80] CHAR
+    hIcon:         HICON
+    iIcon:         s32
+    dwAttributes:  DWORD
+    szDisplayName: [MAX_PATH] CHAR
+    szTypeName:    [80] CHAR
 }
 
 struct SHFILEINFOW
 {
-    hIcon:        HICON
-    iIcon:        s32
-    dwAttributes: DWORD
-    szDisplayName:     [MAX_PATH] WCHAR
-    szTypeName:        [80] WCHAR
+    hIcon:         HICON
+    iIcon:         s32
+    dwAttributes:  DWORD
+    szDisplayName: [MAX_PATH] WCHAR
+    szTypeName:    [80] WCHAR
 }
 
 struct SHSTOCKICONINFO
@@ -224,7 +225,7 @@ struct SHSTOCKICONINFO
     hIcon:          HICON
     iSysImageIndex: s32
     iIcon:          s32
-    szPath:             [MAX_PATH] WCHAR
+    szPath:         [MAX_PATH] WCHAR
 }
 
 struct GUID
@@ -232,7 +233,7 @@ struct GUID
     Data1: u32
     Data2: u16
     Data3: u16
-    Data4:     [8] u8
+    Data4: [8] u8
 }
 
 const NIM_ADD        = 0x00000000
@@ -258,16 +259,16 @@ struct NOTIFYICONDATAA
     uFlags:           UINT
     uCallbackMessage: UINT
     hIcon:            HICON
-    szTip:                [128] CHAR
-    dwState:     DWORD
-    dwStateMask: DWORD
-    szInfo:               [256] CHAR
+    szTip:            [128] CHAR
+    dwState:          DWORD
+    dwStateMask:      DWORD
+    szInfo:           [256] CHAR
         using DUMMYUNIONNAME: union
     {
         uTimeout: UINT
         uVersion: UINT
     }
-    szInfoTitle:      [64] CHAR
+    szInfoTitle:  [64] CHAR
     dwInfoFlags:  DWORD
     guidItem:     GUID
     hBalloonIcon: HICON
@@ -281,16 +282,16 @@ struct NOTIFYICONDATAW
     uFlags:           UINT
     uCallbackMessage: UINT
     hIcon:            HICON
-    szTip:                [128] WCHAR
-    dwState:     DWORD
-    dwStateMask: DWORD
-    szInfo:               [256] WCHAR
+    szTip:            [128] WCHAR
+    dwState:          DWORD
+    dwStateMask:      DWORD
+    szInfo:           [256] WCHAR
         using DUMMYUNIONNAME: union
     {
         uTimeout: UINT
         uVersion: UINT
     }
-    szInfoTitle:      [64] WCHAR
+    szInfoTitle:  [64] WCHAR
     dwInfoFlags:  DWORD
     guidItem:     GUID
     hBalloonIcon: HICON

@@ -53,8 +53,8 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
     }
 
     var current: [96] bool
-    var next: [96] bool
-    var result: SplitterAudit
+    var next:    [96] bool
+    var result:  SplitterAudit
 
     result.rowCount                = cast(u32) @countof(plan)
     result.columnCount             = width

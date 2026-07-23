@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 struct RichEditLexerSwag
@@ -56,8 +57,8 @@ struct RichEditLexerSwag
         Error
     }
 
-    mapStyles:     [256] RichEditStyleRef
-    mapWords:      HashTable'(string, s32)
+    mapStyles: [256] RichEditStyleRef
+    mapWords:  HashTable'(string, s32)
 }
 
 impl IRichEditLexer for RichEditLexerSwag
@@ -628,7 +629,7 @@ impl IRichEditLexer for RichEditLexerSwag
 
                 if Unicode.isLetter(c) or c == '_' or c == '@' or c == '#'
                 {
-                    var word:    String
+                    var word: String
                     let saveSeek = seek
                     while Unicode.isLetterOrDigit(c) or c == '_' or c == '@' or c == '#'
                     {

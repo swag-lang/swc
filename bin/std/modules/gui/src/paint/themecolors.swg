@@ -1,4 +1,5 @@
 #global public
+
 using Pixel
 
 struct ThemeColors
@@ -7,7 +8,7 @@ struct ThemeColors
     richColor2: Color
     richColor3: Color
 
-    surfaceDisabled:                      Color
+    surfaceDisabled: Color
 
     bk:     Color
     border: Color
@@ -36,7 +37,7 @@ struct ThemeColors
     wnd_BtnClosePressedIcon:     Color
     wnd_Shadow:                  Color
 
-    view_Bk:                              Color
+    view_Bk: Color
 
     dlg_Bk:       Color
     dlg_BtnBarBk: Color
@@ -343,7 +344,7 @@ struct ThemeColors
     colorPicker_BackAlpha: Color
     colorPicker_Mark:      Color
 
-    imageRect_Fg:                         Color
+    imageRect_Fg: Color
 
     embInfo_CriticalBk:      Color
     embInfo_CriticalText:    Color

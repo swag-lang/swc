@@ -32,9 +32,9 @@ using Core
 
 internal struct Bot
 {
-    id:    s32
-    count: s32
-    val:         [2] s32 = Swag.S32.Max
+    id:      s32
+    count:   s32
+    val:     [2] s32 = Swag.S32.Max
     out:     s32
     pending: Array'String
 }

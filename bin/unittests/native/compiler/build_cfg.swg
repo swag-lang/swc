@@ -12,10 +12,10 @@ const Cfg = #run dref @compiler.getBuildCfg()
 #assert(#typeof(Cfg.allocatorFillMemory) == bool)
 #assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")
 #assert(Cfg.backendKind == Swag.BuildCfgBackendKind.Executable or
-        Cfg.backendKind == Swag.BuildCfgBackendKind.SharedLibrary or
-        Cfg.backendKind == Swag.BuildCfgBackendKind.StaticLibrary)
+Cfg.backendKind == Swag.BuildCfgBackendKind.SharedLibrary or
+Cfg.backendKind == Swag.BuildCfgBackendKind.StaticLibrary)
 #assert(Cfg.backendSubKind == Swag.BuildCfgBackendSubKind.Default or
-        Cfg.backendSubKind == Swag.BuildCfgBackendSubKind.Console)
+Cfg.backendSubKind == Swag.BuildCfgBackendSubKind.Console)
 
 // BuildCfg fields are valid at runtime
 #test

@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 struct ThemeImageRect
@@ -10,13 +11,13 @@ struct ThemeImageRect
 
 struct ThemeImageRects
 {
-    surfaceWnd_Shadow:              ThemeImageRect = {{189, 1, 66, 66}, 24}
+    surfaceWnd_Shadow: ThemeImageRect = {{189, 1, 66, 66}, 24}
 
     wnd_Border:       ThemeImageRect = {{130, 1, 27, 27}, 3}
     wnd_CaptionBk:    ThemeImageRect = {{57, 1, 72, 27}, 12}
     wnd_CaptionSmall: ThemeImageRect = {{57, 1, 72, 27}, 1}
 
-    dlg_BtnBar:                     ThemeImageRect = {{29, 29, 27, 27}, 2}
+    dlg_BtnBar: ThemeImageRect = {{29, 29, 27, 27}, 2}
 
     btnPush_Normal:         ThemeImageRect = {{1, 1, 27, 27}, 13}
     btnPush_NormalBorder:   ThemeImageRect = {{29, 1, 27, 27}, 13}
@@ -79,7 +80,7 @@ struct ThemeImageRects
     slider_Mark:         ThemeImageRect = {{86, 170, 25, 25}, 12}
     slider_Step:         ThemeImageRect = {{113, 169, 27, 27}, 13}
 
-    circular_Mark:                  ThemeImageRect = {{113, 337, 27, 27}, 13}
+    circular_Mark: ThemeImageRect = {{113, 337, 27, 27}, 13}
 
     tabItem_FlatSelected:       ThemeImageRect = {{57, 95, 27, 27}, 5}
     tabItem_RoundSelected:      ThemeImageRect = {{85, 95, 39, 25}, 10}
@@ -132,7 +133,7 @@ struct ThemeImageRects
     header_FlatBk:  ThemeImageRect = {{57, 225, 27, 27}, 13}
     header_RoundBk: ThemeImageRect = {{57, 253, 27, 27}, 13}
 
-    selectionBox_Bk:                ThemeImageRect = {{57, 197, 27, 27}, 12}
+    selectionBox_Bk: ThemeImageRect = {{57, 197, 27, 27}, 12}
 
     splitView_HorzBarBk:    ThemeImageRect = {{85, 197, 27, 27}, 0}
     splitView_HorzBarHotBk: ThemeImageRect = {{113, 197, 27, 27}, 0}

@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 using Core, Win32, Gdi32, TrueType
 
 impl TypeFace
@@ -35,7 +36,7 @@ impl TypeFace
         tf.buffer   = getDataFromHFONT(hf)
 
         let face = try Face.load(tf.buffer.toSlice())
-        tf.face  = notnull face
+        tf.face = notnull face
 
         g_HashTypeFace.add(str, tf)
         return tf

@@ -1,4 +1,5 @@
 #global public
+
 using Swag
 
 // Enum

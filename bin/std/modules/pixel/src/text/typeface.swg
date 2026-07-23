@@ -90,7 +90,7 @@ public impl TypeFace
         tf.buffer   = bytes
 
         let face = try Face.load(tf.buffer.toSlice())
-        tf.face  = notnull face
+        tf.face = notnull face
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -120,7 +120,7 @@ public impl TypeFace
         }
 
         let face = try Face.load(tf.buffer.toSlice())
-        tf.face  = notnull face
+        tf.face = notnull face
 
         g_HashTypeFace.add(fullname, tf)
         return tf

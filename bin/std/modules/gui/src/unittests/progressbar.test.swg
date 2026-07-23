@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
 // setProgression saturates to the [0..1] range.

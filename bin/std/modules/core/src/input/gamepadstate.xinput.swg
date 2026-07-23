@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace Input
+
 using XInput, Win32, Core.Errors
 
 #run

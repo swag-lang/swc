@@ -1,4 +1,5 @@
 #global namespace Wav
+
 using Core, Core.Errors, Win32
 
 struct ChunkHeader
@@ -85,14 +86,14 @@ struct WAVEFORMAT
 struct PCMWAVEFORMAT
 {
     using wf:           WAVEFORMAT
-    wBitsPerSample:     u16
+    wBitsPerSample: u16
 }
 
 #[Swag.Pack(1)]
 struct WAVEFORMATEX
 {
     using pcmwf:     PCMWAVEFORMAT
-    cbSize:          u16     // The count in bytes of the size of extra information (after cbSize)
+    cbSize: u16     // The count in bytes of the size of extra information (after cbSize)
 }
 
 #[Swag.Pack(1)]

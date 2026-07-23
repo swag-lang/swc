@@ -21,7 +21,7 @@ impl RuntimeSliceEdgeBox
     }
 
     #[Swag.NoInline]
-    mtd opSlice(low, up: u64) -> [..] s32
+    mtd opSlice(low, up: u64)->[..] s32
     {
         .sliceCalls += 1
         .lastLow    = low
@@ -132,7 +132,7 @@ impl RuntimeConstSliceBox
     }
 
     #[Swag.NoInline]
-    mtd const opSlice(low, up: u64) -> [..] s32
+    mtd const opSlice(low, up: u64)->[..] s32
     {
         return @mkslice(&.values[low], (up + 1) - low)
     }

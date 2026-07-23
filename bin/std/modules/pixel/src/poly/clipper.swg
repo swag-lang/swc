@@ -6,6 +6,7 @@
 */
 
 #global namespace Clipper
+
 using Core
 
 const LoRange       = 0x3FFFFFFF
@@ -1180,11 +1181,11 @@ impl Transform
         var lastpp   = nnOutPt(pp.prev)
         while pp != lastpp
         {
-            pp   = nnOutPt(pp.next)
+            pp = nnOutPt(pp.next)
             if pp.pt == pp.prev.pt
             {
                 if pp == lastpp do
-                    lastpp   = nnOutPt(pp.prev)
+                    lastpp = nnOutPt(pp.prev)
                 let tmppp   = nnOutPt(pp.prev)
                 tmppp.next   = pp.next
                 pp.next.prev = tmppp
@@ -3159,7 +3160,7 @@ impl Transform
         while pp
         {
             let tmppp   = pp
-            pp   = pp.next
+            pp = pp.next
             Memory.delete(tmppp)
         }
     }

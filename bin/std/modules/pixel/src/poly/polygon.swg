@@ -1,4 +1,5 @@
 #global public
+
 using Core.Math
 
 const ClipperScaleCoords = 1000.0'f64

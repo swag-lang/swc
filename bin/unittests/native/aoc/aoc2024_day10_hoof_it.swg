@@ -162,7 +162,7 @@ func dfs(g: const &Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
 
 func findTrails(grid: const &Grid)->TrailResult
 {
-    var visited: [MaxDim * MaxDim] bool
+    var visited:     [MaxDim * MaxDim] bool
     var totalScore:  u32
     var totalRating: u32
 

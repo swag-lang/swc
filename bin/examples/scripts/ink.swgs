@@ -11,7 +11,7 @@
 
 using Core, Gui, Pixel, Core.Math
 
-var Palette:      [9] Color
+var Palette: [9] Color
 var newDrop       = true
 var counter       = 0
 var currentColor: Color

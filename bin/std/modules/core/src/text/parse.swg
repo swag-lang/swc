@@ -1,5 +1,6 @@
 #global public
 #global namespace StrConv
+
 using Globalization, Swag, Errors
 
 // Convert an utf8 buffer in hexadecimal to an unsigned integer value.

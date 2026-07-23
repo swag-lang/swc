@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Per-item validation state for the property grid, in increasing severity. A field can be
@@ -92,7 +93,7 @@ internal impl Properties
     mtd updateItemValidation(item: *PropertiesItem)->bool
     {
         var hasNtfy = false
-        var result:   PropValidationResult
+        var result: PropValidationResult
 
         if .hostNtfy
         {

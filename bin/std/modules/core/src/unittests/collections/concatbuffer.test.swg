@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func buildConcatBuffer()->ConcatBuffer
@@ -7,9 +8,9 @@ func buildConcatBuffer()->ConcatBuffer
     var result: retval
     result.setBucketSize(4)
 
-    let first: [3] u8  = [1, 2, 3]
+    let first:  [3] u8  = [1, 2, 3]
     let second: [3] u8 = [4, 5, 6]
-    let third: [2] u8  = [7, 8]
+    let third:  [2] u8  = [7, 8]
 
     result.addBytes(first)
     result.addBytes(second)

@@ -1,4 +1,5 @@
 #global namespace Parser
+
 using Errors
 
 const RuneAsciiDigit  = cast(rune) 0x8000_0000

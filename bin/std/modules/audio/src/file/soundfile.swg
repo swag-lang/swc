@@ -1,11 +1,12 @@
 #global public
+
 using Core, Core.Errors
 
 // Determins which informations in the [[SoundFile]] struct are valid.
 #[Swag.EnumFlags]
 enum SoundFileValidityMask
 {
-    Zero               = 0
+    Zero = 0
     Format
     Frequency
     ChannelCount

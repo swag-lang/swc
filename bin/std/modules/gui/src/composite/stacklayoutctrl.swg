@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 enum StackLayoutKind
@@ -159,9 +160,9 @@ private impl StackLayoutCtrl
         }
     }
 
-    mtd preferredMain(hint: SizeHint)->f32 => .mainFromPoint(hint.preferred)
-    mtd minimumMain(hint: SizeHint)->f32   => .mainFromPoint(hint.min)
-    mtd maximumMain(hint: SizeHint)->f32   => .mainFromPoint(hint.max)
+    mtd preferredMain(hint: SizeHint)->f32  => .mainFromPoint(hint.preferred)
+    mtd minimumMain(hint: SizeHint)->f32    => .mainFromPoint(hint.min)
+    mtd maximumMain(hint: SizeHint)->f32    => .mainFromPoint(hint.max)
     mtd preferredCross(hint: SizeHint)->f32 => .crossFromPoint(hint.preferred)
     mtd minimumCross(hint: SizeHint)->f32   => .crossFromPoint(hint.min)
     mtd maximumCross(hint: SizeHint)->f32   => .crossFromPoint(hint.max)

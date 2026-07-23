@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 func makeFastNoise()->Noise.FastNoise

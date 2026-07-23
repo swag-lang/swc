@@ -9,9 +9,9 @@ struct FormCallout
 {
     using base:      BaseForm
     #[Name("Font"), FontName]
-    fontName:        String
+    fontName: String
     #[Name("Text"), MultiLine]
-    text:            String
+    text: String
     #[Name("Font Style")]
     fontStyle        = FontFamilyStyle.Regular
     #[Name("Align")]
@@ -19,13 +19,13 @@ struct FormCallout
     #[Name("Vertical Align")]
     alignVert        = FormTextAlign.Center
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
-    fontSize:        f32 = 40
+    fontSize: f32 = 40
     #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
     roundSize:    f32 = 16
     tailX, tailY: f32
     boldSize:     f32 = 0
     lineSpacing      = 14.0
-    textColor:       Color = Argb.White
+    textColor: Color = Argb.White
 
     #[Serialization.NoSerialize]
     {
@@ -309,7 +309,7 @@ impl IForm for FormCallout
         // rather than the heavy shape range (4..8): at icon scale a fat outline is the
         // main thing that reads as clumsy. Full-scale rendering is unaffected (adaptSize
         // returns size*z there and ignores this range).
-        bSize     = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 2, 4)
+        bSize = BaseForm.adaptSize(bSize, MinBorderSize, MaxBorderSize, cxt, 2, 4)
         let rSize = BaseForm.adaptSize(.roundSize, MinRoundSize, MaxRoundSize, cxt)
         let bk    = .backColor
         let body  = .rectFormBound() * z

@@ -7,6 +7,7 @@
 
 #global namespace Compress
 #global #[Swag.CanOverflow(true)]
+
 using Core.Errors
 
 internal
@@ -108,8 +109,8 @@ internal
 
     struct Compressor
     {
-        compressFlags:        u32
-        maxProbes:            [2] u32
+        compressFlags:    u32
+        maxProbes:        [2] u32
         greedyParsing:    bool
         lookaheadPos:     u32
         lookaheadSize:    u32
@@ -132,15 +133,15 @@ internal
         inSrc:            #null const [*] u8
         srcBufLeft:       u64
         outBufOfs:        u64
-        dict:                 [LzDictSize + MaxMatchLen - 1] u8
-        huffCount:            [MaxHuffTables, MaxHuffSymbols] u16
-        huffCodes:            [MaxHuffTables, MaxHuffSymbols] u16
-        huffCodeSizes:        [MaxHuffTables, MaxHuffSymbols] u8
-        lzCodeBuf:            [LzCodeBufSize] u8
-        next:                 [LzDictSize] u16
-        hash:                 [LzHashSize] u16
-        outputBuf:            [OutBufSize] u8
-        result:               #null *Array'u8
+        dict:             [LzDictSize + MaxMatchLen - 1] u8
+        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16
+        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16
+        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8
+        lzCodeBuf:        [LzCodeBufSize] u8
+        next:             [LzDictSize] u16
+        hash:             [LzHashSize] u16
+        outputBuf:        [OutBufSize] u8
+        result:           #null *Array'u8
     }
 }
 
@@ -1091,7 +1092,7 @@ public impl Deflate
     #[Swag.EnumFlags]
     enum CompressionFlags
     {
-        Zero    = 0                  // No compression flags
+        Zero = 0                     // No compression flags
         ComputeAdler32               // Compute Adler-32 checksum after compression
         Default = ComputeAdler32     // Default flag: computes Adler-32
     }

@@ -1,6 +1,7 @@
 #global namespace Serialization
 #global namespace Read
 #global public
+
 using Swag, Core.Errors
 
 alias Buffer = Array'u8

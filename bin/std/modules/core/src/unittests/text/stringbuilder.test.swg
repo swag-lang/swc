@@ -1,14 +1,15 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertBuilderString(value: const &String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and
-        @countof(value) == @countof(expected) and
-        @countof(text) == @countof(expected) and
-        Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
+           @countof(value) == @countof(expected) and
+           @countof(text) == @countof(expected) and
+           Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
 #test

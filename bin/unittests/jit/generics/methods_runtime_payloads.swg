@@ -3,7 +3,7 @@
 struct(T) BufferBox
 {
     buffer: [*] T
-    count: u64
+    count:  u64
 }
 
 impl BufferBox

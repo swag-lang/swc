@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
 // The fake clipboard (enabled by the headless host) mirrors the OS semantics: a string

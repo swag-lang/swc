@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum SliderFlags
 {
-    Zero       = 0
+    Zero = 0
     Range
     HilightBar
     Vertical
@@ -218,7 +219,7 @@ impl IWnd for Slider
             }
 
             let clientRect = .getOffsetedClientRect()
-            var f:         f32
+            var f: f32
             if isVertical
             {
                 let diff = (pos.y - .correcMoving) - clientRect.y
@@ -279,7 +280,7 @@ impl IWnd for Slider
                 {
                     .correcMoving = 0
                     let clientRect = .getOffsetedClientRect()
-                    var f:         f32
+                    var f: f32
                     if isVertical
                     {
                         let diff = pos.y - clientRect.y

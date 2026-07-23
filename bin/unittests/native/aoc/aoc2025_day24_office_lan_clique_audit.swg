@@ -11,7 +11,7 @@ struct LanAudit
     leadTripletCount:  u32
     largestCliqueSize: u32
     passwordLength:    u32
-    password:         [MaxPasswordBytes] u8
+    password:          [MaxPasswordBytes] u8
 }
 
 func parseLabel(bytes: const [..] u8, startIndex: u32)->u16
@@ -104,7 +104,7 @@ func isClique(mask: u32, adjacency: const [..] bool, computerCount: u32)->bool
 
 func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16, computerCount: u32, mask: u32)
 {
-    var selected: [MaxComputers] u16
+    var selected:      [MaxComputers] u16
     var selectedCount: u32
 
     for computerCount
@@ -190,12 +190,12 @@ func passwordMatches(audit: LanAudit, expected: string)->bool
 
 func auditLan(connections: const [..] string)->LanAudit
 {
-    var result: LanAudit
-    var labels: [MaxComputers] u16
-    var adjacency: [MaxComputers * MaxComputers] bool
-    var labelSlice: [..] u16 = labels
+    var result:         LanAudit
+    var labels:         [MaxComputers] u16
+    var adjacency:      [MaxComputers * MaxComputers] bool
+    var labelSlice:     [..] u16 = labels
     var adjacencySlice: [..] bool = adjacency
-    var computerCount: u32
+    var computerCount:  u32
 
     for line in connections
     {
@@ -268,10 +268,10 @@ func auditLan(connections: const [..] string)->LanAudit
         if !isClique(mask, adjacencySlice, computerCount) do
             continue
 
-        var candidatePassword: [MaxPasswordBytes] u8
+        var candidatePassword:      [MaxPasswordBytes] u8
         var candidatePasswordSlice: [..] u8 = candidatePassword
-        var resultPasswordSlice: [..] u8 = result.password
-        var candidateLength: u32
+        var resultPasswordSlice:    [..] u8 = result.password
+        var candidateLength:        u32
         buildPassword(candidatePasswordSlice, &candidateLength, labelSlice, computerCount, mask)
 
         if cliqueSize > result.largestCliqueSize or passwordLess(candidatePasswordSlice, candidateLength, resultPasswordSlice, result.passwordLength)

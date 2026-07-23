@@ -17,6 +17,7 @@ namespace
         StructFields,
         EnumValues,
         Attributes,
+        FatArrows,
     };
 
     class AlignPass
@@ -37,6 +38,7 @@ namespace
             runCategory(AlignCategory::Constants, options_->alignConsecutiveConstants);
             runCategory(AlignCategory::EnumValues, options_->alignEnumValues);
             runCategory(AlignCategory::Attributes, options_->alignAttributes);
+            runCategory(AlignCategory::FatArrows, options_->alignFatArrows);
             runTrailingComments();
         }
 
@@ -90,6 +92,11 @@ namespace
                         return INVALID_PIECE;
                     return findRole(FormatRoleE::EnumAssign, false);
 
+                case AlignCategory::FatArrows:
+                    if (!first.hasRole(FormatRoleE::FuncDeclStart))
+                        return INVALID_PIECE;
+                    return findRole(FormatRoleE::FatArrow, false);
+
                 case AlignCategory::Attributes:
                 {
                     if (first.hasRole(FormatRoleE::AttrOpen))
@@ -125,10 +132,12 @@ namespace
             uint32_t                                   groupDepth = 0;
 
             auto flush = [&]() {
-                if (mode != FormatAlignMode::None && group.size() >= 2)
-                    alignGroup(group);
                 if (mode == FormatAlignMode::None)
                     unalignGroup(group);
+                else if (group.size() >= 2)
+                    alignGroup(group);
+                else
+                    unalignGroup(group); // lone line: stale manual padding shrinks to one space
                 group.clear();
             };
 

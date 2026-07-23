@@ -33,7 +33,7 @@ impl CountedBag
 // Single name over a slice binds the element values.
 #test
 {
-    var arr: [3] s32 = [10, 20, 30]
+    var arr:   [3] s32 = [10, 20, 30]
     let slice: const [..] s32 = arr
     var sum = 0
     for v in slice do
@@ -110,7 +110,7 @@ impl CountedBag
 // '#reverse' element iteration.
 #test
 {
-    var arr: [3] s32 = [1, 2, 3]
+    var arr:   [3] s32 = [1, 2, 3]
     var order: [3] s32
     var slot = 0
     for #reverse v in arr

@@ -6,8 +6,8 @@ struct ShortTypeInfoStruct
 }
 
 func shortTypeInfoFunc()->s32 => 1
-func makeStructInfo() => #typeof(ShortTypeInfoStruct)
-func makeFuncInfo() => #typeof(shortTypeInfoFunc)
+func makeStructInfo()         => #typeof(ShortTypeInfoStruct)
+func makeFuncInfo()           => #typeof(shortTypeInfoFunc)
 
 #test
 {

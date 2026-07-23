@@ -1,4 +1,5 @@
 #global public
+
 using Swag, Core, Core.Serialization
 
 // An image buffer, in various pixel formats.

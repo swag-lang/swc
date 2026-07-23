@@ -3,7 +3,7 @@
 struct InlineBug10VisitBytes
 {
     values: [5] u8
-    count: u64
+    count:  u64
 }
 
 impl InlineBug10VisitBytes

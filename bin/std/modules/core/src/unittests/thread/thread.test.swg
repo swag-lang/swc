@@ -1,6 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global #if WINDOWS
 #global private
+
 using Win32
 
 private const WaitManyThreadCount       = cast(u64) MAXIMUM_WAIT_OBJECTS + 1'u64
@@ -60,8 +61,8 @@ func waitManyThreads(threads: &[WaitManyThreadCount] Threading.Thread)
 #test
 {
     var doneCount: s32 = 0
-    var payloads: [WaitManyThreadCount] WaitManyPayload = undefined
-    var threads: [WaitManyThreadCount] Threading.Thread
+    var payloads:  [WaitManyThreadCount] WaitManyPayload = undefined
+    var threads:   [WaitManyThreadCount] Threading.Thread
 
     for i in WaitManyThreadCount
     {

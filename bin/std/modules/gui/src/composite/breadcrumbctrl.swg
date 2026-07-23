@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // One level of the path shown by a BreadcrumbCtrl (e.g. a folder). The app fills
@@ -28,11 +29,11 @@ struct BreadcrumbCtrl
 {
     using wnd:          Wnd
 
-    items:              Array'BreadcrumbItem
+    items: Array'BreadcrumbItem
     hotItem             = Swag.U64.Max
-    hotArrow:           bool
+    hotArrow: bool
     pressItem           = Swag.U64.Max
-    pressArrow:         bool
+    pressArrow: bool
 
     // Horizontal padding inside a level body, gap between icon and text, and the padding
     // on each side of a chevron.
@@ -41,13 +42,13 @@ struct BreadcrumbCtrl
     arrowPad            = 6.0'f32
 
     // Clicking a level body: navigate to the level at this index.
-    sigItemPressed:     SigArray'func||(*BreadcrumbCtrl, u64)
+    sigItemPressed: SigArray'func||(*BreadcrumbCtrl, u64)
 
     // Opening a level's chevron: the app fills 'menu' with the level's children.
-    sigFillMenu:        #null func||(*BreadcrumbCtrl, u64, *MenuCtrl)
+    sigFillMenu: #null func||(*BreadcrumbCtrl, u64, *MenuCtrl)
 
     // A child was picked from a level's chevron menu; 'id' is the chosen menu item id.
-    sigMenuSelected:    SigArray'func||(*BreadcrumbCtrl, u64, String)
+    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)
 }
 
 impl BreadcrumbCtrl

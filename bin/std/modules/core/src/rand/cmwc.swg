@@ -4,9 +4,9 @@
 // George Marsaglia's CMWC (Complementary Multiply With Carry) 4096 random number generator.
 struct CMWC4096
 {
-    q:     [4096] u32     // State array of 4096 32-bit unsigned integers
-    c: u32                // Carry value
-    i: u32 = 4096         // Current index into the state array (initialized to an invalid value to trigger seeding)
+    q: [4096] u32     // State array of 4096 32-bit unsigned integers
+    c: u32            // Carry value
+    i: u32 = 4096     // Current index into the state array (initialized to an invalid value to trigger seeding)
 }
 
 impl CMWC4096

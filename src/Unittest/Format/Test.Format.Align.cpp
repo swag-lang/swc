@@ -236,6 +236,66 @@ SWC_TEST_BEGIN(FormatAlign_TrailingCommentsNormalized)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_FatArrowsConsecutive)
+{
+    static constexpr std::string_view SOURCE =
+        "func square(x: s32) => x * x\n"
+        "func longerName(x: s32) => x + 1\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func square(x: s32)     => x * x\n"
+        "func longerName(x: s32) => x + 1\n";
+
+    FormatOptions options;
+    options.alignFatArrows = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_FatArrowsBreakOnPlainFunction)
+{
+    static constexpr std::string_view SOURCE =
+        "func square(x: s32) => x * x\n"
+        "func plain()\n"
+        "{\n"
+        "    return\n"
+        "}\n"
+        "func cube(x: s32) => x * x * x\n";
+
+    FormatOptions options;
+    options.alignFatArrows = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_SingletonTightensStalePadding)
+{
+    static constexpr std::string_view SOURCE =
+        "struct S\n"
+        "{\n"
+        "    aaaa: s32\n"
+        "    bb:   s32\n"
+        "\n"
+        "    // isolated field keeps no stale manual padding\n"
+        "    lone:            s32\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct S\n"
+        "{\n"
+        "    aaaa: s32\n"
+        "    bb:   s32\n"
+        "\n"
+        "    // isolated field keeps no stale manual padding\n"
+        "    lone: s32\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignStructFields = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

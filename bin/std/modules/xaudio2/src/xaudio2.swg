@@ -1,5 +1,6 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
+
 #foreignlib("xaudio2")
 using Swag, Win32
 
@@ -307,7 +308,7 @@ struct IXAudio2VoiceItf
 struct IXAudio2MasteringVoiceItf
 {
     using voice:        IXAudio2VoiceItf
-    getChannelMask:     func(this: *IXAudio2MasteringVoice, pChannelmask: *DWORD)->HRESULT
+    getChannelMask: func(this: *IXAudio2MasteringVoice, pChannelmask: *DWORD)->HRESULT
 }
 
 struct IXAudio2SubmixVoiceItf

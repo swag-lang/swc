@@ -23,8 +23,8 @@ const N = 8
 // Filter: keep only even numbers.
 #test
 {
-    var src: [N] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
-    var dst: [N] s32
+    var src:   [N] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
+    var dst:   [N] s32
     var count: u32 = 0
 
     let isEven: func||(s32)->bool = func(x: s32)->bool { return x % 2 == 0 }
@@ -60,7 +60,7 @@ const N = 8
 // Reduce: product.
 #test
 {
-    var src: [4] s32 = [2, 3, 4, 5]
+    var src:     [4] s32 = [2, 3, 4, 5]
     let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
     var product: s32 = 1
     for i in @countof(src) do
@@ -89,8 +89,8 @@ const N = 8
 // Closure with reference capture: count how many pass the filter.
 #test
 {
-    var src: [N] s32 = [3, 7, 2, 9, 1, 8, 4, 6]
-    var dst: [N] s32
+    var src:      [N] s32 = [3, 7, 2, 9, 1, 8, 4, 6]
+    var dst:      [N] s32
     var dstCount: u32 = 0
 
     var callCount: s32 = 0
@@ -120,9 +120,9 @@ const N = 8
 // Pipeline: square -> filter >10 -> sum.
 #test
 {
-    var src: [6] s32 = [1, 2, 3, 4, 5, 6]
-    var mapped: [6] s32
-    var filtered: [6] s32
+    var src:           [6] s32 = [1, 2, 3, 4, 5, 6]
+    var mapped:        [6] s32
+    var filtered:      [6] s32
     var filteredCount: u32 = 0
 
     let square: func||(s32)->s32 = func(x: s32)->s32 { return x * x }

@@ -396,6 +396,46 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsKeepsBlockStartAndRuns)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBlanks_AfterGlobalBlockInsertsBlank)
+{
+    static constexpr std::string_view SOURCE =
+        "#global private\n"
+        "const A = 1\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#global private\n"
+        "\n"
+        "const A = 1\n";
+
+    FormatOptions options;
+    options.blankLineAfterGlobalBlock = true;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AfterGlobalThenUsingBlocks)
+{
+    static constexpr std::string_view SOURCE =
+        "#global private\n"
+        "using Alpha\n"
+        "using Beta\n"
+        "const A = 1\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#global private\n"
+        "\n"
+        "using Alpha\n"
+        "using Beta\n"
+        "\n"
+        "const A = 1\n";
+
+    FormatOptions options;
+    options.blankLineAfterGlobalBlock = true;
+    options.blankLineAfterUsingBlock  = true;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBlanks_AfterBlocksInsertsBlank)
 {
     static constexpr std::string_view SOURCE =

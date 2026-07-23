@@ -166,7 +166,7 @@ impl InterpolationWindow
 #test
 {
     let values: [3] s32 = [5, 6, 7]
-    let fixed: [4] u8 = [1'u8, 2, 3, 4]
+    let fixed:  [4] u8 = [1'u8, 2, 3, 4]
 
     @assert(kind(1.0'f32) == 1)
     @assert(kind(1's64) == 2)

@@ -1,12 +1,13 @@
 #global namespace File
 #global public
+
 using Swag, Core.Errors
 
 // Represents a folder mapping to a specific structure type with its data
 struct Folder
 {
-    type:     typeinfo     // Type information of the structure
-    data:     [*] void     // Pointer to the actual structure instance
+    type: typeinfo     // Type information of the structure
+    data: [*] void     // Pointer to the actual structure instance
 }
 
 // Represents a tweak file parser that can load configuration into registered folders

@@ -282,8 +282,8 @@ func inlinePointerOffset(buffer: [*] u8, x: s32, y: s32, bpp8: u8, width8: s32)-
 struct InlinePixelProbe
 {
     buffer: [*] u8
-    bpp8:  u8
-    width: s32
+    bpp8:   u8
+    width:  s32
 }
 
 struct InlineJobProbe

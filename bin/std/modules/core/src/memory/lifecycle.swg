@@ -1,4 +1,5 @@
 #global namespace Memory
+
 using Swag
 
 internal func concreteRuntimeType(type: typeinfo)->typeinfo

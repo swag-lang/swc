@@ -1,5 +1,6 @@
 #global public
 #global namespace Input
+
 using Math
 
 // Allows reading position and button click information from mouse
@@ -7,8 +8,8 @@ struct Mouse
 {
     previousState: MouseState
     currentState:  MouseState
-    dblClk:            [@countof(MouseButton)] bool
-    dblClkTimeMs:      u32 = 300
+    dblClk:        [@countof(MouseButton)] bool
+    dblClkTimeMs:  u32 = 300
 }
 
 impl Mouse

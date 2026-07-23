@@ -1,11 +1,12 @@
 #global public
 #global namespace File
+
 using Time
 
 // Represents metadata and properties of a file or directory
 struct FileInfo
 {
-    fullname:           String                    // Full path of the file or directory
+    fullname: String                              // Full path of the file or directory
     attributes          = FileAttributes.Zero     // Attributes describing the file (e.g., read-only, hidden)
     creationTime:   DateTime                      // Time the file or directory was created
     lastAccessTime: DateTime                      // Time the file or directory was last accessed

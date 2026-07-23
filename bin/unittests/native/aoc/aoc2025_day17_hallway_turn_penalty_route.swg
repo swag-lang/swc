@@ -61,7 +61,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     @assert(totalCells <= MaxHallwayCells)
 
-    var cells: [MaxHallwayCells] u8
+    var cells:     [MaxHallwayCells] u8
     var startCell: u32
     var endCell:   u32
 
@@ -84,8 +84,8 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         }
     }
 
-    var dist: [MaxHallwayStates] u64
-    var steps: [MaxHallwayStates] u32
+    var dist:    [MaxHallwayStates] u64
+    var steps:   [MaxHallwayStates] u32
     var visited: [MaxHallwayStates] bool
 
     for MaxHallwayStates

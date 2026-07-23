@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 // Round-trip through Deflate -> Inflate (with the zlib header + adler32 trailer).

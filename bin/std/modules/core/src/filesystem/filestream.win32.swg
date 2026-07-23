@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace File
+
 using Win32
 
 impl FileStream

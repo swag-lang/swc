@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum TabForm
@@ -63,7 +64,7 @@ struct Tab
     itemAutoLayoutMargin: f32 = 25
     itemMinWidth:         f32 = 25
 
-    sigSelChanged:            SigArray'func||(*Tab)
+    sigSelChanged: SigArray'func||(*Tab)
 
     buttonPopup:     #null *IconButton
     views:           ArrayPtr'TabItem

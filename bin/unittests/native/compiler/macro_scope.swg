@@ -401,7 +401,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
 #test
 {
     let values: [3] s32 = [1, 2, 3]
-    var sum: s32         = 0
+    var sum:    s32         = 0
     variadicSameName(values, &sum)
     @assert(sum == 6)
 }
@@ -428,7 +428,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
 #test
 {
     let values: [3] s32 = [10, 20, 30]
-    var sum: s32         = 0
+    var sum:    s32         = 0
     variadicSameName(values, &sum)
     @assert(sum == 60)
 }
@@ -437,7 +437,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
 #test
 {
     let values: [3] s64 = [10, 20, 30]
-    var sum: s64         = 0
+    var sum:    s64         = 0
     variadicSameName(values, &sum)
     @assert(sum == 60)
 }
@@ -446,7 +446,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
 #test
 {
     let values: [1] s32 = [42]
-    var sum: s32         = 0
+    var sum:    s32         = 0
     variadicSameName(values, &sum)
     @assert(sum == 42)
 }

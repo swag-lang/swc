@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum ButtonCheckState
@@ -11,7 +12,7 @@ enum ButtonCheckState
 #[Swag.EnumFlags]
 enum CheckButtonFlags
 {
-    Zero       = 0
+    Zero = 0
     ThreeState
     RightAlign
 }
@@ -22,7 +23,7 @@ struct CheckButton
 
     checked              = ButtonCheckState.UnChecked
     checkButtonFlags     = CheckButtonFlags.Zero
-    sigChanged:          SigArray'func||(*CheckButton)
+    sigChanged: SigArray'func||(*CheckButton)
 }
 
 impl IWnd for CheckButton

@@ -20,7 +20,7 @@ struct GenericPointerCastBox
 
 impl IGenericPointerCast for GenericPointerCastBase
 {
-    mtd impl get()->s32 => .value
+    mtd impl get()->s32      => .value
     mtd impl fallback()->s32 => .value + 70
 }
 

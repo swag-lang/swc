@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertIntList(values: &List's32, expected: const [..] s32)->bool
@@ -153,7 +154,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     copy.addBack(4)
 
     let originalExpected: [3] s32 = [1, 2, 3]
-    let copyExpected: [4] s32 = [1, 2, 3, 4]
+    let copyExpected:     [4] s32 = [1, 2, 3, 4]
     @assert(assertIntList(&original, originalExpected))
     @assert(assertIntList(&copy, copyExpected))
 }

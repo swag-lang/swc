@@ -36,19 +36,19 @@ struct ParseIncompleteError
 struct SerializationError
 {
     using base:     Swag.BaseError
-    field:          TypeValue = undefined     // Can contain the bad field
+    field: TypeValue = undefined     // Can contain the bad field
 }
 
 struct FileNotFoundError
 {
     using base:     Swag.BaseError
-    fileName:       #null string
+    fileName: #null string
 }
 
 struct InvalidFileNameError
 {
     using base:     Swag.BaseError
-    fileName:       #null string
+    fileName: #null string
 }
 
 struct InvalidVersion

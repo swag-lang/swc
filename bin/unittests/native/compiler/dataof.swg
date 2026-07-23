@@ -36,7 +36,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var arr0: [3] s32
-    var a: [..] s32 = arr0
+    var a:    [..] s32 = arr0
     var b = @dataof(a)
     #assert(#typeof(b) == [*] s32)
 
@@ -45,7 +45,7 @@ impl ConstDataOfSpecBuffer
     #assert(#typeof(d) == const [*] u8)
 
     var ebuf: [2] u8 = ['x''u8, 0]
-    var e: cstring = cast(cstring) &ebuf[0]
+    var e:    cstring = cast(cstring) &ebuf[0]
     var f = @dataof(e)
     #assert(#typeof(f) == const [*] u8)
 
@@ -177,7 +177,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var storage: [4] s32 = [3, 6, 9, 12]
-    var value: StrictDataOfSlice = cast(StrictDataOfSlice) storage
+    var value:   StrictDataOfSlice = cast(StrictDataOfSlice) storage
     let p = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[2] = 55

@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 const TGA_TYPE_MAP      = 1'u8

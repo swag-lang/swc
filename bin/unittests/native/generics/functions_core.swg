@@ -1,24 +1,24 @@
 #global private
 
-func(T) echo(value: T)->T => value
-func(T) doubleLeftLiteral(value: T) => 2 * value
-func(T = s32, V = s32) mixedMultiply(a: T, b: V) => a * b
-func(T = s32) defaultValue()->T => 11
-func(N: s32 = 3) bias(value: s32)->s32 => value + N
-func(T, N: s32) arrayCount(values: [N] T)->s32 => N
+func(T) echo(value: T)->T                            => value
+func(T) doubleLeftLiteral(value: T)                  => 2 * value
+func(T = s32, V = s32) mixedMultiply(a: T, b: V)     => a * b
+func(T = s32) defaultValue()->T                      => 11
+func(N: s32 = 3) bias(value: s32)->s32               => value + N
+func(T, N: s32) arrayCount(values: [N] T)->s32       => N
 func(T, N: s32 = 2) partialCount(values: [N] T)->s32 => N
 
-func(T) double(value: T)->T => value + value
-func(T) first(a: T, b: T)->T => a
+func(T) double(value: T)->T    => value + value
+func(T) first(a: T, b: T)->T   => a
 func(T) isZero(value: T)->bool => value == 0
 
-func(T) wrapEcho(value: T)->T => echo(value)
+func(T) wrapEcho(value: T)->T   => echo(value)
 func(T) doubleEcho(value: T)->T => echo(echo(value))
 
-func(T) deref(ptr: *T)->T => dref ptr
+func(T) deref(ptr: *T)->T        => dref ptr
 func(T) addrValue(value: *T)->*T => value
 
-func(A, B) makePairFirst(a: A, b: B)->A => a
+func(A, B) makePairFirst(a: A, b: B)->A  => a
 func(A, B) makePairSecond(a: A, b: B)->B => b
 
 #assert(#typeof(defaultValue()) == s32)
@@ -31,7 +31,7 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
 #test
 {
     let values: [4] u16 = [10'u16, 20, 30, 40]
-    let pair: [2] s32 = [1, 2]
+    let pair:   [2] s32 = [1, 2]
 
     @assert(echo'(s32)(7) == 7)
     @assert(echo(true) == true)
@@ -52,7 +52,7 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
 
 #test
 {
-    func(T) localDouble(value: T) => 2 * value
+    func(T) localDouble(value: T)                         => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
     @assert(localDouble'(s32)(21) == 42)

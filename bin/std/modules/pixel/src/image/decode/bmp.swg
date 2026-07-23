@@ -1,4 +1,5 @@
 #global namespace Bmp
+
 using Core, Core.Errors
 
 const FILL_RLE_COMMAND     = 0

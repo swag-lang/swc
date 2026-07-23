@@ -1,10 +1,11 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 #test
 {
-    var empty: #null [..] s32 = null
+    var empty:  #null [..] s32 = null
     let values: [6] s32 = [1, 3, 5, 7, 9, 11]
 
     @assert(Slice.findSorted(empty, 1) == Swag.U64.Max)
@@ -43,9 +44,9 @@ using Swag
 {
     var emptyA: #null [..] s32 = null
     var emptyB: #null [..] s32 = null
-    let left: [4] s32 = [1, 2, 3, 4]
-    let same: [4] s32 = [1, 2, 3, 4]
-    let other: [4] s32 = [1, 2, 4, 3]
+    let left:   [4] s32 = [1, 2, 3, 4]
+    let same:   [4] s32 = [1, 2, 3, 4]
+    let other:  [4] s32 = [1, 2, 4, 3]
 
     @assert(Slice.equals(emptyA, emptyB))
     @assert(Slice.equals(left, same))

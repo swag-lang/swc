@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
@@ -35,8 +36,8 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
 
 #test
 {
-    let sorted: [5] s32 = [1, 2, 2, 3, 5]
-    let unsorted: [5] s32 = [1, 3, 2, 4, 5]
+    let sorted:     [5] s32 = [1, 2, 2, 3, 5]
+    let unsorted:   [5] s32 = [1, 3, 2, 4, 5]
     let descending: [5] s32 = [9, 7, 4, 4, 1]
 
     @assert(Slice.isSorted(sorted))

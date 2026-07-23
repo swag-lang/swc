@@ -31,6 +31,99 @@ SWC_TEST_BEGIN(FormatFile_InsertFinalNewline)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatFile_TrimLeadingBlankLines)
+{
+    static constexpr std::string_view SOURCE =
+        "\n"
+        "\n"
+        "const X = 1\n";
+
+    static constexpr std::string_view EXPECTED =
+        "const X = 1\n";
+
+    FormatOptions options;
+    options.trimLeadingBlankLines = true;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_TrimLeadingBlankLinesDisabled)
+{
+    static constexpr std::string_view SOURCE =
+        "\n"
+        "const X = 1\n";
+
+    FormatOptions options;
+    options.trimLeadingBlankLines = false;
+    return checkFileRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_ReservedIdentifiersAreFormattable)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    __internalCall()\n"
+        "}\n";
+
+    FormatOptions options;
+    return checkFileRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_IndentInsideParensEnforcesContinuation)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    bar(1,\n"
+        "                2)\n"
+        "}\n"
+        "func bar(a, b: s32) {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    bar(1,\n"
+        "        2)\n"
+        "}\n"
+        "func bar(a, b: s32) {}\n";
+
+    FormatOptions options;
+    options.indentStyle       = FormatIndentStyle::Spaces;
+    options.indentWidth       = 4;
+    options.indentInsideParens = true;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_AlignOperandsOnWrappedCondition)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(a, b: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "            b do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(a, b: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle   = FormatIndentStyle::Spaces;
+    options.indentWidth   = 4;
+    options.alignOperands = true;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatFile_EndOfLineStyleLf)
 {
     static constexpr std::string_view SOURCE =

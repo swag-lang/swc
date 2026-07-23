@@ -1,5 +1,6 @@
 ﻿#global public
 #global namespace Memory
+
 using Swag
 
 func allocZeroSizeMessage(kind: string, size: u64, hint: #null string, loc: Swag.SourceCodeLocation)->String

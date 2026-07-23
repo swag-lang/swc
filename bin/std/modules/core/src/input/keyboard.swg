@@ -6,8 +6,8 @@ struct Keyboard
 {
     previousState: KeyboardState
     currentState:  KeyboardState
-    pressedRepeat:     [@countof(Key)] bool
-    pressedTime:       [@countof(Key)] u32
+    pressedRepeat: [@countof(Key)] bool
+    pressedTime:   [@countof(Key)] u32
 
     // Delay, in milliseconds, before a repeated key stroke starts
     pressedRepeatStartTimeMs: u32 = 400

@@ -1,6 +1,7 @@
 #global #if #os == Swag.TargetOs.Windows
 #global namespace Clipboard
 #global public
+
 using Core, Win32, Pixel
 
 alias ValueFormat = u64

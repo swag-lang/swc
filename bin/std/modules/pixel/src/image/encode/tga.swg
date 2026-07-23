@@ -1,4 +1,5 @@
 #global namespace Tga
+
 using Core, Core.Errors
 
 public struct Encoder {}

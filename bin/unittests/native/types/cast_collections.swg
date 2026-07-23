@@ -92,7 +92,7 @@ func constArrayToConstCStringView()->bool
 func constPointerToConstCStringView()->bool
 {
     var data: [4] u8 = ['p''u8, 't''u8, 'r''u8, 0]
-    let ptr: const [*] u8 = cast(const [*] u8) &data[0]
+    let ptr:  const [*] u8 = cast(const [*] u8) &data[0]
     let text = cast(const cstring) ptr
     #assert(#typeof(text) == const cstring)
     return @countof(text) == 3 and text[0] == 'p''u8 and text[2] == 'r''u8

@@ -1,5 +1,6 @@
 #global public
 #global namespace Input
+
 using Math
 
 // Represents a gamepad

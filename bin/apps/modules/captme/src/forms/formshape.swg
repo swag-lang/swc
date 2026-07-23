@@ -12,9 +12,9 @@ const MaxRoundSize = 50.0
 struct FormShape
 {
     using base:     BaseForm
-    kind:           FormShapeKind = Ellipse
+    kind: FormShapeKind = Ellipse
     #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
-    roundSize:      f32 = 10
+    roundSize: f32 = 10
 
     #[Serialization.NoSerialize]
     {

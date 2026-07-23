@@ -38,7 +38,7 @@
 // Multiple closures from same iteration capture different values
 #test
 {
-    var adders: [3] func||()->s32 = undefined
+    var adders:   [3] func||()->s32 = undefined
     var doublers: [3] func||()->s32 = undefined
 
     for i in 3

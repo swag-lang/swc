@@ -1,6 +1,6 @@
 struct GizmoPoints
 {
-    anchorSize:      f32 = 12
+    anchorSize: f32 = 12
 
     startRect:   Math.Rectangle
     anchors:     Array'Math.Point

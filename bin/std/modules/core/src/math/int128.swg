@@ -7,6 +7,7 @@
 
 #global public
 #global namespace Math
+
 using Swag
 
 #[Swag.CanOverflow(true)]

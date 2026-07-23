@@ -198,9 +198,9 @@ struct AutoDropPair
 
 struct AutoDropNested
 {
-    head: DropOnlyTracked
+    head:  DropOnlyTracked
     pairs: [2] AutoDropPair
-    tail: DropOnlyTracked
+    tail:  DropOnlyTracked
 }
 
 struct AutoDropBranch
@@ -244,7 +244,7 @@ struct IntrinsicLifecycleErr
 struct ResizeBuffer
 {
     buffer: [*] ResizeTracked
-    count: u64
+    count:  u64
 }
 
 impl ResizeBuffer
@@ -264,7 +264,7 @@ impl ResizeBuffer
 struct RemoveBuffer
 {
     buffer: [*] DropOnlyTracked
-    count: u64
+    count:  u64
 }
 
 impl RemoveBuffer
@@ -718,7 +718,7 @@ func intrinsicArrayWholeInfo()->IntrinsicInfo
 func intrinsicArrayCountInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
-    var arr: [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
+    var arr:   [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
     var count: u64 = 2
     @postmove(&arr[0], count)
     @drop(&arr[0], count)
@@ -1262,8 +1262,8 @@ func intrinsicAutoDropShadowInfo()->IntrinsicInfo
 func intrinsicInitRuntimeCountScalarInfo()->s32
 {
     var values: [4] s32 = [9, 8, 7, 6]
-    var start: u64 = 1
-    var count: u64 = 2
+    var start:  u64 = 1
+    var count:  u64 = 2
     @init(cast([*] s32) &values[0] + start, count)
     return values[0] * 1000 + values[1] * 100 + values[2] * 10 + values[3]
 }
@@ -1271,8 +1271,8 @@ func intrinsicInitRuntimeCountScalarInfo()->s32
 func intrinsicInitRuntimeCountStructInfo()->s32
 {
     var values: [4] InitRgb = [InitRgb{9, 9, 9}, InitRgb{8, 8, 8}, InitRgb{7, 7, 7}, InitRgb{6, 6, 6}]
-    var start: u64 = 1
-    var count: u64 = 2
+    var start:  u64 = 1
+    var count:  u64 = 2
     @init(cast([*] InitRgb) &values[0] + start, count)
     return values[0].r * 1000 + values[1].r * 100 + values[2].r * 10 + values[3].r
 }

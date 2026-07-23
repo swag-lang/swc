@@ -33,8 +33,8 @@ var ScopedFunc:      func(Scoped.Box)->Scoped.Box = undefined
 var ScopedClosure:   func||(Scoped.Box)->Scoped.Box = undefined
 var ScopedNamedFunc: func(value: Scoped.Box)->Scoped.Box throw = undefined
 var ScopedVariadic:  func(Scoped.Box...)->Scoped.Box = undefined
-var ScopedArray: [2] Scoped.Box
-var ScopedWrapped: Scoped.Wrapper'(Scoped.Box)
+var ScopedArray:     [2] Scoped.Box
+var ScopedWrapped:   Scoped.Wrapper'(Scoped.Box)
 
 #assert(#fullnameof(Test.A) == "Test.A")
 #assert(#fullnameof(Test.B) == "Test.B")

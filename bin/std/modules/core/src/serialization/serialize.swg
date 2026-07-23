@@ -1,5 +1,6 @@
 #global export
 #global namespace Serialization
+
 using Swag
 
 // Set the struct version number

@@ -90,7 +90,7 @@ func verifyImportedClosureCallbacks()
     @assert(!depInvokeGeneric('Z''u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
     @assert(depInvokeGeneric('B''u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
 
-    var prev: [3] u8 = ['C', 'A', 'B']
+    var prev:     [3] u8 = ['C', 'A', 'B']
     var allOfSet: DepByteSet = {values: ['A''u8, 'B''u8, 'C''u8, 'D''u8], count: 4}
     @assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.contains(x) }))
     @assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.containsViaGeneric(x) }))
@@ -120,7 +120,7 @@ func verifyImportedClosureCallbacks()
     @assert(!ctxSharedInvokeGeneric('Z''u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
     @assert(ctxSharedInvokeGeneric('B''u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
 
-    var sharedPrev: [3] u8 = ['C', 'A', 'B']
+    var sharedPrev:     [3] u8 = ['C', 'A', 'B']
     var sharedAllOfSet: CtxClosureByteSet = {values: ['A''u8, 'B''u8, 'C''u8, 'D''u8], count: 4}
     @assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.contains(x) }))
     @assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.containsViaGeneric(x) }))

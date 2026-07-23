@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace Directory
+
 using Win32
 
 func create(dirname: string) throw

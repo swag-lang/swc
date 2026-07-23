@@ -1,4 +1,5 @@
 #global export
+
 using Swag
 
 // Represents a single entry within a HashSet.

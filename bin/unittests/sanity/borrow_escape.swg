@@ -1305,7 +1305,7 @@ func borrowEscapeRetainedClosure()
 
 func borrowEscapeArrayElement()->#null *s32
 {
-    var local: s32
+    var local:  s32
     var values: [2] #null *s32
     values[0] = &local
     values[1] = &borrowEscapeGlobalInt
@@ -1314,7 +1314,7 @@ func borrowEscapeArrayElement()->#null *s32
 
 func borrowEscapeArraySibling()->#null *s32
 {
-    var local: s32
+    var local:  s32
     var values: [2] #null *s32
     values[0] = &local
     values[1] = &borrowEscapeGlobalInt
@@ -1323,7 +1323,7 @@ func borrowEscapeArraySibling()->#null *s32
 
 func borrowEscapeArrayElementClear()->#null *s32
 {
-    var local: s32
+    var local:  s32
     var values: [2] #null *s32
     values[0] = &local
     values[0] = null
@@ -1332,7 +1332,7 @@ func borrowEscapeArrayElementClear()->#null *s32
 
 func borrowEscapeArrayDynamic(index: u64)->#null *s32
 {
-    var local: s32
+    var local:  s32
     var values: [2] #null *s32
     values[index] = &local
     return values[0]     // swc-expected-error {{sanity_err_borrow_escape}}

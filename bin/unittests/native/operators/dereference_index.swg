@@ -28,7 +28,7 @@ alias IndexStrictU8 = u8
 #test
 {
     var backing6: [2] s32 = [11, 22]
-    var a6: [..] s32 = backing6
+    var a6:       [..] s32 = backing6
     var b6 = a6[0]
     #assert(#typeof(b6) == s32)
     @assert(b6 == 11)
@@ -38,7 +38,7 @@ alias IndexStrictU8 = u8
 #test
 {
     var backing2: [2] s32 = [33, 44]
-    var a2: [..] s32 = backing2
+    var a2:       [..] s32 = backing2
     var b2 = a2[0]
     #assert(#typeof(b2) == s32)
     @assert(b2 == 33)
@@ -87,8 +87,8 @@ alias IndexStrictU8 = u8
     @assert(@countof(gridRef[0]) == 3)
     @assert(gridRef[1, 2] == 42)
 
-    var backing: [2] s32 = [11, 22]
-    var slice: [..] s32 = backing
+    var backing:  [2] s32 = [11, 22]
+    var slice:    [..] s32 = backing
     var sliceRef: &[..] s32 = &slice
     @assert(sliceRef[0] == 11)
     sliceRef[1] = 99

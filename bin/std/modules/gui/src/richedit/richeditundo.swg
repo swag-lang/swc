@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 enum RichEditUndoType

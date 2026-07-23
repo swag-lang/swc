@@ -6,10 +6,10 @@
 // Supports incremental hashing through 'init', 'update', and 'final' operations.
 public struct Sha1
 {
-    data:        [64] u8     // Internal data buffer for processing 512-bit blocks
-    state:       [5] u32     // Five 32-bit hash state values (A, B, C, D, E)
-    datalen: u32             // Current number of bytes in the data buffer
-    bitlen:  u64             // Total number of bits processed so far
+    data:    [64] u8     // Internal data buffer for processing 512-bit blocks
+    state:   [5] u32     // Five 32-bit hash state values (A, B, C, D, E)
+    datalen: u32         // Current number of bytes in the data buffer
+    bitlen:  u64         // Total number of bits processed so far
 }
 
 impl Sha1

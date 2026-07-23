@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum ColorPickerViewMode
@@ -16,7 +17,7 @@ enum ColorPickerFlags
 {
     Zero
     Alpha
-    All   = Alpha
+    All = Alpha
 }
 
 struct ColorPickerCtrl
@@ -28,7 +29,7 @@ struct ColorPickerCtrl
     color:      Color
     pickerFlags         = ColorPickerFlags.All
 
-    oldColorDone:       bool
+    oldColorDone: bool
     mode                = ColorPickerViewMode.SaturationLightness
     staticRes:          #late *Wnd
     pickBox:            #late *ColorPicker

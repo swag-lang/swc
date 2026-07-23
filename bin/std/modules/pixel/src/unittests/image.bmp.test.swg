@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 // Create an image in memory and verify its metadata.

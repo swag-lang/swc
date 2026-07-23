@@ -1,4 +1,5 @@
 #global namespace ImageStatistics
+
 using Core, Core.Math
 
 func haarTransform2D(data: [*] f32, size: u32, output: [*] f32)

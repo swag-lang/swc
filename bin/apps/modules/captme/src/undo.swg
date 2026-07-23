@@ -100,7 +100,7 @@ struct Undo
     capture:  #null *Capture
     baseForm: #null IForm
 
-    selection:       Array'u64
+    selection: Array'u64
 
     toFreeForms: Array'IForm
     oldForms:    Array'IForm

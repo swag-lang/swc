@@ -20,7 +20,7 @@ struct JitWithDockBase
 struct JitWithDockWidget
 {
     using base: JitWithDockBase
-    value:      s32
+    value: s32
 }
 
 struct JitWithDockOwner

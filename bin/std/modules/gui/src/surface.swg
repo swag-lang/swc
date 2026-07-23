@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel, Serialization
 
 struct SurfaceState
@@ -37,7 +38,7 @@ struct Surface
 #[Swag.EnumFlags]
 enum SurfaceFlags
 {
-    Zero             = 0
+    Zero = 0
 
     BigCaption
     SmallCaption

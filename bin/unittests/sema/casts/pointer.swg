@@ -55,14 +55,14 @@ func semaTest005()
 
 func semaTest006()
 {
-    var a: [2] s32
+    var a:  [2] s32
     var p1: *s32 = a
     var p2: const *s32 = a
 }
 
 func semaTest007()
 {
-    var a: [2] s32
+    var a:  [2] s32
     var p1: *void = a
 }
 
@@ -98,7 +98,7 @@ func semaTest011()
 
 func semaTest012()
 {
-    var a: [2] s32
+    var a:  [2] s32
     var p1: const *void = a
 }
 
@@ -144,7 +144,7 @@ func semaTest015()
 
 func semaTest016()
 {
-    var data: [4] s32
+    var data:  [4] s32
     var index: u64 = 2
 
     #assert(#typeof(&data[0]) == *s32)

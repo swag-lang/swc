@@ -37,8 +37,8 @@ alias ClosureNullary = func||()->s32
 
 var GlobalSeed = 41
 
-func addOne(value: s32)->s32 => value + 1
-func acceptUnary(cb: ClosureUnary)->ClosureUnary => cb
+func addOne(value: s32)->s32                                              => value + 1
+func acceptUnary(cb: ClosureUnary)->ClosureUnary                          => cb
 func acceptNullary(cb: #null ClosureNullary = null)->#null ClosureNullary => cb
 
 impl PathOwner

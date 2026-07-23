@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Input
+
 using Swag, Win32
 
 impl Keyboard
@@ -234,7 +235,7 @@ public impl Keyboard
     mtd keyToRune(key: Key)->rune
     {
         let virt = keyToVirtualKey(key)
-        var uc:  [5] WCHAR
+        var uc: [5] WCHAR
         let res  = ToUnicode(virt, MapVirtualKeyW(virt, MAPVK_VK_TO_VSC), .currentState.nativeState, uc, 4, 0)
         if res == 1 do
             return cast(rune) uc[0]

@@ -7,8 +7,8 @@ struct DefaultInner
 
 struct DefaultOuter
 {
-    text:  string   = "jit"
-    inner: DefaultInner
+    text:   string   = "jit"
+    inner:  DefaultInner
     digits: [3] u8   = [1, 2, 3]
     tail:   s32      = 11
 }

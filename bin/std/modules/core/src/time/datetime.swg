@@ -1,5 +1,6 @@
 #global public
 #global namespace Time
+
 using Errors
 
 // Names of the months used for formatting and parsing

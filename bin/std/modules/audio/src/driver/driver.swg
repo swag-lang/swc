@@ -25,7 +25,7 @@ struct Driver
     mutexBuses: Sync.Mutex
     buses:      Array'(*Bus)
 
-    driverIsClosing:          bool
+    driverIsClosing: bool
 }
 
 internal func updateThreadProc(th: Threading.Thread)

@@ -72,8 +72,8 @@ func dirName(d: Dir)->string
 // Character classification
 // ---------------------------------------------------------------------------
 
-func isDigit(ch: u8)->bool  => ch >= '0''u8 and ch <= '9''u8
-func isDot(ch: u8)->bool    => ch == '.''u8
+func isDigit(ch: u8)->bool   => ch >= '0''u8 and ch <= '9''u8
+func isDot(ch: u8)->bool     => ch == '.''u8
 func isNewline(ch: u8)->bool => ch == '\n''u8 or ch == '\r''u8
 func isSymbol(ch: u8)->bool  => !isDigit(ch) and !isDot(ch) and !isNewline(ch) and ch != 0
 func isGear(ch: u8)->bool    => ch == '*''u8
@@ -91,7 +91,7 @@ struct Grid
 
 impl Grid
 {
-    mtd const at(r, c: u32)->u8   => .cells[r * MaxDim + c]
+    mtd const at(r, c: u32)->u8         => .cells[r * MaxDim + c]
     mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
 }
 

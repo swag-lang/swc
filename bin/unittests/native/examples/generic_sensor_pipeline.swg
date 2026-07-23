@@ -36,13 +36,13 @@ struct(Unit, T, Count: s32) TelemetrySeries
     where Count >= 2
     where T == f32 or T == f64
 {
-    name:   string
-    scale:  T
-    offset: T
-    band:   SafeBand'T
+    name:    string
+    scale:   T
+    offset:  T
+    band:    SafeBand'T
     samples: [Count] T
-    next:   s32
-    filled: s32
+    next:    s32
+    filled:  s32
 }
 
 impl TelemetrySeries

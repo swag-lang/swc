@@ -1,7 +1,7 @@
 #global private
 
-func(T) identity(value: T)->T => value
-func(T = s32) withDefault()->T => 42
+func(T) identity(value: T)->T                       => value
+func(T = s32) withDefault()->T                      => 42
 func(T, N: s32) arrayIdentity(values: [N] T)->[N] T => values
 
 struct(T)
@@ -32,7 +32,7 @@ struct(T)
 
 #test
 {
-    let ints: [3] s32 = [1, 2, 3]
+    let ints:   [3] s32 = [1, 2, 3]
     let floats: [2] f64 = [1.0, 2.0]
 
     let ints2 = arrayIdentity(ints)

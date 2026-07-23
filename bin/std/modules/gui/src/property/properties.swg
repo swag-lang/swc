@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // The property control. This file holds the Properties struct and its lifecycle/state API. Its
@@ -106,12 +107,12 @@ struct Properties
 
     kind                = PropertiesKind.List
 
-    sizeEditValue:      s32 = 200
+    sizeEditValue: s32 = 200
 
     // Walk the 'using' base structs after the struct's own fields, so a derived type
     // edits its most specific fields first (see addStructInternal). The language forces
     // the base to be declared first; this inverts the generated row order only.
-    usingFieldsLast:    bool
+    usingFieldsLast: bool
 
     // For grid kind
     gridLineHeight:    f32 = 35
@@ -134,7 +135,7 @@ struct Properties
     valBarGap:        f32 = 7      // gap between the row editor and the bar
     valBarRadius:     f32 = 6      // corner radius of the colored background
 
-    sigChanged:               SigArray'func||(*Properties, #null *PropertiesItem)
+    sigChanged: SigArray'func||(*Properties, #null *PropertiesItem)
 
     leftMargin:   s32 = 15
     rightMargin:  s32 = 15
@@ -167,7 +168,7 @@ struct Properties
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
-    menuItem:                 #null *PropertiesItem
+    menuItem: #null *PropertiesItem
 
     // Undo/redo (propertiesundo.swg). Every field edit that goes through hasChanged records one
     // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
@@ -187,11 +188,11 @@ struct Properties
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
     // does not own the displayed structs (an editor panel showing a document's objects) plugs
     // dynamic visibility, validation and change reactions.
-    hostNtfy:                 #null IPropertyNotify
+    hostNtfy: #null IPropertyNotify
 
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.
-    buildOnlyNamed:           bool
+    buildOnlyNamed: bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points
@@ -473,7 +474,7 @@ impl Properties
         defer .buildOnlyNamed = false
 
         let firstItemIdx   = .items.count
-        var item:          #null *PropertiesItem
+        var item: #null *PropertiesItem
         let numItemsBefore = .items.count
 
         // Section

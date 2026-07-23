@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace Threading
+
 using Win32
 
 private func threadEntry(param: #null *void)->DWORD

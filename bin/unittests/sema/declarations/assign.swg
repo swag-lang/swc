@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    var x: s32
+    var x:   s32
     var ptr: [*] s32 = cast([*] s32) &x
     ptr += 1
     var ptr1: const [*] s32 = cast(const [*] s32) &x

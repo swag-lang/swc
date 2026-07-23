@@ -58,7 +58,7 @@ func pickRef(values: const &[..] s32, idx: s32)->s32
 
 func sliceRefWindow()->u64
 {
-    var arr: [5] s32 = [10, 20, 30, 40, 50]
+    var arr:    [5] s32 = [10, 20, 30, 40, 50]
     let arrRef: &[5] s32 = &arr
     let mid = arrRef[1 to 3]
     return @countof(mid) + cast(u64) mid[0] + cast(u64) mid[2]
@@ -75,8 +75,8 @@ func textRefWindow()->string
 {
     func runPickRef()->s32
     {
-        var arr: [3] s32 = [4, 5, 6]
-        let values: [..] s32 = arr
+        var arr:       [3] s32 = [4, 5, 6]
+        let values:    [..] s32 = arr
         let valuesRef: const &[..] s32 = &values
         return pickRef(valuesRef, 2)
     }

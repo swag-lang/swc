@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 struct ThemeMetrics
@@ -30,7 +31,7 @@ struct ThemeMetrics
     btnPush_Width:   f32 = 100
     btnPush_Height:  f32 = 30
 
-    iconText_Margin:                       f32 = 4
+    iconText_Margin: f32 = 4
 
     btnCheck_Size:    f32 = 24
     btnCheck_Padding: f32 = 4
@@ -68,7 +69,7 @@ struct ThemeMetrics
     menuBar_Height:       f32 = 30
     menuBar_SpaceBetween: f32 = 24
 
-    iconBar_ButtonsPadding:                f32 = 4
+    iconBar_ButtonsPadding: f32 = 4
 
     scrollBar_NormalSize: f32 = 20
     scrollBar_SmallSize:  f32 = 10
@@ -112,7 +113,7 @@ struct ThemeMetrics
     header_Padding:   Math.Vector4 = {10, 5, 10, 5}
     header_Separator: f32 = 5
 
-    splitView_BarSize:                     f32 = 8
+    splitView_BarSize: f32 = 8
 
     progressBar_Height:     f32 = 18
     progressBar_ClipOffset: f32 = 2
@@ -121,7 +122,7 @@ struct ThemeMetrics
     colorPicker_RoundPick:  f32 = 6
     colorPicker_SquarePick: f32 = 6
 
-    label_Height:                          f32 = 24
+    label_Height: f32 = 24
 
     richEdit_Padding: f32 = 5
     toolTip_Padding:  f32 = 2

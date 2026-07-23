@@ -34,7 +34,7 @@ struct Elf
 {
     id:        u32
     itemCount: u32
-    items:    [MaxFoodItemsPerElf] FoodItem
+    items:     [MaxFoodItemsPerElf] FoodItem
 }
 
 // ---------------------------------------------------------------------------

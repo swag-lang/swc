@@ -1,5 +1,6 @@
 #global public
 #global namespace Path
+
 using Swag
 
 const DirectorySeparatorChar    = '/''u8      // Default directory separator character

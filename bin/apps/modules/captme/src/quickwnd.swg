@@ -71,7 +71,7 @@ func(T) addStyleForm(qs: *QuickStyle, form: *T)
 struct QuickButton
 {
     using iconBtn:     IconButton
-    formItf:           #null IForm
+    formItf: #null IForm
     quickWnd:          #late *QuickWnd
 }
 
@@ -174,7 +174,7 @@ struct QuickWnd
     qsPixSel:    QuickStyle
     qsCallout:   QuickStyle
 
-    currentStyle:        #null *QuickStyle
+    currentStyle: #null *QuickStyle
 }
 
 impl IWnd for QuickWnd

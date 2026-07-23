@@ -1,5 +1,6 @@
 #global export
 #global namespace CommandLine
+
 using Core.Errors
 
 attr ArgParams(nameAlias: #null string = null)

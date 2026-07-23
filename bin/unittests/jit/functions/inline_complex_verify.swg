@@ -3,7 +3,7 @@
 struct Payload
 {
     values: [3] s32
-    tag: u8
+    tag:    u8
 }
 
 #[Swag.Inline]

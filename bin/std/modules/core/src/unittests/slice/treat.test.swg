@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func sameValues(values: const [..] s32, expected: const [..] s32)->bool
@@ -71,7 +72,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 
 #test
 {
-    var odd: [5] s32 = [1, 2, 3, 4, 5]
+    var odd:    [5] s32 = [1, 2, 3, 4, 5]
     var single: [1] s32 = [9]
 
     Slice.reverse(odd)

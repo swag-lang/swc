@@ -187,7 +187,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 {
     var buffer: [4] s32 = [3, 6, 9, 12]
     var values: [..] s32 = buffer
-    let boxed: any = @mkany(&values, [..] s32)
+    let boxed:  any = @mkany(&values, [..] s32)
     let ptr = cast(*[..] s32) @dataof(boxed)
 
     values[1] = 77
@@ -278,7 +278,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 #test
 {
     var storage: [3] u8 = [3'u8, 5'u8, 8'u8]
-    let bytes: const [..] u8 = cast(const [..] u8) storage
+    let bytes:   const [..] u8 = cast(const [..] u8) storage
     let boxed = @mkany(&bytes, const [..] u8)
     let view = cast(const [..] u8) boxed
 
@@ -290,7 +290,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 #test
 {
     var storage: [4] u8 = ['a''u8, 'n''u8, 'y''u8, 0]
-    let text: const cstring = cast(const cstring) &storage[0]
+    let text:    const cstring = cast(const cstring) &storage[0]
     let boxed = @mkany(&text, const cstring)
     let view = cast(const cstring) boxed
 
@@ -302,8 +302,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 #test
 {
     var storage: [6] u8 = ['b''u8, 'o''u8, 'x''u8, 'e''u8, 'd''u8, 0]
-    let text:  const cstring = cast(const cstring) &storage[0]
-    let boxed: const any = text
+    let text:    const cstring = cast(const cstring) &storage[0]
+    let boxed:   const any = text
     let view = cast(const cstring) boxed
 
     @assert(@countof(view) == 5)

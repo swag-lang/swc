@@ -1,5 +1,6 @@
 #global public
 #global namespace Latin1
+
 using Swag
 
 #[Inline, ConstExpr]

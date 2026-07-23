@@ -1,29 +1,28 @@
 #global namespace Swag
 
-
 const AllocatorClassCount   = 28'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
 
 struct AllocatorHeader
 {
-    loc:           SourceCodeLocation
-    allocAddr:     #null [*] void
-    allocSize:     u64
-    userSize:      u64
-    blockSize:     u64
-    hint:          #null string
-    prev:          #null *AllocatorHeader
-    next:          #null *AllocatorHeader
-    prevFree:      #null *AllocatorHeader
-    nextFree:      #null *AllocatorHeader
-    stack:         [16] *void = undefined
-    stackCount:    u32
-    allocId:       u32
-    classIndex:    u32
-    alignment:     u32
-    isTracked:     bool
-    magic:         u32
-    ownerHeap:     #null *void
+    loc:        SourceCodeLocation
+    allocAddr:  #null [*] void
+    allocSize:  u64
+    userSize:   u64
+    blockSize:  u64
+    hint:       #null string
+    prev:       #null *AllocatorHeader
+    next:       #null *AllocatorHeader
+    prevFree:   #null *AllocatorHeader
+    nextFree:   #null *AllocatorHeader
+    stack:      [16] *void = undefined
+    stackCount: u32
+    allocId:    u32
+    classIndex: u32
+    alignment:  u32
+    isTracked:  bool
+    magic:      u32
+    ownerHeap:  #null *void
 }
 
 struct AllocatorFooter
@@ -39,29 +38,29 @@ struct AllocatorRawBlock
 
 struct AllocatorClass
 {
-    firstFree:    #null *AllocatorHeader
-    cachedBytes:  u64
-    cachedCount:  u32
+    firstFree:   #null *AllocatorHeader
+    cachedBytes: u64
+    cachedCount: u32
 }
 
 struct AllocatorThreadClass
 {
-    firstFree:    #null *AllocatorHeader
-    remoteFree:   #null *AllocatorHeader
-    cachedBytes:  u64
-    cachedCount:  u32
+    firstFree:   #null *AllocatorHeader
+    remoteFree:  #null *AllocatorHeader
+    cachedBytes: u64
+    cachedCount: u32
 }
 
 struct AllocatorThreadHeap
 {
-    allocator:    #null *void
-    nextRetired:  #null *AllocatorThreadHeap
-    threadId:     u64
-    classes:      [AllocatorClassCount] AllocatorThreadClass
-    cachedBytes:  u64
-    cachedCount:  u32
-    activeCount:  u32
-    retired:      u32
+    allocator:   #null *void
+    nextRetired: #null *AllocatorThreadHeap
+    threadId:    u64
+    classes:     [AllocatorClassCount] AllocatorThreadClass
+    cachedBytes: u64
+    cachedCount: u32
+    activeCount: u32
+    retired:     u32
 }
 
 #[Swag.Tls]
@@ -69,35 +68,35 @@ private var g_AllocatorThreadHeap: #null *AllocatorThreadHeap
 
 struct Allocator
 {
-    mutex:           MutexRW
-    classes:         [AllocatorClassCount] AllocatorClass
-    firstAlloc:      #null *AllocatorHeader
-    firstFree:       #null *AllocatorHeader
-    lastFree:        #null *AllocatorHeader
+    mutex:            MutexRW
+    classes:          [AllocatorClassCount] AllocatorClass
+    firstAlloc:       #null *AllocatorHeader
+    firstFree:        #null *AllocatorHeader
+    lastFree:         #null *AllocatorHeader
     firstRetiredHeap: #null *AllocatorThreadHeap
-    sizeAlloc:       u64
-    sizeFree:        u64
-    sizeCached:      u64
-    sizeOsAlloc:     u64
-    sizeOsFree:      u64
-    countAlloc:      u32
-    countFree:       u32
-    countOsAlloc:    u32
-    countOsFree:     u32
-    nextId:          u32
-    installMagic:    u32 = 0
+    sizeAlloc:        u64
+    sizeFree:         u64
+    sizeCached:       u64
+    sizeOsAlloc:      u64
+    sizeOsFree:       u64
+    countAlloc:       u32
+    countFree:        u32
+    countOsAlloc:     u32
+    countOsFree:      u32
+    nextId:           u32
+    installMagic:     u32 = 0
 
-    maxCachedSize:       u64
-    maxCachedBytes:      u64
-    maxFreeSize:         u64
-    showMaxLeaks:        u32
-    breakOnAllocId:      u32
-    captureAllocStack:   bool
-    detectLeaks:         bool
-    trackAllocations:    bool
-    fillAlloc:           bool
-    fillFree:            bool
-    electricMode:        bool
+    maxCachedSize:     u64
+    maxCachedBytes:    u64
+    maxFreeSize:       u64
+    showMaxLeaks:      u32
+    breakOnAllocId:    u32
+    captureAllocStack: bool
+    detectLeaks:       bool
+    trackAllocations:  bool
+    fillAlloc:         bool
+    fillFree:          bool
+    electricMode:      bool
 }
 
 private var g_DefaultAllocator: Allocator
@@ -130,10 +129,10 @@ private func currentThreadId()->u64
 
 impl Allocator
 {
-    const MagicAlloc = 0xC0DEF00D
-    const MagicFree  = 0xFEE1DEAD
-    const AllocByte  = 0xAB
-    const FreeByte   = 0xFB
+    const MagicAlloc     = 0xC0DEF00D
+    const MagicFree      = 0xFEE1DEAD
+    const AllocByte      = 0xAB
+    const FreeByte       = 0xFB
     const InstalledMagic = 0xA110CA7E
 
     func classSize(index: u32)->u64
@@ -254,17 +253,17 @@ impl Allocator
 
     mtd configure(electricMode: bool, detectLeaks: bool, captureStack: bool, trackAllocations: bool, fillMemory: bool)
     {
-        .maxCachedSize      = 64 * 1024
-        .maxCachedBytes     = 8 * 1024 * 1024
-        .maxFreeSize        = 16 * 1024 * 1024
-        .showMaxLeaks       = 100
-        .breakOnAllocId     = 0
-        .captureAllocStack  = captureStack
-        .detectLeaks        = detectLeaks
-        .trackAllocations   = trackAllocations
-        .fillAlloc          = fillMemory
-        .fillFree           = fillMemory
-        .electricMode       = electricMode
+        .maxCachedSize     = 64 * 1024
+        .maxCachedBytes    = 8 * 1024 * 1024
+        .maxFreeSize       = 16 * 1024 * 1024
+        .showMaxLeaks      = 100
+        .breakOnAllocId    = 0
+        .captureAllocStack = captureStack
+        .detectLeaks       = detectLeaks
+        .trackAllocations  = trackAllocations
+        .fillAlloc         = fillMemory
+        .fillFree          = fillMemory
+        .electricMode      = electricMode
     }
 
     mtd installed()->bool
@@ -304,7 +303,7 @@ impl Allocator
 
         let rawBlock = cast(*AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
         rawBlock.address = cast([*] void) raw
-        rawBlock.size = bytes
+        rawBlock.size    = bytes
         .statAdd(&.countOsAlloc, 1)
         .statAdd(&.sizeOsAlloc, bytes)
         return user
@@ -327,7 +326,7 @@ impl Allocator
         @memset(address, 0, #sizeof(AllocatorThreadHeap))
         let heap = cast(*AllocatorThreadHeap) address
         heap.allocator = me
-        heap.threadId = currentThreadId()
+        heap.threadId  = currentThreadId()
         return heap
     }
 
@@ -339,7 +338,7 @@ impl Allocator
         .releaseThreadHeap(heap)
 
         .mutex.lock()
-        heap.nextRetired = .firstRetiredHeap
+        heap.nextRetired  = .firstRetiredHeap
         .firstRetiredHeap = heap
         .mutex.unlock()
     }
@@ -439,11 +438,11 @@ impl Allocator
     mtd pushThreadLocal(heap: *AllocatorThreadHeap, header: *AllocatorHeader)
     {
         let cls = &heap.classes[header.classIndex]
-        header.prevFree = null
-        header.nextFree = cls.firstFree
-        cls.firstFree = header
-        cls.cachedBytes += header.blockSize
-        cls.cachedCount += 1
+        header.prevFree  = null
+        header.nextFree  = cls.firstFree
+        cls.firstFree    = header
+        cls.cachedBytes  += header.blockSize
+        cls.cachedCount  += 1
         heap.cachedBytes += header.blockSize
         heap.cachedCount += 1
         .statAdd(&.sizeCached, header.blockSize)
@@ -508,8 +507,8 @@ impl Allocator
         @assert(cls.cachedBytes >= header.blockSize)
         @assert(heap.cachedCount > 0)
         @assert(heap.cachedBytes >= header.blockSize)
-        cls.cachedCount -= 1
-        cls.cachedBytes -= header.blockSize
+        cls.cachedCount  -= 1
+        cls.cachedBytes  -= header.blockSize
         heap.cachedCount -= 1
         heap.cachedBytes -= header.blockSize
         .statSub(&.sizeCached, header.blockSize)
@@ -571,7 +570,7 @@ impl Allocator
             }
             else do
                 prev = heap
-            heap = next
+            heap     = next
         }
     }
 
@@ -590,8 +589,8 @@ impl Allocator
         @assert(cls.cachedBytes >= header.blockSize)
         @assert(heap.cachedCount > 0)
         @assert(heap.cachedBytes >= header.blockSize)
-        cls.cachedCount -= 1
-        cls.cachedBytes -= header.blockSize
+        cls.cachedCount  -= 1
+        cls.cachedBytes  -= header.blockSize
         heap.cachedCount -= 1
         heap.cachedBytes -= header.blockSize
         .statSub(&.sizeCached, header.blockSize)
@@ -599,7 +598,7 @@ impl Allocator
         .statSub(&.countFree, 1)
 
         header.prevFree, header.nextFree = null
-        header.userSize = size
+        header.userSize                  = size
         return header
     }
 
@@ -666,7 +665,7 @@ impl Allocator
         header.next = .firstAlloc
         if header.next do
             header.next.prev = header
-        .firstAlloc = header
+        .firstAlloc          = header
     }
 
     mtd unlinkFree(header: *AllocatorHeader)
@@ -705,7 +704,7 @@ impl Allocator
         @assert(.sizeFree >= header.userSize)
         .statSub(&.countFree, 1)
         .statSub(&.sizeFree, header.userSize)
-        header.prev, header.next = null
+        header.prev, header.next         = null
         header.prevFree, header.nextFree = null
     }
 
@@ -715,7 +714,7 @@ impl Allocator
         header.next = .firstFree
         if .firstFree do
             .firstFree.prev = header
-        .firstFree = header
+        .firstFree          = header
         if !.lastFree do
             .lastFree = header
 
@@ -729,9 +728,9 @@ impl Allocator
             header.nextFree = cls.firstFree
             if cls.firstFree do
                 cls.firstFree.prevFree = header
-            cls.firstFree = header
-            cls.cachedCount += 1
-            cls.cachedBytes += header.blockSize
+            cls.firstFree              = header
+            cls.cachedCount            += 1
+            cls.cachedBytes            += header.blockSize
             .statAdd(&.sizeCached, header.blockSize)
         }
     }
@@ -806,15 +805,15 @@ impl Allocator
 
     mtd setupAllocatedHeader(header: *AllocatorHeader, request: *AllocatorRequest, heap: *AllocatorThreadHeap)
     {
-        header.magic      = MagicAlloc
-        header.userSize   = request.size
-        header.loc        = request.callerLoc
-        header.hint       = request.hint
-        header.stackCount = .captureAllocStack ? __captureStack(2, @mkslice(&header.stack[0], @countof(header.stack))) : 0
-        header.ownerHeap  = heap
-        header.prev, header.next = null
+        header.magic                     = MagicAlloc
+        header.userSize                  = request.size
+        header.loc                       = request.callerLoc
+        header.hint                      = request.hint
+        header.stackCount                = .captureAllocStack ? __captureStack(2, @mkslice(&header.stack[0], @countof(header.stack))) : 0
+        header.ownerHeap                 = heap
+        header.prev, header.next         = null
         header.prevFree, header.nextFree = null
-        header.isTracked = .trackAllocations
+        header.isTracked                 = .trackAllocations
         discard @atomadd(&heap.activeCount, 1)
 
         let foot = .footer(header)
@@ -890,7 +889,7 @@ impl Allocator
         {
             let oldSize = oldHeader.userSize
             let oldFoot = .footer(oldHeader)
-            oldFoot.magic = 0
+            oldFoot.magic      = 0
             oldHeader.userSize = request.size
             let newFoot = .footer(oldHeader)
             newFoot.magic = MagicAlloc
@@ -919,7 +918,7 @@ impl Allocator
 
         var freeReq = dref request
         freeReq.address = oldAddress
-        freeReq.size = oldHeader.userSize
+        freeReq.size    = oldHeader.userSize
         .freeBlock(&freeReq)
 
         request.address = allocReq.address
@@ -934,6 +933,7 @@ impl Allocator
         let header = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
         .checkAllocated(header, request.callerLoc)
         let foot = .footer(header)
+
         // Every allocated block records its owner heap ('setupAllocatedHeader').
         let ownerHeap = notnull cast(#null *AllocatorThreadHeap) header.ownerHeap
 
@@ -1001,6 +1001,7 @@ impl Allocator
         {
             let header = .firstAlloc
             .unlinkAllocated(header)
+
             // Every tracked allocated block records its owner heap ('setupAllocatedHeader').
             discard .decActive(notnull cast(#null *AllocatorThreadHeap) header.ownerHeap)
             .statSub(&.countAlloc, 1)
@@ -1048,6 +1049,7 @@ impl Allocator
         {
             @print(" allocations, totaling ")
         }
+
         printDisplaySize(.sizeAlloc)
         @print("\n")
         @print("---------------------------------------\n")
@@ -1071,7 +1073,7 @@ impl Allocator
             @print("---------------------------------------\n")
 
             scan = scan.next
-            cpt += 1
+            cpt  += 1
             if .showMaxLeaks and cpt >= .showMaxLeaks
             {
                 @print("\x1b[91m")

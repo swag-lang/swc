@@ -6,7 +6,7 @@ enum CompressionLevel: u32
     BestSpeed
 }
 
-func(T) minLike(x, y: T)->T => x
+func(T) minLike(x, y: T)->T  => x
 func minLike(x, y: u32)->u32 => x
 
 #test
@@ -24,7 +24,7 @@ func zipLike(lhs, rhs: s32) {}
     zipLike(lhs, rhs)     // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
 }
 
-func(T) ping()->s32 => 1
+func(T) ping()->s32        => 1
 func ping(value: s32)->s32 => value
 
 #test

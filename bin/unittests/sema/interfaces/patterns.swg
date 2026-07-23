@@ -56,8 +56,8 @@ func dispatch(base: *Base)->s32
 func semaTest001()
 {
     var actions: [2] IAction = undefined
-    var undo: UndoAction
-    var redo: RedoAction
+    var undo:    UndoAction
+    var redo:    RedoAction
     actions[0] = cast(IAction) undo
     actions[1] = cast(IAction) redo
 

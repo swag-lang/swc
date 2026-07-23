@@ -1,4 +1,5 @@
 #global export
+
 using Swag
 
 // A generic, dynamic array that can hold elements of any type.

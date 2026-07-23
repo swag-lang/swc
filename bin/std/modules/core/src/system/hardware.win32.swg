@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Hardware
+
 using Win32
 
 // Number of processors

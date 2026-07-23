@@ -115,7 +115,7 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
         return len + 1
     }
 
-    var tmp: [24] u8
+    var tmp:    [24] u8
     var tmpLen: u64
     while true
     {

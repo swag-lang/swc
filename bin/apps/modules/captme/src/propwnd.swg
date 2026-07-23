@@ -8,7 +8,7 @@ const DashSize = 8.0
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
-func(T) enumToUserData(value: T)->*void => cast(*void) cast(u64) value
+func(T) enumToUserData(value: T)->*void        => cast(*void) cast(u64) value
 func(T) enumFromUserData(data: #null *void)->T => cast(T) cast(u64) data
 
 // The ellipse/rectangle/round-rectangle glyph painted by the shape and step
@@ -46,11 +46,11 @@ struct PropWnd
     main:               #late *MainWnd
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
-    gridBindType:       typeinfo = undefined
+    gridBindType: typeinfo = undefined
 
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
-    needRebuild:        bool
+    needRebuild: bool
 }
 
 impl PropWnd
@@ -744,7 +744,7 @@ impl PropWnd
     mtd bindGrid()
     {
         let capture = .main.getCapture()
-        var bases:  Array'(#null *u8)
+        var bases: Array'(#null *u8)
 
         if !capture or !capture.selection.count
         {

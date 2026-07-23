@@ -15,7 +15,7 @@ func day6B()
     let slice  = Tokenize.split(line, " ")
     var blocks = Slice.map(slice[to], func(x) => assume StrConv.toS32(x))
 
-    var set:  HashTable'(String, u64)
+    var set: HashTable'(String, u64)
     var total = 0'u64
     for
     {

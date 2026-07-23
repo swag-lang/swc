@@ -1,4 +1,5 @@
 #global public
+
 using Swag, Core, Core.Errors, Core.StrConv
 
 // Represents a color with 8-bit ARGB components.

@@ -112,12 +112,12 @@ func nativeNonNullConstruction()->bool
 {
     var first  = NativeNonNullItem{value: 11}
     var second = NativeNonNullItem{value: 22}
-    var blockStorage: [2] NativeNonNullItem = [{value: 31}, {value: 32}]
+    var blockStorage:   [2] NativeNonNullItem = [{value: 31}, {value: 32}]
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct: *NativeNonNullItem = &first
-    let block: [*] NativeNonNullItem = cast([*] NativeNonNullItem) &blockStorage[0]
-    let slice: [..] NativeNonNullItem = blockStorage
+    let direct:                    *NativeNonNullItem = &first
+    let block:                     [*] NativeNonNullItem = cast([*] NativeNonNullItem) &blockStorage[0]
+    let slice:                     [..] NativeNonNullItem = blockStorage
     let text:                      string = "nonull"
     let ctext:                     cstring = cast(cstring) &cstringStorage[0]
     let boxed:                     any = 123
@@ -200,8 +200,8 @@ func nativeNonNullConstruction()->bool
         ]
     let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
     var genericDefault:  NativeNonNullGenericBox'NativeNonNullStringDefault
-    let pointerArray: [2] *NativeNonNullItem = [&first, &second]
-    let aliasedHolder: NativeNonNullHolderAlias = {required: &first}
+    let pointerArray:    [2] *NativeNonNullItem = [&first, &second]
+    let aliasedHolder:   NativeNonNullHolderAlias = {required: &first}
     let pointerDefault = NativeNonNullPointerDefault{}
     var moveDefaultSource = NativeNonNullMoveDefault{required: "explicit"}
     let moveDefaultTarget = #move moveDefaultSource
@@ -270,7 +270,7 @@ func nativeNonNullConstruction()->bool
         return false
     if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
         return false
-    var defaultItem: NativeNonNullStringDefault
+    var defaultItem:  NativeNonNullStringDefault
     var defaultArray: [2] NativeNonNullStringDefault
     let omittedDefaults = NativeNonNullDefaultContainer{}
     let partialDefaults: [2] NativeNonNullStringDefault = [{value: "explicit"}]

@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("kernel32")
 using Swag
 
@@ -244,36 +245,36 @@ struct WIN32_FILE_ATTRIBUTE_DATA
 
 struct WIN32_FIND_DATAA
 {
-    dwFileAttributes: DWORD
-    ftCreationTime:   FILETIME
-    ftLastAccessTime: FILETIME
-    ftLastWriteTime:  FILETIME
-    nFileSizeHigh:    DWORD
-    nFileSizeLow:     DWORD
-    dwReserved0:      DWORD
-    dwReserved1:      DWORD
-    cFileName:              [MAX_PATH] CHAR
-    cAlternateFileName:     [14] CHAR
-    dwFileType:    DWORD
-    dwCreatorType: DWORD
-    wFinderFlags:  WORD
+    dwFileAttributes:   DWORD
+    ftCreationTime:     FILETIME
+    ftLastAccessTime:   FILETIME
+    ftLastWriteTime:    FILETIME
+    nFileSizeHigh:      DWORD
+    nFileSizeLow:       DWORD
+    dwReserved0:        DWORD
+    dwReserved1:        DWORD
+    cFileName:          [MAX_PATH] CHAR
+    cAlternateFileName: [14] CHAR
+    dwFileType:         DWORD
+    dwCreatorType:      DWORD
+    wFinderFlags:       WORD
 }
 
 struct WIN32_FIND_DATAW
 {
-    dwFileAttributes: DWORD
-    ftCreationTime:   FILETIME
-    ftLastAccessTime: FILETIME
-    ftLastWriteTime:  FILETIME
-    nFileSizeHigh:    DWORD
-    nFileSizeLow:     DWORD
-    dwReserved0:      DWORD
-    dwReserved1:      DWORD
-    cFileName:              [MAX_PATH] WCHAR
-    cAlternateFileName:     [14] WCHAR
-    dwFileType:    DWORD
-    dwCreatorType: DWORD
-    wFinderFlags:  WORD
+    dwFileAttributes:   DWORD
+    ftCreationTime:     FILETIME
+    ftLastAccessTime:   FILETIME
+    ftLastWriteTime:    FILETIME
+    nFileSizeHigh:      DWORD
+    nFileSizeLow:       DWORD
+    dwReserved0:        DWORD
+    dwReserved1:        DWORD
+    cFileName:          [MAX_PATH] WCHAR
+    cAlternateFileName: [14] WCHAR
+    dwFileType:         DWORD
+    dwCreatorType:      DWORD
+    wFinderFlags:       WORD
 }
 
 enum GET_FILEEX_INFO_LEVELS

@@ -178,8 +178,8 @@ impl RuntimeMultiValueBox
 
 struct RuntimeConstMutBox
 {
-    data:      [2] s32
-    mutReads:  s32
+    data:     [2] s32
+    mutReads: s32
 }
 
 impl RuntimeConstMutBox

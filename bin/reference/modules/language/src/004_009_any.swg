@@ -34,7 +34,7 @@ Use '@dataof' to access a pointer to the underlying value stored inside 'any'.
 
 #test
 {
-    let a:  any = 6
+    let a: any = 6
     let ptr = cast(const *s32) @dataof(a)
     @assert(dref ptr == 6)
 }

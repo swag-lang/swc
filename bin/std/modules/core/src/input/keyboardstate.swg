@@ -5,7 +5,7 @@
 struct KeyboardState
 {
     using native:     KeyboardStateNative
-    pressed:          [@countof(Key)] bool
+    pressed: [@countof(Key)] bool
 }
 
 impl KeyboardState

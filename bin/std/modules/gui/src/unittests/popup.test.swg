@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
 const PopupHeadless_Item2 = "PopupHeadless.Item2"

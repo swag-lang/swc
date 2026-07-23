@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Input
+
 using Win32
 
 public struct KeyboardStateNative

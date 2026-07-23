@@ -1,5 +1,6 @@
 #global #if WINDOWS
 #global namespace Input
+
 using XInput, Win32
 
 public impl GamePad

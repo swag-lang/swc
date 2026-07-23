@@ -204,7 +204,7 @@ func semaTest001()
     @assert(onlyIntegersBlock(12's32) == 12)
 
     let values: [3] s32 = [5, 6, 7]
-    let fixed: [4] u8 = [1'u8, 2, 3, 4]
+    let fixed:  [4] u8 = [1'u8, 2, 3, 4]
     @assert(head(values) == 5)
     @assert(mustBePositive'3() == 3)
     @assert(defaultFloatValue() == 2.0'f32)

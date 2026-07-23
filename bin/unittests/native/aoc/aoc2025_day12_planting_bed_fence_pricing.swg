@@ -36,11 +36,11 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
     @assert(width > 0)
     @assert(totalCells <= 400)
 
-    var visited: [400] bool
-    var inRegion: [400] bool
-    var queue: [400] u32
+    var visited:     [400] bool
+    var inRegion:    [400] bool
+    var queue:       [400] u32
     var regionCells: [400] u32
-    var result: FencePricingReport
+    var result:      FencePricingReport
 
     for _, rowIndex in layout
     {

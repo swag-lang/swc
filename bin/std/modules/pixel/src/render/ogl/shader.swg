@@ -1,4 +1,5 @@
 #global public
+
 using Core, Ogl, Core.Math
 
 #[Swag.Strict]
@@ -70,5 +71,5 @@ struct ShaderBlur
 struct ShaderResolve
 {
     using base:     ShaderBase
-    factor:         ShaderParamHandle
+    factor: ShaderParamHandle
 }

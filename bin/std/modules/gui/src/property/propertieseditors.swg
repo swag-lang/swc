@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // A pluggable property editor. Register an implementing type with Properties.registerEditor

@@ -1,6 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global #if WINDOWS
 #global private
+
 using Swag
 
 #test

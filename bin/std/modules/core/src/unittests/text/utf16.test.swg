@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
@@ -82,7 +83,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
 
 #test
 {
-    let runes: [3] rune = ['A''rune, '\u20AC''rune, '\U0001F642''rune]
+    let runes:    [3] rune = ['A''rune, '\u20AC''rune, '\U0001F642''rune]
     let expected: [4] u16 = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [8] u16

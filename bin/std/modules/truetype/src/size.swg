@@ -15,5 +15,5 @@ public struct SizeMetrics
 public struct Size
 {
     face:      #late *Face
-    metrics:   SizeMetrics
+    metrics: SizeMetrics
 }

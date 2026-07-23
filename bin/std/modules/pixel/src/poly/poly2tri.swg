@@ -6,6 +6,7 @@
 */
 
 #global namespace Poly2Tri
+
 using Core
 
 enum Orientation
@@ -50,8 +51,8 @@ public struct Result
 public struct Point
 {
     using v:     Math.Vector2
-    edges:       Array'(*Edge)
-    border:      [2] #null *Edge
+    edges:  Array'(*Edge)
+    border: [2] #null *Edge
 }
 
 public struct Edge
@@ -62,12 +63,12 @@ public struct Edge
 
 public struct Triangle
 {
-    constrainedEdge:     [3] bool
-    delaunayEdge:        [3] bool
-    points:              [3] *Point = undefined
-    neighbors:           [3] #null *Triangle
-    idx:      u64
-    interior: bool
+    constrainedEdge: [3] bool
+    delaunayEdge:    [3] bool
+    points:          [3] *Point = undefined
+    neighbors:       [3] #null *Triangle
+    idx:             u64
+    interior:        bool
 }
 
 struct EdgeEvent

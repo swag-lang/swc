@@ -11,12 +11,12 @@ layouts, such as overlapping fields or sharing memory space between fields.
 {
     struct MyStruct
     {
-        x:   s32
+        x: s32
 
         // 'y' is located at the same offset as 'x', so they share the same memory.
         // Changing one reflects in the other (overlay behavior).
         #[Swag.Offset("x")]
-        y:   s32
+        y: s32
     }
 
     // Even with two fields, they overlap, so the struct uses only 4 bytes.

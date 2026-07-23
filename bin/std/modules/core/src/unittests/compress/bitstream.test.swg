@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
@@ -111,7 +112,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     stream.init(input)
 
     let expected: [3] u8 = [0x10, 0x20, 0x30]
-    var bytes: [3] u8
+    var bytes:    [3] u8
     stream.peekBytes(3, &bytes[0])
 
     @assert(assertBytes(bytes, expected))
@@ -126,7 +127,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     var littleEndianView: Compress.BitStream
     littleEndianView.init(input)
     let expectedDirect: [4] u8 = [0x10, 0x20, 0x30, 0x40]
-    var direct: [4] u8
+    var direct:         [4] u8
     littleEndianView.peek32(&direct[0])
     @assert(assertBytes(direct, expectedDirect))
 

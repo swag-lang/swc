@@ -2,8 +2,8 @@
 
 // --- Basic generic type assertions ---
 
-func(T) identity(value: T)->T => value
-func(T = s32) withDefault()->T => 42
+func(T) identity(value: T)->T                       => value
+func(T = s32) withDefault()->T                      => 42
 func(T, N: s32) arrayIdentity(values: [N] T)->[N] T => values
 
 struct(T) Box { value: T }

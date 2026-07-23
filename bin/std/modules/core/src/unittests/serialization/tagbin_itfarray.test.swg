@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 // Round-trip of an array of BARE (non-null) interfaces: the decode path appends

@@ -40,8 +40,8 @@ enum ContentEnum: u8
 namespace Res
 {
     var piecesTexture: [2, 6] Texture
-    var font:      #null *Font
-    var smallfont: #null *Font
+    var font:          #null *Font
+    var smallfont:     #null *Font
 }
 
 struct Cell
@@ -64,11 +64,11 @@ struct MoveInfo
 
 struct GameInfo
 {
-    gameStatus:        String
+    gameStatus: String
     whiteTurn          = true
-    castle:            [2, 2] bool = true
+    castle: [2, 2] bool = true
     priseEnPassant     = -1's8
-    possibleMoves:     Array'MoveInfo
+    possibleMoves: Array'MoveInfo
     selectedCell       = -1's8
 }
 
@@ -450,7 +450,7 @@ func paintBoard(paintEvt: *PaintEvent)
 func paintStates(paintEvt: *PaintEvent)
 {
     let painter = paintEvt.bc.painter
-    var str:    String
+    var str: String
 
     var y = BoardWithBorderSize + 12
     str = Format.toString("% player turn", g_Game.whiteTurn ? "White" : "Black")

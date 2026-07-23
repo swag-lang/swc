@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Building the grid from reflection: addItem creates a single row window; addValue dispatches a

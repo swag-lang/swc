@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum LabelFlags
 {
-    Zero                      = 0
+    Zero = 0
     WordWrap
     LightText
     AutoHeight
@@ -15,7 +16,7 @@ struct Label
 {
     using wnd:            Wnd
 
-    sigUrlClicked:        SigArray'func||(*Label, string)
+    sigUrlClicked: SigArray'func||(*Label, string)
 
     icon:      Icon
     iconColor: Color
@@ -28,7 +29,7 @@ struct Label
     paddingText: Math.Vector4
     paddingIcon: Math.Vector4
 
-    hotChunk:             #null *RichChunk
+    hotChunk: #null *RichChunk
 }
 
 impl IWnd for Label

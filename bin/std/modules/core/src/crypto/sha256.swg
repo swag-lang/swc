@@ -3,8 +3,8 @@
 
 public struct Sha256
 {
-    data:        [64] u8
-    state:       [8] u32
+    data:    [64] u8
+    state:   [8] u32
     datalen: u32
     bitlen:  u64
 }

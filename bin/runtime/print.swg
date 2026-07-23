@@ -14,7 +14,7 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
         let tmpValue = orgValue
         orgValue /= 10
         dref ptr = conv[35 + (tmpValue - (orgValue * 10))]
-        ptr += 1
+        ptr      += 1
         if !orgValue do
             break
     }
@@ -22,21 +22,21 @@ func __itoa(result: [*] u8, value: s64)->[*] u8
     if value < 0
     {
         dref ptr = '-'
-        ptr += 1
+        ptr      += 1
     }
 
     let retVal = ptr
     dref ptr = 0
-    ptr -= 1
+    ptr      -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
         let tmpChar = dref ptr
-        dref ptr = dref ptr1
-        ptr -= 1
+        dref ptr  = dref ptr1
+        ptr       -= 1
         dref ptr1 = tmpChar
-        ptr1 += 1
+        ptr1      += 1
     }
 
     return retVal
@@ -54,23 +54,23 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
         let tmpValue = orgValue
         orgValue /= 10
         dref ptr = conv[35 + (tmpValue - (orgValue * 10))]
-        ptr += 1
+        ptr      += 1
         if !orgValue do
             break
     }
 
     let retVal = ptr
     dref ptr = 0
-    ptr -= 1
+    ptr      -= 1
 
     var ptr1 = result
     while ptr1 < ptr
     {
         let tmpChar = dref ptr
-        dref ptr = dref ptr1
-        ptr -= 1
+        dref ptr  = dref ptr1
+        ptr       -= 1
         dref ptr1 = tmpChar
-        ptr1 += 1
+        ptr1      += 1
     }
 
     return retVal
@@ -88,17 +88,17 @@ func __ftoa(result: [*] u8, value: f64)
         if value < 0
         {
             dref n = '-'
-            n += 1
+            n      += 1
         }
 
         n[0] = '0'
-        n += 1
+        n    += 1
     }
     else do
         n = __itoa(result, ipart)
 
     n[0] = '.'
-    n += 1
+    n    += 1
 
     const AfterFracN = 8
     var afterPoint   = AfterFracN
@@ -111,7 +111,7 @@ func __ftoa(result: [*] u8, value: f64)
         fpart *= 10
         if fpart < 1 do
             leadingZeros += 1
-        afterPoint -= 1
+        afterPoint       -= 1
     }
 
     // Zeros before the value part
@@ -119,8 +119,8 @@ func __ftoa(result: [*] u8, value: f64)
         leadingZeros = 0
     while leadingZeros
     {
-        n[0] = '0'
-        n += 1
+        n[0]         = '0'
+        n            += 1
         leadingZeros -= 1
     }
 

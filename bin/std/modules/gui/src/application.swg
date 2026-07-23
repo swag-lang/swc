@@ -1,4 +1,5 @@
 #global public
+
 using Core, Serialization
 
 alias FrameCallback = func||(*Application)
@@ -6,7 +7,7 @@ alias FrameCallback = func||(*Application)
 struct Application
 {
     using native:           ApplicationNative
-    sigFrame:               SigArray'func||(*Application)
+    sigFrame: SigArray'func||(*Application)
 
     options:  ApplicationOptions
     appIcon:  Pixel.Image
@@ -31,7 +32,7 @@ struct Application
     isActivated: bool
     fadeDisabledSurface     = true
 
-    mutexPostedEvents:      Sync.Mutex
+    mutexPostedEvents: Sync.Mutex
 
     duringTimerEvents: bool
     timers:            Array'(*Timer)

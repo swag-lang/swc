@@ -92,9 +92,9 @@ struct(T) AABB
 
 impl AABB
 {
-    func width(const me)->T   => me.hi.x - me.lo.x
-    func height(const me)->T  => me.hi.y - me.lo.y
-    func area(const me)->T    => me.width() * me.height()
+    func width(const me)->T  => me.hi.x - me.lo.x
+    func height(const me)->T => me.hi.y - me.lo.y
+    func area(const me)->T   => me.width() * me.height()
 
     func center(const me)->Vec2
     {

@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 #foreignlib("kernel32")
 #foreignlib("user32")
 #foreignlib("ucrt")
@@ -17,20 +18,19 @@ namespace __Win32RT
     alias WCHAR   = u16
     alias BOOL    = u8
 
-    const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
-    const MB_CANCELTRYCONTINUE = 0x00000006
-    const MB_ICONERROR         = 0x00000010
-    const IDCANCEL             = 2
-    const IDTRYAGAIN           = 10
-    const IDCONTINUE           = 11
+    const STD_OUTPUT_HANDLE         = 0xFFFF_FFF5'u32
+    const MB_CANCELTRYCONTINUE      = 0x00000006
+    const MB_ICONERROR              = 0x00000010
+    const IDCANCEL                  = 2
+    const IDTRYAGAIN                = 10
+    const IDCONTINUE                = 11
     const FALSE:               BOOL = 0
     const TRUE:                BOOL = 1
-    const SRWLOCK_INIT         = cast(SRWLOCK) null
-    const MEM_COMMIT           = 0x0000_1000'u32
-    const MEM_RESERVE          = 0x0000_2000'u32
-    const MEM_RELEASE          = 0x0000_8000'u32
-    const PAGE_READWRITE       = 0x0000_0004'u32
-
+    const SRWLOCK_INIT              = cast(SRWLOCK) null
+    const MEM_COMMIT                = 0x0000_1000'u32
+    const MEM_RESERVE               = 0x0000_2000'u32
+    const MEM_RELEASE               = 0x0000_8000'u32
+    const PAGE_READWRITE            = 0x0000_0004'u32
 
     #[Swag.Foreign("kernel32")]
     {
@@ -70,7 +70,7 @@ namespace __Win32RT
 #[Swag.NoDoc]
 struct MutexRW
 {
-    v:   __Win32RT.SRWLOCK = __Win32RT.SRWLOCK_INIT
+    v: __Win32RT.SRWLOCK = __Win32RT.SRWLOCK_INIT
 }
 
 #[Swag.NoDoc]
@@ -187,12 +187,12 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
 }
 
 {
-    func @sin(value: f32)->f32  => sinf(value)
-    func @sin(value: f64)->f64  => sin(value)
-    func @cos(value: f32)->f32  => cosf(value)
-    func @cos(value: f64)->f64  => cos(value)
-    func @tan(value: f32)->f32  => tanf(value)
-    func @tan(value: f64)->f64  => tan(value)
+    func @sin(value: f32)->f32 => sinf(value)
+    func @sin(value: f64)->f64 => sin(value)
+    func @cos(value: f32)->f32 => cosf(value)
+    func @cos(value: f64)->f64 => cos(value)
+    func @tan(value: f32)->f32 => tanf(value)
+    func @tan(value: f64)->f64 => tan(value)
 
     func @sinh(value: f32)->f32 => sinhf(value)
     func @sinh(value: f64)->f64 => sinh(value)
@@ -284,7 +284,7 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
 }
 
 ////////////////////////////////////////////////////////////
-func __loaddll(name: string)      => __Win32RT.LoadLibraryA(@dataof(name))
+func __loaddll(name: string) => __Win32RT.LoadLibraryA(@dataof(name))
 
 func __exit()
 {
@@ -292,8 +292,8 @@ func __exit()
 }
 
 func __tlsAlloc()                         => cast(u64) __Win32RT.TlsAlloc()
-func __tlsSetValue(id: u64, value: *void)       => __Win32RT.TlsSetValue(cast(u32) id, value)
-func __tlsGetValue(id: u64)->#null *void        => __Win32RT.TlsGetValue(cast(u32) id)
+func __tlsSetValue(id: u64, value: *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
+func __tlsGetValue(id: u64)->#null *void  => __Win32RT.TlsGetValue(cast(u32) id)
 
 ////////////////////////////////////////////////////////////
 // Returns the current thread's runtime context, lazily creating it on a thread
@@ -362,7 +362,7 @@ func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
 func __testUnhandledFilter(exceptionPointers: *void)->s32
 {
     if !g_TestRunning or __Win32RT.GetCurrentThreadId() != g_TestThreadId do
-        return 0 // EXCEPTION_CONTINUE_SEARCH
+        return 0     // EXCEPTION_CONTINUE_SEARCH
 
     let record = dref cast(*const *u32) exceptionPointers
     @print("\n#test stops on hardware exception ", cast(s64) dref record, "\n")
@@ -396,13 +396,13 @@ func __runTest(fn: *void)
         return
 
     g_TestsExecuted += 1
-    g_TestFailed  = false
-    g_TestThreadId = __Win32RT.GetCurrentThreadId()
+    g_TestFailed    = false
+    g_TestThreadId  = __Win32RT.GetCurrentThreadId()
 
     let cxt            = @getcontext()
     let previousPanic  = cxt.panic
     let previousFilter = __Win32RT.SetUnhandledExceptionFilter(cast() &__testUnhandledFilter)
-    cxt.panic          = cast() &__testPanicHandler
+    cxt.panic = cast() &__testPanicHandler
 
     __Win32RT.RtlCaptureContext(__testResumeContext())
 
@@ -411,8 +411,8 @@ func __runTest(fn: *void)
     if g_TestFailed
     {
         g_TestsFailedCnt += 1
-        g_TestRunning = false
-        cxt.panic     = previousPanic
+        g_TestRunning    = false
+        cxt.panic        = previousPanic
         discard __Win32RT.SetUnhandledExceptionFilter(previousFilter)
         return
     }
@@ -517,6 +517,7 @@ func __dbgFindSection(base: #null *void)
             __dbgCacheValid   = true
             return
         }
+
         secOff += 40
     }
 }
@@ -544,6 +545,7 @@ func __symbolize(addr: *void)->__SwagSym
         return r
 
     let rva = cast(u32) (cast(u64) addr - cast(u64) h)
+
     // '__dbgCacheValid' guarantees the section pointer.
     let sec = notnull __dbgCacheSection
     for i in __dbgCacheCount
@@ -562,9 +564,11 @@ func __symbolize(addr: *void)->__SwagSym
                 r.file    = __dbgStr(fileOff)
                 r.line    = __peU32(sec, e + 16)
             }
+
             return r
         }
     }
+
     return r
 }
 

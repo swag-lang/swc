@@ -1,4 +1,5 @@
 #global public
+
 using Core, File, Directory
 
 // A reusable file-browsing composite control: a shortcut/drive tree, a file
@@ -17,22 +18,22 @@ struct FileBrowserCtrl
     treePathStr: Array'String
     listCtrl:         #late *ListCtrl
     comboPath:        #late *ComboBox
-    comboPathStr:     Array'String
+    comboPathStr: Array'String
     editFile:         #late *EditBox
     comboType:        #late *ComboBox
-    options:          FileDlgOptions
+    options: FileDlgOptions
 
     curFolder: String
     curList:   Array'FileInfo
 
     // A file/folder was activated (double-click or Enter on a non-directory).
-    sigAccept:        SigArray'func||(*FileBrowserCtrl)
+    sigAccept: SigArray'func||(*FileBrowserCtrl)
 
     // The current folder changed.
     sigFolderChanged: SigArray'func||(*FileBrowserCtrl)
 
     // The user requested the creation of a new folder (host shows the prompt).
-    sigNewFolder:     SigArray'func||(*FileBrowserCtrl)
+    sigNewFolder: SigArray'func||(*FileBrowserCtrl)
 }
 
 impl IWnd for FileBrowserCtrl

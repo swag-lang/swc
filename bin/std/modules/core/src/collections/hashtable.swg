@@ -1,4 +1,5 @@
 #global export
+
 using Swag
 
 // Represents a single key-value pair entry within a HashTable.

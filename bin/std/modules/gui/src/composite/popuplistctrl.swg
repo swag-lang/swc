@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 struct PopupListCtrlItem
 {
     using base:      Item
-    isSeparator:     bool
+    isSeparator: bool
 }
 
 struct PopupListCtrl
@@ -16,12 +17,12 @@ struct PopupListCtrl
     maxHeightPopup:   f32 = 300
     simFitX, simFitY: bool
 
-    sigSelected:          #null func||(*PopupListCtrl, u32)
+    sigSelected: #null func||(*PopupListCtrl, u32)
 
-    items:                ArrayPtr'PopupListCtrlItem
+    items: ArrayPtr'PopupListCtrlItem
     selectedIdx           = Swag.U32.Max
     scrollWnd:            #late *ScrollWnd
-    maxIconSize:          s32
+    maxIconSize: s32
 }
 
 struct PopupListView
@@ -170,7 +171,7 @@ impl IWnd for PopupListView
             }
 
             // Back selection
-            var colorSel:  Color
+            var colorSel: Color
             var colorCheck = colors.popupList_CheckMark
             if .hotIdx == idx
             {

@@ -8,7 +8,7 @@ alias ForeachStrictSlice = [..] s32
 
 struct ForeachVariadicPayload
 {
-    arr: [3] s32
+    arr:  [3] s32
     flag: bool
     tag:  u8
 }
@@ -123,7 +123,7 @@ struct ForeachVariadicPayload
 {
     func foreachNoAlias()->u64
     {
-        var arr: [3] s32 = [11, 22, 33]
+        var arr:   [3] s32 = [11, 22, 33]
         var count: u64 = 0
 
         for arr

@@ -1,14 +1,15 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertUtf8String(value: const &String, expected: string)->bool
 {
     let text = value.toString()
     return value == expected and
-        @countof(value) == @countof(expected) and
-        @countof(text) == @countof(expected) and
-        Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
+           @countof(value) == @countof(expected) and
+           @countof(text) == @countof(expected) and
+           Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
 func firstNonAsciiRune(text: string)->rune
@@ -114,9 +115,9 @@ func firstNonAsciiRune(text: string)->rune
 #test
 {
     let invalidStart: [1] u8 = [0x80]
-    let truncated: [2] u8 = [0xE2, 0x82]
-    let overlong: [2] u8 = [0xC0, 0xAF]
-    let surrogate: [3] u8 = [0xED, 0xA0, 0x80]
+    let truncated:    [2] u8 = [0xE2, 0x82]
+    let overlong:     [2] u8 = [0xC0, 0xAF]
+    let surrogate:    [3] u8 = [0xED, 0xA0, 0x80]
 
     @assert(!Utf8.isValid(invalidStart))
     @assert(!Utf8.isValid(truncated))

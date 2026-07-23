@@ -1,7 +1,7 @@
 #global private
 
 func inferredMixedArray() => [1, 2.5]
-func inferredWideArray() => [1, 5_000_000_000]
+func inferredWideArray()  => [1, 5_000_000_000]
 
 func useInferredMixedArray()->bool
 {

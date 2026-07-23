@@ -17,7 +17,7 @@ impl RuntimeSliceBox
     }
 
     #[Swag.NoInline]
-    mtd opSlice(low, up: u64) -> [..] s32
+    mtd opSlice(low, up: u64)->[..] s32
     {
         .sliceCalls += 1
         .lastLow    = low

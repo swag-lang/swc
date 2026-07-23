@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core, Core.Math
 
 // Direct stress tests for the poly2tri sweep-line triangulation, independent of

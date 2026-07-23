@@ -58,10 +58,10 @@ struct AntennaGroup
 
 struct AntennaMap
 {
-    width:  u32
-    height: u32
-    groups:    [MaxFrequencies] AntennaGroup
-    freqUsed:  [MaxFrequencies] bool
+    width:    u32
+    height:   u32
+    groups:   [MaxFrequencies] AntennaGroup
+    freqUsed: [MaxFrequencies] bool
 }
 
 struct AntinodeGrid

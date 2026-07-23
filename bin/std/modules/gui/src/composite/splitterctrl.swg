@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum SplitterFlags
 {
-    Zero     = 0
+    Zero = 0
     Vertical
     HideBars
 }
@@ -18,14 +19,14 @@ struct SplitterItem
     label:           #null *Label
     tryPreserveSize: bool
     visible              = true
-    aniBar:              BlendColor
+    aniBar: BlendColor
 }
 
 struct SplitterCtrl
 {
     using frameWnd:      FrameWnd
     splitterFlags        = SplitterFlags.Zero
-    titleSize:           f32 = 30
+    titleSize: f32 = 30
 
     items:         ArrayPtr'SplitterItem
     correctMoving: f32

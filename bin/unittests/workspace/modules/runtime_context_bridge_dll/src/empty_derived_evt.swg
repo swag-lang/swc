@@ -24,7 +24,7 @@ impl IDepEvt for DepDestroyEvt {}
 struct DepResizeEvt
 {
     using base: DepEvtBase
-    extra:      s32
+    extra: s32
 }
 
 impl IDepEvt for DepResizeEvt {}
@@ -34,7 +34,7 @@ impl IDepEvt for DepResizeEvt {}
 // produced inside this DLL must compare equal to the consumer's view of the same
 // imported type. Used to fail because runtimeHash folded in the importer-prefixed
 // scoped name + per-compilation source refs.
-func depTypeOfResizeEvt()->typeinfo => #typeof(DepResizeEvt)
+func depTypeOfResizeEvt()->typeinfo  => #typeof(DepResizeEvt)
 func depTypeOfDestroyEvt()->typeinfo => #typeof(DepDestroyEvt)
 
 alias DepEvtCallback = func(IDepEvt)

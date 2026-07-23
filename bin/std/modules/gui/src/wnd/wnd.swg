@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 alias HookEvent = func||(*Wnd, IEvent)->bool
@@ -126,7 +127,7 @@ interface IWnd
 #[Swag.EnumFlags]
 enum WndFlags
 {
-    Zero            = 0
+    Zero = 0
     NoScroll
     ClipChildren
     Disabled
@@ -143,7 +144,7 @@ struct Wnd
     surface: #null *Surface
     style:   ThemeStyle
     wndFlags               = WndFlags.ClipChildren
-    userData:              #null *void
+    userData: #null *void
 
     position:      Math.Rectangle
     preferredSize: Math.Point
@@ -151,7 +152,7 @@ struct Wnd
     maxSize:       Math.Point
     scrollPos:     Math.Point
 
-    invalidatePadding:     Math.Vector4
+    invalidatePadding: Math.Vector4
 
     parent: #null *Wnd
     owner:  #null *Wnd
@@ -173,7 +174,7 @@ struct Wnd
     cachedSizeHint: SizeHint
     layoutDebug:    LayoutDebugInfo
 
-    focusStrategy:         FocusStategy = MousePressed
+    focusStrategy: FocusStategy = MousePressed
 
     backgroundStyle:  BackgroundStyle = Transparent
     isAllocated:      bool
@@ -896,7 +897,7 @@ impl Wnd
             .parent.sendResizeEvent()
     }
 
-    mtd setAllMargins(value: f32) => .setMargin(value, value, value, value)
+    mtd setAllMargins(value: f32)          => .setMargin(value, value, value, value)
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
     // Set padding for childs
@@ -918,7 +919,7 @@ impl Wnd
         .sendResizeEvent()
     }
 
-    mtd setAllPaddings(value: f32) => .setPadding(value, value, value, value)
+    mtd setAllPaddings(value: f32)          => .setPadding(value, value, value, value)
     mtd setAllPaddings(value: Math.Vector4) => .setPadding(value.x, value.y, value.z, value.w)
 
     // Force the window to be the first painted (before all siblings)

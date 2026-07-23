@@ -1,5 +1,6 @@
 #global public
 #global namespace Reflection
+
 using Swag
 
 // Returns true if this is a struct of the given 'name'.

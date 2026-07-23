@@ -1,5 +1,6 @@
 #global public
 #global namespace Testing
+
 using Core, Pixel
 
 // Shared helpers for headless test suites (module and application unittests).

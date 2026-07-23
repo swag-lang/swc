@@ -70,7 +70,7 @@ func day4B()
     var bestCard:  Array'u64
     for var line = 2; line < lines.count; line += 6
     {
-        var card: Array'u64
+        var card:            Array'u64
         var maxCol, maxLine: [5] u64
 
         for y in line to line + 4

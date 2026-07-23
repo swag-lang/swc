@@ -187,12 +187,12 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     var result: BoardAudit = undefined
     result.outputValue  = 0
     result.suspectCount = 0
-    var wireNames: [MaxWires] string = undefined
-    var wireKnown: [MaxWires] bool
-    var wireValues: [MaxWires] u8
+    var wireNames:     [MaxWires] string = undefined
+    var wireKnown:     [MaxWires] bool
+    var wireValues:    [MaxWires] u8
     var wireNameSlice: [..] string = wireNames
-    var suspectSlice: [..] string = result.suspects
-    var wireCount: u32
+    var suspectSlice:  [..] string = result.suspects
+    var wireCount:     u32
 
     for wire in initialWires
     {
@@ -204,7 +204,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     }
 
     @assert(@countof(gates) <= MaxGates)
-    var gateResolved: [MaxGates] bool
+    var gateResolved:  [MaxGates] bool
     var resolvedCount: u32
 
     while resolvedCount < cast(u32) @countof(gates)

@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Undo/redo for the property grid, built on the generic gui UndoManager (undomgr.swg).

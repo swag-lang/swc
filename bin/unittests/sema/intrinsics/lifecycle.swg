@@ -133,9 +133,9 @@ struct AutoDropPair
 
 struct AutoDropNested
 {
-    head: DropOnlyTracked
+    head:  DropOnlyTracked
     pairs: [2] AutoDropPair
-    tail: DropOnlyTracked
+    tail:  DropOnlyTracked
 }
 
 struct AutoDropBranch
@@ -245,7 +245,7 @@ func intrinsicArrayWholeInfo()->IntrinsicInfo
 func intrinsicArrayCountInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
-    var arr: [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
+    var arr:   [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
     var count: u64 = 2
     @postmove(&arr[0], count)
     @drop(&arr[0], count)

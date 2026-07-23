@@ -1,5 +1,6 @@
 #global public
 #global namespace Time
+
 using Swag
 
 // Represents a delay, expressed in seconds.

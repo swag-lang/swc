@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func expectDate(ticks: Time.Ticks, year, month, day: u16)

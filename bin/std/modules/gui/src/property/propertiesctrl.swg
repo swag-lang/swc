@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum PropertiesCtrlFlags
 {
-    Zero          = 0
+    Zero = 0
     FindBar           // Add a find bar at the top
     SectionPane       // Display all sections in a pane on the left
     SectionFilter     // Display a section filter bar
@@ -18,7 +19,7 @@ struct PropertiesCtrl
     list:               #late *ListCtrl
     tab:                #late *Tab
     prop:               #late *Properties
-    propFlags:          PropertiesCtrlFlags
+    propFlags: PropertiesCtrlFlags
 }
 
 impl PropertiesCtrl

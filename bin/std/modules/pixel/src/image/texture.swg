@@ -1,4 +1,5 @@
 #global public
+
 using Ogl, Core
 
 struct Texture

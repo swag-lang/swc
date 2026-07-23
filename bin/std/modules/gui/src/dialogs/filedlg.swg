@@ -1,4 +1,5 @@
 #global public
+
 using Core, File, Directory
 
 enum FileDlgMode
@@ -36,7 +37,7 @@ struct FileDlg
 {
     using dialog:     Dialog
     browser:          #late *FileBrowserCtrl
-    dlgOptions:       FileDlgOptions
+    dlgOptions: FileDlgOptions
 }
 
 impl IWnd for FileDlg

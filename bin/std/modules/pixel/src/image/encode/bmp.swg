@@ -1,4 +1,5 @@
 #global namespace Bmp
+
 using Core, Core.Errors
 
 public struct Encoder {}

@@ -3,10 +3,10 @@
 
 public struct Md5
 {
-    padding:     [64] u8
-    state:       [4] u32
-    count:       [2] u32
-    buffer:      [64] u8
+    padding: [64] u8
+    state:   [4] u32
+    count:   [2] u32
+    buffer:  [64] u8
 }
 
 public impl Md5

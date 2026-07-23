@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("xinput")
 
 using Swag, Win32

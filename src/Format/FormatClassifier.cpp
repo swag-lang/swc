@@ -234,6 +234,24 @@ namespace
             return i;
         }
 
+        // Symmetric of nextCodeAfterOperand: a span may start INSIDE its own
+        // brackets (`[2] u32` anchors on the dimension), so the token that
+        // introduces it sits before the opening brackets.
+        uint32_t prevCodeBeforeOperandIf(const uint32_t operandStart, const TokenId id) const
+        {
+            uint32_t i = prevCode(operandStart);
+            while (i != INVALID_PIECE)
+            {
+                const FormatPiece& piece = model_->piece(i);
+                if (piece.isNot(TokenId::SymLeftParen) && piece.isNot(TokenId::SymLeftBracket) && piece.isNot(TokenId::SymLeftCurly))
+                    break;
+                i = prevCode(i);
+            }
+            if (i == INVALID_PIECE || model_->piece(i).isNot(id))
+                return INVALID_PIECE;
+            return i;
+        }
+
         void registerBlock(const uint32_t openPiece, const FormatBlockKind kind, const uint32_t headPiece, const bool exprLevel = false) const
         {
             if (openPiece == INVALID_PIECE)
@@ -401,7 +419,7 @@ namespace
 
             const NodeSpan typeSpan = spanOf(typeRef);
             if (typeSpan.valid())
-                addRole(prevCodeIf(typeSpan.minPiece, TokenId::SymColon), FormatRoleE::DeclColon);
+                addRole(prevCodeBeforeOperandIf(typeSpan.minPiece, TokenId::SymColon), FormatRoleE::DeclColon);
 
             markInitAssign(initRef, FormatRoleE::InitAssign);
         }
@@ -414,7 +432,7 @@ namespace
             if (model_->piece(initSpan.minPiece).is(TokenId::SymEqual))
                 addRole(initSpan.minPiece, role);
             else
-                addRole(prevCodeIf(initSpan.minPiece, TokenId::SymEqual), role);
+                addRole(prevCodeBeforeOperandIf(initSpan.minPiece, TokenId::SymEqual), role);
         }
 
         void classifyAttributeList(const AstNode& node, const NodeSpan& span) const
@@ -554,7 +572,7 @@ namespace
 
                     const NodeSpan returnSpan = spanOf(fn.nodeReturnTypeRef);
                     if (returnSpan.valid())
-                        addRole(prevCodeIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
+                        addRole(prevCodeBeforeOperandIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
 
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
                     if (bodySpan.valid())
@@ -570,7 +588,7 @@ namespace
                         }
                         else
                         {
-                            addRole(prevCodeIf(bodySpan.minPiece, TokenId::SymEqualGreater), FormatRoleE::FatArrow);
+                            addRole(prevCodeBeforeOperandIf(bodySpan.minPiece, TokenId::SymEqualGreater), FormatRoleE::FatArrow);
                         }
                     }
                     break;
@@ -584,7 +602,7 @@ namespace
 
                     const NodeSpan returnSpan = spanOf(fn.nodeReturnTypeRef);
                     if (returnSpan.valid())
-                        addRole(prevCodeIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
+                        addRole(prevCodeBeforeOperandIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
                     break;
                 }
 
@@ -601,7 +619,7 @@ namespace
                     const auto&    lambda     = node.cast<AstLambdaType>();
                     const NodeSpan returnSpan = spanOf(lambda.nodeReturnTypeRef);
                     if (returnSpan.valid())
-                        addRole(prevCodeIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
+                        addRole(prevCodeBeforeOperandIf(returnSpan.minPiece, TokenId::SymMinusGreater), FormatRoleE::Arrow);
                     break;
                 }
 
@@ -648,7 +666,7 @@ namespace
 
                     const NodeSpan typeSpan = spanOf(en.nodeTypeRef);
                     if (typeSpan.valid())
-                        addRole(prevCodeIf(typeSpan.minPiece, TokenId::SymColon), FormatRoleE::BaseClauseColon);
+                        addRole(prevCodeBeforeOperandIf(typeSpan.minPiece, TokenId::SymColon), FormatRoleE::BaseClauseColon);
 
                     const NodeSpan bodySpan = spanOf(en.nodeBodyRef);
                     uint32_t       open     = bodyOpenBrace(bodySpan);

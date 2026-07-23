@@ -8,8 +8,8 @@ struct LambdaPair
 
 struct LambdaPayload
 {
-    base: s32
-    step: s32
+    base:  s32
+    step:  s32
     marks: [3] u16
 }
 
@@ -107,7 +107,7 @@ func makeArrayHolder()->LambdaArrayHolder
         }
 }
 
-func plusTen(value: s32)->s32 => value + 10
+func plusTen(value: s32)->s32     => value + 10
 func squareValue(value: s32)->s32 => value * value
 
 #test
@@ -125,7 +125,7 @@ func squareValue(value: s32)->s32 => value * value
             }
     }
 
-    var holder: LambdaHolder = {cb: cb}
+    var holder:    LambdaHolder = {cb: cb}
     var callbacks: [2] LambdaAggregate = undefined
     callbacks[0] = holder.cb
     callbacks[1] = cb

@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func fillCompressPattern(buffer: [..] u8)
@@ -59,8 +60,8 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 
 #test
 {
-    var empty: Array'u8
-    let small: [13] u8 = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
+    var empty:     Array'u8
+    let small:     [13] u8 = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
     var patterned: [4097] u8
     fillCompressPattern(patterned)
 
@@ -85,18 +86,18 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 #test
 {
     let tooSmall: [5] u8 = [0x78, 0x9C, 0, 0, 0]
-    var reader: Compress.ZLib
+    var reader:   Compress.ZLib
     let tooSmallResult = catch reader.decompress(tooSmall)
     @assert(tooSmallResult.count == 0)
     @assert(@err is Errors.InvalidFormatError)
 
-    let badMethod: [6] u8 = [0x79, 0x9C, 0, 0, 0, 0]
+    let badMethod:       [6] u8 = [0x79, 0x9C, 0, 0, 0, 0]
     var badMethodReader: Compress.ZLib
     let badMethodResult = catch badMethodReader.decompress(badMethod)
     @assert(badMethodResult.count == 0)
     @assert(@err is Errors.InvalidFormatError)
 
-    let dictionary: [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
+    let dictionary:       [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
     var dictionaryReader: Compress.ZLib
     let dictionaryResult = catch dictionaryReader.decompress(dictionary)
     @assert(dictionaryResult.count == 0)

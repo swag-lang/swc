@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 using Core, Win32, Gdi32
 
 public struct FontFamilyStyleEnumerate
@@ -9,8 +10,8 @@ public struct FontFamilyStyleEnumerate
 
 public struct FontFamilyEnumerate
 {
-    name:      String
-    faces:     [@countof(FontFamilyStyle)] FontFamilyStyleEnumerate
+    name:  String
+    faces: [@countof(FontFamilyStyle)] FontFamilyStyleEnumerate
 }
 
 impl FontFamily

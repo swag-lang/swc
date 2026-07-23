@@ -1,4 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
+
 using Core, Win32, Gdi32
 
 internal

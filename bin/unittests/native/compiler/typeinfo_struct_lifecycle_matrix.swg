@@ -109,9 +109,9 @@ func typeStruct(type: typeinfo)->const *Swag.TypeInfoStruct
     return cast(const *Swag.TypeInfoStruct) type
 }
 
-func hasDropFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
-func hasCopyFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
-func hasMoveFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
+func hasDropFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
+func hasCopyFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
+func hasMoveFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
 func hasInitPointer(type: typeinfo)->bool => typeStruct(type).opInit != null
 func hasDropPointer(type: typeinfo)->bool => typeStruct(type).opDrop != null
 func hasCopyPointer(type: typeinfo)->bool => typeStruct(type).opPostCopy != null

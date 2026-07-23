@@ -1,5 +1,6 @@
 #global public
 #global namespace Math
+
 using Swag
 
 // Clamp a value between a lower and upper bound.

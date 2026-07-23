@@ -20,11 +20,11 @@ struct(A, B) Pair
 func(T) unbox(box: Box'T)->T => box.value
 
 func(T, N: s32) bufferFirst(buf: Buffer'(T, N))->T => buf.values[0]
-func(T, N: s32) bufferLast(buf: Buffer'(T, N))->T => buf.values[N - 1]
+func(T, N: s32) bufferLast(buf: Buffer'(T, N))->T  => buf.values[N - 1]
 func(T, N: s32) bufferLen(buf: Buffer'(T, N))->s32 => N
 
 // Deduction from Pair
-func(A, B) pairFirst(p: Pair'(A, B))->A => p.first
+func(A, B) pairFirst(p: Pair'(A, B))->A  => p.first
 func(A, B) pairSecond(p: Pair'(A, B))->B => p.second
 
 // Deduction from pointer

@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
@@ -132,7 +133,7 @@ func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
 {
     let lower: [3] rune = ['a''rune, '\u00E9''rune, '\u03C9''rune]
     let upper: [3] rune = ['A''rune, '\u00C9''rune, '\u03A9''rune]
-    let tail: [4] rune = ['A''rune, '\u00C9''rune, '\u03A9''rune, 'Z''rune]
+    let tail:  [4] rune = ['A''rune, '\u00C9''rune, '\u03A9''rune, 'Z''rune]
 
     @assert(Unicode.compare(lower, lower) == 0)
     @assert(Unicode.compare(lower, upper) == 1)

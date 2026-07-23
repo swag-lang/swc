@@ -6,7 +6,7 @@ var PostCopyCount: s32
 var PostMoveCount: s32
 
 var EventCount: s32
-var Events: [8] s32
+var Events:     [8] s32
 
 struct LifecycleProbe
 {
@@ -140,10 +140,10 @@ func typeStruct(type: typeinfo)->const *Swag.TypeInfoStruct
     return cast(const *Swag.TypeInfoStruct) type
 }
 
-func hasDropFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
-func hasPostCopyFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
-func hasPostMoveFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
-func hasDropPointer(type: typeinfo)->bool => typeStruct(type).opDrop != null
+func hasDropFlag(type: typeinfo)->bool        => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
+func hasPostCopyFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
+func hasPostMoveFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
+func hasDropPointer(type: typeinfo)->bool     => typeStruct(type).opDrop != null
 func hasPostCopyPointer(type: typeinfo)->bool => typeStruct(type).opPostCopy != null
 func hasPostMovePointer(type: typeinfo)->bool => typeStruct(type).opPostMove != null
 
@@ -298,10 +298,10 @@ func typeinfoOrderedCopyWorks()->bool
     var value = OrderedLifecycleContainer{child: OrderedLifecycleProbe{value: 8}, value: 11}
     runPostCopy(type, &value)
     return EventCount == 2 and
-        Events[0] == 3 and
-        Events[1] == 5 and
-        value.child.value == 9 and
-        value.value == 111
+           Events[0] == 3 and
+           Events[1] == 5 and
+           value.child.value == 9 and
+           value.value == 111
 }
 
 func typeinfoOrderedMoveWorks()->bool
@@ -315,10 +315,10 @@ func typeinfoOrderedMoveWorks()->bool
     var value = OrderedLifecycleContainer{child: OrderedLifecycleProbe{value: 8}, value: 11}
     runPostMove(type, &value)
     return EventCount == 2 and
-        Events[0] == 4 and
-        Events[1] == 6 and
-        value.child.value == 18 and
-        value.value == 1011
+           Events[0] == 4 and
+           Events[1] == 6 and
+           value.child.value == 18 and
+           value.value == 1011
 }
 
 #test

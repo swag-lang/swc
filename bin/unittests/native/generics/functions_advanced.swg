@@ -30,12 +30,12 @@ func(T, N: s32) countPositive(values: [N] T)->s32
 }
 
 // Generic calling another generic with same type
-func(T) addOne(value: T)->T => value + 1
-func(T) addTwo(value: T)->T => addOne(addOne(value))
+func(T) addOne(value: T)->T  => value + 1
+func(T) addTwo(value: T)->T  => addOne(addOne(value))
 func(T) addFour(value: T)->T => addTwo(addTwo(value))
 
 // Generic calling another generic with different type
-func(T) toF64(value: T)->f64 => cast(f64) value
+func(T) toF64(value: T)->f64       => cast(f64) value
 func(T) doubleAsF64(value: T)->f64 => toF64(value) * 2.0
 
 // Generic with multiple return paths

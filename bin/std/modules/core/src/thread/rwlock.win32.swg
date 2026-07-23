@@ -1,11 +1,12 @@
 #global #if WINDOWS
 #global public
 #global namespace Sync
+
 using Win32
 
 struct RWLock
 {
-    v:   SRWLOCK = SRWLOCK_INIT
+    v: SRWLOCK = SRWLOCK_INIT
 }
 
 impl RWLock

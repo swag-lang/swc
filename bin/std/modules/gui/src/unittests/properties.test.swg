@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
 struct PropHeadlessData
@@ -24,48 +25,48 @@ enum PropHeadlessChoice
 
 struct PropHeadlessEnumData
 {
-    choice:     PropHeadlessChoice = .Mid
+    choice: PropHeadlessChoice = .Mid
 }
 
 struct PropHeadlessSliderData
 {
     #[SliderMinMax(0, 100)]
-    volume:     s32 = 50
+    volume: s32 = 50
 
     #[SliderMinMax(0, 10)]
-    level:      s32 = 5
+    level: s32 = 5
 }
 
 struct PropHeadlessGroupedData
 {
     #[Category("Numbers")]
-    count:      s32 = 42
+    count: s32 = 42
 
-    label:      #null string = "hello"
+    label: #null string = "hello"
 
     #[Category("Flags")]
-    enabled:    bool = true
+    enabled: bool = true
 }
 
 struct PropHeadlessRoData
 {
-    normal:     s32 = 1
+    normal: s32 = 1
 
     #[ReadOnly]
-    locked:     s32 = 2
+    locked: s32 = 2
 
-    dynamic:    s32 = 3
+    dynamic: s32 = 3
 }
 
 struct PropMoveElem
 {
-    id:         s32 = 0
+    id: s32 = 0
 }
 
 struct PropMoveData
 {
-    dyn:        Array'PropMoveElem
-    stat:       [3] s32
+    dyn:  Array'PropMoveElem
+    stat: [3] s32
 }
 
 var g_PropRoDynamic: bool
@@ -1809,7 +1810,7 @@ struct PropHeadlessUsingBase
 struct PropHeadlessUsingDerived
 {
     using base:     PropHeadlessUsingBase
-    ownVal:         s32
+    ownVal: s32
 }
 
 // usingFieldsLast walks the struct's own fields before recursing into its 'using'

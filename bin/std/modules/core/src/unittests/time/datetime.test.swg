@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second, millisecond: u16)

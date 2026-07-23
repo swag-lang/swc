@@ -144,7 +144,7 @@ var g_Footer:      #null *Label
 var g_DarkTheme:   bool
 var g_StatusText:  String
 
-var g_Cards: [NumCards] SceneCard
+var g_Cards:       [NumCards] SceneCard
 var g_CardCount:   s32 = 2
 var g_DisplayMode: PropertiesKind = .Grid
 var g_Filter:      String
@@ -359,7 +359,7 @@ func createInspectorPage(parent: *Wnd)
         .icon      = parent.getTheme().getIcon24(ThemeIcons24.Search, 18)
         .dockStyle = .Top
         .setNote("Search")
-        .margin.w  = 8
+        .margin.w = 8
         .editBoxFlags.add(.ClearButton)
         .sigChanged += func(fil)
         {

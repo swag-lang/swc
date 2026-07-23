@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum HeaderForm
@@ -18,13 +19,13 @@ struct HeaderItem
     sizeable       = true
     clickable      = true
     iconMargin     = false
-    column:        u32
+    column: u32
 }
 
 #[Swag.EnumFlags]
 enum HeaderFlags
 {
-    Zero      = 0
+    Zero = 0
     Clickable
 }
 
@@ -38,7 +39,7 @@ struct Header
     sigLayoutChanged: #null func||(*Header)
     sigClicked:       #null func||(*Header, u32)
 
-    items:                ArrayPtr'HeaderItem
+    items: ArrayPtr'HeaderItem
     hotIdx                = Swag.U32.Max
     hotSeparator:  bool
     moving:        bool

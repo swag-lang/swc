@@ -1,4 +1,5 @@
 #global namespace Ico
+
 using Core, Core.Errors
 
 public struct Encoder {}

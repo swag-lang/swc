@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum IconBarFlags
 {
-    Zero     = 0
+    Zero = 0
     Vertical
 }
 

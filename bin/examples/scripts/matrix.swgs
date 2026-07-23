@@ -17,8 +17,8 @@ struct C
     y:      f32
     length: s32
     speed:  f32
-    c:          [MaxTrailSize] rune
-    lastYI:     s32
+    c:      [MaxTrailSize] rune
+    lastYI: s32
 }
 
 var g_RD:   [MaxColumns] C

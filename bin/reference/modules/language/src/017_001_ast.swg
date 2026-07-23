@@ -66,7 +66,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
             return "x, y: " ++ #typeof(T).name
         }
 
-        z:   #null string
+        z: #null string
     }
 
     let v: MyStruct'bool

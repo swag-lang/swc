@@ -12,9 +12,9 @@ struct FormText
 {
     using base:     BaseForm
     #[Name("Font"), FontName]
-    fontName:       String
+    fontName: String
     #[Name("Text"), MultiLine]
-    text:           String
+    text: String
     #[Name("Font Style")]
     fontStyle       = FontFamilyStyle.Regular
     #[Name("Align")]
@@ -22,9 +22,9 @@ struct FormText
     #[Name("Vertical Align")]
     alignVert       = FormTextAlign.Center
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
-    fontSize:       f32 = 48
+    fontSize: f32 = 48
     #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize)]
-    boldSize:       f32 = 0
+    boldSize: f32 = 0
     lineSpacing     = 14.0
 
     #[Serialization.NoSerialize]

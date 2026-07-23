@@ -42,7 +42,7 @@ the number of elements.
 */
 #test
 {
-    var a:    const [..] u32 = [10, 20, 30, 40, 50]
+    var a: const [..] u32 = [10, 20, 30, 40, 50]
     let count = @countof(a)
     let addr  = @dataof(a)
 

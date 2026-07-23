@@ -1,5 +1,6 @@
 #global public
 #global namespace Math
+
 using Swag
 
 // An angle representation struct that stores angles in radians.

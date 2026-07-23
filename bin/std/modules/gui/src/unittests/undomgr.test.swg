@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
 // A trivial command that adds/subtracts a delta from a shared counter, to exercise the
@@ -8,7 +9,7 @@ var g_undoCounter: s32
 
 struct IncCommand
 {
-    delta:  s32
+    delta: s32
 }
 
 impl IUndoCommand for IncCommand

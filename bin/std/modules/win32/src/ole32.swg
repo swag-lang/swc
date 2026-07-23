@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("ole32")
 using Swag
 

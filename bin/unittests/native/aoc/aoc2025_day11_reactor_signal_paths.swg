@@ -89,10 +89,10 @@ func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 
 func auditReactor(graph: ReactorGraph)->ReactorReport
 {
-    var pathMemoStorage: [NodeCount] s32
+    var pathMemoStorage:  [NodeCount] s32
     var chainMemoStorage: [NodeCount] s32
-    var pathMemo: [..] s32 = pathMemoStorage
-    var chainMemo: [..] s32 = chainMemoStorage
+    var pathMemo:         [..] s32 = pathMemoStorage
+    var chainMemo:        [..] s32 = chainMemoStorage
 
     resetMemo(pathMemo)
     resetMemo(chainMemo)
@@ -107,7 +107,7 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
     for branchCount
     {
         var branchMemoStorage: [NodeCount] s32
-        var branchMemo: [..] s32 = branchMemoStorage
+        var branchMemo:        [..] s32 = branchMemoStorage
         resetMemo(branchMemo)
 
         let nextIndex = graph.outputs[intakeIndex][@index]

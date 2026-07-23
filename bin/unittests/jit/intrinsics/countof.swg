@@ -185,17 +185,17 @@ impl RefCountedRuntime
     func countCStringRef()->u64
     {
         var valueData: [5] u8 = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
-        var value:    cstring = cast(cstring) &valueData[0]
-        var valueRef: &cstring = &value
+        var value:     cstring = cast(cstring) &valueData[0]
+        var valueRef:  &cstring = &value
         return @countof(valueRef)
     }
 
     func loopCStringRef()->u64
     {
         var valueData: [5] u8 = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
-        var value:    cstring = cast(cstring) &valueData[0]
-        let valueRef: &cstring = &value
-        var count:    u64 = 0
+        var value:     cstring = cast(cstring) &valueData[0]
+        let valueRef:  &cstring = &value
+        var count:     u64 = 0
         for valueRef do
             count += 1
         return count
@@ -211,7 +211,7 @@ impl RefCountedRuntime
 {
     func countArrayAndSliceRef()->u64
     {
-        var array: [2, 3] u8
+        var array:    [2, 3] u8
         var arrayRef: &[2, 3] u8 = &array
 
         var flat: [6] u8 = [1, 2, 3, 4, 5, 6]

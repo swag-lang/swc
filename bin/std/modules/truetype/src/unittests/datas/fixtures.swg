@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag
 
 const ReaderBytes: [8] u8     = [0x12, 0x34, 0xFF, 0x80, 0x80, 0x00, 0x00, 0x01]

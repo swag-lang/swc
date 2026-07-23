@@ -8,7 +8,7 @@ struct VariadicPair
 
 struct VariadicPayload
 {
-    arr: [3] s32
+    arr:  [3] s32
     flag: bool
     tag:  u8
 }

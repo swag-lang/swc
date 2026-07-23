@@ -103,12 +103,12 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 {
     @assert(@countof(pointLines) <= 24)
 
-    var points: [24] Point3
-    var edges: [320] Edge
-    var parents: [24] u32
-    var sizes: [24] u32
+    var points:       [24] Point3
+    var edges:        [320] Edge
+    var parents:      [24] u32
+    var sizes:        [24] u32
     var clusterSizes: [24] u32
-    var edgeCount: u32
+    var edgeCount:    u32
 
     for line, index in pointLines
     {

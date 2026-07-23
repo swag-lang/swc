@@ -1,4 +1,5 @@
 #global namespace Jpg
+
 using Core
 
 private
@@ -53,30 +54,30 @@ private
 
     struct DQTInfoType
     {
-        marker:  u16
-        length:  u16
-        infoQty: u8
-        tableY:       [64] u8
-        infoQtcb:     u8
-        tableCb:      [64] u8
+        marker:   u16
+        length:   u16
+        infoQty:  u8
+        tableY:   [64] u8
+        infoQtcb: u8
+        tableCb:  [64] u8
     }
 
     struct DHTInfoType
     {
-        marker:    u16
-        length:    u16
-        infoHTYDC: u8
-        nrcodesYDC:      [16] u8
-        valuesYDC:       [12] u8
-        infoHTYAC:       u8
-        nrcodesYAC:      [16] u8
-        valuesYAC:       [162] u8
-        infoHTCbDC:      u8
-        nrcodesCbDC:     [16] u8
-        valuesCbDC:      [12] u8
-        infoHTCbAC:      u8
-        nrcodesCbAC:     [16] u8
-        valuesCbAC:      [162] u8
+        marker:      u16
+        length:      u16
+        infoHTYDC:   u8
+        nrcodesYDC:  [16] u8
+        valuesYDC:   [12] u8
+        infoHTYAC:   u8
+        nrcodesYAC:  [16] u8
+        valuesYAC:   [162] u8
+        infoHTCbDC:  u8
+        nrcodesCbDC: [16] u8
+        valuesCbDC:  [12] u8
+        infoHTCbAC:  u8
+        nrcodesCbAC: [16] u8
+        valuesCbAC:  [162] u8
     }
 
     const SOF0info = SOF0InfoType{0xFFC0, 17, 8, 0, 0, 3, 1, 0x11, 0, 2, 0x11, 1, 3, 0x11, 1}
@@ -187,28 +188,28 @@ public struct Encoder
     imageY:    u16
     bufferRGB: Array'ColorRGB
 
-    stream:            #null *ConcatBuffer
+    stream: #null *ConcatBuffer
 
     bytenew: u8
     bytepos: s8
 
-    scaleFactor:       u8 = 10
+    scaleFactor: u8 = 10
 
     dqtInfo: DQTInfoType
     dhtInfo: DHTInfoType
-    htYDC:             [12] BitString
-    htCbDC:            [12] BitString
-    htYAC:             [256] BitString
-    htCbAC:            [256] BitString
+    htYDC:   [12] BitString
+    htCbDC:  [12] BitString
+    htYAC:   [256] BitString
+    htCbAC:  [256] BitString
 
-    fdtblY:            [64] f32
-    fdtblCb:           [64] f32
+    fdtblY:  [64] f32
+    fdtblCb: [64] f32
 
-    duY:               [64] s8
-    duCb:              [64] s8
-    duCr:              [64] s8
-    duDct:             [64] s16
-    du:                [64] s16
+    duY:   [64] s8
+    duCb:  [64] s8
+    duCr:  [64] s8
+    duDct: [64] s16
+    du:    [64] s16
 
     categoryAlloc: Array'u8
     category:      #null [*] u8

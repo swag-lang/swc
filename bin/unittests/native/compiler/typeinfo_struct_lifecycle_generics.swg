@@ -2,7 +2,7 @@
 using Swag
 
 var EventCount: s32
-var Events: [32] s32
+var Events:     [32] s32
 
 struct GenericProbe
 {
@@ -111,9 +111,9 @@ func typeStruct(type: typeinfo)->const *Swag.TypeInfoStruct
     return cast(const *Swag.TypeInfoStruct) type
 }
 
-func hasDropFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
-func hasCopyFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
-func hasMoveFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
+func hasDropFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
+func hasCopyFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
+func hasMoveFlag(type: typeinfo)->bool    => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
 func hasInitPointer(type: typeinfo)->bool => typeStruct(type).opInit != null
 
 func hasLifecycleShape(type: typeinfo, wantDrop: bool, wantCopy: bool, wantMove: bool)->bool

@@ -1,11 +1,12 @@
 #global public
+
 using Core, Pixel
 
 // Flags passed to Properties.addItem to select which sub-widgets a row gets.
 #[Swag.EnumFlags]
 enum AddItemFlags
 {
-    Zero        = 0
+    Zero = 0
     Name
     Description
 }
@@ -14,7 +15,7 @@ enum AddItemFlags
 #[Swag.EnumFlags]
 enum ItemFlags
 {
-    Zero        = 0
+    Zero = 0
     NoSeparator
     NoFocus
     Section
@@ -34,19 +35,19 @@ enum ItemFlags
 // in Properties.items, with the hierarchy tracked through the `parent` pointer.
 struct PropertiesItem
 {
-    filter:             String
+    filter: String
     line:               #late *Wnd
-    data:               #null *u8
+    data: #null *u8
 
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
     // array are left single (their element addresses are not at a fixed struct offset).
-    dataInstances:      Array'(*u8)
+    dataInstances: Array'(*u8)
 
     // When set, the editor writes each instance itself (e.g. a vector component or an
     // enum-flags bit), so hasChanged must not blindly copy the whole field over the
     // others — that would clobber the components/bits the user did not touch.
-    selfPropagate:      bool
+    selfPropagate: bool
 
     // "Reset to default" tracking (defaultstate.swg). defaultData points into the default-
     // constructed root instance at this field's fixed offset, i.e. the value the field is
@@ -63,7 +64,7 @@ struct PropertiesItem
     // field, kept per row so hasChanged can diff the new value against it and record one undo
     // command. Captured at build for every snapshot-able row (POD or String); left invalid for
     // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
-    undoValue:          PropFieldValue
+    undoValue: PropFieldValue
 
     type:      #null typeinfo
     typeValue: Swag.TypeValue
@@ -73,7 +74,7 @@ struct PropertiesItem
     userData1: #null *void
 
     label:              #late *Label
-    description:        String
+    description: String
     labelDesc:          #late *Label
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
@@ -90,7 +91,7 @@ struct PropertiesItem
     sigResize:  SigArray'func||(*PropertiesItem)
     sigRefresh: SigArray'func||(*PropertiesItem)
 
-    ntfyItf:            #null IPropertyNotify
+    ntfyItf: #null IPropertyNotify
 
     aniFocusBk:     BlendColor
     aniFocusBorder: BlendColor
@@ -101,5 +102,5 @@ struct PropertiesItem
 
     // Grid only: height of the value cell (label + editor) on its own. The row grows below
     // it to host the validation message bar, so we keep the base height to restore/recompute.
-    valueCellHeight:    f32
+    valueCellHeight: f32
 }

@@ -25,11 +25,11 @@ using Core
 
 private struct Card
 {
-    val: string = ""
-    bid: u64
-    count:      [13] s32
-    countV:     [6] s32
-    value:      s32
+    val:    string = ""
+    bid:    u64
+    count:  [13] s32
+    countV: [6] s32
+    value:  s32
 }
 
 private var map: [256] u8
@@ -77,7 +77,7 @@ func day7B()
     {
         let first = Tokenize.split(l, ' ''u8)
 
-        var card:    Card
+        var card: Card
         var maxCount = 0
         for c in first[0]
         {

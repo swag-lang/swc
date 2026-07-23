@@ -7,14 +7,15 @@
 
 #global namespace StrConv
 #global #[Swag.CanOverflow(true)]
+
 using Globalization, Errors
 
 struct Decimal
 {
-    d:            [800] u8     // digits, big-endian representation
-    nd:       s64              // number of digits used
-    dp:       s64              // decimal point
-    neg:      bool             // negative flag
+    d:        [800] u8     // digits, big-endian representation
+    nd:       s64          // number of digits used
+    dp:       s64          // decimal point
+    neg:      bool         // negative flag
     bigtrunc: bool
     mantissa: u64
     trunc:    bool
@@ -23,7 +24,7 @@ struct Decimal
 
 struct DecimalSlice
 {
-    d:          [..] u8
+    d:      [..] u8
     nd, dp: s64
     neg:    bool
 }
@@ -492,7 +493,7 @@ impl Decimal
     mtd floatBits()->{ b: u64, overflow: bool }
     {
         const PowTab: [?] s64 = [1, 3, 6, 9, 13, 16, 19, 23, 26]
-        var mant:     u64
+        var mant: u64
 
         // Zero is always a special case.
         var overflow = false

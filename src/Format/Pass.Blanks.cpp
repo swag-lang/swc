@@ -31,9 +31,9 @@ namespace
         if (!options.blankLineAfterUsingBlock)
             return;
 
-        // Locate the initial run of top-level `using` statements.
-        uint32_t lastUsingLineEnd = INVALID_PIECE;
-        bool     sawUsing         = false;
+        // Locate the initial run of top-level `using` statements; leading
+        // `#global` directives count as part of the file header.
+        bool sawUsing = false;
 
         std::vector<uint32_t> lineStarts;
         model.collectLineStarts(lineStarts);
@@ -47,11 +47,12 @@ namespace
                     break;
                 continue; // header comments before the using block
             }
+            if (!sawUsing && piece.is(TokenId::CompilerGlobal))
+                continue; // `#global` header lines before the using block
 
             if (piece.hasRole(FormatRoleE::UsingStart) && piece.depth == 0)
             {
-                sawUsing         = true;
-                lastUsingLineEnd = FormatPassUtil::lineEndOf(model, lineStart);
+                sawUsing = true;
                 continue;
             }
 
@@ -61,6 +62,44 @@ namespace
             // First non-using code line after the block.
             const uint32_t wanted = *options.blankLineAfterUsingBlock ? 2u : 1u;
             forceGapNewlines(model, lineStart, wanted, !*options.blankLineAfterUsingBlock);
+            return;
+        }
+    }
+
+    void applyBlankLineAfterGlobalBlock(FormatModel& model)
+    {
+        const FormatOptions& options = model.options();
+        if (!options.blankLineAfterGlobalBlock)
+            return;
+
+        // Locate the initial run of top-level `#global` directives.
+        bool sawGlobal = false;
+
+        std::vector<uint32_t> lineStarts;
+        model.collectLineStarts(lineStarts);
+
+        for (const uint32_t lineStart : lineStarts)
+        {
+            const FormatPiece& piece = model.piece(lineStart);
+            if (piece.isComment)
+            {
+                if (sawGlobal)
+                    break;
+                continue; // header comments before the directives
+            }
+
+            if (piece.is(TokenId::CompilerGlobal) && piece.depth == 0)
+            {
+                sawGlobal = true;
+                continue;
+            }
+
+            if (!sawGlobal)
+                return; // first code is not a `#global`: nothing to do
+
+            // First code line after the directives.
+            const uint32_t wanted = *options.blankLineAfterGlobalBlock ? 2u : 1u;
+            forceGapNewlines(model, lineStart, wanted, !*options.blankLineAfterGlobalBlock);
             return;
         }
     }
@@ -226,6 +265,7 @@ namespace FormatPass
 {
     void blanks(FormatModel& model)
     {
+        applyBlankLineAfterGlobalBlock(model);
         applyBlankLineAfterUsingBlock(model);
         applyBlankLinesBetweenDefinitions(model);
         applyBlankLinesBeforeComments(model);

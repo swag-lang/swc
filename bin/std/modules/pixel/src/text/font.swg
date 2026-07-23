@@ -111,13 +111,13 @@ public struct Font
     underlinePos:  f32
     underlineSize: f32
 
-    fullname:          String
+    fullname: String
 
     // Memoized result of 'resolveDrawFont' for an 'Auto' font: the last on-screen
     // pixel size that was resolved and the concrete bitmap view it produced. Avoids a
     // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
     // size of 0 is never resolved, so it doubles as the "empty" sentinel.
-    drawResolvePx:     s32
+    drawResolvePx: s32
     drawResolveFont:   #late *Font
 }
 
@@ -434,7 +434,7 @@ public impl GlyphCache
         if !atlas
         {
             var newAtlas: GlyphAtlas
-            newAtlas.bpp    = bpp
+            newAtlas.bpp = bpp
             let atlasSide   = Math.roundUpToPowerOf2(Math.max(.refSize * 4, Math.max(bmpRef.width, bmpRef.rows) * 2))
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide

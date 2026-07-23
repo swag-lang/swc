@@ -36,7 +36,7 @@ func day8B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
 
-    const S  = 25 * 6
+    const S = 25 * 6
     var pix: [S] rune
     for #Bytes c, i in assume File.readAllText(dataPath)
     {

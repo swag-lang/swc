@@ -134,7 +134,7 @@ namespace compiler1665
 
     struct TT
     {
-        x, y, z:  s64 = 456
+        x, y, z: s64 = 456
     }
 
     //#[Swag.PrintBc]

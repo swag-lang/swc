@@ -1,14 +1,15 @@
 #global public
 #global namespace Input
+
 using Math
 
 // Represents one mouse state
 struct MouseState
 {
-    pressed:         [@countof(MouseButton)] bool
-    pressedTime:     [@countof(MouseButton)] u32
-    pressedPos:      [@countof(MouseButton)] Point
-    position:        Point
+    pressed:     [@countof(MouseButton)] bool
+    pressedTime: [@countof(MouseButton)] u32
+    pressedPos:  [@countof(MouseButton)] Point
+    position:    Point
 }
 
 // Represents a mouse state with cursor position and button press information

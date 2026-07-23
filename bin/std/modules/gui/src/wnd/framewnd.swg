@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum FrameWndForm
@@ -11,7 +12,7 @@ enum FrameWndForm
 #[Swag.EnumFlags]
 enum FrameWndFlags
 {
-    Zero        = 0
+    Zero = 0
     Borders
     FocusBorder
     SmallShadow

@@ -208,7 +208,7 @@ func repairUpdate(result: &Update, scenario: const &PrintQueueScenario, source: 
     clearUpdate(result)
     result.count = source.count
 
-    var used: [MaxUpdatePages] bool
+    var used:       [MaxUpdatePages] bool
     var writeIndex: u32
 
     while writeIndex < source.count

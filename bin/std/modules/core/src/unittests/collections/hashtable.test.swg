@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool

@@ -1,4 +1,5 @@
 #global export
+
 using Swag
 
 // A specialized dynamic array for holding and owning pointers.

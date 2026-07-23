@@ -76,14 +76,14 @@ release logic stay close together and cleanup always happens.
 */
 #test
 {
-    func createResource()                 => true
+    func createResource() => true
 
     func releaseResource(resource: *bool)
     {
         dref resource = false
     }
 
-    func isResourceCreated(b: bool)       => b
+    func isResourceCreated(b: bool) => b
 
     var resource = false
     for 10
@@ -109,14 +109,14 @@ to errors. This pattern creates robust, error-resilient code.
 */
 #test
 {
-    func createResource()                 => true
+    func createResource() => true
 
     func releaseResource(resource: *bool)
     {
         dref resource = false
     }
 
-    func isResourceCreated(b: bool)       => b
+    func isResourceCreated(b: bool) => b
 
     func performTask()->bool
     {

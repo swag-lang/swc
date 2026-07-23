@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 // Low-level, endian-aware writers used to hand-build TIFF byte buffers.

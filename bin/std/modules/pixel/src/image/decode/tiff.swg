@@ -1,4 +1,5 @@
 #global namespace Tiff
+
 using Core, Core.Errors
 
 // Baseline TIFF tags
@@ -78,7 +79,7 @@ struct Entry
 
 struct Ifd
 {
-    entries:  Array'Entry
+    entries: Array'Entry
 }
 
 impl Ifd

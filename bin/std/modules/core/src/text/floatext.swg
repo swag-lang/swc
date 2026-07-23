@@ -537,7 +537,7 @@ impl FloatExt
 
         // Compute digits of the fractional part. At each step fraction does not
         // overflow. The choice of minExp implies that fraction is less than 2^60.
-        var digit:     s64
+        var digit: s64
         var multiplier = 1'u64
         for
         {

@@ -1,6 +1,7 @@
 #global #if WINDOWS
 #global public
 #global namespace Time
+
 using Win32
 
 private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)

@@ -2,6 +2,7 @@
 
 #global public
 #global namespace Math
+
 using Swag
 
 #[ConstExpr, Safety(.Overflow, false)]

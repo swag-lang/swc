@@ -8,6 +8,7 @@
 #global namespace StrConv
 #global namespace Dtoa
 #global #[Swag.Safety(.Overflow | .NaN, false)]
+
 using Globalization
 
 func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, mant: u64, exp: s64)
@@ -18,7 +19,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
     d.assign(mant)
     d.shift(cast(s32) exp - Swag.F64.MantBits)
 
-    var digs:    DecimalSlice = undefined
+    var digs: DecimalSlice = undefined
     let shortest = prec < 0
     if shortest
     {
@@ -401,7 +402,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         // Try Grisu3 algorithm.
         var f: FloatExt
             var (lower, upper) = f.assignComputeBounds(mant, exp, neg)
-        var tmp: [32] u8
+        var tmp:  [32] u8
         var digs: DecimalSlice = undefined
         digs.d = tmp
 
@@ -439,7 +440,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         // try fast algorithm when the number of digits is reasonable.
         if digits <= 15
         {
-            var tmp: [24] u8
+            var tmp:  [24] u8
             var digs: DecimalSlice = undefined
             digs.d = tmp
             var f = FloatExt{mant, exp - cast(s64) Swag.F64.MantBits, neg}

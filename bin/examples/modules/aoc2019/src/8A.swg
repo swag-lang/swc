@@ -29,7 +29,7 @@ func day8A()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var x, y: s32
+    var x, y:  s32
     var count: [10] s32
     var best0  = Swag.S32.Max
     var total  = 0

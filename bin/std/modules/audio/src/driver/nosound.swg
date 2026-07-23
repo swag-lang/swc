@@ -6,7 +6,7 @@ struct NoSoundVoice
     frequencyRatio: f32 = 1
     isPlaying:      bool
     busCount:       u32
-    buses:              [16] #null *Bus
+    buses:          [16] #null *Bus
 }
 
 struct NoSoundBus

@@ -28,9 +28,12 @@ namespace Command
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
+        // Reserved `__` identifiers are legal in runtime sources and must not
+        // prevent the formatter from parsing them.
         constexpr ParserJobOptions parserOptions = {
             .emitTrivia                 = true,
             .ignoreGlobalCompilerIfSkip = true,
+            .allowReservedIdentifiers   = true,
         };
 
         FormatOptionsLoader     optionsLoader(ctx);

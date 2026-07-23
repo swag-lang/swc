@@ -8,7 +8,7 @@ const ForecastRounds      = 2000
 const PriceChangeVariants = 19
 const SequenceCount       = PriceChangeVariants * PriceChangeVariants * PriceChangeVariants * PriceChangeVariants
 
-var SequenceTotals: [SequenceCount] u32
+var SequenceTotals:    [SequenceCount] u32
 var SequenceSeenStamp: [SequenceCount] u32
 
 struct MarketForecast

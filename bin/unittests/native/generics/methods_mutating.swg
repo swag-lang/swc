@@ -53,7 +53,7 @@ impl Accum
         .add(value)
     }
 
-    mtd getTotal()->T => .total
+    mtd getTotal()->T   => .total
     mtd getCount()->s32 => .count
     mtd getAverage()->T => .total / cast(T) .count
 }
@@ -130,11 +130,11 @@ impl FixedVec
         return .data[.len]
     }
 
-    mtd top()->T => .data[.len - 1]
-    mtd size()->s32 => .len
+    mtd top()->T        => .data[.len - 1]
+    mtd size()->s32     => .len
     mtd capacity()->s32 => N
     mtd isEmpty()->bool => .len == 0
-    mtd isFull()->bool => .len == N
+    mtd isFull()->bool  => .len == N
 
     mtd clear() { .len = 0 }
 

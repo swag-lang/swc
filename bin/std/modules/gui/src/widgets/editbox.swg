@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Specifies the visual geometry of the EditBox.
@@ -33,11 +34,11 @@ enum EditBoxCheckResult
 // Optional behaviour modifiers for the EditBox.
 enum EditBoxFlags
 {
-    Zero          = 0     // No flags
-    AutoLoseFocus         // Automatically lose focus after Enter or Escape
-    ReadOnly              // Content cannot be edited
-    RightAlign            // Text is right‑aligned
-    ClearButton           // Show a clear ("x") button when content is not empty
+    Zero = 0          // No flags
+    AutoLoseFocus     // Automatically lose focus after Enter or Escape
+    ReadOnly          // Content cannot be edited
+    RightAlign        // Text is right‑aligned
+    ClearButton       // Show a clear ("x") button when content is not empty
 }
 
 struct EditBox

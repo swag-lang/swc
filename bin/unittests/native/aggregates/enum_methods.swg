@@ -83,7 +83,7 @@ enum Priority
 impl Priority
 {
     func isUrgent(val: Priority)->bool => val == Priority.High
-    func isLow(val: Priority)->bool => val == Priority.Low
+    func isLow(val: Priority)->bool    => val == Priority.Low
 }
 
 #test

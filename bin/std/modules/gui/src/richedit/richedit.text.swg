@@ -609,7 +609,7 @@ public impl RichEditCtrl
 
         // Get the style from the previous character
         let line = .lines[.cursorPos.lineIndex]
-        var st:  u8
+        var st: u8
         if !.cursorPos.charPosInLine and line.length() do
             st = line.styles[0]
         elif .cursorPos.charPosInLine and .cursorPos.charPosInLine - 1 < line.length() do

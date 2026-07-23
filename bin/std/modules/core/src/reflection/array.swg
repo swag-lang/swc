@@ -1,5 +1,6 @@
 #global public
 #global namespace Reflection
+
 using Swag
 
 // Returns true if the type 't' is a 'Core.Array' type

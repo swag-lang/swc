@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum CircularFlags
 {
-    Zero    = 0
+    Zero = 0
     Range
     Integer
 }
@@ -18,7 +19,7 @@ enum CircularStepForm
 
 enum CircularMarkerForm
 {
-    None   = 0
+    None = 0
     Circle
     Needle
 }

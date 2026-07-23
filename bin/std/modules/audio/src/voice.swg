@@ -3,7 +3,7 @@ using Core, Win32
 #[Swag.EnumFlags]
 public enum VoiceCreateFlags
 {
-    Zero    = 0
+    Zero = 0
     AcceptPitch
     AcceptFilters
     Default = AcceptFilters | AcceptPitch
@@ -12,7 +12,7 @@ public enum VoiceCreateFlags
 #[Swag.EnumFlags]
 public enum VoicePlayFlags
 {
-    Zero    = 0
+    Zero = 0
     Loop              // Play in loops
     DestroyOnStop     // Destroy the voice once the sound has been played
     Default = DestroyOnStop
@@ -21,7 +21,7 @@ public enum VoicePlayFlags
 #[Swag.EnumFlags]
 public enum VoiceState
 {
-    Zero           = 0
+    Zero = 0
     PlayedOnce
     Playing
     PendingDestroy
@@ -35,7 +35,7 @@ public struct Voice
     file:   #null *SoundFile
 
     requestedEncoding           = SoundFileEncoding.Unknown
-    codec:                      #null ICodec
+    codec: #null ICodec
 
     playFlags: VoicePlayFlags
     state:     VoiceState
@@ -46,8 +46,8 @@ public struct Voice
     streamBuffer:  Array'u8
     const NumDecodedBuffers     = 3
     const DecodedBufferSize     = 65536'u64
-    decodedBuffers:             [NumDecodedBuffers] Array'u8
-    decodedBufferIdx:           u32
+    decodedBuffers:   [NumDecodedBuffers] Array'u8
+    decodedBufferIdx: u32
 }
 
 private impl Voice

@@ -3,7 +3,7 @@ using Swag
 
 namespace GenericReallocDefaultArgsCodegen
 {
-    var gLastCaller:       SourceCodeLocation
+    var gLastCaller: SourceCodeLocation
     var gLastHintWasNull = false
     var gLastAlignment   = 1'u32
     var gReallocCallCount = 0'u64

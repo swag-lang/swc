@@ -18,11 +18,11 @@ enum FormImagePlacement
 struct FormImage
 {
     using base:     BaseForm
-    image:          Image
+    image: Image
     #[Name("Kind"), RecalcLayout]
-    kind:           FormImageKind = .Image
+    kind: FormImageKind = .Image
     #[Name("Strength"), SliderMinMax(0, 100)]
-    strength:       s32 = 50
+    strength: s32 = 50
     #[Name("Place")]
     place:   FormImagePlacement = .Center
     freePos: Math.Rectangle

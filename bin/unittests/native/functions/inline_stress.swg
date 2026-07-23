@@ -25,7 +25,7 @@ func firstAboveIndex(arr: [*] u8, count: u32, limit: u8)->s32
 func runInlineScanStress(arr: [*] u8, count: u32)->u32
 {
     var limits: [4] u8 = [0, 4, 8, 9]
-    var total: u32
+    var total:  u32
 
     for i in 4
     {

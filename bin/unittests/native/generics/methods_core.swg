@@ -8,7 +8,7 @@ struct(T) Container
 
 impl Container
 {
-    mtd getValue()->T => .value
+    mtd getValue()->T   => .value
     mtd getCount()->s32 => .count
 
     mtd setValue(v: T)
@@ -22,7 +22,7 @@ impl Container
 struct(T, N: s32) FixedStack
 {
     data: [N] T
-    top: s32
+    top:  s32
 }
 
 impl FixedStack
@@ -35,7 +35,7 @@ impl FixedStack
         .top        += 1
     }
 
-    mtd peek()->T => .data[.top - 1]
+    mtd peek()->T   => .data[.top - 1]
     mtd size()->s32 => .top
 }
 
@@ -47,8 +47,8 @@ struct(T, N: s32) Grid
 impl Grid
 {
     mtd at(row: s32, col: s32)->T => .cells[row * N + col]
-    mtd dimension()->s32 => N
-    mtd totalCells()->s32 => N * N
+    mtd dimension()->s32          => N
+    mtd totalCells()->s32         => N * N
 }
 
 #test

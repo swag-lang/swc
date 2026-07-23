@@ -10,14 +10,14 @@ public enum PopupPos
 #[Swag.EnumFlags]
 public enum MenuCtrlFlags
 {
-    Zero           = 0
+    Zero = 0
     NoKeyShortcuts
 }
 
 public struct PopupMenuItem
 {
     using item:     Item
-    rightName:      RichString
+    rightName: RichString
     popup:          #late *MenuCtrl
     pos:       f32
     size:      f32

@@ -1,5 +1,6 @@
 #global public
 #global namespace Math
+
 using Swag
 
 // Lookup table for bit reversal of 8-bit values.

@@ -33,11 +33,11 @@ func nativeOrelseNonNullBranches()->bool
     if selectedAliasFallback != &fallbackItem or selectedAliasPrimary != &primaryItem do
         return false
 
-    var primaryValues: [2] u32 = [31, 32]
+    var primaryValues:  [2] u32 = [31, 32]
     var fallbackValues: [2] u32 = [41, 42]
-    var nullSlice:    #null [..] u32 = null
-    var presentSlice: #null [..] u32 = primaryValues
-    let fallbackSlice: [..] u32 = fallbackValues
+    var nullSlice:      #null [..] u32 = null
+    var presentSlice:   #null [..] u32 = primaryValues
+    let fallbackSlice:  [..] u32 = fallbackValues
     let selectedSliceFallback = nullSlice orelse fallbackSlice
     let selectedSlicePrimary  = presentSlice orelse fallbackSlice
 

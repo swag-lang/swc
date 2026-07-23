@@ -1,10 +1,11 @@
 #global public
+
 using Core
 
 #[Swag.EnumFlags]
 enum GridLayoutCtrlFlags
 {
-    Zero               = 0
+    Zero = 0
     AdaptSizeToContent
     AdaptColWidth
     AdaptRowHeight

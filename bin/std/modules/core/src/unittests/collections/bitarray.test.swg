@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool

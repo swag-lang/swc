@@ -30,8 +30,8 @@ struct GUID128
 {
     using guid: union
     {
-        val8:      [16] u8     // 16-byte array representation for byte-level operations
-        val64:     [2] u64     // 2 64-bit values for efficient comparison and storage
+        val8:  [16] u8     // 16-byte array representation for byte-level operations
+        val64: [2] u64     // 2 64-bit values for efficient comparison and storage
     }
 }
 

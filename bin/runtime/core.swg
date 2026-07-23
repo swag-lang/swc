@@ -185,7 +185,7 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
 ////////////////////////////////////////////////////////////
 
 const __MAX_ARGUMENTS = 512
-var __argv:           [__MAX_ARGUMENTS] string = undefined
+var __argv: [__MAX_ARGUMENTS] string = undefined
 var __argc            = 0'u32
 
 func __convertArgcArgv(args: const [*] u8)
@@ -207,7 +207,7 @@ func __convertArgcArgv(args: const [*] u8)
             cmdLine += 1
             let start = cmdLine
             while dref cmdLine and dref cmdLine != '"' do
-                cmdLine += 1
+                cmdLine    += 1
             __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
             if dref cmdLine do
                 cmdLine += 1
@@ -216,7 +216,7 @@ func __convertArgcArgv(args: const [*] u8)
         {
             let start = cmdLine
             while dref cmdLine and dref cmdLine != ' ' do
-                cmdLine += 1
+                cmdLine    += 1
             __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
         }
 
@@ -240,7 +240,7 @@ func @args()->const [..] string
 // Make a build configuration copy
 const __buildCfg = #run dref @compiler.getBuildCfg()
 
-func @rtflags()  => @getcontext().runtimeFlags
+func @rtflags()   => @getcontext().runtimeFlags
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
 
 func __runtimeAllocator()->IAllocator
@@ -262,6 +262,7 @@ func __runtimeAllocator()->IAllocator
             cxt.defaultAllocator = cxt.allocator
         }
     }
+
     return notnull cxt.allocator
 }
 

@@ -4,7 +4,7 @@
 {
     func nestedIndexCounters()->s32
     {
-        var arr: [2] s32 = [4, 5]
+        var arr:   [2] s32 = [4, 5]
         var outer: s32   = 0
         var inner: s32   = 0
 

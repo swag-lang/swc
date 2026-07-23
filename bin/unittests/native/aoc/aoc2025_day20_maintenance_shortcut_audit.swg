@@ -35,12 +35,12 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     let totalCells = width * height
     @assert(totalCells <= MaxTrackCells)
 
-    var startCell: u32
-    var endCell:   u32
-    var walkable: [MaxTrackCells] bool
+    var startCell:     u32
+    var endCell:       u32
+    var walkable:      [MaxTrackCells] bool
     var distFromStart: [MaxTrackCells] u32
-    var distFromEnd: [MaxTrackCells] u32
-    var queue: [MaxTrackCells] u32
+    var distFromEnd:   [MaxTrackCells] u32
+    var queue:         [MaxTrackCells] u32
 
     for _, rowIndex in layout
     {

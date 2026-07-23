@@ -56,9 +56,9 @@ func scopedLockUnlocksAfterContinue()->bool
     }
 
     return reachedTail == 1 and
-        sync.lockCount == 4 and
-        sync.unlockCount == 4 and
-        sync.depth == 0
+           sync.lockCount == 4 and
+           sync.unlockCount == 4 and
+           sync.depth == 0
 }
 
 func scopedLockUnlocksAfterBreak()->bool
@@ -77,9 +77,9 @@ func scopedLockUnlocksAfterBreak()->bool
     }
 
     return seenInside == 1 and
-        sync.lockCount == 1 and
-        sync.unlockCount == 1 and
-        sync.depth == 0
+           sync.lockCount == 1 and
+           sync.unlockCount == 1 and
+           sync.depth == 0
 }
 
 func scopedLockUnlocksAfterReturn()->bool
@@ -112,9 +112,9 @@ func sharedLockUnlocksAfterContinue()->bool
     }
 
     return reachedTail == 1 and
-        sync.sharedLockCount == 3 and
-        sync.sharedUnlockCount == 3 and
-        sync.sharedDepth == 0
+           sync.sharedLockCount == 3 and
+           sync.sharedUnlockCount == 3 and
+           sync.sharedDepth == 0
 }
 
 #test

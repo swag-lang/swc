@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 struct JsonPair
@@ -15,10 +16,10 @@ struct JsonPayload
     name:   String
     counts: Array's32
     pair:   JsonPair
-    fixed:      [3] u8
+    fixed:  [3] u8
 
     #[Serialization.NoSerialize]
-    transient:  s32
+    transient: s32
 }
 
 func makeJsonPayload()->JsonPayload
@@ -53,14 +54,14 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
 func assertJsonPayload(value: const &JsonPayload)->bool
 {
     return value.id == 7 and
-        value.active and
-        value.name == "core" and
-        assertIntArray(value.counts, [-1, 0, 4]) and
-        value.pair.x == 3 and
-        value.pair.y == -2 and
-        value.fixed[0] == 1 and
-        value.fixed[1] == 2 and
-        value.fixed[2] == 3
+           value.active and
+           value.name == "core" and
+           assertIntArray(value.counts, [-1, 0, 4]) and
+           value.pair.x == 3 and
+           value.pair.y == -2 and
+           value.fixed[0] == 1 and
+           value.fixed[1] == 2 and
+           value.fixed[2] == 3
 }
 
 #test

@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool

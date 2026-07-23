@@ -1,5 +1,6 @@
 #global public
 #global namespace Reflection
+
 using Swag
 
 // Transform an enum type to its underling real native type

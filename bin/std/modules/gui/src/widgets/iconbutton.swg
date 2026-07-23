@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum IconButtonForm
@@ -11,7 +12,7 @@ enum IconButtonForm
 #[Swag.EnumFlags]
 enum IconButtonFlags
 {
-    Zero            = 0
+    Zero = 0
     Checkable
     CheckableToggle
     Popup

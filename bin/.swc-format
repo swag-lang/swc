@@ -24,6 +24,9 @@ insert-final-newline = true
 # Collapse multiple trailing newlines to one.
 trim-trailing-newlines = true
 
+# Remove blank lines at the very start of the file.
+trim-leading-blank-lines = true
+
 # Maximum blank lines allowed in a row (0 disables the limit).
 max-consecutive-empty-lines = 1
 
@@ -98,7 +101,8 @@ indent-case-blocks = true
 # Attributes adopt the indentation of the declaration they apply to.
 indent-attributes = true
 
-# Indent wrapped arguments relative to the opening parenthesis.
+# Force the canonical continuation indent on wrapped lines inside brackets
+# (false keeps their relative indentation).
 indent-inside-parens = false
 
 # ----------------------------------------------------------------------------
@@ -198,6 +202,10 @@ align-enum-values = consecutive
 # Possible values: preserve, none, consecutive, across-blanks, all
 align-attributes = consecutive
 
+# Align `=>` of adjacent short function bodies.
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-fat-arrows = consecutive
+
 # Align `//` trailing comments into a shared column.
 align-trailing-comments = true
 
@@ -207,8 +215,9 @@ trailing-comment-min-spaces = 5
 # Max column for trailing comments (0 disables the cap).
 trailing-comment-max-column = 0
 
-# Align operands of wrapped binary expressions.
-align-operands = false
+# Align the operand lines of a wrapped binary expression with the first
+# operand of the statement.
+align-operands = true
 
 # Align wrapped arguments with the opening `(` / `[`.
 align-after-open-bracket = false
@@ -329,6 +338,9 @@ merge-using-statements = false
 
 # Guarantee a blank line after the initial `using` block.
 blank-line-after-using-block = true
+
+# Guarantee a blank line after the leading `#global` directives.
+blank-line-after-global-block = true
 
 # ----------------------------------------------------------------------------
 # Numeric literals

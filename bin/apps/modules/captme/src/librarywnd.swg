@@ -28,7 +28,7 @@ struct LibraryWnd
     trashBtn:                    #late *IconButton
     searchEdit:                  #late *EditBox
     breadcrumb:                  #late *BreadcrumbCtrl
-    previewSize:                 PreviewSize
+    previewSize: PreviewSize
 
     searchText: String
     trashMode:  bool
@@ -36,7 +36,7 @@ struct LibraryWnd
 
     // Backing storage for the breadcrumb drop-down entry ids (folder paths). Menu items
     // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
-    menuPaths:                   Array'String
+    menuPaths: Array'String
 
     invertSort:              bool
     sortMethod:              SortMethod

@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Enumeration of different color picker display modes.
@@ -33,7 +34,7 @@ struct ColorPicker
     hue, sat, lum: f32
     a, r, g, b:    f32
     mode               = ColorPickerMode.SaturationLightness
-    sigChanged:        SigArray'func||(*ColorPicker)
+    sigChanged: SigArray'func||(*ColorPicker)
 
     internal
     {

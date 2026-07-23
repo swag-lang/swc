@@ -18,6 +18,7 @@ enum class LexerFlagsE : uint32_t
     RawMode                    = 1 << 0,
     EmitTrivia                 = 1 << 1,
     IgnoreGlobalCompilerIfSkip = 1 << 2,
+    AllowReservedIdentifiers   = 1 << 3,
 };
 using LexerFlags = EnumFlags<LexerFlagsE>;
 

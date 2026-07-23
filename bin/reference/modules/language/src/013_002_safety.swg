@@ -159,7 +159,7 @@ Indexing a slice is checked for bounds.
 */
 #test
 {
-    let x:  const [..] s32 = [0, 1, 2]
+    let x: const [..] s32 = [0, 1, 2]
     var idx = 1
     @assert(x[idx] == 1)
     idx += 9

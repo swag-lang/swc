@@ -61,7 +61,7 @@ struct MainWnd
     mdlHighlight, mdlPixSel, mdlFavorite:     #late IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
-    mdlByType:                                Array'IForm
+    mdlByType: Array'IForm
 }
 
 // Interface implementation

@@ -155,8 +155,8 @@ func hashU64(value: u64)->u64
     return value * #wrap 11400714819323198485'u64
 }
 
-func eqU64(a: u64, b: u64)->bool => a == b
-func eqS32(a: s32, b: s32)->bool => a == b
+func eqU64(a: u64, b: u64)->bool          => a == b
+func eqS32(a: s32, b: s32)->bool          => a == b
 func eqString(a: string, b: string)->bool => a == b
 
 func hashS32(value: s32)->u64

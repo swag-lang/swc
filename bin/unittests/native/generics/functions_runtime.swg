@@ -1,7 +1,7 @@
 #global private
 
-func(N: s32) constSquare()->s32 => N * N
-func(N: s32, M: s32) constSum()->s32 => N + M
+func(N: s32) constSquare()->s32                    => N * N
+func(N: s32, M: s32) constSum()->s32               => N + M
 func(N: s32 = 5, M: s32 = 10) constDefaults()->s32 => N + M
 
 func(T, N: s32) fillArray(value: T)->[N] T
@@ -20,7 +20,7 @@ func(T, N: s32) sumN(values: [N] T)->T
     return total
 }
 
-func(T) toS32(value: T)->s32 => cast(s32) value
+func(T) toS32(value: T)->s32         => cast(s32) value
 func(T) castAndDouble(value: T)->s32 => toS32(value) * 2
 
 #test

@@ -382,8 +382,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     struct StressShared
     {
-        itf:   #null IAllocator
-        alloc: #null *Allocator
+        itf:       #null IAllocator
+        alloc:     #null *Allocator
         slots:     [StressCount] #null *void
         index:     s32
         freerDone: s32

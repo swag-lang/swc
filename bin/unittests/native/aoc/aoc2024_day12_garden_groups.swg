@@ -47,8 +47,8 @@ const DiagDC: [4] s32 = [1, 1, -1, -1]
 
 // Short helper functions with arrow syntax
 func packPos(r, c: u32)->u32 => (r << 16) | c
-func unpackRow(p: u32)->u32 => p >> 16
-func unpackCol(p: u32)->u32 => p & 0xFFFF
+func unpackRow(p: u32)->u32  => p >> 16
+func unpackCol(p: u32)->u32  => p & 0xFFFF
 
 // ---------------------------------------------------------------------------
 // Grid with impl block and mtd arrow expressions
@@ -65,8 +65,8 @@ struct Grid
 
 impl Grid
 {
-    mtd const at(r, c: u32)->u8   => .cells[r * MaxDim + c]
-    mtd const cellCount()->u32  => .width * .height
+    mtd const at(r, c: u32)->u8         => .cells[r * MaxDim + c]
+    mtd const cellCount()->u32          => .width * .height
     mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
 }
 

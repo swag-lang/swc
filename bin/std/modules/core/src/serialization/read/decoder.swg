@@ -1,5 +1,6 @@
 #global export
 #global namespace Serialization
+
 using Swag, Core.Errors
 
 interface IDecoder

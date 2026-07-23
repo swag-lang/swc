@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 // Right-click context menu of the property control. The menu only declares which command ids are

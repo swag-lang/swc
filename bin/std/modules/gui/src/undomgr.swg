@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 // A small, reusable undo/redo manager for GUI apps.

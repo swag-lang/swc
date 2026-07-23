@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate

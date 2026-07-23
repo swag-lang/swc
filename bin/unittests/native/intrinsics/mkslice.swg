@@ -18,7 +18,7 @@ alias MksliceStrictConstS32Ptr = const *s32
     #assert(#typeof(str2) == [..] u8)
 
     var backing: [20] s32
-    var ptr: const *s32 = &backing[0]
+    var ptr:     const *s32 = &backing[0]
     let str3 = @mkslice(ptr, 20)
     #assert(#typeof(str3) == const [..] s32)
     @assert(@countof(str) == 100)

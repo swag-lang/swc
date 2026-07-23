@@ -166,9 +166,9 @@ func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u3
 
 func solveClean(lists: LocationLists)->HistorianReport
 {
-    var leftFreq: [MaxLocationId + 1] u32
+    var leftFreq:  [MaxLocationId + 1] u32
     var rightFreq: [MaxLocationId + 1] u32
-    var result: HistorianReport
+    var result:    HistorianReport
 
     buildFrequencies(leftFreq, rightFreq, lists)
 
@@ -257,7 +257,7 @@ func countSortedOccurrences(sortedValues: const [..] u32, value: u32)->u32
 
 func computeDistanceBySorting(lists: LocationLists)->u64
 {
-    var leftSorted: [MaxLocationPairs] u32
+    var leftSorted:  [MaxLocationPairs] u32
     var rightSorted: [MaxLocationPairs] u32
 
     copyValues(leftSorted[until lists.count], lists.left[until lists.count])

@@ -43,8 +43,8 @@ const MaxQ = 256'u32
 struct Grid
 {
     cells: [Dim] [Dim] u8     // 0 = open, 1 = corrupted
-    w: u32
-    h: u32
+    w:     u32
+    h:     u32
 }
 
 impl Grid
@@ -304,7 +304,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     }
     else
     {
-        var tmp: [10] u8
+        var tmp:    [10] u8
         var tmpLen: u32
         var v = col
         for
@@ -332,7 +332,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     }
     else
     {
-        var tmp: [10] u8
+        var tmp:    [10] u8
         var tmpLen: u32
         var v = row
         for

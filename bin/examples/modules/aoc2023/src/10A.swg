@@ -99,7 +99,7 @@ using Core
 #[Swag.EnumFlags]
 private enum Dir
 {
-    Zero  = 0
+    Zero = 0
     West
     East
     North

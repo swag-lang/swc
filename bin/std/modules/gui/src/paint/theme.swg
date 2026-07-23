@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 private const DefaultImageName = "theme/widgets.png"
@@ -63,7 +64,7 @@ private func defaultThemeImages()->*DefaultThemeImages
 
 struct ThemeResources
 {
-    imgWidgets:              Texture
+    imgWidgets: Texture
     icons24:                 #late *ImageList
     icons64:                 #late *ImageList
     spin:                    #late *ImageList

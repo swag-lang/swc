@@ -1,4 +1,5 @@
 #global export
+
 #foreignlib("user32")
 using Swag
 
@@ -815,12 +816,12 @@ struct RECT
 
 struct PAINTSTRUCT
 {
-    hdc:        HDC
-    fErase:     BOOL
-    rcPaint:    RECT
-    fRestore:   BOOL
-    fIncUpdate: BOOL
-    rgbReserved:     [32] BYTE
+    hdc:         HDC
+    fErase:      BOOL
+    rcPaint:     RECT
+    fRestore:    BOOL
+    fIncUpdate:  BOOL
+    rgbReserved: [32] BYTE
 }
 
 const MONITOR_DEFAULTTONULL    = 0x00000000

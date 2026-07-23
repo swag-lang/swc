@@ -106,6 +106,7 @@ struct FormatOptions
     std::optional<bool> preserveTrailingWhitespace;   // Keep trailing whitespace on existing lines unchanged
     std::optional<bool> insertFinalNewline;           // Ensure the file ends with a single newline
     std::optional<bool> trimTrailingNewlines;         // Collapse multiple trailing newlines to one
+    std::optional<bool> trimLeadingBlankLines;        // Remove blank lines at the very start of the file
     uint32_t            maxConsecutiveEmptyLines = 2; // Max blank lines in a row (0 = no limit)
     std::optional<bool> keepEmptyLinesAtStartOfBlock; // Preserve blank lines right after `{`
     std::optional<bool> keepEmptyLinesAtEndOfBlock;   // Preserve blank lines right before `}`
@@ -169,6 +170,7 @@ struct FormatOptions
     FormatAlignMode     alignStructFields            = FormatAlignMode::Preserve; // Align `:` and types of adjacent struct fields
     FormatAlignMode     alignEnumValues              = FormatAlignMode::Preserve; // Align `=` on enum value definitions
     FormatAlignMode     alignAttributes              = FormatAlignMode::Preserve; // Align adjacent `#[...]` attributes
+    FormatAlignMode     alignFatArrows               = FormatAlignMode::Preserve; // Align `=>` of adjacent short function bodies
     std::optional<bool> alignTrailingComments;                                    // Align `//` trailing comments into a shared column
     uint32_t            trailingCommentMinSpaces = 5;                             // Minimum spaces before a trailing `//`
     uint32_t            trailingCommentMaxColumn = 0;                             // 0 = no limit on trailing comment column
@@ -221,6 +223,7 @@ struct FormatOptions
     FormatSortOrder     sortUsingStatements = FormatSortOrder::Preserve; // Sort order for top-of-file `using` statements
     std::optional<bool> mergeUsingStatements;                            // Collapse adjacent `using` onto one line
     std::optional<bool> blankLineAfterUsingBlock;                        // Guarantee a blank line after the initial `using` block
+    std::optional<bool> blankLineAfterGlobalBlock;                       // Guarantee a blank line after the leading `#global` directives
 
     // -----------------------------------------------------------------------
     // Numeric literals

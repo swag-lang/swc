@@ -15,6 +15,7 @@ namespace
         schema.add("preserve-trailing-whitespace", &options.preserveTrailingWhitespace, "Preserve trailing whitespace already present in source");
         schema.add("insert-final-newline", &options.insertFinalNewline, "End formatted files with a newline");
         schema.add("trim-trailing-newlines", &options.trimTrailingNewlines, "Collapse multiple trailing newlines into one");
+        schema.add("trim-leading-blank-lines", &options.trimLeadingBlankLines, "Remove blank lines at the very start of the file");
         schema.add("max-consecutive-empty-lines", &options.maxConsecutiveEmptyLines, "Set the maximum consecutive blank lines; use 0 to disable the limit");
         schema.add("keep-empty-lines-at-start-of-block", &options.keepEmptyLinesAtStartOfBlock, "Keep blank lines at the start of a `{ ... }` block");
         schema.add("keep-empty-lines-at-end-of-block", &options.keepEmptyLinesAtEndOfBlock, "Keep blank lines at the end of a `{ ... }` block");
@@ -104,6 +105,7 @@ namespace
         schema.addEnum("align-struct-fields", &options.alignStructFields, alignChoices, "Align `:` and types in adjacent struct fields");
         schema.addEnum("align-enum-values", &options.alignEnumValues, alignChoices, "Align `=` in adjacent enum value definitions");
         schema.addEnum("align-attributes", &options.alignAttributes, alignChoices, "Align adjacent attribute annotations");
+        schema.addEnum("align-fat-arrows", &options.alignFatArrows, alignChoices, "Align `=>` of adjacent short function bodies");
 
         schema.add("align-trailing-comments", &options.alignTrailingComments, "Align trailing `//` comments into a shared column");
         schema.add("trailing-comment-min-spaces", &options.trailingCommentMinSpaces, "Set the minimum spaces between code and a trailing `//` comment");
@@ -161,6 +163,7 @@ namespace
 
         schema.add("merge-using-statements", &options.mergeUsingStatements, "Collapse adjacent `using` statements onto one line when possible");
         schema.add("blank-line-after-using-block", &options.blankLineAfterUsingBlock, "Keep a blank line after the initial `using` block");
+        schema.add("blank-line-after-global-block", &options.blankLineAfterGlobalBlock, "Keep a blank line after the leading `#global` directives");
     }
 
     void bindLiteralSchema(StructConfigSchema& schema, FormatOptions& options)

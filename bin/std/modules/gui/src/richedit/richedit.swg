@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum RichEditFlags
 {
-    Zero          = 0
+    Zero = 0
     ReadOnly
     ShowFocusSel
     CurLineBorder
@@ -43,15 +44,15 @@ struct RichEditCtrl
     sigModified:   SigArray'func||(*RichEditCtrl)
     bkColorModel:  String
 
-    styles:                      [256] RichEditRuneStyle
-    stylesSelect:                [2] RichEditRuneStyle
-    cursorPos: RichEditCursor
-    selBeg:    RichEditCursor
-    lines:     ArrayPtr'RichEditLine
-    freeLines: ArrayPtr'RichEditLine
+    styles:       [256] RichEditRuneStyle
+    stylesSelect: [2] RichEditRuneStyle
+    cursorPos:    RichEditCursor
+    selBeg:       RichEditCursor
+    lines:        ArrayPtr'RichEditLine
+    freeLines:    ArrayPtr'RichEditLine
     scrollWnd:                   #late *ScrollWnd
     edView:                      #late *RichEditView
-    selRectangle:                Math.Rectangle
+    selRectangle: Math.Rectangle
 
     hasSelRect:              bool
     modified:                bool

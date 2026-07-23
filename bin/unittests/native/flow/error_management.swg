@@ -21,8 +21,8 @@ struct CatchInfo
 
 struct AggregateResult
 {
-    first:  s32 = 0
-    second: s32 = 0
+    first:   s32 = 0
+    second:  s32 = 0
     payload: [3] s32
 }
 
@@ -651,7 +651,7 @@ func assumeNullablePointerSuccess()->s32
 func assumeNullableSliceSuccess()->s32
 {
     var values: [3] s32 = [4, 5, 6]
-    let maybe: #null [..] s32 = values
+    let maybe:  #null [..] s32 = values
     let slice = notnull maybe
     #assert(#typeof(slice) == [..] s32)
     return slice[1] + cast(s32) @countof(slice)

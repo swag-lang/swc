@@ -3,9 +3,9 @@
 #[Swag.Inline]
 func inlineJitNullCoalescingSliceFallback()->bool
 {
-    var value: #null [..] u32 = null
+    var value:          #null [..] u32 = null
     let fallbackValues: [2] u32 = [7, 9]
-    let fallback: [..] u32 = fallbackValues
+    let fallback:       [..] u32 = fallbackValues
     let resolved = value orelse fallback
     return @countof(resolved) == 2 and resolved[0] == 7 and resolved[1] == 9
 }
@@ -28,10 +28,10 @@ func inlineJitNullCoalescingStringFallback()->bool
 #[Swag.Inline]
 func inlineJitNonNullCoalescingSliceWins()->bool
 {
-    let primaryValues: [2] u32 = [1, 2]
+    let primaryValues:  [2] u32 = [1, 2]
     let fallbackValues: [2] u32 = [7, 9]
-    let primary: [..] u32 = primaryValues
-    let fallback: [..] u32 = fallbackValues
+    let primary:        [..] u32 = primaryValues
+    let fallback:       [..] u32 = fallbackValues
     let resolved = primary orelse fallback
     return @countof(resolved) == 2 and resolved[0] == 1 and resolved[1] == 2
 }
@@ -39,6 +39,6 @@ func inlineJitNonNullCoalescingSliceWins()->bool
 #test
 {
     const ok = #run inlineJitNullCoalescingSliceFallback() and
-                    inlineJitNonNullCoalescingSliceWins()
+               inlineJitNonNullCoalescingSliceWins()
     #assert(ok)
 }

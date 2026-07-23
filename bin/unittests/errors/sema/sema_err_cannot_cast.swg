@@ -40,7 +40,7 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
 #test
 {
     var value: s64 = 0
-    var data: [2] s32 = [10, 20]
+    var data:  [2] s32 = [10, 20]
     let ptr = cast([*] s32) &data[0]
     value += ptr     // swc-expected-error {{sema_err_cannot_cast}}
 }
@@ -86,7 +86,7 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
 #test
 {
     var values: [4] s32 = [1, 2, 3, 4]
-    let view: const [..] s32 = cast(const [..] s32) values
+    let view:   const [..] s32 = cast(const [..] s32) values
     consumeCannotCastExact4(view)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 

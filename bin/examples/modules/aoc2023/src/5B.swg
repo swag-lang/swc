@@ -36,7 +36,7 @@ private struct Range
 
 private struct SeedRange
 {
-    start, end:    u64
+    start, end: u64
 }
 
 private var seeds: Array'u64

@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum ListSelectionMode
@@ -11,7 +12,7 @@ enum ListSelectionMode
 #[Swag.EnumFlags]
 enum ListFlags
 {
-    Zero                  = 0
+    Zero = 0
     HideSelection
     AlternateLines
     HorzLines
@@ -64,7 +65,7 @@ struct ListCtrl
     iconMarginFirstCol      = true
     listFlags               = ListFlags.Zero
     selectionMode           = ListSelectionMode.Single
-    leftTextMargin:         f32
+    leftTextMargin: f32
 
     sigSelChanged:      SigArray'func||(*ListCtrl)
     sigCheckChanged:    SigArray'func||(*ListCtrl)
@@ -95,7 +96,7 @@ struct ListView
 {
     using wnd:               Wnd
     list:                    #late *ListCtrl
-    discardMouseRelease:     bool
+    discardMouseRelease: bool
 }
 
 impl ListLine

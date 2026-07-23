@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertString(value: const &String, expected: string)->bool
@@ -7,10 +8,10 @@ func assertString(value: const &String, expected: string)->bool
     let text  = value.toString()
     let slice = value.toSlice()
     return value == expected and
-        @countof(value) == @countof(expected) and
-        @countof(text) == @countof(expected) and
-        @countof(slice) == @countof(expected) and
-        Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
+           @countof(value) == @countof(expected) and
+           @countof(text) == @countof(expected) and
+           @countof(slice) == @countof(expected) and
+           Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
 func makePatternString(count: u64)->String

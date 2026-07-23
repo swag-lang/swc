@@ -10,6 +10,7 @@ struct ParserJobOptions
 {
     bool emitTrivia                 = false;
     bool ignoreGlobalCompilerIfSkip = false;
+    bool allowReservedIdentifiers   = false;
 };
 
 Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, ParserJobOptions options);

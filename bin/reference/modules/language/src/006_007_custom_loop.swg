@@ -1,4 +1,5 @@
 #global private
+
 struct MyStruct {}
 
 /**

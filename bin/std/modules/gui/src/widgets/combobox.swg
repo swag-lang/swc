@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 enum ComboBoxKind
@@ -12,14 +13,14 @@ enum ComboBoxKind
 #[Swag.EnumFlags]
 enum ComboBoxFlags
 {
-    Zero          = 0     // No flags
-    Flat                  // Borderless cell style: only paints background/border when hot or open (e.g. property grids)
+    Zero = 0     // No flags
+    Flat         // Borderless cell style: only paints background/border when hot or open (e.g. property grids)
 }
 
 struct ComboBoxItem
 {
     using base:      Item
-    isSeparator:     bool
+    isSeparator: bool
 }
 
 struct ComboBox
@@ -37,7 +38,7 @@ struct ComboBox
     popup:   #null *PopupListCtrl
     items:   ArrayPtr'ComboBoxItem
     selectedIdx         = Swag.U32.Max
-    maxIconSize:        s32
+    maxIconSize: s32
 
     aniBk:     BlendColor
     aniBorder: BlendColor
@@ -114,7 +115,7 @@ impl IWnd for ComboBox
         // Item
         if !.editBox and .selectedIdx < .items.count
         {
-            var format:  RichStringFormat
+            var format: RichStringFormat
             let item     = .items[.selectedIdx]
             var itemRect = clientRect
             itemRect.width -= metrics.comboBox_RightMargin

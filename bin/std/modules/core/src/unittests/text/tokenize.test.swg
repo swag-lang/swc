@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag
 
 func assertStringArray(values: const &Array'(string), expected: const [..] string)->bool

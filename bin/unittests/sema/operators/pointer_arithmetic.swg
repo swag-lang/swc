@@ -3,7 +3,7 @@
 func semaTest001()
 {
     var x0: s32
-    var p: [*]s32 = cast([*]s32) &x0
+    var p:  [*]s32 = cast([*]s32) &x0
 
     var off1: u8 = 1
 

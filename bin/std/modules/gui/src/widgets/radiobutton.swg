@@ -1,25 +1,26 @@
 #global public
+
 using Core, Pixel
 
 struct RadioButton
 {
     using button:        Button
-    checked:             bool
+    checked: bool
 
     // Auto-grouping: radios sharing the same (parent, group) uncheck each other when one is
     // checked, so a group keeps a single selection. 'group' is a string id, like a command id; an
     // empty/unset group means "ungrouped" — grouping is then left to the caller (backward
     // compatible; several radios under one parent stay independent). Give the radios you want
     // mutually exclusive the same non-empty id.
-    group:               WndId
+    group: WndId
     radioButtonFlags     = RadioButtonFlags.Zero
-    sigChanged:          SigArray'func||(*RadioButton)
+    sigChanged: SigArray'func||(*RadioButton)
 }
 
 #[Swag.EnumFlags]
 enum RadioButtonFlags
 {
-    Zero       = 0
+    Zero = 0
     RightAlign
 }
 

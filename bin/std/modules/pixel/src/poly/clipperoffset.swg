@@ -6,6 +6,7 @@
 */
 
 #global namespace Clipper
+
 using Core
 
 const DefaultArcTolerance = 0.25'f64     // Default tolerance for arc approximation in polygon offsetting

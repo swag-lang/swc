@@ -6,9 +6,9 @@ struct GizmoRect
     anchorSize:        f32 = 12
     trackChange:       bool = false
 
-    rect:      Math.Rectangle
-    startRect: Math.Rectangle
-    anchors:               [8] Math.Rectangle
+    rect:          Math.Rectangle
+    startRect:     Math.Rectangle
+    anchors:       [8] Math.Rectangle
     hotAnchor:     u32 = Swag.U32.Max
     moving:        bool
     firstMoving:   bool

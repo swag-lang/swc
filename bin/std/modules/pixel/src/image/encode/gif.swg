@@ -1,4 +1,5 @@
 #global namespace Gif
+
 using Swag, Core, Core.Errors
 
 private
@@ -7,12 +8,12 @@ private
 
     struct PaletteColor
     {
-        r, g, b:     u8
+        r, g, b: u8
     }
 
     struct PaletteData
     {
-        colors:               [256] PaletteColor
+        colors:           [256] PaletteColor
         count:            u32
         tableBits:        u8
         lzwMinCodeSize:   u8

@@ -134,12 +134,12 @@ const MaxGates = 256'u32
 struct Circuit
 {
     // Wire values: index by encoded name
-    wireVal:  #null [*] u8     // 0 or 1 or 255 (unset)
-    gates:    [MaxGates] Gate
+    wireVal:   #null [*] u8     // 0 or 1 or 255 (unset)
+    gates:     [MaxGates] Gate
     gateCount: u32
 
     // For output: track which z-wires exist
-    maxZBit:  u32     // highest z-bit number
+    maxZBit: u32     // highest z-bit number
 }
 
 func circuitInit()->Circuit
@@ -470,9 +470,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         if g.op == GateOp.OpXor and inputsAreXY
         {
             let isFirstBit = (g.nameA0 == 'x' and g.nameA0 + 0 == 'x' and
-                encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
-                (g.nameB0 == 'x' and
-                encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
+                             encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
+                             (g.nameB0 == 'x' and
+                             encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
 
             if !isFirstBit and !hasDownstream(c, g.out, GateOp.OpXor)
             {
@@ -484,9 +484,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         if g.op == GateOp.OpAnd and inputsAreXY
         {
             let isFirstBit = (g.nameA0 == 'x' and
-                encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
-                (g.nameB0 == 'x' and
-                encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
+                             encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
+                             (g.nameB0 == 'x' and
+                             encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
 
             if !isFirstBit and !hasDownstream(c, g.out, GateOp.OpOr)
             {

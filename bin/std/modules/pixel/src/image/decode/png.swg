@@ -6,6 +6,7 @@
 */
 
 #global namespace Png
+
 using Swag, Core, Core.Errors
 
 private
@@ -105,7 +106,7 @@ public struct Decoder
     dstPixels:     #null [*] u8
     dstPixelsSize: u64
     chunkTRNS:     DecodeChunk
-    palette:           [256] u32
+    palette:       [256] u32
     paletteCount:  s32
     seenTRSN:      bool
     seenBKGD:      bool

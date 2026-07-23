@@ -142,13 +142,13 @@ func semaNonNullConstruction()
 {
     var first  = SemaNonNullItem{value: 11}
     var second = SemaNonNullItem{value: 22}
-    var blockStorage: [2] SemaNonNullItem = [{value: 31}, {value: 32}]
+    var blockStorage:   [2] SemaNonNullItem = [{value: 31}, {value: 32}]
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct:   *SemaNonNullItem = &first
-    let readOnly: const *SemaNonNullItem = &first
-    let block: [*] SemaNonNullItem = cast([*] SemaNonNullItem) &blockStorage[0]
-    let slice: [..] SemaNonNullItem = blockStorage
+    let direct:                *SemaNonNullItem = &first
+    let readOnly:              const *SemaNonNullItem = &first
+    let block:                 [*] SemaNonNullItem = cast([*] SemaNonNullItem) &blockStorage[0]
+    let slice:                 [..] SemaNonNullItem = blockStorage
     let text:                  string = "nonull"
     let ctext:                 cstring = cast(cstring) &cstringStorage[0]
     let boxed:                 any = 123
@@ -170,7 +170,7 @@ func semaNonNullConstruction()
     #assert(#typeof(aliasReadOnly) == const *SemaNonNullItem)
     #assert(#typeof(aliasRequired) == const *SemaNonNullItem)
 
-    var defaultItem: SemaNonNullStringDefault
+    var defaultItem:  SemaNonNullStringDefault
     var defaultArray: [2] SemaNonNullStringDefault
     let omittedDefaults = SemaNonNullDefaultContainer{}
     let partialDefaults: [2] SemaNonNullStringDefault = [{value: "explicit"}]
@@ -200,7 +200,7 @@ func semaNonNullConstruction()
         {required: &first},
         {required: &second, count: 8},
         ]
-    let pointerArray: [2] *SemaNonNullItem = [&first, &second]
+    let pointerArray:  [2] *SemaNonNullItem = [&first, &second]
     let aliasedHolder: SemaNonNullHolderAlias = {required: &first}
     let pointerDefault = SemaNonNullPointerDefault{}
     var moveDefaultSource = SemaNonNullMoveDefault{required: "explicit"}

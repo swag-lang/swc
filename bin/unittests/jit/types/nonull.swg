@@ -112,12 +112,12 @@ func jitNonNullConstruction()->bool
 {
     var first  = JitNonNullItem{value: 11}
     var second = JitNonNullItem{value: 22}
-    var blockStorage: [2] JitNonNullItem = [{value: 31}, {value: 32}]
+    var blockStorage:   [2] JitNonNullItem = [{value: 31}, {value: 32}]
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct: *JitNonNullItem = &first
-    let block: [*] JitNonNullItem = cast([*] JitNonNullItem) &blockStorage[0]
-    let slice: [..] JitNonNullItem = blockStorage
+    let direct:                    *JitNonNullItem = &first
+    let block:                     [*] JitNonNullItem = cast([*] JitNonNullItem) &blockStorage[0]
+    let slice:                     [..] JitNonNullItem = blockStorage
     let text:                      string = "nonull"
     let ctext:                     cstring = cast(cstring) &cstringStorage[0]
     let boxed:                     any = 123
@@ -200,8 +200,8 @@ func jitNonNullConstruction()->bool
         ]
     let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
     var genericDefault:  JitNonNullGenericBox'JitNonNullStringDefault
-    let pointerArray: [2] *JitNonNullItem = [&first, &second]
-    let aliasedHolder: JitNonNullHolderAlias = {required: &first}
+    let pointerArray:    [2] *JitNonNullItem = [&first, &second]
+    let aliasedHolder:   JitNonNullHolderAlias = {required: &first}
     let pointerDefault = JitNonNullPointerDefault{}
     var moveDefaultSource = JitNonNullMoveDefault{required: "explicit"}
     let moveDefaultTarget = #move moveDefaultSource
@@ -270,7 +270,7 @@ func jitNonNullConstruction()->bool
         return false
     if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
         return false
-    var defaultItem: JitNonNullStringDefault
+    var defaultItem:  JitNonNullStringDefault
     var defaultArray: [2] JitNonNullStringDefault
     let omittedDefaults = JitNonNullDefaultContainer{}
     let partialDefaults: [2] JitNonNullStringDefault = [{value: "explicit"}]

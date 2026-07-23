@@ -2,7 +2,7 @@
 
 struct LightPuzzle
 {
-    targetMask: u32
+    targetMask:  u32
     buttonMasks: [6] u32
 }
 

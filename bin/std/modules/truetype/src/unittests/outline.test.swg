@@ -1,10 +1,11 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 #test
 {
-    var points: [3] Vector = [{x: 0, y: 0}, {x: 64, y: 64}, {x: 128, y: 0}]
-    var tags: [3] u8 = [1, 0, 1]
+    var points:   [3] Vector = [{x: 0, y: 0}, {x: 64, y: 64}, {x: 128, y: 0}]
+    var tags:     [3] u8 = [1, 0, 1]
     var contours: [1] s16 = [2]
 
     var outline = Outline{

@@ -6,6 +6,7 @@
 */
 
 #global namespace Png
+
 using Core, Core.Errors
 
 private
@@ -113,22 +114,22 @@ private
     {
         offset: u64
         length: u32
-        type:       [4] u8
-        crc:        u32
+        type:   [4] u8
+        crc:    u32
     }
 }
 
 #[Swag.Opaque]
 public struct Encoder
 {
-    stream:       #null *ConcatBuffer
-    stored:       ChunkBitfield
-    ihdr:         Ihdr
-    currentChunk: Chunk
-    tmpBuf:                  [256] u8
-    writePtr: #null [*] u8
-    crc:      Hash.Crc32
-    subimage:                [7] SubImage
+    stream:              #null *ConcatBuffer
+    stored:              ChunkBitfield
+    ihdr:                Ihdr
+    currentChunk:        Chunk
+    tmpBuf:              [256] u8
+    writePtr:            #null [*] u8
+    crc:                 Hash.Crc32
+    subimage:            [7] SubImage
     widestPass:          s32
     lastPass:            s32
     bytesPerPixel:       u32

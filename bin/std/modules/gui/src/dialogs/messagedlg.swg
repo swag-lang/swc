@@ -5,7 +5,7 @@ public struct MessageDlg
     using dialog:     Dialog
     labelIcon:        #late *Label
     label:            #late *Label
-    extension:        #null *Wnd
+    extension: #null *Wnd
 }
 
 public struct MessageDlgOptions
@@ -14,7 +14,7 @@ public struct MessageDlgOptions
     iconColor: Color
     horzAlignmentText     = StringHorzAlignment.Center
     vertAlignmentText     = StringVertAlignment.Center
-    sigCreate:            #null func||(*MessageDlg)
+    sigCreate: #null func||(*MessageDlg)
 }
 
 public impl MessageDlg

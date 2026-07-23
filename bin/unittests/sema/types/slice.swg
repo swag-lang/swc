@@ -55,12 +55,12 @@ func semaTest006()
 
 func semaTest007()
 {
-    var arr: [5] s32 = [10, 20, 30, 40, 50]
+    var arr:    [5] s32 = [10, 20, 30, 40, 50]
     var arrRef: &[5] s32 = &arr
     let arrSlice = arrRef[1 to 3]
     #assert(#nameof(#typeof(arrSlice)) == "[..] s32")
 
-    var view: [..] s32 = arr
+    var view:    [..] s32 = arr
     let viewRef: const &[..] s32 = &view
     let sub = viewRef[1 until 3]
     #assert(#typeof(sub) == [..] s32)

@@ -49,7 +49,7 @@ func day6B0()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var count: [26] s32
+    var count:      [26] s32
     var total, num: u64
 
     for l in lines

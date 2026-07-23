@@ -1,4 +1,5 @@
 #global public
+
 using Core, Pixel
 
 struct SliderCtrl
@@ -9,7 +10,7 @@ struct SliderCtrl
     gap:          f32 = 8
     autoEditSize: bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
-    sigChanged:         SigArray'func||(*SliderCtrl)
+    sigChanged: SigArray'func||(*SliderCtrl)
 
     label:              #late *Label
     slider:             #late *Slider

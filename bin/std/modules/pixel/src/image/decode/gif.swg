@@ -3,6 +3,7 @@
 // The original code has been modified for Swag
 
 #global namespace Gif
+
 using Swag, Core, Core.Errors
 
 private
@@ -23,8 +24,8 @@ private
 
     struct Palette
     {
-        size:       s32
-        colors:     [0x100 * 3] u8
+        size:   s32
+        colors: [0x100 * 3] u8
     }
 
     struct Gce
@@ -86,10 +87,10 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeStream()->const [*] u8 => cast(const [*] u8) (notnull .stream)
+    mtd safeStream()->const [*] u8      => cast(const [*] u8) (notnull .stream)
     mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) (notnull .streamStart)
-    mtd safePalette()->*Palette => cast(*Palette) (notnull .palette)
-    mtd safeCanvas()->[*] u8 => cast([*] u8) (notnull .canvas)
+    mtd safePalette()->*Palette         => cast(*Palette) (notnull .palette)
+    mtd safeCanvas()->[*] u8            => cast([*] u8) (notnull .canvas)
 
     mtd seek(len: u64) throw
     {

@@ -513,6 +513,9 @@ uint32_t FormatModel::maxAllowedNewlines(const uint32_t gapIndex) const
     if (options_->trimTrailingNewlines.value_or(false) && isTrailingGap)
         maxNewlines = std::min(maxNewlines, 1u);
 
+    if (options_->trimLeadingBlankLines.value_or(false) && gapIndex == 0)
+        maxNewlines = 0;
+
     return maxNewlines;
 }
 

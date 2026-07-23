@@ -65,19 +65,19 @@ struct BaseForm
 
     // The text forms edit this as "Outline" with a thinner range (PropWnd.bindGrid)
     #[Name("Tickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
-    borderSize:          f32 = 5
+    borderSize: f32 = 5
     #[Name("Joins")]
     joinStyle            = JoinStyle.Round
     #[Name("Line"), BoolCombo("Straight", "Bezier")]
-    bezier:              bool
+    bezier: bool
     #[Category("Effects"), Name("Scale"), SliderMinMax(0, 100), Unit("%")]
-    scale:               f32 = 0
+    scale: f32 = 0
     #[Name("Rotate"), SliderMinMax(0, 360), Unit("°")]
-    rotate:              f32 = 0
+    rotate: f32 = 0
     #[Name("Opacity"), SliderMinMax(0, 100), Unit("%")]
-    alpha:               u8 = 100
+    alpha: u8 = 100
     #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
-    paintShadow:         bool = true
+    paintShadow: bool = true
 
     shadowOffsetX: f32 = 2
     shadowOffsetY: f32 = 2
@@ -94,7 +94,7 @@ struct BaseForm
     // Grouping prepends a fresh id shared by every member; ungrouping pops the front,
     // so nested groups collapse one level at a time. Ids are minted by Capture and
     // remapped on paste; the field is style-agnostic (copyBase/isSameBase ignore it).
-    groups:              Array'u64
+    groups: Array'u64
 
     #[Serialization.NoSerialize]
     {

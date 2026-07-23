@@ -1,5 +1,6 @@
 #global public
 #global namespace Compress
+
 using Core.Errors
 
 #[Swag.Opaque]

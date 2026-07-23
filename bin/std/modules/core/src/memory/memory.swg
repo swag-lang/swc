@@ -1,5 +1,6 @@
 #global public
 #global namespace Memory
+
 using Swag
 
 // Copy one block of memory to a given address

@@ -422,13 +422,13 @@ func msdfMedian(a, b, c: f64)->f64
 
 struct MsdfRowCtx
 {
-    segs:  const *Array'MsdfSeg
-    edges: const *Array'Edge
-    channels:    [*] f32
-    rowVotes:    [*] s64
-    width: s32
-    left:  s32
-    top:   s32
+    segs:     const *Array'MsdfSeg
+    edges:    const *Array'Edge
+    channels: [*] f32
+    rowVotes: [*] s64
+    width:    s32
+    left:     s32
+    top:      s32
 }
 
 // Fill one output row of the MSDF field and accumulate that row's sign vote.

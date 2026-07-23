@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 #[Swag.EnumFlags]
 enum ProgressBarFlags
 {
-    Zero     = 0
+    Zero = 0
     Infinite
 }
 
@@ -13,7 +14,7 @@ struct ProgressBar
     using wnd:       Wnd
 
     prgBarFlags      = ProgressBarFlags.Zero
-    progression:     f32
+    progression: f32
 }
 
 impl IWnd for ProgressBar

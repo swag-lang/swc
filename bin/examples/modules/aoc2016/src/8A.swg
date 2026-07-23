@@ -48,7 +48,7 @@ func day8A()
     const W = 50
     const H = 6
     var screen, nscreen: [W, H] bool
-    var re: Parser.RegExp
+    var re:              Parser.RegExp
 
     for l in lines
     {

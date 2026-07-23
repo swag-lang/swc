@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 interface IEvent {}
@@ -36,7 +37,7 @@ struct CommandStateEvent
     #[Swag.EnumFlags]
     enum SetFlags
     {
-        Zero          = 0
+        Zero = 0
         Disabled
         Icon
         Shortcut
@@ -51,7 +52,7 @@ struct CommandStateEvent
     #[Swag.EnumFlags]
     enum RenderingHint
     {
-        Zero           = 0
+        Zero = 0
         ExclusiveGroup
     }
 
@@ -83,7 +84,7 @@ impl IEvent for CommandStateEvent {}
 struct TimerEvent
 {
     using base:     Event
-    timer:          *Timer = undefined
+    timer: *Timer = undefined
 }
 
 impl IEvent for TimerEvent {}
@@ -91,7 +92,7 @@ impl IEvent for TimerEvent {}
 struct FrameEvent
 {
     using base:     Event
-    firstFrame:     bool
+    firstFrame: bool
 }
 
 impl IEvent for FrameEvent {}
@@ -119,7 +120,7 @@ struct StateEvent
     }
 
         using base:     Event
-    kind:           Kind
+    kind: Kind
 }
 
 impl IEvent for StateEvent {}
@@ -150,7 +151,7 @@ impl IEvent for PaintEvent {}
 struct ResizeEvent
 {
     using base:     Event
-    oldSize:        Math.Point
+    oldSize: Math.Point
 }
 
 impl IEvent for ResizeEvent {}
@@ -158,7 +159,7 @@ impl IEvent for ResizeEvent {}
 struct MoveEvent
 {
     using base:     Event
-    oldPos:         Math.Point
+    oldPos: Math.Point
 }
 
 impl IEvent for MoveEvent {}
@@ -209,7 +210,7 @@ impl IEvent for MouseEvent {}
 struct QuitEvent
 {
     using base:     Event
-    quitCode:       s32
+    quitCode: s32
 }
 
 impl IEvent for QuitEvent {}
@@ -254,7 +255,7 @@ struct SysCommandEvent
     }
 
         using base:     Event
-    kind:           Kind
+    kind: Kind
 }
 
 impl IEvent for SysCommandEvent {}
@@ -271,7 +272,7 @@ impl IEvent for ThemeEvent {}
 struct SerializeStateEvent
 {
     using base:     Event
-    ser:            *Serialization.Serializer = undefined
+    ser: *Serialization.Serializer = undefined
 }
 
 impl IEvent for SerializeStateEvent {}

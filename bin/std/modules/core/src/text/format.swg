@@ -1,5 +1,6 @@
 #global public
 #global namespace Format
+
 using Swag
 
 // Check if this is a valid 'fmt/values' pair, coherent with 'format' specification

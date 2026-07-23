@@ -3,7 +3,7 @@ using Core, Pixel, Serialization
 #[Swag.EnumFlags]
 public enum SizingBorder
 {
-    Zero   = 0
+    Zero = 0
     Left
     Top
     Right

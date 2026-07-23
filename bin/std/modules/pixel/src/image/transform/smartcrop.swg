@@ -216,7 +216,7 @@ public impl Image
 
     internal func estimatePercentiles(buf: &Array'f32, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
     {
-        const K  = 4096's32
+        const K = 4096's32
         var tmp: Array'f32
         var M    = Math.min(K, N)
         tmp.resize(M)
@@ -288,7 +288,7 @@ public impl Image
         sobelMagFromLumBlur(&lumBlur, w, h, &edgeMag)
 
         // Downsampled local contrast (same as before)
-        const R       = SALIENCY_RADIUS
+        const R = SALIENCY_RADIUS
         var contrast: Array'f32
         contrast.resize(N)
         let sampleStep = 2

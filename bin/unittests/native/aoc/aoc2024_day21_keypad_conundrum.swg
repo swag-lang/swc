@@ -27,7 +27,7 @@ struct Coord
 }
 
 // Build numeric keypad coordinate table at compile time
-func buildNumPad() -> [11] Coord
+func buildNumPad()->[11] Coord
 {
     var result: retval
     // 0-9 map to indices 0-9, A maps to index 10
@@ -51,7 +51,7 @@ const NumGapC: s32 = 0
 
 // Directional keypad: _^A / <v>
 // Index: 0=^, 1=A, 2=<, 3=v, 4=>
-func buildDirPad() -> [5] Coord
+func buildDirPad()->[5] Coord
 {
     var result: retval
     result[0] = Coord{r: 0, c: 1}     // ^

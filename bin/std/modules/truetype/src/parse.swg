@@ -264,7 +264,7 @@ func initFaceRecords(faceData: *FaceImpl)
     faceData.face.glyph.bitmap.pixelMode = .Gray
     faceData.face.glyph.bitmap.grayCount = 256
 
-    faceData.face.size.face       = &faceData.face
+    faceData.face.size.face = &faceData.face
 
     faceData.face.charMap.face       = &faceData.face
     faceData.face.charMap.platformID = 3

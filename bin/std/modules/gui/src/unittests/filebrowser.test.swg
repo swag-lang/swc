@@ -1,5 +1,6 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, File
 
 // The file browser composite builds its sub-controls and resolves selections

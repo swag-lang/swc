@@ -1,10 +1,11 @@
 #global public
+
 using Core, Pixel
 
 struct ThemeStyleRef
 {
     theme:     #late *Theme
-    count:     u32
+    count: u32
 }
 
 struct ThemeStyle

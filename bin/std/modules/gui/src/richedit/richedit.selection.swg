@@ -1,4 +1,5 @@
 #global public
+
 using Core
 
 private impl RichEditCtrl

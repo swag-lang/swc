@@ -59,7 +59,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     @assert(totalCells <= MaxWarehouseCells)
 
-    var cells: [MaxWarehouseCells] u8
+    var cells:  [MaxWarehouseCells] u8
     var robotX: s32
     var robotY: s32
 

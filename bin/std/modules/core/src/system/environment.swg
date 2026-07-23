@@ -93,7 +93,7 @@ func getMonitorForPoint(pt: Math.Point)->Env.Monitor
 // Returns the monitor corresponding to the surface position
 func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
 {
-    var result:  retval
+    var result: retval
     var bestSurf = 0'f32
     let monitors = Env.getMonitors()
     for m in monitors

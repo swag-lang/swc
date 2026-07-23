@@ -47,7 +47,7 @@ const AnyFalseValue: any = false
 
 func semaTest001()
 {
-    var raw: [2] u8 = ['x''u8, 'y''u8]
+    var raw:     [2] u8 = ['x''u8, 'y''u8]
     let primary: #null const [..] u8 = null
     let resolved = primary orelse raw
     #assert(#typeof(resolved) == const [..] u8)

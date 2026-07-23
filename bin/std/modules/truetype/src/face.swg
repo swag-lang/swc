@@ -3,7 +3,7 @@ using Swag, Core
 #[Swag.EnumFlags]
 public enum LoadFlag
 {
-    Default           = 0
+    Default = 0
     NoScale
     NoHinting
     Render
@@ -90,7 +90,7 @@ public impl Face
         Memory.delete(faceData)
     }
 
-    mtd const isBold()->bool => .style.has(.Bold)
+    mtd const isBold()->bool   => .style.has(.Bold)
     mtd const isItalic()->bool => .style.has(.Italic)
 
     mtd setPixelSize(pixelWidth, pixelHeight: u32) throw

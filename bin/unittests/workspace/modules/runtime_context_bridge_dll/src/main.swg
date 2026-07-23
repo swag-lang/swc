@@ -90,8 +90,8 @@ public struct CtxClosureByteSet
 
 public struct CtxSelfBufferSet
 {
-    buffer: #null [*] u8
-    count:  u32
+    buffer:  #null [*] u8
+    count:   u32
     storage: [4] u8
 }
 

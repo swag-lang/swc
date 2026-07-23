@@ -1,4 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 func assertNearByte(value, expected: u8, tolerance: u8)

@@ -1,4 +1,5 @@
 #global namespace StrConv
+
 using Swag, Core.Errors
 
 // This function will parse the string 'buf' and decode the corresponding value in 'addr'.

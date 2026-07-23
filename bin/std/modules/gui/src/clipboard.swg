@@ -1,4 +1,5 @@
 #global namespace Clipboard
+
 using Serialization
 
 var g_ValueFormat: ValueFormat

@@ -5,6 +5,7 @@
 */
 
 #global namespace Hash
+
 using Swag
 
 #[Safety(.All, false)]

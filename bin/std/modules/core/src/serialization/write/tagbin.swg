@@ -1,6 +1,7 @@
 #global namespace Serialization
 #global namespace Write
 #global public
+
 using Swag
 
 // Current tagbin version.

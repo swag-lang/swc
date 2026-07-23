@@ -21,9 +21,9 @@ immutable variables (single-assignment, set once at runtime).
 */
 #test
 {
-    const Pi   = 3.14159     // Constant value, cannot be changed
-    var radius = 10          // Mutable variable
-    let height = 100         // Immutable variable (single assignment)
+    const Pi = 3.14159     // Constant value, cannot be changed
+    var radius = 10        // Mutable variable
+    let height = 100       // Immutable variable (single assignment)
 }
 
 /**

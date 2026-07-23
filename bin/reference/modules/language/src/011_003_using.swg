@@ -31,7 +31,7 @@ for composition-like behavior, improving code readability and reducing nesting.
     struct Point3
     {
         using base:     Point2     // Bring 'Point2' fields into 'Point3' scope.
-        z:              s32
+        z: s32
     }
 
     var value: Point3

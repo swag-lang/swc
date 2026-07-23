@@ -79,6 +79,45 @@ struct SemaLateErrNullable
     p: #late #null *s32 // swc-expected-error {{sema_err_late_bad_type}}
 }
 
+// A read proven never-assigned on every path is a compile-time fault.
+func semaLateErrNeverSet()->*SemaLateItem
+{
+    var b: SemaLateBox
+    return b.item // swc-expected-error {{sema_err_late_read_never_set}}
+}
+
+// Writing THROUGH a late field dereferences it: a read, never an initialization.
+func semaLateErrNestedWrite()
+{
+    var b: SemaLateBox
+    b.item.value = 8 // swc-expected-error {{sema_err_late_read_never_set}}
+}
+
+// A conditional assignment keeps the read legal: the runtime guard covers it.
+func semaLateOkMaybeSet(it: *SemaLateItem, use: bool)->s32
+{
+    var b: SemaLateBox
+    if use do
+        b.item = it
+    return b.item.value
+}
+
+// An escaped address may be filled by the callee: no static verdict.
+func semaLateFill(slot: **SemaLateItem) {}
+func semaLateOkEscaped()->bool
+{
+    var b: SemaLateBox
+    semaLateFill(&b.item)
+    return #isset(b.item)
+}
+
+// '#isset' before any assignment is not a read.
+func semaLateOkIsSetFirst()->bool
+{
+    var b: SemaLateBox
+    return #isset(b.item)
+}
+
 // '#isset' only applies to late field accesses.
 func semaLateErrIsSetValue(v: s32)->bool
 {

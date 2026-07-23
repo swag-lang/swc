@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -33,9 +34,11 @@ namespace
         uint32_t              fieldCount  = 0;       // 0 => single slot
         uint64_t              fullMask    = 1;
         uint64_t              dropMask    = 0; // bits of fields with a drop lifecycle
+        uint64_t              lateMask    = 0; // bits of '#late' fields ('lateOnly' tracking)
         bool                  typeHasDrop = false;
         bool                  isRetVal    = false;
         bool                  isArray     = false; // static array: passed by address, filled element-wise
+        bool                  lateOnly    = false; // tracked only for its '#late' fields: zero-init var, no undefined content
         bool                  errored     = false; // one report per variable
         uint32_t              blockDepth  = 0;
         uint32_t              loopDepth   = 0;
@@ -374,9 +377,10 @@ namespace
         // Resolved access path: a tracked root plus at most one first-level field.
         struct AccessPath
         {
-            int32_t varIndex   = -1;
-            int32_t fieldIndex = -1; // -1 => whole variable
-            bool    indexed    = false;
+            int32_t varIndex    = -1;
+            int32_t fieldIndex  = -1; // -1 => whole variable
+            bool    indexed     = false;
+            bool    nestedField = false; // access goes deeper than the first-level field
         };
 
         // Extracts (root var, first-level field) from an lvalue-ish expression.
@@ -401,7 +405,10 @@ namespace
                             return false;
                         out.varIndex = idx;
                         if (!fieldChain.empty())
-                            out.fieldIndex = fieldIndexOf(vars_[idx], fieldChain.back());
+                        {
+                            out.fieldIndex  = fieldIndexOf(vars_[idx], fieldChain.back());
+                            out.nestedField = fieldChain.size() > 1;
+                        }
                         return true;
                     }
                     case AstNodeId::MemberAccessExpr:
@@ -481,6 +488,23 @@ namespace
             diag.report(sema_.ctx());
         }
 
+        void reportLateRead(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
+        {
+            if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
+                return;
+            var.errored = true;
+            errorCount_++;
+            hadError_ = true;
+
+            auto diag = SemaError::report(sema_, DiagnosticId::sema_err_late_read_never_set, atRef);
+            SemaError::setReportArguments(sema_, diag, var.sym);
+            if (fieldIndex >= 0 && var.fieldStruct)
+                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_.ctx())});
+            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_.node(atRef).codeRef().srcViewRef)
+                diag.last().addSpan(var.sym->codeRange(sema_.ctx()), "declared here");
+            diag.report(sema_.ctx());
+        }
+
         void reportDrop(AstNodeRef atRef, TrackedVar& var)
         {
             if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
@@ -506,17 +530,30 @@ namespace
             if (path.fieldIndex >= 0)
                 state.add(path.varIndex, 1ull << path.fieldIndex);
             else
-                state.set(path.varIndex, var.fullMask, var.fullMask);
+            {
+                // Whole assignment: the source's '#late' fields may legally be
+                // unset, so the copy proves nothing for them.
+                state.set(path.varIndex, var.fullMask & ~var.lateMask, var.fullMask);
+            }
         }
 
         void markEscaped(FlowState& state, const AccessPath& path)
         {
             // Once the address escapes, the variable is treated as initialized: the
             // callee may fill it (out parameter) and later flow cannot be proven.
+            // '#late' fields only gain 'may': the callee filling them is possible,
+            // never proven (the runtime read guard stays).
+            const TrackedVar& var = vars_[path.varIndex];
             if (path.fieldIndex >= 0)
-                state.add(path.varIndex, 1ull << path.fieldIndex);
+            {
+                const uint64_t bit = 1ull << path.fieldIndex;
+                if (var.lateMask & bit)
+                    state.set(path.varIndex, state.getMust(path.varIndex), state.getMay(path.varIndex) | bit);
+                else
+                    state.add(path.varIndex, bit);
+            }
             else
-                state.set(path.varIndex, vars_[path.varIndex].fullMask, vars_[path.varIndex].fullMask);
+                state.set(path.varIndex, state.getMust(path.varIndex) | (var.fullMask & ~var.lateMask), var.fullMask);
         }
 
         bool isNullableTypeRef(TypeRef typeRef) const
@@ -613,7 +650,25 @@ namespace
         {
             if (deferDepth_)
                 return;
-            TrackedVar&    var  = vars_[path.varIndex];
+            TrackedVar& var = vars_[path.varIndex];
+
+            // '#late' field read: proven set on EVERY path elides the runtime read
+            // guard; proven never set on ANY path is a compile-time fault; anything
+            // in between is the runtime guard's business. Indexed and nested
+            // accesses dereference the late field the same way.
+            if (path.fieldIndex >= 0 && (var.lateMask & (1ull << path.fieldIndex)))
+            {
+                const uint64_t fieldBit = 1ull << path.fieldIndex;
+                if (state.getMust(path.varIndex) & fieldBit)
+                    SemaHelpers::clearLateFieldReadGuard(sema_, atRef);
+                else if (!(state.getMay(path.varIndex) & fieldBit))
+                {
+                    reportLateRead(atRef, var, path.fieldIndex);
+                    state.add(path.varIndex, fieldBit); // suppress cascading reports
+                }
+                return;
+            }
+
             const uint64_t bits = state.getMust(path.varIndex);
             if ((bits & var.fullMask) == var.fullMask)
                 return;
@@ -768,13 +823,33 @@ namespace
                         if (!explicitUndef)
                         {
                             symStruct.computeImplicitDefaultFlags(sema_);
-                            if (!symStruct.hasImplicitUndefinedDefault())
-                                return;
-                            tracked = true;
-                            for (uint32_t i = 0; i < var.fieldCount; i++)
+                            if (symStruct.hasImplicitUndefinedDefault())
                             {
-                                if (!symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-                                    presetBits |= 1ull << i;
+                                tracked = true;
+                                for (uint32_t i = 0; i < var.fieldCount; i++)
+                                {
+                                    if (!symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                                        presetBits |= 1ull << i;
+                                }
+                            }
+                            else
+                            {
+                                // Zero-initialized struct with '#late' fields: track
+                                // only their set-state (error on proven never-set
+                                // reads, elide the guard on proven-set ones).
+                                uint64_t lateMask = 0;
+                                for (uint32_t i = 0; i < var.fieldCount; i++)
+                                {
+                                    if (symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                                        lateMask |= 1ull << i;
+                                }
+                                if (!lateMask)
+                                    return;
+                                tracked      = true;
+                                var.lateOnly = true;
+                                var.lateMask = lateMask;
+                                var.dropMask &= ~lateMask; // dropping the null 'unset' state is safe
+                                presetBits = var.fullMask & ~lateMask;
                             }
                         }
                     }
@@ -890,7 +965,7 @@ namespace
                 const SymbolVariable* symVar = identifierVariable(ref);
                 const int32_t         idx    = trackedIndex(symVar);
                 if (idx >= 0)
-                    state.set(idx, vars_[idx].fullMask, vars_[idx].fullMask);
+                    state.set(idx, state.getMust(idx) | (vars_[idx].fullMask & ~vars_[idx].lateMask), vars_[idx].fullMask);
                 const int32_t localIdx = nullableLocalIndex(symVar);
                 if (localIdx >= 0)
                     nullableLocals_[localIdx].keepNull = true;
@@ -1177,6 +1252,15 @@ namespace
                 case AstNodeId::CallExpr:
                 case AstNodeId::IntrinsicCallExpr:
                     return walkCall(ref, node, state);
+
+                case AstNodeId::IntrinsicCall:
+                {
+                    // '#isset(x.f)' inspects a '#late' field's storage: neither a
+                    // read of the value nor an escape of the variable.
+                    if (tokenIdOf(node, TokenId::IntrinsicKindOf) == TokenId::IntrinsicIsSet)
+                        return FlowExit::Normal;
+                    return walkChildren(node, state);
+                }
 
                 case AstNodeId::Identifier:
                 {
@@ -1540,6 +1624,15 @@ namespace
             // Index expressions on the left still read their index.
             if (leftNode.is(AstNodeId::IndexExpr))
                 walk(leftNode.cast<AstIndexExpr>().nodeArgRef, state);
+
+            // Writing THROUGH a '#late' field ('b.item.value = x', 'b.name[i] = c')
+            // dereferences the field: a read, never an initialization.
+            if (path.fieldIndex >= 0 && (path.nestedField || path.indexed) &&
+                (vars_[path.varIndex].lateMask & (1ull << path.fieldIndex)))
+            {
+                checkRead(state, assignRef, path);
+                return FlowExit::Normal;
+            }
 
             if (tokenId != TokenId::SymEqual)
             {

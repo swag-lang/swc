@@ -11,20 +11,25 @@ struct LateBox
 }
 
 // =============================================
-// Reading a '#late' field before initialization panics under null safety
+// Reading a '#late' field before initialization panics under null safety.
+// The conditional assignment keeps the fault a runtime matter: a read proven
+// never-set on every path is a compile-time error instead (see the sema tests).
 // =============================================
 
 #test
 {
     #[Swag.Safety(.Null, true)]
-    func lateReadBeforeInit()->s32
+    func lateReadBeforeInit(doSet: bool)->s32
     {
+        var item = LateItem{value: 1}
         var b: LateBox
+        if doSet do
+            b.item = &item
         let p = b.item // swc-expected-error {{safety_err_runtime}}
         return p.value
     }
 
-    const value = #run lateReadBeforeInit()
+    const value = #run lateReadBeforeInit(false)
 }
 
 // =============================================

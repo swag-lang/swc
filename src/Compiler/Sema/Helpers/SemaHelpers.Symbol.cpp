@@ -1267,7 +1267,13 @@ namespace
         // '#isset') clear it back.
         if (finalSymCount == 1 && symbols[0]->isVariable() &&
             symbols[0]->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
+        {
             SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, targetNodeRef, Runtime::SafetyWhat::Null, codeRef));
+            // Gate the flow post-pass: it proves set-before-read for late fields
+            // of locally-constructed values (static error / guard elision).
+            if (sema.isCurrentFunction())
+                sema.noteExplicitUndefinedLocal();
+        }
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
             SWC_RESULT(ensureMemberRuntimeStorage(sema, targetNodeRef, node));

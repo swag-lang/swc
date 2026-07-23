@@ -9,8 +9,8 @@ impl Image
         Green
         Blue
         Alpha
-        RGB   = Red | Green | Blue
-        RGBA  = RGB | Alpha
+        RGB  = Red | Green | Blue
+        RGBA = RGB | Alpha
     }
 
     public enum ChannelValueMode

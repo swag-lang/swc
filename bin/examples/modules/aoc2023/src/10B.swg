@@ -97,14 +97,14 @@ using Core
 #[Swag.EnumFlags]
 private enum Dir
 {
-    Zero  = 0
+    Zero = 0
     West
     East
     North
     South
     Edge
     Fill
-    Mask  = 1 | 2 | 4 | 8
+    Mask = 1 | 2 | 4 | 8
 }
 
 func day10B()

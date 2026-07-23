@@ -3,19 +3,19 @@ using Core, Win32
 #[Swag.EnumFlags]
 public enum VoiceCreateFlags
 {
-    Zero          = 0
+    Zero    = 0
     AcceptPitch
     AcceptFilters
-    Default       = AcceptFilters | AcceptPitch
+    Default = AcceptFilters | AcceptPitch
 }
 
 #[Swag.EnumFlags]
 public enum VoicePlayFlags
 {
-    Zero          = 0
+    Zero    = 0
     Loop              // Play in loops
     DestroyOnStop     // Destroy the voice once the sound has been played
-    Default       = DestroyOnStop
+    Default = DestroyOnStop
 }
 
 #[Swag.EnumFlags]

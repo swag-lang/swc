@@ -2,9 +2,9 @@
 
 enum ReflectMode: s16
 {
-    First = -2
+    First  = -2
     Second = 7
-    Third = 9
+    Third  = 9
 }
 
 func isSecond(mode: ReflectMode)->bool => mode == .Second

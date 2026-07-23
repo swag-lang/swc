@@ -37,7 +37,7 @@ struct AggregateInfo
 enum ThrowStrictEnum: u32
 {
     Zero = 0,
-    One = 1,
+    One  = 1,
 }
 
 #[Swag.Strict]

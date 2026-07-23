@@ -34,12 +34,12 @@ enum FileMode
 // File sharing options
 enum FileShare
 {
-    Zero        = 0                // No sharing
-    Delete                         // Allows the file to be deleted by others
-    Inheritable                    // File handle is inheritable
-    Read                           // Allows shared read access
-    Write                          // Allows shared write access
-    ReadWrite   = Read | Write     // Allows shared read and write access
+    Zero      = 0                // No sharing
+    Delete                       // Allows the file to be deleted by others
+    Inheritable                  // File handle is inheritable
+    Read                         // Allows shared read access
+    Write                        // Allows shared write access
+    ReadWrite = Read | Write     // Allows shared read and write access
 }
 
 // Reads the entire content of a file into a UTF-8 string

@@ -108,8 +108,8 @@ struct InitRgb
 enum IntrinsicStrictEnum: u32
 {
     Zero = 0,
-    A = 1,
-    B = 2,
+    A    = 1,
+    B    = 2,
 }
 
 #[Swag.Strict]

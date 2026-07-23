@@ -11,7 +11,7 @@
 #[Swag.EnumFlags]
 enum CharAttribute
 {
-    Zero        = 0
+    Zero      = 0
     Control
     Punctuation
     BinDigit
@@ -24,8 +24,8 @@ enum CharAttribute
     Printable
     LowerUtf8
     UpperUtf8
-    Graphical   = Printable | Spacing
-    Letter      = Lower | Upper
+    Graphical = Printable | Spacing
+    Letter    = Lower | Upper
 }
 
 const CharProperties: [256] CharAttribute = [

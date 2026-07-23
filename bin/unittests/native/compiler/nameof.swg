@@ -3,9 +3,9 @@ const GlobalValue = 0
 
 enum Color
 {
-    Red = 1,
+    Red   = 1,
     Green = 2,
-    Blue = 3,
+    Blue  = 3,
 }
 
 struct NamedStruct

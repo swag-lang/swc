@@ -549,25 +549,25 @@ namespace Swag
     #[Swag.EnumFlags]
     enum TypeInfoFlags: u32
     {
-        Zero              = 0x00000000
-        PointerTypeInfo   = 0x00000001        // This is a pointer to a [[TypeInfo]] struct
-        Integer           = 0x00000002        // This is a native integer
-        Float             = 0x00000004        // This is a native float
-        Unsigned          = 0x00000008        // This is a native unsigned integer
-        HasPostCopy       = 0x00000010        // This is a struct with a 'opPostCopy'
-        HasPostMove       = 0x00000020        // This is a struct with a 'opPostMove'
-        HasDrop           = 0x00000040        // This is a struct with a 'opDrop'
-        Strict            = 0x00000080        // This is a alias with the Swag.Strict attribute
-        CanCopy           = 0x00000100        // This is a struct that can be copied
-        Tuple             = 0x00000200        // This is a tuple
-        CString           = 0x00000400        // This is a 'cstring'
-        Generic           = 0x00000800        // This is a generic type
-        PointerRef        = 0x00001000        // This is a reference
-        PointerMoveRef    = 0x00002000        // This is a move reference
-        PointerArithmetic = 0x00004000        // This is a pointer to multiple values
-        Character         = 0x00008000        // This is a 32 bits character
-        Const             = 0x00010000        // This is const
-        Nullable          = 0x00020000        // This is a nullable type
+        Zero                 = 0x00000000
+        PointerTypeInfo      = 0x00000001     // This is a pointer to a [[TypeInfo]] struct
+        Integer              = 0x00000002     // This is a native integer
+        Float                = 0x00000004     // This is a native float
+        Unsigned             = 0x00000008     // This is a native unsigned integer
+        HasPostCopy          = 0x00000010     // This is a struct with a 'opPostCopy'
+        HasPostMove          = 0x00000020     // This is a struct with a 'opPostMove'
+        HasDrop              = 0x00000040     // This is a struct with a 'opDrop'
+        Strict               = 0x00000080     // This is a alias with the Swag.Strict attribute
+        CanCopy              = 0x00000100     // This is a struct that can be copied
+        Tuple                = 0x00000200     // This is a tuple
+        CString              = 0x00000400     // This is a 'cstring'
+        Generic              = 0x00000800     // This is a generic type
+        PointerRef           = 0x00001000     // This is a reference
+        PointerMoveRef       = 0x00002000     // This is a move reference
+        PointerArithmetic    = 0x00004000     // This is a pointer to multiple values
+        Character            = 0x00008000     // This is a 32 bits character
+        Const                = 0x00010000     // This is const
+        Nullable             = 0x00020000     // This is a nullable type
         RequiresExplicitInit = 0x00080000     // This type must be explicitly initialized
     }
 

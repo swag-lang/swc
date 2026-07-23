@@ -3,7 +3,7 @@ using Swag, Core
 #[Swag.EnumFlags]
 public enum LoadFlag
 {
-    Default                   = 0
+    Default           = 0
     NoScale
     NoHinting
     Render
@@ -20,9 +20,9 @@ public enum LoadFlag
     LinearDesign
     SBitsOnly
     NoAutoHint
-    Color                    = 1 << 20
-    ComputeMetrics           = 1 << 21
-    BitmapMetricsOnly        = 1 << 22
+    Color             = 1 << 20
+    ComputeMetrics    = 1 << 21
+    BitmapMetricsOnly = 1 << 22
 }
 
 #[Swag.EnumFlags]

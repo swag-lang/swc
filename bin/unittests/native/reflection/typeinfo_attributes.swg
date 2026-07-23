@@ -32,7 +32,7 @@ struct ReflectedStruct
 enum ReflectedEnum: u8
 {
     #[EnumValueReflectionAttr(1)]
-    First = 1
+    First  = 1
 
     #[EnumValueReflectionAttr(2)]
     Second = 2

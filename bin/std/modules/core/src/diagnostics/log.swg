@@ -4,15 +4,15 @@
 #[Swag.EnumFlags]
 enum LogFlags
 {
-    Zero          = 0                                                 // No flags set.
-    Prefix                                                            // Include custom prefix in log output.
-    Date                                                              // Include date (YYYY/MM/DD).
-    Time                                                              // Include time (HH:MM:SS:ms).
-    ShortFileName                                                     // Include only the file name (exclusive with LongFileName).
-    LongFileName                                                      // Include full file path (exclusive with ShortFileName).
-    Line                                                              // Include only the start line number (exclusive with FullLoc).
-    FullLoc                                                           // Include full location (line/col start and end).
-    Default       = Prefix | Date | Time | LongFileName | FullLoc     // Default logging configuration.
+    Zero    = 0                                                 // No flags set.
+    Prefix                                                      // Include custom prefix in log output.
+    Date                                                        // Include date (YYYY/MM/DD).
+    Time                                                        // Include time (HH:MM:SS:ms).
+    ShortFileName                                               // Include only the file name (exclusive with LongFileName).
+    LongFileName                                                // Include full file path (exclusive with ShortFileName).
+    Line                                                        // Include only the start line number (exclusive with FullLoc).
+    FullLoc                                                     // Include full location (line/col start and end).
+    Default = Prefix | Date | Time | LongFileName | FullLoc     // Default logging configuration.
 }
 
 // Interface for writing log output.

@@ -187,17 +187,17 @@ enum SHSTOCKICONID
     SIID_SETTINGS          = 106     // Settings
     // 107-131 are private Vista RTM icons
     // 132-159 for SP1 icons
-    SIID_DRIVEHDDVD     = 132     // HDDVD Drive (all types)
-    SIID_DRIVEBD        = 133     // BluRay Drive (all types)
-    SIID_MEDIAHDDVDROM  = 134     // HDDVD-ROM Media
-    SIID_MEDIAHDDVDR    = 135     // HDDVD-R Media
-    SIID_MEDIAHDDVDRAM  = 136     // HDDVD-RAM Media
-    SIID_MEDIABDROM     = 137     // BluRay ROM Media
-    SIID_MEDIABDR       = 138     // BluRay R Media
-    SIID_MEDIABDRE      = 139     // BluRay RE Media (Rewriable and RAM)
-    SIID_CLUSTEREDDRIVE = 140     // Clustered disk
+    SIID_DRIVEHDDVD        = 132     // HDDVD Drive (all types)
+    SIID_DRIVEBD           = 133     // BluRay Drive (all types)
+    SIID_MEDIAHDDVDROM     = 134     // HDDVD-ROM Media
+    SIID_MEDIAHDDVDR       = 135     // HDDVD-R Media
+    SIID_MEDIAHDDVDRAM     = 136     // HDDVD-RAM Media
+    SIID_MEDIABDROM        = 137     // BluRay ROM Media
+    SIID_MEDIABDR          = 138     // BluRay R Media
+    SIID_MEDIABDRE         = 139     // BluRay RE Media (Rewriable and RAM)
+    SIID_CLUSTEREDDRIVE    = 140     // Clustered disk
     // 160+ are for Windows 7 icons
-    SIID_MAX_ICONS = 181
+    SIID_MAX_ICONS         = 181
 }
 
 struct SHFILEINFOA

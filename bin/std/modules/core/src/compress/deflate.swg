@@ -1090,9 +1090,9 @@ public impl Deflate
     #[Swag.EnumFlags]
     enum CompressionFlags
     {
-        Zero           = 0                  // No compression flags
-        ComputeAdler32                      // Compute Adler-32 checksum after compression
-        Default        = ComputeAdler32     // Default flag: computes Adler-32
+        Zero    = 0                  // No compression flags
+        ComputeAdler32               // Compute Adler-32 checksum after compression
+        Default = ComputeAdler32     // Default flag: computes Adler-32
     }
 
     // Compression level to use (mapped to number of probes and strategies)

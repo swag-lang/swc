@@ -170,6 +170,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
         @assert(cast(#null string) attrib.params[0].value == "primary")
         @assert(cast(s32) attrib.params[1].value == 7)
     }
+
     @assert(cast(#null string) Reflection.getAttributeValue(fieldX, FieldMeta, "fieldAlias") == "primary")
     @assert(Reflection.getAttributeValue(fieldX, FieldMeta, "rank", 0) == 7)
     @assert(cast(#null string) Reflection.getAttributeValue(fieldEnabled, FieldMeta, "fieldAlias") == "switch")

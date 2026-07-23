@@ -244,6 +244,7 @@ func parseKern(faceData: *FaceImpl) throw
                     let key = (cast(u32) left << 16) | cast(u32) right
                     faceData.kernPairs.add(key, value)
                 }
+
                 pairOff += 6
             }
         }

@@ -61,6 +61,7 @@ impl String
                 .buffer[0] = 0
             return
         }
+
         if .buffer
         {
             let dataof = @dataof(value)
@@ -323,6 +324,7 @@ impl String
                 return
             }
         }
+
         let byLength = @countof(by)
 
         var idx = Utf8.indexOf(.toString(), what, 0)
@@ -366,6 +368,7 @@ impl String
                 return
             }
         }
+
         let byLength = @countof(by)
 
         var idx = Utf8.indexOf(.toString(), what, 0, comparisonType)

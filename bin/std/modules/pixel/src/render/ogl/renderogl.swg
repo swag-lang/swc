@@ -342,6 +342,7 @@ impl RenderOgl
             .resetTransform()
             return
         }
+
         .native.setCurrentContext(.curRC)
         .resetTransform()
     }
@@ -372,6 +373,7 @@ impl RenderOgl
             .curRC = rc
             return
         }
+
         .native.setCurrentContext(rc)
     }
 
@@ -781,6 +783,7 @@ impl RenderOgl
             texture.valid = false
             return
         }
+
         glDeleteTextures(1, cast(*GLuint) &texture.handle)
         texture.valid = false
     }
@@ -939,6 +942,7 @@ impl RenderOgl
         case BindTextureFont:
             let params = &cmd.textureFont
             let cache  = params.font.cache
+
             // Distance-field atlases are mipmapped: trilinear minification fixes the
             // undersampling that wrecks a minified MSDF at arbitrary scale ratios.
             let isDF   = cache.renderMode.isDistanceField()
@@ -958,6 +962,7 @@ impl RenderOgl
 
         case UpdateFont:
             let cache = cmd.font.fontRef.cache
+
             // Mipmapped trilinear minification for distance-field atlases (see BindTextureFont).
             let isDF  = cache.renderMode.isDistanceField()
             let magF  = isDF ? GL_LINEAR : GL_NEAREST
@@ -1131,6 +1136,7 @@ impl RenderOgl
             }
 
         case SetFontEffect:
+
             // Always emitted right after StartMsdfFont, so the MSDF font program is
             // the active one and these uniforms land on it.
             let p = &cmd.fontEffect
@@ -1170,6 +1176,7 @@ impl RenderOgl
                         .curRT.paintAlpha    = cmd.renderTgt.paintAlpha
                         .curRT.paintAlphaIdx = 0
                     }
+
                 case UnbindRenderTarget:
                     if .curRT do
                         .unbindRenderTarget()
@@ -1179,6 +1186,7 @@ impl RenderOgl
                     continue
                 }
             }
+
             return
         }
 
@@ -1187,6 +1195,7 @@ impl RenderOgl
             return
 
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
+
         // The vertex buffer is fully rebuilt and re-uploaded every frame, so hint
         // GL_STREAM_DRAW (write once, draw once) instead of GL_STATIC_DRAW. Orphan
         // the previous storage first so the driver can hand back fresh memory rather

@@ -415,6 +415,7 @@ func MAKEINTRESOURCEA(val: s32) => cast(LPCSTR) cast(u64) val
 func MAKEINTRESOURCEW(val: s32) => cast(LPCWSTR) cast(u64) val
 
 const WHEEL_DELTA = 120
+
 func GET_WHEEL_DELTA_WPARAM(wParam: u64)->s32
 {
     let value = HIWORD(wParam)

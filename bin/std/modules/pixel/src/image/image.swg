@@ -213,6 +213,7 @@ impl Image
             pixDst[1] = g
             pixDst[2] = r
         }
+
         #if PF == .BGRA8
         {
             pixDst[0] = b
@@ -220,12 +221,14 @@ impl Image
             pixDst[2] = r
             pixDst[3] = a
         }
+
         #if PF == .RGB8
         {
             pixDst[0] = r
             pixDst[1] = g
             pixDst[2] = b
         }
+
         #if PF == .RGBA8
         {
             pixDst[0] = r

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to 'for'
 
@@ -33,6 +34,7 @@ Within a `for`, the compiler provides the built-in `@index`, representing the cu
     {
         cpt += @index
     }
+
     @assert(cpt == 0 + 1 + 2 + 3 + 4)
 }
 
@@ -350,6 +352,7 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
     {
         cpt += 1
     }
+
     @assert(cpt == 20)
 }
 
@@ -387,6 +390,7 @@ In all `for` variants, `@index` provides the current iteration index.
             break
         sum += i
     }
+
     @assert(sum == 0 + 1 + 2 + 3 + 4)
 
     sum = 0
@@ -396,6 +400,7 @@ In all `for` variants, `@index` provides the current iteration index.
             continue
         sum += i
     }
+
     @assert(sum == 1 + 3 + 5 + 7 + 9)
 }
 

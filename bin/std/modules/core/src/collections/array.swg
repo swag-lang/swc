@@ -786,6 +786,7 @@ impl StrConv.IConvert for Array
                 buf.addBytes(", ")
             StrConv.convert'T(buf, .buffer[i], convFmt, strFormat)
         }
+
         buf.addBytes("]")
     }
 }

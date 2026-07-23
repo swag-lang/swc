@@ -12,6 +12,7 @@ func scrollHeadlessPos(s: *ScrollWnd, o, n: Math.Point)
     discard n;
     ScrollHeadlessPosCount += 1
 }
+
 func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
 {
     discard s;

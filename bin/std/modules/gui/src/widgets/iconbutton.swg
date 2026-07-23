@@ -523,6 +523,7 @@ impl IWnd for IconButton
         case Square:
             return 3
         }
+
         return 4
     }
 

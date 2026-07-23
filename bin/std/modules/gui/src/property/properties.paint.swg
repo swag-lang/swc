@@ -41,6 +41,7 @@ internal impl Properties
 
         var r = wndItem.getClientRect()
         r.moveTop(wndItem.childs.front().position.y)
+
         // Content rectangle of the row, before the focus inflation: anything painted from
         // it stays inside the line window and is never clipped by the neighbours.
         let rowRect = r

@@ -125,6 +125,7 @@ impl PropFieldValue
                 if .strings[k] != o.strings[k] do
                     return false
             }
+
             return true
         }
 
@@ -137,6 +138,7 @@ impl PropFieldValue
             if .bytes[i] != o.bytes[i] do
                 return false
         }
+
         return true
     }
 }

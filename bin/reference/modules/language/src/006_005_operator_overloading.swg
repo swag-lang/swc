@@ -1,4 +1,5 @@
 #global private
+
 /**
 A struct in Swag can define operator overloads within the 'impl' block. These hooks are
 predefined and recognized by the compiler, which lets a struct customize operators and
@@ -61,6 +62,7 @@ impl Struct
     {
         return true;
     }
+
     func opIndex(me, row: OneType, column: OneType)->WhateverType
     {
         return true;
@@ -88,6 +90,7 @@ impl Struct
     {
         return true;
     }
+
     func opCast(me)->AnotherType
     {
         return 0;
@@ -102,6 +105,7 @@ impl Struct
     {
         return false;
     }
+
     func opEquals(me, other: AnotherType)->bool
     {
         return false;
@@ -112,6 +116,7 @@ impl Struct
     {
         return 0;
     }
+
     func opCompare(me, other: AnotherType)->s32
     {
         return 0;
@@ -145,6 +150,7 @@ impl Struct
     {
         return {1, 2};
     }
+
     func(op: string) opBinary(me, other: AnotherType)->Struct
     {
         return {1, 2};
@@ -156,6 +162,7 @@ impl Struct
     {
         return {1, 2};
     }
+
     func(op: string) opBinaryRight(me, other: AnotherType)->Struct
     {
         return {1, 2};

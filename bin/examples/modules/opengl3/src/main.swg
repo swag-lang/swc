@@ -134,6 +134,7 @@ impl Mat4
                 r.m[col * 4 + row] = sum
             }
         }
+
         return r
     }
 
@@ -201,6 +202,7 @@ func compileShader(stage: GLenum, source: string)->GLuint
         glGetShaderInfoLog(id, len, null, log.buffer)
         Console.print("shader compile error: ", log, "\n")
     }
+
     return id
 }
 

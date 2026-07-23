@@ -1,4 +1,5 @@
 #global private
+
 /**
 Interfaces in Swag are virtual tables (lists of function pointers) that can be associated with a struct.
 
@@ -25,6 +26,7 @@ interface IReset
 {
     // First parameter must be 'me' when using 'func'
     mtd set(val: f32);
+
     // 'mtd' avoids specifying 'me'
     mtd reset();
 }
@@ -63,6 +65,7 @@ impl IReset for Point3
         me.y = val + 1
         me.z = val + 2
     }
+
     mtd impl reset()
     {
         me.x, me.y, me.z = 0
@@ -114,11 +117,13 @@ An interface occupies two pointers: object pointer + virtual table pointer.
     var pt3: Point3
     var itf  = cast(IReset) pt2
     #assert(#sizeof(itf) == 2 * #sizeof(#null *void))
+
     // Retrieve the concrete type with '@kindof'
     itf = cast(IReset) pt2
     @assert(@kindof(itf) == Point2)
     itf = cast(IReset) pt3
     @assert(@kindof(itf) == Point3)
+
     // Retrieve the concrete data with '@dataof'
     itf = cast(IReset) pt2
     @assert(@dataof(itf) == &pt2)

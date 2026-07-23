@@ -78,6 +78,7 @@ func day5B()
             mode     = .ToLocation
             isHeader = true
         }
+
         if isHeader do
             continue
 

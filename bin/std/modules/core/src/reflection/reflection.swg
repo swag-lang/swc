@@ -123,6 +123,7 @@ using Swag
             @panic("Reflection.reset cannot reset a null type", #curlocation)
             return
         }
+
         let nnDst  = dst
         let nnType = type
         if !Memory.canDefaultInit(nnType)
@@ -130,6 +131,7 @@ using Swag
             @panic("Reflection.reset cannot default-initialize this type", #curlocation)
             return
         }
+
         Memory.dropType(nnDst, nnType)
         Memory.defaultInit(nnDst, nnType)
     }

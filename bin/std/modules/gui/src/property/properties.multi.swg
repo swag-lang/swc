@@ -50,6 +50,7 @@ internal impl Properties
                 return true
             scan = scan.parent
         }
+
         return false
     }
 
@@ -69,6 +70,7 @@ internal impl Properties
                 if dref cast(#null *String) item.dataInstances[i] != dref s0 do
                     return true
             }
+
             return false
         }
 
@@ -82,6 +84,7 @@ internal impl Properties
             if Memory.compare(a0, cast(#null const [*] void) item.dataInstances[i], sz) != 0 do
                 return true
         }
+
         return false
     }
 
@@ -119,6 +122,7 @@ internal impl Properties
             ed.setNote(PropMixedText)
             return true
         }
+
         ed.setNote("")
         return false
     }
@@ -138,6 +142,7 @@ internal impl Properties
             if Memory.compare(a0, ai, sz) != 0 do
                 return true
         }
+
         return false
     }
 
@@ -151,6 +156,7 @@ internal impl Properties
             ed.setNote(PropMixedText)
             return true
         }
+
         ed.setNote("")
         return false
     }
@@ -198,6 +204,7 @@ internal impl Properties
             if (readEnumBits(item.dataInstances[i], sz) & mask) != bit0 do
                 return true
         }
+
         return false
     }
 }
@@ -217,6 +224,7 @@ private impl Properties
         case 8:
             return dref cast(#null *u64) addr
         }
+
         return 0
     }
 

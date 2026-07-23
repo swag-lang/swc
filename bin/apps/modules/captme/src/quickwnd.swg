@@ -141,6 +141,7 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     {
         let cl = cast(*FormCallout) @dataof(paintItf)
         cl.text = "A"
+
         // Read as a clean speech bubble: quick mode already normalizes the glyph size to
         // a fixed range, so a small fontSize just lands at the airy end; keep the body
         // nearly full-cell so the letter breathes, and hang a short downward tail nub.

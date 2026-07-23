@@ -284,6 +284,7 @@ impl IForm for FormText
         {
             totalYZ += (pathl.bvMax.y - pathl.bvMin.y) * zscale
         }
+
         if count > 1 do
             totalYZ += cast(f32) (count - 1) * (.lineSpacing * zscale)
 

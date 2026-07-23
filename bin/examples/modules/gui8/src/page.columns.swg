@@ -27,6 +27,7 @@ func createColumnsPage(parent: *Wnd)
         if i % 5 == 0 do
             line.canCheck = true
     }
+
     files.computeLayout()
 
     let right = createPanel(parent, "Sorted work queue", "Clicking headers changes sort order; the example opens on the priority column.", layout.right)
@@ -48,6 +49,7 @@ func createColumnsPage(parent: *Wnd)
         line.getItem(2).sortKey = Format.toString("%", prio)
         line.setItem(3, i % 2 == 0 ? "Ada" : "Mika")
     }
+
     queue.sort(2, false, true)
     queue.computeLayout()
 
@@ -71,5 +73,6 @@ func createColumnsPage(parent: *Wnd)
         line.setItem(3, "dll, pdb, import lib")
         line.setItem(4, "long metadata column used to exercise header scrolling")
     }
+
     wide.computeLayout()
 }

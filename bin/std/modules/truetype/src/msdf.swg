@@ -168,6 +168,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
             let banned = spline == cornerCount - 1 ? initialColor : MSDF_BLACK
             msdfSwitchColor(&color, seed, banned)
         }
+
         elements.buffer[first + index].color = color
     }
 }
@@ -563,12 +564,14 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     for i in count
     {
         let src = i * 4
+
         // RGB: multi-channel field, corrected by the global sign vote.
         for c in 3
         {
             let value = 128.0'f64 + flip * cast(f64) channelsBuffer[src + c] * scale
             dst[src + c] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))
         }
+
         // A: true signed distance (already signed by the per-pixel inside test).
         let av = 128.0'f64 + cast(f64) channelsBuffer[src + 3] * scale
         dst[src + 3] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av)))

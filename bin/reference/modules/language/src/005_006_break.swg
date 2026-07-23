@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to 'break' in Swag
 The 'break' statement exits the nearest enclosing control structure.
@@ -36,6 +37,7 @@ Outer structures continue to run.
             // Exits only the inner loop
             break
         }
+
         // Outer loop continues
         cpt += 1
     }

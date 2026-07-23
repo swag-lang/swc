@@ -55,6 +55,7 @@ impl IActionUI for ActionCapture
             evt.name     = Format.toString("Capture Monitor 0 (%x%)", main.monitors[0].rect.width, main.monitors[0].rect.height)
             evt.icon     = Icon.from(&main.icons24, 5)
         case Screen1:
+
             // Screen<N> maps to monitors[N]; guard the read like the execute path
             // (idx >= monitors.count) so a machine with fewer monitors is safe.
             evt.setFlags |= .Name | .Icon | .Disabled

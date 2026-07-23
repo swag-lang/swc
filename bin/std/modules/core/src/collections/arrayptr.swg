@@ -115,6 +115,7 @@ impl ArrayPtr
             if .buffer[i] == item do
                 return i
         }
+
         return Swag.U64.Max
     }
 

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # References in Swag
 
@@ -9,9 +10,11 @@ References offer a safer and more convenient way to work with memory addresses, 
 #test
 {
     var x = 42
+
     // Declare a constant reference to 'x'.
     // Unlike C++, you must explicitly take the address of 'x' to create the reference.
     let myRef: const &s32 = &x
+
     // References behave like aliases - no explicit dereferencing is needed.
     @assert(myRef == 42)
 }
@@ -66,6 +69,7 @@ However, when passing a **const reference** to a function, Swag automatically ta
 func toto(x: const &s32)
 {
     @assert(x == 4)
+
     // A reference is still an address internally
     let ptr = &x
     @assert(dref ptr == 4)

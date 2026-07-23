@@ -476,6 +476,7 @@ namespace
                 {
                     markStatementStarts(node);
                     nextParent = node.id();
+                    addRole(span.minPiece, FormatRoleE::TypeDeclStart);
                     if (span.valid())
                         registerBlock(findHeaderOpenBrace(span.minPiece), FormatBlockKind::Namespace, span.minPiece);
                     break;
@@ -485,6 +486,7 @@ namespace
                 {
                     markStatementStarts(node);
                     nextParent = node.id();
+                    addRole(span.minPiece, FormatRoleE::TypeDeclStart);
                     if (span.valid())
                         registerBlock(findHeaderOpenBrace(span.minPiece), FormatBlockKind::Impl, span.minPiece);
                     break;
@@ -616,6 +618,7 @@ namespace
                         bodyRef = node.cast<AstInterfaceDecl>().nodeBodyRef;
 
                     const FormatBlockKind kind = node.is(AstNodeId::InterfaceDecl) ? FormatBlockKind::Interface : FormatBlockKind::Struct;
+                    addRole(span.minPiece, FormatRoleE::TypeDeclStart);
                     const NodeSpan bodySpan    = spanOf(bodyRef);
                     uint32_t       open        = bodyOpenBrace(bodySpan);
                     if (open == INVALID_PIECE && span.valid())
@@ -641,6 +644,7 @@ namespace
                 case AstNodeId::EnumDecl:
                 {
                     const auto& en = node.cast<AstEnumDecl>();
+                    addRole(span.minPiece, FormatRoleE::TypeDeclStart);
 
                     const NodeSpan typeSpan = spanOf(en.nodeTypeRef);
                     if (typeSpan.valid())

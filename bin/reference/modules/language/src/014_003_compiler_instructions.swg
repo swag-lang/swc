@@ -1,4 +1,5 @@
 #global private
+
 /**
 # '#assert'
 The '#assert' directive performs a static assertion during compilation.

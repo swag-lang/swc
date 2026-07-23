@@ -81,6 +81,7 @@ internal func updateThreadProc(th: Threading.Thread)
                 driver.pendingRecycleVoices.add(voice)
 
             case UpdateBuffers:
+
                 // Update buffer of voice, and stop it if nothing has been updated (end reached)
                 if catch voice.updateNative() == false
                 {
@@ -141,6 +142,7 @@ impl Driver
             if cmd.command == .Register do
                 .toRecycleVoices.add(cmd.voice)
         }
+
         .voicesToUpdate.clear()
         .mutexVoicesToUpdate.unlock()
 
@@ -159,6 +161,7 @@ impl Driver
             voice.destroyNative()
             Memory.delete(voice)
         }
+
         .activeVoices.clear()
 
         // Destroy buses

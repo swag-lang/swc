@@ -373,16 +373,19 @@ impl Triangle
             .delaunayEdge[2] = e
             return
         }
+
         if idx == 1
         {
             .delaunayEdge[0] = e
             return
         }
+
         if idx == 2
         {
             .delaunayEdge[1] = e
             return
         }
+
         Debug.assert(false)
     }
 
@@ -394,16 +397,19 @@ impl Triangle
             .delaunayEdge[1] = e
             return
         }
+
         if idx == 1
         {
             .delaunayEdge[2] = e
             return
         }
+
         if idx == 2
         {
             .delaunayEdge[0] = e
             return
         }
+
         Debug.assert(false)
     }
 
@@ -415,16 +421,19 @@ impl Triangle
             .constrainedEdge[2] = ce
             return
         }
+
         if idx == 1
         {
             .constrainedEdge[0] = ce
             return
         }
+
         if idx == 2
         {
             .constrainedEdge[1] = ce
             return
         }
+
         Debug.assert(false)
     }
 
@@ -436,16 +445,19 @@ impl Triangle
             .constrainedEdge[1] = ce
             return
         }
+
         if idx == 1
         {
             .constrainedEdge[2] = ce
             return
         }
+
         if idx == 2
         {
             .constrainedEdge[0] = ce
             return
         }
+
         Debug.assert(false)
     }
 
@@ -514,6 +526,7 @@ impl Triangle
             .points[2] = npoint
             return
         }
+
         if idx == 1
         {
             .points[2] = .points[1]
@@ -521,6 +534,7 @@ impl Triangle
             .points[0] = npoint
             return
         }
+
         if idx == 2
         {
             .points[0] = .points[2]
@@ -629,22 +643,27 @@ impl Tessellate
         {
             return Memory.new'Point();
         }
+
         func deletePoint(ptr: *Point)
         {
             Memory.delete(ptr);
         }
+
         func newEdge()->*Edge
         {
             return Memory.new'Edge();
         }
+
         func deleteEdge(ptr: *Edge)
         {
             Memory.delete(ptr);
         }
+
         func newTriangle()->*Triangle
         {
             return Memory.new'Triangle();
         }
+
         func deleteTriangle(ptr: *Triangle)
         {
             Memory.delete(ptr);
@@ -772,6 +791,7 @@ impl Tessellate
             p.y = pt.y
             .points.add(p)
         }
+
         .endPolyLine()
     }
 
@@ -1082,6 +1102,7 @@ impl Tessellate
         let node = .locateNode(point)
         Debug.assert(node.next and node.next.point, "null node")
         let newNode = .newFrontTriangle(point, node)
+
         // Point coordinates are f32; compare with an f32 epsilon so the test stays in single
         // precision (mixing an f64 epsilon here promotes the f32 operands to f64).
         if point.x <= node.point.x + Math.ConstF32.Epsilon do

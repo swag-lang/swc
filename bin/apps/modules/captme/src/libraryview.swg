@@ -317,6 +317,7 @@ impl LibraryView
                 .items.add(notnull it)
                 continue
             }
+
             let loaded = capture
             if !loaded.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
                 continue
@@ -515,6 +516,7 @@ impl LibraryView
         }
 
         let renderer = .getApp().getRenderer()
+
         // Release textures over the full set, not just the filtered '.items': items
         // filtered out are absent from '.items' and would leak their GPU texture
         // when 'allItems' is cleared below.

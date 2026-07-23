@@ -15,3 +15,6 @@ sort-using-statements = preserve
 merge-using-statements = preserve
 blank-line-after-using-block = preserve
 min-blank-lines-between-functions = 0
+min-blank-lines-between-types = 0
+min-blank-lines-before-comments = 0
+min-blank-lines-after-blocks = 0

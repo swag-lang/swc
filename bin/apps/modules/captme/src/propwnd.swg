@@ -376,6 +376,7 @@ impl PropWnd
         {
             let curSel = prop.getSelectedBaseForm()
             var picker = createColorPicker(btn, curSel.borderColor)
+
             // Defer the undo entry until the color actually changes: `first` (closure-owned) is
             // true only on the first change, so opening then closing without picking leaves no
             // no-op undo entry, while later changes still replace the previous one (first = false).
@@ -623,6 +624,7 @@ impl PropWnd
             if main.inPlaceEdit do
                 .surface.setTopMost()
         }
+
         if dlg.doModal() != Dialog.BtnOk do
             return curText
         let capture = notnull main.getCapture()
@@ -712,6 +714,7 @@ impl PropWnd
         {
             let v: Swag.TypeValue{name: name}
             let item = prop.grid.addItem(v, null, null, 40, .Zero)
+
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
             return StackLayoutCtrl.create(notnull item.line, .HorzFit, {0, 0, 0, 40})
@@ -859,9 +862,11 @@ impl PropWnd
             .grid             = Properties.create(prop, kind: .Panel)
             .grid.dockStyle   = .Center
             .grid.showReverts = false
+
             // Most specific first: a form edits its own fields (text, caps, round...)
             // before the BaseForm style shared by every form
             .grid.usingFieldsLast = true
+
             // Always show a small vertical bar so the row width does not jump with the content
             .grid.scrollWnd.scrollWndFlags |= .ForceVertical | .SmallBar
 

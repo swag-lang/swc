@@ -133,6 +133,7 @@ impl Encoder
         case RGBA8:
             result.setArgb(pix[3], pix[0], pix[1], pix[2])
         default:
+
             // Unsupported pixel format: opaque black rather than garbage.
             result.setArgb(255, 0, 0, 0)
         }

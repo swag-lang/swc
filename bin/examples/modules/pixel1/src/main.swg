@@ -53,6 +53,7 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
         let angle = -Math.ConstF32.Pi * 0.5 + cast(f32) i * (Math.ConstF32.Pi * 2 / 10)
         star.add(Math.Vector2{scx + Math.cos(angle) * sr, scy + Math.sin(angle) * sr})
     }
+
     painter.fillPolygon(star[to], Brush.createSolid(Argb.Goldenrod))
     drawClosedOutline(painter, star[to], Pen.createSolid(Argb.SaddleBrown, 3))
 

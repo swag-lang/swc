@@ -441,6 +441,7 @@ func day9B()
     {
         x, y: s32
     }
+
     var set:  HashSet'W
     var rope: [10] W
 

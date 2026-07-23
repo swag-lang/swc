@@ -250,6 +250,7 @@ impl Decoder
                     src     += 1
                     k       -= 8
                 }
+
                 if k > 0
                 {
                     let c = src[0]
@@ -291,6 +292,7 @@ impl Decoder
                     src     += 1
                     k       -= 4
                 }
+
                 if k > 0
                 {
                     let c = src[0]
@@ -322,6 +324,7 @@ impl Decoder
                     src     += 1
                     k       -= 2
                 }
+
                 if k > 0
                 {
                     dest[0] = cast #bit (u8) ((src[0] >> 4) * mul)
@@ -379,6 +382,7 @@ impl Decoder
                     destOff[i] = src[i]
                     i          += 1
                 }
+
                 var k = 0'u64
                 while k < nk
                 {
@@ -405,6 +409,7 @@ impl Decoder
                     destOff[i] = cast #bit (u8) (src[i] + #wrap avg)
                     i          += 1
                 }
+
                 var k = 0'u64
                 while k < nk
                 {
@@ -424,6 +429,7 @@ impl Decoder
                     destOff[i] = cast #bit (u8) (src[i] + paeth)
                     i          += 1
                 }
+
                 var k = 0'u64
                 while k < nk
                 {
@@ -525,6 +531,7 @@ impl Decoder
 
         var result:   retval
         var iDataBuf: Array'u8
+
         // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
         // was already loaded by the look-ahead; the flow analysis cannot prove it.
         var ch: ChunkHeader

@@ -40,9 +40,11 @@ func day3B()
                     alone = false
                     here.remove(re)
                 }
+
                 re = id
             }
         }
+
         if alone do
             here.add(id)
     }

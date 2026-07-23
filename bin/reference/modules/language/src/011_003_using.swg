@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'using' with Enums and Namespaces
 The 'using' statement can bring the scope of a namespace, struct, or enum into

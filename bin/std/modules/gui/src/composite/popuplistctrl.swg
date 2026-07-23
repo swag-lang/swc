@@ -39,6 +39,7 @@ impl IWnd for PopupListView
         switch evt.kind
         {
         case KillFocus:
+
             // The focus left the popup (clicked elsewhere, another window, ...):
             // dismiss it.
             if !.closing and evt.other != .parent do
@@ -326,21 +327,25 @@ impl PopupListCtrl
         let view = cast(#null *PopupListView) .scrollWnd.view;
         view.moveHot(dir)
     }
+
     mtd keyHome()
     {
         let view = cast(#null *PopupListView) .scrollWnd.view;
         view.moveHotEdge(forward: true)
     }
+
     mtd keyEnd()
     {
         let view = cast(#null *PopupListView) .scrollWnd.view;
         view.moveHotEdge(forward: false)
     }
+
     mtd keyCancel()
     {
         let view = cast(#null *PopupListView) .scrollWnd.view;
         view.close(Swag.U32.Max)
     }
+
     mtd keyCommit()
     {
         let view = cast(#null *PopupListView) .scrollWnd.view

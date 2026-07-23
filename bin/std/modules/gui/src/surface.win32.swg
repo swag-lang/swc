@@ -206,6 +206,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_MOVE:
+
             // lParam holds the client origin in screen space as *signed* 16-bit coordinates.
             // A maximized window is positioned slightly off the work area (negative origin
             // because of the surface shadow), so a raw LOWORD/HIWORD would wrap to a huge

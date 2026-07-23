@@ -317,6 +317,7 @@ impl Painter
             .curTextProgram = 1
             .texture0Dirty  = true
         }
+
         discard .newCommand(.StartFont, true)
     }
 
@@ -327,6 +328,7 @@ impl Painter
             .curTextProgram = 2
             .texture0Dirty  = true
         }
+
         discard .newCommand(.StartMsdfFont, true)
     }
 
@@ -337,6 +339,7 @@ impl Painter
             .curTextProgram = 0
             .texture0Dirty  = true
         }
+
         discard .newCommand(.EndFont, true)
     }
 

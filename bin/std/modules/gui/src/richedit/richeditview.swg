@@ -400,6 +400,7 @@ impl RichEditView
                 pChar  += 1
                 pStyle += 1
             }
+
             newStyle = .ed.styles[dref pStyle]
 
             var cr           = dref pChar

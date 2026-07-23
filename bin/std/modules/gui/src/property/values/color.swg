@@ -37,6 +37,7 @@ impl Properties
             .arrowPos    = .RightDown
             .checkedForm = .None
             .setForm(.RoundSquare)
+
             // Overlay: the swatch itself is the affordance, so no opaque hot/checked box (which
             // would show up as a white fill over a selected accent row). Hover/checked is instead
             // a subtle translucent state layer that blends over the swatch and the row.

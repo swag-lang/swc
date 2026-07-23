@@ -53,6 +53,7 @@ internal impl Properties
                 if !(target and (target == prop.editPopup or prop.editPopup.isParentOf(target))) do
                     return true
             }
+
             return false
         }
 
@@ -82,6 +83,7 @@ internal impl Properties
                 return true
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed:
+
             // A press outside the row area (on the scroll bar, typically) must not touch the
             // selection: scrolling and selecting are separate gestures.
             if !prop.isOverRows(mouseEvt.target) do

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # '@generic' Functions
 A function can be made generic by specifying type parameters after the `func` keyword.
@@ -72,6 +73,7 @@ In this example, `N` is a constant of type `s32`.
     {
         @assert(N == 10)
     }
+
     myFunc'10()     // Calls the function with constant value 10.
 }
 
@@ -85,6 +87,7 @@ is treated as a constant.
     {
         @assert(N == 10)
     }
+
     myFunc'10()     // Equivalent to using 'const'.
 }
 
@@ -97,6 +100,7 @@ You can also assign a default value to a constant parameter.
     {
         @assert(N == 10)
     }
+
     myFunc()     // Uses the default constant value 10.
 }
 
@@ -110,6 +114,7 @@ and it will be deduced from the assigned value.
     {
         @assert(N == 10)
     }
+
     myFunc()     // Type of N deduced from literal 10.
 }
 

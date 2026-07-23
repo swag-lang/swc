@@ -42,6 +42,7 @@ impl NumericArray
                 #else do
                 #error("unsupported binary operation [[" ++ op ++ "]]")
         }
+
         return result
     }
 

@@ -42,6 +42,7 @@ func formEditableText(f: IForm)->#null *String
     case FormCallout as b:
         return &b.text
     }
+
     return null
 }
 
@@ -65,6 +66,7 @@ func formFontNamePtr(f: IForm)->#null *String
     case FormCallout as b:
         return &b.fontName
     }
+
     return null
 }
 
@@ -77,6 +79,7 @@ func formFontStylePtr(f: IForm)->#null *FontFamilyStyle
     case FormCallout as b:
         return &b.fontStyle
     }
+
     return null
 }
 
@@ -386,6 +389,7 @@ impl Undo
                 .backImagePos.clear()
                 .dirtyBackImg = true
             }
+
             .removeSelection()
 
         case FlattenAll:
@@ -419,6 +423,7 @@ impl Undo
             {
                 form.groups.insertAt(0, .groupId)
             }
+
             .capture.selectionHasChanged()
 
         case Ungroup:
@@ -427,6 +432,7 @@ impl Undo
                 if !form.groups.isEmpty() do
                     form.groups.removeAtOrdered(0)
             }
+
             .capture.selectionHasChanged()
 
         case SetText:
@@ -635,6 +641,7 @@ impl Undo
                 if !form.groups.isEmpty() and form.groups[0] == .groupId do
                     form.groups.removeAtOrdered(0)
             }
+
             .capture.selectionHasChanged()
 
         case Ungroup:
@@ -643,6 +650,7 @@ impl Undo
                 if .oldGroups[idx] != 0 do
                     form.groups.insertAt(0, .oldGroups[idx])
             }
+
             .capture.selectionHasChanged()
 
         case SetText:
@@ -694,6 +702,7 @@ impl Undo
                 var val = .oldU32[idx]
                 Reflection.setFieldValue(form, .valRef, &val, true)
             }
+
             .capture.updateModelFromSelection()
 
         case ResetRotation:
@@ -703,9 +712,11 @@ impl Undo
                     continue
                 form.rotate = cast #bit (f32) .oldU32[idx]
             }
+
             .capture.updateModelFromSelection()
 
         case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
+
             // Restore through moveBaseForm: writing BaseForm.x/y directly would be a
             // no-op for the point-based forms (line, polygon, draw) whose geometry
             // lives in their points.

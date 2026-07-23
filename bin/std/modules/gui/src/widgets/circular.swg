@@ -211,6 +211,7 @@ impl IWnd for Circular
                 else
                 {
                     .correcMoving = 0
+
                     // Determine which marker is closest
                     let m = (.value1 + .value2) * 0.5
                     if normalizedValue <= m
@@ -314,6 +315,7 @@ private impl Circular
         let adjustedAngle = angle + .startAngle
 
         var result: retval
+
         // For 0° pointing up: x = sin(angle), y = -cos(angle)
         result.x = .centerX + Math.sin(adjustedAngle) * .radius
         result.y = .centerY - Math.cos(adjustedAngle) * .radius

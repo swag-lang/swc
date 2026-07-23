@@ -96,6 +96,7 @@ impl IActionUI for ActionEdit
         switch cxt.id
         {
         case EditText:
+
             // Works for both FormText and FormCallout; editText prefills with the current
             // text and pushes a SetText undo that updates every selected editable form.
             let f = capture.forms[capture.selection.back()]

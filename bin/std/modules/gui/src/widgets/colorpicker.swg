@@ -239,6 +239,7 @@ impl IWnd for ColorPicker
                 case SaturationHorz:
                     modeFill = .SaturationHorz
                 default:
+
                     // The gradient modes are all handled by the branches above.
                     unreachable
                 }

@@ -99,6 +99,7 @@ impl IForm for FormImage
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = cast(*FormImage) ptr
+
         // backColor only matters for the plain image kind; the processed kinds
         // (blur, pixelate, zoom, capture) have no fill.
         return .isSameBase(ptr, compareBackColor: .kind == .Image) and

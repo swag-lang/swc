@@ -61,6 +61,7 @@ impl GizmoRect
                 view.captureMouse()
                 return true
             }
+
             if .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
@@ -79,6 +80,7 @@ impl GizmoRect
                 .startRect  = .rect
                 .movingRect = .rect
             }
+
             .movingStart = pos
             view.captureMouse()
             return true

@@ -487,6 +487,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
                 form.IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(10, 80), rng.nextS32(10, 40))
                 u.oldForms.add(cast(IForm) form)
             }
+
             f.capture.pushUndo(u)
         }
         elif op == 5

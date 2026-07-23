@@ -70,6 +70,7 @@ using Core
 func day4B()
 {
     day4B0()
+
 // day4B1() disabled: compiler bug with HashTable payload on anonymous structs
 }
 

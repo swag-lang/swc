@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Implementing Methods for Enums in Swag
 

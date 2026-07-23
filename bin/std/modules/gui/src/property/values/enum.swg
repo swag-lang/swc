@@ -190,6 +190,7 @@ impl Properties
                     .maxSize.x = me.listUsefulWidth()
                     me.setListContentPadding(line)
                 }
+
                 .margin.y = me.listNameMarginAfter
                 .margin.w = me.listNameMarginAfter
             }

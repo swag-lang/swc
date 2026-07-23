@@ -246,11 +246,13 @@ impl IWnd for Wnd
     mtd impl onPrePaintEvent(evt: *PaintEvent) {}
     mtd impl onPaintEvent(evt: *PaintEvent) {}
     mtd impl onPostPaintEvent(evt: *PaintEvent) {}
+
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         .invalidate();
         .sendResizeEvent();
     }
+
     mtd impl onTimerEvent(evt: *TimerEvent) {}
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
     mtd impl onFrameEvent(evt: *FrameEvent) {}
@@ -259,34 +261,42 @@ impl IWnd for Wnd
     {
         evt.accepted = false;
     }
+
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onCommandEvent(evt: *CommandEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false;
     }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         evt.accepted = false;

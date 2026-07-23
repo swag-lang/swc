@@ -34,6 +34,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
         let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) count)
         result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
     }
+
     return result
 }
 
@@ -98,6 +99,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
             let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) total)
             pts.add(Vector2{100 + Math.cos(a) * r, 100 + Math.sin(a) * r})
         }
+
         // A 2b-vertex simple star ring -> 2b-2 triangles.
         @assert(triCount(pts[to]) == cast(u64) (total - 2))
     }

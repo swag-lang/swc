@@ -26,6 +26,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         digs.d  = d.d
         digs.nd = d.nd
         digs.dp = d.dp
+
         // Precision for shortest representation mode.
         switch fmt
         {
@@ -70,10 +71,12 @@ func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs
         return fmtF(dst, neg, forceSign, digs, prec)
 
     case 'g''u8, 'G''u8:
+
         // trailing fractional zeros in 'e' form will be trimmed.
         var eprec = prec
         if eprec > digs.nd and digs.nd >= digs.dp do
             eprec = digs.nd
+
         // %e is used if the exponent from the conversion
         // is less than -4 or greater than or equal to the precision.
         // if precision was the shortest possible, use precision 6 for this decision.
@@ -306,16 +309,19 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
         switch
         {
         case upperdelta == 0 and m + 1 < u:
+
             // Example:
             // m = 12345xxx
             // u = 12347xxx
             upperdelta = 2
         case upperdelta == 0 and m != u:
+
             // Example:
             // m = 12345xxx
             // u = 12346xxx
             upperdelta = 1
         case upperdelta == 1 and (m != '9''u8 or u != '0''u8):
+
             // Example:
             // m = 1234598x
             // u = 1234600x

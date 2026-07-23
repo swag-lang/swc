@@ -618,6 +618,7 @@ impl Painter
             {
                 .drawLineInternal(cxt, pos)
             }
+
             break
         }
     }

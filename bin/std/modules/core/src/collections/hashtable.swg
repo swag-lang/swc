@@ -568,6 +568,7 @@ impl StrConv.IConvert for HashTable
             buf.addBytes(" value = ")
             StrConv.convert'V(buf, v, convFmt, strFormat)
         }
+
         buf.addBytes("]")
     }
 }

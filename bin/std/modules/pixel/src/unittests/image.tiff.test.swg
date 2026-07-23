@@ -92,6 +92,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     {
         stripLens.add(pixCount)
     }
+
     let numStrips = cast(u32) stripLens.count
 
     var numEntries = 9'u32
@@ -169,11 +170,13 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
         for i in numStrips do
             tw32(&cb, le, stripLens[i])
     }
+
     if bpsExternal
     {
         for spp do
             tw16(&cb, le, cast(u16) bps)
     }
+
     if hasPalette
     {
         for i in palCount do
@@ -371,6 +374,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     @assert(@err == null)
     @assert(img.width == 1)
     @assert(img.height == 4)
+
     // Internal buffer is bottom-up: row 0 holds the file's bottom row.
     @assert(img.pixels.buffer[0] == 40'u8)
     @assert(img.pixels.buffer[3] == 30'u8)

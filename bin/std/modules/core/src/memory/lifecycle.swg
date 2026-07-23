@@ -72,6 +72,7 @@ internal func defaultInit(dst: #null *void, type: typeinfo)
             defaultInit(scan, valueType)
             scan += valueType.sizeof
         }
+
         return
     }
 
@@ -89,6 +90,7 @@ internal func defaultInit(dst: #null *void, type: typeinfo)
             Debug.assert(false)
             return
         }
+
         for field in typeStruct.fields
         {
             let pointedType = field.pointedType
@@ -96,6 +98,7 @@ internal func defaultInit(dst: #null *void, type: typeinfo)
                 return
             defaultInit(cast([*] u8) data + field.offset, pointedType orelse #typeof(u8))
         }
+
         return
     }
 
@@ -125,6 +128,7 @@ internal func dropType(dst: #null *void, type: typeinfo)
             dropType(scan, valueType)
             scan += valueType.sizeof
         }
+
         return
     }
 
@@ -173,6 +177,7 @@ internal func postCopyType(dst: #null *void, type: typeinfo)
             postCopyType(scan, valueType)
             scan += valueType.sizeof
         }
+
         return
     }
 
@@ -221,6 +226,7 @@ internal func postMoveType(dst: #null *void, type: typeinfo)
             postMoveType(scan, valueType)
             scan += valueType.sizeof
         }
+
         return
     }
 

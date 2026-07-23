@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'Force Compile-Time Execution with #run'
 
@@ -86,6 +87,7 @@ from the 'return' statement inside the block.
             result += 1
         return result
     }
+
     #assert(Value == 10.0)
 }
 
@@ -122,6 +124,7 @@ Example: compile-time string construction.
         str[2] = str[1] + 1
         return cast(string) str
     }
+
     #assert(MyString == "abc")
 }
 

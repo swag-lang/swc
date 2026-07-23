@@ -56,6 +56,7 @@ struct MainWnd
     mdlFormText:    FormText
     mdlFormDraw:    FormDraw
     mdlFormCallout: FormCallout
+
     // Set right after construction (create/test fixtures).
     mdlHighlight, mdlPixSel, mdlFavorite:     #late IForm
 
@@ -167,6 +168,7 @@ impl IWnd for MainWnd
         switch evt.kind
         {
         case Init:
+
             // Runs while the window is still hidden, so restoring the persisted
             // size/position and loading content happens before the surface is
             // ever displayed (no black/empty flash on startup).
@@ -353,6 +355,7 @@ impl MainWnd
         case PixSel:
             return formToEditMode(notnull .mdlPixSel)
         }
+
         return .editMode
     }
 
@@ -523,6 +526,7 @@ impl MainWnd
                     msg += "Another running application is probably already using it!"
                     discard EmbInfoCtrl.create(notnull .editWnd, msg, .Critical)
                 }
+
                 errorReg = true
             }
         }
@@ -713,6 +717,7 @@ impl MainWnd
             if c.type == IconButton do
                 icons.add(cast(*IconButton) c)
         }
+
         for c in .editToolBar.childs
         {
             if c.type == IconButton do
@@ -763,6 +768,7 @@ impl MainWnd
             img48  = assume Image.decode(".png", Icons48)
             imgApp = assume Image.decode(".png", AppIcon)
         }
+
         let renderer = parent.getApp().getRenderer()
 
         with let res = Wnd.create'MainWnd(parent, "captme.mainwnd")

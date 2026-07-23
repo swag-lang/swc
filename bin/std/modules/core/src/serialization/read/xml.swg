@@ -141,11 +141,14 @@ public impl Xml
         {
             return false;
         }
+
         mtd endStruct() throw {}
+
         mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw
         {
             return false;
         }
+
         mtd endSequence() throw {}
         mtd beginValue() throw {}
         mtd endValue() throw {}

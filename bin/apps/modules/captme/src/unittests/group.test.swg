@@ -147,6 +147,7 @@ using Swag, Core
     {
         discard catch File.delete(path)
     }
+
     f.capture.file    = path
     f.capture.changed = true
     catch f.capture.save()

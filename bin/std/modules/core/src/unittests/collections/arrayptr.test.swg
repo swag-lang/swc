@@ -85,6 +85,7 @@ impl ApTracked
         let p = arr.addNewPtr()
         p.id = cast(s32) i
     }
+
     @assert(arr.count == 5)
     @assert(arr.getFirst().id == 0)
     @assert(arr.getLast().id == 4)

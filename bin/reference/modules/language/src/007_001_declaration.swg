@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to Function Declarations
 
@@ -118,6 +119,7 @@ These can be accessed directly or destructured.
     {
         return {1.0, 2.0}
     }
+
     let result = myFunction()
     @assert(result.x == 1.0)
     @assert(result.y == 2.0)

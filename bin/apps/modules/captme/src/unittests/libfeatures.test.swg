@@ -75,6 +75,7 @@ using Swag, Core
     {
         discard catch File.delete(path)
     }
+
     cap.file    = path
     cap.changed = true
     catch cap.save()
@@ -89,6 +90,7 @@ using Swag, Core
     {
         Memory.delete(loaded)
     }
+
     @assert(loaded.title == "Renamed")
     @assert(loaded.width == 8)
     @assert(loaded.backImg.isValid())
@@ -112,6 +114,7 @@ using Swag, Core
     {
         discard catch File.delete(path)
     }
+
     cap.file    = path
     cap.changed = true
     catch cap.save()
@@ -191,6 +194,7 @@ using Swag, Core
         if p == Library.getTrashFolder() do
             foundTrash = true
     }
+
     @assert(foundTrash)
 
     menu.destroy()
@@ -216,6 +220,7 @@ using Swag, Core
     {
         discard catch File.delete(path)
     }
+
     cap.file    = path
     cap.changed = true
     catch cap.save()

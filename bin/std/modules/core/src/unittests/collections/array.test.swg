@@ -531,6 +531,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
         @assert(values[0].value == 1)
         @assert(values[1].value == 5)
     }
+
     @assert(ArrayDropCount == 5)
 }
 

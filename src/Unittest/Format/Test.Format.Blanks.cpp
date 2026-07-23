@@ -247,6 +247,205 @@ SWC_TEST_BEGIN(FormatBlanks_CombinedStartAndEndOfBlock)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsInsertsBlank)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "}\n"
+        "func bar()\n"
+        "{\n"
+        "    b = 2\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "}\n"
+        "\n"
+        "func bar()\n"
+        "{\n"
+        "    b = 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesBetweenFunctions = 1;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsDocCommentAttached)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "}\n"
+        "// Doc for bar.\n"
+        "#[Swag.Inline]\n"
+        "func bar()\n"
+        "{\n"
+        "    b = 2\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "}\n"
+        "\n"
+        "// Doc for bar.\n"
+        "#[Swag.Inline]\n"
+        "func bar()\n"
+        "{\n"
+        "    b = 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesBetweenFunctions = 1;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsShortFormsStacked)
+{
+    static constexpr std::string_view SOURCE =
+        "interface IFoo\n"
+        "{\n"
+        "    mtd one();\n"
+        "    mtd two();\n"
+        "}\n"
+        "func square(x: s32) => x * x\n"
+        "func cube(x: s32) => x * x * x\n";
+
+    FormatOptions options;
+    options.minBlankLinesBetweenFunctions = 1;
+    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BetweenTypesInsertsBlank)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Point\n"
+        "{\n"
+        "    x: f32\n"
+        "}\n"
+        "enum Kind\n"
+        "{\n"
+        "    One\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Point\n"
+        "{\n"
+        "    x: f32\n"
+        "}\n"
+        "\n"
+        "enum Kind\n"
+        "{\n"
+        "    One\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesBetweenTypes = 1;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsInsertsBlank)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "    // Second part.\n"
+        "    b = 2\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "\n"
+        "    // Second part.\n"
+        "    b = 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesBeforeComments = 1;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsKeepsBlockStartAndRuns)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    // First comment: right after the brace.\n"
+        "    // Second line of the same block.\n"
+        "    a = 1\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesBeforeComments = 1;
+    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AfterBlocksInsertsBlank)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x\n"
+        "    {\n"
+        "        a = 1\n"
+        "    }\n"
+        "    b = 2\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x\n"
+        "    {\n"
+        "        a = 1\n"
+        "    }\n"
+        "\n"
+        "    b = 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesAfterBlocks = 1;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AfterBlocksKeepsElseAttached)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x\n"
+        "    {\n"
+        "        a = 1\n"
+        "    }\n"
+        "    else\n"
+        "    {\n"
+        "        b = 2\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.minBlankLinesAfterBlocks = 1;
+    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

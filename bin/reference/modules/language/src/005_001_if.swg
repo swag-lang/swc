@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Basic Usage of 'if'
 
@@ -72,6 +73,7 @@ non-zero (or non-null) values are considered `true`.
     {
         @assert(false)
     }
+
     // Redeclare 'a' as a constant in another scope.
     // Since 'a' is 1, the block will execute.
     if const a = 1 do
@@ -95,11 +97,13 @@ with a `where` clause. The `where` condition is only evaluated if the variable t
 {
     func retSomething()->string => "string"
     func retNothing()->#null string => null
+
     // The 'where' clause runs only if 'str' is not null.
     if let str = retSomething() where str[0] == 's' do
         @assert(true)
     else do
         @assert(false)
+
     // Since 'retNothing()' returns null, the 'where' clause is skipped.
     if let str = retNothing() where str[0] == 's' do
         @assert(false)

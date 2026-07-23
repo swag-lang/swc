@@ -5,6 +5,7 @@ struct RadioButton
 {
     using button:        Button
     checked:             bool
+
     // Auto-grouping: radios sharing the same (parent, group) uncheck each other when one is
     // checked, so a group keeps a single selection. 'group' is a string id, like a command id; an
     // empty/unset group means "ungrouped" — grouping is then left to the caller (backward

@@ -244,6 +244,7 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
             e0x = e1x
             e0y = e1y
         }
+
         if Math.isZeroEpsilon(cast(f32) len1)
         {
             e1x = e0x

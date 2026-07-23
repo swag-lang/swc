@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to 'while' Loops
 
@@ -28,6 +29,7 @@ This is useful when you need to stop the loop based on a specific condition.
             break
         i += 1
     }
+
     @assert(i == 5)
 }
 
@@ -75,6 +77,7 @@ A `while` loop can contain another `while` loop.
             count += 1
             j     += 1
         }
+
         i += 1
     }
 

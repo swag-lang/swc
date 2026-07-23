@@ -425,6 +425,7 @@ impl ConcatBuffer
             let firstBucket = notnull .firstBucket
             return @mkslice(firstBucket.datas, firstBucket.count)
         }
+
         return null
     }
 

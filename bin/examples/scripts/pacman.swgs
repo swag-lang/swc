@@ -305,6 +305,7 @@ impl Ghost
             .dir = .DOWN
             .ai  = .LEAVE     // PINK starts in LEAVE mode, leaving the SPAWN pen straight away
         case BLUE, YELLOW:
+
             // YELLOW and BLUE both start facing UP, trapped within the SPAWN
             .dir = .UP
             .ai  = .SPAWN
@@ -329,6 +330,7 @@ impl Ghost
         elif newAI == .DEAD
         {
             .setSpeed(200)
+
             // Flag also ensures the score for eating a ghost is displayed during the short pause
             .drawScore = true
         }
@@ -451,6 +453,7 @@ impl Ghost
                 .dir = .UP     // Then set direction to move out of the SPAWN
             }
         }
+
         // Once out of the SPAWN, act as a normal ghost
         elif .y >= 19
         {
@@ -531,6 +534,7 @@ impl Ghost
     mtd aiChase(redGhost: Ghost)
     {
         var target: Dest = {g_PacMan.getX(), g_PacMan.getY()}
+
         // Default target for RED and (sometimes) YELLOW
         let currentPos: Dest = {.getX(), .getY()}
         var dx, dy:     s32
@@ -539,14 +543,17 @@ impl Ghost
         switch .colour
         {
         case PINK:
+
             // Update target to reflect offset in Pac-Man's direction of movement
             target = targetPacmanOffsetBy(4)
 
         case BLUE:
+
             // Start by finding the point 2 tiles ahead of Pac-Man in his direction of movement
             target = targetPacmanOffsetBy(2)
             dx     = target.x - redGhost.getX()
             dy     = target.y - redGhost.getY()
+
             // BLUE's target is then twice the change in X and Y from RED's position
             target = {redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy}
         case YELLOW:
@@ -567,6 +574,7 @@ impl Ghost
         {
             // Choose random direction from UP, RIGHT, DOWN or LEFT
             let newDir = cast(Direction) ((Random.shared().nextU32() % cast(u32) Direction.LEFT) + 1)
+
             // Ensure random direction is traversible
             if !isImpassible(.getNextTile(newDir))
             {
@@ -631,6 +639,7 @@ impl Ghost
                 if d < distance
                 {
                     distance = d
+
                     // This process is repeated for all traversible exits from the current junction
                     newDir = .UP
                 }
@@ -840,6 +849,7 @@ impl Ghost
             else do
                 .x = 26
         }
+
         // If the a new AI mode has been set, reverse the current direction
         elif .reverse do
             .reverseDirection()
@@ -902,6 +912,7 @@ impl Ghost
             translateMapCoords(.x, .y)
             g_Painter.translateTransform(-4 * Scale, 0)     // Account for over-sized sprite (16x8 on 8x8 tile)
             g_Painter.translateTransform(8 * Scale, 4 * Scale)
+
             // Determine which score sprite to draw based on the number of ghosts eaten since the last big pill was eaten
             let ghostScore = Math.min(g_GhostsEaten - 1, 3)
             g_Painter.drawTexture(-8, -4, 16, 8, g_GScoreTex[ghostScore])
@@ -1288,6 +1299,7 @@ func translateMapCoords(x, y: f32) => g_Painter.translateTransform(x * 8 * Scale
 func isImpassible(t: Tile)         => t == .W or t == .G
 
 func getTile(x, y: s32)          => g_Map[x, y]
+
 func setTile(x, y: s32, t: Tile)
 {
     g_Map[x, y] = t
@@ -1412,6 +1424,7 @@ func drawLives()
         g_Painter.drawTexture(0, 0, 14, 14, g_LifeTex)
         translateMapCoords(2, 0)
     }
+
     g_Painter.popTransform()
 }
 
@@ -1425,6 +1438,7 @@ func drawFruits()
         g_Painter.drawTexture(0, 0, 14, 14, g_FruitsTex[i])
         translateMapCoords(-2, 0)
     }
+
     g_Painter.popTransform()
 }
 
@@ -1554,21 +1568,25 @@ func soundState()
             g_VoiceSiren.destroy()
             g_VoiceSiren = null
         }
+
         if g_VoiceScared
         {
             g_VoiceScared.destroy()
             g_VoiceScared = null
         }
+
         if g_VoiceRetreat
         {
             g_VoiceRetreat.destroy()
             g_VoiceRetreat = null
         }
+
         if g_VoiceChomp
         {
             g_VoiceChomp.destroy()
             g_VoiceChomp = null
         }
+
         return
     }
 
@@ -1600,11 +1618,13 @@ func soundState()
             g_VoiceSiren.destroy()
             g_VoiceSiren = null
         }
+
         if g_VoiceScared
         {
             g_VoiceScared.destroy()
             g_VoiceScared = null
         }
+
         if !g_VoiceRetreat do
             g_VoiceRetreat = assume Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
 
@@ -1614,11 +1634,13 @@ func soundState()
             g_VoiceSiren.destroy()
             g_VoiceSiren = null
         }
+
         if g_VoiceRetreat
         {
             g_VoiceRetreat.destroy()
             g_VoiceRetreat = null
         }
+
         if !g_VoiceScared do
             g_VoiceScared = assume Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
 
@@ -1628,11 +1650,13 @@ func soundState()
             g_VoiceScared.destroy()
             g_VoiceScared = null
         }
+
         if g_VoiceRetreat
         {
             g_VoiceRetreat.destroy()
             g_VoiceRetreat = null
         }
+
         if !g_VoiceSiren
         {
             g_VoiceSiren = assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
@@ -1670,6 +1694,7 @@ func checkCollisions()
                 g.setAI(.FRIGHTENED, true)
         }
     }
+
     // If score is increased by more than 100, a fruit has been eaten, pause game briefly to show score
     elif scoreIncrement >= 100
     {
@@ -1691,6 +1716,7 @@ func checkCollisions()
         g_TimeStamp = g_Ticks
         g_PacMan.stopChomping()
     }
+
     // Ghosts exit SPAWN pen when a certain number of pills have been eaten
     // To prevent all piling out at once after a death, tick timers only allow the ghosts to leave after a certain point
     // BLUE leaves after 30 pills are eaten
@@ -1713,6 +1739,7 @@ func checkCollisions()
                 g_PacMan.stopChomping()
                 break
             }
+
             // If ghost is FRIGHTENED, it can be eaten itself
             elif g.ai == .FRIGHTENED
             {
@@ -1722,6 +1749,7 @@ func checkCollisions()
                 g_Score       += 200 * cast(s32) Math.pow(2.0, cast(f32) Math.min(g_GhostsEaten, 3))
                 if g_Score > g_HighScore do
                     g_HighScore = g_Score
+
                 // Briefly pause the game to show score for eating ghost
                 g_TimeStamp = g_Ticks
                 g_PacMan.stopChomping()
@@ -1754,24 +1782,30 @@ func aiWave()
 {
     // Account for game not entering PLAY-mode until ticks=240
     let playTicks = g_Ticks - 240
+
     // SCATTER: 7s, or 5s if level 2+
     var wave1: s32
     if g_Level >= 5 do
         wave1 = 5 * 60
     else do
         wave1 = 7 * 60
+
     // CHASE: 20s
     let wave2 = wave1 + 20 * 60
+
     // SCATTER: 7s, or 5s if level 2+
     var wave3: s32
     if g_Level >= 5 do
         wave3 = wave2 + 5 * 60
     else do
         wave3 = wave2 + 7 * 60
+
     // CHASE: 20s
     let wave4 = wave3 + 20 * 60
+
     // SCATTER: 5s
     let wave5 = wave4 + 5 * 60
+
     // CHASE: 20s, or 17m13s if level 2+, or 17m17s if level 5+
     var wave6: s32
     if g_Level >= 5 do
@@ -1780,12 +1814,14 @@ func aiWave()
         wave6 = wave5 + 1033 * 60
     else do
         wave6 = wave5 + 20 * 60
+
     // SCATTER: 5s, or 1/60s (one frame - simply forces direction switch) if level 2+
     var wave7: s32
     if g_Level >= 2 do
         wave7 = wave6 + 1
     else do
         wave7 = wave6 + 5 * 60
+
     // CHASE permanently beyond this point
 
     // Change AI wave based on game ticks (performance-capped approximation of time)
@@ -1827,6 +1863,7 @@ func drawFruit(x, y: s32)
         g_Painter.pushTransform()
         g_Painter.translateTransform(-3 * Scale, -3 * Scale)     // Account for over-sized sprite (14x14 on 8x8 tile)
         g_Painter.translateTransform(7 * Scale, 7 * Scale)
+
         // Determine which fruit sprite to draw from the array based on current fruit consumption count
         g_Painter.drawTexture(-7, -7, 14, 14, g_FruitsTex[g_Fruits])
         g_Painter.popTransform()
@@ -1968,6 +2005,7 @@ func gameLoop()
         {
             g_Mode = PLAY
         }
+
     case PLAY:
         if g_TimeStamp == -1
         {
@@ -1975,9 +2013,11 @@ func gameLoop()
             g_PacMan.move()
             checkCollisions()
             aiWave()
+
             // Move each ghost - pass RED ghost for BLUE's CHASE mode AI
             for &g in g_Ghosts do
                 g.move(g_Ghosts[0])
+
             // If no fruit is currently spawned, enough pills have been eaten,
             // The eaten fruit count doesn't exceed the level and a random quantifier is satisfied, spawn a fruit
             if !g_FruitSpawned and g_Fruits < g_Level and g_PillsLeft <= 240 - 30 and Random.shared().nextU32() % 1500 == 0 do
@@ -1997,6 +2037,7 @@ func gameLoop()
                 resetMap()
                 resetLevel()
             }
+
             // If there are still pills remaining, Pac-Man has died
             else
             {
@@ -2004,9 +2045,11 @@ func gameLoop()
                 g_Mode      = .DEATH
             }
         }
+
     case FRUIT:
         if !g_VoiceEatFruit do
             g_VoiceEatFruit = assume Audio.Voice.play(&g_SoundEatFruit)
+
         // if g_Ticks == g_TimeStamp + 90
         if !g_VoiceEatFruit.isPlaying()
         {
@@ -2016,9 +2059,11 @@ func gameLoop()
             g_PacMan.startChomping()
             g_Mode = .PLAY
         }
+
     case EAT:
         if !g_VoiceEatGhost do
             g_VoiceEatGhost = assume Audio.Voice.play(&g_SoundEatGhost)
+
         // if g_Ticks == g_TimeStamp + 90
         if !g_VoiceEatGhost.isPlaying()
         {
@@ -2028,9 +2073,11 @@ func gameLoop()
             g_PacMan.startChomping()
             g_Mode = .PLAY
         }
+
     case DEATH:
         if !g_VoiceDeath do
             g_VoiceDeath = assume Audio.Voice.play(&g_SoundDeath)
+
         // if g_Ticks > g_TimeStamp + 180
         if !g_VoiceDeath.isPlaying()
         {
@@ -2234,5 +2281,6 @@ func loadBindTextures()
     {
         if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0)
     }
+
     Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)
 }

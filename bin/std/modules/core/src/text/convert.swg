@@ -338,6 +338,7 @@ func convertStruct(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertF
         let val = @mkany(ptr + field.offset, field.pointedType)
         convertAny(buf, val, convFmt, strFormat)
     }
+
     buf.addBytes("}")
 }
 

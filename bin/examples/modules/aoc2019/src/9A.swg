@@ -66,6 +66,7 @@ private func run(op: &Array's64, input: s64)->s64
             param0 = mode0 == 1 ? addr(ip + 1) : mode0 == 2 ? addr(op[ip + 1] + base) : addr(op[ip + 1])
         if inst != 3 and inst != 4 and inst != 9 do
             param1 = mode1 == 1 ? addr(ip + 2) : mode1 == 2 ? addr(op[ip + 2] + base) : addr(op[ip + 2])
+
         /*
         switch inst
         {
@@ -124,6 +125,7 @@ func day9A()
         prg.add(assume StrConv.toS64(v))
 
     let total = run(&prg, 1)
+
     // Console.print("total: ", total)
     @assert(total == 3013554615)
 }

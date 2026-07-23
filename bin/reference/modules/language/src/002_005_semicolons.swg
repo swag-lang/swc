@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Statement Termination in Swag
 
@@ -35,10 +36,12 @@ complex statements or when writing multiple statements on a single line.
 {
     // Here, type inference is used, so the types of 'x' and 'y' are not explicitly defined.
     var x, y = 0
+
     // Both 'x' and 'y' are initialized to 0, with types inferred automatically.
 
     // Increment both variables by 1.
     x, y += 1
+
 // Both 'x' and 'y' now have the value 1.
 }
 

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'with' Statement
 The 'with' statement reduces repetition by letting you access fields and methods
@@ -16,6 +17,7 @@ impl Point
     mtd setOne()
     {
         me.x, me.y = 1
+
     // Set both coordinates to 1 on this Point.
     }
 }

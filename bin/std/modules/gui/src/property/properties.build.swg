@@ -74,6 +74,7 @@ internal impl Properties
             .level           = parentItem ? parentItem.level + 1 : 0
             .section         = parentItem ? parentItem.section : 0
             .valueCellHeight = height orelse .gridLineHeight
+
             // The focus/hot rectangle extends into the inter-row gap: half the line
             // margin, so two adjacent rows never overlap (Panel rows use the same
             // margin as the grid ones, see below).
@@ -100,6 +101,7 @@ internal impl Properties
                         item.filter = parentItem.filter
                         item.filter += " "
                     }
+
                     item.filter += dispName
                 }
             }
@@ -288,6 +290,7 @@ internal impl Properties
         for idx in walkOrder
         {
             let value = typeStruct.fields[idx]
+
             // Opt-in mode (see addStructMulti 'onlyNamed'): a field participates only when it
             // carries an explicit display name. 'using' struct fields always recurse — their own
             // fields decide for themselves.
@@ -311,6 +314,7 @@ internal impl Properties
                     common += 1
 
                 categPath.count = common
+
                 // Consecutive fields sharing the same category leave no new segment to
                 // create (common == segs.count); an empty 'until' range is a safety
                 // error, so guard the loop.
@@ -428,6 +432,7 @@ internal impl Properties
             .level = parentItem.level
             .flags.add(.Header | .NoSeparator | .NoFocus)
         }
+
         return item
     }
 
@@ -450,6 +455,7 @@ internal impl Properties
             .paddingText       = {.valBarGlyphWidth, 0, .valBarPaddingX, 0}
             .dockStyle         = .Center
         }
+
         item.label = lbl
 
         // Icon + colors come from the theme and are re-applied on a theme switch (applyNoteVisual),

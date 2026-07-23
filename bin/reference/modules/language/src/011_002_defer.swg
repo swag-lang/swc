@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'defer' Statement
 The 'defer' statement registers an expression that executes automatically
@@ -30,6 +31,7 @@ you to group operations that should all run when leaving the scope.
     }
 
     v += 5
+
 // Upon scope exit, the defer block executes, ensuring v == 15.
 }
 
@@ -75,10 +77,12 @@ release logic stay close together and cleanup always happens.
 #test
 {
     func createResource()                 => true
+
     func releaseResource(resource: *bool)
     {
         dref resource = false
     }
+
     func isResourceCreated(b: bool)       => b
 
     var resource = false
@@ -106,10 +110,12 @@ to errors. This pattern creates robust, error-resilient code.
 #test
 {
     func createResource()                 => true
+
     func releaseResource(resource: *bool)
     {
         dref resource = false
     }
+
     func isResourceCreated(b: bool)       => b
 
     func performTask()->bool

@@ -49,6 +49,7 @@ enum class FormatRoleE : uint64_t
     FuncDeclStart  = 1ULL << 32, // first piece of a function declaration
     CastKeyword    = 1ULL << 33, // `cast` keyword
     TernaryOp      = 1ULL << 34, // `?` / `:` of a conditional expression
+    TypeDeclStart  = 1ULL << 35, // first piece of a named type / impl / namespace declaration
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 

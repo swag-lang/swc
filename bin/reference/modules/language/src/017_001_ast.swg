@@ -1,4 +1,5 @@
 #global private
+
 /**
 # '#ast' Block
 
@@ -29,6 +30,7 @@ A '#ast' block can include logic and must return a string to compile.
         const INC = 5
         return "cpt += " ++ INC
     }
+
     @assert(cpt == 7)
 }
 

@@ -145,6 +145,7 @@ impl Decoder
     {
         // Discard plain text metadata.
         .seek(13)
+
         // Discard plain text sub-blocks.
         .discardSubBlocks()
     }
@@ -159,6 +160,7 @@ impl Decoder
         .gce.transparency = rdit & 1
         .gce.delay        = .readU16()
         .gce.tindex       = .readU8()
+
         // Skip block terminator
         .seek(1)
     }
@@ -175,8 +177,10 @@ impl Decoder
 
         // Discard block size (always 0x0B)
         .seek(1)
+
         // Application Identifier
         .read(app_id, 8)
+
         // Application Authentication Code
         .read(app_auth_code, 3)
 
@@ -185,6 +189,7 @@ impl Decoder
             // Discard block size (0x03) and constant byte (0x01).
             .seek(2)
             .loopCount = .readU16()
+
             // Skip block terminator.
             .seek(1)
         }
@@ -283,6 +288,7 @@ impl Decoder
         if (y < p) do
             return y * 4 + 2
         y -= p
+
         // pass 4
         return y * 2 + 1
     }

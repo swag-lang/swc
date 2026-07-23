@@ -12,6 +12,7 @@ func iconBarHeadlessPressed(btn: *IconButton)
     discard btn;
     IconBarHeadlessPressedCount += 1
 }
+
 func iconBarHeadlessChecked(btn: *IconButton)
 {
     discard btn;

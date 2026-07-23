@@ -103,6 +103,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             .editBoxFlags = .ReadOnly | .RightAlign
             .style.setFont(notnull g_FontTxt, .Regular)
         }
+
         layout.setColRowChild(notnull g_Edit, 0, 0, 4)
 
         createBtn("7", 0, 2)

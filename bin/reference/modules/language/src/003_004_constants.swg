@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Constants with 'const'
 
@@ -40,6 +41,7 @@ three elements of type 's32' (signed 32-bit integers).
     let ptr = cast(const [*] s32) &a[0]
     @assert(ptr[0] == 0)
     @assert(ptr[2] == 2)
+
     // Compile-time verification of array contents
     #assert(a[0] == 0)
     #assert(a[1] == 1)

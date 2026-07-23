@@ -75,5 +75,6 @@ func drawCapsPage(painter: *Pixel.Painter)
         let rowRect = Math.Rectangle{body.x, body.y + i * rowHeight, body.width, rowHeight}
         drawCapRow(painter, rowRect, CapRows[i])
     }
+
     painter.popClippingRect()
 }

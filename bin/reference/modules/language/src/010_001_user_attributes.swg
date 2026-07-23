@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'User Attributes in Swag'
 
@@ -11,6 +12,7 @@ enrich code with extra information usable at compile time and at runtime.
 using Swag
 
 attr AttributeA()
+
 // Simple attribute without parameters
 
 /**
@@ -20,6 +22,7 @@ Attributes can accept parameters, similar to functions. Parameters let you
 customize how the attribute configures the annotated element.
 */
 attr AttributeB(x, y: s32, z: string)
+
 // Attribute with multiple parameters
 
 /**
@@ -29,6 +32,7 @@ Attributes may define default parameter values. When applied, omitted arguments
 fall back to their defaults.
 */
 attr AttributeBA(x: s32, y: string = "string")
+
 // Attribute with a defaulted parameter
 
 /**
@@ -39,6 +43,7 @@ Use the 'AttrUsage' specifier to control where an attribute may be applied
 */
 #[AttrUsage(AttributeUsage.Function)]
 attr AttributeC()
+
 // Restricted to function usage
 
 /**
@@ -61,6 +66,7 @@ with a bitwise OR. This enables reuse across contexts (e.g., functions, structs)
 */
 #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]
 attr AttributeD(x: s32)
+
 // Applicable to both functions and structs
 
 #[AttributeD(6)]

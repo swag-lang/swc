@@ -42,6 +42,7 @@ func day2B()
                     total += value / v1
                     break to Done
                 }
+
                 if v1 % value == 0
                 {
                     total += v1 / value

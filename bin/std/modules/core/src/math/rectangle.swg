@@ -373,6 +373,7 @@ impl Rectangle
             .x     += .width
             .width = -.width
         }
+
         if .height < 0
         {
             .y      += .height

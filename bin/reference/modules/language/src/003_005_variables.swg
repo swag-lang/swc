@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Variable Declaration
 
@@ -147,6 +148,7 @@ retaining its value between function calls.
         G1 += 1
         return G1
     }
+
     @assert(toto() == 1)
     @assert(toto() == 2)
     @assert(toto() == 3)

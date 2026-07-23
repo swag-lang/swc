@@ -1,4 +1,5 @@
 #global private
+
 /**
 # The `retval` Special Type
 In Swag, `retval` represents the current function’s return type.
@@ -30,6 +31,7 @@ This is especially beneficial when returning large structs, arrays, or tuples.
     {
         x, y, z: f64
     }
+
     func getWhite()->RGB
     {
         // 'retval = undefined' prevents unnecessary clearing of the return structure.

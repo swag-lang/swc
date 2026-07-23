@@ -38,6 +38,7 @@ func captureUIScale(capture: *Capture)->f32
         if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
             return Math.max(m.scale, 1.0)
     }
+
     return 1.0
 }
 
@@ -181,6 +182,7 @@ impl InPlaceEditWnd
             cap.crop()
             exitWithResult(true)
         case "save":
+
             // On a cancelled save dialog getSaveAsImageName() returns "": keep the
             // in-place editor open instead of writing an empty path and tearing the
             // session down (which would discard the capture being edited).

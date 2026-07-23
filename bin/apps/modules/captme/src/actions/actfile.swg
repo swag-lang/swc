@@ -155,6 +155,7 @@ impl IActionUI for ActionFile
             if capture.linkedImage.length == 0
             {
                 main.saveAsImage(linked: true)
+
                 // `saveAsImage` returns silently when the user cancels the dialog, leaving
                 // `linkedImage` empty; only mark up-to-date and persist when a linked path
                 // was actually set, otherwise we'd record a linked image that doesn't exist.
@@ -164,6 +165,7 @@ impl IActionUI for ActionFile
                     main.saveCapture(capture)
                     main.recentWnd.updateRecent()
                 }
+
                 break
             }
 
@@ -209,6 +211,7 @@ impl IActionUI for ActionFile
             trycatch File.duplicate(file, capture.file)
 
             let newCapture = trycatch Capture.load(file)
+
             // `Capture.load` is fallible; `trycatch` swallows a failure and yields null,
             // so guard before dereferencing to avoid a null crash and abort the duplication.
             if newCapture == null
@@ -216,6 +219,7 @@ impl IActionUI for ActionFile
                 MessageDlg.error(notnull main.surface, "Failed to duplicate capture")
                 break
             }
+
             let loaded = newCapture
             loaded.file        = file
             loaded.linkedImage = ""
@@ -228,6 +232,7 @@ impl IActionUI for ActionFile
             Memory.delete(dupCapture)
 
         case RenameCapture:
+
             // Snapshot the values now: 'capture' may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
             let file  = capture.file.toString()
@@ -235,6 +240,7 @@ impl IActionUI for ActionFile
             dlg.setMessage("Capture name")
             dlg.setText(capture.title)
             dlg.edit.selectAll()
+
             // EditDlg.createSingleLine (unlike Dialog.createDialog) does not center itself;
             // do it here now the surface has its final size, so the box opens centered.
             dlg.surface.center(notnull main.surface)

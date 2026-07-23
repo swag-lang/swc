@@ -80,6 +80,7 @@ impl IActionUI for ActionProperties
                 let info = prop.arrayElementInfo(notnull arr.arrItem)
                 atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
             }
+
             evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or atEnd
 
         case Remove:
@@ -98,6 +99,7 @@ impl IActionUI for ActionProperties
                 let arrData = cast(#null *Array'u8) arr.arrItem.data
                 empty = arrData.isEmpty()
             }
+
             evt.disabled = !arr.arrItem or !prop.canChangeItem(arr.arrItem) or empty
         }
 

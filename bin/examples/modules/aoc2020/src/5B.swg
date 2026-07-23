@@ -37,6 +37,7 @@ func day5B0()
             else do
                 row0 = 1 + (row1 + row0) / 2
         }
+
         var col0 = 0
 
         var col1 = 7

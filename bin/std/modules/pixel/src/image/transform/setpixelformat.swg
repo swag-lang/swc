@@ -20,6 +20,7 @@ impl Image
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
             }
+
         case BGR8, BGRA8:
             mec.visitPixels(dstImage)
             {
@@ -51,6 +52,7 @@ impl Image
                 pixDst[2] = pix[0]
                 pixDst[3] = pix[3]
             }
+
         case RGB8:
             mec.visitPixels(dstImage)
             {
@@ -61,6 +63,7 @@ impl Image
                 pixDst[2] = pix[2]
                 pixDst[3] = 255
             }
+
         case BGR8:
             mec.visitPixels(dstImage)
             {
@@ -92,6 +95,7 @@ impl Image
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
             }
+
         case RGB8, RGBA8:
             mec.visitPixels(dstImage)
             {
@@ -123,6 +127,7 @@ impl Image
                 pixDst[2] = pix[2]
                 pixDst[3] = 255
             }
+
         case RGB8:
             mec.visitPixels(dstImage)
             {
@@ -133,6 +138,7 @@ impl Image
                 pixDst[2] = pix[0]
                 pixDst[3] = 255
             }
+
         case RGBA8:
             mec.visitPixels(dstImage)
             {

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to Variadic Functions
 Variadic functions accept a variable number of arguments using '...'.
@@ -25,15 +26,18 @@ Variadic parameters are treated as slices of type 'any', allowing you to process
     {
         // Check the number of arguments
         @assert(@countof(parameters) == 3)
+
         // Initially, each parameter is of type 'any'
         #assert(#nameof(#typeof(parameters[0])) == "any")
         #assert(#nameof(#typeof(parameters[1])) == "any")
         #assert(#nameof(#typeof(parameters[2])) == "any")
+
         // Determine actual runtime types
         @assert(@kindof(parameters[0]) == s32)
         @assert(@kindof(parameters[1]) == string)
         @assert(@kindof(parameters[2]) == f32)
     }
+
     myFunction(4, "true", 5.6'f32)
 }
 
@@ -77,10 +81,12 @@ Variadic parameters can be forwarded between functions while preserving their ty
         @assert(cast(string) params[0] == "value")
         @assert(cast(bool) params[1] == true)
     }
+
     func B(params: ...)
     {
         A(params)     // Forward the parameters
     }
+
     B("value", true)
 }
 

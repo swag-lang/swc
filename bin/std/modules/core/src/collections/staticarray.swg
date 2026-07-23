@@ -383,6 +383,7 @@ impl StaticArray
             copy.add(values)
             return .add(copy.toSlice())
         }
+
         Debug.assert(.count + sliceCount <= N, "the array is full")
         var oldCount = .count
         .count += sliceCount
@@ -493,6 +494,7 @@ impl StaticArray
             {
                 @init(&.buffer[.count], oldCount - .count)
             }
+
             return
         }
 
@@ -599,6 +601,7 @@ impl StaticArray
         {
             @init(&.buffer[backIndex], 1)
         }
+
         .count -= 1
         return result
     }
@@ -614,6 +617,7 @@ impl StaticArray
         {
             @init(&.buffer[backIndex], 1)
         }
+
         .count -= 1
     }
 }

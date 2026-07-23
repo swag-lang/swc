@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'Sanity Checks in Swag'
 
@@ -33,11 +34,13 @@ in 'release', where the runtime guard is off.
 {
     var d = 0
     var a = 10
+
     // var x = a / d  // Uncomment: error, division by zero (proven)
 
     var arr: [4] s32
     var i = 5
     arr[0] = i
+
 // let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)
 }
 
@@ -196,6 +199,7 @@ again.
     let p = cast(*s32) notnull exampleAlloc(4)
     dref p = 1
     exampleFree(p, 4)
+
 // let x = dref p       // Uncomment: error, use of a freed pointer (proven)
 // exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
 }
@@ -218,6 +222,7 @@ cannot prove still fail deterministically.
     var a = Item{x: 1}
     var b = #move a
     @assert(b.x == 1)
+
     // @assert(a.x == 1)  // Uncomment: error, use of moved-from value
     a = Item{x: 2}
     @assert(a.x == 2)     // Reassigning makes it readable again

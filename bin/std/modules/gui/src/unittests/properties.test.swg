@@ -364,6 +364,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
         if sub do
             return sub
     }
+
     return null
 }
 
@@ -697,6 +698,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
         if it.typeValue.name == name do
             return it
     }
+
     return null
 }
 
@@ -980,6 +982,7 @@ impl Gui.IPropertyNotify for ValData
             if .count > 100 do
                 return {.Warning, "Count is unusually large."}
         }
+
         return {}
     }
 }
@@ -1320,6 +1323,7 @@ impl IPropertyNotify for PropDefaultCustom
             g_PropDefResetCalls += 1
             return true
         }
+
         return false
     }
 }
@@ -1746,6 +1750,7 @@ struct PropDecorData
         if it.flags.has(.Note) do
             note = it
     }
+
     @assert(spacer != null and heading != null and note != null)
     @assert(heading.parent == physics and spacer.parent == physics and note.parent == physics)
     @assert(heading.typeValue.name == "Body")
@@ -1937,6 +1942,7 @@ struct PropSameCategData
         if item.typeValue.name == "first" do
             descItem = item
     }
+
     @assert(descItem != null and #isset(descItem.checkBox))
     @assert(descItem.checkBox.parent.position.width > cast(f32) opt.prop.sizeEditValue)
 

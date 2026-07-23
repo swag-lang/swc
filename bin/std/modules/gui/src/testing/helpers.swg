@@ -49,6 +49,7 @@ func indexedImage(w, h: s32)->Image
         let blue  = cast(u8) ((cast(u32) value + 7) % 251)
         dref cast(#null *u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
     }
+
     return result
 }
 
@@ -62,6 +63,7 @@ func countNonZeroBytes(img: Image)->u64
         if b != 0 do
             count += 1
     }
+
     return count
 }
 

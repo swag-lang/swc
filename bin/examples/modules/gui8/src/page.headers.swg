@@ -60,6 +60,7 @@ func createHeadersPage(parent: *Wnd)
         line.setItem(2, i % 3 == 0 ? "fixed first column" : "resizable")
         line.setItem(3, i % 2 == 0 ? "click to sort" : "drag separator")
     }
+
     list.sort(0, false, true)
     list.computeLayout()
 }

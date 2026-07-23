@@ -101,6 +101,7 @@ impl IActionUI for ActionToolMode
             evt.checked  = main.editMode == EditMode.PixSel
 
         case Callout:
+
             // No sprite for this tool: the toolbar button draws its own bubble glyph
             // via sigPaintIcon, so this state intentionally does not manage the icon.
             evt.setFlags |= .Checked | .Name | .ToolTip

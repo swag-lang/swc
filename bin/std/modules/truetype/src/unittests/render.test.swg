@@ -148,6 +148,7 @@ using Swag, Core
     let msdf = &scope.face.glyph.bitmap
     @assert(msdf.width > normalWidth)
     @assert(msdf.rows > normalRows)
+
     // MTSDF: 4 bytes per pixel (RGB multi-channel field + true SDF in alpha).
     @assert(msdf.pitch == cast(s32) msdf.width * 4)
     @assert(scope.face.glyph.bitmapLeft == normalLeft - cast(s32) spread)

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Element Iteration with 'for'
 Binding a name in a 'for' statement iterates over all elements of a collection (arrays, slices, strings, and even structs),
@@ -67,6 +68,7 @@ Iterate from the last element to the first by adding the '#reverse' modifier.
             @assert(value == 'A')
             @assert(@index == 0)
         }
+
         cpt += 1
     }
 }
@@ -152,5 +154,6 @@ This avoids explicit branching inside the loop.
             continue
         result += value
     }
+
     @assert(result == 6)
 }

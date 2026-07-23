@@ -1013,6 +1013,7 @@ impl RegExp
                     for var i = oldCount; i < .groupParent.count; i += 1 do
                         .groupParent[i] = 0
                 }
+
                 .groupTransform[.group] = logicalRank
                 .groupParent[.group]    = 0
                 for n in table1.nodes
@@ -1025,6 +1026,7 @@ impl RegExp
                         if rootGroup != .group and .groupParent[rootGroup] == 0 do
                             .groupParent[rootGroup] = .group
                     }
+
                     if n.group == 0 do
                         n.group = .group
                 }

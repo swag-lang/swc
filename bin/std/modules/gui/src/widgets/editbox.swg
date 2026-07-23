@@ -158,6 +158,7 @@ impl IWnd for EditBox
             colorBorder = colors.edit_ErrorBorder
             colorBk     = colors.edit_ErrorBk
         case .editBoxFlags.has(.ReadOnly):
+
             // Shown but not editable: render like a disabled box so it reads as read-only,
             // while the widget stays focusable (it can be navigated to and copied from).
             colorBorder = colors.edit_DisabledBorder
@@ -372,6 +373,7 @@ private impl EditBox
                 .clearBtnTextMargin = 0
                 .applyLayout()
             }
+
             return
         }
 
@@ -627,6 +629,7 @@ private impl EditBox
     {
         // Returns the first byte of the current selection.
         mtd getSelBeg() => .selBeg <= .selEnd ? .selBeg : .selEnd
+
         // Returns the last byte of the current selection.
         mtd getSelEnd() => .selBeg <= .selEnd ? .selEnd : .selBeg
     }

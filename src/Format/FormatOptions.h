@@ -109,7 +109,10 @@ struct FormatOptions
     uint32_t            maxConsecutiveEmptyLines = 2; // Max blank lines in a row (0 = no limit)
     std::optional<bool> keepEmptyLinesAtStartOfBlock; // Preserve blank lines right after `{`
     std::optional<bool> keepEmptyLinesAtEndOfBlock;   // Preserve blank lines right before `}`
-    uint32_t            minBlankLinesBetweenFunctions = 0; // Minimum blank lines between function declarations (0 = preserve)
+    uint32_t            minBlankLinesBetweenFunctions = 0; // Minimum blank lines before a multi-line function definition (0 = preserve)
+    uint32_t            minBlankLinesBetweenTypes     = 0; // Minimum blank lines before a multi-line type / impl / namespace definition (0 = preserve)
+    uint32_t            minBlankLinesBeforeComments   = 0; // Minimum blank lines before a whole-line comment block that follows code (0 = preserve)
+    uint32_t            minBlankLinesAfterBlocks      = 0; // Minimum blank lines after a multi-line `{ ... }` block followed by another statement (0 = preserve)
 
     // -----------------------------------------------------------------------
     // End-of-line

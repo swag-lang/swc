@@ -169,6 +169,7 @@ using Swag, Core
 
     @assert(c0.position == Math.Rectangle{0, 0, 64, 64})
     @assert(c1.position == Math.Rectangle{69, 0, 64, 64})
+
     // The third item no longer fits on the first row and wraps.
     @assert(c2.position == Math.Rectangle{0, 69, 64, 64})
 
@@ -212,6 +213,7 @@ using Swag, Core
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.spacingHorz = 5
     grid.spacingVert = 5
+
     // Default colSizes = 100, rowSizes = 30.
 
     let c00 = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})

@@ -265,6 +265,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
                 writeSourcePixel(result, header, palette, index, p)
                 index += 1
             }
+
             p += pixelBytes
         }
         else

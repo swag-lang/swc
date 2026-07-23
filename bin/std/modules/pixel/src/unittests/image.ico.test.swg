@@ -115,12 +115,15 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     var body: ConcatBuffer
+
     // XOR row 0 (bottom)
     body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(40'u8)
     body.addNative(50'u8); body.addNative(60'u8); body.addNative(70'u8); body.addNative(80'u8)
+
     // XOR row 1 (top)
     body.addNative(90'u8);  body.addNative(100'u8); body.addNative(110'u8); body.addNative(120'u8)
     body.addNative(130'u8); body.addNative(140'u8); body.addNative(150'u8); body.addNative(160'u8)
+
     // AND mask: 2 rows of 4 bytes, fully opaque
     for 8 do body.addNative(0'u8)
 
@@ -142,14 +145,18 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     var body: ConcatBuffer
+
     // XOR row 0 (bottom): 2 pixels BGR + 2 pad bytes (row stride = 8)
     body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8)
     body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8)
     body.addNative(0'u8);  body.addNative(0'u8)
+
     // XOR row 1 (top)
     for 8 do body.addNative(0'u8)
+
     // AND row 0 (bottom): bit for x=1 set -> pixel (1,0) transparent
     body.addNative(0x40'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
+
     // AND row 1 (top)
     for 4 do body.addNative(0'u8)
 
@@ -171,6 +178,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     var body: ConcatBuffer
+
     // Palette (4 BGRA quads)
     body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8)     // idx 0
     body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(0'u8)     // idx 1
@@ -178,8 +186,10 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     body.addNative(70'u8); body.addNative(80'u8); body.addNative(90'u8); body.addNative(0'u8)     // idx 3
     // XOR row 0 (bottom): indices [1,2] + 2 pad (row stride = 4)
     body.addNative(1'u8); body.addNative(2'u8); body.addNative(0'u8); body.addNative(0'u8)
+
     // XOR row 1 (top)
     body.addNative(3'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
+
     // AND mask: 2 rows of 4 bytes, opaque
     for 8 do body.addNative(0'u8)
 
@@ -199,11 +209,13 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     var body: ConcatBuffer
+
     // Palette (2 BGRA quads)
     body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)     // idx 0
     body.addNative(7'u8); body.addNative(8'u8); body.addNative(9'u8); body.addNative(0'u8)     // idx 1
     // XOR row 0 (only row): x0=1, x1=0 -> 0b10000000, + 3 pad (row stride = 4)
     body.addNative(0x80'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
+
     // AND mask: 1 row of 4 bytes
     for 4 do body.addNative(0'u8)
 

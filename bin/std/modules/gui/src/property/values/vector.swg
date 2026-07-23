@@ -16,6 +16,7 @@ impl Properties
             width = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
             width = .listContentWidthFromUseful(width)
         }
+
         let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
         if !.isGridLike() do
             line.maxSize.x = width

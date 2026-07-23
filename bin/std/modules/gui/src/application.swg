@@ -108,6 +108,7 @@ private impl Application
                 break
             scan = cur.parent
         }
+
         return scan
     }
 

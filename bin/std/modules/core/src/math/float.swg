@@ -48,6 +48,7 @@ alias ConstF64 = Const'f64
         let p = (d - c) - (a - b);
         return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b;
     }
+
     func cubicLerp(a, b, c, d, t: f64)->f64
     {
         let p = (d - c) - (a - b);

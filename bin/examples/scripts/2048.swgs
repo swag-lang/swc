@@ -30,6 +30,7 @@ var g_GameOver: bool
 var g_Score:    s32
 
 const RoundCorners = 8.0
+
 func paintGrid(wnd: *Wnd, painter: *Painter)
 {
     let rect = wnd.getClientRect()
@@ -248,6 +249,7 @@ func keyboard(wnd: *Wnd)
                         c.moving = true
                         c.nxd    = nx
                     }
+
                     break
                 }
                 elif g_MoveDirY != 0
@@ -260,6 +262,7 @@ func keyboard(wnd: *Wnd)
                         c.moving = true
                         c.nyd    = ny
                     }
+
                     break
                 }
             }

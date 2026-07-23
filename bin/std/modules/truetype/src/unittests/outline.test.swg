@@ -55,6 +55,7 @@ using Swag, Core
             discard cmd
         }
     }
+
     @assert(counter.moves > 0)
     @assert(counter.lines + counter.conics > 0)
 

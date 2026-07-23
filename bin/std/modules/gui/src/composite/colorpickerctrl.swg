@@ -267,6 +267,7 @@ impl ColorPickerCtrl
                     v.color.b = cast(u8) (cb.b * 255)
                     v.updatePickers()
                 }
+
                 v.updateEdits()
             }
 

@@ -65,10 +65,93 @@ namespace
         }
     }
 
-    void applyBlankLinesBetweenFunctions(FormatModel& model)
+    // Walks up from a declaration line over the attribute lines and the
+    // whole-line comments directly attached to it (no blank in between): the
+    // forced blank line goes before that whole group.
+    uint32_t declGroupStart(const FormatModel& model, const uint32_t declLineStart)
+    {
+        uint32_t target = declLineStart;
+        for (;;)
+        {
+            if (model.gapNewlineCount(target) != 1)
+                break; // already blank-separated (or same-line): group ends here
+            const uint32_t prev = model.prevPiece(target);
+            if (prev == INVALID_PIECE)
+                break;
+            const uint32_t     prevLineStart = model.lineStartOf(prev);
+            const FormatPiece& prevPiece     = model.piece(prevLineStart);
+            const bool         attrLine      = prevPiece.hasRole(FormatRoleE::AttrOpen);
+            const bool         commentLine   = prevPiece.isComment && prevLineStart == prev;
+            if (!attrLine && !commentLine)
+                break; // real code (or a trailing comment on a code line)
+            target = prevLineStart;
+        }
+        return target;
+    }
+
+    void applyBlankBeforeDeclGroup(FormatModel& model, const uint32_t declLineStart, const uint32_t minBlank)
+    {
+        const uint32_t target = declGroupStart(model, declLineStart);
+        const uint32_t prev   = model.prevPiece(target);
+        if (prev == INVALID_PIECE)
+            return;
+        // No forced blank line right after an opening brace or before the
+        // very first statement of a block.
+        if (model.piece(prev).is(TokenId::SymLeftCurly))
+            return;
+
+        forceGapNewlines(model, target, minBlank + 1, false);
+    }
+
+    bool blockSpansLines(const FormatModel& model, const FormatBlock& block)
+    {
+        return model.lineStartOf(block.openPiece) != model.lineStartOf(block.closePiece);
+    }
+
+    // Blank lines before multi-line function / type definitions. Prototypes,
+    // `=>` short forms, and one-line bodies keep stacking as written.
+    void applyBlankLinesBetweenDefinitions(FormatModel& model)
+    {
+        const FormatOptions& options   = model.options();
+        const uint32_t       wantFuncs = options.minBlankLinesBetweenFunctions;
+        const uint32_t       wantTypes = options.minBlankLinesBetweenTypes;
+        if (wantFuncs == 0 && wantTypes == 0)
+            return;
+
+        for (const FormatBlock& block : model.blocks())
+        {
+            if (block.exprLevel || !blockSpansLines(model, block))
+                continue;
+
+            uint32_t want = 0;
+            switch (block.kind)
+            {
+                case FormatBlockKind::Function:
+                    want = wantFuncs;
+                    break;
+                case FormatBlockKind::Struct:
+                case FormatBlockKind::Enum:
+                case FormatBlockKind::Interface:
+                case FormatBlockKind::Impl:
+                case FormatBlockKind::Namespace:
+                    want = wantTypes;
+                    break;
+                default:
+                    break;
+            }
+            if (want == 0)
+                continue;
+
+            applyBlankBeforeDeclGroup(model, model.lineStartOf(block.headPiece), want);
+        }
+    }
+
+    // Blank line before a whole-line comment block that directly follows code
+    // at the same nesting: comments open a new "paragraph".
+    void applyBlankLinesBeforeComments(FormatModel& model)
     {
         const FormatOptions& options = model.options();
-        if (options.minBlankLinesBetweenFunctions == 0)
+        if (options.minBlankLinesBeforeComments == 0)
             return;
 
         std::vector<uint32_t> lineStarts;
@@ -77,32 +160,64 @@ namespace
         for (const uint32_t lineStart : lineStarts)
         {
             const FormatPiece& piece = model.piece(lineStart);
-            if (piece.removed || !piece.hasRole(FormatRoleE::FuncDeclStart))
+            if (piece.removed || !piece.isComment)
                 continue;
 
-            // Walk up over the attribute lines attached to the declaration.
-            uint32_t target = lineStart;
-            for (;;)
-            {
-                const uint32_t prev = model.prevPiece(target);
-                if (prev == INVALID_PIECE)
-                    break;
-                const uint32_t prevLineStart = model.lineStartOf(prev);
-                const FormatPiece& prevPiece = model.piece(prevLineStart);
-                if (!prevPiece.hasRole(FormatRoleE::AttrOpen))
-                    break;
-                target = prevLineStart;
-            }
-
-            const uint32_t prev = model.prevPiece(target);
+            const uint32_t prev = model.prevPiece(lineStart);
             if (prev == INVALID_PIECE)
                 continue;
-            // No forced blank line right after an opening brace or before the
-            // very first statement of a block.
-            if (model.piece(prev).is(TokenId::SymLeftCurly))
+            const FormatPiece& prevPiece = model.piece(prev);
+            // Only the first line of a comment block, after real code.
+            if (prevPiece.isComment || prevPiece.is(TokenId::SymLeftCurly))
+                continue;
+            if (model.piece(model.lineStartOf(prev)).hasRole(FormatRoleE::AttrOpen))
+                continue; // between an attribute and its declaration
+
+            // The comment must introduce a statement (or close a block), not
+            // annotate the middle of a wrapped expression.
+            uint32_t nextCode = model.nextPiece(lineStart);
+            while (nextCode != INVALID_PIECE && model.piece(nextCode).isComment)
+                nextCode = model.nextPiece(nextCode);
+            if (nextCode == INVALID_PIECE)
+                continue;
+            const FormatPiece& nextPiece = model.piece(nextCode);
+            if (!nextPiece.is(TokenId::SymRightCurly) &&
+                !nextPiece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::FieldDeclStart,
+                                         FormatRoleE::EnumValueStart, FormatRoleE::AttrOpen, FormatRoleE::UsingStart,
+                                         FormatRoleE::FuncDeclStart, FormatRoleE::TypeDeclStart}))
                 continue;
 
-            forceGapNewlines(model, target, options.minBlankLinesBetweenFunctions + 1, false);
+            forceGapNewlines(model, lineStart, options.minBlankLinesBeforeComments + 1, false);
+        }
+    }
+
+    // Blank line after the `}` of a multi-line block when another statement
+    // follows: separates the block from the next "paragraph". `else`, `case`,
+    // and closing braces stay attached.
+    void applyBlankLinesAfterBlocks(FormatModel& model)
+    {
+        const FormatOptions& options = model.options();
+        if (options.minBlankLinesAfterBlocks == 0)
+            return;
+
+        for (const FormatBlock& block : model.blocks())
+        {
+            if (block.exprLevel || !blockSpansLines(model, block))
+                continue;
+
+            const uint32_t next = model.nextPiece(block.closePiece);
+            if (next == INVALID_PIECE || !model.gapHasNewline(next))
+                continue;
+
+            const FormatPiece& nextPiece = model.piece(next);
+            const bool         wholeLineComment = nextPiece.isComment && model.lineStartOf(next) == next;
+            if (!wholeLineComment &&
+                !nextPiece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::FieldDeclStart, FormatRoleE::EnumValueStart,
+                                         FormatRoleE::AttrOpen, FormatRoleE::UsingStart, FormatRoleE::FuncDeclStart,
+                                         FormatRoleE::TypeDeclStart}))
+                continue;
+
+            forceGapNewlines(model, next, options.minBlankLinesAfterBlocks + 1, false);
         }
     }
 }
@@ -112,7 +227,9 @@ namespace FormatPass
     void blanks(FormatModel& model)
     {
         applyBlankLineAfterUsingBlock(model);
-        applyBlankLinesBetweenFunctions(model);
+        applyBlankLinesBetweenDefinitions(model);
+        applyBlankLinesBeforeComments(model);
+        applyBlankLinesAfterBlocks(model);
     }
 }
 

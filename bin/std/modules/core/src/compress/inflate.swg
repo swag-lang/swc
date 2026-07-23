@@ -206,6 +206,7 @@ impl Inflate
                     buf = dest.buffer
                     cap = dest.capacity
                 }
+
                 buf[count] = cast(u8) value
                 count      += 1
                 continue
@@ -266,6 +267,7 @@ impl Inflate
                 {
                     dest.buffer[start + i] = dest.buffer[start + i - distance]
                 }
+
                 dest.count += length
             }
 

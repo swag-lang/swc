@@ -41,6 +41,7 @@ impl XAudio2DriverNative
 
         var debug: XAUDIO2_DEBUG_CONFIGURATION
         debug.traceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS
+
         // debug.breakMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS
         let setDebugConfiguration = safeXAudio2.vtbl.setDebugConfiguration
         setDebugConfiguration(safeXAudio2, &debug, null)

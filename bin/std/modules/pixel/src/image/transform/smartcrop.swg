@@ -64,6 +64,7 @@ public impl Image
                 ii[baseOut + x] = ii[baseOut - pitch + x] + rowSum
             }
         }
+
         return ii
     }
 
@@ -99,6 +100,7 @@ public impl Image
                 dst[y * w + x] = cast(f32) (S / n)
             }
         }
+
         return dst
     }
 
@@ -118,6 +120,7 @@ public impl Image
             let dx = Math.min(Math.abs(fx - t1), Math.abs(fx - t2))
             tx[x] = Math.exp(-(dx * dx) / (2.0 * sig2))
         }
+
         for y in 0 to (h - 1)
         {
             let fy = cast(f32) y / cast(f32) h
@@ -199,12 +202,15 @@ public impl Image
         for i in 0 to (w * h - 1)
         {
             let e = Math.saturate(B[i])
+
             // either power inversion:
             let inv = 1.0 - e
             D[i] = Math.pow(inv, 0.75)
+
         // or exponential alternative (commented):
         // D[i] = Math.exp(-EDGE_DIST_SCALE * e)
         }
+
         return D
     }
 
@@ -492,6 +498,7 @@ public impl Image
                 }
             }
         }
+
         return {bx, by, bScore, bD2}
     }
 

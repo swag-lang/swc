@@ -23,6 +23,7 @@ public enum PolyType
     Subject
     Clip
 }
+
 public enum ClipType
 {
     Intersection
@@ -30,6 +31,7 @@ public enum ClipType
     Difference
     Xor
 }
+
 public enum PolyFillType
 {
     EvenOdd
@@ -37,12 +39,14 @@ public enum PolyFillType
     Positive
     Negative
 }
+
 public enum InitOptions
 {
     ReverseSolution   = 1
     StrictlySimple    = 2
     PreserveCollinear = 4
 }
+
 public enum JoinType
 {
     Square
@@ -55,6 +59,7 @@ enum EdgeSide
     Left  = 1
     Right = 2
 }
+
 enum Direction
 {
     RightToLeft
@@ -2252,6 +2257,7 @@ impl Transform
                         inside = !inside
                     e2         = e2.prevInAEL
                 }
+
                 edge.windCnt = inside ? 0 : 1
             }
             else do
@@ -2428,6 +2434,7 @@ impl Transform
 
             e2 = e2.prevInAEL
         }
+
         if !eTmp
         {
             outrec.firstLeft = null

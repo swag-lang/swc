@@ -1,4 +1,5 @@
 #global private
+
 struct MyStruct
 {
     x: s32 = 10
@@ -78,6 +79,7 @@ rename the block parameters positionally.
         case 2:
             @assert(v == 30)
         }
+
         cpt += 1
     }
 
@@ -133,6 +135,7 @@ Using 'opVisitReverse' to iterate fields from last to first.
         case 2:
             @assert(v == 10)
         }
+
         cpt += 1
     }
 

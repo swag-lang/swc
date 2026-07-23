@@ -164,6 +164,7 @@ func canCompare(type: #null typeinfo)->bool
         default:
             return false
         }
+
     case .Struct:
         return true
     default:
@@ -177,6 +178,7 @@ func canCompare(type: #null typeinfo)->bool
     func hasPostMove(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
     func hasPostCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
     func canCopy(type: typeinfo)->bool           => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
+
     func isPod(type: #null typeinfo)->bool
     {
         if !type do
@@ -206,5 +208,6 @@ func hasInterface(type: #null typeinfo, itf: typeinfo)->bool
         elif it.name == itf.fullname do
             return true
     }
+
     return false
 }

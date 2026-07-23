@@ -144,6 +144,7 @@ impl Decimal
     {
         if nd1 < 0 or nd1 >= .nd do
             return
+
         // round up
         for var i = nd1 - 1; i >= 0; i -= 1
         {
@@ -202,6 +203,7 @@ impl Decimal
     }
 
     const MaxShift: u32 = 64 - 4
+
     mtd rightShift(k: u32)
     {
         var r = 0     // read pointer

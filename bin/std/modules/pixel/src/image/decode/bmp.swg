@@ -260,6 +260,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
                 writePalettePixel(dst, palette, paletteEntrySize, value, paletteCount)
                 dst += 3
             }
+
             x += count
             continue
         }
@@ -332,6 +333,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
                 writePalettePixel(dst, palette, paletteEntrySize, rle4Index(value, i), paletteCount)
                 dst += 3
             }
+
             x += count
             continue
         }

@@ -250,6 +250,7 @@ impl Decoder
                         Reflection.reset(fieldData, fieldType)
                         continue
                     }
+
                     if @err != null and !(.flags & .IgnoreStructFieldError) do
                         throw @err
                 }

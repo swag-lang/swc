@@ -10,6 +10,7 @@ func editHeadlessEnter(eb: *EditBox)
     discard eb;
     EditHeadlessEnterCount += 1
 }
+
 func editHeadlessEscape(eb: *EditBox)
 {
     discard eb;

@@ -1,4 +1,5 @@
 #global private
+
 /**
 # 'Safety Checks in Swag'
 
@@ -39,6 +40,7 @@ Operators that can overflow include '+ - * << >>' and compound forms
 #test
 {
     var x = 255'u8
+
 // x += 1  // Uncomment to see overflow panic
 }
 
@@ -94,6 +96,7 @@ Swag checks casts for potential information loss between integer types.
     @assert(y1 == -1)
 
     let x2 = -1's8
+
     // var y2 = cast(u8) x2  // Would panic: negative to unsigned
     let y2 = cast #wrap (u8) x2
     @assert(y2 == 255)
@@ -124,6 +127,7 @@ Swag panics if a cast from 'any' to another type is invalid.
 {
     let x: any = "1"
     let y  = cast(string) x
+
 // var z = cast(s32) x  // Would panic: underlying type mismatch
 // @assert(z == 0)
 }
@@ -144,6 +148,7 @@ Swag panics if an index is out of range when dereferencing sized values
 {
     var x   = [0, 1, 2]
     var idx = 10
+
 // @assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
 
@@ -158,6 +163,7 @@ Indexing a slice is checked for bounds.
     var idx = 1
     @assert(x[idx] == 1)
     idx += 9
+
 // @assert(x[idx] == 1)  // Would panic: out-of-bounds
 }
 
@@ -169,6 +175,7 @@ Slice operations are checked for bounds.
 #test
 {
     var x: const [..] s32 = [0, 1, 2]
+
 // var slice = x[1..4]   // Would panic: out-of-bounds
 // @assert(slice[0] == 1)
 }
@@ -177,6 +184,7 @@ Slice operations are checked for bounds.
 {
     var x   = "string"
     var idx = 10
+
 // var slice = x[0..idx] // Would panic: out-of-bounds
 // @assert(slice[0] == 's')
 }
@@ -192,6 +200,7 @@ arguments.
 {
     var x = 1'f32
     var y = 0'f32
+
 // var z = x / y  // Would panic: division by zero
 // @print(z)
 }
@@ -251,6 +260,7 @@ Swag panics if a 'bool' is not 'true' (1) or 'false' (0).
 #test
 {
     var b: u8 = 2
+
 // if b { }  // Would panic: invalid boolean value
 }
 

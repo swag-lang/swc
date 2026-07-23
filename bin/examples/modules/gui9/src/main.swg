@@ -20,22 +20,27 @@ func onMsgOk(_b: *Button)
 {
     MessageDlg.ok(notnull g_Surface, "This is a simple information message.")
 }
+
 func onMsgOkCancel(_b: *Button)
 {
     discard MessageDlg.okCancel(notnull g_Surface, "Apply the pending changes?")
 }
+
 func onMsgYesNo(_b: *Button)
 {
     discard MessageDlg.yesNo(notnull g_Surface, "Do you enjoy this showcase?")
 }
+
 func onMsgYesNoCancel(_b: *Button)
 {
     discard MessageDlg.yesNoCancel(notnull g_Surface, "Save the document before closing?")
 }
+
 func onMsgConfirm(_b: *Button)
 {
     discard MessageDlg.confirm(notnull g_Surface, "This will reset everything.")
 }
+
 func onMsgError(_b: *Button)
 {
     MessageDlg.error(notnull g_Surface, "Something went wrong while saving.")
@@ -50,6 +55,7 @@ func onEditSingle(_b: *Button)
         .surface.setTitle("Single line edit")
         .surface.center(notnull g_Surface)
     }
+
     discard dlg.doModal()
 }
 
@@ -62,6 +68,7 @@ func onEditMulti(_b: *Button)
         .surface.setTitle("Multi line edit")
         .surface.center(notnull g_Surface)
     }
+
     discard dlg.doModal()
 }
 

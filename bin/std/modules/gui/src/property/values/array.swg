@@ -102,6 +102,7 @@ impl Properties
             if it.parent == elemItem.parent do
                 idx += 1
         }
+
         return idx
     }
 
@@ -116,6 +117,7 @@ impl Properties
                 return scan
             scan = scan.parent
         }
+
         return null
     }
 
@@ -200,6 +202,7 @@ impl Properties
             {
                 .anchorStyle = .X
             }
+
             .setForm(.Transparent)
             .enable(false)
         }

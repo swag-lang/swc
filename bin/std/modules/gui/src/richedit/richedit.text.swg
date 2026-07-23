@@ -400,6 +400,7 @@ public impl RichEditCtrl
         .clearUndo()
         for l in .lines do
             .freeLines.add(l)
+
         // Ownership moved to the free list above: detach without freeing,
         // otherwise the recycled pointers in .freeLines would dangle.
         .lines.clearNoDelete()

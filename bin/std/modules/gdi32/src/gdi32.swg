@@ -289,6 +289,7 @@ struct LOGFONTW
 }
 
 const LF_FULLFACESIZE = 64
+
 struct ENUMLOGFONTEXA
 {
     elfLogFont:      LOGFONTA

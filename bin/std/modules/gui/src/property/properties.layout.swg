@@ -159,6 +159,7 @@ internal impl Properties
     {
         if !.isGridLike() do
             return 0
+
         // Headers (section/category/subgroup/decorator) indent by their own level: a top-level
         // header is at 0, a nested subgroup one step in — so its band label lines up with the
         // (level-1)-based indent of the fields it groups.

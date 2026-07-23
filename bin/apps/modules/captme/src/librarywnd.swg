@@ -121,6 +121,7 @@ impl LibraryWnd
             if .view.selModel.isSelected(cast() i) do
                 res.add(it.fi.fullname)
         }
+
         return res
     }
 
@@ -203,6 +204,7 @@ impl LibraryWnd
         if .view.items.isEmpty() do
             return
         let n = .view.numImagesPerLine()
+
         // Use an addition instead of 'items.count - n' so an unsigned underflow
         // (when n > items.count) cannot make the guard pass and jump out of range.
         if .view.focusItem + n >= .view.items.count or .view.focusItem == Swag.U32.Max do
@@ -513,6 +515,7 @@ impl LibraryWnd
                 catch view.fill()
             }
         }
+
         res.listCtrl = list
 
         // Folder path bar: shows the real library folder and lets the user walk it
@@ -565,6 +568,7 @@ impl LibraryWnd
                     .addItem(ActionRecentSize.LibMedium)
                     .addItem(ActionRecentSize.LibBig)
                 }
+
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
             }
         }
@@ -588,6 +592,7 @@ impl LibraryWnd
                     .addSeparator()
                     .addItem(ActionLibSort.Invert)
                 }
+
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
             }
         }
@@ -611,6 +616,7 @@ impl LibraryWnd
                     .addItem(ActionLibFilter.LinkedImage)
                     .addItem(ActionLibFilter.UnLinkedImage)
                 }
+
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
             }
         }
@@ -632,6 +638,7 @@ impl LibraryWnd
                     .addSeparator()
                     .addItem(ActionLibTrash.Empty)
                 }
+
                 discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
             }
         }

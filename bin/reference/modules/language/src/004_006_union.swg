@@ -1,4 +1,5 @@
 #global private
+
 /**
 # The `union` Type in Swag
 
@@ -16,8 +17,10 @@ which is particularly useful for optimizing memory when only one field is used a
     {
         x, y, z: f32
     }
+
     // Initialize the union, setting the value of the 'x' field
     let v = MyUnion{x: 666}
+
     // All fields share the same memory location — updating one affects all
     @assert(v.y == 666)
     @assert(v.z == 666)

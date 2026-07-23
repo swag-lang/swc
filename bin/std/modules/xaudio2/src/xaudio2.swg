@@ -215,26 +215,32 @@ struct IXAudio2
 {
     vtbl: *IXAudio2Itf
 }
+
 struct IXAudio2Voice
 {
     vtbl: *IXAudio2VoiceItf
 }
+
 struct IXAudio2MasteringVoice
 {
     vtbl: *IXAudio2MasteringVoiceItf
 }
+
 struct IXAudio2SourceVoice
 {
     vtbl: *IXAudio2SourceVoiceItf
 }
+
 struct IXAudio2EngineCallback
 {
     vtbl: *IXAudio2EngineCallbackItf
 }
+
 struct IXAudio2VoiceCallback
 {
     vtbl: *IXAudio2VoiceCallbackItf
 }
+
 struct IXAudio2SubmixVoice
 {
     vtbl: *IXAudio2SubmixVoiceItf

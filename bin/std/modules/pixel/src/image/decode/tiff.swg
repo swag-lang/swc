@@ -90,6 +90,7 @@ impl Ifd
             if .entries[i].tag == tag do
                 return &.entries[i]
         }
+
         return null
     }
 }
@@ -265,6 +266,7 @@ public impl IImageDecoder for Decoder
         {
             if photometric != PHOTO_WHITE_IS_ZERO and photometric != PHOTO_BLACK_IS_ZERO and photometric != PHOTO_PALETTE do
                 throw UnsupportedFormatError{"unsupported photometric"}
+
             // Palette images carry real colors (RGB8); grayscale replicates a
             // single channel and is tagged BGR8 like the other decoders.
             pf = photometric == PHOTO_PALETTE ? PixelFormat.RGB8 : PixelFormat.BGR8
@@ -383,6 +385,7 @@ public impl IImageDecoder for Decoder
                         dst[1] = v
                         dst[2] = v
                     }
+
                     dst += 3
                 }
                 elif samples == 3

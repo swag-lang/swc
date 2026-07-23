@@ -37,6 +37,7 @@ public struct TextEffect
 
     // Grows (+) or shrinks (-) the glyph face; ~ -0.3..0.3.
     faceDilate:      f32
+
     // Edge softness in distance-field units; 0 = crisp, > 0 = feathered.
     softness:        f32
 
@@ -542,6 +543,7 @@ impl Painter
             return
         if .fake do
             return
+
         // Nothing visible: no face fill and no outline/glow/shadow either.
         if !brush.hasVisibleAlpha() and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
             return

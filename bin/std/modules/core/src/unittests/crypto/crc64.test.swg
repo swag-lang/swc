@@ -23,6 +23,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
                     crc <<= 1
             }
         }
+
         return crc
 
     case Hash.Crc64Kind.ISO:
@@ -39,6 +40,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
                     crc >>= 1
             }
         }
+
         return ~crc
 
     case Hash.Crc64Kind.ISOXZ:
@@ -55,6 +57,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
                     crc >>= 1
             }
         }
+
         return ~crc
     }
 }

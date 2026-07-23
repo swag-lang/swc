@@ -343,6 +343,7 @@ impl FloatExt
                 nd       += 1
                 needed   -= 1
             }
+
             d.nd = nd
         }
 
@@ -523,6 +524,7 @@ impl FloatExt
                 d.nd  = i + 1
                 d.dp  = integerDigits + exp10
                 d.neg = .neg
+
                 // Sometimes allowance is so large the last digit might need to be
                 // decremented to get closer to f.
                 return adjustLastDigit(d, currentDiff, targetDiff, allowance, pow << shift, 2)

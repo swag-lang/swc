@@ -1,4 +1,5 @@
 #global private
+
 /**
 # '@drop' Intrinsic
 The '@drop' intrinsic calls the `opDrop` method if it is defined for the struct.

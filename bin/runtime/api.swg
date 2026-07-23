@@ -396,12 +396,16 @@ namespace Swag
     {
         // Allocate a block of memory.
         mtd alloc(request: *AllocatorRequest);
+
         // Reallocate a previously allocated block.
         mtd realloc(request: *AllocatorRequest);
+
         // Free a previously allocated block.
         mtd free(request: *AllocatorRequest);
+
         // Free all memory allocated with this allocator, if supported.
         mtd freeAll(request: *AllocatorRequest);
+
         // Assert that 'request.address' is currently allocated, if supported.
         mtd assertAllocated(request: *AllocatorRequest);
     }
@@ -965,19 +969,25 @@ namespace Swag
 
 // Panic if the expression is false. Typically used in tests.
 func @assert(value: bool);
+
 // Stop a bytecode execution, and launch the bytecode debugger.
 func @breakpoint();
+
 // Get the current thread context.
 func @getcontext()->*Swag.Context;
+
 // Replace the current thread context.
 func @setcontext(context: const *Swag.Context);
 
 // Get information about the current process.
 func @pinfos()->*Swag.ProcessInfos;
+
 // Returns the list of all loaded modules.
 func @modules()->#null const [..] Swag.Module;
+
 // Returns the list of all global variables.
 func @gvtd()->#null const [..] Swag.Gvtd;
+
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func @compiler()->Swag.ICompiler;
 
@@ -1138,12 +1148,15 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32;
     // Round toward minus infinity.
     func @floor(value: f32)->f32;
     func @floor(value: f64)->f64;
+
     // Round toward plus infinity.
     func @ceil(value: f32)->f32;
     func @ceil(value: f64)->f64;
+
     // Round toward zero.
     func @trunc(value: f32)->f32;
     func @trunc(value: f64)->f64;
+
     // Round to nearest, away from zero at .5.
     func @round(value: f32)->f32;
     func @round(value: f64)->f64;
@@ -1200,6 +1213,7 @@ func @free(ptr: #null [*] void);
     func @exp2(value: f64)->f64;
     func @pow(value1, value2: f32)->f32;
     func @pow(value1, value2: f64)->f64;
+
     // Arctangent of y/x with quadrant selection.
     func @atan2(value1, value2: f32)->f32;
     func @atan2(value1, value2: f64)->f64;

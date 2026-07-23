@@ -287,9 +287,11 @@ public impl Font
         switch mode
         {
         case Bitmap:
+
             // Classic grayscale bitmap, rasterized at the exact pixel size.
             return createView(typeFace, size, size, 0, .Bitmap, .Bitmap, forceBold, forceItalic)
         case Msdf:
+
             // Multi-channel SDF, size-independent reference atlas.
             return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
         }

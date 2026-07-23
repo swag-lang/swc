@@ -119,6 +119,7 @@ impl Properties
             editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
+
         // Grid cell: the check line is capped to the value column. List rows let it span
         // the whole row so the side description wraps over the full control width.
         if .isGridLike() do

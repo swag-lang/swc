@@ -34,6 +34,7 @@ internal impl Properties
         case Info:
             return colors.embInfo_InformationBk
         }
+
         return Color.fromArgb(0)
     }
 
@@ -50,6 +51,7 @@ internal impl Properties
         case Info:
             return colors.embInfo_InformationText
         }
+
         return colors.label_Text
     }
 
@@ -66,6 +68,7 @@ internal impl Properties
         case Info:
             return theme.getIcon64(.Information, .valBarIconSize)
         }
+
         return theme.getIcon64(.Information, .valBarIconSize)
     }
 
@@ -107,6 +110,7 @@ internal impl Properties
                 if cast(s32) r.state > cast(s32) result.state do
                     result = r
             }
+
             scan = scan.parent
         }
 
@@ -276,13 +280,16 @@ private impl Properties
             .horzAlignmentText = .Left
             .vertAlignmentText = .Center
             .focusStrategy     = .None
+
             // The Label draws the severity icon on the left and the text after it (both vertically
             // centered by the Label — vertAlignmentIcon defaults to Center), like EmbInfoCtrl.
             .horzAlignmentIcon = .Left
             .paddingIcon.x     = (me.valBarGlyphWidth - me.valBarIconSize) * 0.5
+
             // Reserve room for the glyph on the left and inset the text from the colored
             // background edges (vertical breathing room is added when painting the bar).
             .paddingText = {me.valBarGlyphWidth, 0, me.valBarPaddingX, 0}
+
             // Gap above the bar + the painted vertical breathing room top and bottom.
             .margin.y = me.valBarGap + me.valBarPaddingY
             .margin.w = me.valBarPaddingY

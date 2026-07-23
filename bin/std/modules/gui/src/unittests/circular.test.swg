@@ -45,6 +45,7 @@ func circularHeadlessChanged(c: *Circular)
 
     let circ = Circular.create(&host.root, {20, 20, 120, 120}, null, true)
     circ.setMinMax(0, 100)
+
     // The right bound must be set first: setValue1 clamps to min(value, value2).
     circ.setValueRight(70)
     circ.setValueLeft(30)

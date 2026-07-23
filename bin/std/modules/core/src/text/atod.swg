@@ -32,6 +32,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
         result.ok = true
         return result
     case exp > 0 and exp <= 15 + 22:
+
         // If exponent is big but number of digits is not'f64, can #move a few zeros
         // into the integer part.
         if exp > 22

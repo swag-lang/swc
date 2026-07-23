@@ -38,6 +38,7 @@ using Core
 func day6B()
 {
     day6B0()
+
 // day6B1() disabled: compiler bug on '~0' typing for unsigned values
 }
 

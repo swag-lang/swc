@@ -343,6 +343,7 @@ impl IEncoder for Encoder
                 throw SerializationError{"cannot write a null u8 buffer"}
             return
         }
+
         let safeData = data
         let treated = .serializer.beginSequence(u8, safeData, count)
         defer #noerr .serializer.endSequence()

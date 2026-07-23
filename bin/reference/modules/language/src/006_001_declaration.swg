@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Basic Struct Declaration
 

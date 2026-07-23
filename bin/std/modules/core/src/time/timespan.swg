@@ -123,12 +123,16 @@ impl TimeSpan
 
     // Returns the total duration in days
     mtd const totalDays()->f64 => .ticks * (1.0'f64 / TicksPerDay)
+
     // Returns the total duration in hours
     mtd const totalHours()->f64 => .ticks * (1.0'f64 / TicksPerHour)
+
     // Returns the total duration in minutes
     mtd const totalMinutes()->f64 => .ticks * (1.0'f64 / TicksPerMinute)
+
     // Returns the total duration in seconds
     mtd const totalSeconds()->f64 => .ticks * (1.0'f64 / TicksPerSecond)
+
     // Returns the total duration in milliseconds
     mtd const totalMilliSeconds()->f64 => .ticks * (1.0'f64 / TicksPerMilliSecond)
 

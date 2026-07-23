@@ -47,12 +47,14 @@ using Core
                 result += " = ~"
                 result += r[1]
             }
+
             result += "\n"
         }
     }
 
     return cast(string) result
 }
+
 func day7B()
 {
     @assert(A == 14134)

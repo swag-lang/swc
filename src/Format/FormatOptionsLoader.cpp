@@ -18,7 +18,10 @@ namespace
         schema.add("max-consecutive-empty-lines", &options.maxConsecutiveEmptyLines, "Set the maximum consecutive blank lines; use 0 to disable the limit");
         schema.add("keep-empty-lines-at-start-of-block", &options.keepEmptyLinesAtStartOfBlock, "Keep blank lines at the start of a `{ ... }` block");
         schema.add("keep-empty-lines-at-end-of-block", &options.keepEmptyLinesAtEndOfBlock, "Keep blank lines at the end of a `{ ... }` block");
-        schema.add("min-blank-lines-between-functions", &options.minBlankLinesBetweenFunctions, "Set the minimum blank lines between function declarations; use 0 to keep the source as written");
+        schema.add("min-blank-lines-between-functions", &options.minBlankLinesBetweenFunctions, "Set the minimum blank lines before a multi-line function definition; use 0 to keep the source as written");
+        schema.add("min-blank-lines-between-types", &options.minBlankLinesBetweenTypes, "Set the minimum blank lines before a multi-line type, impl, or namespace definition; use 0 to keep the source as written");
+        schema.add("min-blank-lines-before-comments", &options.minBlankLinesBeforeComments, "Set the minimum blank lines before a whole-line comment block that follows code; use 0 to keep the source as written");
+        schema.add("min-blank-lines-after-blocks", &options.minBlankLinesAfterBlocks, "Set the minimum blank lines after a multi-line block followed by another statement; use 0 to keep the source as written");
     }
 
     void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)

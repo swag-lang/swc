@@ -87,6 +87,7 @@ func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(for
             if @kindof(f) != T do
                 continue
         }
+
         #inject(stmt, form = cast(*T) @dataof(f), itf = f, idx = visitIdx)
         visitIdx += 1
     }
@@ -722,6 +723,7 @@ impl Capture
         {
             me.prevSnapActive = snapNow
         }
+
         if snapNow or .prevSnapActive
         {
             view.invalidate()
@@ -1635,6 +1637,7 @@ impl Capture
             if formOuterGroup(itf) != 0 do
                 return true
         }
+
         return false
     }
 
@@ -1646,6 +1649,7 @@ impl Capture
             if form.subKind == .PixSel do
                 return true
         }
+
         return false
     }
 

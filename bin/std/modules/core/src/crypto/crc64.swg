@@ -55,8 +55,10 @@ impl Crc64
                     else do
                         cur <<= 1
                 }
+
                 i += 1
             }
+
             .crc = cur
 
         case ISO:
@@ -72,8 +74,10 @@ impl Crc64
                     else do
                         cur >>= 1
                 }
+
                 i += 1
             }
+
             .crc = ~cur
 
         case ISOXZ:
@@ -89,8 +93,10 @@ impl Crc64
                     else do
                         cur >>= 1
                 }
+
                 i += 1
             }
+
             .crc = ~cur
         }
     }

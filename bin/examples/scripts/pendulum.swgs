@@ -91,6 +91,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 r1 = slider.getValue()
             }
         }
+
         {
             let slider = SliderCtrl.create(panel, "r2")
             slider.setMinMaxU64(50, 200)
@@ -100,6 +101,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 r2 = slider.getValue()
             }
         }
+
         {
             let slider = SliderCtrl.create(panel, "friction")
             slider.setMinMaxU64(0, 100)
@@ -109,6 +111,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 friction = 1 - (slider.getValue() * 0.0001)
             }
         }
+
         {
             let btn = PushButton.create(panel, "restart")
             btn.maxSize    = 100

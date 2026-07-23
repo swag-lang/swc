@@ -249,6 +249,7 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
         FindData
         BreakOnSuccess
     }
+
     var stage:  Stage = FindRiff
     var header: ChunkHeader
 

@@ -1006,6 +1006,7 @@ impl Deflate
                             break
                         curMatchLen += 1
                     }
+
                     if curMatchLen < MinMatchLen do
                         curMatchLen = 0
                     else do

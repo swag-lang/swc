@@ -11,8 +11,10 @@ struct Keyboard
 
     // Delay, in milliseconds, before a repeated key stroke starts
     pressedRepeatStartTimeMs: u32 = 400
+
     // Delay, in miliseconds, between two repeated key strokes
     pressedRepeatTimeMs: u32 = 50
+
     // Allow key stroke repetition if true
     canRepeat: bool = true
 }

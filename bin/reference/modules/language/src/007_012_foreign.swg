@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Interoperability with External Modules
 Swag supports calling external system or third-party library functions,

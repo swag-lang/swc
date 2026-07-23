@@ -69,6 +69,7 @@ impl IWnd for Slider
                 else do
                     colorBkLeft = colors.slider_DisabledHilightBk
             }
+
             colorMark1 = colors.slider_DisabledMark
             colorMark2 = colors.slider_DisabledMark
         }

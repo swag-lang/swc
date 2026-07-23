@@ -108,6 +108,7 @@ impl IWnd for CaptureRectWnd
             .invalidate()
 
         case MouseMove:
+
             // Auto grab is always active when not dragging
             if !.startGrab
             {

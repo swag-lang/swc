@@ -32,6 +32,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         return true
 
     case CreateEvent:
+
         // Initial population
         for i in 1 until GridSize - 1
         {

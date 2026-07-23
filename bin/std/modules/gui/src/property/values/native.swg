@@ -167,6 +167,7 @@ impl Properties
                 .anchorStyle  = .X
                 .autoEditSize = false
                 .labelSize    = 60
+
                 // Enough for a 3-4 digit value plus a unit; a bigger box would eat the track.
                 .editSize     = 64
             }

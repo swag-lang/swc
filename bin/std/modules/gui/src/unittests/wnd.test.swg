@@ -143,6 +143,7 @@ using Swag, Core
 
     // Surface point (40,40) -> container(10,10) -> child local (20,20): inside child.
     @assert(host.root.getWndAt(40, 40, true) == child)
+
     // A point inside the container but outside the child resolves to the container.
     @assert(host.root.getWndAt(160, 160, true) == container)
 

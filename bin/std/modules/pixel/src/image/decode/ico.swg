@@ -117,6 +117,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) throw
     let andData   = dataof + xorStride * cast(u64) height
 
     checkBuffer(xorData, last, xorStride * cast(u64) height)
+
     // The AND mask is optional for 32-bit images that carry their own alpha
     let hasAndMask = andData + andStride * cast(u64) height <= last
 

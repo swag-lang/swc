@@ -47,6 +47,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
         t.v = cast(s32) (10 + i)
         holder.things.add(cast(ITagBinArrayThing) t)
     }
+
     defer releaseTagBinArrayHolder(&holder)
 
     var encoder: Serialization.Encoder'Serialization.Write.TagBin

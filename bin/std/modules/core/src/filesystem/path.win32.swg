@@ -90,8 +90,10 @@ func getRootLength(fullname: string)->u32
 
     var i                     = 0'u32
     var volumeSeparatorLength = 2'u32
+
     // Length to the colon "C:"
     var uncRootLength = 2'u32
+
     // Length to the start of the server name "\\"
     let pathLength = @countof(fullname)
 
@@ -120,6 +122,7 @@ func getRootLength(fullname: string)->u32
         // UNC or simple rooted path (e.g. "\foo", NOT "\\?\C:\foo")
 
         i = 1
+
         //  Drive rooted (\foo) is one character
         if (extendedUncSyntax or (pathLength > 1 and isDirectorySeparator(fullname[1])))
         {

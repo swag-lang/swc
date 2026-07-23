@@ -54,6 +54,7 @@ func day3A()
 internal const S = 20000
 internal var grid: [S, S] bool
 internal var total = Swag.S32.Max
+
 func day3A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
@@ -130,8 +131,10 @@ func day3A1()
             case 'L':
                 pos += {val, 0}
             }
+
             result.add(pos)
         }
+
         return result
     }
 

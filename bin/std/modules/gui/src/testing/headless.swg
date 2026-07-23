@@ -831,6 +831,7 @@ impl HeadlessHost
             timer.toDelete = false
             .app.deleteTimer(timer)
         }
+
         .app.timersToDelete.clear()
     }
 

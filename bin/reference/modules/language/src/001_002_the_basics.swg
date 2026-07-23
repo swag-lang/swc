@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Swag Language Overview
 
@@ -42,9 +43,11 @@ Constants ('const') and immutable variables ('let') cannot be reassigned.
 #test
 {
     const MaxCount = 10
+
     // MaxCount = 12  // Error: Cannot assign to constant
 
     let width = 50
+
 // width = 60     // Error: Cannot reassign an immutable variable
 }
 
@@ -80,11 +83,13 @@ Use the '@print' intrinsic to display output in the console.
 */
 
 const CanPrint = false     // Must be 'true' to show 'print' results
+
 func print(x: ...)
 {
     if CanPrint do
         @print(x)
 }
+
 #test
 {
     let name = "Swag"
@@ -161,6 +166,7 @@ They are useful for returning multiple values or bundling related data.
     let person = {name: "Alice", age: 30, isActive: true}
         let (name, age, isActive) = person
     print(name, " is ", age, " years old. Active: ", isActive, "\n")
+
 // Access tuple elements by index:
 // print(person.item0, " is ", person.item1, " years old.\n")
 }
@@ -209,10 +215,12 @@ Swag supports both 'for' and 'while' loops.
     {
         print("Iteration: ", @index, "\n")
     }
+
     for var i: u32 = 0; i < 10; i += 2
     {
         print("Iteration: ", i, "\n")
     }
+
     var countdown: u32 = 5
     while countdown > 0
     {
@@ -248,6 +256,7 @@ Functions encapsulate reusable blocks of logic.
     {
         return a + b
     }
+
     let result = add(10, 5)
     print("Result: ", result, "\n")     // Outputs 15
 }
@@ -280,6 +289,7 @@ func divide(a: s32, b: s32)->s32 throw
     {
         throw Swag.BaseError{"Division by zero!"}
     }
+
     return a / b
 }
 

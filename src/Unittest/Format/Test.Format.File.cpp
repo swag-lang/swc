@@ -100,19 +100,33 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FormatFile_MinBlankLinesBetweenFunctions)
 {
+    // Only multi-line definitions are separated: empty / one-line bodies and
+    // prototypes keep stacking as written.
     static constexpr std::string_view SOURCE =
         "func foo() {}\n"
-        "func bar() {}\n"
+        "func bar()\n"
+        "{\n"
+        "    return\n"
+        "}\n"
         "#[Swag.Inline]\n"
-        "func baz() {}\n";
+        "func baz()\n"
+        "{\n"
+        "    return\n"
+        "}\n";
 
     static constexpr std::string_view EXPECTED =
         "func foo() {}\n"
         "\n"
-        "func bar() {}\n"
+        "func bar()\n"
+        "{\n"
+        "    return\n"
+        "}\n"
         "\n"
         "#[Swag.Inline]\n"
-        "func baz() {}\n";
+        "func baz()\n"
+        "{\n"
+        "    return\n"
+        "}\n";
 
     FormatOptions options;
     options.minBlankLinesBetweenFunctions = 1;

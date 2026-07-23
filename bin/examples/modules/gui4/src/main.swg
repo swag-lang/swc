@@ -251,6 +251,7 @@ func displayModeIndex(kind: PropertiesKind)->u32
     case List:
         return 2
     }
+
     return 0
 }
 
@@ -265,6 +266,7 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
     case 2:
         return .List
     }
+
     return .Grid
 }
 
@@ -390,6 +392,7 @@ func cardRadius(card: *SceneCard, h: f32)->f32
     case Pill:
         return h * 0.5
     }
+
     return card.radius
 }
 

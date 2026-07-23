@@ -41,6 +41,7 @@ impl IWnd for SliderCtrl
             if adaptive > es do
                 es = Math.min(adaptive, Math.max(available * 0.6, .editSize))
         }
+
         es = Math.min(es, available)
 
         let w = available - es

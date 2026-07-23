@@ -232,6 +232,7 @@ using Swag, Core, File
         discard testAddLibraryItem(view, path, size: 8, day: cast(u16) (idx + 1))
         paths.add(path)
     }
+
     defer
     {
         for p in paths
@@ -239,6 +240,7 @@ using Swag, Core, File
             discard catch File.delete(p)
             discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.getFileName(p)))
         }
+
         g_Library.files.clear()
         g_Library.onDeleteFile.arr.clear()
     }

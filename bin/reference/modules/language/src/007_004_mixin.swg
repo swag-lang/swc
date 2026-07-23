@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to Swag Mixins
 A mixin in Swag is declared similarly to a function but with the attribute '#[Swag.Mixin]'.
@@ -64,8 +65,10 @@ The mixin can execute this block multiple times using '#inject'.
     func doItTwice(what: #code)
     {
         #inject(what)
+
         // first execution
         #inject(what)
+
     // second execution
     }
 
@@ -90,16 +93,20 @@ separate block after the call.
         #inject(what)
         #inject(what)
     }
+
     var a = 0
+
     // Inline code argument
     doItTwice(4, #code {
         a += value;
     })
+
     // Separate trailing block
     doItTwice(2)
     {
         a += value
     }
+
     @assert(a == 12)
 }
 
@@ -122,9 +129,11 @@ plain declarations there.
     {
         a += cell
     }
+
     inc10() #code(amount) {
         b += amount
     }
+
     @assert(a == b and b == 10)
 }
 

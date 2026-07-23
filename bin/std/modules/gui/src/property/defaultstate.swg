@@ -123,6 +123,7 @@ impl Properties
                 if st != .Auto do
                     return st == .Modified
             }
+
             scan = scan.parent
         }
 
@@ -137,6 +138,7 @@ impl Properties
                 if dref cast(#null *String) .instanceAddr(item, k) != dref d do
                     return true
             }
+
             return false
         }
 
@@ -149,6 +151,7 @@ impl Properties
             if Memory.compare(cast(#null const [*] void) .instanceAddr(item, k), cast(#null const [*] void) item.defaultData, sz) != 0 do
                 return true
         }
+
         return false
     }
 
@@ -165,6 +168,7 @@ impl Properties
                 .hasChanged(item)
                 return
             }
+
             scan = scan.parent
         }
 
@@ -201,6 +205,7 @@ impl Properties
             if .updateItemDefaultState(notnull it) do
                 changed = true
         }
+
         return changed
     }
 }
@@ -257,6 +262,7 @@ impl Properties
             btn.icon.clear()     // hide the arrow; the docked button still holds the column
             btn.enable(false)
         }
+
         btn.invalidate()
         return false
     }

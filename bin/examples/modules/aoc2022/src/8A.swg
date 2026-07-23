@@ -68,6 +68,7 @@ func day8A()
                     break
                 }
             }
+
             maxLeft = Math.max(maxLeft, l[col])
 
             for x in col + 1 to l.length - 1

@@ -168,6 +168,7 @@ impl CheckButton
 
     // Returns 'true' if the button is checked
     public mtd const isChecked()->bool => .checked == .Checked
+
     // Returns 'true' if the button is undefined
     public mtd const isUndefined()->bool => .checked == .Undefined
 }

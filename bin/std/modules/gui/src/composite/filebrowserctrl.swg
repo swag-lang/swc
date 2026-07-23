@@ -27,8 +27,10 @@ struct FileBrowserCtrl
 
     // A file/folder was activated (double-click or Enter on a non-directory).
     sigAccept:        SigArray'func||(*FileBrowserCtrl)
+
     // The current folder changed.
     sigFolderChanged: SigArray'func||(*FileBrowserCtrl)
+
     // The user requested the creation of a new folder (host shows the prompt).
     sigNewFolder:     SigArray'func||(*FileBrowserCtrl)
 }
@@ -133,6 +135,7 @@ private impl FileBrowserCtrl
             .margin.z        = 10
             .listFlags       |= .HotTrack
             .backgroundStyle = .View
+
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
@@ -402,6 +405,7 @@ impl FileBrowserCtrl
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
         }
+
         let tokens = Tokenize.split(filterExtensions orelse "", ';''rune)
 
         for &fi in .curList

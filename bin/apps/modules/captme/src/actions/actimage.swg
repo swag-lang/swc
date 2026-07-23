@@ -493,6 +493,7 @@ impl MainWnd
                 .newSizeX -= cast(s32) (capture.width - maxX)
                 .newSizeY -= cast(s32) (capture.height - maxY)
             }
+
             capture.pushUndo(undo, serial)
         }
 

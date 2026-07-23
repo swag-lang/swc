@@ -38,6 +38,7 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
             let idx = @countof(inner) - i
             path.lineTo(inner[idx].x, inner[idx].y)
         }
+
         path.close()
     }
 

@@ -155,6 +155,7 @@ impl MainWnd
                         col1.argb = dref cast(*u32) notnull pix32
                         break
                     }
+
                     y1 += 1
                 }
 
@@ -171,6 +172,7 @@ impl MainWnd
                         col2.argb = dref cast(*u32) notnull pix32
                         break
                     }
+
                     y2 -= 1
                 }
 

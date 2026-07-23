@@ -21,10 +21,12 @@ interface IPropertyNotify
     // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore
     // recorded against a previous grid content (the values are already back in the instances).
     mtd itemHasChanged(list: *Properties, item: #null *PropertiesItem) {}
+
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool
     {
         return true;
     }
+
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool
     {
         return true;
@@ -143,6 +145,7 @@ struct Properties
     edView:                   #late *PropertiesView
     items:    ArrayPtr'PropertiesItem
     sections: Array'{ item: #null *PropertiesItem, lvl: s32 }
+
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
     gridLevelHasMark:    Array'bool
@@ -248,6 +251,7 @@ impl IWnd for Properties
                 evt.accepted = true
                 return
             }
+
             scan = scan.parent
         }
     }
@@ -714,6 +718,7 @@ impl Properties
                 continue
             if #isset(item.editBox) and c == cast(#null *Wnd) item.editBox do
                 continue
+
             // The revert arrow manages its own enabled state (enabled only while modified), so it
             // must not be swept along with the row's read-only state here.
             if #isset(item.revertButton) and c == cast(#null *Wnd) item.revertButton do

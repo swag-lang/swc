@@ -328,6 +328,7 @@ impl RecentWnd
                         self.recentView.selected = Swag.U64.Max
                         self.recentView.select(i)
                     }
+
                     // A removal before the selected item shifts everything after it
                     // down by one, so decrement the index to keep tracking the same item.
                     elif self.recentView.selected != Swag.U64.Max and i < self.recentView.selected

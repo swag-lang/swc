@@ -38,10 +38,12 @@ interface IForm
     mtd setup(capt: #null *Capture);
     mtd isSame(ptr: *BaseForm)->bool;
     mtd copy(dst, src: *BaseForm);
+
     mtd mustClipToBound()->bool
     {
         return false;
     }
+
     mtd canRotate()->bool
     {
         return false;
@@ -82,6 +84,7 @@ struct BaseForm
     borderColor:   Color = Argb.White
     backColor:     Color = Argb.Red
     dashStyle:     DashStyle = None
+
     // Unused, kept because it is serialized: removing it would fail the decoding of
     // existing capture files and of the quick styles saved in the application config.
     quickModeOpaque: bool
@@ -298,6 +301,7 @@ func boundOfPoints(points: *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
 
     var x0 = Swag.F32.Max
     var y0 = Swag.F32.Max
+
     // Max accumulators must start at -F32.Max (not 0), else shapes entirely in
     // negative coordinates stay clamped at 0 and produce oversized/misplaced bounds.
     var x1 = -Swag.F32.Max

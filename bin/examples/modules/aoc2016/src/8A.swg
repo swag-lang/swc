@@ -86,6 +86,7 @@ func day8A()
         for x in W
         {
             total += screen[x, y] ? 1 : 0
+
         // @print(screen[x, y] ? "X" : ".")
         }
 

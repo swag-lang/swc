@@ -56,6 +56,7 @@ func day7B0()
     }
 
     alias T = #decltype(id)
+
     func count(id: *T, what: string)->u32
     {
         let it = id.tryFind(what)
@@ -70,6 +71,7 @@ func day7B0()
     }
 
     let total = count(&id, "shiny gold")
+
     // Console.print("total: ", total)
     @assert(total == 9339)
 }
@@ -96,6 +98,7 @@ func day7B1()
     }
 
     alias T = #decltype(id)
+
     func count(id: *T, what: string)->u32
     {
         let it = id.tryFind(what)
@@ -110,6 +113,7 @@ func day7B1()
     }
 
     let total = count(&id, "shiny gold")
+
     // Console.print("total: ", total)
     @assert(total == 9339)
 }

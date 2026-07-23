@@ -42,5 +42,6 @@ func createListsPage(parent: *Wnd)
         if i == 1 or i == 5 or i == 9 do
             checks.checkModel.select(line.index, true)
     }
+
     checks.computeLayout()
 }

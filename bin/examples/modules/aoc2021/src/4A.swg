@@ -103,6 +103,7 @@ func day4A()
         if v > bestScore do
             total += numbers[v]
     }
+
     total *= numbers[bestScore]
 
     // Console.print("total: ", total)

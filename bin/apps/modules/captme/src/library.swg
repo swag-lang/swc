@@ -57,6 +57,7 @@ impl Library
             dst       = Path.combine(folder, candidate.toString())
             n         += 1
         }
+
         return dst
     }
 

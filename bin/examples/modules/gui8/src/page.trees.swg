@@ -9,6 +9,7 @@ func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons
         for j in 3 do
             discard tree.createLine(Format.toString("leaf %.%.%", rootName, i + 1, j + 1), sampleIcon(j + i), parentLine: child)
     }
+
     return root
 }
 
@@ -54,9 +55,11 @@ func createTreesPage(parent: *Wnd)
             child.setItem(3, j % 2 == 0 ? "api" : "ui")
             child.canCheck = true
         }
+
         if i < 3 do
             table.expand(root)
     }
+
     table.sort(0, false, true)
     table.computeLayout()
 

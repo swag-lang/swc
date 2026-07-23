@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Introduction to Swag Macros
 Macros in Swag are declared like functions, but with the '#[Swag.Macro]' attribute.
@@ -157,6 +158,7 @@ argument.
     call(20) #code(x, y) {
         total = x + y
     }
+
     @assert(total == 60)
 
     // Inline form: the code literal is a normal argument.
@@ -169,6 +171,7 @@ argument.
     call(5) #code(first) {
         total = first + double
     }
+
     @assert(total == 15)
 }
 
@@ -218,12 +221,14 @@ They can be used to generate tight loops with caller-visible indices, etc.
     {
         a += index     // sum 0..4
     }
+
     @assert(a == 0 + 1 + 2 + 3 + 4)
 
     repeat(3)
     {
         a += index     // add 0..2
     }
+
     @assert(a == 10 + 3)
 }
 

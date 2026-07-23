@@ -11,11 +11,13 @@ func sliderHeadlessStart(s: *Slider)
     discard s;
     SliderHeadlessStartCount += 1
 }
+
 func sliderHeadlessChanged(s: *Slider)
 {
     discard s;
     SliderHeadlessChangedCount += 1
 }
+
 func sliderHeadlessEnd(s: *Slider)
 {
     discard s;

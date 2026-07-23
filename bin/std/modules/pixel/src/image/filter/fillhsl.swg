@@ -48,6 +48,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -70,6 +71,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if .pf.hasAlpha() do
                     pix[3] = 255
                 pix        += .bpp8
@@ -100,6 +102,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -122,6 +125,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if .pf.hasAlpha() do
                     pix[3] = 255
                 pix        += .bpp8
@@ -152,6 +156,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -174,6 +179,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if .pf.hasAlpha() do
                     pix[3] = 255
                 pix        += .bpp8
@@ -204,6 +210,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -228,6 +235,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -254,6 +262,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -278,6 +287,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -302,6 +312,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }
@@ -326,6 +337,7 @@ impl Image
                     pix[1] = col.g
                     pix[2] = col.r
                 }
+
                 if image.pf.hasAlpha() do
                     pix[3] = 255
             }

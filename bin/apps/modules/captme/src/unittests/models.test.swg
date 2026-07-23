@@ -100,6 +100,7 @@ using Swag, Core
     let callout = f.main.newFormFromModel(.Callout, clear: true)
     @assert(@kindof(callout) == FormCallout)
     @assert((cast(*FormCallout) @dataof(callout)).roundSize == 22)
+
     // clear drops the text payload while keeping the style.
     @assert((cast(*FormCallout) @dataof(callout)).text.isEmpty())
     testDeleteForm(callout)

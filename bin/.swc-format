@@ -33,8 +33,22 @@ keep-empty-lines-at-start-of-block = false
 # Keep blank lines at the end of a `{ ... }` block.
 keep-empty-lines-at-end-of-block = false
 
-# Minimum blank lines between function declarations (0 keeps the source as written).
-min-blank-lines-between-functions = 0
+# Minimum blank lines before a multi-line function definition (0 keeps the
+# source as written). Prototypes and one-line `=>` forms keep stacking.
+min-blank-lines-between-functions = 1
+
+# Minimum blank lines before a multi-line struct / union / enum / interface /
+# impl / namespace definition (0 keeps the source as written).
+min-blank-lines-between-types = 1
+
+# Minimum blank lines before a whole-line comment block that follows code
+# (0 keeps the source as written).
+min-blank-lines-before-comments = 1
+
+# Minimum blank lines after a multi-line `{ ... }` block when another
+# statement follows (0 keeps the source as written). `else` and `case` stay
+# attached.
+min-blank-lines-after-blocks = 1
 
 # ----------------------------------------------------------------------------
 # End-of-line

@@ -125,6 +125,7 @@ impl FormCallout
             path.lineTo(tip.x, tip.y)
             path.lineTo(p1.x, p1.y)
         }
+
         path.lineTo(b.right() - r, b.y)
         addArc(path, b.right() - r, b.y + r, r, 270, 360)
 
@@ -135,6 +136,7 @@ impl FormCallout
             path.lineTo(tip.x, tip.y)
             path.lineTo(p1.x, p1.y)
         }
+
         path.lineTo(b.right(), b.bottom() - r)
         addArc(path, b.right() - r, b.bottom() - r, r, 0, 90)
 
@@ -145,6 +147,7 @@ impl FormCallout
             path.lineTo(tip.x, tip.y)
             path.lineTo(p0.x, p0.y)
         }
+
         path.lineTo(b.x + r, b.bottom())
         addArc(path, b.x + r, b.bottom() - r, r, 90, 180)
 
@@ -155,6 +158,7 @@ impl FormCallout
             path.lineTo(tip.x, tip.y)
             path.lineTo(p0.x, p0.y)
         }
+
         path.lineTo(b.x, b.y + r)
         addArc(path, b.x + r, b.y + r, r, 180, 270)
 
@@ -300,6 +304,7 @@ impl IForm for FormCallout
     {
         let z     = cxt.z
         var bSize = cxt.hitTest ? Math.max(.borderSize, 5) : .borderSize
+
         // Quick-mode preview maps the border into a thin range (like FormText's, 2..4)
         // rather than the heavy shape range (4..8): at icon scale a fat outline is the
         // main thing that reads as clumsy. Full-scale rendering is unaffected (adaptSize
@@ -311,6 +316,7 @@ impl IForm for FormCallout
 
         let tipF     = Math.Vector2{.tailX, .tailY}
         let bodyForm = .rectFormBound()
+
         // An unplaced form keeps a (0,0) tip; skip the tail rather than aim it at the origin.
         let drawTail = !(Math.isZeroEpsilon(.tailX) and Math.isZeroEpsilon(.tailY)) and
                        !bodyForm.contains(tipF.x, tipF.y)
@@ -348,6 +354,7 @@ impl IForm for FormCallout
         if !cxt.hitTest
         {
             var inner = .rectFormBound()
+
             // Text padding is a form-space inset. The raw round/border values are sized
             // for full-scale bubbles; at preview scale they would swallow the whole tiny
             // body and leave a degenerate (near-zero-height) text box, throwing the glyph

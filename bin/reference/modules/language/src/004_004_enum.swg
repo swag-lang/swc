@@ -1,4 +1,5 @@
 #global private
+
 /**
 # Enums in Swag
 
@@ -40,6 +41,7 @@ A custom base type can be specified after the enum name.
         B
         C
     }
+
     #assert(#typeof(Values1).rawType == s64)
     #assert(#typeof(Values1.A) == Values1)
 }
@@ -97,6 +99,7 @@ Non-integer enums require explicit assignments.
 {
     enum Value1: string { A = "string 1", B = "string 2", C = "string 3" }
     #assert(Value1.A == "string 1")
+
     enum Value2: f32
     {
         A = 1.0

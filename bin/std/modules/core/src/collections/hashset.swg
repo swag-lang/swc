@@ -445,6 +445,7 @@ impl StrConv.IConvert for HashSet
                 buf.addBytes(", ")
             StrConv.convert'K(buf, k, convFormat, strFormat)
         }
+
         buf.addBytes("]")
     }
 }

@@ -54,8 +54,10 @@ func day3B()
             case 'L':
                 pos += {val, 0}
             }
+
             result.add(pos)
         }
+
         return result
     }
 

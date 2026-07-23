@@ -28,6 +28,7 @@ public impl Properties
     {
         if !#isset(.edView) do
             return
+
         // Keep the current selection (e.g. the row just clicked, even when it is a
         // header/value row); only fall back to the first row when nothing is set.
         // A mouse click on empty space opts out (fallbackToFirst false): selecting the
@@ -125,6 +126,7 @@ internal impl Properties
                 .activateSel()
 
         case Right:
+
             // A slider steps right away (and stays focused for further steps), so
             // the very first press already changes the value.
             if .selItem and #isset(.selItem.sliderBox)

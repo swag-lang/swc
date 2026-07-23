@@ -10,6 +10,7 @@ using Swag, Core
     f.setup()
 
     let cf = testAddCallout(f.capture, 10, 10, 40, 20)
+
     // Body is 10,10 → 50,30; testAddCallout drops the tail below at (22, 60).
     @assert(cf.tailY == 60)
     let b = cf.IForm.boundRect()

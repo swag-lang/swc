@@ -21,7 +21,7 @@ impl Vec2
     {
         #if op == "-" do
             return {x: -me.x, y: -me.y}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -29,9 +29,9 @@ impl Vec2
     {
         #if op == "+" do
             return {x: me.x + other.x, y: me.y + other.y}
-            #elif op == "-" do
+        #elif op == "-" do
             return {x: me.x - other.x, y: me.y - other.y}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -39,7 +39,7 @@ impl Vec2
     {
         #if op == "*" do
             return {x: me.x * scalar, y: me.y * scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -124,7 +124,7 @@ impl Mat2
     {
         #if op == "-" do
             return {a: -me.a, b: -me.b, c: -me.c, d: -me.d}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -134,15 +134,15 @@ impl Mat2
         #if op == "+" do
             return {a: me.a + other.a, b: me.b + other.b,
                     c: me.c + other.c, d: me.d + other.d}
-            #elif op == "-" do
+        #elif op == "-" do
             return {a: me.a - other.a, b: me.b - other.b,
-                    c: me.c - other.c, d: me.d - other.d}
-            #elif op == "*" do
+                c: me.c - other.c, d: me.d - other.d}
+        #elif op == "*" do
             return {a: me.a * other.a + me.b * other.c,
-                    b: me.a * other.b + me.b * other.d,
-                    c: me.c * other.a + me.d * other.c,
-                    d: me.c * other.b + me.d * other.d}
-            #else do
+                b: me.a * other.b + me.b * other.d,
+                c: me.c * other.a + me.d * other.c,
+                d: me.c * other.b + me.d * other.d}
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -152,7 +152,7 @@ impl Mat2
         #if op == "*" do
             return {a: me.a * scalar, b: me.b * scalar,
                     c: me.c * scalar, d: me.d * scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 

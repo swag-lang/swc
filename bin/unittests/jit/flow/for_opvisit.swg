@@ -67,7 +67,7 @@ impl JitBufferVisits
                     #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
                 }
             }
-                #else
+            #else
             {
                 for idx in 3
                 {
@@ -75,7 +75,7 @@ impl JitBufferVisits
                 }
             }
         }
-            #else
+        #else
         {
             #if ptr
             {
@@ -84,7 +84,7 @@ impl JitBufferVisits
                     #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
                 }
             }
-                #else
+            #else
             {
                 for idx in 3
                 {
@@ -189,7 +189,7 @@ impl JitFieldPointerVisits
             #inject(stmt, item = cast(&s32) &(me.second), index = 1'u64)
             #inject(stmt, item = cast(&s32) &(me.third), index = 2'u64)
         }
-            #else
+        #else
         {
             for idx in 3
             {
@@ -247,7 +247,7 @@ impl JitConstPointerVisits
                 #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
-            #else
+        #else
         {
             for idx in 3
             {

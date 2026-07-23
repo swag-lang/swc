@@ -41,7 +41,7 @@ func(T) bigEndianToNative(x: T)->T
 {
     #if BIG_ENDIAN do
         return x
-        #else do
+    #else do
         return Math.byteswap(x)
 }
 
@@ -52,7 +52,7 @@ func(T) nativeToBigEndian(x: T)->T
 {
     #if BIG_ENDIAN do
         return x
-        #else do
+    #else do
         return Math.byteswap(x)
 }
 
@@ -63,6 +63,6 @@ func(T) littleEndianToNative(x: T)->T
 {
     #if BIG_ENDIAN do
         return Math.byteswap(x)
-        #else do
+    #else do
         return x
 }

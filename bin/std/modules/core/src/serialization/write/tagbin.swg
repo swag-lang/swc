@@ -363,7 +363,7 @@ impl TagBin
             .output.addNative(cast(u32) @countof(value))
             .output.addBytes(value)
         }
-            #else
+        #else
         {
             .output.addNative(value)
         }

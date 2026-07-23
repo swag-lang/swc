@@ -39,7 +39,7 @@ const TrailEnd:   u8 = 9
 {
     const TrailLength = TrailEnd - TrailStart
 }
-    #else
+#else
 {
     const TrailLength = 0'u8
 }

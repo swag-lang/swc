@@ -22,7 +22,7 @@ impl Rectangle
     {
         #if op == "*" do
             return {.x * value, .y * value, .width * value, .height * value}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 

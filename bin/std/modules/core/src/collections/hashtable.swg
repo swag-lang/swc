@@ -94,7 +94,7 @@ impl HashTable
                 newTable[i].value = #nodrop oldTable[i].value
             }
         }
-            #else
+        #else
         {
             Memory.copy(newTable, oldTable, .capacity * #sizeof(HashTableEntry'(K, V)))
         }
@@ -155,7 +155,7 @@ impl HashTable
         {
             #if back do
                 let tableIndex = .capacity - @index - 1
-                #else do
+            #else do
                 let tableIndex = @index
 
             if table[tableIndex].hash < HashTable.HASH_FIRST do
@@ -165,13 +165,13 @@ impl HashTable
             {
                 #if ptr do
                     #inject(stmt, key = cast(&K) &table[tableIndex].key, value = cast(&V) &table[tableIndex].value, break = break to Up, continue = break to Down)
-                    #elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                #elif Reflection.isStruct(K) and Reflection.isStruct(V) do
                     #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
-                    #elif Reflection.isStruct(K) do
+                #elif Reflection.isStruct(K) do
                     #inject(stmt, key = cast(const &K) &table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
-                    #elif Reflection.isStruct(V) do
+                #elif Reflection.isStruct(V) do
                     #inject(stmt, key = table[tableIndex].key, value = cast(const &V) &table[tableIndex].value, break = break to Up, continue = break to Down)
-                    #else do
+                #else do
                     #inject(stmt, key = table[tableIndex].key, value = table[tableIndex].value, break = break to Up, continue = break to Down)
             }
 

@@ -16,9 +16,9 @@ impl RuntimeCommBox
     {
         #if op == "+" do
             return {value: .value + other.value}
-            #elif op == "*" do
+        #elif op == "*" do
             return {value: .value * other.value}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -104,15 +104,15 @@ impl RuntimeFullArithBox
     {
         #if op == "+" do
             return {a: .a + other.a, b: .b + other.b}
-            #elif op == "-" do
+        #elif op == "-" do
             return {a: .a - other.a, b: .b - other.b}
-            #elif op == "*" do
+        #elif op == "*" do
             return {a: .a * other.a, b: .b * other.b}
-            #elif op == "/" do
+        #elif op == "/" do
             return {a: .a / other.a, b: .b / other.b}
-            #elif op == "%" do
+        #elif op == "%" do
             return {a: .a % other.a, b: .b % other.b}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -121,15 +121,15 @@ impl RuntimeFullArithBox
     {
         #if op == "+" do
             return {a: .a + scalar, b: .b + scalar}
-            #elif op == "-" do
+        #elif op == "-" do
             return {a: .a - scalar, b: .b - scalar}
-            #elif op == "*" do
+        #elif op == "*" do
             return {a: .a * scalar, b: .b * scalar}
-            #elif op == "/" do
+        #elif op == "/" do
             return {a: .a / scalar, b: .b / scalar}
-            #elif op == "%" do
+        #elif op == "%" do
             return {a: .a % scalar, b: .b % scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 }
@@ -225,9 +225,9 @@ impl RuntimeRightArithBox
     {
         #if op == "+" do
             return {a: .a + scalar, b: .b + scalar}
-            #elif op == "*" do
+        #elif op == "*" do
             return {a: .a * scalar, b: .b * scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -236,9 +236,9 @@ impl RuntimeRightArithBox
     {
         #if op == "-" do
             return {a: scalar - .a, b: scalar - .b}
-            #elif op == "/" do
+        #elif op == "/" do
             return {a: scalar / .a, b: scalar / .b}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 }

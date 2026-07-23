@@ -15,7 +15,7 @@ impl BoolUnaryBox
     {
         #if op == "!" do
             return {value: !me.value}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 }

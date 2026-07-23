@@ -16,15 +16,15 @@ impl GenBitwisePair
     {
         #if op == "&" do
             return {x: me.x & other.x, y: me.y & other.y}
-            #elif op == "|" do
+        #elif op == "|" do
             return {x: me.x | other.x, y: me.y | other.y}
-            #elif op == "^" do
+        #elif op == "^" do
             return {x: me.x ^ other.x, y: me.y ^ other.y}
-            #elif op == "<<" do
+        #elif op == "<<" do
             return {x: me.x << other.x, y: me.y << other.y}
-            #elif op == ">>" do
+        #elif op == ">>" do
             return {x: me.x >> other.x, y: me.y >> other.y}
-            #else do
+        #else do
             #error("unsupported bitwise operation [[" ++ op ++ "]]")
     }
 }

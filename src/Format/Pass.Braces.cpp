@@ -320,6 +320,16 @@ namespace
                 model_->setGapBreak(block.closePiece, 1, base.view());
         }
 
+        bool closesSingleLineBlock(const uint32_t closePiece) const
+        {
+            for (const FormatBlock& block : model_->blocks())
+            {
+                if (block.closePiece == closePiece)
+                    return blockIsSingleLine(*model_, block);
+            }
+            return false;
+        }
+
         void applyBreakBeforeElse() const
         {
             bool breakBefore;
@@ -342,6 +352,11 @@ namespace
 
                 const uint32_t prev = model_->prevPiece(i);
                 if (prev == INVALID_PIECE || model_->piece(prev).isNot(TokenId::SymRightCurly))
+                    continue;
+
+                // A chain whose branch body is a one-liner stays inline:
+                // `#if X { a } #else { b }`.
+                if (breakBefore && closesSingleLineBlock(prev))
                     continue;
 
                 if (breakBefore && !model_->gapHasNewline(i))

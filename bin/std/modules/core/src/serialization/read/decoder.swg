@@ -155,7 +155,7 @@ impl Decoder
                 if !objType do
                     throw SerializationError{"unknown interface object type"}
             }
-                #else
+            #else
             {
                 .readTypeValue(typeVal, &objType)
                 if objType do

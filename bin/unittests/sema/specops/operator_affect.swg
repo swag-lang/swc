@@ -121,13 +121,13 @@ impl LiteralSetTarget
     {
         #if suffix == "s" do
             .timeInSeconds = value
-            #elif suffix == "ms" do
+        #elif suffix == "ms" do
             .timeInSeconds = value / 1000.0
-            #elif suffix == "min" do
+        #elif suffix == "min" do
             .timeInSeconds = value * 60.0
-            #elif suffix == "h" do
+        #elif suffix == "h" do
             .timeInSeconds = value * 3600.0
-            #else do
+        #else do
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
     }
 }
@@ -147,13 +147,13 @@ impl LiteralOverloadTarget
 
         #if suffix == "s" do
             .timeInSeconds = value
-            #elif suffix == "ms" do
+        #elif suffix == "ms" do
             .timeInSeconds = value / 1000.0
-            #elif suffix == "min" do
+        #elif suffix == "min" do
             .timeInSeconds = value * 60.0
-            #elif suffix == "h" do
+        #elif suffix == "h" do
             .timeInSeconds = value * 3600.0
-            #else do
+        #else do
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
     }
 
@@ -164,13 +164,13 @@ impl LiteralOverloadTarget
 
         #if suffix == "s" do
             .timeInSeconds = value
-            #elif suffix == "ms" do
+        #elif suffix == "ms" do
             .timeInSeconds = value / 1000.0
-            #elif suffix == "min" do
+        #elif suffix == "min" do
             .timeInSeconds = value * 60.0
-            #elif suffix == "h" do
+        #elif suffix == "h" do
             .timeInSeconds = value * 3600.0
-            #else do
+        #else do
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
     }
 }

@@ -12,9 +12,9 @@ impl RestrictedCommutativeBox
     {
         #if op == "*" do
             return {value: .value * scalar}
-            #elif op == "-" do
+        #elif op == "-" do
             return {value: .value - scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 }

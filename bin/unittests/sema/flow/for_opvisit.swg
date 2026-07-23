@@ -70,7 +70,7 @@ impl SemaBufferVisits
                 #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
             }
         }
-            #else
+        #else
         {
             for idx in 3
             {
@@ -144,7 +144,7 @@ impl SemaFieldPointerVisits
             #inject(stmt, item = cast(&s32) &(me.second), index = 1'u64)
             #inject(stmt, item = cast(&s32) &(me.third), index = 2'u64)
         }
-            #else
+        #else
         {
             for idx in 3
             {
@@ -257,7 +257,7 @@ impl SemaConstPointerVisits
                 #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
-            #else
+        #else
         {
             for idx in 3
             {

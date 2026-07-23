@@ -25,9 +25,9 @@ impl LiteralAngle
     {
         #if suffix == "deg" do
             .radians = value * DegreesToRadians
-            #elif suffix == "rad" do
+        #elif suffix == "rad" do
             .radians = value
-            #else do
+        #else do
             #error("invalid angle suffix '" ++ suffix ++ "'")
     }
 }

@@ -133,7 +133,7 @@ impl DynString
             if len > 0 do
                 appendBytes(&me, cast(const [*] u8) @dataof(text), len)
         }
-            #else do
+        #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
@@ -145,7 +145,7 @@ impl DynString
             if other.count > 0 do
                 appendBytes(&me, other.data, other.count)
         }
-            #else do
+        #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 

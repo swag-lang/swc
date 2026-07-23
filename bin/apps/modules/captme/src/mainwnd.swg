@@ -762,7 +762,7 @@ impl MainWnd
             img48  = Image.create(480, 480, .RGBA8)
             imgApp = Image.create(512, 512, .RGBA8)
         }
-            #else
+        #else
         {
             img24  = assume Image.decode(".png", Icons24)
             img48  = assume Image.decode(".png", Icons48)

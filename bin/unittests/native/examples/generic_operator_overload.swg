@@ -16,9 +16,9 @@ impl Complex
     {
         #if op == "+" do
             return {re: +me.re, im: +me.im}
-            #elif op == "-" do
+        #elif op == "-" do
             return {re: -me.re, im: -me.im}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -30,12 +30,12 @@ impl Complex
     {
         #if op == "+" do
             return {re: me.re + other.re, im: me.im + other.im}
-            #elif op == "-" do
+        #elif op == "-" do
             return {re: me.re - other.re, im: me.im - other.im}
-            #elif op == "*" do
+        #elif op == "*" do
             return {re: me.re * other.re - me.im * other.im,
-                    im: me.re * other.im + me.im * other.re}
-            #else do
+                im: me.re * other.im + me.im * other.re}
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -47,11 +47,11 @@ impl Complex
     {
         #if op == "+" do
             return {re: me.re + scalar, im: me.im}
-            #elif op == "-" do
+        #elif op == "-" do
             return {re: me.re - scalar, im: me.im}
-            #elif op == "*" do
+        #elif op == "*" do
             return {re: me.re * scalar, im: me.im * scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 

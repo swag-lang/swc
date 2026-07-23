@@ -30,7 +30,7 @@ impl BinaryRightIntBox
     {
         #if op == "*" do
             return {value: .value * other}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 }

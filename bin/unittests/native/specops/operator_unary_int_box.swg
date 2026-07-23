@@ -15,11 +15,11 @@ impl IntUnaryBox
     {
         #if op == "+" do
             return {value: +me.value}
-            #elif op == "-" do
+        #elif op == "-" do
             return {value: -me.value}
-            #elif op == "~" do
+        #elif op == "~" do
             return {value: ~.value}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 }

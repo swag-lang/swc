@@ -9,7 +9,7 @@ impl CrossFileAssignBox
     {
         #if op == "+=" do
             .value += rhs
-            #else do
+        #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 }

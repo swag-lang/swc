@@ -29,7 +29,7 @@ impl WorkloadForecast
             #inject(stmt, item = cast(&s32) &(me.thursday), index = 3'u64)
             #inject(stmt, item = cast(&s32) &(me.friday), index = 4'u64)
         }
-            #else
+        #else
         {
             for idx in 5
             {

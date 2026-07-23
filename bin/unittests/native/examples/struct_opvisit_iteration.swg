@@ -32,7 +32,7 @@ impl ShelfBins
             #inject(stmt, item = cast(&s32) &(me.afternoon), index = 2'u64)
             #inject(stmt, item = cast(&s32) &(me.evening), index = 3'u64)
         }
-            #else
+        #else
         {
             #if back
             {

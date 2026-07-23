@@ -171,7 +171,7 @@ impl SliceStruct
         {
             #if ptr do
                 #inject(stmt, item = cast(&s32) &me.buffer[idx], index = @index)
-                #else do
+            #else do
                 #inject(stmt, item = me.buffer[idx], index = @index)
         }
     }

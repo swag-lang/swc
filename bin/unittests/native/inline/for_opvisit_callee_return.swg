@@ -18,7 +18,7 @@ impl InlineBug10VisitBytes
         {
             #if back do
                 let idx = .count - @index - 1
-                #else do
+            #else do
                 let idx = @index
 
             #inject(stmt, item = me.values[idx], index = idx)

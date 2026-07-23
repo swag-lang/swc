@@ -137,6 +137,6 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     #if BIG_ENDIAN do
         @assert(assertBytes(converted, expectedDirect))
-        #else do
+    #else do
         @assert(assertBytes(converted, [0x40, 0x30, 0x20, 0x10]))
 }

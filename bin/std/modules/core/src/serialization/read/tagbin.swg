@@ -726,7 +726,7 @@ impl TagBin
             result.length = count
             return result
         }
-            #else
+        #else
         {
             if .convertNextNative
             {

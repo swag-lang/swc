@@ -18,15 +18,15 @@ impl RuntimeArithAssignBox
         .calls += 1
         #if op == "+=" do
             .value += rhs
-            #elif op == "-=" do
+        #elif op == "-=" do
             .value -= rhs
-            #elif op == "*=" do
+        #elif op == "*=" do
             .value *= rhs
-            #elif op == "/=" do
+        #elif op == "/=" do
             .value /= rhs
-            #elif op == "%=" do
+        #elif op == "%=" do
             .value %= rhs
-            #else do
+        #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 }
@@ -101,15 +101,15 @@ impl RuntimeBitAssignBox
         .calls += 1
         #if op == "&=" do
             .value &= rhs
-            #elif op == "|=" do
+        #elif op == "|=" do
             .value |= rhs
-            #elif op == "^=" do
+        #elif op == "^=" do
             .value ^= rhs
-            #elif op == "<<=" do
+        #elif op == "<<=" do
             .value <<= rhs
-            #elif op == ">>=" do
+        #elif op == ">>=" do
             .value >>= rhs
-            #else do
+        #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 }

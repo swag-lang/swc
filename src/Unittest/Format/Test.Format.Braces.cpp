@@ -345,6 +345,56 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseJoins)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_CompilerIfChainAlignsAndBreaks)
+{
+    static constexpr std::string_view SOURCE =
+        "#if X\n"
+        "{\n"
+        "    const A = 1\n"
+        "} #elif Y\n"
+        "{\n"
+        "    const A = 2\n"
+        "}\n"
+        "    #else\n"
+        "{\n"
+        "    const A = 3\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#if X\n"
+        "{\n"
+        "    const A = 1\n"
+        "}\n"
+        "#elif Y\n"
+        "{\n"
+        "    const A = 2\n"
+        "}\n"
+        "#else\n"
+        "{\n"
+        "    const A = 3\n"
+        "}\n";
+
+    FormatOptions options;
+    options.braceStyle      = FormatBraceStyle::Allman;
+    options.breakBeforeElse = true;
+    options.indentStyle     = FormatIndentStyle::Spaces;
+    options.indentWidth     = 4;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_CompilerIfSingleLineChainStaysInline)
+{
+    static constexpr std::string_view SOURCE =
+        "#if X { const A = 1 } #elif Y { const A = 2 } #else { const A = 3 }\n";
+
+    FormatOptions options;
+    options.braceStyle      = FormatBraceStyle::Allman;
+    options.breakBeforeElse = true;
+    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
 {
     static constexpr std::string_view SOURCE =

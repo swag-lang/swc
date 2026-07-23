@@ -20,7 +20,7 @@ impl Vec2
     {
         #if op == "-" do
             return {x: -me.x, y: -me.y}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -28,11 +28,11 @@ impl Vec2
     {
         #if op == "+" do
             return {x: me.x + other.x, y: me.y + other.y}
-            #elif op == "-" do
+        #elif op == "-" do
             return {x: me.x - other.x, y: me.y - other.y}
-            #elif op == "*" do
+        #elif op == "*" do
             return {x: me.x * other.x, y: me.y * other.y}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -40,9 +40,9 @@ impl Vec2
     {
         #if op == "*" do
             return {x: me.x * scalar, y: me.y * scalar}
-            #elif op == "/" do
+        #elif op == "/" do
             return {x: me.x / scalar, y: me.y / scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -134,9 +134,9 @@ impl AABB
     {
         #if op == "+" do
             return {lo: me.lo + offset, hi: me.hi + offset}
-            #elif op == "-" do
+        #elif op == "-" do
             return {lo: me.lo - offset, hi: me.hi - offset}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -144,7 +144,7 @@ impl AABB
     {
         #if op == "*" do
             return {lo: me.lo * scalar, hi: me.hi * scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 }

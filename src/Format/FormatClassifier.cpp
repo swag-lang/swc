@@ -349,7 +349,7 @@ namespace
                 addRole(before, FormatRoleE::TrailingDo);
                 before = prevCode(before);
             }
-            if (before != INVALID_PIECE && model_->piece(before).is(TokenId::KwdElse))
+            if (before != INVALID_PIECE && (model_->piece(before).is(TokenId::KwdElse) || model_->piece(before).is(TokenId::CompilerElse)))
                 addRole(before, FormatRoleE::ElseKeyword);
 
             const uint32_t open = bodyOpenBrace(elseSpan);
@@ -715,6 +715,9 @@ namespace
                 {
                     const auto& stmt = node.cast<AstCompilerIf>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
+                    if (span.valid() && model_->piece(span.minPiece).is(TokenId::CompilerElseIf))
+                        addRole(span.minPiece, FormatRoleE::ElseKeyword);
+
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece);
                     classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
                     break;

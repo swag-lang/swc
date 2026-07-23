@@ -37,7 +37,7 @@ impl DriverNative
             {
                 .xAudio2.createXAudio2()
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
@@ -89,7 +89,7 @@ impl DriverNative
             {
                 .xAudio2.setOutputVolumeXAudio2(volume)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -120,7 +120,7 @@ impl DriverNative
         {
             return .XAudio2
         }
-            #else
+        #else
         {
             return .NoSound
         }
@@ -141,7 +141,7 @@ impl Voice
             {
                 voice.createXAudio2(createFlags)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
@@ -176,7 +176,7 @@ impl Voice
             {
                 return .updateXAudio2()
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
 
@@ -195,7 +195,7 @@ impl Voice
             {
                 .playXAudio2(batchID)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -212,7 +212,7 @@ impl Voice
             {
                 .stopXAudio2(batchID)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -232,7 +232,7 @@ public impl Voice
             {
                 .setVolumeXAudio2(volume, batchID)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -249,7 +249,7 @@ public impl Voice
             {
                 return .getVolumeXAudio2()
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
 
@@ -268,7 +268,7 @@ public impl Voice
             {
                 .setFrequencyRatioXAudio2(ratio, batchID)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -285,7 +285,7 @@ public impl Voice
             {
                 .setRootingXAudio2(buses)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -305,7 +305,7 @@ impl Bus
             {
                 bus.createXAudio2(numChannels, parent)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
@@ -343,7 +343,7 @@ public impl Bus
             {
                 .setVolumeXAudio2(volume, batchID)
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -360,7 +360,7 @@ public impl Bus
             {
                 return .getVolumeXAudio2()
             }
-                #else do
+            #else do
                 throw UnsupportedFormatError{"XAudio2 is not available"}
         }
 

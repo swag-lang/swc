@@ -22,7 +22,7 @@ impl InlineDefaultSelfCells
         {
             #inject(stmt, item = cast(*InlineDefaultSelfCell) &(me.values[0]), index = 0'u64)
         }
-            #else
+        #else
         {
             #inject(stmt, item = me.values[0], index = 0'u64)
         }

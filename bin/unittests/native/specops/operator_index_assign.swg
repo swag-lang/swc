@@ -23,9 +23,9 @@ impl RuntimeIndexAssignBox
         .writes += 1
         #if op == "+=" do
             .values[index] += value
-            #elif op == "*=" do
+        #elif op == "*=" do
             .values[index] *= value
-            #else do
+        #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 
@@ -35,7 +35,7 @@ impl RuntimeIndexAssignBox
         .shifts += 1
         #if op == "<<=" do
             .values[index] <<= #wrap value
-            #else do
+        #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -58,7 +58,7 @@ impl RuntimeWriteOnlyIndexAssignBox
                 .first += value
         else do
             .second += value
-            #else do
+        #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -85,7 +85,7 @@ impl RuntimeRefIndexAssignBox
         .writes += 1
         #if op == "+=" do
             .values[index] += value
-            #else do
+        #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -112,7 +112,7 @@ impl RuntimeMultiIndexAssignBox
         .writes += 1
         #if op == "+=" do
             .values[row * 2 + col] += value
-            #else do
+        #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }

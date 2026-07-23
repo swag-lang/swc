@@ -33,13 +33,13 @@ impl Duration
     {
         #if suffix == "s" do
             me.timeInSeconds = value
-            #elif suffix == "ms" do
+        #elif suffix == "ms" do
             me.timeInSeconds = value / 1000.0
-            #elif suffix == "min" do
+        #elif suffix == "min" do
             me.timeInSeconds = value * 60.0
-            #elif suffix == "h" do
+        #elif suffix == "h" do
             me.timeInSeconds = value * 3600.0
-            #else do
+        #else do
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
     }
 }

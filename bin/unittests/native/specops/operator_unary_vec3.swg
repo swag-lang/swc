@@ -17,11 +17,11 @@ impl IntUnaryVec3
     {
         #if op == "+" do
             return {x: +me.x, y: +me.y, z: +me.z}
-            #elif op == "-" do
+        #elif op == "-" do
             return {x: -me.x, y: -me.y, z: -me.z}
-            #elif op == "~" do
+        #elif op == "~" do
             return {x: ~me.x, y: ~me.y, z: ~me.z}
-            #else do
+        #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 }

@@ -33,13 +33,13 @@ impl NumericArray
         {
             #if op == "+" do
                 result.buf[i] = .buf[i] + other.buf[i]
-                #elif op == "-" do
+            #elif op == "-" do
                 result.buf[i] = .buf[i] - other.buf[i]
-                #elif op == "*" do
+            #elif op == "*" do
                 result.buf[i] = .buf[i] * other.buf[i]
-                #elif op == "/" do
+            #elif op == "/" do
                 result.buf[i] = .buf[i] / other.buf[i]
-                #else do
+            #else do
                 #error("unsupported binary operation [[" ++ op ++ "]]")
         }
 
@@ -52,13 +52,13 @@ impl NumericArray
         {
             #if op == "+=" do
                 .buf[i] += value
-                #elif (op == "-=") do
+            #elif (op == "-=") do
                 .buf[i] -= value
-                #elif (op == "*=") do
+            #elif (op == "*=") do
                 .buf[i] *= value
-                #elif (op == "/=") do
+            #elif (op == "/=") do
                 .buf[i] /= value
-                #else do
+            #else do
                 #error("unsupported assign operation [[" ++ op ++ "]]")
         }
     }
@@ -69,13 +69,13 @@ impl NumericArray
         {
             #if op == "+=" do
                 .buf[i] += value.buf[i]
-                #elif (op == "-=") do
+            #elif (op == "-=") do
                 .buf[i] -= value.buf[i]
-                #elif (op == "*=") do
+            #elif (op == "*=") do
                 .buf[i] *= value.buf[i]
-                #elif (op == "/=") do
+            #elif (op == "/=") do
                 .buf[i] /= value.buf[i]
-                #else do
+            #else do
                 #error("unsupported assign operation [[" ++ op ++ "]]")
         }
     }

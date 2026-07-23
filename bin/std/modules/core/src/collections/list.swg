@@ -55,7 +55,7 @@ impl List
     {
         #if back do
             var n = .tail
-            #else do
+        #else do
             var n = .head
         var ordinal: u64 = 0
         #scope(Up)
@@ -66,15 +66,15 @@ impl List
             {
                 #if ptr do
                     #inject(stmt, item = cast(&T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
-                    #elif Reflection.isStruct(T) do
+                #elif Reflection.isStruct(T) do
                     #inject(stmt, item = cast(const &T) &node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
-                    #else do
+                #else do
                     #inject(stmt, item = node.value, node = node, index = ordinal, break = break to Up, continue = break to Down)
             }
 
             #if back do
                 n = node.prev
-                #else do
+            #else do
                 n   = node.next
             ordinal += 1
         }

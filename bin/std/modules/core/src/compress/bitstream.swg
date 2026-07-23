@@ -168,7 +168,7 @@ impl BitStream
     {
         #if BIG_ENDIAN do
             peek32(dest)     // Already big-endian
-            #else
+        #else
         {
             dest[3] = cast(u8) .peekBits(8)
             .consumeBits(8)

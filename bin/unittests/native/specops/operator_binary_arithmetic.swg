@@ -16,15 +16,15 @@ impl GenBinaryPair
     {
         #if op == "+" do
             return {x: .x + other.x, y: .y + other.y}
-            #elif op == "-" do
+        #elif op == "-" do
             return {x: .x - other.x, y: .y - other.y}
-            #elif op == "*" do
+        #elif op == "*" do
             return {x: .x * other.x, y: .y * other.y}
-            #elif op == "/" do
+        #elif op == "/" do
             return {x: .x / other.x, y: .y / other.y}
-            #elif op == "%" do
+        #elif op == "%" do
             return {x: .x % other.x, y: .y % other.y}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -32,15 +32,15 @@ impl GenBinaryPair
     {
         #if op == "+" do
             return {x: me.x + scalar, y: me.y + scalar}
-            #elif op == "-" do
+        #elif op == "-" do
             return {x: me.x - scalar, y: me.y - scalar}
-            #elif op == "*" do
+        #elif op == "*" do
             return {x: me.x * scalar, y: me.y * scalar}
-            #elif op == "/" do
+        #elif op == "/" do
             return {x: me.x / scalar, y: me.y / scalar}
-            #elif op == "%" do
+        #elif op == "%" do
             return {x: me.x % scalar, y: me.y % scalar}
-            #else do
+        #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 }

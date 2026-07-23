@@ -125,7 +125,7 @@ impl ForeachTrackedValues
     {
         #if ptr do
             #inject(stmt, item = &me.item, index = 0)
-            #else do
+        #else do
             #inject(stmt, item = cast(&Tracked) &me.item, index = 0)
     }
 }

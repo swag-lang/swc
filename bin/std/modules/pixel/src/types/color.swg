@@ -12,7 +12,7 @@ struct Color
         #[Offset("a")]
         argb: u32     // 32-bit ARGB representation
     }
-        #else
+    #else
     {
         b, g, r, a: u8     // Blue, green, red, alpha components (0-255)
         #[Offset("b")]

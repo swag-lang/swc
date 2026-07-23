@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Inline]
-func inlineArrayLiteralForeach(values: [4] s32) -> s32
+func inlineArrayLiteralForeach(values: [4] s32)->s32
 {
     var sum: s32 = 0
     for value in values
@@ -13,17 +13,17 @@ func inlineArrayLiteralForeach(values: [4] s32) -> s32
 }
 
 #[Swag.Inline]
-func inlineArrayLiteralMiddle(values: [4] s32) -> s32
+func inlineArrayLiteralMiddle(values: [4] s32)->s32
 {
     return values[1] + values[2]
 }
 
-func runInlineArrayLiteralForeach() -> s32
+func runInlineArrayLiteralForeach()->s32
 {
     return inlineArrayLiteralForeach([1, 2, 3, 4])
 }
 
-func runInlineArrayLiteralMiddle() -> s32
+func runInlineArrayLiteralMiddle()->s32
 {
     return inlineArrayLiteralMiddle([10, 20, 30, 40])
 }

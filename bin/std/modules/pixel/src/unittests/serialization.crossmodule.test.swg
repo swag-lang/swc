@@ -15,7 +15,7 @@ using Swag, Core
 {
     @assert(Reflection.hasAttribute(#typeof(Math.Vector2), Serialization.Final))
 
-    let (raw, sizeof) = Serialization.isPodFinal(#typeof(Math.Vector2))
+        let (raw, sizeof) = Serialization.isPodFinal(#typeof(Math.Vector2))
     @assert(raw)
     @assert(sizeof == #sizeof(Math.Vector2))
 }

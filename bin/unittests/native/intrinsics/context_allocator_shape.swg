@@ -3,7 +3,7 @@ using Swag
 
 func contextPointerIsPresent()->bool
 {
-    return @getcontext() != null
+    return @getcontext () != null
 }
 
 func contextAllocatorFieldHasRuntimeShape()->bool

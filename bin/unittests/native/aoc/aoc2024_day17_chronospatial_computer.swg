@@ -38,7 +38,7 @@ impl Cpu
 {
     // Inline mtd with array access — exercises the fix
     #[Swag.Inline]
-    mtd fetch() -> u8
+    mtd fetch()->u8
     {
         let v = me.mem[me.ip]
         me.ip += 1
@@ -47,7 +47,7 @@ impl Cpu
 
     // Nested inline mtd: combo reads regs through me
     #[Swag.Inline]
-    mtd combo(operand: u8) -> u64
+    mtd combo(operand: u8)->u64
     {
         if operand <= 3 do return cast(u64) operand
         return me.regs[operand - 4]
@@ -145,7 +145,7 @@ func parseProgram(text: string, cpu: *Cpu)
 // Output comparison
 // ---------------------------------------------------------------------------
 
-func outputEquals(cpu: *Cpu, expected: [*] u8, len: u32) -> bool
+func outputEquals(cpu: *Cpu, expected: [*] u8, len: u32)->bool
 {
     if cpu.outLen != len do return false
     for i in len
@@ -155,7 +155,7 @@ func outputEquals(cpu: *Cpu, expected: [*] u8, len: u32) -> bool
     return true
 }
 
-func outputMatchesProgram(cpu: *Cpu) -> bool
+func outputMatchesProgram(cpu: *Cpu)->bool
 {
     return outputEquals(cpu, &cpu.mem[0], cpu.memLen)
 }
@@ -164,7 +164,7 @@ func outputMatchesProgram(cpu: *Cpu) -> bool
 // Part 2: reverse search for A that produces self-output
 // ---------------------------------------------------------------------------
 
-func findSelfOutputA(cpu: *Cpu, maxSearch: u64) -> u64
+func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
 {
     for a in maxSearch
     {

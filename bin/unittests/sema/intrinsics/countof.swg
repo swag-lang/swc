@@ -8,13 +8,9 @@ enum A { R, G, B }
 const B = "XYZ"
 #assert(@countof(B) == 3)
 
-struct CountedBySpecOp
-{
-}
+struct CountedBySpecOp {}
 
-struct ZeroSized
-{
-}
+struct ZeroSized {}
 
 enum RefCountKind
 {

@@ -3,7 +3,7 @@
 // Real-life example: route SaaS support tickets with nested switches on plan,
 // priority, product area, subject tags, and impact ranges.
 
-enum CustomerPlan : s32
+enum CustomerPlan: s32
 {
     Trial,
     Standard,
@@ -11,7 +11,7 @@ enum CustomerPlan : s32
     Enterprise,
 }
 
-enum TicketPriority : s32
+enum TicketPriority: s32
 {
     Low,
     Normal,
@@ -19,7 +19,7 @@ enum TicketPriority : s32
     Critical,
 }
 
-enum TicketChannel : s32
+enum TicketChannel: s32
 {
     Email,
     Chat,
@@ -27,7 +27,7 @@ enum TicketChannel : s32
     Api,
 }
 
-enum ProductArea : s32
+enum ProductArea: s32
 {
     Billing,
     Identity,
@@ -61,24 +61,24 @@ func routeQueue(ticket: SupportTicket)->string
 {
     switch ticket.area
     {
-        case .Billing:
-            return "finance-ops"
+    case .Billing:
+        return "finance-ops"
 
-        case .Identity:
-            switch ticket.subjectTag
-            {
-                case "password-reset", "mfa-lockout":
-                    return "identity-urgent"
+    case .Identity:
+        switch ticket.subjectTag
+        {
+        case "password-reset", "mfa-lockout":
+            return "identity-urgent"
 
-                default:
-                    return "identity"
-            }
+        default:
+            return "identity"
+        }
 
-        case .Automation, .Analytics:
-            return "platform-automation"
+    case .Automation, .Analytics:
+        return "platform-automation"
 
-        case .Security:
-            return "security-response"
+    case .Security:
+        return "security-response"
     }
 }
 
@@ -87,61 +87,61 @@ func computeResponseTargetMinutes(ticket: SupportTicket)->s32
     #[Swag.Complete]
     switch ticket.plan
     {
-        case .Trial:
-            #[Swag.Complete]
-            switch ticket.priority
-            {
-                case .Low:
-                    return 1440
-                case .Normal:
-                    return 1440
-                case .High:
-                    return 240
-                case .Critical:
-                    return 60
-            }
+    case .Trial:
+        #[Swag.Complete]
+        switch ticket.priority
+        {
+        case .Low:
+            return 1440
+        case .Normal:
+            return 1440
+        case .High:
+            return 240
+        case .Critical:
+            return 60
+        }
 
-        case .Standard:
-            #[Swag.Complete]
-            switch ticket.priority
-            {
-                case .Low:
-                    return 480
-                case .Normal:
-                    return 240
-                case .High:
-                    return 60
-                case .Critical:
-                    return 30
-            }
+    case .Standard:
+        #[Swag.Complete]
+        switch ticket.priority
+        {
+        case .Low:
+            return 480
+        case .Normal:
+            return 240
+        case .High:
+            return 60
+        case .Critical:
+            return 30
+        }
 
-        case .Business:
-            #[Swag.Complete]
-            switch ticket.priority
-            {
-                case .Low:
-                    return 240
-                case .Normal:
-                    return 120
-                case .High:
-                    return 30
-                case .Critical:
-                    return 15
-            }
+    case .Business:
+        #[Swag.Complete]
+        switch ticket.priority
+        {
+        case .Low:
+            return 240
+        case .Normal:
+            return 120
+        case .High:
+            return 30
+        case .Critical:
+            return 15
+        }
 
-        case .Enterprise:
-            #[Swag.Complete]
-            switch ticket.priority
-            {
-                case .Low:
-                    return 120
-                case .Normal:
-                    return 60
-                case .High:
-                    return 15
-                case .Critical:
-                    return 5
-            }
+    case .Enterprise:
+        #[Swag.Complete]
+        switch ticket.priority
+        {
+        case .Low:
+            return 120
+        case .Normal:
+            return 60
+        case .High:
+            return 15
+        case .Critical:
+            return 5
+        }
     }
 }
 
@@ -150,20 +150,20 @@ func subjectEscalationBonus(subjectTag: string)->s32
     var bonus = 0
     switch subjectTag
     {
-        case "security-breach":
-            bonus += 2
-            fallthrough
+    case "security-breach":
+        bonus += 2
+        fallthrough
 
-        case "mfa-lockout", "sso-outage":
-            bonus += 1
-            break
+    case "mfa-lockout", "sso-outage":
+        bonus += 1
+        break
 
-        case "bulk-export":
-            bonus += 1
-            break
+    case "bulk-export":
+        bonus += 1
+        break
 
-        default:
-            break
+    default:
+        break
     }
 
     return bonus
@@ -176,48 +176,48 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
     #[Swag.Complete]
     switch ticket.priority
     {
-        case .Low:
-            level = 0
-            break
+    case .Low:
+        level = 0
+        break
 
-        case .Normal:
-            level = 1
-            break
+    case .Normal:
+        level = 1
+        break
 
-        case .High:
-            level = 2
-            break
+    case .High:
+        level = 2
+        break
 
-        case .Critical:
-            level = 3
-            break
+    case .Critical:
+        level = 3
+        break
     }
 
     switch ticket.impactedUsers
     {
-        case 0:
-            break
+    case 0:
+        break
 
-        case 1 to 24:
-            break
+    case 1 to 24:
+        break
 
-        case 25 to 199:
-            level += 1
-            break
+    case 25 to 199:
+        level += 1
+        break
 
-        default:
-            level += 2
-            break
+    default:
+        level += 2
+        break
     }
 
     switch ticket.channel
     {
-        case .Phone, .Api:
-            level += 1
-            break
+    case .Phone, .Api:
+        level += 1
+        break
 
-        default:
-            break
+    default:
+        break
     }
 
     level += subjectEscalationBonus(ticket.subjectTag)
@@ -228,16 +228,16 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
 
     switch overdueMinutes
     {
-        case 0:
-            break
+    case 0:
+        break
 
-        case 1 to 59:
-            level += 1
-            break
+    case 1 to 59:
+        level += 1
+        break
 
-        default:
-            level += 2
-            break
+    default:
+        level += 2
+        break
     }
 
     return level
@@ -253,57 +253,57 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     #[Swag.Complete]
     switch ticket.priority
     {
-        case .Critical:
+    case .Critical:
+        result.pageOnCall = true
+        break
+
+    case .High:
+        switch ticket.area
+        {
+        case .Identity, .Security:
             result.pageOnCall = true
             break
 
-        case .High:
-            switch ticket.area
-            {
-                case .Identity, .Security:
-                    result.pageOnCall = true
-                    break
-
-                case .Billing, .Automation, .Analytics:
-                    result.pageOnCall = false
-                    break
-            }
-            break
-
-        case .Low, .Normal:
+        case .Billing, .Automation, .Analytics:
             result.pageOnCall = false
             break
+        }
+        break
+
+    case .Low, .Normal:
+        result.pageOnCall = false
+        break
     }
 
     switch ticket.plan
     {
-        case .Business, .Enterprise:
-            result.notifyCustomerSuccess = true
-            break
+    case .Business, .Enterprise:
+        result.notifyCustomerSuccess = true
+        break
 
-        default:
-            result.notifyCustomerSuccess = false
-            break
+    default:
+        result.notifyCustomerSuccess = false
+        break
     }
 
     switch ticket.subjectTag
     {
-        case "security-breach", "sso-outage":
+    case "security-breach", "sso-outage":
+        result.sendStatusPageLink = true
+        break
+
+    default:
+        switch ticket.impactedUsers
+        {
+        case 200 to 1000000:
             result.sendStatusPageLink = true
             break
 
         default:
-            switch ticket.impactedUsers
-            {
-                case 200 to 1000000:
-                    result.sendStatusPageLink = true
-                    break
-
-                default:
-                    result.sendStatusPageLink = false
-                    break
-            }
+            result.sendStatusPageLink = false
             break
+        }
+        break
     }
 
     return result
@@ -312,7 +312,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 #test
 {
     const securityIncident: SupportTicket =
-    {
+        {
         plan: CustomerPlan.Enterprise,
         priority: TicketPriority.Critical,
         channel: TicketChannel.Api,
@@ -320,7 +320,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         impactedUsers: 850,
         waitedMinutes: 12,
         subjectTag: "security-breach",
-    }
+        }
 
     let securityDecision = buildTriageDecision(securityIncident)
 
@@ -332,7 +332,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     @assert(securityDecision.sendStatusPageLink == true)
 
     const billingRequest: SupportTicket =
-    {
+        {
         plan: CustomerPlan.Standard,
         priority: TicketPriority.Normal,
         channel: TicketChannel.Email,
@@ -340,7 +340,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         impactedUsers: 3,
         waitedMinutes: 30,
         subjectTag: "invoice-copy",
-    }
+        }
 
     let billingDecision = buildTriageDecision(billingRequest)
 
@@ -352,7 +352,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     @assert(billingDecision.sendStatusPageLink == false)
 
     const identityLockout: SupportTicket =
-    {
+        {
         plan: CustomerPlan.Business,
         priority: TicketPriority.High,
         channel: TicketChannel.Chat,
@@ -360,7 +360,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         impactedUsers: 18,
         waitedMinutes: 80,
         subjectTag: "mfa-lockout",
-    }
+        }
 
     let identityDecision = buildTriageDecision(identityLockout)
 
@@ -372,7 +372,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     @assert(identityDecision.sendStatusPageLink == false)
 
     const analyticsBacklog: SupportTicket =
-    {
+        {
         plan: CustomerPlan.Business,
         priority: TicketPriority.Normal,
         channel: TicketChannel.Chat,
@@ -380,7 +380,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         impactedUsers: 320,
         waitedMinutes: 90,
         subjectTag: "dashboard-timeout",
-    }
+        }
 
     let analyticsDecision = buildTriageDecision(analyticsBacklog)
 

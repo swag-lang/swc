@@ -21,12 +21,12 @@ enum II { A, B, C }
 #assert(#kindof(II) == u32)
 
 #[Swag.EnumFlags]
-enum AliasFlags : FlagsAliasU32 { A, B, C }
+enum AliasFlags: FlagsAliasU32 { A, B, C }
 #assert(#kindof(AliasFlags) == u32)
 #assert(cast(u32) AliasFlags.C == 4)
 
 #[Swag.EnumFlags]
-enum StrictAliasFlags : FlagsStrictAliasU16 { A, B, C }
+enum StrictAliasFlags: FlagsStrictAliasU16 { A, B, C }
 #assert(cast(u16) StrictAliasFlags.C == 4)
 
 #[Swag.EnumFlags]
@@ -36,14 +36,14 @@ enum JJ { A, B, C }
 #assert(JJ.C == 4)
 
 #[Swag.EnumFlags]
-enum LL : u64
+enum LL: u64
 {
     A = 0x80000000,
     B,
 }
 
 #[Swag.EnumFlags]
-enum NN : u64
+enum NN: u64
 {
     A = 0,
     B,
@@ -52,19 +52,19 @@ enum NN : u64
 #assert(NN.B == 1)
 
 #[Swag.EnumFlags]
-enum OO : u8 { A, B, C }
+enum OO: u8 { A, B, C }
 #assert(#kindof(OO) == u8)
 
 #[Swag.EnumFlags]
-enum PP : u16 { A, B, C }
+enum PP: u16 { A, B, C }
 #assert(#kindof(PP) == u16)
 
 #[Swag.EnumFlags]
-enum QQ : u64 { A, B, C }
+enum QQ: u64 { A, B, C }
 #assert(#kindof(QQ) == u64)
 
 #[Swag.EnumFlags]
-enum QQ0 : u32
+enum QQ0: u32
 {
     A,
     B,
@@ -74,7 +74,7 @@ enum QQ0 : u32
 #assert(cast(u32) QQ0.AB == 3)
 
 #[Swag.EnumFlags]
-enum RR : u8
+enum RR: u8
 {
     A,
     B,
@@ -131,9 +131,7 @@ const XOR2 = 1 ^ JJ.A
 func semaTest001()
 {
     let v = JJ.A | JJ.B
-    if v & JJ.B
-    {
-    }
+    if v & JJ.B {}
 }
 
 const AA1 = ~JJ.A

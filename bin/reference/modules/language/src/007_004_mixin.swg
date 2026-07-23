@@ -11,7 +11,7 @@ This file provides a clear set of examples and tests.
     #[Swag.Mixin]
     func myMixin()
     {
-        // Basic empty mixin
+    // Basic empty mixin
     }
 }
 
@@ -66,7 +66,7 @@ The mixin can execute this block multiple times using '#inject'.
         #inject(what)
         // first execution
         #inject(what)
-        // second execution
+    // second execution
     }
 
     var a = 0

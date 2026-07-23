@@ -54,6 +54,6 @@ func day3A()
         epsilon |= cast(s32) (count < lines.count / 2)
     }
 
-    //Console.print("total: ", gamma*epsilon)
+    // Console.print("total: ", gamma*epsilon)
     @assert(gamma * epsilon == 2967914)
 }

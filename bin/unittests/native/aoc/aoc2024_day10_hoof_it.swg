@@ -11,7 +11,7 @@ const MaxDim = 64'u32
 const NumHeights = 10'u32
 
 const SampleInput =
-"""89010123
+    """89010123
 78121874
 87430965
 96549874
@@ -21,7 +21,7 @@ const SampleInput =
 10456732"""
 
 const TinyInput =
-"""0123
+    """0123
 1234
 8765
 9876"""
@@ -39,7 +39,7 @@ const TrailEnd:   u8 = 9
 {
     const TrailLength = TrailEnd - TrailStart
 }
-#else
+    #else
 {
     const TrailLength = 0'u8
 }

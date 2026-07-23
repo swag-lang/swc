@@ -13,7 +13,7 @@ func shortcutImplicitReturnVoidCall()
     gReturnVoidCallValue = 99
 }
 
-func shortcutExplicitReturnVoidCall() -> void
+func shortcutExplicitReturnVoidCall()->void
 {
     return markReturnVoidCall(2)
     gReturnVoidCallValue = 99

@@ -70,7 +70,7 @@ using Core
 func day4B()
 {
     day4B0()
-    // day4B1() disabled: compiler bug with HashTable payload on anonymous structs
+// day4B1() disabled: compiler bug with HashTable payload on anonymous structs
 }
 
 /////////////////////////////////////////////////////////////////
@@ -106,7 +106,7 @@ func day4B0()
                     break
                 if val.eat == @countof(res1[1]) do
                     break
-                let sub = res1[1][val.eat to ]
+                let sub = res1[1][val.eat to]
                 if sub != "cm" and sub != "in" do
                     break
                 if sub == "cm" and val.value >= 150 and val.value <= 193 do
@@ -116,7 +116,7 @@ func day4B0()
             case "hcl":
                 if @countof(res1[1]) != 7 or res1[1][0] != '#' do
                     break
-                discard catch StrConv.parseX64(res1[1][1 to ])
+                discard catch StrConv.parseX64(res1[1][1 to])
                 if @err == null do
                     pass |= 16
             case "ecl":
@@ -137,7 +137,7 @@ func day4B0()
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 224)
 }
 

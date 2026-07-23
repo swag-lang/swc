@@ -62,7 +62,8 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
 {
     var payload = MacroClosurePayload{40}
     macroInjectClosureCapture(#code {
-        @assert(macroClosureCaptureRunTwice(func|&payload|()->s32 {
+        @assert(macroClosureCaptureRunTwice(func|&payload|()->s32
+        {
             payload.total += 2
             return payload.total
         }) == 464)

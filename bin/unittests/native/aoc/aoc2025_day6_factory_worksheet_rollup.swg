@@ -159,12 +159,12 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 #test
 {
     const sampleSheet: [4] string =
-    [
+        [
         "123 328  51 64 ",
         " 45 64  387 23 ",
         "  6 98  215 314",
         "*   +   *   +  ",
-    ]
+        ]
 
     let sampleRollup = rollupWorksheet(sampleSheet)
 
@@ -175,13 +175,13 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
     @assert(sampleRollup.largestProblemValue == 4243455'u64)
 
     const eveningSheet: [5] string =
-    [
+        [
         " 88  900  12",
         "125   75 340",
         "  7        8",
         "      25    ",
         "*    +    * ",
-    ]
+        ]
 
     let eveningRollup = rollupWorksheet(eveningSheet)
 

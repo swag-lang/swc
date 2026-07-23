@@ -134,7 +134,7 @@
         var ur: u32 = b % 7'u32      // DIV32:    60 % 7  = 4
         var bq: s64 = big / 10's64   // IDIV64:  420 / 10 = 42
         return cast(s64) sq + cast(s64) sr + cast(s64) uq + cast(s64) ur + bq
-        // -30 + (-6) + 12 + 4 + 42 = 22
+    // -30 + (-6) + 12 + 4 + 42 = 22
     }
 
     const V = #run signedUnsignedDivMix(-90, 60'u32, 420's64)

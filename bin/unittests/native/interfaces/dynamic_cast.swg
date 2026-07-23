@@ -23,13 +23,9 @@ struct PointerWrapper
     wrapperValue: s32 = 40
 }
 
-interface INode
-{
-}
+interface INode {}
 
-impl INode for Derived
-{
-}
+impl INode for Derived {}
 
 #[Swag.Strict]
 alias DynamicCastStrictDerivedPtr = *Derived

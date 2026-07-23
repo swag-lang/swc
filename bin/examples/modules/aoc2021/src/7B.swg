@@ -52,6 +52,6 @@ func day7B()
         total += (n * (n + 1)) / 2
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 92335207)
 }

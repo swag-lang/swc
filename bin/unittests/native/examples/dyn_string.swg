@@ -95,9 +95,7 @@ impl DynString
     // Called on the destination right after a bytewise move. The raw bytes
     // already describe a valid owning string, so nothing to fix up here.
     // The moved-from source is skipped by the drop machinery.
-    mtd opPostMove()
-    {
-    }
+    mtd opPostMove() {}
 
     // Build from a string literal: `s = "hello"` when s is a DynString.
     mtd opSet(text: string)
@@ -113,7 +111,7 @@ impl DynString
     }
 
     // Read a byte: `let c = s[i]`
-    mtd opIndex(index: u64) -> u8
+    mtd opIndex(index: u64)->u8
     {
         @assert(index < .count)
         return .data[index]
@@ -135,7 +133,7 @@ impl DynString
             if len > 0 do
                 appendBytes(&me, cast(const [*] u8) @dataof(text), len)
         }
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
@@ -147,12 +145,12 @@ impl DynString
             if other.count > 0 do
                 appendBytes(&me, other.data, other.count)
         }
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
     // Byte-exact equality: `s == other`
-    mtd opEquals(other: const &DynString) -> bool
+    mtd opEquals(other: const &DynString)->bool
     {
         if .count != other.count do
             return false

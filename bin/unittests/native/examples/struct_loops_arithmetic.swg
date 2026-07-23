@@ -99,12 +99,12 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 #test
 {
     const weekdayPrep: [4] BakeOrder =
-    [
+        [
         {sku: "croissant", currentTrays: 4, targetTrays: 10, ovenTempC: 195, minutesPerBatch: 18, coolingMinutes: 25, needsSteam: true},
         {sku: "baguette", currentTrays: 0, targetTrays: 4, ovenTempC: 235, minutesPerBatch: 16, coolingMinutes: 15, needsSteam: true},
         {sku: "cinnamon-roll", currentTrays: 3, targetTrays: 7, ovenTempC: 180, minutesPerBatch: 20, coolingMinutes: 30, needsSteam: false},
         {sku: "muffin", currentTrays: 8, targetTrays: 8, ovenTempC: 175, minutesPerBatch: 19, coolingMinutes: 12, needsSteam: false},
-    ]
+        ]
 
     let weekdaySchedule = buildSchedule(weekdayPrep, 2, 240, 420)
 
@@ -120,11 +120,11 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
     @assert(weekdaySchedule.opensOnTime == false)
 
     const marketPrep: [3] BakeOrder =
-    [
+        [
         {sku: "berry-scone", currentTrays: 1, targetTrays: 7, ovenTempC: 190, minutesPerBatch: 15, coolingMinutes: 10, needsSteam: false},
         {sku: "focaccia", currentTrays: 0, targetTrays: 3, ovenTempC: 220, minutesPerBatch: 22, coolingMinutes: 20, needsSteam: false},
         {sku: "brioche", currentTrays: 2, targetTrays: 7, ovenTempC: 180, minutesPerBatch: 24, coolingMinutes: 35, needsSteam: true},
-    ]
+        ]
 
     let marketSchedule = buildSchedule(marketPrep, 3, 180, 390)
 

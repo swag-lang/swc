@@ -57,7 +57,7 @@ impl ZLib
             throw UnsupportedFormatError{"unsupported dictionnary"}
 
         // Compression level
-        //var flevel = (flg >> 6) & 3
+        // var flevel = (flg >> 6) & 3
 
         var result: Array'u8
         if hintSize do

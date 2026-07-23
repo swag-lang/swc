@@ -3,7 +3,7 @@
 // Real-life example: count how many valid control-signal routes can move through
 // a reactor rack and measure how deep the longest route becomes.
 
-enum ReactorNode : s32
+enum ReactorNode: s32
 {
     Intake,
     Mixer,

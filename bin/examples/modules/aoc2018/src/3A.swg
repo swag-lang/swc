@@ -77,7 +77,7 @@ func day3A0()
         if v > 1 do
             total += 1
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 100261)
 }
 
@@ -93,7 +93,7 @@ func day3A1()
     for l in lines
     {
         let r = assume Parser.RegExp.grepAll("\\d+", l)
-        let v = Slice.map(r[ to ], func(x) => assume StrConv.toS32(x))
+        let v = Slice.map(r[to], func(x) => assume StrConv.toS32(x))
 
         for x in v[1] until v[1] + v[3] do
             for y in v[2] until v[2] + v[4] do
@@ -105,6 +105,6 @@ func day3A1()
         if v > 1 do
             total += 1
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 100261)
 }

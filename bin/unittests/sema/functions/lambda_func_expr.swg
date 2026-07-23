@@ -79,7 +79,7 @@ func makeRuntimeHolder()->LambdaRuntimeHolder
         unary: func(value) => value + 4,
         predicate: func(left, right) => left < right,
         defaulted: func(value) => value + 2,
-    }
+        }
 }
 
 func makeArrayHolder()->LambdaArrayHolder
@@ -89,7 +89,7 @@ func makeArrayHolder()->LambdaArrayHolder
             func(value) => value + 1,
             func(value) => value * 2,
         ],
-    }
+        }
 }
 
 func semaTest001()
@@ -104,7 +104,7 @@ func semaTest001()
             total: cast(s64) payload.base + cast(s64) values[0] + cast(s64) values[3] + cast(s64) cast(s32) boxed,
             mirrored: [values[3], values[2], values[1], values[0]],
             pair: {a: payload.step + cast(s32) payload.marks[1], b: cast(s32) payload.marks[2]},
-        }
+            }
     }
 
     var holder: LambdaHolder = {cb: cb}
@@ -240,13 +240,13 @@ func semaTest010()
         unary: func(value) => value - 2,
         predicate: func(left, right) => left >= right,
         defaulted: func(value) => value + 5,
-    }
+        }
 
     let explicit = LambdaRuntimeHolder{
         unary: func(value) => value * 3,
         predicate: func(left, right) => left == right,
         defaulted: func(value) => value - 1,
-    }
+        }
 
     #assert(#typeof(holder.unary) == LambdaUnary)
     #assert(#typeof(holder.predicate) == LambdaBinaryPredicate)
@@ -261,7 +261,7 @@ func semaTest011()
         func(value) => value + 1,
         func(value) => value * 2,
         func(value) => value - 3,
-    ]
+        ]
 
     let nested = makeArrayHolder()
 

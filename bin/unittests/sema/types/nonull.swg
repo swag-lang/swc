@@ -5,9 +5,7 @@ struct SemaNonNullItem
     value: s32
 }
 
-struct SemaNonNullLegacyOpCastBox
-{
-}
+struct SemaNonNullLegacyOpCastBox {}
 
 impl SemaNonNullLegacyOpCastBox
 {
@@ -15,9 +13,7 @@ impl SemaNonNullLegacyOpCastBox
     mtd const opCast()->string => "legacy-op-cast"
 }
 
-struct SemaNonNullRequiredOpCastBox
-{
-}
+struct SemaNonNullRequiredOpCastBox {}
 
 impl SemaNonNullRequiredOpCastBox
 {
@@ -95,9 +91,7 @@ struct SemaNonNullMoveDefault
 
 impl SemaNonNullMoveDefault
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 struct SemaNonNullUndefinedHolder
@@ -140,9 +134,7 @@ impl SemaNonNullCompleteSet
     }
 }
 
-func acceptSemaNonNullHolder(value: SemaNonNullHolder)
-{
-}
+func acceptSemaNonNullHolder(value: SemaNonNullHolder) {}
 
 func migrateSemaLegacyPointer(value: *SemaNonNullItem)->*SemaNonNullItem => value
 
@@ -207,7 +199,7 @@ func semaNonNullConstruction()
     let array: [2] SemaNonNullHolder = [
         {required: &first},
         {required: &second, count: 8},
-    ]
+        ]
     let pointerArray: [2] *SemaNonNullItem = [&first, &second]
     let aliasedHolder: SemaNonNullHolderAlias = {required: &first}
     let pointerDefault = SemaNonNullPointerDefault{}
@@ -221,7 +213,7 @@ func semaNonNullConstruction()
         ctext:         ctext,
         boxed:         boxed,
         reflectedType: reflectedType,
-    }
+        }
 
     let nullableValuePointer: #null *SemaNonNullItem = null
     let nullableBlockPointer: #null [*] SemaNonNullItem = null

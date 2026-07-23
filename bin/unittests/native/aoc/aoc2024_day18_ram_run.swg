@@ -7,7 +7,7 @@
 // grid, nested inline calls, binary search pattern, cstring type.
 
 const SampleInput =
-"""5,4
+    """5,4
 4,2
 4,5
 3,0
@@ -50,14 +50,14 @@ struct Grid
 impl Grid
 {
     #[Swag.Inline]
-    mtd at(r: u32, c: u32) -> u8 { return me.cells[r][c] }
+    mtd at(r: u32, c: u32)->u8 { return me.cells[r][c] }
 
     #[Swag.Inline]
     mtd set(r: u32, c: u32, v: u8) { me.cells[r][c] = v }
 
     // Nested inline: passable reads through at
     #[Swag.Inline]
-    mtd passable(r: u32, c: u32) -> bool { return me.at(r, c) == 0 }
+    mtd passable(r: u32, c: u32)->bool { return me.at(r, c) == 0 }
 
     mtd clear()
     {
@@ -89,7 +89,7 @@ struct ByteList
     count: u32
 }
 
-func parseBytes(text: string) -> ByteList
+func parseBytes(text: string)->ByteList
 {
     var result: ByteList
     let bytes = cast(const [..] u8) text
@@ -167,7 +167,7 @@ func applyBytes(g: *Grid, bl: *ByteList, count: u32)
 const DR: [4] s32 = [0, 1, 0, -1]
 const DC: [4] s32 = [1, 0, -1, 0]
 
-func bfs(g: *Grid) -> s32
+func bfs(g: *Grid)->s32
 {
     let er = g.h - 1
     let ec = g.w - 1
@@ -227,7 +227,7 @@ func bfs(g: *Grid) -> s32
 // Part 2: binary search for first blocking byte
 // ---------------------------------------------------------------------------
 
-func findBlockingByte(g: *Grid, bl: *ByteList) -> u32
+func findBlockingByte(g: *Grid, bl: *ByteList)->u32
 {
     var lo: u32 = 0
     var hi = bl.count
@@ -263,7 +263,7 @@ struct Result
     blockingRow:     u32
 }
 
-func solve(text: string, gridSize: u32, part1Drops: u32) -> Result
+func solve(text: string, gridSize: u32, part1Drops: u32)->Result
 {
     var bl = parseBytes(text)
     var g: Grid
@@ -292,7 +292,7 @@ func solve(text: string, gridSize: u32, part1Drops: u32) -> Result
 // cstring exercise: format blocking coordinate as "col,row"
 // ---------------------------------------------------------------------------
 
-func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32) -> u32
+func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
 {
     var pos: u32
 

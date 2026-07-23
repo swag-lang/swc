@@ -23,7 +23,7 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
         Math.Vector2{cx + 42, cy},
         Math.Vector2{cx, cy + 42},
         Math.Vector2{cx - 42, cy},
-    ]
+        ]
 
     {
         let path = result.newPath()
@@ -91,7 +91,7 @@ func drawPolygonsPage(painter: *Pixel.Painter)
         Math.Vector2{convexLeft.right() - 18, convexLeft.vertCenter()},
         Math.Vector2{convexLeft.horzCenter(), convexLeft.bottom() - 10},
         Math.Vector2{convexLeft.x + 18, convexLeft.vertCenter()},
-    ]
+        ]
     let hexagon = makeHexPolygon(convexRight.horzCenter(), convexRight.vertCenter(), 58)
 
     let star  = makeStarPolygon(concaveLeft.horzCenter(), concaveLeft.vertCenter(), 62, 26, 5)

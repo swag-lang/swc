@@ -42,7 +42,7 @@ func day3B()
         result.add(pos)
         for v in Tokenize.split(line, ',''u8)
         {
-            let val = assume StrConv.toF32(v[1 to ])
+            let val = assume StrConv.toF32(v[1 to])
             switch v[0]
             {
             case 'U':
@@ -85,6 +85,6 @@ func day3B()
         di += d1.length()
     }
 
-    //Console.print("total: ", best)
+    // Console.print("total: ", best)
     @assert(best == 11222)
 }

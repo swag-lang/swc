@@ -138,6 +138,6 @@ func day5B()
     for r in ranges do
         total = Math.min(total, r.start)
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 69323688)
 }

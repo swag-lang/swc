@@ -29,7 +29,7 @@ impl WorkloadForecast
             #inject(stmt, item = cast(&s32) &(me.thursday), index = 3'u64)
             #inject(stmt, item = cast(&s32) &(me.friday), index = 4'u64)
         }
-        #else
+            #else
         {
             for idx in 5
             {
@@ -127,7 +127,7 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
         wednesday: 32,
         thursday: 29,
         friday: 35,
-    }
+        }
 
     @assert(totalStops(forecast) == 148)
     @assert(adjacentSignature(forecast) == 54544756)

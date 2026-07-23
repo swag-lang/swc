@@ -30,7 +30,7 @@ func toto()->A { return .R }
 // Auto-scope enum in return and comparison
 #test
 {
-    if(toto() == .R) {}
+    if (toto() == .R) {}
     @assert(toto() == .R)
 }
 

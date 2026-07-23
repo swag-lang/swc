@@ -191,6 +191,6 @@ impl IAllocator for ScratchAllocator
 
     mtd impl assertAllocated(request: *AllocatorRequest)
     {
-        // Not supported: the scratch allocator does not track individual blocks.
+    // Not supported: the scratch allocator does not track individual blocks.
     }
 }

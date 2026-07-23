@@ -81,7 +81,7 @@ func day3A0()
                 dy = 0
             }
 
-            let val = assume StrConv.toS32(v[1 to ])
+            let val = assume StrConv.toS32(v[1 to])
             for val
             {
                 x = x + dx
@@ -100,7 +100,7 @@ func day3A0()
     trace(0, lines[0])
     trace(1, lines[1])
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 303)
 }
 
@@ -118,7 +118,7 @@ func day3A1()
         result.add(pos)
         for v in Tokenize.split(line, ',''u8)
         {
-            let val = assume StrConv.toF32(v[1 to ])
+            let val = assume StrConv.toF32(v[1 to])
             switch v[0]
             {
             case 'U':
@@ -152,6 +152,6 @@ func day3A1()
         }
     }
 
-    //Console.print("total: ", best)
+    // Console.print("total: ", best)
     @assert(best == 303)
 }

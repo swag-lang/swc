@@ -1,8 +1,6 @@
 #global private
 
-struct AnyEmptyBoxingJit
-{
-}
+struct AnyEmptyBoxingJit {}
 
 func makeAnyEmptyBoxingJit(flag: bool)->AnyEmptyBoxingJit
 {

@@ -79,7 +79,7 @@ func undPair()->{ x: s32, y: s32 }
 {
     var a: s32 = undefined
     var b: s32 = undefined
-    (a, b) = undPair()
+        (a, b) = undPair()
     @assert(a == 1 and b == 2)
 }
 

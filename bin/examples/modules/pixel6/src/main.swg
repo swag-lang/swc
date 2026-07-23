@@ -40,7 +40,7 @@ const Samples = [
     TextCase{"75%", 0.75},
     TextCase{"100%", 1.00},
     TextCase{"125%", 1.25},
-]
+    ]
 
 func loadFonts() throw
 {

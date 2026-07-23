@@ -110,10 +110,10 @@ func day7A()
         }
 
         total = Math.max(total, input)
-        if !Slice.nextPermutation(phase[ to ]) do
+        if !Slice.nextPermutation(phase[to]) do
             break
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 34852)
 }

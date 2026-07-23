@@ -165,38 +165,38 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
             // LH (horizontal details): top-right
             for y in 0 until levelSize do
                 for x in levelSize until levelSize * 2
-                {
-                    let idx = y * size + x
-                    let c1  = cast(f64) haar1.coefficients[idx]
-                    let c2  = cast(f64) haar2.coefficients[idx]
-                    levelSimilarity += c1 * c2
-                    levelNorm1 += c1 * c1
-                    levelNorm2 += c2 * c2
-                }
+            {
+                let idx = y * size + x
+                let c1  = cast(f64) haar1.coefficients[idx]
+                let c2  = cast(f64) haar2.coefficients[idx]
+                levelSimilarity += c1 * c2
+                levelNorm1 += c1 * c1
+                levelNorm2 += c2 * c2
+            }
 
             // HL (vertical details): bottom-left
             for y in levelSize until levelSize * 2 do
                 for x in 0 until levelSize
-                {
-                    let idx = y * size + x
-                    let c1  = cast(f64) haar1.coefficients[idx]
-                    let c2  = cast(f64) haar2.coefficients[idx]
-                    levelSimilarity += c1 * c2
-                    levelNorm1 += c1 * c1
-                    levelNorm2 += c2 * c2
-                }
+            {
+                let idx = y * size + x
+                let c1  = cast(f64) haar1.coefficients[idx]
+                let c2  = cast(f64) haar2.coefficients[idx]
+                levelSimilarity += c1 * c2
+                levelNorm1 += c1 * c1
+                levelNorm2 += c2 * c2
+            }
 
             // HH (diagonal details): bottom-right
             for y in levelSize until levelSize * 2 do
                 for x in levelSize until levelSize * 2
-                {
-                    let idx = y * size + x
-                    let c1  = cast(f64) haar1.coefficients[idx]
-                    let c2  = cast(f64) haar2.coefficients[idx]
-                    levelSimilarity += c1 * c2
-                    levelNorm1 += c1 * c1
-                    levelNorm2 += c2 * c2
-                }
+            {
+                let idx = y * size + x
+                let c1  = cast(f64) haar1.coefficients[idx]
+                let c2  = cast(f64) haar2.coefficients[idx]
+                levelSimilarity += c1 * c2
+                levelNorm1 += c1 * c1
+                levelNorm2 += c2 * c2
+            }
         }
 
         let denominator = Math.sqrt(levelNorm1 * levelNorm2)

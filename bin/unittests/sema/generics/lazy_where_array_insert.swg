@@ -7,9 +7,7 @@ namespace LazyWhereArrayInsert.Reflection
     func canCopy(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.CanCopy) ? true : false
 }
 
-struct(T) Array
-{
-}
+struct(T) Array {}
 
 impl Array
 {
@@ -28,9 +26,7 @@ impl Array
     }
 }
 
-struct(T) Signal
-{
-}
+struct(T) Signal {}
 
 impl Signal
 {

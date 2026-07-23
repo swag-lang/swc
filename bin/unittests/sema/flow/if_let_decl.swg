@@ -10,9 +10,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    if let x = 1 where false
-    {
-    }
+    if let x = 1 where false {}
     else
     {
         let y = x

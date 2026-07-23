@@ -3043,7 +3043,7 @@ impl Transform
             if !lb or !rb do
                 continue
 
-            //if #null any output polygons share an edge, they'll need joining later ...
+            // if #null any output polygons share an edge, they'll need joining later ...
             if op1 and isHorizontal(nnEdge(rb)) and .ghostJoinList.count > 0 and (rb.windDelta != 0)
             {
                 for i in .ghostJoinList.count

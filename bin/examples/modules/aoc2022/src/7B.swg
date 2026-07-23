@@ -67,6 +67,6 @@ func day7B()
             total = val
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 942298)
 }

@@ -58,7 +58,7 @@ func day8B()
         while ip < lines.count and lines[ip].length
         {
             let lip = ip
-            let v   = assume StrConv.parseS32(lines[ip][4 to ]).value
+            let v   = assume StrConv.parseS32(lines[ip][4 to]).value
             switch lines[ip][0 to 2]
             {
             case "nop":
@@ -77,7 +77,7 @@ func day8B()
 
         if ip == lines.count
         {
-            //Console.print("total: ", total)
+            // Console.print("total: ", total)
             @assert(total == 2096)
             return
         }

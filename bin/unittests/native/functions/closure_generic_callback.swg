@@ -18,5 +18,5 @@
 {
     var prev:   [3] u8 = ['C', 'A', 'B']
     var result: ClosureGenericCallbackSupport.ByteSet = {values: ['A''u8, 'B''u8, 'C''u8, 'D''u8], count: 4}
-    @assert(ClosureGenericCallbackSupport.allOf(prev[ to ], func|&result|(x: u8)->bool { return result.contains(x) }))
+    @assert(ClosureGenericCallbackSupport.allOf(prev[to], func|&result|(x: u8)->bool { return result.contains(x) }))
 }

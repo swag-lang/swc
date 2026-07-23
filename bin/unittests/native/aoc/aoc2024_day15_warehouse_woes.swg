@@ -8,7 +8,7 @@
 // @countof on fixed arrays, string concatenation (++), #typeof.
 
 const SmallInput =
-"""########
+    """########
 #..O.O.#
 ##@.O..#
 #...OO.#
@@ -20,7 +20,7 @@ const SmallInput =
 <^^>>>vv<v>>v<<"""
 
 const LargeInput =
-"""##########
+    """##########
 #..O..O.O#
 #......O.#
 #.OO..O.O#
@@ -75,7 +75,7 @@ struct Warehouse
     robotC: u32
 }
 
-func warehouseInit() -> Warehouse
+func warehouseInit()->Warehouse
 {
     var wh: Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
@@ -93,7 +93,7 @@ func warehouseFree(wh: *Warehouse)
         @free(wh.cells)
 }
 
-func warehouseAt(wh: *Warehouse, r, c: u32) -> Tile => wh.cells[r * MaxDim + c]
+func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => wh.cells[r * MaxDim + c]
 
 func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 {
@@ -118,7 +118,7 @@ func parsedFree(p: *Parsed)
         @free(p.moves)
 }
 
-func parseInput(text: string) -> Parsed
+func parseInput(text: string)->Parsed
 {
     var result: Parsed
     result.wh = warehouseInit()
@@ -293,7 +293,7 @@ func simulate(p: *Parsed)
 // GPS score
 // ---------------------------------------------------------------------------
 
-func gpsScore(wh: *Warehouse) -> u64
+func gpsScore(wh: *Warehouse)->u64
 {
     var total: u64
     for r in wh.h
@@ -307,7 +307,7 @@ func gpsScore(wh: *Warehouse) -> u64
     return total
 }
 
-func solve(text: string) -> u64
+func solve(text: string)->u64
 {
     var p = parseInput(text)
     defer parsedFree(&p)
@@ -321,7 +321,7 @@ func solve(text: string) -> u64
 
 // Compute RMS distance of all boxes from the grid centre.
 // Exercises @sqrt and @floor.
-func boxRmsFromCentre(wh: *Warehouse) -> f64
+func boxRmsFromCentre(wh: *Warehouse)->f64
 {
     let cx = cast(f64) wh.w / 2.0
     let cy = cast(f64) wh.h / 2.0
@@ -348,7 +348,7 @@ func boxRmsFromCentre(wh: *Warehouse) -> f64
 }
 
 // Floor the RMS to an integer bucket.
-func boxRmsBucket(wh: *Warehouse) -> s32 => cast(s32) @floor(boxRmsFromCentre(wh))
+func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -422,7 +422,7 @@ func boxRmsBucket(wh: *Warehouse) -> s32 => cast(s32) @floor(boxRmsFromCentre(wh
 #test
 {
     let input =
-"""#####
+        """#####
 #@O.#
 #####
 
@@ -459,7 +459,7 @@ func boxRmsBucket(wh: *Warehouse) -> s32 => cast(s32) @floor(boxRmsFromCentre(wh
 #test
 {
     let input =
-"""###
+        """###
 #@#
 ###
 

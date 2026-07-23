@@ -28,4 +28,3 @@ func verifyImportedBorrowSummaries()
 }
 
 var gConsumerContainer: DepBorrowContainer
-

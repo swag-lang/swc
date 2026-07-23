@@ -5,7 +5,7 @@ using Swag, Core
 {
     const pixels = [
         40'u8, 80'u8, 120'u8, 91'u8,     150'u8, 200'u8, 240'u8, 92'u8,
-    ]
+        ]
 
     var img = makeImage(2, 1, .RGBA8, pixels)
     img.contrast(0.5)

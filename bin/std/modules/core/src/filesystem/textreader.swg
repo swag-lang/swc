@@ -74,7 +74,7 @@ public impl TextReader
 
     // Reads one line of text into the result string
     // Returns false if the end of the stream has been reached
-    #[Swag.Safety(.BoundCheck|.Overflow, false)]
+    #[Swag.Safety(.BoundCheck | .Overflow, false)]
     mtd readLine(result: &String)->bool
     {
         result.clear()

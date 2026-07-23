@@ -49,6 +49,6 @@ func day1B()
         last = cur
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1822)
 }

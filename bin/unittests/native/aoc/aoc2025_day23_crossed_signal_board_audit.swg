@@ -275,7 +275,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 #test
 {
     const sampleInputs: [10] WireValue =
-    [
+        [
         {name: "x00", value: 1},
         {name: "x01", value: 0},
         {name: "x02", value: 1},
@@ -286,10 +286,10 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {name: "y02", value: 1},
         {name: "y03", value: 1},
         {name: "y04", value: 1},
-    ]
+        ]
 
     const sampleGates: [36] LogicGate =
-    [
+        [
         {left: "ntg", op: GateOp.Xor, right: "fgs", output: "mjb"},
         {left: "y02", op: GateOp.Or, right: "x01", output: "tnw"},
         {left: "kwq", op: GateOp.Or, right: "kpj", output: "z05"},
@@ -326,24 +326,24 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {left: "hwm", op: GateOp.And, right: "bqk", output: "z03"},
         {left: "tgd", op: GateOp.Xor, right: "rvg", output: "z12"},
         {left: "tnw", op: GateOp.Or, right: "pbm", output: "gnj"},
-    ]
+        ]
 
     let sampleAudit = auditBoard(sampleInputs, sampleGates)
 
     @assert(sampleAudit.outputValue == 2024'u64)
 
     const swappedInputs: [6] WireValue =
-    [
+        [
         {name: "x00", value: 1},
         {name: "x01", value: 0},
         {name: "x02", value: 1},
         {name: "y00", value: 1},
         {name: "y01", value: 1},
         {name: "y02", value: 0},
-    ]
+        ]
 
     const swappedAdder: [12] LogicGate =
-    [
+        [
         {left: "x00", op: GateOp.Xor, right: "y00", output: "z00"},
         {left: "x00", op: GateOp.And, right: "y00", output: "c01"},
         {left: "x01", op: GateOp.Xor, right: "y01", output: "s01"},
@@ -356,7 +356,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {left: "s02", op: GateOp.Xor, right: "c02", output: "z02"},
         {left: "s02", op: GateOp.And, right: "c02", output: "t02"},
         {left: "t02", op: GateOp.Or, right: "a02", output: "z03"},
-    ]
+        ]
 
     let swappedAudit = auditBoard(swappedInputs, swappedAdder)
     const expectedSuspects: [2] string = ["a01", "z01"]

@@ -48,6 +48,6 @@ func day2A()
             total += 1
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 524)
 }

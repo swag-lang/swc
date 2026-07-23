@@ -76,10 +76,10 @@ func switchNaNEquality()->bool
     let value = Swag.F32.NaN
     switch value
     {
-        case Swag.F32.NaN:
-            return false
-        default:
-            return true
+    case Swag.F32.NaN:
+        return false
+    default:
+        return true
     }
 }
 
@@ -88,10 +88,10 @@ func switchNaNRange()->bool
     let value = Swag.F64.NaN
     switch value
     {
-        case to 10.0'f64:
-            return false
-        default:
-            return true
+    case to 10.0'f64:
+        return false
+    default:
+        return true
     }
 }
 

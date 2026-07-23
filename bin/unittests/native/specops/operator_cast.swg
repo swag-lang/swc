@@ -10,21 +10,21 @@ struct RuntimeCastBox
 impl RuntimeCastBox
 {
     #[Swag.Implicit, Swag.NoInline]
-    mtd opCast() -> s32
+    mtd opCast()->s32
     {
         .intCalls += 1
         return .value + 1
     }
 
     #[Swag.NoInline]
-    mtd const opCast() -> bool
+    mtd const opCast()->bool
     {
         .boolCalls += 1
         return .value != 0
     }
 }
 
-func consumeInt(value: s32) -> s32
+func consumeInt(value: s32)->s32
 {
     return value
 }
@@ -40,13 +40,13 @@ struct RuntimePointerCastBox
 impl RuntimePointerCastBox
 {
     #[Swag.Implicit, Swag.NoInline]
-    mtd const opCast() -> OpCastStrictPtr
+    mtd const opCast()->OpCastStrictPtr
     {
         return cast(OpCastStrictPtr) &.value
     }
 }
 
-func consumeNullableStrictPtr(value: #null OpCastStrictPtr) -> s32
+func consumeNullableStrictPtr(value: #null OpCastStrictPtr)->s32
 {
     if value == null do
         return 0

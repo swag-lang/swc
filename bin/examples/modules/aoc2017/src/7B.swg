@@ -51,7 +51,7 @@ func day7B()
         if n.count == 1 do
             continue
         let self = set.find(n[0])
-        for v in n[1 to ] do
+        for v in n[1 to] do
             self.value.childs.add(v)
     }
 

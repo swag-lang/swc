@@ -104,9 +104,9 @@ impl String
         Debug.safetyBoundCheck(index < .length, "index out of range")
         #if op == "+=" do
             .buffer[index] += #wrap value
-        #elif op == "-=" do
+            #elif op == "-=" do
             .buffer[index] -= #wrap value
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -121,7 +121,7 @@ impl String
         #if op == "+=" do
             for v in value do
                 .append(v)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -130,7 +130,7 @@ impl String
         #if op == "+=" do
             for v in value do
                 .append(v)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -139,7 +139,7 @@ impl String
         #if op == "+=" do
             for v in value do
                 .append(v)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -148,7 +148,7 @@ impl String
         #if op == "+=" do
             for v in value do
                 .append(v)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -156,7 +156,7 @@ impl String
     {
         #if op == "+=" do
             .append(value)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -164,7 +164,7 @@ impl String
     {
         #if op == "+=" do
             .append(value)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -172,7 +172,7 @@ impl String
     {
         #if op == "+=" do
             .append(value)
-        #else do
+            #else do
             #error("invalid operator '" ++ op ++ "'")
     }
 
@@ -241,24 +241,24 @@ impl String
 
         #if back do
             var scan = buffer + .length
-        #else do
+            #else do
             var scan = buffer - 1
 
         for .length
         {
             #if back do
                 scan -= 1
-            #else do
+                #else do
                 scan += 1
 
             #if back do
                 let visitIdx = me.length - @index - 1
-            #else do
+                #else do
                 let visitIdx = @index
 
             #if ptr do
                 #inject(stmt, item = cast(&u8) scan, index = visitIdx)
-            #else do
+                #else do
                 #inject(stmt, item = dref scan, index = visitIdx)
         }
     }
@@ -606,7 +606,7 @@ impl String
         for
         {
             let sl = @mkslice(ptr, .length)
-            let (c, eat) = Utf8.decodeRune(sl)
+                let (c, eat) = Utf8.decodeRune(sl)
             if !Unicode.isSpace(c) do
                 break
             .length -= eat
@@ -626,7 +626,7 @@ impl String
         for
         {
             let sl = @mkslice(.buffer, .length)
-            let (c, eat) = Utf8.decodeLastRune(sl)
+                let (c, eat) = Utf8.decodeLastRune(sl)
             if !Unicode.isSpace(c) do
                 break
             .length -= eat

@@ -84,14 +84,10 @@ public impl JSon
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd beginRoot() throw
-    {
-    }
+    mtd beginRoot() throw {}
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endRoot() throw
-    {
-    }
+    mtd endRoot() throw {}
 
     mtd beginSection(_kind: SectionKind) throw
     {
@@ -150,14 +146,10 @@ public impl JSon
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endElement(_val: TypeValue) throw
-    {
-    }
+    mtd endElement(_val: TypeValue) throw {}
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd beginValue() throw
-    {
-    }
+    mtd beginValue() throw {}
 
     mtd endValue() throw
     {
@@ -180,67 +172,67 @@ public impl JSon
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == f32
+            #elif NT == f32
         {
             let val = StrConv.parseF32(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == f64
+            #elif NT == f64
         {
             let val = StrConv.parseF64(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == s8
+            #elif NT == s8
         {
             let val = StrConv.parseS8(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == s16
+            #elif NT == s16
         {
             let val = StrConv.parseS16(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == s32
+            #elif NT == s32
         {
             let val = StrConv.parseS32(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == s64
+            #elif NT == s64
         {
             let val = StrConv.parseS64(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == u8
+            #elif NT == u8
         {
             let val = StrConv.parseU8(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == u16
+            #elif NT == u16
         {
             let val = StrConv.parseU16(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == u32
+            #elif NT == u32
         {
             let val = StrConv.parseU32(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == u64
+            #elif NT == u64
         {
             let val = StrConv.parseU64(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
         }
-        #elif NT == Core.String
+            #elif NT == Core.String
         {
             var result: retval
 
@@ -273,7 +265,7 @@ public impl JSon
 
             return result
         }
-        #else
+            #else
         {
             #error("invalid type")
         }

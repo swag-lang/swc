@@ -76,6 +76,6 @@ func day6A()
         }
     }
 
-    //Console.print("total: ", values.count)
+    // Console.print("total: ", values.count)
     @assert(values.count == 388739)
 }

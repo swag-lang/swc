@@ -14,7 +14,7 @@ func day4B()
         if @jit do
             return
 
-        //Time.Stopwatch.scopeMeasure()
+        // Time.Stopwatch.scopeMeasure()
         assume Jobs.setNumWorkers()
 
         struct ForJob
@@ -67,7 +67,7 @@ func day4B()
             total = Math.min(total, j.result)
         }
 
-        //Console.print("total: ", total)
+        // Console.print("total: ", total)
         @assert(total == 9962624)
     }
 }

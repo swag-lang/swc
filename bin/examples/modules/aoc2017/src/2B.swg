@@ -32,7 +32,7 @@ func day2B()
         var values: Array's32
 
         #scope(Done)
-        for v in Tokenize.splitAny(l, [' ', '\t'])
+            for v in Tokenize.splitAny(l, [' ', '\t'])
         {
             let value = assume StrConv.toS32(Latin1.trim(v))
             for v1 in values
@@ -53,6 +53,6 @@ func day2B()
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 244)
 }

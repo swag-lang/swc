@@ -10,7 +10,7 @@
 // for #reverse, inline retval struct return.
 
 const SampleInput =
-"""#####
+    """#####
 .####
 .####
 .####
@@ -65,7 +65,7 @@ struct Heights
 
 impl Heights
 {
-    mtd const fits(other: Heights) -> bool
+    mtd const fits(other: Heights)->bool
     {
         for i in NumCols
         {
@@ -77,7 +77,7 @@ impl Heights
         return true
     }
 
-    mtd eq(other: Heights) -> bool
+    mtd eq(other: Heights)->bool
     {
         for i in NumCols
         {
@@ -101,7 +101,7 @@ struct ParseResult
     keyCount:  u32
 }
 
-func parseInit() -> ParseResult
+func parseInit()->ParseResult
 {
     var r: ParseResult
     r.locks = cast(#null [*] Heights) @alloc(cast(u64) MaxSchematics * #sizeof(Heights))
@@ -117,7 +117,7 @@ func parseFree(r: *ParseResult)
 
 // Parse a single 7-row schematic starting at `startPos`.
 // Returns the position after the schematic (past trailing blank line).
-func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult) -> u32
+func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult)->u32
 {
     var pos = startPos
 
@@ -192,7 +192,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
     return pos
 }
 
-func parse(text: string) -> ParseResult
+func parse(text: string)->ParseResult
 {
     var result = parseInit()
     let bytes = cast(const [..] u8) text
@@ -213,7 +213,7 @@ func parse(text: string) -> ParseResult
 // Part 1: count fitting pairs
 // ---------------------------------------------------------------------------
 
-func countFittingPairs(r: *ParseResult) -> u64
+func countFittingPairs(r: *ParseResult)->u64
 {
     var count: u64
     for li in r.lockCount
@@ -238,7 +238,7 @@ struct SolveResult
     part1: u64
 }
 
-func solve(text: string) -> SolveResult
+func solve(text: string)->SolveResult
 {
     var pr = parse(text)
     defer parseFree(&pr)
@@ -380,7 +380,7 @@ struct HeightPair
 }
 
 #[Swag.Inline]
-func makeHeightPair(lock: Heights, key: Heights) -> HeightPair
+func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 {
     var r: retval
     r.lock = lock
@@ -427,7 +427,7 @@ func makeHeightPair(lock: Heights, key: Heights) -> HeightPair
 #test
 {
     let single =
-"""#####
+        """#####
 .####
 .####
 .####
@@ -449,7 +449,7 @@ func makeHeightPair(lock: Heights, key: Heights) -> HeightPair
 #test
 {
     let single =
-""".....
+        """.....
 #....
 #....
 #...#
@@ -539,7 +539,7 @@ func makeHeightPair(lock: Heights, key: Heights) -> HeightPair
 {
     // Verify key parsing uses #reverse correctly
     let keyStr =
-""".....
+        """.....
 .....
 .....
 .....

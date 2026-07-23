@@ -6,7 +6,7 @@ using Swag, Core
     const pixels = [
         10'u8, 20'u8, 30'u8, 40'u8,      50'u8, 60'u8, 70'u8, 80'u8,
         90'u8, 100'u8, 110'u8, 120'u8,   130'u8, 140'u8, 150'u8, 160'u8,
-    ]
+        ]
 
     let src     = makeImage(2, 2, .RGBA8, pixels)
     let bgColor = Color.fromArgb(255'u8, 1'u8, 2'u8, 3'u8)

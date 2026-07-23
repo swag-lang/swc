@@ -6,19 +6,16 @@ const ENABLED  = 1
 const DISABLED = 0
 
 #if true
-{
-}
-#else
+{}
+    #else
 {
     #error("toto")
 }
 
 #if true
-{
-}
-#else
-{
-}
+{}
+    #else
+{}
 
 #assert(true)
 #assert(ENABLED)
@@ -28,11 +25,11 @@ const DISABLED = 0
 {
     const MODE = 1
 }
-#elif DISABLED
+    #elif DISABLED
 {
     const MODE = 2
 }
-#else
+    #else
 {
     const MODE = 3
 }

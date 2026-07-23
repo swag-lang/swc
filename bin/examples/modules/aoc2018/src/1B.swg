@@ -42,7 +42,7 @@ func day1B()
             total += v
             if done.contains(total)
             {
-                //Console.print("total: ", total)
+                // Console.print("total: ", total)
                 @assert(total == 227)
                 return
             }

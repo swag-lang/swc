@@ -49,6 +49,6 @@ func day7A()
         total += ok ? 1 : 0
     }
 
-    //Console.print(total)
+    // Console.print(total)
     @assert(total == 110)
 }

@@ -62,7 +62,7 @@ func day5B0()
         best = Math.min(best, line.length)
     }
 
-    //Console.print("total: ", best)
+    // Console.print("total: ", best)
     @assert(best == 5122)
 }
 
@@ -92,6 +92,6 @@ func day5B1()
         best = Math.min(best, result.length)
     }
 
-    //Console.print("total: ", best)
+    // Console.print("total: ", best)
     @assert(best == 5122)
 }

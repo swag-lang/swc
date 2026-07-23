@@ -5,13 +5,9 @@ struct CannotCastConstBox
     value: s32
 }
 
-interface ICannotCastConst
-{
-}
+interface ICannotCastConst {}
 
-impl ICannotCastConst for CannotCastConstBox
-{
-}
+impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {

@@ -103,9 +103,7 @@ func mayThrowValue(value: s32 = 42)->s32 throw
     return value
 }
 
-func mayThrowVoid() throw
-{
-}
+func mayThrowVoid() throw {}
 
 func alwaysThrowValue(code: s32)->s32 throw
 {
@@ -192,7 +190,7 @@ func aggregateSuccess(seed: s32)->AggregateResult throw
         first: seed,
         second: seed + 1,
         payload: [seed + 2, seed + 3, seed + 4],
-    }
+        }
 }
 
 func aggregateFailure(code: s32)->AggregateResult throw
@@ -272,7 +270,7 @@ func aggregateDeferThrow()->AggregateResult throw
         first: 10,
         second: 11,
         payload: [12, 13, 14],
-    }
+        }
 }
 
 func nestedTryHandled()->s32

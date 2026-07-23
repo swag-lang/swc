@@ -50,10 +50,10 @@ func cmpF64(a: f64, b: f64)->s32 { return a <=> b }
         let value = Swag.F32.NaN
         switch value
         {
-            case Swag.F32.NaN:
-                return false
-            default:
-                return true
+        case Swag.F32.NaN:
+            return false
+        default:
+            return true
         }
     }
 
@@ -68,10 +68,10 @@ func cmpF64(a: f64, b: f64)->s32 { return a <=> b }
         let value = Swag.F64.NaN
         switch value
         {
-            case to 10.0'f64:
-                return false
-            default:
-                return true
+        case to 10.0'f64:
+            return false
+        default:
+            return true
         }
     }
 

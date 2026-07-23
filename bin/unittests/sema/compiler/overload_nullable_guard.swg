@@ -1,12 +1,8 @@
 #global private
 
-struct Node
-{
-}
+struct Node {}
 
-struct GuardedNode
-{
-}
+struct GuardedNode {}
 
 impl GuardedNode
 {

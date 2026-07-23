@@ -31,7 +31,7 @@ struct Surface
     isInitialized:     bool
     isDisabled:        bool
     isMinimized:       bool
-    using state:       SurfaceState
+        using state:       SurfaceState
 }
 
 #[Swag.EnumFlags]

@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Inline]
-func inlineTypedVariadicConstForeach(values: s32...) -> s32
+func inlineTypedVariadicConstForeach(values: s32...)->s32
 {
     var sum: s32 = 0
     for value in values do sum += value
@@ -9,17 +9,17 @@ func inlineTypedVariadicConstForeach(values: s32...) -> s32
 }
 
 #[Swag.Inline]
-func inlineTypedVariadicConstIndex(values: s32...) -> s32
+func inlineTypedVariadicConstIndex(values: s32...)->s32
 {
     return values[0] + values[3]
 }
 
-func runInlineTypedVariadicConstForeach() -> s32
+func runInlineTypedVariadicConstForeach()->s32
 {
     return inlineTypedVariadicConstForeach(1, 2, 3, 4)
 }
 
-func runInlineTypedVariadicConstIndex() -> s32
+func runInlineTypedVariadicConstIndex()->s32
 {
     return inlineTypedVariadicConstIndex(10, 20, 30, 40)
 }

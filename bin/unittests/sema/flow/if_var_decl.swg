@@ -10,9 +10,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    if var x = 0
-    {
-    }
+    if var x = 0 {}
     else
     {
         var y = x
@@ -21,9 +19,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    if var x = 1 where false
-    {
-    }
+    if var x = 1 where false {}
     else
     {
         var y = x

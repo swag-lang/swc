@@ -53,7 +53,7 @@ So in our case, we need to import the module 'gui'. This module is used to creat
         // of them in 'release'.
         #if #cfg == "debug" do
             cfg.safetyGuards = Swag.SafetyWhat.All
-        #else do
+            #else do
             cfg.safetyGuards = Swag.SafetyWhat.None
     }
 }

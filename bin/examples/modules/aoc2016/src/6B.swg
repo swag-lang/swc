@@ -41,6 +41,6 @@ func day6B()
         }
     }
 
-    //Console.print(pwd)
+    // Console.print(pwd)
     @assert(pwd == "bhkzekao")
 }

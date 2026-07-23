@@ -17,44 +17,44 @@ struct(T) Vec2
 
 impl Vec2
 {
-    func(op: string) opUnary(const me) -> Vec2
+    func(op: string) opUnary(const me)->Vec2
     {
         #if op == "-" do
             return {x: -me.x, y: -me.y}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
-    func(op: string) opBinary(const me, other: const &Vec2) -> Vec2
+    func(op: string) opBinary(const me, other: const &Vec2)->Vec2
     {
         #if op == "+" do
             return {x: me.x + other.x, y: me.y + other.y}
-        #elif op == "-" do
+            #elif op == "-" do
             return {x: me.x - other.x, y: me.y - other.y}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T) -> Vec2
+    func(op: string) opBinary(const me, scalar: T)->Vec2
     {
         #if op == "*" do
             return {x: me.x * scalar, y: me.y * scalar}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    func dot(a: const &Vec2, b: const &Vec2) -> T
+    func dot(a: const &Vec2, b: const &Vec2)->T
     {
         return a.x * b.x + a.y * b.y
     }
 
-    func lengthSq(const me) -> T
+    func lengthSq(const me)->T
     {
         return me.x * me.x + me.y * me.y
     }
 
     // 90-degree counter-clockwise rotation
-    func perp(const me) -> Vec2
+    func perp(const me)->Vec2
     {
         return {x: -me.y, y: me.x}
     }
@@ -78,98 +78,98 @@ struct(T) Mat2
 
 impl Mat2
 {
-    func trace(const me) -> T
+    func trace(const me)->T
     {
         return me.a + me.d
     }
 
-    func det(const me) -> T
+    func det(const me)->T
     {
         return me.a * me.d - me.b * me.c
     }
 
-    func transpose(const me) -> Mat2
+    func transpose(const me)->Mat2
     {
         return {a: me.a, b: me.c, c: me.b, d: me.d}
     }
 
-    func row0(const me) -> Vec2
+    func row0(const me)->Vec2
     {
         return {x: me.a, y: me.b}
     }
 
-    func row1(const me) -> Vec2
+    func row1(const me)->Vec2
     {
         return {x: me.c, y: me.d}
     }
 
-    func col0(const me) -> Vec2
+    func col0(const me)->Vec2
     {
         return {x: me.a, y: me.c}
     }
 
-    func col1(const me) -> Vec2
+    func col1(const me)->Vec2
     {
         return {x: me.b, y: me.d}
     }
 
     // Linear transform: M * v
-    func transform(const me, v: const &Vec2) -> Vec2
+    func transform(const me, v: const &Vec2)->Vec2
     {
         return {x: me.a * v.x + me.b * v.y,
                 y: me.c * v.x + me.d * v.y}
     }
 
-    func(op: string) opUnary(const me) -> Mat2
+    func(op: string) opUnary(const me)->Mat2
     {
         #if op == "-" do
             return {a: -me.a, b: -me.b, c: -me.c, d: -me.d}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
     // Mat2 +/- Mat2, Mat2 * Mat2
-    func(op: string) opBinary(const me, other: const &Mat2) -> Mat2
+    func(op: string) opBinary(const me, other: const &Mat2)->Mat2
     {
         #if op == "+" do
             return {a: me.a + other.a, b: me.b + other.b,
                     c: me.c + other.c, d: me.d + other.d}
-        #elif op == "-" do
+            #elif op == "-" do
             return {a: me.a - other.a, b: me.b - other.b,
                     c: me.c - other.c, d: me.d - other.d}
-        #elif op == "*" do
+            #elif op == "*" do
             return {a: me.a * other.a + me.b * other.c,
                     b: me.a * other.b + me.b * other.d,
                     c: me.c * other.a + me.d * other.c,
                     d: me.c * other.b + me.d * other.d}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
     // Mat2 * scalar
-    func(op: string) opBinary(const me, scalar: T) -> Mat2
+    func(op: string) opBinary(const me, scalar: T)->Mat2
     {
         #if op == "*" do
             return {a: me.a * scalar, b: me.b * scalar,
                     c: me.c * scalar, d: me.d * scalar}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
     // Build from column vectors
-    func fromCols(c0: const &Vec2, c1: const &Vec2) -> Mat2
+    func fromCols(c0: const &Vec2, c1: const &Vec2)->Mat2
     {
         return {a: c0.x, b: c1.x, c: c0.y, d: c1.y}
     }
 
     // Build from row vectors
-    func fromRows(r0: const &Vec2, r1: const &Vec2) -> Mat2
+    func fromRows(r0: const &Vec2, r1: const &Vec2)->Mat2
     {
         return {a: r0.x, b: r0.y, c: r1.x, d: r1.y}
     }
 
     // Outer product: v * w^T
-    func outer(v: const &Vec2, w: const &Vec2) -> Mat2
+    func outer(v: const &Vec2, w: const &Vec2)->Mat2
     {
         return {a: v.x * w.x, b: v.x * w.y,
                 c: v.y * w.x, d: v.y * w.y}
@@ -188,35 +188,35 @@ struct(T) AffineMap
 
 impl AffineMap
 {
-    func translation(dx: T, dy: T) -> AffineMap
+    func translation(dx: T, dy: T)->AffineMap
     {
         let one: T = 1
         let z: T = 0
         return {mat: {a: one, b: z, c: z, d: one}, offset: {x: dx, y: dy}}
     }
 
-    func scaling(sx: T, sy: T) -> AffineMap
+    func scaling(sx: T, sy: T)->AffineMap
     {
         let zx: T = 0
         let zy: T = 0
         return {mat: {a: sx, b: zx, c: zy, d: sy}, offset: {x: zx, y: zy}}
     }
 
-    func apply(const me, p: const &Vec2) -> Vec2
+    func apply(const me, p: const &Vec2)->Vec2
     {
         let transformed = me.mat.transform(p)
         return transformed + me.offset
     }
 
     // Compose: (A after B).  apply(compose(a, b), p) == apply(a, apply(b, p))
-    func compose(a: const &AffineMap, b: const &AffineMap) -> AffineMap
+    func compose(a: const &AffineMap, b: const &AffineMap)->AffineMap
     {
         let newMat = a.mat * b.mat
         let rotatedOff = a.mat.transform(&b.offset)
         return {mat: newMat, offset: rotatedOff + a.offset}
     }
 
-    func det(const me) -> T
+    func det(const me)->T
     {
         return me.mat.det()
     }

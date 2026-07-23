@@ -90,9 +90,7 @@ func injectExpr(expr: #code->s32)->s32 => #inject(expr)
 #[Swag.Macro]
 func(enabled: bool) genericInjectExpr(expr: #code->bool)
 {
-    if #inject(expr)
-    {
-    }
+    if #inject(expr) {}
 }
 
 #[Swag.Macro]
@@ -412,7 +410,7 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
         let x = 1
         let y = 1
         let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
-    pixDst[0] = 121
+        pixDst[0] = 121
     }
 }
 

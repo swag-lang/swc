@@ -54,7 +54,7 @@ impl IActionUI for ActionLibTrash
             libWnd.setTrashMode(!libWnd.trashMode)
 
         case Empty:
-        let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase every capture in the recycle bin.")
+            let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase every capture in the recycle bin.")
             if res == MessageDlg.BtnYes
             {
                 Library.emptyTrash()

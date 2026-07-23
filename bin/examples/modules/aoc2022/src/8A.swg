@@ -35,7 +35,7 @@ func day8A()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "8.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     var total: u64
 
@@ -61,13 +61,13 @@ func day8A()
                 hidden += 1
             else do
                 for x in 0 until col
+            {
+                if l[x] >= l[col]
                 {
-                    if l[x] >= l[col]
-                    {
-                        hidden += 1
-                        break
-                    }
+                    hidden += 1
+                    break
                 }
+            }
             maxLeft = Math.max(maxLeft, l[col])
 
             for x in col + 1 to l.length - 1
@@ -102,6 +102,6 @@ func day8A()
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1849)
 }

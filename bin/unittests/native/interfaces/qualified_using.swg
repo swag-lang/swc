@@ -2,16 +2,14 @@
 
 interface IQualifiedUsing
 {
-    mtd value() -> s32;
+    mtd value()->s32;
 }
 
-struct QualifiedUsingBase
-{
-}
+struct QualifiedUsingBase {}
 
 impl IQualifiedUsing for QualifiedUsingBase
 {
-    mtd impl value() -> s32
+    mtd impl value()->s32
     {
         return 42;
     }
@@ -22,9 +20,7 @@ struct QualifiedUsingDerived
     using base: QualifiedUsingBase
 }
 
-impl IQualifiedUsing for QualifiedUsingDerived
-{
-}
+impl IQualifiedUsing for QualifiedUsingDerived {}
 
 #test
 {

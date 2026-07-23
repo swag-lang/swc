@@ -103,6 +103,6 @@ func day4B()
             total += numbers[v]
     total *= numbers[bestScore]
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 3178)
 }

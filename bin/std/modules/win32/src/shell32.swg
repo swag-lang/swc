@@ -29,7 +29,7 @@ const CSIDL_NETHOOD                 = 0x0013             // <user name>/nethood
 const CSIDL_FONTS                   = 0x0014             // windows/fonts
 const CSIDL_TEMPLATES               = 0x0015
 const CSIDL_COMMON_STARTMENU        = 0x0016             // All Users/Start Menu
-const CSIDL_COMMON_PROGRAMS         = 0X0017             // All Users/Start Menu/Programs
+const CSIDL_COMMON_PROGRAMS         = 0x0017             // All Users/Start Menu/Programs
 const CSIDL_COMMON_STARTUP          = 0x0018             // All Users/Startup
 const CSIDL_COMMON_DESKTOPDIRECTORY = 0x0019             // All Users/Desktop
 const CSIDL_APPDATA                 = 0x001a             // <user name>/Application Data
@@ -262,7 +262,7 @@ struct NOTIFYICONDATAA
     dwState:              DWORD
     dwStateMask:          DWORD
     szInfo:               [256] CHAR
-    using DUMMYUNIONNAME: union
+        using DUMMYUNIONNAME: union
     {
         uTimeout:     UINT
         uVersion:     UINT
@@ -285,7 +285,7 @@ struct NOTIFYICONDATAW
     dwState:              DWORD
     dwStateMask:          DWORD
     szInfo:               [256] WCHAR
-    using DUMMYUNIONNAME: union
+        using DUMMYUNIONNAME: union
     {
         uTimeout:     UINT
         uVersion:     UINT

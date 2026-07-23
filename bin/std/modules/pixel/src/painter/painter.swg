@@ -120,7 +120,7 @@ struct Command
 {
     id:  CommandId = undefined
 
-    using params: union
+        using params: union
     {
         clear:              struct{ color: Color }
         drawTriangles:      struct{ start: u32, count: u32 }
@@ -264,7 +264,7 @@ impl Painter
         params.boundRect.z = bvMax.x
         params.boundRect.w = bvMax.y
 
-        let (wt, ht) = getTextureSize(brush)
+            let (wt, ht) = getTextureSize(brush)
         if brush.uvMode == .FillSubRect
         {
             params.textureRect.x = brush.uvRect.x / wt

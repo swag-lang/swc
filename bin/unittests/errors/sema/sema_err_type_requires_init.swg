@@ -40,9 +40,7 @@ struct NonNullRequiresInitSetTarget
 
 impl NonNullRequiresInitSetTarget
 {
-    mtd opSet(value: s32)
-    {
-    }
+    mtd opSet(value: s32) {}
 }
 
 var NonNullRequiresInitGlobal: *NonNullRequiresInitItem // swc-expected-error {{sema_err_type_requires_init}}
@@ -156,7 +154,7 @@ func nonNullRequiresInitThrowable()->*NonNullRequiresInitItem throw
     let values: [2, 2] NonNullRequiresInitHolder = [
         [{required: &item}, {required: &item}],
         [{required: &item}], // swc-expected-error {{sema_err_type_requires_init}}
-    ]
+        ]
 }
 
 #test

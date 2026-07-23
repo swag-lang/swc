@@ -85,7 +85,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         g_HotX, g_HotY = -1
         #scope(Big)
-        for i in NumElems
+            for i in NumElems
         {
             for j in NumElems
             {

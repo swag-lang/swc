@@ -180,12 +180,12 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 #test
 {
     const sampleBeds: [4] string =
-    [
+        [
         "AAAA",
         "BBCD",
         "BBCC",
         "EEEC",
-    ]
+        ]
 
     let sampleReport = analyzeFencePricing(sampleBeds)
 
@@ -194,12 +194,12 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
     @assert(sampleReport.totalDiscountedPrice == 80'u64)
 
     const courtyardBeds: [4] string =
-    [
+        [
         "AAAA",
         "ABBA",
         "ABBA",
         "AAAA",
-    ]
+        ]
 
     let courtyardReport = analyzeFencePricing(courtyardBeds)
 

@@ -38,8 +38,8 @@ impl TimeSpan
     mtd const toDateTime()->DateTime
     {
         var dateTime: retval = undefined
-        (dateTime.year, dateTime.month, dateTime.day) = ticksToDate(.ticks)
-        (dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond) = ticksToTime(.ticks)
+            (dateTime.year, dateTime.month, dateTime.day) = ticksToDate(.ticks)
+            (dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond) = ticksToTime(.ticks)
         return dateTime
     }
 
@@ -54,7 +54,7 @@ impl TimeSpan
     mtd addMonths(months: s32)
     {
         Debug.assert(-120000 <= months and months <= 120000, "overflow")
-        var (y, m, d) = ticksToDate(.ticks)
+            var (y, m, d) = ticksToDate(.ticks)
         var year = cast(s32) y
         let i = cast(s32) (m - 1) + months
         if i >= 0

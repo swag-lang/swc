@@ -95,7 +95,7 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 #test
 {
     const sampleTiles: [8] string =
-    [
+        [
         "7,1",
         "11,1",
         "11,7",
@@ -104,7 +104,7 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
         "2,5",
         "2,3",
         "7,3",
-    ]
+        ]
 
     let sampleEstimate = estimateReplacementArea(sampleTiles)
 
@@ -116,14 +116,14 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
     @assert(sampleEstimate.bestBottom == 5'u32)
 
     const lobbyTiles: [6] string =
-    [
+        [
         "3,2",
         "8,2",
         "8,6",
         "4,9",
         "1,9",
         "1,4",
-    ]
+        ]
 
     let lobbyEstimate = estimateReplacementArea(lobbyTiles)
 

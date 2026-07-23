@@ -77,7 +77,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
                     changes[roundIndex - 2],
                     changes[roundIndex - 1],
                     changes[roundIndex],
-                )
+                    )
 
                 if SequenceSeenStamp[index] != buyerStamp
                 {

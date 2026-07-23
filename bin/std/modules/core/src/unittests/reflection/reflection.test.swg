@@ -17,7 +17,6 @@ struct ReflectionProbe
     enabled: bool = true
 
     label: string = "seed"
-
 }
 
 impl ReflectionProbe
@@ -149,7 +148,6 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     @assert(fieldX.name == "x")
     @assert(fieldX.pointedType == s32)
     @assert(Reflection.getField(type, "missing") == null)
-
 }
 
 #test

@@ -38,6 +38,6 @@ func day2B()
         total += Score[val1, val2]
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 12091)
 }

@@ -19,9 +19,7 @@ impl ITest for Point2
     }
 }
 
-impl ITest for Point3
-{
-}
+impl ITest for Point3 {}
 
 func semaTest001()
 {

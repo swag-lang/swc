@@ -49,15 +49,15 @@ This makes the alias a **distinct type**, disallowing implicit conversions betwe
 the alias and its base type. Explicit casting is still permitted.
 */
 
- #test
- {
-     #[Swag.Strict]
-     alias MyType = s32
-     #assert(#typeof(MyType) != s32)
+#test
+{
+    #[Swag.Strict]
+    alias MyType = s32
+    #assert(#typeof(MyType) != s32)
 
-     let x: MyType = cast(MyType) 0
-     let y: s32 = cast(s32) x
- }
+    let x: MyType = cast(MyType) 0
+    let y: s32 = cast(s32) x
+}
 
 /**
 # Name Alias

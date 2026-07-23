@@ -56,6 +56,6 @@ func day7A()
     for v in crabs do
         total += Math.abs(v - median)
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 342730)
 }

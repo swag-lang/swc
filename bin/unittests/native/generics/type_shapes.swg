@@ -5,20 +5,20 @@ func(T = s32) withDefault()->T => 42
 func(T, N: s32) arrayIdentity(values: [N] T)->[N] T => values
 
 struct(T)
-Box
+    Box
 {
     value: T
 }
 
 struct(A, B)
-Pair
+    Pair
 {
     first:  A
     second: B
 }
 
 struct(T)
-Wrapper
+    Wrapper
 {
     inner: Box'T
 }

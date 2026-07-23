@@ -39,9 +39,7 @@ impl AstAfterInvalidCastStringBuilder
     }
 }
 
-struct AstAfterInvalidCastDialog
-{
-}
+struct AstAfterInvalidCastDialog {}
 
 struct(T) AstAfterInvalidCastSignal
 {

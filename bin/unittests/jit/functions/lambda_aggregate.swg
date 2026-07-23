@@ -39,7 +39,7 @@ func runAggregateLambda()->bool
             total: cast(s64) payload.base + cast(s64) values[0] + cast(s64) values[3] + cast(s64) cast(s32) boxed,
             mirrored: [values[3], values[2], values[1], values[0]],
             pair: {a: payload.step + cast(s32) payload.marks[1], b: cast(s32) payload.marks[2]},
-        }
+            }
     }
 
     let res0 = invokeAggregate(cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)

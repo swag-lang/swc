@@ -34,7 +34,7 @@ struct ConstReadAndSetIndexBox
 
 impl RefAndSetIndexBox
 {
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: s32)->&s32
     {
         return &.values[index]
     }
@@ -47,7 +47,7 @@ impl RefAndSetIndexBox
 
 impl ConstReadAndSetIndexBox
 {
-    mtd const opIndex(index: s32) -> s32
+    mtd const opIndex(index: s32)->s32
     {
         return .values[index]
     }

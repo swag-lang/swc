@@ -51,9 +51,7 @@ var g_totalJobs:        u32
     {
         g_mustEnd = true
         g_eventPendingJobs.signal()
-        while Atomic.get(&g_numWorkers)
-        {
-        }
+        while Atomic.get(&g_numWorkers) {}
 
         for &th in g_workers do
             th.wait()
@@ -66,9 +64,7 @@ func workerEntry(_th: Thread)
 {
     while !g_mustEnd
     {
-        while peekExecJob()
-        {
-        }
+        while peekExecJob() {}
         g_eventPendingJobs.wait()
     }
 
@@ -171,9 +167,7 @@ public func scheduleJob(job: *Job)
 // Wait for all registered jobs to be finished
 public func waitDone()
 {
-    while peekExecJob()
-    {
-    }
+    while peekExecJob() {}
     g_eventDone.wait()
 }
 

@@ -139,7 +139,7 @@ impl ConvertFormatInt
         // Next comes the padding width
         if cpt >= countof do
             return
-        let (userWidth, eatCount, ?) = assume parseU64(@mkstring(buffer + cpt, cast(u64) countof - cpt))
+            let (userWidth, eatCount, ?) = assume parseU64(@mkstring(buffer + cpt, cast(u64) countof - cpt))
         Debug.assert(userWidth <= 255, "padding width overflow")
         if eatCount do
             .width = cast(u8) userWidth
@@ -515,25 +515,25 @@ func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat:
         fmt.setFormat(strFormat)
         convertInt(buf, value, fmt)
     }
-    #elif Reflection.isFloat(T)
+        #elif Reflection.isFloat(T)
     {
         var fmt: ConvertFormatFloat
         fmt.setFormat(strFormat)
         convertFloat(buf, value, fmt)
     }
-    #elif Reflection.isBool(T)
+        #elif Reflection.isBool(T)
     {
         convertBool(buf, value)
     }
-    #elif Reflection.isRune(T)
+        #elif Reflection.isRune(T)
     {
         convertRune(buf, value)
     }
-    #elif Reflection.isString(T)
+        #elif Reflection.isString(T)
     {
         buf.addBytes(value)
     }
-    #else
+        #else
     {
         convertAny(buf, value, convFmt, strFormat)
     }

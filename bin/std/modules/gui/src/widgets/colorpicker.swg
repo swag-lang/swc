@@ -271,13 +271,13 @@ impl IWnd for ColorPicker
     private mtd computeRGB()
     {
         let c = Color.fromHsl(.hue, .sat, .lum)
-        (.r, .g, .b) = c.toRgbf()
+            (.r, .g, .b) = c.toRgbf()
     }
 
     private mtd computeHsl()
     {
         let c = Color.fromRgbf(.r, .g, .b)
-        (.hue, .sat, .lum) = c.toHsl()
+            (.hue, .sat, .lum) = c.toHsl()
     }
 
     mtd impl onPostPaintEvent(evt: *PaintEvent)

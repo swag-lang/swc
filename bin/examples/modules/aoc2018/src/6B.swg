@@ -64,6 +64,6 @@ func day6B()
     for v in arr do
         total += cast(s32) (v < 10000)
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 43852)
 }

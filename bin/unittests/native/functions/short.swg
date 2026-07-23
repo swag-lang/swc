@@ -20,7 +20,7 @@ func I(current, target, speed: f32)->f32
 func J() => [
     {values: [9, 4, 1], bias: 1},
     {values: [2, 8, 3], bias: 4},
-]
+    ]
 
 func K(payloadIndex: u64, valueIndex: u64)->s32
 {

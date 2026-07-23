@@ -7,7 +7,7 @@
 // nested inline mtd (isOpen→cell→idx), signed cast arithmetic, defer cleanup.
 
 const SampleInput =
-"""###############
+    """###############
 #...#...#.....#
 #.#.#.#.#.###.#
 #S#...#.#.#...#
@@ -44,7 +44,7 @@ struct Grid
     pathLen: u32          // total path length (S to E)
 }
 
-func gridInit() -> Grid
+func gridInit()->Grid
 {
     var g: Grid
     g.cells = cast(#null [*] u8)  @alloc(cast(u64) MaxCells)
@@ -66,21 +66,21 @@ func gridFree(g: *Grid)
 impl Grid
 {
     #[Swag.Inline]
-    mtd idx(r: u32, c: u32) -> u32 { return r * MaxDim + c }
+    mtd idx(r: u32, c: u32)->u32 { return r * MaxDim + c }
 
     #[Swag.Inline]
-    mtd cell(r: u32, c: u32) -> u8 { return me.cells[me.idx(r, c)] }
+    mtd cell(r: u32, c: u32)->u8 { return me.cells[me.idx(r, c)] }
 
     #[Swag.Inline]
-    mtd isOpen(r: u32, c: u32) -> bool { return me.cell(r, c) != '#' }
+    mtd isOpen(r: u32, c: u32)->bool { return me.cell(r, c) != '#' }
 
     #[Swag.Inline]
-    mtd distAt(r: u32, c: u32) -> u32 { return me.dist[me.idx(r, c)] }
+    mtd distAt(r: u32, c: u32)->u32 { return me.dist[me.idx(r, c)] }
 
     mtd setDist(r: u32, c: u32, d: u32) { me.dist[me.idx(r, c)] = d }
 
     #[Swag.Inline]
-    mtd inBounds(r: s32, c: s32) -> bool
+    mtd inBounds(r: s32, c: s32)->bool
     {
         if r < 0 or c < 0 do return false
         return cast(u32) r < me.h and cast(u32) c < me.w
@@ -99,7 +99,7 @@ struct Pos
 
 // Inline function returning a struct via retval
 #[Swag.Inline]
-func makePos(r: u32, c: u32) -> Pos
+func makePos(r: u32, c: u32)->Pos
 {
     var result: retval
     result.r = r
@@ -109,7 +109,7 @@ func makePos(r: u32, c: u32) -> Pos
 
 // Manhattan distance using @abs and signed casts
 #[Swag.Inline]
-func manhattan(a: Pos, b: Pos) -> u32
+func manhattan(a: Pos, b: Pos)->u32
 {
     let dr = cast(s32) a.r - cast(s32) b.r
     let dc = cast(s32) a.c - cast(s32) b.c
@@ -120,7 +120,7 @@ func manhattan(a: Pos, b: Pos) -> u32
 // Parsing
 // ---------------------------------------------------------------------------
 
-func parseGrid(text: string) -> Grid
+func parseGrid(text: string)->Grid
 {
     var g = gridInit()
     let bytes = cast(const [..] u8) text
@@ -202,7 +202,7 @@ func tracePath(g: *Grid)
 // check if the shortcut saves enough time.
 // ---------------------------------------------------------------------------
 
-func countCheats(g: *Grid, maxCheat: u32, minSaving: u32) -> u64
+func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
 {
     var count: u64
 
@@ -264,7 +264,7 @@ struct SolveResult
     part2: u64
 }
 
-func solve(text: string, minSaving: u32) -> SolveResult
+func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(text)
     defer gridFree(&g)

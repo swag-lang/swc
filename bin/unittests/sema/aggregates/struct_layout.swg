@@ -11,9 +11,10 @@ struct A
 struct B
 {
     a: u32
-#if false {
-    b: u32
-}
+    #if false
+    {
+        b: u32
+    }
 }
 
 #assert(#sizeof(B) == 4)
@@ -78,9 +79,10 @@ struct E
 struct F
 {
     a: u32
-#if false {
-    mid: u32
-}
+    #if false
+    {
+        mid: u32
+    }
     b: u32
 }
 

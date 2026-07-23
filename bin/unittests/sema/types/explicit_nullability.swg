@@ -1,8 +1,6 @@
 #global private
 
-struct ExplicitNullabilityItem
-{
-}
+struct ExplicitNullabilityItem {}
 
 alias ExplicitNullabilityRequiredPtr = *ExplicitNullabilityItem
 alias ExplicitNullabilityOptionalString = #null string

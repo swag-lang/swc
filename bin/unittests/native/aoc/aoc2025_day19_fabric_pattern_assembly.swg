@@ -78,7 +78,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
 {
     const samplePatterns: [8] string = ["r", "wr", "b", "g", "bwu", "rb", "gb", "br"]
     const sampleDesigns: [8] string =
-    [
+        [
         "brwrr",
         "bggr",
         "gbbr",
@@ -87,7 +87,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
         "bwurrg",
         "brgr",
         "bbrgwb",
-    ]
+        ]
 
     let sampleReport = analyzeBadgeRequests(samplePatterns, sampleDesigns)
 

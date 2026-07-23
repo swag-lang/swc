@@ -25,29 +25,29 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
 {
     switch instruction
     {
-        case '<''u8:
-            dref outDx = -1
-            dref outDy = 0
-            break
+    case '<''u8:
+        dref outDx = -1
+        dref outDy = 0
+        break
 
-        case '>''u8:
-            dref outDx = 1
-            dref outDy = 0
-            break
+    case '>''u8:
+        dref outDx = 1
+        dref outDy = 0
+        break
 
-        case '^''u8:
-            dref outDx = 0
-            dref outDy = -1
-            break
+    case '^''u8:
+        dref outDx = 0
+        dref outDy = -1
+        break
 
-        case 'v''u8:
-            dref outDx = 0
-            dref outDy = 1
-            break
+    case 'v''u8:
+        dref outDx = 0
+        dref outDy = 1
+        break
 
-        default:
-            @assert(false)
-            break
+    default:
+        @assert(false)
+        break
     }
 }
 
@@ -161,7 +161,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 #test
 {
     const sampleLayout: [8] string =
-    [
+        [
         "########",
         "#..O.O.#",
         "##@.O..#",
@@ -170,7 +170,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         "#...O..#",
         "#......#",
         "########",
-    ]
+        ]
 
     let sampleReport = simulateWarehouse(sampleLayout, "<^^>>>vv<v>>v<<")
 
@@ -183,14 +183,14 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
     @assert(secondReport.gpsSum == 1825'u64)
 
     const compactLayout: [6] string =
-    [
+        [
         "#######",
         "#@OO..#",
         "#..#..#",
         "#..O..#",
         "#.....#",
         "#######",
-    ]
+        ]
 
     let compactReport = simulateWarehouse(compactLayout, ">>>v<<")
 

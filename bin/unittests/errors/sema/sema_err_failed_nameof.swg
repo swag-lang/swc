@@ -3,7 +3,8 @@
 const A = 0
 #assert(#nameof(A) == "A")
 
-enum Test{
+enum Test
+{
     A = 1,
     B = 2,
     C = 3,

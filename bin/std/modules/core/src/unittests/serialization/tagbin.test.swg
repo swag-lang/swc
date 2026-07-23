@@ -377,7 +377,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 {
     var writer: Serialization.Write.TagBin
     var reader: Serialization.Read.TagBin
-    let (raw, sizeof) = Serialization.isPodFinal(#typeof(TagBinFinalPoint))
+        let (raw, sizeof) = Serialization.isPodFinal(#typeof(TagBinFinalPoint))
 
     @assert(!writer.isTextual())
     @assert(!reader.isTextual())
@@ -492,7 +492,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
         legacyName: -6,
         numbers:    [4, 5, 6],
         single:     33,
-    }
+        }
     let bytes = encodeTagBin(legacy)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
@@ -539,7 +539,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
         primitive:   #typeof(s32),
         staticArray: #typeof(#type [3] u8),
         payload:     #typeof(TagBinPayload),
-    }
+        }
     let bytes = encodeTagBin(payload)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
@@ -561,7 +561,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     let payload = TagBinInterfacePayload{
         score: cast(ITagBinScore) concrete,
         other: -11,
-    }
+        }
 
     Reflection.registerType(#typeof(TagBinInterfaceProbe))
     Reflection.registerType(#typeof(TagBinInterfacePayload))
@@ -590,7 +590,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     let payload = TagBinInterfacePayload{
         score: cast(ITagBinScore) concrete,
         other: 12,
-    }
+        }
 
     let bytes   = encodeTagBin(payload)
     let patched = corruptTagBinInterfaceObjectType(bytes, "score", 0xDEADBEEF)

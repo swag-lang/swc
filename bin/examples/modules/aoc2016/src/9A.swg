@@ -30,7 +30,7 @@ func day9A()
     var start = 0'u64
     while start != @countof(line)
     {
-        let res = r.partialMatch(line[start to ])
+        let res = r.partialMatch(line[start to])
         if res
         {
             let n = assume StrConv.toS32(r[1])

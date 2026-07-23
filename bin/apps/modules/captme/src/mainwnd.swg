@@ -674,9 +674,9 @@ impl MainWnd
                 .id = id
                 if id == ActionToolMode.Callout do
                     .sigPaintIcon = func(btn, bc, pos, flags)
-                    {
-                        drawCalloutGlyph(btn, bc, pos, flags)
-                    }
+                {
+                    drawCalloutGlyph(btn, bc, pos, flags)
+                }
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedIcon         $btnIcon_CheckedMark")
                 .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_CheckedMark")
@@ -757,7 +757,7 @@ impl MainWnd
             img48  = Image.create(480, 480, .RGBA8)
             imgApp = Image.create(512, 512, .RGBA8)
         }
-        #else
+            #else
         {
             img24  = assume Image.decode(".png", Icons24)
             img48  = assume Image.decode(".png", Icons48)

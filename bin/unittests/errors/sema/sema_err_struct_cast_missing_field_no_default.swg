@@ -53,9 +53,7 @@ struct NonNullRequiredTypeInfoFieldHolder
     required: typeinfo
 }
 
-func acceptNonNullRequiredField(value: NonNullRequiredFieldHolder)
-{
-}
+func acceptNonNullRequiredField(value: NonNullRequiredFieldHolder) {}
 
 #test
 {

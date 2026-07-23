@@ -18,6 +18,7 @@ namespace
         schema.add("max-consecutive-empty-lines", &options.maxConsecutiveEmptyLines, "Set the maximum consecutive blank lines; use 0 to disable the limit");
         schema.add("keep-empty-lines-at-start-of-block", &options.keepEmptyLinesAtStartOfBlock, "Keep blank lines at the start of a `{ ... }` block");
         schema.add("keep-empty-lines-at-end-of-block", &options.keepEmptyLinesAtEndOfBlock, "Keep blank lines at the end of a `{ ... }` block");
+        schema.add("min-blank-lines-between-functions", &options.minBlankLinesBetweenFunctions, "Set the minimum blank lines between function declarations; use 0 to keep the source as written");
     }
 
     void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)
@@ -116,6 +117,7 @@ namespace
         schema.add("space-around-assignment-operator", &options.spaceAroundAssignmentOperator, "Insert spaces around `=` in assignments");
         schema.add("space-around-binary-operators", &options.spaceAroundBinaryOperators, "Insert spaces around binary operators such as `+`, `*`, and `&`");
         schema.add("space-around-arrow", &options.spaceAroundArrow, "Insert spaces around `->` in function signatures");
+        schema.add("space-around-fat-arrow", &options.spaceAroundFatArrow, "Insert spaces around `=>` in short function bodies");
         schema.add("space-around-range-operator", &options.spaceAroundRangeOperator, "Insert spaces around `..` and `..<` range operators");
         schema.add("space-after-comma", &options.spaceAfterComma, "Insert a space after `,`");
         schema.add("space-before-comma", &options.spaceBeforeComma, "Insert a space before `,`");

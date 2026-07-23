@@ -146,6 +146,6 @@ func day7A1()
     for v in id do
         total += cast(s32) contains(&id, v)
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 296)
 }

@@ -50,7 +50,7 @@ impl Array
             for .count do
                 .buffer[@index] = #nodrop oldBuffer[@index]
         }
-        #else
+            #else
         {
             Memory.copy(.buffer, oldBuffer, #sizeof(T) * .count)
         }
@@ -146,7 +146,7 @@ impl Array
             for i in countof do
                 .buffer[i] = #nodrop dataof[i]
         }
-        #else
+            #else
         {
             Memory.copy(.buffer, dataof, #sizeof(T) * countof)
         }
@@ -168,26 +168,26 @@ impl Array
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         #if back do
             var scan = buffer + .count
-        #else do
+            #else do
             var scan = buffer - 1
 
         for .count
         {
             #if back do
                 scan -= 1
-            #else do
+                #else do
                 scan += 1
 
             #if back do
                 let visitIdx = me.count - @index - 1
-            #else do
+                #else do
                 let visitIdx = @index
 
             #if ptr do
                 #inject(stmt, item = cast(&T) scan, index = visitIdx)
-            #elif Reflection.isStruct(T) do
+                #elif Reflection.isStruct(T) do
                 #inject(stmt, item = cast(const &T) scan, index = visitIdx)
-            #else do
+                #else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
     }
@@ -433,7 +433,7 @@ impl Array
             for var idx = .count - 1; idx > index; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - 1]
         }
-        #else
+            #else
         {
             Memory.copyOver(.buffer + index + 1, .buffer + index, #sizeof(T) * (.count - 1 - index))
         }
@@ -472,7 +472,7 @@ impl Array
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
         }
-        #else
+            #else
         {
             Memory.copyOver(.buffer + index + sliceCount, .buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
@@ -482,7 +482,7 @@ impl Array
             for var idx = 0; idx < sliceCount; idx += 1 do
                 .buffer[index + idx] = #nodrop values[idx]
         }
-        #else
+            #else
         {
             Memory.copy(.buffer + index, @dataof(values), #sizeof(T) * sliceCount)
         }
@@ -519,7 +519,7 @@ impl Array
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
         }
-        #else
+            #else
         {
             Memory.copyOver(.buffer + index + @countof(values), .buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
@@ -529,7 +529,7 @@ impl Array
             for var idx = 0; idx < sliceCount; idx += 1 do
                 .buffer[index + idx] = #nodrop #move values[idx]
         }
-        #else
+            #else
         {
             Memory.copy(.buffer + index, @dataof(values), #sizeof(T) * sliceCount)
         }
@@ -567,7 +567,7 @@ impl Array
                 destPtr += 1
             }
         }
-        #else
+            #else
         {
             Memory.copy(.buffer + oldCount, @dataof(values), sliceCount * #sizeof(T))
         }
@@ -596,7 +596,7 @@ impl Array
         {
             Memory.copyOver(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
-        #else
+            #else
         {
             // Drop the removed elements, then relocate the survivors into the freed slots.
             #if Reflection.hasDrop(T)
@@ -667,7 +667,7 @@ impl Array
                 idx += 1
             }
         }
-        #else
+            #else
         {
             Memory.copyOver(.buffer + index, .buffer + index + numValues, #sizeof(T) * (.count - index))
         }

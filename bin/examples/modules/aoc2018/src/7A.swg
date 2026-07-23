@@ -89,6 +89,6 @@ func day7A()
         }
     }
 
-    //Console.print("result: ", result)
+    // Console.print("result: ", result)
     @assert(result == "GJFMDHNBCIVTUWEQYALSPXZORK")
 }

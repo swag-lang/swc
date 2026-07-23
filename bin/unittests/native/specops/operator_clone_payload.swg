@@ -11,7 +11,7 @@ struct ClonePayloadCastBox
 impl ClonePayloadCastBox
 {
     #[Swag.Implicit, Swag.NoInline]
-    mtd const opCast() -> s32
+    mtd const opCast()->s32
     {
         gClonePayloadOpCastCalls += 1
         return .value + 1

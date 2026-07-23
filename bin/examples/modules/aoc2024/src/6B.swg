@@ -175,7 +175,7 @@ func day6B()
         return true
     }
 
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     discard test(&arr0, sx, sy, true)
 

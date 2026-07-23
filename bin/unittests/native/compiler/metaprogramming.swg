@@ -73,7 +73,7 @@ namespace compiler1505
     func set(x: string)
     {
         @assert(x == "inside function set")
-        //@print(x)
+    // @print(x)
     }
 
     //#[Swag.PrintBc]
@@ -94,7 +94,7 @@ namespace compiler1506
     func set(x: string)
     {
         @assert(x == "inside function set")
-        //@print(x)
+    // @print(x)
     }
 
     //#[Swag.PrintBc]
@@ -121,7 +121,7 @@ namespace compiler1599
     #test
     {
         #assert(#run toto()
-    )
+            )
     }
 }
 
@@ -147,10 +147,10 @@ namespace compiler1665
         ptr2.x = 100
         @assert(ptr1.x == 456)
 
-        /*@print(@kindof(x[0]).name); @print("\n")
+    /*@print(@kindof(x[0]).name); @print("\n")
         @print(#typeof(ptr1).name); @print("\n")
         @print(#typeof(ptr2).name); @print("\n")*/
-        //ptr1.value = 0
+    // ptr1.value = 0
     }
 
     // Variadic cast preserves original struct values
@@ -177,9 +177,9 @@ namespace compiler1667
     //#[Swag.PrintBc]
     func C(x: ...)
     {
-        //@print(#typeof(x[0]).name)
-        //var ptr1 = cast(const TT) x[0]
-        //ptr1.value = 456
+    // @print(#typeof(x[0]).name)
+    // var ptr1 = cast(const TT) x[0]
+    // ptr1.value = 456
     }
 
     // Variadic with struct keeps default value
@@ -260,11 +260,11 @@ namespace compiler239
     func main()
     {
         let a = #run main1()
-        //let b = main1()
-        //let c = main2()
+        // let b = main1()
+        // let c = main2()
         @assert(a == 77)
-        //@assert(b == 77)
-        //@assert(c == 666)
+    // @assert(b == 77)
+    // @assert(c == 666)
     }
 
     // #run and direct call return same value
@@ -314,7 +314,7 @@ namespace compiler250
     func value()->s32 { return 55; }
 
     func main(a: s32 = #run value()
-    )->s32
+        )->s32
     {
         return a
     }
@@ -566,7 +566,7 @@ namespace compiler334
     #test
     {
         var a: [2, 2] s32
-        //@assert(#sizeof(a) == 2'u32 * 2'u32 * #sizeof(s32));
+        // @assert(#sizeof(a) == 2'u32 * 2'u32 * #sizeof(s32));
         @assert(#sizeof(a) == 16)
         var b: [5, 5] bool
         @assert(#sizeof(b) == 25)
@@ -580,8 +580,7 @@ namespace compiler3374
     impl A
     {
         #run
-        {
-        }
+        {}
     }
 }
 

@@ -194,6 +194,6 @@ func day5A()
         total = Math.min(total, seed)
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 111627841)
 }

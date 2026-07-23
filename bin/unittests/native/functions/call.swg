@@ -64,7 +64,7 @@ namespace compiler1633
     #test
     {
         var st: A
-        //st.y = 0
+        // st.y = 0
         @assert(st.x == 0)
         @assert(st.y == 0)
     }
@@ -202,9 +202,9 @@ namespace compiler1661
         var value: TT
 
         addr[0] = &addr1
-        //addr1[0] = &value
+        // addr1[0] = &value
 
-        //@print(addr[0].value)
+        // @print(addr[0].value)
         @assert(addr[0] == &addr1)
     }
 }
@@ -249,7 +249,7 @@ namespace compiler1663
 
         addr[0] = cast([*] [*] TT) &addr1
 
-        //@print(addr1.value)
+        // @print(addr1.value)
         @assert(addr[0][0].value == 456)
     }
 }
@@ -271,7 +271,7 @@ namespace compiler1664
 
         addr[0, 0] = &value
 
-        //@print(addr[0,0].value)
+        // @print(addr[0,0].value)
         @assert(addr[0, 0].value == 456)
     }
 }
@@ -291,7 +291,7 @@ namespace compiler1666
     func C(x: ...)
     {
         let ptr1 = cast(TT) x[0]
-        //@print(cast(s64) ptr1.value)
+        // @print(cast(s64) ptr1.value)
         @assert(ptr1.value == 456)
     }
 
@@ -415,7 +415,7 @@ namespace compiler1678
 
     func D(x: TT)->s64
     {
-        //@print(cast(s64) x.value)
+        // @print(cast(s64) x.value)
         @assert(x.value == 456)
         return x.value
     }
@@ -456,14 +456,14 @@ namespace compiler1679
     func E(x: any)->s64
     {
         let ptr = cast(TT) x
-        //C(cast(TT) x)
+        // C(cast(TT) x)
         return C(ptr)
     }
 
     //#[Swag.PrintBc]
     func C(x: TT)->s64
     {
-        //@print(cast(s64) x.value)
+        // @print(cast(s64) x.value)
         @assert(x.value == 456)
         return x.value
     }
@@ -503,7 +503,7 @@ namespace compiler1680
     //#[Swag.PrintBc]
     func C(x: TT)->s64
     {
-        //@print(cast(s64) x.value)
+        // @print(cast(s64) x.value)
         @assert(x.value == 456)
         return x.value
     }
@@ -533,7 +533,7 @@ namespace compiler1681
     //#[Swag.PrintBc]
     func C(x: myStruct)->s64
     {
-        //@print(cast(s64) x.value)
+        // @print(cast(s64) x.value)
         @assert(x.value == 456)
         return x.value
     }
@@ -563,7 +563,7 @@ namespace compiler1682
     //#[Swag.PrintBc]
     func C(x: any)->s64
     {
-        //@print(cast(s64) x.value)
+        // @print(cast(s64) x.value)
         let val = cast(myStruct) x
         @assert(val.value == 456)
         return val.value
@@ -590,7 +590,7 @@ namespace compiler1788
     //#[Swag.PrintBc]
     #init
     {
-        //@assert(G == 1)
+    // @assert(G == 1)
     }
 
     var G: s64
@@ -1007,7 +1007,7 @@ namespace compiler310
     {
         g = false; @assert(g == false)
         g = true; @assert(g == true)
-        //@print(g);
+    // @print(g);
     }
 }
 
@@ -1023,7 +1023,7 @@ namespace compiler322
         var c: *s32 = b
         c = b; @assert(dref b == 666)
         @assert(dref c == 666)
-        /*@assert(a == 1);
+    /*@assert(a == 1);
     	b[0] = 666;
     	@assert(a == 666);*/
     }

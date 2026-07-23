@@ -91,7 +91,7 @@ func semaTest001()
 func semaTest002()
 {
     var count = 0
-#scope(Outer)
+    #scope(Outer)
     {
         for 4
         {
@@ -152,7 +152,7 @@ func semaTest005()
 func semaTest006()
 {
     var count = 0
-#scope(Outer)
+    #scope(Outer)
     {
         for 4
         {
@@ -176,7 +176,7 @@ func semaTest006()
 func semaTest007()
 {
     var count = 0
-#scope(Outer)
+    #scope(Outer)
     {
         for 4
         {

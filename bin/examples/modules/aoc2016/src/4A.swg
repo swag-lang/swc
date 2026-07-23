@@ -36,7 +36,7 @@ func day4A()
                 idx += 1
             }
 
-            let res = StrConv.parseS64(l[idx to ])
+            let res = StrConv.parseS64(l[idx to])
             idx += res.eat
 
             var valid = true
@@ -62,7 +62,7 @@ func day4A()
                 total += res.value
         }
 
-        //Console.print("total: ", total)
+        // Console.print("total: ", total)
         @assert(total == 361724)
     }
 }

@@ -62,6 +62,6 @@ func day2B()
         cde |= pad[y, x]
     }
 
-    //Console.printf("%{X} %", cde, cde)
+    // Console.printf("%{X} %", cde, cde)
     @assert(cde == 841940)
 }

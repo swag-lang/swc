@@ -6,9 +6,7 @@ attr StoredTypeAttr(t: typeinfo)
 const STORED_LITERAL_TYPE = #typeof([1, 2.5])
 
 #[StoredTypeAttr(STORED_LITERAL_TYPE)]
-func reflectedStoredTypeFunc()
-{
-}
+func reflectedStoredTypeFunc() {}
 
 const REFLECTED_STORED_TYPE_INFO = cast(const *TypeInfoFunc) #typeof(reflectedStoredTypeFunc)
 

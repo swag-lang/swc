@@ -309,7 +309,7 @@ impl TagBin
         if Reflection.isStructArray(typeElem)
         {
             let valueType = Reflection.getStructArrayType(typeElem)
-            let (raw, sizeof) = isPodFinal(valueType)
+                let (raw, sizeof) = isPodFinal(valueType)
 
             if raw
             {
@@ -363,7 +363,7 @@ impl TagBin
             .output.addNative(cast(u32) @countof(value))
             .output.addBytes(value)
         }
-        #else
+            #else
         {
             .output.addNative(value)
         }

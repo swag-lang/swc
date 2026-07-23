@@ -102,7 +102,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 #test
 {
     const samplePlan: [16] string =
-    [
+        [
         ".......S.......",
         "...............",
         ".......^.......",
@@ -119,7 +119,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
         "...............",
         ".^.^.^.^.^...^.",
         "...............",
-    ]
+        ]
 
     let sampleAudit = auditSplitterRack(samplePlan)
 
@@ -129,7 +129,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
     @assert(sampleAudit.survivingBeamCount == 9'u32)
 
     const servicePlan: [9] string =
-    [
+        [
         "....S....",
         ".........",
         "....^....",
@@ -139,7 +139,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
         "..^...^..",
         ".........",
         ".^.^.^.^.",
-    ]
+        ]
 
     let serviceAudit = auditSplitterRack(servicePlan)
 

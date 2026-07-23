@@ -16,19 +16,19 @@ public enum RichEditCommand
     CursorWordRight
     CursorPageUp
     CursorPageDown
-    //CMD_CURSOR_MATCH_PAIR
+    // CMD_CURSOR_MATCH_PAIR
     ScrollLineUp
     ScrollLineDown
     DeleteLeft
     DeleteRight
     DeleteLine
-    //CMD_EDIT_DELETE_LINE
+    // CMD_EDIT_DELETE_LINE
     EditTabulation
     EditBackTabulation
     DeleteWordLeft
     DeleteWordRight
-    //CMD_EDIT_DELETE_LINE_LEFT
-    //CMD_EDIT_DELETE_LINE_RIGHT
+    // CMD_EDIT_DELETE_LINE_LEFT
+    // CMD_EDIT_DELETE_LINE_RIGHT
     ToggleOverwrite
     ClipboardCopy
     ClipboardPaste

@@ -31,7 +31,7 @@ func day1B()
     for it in split
     {
         let v = Latin1.trim(it)
-        let n = assume StrConv.toS32(v[1 to ])
+        let n = assume StrConv.toS32(v[1 to])
         switch v[0]
         {
         case 'R':
@@ -49,7 +49,7 @@ func day1B()
             if done.contains(pos.crc)
             {
                 let total = Math.abs(pos.x) + Math.abs(pos.y)
-                //Console.print("total: ", total)
+                // Console.print("total: ", total)
                 @assert(total == 150)
                 return
             }

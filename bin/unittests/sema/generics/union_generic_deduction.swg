@@ -15,5 +15,5 @@ func semaTest001()
 {
     let value = takeValue({value: 10's32})
     #assert(#typeof(value) == s32)
-    @assert(value == 10)    
+    @assert(value == 10)
 }

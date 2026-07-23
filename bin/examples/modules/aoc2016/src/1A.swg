@@ -32,7 +32,7 @@ func day1A()
     for it in split
     {
         let v = Latin1.trim(it)
-        let n = assume StrConv.toS32(v[1 to ])
+        let n = assume StrConv.toS32(v[1 to])
         switch v[0]
         {
         case 'R':
@@ -48,6 +48,6 @@ func day1A()
     }
 
     let total = Math.abs(px) + Math.abs(py)
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 242)
 }

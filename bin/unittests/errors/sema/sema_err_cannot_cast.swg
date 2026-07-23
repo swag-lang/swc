@@ -24,7 +24,7 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
     const bad: [2] u16 = [
         0'u16,
         true // swc-expected-error {{sema_err_cannot_cast}}
-    ]
+        ]
 }
 
 #test
@@ -34,7 +34,7 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
             0'u16,
             true // swc-expected-error {{sema_err_cannot_cast}}
         ]
-    ]
+        ]
 }
 
 #test
@@ -56,22 +56,18 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
 #[Swag.Strict]
 alias CannotCastOpCastStrictS32 = s32
 
-struct CannotCastOpCastBox
-{
-}
+struct CannotCastOpCastBox {}
 
 impl CannotCastOpCastBox
 {
     #[Swag.Implicit]
-    mtd const opCast() -> CannotCastOpCastStrictS32
+    mtd const opCast()->CannotCastOpCastStrictS32
     {
         return cast(CannotCastOpCastStrictS32) 12
     }
 }
 
-func consumeCannotCastRawS32(value: s32)
-{
-}
+func consumeCannotCastRawS32(value: s32) {}
 
 #test
 {
@@ -81,17 +77,11 @@ func consumeCannotCastRawS32(value: s32)
 
 alias CannotCastExactDigest = [16] u8
 
-func consumeCannotCastExact4(values: [4] s32)
-{
-}
+func consumeCannotCastExact4(values: [4] s32) {}
 
-func consumeCannotCastExactDigest(digest: CannotCastExactDigest)
-{
-}
+func consumeCannotCastExactDigest(digest: CannotCastExactDigest) {}
 
-func consumeCannotCastExactGrid(grid: [2, 3] s16)
-{
-}
+func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
 
 #test
 {
@@ -111,10 +101,10 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16)
 {
     switch &CannotCastSwitchPointerValues[0]
     {
-        case &CannotCastSwitchPointerBytes[0]: // swc-expected-error {{sema_err_cannot_cast}}
-            break
-        default:
-            break
+    case &CannotCastSwitchPointerBytes[0]: // swc-expected-error {{sema_err_cannot_cast}}
+        break
+    default:
+        break
     }
 }
 

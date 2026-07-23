@@ -175,7 +175,7 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
     @assert(first.d == 34)
     @assert(first.e == 35)
 
-    let (a, ?, c, ?, e) = makeBig(40)
+        let (a, ?, c, ?, e) = makeBig(40)
     @assert(a == 41)
     @assert(c == 43)
     @assert(e == 45)
@@ -189,7 +189,7 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
     @assert(g0 == 0.75)
     @assert(b0 == 1.0)
 
-    let (r1, ?, b1) = makeFloat(1.5)
+        let (r1, ?, b1) = makeFloat(1.5)
     @assert(r1 == 1.5)
     @assert(b1 == 2.0)
 }
@@ -202,7 +202,7 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
     @assert(direct.g == 2.75)
     @assert(direct.b == 3.0)
 
-    let (r, g, b) = cloneFloat(3.5)
+        let (r, g, b) = cloneFloat(3.5)
     @assert(r == 3.5)
     @assert(g == 3.75)
     @assert(b == 4.0)

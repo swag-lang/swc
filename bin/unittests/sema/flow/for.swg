@@ -175,16 +175,12 @@ func semaTest020()
 
 func semaTest021()
 {
-    for 3
-    {
-    }
+    for 3 {}
 }
 
 func semaTest022()
 {
-    for i in 0 to 3
-    {
-    }
+    for i in 0 to 3 {}
 }
 
 func semaTest023()
@@ -201,13 +197,9 @@ func semaTest024()
 
 func semaTest025()
 {
-    for i in 1
-    {
-    }
+    for i in 1 {}
 
-    for i in 1
-    {
-    }
+    for i in 1 {}
 }
 
 func semaTest026()

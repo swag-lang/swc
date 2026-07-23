@@ -7,9 +7,7 @@ struct NativeNonNullMoveArrayDefault
 
 impl NativeNonNullMoveArrayDefault
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 struct NativeNonNullMoveUndefinedEscape
@@ -19,9 +17,7 @@ struct NativeNonNullMoveUndefinedEscape
 
 impl NativeNonNullMoveUndefinedEscape
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 alias NativeNonNullMoveArrayElementAlias = NativeNonNullMoveArrayDefault

@@ -18,7 +18,7 @@ struct RouteReport
     shortestSteps:         u32
     firstBlockingX:        u32
     firstBlockingY:        u32
-    firstBlockingDropCount:u32
+    firstBlockingDropCount: u32
 }
 
 func cellIndex(x, y, gridSize: u32)->u32
@@ -154,7 +154,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 #test
 {
     const sampleDrops: [25] ByteDrop =
-    [
+        [
         {5, 4},
         {4, 2},
         {4, 5},
@@ -180,7 +180,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
         {0, 5},
         {1, 6},
         {2, 0},
-    ]
+        ]
 
     let sampleReport = analyzeObstacleDrops(sampleDrops, 7, 12)
 
@@ -190,7 +190,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
     @assert(sampleReport.firstBlockingDropCount == 21)
 
     const compactDrops: [7] ByteDrop =
-    [
+        [
         {1, 0},
         {1, 1},
         {1, 2},
@@ -198,7 +198,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
         {2, 3},
         {1, 3},
         {0, 3},
-    ]
+        ]
 
     let compactReport = analyzeObstacleDrops(compactDrops, 5, 4)
 

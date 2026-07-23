@@ -21,13 +21,13 @@ struct Update
 
 impl Update
 {
-    mtd opIndex(index: u32) -> &s32
+    mtd opIndex(index: u32)->&s32
     {
         @assert(index < .count)
         return &.pages[index]
     }
 
-    mtd const opIndex(index: u32) -> const &s32
+    mtd const opIndex(index: u32)->const &s32
     {
         @assert(index < .count)
         return &.pages[index]
@@ -57,7 +57,7 @@ struct QueueAudit
 }
 
 const SampleScenario: PrintQueueScenario =
-{
+    {
     ruleCount: 21'u32,
     rules:
     [
@@ -93,10 +93,10 @@ const SampleScenario: PrintQueueScenario =
         {count: 3'u32, pages: [61, 13, 29, 0, 0]},
         {count: 5'u32, pages: [97, 13, 75, 29, 47]},
     ],
-}
+    }
 
 const TieBreakScenario: PrintQueueScenario =
-{
+    {
     ruleCount: 2'u32,
     rules:
     [
@@ -110,7 +110,7 @@ const TieBreakScenario: PrintQueueScenario =
         {count: 3'u32, pages: [30, 20, 10, 0, 0]},
         {count: 3'u32, pages: [30, 10, 20, 0, 0]},
     ],
-}
+    }
 
 func clearUpdate(result: &Update)
 {

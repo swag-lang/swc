@@ -33,12 +33,12 @@ func day1B()
                 count[2] = one
             }
 
-            Slice.sort(count[ to ])
+            Slice.sort(count[to])
             one = 0
         }
     }
 
     let total = count[0] + count[1] + count[2]
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 203002)
 }

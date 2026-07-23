@@ -102,6 +102,6 @@ func day9B()
         prg.add(assume StrConv.toS64(v))
 
     let total = run(&prg, 2)
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 50158)
 }

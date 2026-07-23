@@ -32,7 +32,7 @@ func day8B()
     func read(n: Array's32, s: u32)->{ nStart, sum: u32 }
     {
         var start = s
-        let (nc, nm) = {n[start], n[start + 1]}
+            let (nc, nm) = {n[start], n[start + 1]}
         start += 2
 
         if !nc
@@ -47,7 +47,7 @@ func day8B()
         for nc
         {
             var sum: u32
-            (start, sum) = read(n, start)
+                (start, sum) = read(n, start)
             childs.add(sum)
         }
 
@@ -62,6 +62,6 @@ func day8B()
         return {start + nm, sum}
     }
 
-    (?, rootNodeTotal) = read(nums, 0)
+        (?, rootNodeTotal) = read(nums, 0)
     @assert(rootNodeTotal == 22989)
 }

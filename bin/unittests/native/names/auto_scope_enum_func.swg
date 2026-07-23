@@ -37,14 +37,11 @@ impl Vec2
 {
     func set_axis(axis: OverA, value: f32)
     {
-        if axis == .A {
-        } elif axis == .B {
-        }
+        if axis == .A {}
+        elif axis == .B {}
     }
 
-    mtd toto()
-    {
-    }
+    mtd toto() {}
 
     func titi()->Vec2
     {
@@ -96,9 +93,7 @@ func(T) add(flags: &T, value: T)
     flags |= value
 }
 
-struct ConflictingFlagOwner
-{
-}
+struct ConflictingFlagOwner {}
 
 impl ConflictingFlagOwner
 {

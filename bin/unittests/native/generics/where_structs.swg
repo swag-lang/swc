@@ -17,11 +17,11 @@ struct(T, N: s32) FixedNumbers
 
 struct(T, Rows: s32, Cols: s32) DenseMatrix
     where
-    {
-        if Rows > 0 and Cols > 0 and (T == f32 or T == f64) do
-            return true
-        return false
-    }
+{
+    if Rows > 0 and Cols > 0 and (T == f32 or T == f64) do
+        return true
+    return false
+}
 {
     data: [Rows * Cols] T
 }
@@ -72,11 +72,11 @@ struct(T, Min: s32, Max: s32) BoundedRange
 
 struct(T, Count: s32) FloatHistory
     where
-    {
-        if Count >= 2 and (T == f32 or T == f64) do
-            return true
-        return false
-    }
+{
+    if Count >= 2 and (T == f32 or T == f64) do
+        return true
+    return false
+}
 {
     values: [Count] T
 }

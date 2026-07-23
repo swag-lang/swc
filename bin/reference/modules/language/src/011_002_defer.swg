@@ -12,7 +12,7 @@ clarity and safety in resource management.
     defer @assert(v == 1) // Ensures v equals 1 on scope exit.
     v += 1 // Increment v.
 
-    // When the scope ends, the deferred expression executes here.
+// When the scope ends, the deferred expression executes here.
 }
 
 /**
@@ -30,7 +30,7 @@ you to group operations that should all run when leaving the scope.
     }
 
     v += 5
-    // Upon scope exit, the defer block executes, ensuring v == 15.
+// Upon scope exit, the defer block executes, ensuring v == 15.
 }
 
 /**
@@ -64,7 +64,7 @@ order. The most recent defer runs first when the scope ends.
     defer @assert(x == 2) // Executes second
     defer x *= 2 // Executes first
 
-    // Execution order is reversed for predictable cleanup flow.
+// Execution order is reversed for predictable cleanup flow.
 }
 
 /**

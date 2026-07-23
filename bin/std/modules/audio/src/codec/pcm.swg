@@ -58,26 +58,26 @@ impl ICodec for CodecPcmToPcm16
                 {
                     dst[0] = cast(s16) ((cast(s32) src[0] - 128) << 8)
                 }
-                #elif EN == .Pcm24
+                    #elif EN == .Pcm24
                 {
                     var sample = cast(u32) src[0] | (cast(u32) src[1] << 8) | (cast(u32) src[2] << 16)
                     if sample & 0x00800000 do
                         sample |= 0xFF000000
                     dst[0] = cast(s16) (cast #wrap (s32) sample >> 8)
                 }
-                #elif EN == .Pcm32
+                    #elif EN == .Pcm32
                 {
                     let input = cast([*] s32) src
                     dst[0] = cast(s16) (input[0] >> 16)
                 }
-                #elif EN == .Float32
+                    #elif EN == .Float32
                 {
                     let input  = cast([*] f32) src
                     let sample = input[0] * 32768.0
                     let intS   = Math.clamp(cast #wrap (s32) sample, -32768, 32767)
                     dst[0] = cast(s16) intS
                 }
-                #else do
+                    #else do
                     #assert(false)
 
                 dst += 1

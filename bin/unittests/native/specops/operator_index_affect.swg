@@ -11,7 +11,7 @@ struct RuntimeIndexBox
 impl RuntimeIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> s32
+    mtd opIndex(index: s32)->s32
     {
         .reads += 1
         if index == 0 do
@@ -60,7 +60,7 @@ struct RuntimeRefIndexBox
 impl RuntimeRefIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: s32)->&s32
     {
         .reads += 1
         return &.values[index]
@@ -84,7 +84,7 @@ struct RuntimeMultiIndexSetBox
 impl RuntimeMultiIndexSetBox
 {
     #[Swag.NoInline]
-    mtd opIndex(row: s32, col: s32) -> s32
+    mtd opIndex(row: s32, col: s32)->s32
     {
         .reads += 1
         return .values[row * 2 + col]

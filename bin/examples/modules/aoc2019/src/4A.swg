@@ -66,7 +66,7 @@ func day4A0()
 /////////////////////////////////////////////////////////////////
 func day4A1()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     var total = 0
     for x in 246515 to 739105
@@ -98,6 +98,6 @@ func day4A1()
             total += 1
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1048)
 }

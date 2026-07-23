@@ -7,7 +7,7 @@ const MaxLocationPairs = 1024
 const MaxLocationId = 100000
 
 const SampleInput =
-"""3   4
+    """3   4
 4   3
 2   5
 1   3
@@ -16,7 +16,7 @@ const SampleInput =
 
 const DenseInput = "10   10\r\n20   30\r\n20   20\r\n30   10\r\n"
 const CoverageInput =
-"""10   30
+    """10   30
 20   10
 20   20
 30   20

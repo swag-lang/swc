@@ -33,20 +33,20 @@ func numericPos(key: u8)->KeyPos
 {
     switch key
     {
-        case '7''u8: return {0, 0}
-        case '8''u8: return {1, 0}
-        case '9''u8: return {2, 0}
-        case '4''u8: return {0, 1}
-        case '5''u8: return {1, 1}
-        case '6''u8: return {2, 1}
-        case '1''u8: return {0, 2}
-        case '2''u8: return {1, 2}
-        case '3''u8: return {2, 2}
-        case '0''u8: return {1, 3}
-        case 'A''u8: return {2, 3}
-        default:
-            @assert(false)
-            return {0, 0}
+    case '7''u8: return {0, 0}
+    case '8''u8: return {1, 0}
+    case '9''u8: return {2, 0}
+    case '4''u8: return {0, 1}
+    case '5''u8: return {1, 1}
+    case '6''u8: return {2, 1}
+    case '1''u8: return {0, 2}
+    case '2''u8: return {1, 2}
+    case '3''u8: return {2, 2}
+    case '0''u8: return {1, 3}
+    case 'A''u8: return {2, 3}
+    default:
+        @assert(false)
+        return {0, 0}
     }
 }
 
@@ -54,14 +54,14 @@ func directionalPos(key: u8)->KeyPos
 {
     switch key
     {
-        case '^''u8: return {1, 0}
-        case 'A''u8: return {2, 0}
-        case '<''u8: return {0, 1}
-        case 'v''u8: return {1, 1}
-        case '>''u8: return {2, 1}
-        default:
-            @assert(false)
-            return {0, 0}
+    case '^''u8: return {1, 0}
+    case 'A''u8: return {2, 0}
+    case '<''u8: return {0, 1}
+    case 'v''u8: return {1, 1}
+    case '>''u8: return {2, 1}
+    default:
+        @assert(false)
+        return {0, 0}
     }
 }
 
@@ -69,14 +69,14 @@ func directionalKeyIndex(key: u8)->u32
 {
     switch key
     {
-        case '^''u8: return 0
-        case 'A''u8: return 1
-        case '<''u8: return 2
-        case 'v''u8: return 3
-        case '>''u8: return 4
-        default:
-            @assert(false)
-            return 0
+    case '^''u8: return 0
+    case 'A''u8: return 1
+    case '<''u8: return 2
+    case 'v''u8: return 3
+    case '>''u8: return 4
+    default:
+        @assert(false)
+        return 0
     }
 }
 
@@ -122,11 +122,11 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     {
         switch firstMove
         {
-            case '<''u8: x -= 1
-            case '>''u8: x += 1
-            case '^''u8: y -= 1
-            case 'v''u8: y += 1
-            default: @assert(false)
+        case '<''u8: x -= 1
+        case '>''u8: x += 1
+        case '^''u8: y -= 1
+        case 'v''u8: y += 1
+        default: @assert(false)
         }
 
         if directionalPad
@@ -148,11 +148,11 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     {
         switch secondMove
         {
-            case '<''u8: x -= 1
-            case '>''u8: x += 1
-            case '^''u8: y -= 1
-            case 'v''u8: y += 1
-            default: @assert(false)
+        case '<''u8: x -= 1
+        case '>''u8: x += 1
+        case '^''u8: y -= 1
+        case 'v''u8: y += 1
+        default: @assert(false)
         }
 
         if directionalPad
@@ -292,13 +292,13 @@ func complexitySum(codes: const [..] string, depth: u32)->u64
 #test
 {
     const sampleCodes: [5] string =
-    [
+        [
         "029A",
         "980A",
         "179A",
         "456A",
         "379A",
-    ]
+        ]
 
     @assert(complexitySum(sampleCodes, 2) == 126_384'u64)
 }

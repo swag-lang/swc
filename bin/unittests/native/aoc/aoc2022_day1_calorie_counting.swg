@@ -33,7 +33,7 @@ struct FoodItem
 struct Elf
 {
     id:       u32
-    itemCount:u32
+    itemCount: u32
     items:    [MaxFoodItemsPerElf] FoodItem
 }
 
@@ -211,7 +211,7 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     elves[3] = makeElf(3, [7000'u32, 8000, 9000])
     elves[4] = makeElf(4, [10000'u32])
 
-    let elfSlice = elves[ to ]
+    let elfSlice = elves[to]
     @assert(@countof(elfSlice) == 5)
 
     let best = solvePartOne(elfSlice)

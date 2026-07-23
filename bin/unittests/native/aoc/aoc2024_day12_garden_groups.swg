@@ -7,13 +7,13 @@
 // #scope break-to-label, function overloading.
 
 const SmallInput =
-"""AAAA
+    """AAAA
 BBCD
 BBCC
 EEEC"""
 
 const LargeInput =
-"""RRRRIICCFF
+    """RRRRIICCFF
 RRRRIICCCF
 VVRRRCCFFF
 VVRCCCJFFF
@@ -25,7 +25,7 @@ MIIISIJEEE
 MMMISSJEEE"""
 
 const IslandInput =
-"""OOOOO
+    """OOOOO
 OXOXO
 OOOOO
 OXOXO
@@ -46,9 +46,9 @@ const DiagDR: [4] s32 = [-1, 1, 1, -1]
 const DiagDC: [4] s32 = [1, 1, -1, -1]
 
 // Short helper functions with arrow syntax
-func packPos(r, c: u32) -> u32 => (r << 16) | c
-func unpackRow(p: u32)  -> u32 => p >> 16
-func unpackCol(p: u32)  -> u32 => p & 0xFFFF
+func packPos(r, c: u32)->u32 => (r << 16) | c
+func unpackRow(p: u32)->u32 => p >> 16
+func unpackCol(p: u32)->u32 => p & 0xFFFF
 
 // ---------------------------------------------------------------------------
 // Grid with impl block and mtd arrow expressions
@@ -65,12 +65,12 @@ struct Grid
 
 impl Grid
 {
-    mtd const at(r, c: u32)       -> u8   => .cells[r * MaxDim + c]
-    mtd const cellCount()         -> u32  => .width * .height
-    mtd const inBounds(r, c: s32) -> bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
+    mtd const at(r, c: u32)->u8   => .cells[r * MaxDim + c]
+    mtd const cellCount()->u32  => .width * .height
+    mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
 }
 
-func parseGrid(text: string) -> Grid
+func parseGrid(text: string)->Grid
 {
     var g: Grid
     g.cells = cast(#null [*] u8) @alloc(cast(u64) MaxDim * MaxDim)
@@ -126,7 +126,7 @@ struct Neighbors
     diag: [4] bool  // NE, SE, SW, NW
 }
 
-func getNeighbors(g: *Grid, r, c: u32) -> Neighbors
+func getNeighbors(g: *Grid, r, c: u32)->Neighbors
 {
     let plant = g.at(r, c)
     var nb: Neighbors
@@ -153,7 +153,7 @@ func getNeighbors(g: *Grid, r, c: u32) -> Neighbors
 }
 
 // Perimeter = 4 minus cardinal same-plant count.
-func perimeterOf(nb: Neighbors) -> u32
+func perimeterOf(nb: Neighbors)->u32
 {
     var adj: u32
     for d in 4
@@ -168,7 +168,7 @@ func perimeterOf(nb: Neighbors) -> u32
 //   adj1 = cardinal[k], adj2 = cardinal[(k+1)%4], diag = diag[k]
 //   Convex:  !adj1 && !adj2
 //   Concave: adj1 && adj2 && !diag
-func cornersOf(nb: Neighbors) -> u32
+func cornersOf(nb: Neighbors)->u32
 {
     var n: u32
     for k in 4
@@ -185,7 +185,7 @@ func cornersOf(nb: Neighbors) -> u32
 }
 
 // Bitwise helper: count set bits in a u8 (exercises @bitcountnz)
-func popcount8(v: u8) -> u32 => cast(u32) @bitcountnz(v)
+func popcount8(v: u8)->u32 => cast(u32) @bitcountnz(v)
 
 // ---------------------------------------------------------------------------
 // BFS flood-fill — defer, #scope/break-to-label
@@ -200,7 +200,7 @@ struct Region
     sides:     u32
 }
 
-func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool) -> Region
+func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
 {
     var result: Region
     let plant = g.at(startR, startC)
@@ -262,7 +262,7 @@ struct FenceCost
 }
 
 // Solve from a parsed grid (takes pointer, no ownership)
-func solveGrid(g: *Grid) -> FenceCost
+func solveGrid(g: *Grid)->FenceCost
 {
     let visited = cast([*] bool) notnull @alloc(cast(u64) MaxDim * MaxDim * #sizeof(bool))
     defer @free(visited)
@@ -288,7 +288,7 @@ func solveGrid(g: *Grid) -> FenceCost
 }
 
 // Solve from raw text (parses, solves, frees)
-func solve(text: string) -> FenceCost
+func solve(text: string)->FenceCost
 {
     var g = parseGrid(text)
     defer freeGrid(&g)
@@ -330,10 +330,10 @@ func solve(text: string) -> FenceCost
     @assert(g.at(0, 0) == cast(u8) 'A')
     @assert(g.at(1, 2) == cast(u8) 'C')
     @assert(g.at(3, 3) == cast(u8) 'C')
-    @assert(g.inBounds( 0, 0))
-    @assert(g.inBounds( 3, 3))
-    @assert(!g.inBounds( -1, 0))
-    @assert(!g.inBounds( 0, 4))
+    @assert(g.inBounds(0, 0))
+    @assert(g.inBounds(3, 3))
+    @assert(!g.inBounds(-1, 0))
+    @assert(!g.inBounds(0, 4))
 }
 
 // Neighbor detection and derived metrics

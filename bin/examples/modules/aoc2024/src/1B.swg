@@ -44,7 +44,7 @@ func day1B()
         arr1.add(assume StrConv.toS32(first[1]))
     }
 
-    //arr0.sort()
+    // arr0.sort()
     arr1.sort()
 
     var total = 0

@@ -70,9 +70,7 @@ struct JitNonNullMoveDefault
 
 impl JitNonNullMoveDefault
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 struct JitNonNullUndefinedHolder
@@ -165,9 +163,9 @@ func jitNonNullConstruction()->bool
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
     let aliasRequiredType = #typeof(aliasRequired)
-        @assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const)
+    @assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const)
     @assert(aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
-        @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.Const)
+    @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.Const)
     @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
 
     let holderType = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullHolder)
@@ -199,7 +197,7 @@ func jitNonNullConstruction()->bool
     let array: [2] JitNonNullHolder = [
         {required: &first},
         {required: &second, count: 8},
-    ]
+        ]
     let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
     var genericDefault: JitNonNullGenericBox'JitNonNullStringDefault
     let pointerArray: [2] *JitNonNullItem = [&first, &second]
@@ -215,7 +213,7 @@ func jitNonNullConstruction()->bool
         ctext:         ctext,
         boxed:         boxed,
         reflectedType: reflectedType,
-    }
+        }
 
     #assert(#typeof(families.valuePointer) == *JitNonNullItem)
     #assert(#typeof(families.blockPointer) == [*] JitNonNullItem)

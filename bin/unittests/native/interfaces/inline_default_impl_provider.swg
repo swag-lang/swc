@@ -2,13 +2,9 @@
 
 namespace InlineRegressionBug16
 {
-    struct Implemented
-    {
-    }
+    struct Implemented {}
 
-    struct DefaultOnly
-    {
-    }
+    struct DefaultOnly {}
 
     interface ITest
     {
@@ -27,7 +23,5 @@ namespace InlineRegressionBug16
         }
     }
 
-    impl ITest for DefaultOnly
-    {
-    }
+    impl ITest for DefaultOnly {}
 }

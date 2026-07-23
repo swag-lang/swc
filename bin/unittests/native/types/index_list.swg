@@ -28,7 +28,7 @@ func sumValues(values: [..] s32)->s32
     var cube: [2, 2, 3] s32 = [
         [[1, 2, 3], [4, 5, 6]],
         [[7, 8, 9], [10, 11, 12]],
-    ]
+        ]
 
     #assert(#typeof(cube[0]) == #type [2, 3] s32)
     #assert(#typeof(cube[0, 1]) == #type [3] s32)

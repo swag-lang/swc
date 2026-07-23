@@ -60,6 +60,6 @@ func day1A()
         last = cur
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1791)
 }

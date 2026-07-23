@@ -610,9 +610,9 @@ impl Decoder
                             sep += 1
 
                         var md: ImageMetaData
-                        md.tag = cast(string) Decoder.safeDatas(chunk)[ until sep]
+                        md.tag = cast(string) Decoder.safeDatas(chunk)[until sep]
                         if sep + 1 < len do
-                            md.value = cast(string) Decoder.safeDatas(chunk)[sep + 1 to ]
+                            md.value = cast(string) Decoder.safeDatas(chunk)[sep + 1 to]
                         result.metaDatas.add(md)
                     }
                 }

@@ -1,6 +1,7 @@
 #global private
 
-enum Color {
+enum Color
+{
     Red,
     Green,
     Blue
@@ -13,15 +14,15 @@ enum Color {
     #[Swag.Complete]
     switch (c)
     {
-        case Color.Red:
-            hit = 1
-            break
-        case Color.Green:
-            hit = 2
-            break
-        case Color.Blue:
-            hit = 3
-            break
+    case Color.Red:
+        hit = 1
+        break
+    case Color.Green:
+        hit = 2
+        break
+    case Color.Blue:
+        hit = 3
+        break
     }
     @assert(hit == 2)
 }
@@ -33,15 +34,15 @@ enum Color {
     #[Swag.Complete]
     switch (c)
     {
-        case Color.Blue:
-            hit = 1
-            break
-        case Color.Red:
-            hit = 2
-            break
-        case Color.Green:
-            hit = 3
-            break
+    case Color.Blue:
+        hit = 1
+        break
+    case Color.Red:
+        hit = 2
+        break
+    case Color.Green:
+        hit = 3
+        break
     }
     @assert(hit == 2)
 }

@@ -39,7 +39,7 @@ complex statements or when writing multiple statements on a single line.
 
     // Increment both variables by 1.
     x, y += 1
-    // Both 'x' and 'y' now have the value 1.
+// Both 'x' and 'y' now have the value 1.
 }
 
 /**

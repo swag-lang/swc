@@ -19,19 +19,19 @@ using Swag
     var switchHit = 0
     switch 1
     {
-        case 1 where #type const [2] u8:
-            switchHit += 1
-            break
+    case 1 where #type const [2] u8:
+        switchHit += 1
+        break
     }
 
     switch
     {
-        case #type func()->s32:
-            switchHit += 10
-            break
-        default:
-            switchHit += 100
-            break
+    case #type func()->s32:
+        switchHit += 10
+        break
+    default:
+        switchHit += 100
+        break
     }
 
     @assert(count == 6)

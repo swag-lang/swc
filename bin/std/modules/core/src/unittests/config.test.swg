@@ -9,16 +9,16 @@ using Swag
 {
     #if #gettag("Swag.Endian", string, "little") == "big" do
         @assert(BIG_ENDIAN)
-    #else do
+        #else do
         @assert(!BIG_ENDIAN)
 
     #if #os == Swag.TargetOs.Windows do
         @assert(WINDOWS)
-    #else do
+        #else do
         @assert(!WINDOWS)
 
     #if #cfg == "debug" or #cfg == "fast-debug" or #hastag("Std.Core.Assert") do
         @assert(ASSERT)
-    #else do
+        #else do
         @assert(!ASSERT)
 }

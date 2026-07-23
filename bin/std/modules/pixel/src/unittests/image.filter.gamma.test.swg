@@ -5,7 +5,7 @@ using Swag, Core
 {
     const pixels = [
         0'u8, 64'u8, 255'u8, 101'u8,    25'u8, 100'u8, 225'u8, 102'u8,
-    ]
+        ]
 
     var img = makeImage(2, 1, .RGBA8, pixels)
     img.gamma(2.0)

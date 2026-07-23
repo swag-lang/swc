@@ -13,7 +13,7 @@ struct SwitchAnyDerived
 
 const SwitchPointerValues = [11, 22, 33]
 
-enum SwitchStrictAliasEnum : s32
+enum SwitchStrictAliasEnum: s32
 {
     A = 1,
     B = 2,
@@ -34,15 +34,15 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case 1:
-            hit = 1
-            break
-        case 2, 3:
-            hit = 2
-            break
-        default:
-            hit = 3
-            break
+    case 1:
+        hit = 1
+        break
+    case 2, 3:
+        hit = 2
+        break
+    default:
+        hit = 3
+        break
     }
     @assert(hit == 2)
 }
@@ -53,14 +53,14 @@ alias StrictSwitchF32 = f32
     {
         switch v
         {
-            case &SwitchPointerValues[0]:
-                return 11
-            case &SwitchPointerValues[1], &SwitchPointerValues[2]:
-                return 23
-            case null:
-                return 0
-            default:
-                return 90
+        case &SwitchPointerValues[0]:
+            return 11
+        case &SwitchPointerValues[1], &SwitchPointerValues[2]:
+            return 23
+        case null:
+            return 0
+        default:
+            return 90
         }
     }
 
@@ -75,47 +75,47 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch 1
     {
-        case 1:
-            hit += 1
-            break
-        default:
-            hit += 10
-            break
+    case 1:
+        hit += 1
+        break
+    default:
+        hit += 10
+        break
     }
 
     switch 1
     {
-        case 1:
-            hit += 100
-            break
-        default:
-            hit += 1000
-            break
+    case 1:
+        hit += 100
+        break
+    default:
+        hit += 1000
+        break
     }
     @assert(hit == 101)
 }
 
 #test
 {
-    enum E : s32
+    enum E: s32
     {
         A = 1,
         B = 2,
     }
 
-    var v : E = E.B
+    var v: E = E.B
     var hit = 0
     switch v
     {
-        case E.A:
-            hit = 1
-            break
-        case .B:
-            hit = 2
-            break
-        default:
-            hit = 3
-            break
+    case E.A:
+        hit = 1
+        break
+    case .B:
+        hit = 2
+        break
+    default:
+        hit = 3
+        break
     }
     @assert(hit == 2)
 }
@@ -126,50 +126,50 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case .A:
-            hit = 1
-            break
-        case .B:
-            hit = 2
-            break
-        default:
-            hit = 3
-            break
+    case .A:
+        hit = 1
+        break
+    case .B:
+        hit = 2
+        break
+    default:
+        hit = 3
+        break
     }
     @assert(hit == 2)
 }
 
 #test
 {
-    enum E : s32
+    enum E: s32
     {
         A = 1,
         B = 2,
         C = 3,
     }
 
-    var v : E = .A
+    var v: E = .A
     @assert(v == .A)
 }
 
 #test
 {
-    enum E : s32
+    enum E: s32
     {
         A = 1,
         B = 2,
     }
 
-    var v : E = E.B
+    var v: E = E.B
     var hit = 0
     switch v
     {
-        case E.A:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case E.A:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 2)
 }
@@ -177,19 +177,19 @@ alias StrictSwitchF32 = f32
 #test
 {
     alias MyInt = s32
-    var v : MyInt = 3
+    var v: MyInt = 3
     var hit = 0
     switch v
     {
-        case 1:
-            hit = 1
-            break
-        case 3:
-            hit = 3
-            break
-        default:
-            hit = 9
-            break
+    case 1:
+        hit = 1
+        break
+    case 3:
+        hit = 3
+        break
+    default:
+        hit = 9
+        break
     }
     @assert(hit == 3)
 }
@@ -200,15 +200,15 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case cast(StrictSwitchS32) 1:
-            hit = 1
-            break
-        case cast(StrictSwitchS32) 3:
-            hit = 3
-            break
-        default:
-            hit = 9
-            break
+    case cast(StrictSwitchS32) 1:
+        hit = 1
+        break
+    case cast(StrictSwitchS32) 3:
+        hit = 3
+        break
+    default:
+        hit = 9
+        break
     }
     @assert(hit == 3)
 }
@@ -219,12 +219,12 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case cast(StrictSwitchF32) 1.5:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case cast(StrictSwitchF32) 1.5:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 1)
 }
@@ -235,12 +235,12 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case 1.5:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case 1.5:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 1)
 }
@@ -250,10 +250,10 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch 1
     {
-        case 1: hit += 1; hit += 2
-        default:
-            hit = -1
-            break
+    case 1: hit += 1; hit += 2
+    default:
+        hit = -1
+        break
     }
 
     @assert(hit == 3)
@@ -265,21 +265,21 @@ alias StrictSwitchF32 = f32
     var garbage, group, score, count = 0
     switch
     {
-        case c == '!' and garbage:
-            count += 10
-        case c == '>' and garbage:
-            garbage -= 1
-        case c == '<' and !garbage:
-            garbage += 1
-        case c == '{' and !garbage:
-            group += 1; score += group
-        case c == '}' and !garbage:
-            group -= 1
-        case garbage:
-            count += 1
-        default:
-            count = -1
-            break
+    case c == '!' and garbage:
+        count += 10
+    case c == '>' and garbage:
+        garbage -= 1
+    case c == '<' and !garbage:
+        garbage += 1
+    case c == '{' and !garbage:
+        group += 1; score += group
+    case c == '}' and !garbage:
+        group -= 1
+    case garbage:
+        count += 1
+    default:
+        count = -1
+        break
     }
 
     @assert(group == 1)
@@ -293,12 +293,12 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case true:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case true:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 1)
 }
@@ -309,12 +309,12 @@ alias StrictSwitchF32 = f32
     var hit = 0
     switch v
     {
-        case "hello", "world":
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case "hello", "world":
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 1)
 }
@@ -335,24 +335,24 @@ enum SwitchEnumRangeMode
     var hit = 0
     switch mode
     {
-        case .Screen0 to .Screen3:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case .Screen0 to .Screen3:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 1)
 
     mode = .Other
     switch mode
     {
-        case .Screen0 to .Screen3:
-            hit = 3
-            break
-        default:
-            hit = 4
-            break
+    case .Screen0 to .Screen3:
+        hit = 3
+        break
+    default:
+        hit = 4
+        break
     }
     @assert(hit == 4)
 }
@@ -363,12 +363,12 @@ enum SwitchEnumRangeMode
     var hit = 0
     switch v
     {
-        case 1 to 3:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case 1 to 3:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 1)
 }
@@ -380,9 +380,9 @@ enum SwitchEnumRangeMode
     #[Swag.Complete]
     switch v
     {
-        case 1 to 3:
-            hit = 1
-            break
+    case 1 to 3:
+        hit = 1
+        break
     }
     @assert(hit == 1)
 }
@@ -394,9 +394,9 @@ func toto()->s32 => 1
     #[Swag.Complete]
     switch toto()
     {
-        case 1 to 3:
-            hit = 1
-            break
+    case 1 to 3:
+        hit = 1
+        break
     }
     @assert(hit == 1)
 }
@@ -427,12 +427,12 @@ func toto()->s32 => 1
     {
         switch x
         {
-            case SwitchAnyBase:
-                return 1
-            case s32:
-                return 2
-            default:
-                return 0
+        case SwitchAnyBase:
+            return 1
+        case s32:
+            return 2
+        default:
+            return 0
         }
     }
 
@@ -446,10 +446,10 @@ func toto()->s32 => 1
     {
         switch x
         {
-            case SwitchAnyBase as ptr:
-                return ptr.value
-            default:
-                return 0
+        case SwitchAnyBase as ptr:
+            return ptr.value
+        default:
+            return 0
         }
     }
 
@@ -463,10 +463,10 @@ func toto()->s32 => 1
     {
         switch x
         {
-            case string as str:
-                return str == "value"
-            default:
-                return false
+        case string as str:
+            return str == "value"
+        default:
+            return false
         }
     }
 

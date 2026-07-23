@@ -20,9 +20,7 @@ func patchExactMatrix(grid: [2, 3] s16, base: s16)
     grid[1, 2] = base + 2's16
 }
 
-struct ExactArrayParamNativeMixer
-{
-}
+struct ExactArrayParamNativeMixer {}
 
 impl ExactArrayParamNativeMixer
 {

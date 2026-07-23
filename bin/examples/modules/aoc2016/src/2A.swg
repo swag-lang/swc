@@ -60,6 +60,6 @@ func day2A()
         cde = (cde * 10) + ((x + 1) + y * 3)
     }
 
-    //Console.print("total: ", cde)
+    // Console.print("total: ", cde)
     @assert(cde == 98575)
 }

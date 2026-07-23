@@ -57,7 +57,7 @@ func calc(a, b: u8)->u64
             break
     }
 
-    let (val, ?, ?) = assume StrConv.parseB64(scan[0])
+        let (val, ?, ?) = assume StrConv.parseB64(scan[0])
     return val
 }
 
@@ -69,6 +69,6 @@ func day3B()
     let o2  = calc('1', '0')
     let co2 = calc('0', '1')
 
-    //Console.print("total: ", o2*co2)
+    // Console.print("total: ", o2*co2)
     @assert(o2 * co2 == 7041258)
 }

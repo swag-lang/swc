@@ -11,7 +11,7 @@ struct RuntimeSliceBox
 impl RuntimeSliceBox
 {
     #[Swag.NoInline]
-    mtd opCount() -> u64
+    mtd opCount()->u64
     {
         return 5
     }
@@ -34,13 +34,13 @@ struct RuntimeStringSliceBox
 impl RuntimeStringSliceBox
 {
     #[Swag.NoInline]
-    mtd const opCount() -> u64
+    mtd const opCount()->u64
     {
         return 6
     }
 
     #[Swag.NoInline]
-    mtd const opSlice(low, up: u64) -> string
+    mtd const opSlice(low, up: u64)->string
     {
         return @mkstring(&.bytes[low], (up + 1) - low)
     }
@@ -82,7 +82,7 @@ struct RuntimeSliceHolder
 #test
 {
     var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
-    let slice = box[ to 2]
+    let slice = box[to 2]
 
     @assert(@countof(slice) == 3)
     @assert(slice[0] == 10)
@@ -95,7 +95,7 @@ struct RuntimeSliceHolder
 #test
 {
     var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
-    let slice = box[2 to ]
+    let slice = box[2 to]
 
     @assert(@countof(slice) == 3)
     @assert(slice[0] == 30)
@@ -108,7 +108,7 @@ struct RuntimeSliceHolder
 #test
 {
     var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
-    let slice = box[ to ]
+    let slice = box[to]
 
     @assert(@countof(slice) == 5)
     @assert(slice[0] == 10)
@@ -135,8 +135,8 @@ struct RuntimeSliceHolder
 {
     const box = RuntimeStringSliceBox{bytes: [115'u8, 116'u8, 114'u8, 105'u8, 110'u8, 103'u8]}
     let middle = box[1 until 5]
-    let tail = box[2 to ]
-    let head = box[ to 2]
+    let tail = box[2 to]
+    let head = box[to 2]
 
     #assert(#typeof(middle) == string)
     @assert(middle == "trin")

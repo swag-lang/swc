@@ -336,7 +336,7 @@ impl GridLayoutCtrl
                     client.y + .trackOffset(rowHeights.toSlice(), row, .spacingVert),
                     .trackSpanSize(colWidths.toSlice(), col, sh, .spacingHorz),
                     .trackSpanSize(rowHeights.toSlice(), row, sv, .spacingVert)
-                }
+                    }
 
                 rect.applyPadding(child.getLayoutMargin())
                 child.arrange(rect)

@@ -15,17 +15,11 @@
 
 alias ArrayCastDimMismatchDigest = [16] u8
 
-func consumeArrayCastDimMismatch4(values: [4] s32)
-{
-}
+func consumeArrayCastDimMismatch4(values: [4] s32) {}
 
-func consumeArrayCastDimMismatchDigest(digest: ArrayCastDimMismatchDigest)
-{
-}
+func consumeArrayCastDimMismatchDigest(digest: ArrayCastDimMismatchDigest) {}
 
-func consumeArrayCastDimMismatchGrid(grid: [2, 3] s16)
-{
-}
+func consumeArrayCastDimMismatchGrid(grid: [2, 3] s16) {}
 
 #test
 {

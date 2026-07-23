@@ -50,6 +50,6 @@ func day4B()
             total += 1
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 677)
 }

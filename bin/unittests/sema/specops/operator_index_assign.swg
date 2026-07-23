@@ -13,14 +13,14 @@ impl IndexAssignBox
         #if op == "+=" do
             if index == 0 do
                 .first += value
-            else do
-                .second += value
-        #elif op == "*=" do
+        else do
+            .second += value
+            #elif op == "*=" do
             if index == 0 do
-                .first *= value
-            else do
-                .second *= value
-        #else do
+            .first *= value
+        else do
+            .second *= value
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 
@@ -29,9 +29,9 @@ impl IndexAssignBox
         #if op == "<<=" do
             if index == 0 do
                 .first <<= value
-            else do
-                .second <<= value
-        #else do
+        else do
+            .second <<= value
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -49,9 +49,9 @@ impl WriteOnlyIndexAssignBox
         #if op == "+=" do
             if index == 0 do
                 .first += value
-            else do
-                .second += value
-        #else do
+        else do
+            .second += value
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }

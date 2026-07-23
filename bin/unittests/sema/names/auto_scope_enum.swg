@@ -25,7 +25,7 @@ func semaTest001()
 func toto()->A { return .R }
 func semaTest002()
 {
-    if(toto() == .R) {}
+    if (toto() == .R) {}
 }
 
 func semaTest003()
@@ -64,8 +64,8 @@ func reverseDirection(dir: BindingDirectionAlias)->BindingDirection
 {
     switch dir
     {
-        case North: return South
-        case South: return North
+    case North: return South
+    case South: return North
     }
 }
 
@@ -92,9 +92,7 @@ func(T) add(flags: &T, value: T)
     flags |= value
 }
 
-struct ConflictingFlagOwner
-{
-}
+struct ConflictingFlagOwner {}
 
 impl ConflictingFlagOwner
 {

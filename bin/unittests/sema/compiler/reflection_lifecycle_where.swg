@@ -13,9 +13,7 @@ struct DroppableValue
 
 impl DroppableValue
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 func(T) acceptsCopyable(value: T)->bool
@@ -31,9 +29,7 @@ func(T) acceptsDroppable()->bool
     return true
 }
 
-struct(T) GenericBox
-{
-}
+struct(T) GenericBox {}
 
 impl GenericBox
 {

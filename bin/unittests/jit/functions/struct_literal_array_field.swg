@@ -1,6 +1,6 @@
 #global private
 
-func freeStructLiteralDigits() -> s32
+func freeStructLiteralDigits()->s32
 {
     let payload = {values: [1, 2, 3, 4], tag: 5}
     var digits: s32 = 0
@@ -12,7 +12,7 @@ func freeStructLiteralDigits() -> s32
     return digits + payload.tag
 }
 
-func freeStructLiteralTail() -> s32
+func freeStructLiteralTail()->s32
 {
     let payload = {values: [4, 6, 8, 9], tag: 3}
     return payload.values[3] * 10 + payload.tag

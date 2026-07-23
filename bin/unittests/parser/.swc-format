@@ -1,0 +1,36 @@
+# Parser tests exercise deliberate whitespace / layout variants: keep them
+# exactly as written. Every rewriting option inherited from bin/.swc-format is
+# reset to its passive value here.
+preserve-trailing-whitespace = preserve
+insert-final-newline = preserve
+trim-trailing-newlines = preserve
+max-consecutive-empty-lines = 0
+keep-empty-lines-at-start-of-block = preserve
+keep-empty-lines-at-end-of-block = preserve
+min-blank-lines-between-functions = 0
+end-of-line-style = preserve
+indent-style = preserve
+brace-style = preserve
+compact-empty-braces = preserve
+break-before-else = preserve
+attribute-placement = preserve
+space-after-attribute-comma = preserve
+space-before-colon-in-declarations = preserve
+space-after-colon-in-declarations = preserve
+space-before-colon-in-base-clause = preserve
+space-around-assignment-operator = preserve
+space-around-binary-operators = preserve
+space-around-arrow = preserve
+space-around-fat-arrow = preserve
+space-after-comma = preserve
+space-before-comma = preserve
+space-after-cast = preserve
+space-after-keyword = preserve
+space-after-unary-operator = preserve
+space-inside-parentheses = preserve
+space-inside-brackets = preserve
+space-inside-braces = preserve
+space-in-empty-parentheses = preserve
+space-in-empty-braces = preserve
+hex-literal-prefix-case = preserve
+space-after-line-comment-prefix = preserve

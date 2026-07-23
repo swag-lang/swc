@@ -39,8 +39,8 @@ func switchSafetyEnabled()->bool
         #[Swag.Complete]
         switch v // swc-expected-error {{safety_err_runtime}}
         {
-            case 1 to 3:
-                return 10
+        case 1 to 3:
+            return 10
         }
 
         return 77
@@ -58,8 +58,8 @@ func switchSafetyEnabled()->bool
         #[Swag.Complete]
         switch v // swc-expected-error {{safety_err_runtime}}
         {
-            case 1 where false:
-                return 10
+        case 1 where false:
+            return 10
         }
 
         return 77
@@ -77,8 +77,8 @@ func switchSafetyEnabled()->bool
         #[Swag.Complete]
         switch v
         {
-            case 1 to 3:
-                return 10
+        case 1 to 3:
+            return 10
         }
 
         return 77
@@ -97,12 +97,12 @@ func switchSafetyEnabled()->bool
         #[Swag.Complete]
         switch v
         {
-            case 1:
-                return 10
-            case 2 to 5:
-                return 20
-            case 6:
-                return 30
+        case 1:
+            return 10
+        case 2 to 5:
+            return 20
+        case 6:
+            return 30
         }
 
         return 0

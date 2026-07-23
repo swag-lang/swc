@@ -332,7 +332,7 @@ impl RichString
             if handled do
                 continue
 
-            var (c, eat) = Utf8.decodeRune(sl)
+                var (c, eat) = Utf8.decodeRune(sl)
             if eat == 0 do
                 break
 
@@ -344,7 +344,7 @@ impl RichString
                 if c == '\r' and count
                 {
                     sl = @mkslice(scan, count)
-                    let (next, nextEat) = Utf8.decodeRune(sl)
+                        let (next, nextEat) = Utf8.decodeRune(sl)
                     if next == '\n'
                     {
                         byteIdx, scan += nextEat
@@ -364,7 +364,7 @@ impl RichString
                     byteIdx, scan += eat
                     count -= eat
                     sl = @mkslice(scan, count)
-                    (c, eat) = Utf8.decodeRune(sl)
+                        (c, eat) = Utf8.decodeRune(sl)
                 }
 
                 .addChunk(byteIdx, space: true)

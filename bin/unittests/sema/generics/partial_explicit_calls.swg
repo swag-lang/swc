@@ -31,9 +31,7 @@ func(A, B) localStructPartialTypeAnnotation()->bool
     return #typeof(data.first) == A and #typeof(data.second) == string and #typeof(data.third) == B
 }
 
-struct SimpleMethodProbe
-{
-}
+struct SimpleMethodProbe {}
 
 impl SimpleMethodProbe
 {

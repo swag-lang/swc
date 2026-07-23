@@ -11,7 +11,7 @@ namespace compiler1643
     {
         const tbl = "0123456789ABCDEF"
         var c     = tbl[0]
-        //@print(cast(s64) c)
+        // @print(cast(s64) c)
         @assert(tbl[0] == cast(u8) '0''rune)
         @assert(tbl[1] == cast(u8) '1''rune)
     }
@@ -71,7 +71,7 @@ namespace compiler169
     #[ConstExpr]
     func main()->s32
     {
-        //@print("toto\n");
+        // @print("toto\n");
         return 666
     }
 
@@ -89,13 +89,13 @@ namespace compiler247
     //#[PrintBc]
     func main(a: s32 = 6)->s32
     {
-        //@print("1");
+        // @print("1");
         return a
     }
 
     func main(a: s32, b: s32)->s32
     {
-        //@print("2");
+        // @print("2");
         return b
     }
 
@@ -120,8 +120,8 @@ namespace compiler291
     //#[PrintBc]
     func test2(v: string, v1: string)->bool
     {
-        //@print(v);
-        //@print(v1);
+        // @print(v);
+        // @print(v1);
         return v == "toto" and v1 == "titi"
     }
 
@@ -206,10 +206,10 @@ namespace compiler298
     #test
     {
         var res = test2()
-        //@op(res, count) == 5;
+        // @op(res, count) == 5;
 
-        //@print(res);
-        //@print(test2.count);
+        // @print(res);
+        // @print(test2.count);
         @assert(res == "toto1")
         @assert(@countof(res) == 5)
     }
@@ -296,6 +296,6 @@ namespace compiler311
     {
         g = "toto"; @assert(g == "toto")
         g = "titi"; @assert(g == "titi")
-        //@print(g);
+    // @print(g);
     }
 }

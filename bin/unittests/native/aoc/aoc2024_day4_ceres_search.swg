@@ -7,7 +7,7 @@ const MaxGridRows = 256
 const MaxGridCols = 256
 
 const SampleInput =
-"""MMMSXXMASM
+    """MMMSXXMASM
 MSAMXMSMSA
 AMXSXMAAMM
 MSAMASMSMX
@@ -20,7 +20,7 @@ MXMXAXMASX"""
 
 const TinyInput = "XMAS\nSAMX\n"
 const CoverageInput =
-"""XMASX
+    """XMASX
 .M.S.
 ..A..
 .M.S.
@@ -58,7 +58,7 @@ struct SearchResult
 }
 
 const Directions: [8] Direction =
-[
+    [
     Direction.Right,
     Direction.Down,
     Direction.DownRight,
@@ -67,7 +67,7 @@ const Directions: [8] Direction =
     Direction.Up,
     Direction.UpRight,
     Direction.UpLeft,
-]
+    ]
 
 // ---------------------------------------------------------------------------
 // Helpers

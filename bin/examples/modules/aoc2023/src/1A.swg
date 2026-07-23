@@ -39,6 +39,6 @@ func day1A()
         total += ((l[first] - '0') * 10) + (l[last] - '0')
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 55108)
 }

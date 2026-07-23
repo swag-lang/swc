@@ -26,7 +26,7 @@ struct BadMultiIndexAssign {}
 
 impl BadMultiIndexGet
 {
-    mtd opIndex(row: s32, col: u32) -> s32 { return 0 } // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd opIndex(row: s32, col: u32)->s32 { return 0 } // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 impl BadMultiIndexSet

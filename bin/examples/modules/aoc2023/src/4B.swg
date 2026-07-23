@@ -77,6 +77,6 @@ func day4B()
         total += c.num
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 12263631)
 }

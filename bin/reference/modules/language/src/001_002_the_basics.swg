@@ -45,7 +45,7 @@ Constants ('const') and immutable variables ('let') cannot be reassigned.
     // MaxCount = 12  // Error: Cannot assign to constant
 
     let width = 50
-    // width = 60     // Error: Cannot reassign an immutable variable
+// width = 60     // Error: Cannot reassign an immutable variable
 }
 
 /**
@@ -102,9 +102,9 @@ Swag supports both single-line and multi-line comments.
 */
 #test
 {
-    // This is a single-line comment
+// This is a single-line comment
 
-    /*
+/*
     This is a multi-line comment
     that spans multiple lines.
     */
@@ -159,10 +159,10 @@ They are useful for returning multiple values or bundling related data.
 #test
 {
     let person = {name: "Alice", age: 30, isActive: true}
-    let (name, age, isActive) = person
+        let (name, age, isActive) = person
     print(name, " is ", age, " years old. Active: ", isActive, "\n")
-    // Access tuple elements by index:
-    //print(person.item0, " is ", person.item1, " years old.\n")
+// Access tuple elements by index:
+// print(person.item0, " is ", person.item1, " years old.\n")
 }
 
 /**
@@ -261,7 +261,7 @@ Functions can also return multiple values via tuples.
     {
         return {"a", "b"}
     }
-    let (firstName, lastName) = splitName()
+        let (firstName, lastName) = splitName()
     @assert(firstName == "a")
     @assert(lastName == "b")
 }

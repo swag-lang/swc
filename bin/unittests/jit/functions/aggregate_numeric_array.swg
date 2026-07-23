@@ -1,6 +1,6 @@
 #global private
 
-func mixedNumericArraySum() -> f64
+func mixedNumericArraySum()->f64
 {
     let values = [1, 2.5]
     #assert(#typeof(values[0]) == f32)

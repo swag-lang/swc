@@ -25,9 +25,9 @@ impl LiteralAngle
     {
         #if suffix == "deg" do
             .radians = value * DegreesToRadians
-        #elif suffix == "rad" do
+            #elif suffix == "rad" do
             .radians = value
-        #else do
+            #else do
             #error("invalid angle suffix '" ++ suffix ++ "'")
     }
 }
@@ -40,7 +40,7 @@ struct RotationCard
 const RotationCards = [
     RotationCard{angle: 10.0'deg},
     RotationCard{angle: -12.0'deg},
-]
+    ]
 
 #assert(RotationCards[0].angle.radians == 10.0'f32 * DegreesToRadians)
 #assert(RotationCards[1].angle.radians == -12.0'f32 * DegreesToRadians)

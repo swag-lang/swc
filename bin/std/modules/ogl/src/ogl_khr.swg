@@ -42,7 +42,7 @@ const GL_DEBUG_SEVERITY_MEDIUM            = 0x9147
 const GL_DEBUG_SEVERITY_LOW               = 0x9148
 const GL_DEBUG_OUTPUT                     = 0x92E0
 
-//alias GLDEBUGPROC = func(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, message: #null const *GLchar, userParam: #null const *void)
+// alias GLDEBUGPROC = func(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, message: #null const *GLchar, userParam: #null const *void)
 alias GLDEBUGPROC = func(GLenum, GLenum, GLuint, GLenum, GLsizei, #null const *GLchar, #null const *void)
 
 #[Extension, Swag.PlaceHolder]

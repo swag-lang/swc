@@ -1,7 +1,8 @@
 #global private
 
-interface I {
-    mtd A() -> s32;
+interface I
+{
+    mtd A()->s32;
 }
 
 namespace B {}

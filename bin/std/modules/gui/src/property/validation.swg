@@ -232,7 +232,6 @@ internal impl Properties
         lbl.autoHeight()
         return true
     }
-
 }
 
 private impl Properties

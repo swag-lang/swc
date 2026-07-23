@@ -7,7 +7,7 @@
 // <<=), @countof on fixed arrays, const arithmetic, #[Swag.Mixin].
 
 const SampleInput =
-"""p=0,4 v=3,-3
+    """p=0,4 v=3,-3
 p=6,3 v=-1,-3
 p=10,3 v=-1,2
 p=2,0 v=2,-1
@@ -57,7 +57,7 @@ struct Fleet
     h:     s32
 }
 
-func parseS32(bytes: const [..] u8, pos: *u32) -> s32
+func parseS32(bytes: const [..] u8, pos: *u32)->s32
 {
     var neg = false
     if dref pos < @countof(bytes) and bytes[dref pos] == '-'
@@ -94,7 +94,7 @@ func skipToDigitOrMinus(bytes: const [..] u8, pos: *u32)
     }
 }
 
-func parseFleet(text: string, w, h: s32) -> Fleet
+func parseFleet(text: string, w, h: s32)->Fleet
 {
     var fleet: Fleet
     fleet.w = w
@@ -138,14 +138,14 @@ func parseFleet(text: string, w, h: s32) -> Fleet
 // ---------------------------------------------------------------------------
 
 // Positive modulo (Swag % can return negative for negative dividend)
-func posMod(a, m: s32) -> s32
+func posMod(a, m: s32)->s32
 {
     let r = a % m
     return r < 0 ? r + m : r
 }
 
 // Advance one robot by n steps on a toroidal grid.
-func advanceRobot(bot: Robot, n: s32, w, h: s32) -> Robot
+func advanceRobot(bot: Robot, n: s32, w, h: s32)->Robot
 {
     var result: Robot
     result.vx = bot.vx
@@ -159,7 +159,7 @@ func advanceRobot(bot: Robot, n: s32, w, h: s32) -> Robot
 // Part 1: quadrant safety factor
 // ---------------------------------------------------------------------------
 
-func safetyFactor(fleet: *Fleet, steps: u32) -> u64
+func safetyFactor(fleet: *Fleet, steps: u32)->u64
 {
     let midX = fleet.w / 2
     let midY = fleet.h / 2
@@ -217,7 +217,7 @@ func computeVarianceX(fleet: *Fleet, step: s32)
 
 // Find the step (up to maxSteps) with minimum X-axis variance —
 // a proxy for tight horizontal clustering (the tree shape).
-func findClusterStep(fleet: *Fleet, maxSteps: u32) -> u32
+func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var bestStep: u32
     var bestVar: u64 = 0xFFFFFFFFFFFFFFFF

@@ -23,7 +23,7 @@ using Core
 
 func day8A()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
     let lines    = assume File.readAllLines(dataPath)
@@ -45,11 +45,11 @@ func day8A()
             total1 += 1
         }
 
-        //Console.print(l, " => ", res, "\n")
+        // Console.print(l, " => ", res, "\n")
         total0 += l.length
         total1 -= 2
     }
 
-    //Console.print("total: ", total0-total1)
+    // Console.print("total: ", total0-total1)
     @assert(total0 - total1 == 1333)
 }

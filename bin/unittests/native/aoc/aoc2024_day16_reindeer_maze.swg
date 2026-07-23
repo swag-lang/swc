@@ -8,7 +8,7 @@
 // C-style for loop, discard keyword.
 
 const SampleInput =
-"""###############
+    """###############
 #.......#....E#
 #.#.###.#.#.#.#
 #.....#.#.#.#.#
@@ -25,7 +25,7 @@ const SampleInput =
 #S#############"""
 
 const TinyInput =
-"""#####
+    """#####
 #..E#
 #.#.#
 #S..#
@@ -52,7 +52,7 @@ struct Maze
     ec:    u32
 }
 
-func mazeInit() -> Maze
+func mazeInit()->Maze
 {
     var m: Maze
     m.cells = cast(#null [*] u8) @alloc(cast(u64) MaxCells)
@@ -68,25 +68,25 @@ func mazeFree(m: *Maze)
 
 // Inline accessor + comparison with char literal: exercises the fix
 #[Swag.Inline]
-func cellAt(m: *Maze, r: u32, c: u32) -> u8
+func cellAt(m: *Maze, r: u32, c: u32)->u8
 {
     return m.cells[r * MaxDim + c]
 }
 
 // Nested inline that compares with a char literal — previously crashed
 #[Swag.Inline]
-func isWall(m: *Maze, r: u32, c: u32) -> bool
+func isWall(m: *Maze, r: u32, c: u32)->bool
 {
     return cellAt(m, r, c) == Wall
 }
 
 #[Swag.Inline]
-func isEnd(m: *Maze, r: u32, c: u32) -> bool
+func isEnd(m: *Maze, r: u32, c: u32)->bool
 {
     return cellAt(m, r, c) == End
 }
 
-func parseMaze(text: string) -> Maze
+func parseMaze(text: string)->Maze
 {
     var m = mazeInit()
     let bytes = cast(const [..] u8) text
@@ -146,9 +146,9 @@ struct QEntry
 }
 
 // State index: (r * MaxDim + c) * 4 + dir
-func stateIdx(r: u32, c: u32, dir: u32) -> u32 => (r * MaxDim + c) * 4 + dir
+func stateIdx(r: u32, c: u32, dir: u32)->u32 => (r * MaxDim + c) * 4 + dir
 
-func solve(text: string) -> u64
+func solve(text: string)->u64
 {
     var m = parseMaze(text)
     defer mazeFree(&m)

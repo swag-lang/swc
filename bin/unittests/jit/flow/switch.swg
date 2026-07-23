@@ -25,12 +25,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case 1:
-                return 11
-            case 2, 3:
-                return 23
-            default:
-                return 90
+        case 1:
+            return 11
+        case 2, 3:
+            return 23
+        default:
+            return 90
         }
     }
 
@@ -50,14 +50,14 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case &SwitchPointerValues[0]:
-                return 11
-            case &SwitchPointerValues[1], &SwitchPointerValues[2]:
-                return 23
-            case null:
-                return 0
-            default:
-                return 90
+        case &SwitchPointerValues[0]:
+            return 11
+        case &SwitchPointerValues[1], &SwitchPointerValues[2]:
+            return 23
+        case null:
+            return 0
+        default:
+            return 90
         }
     }
 
@@ -77,12 +77,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case 1.25:
-                return 12
-            case 2.5:
-                return 25
-            default:
-                return 0
+        case 1.25:
+            return 12
+        case 2.5:
+            return 25
+        default:
+            return 0
         }
     }
 
@@ -100,12 +100,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case 1 to 3:
-                return 10
-            case 4 until 7:
-                return 20
-            default:
-                return 30
+        case 1 to 3:
+            return 10
+        case 4 until 7:
+            return 20
+        default:
+            return 30
         }
     }
 
@@ -127,12 +127,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case 1 where takeFirst:
-                return 100
-            case 1:
-                return 200
-            default:
-                return 300
+        case 1 where takeFirst:
+            return 100
+        case 1:
+            return 200
+        default:
+            return 300
         }
     }
 
@@ -150,14 +150,14 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case s32:
-                return 1
-            case f64:
-                return 2
-            case bool:
-                return 3
-            default:
-                return 4
+        case s32:
+            return 1
+        case f64:
+            return 2
+        case bool:
+            return 3
+        default:
+            return 4
         }
     }
 
@@ -181,12 +181,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch
         {
-            case a > b:
-                return 10
-            case a == b:
-                return 20
-            default:
-                return 30
+        case a > b:
+            return 10
+        case a == b:
+            return 20
+        default:
+            return 30
         }
     }
 
@@ -205,14 +205,14 @@ const SwitchPointerValues = [11, 22, 33]
         var r = 0
         switch v
         {
-            case 1:
-                r = r + 1
-                fallthrough
-            case 2:
-                r = r + 2
-                break
-            default:
-                r = 10
+        case 1:
+            r = r + 1
+            fallthrough
+        case 2:
+            r = r + 2
+            break
+        default:
+            r = 10
         }
 
         return r
@@ -232,10 +232,10 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case .A:
-                return 7
-            case .B:
-                return 9
+        case .A:
+            return 7
+        case .B:
+            return 9
         }
     }
 
@@ -251,12 +251,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case 1:
-                return 10
-            default where flag:
-                return 20
-            default:
-                return 30
+        case 1:
+            return 10
+        default where flag:
+            return 20
+        default:
+            return 30
         }
     }
 
@@ -276,14 +276,14 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case 1:
-                return 10
-            default where a:
-                return 20
-            default where b:
-                return 30
-            default:
-                return 40
+        case 1:
+            return 10
+        default where a:
+            return 20
+        default where b:
+            return 30
+        default:
+            return 40
         }
     }
 
@@ -301,12 +301,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch x
         {
-            case string:
-                return 1
-            case s32:
-                return 2
-            default:
-                return 0
+        case string:
+            return 1
+        case s32:
+            return 2
+        default:
+            return 0
         }
     }
 
@@ -324,14 +324,14 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch x
         {
-            case bool:
-                return 10
-            case f64:
-                return 20
-            case s32:
-                return 30
-            default:
-                return 0
+        case bool:
+            return 10
+        case f64:
+            return 20
+        case s32:
+            return 30
+        default:
+            return 0
         }
     }
 
@@ -351,12 +351,12 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch x
         {
-            case SwitchAnyBase:
-                return 1
-            case s32:
-                return 2
-            default:
-                return 0
+        case SwitchAnyBase:
+            return 1
+        case s32:
+            return 2
+        default:
+            return 0
         }
     }
 
@@ -370,10 +370,10 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch x
         {
-            case SwitchAnyBase as ptr:
-                return ptr.value
-            default:
-                return 0
+        case SwitchAnyBase as ptr:
+            return ptr.value
+        default:
+            return 0
         }
     }
 
@@ -387,10 +387,10 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch x
         {
-            case string as str:
-                return str == "value"
-            default:
-                return false
+        case string as str:
+            return str == "value"
+        default:
+            return false
         }
     }
 
@@ -404,10 +404,10 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-            case v: // swc-expected-error {{sema_err_switch_case_not_const}}
-                return 1
-            default:
-                return 0
+        case v: // swc-expected-error {{sema_err_switch_case_not_const}}
+            return 1
+        default:
+            return 0
         }
     }
 }

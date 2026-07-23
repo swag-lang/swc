@@ -8,7 +8,7 @@
 // matrix bit manipulation, sorting with spaceship <=>.
 
 const SampleInput =
-"""kh-tc
+    """kh-tc
 qp-kh
 de-cg
 ka-co
@@ -50,7 +50,7 @@ struct Graph
     count:    u32
 }
 
-func graphInit() -> Graph
+func graphInit()->Graph
 {
     var g: Graph
     g.adj = cast(#null [*] bool) @alloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
@@ -62,7 +62,7 @@ func graphFree(g: *Graph) { if g.adj do @free(g.adj) }
 
 // Encode a 2-char name as an index: (ch0 - 'a') * 26 + (ch1 - 'a')
 #[Swag.Inline]
-func nameToIdx(a: u8, b: u8) -> u32
+func nameToIdx(a: u8, b: u8)->u32
 {
     return cast(u32) (a - 'a') * 26 + cast(u32) (b - 'a')
 }
@@ -70,7 +70,7 @@ func nameToIdx(a: u8, b: u8) -> u32
 impl Graph
 {
     #[Swag.Inline]
-    mtd edge(a: u32, b: u32) -> bool { return me.adj[a * MaxNodes + b] }
+    mtd edge(a: u32, b: u32)->bool { return me.adj[a * MaxNodes + b] }
 
     mtd addEdge(a: u32, b: u32)
     {
@@ -92,7 +92,7 @@ impl Graph
         }
     }
 
-    mtd startsWithT(idx: u32) -> bool
+    mtd startsWithT(idx: u32)->bool
     {
         return idx / 26 == 19
     }
@@ -102,7 +102,7 @@ impl Graph
 // Parsing
 // ---------------------------------------------------------------------------
 
-func parseGraph(text: string) -> Graph
+func parseGraph(text: string)->Graph
 {
     var g = graphInit()
     let bytes = cast(const [..] u8) text
@@ -138,7 +138,7 @@ func parseGraph(text: string) -> Graph
 // Part 1: count triangles with at least one 't' node
 // ---------------------------------------------------------------------------
 
-func countTrianglesWithT(g: *Graph) -> u64
+func countTrianglesWithT(g: *Graph)->u64
 {
     var count: u64
 
@@ -260,12 +260,12 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         // Remove v from current clique
         state.curSize -= 1
 
-        // Move v from candidates to excluded
-        // (we iterate over a copy, so just add to excluded)
+    // Move v from candidates to excluded
+    // (we iterate over a copy, so just add to excluded)
     }
 }
 
-func findLargestClique(g: *Graph) -> CliqueState
+func findLargestClique(g: *Graph)->CliqueState
 {
     var state: CliqueState
 
@@ -287,7 +287,7 @@ func findLargestClique(g: *Graph) -> CliqueState
 }
 
 // Sort clique indices and format as comma-separated names
-func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32) -> u32
+func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
 {
     // Bubble sort the best clique (small, at most ~15 elements)
     for i in state.bestSize
@@ -340,7 +340,7 @@ struct SolveResult
     part2Buf: [128] u8
 }
 
-func solve(text: string) -> SolveResult
+func solve(text: string)->SolveResult
 {
     var g = parseGraph(text)
     defer graphFree(&g)
@@ -484,7 +484,7 @@ func solve(text: string) -> SolveResult
 
 // Inline returning struct via retval (exercises day 20 fix)
 #[Swag.Inline]
-func makeIdx(a: u8, b: u8) -> { idx: u32 }
+func makeIdx(a: u8, b: u8)->{ idx: u32 }
 {
     var result: retval
     result.idx = nameToIdx(a, b)
@@ -507,7 +507,7 @@ struct NameBuf
 impl NameBuf
 {
     #[Swag.Inline]
-    mtd asSlice() -> const [..] u8
+    mtd asSlice()->const [..] u8
     {
         return @mkslice(&me.data[0], cast(u64) me.len)
     }

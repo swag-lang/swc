@@ -13,7 +13,7 @@ using Swag, Core
         points:       &points[0],
         tags:         &tags[0],
         contours:     &contours[0],
-    }
+        }
 
     let commands = buildOutlineCommands(&outline)
     @assert(commands.count == 3)

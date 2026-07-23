@@ -10,9 +10,7 @@ struct NonNullCannotCastDefaultField
     value: *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
 }
 
-struct NonNullCannotCastOpCastBox
-{
-}
+struct NonNullCannotCastOpCastBox {}
 
 impl NonNullCannotCastOpCastBox
 {
@@ -20,9 +18,7 @@ impl NonNullCannotCastOpCastBox
     mtd const opCast()->#null *NonNullCannotCastItem => null
 }
 
-struct NonNullCannotCastNullableOpCastBox
-{
-}
+struct NonNullCannotCastNullableOpCastBox {}
 
 impl NonNullCannotCastNullableOpCastBox
 {
@@ -30,13 +26,10 @@ impl NonNullCannotCastNullableOpCastBox
     mtd const opCast()->#null string => "present-but-optional"
 }
 
-func acceptNonNullCannotCast(value: *NonNullCannotCastItem)
-{
-}
+func acceptNonNullCannotCast(value: *NonNullCannotCastItem) {}
 
 func defaultNonNullCannotCast(value: *NonNullCannotCastItem = null) // swc-expected-error {{sema_err_cannot_cast}}
-{
-}
+{}
 
 func returnNonNullCannotCast()->*NonNullCannotCastItem
 {

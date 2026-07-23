@@ -25,9 +25,7 @@ var MessageLateGlobal = 33
 var MessageUnknownCountArray: [?] s32
 
 #[Compiler]
-func messageCompilerOnlyFn()
-{
-}
+func messageCompilerOnlyFn() {}
 
 #[Compiler]
 var MessageSawEarlyFunction = false

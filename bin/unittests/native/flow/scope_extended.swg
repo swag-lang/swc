@@ -158,12 +158,12 @@
         var v = 2
         switch v
         {
-            case 2:
-                hit = 1
-                break to Out
-            default:
-                hit = 2
-                break
+        case 2:
+            hit = 1
+            break to Out
+        default:
+            hit = 2
+            break
         }
         hit = 3 // unreachable if case 2
     }

@@ -43,7 +43,7 @@ func day2B()
 
             if diff == 1
             {
-                //Console.print("result ", result)
+                // Console.print("result ", result)
                 @assert(result == "nvosmkcdtdbfhyxsphzgraljq")
                 return
             }

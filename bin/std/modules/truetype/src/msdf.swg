@@ -202,7 +202,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
             msdfAddSeg(segs, curX, curY, x, y)
             el.segCount = cast(u32) segs.count - el.firstSeg
 
-            let (dx, dy) = msdfNormDir(x - curX, y - curY)
+                let (dx, dy) = msdfNormDir(x - curX, y - curY)
             el.sdx0, el.edx1 = dx
             el.sdy0, el.edy1 = dy
             elements.add(el)
@@ -237,8 +237,8 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
                 e1y = y - curY
             }
 
-            let (sdx, sdy) = msdfNormDir(s0x, s0y)
-            let (edx, edy) = msdfNormDir(e1x, e1y)
+                let (sdx, sdy) = msdfNormDir(s0x, s0y)
+                let (edx, edy) = msdfNormDir(e1x, e1y)
             el.sdx0 = sdx
             el.sdy0 = sdy
             el.edx1 = edx
@@ -312,7 +312,7 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
         let invLen = ab2 > 0 ? 1.0 / Math.sqrt(ab2) : 0.0
         let ortho  = (aby * aqx - abx * aqy) * invLen
         if Math.abs(ortho) < endpointDist do
-            return { ortho, 0.0, param }
+            return {ortho, 0.0, param}
     }
 
     let crs = aqx * aby - aqy * abx
@@ -323,7 +323,7 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
     if ablen > 0 and endpointDist > 0 do
         dt = Math.abs((abx * eqx + aby * eqy) / (ablen * endpointDist))
 
-    return { sgn * endpointDist, dt, param }
+    return {sgn * endpointDist, dt, param}
 }
 
 // Extend a segment's true distance to a pseudo-distance past its endpoints, so the
@@ -441,7 +441,7 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
     for px in c.width
     {
         let sampleX = cast(f64) c.left + cast(f64) px + 0.5
-        let (r, g, b) = msdfChannelDistances(segsS, sampleX, sampleY)
+            let (r, g, b) = msdfChannelDistances(segsS, sampleX, sampleY)
 
         // True signed distance to the nearest contour, stored in a 4th channel
         // (MTSDF). The RGB median keeps sharp corners for the glyph face, but its
@@ -534,7 +534,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
         width:    width,
         left:     left,
         top:      top,
-    }
+        }
 
     let samples = cast(u64) width * cast(u64) rows
     if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchrone()

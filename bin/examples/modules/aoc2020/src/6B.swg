@@ -38,7 +38,7 @@ using Core
 func day6B()
 {
     day6B0()
-    // day6B1() disabled: compiler bug on '~0' typing for unsigned values
+// day6B1() disabled: compiler bug on '~0' typing for unsigned values
 }
 
 /////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ func day6B0()
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 3103)
 }
 

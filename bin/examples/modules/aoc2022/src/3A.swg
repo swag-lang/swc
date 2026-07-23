@@ -45,7 +45,7 @@ func day3A()
         for i in div
         {
             let c = l[i]
-            let f = Slice.findLinear(cast(const [..] u8) l[div to ], c)
+            let f = Slice.findLinear(cast(const [..] u8) l[div to], c)
             if f != Swag.U64.Max
             {
                 total += 1 + (Latin1.isLower(c) ? c - 'a' : 26 + (c - 'A'))
@@ -54,6 +54,6 @@ func day3A()
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 7766)
 }

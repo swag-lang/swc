@@ -7,13 +7,13 @@
 const DigitCount = 9
 
 const SampleInputA =
-"""1abc2
+    """1abc2
    pqr3stu8vwx
    a1b2c3d4e5f
    treb7uchet"""
 
 const SampleInputB =
-"""two1nine
+    """two1nine
    eightwothree
    abcone2threexyz
    xtwone3four

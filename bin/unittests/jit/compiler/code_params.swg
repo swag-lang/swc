@@ -59,7 +59,7 @@ func forwardNames(value: s32, stmt: #code(v: s32, dbl: s32))
 func repeatUpTo(count: s32, stmt: #code(index: s32))
 {
     #scope(Outer)
-    for i in count
+        for i in count
     {
         #inject(stmt, index = i, break = break to Outer)
     }

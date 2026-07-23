@@ -33,8 +33,8 @@ func makeTime()->DestructAssignTime
 func makeDateTime()->DestructAssignDateTime
 {
     var result: retval = undefined
-    (result.year, result.month, result.day) = makeDate()
-    (result.hour, result.minute, result.second, result.millisecond) = makeTime()
+        (result.year, result.month, result.day) = makeDate()
+        (result.hour, result.minute, result.second, result.millisecond) = makeTime()
     return result
 }
 
@@ -53,12 +53,12 @@ func makeDateTime()->DestructAssignDateTime
 #test
 {
     var pair = DestructAssignPair{1, 2}
-    (pair.b, pair.a) = pair
+        (pair.b, pair.a) = pair
     @assert(pair.a == 2)
     @assert(pair.b == 1)
 
     var other = DestructAssignPair{0, 0}
-    (other.a, ?) = pair
+        (other.a, ?) = pair
     @assert(other.a == 2)
     @assert(other.b == 0)
 }

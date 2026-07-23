@@ -60,9 +60,9 @@ An array literal is a list of elements enclosed in brackets '[A, B, ...]'.
 */
 #test
 {
-     var arr = [1, 2, 3, 4]
-     #assert(@countof(arr) == 4)
-     #assert(#typeof(arr) == #type [4] s32)
+    var arr = [1, 2, 3, 4]
+    #assert(@countof(arr) == 4)
+    #assert(#typeof(arr) == #type [4] s32)
 }
 
 /**

@@ -96,9 +96,7 @@ struct(A) SplitValueDefaultHolder
     item: SplitValueDefaultBuffer
 }
 
-struct(U, M: s32) MethodBufferContext
-{
-}
+struct(U, M: s32) MethodBufferContext {}
 
 struct(A, B) PartialMiddleDefaultHolder
 {
@@ -196,7 +194,6 @@ impl MethodBufferContext
 
     mtd const defaultCount(value: s32 = M)->s32 => value
     mtd const defaultTyped(value: U = cast(U) M)->U => value
-
 }
 
 func semaTest001()

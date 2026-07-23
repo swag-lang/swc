@@ -20,10 +20,10 @@
         cxt.user0 = 0xA17E
 
         @setcontext(cxt)
-        let swapped = @getcontext() == &cxt and @getcontext().user0 == 0xA17E
+        let swapped = @getcontext () == &cxt and @getcontext().user0 == 0xA17E
         @setcontext(prev)
 
-        return swapped and @getcontext() == prev
+        return swapped and @getcontext () == prev
     }
 
     const V = #run canSwapContextPointer()

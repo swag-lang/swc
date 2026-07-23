@@ -3,7 +3,8 @@
 const A = 0
 #assert(#stringof(A) == "0")
 
-enum Test{
+enum Test
+{
     A = 1,
     B = 2,
     C = 3,
@@ -65,7 +66,7 @@ func semaTestGeneric001()
 #assert(#stringof(cast(u32) Test.C) == "3")
 
 #assert(#stringof(5) == "5")
-#assert(#stringof(5*5) == "25")
+#assert(#stringof(5 * 5) == "25")
 #assert(#stringof(1 + 2 * 3) == "7")
 
 #assert(#stringof("hello") == "hello")

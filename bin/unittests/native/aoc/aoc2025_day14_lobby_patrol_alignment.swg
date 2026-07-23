@@ -125,14 +125,14 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 #test
 {
     const sampleRobots: [6] PatrolRobot =
-    [
+        [
         {startX: 0, startY: 0, speedX: 1, speedY: 1},
         {startX: 10, startY: 0, speedX: -1, speedY: 1},
         {startX: 0, startY: 6, speedX: 1, speedY: -1},
         {startX: 10, startY: 6, speedX: -1, speedY: -1},
         {startX: 3, startY: 1, speedX: 0, speedY: 1},
         {startX: 7, startY: 5, speedX: 0, speedY: -1},
-    ]
+        ]
 
     let sampleReport = analyzePatrol(sampleRobots, 11, 7, 2, 20)
 
@@ -141,7 +141,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
     @assert(sampleReport.compactArea == 15'u32)
 
     const concourseRobots: [8] PatrolRobot =
-    [
+        [
         {startX: 1, startY: 0, speedX: 0, speedY: 1},
         {startX: 2, startY: 6, speedX: 0, speedY: -1},
         {startX: 8, startY: 0, speedX: 0, speedY: 1},
@@ -150,7 +150,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
         {startX: 10, startY: 3, speedX: -1, speedY: 0},
         {startX: 5, startY: 1, speedX: 0, speedY: 1},
         {startX: 5, startY: 5, speedX: 0, speedY: -1},
-    ]
+        ]
 
     let concourseReport = analyzePatrol(concourseRobots, 11, 7, 1, 20)
 

@@ -264,7 +264,7 @@ func lineLineIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
 {
     var result: retval
 
-    let (yes, d0, ?) = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
+        let (yes, d0, ?) = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
     if !yes do
         return result
 
@@ -353,7 +353,7 @@ func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF3
         return result
     }
 
-    let (yes, d0, d1) = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
+        let (yes, d0, d1) = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
     if !yes do
         return result
 

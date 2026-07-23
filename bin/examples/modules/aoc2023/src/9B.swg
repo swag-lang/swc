@@ -66,6 +66,6 @@ func day9B()
         total += prev
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1019)
 }

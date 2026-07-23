@@ -46,6 +46,6 @@ func day5A()
         idx += 1
     }
 
-    //Console.print("total: ", line.length)
+    // Console.print("total: ", line.length)
     @assert(line.length == 10774)
 }

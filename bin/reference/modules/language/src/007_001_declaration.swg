@@ -121,10 +121,10 @@ These can be accessed directly or destructured.
     let result = myFunction()
     @assert(result.x == 1.0)
     @assert(result.y == 2.0)
-    let (x, y) = myFunction()
+        let (x, y) = myFunction()
     @assert(x == 1.0)
     @assert(y == 2.0)
-    let (z, w) = myFunction()
+        let (z, w) = myFunction()
     @assert(z == 1.0)
     @assert(w == 2.0)
 }

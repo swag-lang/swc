@@ -193,7 +193,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 #test
 {
     const samplePoints: [20] string =
-    [
+        [
         "162,817,812",
         "57,618,57",
         "906,360,560",
@@ -214,7 +214,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         "862,61,35",
         "984,92,344",
         "425,690,689",
-    ]
+        ]
 
     let samplePlan = planCables(samplePoints, 10)
 
@@ -226,7 +226,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     @assert(samplePlan.topThreeProduct == 40'u64)
 
     const corridorPoints: [7] string =
-    [
+        [
         "0,0,0",
         "1,0,0",
         "4,0,0",
@@ -234,7 +234,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         "11,0,0",
         "20,0,0",
         "25,0,0",
-    ]
+        ]
 
     let corridorPlan = planCables(corridorPoints, 5)
 

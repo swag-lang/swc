@@ -116,7 +116,7 @@ Omitting the upper bound creates a slice extending to the end of the sequence.
 #test
 {
     let str   = "string"
-    let slice = str[2 to ]
+    let slice = str[2 to]
     @assert(slice == "ring")
 }
 
@@ -129,10 +129,10 @@ Omitting the lower bound starts the slice from index 0.
 {
     let str = "string"
 
-    let slice = str[ to 2]
+    let slice = str[to 2]
     @assert(slice == "str")
 
-    let slice1 = str[ until 2]
+    let slice1 = str[until 2]
     @assert(slice1 == "st")
 }
 
@@ -149,7 +149,7 @@ Arrays can be sliced the same way as strings.
     @assert(slice[0] == 30)
     @assert(slice[1] == 40)
     @assert(@countof(slice) == 2)
-    let slice1 = arr[ to ]
+    let slice1 = arr[to]
     @assert(@countof(slice1) == @countof(arr))
 }
 

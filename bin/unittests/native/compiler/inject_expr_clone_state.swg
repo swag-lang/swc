@@ -27,11 +27,11 @@ namespace InjectExprCloneSupport
         {
             #if back do
                 var cursor = .count
-            #else do
+                #else do
                 var cursor: u64 = 0
 
             #scope(Up)
-            while true
+                while true
             {
                 #if back
                 {
@@ -39,7 +39,7 @@ namespace InjectExprCloneSupport
                         break
                     cursor -= 1
                 }
-                #else
+                    #else
                 {
                     if cursor >= .count do
                         break

@@ -71,6 +71,6 @@ func day2A()
     for gift in day2Presents do
         total += 3 * gift.x * gift.y + 2 * gift.y * gift.z + 2 * gift.z * gift.x
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1588178)
 }

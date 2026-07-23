@@ -96,7 +96,7 @@ impl DateTime
     internal func parseU8(buf: &string, eat: &u32)->u16 throw
     {
         let view: string = buf
-        let (year, eat0, ovf) = StrConv.parseU8(view)
+            let (year, eat0, ovf) = StrConv.parseU8(view)
         if ovf do
             throw SyntaxError{}
         eat += eat0
@@ -108,7 +108,7 @@ impl DateTime
     internal func parseU16(buf: &string, eat: &u32)->u16 throw
     {
         let view: string = buf
-        let (year, eat0, ovf) = StrConv.parseU16(view)
+            let (year, eat0, ovf) = StrConv.parseU16(view)
         if ovf do
             throw SyntaxError{}
         eat += eat0
@@ -323,9 +323,7 @@ impl Serialization.ISerialize for DateTime
         return false
     }
 
-    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) throw
-    {
-    }
+    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) throw {}
 }
 
 impl StrConv.IConvert for DateTime

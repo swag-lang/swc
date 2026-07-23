@@ -187,6 +187,6 @@ func day10A()
 
     total /= 2
 
-    //Console.print("total: ", total, " ")
+    // Console.print("total: ", total, " ")
     @assert(total == 6870)
 }

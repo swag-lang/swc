@@ -10,7 +10,7 @@ struct RuntimeValueIndexBox
 impl RuntimeValueIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> s32
+    mtd opIndex(index: s32)->s32
     {
         .reads += 1
         if index == 0 do
@@ -28,14 +28,14 @@ struct RuntimeRefIndexBox
 impl RuntimeRefIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: s32)->&s32
     {
         .reads += 1
         return &.buffer[index]
     }
 
     #[Swag.NoInline]
-    mtd const opIndex(index: s32) -> const &s32
+    mtd const opIndex(index: s32)->const &s32
     {
         return &.buffer[index]
     }
@@ -50,7 +50,7 @@ struct RuntimeMultiIndexBox
 impl RuntimeMultiIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(row: s32, col: s32) -> s32
+    mtd opIndex(row: s32, col: s32)->s32
     {
         .reads += 1
         return .values[row * 2 + col]
@@ -107,7 +107,7 @@ struct RuntimeIndexHolder
     var holder = RuntimeIndexHolder{
         value: RuntimeValueIndexBox{first: 1, second: 2},
         refs:  RuntimeRefIndexBox{buffer: [20, 30]},
-    }
+        }
 
     let nested = holder.value[1]
     let nestedRef = holder.refs[0]

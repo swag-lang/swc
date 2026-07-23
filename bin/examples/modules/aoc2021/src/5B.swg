@@ -58,6 +58,6 @@ func day5B()
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 17604)
 }

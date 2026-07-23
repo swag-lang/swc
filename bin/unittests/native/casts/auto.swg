@@ -37,7 +37,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
 
 #test
 {
-    func ret_u64() -> u64 { return 42 }
+    func ret_u64()->u64 { return 42 }
     var y: s32 = cast() ret_u64()
     @assert(y == 42)
 }
@@ -45,7 +45,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
 #test
 {
     #[Swag.Inline]
-    func ret_u64() -> u64 { return 42 }
+    func ret_u64()->u64 { return 42 }
     var y: s32 = cast() ret_u64()
     @assert(y == 42)
 }

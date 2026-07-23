@@ -31,7 +31,7 @@ func day9B()
 //#[Swag.PrintAsm]
 func day9BA()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     /*var x = 0
     for 100_000_000:

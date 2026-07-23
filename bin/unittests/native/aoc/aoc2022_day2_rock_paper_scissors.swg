@@ -8,12 +8,12 @@
 const MaxRounds = 64
 
 const SampleInput =
-"""A Y
+    """A Y
    B X
    C Z"""
 
 const CoverageInput =
-"""A X
+    """A X
    A Y
    A Z
    B X

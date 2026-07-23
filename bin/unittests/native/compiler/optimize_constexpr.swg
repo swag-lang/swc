@@ -67,7 +67,7 @@ func defaultPureArg(value: s32 = pureAdd(40, 2))->s32
 {
     const CompilerIfConstexpr = true
 }
-#else
+    #else
 {
     const CompilerIfConstexpr = false
 }

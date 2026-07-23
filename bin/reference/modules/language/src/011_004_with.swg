@@ -13,7 +13,7 @@ impl Point
     mtd setOne()
     {
         me.x, me.y = 1
-        // Set both coordinates to 1 on this Point.
+    // Set both coordinates to 1 on this Point.
     }
 }
 
@@ -26,12 +26,12 @@ namespace NameSpace
 {
     func inside0()
     {
-        // Example namespaced function.
+    // Example namespaced function.
     }
 
     func inside1()
     {
-        // Another namespaced function.
+    // Another namespaced function.
     }
 }
 

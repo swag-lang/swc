@@ -69,8 +69,8 @@ var A: #null [..] s32
 #test
 {
     var arr: [5] s32 = [10, 20, 30, 40, 50]
-    let slice = arr[ until 2]
-    let full  = arr[ to ]
+    let slice = arr[until 2]
+    let full  = arr[to]
 
     @assert(@countof(slice) == 2)
     @assert(slice[0] == 10)
@@ -98,8 +98,8 @@ var A: #null [..] s32
 {
     let str = "string"
     let a = str[1 to 3]
-    let b = str[2 to ]
-    let c = str[ until 2]
+    let b = str[2 to]
+    let c = str[until 2]
 
     @assert(a == "tri")
     @assert(b == "ring")
@@ -110,9 +110,9 @@ var A: #null [..] s32
 {
     let cstr: const cstring = cast(const cstring) @dataof("slice")
     let a = cstr[1 to 3]
-    let b = cstr[2 to ]
-    let c = cstr[ until 2]
-    let full = cstr[ to ]
+    let b = cstr[2 to]
+    let c = cstr[until 2]
+    let full = cstr[to]
 
     @assert(a == "lic")
     @assert(b == "ice")

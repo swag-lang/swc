@@ -171,21 +171,21 @@ impl JSon
         {
             .output.addBytes(value ? "true" : "false")
         }
-        #elif Reflection.isFloat(NT)
+            #elif Reflection.isFloat(NT)
         {
             StrConv.convertFloat(.output, value, .fmtFloat)
         }
-        #elif Reflection.isInteger(NT)
+            #elif Reflection.isInteger(NT)
         {
             StrConv.convertInt(.output, value, .fmtInt)
         }
-        #elif Reflection.isString(NT)
+            #elif Reflection.isString(NT)
         {
             .output.addNative('"''u8)
             .output.addBytes(value)
             .output.addNative('"''u8)
         }
-        #else
+            #else
         {
             #error("invalid type")
         }

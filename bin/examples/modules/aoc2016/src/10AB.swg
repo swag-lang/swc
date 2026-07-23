@@ -132,7 +132,7 @@ internal func execute(lines: Array'String)
 
 func day10AB()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
     let lines    = assume File.readAllLines(dataPath)

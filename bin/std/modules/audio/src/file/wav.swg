@@ -12,7 +12,7 @@ struct ChunkHeader
     #[Swag.ConstExpr]
     func SND_WAV_FOURCC_MARKER(a, b, c, d: u32) => ((a << 24) | (b << 16) | (c << 8) | d)
 }
-#else
+    #else
 {
     #[Swag.ConstExpr]
     func SND_WAV_FOURCC_MARKER(a, b, c, d: u32) => (a | (b << 8) | (c << 16) | (d << 24))

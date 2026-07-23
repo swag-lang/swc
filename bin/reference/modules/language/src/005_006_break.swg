@@ -125,7 +125,7 @@ after that labeled statement.
 #test
 {
     #scope(Up)
-    for 10
+        for 10
     {
         for 10
         {

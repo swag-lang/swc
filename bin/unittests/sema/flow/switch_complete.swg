@@ -1,6 +1,7 @@
 #global private
 
-enum Color {
+enum Color
+{
     Red,
     Green,
     Blue
@@ -12,12 +13,12 @@ func semaTest001()
     #[Swag.Complete]
     switch (c)
     {
-        case Color.Red:
-            break
-        case Color.Green:
-            break
-        case Color.Blue:
-            break
+    case Color.Red:
+        break
+    case Color.Green:
+        break
+    case Color.Blue:
+        break
     }
 }
 
@@ -27,11 +28,11 @@ func semaTest002()
     #[Swag.Complete]
     switch (c)
     {
-        case Color.Blue:
-            break
-        case Color.Red:
-            break
-        case Color.Green:
-            break
+    case Color.Blue:
+        break
+    case Color.Red:
+        break
+    case Color.Green:
+        break
     }
 }

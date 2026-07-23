@@ -14,7 +14,7 @@ func semaTest001()
 func semaTest002()
 {
     #scope(Outer)
-    for 10
+        for 10
     {
         break to Outer
     }

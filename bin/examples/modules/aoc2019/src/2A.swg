@@ -70,6 +70,6 @@ func day2A()
         ip += 4
     }
 
-    //Console.print("total: ", op[0])
+    // Console.print("total: ", op[0])
     @assert(op[0] == 5534943)
 }

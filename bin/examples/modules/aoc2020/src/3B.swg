@@ -37,6 +37,6 @@ func day3B()
         total *= count
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 3584591857)
 }

@@ -98,6 +98,6 @@ func day9A()
         }
     }
 
-    //Console.print("total: ", total, " ")
+    // Console.print("total: ", total, " ")
     @assert(total == 2105961943)
 }

@@ -67,7 +67,7 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
 #test
 {
     const entranceSheet: [10] string =
-    [
+        [
         "L68",
         "L30",
         "R48",
@@ -78,7 +78,7 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
         "L99",
         "R14",
         "L82",
-    ]
+        ]
 
     let entranceAudit = auditRotations(entranceSheet, 50)
 
@@ -88,14 +88,14 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
     @assert(entranceAudit.longestRotation == 99)
 
     const cashRoomSheet: [6] string =
-    [
+        [
         "R50",
         "L1",
         "R1",
         "R99",
         "L49",
         "L50",
-    ]
+        ]
 
     let cashRoomAudit = auditRotations(cashRoomSheet, 50)
 

@@ -84,7 +84,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 #test
 {
     const samplePlan: [10] string =
-    [
+        [
         "..@@.@@@@.",
         "@@@.@.@.@@",
         "@@@@@.@.@@",
@@ -95,7 +95,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
         "@.@@@.@@@@",
         ".@@@@@@@@.",
         "@.@.@@@.@.",
-    ]
+        ]
 
     let sampleAudit = auditForkliftAccess(samplePlan)
 
@@ -109,14 +109,14 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
     @assert(countAdjacentRolls(samplePlan, 5, 4) == 7'u32)
 
     const loadingBayPlan: [6] string =
-    [
+        [
         "..@...",
         ".@@@..",
         "@@.@@.",
         ".@@@@.",
         "..@@..",
         "...@..",
-    ]
+        ]
 
     let loadingBayAudit = auditForkliftAccess(loadingBayPlan)
 

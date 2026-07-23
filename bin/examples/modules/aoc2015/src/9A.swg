@@ -26,7 +26,7 @@ using Core
 
 func day9A()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
     let lines    = assume File.readAllLines(dataPath)
@@ -61,6 +61,6 @@ func day9A()
             break
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 141)
 }

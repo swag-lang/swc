@@ -93,9 +93,7 @@ struct GeneratedOnlyIgnoredFields
 }
 
 #[Swag.Operators(opEquals, opCompare)]
-struct GeneratedEmpty
-{
-}
+struct GeneratedEmpty {}
 
 #test
 {

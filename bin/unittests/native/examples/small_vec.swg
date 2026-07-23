@@ -25,7 +25,7 @@ struct SmallVec
 
 impl SmallVec
 {
-    mtd const isInline() -> bool
+    mtd const isInline()->bool
     {
         return .capacity <= InlineCap
     }
@@ -64,7 +64,7 @@ impl SmallVec
         .count += 1
     }
 
-    mtd const at(i: u64) -> s32
+    mtd const at(i: u64)->s32
     {
         @assert(i < .count)
         return .ptr[i]
@@ -109,7 +109,7 @@ impl SmallVec
         // .ptr still references the source's inline storage -- fix it.
         if .isInline() do
             .ptr = cast([*] s32) &.inline[0]
-        // Heap: ptr already points at the heap buffer, nothing to fix.
+    // Heap: ptr already points at the heap buffer, nothing to fix.
     }
 
     // Build from an initializer count: `var v: SmallVec = 3` fills with zeros.
@@ -324,7 +324,7 @@ impl SmallVec
     @assert(e.at(0) == 1)
     @assert(e.at(3) == 4)
 
-    // All variables drop at end-of-scope: d frees heap, e frees nothing (inline).
+// All variables drop at end-of-scope: d frees heap, e frees nothing (inline).
 }
 
 // ---------------------------------------------------------------------------

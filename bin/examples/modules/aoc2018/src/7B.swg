@@ -93,7 +93,7 @@ func day7B()
             current.remove(c)
             if c == last
             {
-                //Console.print("total: ", total)
+                // Console.print("total: ", total)
                 @assert(total == 1050)
                 return
             }
@@ -108,7 +108,7 @@ func day7B()
             }
         }
 
-        //Slice.sort(avail.toSlice(), bigFirst: true)
+        // Slice.sort(avail.toSlice(), bigFirst: true)
         for &w1 in workers
         {
             if w1.val or avail.isEmpty() do

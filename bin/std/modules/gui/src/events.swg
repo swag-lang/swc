@@ -1,9 +1,7 @@
 #global public
 using Core
 
-interface IEvent
-{
-}
+interface IEvent {}
 
 struct Event
 {
@@ -22,9 +20,7 @@ impl Event
     }
 }
 
-impl IEvent for Event
-{
-}
+impl IEvent for Event {}
 
 struct CommandEvent
 {
@@ -33,9 +29,7 @@ struct CommandEvent
     source:         #null *Wnd
 }
 
-impl IEvent for CommandEvent
-{
-}
+impl IEvent for CommandEvent {}
 
 struct CommandStateEvent
 {
@@ -67,7 +61,7 @@ struct CommandStateEvent
         ApplyCommandState
     }
 
-    using base:        Event
+        using base:        Event
     kind:              Kind
     id:                WndId = undefined
     source:            #null *Wnd
@@ -84,9 +78,7 @@ struct CommandStateEvent
     hidden:            bool
 }
 
-impl IEvent for CommandStateEvent
-{
-}
+impl IEvent for CommandStateEvent {}
 
 struct TimerEvent
 {
@@ -94,9 +86,7 @@ struct TimerEvent
     timer:          *Timer = undefined
 }
 
-impl IEvent for TimerEvent
-{
-}
+impl IEvent for TimerEvent {}
 
 struct FrameEvent
 {
@@ -104,18 +94,14 @@ struct FrameEvent
     firstFrame:     bool
 }
 
-impl IEvent for FrameEvent
-{
-}
+impl IEvent for FrameEvent {}
 
 struct CreateEvent
 {
     using base: Event
 }
 
-impl IEvent for CreateEvent
-{
-}
+impl IEvent for CreateEvent {}
 
 struct StateEvent
 {
@@ -132,22 +118,18 @@ struct StateEvent
         Disable
     }
 
-    using base:     Event
+        using base:     Event
     kind:           Kind
 }
 
-impl IEvent for StateEvent
-{
-}
+impl IEvent for StateEvent {}
 
 struct DestroyEvent
 {
     using base: Event
 }
 
-impl IEvent for DestroyEvent
-{
-}
+impl IEvent for DestroyEvent {}
 
 struct PaintEvent
 {
@@ -158,14 +140,12 @@ struct PaintEvent
         PostPaint
     }
 
-    using base:     Event
+        using base:     Event
     kind:           Kind = .Paint
     bc:             *PaintContext = undefined
 }
 
-impl IEvent for PaintEvent
-{
-}
+impl IEvent for PaintEvent {}
 
 struct ResizeEvent
 {
@@ -173,9 +153,7 @@ struct ResizeEvent
     oldSize:        Math.Point
 }
 
-impl IEvent for ResizeEvent
-{
-}
+impl IEvent for ResizeEvent {}
 
 struct MoveEvent
 {
@@ -183,9 +161,7 @@ struct MoveEvent
     oldPos:         Math.Point
 }
 
-impl IEvent for MoveEvent
-{
-}
+impl IEvent for MoveEvent {}
 
 struct KeyEvent
 {
@@ -196,16 +172,14 @@ struct KeyEvent
         Rune
     }
 
-    using base:     Event
+        using base:     Event
     kind:           Kind
     modifiers:      Input.KeyModifiers = Zero
     key:            Input.Key = undefined
     char:           rune
 }
 
-impl IEvent for KeyEvent
-{
-}
+impl IEvent for KeyEvent {}
 
 struct MouseEvent
 {
@@ -222,7 +196,7 @@ struct MouseEvent
         MouseSetCursor
     }
 
-    using base:     Event
+        using base:     Event
     kind:           Kind
     button:         Input.MouseButton = undefined
     surfacePos:     Math.Point
@@ -230,9 +204,7 @@ struct MouseEvent
     modifiers:      Input.KeyModifiers = Zero
 }
 
-impl IEvent for MouseEvent
-{
-}
+impl IEvent for MouseEvent {}
 
 struct QuitEvent
 {
@@ -240,9 +212,7 @@ struct QuitEvent
     quitCode:       s32
 }
 
-impl IEvent for QuitEvent
-{
-}
+impl IEvent for QuitEvent {}
 
 struct FocusEvent
 {
@@ -254,15 +224,13 @@ struct FocusEvent
         CanKillFocus
     }
 
-    using base:        Event
+        using base:        Event
     kind:              Kind
     other:             #null *Wnd
     canChangeFocus     = true
 }
 
-impl IEvent for FocusEvent
-{
-}
+impl IEvent for FocusEvent {}
 
 struct SysUserEvent
 {
@@ -272,9 +240,7 @@ struct SysUserEvent
     param1:         u64
 }
 
-impl IEvent for SysUserEvent
-{
-}
+impl IEvent for SysUserEvent {}
 
 struct SysCommandEvent
 {
@@ -287,13 +253,11 @@ struct SysCommandEvent
         User
     }
 
-    using base:     Event
+        using base:     Event
     kind:           Kind
 }
 
-impl IEvent for SysCommandEvent
-{
-}
+impl IEvent for SysCommandEvent {}
 
 struct ThemeEvent
 {
@@ -302,9 +266,7 @@ struct ThemeEvent
     parent:         #null *ThemeStyle
 }
 
-impl IEvent for ThemeEvent
-{
-}
+impl IEvent for ThemeEvent {}
 
 struct SerializeStateEvent
 {
@@ -312,9 +274,7 @@ struct SerializeStateEvent
     ser:            *Serialization.Serializer = undefined
 }
 
-impl IEvent for SerializeStateEvent
-{
-}
+impl IEvent for SerializeStateEvent {}
 
 struct NotifyEvent
 {
@@ -330,15 +290,11 @@ struct NotifyEvent
     from:         #null *Wnd
 }
 
-impl IEvent for NotifyEvent
-{
-}
+impl IEvent for NotifyEvent {}
 
 struct InvalidateEvent
 {
     using base: Event
 }
 
-impl IEvent for InvalidateEvent
-{
-}
+impl IEvent for InvalidateEvent {}

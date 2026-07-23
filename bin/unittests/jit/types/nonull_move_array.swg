@@ -7,9 +7,7 @@ struct JitNonNullMoveArrayDefault
 
 impl JitNonNullMoveArrayDefault
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 struct JitNonNullMoveUndefinedEscape
@@ -19,9 +17,7 @@ struct JitNonNullMoveUndefinedEscape
 
 impl JitNonNullMoveUndefinedEscape
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 alias JitNonNullMoveArrayElementAlias = JitNonNullMoveArrayDefault

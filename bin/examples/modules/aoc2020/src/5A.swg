@@ -79,7 +79,7 @@ func day5A0()
         total = Math.max(total, row0 * 8 + col0)
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 838)
 }
 

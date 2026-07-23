@@ -23,21 +23,21 @@ func comboOperand(state: VmState, operand: u8)->u64
 {
     switch operand
     {
-        case 0, 1, 2, 3:
-            return cast(u64) operand
+    case 0, 1, 2, 3:
+        return cast(u64) operand
 
-        case 4:
-            return state.regA
+    case 4:
+        return state.regA
 
-        case 5:
-            return state.regB
+    case 5:
+        return state.regB
 
-        case 6:
-            return state.regC
+    case 6:
+        return state.regC
 
-        default:
-            @assert(false)
-            return 0'u64
+    default:
+        @assert(false)
+        return 0'u64
     }
 }
 
@@ -55,46 +55,46 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
 
         switch opcode
         {
-            case 0:
-                state.regA >>= cast(u32) comboOperand(state, operand)
-                break
+        case 0:
+            state.regA >>= cast(u32) comboOperand(state, operand)
+            break
 
-            case 1:
-                state.regB ^= cast(u64) operand
-                break
+        case 1:
+            state.regB ^= cast(u64) operand
+            break
 
-            case 2:
-                state.regB = comboOperand(state, operand) % 8'u64
-                break
+        case 2:
+            state.regB = comboOperand(state, operand) % 8'u64
+            break
 
-            case 3:
-                if state.regA != 0'u64
-                {
-                    ip = cast(u32) operand
-                    jumped = true
-                }
-                break
+        case 3:
+            if state.regA != 0'u64
+            {
+                ip = cast(u32) operand
+                jumped = true
+            }
+            break
 
-            case 4:
-                state.regB ^= state.regC
-                break
+        case 4:
+            state.regB ^= state.regC
+            break
 
-            case 5:
-                result.outputChecksum = result.outputChecksum * 10'u64 + comboOperand(state, operand) % 8'u64
-                result.outputCount += 1
-                break
+        case 5:
+            result.outputChecksum = result.outputChecksum * 10'u64 + comboOperand(state, operand) % 8'u64
+            result.outputCount += 1
+            break
 
-            case 6:
-                state.regB = state.regA >> cast(u32) comboOperand(state, operand)
-                break
+        case 6:
+            state.regB = state.regA >> cast(u32) comboOperand(state, operand)
+            break
 
-            case 7:
-                state.regC = state.regA >> cast(u32) comboOperand(state, operand)
-                break
+        case 7:
+            state.regC = state.regA >> cast(u32) comboOperand(state, operand)
+            break
 
-            default:
-                @assert(false)
-                break
+        default:
+            @assert(false)
+            break
         }
 
         if !jumped do

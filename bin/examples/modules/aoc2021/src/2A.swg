@@ -53,6 +53,6 @@ func day2A()
         }
     }
 
-    //Console.print("total: ", h*d)
+    // Console.print("total: ", h*d)
     @assert(h * d == 1714680)
 }

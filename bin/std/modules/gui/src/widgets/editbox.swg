@@ -63,8 +63,8 @@ struct EditBox
     {
         originalText: String // Text captured when focus was gained
 
-        // Numeric bounds used when inputMode is S64/U64/X64/F64.
-        using minMax: union
+            // Numeric bounds used when inputMode is S64/U64/X64/F64.
+            using minMax: union
         {
             minMaxS64:     { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
             minMaxU64:     { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
@@ -922,7 +922,7 @@ private impl EditBox
         if !sel do
             return sel
         let str = @mkstring(.text.buffer, sel)
-        let (?, eat) = Utf8.decodeLastRune(str)
+            let (?, eat) = Utf8.decodeLastRune(str)
         return sel - eat
     }
 
@@ -932,7 +932,7 @@ private impl EditBox
         if sel == .text.length do
             return sel
         let str = @mkstring(.text.buffer + sel, .text.length - sel)
-        let (?, eat) = Utf8.decodeRune(str)
+            let (?, eat) = Utf8.decodeRune(str)
         return sel + eat
     }
 

@@ -45,6 +45,6 @@ func day3A()
         set.add(pos.v)
     }
 
-    //Console.print("total: ", set.count)
+    // Console.print("total: ", set.count)
     @assert(set.count == 2572)
 }

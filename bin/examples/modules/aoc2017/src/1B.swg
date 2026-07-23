@@ -28,6 +28,6 @@ func day1B()
             total += text[i] - '0'
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1292)
 }

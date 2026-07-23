@@ -65,6 +65,6 @@ func day4A()
         total += score / 2
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 23673)
 }

@@ -40,22 +40,22 @@ impl Vector2
             .x += other.x
             .y += other.y
         }
-        #elif op == "-="
+            #elif op == "-="
         {
             .x -= other.x
             .y -= other.y
         }
-        #elif op == "*="
+            #elif op == "*="
         {
             .x *= other.x
             .y *= other.y
         }
-        #elif op == "/="
+            #elif op == "/="
         {
             .x /= other.x
             .y /= other.y
         }
-        #else do
+            #else do
             #error("unsupported assign operation [[" ++ op ++ "]]")
     }
 
@@ -69,22 +69,22 @@ impl Vector2
             .x += value
             .y += value
         }
-        #elif op == "-="
+            #elif op == "-="
         {
             .x -= value
             .y -= value
         }
-        #elif op == "*="
+            #elif op == "*="
         {
             .x *= value
             .y *= value
         }
-        #elif op == "/="
+            #elif op == "/="
         {
             .x /= value
             .y /= value
         }
-        #else do
+            #else do
             #error("unsupported assign operation [[" ++ op ++ "]]")
     }
 
@@ -95,13 +95,13 @@ impl Vector2
     {
         #if op == "+" do
             return Vector2{.x + other.x, .y + other.y}
-        #elif op == "-" do
+            #elif op == "-" do
             return Vector2{.x - other.x, .y - other.y}
-        #elif op == "*" do
+            #elif op == "*" do
             return Vector2{.x * other.x, .y * other.y}
-        #elif op == "/" do
+            #elif op == "/" do
             return Vector2{.x / other.x, .y / other.y}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -112,13 +112,13 @@ impl Vector2
     {
         #if op == "+" do
             return Vector2{.x + value, .y + value}
-        #elif op == "-" do
+            #elif op == "-" do
             return Vector2{.x - value, .y - value}
-        #elif op == "*" do
+            #elif op == "*" do
             return Vector2{.x * value, .y * value}
-        #elif op == "/" do
+            #elif op == "/" do
             return Vector2{.x / value, .y / value}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -129,7 +129,7 @@ impl Vector2
     {
         #if op == "-" do
             return Vector2{-.x, -.y}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 

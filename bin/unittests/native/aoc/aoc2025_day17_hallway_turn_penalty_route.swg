@@ -31,12 +31,12 @@ func forwardX(x: s32, direction: u32)->s32
 {
     switch direction
     {
-        case 0:
-            return x + 1
-        case 2:
-            return x - 1
-        default:
-            return x
+    case 0:
+        return x + 1
+    case 2:
+        return x - 1
+    default:
+        return x
     }
 }
 
@@ -44,12 +44,12 @@ func forwardY(y: s32, direction: u32)->s32
 {
     switch direction
     {
-        case 1:
-            return y + 1
-        case 3:
-            return y - 1
-        default:
-            return y
+    case 1:
+        return y + 1
+    case 3:
+        return y - 1
+    default:
+        return y
     }
 }
 
@@ -185,13 +185,13 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 #test
 {
     const sampleHall: [5] string =
-    [
+        [
         "#######",
         "#....E#",
         "#.#.#.#",
         "#S....#",
         "#######",
-    ]
+        ]
 
     let sampleRoute = analyzeRoute(sampleHall)
 
@@ -199,13 +199,13 @@ func analyzeRoute(layout: const [..] string)->RouteReport
     @assert(sampleRoute.stepCount == 6'u32)
 
     const serviceHall: [5] string =
-    [
+        [
         "#########",
         "#S#....E#",
         "#.#.###.#",
         "#...#...#",
         "#########",
-    ]
+        ]
 
     let serviceRoute = analyzeRoute(serviceHall)
 

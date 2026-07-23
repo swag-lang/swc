@@ -26,7 +26,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     var s: Pair
     var a: s32
     var b: bool
-    (a, b) = s
+        (a, b) = s
     @assert(a == 0)
     @assert(!b)
 }
@@ -35,7 +35,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
     var s: Pair
     var a: s32
-    (a, ?) = s
+        (a, ?) = s
     @assert(a == 0)
 }
 
@@ -43,7 +43,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
     var first:  u32
     var second: u32
-    (first, second) = nativeMakeAssignDestructRet(11, 22)
+        (first, second) = nativeMakeAssignDestructRet(11, 22)
     @assert(first == 11)
     @assert(second == 22)
 }
@@ -51,7 +51,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 #test
 {
     var second: u32
-    (?, second) = nativeMakeAssignDestructRet(33, 44)
+        (?, second) = nativeMakeAssignDestructRet(33, 44)
     @assert(second == 44)
 }
 
@@ -59,7 +59,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
     var first:  u32 = 7
     var second: u32
-    (first, second) = nativeMakeAssignDestructRet(first + 1, first + 2)
+        (first, second) = nativeMakeAssignDestructRet(first + 1, first + 2)
     @assert(first == 8)
     @assert(second == 9)
 }
@@ -68,7 +68,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
     var first:  u32
     var second: u32
-    (first, second) = nativeMakeAnonymousAssignDestructRet(55, 66)
+        (first, second) = nativeMakeAnonymousAssignDestructRet(55, 66)
     @assert(first == 55)
     @assert(second == 66)
 }
@@ -76,7 +76,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 #test
 {
     var second: u32
-    (?, second) = nativeMakeAnonymousAssignDestructRet(77, 88)
+        (?, second) = nativeMakeAnonymousAssignDestructRet(77, 88)
     @assert(second == 88)
 }
 
@@ -91,12 +91,12 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 
             var next = value
             var sum: u32
-            (next, sum) = read(value + 1)
+                (next, sum) = read(value + 1)
             return {next, sum + value}
         }
 
         var total: u32
-        (?, total) = read(1)
+            (?, total) = read(1)
         return total
     }
 
@@ -110,7 +110,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     func read(n: const [..] u32, s: u32)->{ next, sum: u32 }
     {
         var start = s
-        let (nc, nm) = {n[start], n[start + 1]}
+            let (nc, nm) = {n[start], n[start + 1]}
         start += 2
 
         if !nc
@@ -125,7 +125,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         for i in nc
         {
             var sum: u32
-            (start, sum) = read(n, start)
+                (start, sum) = read(n, start)
             childValues[i] = sum
         }
 
@@ -140,15 +140,15 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         return {start + nm, sum}
     }
 
-    let (nextLeaf, sumLeaf) = read(data[ to ], 2)
+        let (nextLeaf, sumLeaf) = read(data[to], 2)
     @assert(nextLeaf == 7)
     @assert(sumLeaf == 33)
 
-    let (nextBranch, sumBranch) = read(data[ to ], 7)
+        let (nextBranch, sumBranch) = read(data[to], 7)
     @assert(nextBranch == 13)
     @assert(sumBranch == 0)
 
     var total: u32
-    (?, total) = read(data[ to ], 0)
+        (?, total) = read(data[to], 0)
     @assert(total == 66)
 }

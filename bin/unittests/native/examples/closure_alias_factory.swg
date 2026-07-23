@@ -74,11 +74,11 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 #test
 {
     const growthPlan: SubscriptionPlan =
-    {
+        {
         code:               "growth",
         baseSeatPriceCents: 2400,
         includedSeats:      3,
-    }
+        }
 
     let supportFeeRule: SupportFeeRule = func(needsPrioritySupport: bool)->s32
     {

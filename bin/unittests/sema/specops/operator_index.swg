@@ -8,7 +8,7 @@ struct ValueIndexBox
 
 impl ValueIndexBox
 {
-    mtd opIndex(index: s32) -> s32
+    mtd opIndex(index: s32)->s32
     {
         if index == 0 do
             return .first
@@ -23,12 +23,12 @@ struct RefIndexBox
 
 impl RefIndexBox
 {
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: s32)->&s32
     {
         return &.buffer[index]
     }
 
-    mtd const opIndex(index: s32) -> const &s32
+    mtd const opIndex(index: s32)->const &s32
     {
         return &.buffer[index]
     }
@@ -41,7 +41,7 @@ struct MultiIndexBox
 
 impl MultiIndexBox
 {
-    mtd opIndex(row: s32, col: s32) -> s32
+    mtd opIndex(row: s32, col: s32)->s32
     {
         return .values[row * 2 + col]
     }

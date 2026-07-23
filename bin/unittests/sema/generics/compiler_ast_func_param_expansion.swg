@@ -1,8 +1,6 @@
 #global private
 
-struct(T) Signal
-{
-}
+struct(T) Signal {}
 
 impl Signal
 {

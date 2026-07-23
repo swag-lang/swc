@@ -70,14 +70,10 @@ func deferBreakToScopeAndDrop()->DeferDropInfo
 }
 
 #[Swag.NoInline]
-func consumeDropTracker(value: DeferDropTracker)
-{
-}
+func consumeDropTracker(value: DeferDropTracker) {}
 
 #[Swag.NoInline]
-func consumeDropHolder(value: DeferDropHolder)
-{
-}
+func consumeDropHolder(value: DeferDropHolder) {}
 
 #[Swag.NoInline]
 func deferSkippedAddressBranch()->bool
@@ -86,9 +82,7 @@ func deferSkippedAddressBranch()->bool
 }
 
 #[Swag.NoInline]
-func consumePointerForDefer(value: *u8)
-{
-}
+func consumePointerForDefer(value: *u8) {}
 
 func deferParameterDropInfo()->DeferDropInfo
 {
@@ -438,23 +432,23 @@ func deferReturnDropInfo()->DeferDropInfo
         resetDeferTrace()
         switch v
         {
-            case 1:
-                defer appendDeferTrace(1)
-                appendDeferTrace(8)
-                fallthrough
+        case 1:
+            defer appendDeferTrace(1)
+            appendDeferTrace(8)
+            fallthrough
 
-            case 2:
-                defer appendDeferTrace(2)
-                appendDeferTrace(9)
-                break
+        case 2:
+            defer appendDeferTrace(2)
+            appendDeferTrace(9)
+            break
 
-            case 3:
-                defer appendDeferTrace(3)
-                appendDeferTrace(4)
-                break
+        case 3:
+            defer appendDeferTrace(3)
+            appendDeferTrace(4)
+            break
 
-            default:
-                appendDeferTrace(5)
+        default:
+            appendDeferTrace(5)
         }
 
         return DeferTrace

@@ -5,4 +5,3 @@
 #assert(#command == Swag.CompilerCommand.Test)
 #assert(#command != Swag.CompilerCommand.Format)
 #assert(#command != Swag.CompilerCommand.Build)
-

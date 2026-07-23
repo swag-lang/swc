@@ -232,7 +232,7 @@ Bindings and control-flow replacements live in the same '#inject'.
         // Define a scope label used as the break target
         #scope(ScopeTarget)
 
-        for count
+            for count
         {
             for count
             {
@@ -266,7 +266,7 @@ Remap both 'break' and 'continue' to influence outer/inner loop flow.
         // Label for controlling the outer loop
         #scope(Outer)
 
-        for count
+            for count
         {
             for count
             {

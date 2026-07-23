@@ -57,7 +57,7 @@ func day4A()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    Slice.sort(lines[ to ], func(x, y)->s32
+    Slice.sort(lines[to], func(x, y)->s32
     {
         let val0 = assume Time.DateTime.parse(x[1 to 16])
         let val1 = assume Time.DateTime.parse(y[1 to 16])
@@ -121,6 +121,6 @@ func day4A()
         }
     }
 
-    //Console.print("total: ", guard*min)
+    // Console.print("total: ", guard*min)
     @assert(guard * min == 106710)
 }

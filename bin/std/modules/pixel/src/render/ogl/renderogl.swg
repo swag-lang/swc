@@ -407,7 +407,7 @@ impl RenderOgl
             return
 
         glEnable(GL_SCISSOR_TEST)
-        let (?, h) = .getTargetSize()
+            let (?, h) = .getTargetSize()
         glScissor(cast(GLint) rect.x, cast(GLint) (h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
     }
 
@@ -424,7 +424,7 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
     {
-        //@print(cast(cstring) (Message));
+    // @print(cast(cstring) (Message));
     }
 
     // First init
@@ -440,9 +440,9 @@ impl RenderOgl
         glInitExtensions()
         .createShaders()
 
-        //glEnable(GL_DEBUG_OUTPUT);
-        //glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        //glDebugMessageCallback(&GLDebugMessageCallback, null);
+        // glEnable(GL_DEBUG_OUTPUT);
+        // glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        // glDebugMessageCallback(&GLDebugMessageCallback, null);
 
         glGenBuffers(1, &.vertexbuffer)
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
@@ -851,7 +851,7 @@ impl RenderOgl
 
         case Clear:
             let params = &cmd.clear
-            let (a, r, g, b) = params.color.toArgbf()
+                let (a, r, g, b) = params.color.toArgbf()
             glClearColor(r, g, b, a)
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
@@ -1182,7 +1182,7 @@ impl RenderOgl
             return
         }
 
-        let (width, height) = .getTargetSize()
+            let (width, height) = .getTargetSize()
         if width <= 0 or height <= 0 do
             return
 

@@ -7,7 +7,7 @@
 // memoisation with open-addressing hash map, with blocks, recursive DP.
 
 const SampleInput =
-"""029A
+    """029A
 980A
 179A
 456A
@@ -69,7 +69,7 @@ const DirGapC: s32 = 0
 // Map direction move to directional key index
 // Switch inside inline exercises switch codegen in inline context
 #[Swag.Inline]
-func dirKeyIdx(dr: s32, dc: s32) -> u32
+func dirKeyIdx(dr: s32, dc: s32)->u32
 {
     if dr < 0 do return 0  // ^
     if dr > 0 do return 3  // v
@@ -91,7 +91,7 @@ struct Memo
     used:   u32
 }
 
-func memoInit() -> Memo
+func memoInit()->Memo
 {
     var m: Memo
     m.keys  = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
@@ -108,7 +108,7 @@ func memoFree(m: *Memo)
     if m.alive do @free(m.alive)
 }
 
-func memoProbe(m: *Memo, key: u64) -> u32
+func memoProbe(m: *Memo, key: u64)->u32
 {
     var h = key ^ (key >> 16)
     h *= 0x45d9f3b
@@ -124,7 +124,7 @@ func memoProbe(m: *Memo, key: u64) -> u32
     return 0
 }
 
-func memoGet(m: *Memo, key: u64, found: *bool) -> u64
+func memoGet(m: *Memo, key: u64, found: *bool)->u64
 {
     let idx = memoProbe(m, key)
     if m.alive[idx] and m.keys[idx] == key
@@ -150,7 +150,7 @@ func memoPut(m: *Memo, key: u64, val: u64)
 
 // Pack (fromIdx, toIdx, depth, isNumPad) into a u64 key
 #[Swag.Inline]
-func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool) -> u64
+func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool)->u64
 {
     return cast(u64) fromIdx | (cast(u64) dstIdx << 8) | (cast(u64) depth << 16) | (cast(u64) (isNum ? 1'u32 : 0'u32) << 24)
 }
@@ -158,7 +158,7 @@ func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool) -> u64
 // Recursive cost: minimal human presses to go from key `from` to key `to`
 // and press `to`, at `depth` levels of directional robots remaining.
 // isNum = true for first robot (numeric pad), false for directional pad.
-func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo) -> u64
+func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
 {
     let key = packKey(from, dst, depth, isNum)
     var found: bool
@@ -283,7 +283,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo) -> u64
 // ---------------------------------------------------------------------------
 
 // Map a character to numeric keypad index
-func charToNumIdx(ch: u8) -> u32
+func charToNumIdx(ch: u8)->u32
 {
     if ch >= '0' and ch <= '9' do
         return cast(u32) (ch - '0')
@@ -291,7 +291,7 @@ func charToNumIdx(ch: u8) -> u32
 }
 
 // Extract numeric value from a code (e.g. "029A" → 29)
-func codeNumericValue(code: const [..] u8, codeLen: u32) -> u64
+func codeNumericValue(code: const [..] u8, codeLen: u32)->u64
 {
     var val: u64
     for i in codeLen
@@ -305,7 +305,7 @@ func codeNumericValue(code: const [..] u8, codeLen: u32) -> u64
     return val
 }
 
-func solveCode(code: const [..] u8, codeLen: u32, depth: u32, memo: *Memo) -> u64
+func solveCode(code: const [..] u8, codeLen: u32, depth: u32, memo: *Memo)->u64
 {
     var totalCost: u64
     var cur: u32 = 10  // start at 'A' on numeric pad
@@ -326,7 +326,7 @@ struct SolveResult
     part2: u64
 }
 
-func solve(text: string) -> SolveResult
+func solve(text: string)->SolveResult
 {
     var memo = memoInit()
     defer memoFree(&memo)

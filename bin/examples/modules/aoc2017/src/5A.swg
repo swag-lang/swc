@@ -17,10 +17,10 @@ using Core
 //#[Swag.PrintBc]
 func day5A()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
     let lines    = assume File.readAllLines(dataPath)
-    var jumps    = Slice.map(lines[ to ], func(x) => assume StrConv.toS32(x))
+    var jumps    = Slice.map(lines[to], func(x) => assume StrConv.toS32(x))
 
     var it, step = 0
     while it < jumps.count

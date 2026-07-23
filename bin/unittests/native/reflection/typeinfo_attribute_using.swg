@@ -1,9 +1,7 @@
 #global private
 using Swag
 
-struct AttributeUsingScope
-{
-}
+struct AttributeUsingScope {}
 
 impl AttributeUsingScope
 {

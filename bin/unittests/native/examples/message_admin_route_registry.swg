@@ -165,7 +165,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             permission: cast(string) notnull attribute.params[2].value,
             auditCode: cast(string) notnull attribute.params[3].value,
             critical: cast(bool) attribute.params[4].value,
-        }
+            }
         g_AdminRouteCount += 1
     }
 }
@@ -472,24 +472,24 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 #test
 {
     let listReq: AdminRouteRequest_listTenantUsers =
-    {
+        {
         tenantId: 42,
         includeSuspended: true,
-    }
+        }
 
     let rotateReq: AdminRouteRequest_rotateTenantApiKeys =
-    {
+        {
         tenantId: 12,
         actorEmail: "ops@tenant.test",
         forceRevoke: true,
-    }
+        }
 
     let deliveryReq: AdminRouteRequest_setInvoiceDelivery =
-    {
+        {
         tenantId: 7,
         billingEmail: "billing@tenant.test",
         sendCopyToOps: true,
-    }
+        }
 
     @assert(invokeAdminRoute_listTenantUsers(listReq) == 47)
     @assert(invokeAdminRoute_rotateTenantApiKeys(rotateReq))
@@ -506,10 +506,10 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     RebuildLastIndex = ""
 
     let rebuildReq: AdminRouteRequest_rebuildSearchCache =
-    {
+        {
         indexName: "catalog-search",
         full: true,
-    }
+        }
 
     invokeAdminRoute_rebuildSearchCache(rebuildReq)
 

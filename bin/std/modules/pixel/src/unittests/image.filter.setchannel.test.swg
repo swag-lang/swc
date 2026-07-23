@@ -5,7 +5,7 @@ using Swag, Core
 {
     const bgraPixels = [
         10'u8, 20'u8, 30'u8, 40'u8,      60'u8, 90'u8, 120'u8, 150'u8,
-    ]
+        ]
 
     var alphaImg = makeImage(2, 1, .BGRA8, bgraPixels)
     alphaImg.setAlpha(200)
@@ -21,7 +21,7 @@ using Swag, Core
 
     const bgrPixels = [
         90'u8, 50'u8, 10'u8,
-    ]
+        ]
 
     var minImg = makeImage(1, 1, .BGR8, bgrPixels)
     minImg.setChannel(.Red, .MinRGB)

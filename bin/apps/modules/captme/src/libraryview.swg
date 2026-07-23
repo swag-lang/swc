@@ -154,7 +154,7 @@ impl IWnd for LibraryView
         var x = clientRect.x
         var y = clientRect.y
 
-        let (w, h) = .getPreviewSize()
+            let (w, h) = .getPreviewSize()
         if g_DirtyList
         {
             g_DirtyList = false

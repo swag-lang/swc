@@ -7,7 +7,7 @@
 // bool cast from nested inline return, DP with fixed arrays, string slicing.
 
 const SampleInput =
-"""r, wr, b, g, bwu, rb, gb, br
+    """r, wr, b, g, bwu, rb, gb, br
 
 brwrr
 bggr
@@ -42,11 +42,11 @@ struct PatternList
 impl Pattern
 {
     #[Swag.Inline]
-    mtd byteAt(i: u32) -> u8 { return me.bytes[i] }
+    mtd byteAt(i: u32)->u8 { return me.bytes[i] }
 
     // Nested inline: matchAt calls byteAt
     #[Swag.Inline]
-    mtd matchAt(design: const [..] u8, pos: u32) -> bool
+    mtd matchAt(design: const [..] u8, pos: u32)->bool
     {
         if pos + me.len > @countof(design) do
             return false
@@ -78,7 +78,7 @@ struct DesignList
 impl Design
 {
     #[Swag.Inline]
-    mtd asSlice() -> const [..] u8
+    mtd asSlice()->const [..] u8
     {
         return @mkslice(&me.bytes[0], cast(u64) me.len)
     }
@@ -88,7 +88,7 @@ impl Design
 // Parsing
 // ---------------------------------------------------------------------------
 
-func parseInput(text: string) -> { patterns: PatternList, designs: DesignList }
+func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
 {
     var result: retval
     let bytes = cast(const [..] u8) text
@@ -182,7 +182,7 @@ func parseInput(text: string) -> { patterns: PatternList, designs: DesignList }
 // DP: count ways to form a design from patterns
 // ---------------------------------------------------------------------------
 
-func countWays(design: const [..] u8, designLen: u32, pats: *PatternList) -> u64
+func countWays(design: const [..] u8, designLen: u32, pats: *PatternList)->u64
 {
     // dp[i] = number of ways to form design[0..i]
     var dp: [MaxDesignLen + 1] u64
@@ -215,7 +215,7 @@ struct SolveResult
     totalWays: u64
 }
 
-func solve(text: string) -> SolveResult
+func solve(text: string)->SolveResult
 {
     var input = parseInput(text)
     var result: SolveResult

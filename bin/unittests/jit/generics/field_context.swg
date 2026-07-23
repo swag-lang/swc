@@ -43,9 +43,7 @@ struct(A) ExplicitPrefixValueHolder
     item: PrefixDefaultBuffer'3
 }
 
-struct(U, M: s32) MethodBufferContext
-{
-}
+struct(U, M: s32) MethodBufferContext {}
 
 impl MethodBufferContext
 {

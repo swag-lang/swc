@@ -98,7 +98,7 @@ func day6A()
 /////////////////////////////////////////////////////////////////
 func day6A0()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
     var lights: HashSet'u32
@@ -148,7 +148,7 @@ func day6A0()
         }
     }
 
-    //Console.print("total: ", lights.count)
+    // Console.print("total: ", lights.count)
     @assert(lights.count == 377891)
 }
 
@@ -156,7 +156,7 @@ func day6A0()
 /////////////////////////////////////////////////////////////////
 func day6A1()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
     var lights: Array'bool
@@ -210,7 +210,7 @@ func day6A1()
     for v in lights do
         total += cast(s32) v
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 377891)
 }
 
@@ -218,7 +218,7 @@ func day6A1()
 /////////////////////////////////////////////////////////////////
 func day6A2()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
     var lights: BitArray
@@ -272,6 +272,6 @@ func day6A2()
     for v in lights do
         total += cast(s32) v
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 377891)
 }

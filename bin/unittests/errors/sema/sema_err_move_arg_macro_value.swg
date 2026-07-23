@@ -6,9 +6,7 @@ struct Movable
 }
 
 #[Swag.Macro]
-func macroValueParameter(value: Movable)
-{
-}
+func macroValueParameter(value: Movable) {}
 
 #test
 {

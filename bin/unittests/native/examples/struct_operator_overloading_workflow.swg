@@ -56,7 +56,7 @@ impl WorkflowAssignBox
     {
         #if op == "+=" do
             .setPair(.a + value, .b + value)
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
@@ -65,7 +65,7 @@ impl WorkflowAssignBox
     {
         #if op == "+=" do
             .setPair(.a + other.a, .b + other.b)
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 }
@@ -81,7 +81,7 @@ struct WorkflowIndexBox
 impl WorkflowIndexBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> s32
+    mtd opIndex(index: s32)->s32
     {
         .reads += 1
         if index == 0 do
@@ -116,7 +116,7 @@ struct WorkflowState
     var flow = WorkflowState{
         accum: WorkflowAssignBox{a: 1, b: 2},
         slots: WorkflowIndexBox{first: 10, second: 20},
-    }
+        }
 
     flow.target = 7's32
     let source = WorkflowSource{value: 5}

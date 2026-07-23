@@ -1,13 +1,14 @@
 #global private
 
-func autocastTempArrayToSliceConsume(values: const [..] u16) -> u16
+func autocastTempArrayToSliceConsume(values: const [..] u16)->u16
 {
     return values[0] + values[3]
 }
 
 #test
 {
-    let cb = func(flag: bool)->[4] u16 {
+    let cb = func(flag: bool)->[4] u16
+    {
         if flag do
             return [10'u16, 20, 30, 40]
         return [50'u16, 60, 70, 80]

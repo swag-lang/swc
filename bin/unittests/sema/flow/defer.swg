@@ -355,24 +355,24 @@ func semaTest012()
         resetDeferTrace()
         switch v
         {
-            case 1:
-                defer appendDeferTrace(1)
-                appendDeferTrace(8)
-                fallthrough
+        case 1:
+            defer appendDeferTrace(1)
+            appendDeferTrace(8)
+            fallthrough
 
-            case 2:
-                defer appendDeferTrace(2)
-                appendDeferTrace(9)
-                break
+        case 2:
+            defer appendDeferTrace(2)
+            appendDeferTrace(9)
+            break
 
-            case 3:
-                defer appendDeferTrace(3)
-                appendDeferTrace(4)
-                break
+        case 3:
+            defer appendDeferTrace(3)
+            appendDeferTrace(4)
+            break
 
-            default:
-                defer appendDeferTrace(5)
-                appendDeferTrace(6)
+        default:
+            defer appendDeferTrace(5)
+            appendDeferTrace(6)
         }
 
         return DeferTrace
@@ -424,9 +424,7 @@ func semaTest013()
 func semaTest014()
 {
     #[Swag.NoInline]
-    func consumeDropTracker(value: DeferDropTracker)
-    {
-    }
+    func consumeDropTracker(value: DeferDropTracker) {}
 
     func deferParameterDropInfo()->DeferDropInfo
     {
@@ -453,9 +451,7 @@ func semaTest014()
 func semaTest015()
 {
     #[Swag.NoInline]
-    func consumeDropHolder(value: DeferDropHolder)
-    {
-    }
+    func consumeDropHolder(value: DeferDropHolder) {}
 
     func deferEmbeddedParameterDropInfo()->DeferDropInfo
     {

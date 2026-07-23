@@ -144,9 +144,7 @@ impl ITest for Point2
     }
 }
 
-impl ITest for Point3
-{
-}
+impl ITest for Point3 {}
 
 /**
 For 'Point3', 'isImplemented()' returns 'false' (the default).

@@ -66,14 +66,14 @@ func day7B()
             if @countof(operands) == 1 do
                 return target == result
 
-            return checkMath(target, result, operands[1 to ], '+') or
-                   checkMath(target, result, operands[1 to ], '*') or
-                   checkMath(target, result, operands[1 to ], '|')
+            return checkMath(target, result, operands[1 to], '+') or
+                   checkMath(target, result, operands[1 to], '*') or
+                   checkMath(target, result, operands[1 to], '|')
         }
 
-        if checkMath(res, vals[0], vals[1 to ], '+') or
-           checkMath(res, vals[0], vals[1 to ], '*') or
-           checkMath(res, vals[0], vals[1 to ], '|') do
+        if checkMath(res, vals[0], vals[1 to], '+') or
+           checkMath(res, vals[0], vals[1 to], '*') or
+           checkMath(res, vals[0], vals[1 to], '|') do
             total += res
     }
 

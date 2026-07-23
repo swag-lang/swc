@@ -70,9 +70,7 @@ struct NativeNonNullMoveDefault
 
 impl NativeNonNullMoveDefault
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 struct NativeNonNullUndefinedHolder
@@ -199,7 +197,7 @@ func nativeNonNullConstruction()->bool
     let array: [2] NativeNonNullHolder = [
         {required: &first},
         {required: &second, count: 8},
-    ]
+        ]
     let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
     var genericDefault: NativeNonNullGenericBox'NativeNonNullStringDefault
     let pointerArray: [2] *NativeNonNullItem = [&first, &second]
@@ -215,7 +213,7 @@ func nativeNonNullConstruction()->bool
         ctext:         ctext,
         boxed:         boxed,
         reflectedType: reflectedType,
-    }
+        }
 
     #assert(#typeof(families.valuePointer) == *NativeNonNullItem)
     #assert(#typeof(families.blockPointer) == [*] NativeNonNullItem)

@@ -25,7 +25,7 @@ impl ForeachAliasBuffer
             {
                 #inject(stmt, item = &me.data[@index], index = @index)
             }
-            #else
+                #else
             {
                 #inject(stmt, item = me.data[@index], index = @index)
             }

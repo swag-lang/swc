@@ -2001,7 +2001,7 @@ func gameLoop()
     case FRUIT:
         if !g_VoiceEatFruit do
             g_VoiceEatFruit = assume Audio.Voice.play(&g_SoundEatFruit)
-        //if g_Ticks == g_TimeStamp + 90
+        // if g_Ticks == g_TimeStamp + 90
         if !g_VoiceEatFruit.isPlaying()
         {
             g_VoiceEatFruit.destroy()
@@ -2013,7 +2013,7 @@ func gameLoop()
     case EAT:
         if !g_VoiceEatGhost do
             g_VoiceEatGhost = assume Audio.Voice.play(&g_SoundEatGhost)
-        //if g_Ticks == g_TimeStamp + 90
+        // if g_Ticks == g_TimeStamp + 90
         if !g_VoiceEatGhost.isPlaying()
         {
             g_VoiceEatGhost.destroy()
@@ -2025,7 +2025,7 @@ func gameLoop()
     case DEATH:
         if !g_VoiceDeath do
             g_VoiceDeath = assume Audio.Voice.play(&g_SoundDeath)
-        //if g_Ticks > g_TimeStamp + 180
+        // if g_Ticks > g_TimeStamp + 180
         if !g_VoiceDeath.isPlaying()
         {
             g_VoiceDeath.destroy()

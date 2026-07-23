@@ -18,9 +18,9 @@ impl AssignBox
     {
         #if op == "+=" do
             .setPair(.a + value, .b + value)
-        #elif op == "*=" do
+            #elif op == "*=" do
             .setPair(.a * value, .b * value)
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
@@ -28,7 +28,7 @@ impl AssignBox
     {
         #if op == "<<=" do
             .setPair(.a << value, .b << value)
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
@@ -36,7 +36,7 @@ impl AssignBox
     {
         #if op == "+=" do
             .setPair(.a + other.a, .b + other.b)
-        #else do
+            #else do
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 }

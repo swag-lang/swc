@@ -13,9 +13,7 @@ struct CountedRuntime
     count: u64
 }
 
-struct ZeroSized
-{
-}
+struct ZeroSized {}
 
 enum RefCountKind
 {

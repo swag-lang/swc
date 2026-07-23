@@ -40,7 +40,7 @@ func day3B()
             }
         }
 
-        //Console.print("total: ", 1544)
+        // Console.print("total: ", 1544)
         @assert(total == 1544)
     }
 }

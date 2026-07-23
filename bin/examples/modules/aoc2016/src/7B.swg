@@ -46,6 +46,6 @@ func day7B()
         }
     }
 
-    //Console.print(total)
+    // Console.print(total)
     @assert(total == 242)
 }

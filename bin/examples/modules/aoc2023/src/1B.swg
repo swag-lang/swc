@@ -58,6 +58,6 @@ func day1B()
         total += process(l)
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 56324)
 }

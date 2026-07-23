@@ -96,45 +96,51 @@ enum EE
 
 #assert(cast(f32) CC.A == 0)
 
-enum Mixed1: s32 {
-  A = -2,
-  #assert(A == -2)
-  B,
-  #assert(B == -1)
-  C = 10,
-  #assert(C == 10)
-  D,
-  #assert(D == 11)
+enum Mixed1: s32
+{
+    A = -2,
+    #assert(A == -2)
+    B,
+    #assert(B == -1)
+    C = 10,
+    #assert(C == 10)
+    D,
+    #assert(D == 11)
 }
 
-enum StartsAtZero: u32 {
-  A,
-  #assert(A == 0)
-  B,
-  #assert(B == 1)
+enum StartsAtZero: u32
+{
+    A,
+    #assert(A == 0)
+    B,
+    #assert(B == 1)
 }
 
-enum AliasInit: u32 {
-  A = 7,
-  B = A,
-  #assert(B == A)
+enum AliasInit: u32
+{
+    A = 7,
+    B = A,
+    #assert(B == A)
 }
 
-enum RuneOk: rune {
-  A = 'A',
-  #assert(A == 'A')
-  B = 'B',
-  #assert(B == 'B')
+enum RuneOk: rune
+{
+    A = 'A',
+    #assert(A == 'A')
+    B = 'B',
+    #assert(B == 'B')
 }
 
-enum BoolOk: bool {
-  T = true,
-  #assert(T == true)
-  F = false,
-  #assert(F == false)
+enum BoolOk: bool
+{
+    T = true,
+    #assert(T == true)
+    F = false,
+    #assert(F == false)
 }
 
-enum Test{
+enum Test
+{
     A = 1,
     B = 2,
     C = 3,
@@ -149,20 +155,23 @@ const X = Test.A
 
 enum EN { A }
 
-enum ArrayBacked: const [2] s32 {
-  A = [1, 2],
-  B = [10, 20],
+enum ArrayBacked: const [2] s32
+{
+    A = [1, 2],
+    B = [10, 20],
 }
 #assert(#typeof(ArrayBacked).rawType == const [2] s32)
 
-enum StrictArrayAliasBacked: EnumStrictArrayAlias {
-  A = cast(EnumStrictArrayAlias) [3, 4],
+enum StrictArrayAliasBacked: EnumStrictArrayAlias
+{
+    A = cast(EnumStrictArrayAlias) [3, 4],
 }
 #assert(#typeof(StrictArrayAliasBacked).rawType == const [2] s32)
 
-enum SliceBacked: const [..] s32 {
-  A = [1, 2],
-  B = [10, 20, 30],
+enum SliceBacked: const [..] s32
+{
+    A = [1, 2],
+    B = [10, 20, 30],
 }
 const SliceBackedA = cast(const [..] s32) SliceBacked.A
 const SliceBackedB = cast(const [..] s32) SliceBacked.B

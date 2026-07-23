@@ -44,7 +44,7 @@ func day9B()
         var sum = 0
         var min = Swag.S32.Max
         var max = 0
-        for l1 in lines[i to ]
+        for l1 in lines[i to]
         {
             let v1 = assume StrConv.toS32(l1)
             min = Math.min(min, v1)
@@ -54,7 +54,7 @@ func day9B()
                 break
             if sum == target
             {
-                //Console.print("total: ", min+max)
+                // Console.print("total: ", min+max)
                 @assert(min + max == 70672245)
                 return
             }

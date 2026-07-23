@@ -20,11 +20,11 @@ const PrefixValueAgain = #run
 
 struct(T, Count: s32) GuardedVector
     where
-    {
-        if PrefixValueAgain == 42 and Count >= 2 and (T == s32 or T == s64) do
-            return true
-        return false
-    }
+{
+    if PrefixValueAgain == 42 and Count >= 2 and (T == s32 or T == s64) do
+        return true
+    return false
+}
 {
     values: [Count] T
 }

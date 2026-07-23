@@ -78,7 +78,7 @@ impl Application
             mdf |= .Shift
         let key = Keyboard.virtualKeyToKey(cast() (msg.lParam >> 16))
 
-        let (id, target) = .getHotKeyShortcut(mdf, key)
+            let (id, target) = .getHotKeyShortcut(mdf, key)
         if id and target do
             target.sendCommandEvent(id)
     }

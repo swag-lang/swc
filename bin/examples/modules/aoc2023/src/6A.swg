@@ -76,6 +76,6 @@ func day6A()
         total *= cpt
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 281600)
 }

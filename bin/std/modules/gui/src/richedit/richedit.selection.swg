@@ -36,7 +36,7 @@ private impl RichEditCtrl
     {
         let undo = Memory.new'RichEditUndo()
         undo.type = .Delete
-        (undo.runes, undo.styles) = .getTextPrivate(posStart, posEnd)
+            (undo.runes, undo.styles) = .getTextPrivate(posStart, posEnd)
         undo.selBeg     = .selBeg
         undo.cursorPos  = .cursorPos
         undo.hasSelRect = selRect

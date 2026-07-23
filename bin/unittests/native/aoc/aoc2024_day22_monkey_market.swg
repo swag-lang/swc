@@ -8,13 +8,13 @@
 // heap arrays.
 
 const SamplePart1 =
-"""1
+    """1
 10
 100
 2024"""
 
 const SamplePart2 =
-"""1
+    """1
 2
 3
 2024"""
@@ -26,12 +26,12 @@ const SamplePart2 =
 const Prune: u64 = 16777216  // 2^24
 
 #[Swag.Inline]
-func mix(secret: u64, val: u64) -> u64 { return secret ^ val }
+func mix(secret: u64, val: u64)->u64 { return secret ^ val }
 
 #[Swag.Inline]
-func prune(secret: u64) -> u64 { return secret % Prune }
+func prune(secret: u64)->u64 { return secret % Prune }
 
-func evolve(secret: u64) -> u64
+func evolve(secret: u64)->u64
 {
     var s = secret
     var v = s * 64
@@ -46,7 +46,7 @@ func evolve(secret: u64) -> u64
     return s
 }
 
-func evolveN(secret: u64, n: u32) -> u64
+func evolveN(secret: u64, n: u32)->u64
 {
     var s = secret
     for n { s = evolve(s) }
@@ -65,7 +65,7 @@ struct BuyerList
     count:   u32
 }
 
-func parseBuyers(text: string) -> BuyerList
+func parseBuyers(text: string)->BuyerList
 {
     var result: BuyerList
     let bytes = cast(const [..] u8) text
@@ -106,7 +106,7 @@ func parseBuyers(text: string) -> BuyerList
 // Part 1: sum of Nth secret
 // ---------------------------------------------------------------------------
 
-func solvePart1(buyers: *BuyerList, steps: u32) -> u64
+func solvePart1(buyers: *BuyerList, steps: u32)->u64
 {
     var total: u64
     for i in buyers.count
@@ -126,7 +126,7 @@ const SeqBase  = 19'u32
 const SeqCount = SeqBase * SeqBase * SeqBase * SeqBase  // 130321
 
 #[Swag.Inline]
-func encodeSeq(d0: s32, d1: s32, d2: s32, d3: s32) -> u32
+func encodeSeq(d0: s32, d1: s32, d2: s32, d3: s32)->u32
 {
     let a = cast(u32) (d0 + 9)
     let b = cast(u32) (d1 + 9)
@@ -142,14 +142,14 @@ struct SeqResult
 }
 
 #[Swag.Inline]
-func makeSeqResult(val: u64) -> SeqResult
+func makeSeqResult(val: u64)->SeqResult
 {
     var r: retval
     r.bestBananas = val
     return r
 }
 
-func solvePart2(buyers: *BuyerList, steps: u32) -> SeqResult
+func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
 {
     // Global totals for each possible 4-change sequence
     let totals = cast([*] u64) notnull @alloc(cast(u64) SeqCount * #sizeof(u64))
@@ -219,7 +219,7 @@ struct SolveResult
     part2: u64
 }
 
-func solve(text: string) -> SolveResult
+func solve(text: string)->SolveResult
 {
     var buyers = parseBuyers(text)
     var result: SolveResult
@@ -338,7 +338,7 @@ struct SliceBuf
 impl SliceBuf
 {
     #[Swag.Inline]
-    mtd asSlice() -> const [..] u8
+    mtd asSlice()->const [..] u8
     {
         return @mkslice(&me.data[0], cast(u64) me.len)
     }

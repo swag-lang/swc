@@ -15,7 +15,7 @@ struct RuntimeSliceEdgeBox
 impl RuntimeSliceEdgeBox
 {
     #[Swag.NoInline]
-    mtd opCount() -> u64
+    mtd opCount()->u64
     {
         return 5
     }
@@ -99,9 +99,9 @@ impl RuntimeSliceEdgeBox
 #test
 {
     var box = RuntimeSliceEdgeBox{values: [1, 2, 3, 4, 5]}
-    let head = box[ to 1]
+    let head = box[to 1]
     let mid = box[2 to 2]
-    let tail = box[3 to ]
+    let tail = box[3 to]
 
     @assert(@countof(head) == 2)
     @assert(@countof(mid) == 1)
@@ -126,7 +126,7 @@ struct RuntimeConstSliceBox
 impl RuntimeConstSliceBox
 {
     #[Swag.NoInline]
-    mtd const opCount() -> u64
+    mtd const opCount()->u64
     {
         return 4
     }
@@ -153,7 +153,7 @@ impl RuntimeConstSliceBox
 #test
 {
     const box = RuntimeConstSliceBox{values: [5, 6, 7, 8]}
-    let slice = box[ to ]
+    let slice = box[to]
 
     @assert(@countof(slice) == 4)
     @assert(slice[0] == 5)

@@ -121,7 +121,7 @@ namespace Compaction
         var right = dm.blockCount - 1
 
         #scope(Outer)
-        for
+            for
         {
             while left < right and dm.blocks[left] != FreeId do
                 left += 1

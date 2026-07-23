@@ -140,10 +140,10 @@ func shiftInLoop(val: u32, cnt: u32, iters: u32)->u32
         i += 1'u32
     }
     return acc
-    // cnt=2, iters=3:
-    //  i=0: acc = 32 + (32>>2)  = 32 + 8  = 40
-    //  i=1: acc = 40 + (40>>2)  = 40 + 10 = 50
-    //  i=2: acc = 50 + (50>>2)  = 50 + 12 = 62
+// cnt=2, iters=3:
+//  i=0: acc = 32 + (32>>2)  = 32 + 8  = 40
+//  i=1: acc = 40 + (40>>2)  = 40 + 10 = 50
+//  i=2: acc = 50 + (50>>2)  = 50 + 12 = 62
 }
 
 // ---------------------------------------------------------------------------
@@ -165,10 +165,10 @@ func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
         i += 1'u32
     }
     return acc + extra
-    // a=1, lcnt=3, rcnt=1, iters=2:
-    //  i=0: shifted=1<<3=8, extra=1+(1>>1)=1+0=1, acc=8
-    //  i=1: shifted=8<<3=64, extra=1+(8>>1)=1+4=5, acc=64
-    //  return 64 + 5 = 69
+// a=1, lcnt=3, rcnt=1, iters=2:
+//  i=0: shifted=1<<3=8, extra=1+(1>>1)=1+0=1, acc=8
+//  i=1: shifted=8<<3=64, extra=1+(8>>1)=1+4=5, acc=64
+//  return 64 + 5 = 69
 }
 
 #test

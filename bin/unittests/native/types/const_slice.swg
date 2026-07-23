@@ -57,7 +57,7 @@ func totalQty(lines: const [..] ProductLine)->s32
 {
     const values: const [..] s32 = [10, 20, 30, 40, 50]
     let mid = values[1 to 3]
-    let tail = mid[1 to ]
+    let tail = mid[1 to]
 
     @assert(@countof(mid) == 3)
     @assert(mid[0] == 20)
@@ -71,8 +71,8 @@ func totalQty(lines: const [..] ProductLine)->s32
 {
     let text: string = "const"
     let bytes = cast(const [..] u8) text
-    let head = bytes[ until 3]
-    let tail = bytes[2 to ]
+    let head = bytes[until 3]
+    let tail = bytes[2 to]
 
     @assert(@countof(head) == 3)
     @assert(head[0] == 'c''u8)
@@ -99,10 +99,10 @@ func totalQty(lines: const [..] ProductLine)->s32
 #test
 {
     const lines: [2] ProductLine =
-    [
+        [
         {sku: "keyboard", qty: 1},
         {sku: "cable", qty: 3},
-    ]
+        ]
 
     const view: const [..] ProductLine = lines
     @assert(@countof(view) == 2)

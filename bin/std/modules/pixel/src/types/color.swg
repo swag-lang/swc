@@ -12,7 +12,7 @@ struct Color
         #[Offset("a")]
         argb: u32 // 32-bit ARGB representation
     }
-    #else
+        #else
     {
         b, g, r, a: u8 // Blue, green, red, alpha components (0-255)
         #[Offset("b")]
@@ -281,7 +281,7 @@ impl Color
     {
         var result: retval = undefined
 
-        let (rf, gf, bf) = .toRgbf()
+            let (rf, gf, bf) = .toRgbf()
         let max = Math.max(rf, gf, bf)
         let min = Math.min(rf, gf, bf)
         result.l = (max + min) * 0.5
@@ -650,19 +650,19 @@ impl Core.StrConv.IPokeValue for Color
             one = Tokenize.eatCount(one, eat)
 
             one = Tokenize.eatSpaces(one)
-            (.r, eat, ovf) = try parseU8(one)
+                (.r, eat, ovf) = try parseU8(one)
             if ovf do
                 throw OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
             one = Tokenize.eatSpaces(one)
-            (.g, eat, ovf) = try parseU8(one)
+                (.g, eat, ovf) = try parseU8(one)
             if ovf do
                 throw OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
             one = Tokenize.eatSpaces(one)
-            (.b, eat, ovf) = try parseU8(one)
+                (.b, eat, ovf) = try parseU8(one)
             if ovf do
                 throw OverflowError{}
             one = Tokenize.eatCount(one, eat)

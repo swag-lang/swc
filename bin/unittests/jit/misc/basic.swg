@@ -55,7 +55,7 @@ struct S
 {
     const Cfg = #run dref @compiler.getBuildCfg()
     #assert(#typeof(Cfg) == Swag.BuildCfg)
-    //const toto = #run @compiler.compileString("toto")
+// const toto = #run @compiler.compileString("toto")
 }
 
 #test

@@ -4,9 +4,7 @@ using Swag
 
 namespace compiler_impl_static_storage
 {
-    struct Cache
-    {
-    }
+    struct Cache {}
 
     impl Cache
     {

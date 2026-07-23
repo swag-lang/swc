@@ -76,7 +76,7 @@ or arrays.
     {
         x:     s32      // 4 bytes
         y:     bool     // 1 byte
-        // 3 bytes of padding to align to s32 size
+    // 3 bytes of padding to align to s32 size
     }
 
     #assert(#sizeof(MyStruct1) == 8)
@@ -104,7 +104,7 @@ an entire struct. Use it to meet hardware or performance requirements.
     {
         x:     bool     // 1 byte
         y:     bool     // 1 byte
-        // 6 bytes of padding to align struct size to 8
+    // 6 bytes of padding to align struct size to 8
     }
     #assert(#offsetof(MyStruct2.x) == 0)
     #assert(#offsetof(MyStruct2.y) == 1)
@@ -135,7 +135,7 @@ This provides fine-grained control over memory layout for low-level optimization
         x:   bool // offset 0: 1 byte
         #[Swag.Align(4)]
         y:   bool // offset 4: aligned to 4 bytes (3 bytes of padding before y)
-        // 3 bytes of padding to align struct size to 8
+    // 3 bytes of padding to align struct size to 8
     }
     #assert(#offsetof(MyStruct2.x) == 0)
     #assert(#offsetof(MyStruct2.y) == 4)

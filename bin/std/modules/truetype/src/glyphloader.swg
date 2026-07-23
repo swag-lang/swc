@@ -209,9 +209,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, x
         hasMore = (flags & CMP_MORE_COMPONENTS) != 0
     }
 
-    if hasMore and (readU16(glyphData, offset) & CMP_WE_HAVE_INSTRUCTIONS) != 0
-    {
-    }
+    if hasMore and (readU16(glyphData, offset) & CMP_WE_HAVE_INSTRUCTIONS) != 0 {}
 }
 
 func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth: u32 = 0) throw

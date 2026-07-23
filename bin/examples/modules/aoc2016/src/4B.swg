@@ -29,14 +29,14 @@ func day4B()
             idx += 1
         }
 
-        let res = assume StrConv.parseS64(l[idx to ])
+        let res = assume StrConv.parseS64(l[idx to])
 
         for i in @countof(str) do
             str[i] = cast(u8) ((str[i] + res.value) % 26 + 'a')
 
         if Utf8.contains(str, "north")
         {
-            //Console.print(str, " ", res.value, "\n")
+            // Console.print(str, " ", res.value, "\n")
             @assert(res.value == 482)
             return
         }

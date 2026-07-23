@@ -17,7 +17,7 @@ struct CountedBag
 
 impl CountedBag
 {
-    mtd const opCount() -> u64 => me.filled
+    mtd const opCount()->u64 => me.filled
 }
 
 // Single name over an array binds the element values.

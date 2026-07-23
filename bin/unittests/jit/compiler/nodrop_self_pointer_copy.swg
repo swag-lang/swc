@@ -272,7 +272,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         @free(entries)
     }
 
-    // A second variant was reduced away while isolating the order-dependent breakage above.
+// A second variant was reduced away while isolating the order-dependent breakage above.
 }
 
 #test

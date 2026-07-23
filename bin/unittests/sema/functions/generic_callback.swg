@@ -21,7 +21,7 @@ func semaTest001()
 func semaTest002()
 {
     let values = [7, 3]
-    let result = mapFirst(values[ to ], func(value) => value + 1)
+    let result = mapFirst(values[to], func(value) => value + 1)
 
     #assert(#typeof(result) == s32)
 }

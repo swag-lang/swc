@@ -84,6 +84,6 @@ func day6B()
         its = map.find(its.value)
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 499)
 }

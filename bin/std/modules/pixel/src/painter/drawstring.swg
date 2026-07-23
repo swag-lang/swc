@@ -312,7 +312,7 @@ impl Painter
         while count
         {
             let sl = @mkslice(scan, count)
-            let (c, eat) = Utf8.decodeRune(sl)
+                let (c, eat) = Utf8.decodeRune(sl)
             if eat == 0 do
                 break
 

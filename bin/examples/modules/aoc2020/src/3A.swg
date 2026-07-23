@@ -36,6 +36,6 @@ func day3A()
         total += lines[y][x] == '#' ? 1 : 0
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 211)
 }

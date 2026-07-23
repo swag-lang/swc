@@ -28,7 +28,7 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
         Math.Vector2{dcx + dhalf, dcy},
         Math.Vector2{dcx, dcy + dhalf},
         Math.Vector2{dcx - dhalf, dcy},
-    ]
+        ]
     painter.fillPolygon(diamond[to], Brush.createSolid(Argb.SteelBlue))
     drawClosedOutline(painter, diamond[to], Pen.createSolid(Argb.MidnightBlue, 4))
 
@@ -37,7 +37,7 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
         Math.Vector2{ox + 96, 210},
         Math.Vector2{ox + 36, 320},
         Math.Vector2{ox + 156, 320},
-    ]
+        ]
     painter.fillPolygon(tri[to], Brush.createSolid(Argb.MediumSeaGreen))
     drawClosedOutline(painter, tri[to], Pen.createSolid(Argb.DarkGreen, 4))
 

@@ -38,7 +38,7 @@ in 'release', where the runtime guard is off.
     var arr: [4] s32
     var i = 5
     arr[0] = i
-    // let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)
+// let y = arr[i]  // Uncomment: error, out-of-bounds access (proven)
 }
 
 /**
@@ -196,8 +196,8 @@ again.
     let p = cast(*s32) notnull exampleAlloc(4)
     dref p = 1
     exampleFree(p, 4)
-    // let x = dref p       // Uncomment: error, use of a freed pointer (proven)
-    // exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
+// let x = dref p       // Uncomment: error, use of a freed pointer (proven)
+// exampleFree(p, 4)    // Uncomment: error, the pointer is freed twice (proven)
 }
 
 /**

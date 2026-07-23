@@ -124,7 +124,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } throw
         if c == 'x''u8
         {
             let one = Tokenize.eatCount(str, 2)
-            (result.value, result.eat, result.ovf) = try parseX64(one)
+                (result.value, result.eat, result.ovf) = try parseX64(one)
             result.eat += 2
             return result
         }
@@ -132,7 +132,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } throw
         if c == 'b''u8
         {
             let one = Tokenize.eatCount(str, 2)
-            (result.value, result.eat, result.ovf) = try parseB64(one)
+                (result.value, result.eat, result.ovf) = try parseB64(one)
             result.eat += 2
             return result
         }
@@ -540,25 +540,25 @@ func(T) toNum(str: string)->T throw
 {
     #if T == u8 do
         return toU8(str)
-    #elif T == u16 do
+        #elif T == u16 do
         return toU16(str)
-    #elif T == u32 do
+        #elif T == u32 do
         return toU32(str)
-    #elif T == u64 do
+        #elif T == u64 do
         return toU64(str)
-    #elif T == s8 do
+        #elif T == s8 do
         return toS8(str)
-    #elif T == s16 do
+        #elif T == s16 do
         return toS16(str)
-    #elif T == s32 do
+        #elif T == s32 do
         return toS32(str)
-    #elif T == s64 do
+        #elif T == s64 do
         return toS64(str)
-    #elif T == f32 do
+        #elif T == f32 do
         return toF32(str)
-    #elif T == f64 do
+        #elif T == f64 do
         return toF64(str)
-    #else do
+        #else do
         #error("invalid type")
     return 0
 }

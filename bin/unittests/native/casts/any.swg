@@ -57,9 +57,7 @@ struct AnyCastDerived
     extra: s32 = 0
 }
 
-struct AnyCompareType
-{
-}
+struct AnyCompareType {}
 
 #test
 {

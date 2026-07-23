@@ -9,7 +9,7 @@ const MaxPasswordBytes = MaxComputers * 3 - 1
 struct LanAudit
 {
     leadTripletCount: u32
-    largestCliqueSize:u32
+    largestCliqueSize: u32
     passwordLength:   u32
     password:         [MaxPasswordBytes] u8
 }
@@ -293,7 +293,7 @@ func auditLan(connections: const [..] string)->LanAudit
 #test
 {
     const sampleConnections: [32] string =
-    [
+        [
         "kh-tc",
         "qp-kh",
         "de-cg",
@@ -326,7 +326,7 @@ func auditLan(connections: const [..] string)->LanAudit
         "wh-qp",
         "tb-vc",
         "td-yn",
-    ]
+        ]
 
     let sampleAudit = auditLan(sampleConnections)
 
@@ -335,14 +335,14 @@ func auditLan(connections: const [..] string)->LanAudit
     @assert(passwordMatches(sampleAudit, "co,de,ka,ta"))
 
     const compactConnections: [6] string =
-    [
+        [
         "aa-bb",
         "aa-cc",
         "aa-tt",
         "bb-cc",
         "bb-tt",
         "cc-tt",
-    ]
+        ]
 
     let compactAudit = auditLan(compactConnections)
 

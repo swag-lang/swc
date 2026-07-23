@@ -1,5 +1,3 @@
 #global private
 
-func semaTest001()
-{
-}
+func semaTest001() {}

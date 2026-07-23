@@ -46,7 +46,7 @@ func semaTest002()
 func semaTest003()
 {
     var a: typeinfo = #typeof(*f32)
-    var b = cast(const *Swag.TypeInfoPointer)(a)
+    var b = cast(const *Swag.TypeInfoPointer) (a)
     var c = b.pointedType == f32
 }
 
@@ -77,10 +77,10 @@ func switchFieldTypeHit()->bool
 {
     switch PA.fields[2].pointedType
     {
-        case s32:
-            return true
-        default:
-            return false
+    case s32:
+        return true
+    default:
+        return false
     }
 }
 

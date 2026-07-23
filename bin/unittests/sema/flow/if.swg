@@ -2,26 +2,14 @@
 
 func semaTest001()
 {
-    if true
-    {
-    }
+    if true {}
 
-    if false
-    {
-    }
-    else
-    {
-    }
+    if false {}
+    else {}
 
-    if false
-    {
-    }
-    elif true
-    {
-    }
-    else
-    {
-    }
+    if false {}
+    elif true {}
+    else {}
 }
 
 func semaTest002()

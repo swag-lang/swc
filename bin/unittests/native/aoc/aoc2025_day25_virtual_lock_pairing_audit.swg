@@ -119,7 +119,7 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
 #test
 {
     const lock0: [7] string =
-    [
+        [
         "#####",
         ".####",
         ".####",
@@ -127,10 +127,10 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         ".#.#.",
         ".#...",
         ".....",
-    ]
+        ]
 
     const lock1: [7] string =
-    [
+        [
         "#####",
         "##.##",
         ".#.##",
@@ -138,10 +138,10 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         "...#.",
         "...#.",
         ".....",
-    ]
+        ]
 
     const key0: [7] string =
-    [
+        [
         ".....",
         "#....",
         "#....",
@@ -149,10 +149,10 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         "#.#.#",
         "#.###",
         "#####",
-    ]
+        ]
 
     const key1: [7] string =
-    [
+        [
         ".....",
         ".....",
         "#.#..",
@@ -160,10 +160,10 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         "###.#",
         "###.#",
         "#####",
-    ]
+        ]
 
     const key2: [7] string =
-    [
+        [
         ".....",
         ".....",
         ".....",
@@ -171,7 +171,7 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         "#.#..",
         "#.#.#",
         "#####",
-    ]
+        ]
 
     @assert(isLockSchematic(lock0))
     @assert(isLockSchematic(lock1))

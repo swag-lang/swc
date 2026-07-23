@@ -26,9 +26,9 @@ impl Angle
     {
         #if suffix == "rad" do
             .rad = value
-        #elif suffix == "deg" do
+            #elif suffix == "deg" do
             .rad = toRadians(value)
-        #else do
+            #else do
             #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
     }
 

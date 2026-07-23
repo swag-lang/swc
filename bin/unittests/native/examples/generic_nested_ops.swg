@@ -20,9 +20,9 @@ impl Vec2
     {
         #if op == "+" do
             return {x: +me.x, y: +me.y}
-        #elif op == "-" do
+            #elif op == "-" do
             return {x: -me.x, y: -me.y}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -30,13 +30,13 @@ impl Vec2
     {
         #if op == "+" do
             return {x: me.x + other.x, y: me.y + other.y}
-        #elif op == "-" do
+            #elif op == "-" do
             return {x: me.x - other.x, y: me.y - other.y}
-        #elif op == "*" do
+            #elif op == "*" do
             return {x: me.x * other.x, y: me.y * other.y}
-        #elif op == "/" do
+            #elif op == "/" do
             return {x: me.x / other.x, y: me.y / other.y}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -44,13 +44,13 @@ impl Vec2
     {
         #if op == "+" do
             return {x: me.x + scalar, y: me.y + scalar}
-        #elif op == "-" do
+            #elif op == "-" do
             return {x: me.x - scalar, y: me.y - scalar}
-        #elif op == "*" do
+            #elif op == "*" do
             return {x: me.x * scalar, y: me.y * scalar}
-        #elif op == "/" do
+            #elif op == "/" do
             return {x: me.x / scalar, y: me.y / scalar}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -77,7 +77,7 @@ impl Rect
     {
         #if op == "-" do
             return {min: -me.max, max: -me.min}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -86,9 +86,9 @@ impl Rect
     {
         #if op == "+" do
             return {min: me.min + offset, max: me.max + offset}
-        #elif op == "-" do
+            #elif op == "-" do
             return {min: me.min - offset, max: me.max - offset}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -97,9 +97,9 @@ impl Rect
     {
         #if op == "*" do
             return {min: me.min * scalar, max: me.max * scalar}
-        #elif op == "/" do
+            #elif op == "/" do
             return {min: me.min / scalar, max: me.max / scalar}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -130,7 +130,7 @@ impl Transform2D
     {
         #if op == "-" do
             return {pos: -me.pos, scale: me.scale}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
@@ -139,9 +139,9 @@ impl Transform2D
     {
         #if op == "+" do
             return {pos: me.pos + other.pos, scale: me.scale * other.scale}
-        #elif op == "-" do
+            #elif op == "-" do
             return {pos: me.pos - other.pos, scale: me.scale * other.scale}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -150,7 +150,7 @@ impl Transform2D
     {
         #if op == "*" do
             return {pos: me.pos * scalar, scale: me.scale * scalar}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 

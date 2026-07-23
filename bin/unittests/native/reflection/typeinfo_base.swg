@@ -108,12 +108,12 @@ const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped
     var hit = false
     switch PA.fields[2].pointedType
     {
-        case s32:
-            hit = true
-            break
-        default:
-            hit = false
-            break
+    case s32:
+        hit = true
+        break
+    default:
+        hit = false
+        break
     }
 
     @assert(hit)
@@ -126,12 +126,12 @@ const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped
 
     switch info
     {
-        case A:
-            hit = true
-            break
-        default:
-            hit = false
-            break
+    case A:
+        hit = true
+        break
+    default:
+        hit = false
+        break
     }
 
     @assert(hit)

@@ -571,9 +571,7 @@ impl PostCopyAllocatorGenericBuffer
         .free()
     }
 
-    mtd opPostCopy()
-    {
-    }
+    mtd opPostCopy() {}
 
     mtd reserve(newCapacity: u64)
     {
@@ -984,18 +982,18 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
         var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
         switch 2
         {
-            case 1:
-                result.first = -1
+        case 1:
+            result.first = -1
 
-            case 2:
-                var active = AutoDropBranch{DropOnlyTracked{6}, AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}}
-                result.first = outer.second.value
-                result.second = active.head.value
-                result.third = active.pair.first.value
-                return result
+        case 2:
+            var active = AutoDropBranch{DropOnlyTracked{6}, AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}}
+            result.first = outer.second.value
+            result.second = active.head.value
+            result.third = active.pair.first.value
+            return result
 
-            default:
-                result.third = -2
+        default:
+            result.third = -2
         }
     }
 
@@ -1089,23 +1087,23 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
         var outer = AutoCompactPair{CompactDropTracked{6}, CompactDropTracked{7}}
         switch 1
         {
-            case 1:
-                {
-                    var firstCase = AutoCompactPair{CompactDropTracked{1}, CompactDropTracked{2}}
-                    result.first = firstCase.first.value
-                }
-                fallthrough
+        case 1:
+            {
+                var firstCase = AutoCompactPair{CompactDropTracked{1}, CompactDropTracked{2}}
+                result.first = firstCase.first.value
+            }
+            fallthrough
 
-            case 2:
-                {
-                    var active = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
-                    result.second = active.head.value
-                    result.third = outer.second.value
-                    return result
-                }
+        case 2:
+            {
+                var active = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
+                result.second = active.head.value
+                result.third = outer.second.value
+                return result
+            }
 
-            default:
-                result.third = -1
+        default:
+            result.third = -1
         }
     }
 

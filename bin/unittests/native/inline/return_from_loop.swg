@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Inline]
-func hasAnyAbove(arr: [*] u8, count: u32, limit: u8) -> bool
+func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
 {
     for i in count
     {

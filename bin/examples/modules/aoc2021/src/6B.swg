@@ -28,13 +28,13 @@ func day6B()
         state[6], state[8] = oldState[0]
         total = oldState[0] * 2
 
-        for f, i in oldState[1 to ]
+        for f, i in oldState[1 to]
         {
             state[i] += oldState[i + 1]
             total += oldState[i + 1]
         }
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 1741362314973)
 }

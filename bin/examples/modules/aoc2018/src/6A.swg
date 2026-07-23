@@ -109,6 +109,6 @@ func day6A()
         if !borders[@index] do
             total = Math.max(v, total)
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 3882)
 }

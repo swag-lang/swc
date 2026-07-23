@@ -38,6 +38,6 @@ func day2B()
         total += t == 1 ? 1 : 0
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 485)
 }

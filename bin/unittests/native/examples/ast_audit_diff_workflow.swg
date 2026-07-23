@@ -163,22 +163,22 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
 #test
 {
     let before: DeployConfig =
-    {
+        {
         replicas: 3,
         rollout: .Manual,
         pauseSeconds: 20,
         alertsEnabled: false,
         owner: "ops@contoso.test",
-    }
+        }
 
     let after: DeployConfig =
-    {
+        {
         replicas: 6,
         rollout: .Progressive,
         pauseSeconds: 20,
         alertsEnabled: true,
         owner: "ops@contoso.test",
-    }
+        }
 
     let diff = buildAuditDiff'(DeployConfig)(before, after)
     let rebuilt = applyAuditDiff'(DeployConfig)(before, diff)
@@ -214,20 +214,20 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
 #test
 {
     let before: WarehouseLimits =
-    {
+        {
         maxBins: 48,
         maxLoadKg: 1200,
         requiresScan: true,
         overflowContact: "night-shift@warehouse.test",
-    }
+        }
 
     let after: WarehouseLimits =
-    {
+        {
         maxBins: 48,
         maxLoadKg: 1800,
         requiresScan: false,
         overflowContact: "dispatch@warehouse.test",
-    }
+        }
 
     let diff = buildAuditDiff'(WarehouseLimits)(before, after)
     let rebuilt = applyAuditDiff'(WarehouseLimits)(before, diff)

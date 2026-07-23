@@ -47,28 +47,28 @@ impl Vector4
             .z += other.z
             .w += other.w
         }
-        #elif op == "-="
+            #elif op == "-="
         {
             .x -= other.x
             .y -= other.y
             .z -= other.z
             .w -= other.w
         }
-        #elif op == "*="
+            #elif op == "*="
         {
             .x *= other.x
             .y *= other.y
             .z *= other.z
             .w *= other.w
         }
-        #elif op == "/="
+            #elif op == "/="
         {
             .x /= other.x
             .y /= other.y
             .z /= other.z
             .w /= other.w
         }
-        #else do
+            #else do
             #error("unsupported assign operation [[" ++ op ++ "]]")
     }
 
@@ -84,28 +84,28 @@ impl Vector4
             .z += value
             .w += value
         }
-        #elif op == "-="
+            #elif op == "-="
         {
             .x -= value
             .y -= value
             .z -= value
             .w -= value
         }
-        #elif op == "*="
+            #elif op == "*="
         {
             .x *= value
             .y *= value
             .z *= value
             .w *= value
         }
-        #elif op == "/="
+            #elif op == "/="
         {
             .x /= value
             .y /= value
             .z /= value
             .w /= value
         }
-        #else do
+            #else do
             #error("unsupported assign operation [[" ++ op ++ "]]")
     }
 
@@ -116,13 +116,13 @@ impl Vector4
     {
         #if op == "+" do
             return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}
-        #elif op == "-" do
+            #elif op == "-" do
             return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
-        #elif op == "*" do
+            #elif op == "*" do
             return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
-        #elif op == "/" do
+            #elif op == "/" do
             return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -133,13 +133,13 @@ impl Vector4
     {
         #if op == "+" do
             return Vector4{.x + value, .y + value, .z + value, .w + value}
-        #elif op == "-" do
+            #elif op == "-" do
             return Vector4{.x - value, .y - value, .z - value, .w - value}
-        #elif op == "*" do
+            #elif op == "*" do
             return Vector4{.x * value, .y * value, .z * value, .w * value}
-        #elif op == "/" do
+            #elif op == "/" do
             return Vector4{.x / value, .y / value, .z / value, .w / value}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -150,7 +150,7 @@ impl Vector4
     {
         #if op == "-" do
             return Vector4{-.x, -.y, -.z, -.w}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 

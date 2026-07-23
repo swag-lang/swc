@@ -11,7 +11,7 @@ struct RuntimeIndexAssignBox
 impl RuntimeIndexAssignBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> s32
+    mtd opIndex(index: s32)->s32
     {
         .reads += 1
         return .values[index]
@@ -23,9 +23,9 @@ impl RuntimeIndexAssignBox
         .writes += 1
         #if op == "+=" do
             .values[index] += value
-        #elif op == "*=" do
+            #elif op == "*=" do
             .values[index] *= value
-        #else do
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 
@@ -35,7 +35,7 @@ impl RuntimeIndexAssignBox
         .shifts += 1
         #if op == "<<=" do
             .values[index] <<= #wrap value
-        #else do
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -56,9 +56,9 @@ impl RuntimeWriteOnlyIndexAssignBox
         #if op == "+=" do
             if index == 0 do
                 .first += value
-            else do
-                .second += value
-        #else do
+        else do
+            .second += value
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -73,7 +73,7 @@ struct RuntimeRefIndexAssignBox
 impl RuntimeRefIndexAssignBox
 {
     #[Swag.NoInline]
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: s32)->&s32
     {
         .reads += 1
         return &.values[index]
@@ -85,7 +85,7 @@ impl RuntimeRefIndexAssignBox
         .writes += 1
         #if op == "+=" do
             .values[index] += value
-        #else do
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -100,7 +100,7 @@ struct RuntimeMultiIndexAssignBox
 impl RuntimeMultiIndexAssignBox
 {
     #[Swag.NoInline]
-    mtd opIndex(row: s32, col: s32) -> &s32
+    mtd opIndex(row: s32, col: s32)->&s32
     {
         .reads += 1
         return &.values[row * 2 + col]
@@ -112,7 +112,7 @@ impl RuntimeMultiIndexAssignBox
         .writes += 1
         #if op == "+=" do
             .values[row * 2 + col] += value
-        #else do
+            #else do
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 }
@@ -168,7 +168,7 @@ struct RuntimeIndexAssignHolder
     var holder = RuntimeIndexAssignHolder{
         value:     RuntimeIndexAssignBox{values: [1, 10]},
         writeOnly: RuntimeWriteOnlyIndexAssignBox{first: 4, second: 9},
-    }
+        }
 
     holder.value[1] += 6
     holder.writeOnly[0] += 7

@@ -154,7 +154,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 // Parse all the arguments and fill the result
 func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result throw
 {
-#[Swag.Mixin]
+    #[Swag.Mixin]
     func checkNext(typeField: typeinfo) throw
     {
         if itp + 1 == maxItp do

@@ -99,5 +99,5 @@ enum A { B = 1 }
     @assert(@kindof(a) == s32)
     var b = cast(s32) a
     @assert(b == 1)
-    //@print(b)
+// @print(b)
 }

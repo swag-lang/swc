@@ -111,10 +111,10 @@ func day7B()
                 break
         }
 
-        if !Slice.nextPermutation(phase[ to ]) do
+        if !Slice.nextPermutation(phase[to]) do
             break
     }
 
-    //Console.print("total: ", total, "\n\n")
+    // Console.print("total: ", total, "\n\n")
     @assert(total == 44282086)
 }

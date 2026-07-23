@@ -29,11 +29,11 @@ func(T) onlyFloat(value: T)->T
 
 func(T) onlyIntegersBlock(value: T)->T
     where
-    {
-        if T == s32 or T == s64 do
-            return true
-        return false
-    }
+{
+    if T == s32 or T == s64 do
+        return true
+    return false
+}
 {
     return value
 }
@@ -65,11 +65,11 @@ func(T, U = T) sameTypePair(left: T, right: U)->U
 
 func(T, U = T) sameTypeBlock(left: T, right: U)->bool
     where
-    {
-        if T == U do
-            return true
-        return false
-    }
+{
+    if T == U do
+        return true
+    return false
+}
 {
     return true
 }
@@ -101,9 +101,9 @@ func(T) badTypeExpr(value: T)->T
 
 func(T) badTypeBlock(value: T)->T
     where
-    {
-        return 1
-    }
+{
+    return 1
+}
 {
     return value
 }
@@ -129,11 +129,11 @@ impl Wrapper
 
     func(U, Count: s32) repeatValue(const me, other: U)->U
         where
-        {
-            if T == f32 and U == s32 and Count > 0 do
-                return true
-            return false
-        }
+    {
+        if T == f32 and U == s32 and Count > 0 do
+            return true
+        return false
+    }
     {
         return other
     }

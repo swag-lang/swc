@@ -201,17 +201,11 @@ Use `#reverse` to iterate a range in reverse order.
 */
 #test
 {
-    for #reverse 0 to 5
-    {
-    }
+    for #reverse 0 to 5 {}
 
-    for #reverse -1 to 1
-    {
-    }
+    for #reverse -1 to 1 {}
 
-    for #reverse -2 until 2
-    {
-    }
+    for #reverse -2 until 2 {}
 }
 
 /**

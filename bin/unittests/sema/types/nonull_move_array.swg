@@ -7,9 +7,7 @@ struct SemaNonNullMoveArrayDefault
 
 impl SemaNonNullMoveArrayDefault
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 struct SemaNonNullMoveUndefinedEscape
@@ -19,9 +17,7 @@ struct SemaNonNullMoveUndefinedEscape
 
 impl SemaNonNullMoveUndefinedEscape
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
 alias SemaNonNullMoveArrayElementAlias = SemaNonNullMoveArrayDefault

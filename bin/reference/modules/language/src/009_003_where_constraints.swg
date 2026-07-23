@@ -43,11 +43,11 @@ when the constraint is clearer as ordinary control flow.
 {
     func(T, U = T) sameTypePair(left: T, right: U)->U
         where
-        {
-            if T == U do
-                return true
-            return false
-        }
+    {
+        if T == U do
+            return true
+        return false
+    }
     {
         return right
     }

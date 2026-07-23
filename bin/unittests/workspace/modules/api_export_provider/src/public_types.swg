@@ -14,9 +14,7 @@ struct DepPair
     right: s32
 }
 
-struct DepShortCallTarget
-{
-}
+struct DepShortCallTarget {}
 
 impl DepShortCallTarget
 {
@@ -143,7 +141,7 @@ namespace DepTools
     {
         #if #defined(T.IHash32) do
             #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
-        #else do
+            #else do
             return 0
     }
 
@@ -153,9 +151,7 @@ namespace DepTools
         #ast "const " ++ name ++ " = \"DepTools.DepGeneratedCommandOwner." ++ name ++ "\""
     }
 
-    struct DepGeneratedCommandOwner
-    {
-    }
+    struct DepGeneratedCommandOwner {}
 
     impl DepGeneratedCommandOwner
     {

@@ -1,8 +1,6 @@
 #global private
 
-struct AnyEmptyBoxingNative
-{
-}
+struct AnyEmptyBoxingNative {}
 
 #test
 {

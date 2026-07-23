@@ -5,7 +5,7 @@
     var a: typeinfo = s32
     switch a
     {
-        case s32: break
+    case s32: break
     }
 }
 
@@ -14,8 +14,8 @@
     var a: typeinfo = s32
     switch a
     {
-        case s32: break
-        case s32: break // swc-expected-error {{sema_err_switch_case_duplicate}}
+    case s32: break
+    case s32: break // swc-expected-error {{sema_err_switch_case_duplicate}}
     }
 }
 
@@ -24,7 +24,7 @@
     var a: typeinfo = f32
     switch a
     {
-        case s32: break
-        default: break
+    case s32: break
+    default: break
     }
 }

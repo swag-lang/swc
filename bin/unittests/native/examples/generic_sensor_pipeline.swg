@@ -103,7 +103,7 @@ impl TelemetrySeries
 #test
 {
     var temperature: TelemetrySeries'(Celsius, f32, 3) =
-    {
+        {
         name: "temperature",
         scale: 1.0,
         offset: 0.0,
@@ -111,7 +111,7 @@ impl TelemetrySeries
         samples: [0.0'f32, 0.0, 0.0],
         next: 0,
         filled: 0,
-    }
+        }
 
     @assert(temperature.ingest(18.0'f32) == 18.0'f32)
     @assert(temperature.ingest(21.0'f32) == 21.0'f32)
@@ -128,7 +128,7 @@ impl TelemetrySeries
 #test
 {
     var temperature: TelemetrySeries'(Celsius, f32, 3) =
-    {
+        {
         name: "temperature",
         scale: 1.0,
         offset: 0.0,
@@ -136,7 +136,7 @@ impl TelemetrySeries
         samples: [18.0'f32, 21.0, 24.0],
         next: 0,
         filled: 3,
-    }
+        }
 
     @assert(temperature.ingest(30.0'f32) == 30.0'f32)
     @assert(temperature.sample'0() == 30.0'f32)
@@ -147,7 +147,7 @@ impl TelemetrySeries
 #test
 {
     var humidity: TelemetrySeries'(PercentHumidity, f64, 4) =
-    {
+        {
         name: "humidity",
         scale: 1.0,
         offset: 0.0,
@@ -155,7 +155,7 @@ impl TelemetrySeries
         samples: [0.0'f64, 0.0, 0.0, 0.0],
         next: 0,
         filled: 0,
-    }
+        }
 
     @assert(humidity.ingest(40.0'f64) == 40.0'f64)
     @assert(humidity.ingest(55.0'f64) == 55.0'f64)
@@ -169,7 +169,7 @@ impl TelemetrySeries
 #test
 {
     var pressure: TelemetrySeries'(Kilopascal, f64, 3) =
-    {
+        {
         name: "pressure",
         scale: 0.1,
         offset: 90.0,
@@ -177,7 +177,7 @@ impl TelemetrySeries
         samples: [0.0'f64, 0.0, 0.0],
         next: 0,
         filled: 0,
-    }
+        }
 
     @assert(pressure.ingest(40.0'f64) == 94.0'f64)
     @assert(pressure.ingest(100.0'f64) == 100.0'f64)

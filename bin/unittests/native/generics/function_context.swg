@@ -82,9 +82,7 @@ func(T) functionReturnOnlyForward(value: s32)->T
     return functionReturnOnlyFactory(value)
 }
 
-struct(T) MethodTypeShadowHolder
-{
-}
+struct(T) MethodTypeShadowHolder {}
 
 impl MethodTypeShadowHolder
 {
@@ -101,9 +99,7 @@ impl MethodTypeShadowHolder
     }
 }
 
-struct(T, N: s32) MethodConstShadowHolder
-{
-}
+struct(T, N: s32) MethodConstShadowHolder {}
 
 impl MethodConstShadowHolder
 {

@@ -7,12 +7,12 @@ func semaTest001()
     var s: Pair
     var a: s32
     var b: bool
-    (a, b) = s
+        (a, b) = s
 }
 
 func semaTest002()
 {
     var s: Pair
     var a: s32
-    (a, ?) = s
+        (a, ?) = s
 }

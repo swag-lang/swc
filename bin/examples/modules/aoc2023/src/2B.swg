@@ -57,6 +57,6 @@ func day2B()
         total += game.r * game.g * game.b
     }
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 66363)
 }

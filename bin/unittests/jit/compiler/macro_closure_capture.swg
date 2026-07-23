@@ -59,7 +59,8 @@ func macroClosureCaptureValue(value: s32)->s32
 {
     var payload = JitMacroClosurePayload{40}
     jitMacroInjectClosureCapture(#code {
-        @assert(jitMacroClosureCaptureRunTwice(func|&payload|()->s32 {
+        @assert(jitMacroClosureCaptureRunTwice(func|&payload|()->s32
+        {
             payload.total += 2
             return payload.total
         }) == 464)

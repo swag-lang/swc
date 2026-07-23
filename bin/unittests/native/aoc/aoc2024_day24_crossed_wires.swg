@@ -9,7 +9,7 @@
 // ternary expressions, for loops with until.
 
 const SampleSmall =
-"""x00: 1
+    """x00: 1
 x01: 1
 x02: 1
 y00: 0
@@ -17,12 +17,12 @@ y01: 1
 y02: 0"""
 
 const SampleSmallGates =
-"""x00 AND y00 -> z00
+    """x00 AND y00 -> z00
 x01 XOR y01 -> z01
 x02 OR y02 -> z02"""
 
 const SampleLarge =
-"""x00: 1
+    """x00: 1
 x01: 0
 x02: 1
 x03: 1
@@ -34,7 +34,7 @@ y03: 1
 y04: 1"""
 
 const SampleLargeGates =
-"""ntg XOR fgs -> mjb
+    """ntg XOR fgs -> mjb
 y02 OR x01 -> tnw
 kwq OR kpj -> z05
 x00 OR x03 -> fst
@@ -91,26 +91,26 @@ const MaxWireIdx = 46656'u32  // 36^3: max possible encodeWire result + 1
 // Each wire name is 3 characters. Encode as: (c0 * 36 + c1) * 36 + c2
 // where digits 0-9 map to 0-9 and letters a-z map to 10-35.
 #[Swag.Inline]
-func charVal(c: u8) -> u32
+func charVal(c: u8)->u32
 {
     if c >= '0' and c <= '9' do return cast(u32) (c - '0')
     return cast(u32) (c - 'a') + 10
 }
 
 #[Swag.Inline]
-func encodeWire(c0: u8, c1: u8, c2: u8) -> u32
+func encodeWire(c0: u8, c1: u8, c2: u8)->u32
 {
     return (charVal(c0) * 36 + charVal(c1)) * 36 + charVal(c2)
 }
 
 #[Swag.Inline]
-func wireIsZ(c0: u8) -> bool { return c0 == 'z' }
+func wireIsZ(c0: u8)->bool { return c0 == 'z' }
 
 #[Swag.Inline]
-func wireIsX(c0: u8) -> bool { return c0 == 'x' }
+func wireIsX(c0: u8)->bool { return c0 == 'x' }
 
 #[Swag.Inline]
-func wireIsY(c0: u8) -> bool { return c0 == 'y' }
+func wireIsY(c0: u8)->bool { return c0 == 'y' }
 
 // ---------------------------------------------------------------------------
 // Gate and circuit structures
@@ -142,7 +142,7 @@ struct Circuit
     maxZBit:  u32        // highest z-bit number
 }
 
-func circuitInit() -> Circuit
+func circuitInit()->Circuit
 {
     var c: Circuit
     c.wireVal = cast(#null [*] u8) @alloc(cast(u64) MaxWireIdx * #sizeof(u8))
@@ -160,7 +160,7 @@ func circuitFree(c: *Circuit)
 impl Circuit
 {
     #[Swag.Inline]
-    mtd getWire(idx: u32) -> u8
+    mtd getWire(idx: u32)->u8
     {
         return me.wireVal[idx]
     }
@@ -172,7 +172,7 @@ impl Circuit
     }
 
     #[Swag.Inline]
-    mtd isSet(idx: u32) -> bool
+    mtd isSet(idx: u32)->bool
     {
         return me.wireVal[idx] != 255
     }
@@ -322,7 +322,7 @@ func parseGates(c: *Circuit, text: string)
 
 // Keep this branch form explicit for readability while evaluating each gate.
 #[Swag.Inline]
-func evalGate(op: GateOp, a: u8, b: u8) -> u8
+func evalGate(op: GateOp, a: u8, b: u8)->u8
 {
     if op == GateOp.OpAnd do return a & b
     if op == GateOp.OpOr  do return a | b
@@ -353,7 +353,7 @@ func simulate(c: *Circuit)
     }
 }
 
-func readZValue(c: *Circuit) -> u64
+func readZValue(c: *Circuit)->u64
 {
     var result: u64
     for bit in c.maxZBit + 1
@@ -373,7 +373,7 @@ func readZValue(c: *Circuit) -> u64
     return result
 }
 
-func solvePart1(wiresText: string, gatesText: string) -> u64
+func solvePart1(wiresText: string, gatesText: string)->u64
 {
     var c = circuitInit()
     defer circuitFree(&c)
@@ -401,7 +401,7 @@ struct SwappedResult
 }
 
 #[Swag.Inline]
-func isXY(ch: u8) -> bool
+func isXY(ch: u8)->bool
 {
     return ch == 'x' or ch == 'y'
 }
@@ -426,7 +426,7 @@ func addSwapped(result: *SwappedResult, c0: u8, c1: u8, c2: u8)
 }
 
 // Check if any gate uses `wireOut` as an input with the given operation
-func hasDownstream(c: *Circuit, wireOut: u32, op: GateOp) -> bool
+func hasDownstream(c: *Circuit, wireOut: u32, op: GateOp)->bool
 {
     for gi in c.gateCount
     {
@@ -439,7 +439,7 @@ func hasDownstream(c: *Circuit, wireOut: u32, op: GateOp) -> bool
     return false
 }
 
-func findSwapped(c: *Circuit) -> SwappedResult
+func findSwapped(c: *Circuit)->SwappedResult
 {
     var result: SwappedResult
 
@@ -499,7 +499,7 @@ func findSwapped(c: *Circuit) -> SwappedResult
 }
 
 // Sort swapped names and format as comma-separated
-func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32) -> u32
+func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
 {
     // Bubble sort by name
     for i in result.count
@@ -563,7 +563,7 @@ struct SolveResult
     part2Buf: [128] u8
 }
 
-func solve(wiresText: string, gatesText: string) -> SolveResult
+func solve(wiresText: string, gatesText: string)->SolveResult
 {
     var c = circuitInit()
     defer circuitFree(&c)
@@ -816,7 +816,7 @@ struct WireInfo
 }
 
 #[Swag.Inline]
-func makeWireInfo(c0: u8, c1: u8, c2: u8) -> WireInfo
+func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
 {
     var r: retval
     r.encoded = encodeWire(c0, c1, c2)

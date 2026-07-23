@@ -154,12 +154,12 @@ impl SensorChannel
 #test
 {
     var channel: SensorChannel'(f32, 2) =
-    {
+        {
         scale: 1.0,
         offset: 0.0,
         safe: {min: 0.0, max: 100.0},
         window: {values: [0.0'f32, 0.0], next: 0, filled: 0},
-    }
+        }
 
     @assert(channel.ingest(10.0'f32) == 10.0'f32)
     @assert(channel.ingest(150.0'f32) == 100.0'f32)

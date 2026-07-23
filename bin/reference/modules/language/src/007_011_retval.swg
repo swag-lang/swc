@@ -36,7 +36,7 @@ This is especially beneficial when returning large structs, arrays, or tuples.
         result.z = 1.0
         return result
     }
-    let (r, g, b) = getWhite()
+        let (r, g, b) = getWhite()
     @assert(r == 0.5)
     @assert(g == 0.1)
     @assert(b == 1.0)

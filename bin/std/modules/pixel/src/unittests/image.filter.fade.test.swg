@@ -5,7 +5,7 @@ using Swag, Core
 {
     const pixels = [
         10'u8, 20'u8, 30'u8, 101'u8,     200'u8, 150'u8, 100'u8, 102'u8,
-    ]
+        ]
 
     var img = makeImage(2, 1, .RGBA8, pixels)
     img.fade(Color.fromArgb(255'u8, 110'u8, 210'u8, 10'u8), 0.25)

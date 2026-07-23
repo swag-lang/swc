@@ -296,9 +296,7 @@ impl TagBin
     // Finish reading the root container.
     // Currently no cleanup is required, but this maintains the symmetric begin/end API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endRoot() throw
-    {
-    }
+    mtd endRoot() throw {}
 
     // Begin reading a new section with the specified 'kind'.
     // Optionally skips reading the fat table if 'skipFat' is true for performance optimization.
@@ -565,7 +563,7 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Debug.assert(.outStack.count != 0)
-        let (parentOut, parentSeek) = .outStack.popBack()
+            let (parentOut, parentSeek) = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
@@ -576,16 +574,12 @@ impl TagBin
     // Begin reading a value within the current context.
     // Currently no special processing is required, but this maintains the symmetric API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd beginValue() throw
-    {
-    }
+    mtd beginValue() throw {}
 
     // Finish reading a value within the current context.
     // Currently no cleanup is required, but this maintains the symmetric API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endValue() throw
-    {
-    }
+    mtd endValue() throw {}
 
     // Begin reading a sequence (array) of elements of type 'typeElem'.
     // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
@@ -683,9 +677,7 @@ impl TagBin
     // Finish reading the current sequence.
     // Currently no cleanup is required, but this maintains the symmetric API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endSequence() throw
-    {
-    }
+    mtd endSequence() throw {}
 
     // Advance to the next element in the current sequence.
     // Decrements 'countElem' and returns false when no more elements remain.
@@ -732,7 +724,7 @@ impl TagBin
             result.length = count
             return result
         }
-        #else
+            #else
         {
             if .convertNextNative
             {

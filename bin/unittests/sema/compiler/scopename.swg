@@ -3,9 +3,7 @@
 #assert(#typeof(#module) == string)
 #assert(#module == "Sema")
 
-struct ScopeNameOwner
-{
-}
+struct ScopeNameOwner {}
 
 #[Swag.Mixin]
 func assertScopedValue(name: string, expectedScope: string)

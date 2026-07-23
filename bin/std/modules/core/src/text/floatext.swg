@@ -217,7 +217,7 @@ impl FloatExt
         let approxExp10 = ((expMin + expMax) / 2 - .exp) * 28 / 93             // log(10)/log(2) is close to 93/28.
         var i           = (approxExp10 - firstPowerOfTen) / stepPowerOfTen
         #scope(Loop)
-        for
+            for
         {
             let exp1 = .exp + powersOfTen[i].exp + 64
             switch
@@ -266,7 +266,7 @@ impl FloatExt
         // Multiply by an appropriate power of ten to have a reasonable
         // number to process.
         .normalize()
-        let (exp10, ?) = .frexp10()
+            let (exp10, ?) = .frexp10()
 
         let shift    = cast(u32) -.exp
         var integer  = cast(u32) (.mant >> shift)

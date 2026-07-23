@@ -11,9 +11,7 @@ struct CountedLoop
     count: u64
 }
 
-struct FixedCountedLoop
-{
-}
+struct FixedCountedLoop {}
 
 struct StringRefIndexBox
 {
@@ -32,12 +30,12 @@ impl FixedCountedLoop
 
 impl StringRefIndexBox
 {
-    mtd opIndex(index: s32) -> &string
+    mtd opIndex(index: s32)->&string
     {
         return &.rows[index]
     }
 
-    mtd const opIndex(index: s32) -> const &string
+    mtd const opIndex(index: s32)->const &string
     {
         return &.rows[index]
     }
@@ -570,10 +568,10 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         switch i
         {
-            case 1:
-                sum += cast(s32) @index
-            default:
-                sum += cast(s32) @index
+        case 1:
+            sum += cast(s32) @index
+        default:
+            sum += cast(s32) @index
         }
     }
 
@@ -615,8 +613,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         switch i
         {
-            case 2, 4:
-                continue
+        case 2, 4:
+            continue
         }
         total += cast(s32) i
     }

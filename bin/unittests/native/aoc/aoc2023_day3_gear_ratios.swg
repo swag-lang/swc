@@ -13,7 +13,7 @@ const MaxNumbers = 1024'u32
 const MaxGears = 256'u32
 
 const SampleInput =
-"""467..114..
+    """467..114..
 ...*......
 ..35..633.
 ......#...
@@ -25,17 +25,17 @@ const SampleInput =
 .664.598.."""
 
 const TinyInput =
-"""12..
+    """12..
 ..*.
 ..45"""
 
 const EdgeInput =
-"""100
+    """100
 .*.
 100"""
 
 const SingleDigitInput =
-"""...
+    """...
 .5.
 .*.
 .3.

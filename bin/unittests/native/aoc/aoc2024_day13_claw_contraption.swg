@@ -10,7 +10,7 @@
 // #[Swag.NoInline], struct literal arguments.
 
 const SampleInput =
-"""Button A: X+94, Y+34
+    """Button A: X+94, Y+34
 Button B: X+22, Y+67
 Prize: X=8400, Y=5400
 
@@ -37,7 +37,7 @@ struct Vec2
 }
 
 // Helper for Vec2 equality (exercises short function syntax)
-func vec2Eq(a, b: Vec2) -> bool => a.x == b.x and a.y == b.y
+func vec2Eq(a, b: Vec2)->bool => a.x == b.x and a.y == b.y
 
 // ---------------------------------------------------------------------------
 // Machine description and parsing
@@ -65,7 +65,7 @@ enum ParseState: u8
 
 // Parse a number from bytes starting at pos; advances pos past the digits.
 #[Swag.NoInline]
-func parseNum(bytes: const [..] u8, pos: *u32) -> s64
+func parseNum(bytes: const [..] u8, pos: *u32)->s64
 {
     var neg = false
     if dref pos < @countof(bytes) and bytes[dref pos] == '-'
@@ -99,7 +99,7 @@ func skipToNum(bytes: const [..] u8, pos: *u32)
     }
 }
 
-func parseMachines(text: string, out: [*] Machine) -> u32
+func parseMachines(text: string, out: [*] Machine)->u32
 {
     let bytes = cast(const [..] u8) text
     var pos: u32
@@ -151,7 +151,7 @@ func parseMachines(text: string, out: [*] Machine) -> u32
 // Solve:  a.x * na + b.x * nb = prize.x
 //         a.y * na + b.y * nb = prize.y
 // Returns token cost (3*na + nb), or 0 if no non-negative integer solution.
-func solveMachine(m: Machine) -> u64
+func solveMachine(m: Machine)->u64
 {
     let det = m.a.x * m.b.y - m.a.y * m.b.x
     if det == 0 do
@@ -180,7 +180,7 @@ struct Result
     part2: u64
 }
 
-func solve(text: string) -> Result
+func solve(text: string)->Result
 {
     var machines: [MaxMachines] Machine
     let n = parseMachines(text, &machines[0])
@@ -210,7 +210,7 @@ func solve(text: string) -> Result
 
 // Count how many machines in a range [lo, hi] (inclusive 'to') have
 // a solution for Part 1.
-func countSolvable(machines: [*] Machine, lo: u32, hi: u32) -> u32
+func countSolvable(machines: [*] Machine, lo: u32, hi: u32)->u32
 {
     var count: u32
     for i in lo to hi
@@ -222,7 +222,7 @@ func countSolvable(machines: [*] Machine, lo: u32, hi: u32) -> u32
 }
 
 // Determinant magnitude helper (exercises @abs)
-func detMagnitude(m: Machine) -> s64 => @abs(m.a.x * m.b.y - m.a.y * m.b.x)
+func detMagnitude(m: Machine)->s64 => @abs(m.a.x * m.b.y - m.a.y * m.b.x)
 
 // ---------------------------------------------------------------------------
 // Switch with fallthrough exercise
@@ -230,7 +230,7 @@ func detMagnitude(m: Machine) -> s64 => @abs(m.a.x * m.b.y - m.a.y * m.b.x)
 
 // Classify token cost into tiers using fallthrough.
 // 0 → "free", 1-99 → "cheap", 100-999 → "mid", >=1000 → "expensive"
-func costTier(cost: u64) -> u32
+func costTier(cost: u64)->u32
 {
     var tier: u32
 

@@ -6,9 +6,9 @@
     var hit = 0
     switch a
     {
-        case s32:
-            hit = 1
-            break
+    case s32:
+        hit = 1
+        break
     }
     @assert(hit == 1)
 }
@@ -19,9 +19,9 @@
     var hit = 0
     switch a
     {
-        case s32:
-            hit = 1
-            break
+    case s32:
+        hit = 1
+        break
     }
     @assert(hit == 1)
 }
@@ -32,12 +32,12 @@
     var hit = 0
     switch a
     {
-        case s32:
-            hit = 1
-            break
-        default:
-            hit = 2
-            break
+    case s32:
+        hit = 1
+        break
+    default:
+        hit = 2
+        break
     }
     @assert(hit == 2)
 }

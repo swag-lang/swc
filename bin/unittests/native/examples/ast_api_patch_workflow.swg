@@ -188,14 +188,14 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
 #test
 {
     let base: TenantSettings =
-    {
+        {
         seatLimit: 25,
         storageGb: 250,
         auditRetentionDays: 30,
         ssoEnabled: false,
         billingEmail: "billing@acme.test",
         tier: .Growth,
-    }
+        }
 
     var patch: ApiPatch'TenantSettings
     patch.has_storageGb = true
@@ -223,27 +223,27 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
 #test
 {
     let source: TenantSettings =
-    {
+        {
         seatLimit: 120,
         storageGb: 2000,
         auditRetentionDays: 365,
         ssoEnabled: true,
         billingEmail: "finance@northwind.test",
         tier: .Enterprise,
-    }
+        }
 
     var patch: ApiPatch'TenantSettings
     capturePatch'(TenantSettings)(&patch, source)
 
     let blank: TenantSettings =
-    {
+        {
         seatLimit: 0,
         storageGb: 0,
         auditRetentionDays: 0,
         ssoEnabled: false,
         billingEmail: "",
         tier: .Starter,
-    }
+        }
 
     let rebuilt = applyPatch'(TenantSettings)(patch, blank)
 
@@ -264,12 +264,12 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
 #test
 {
     let base: NotificationPolicy =
-    {
+        {
         dailyDigest: true,
         weeklyReport: false,
         escalationMinutes: 45,
         smsEnabled: false,
-    }
+        }
 
     var patch: ApiPatch'NotificationPolicy
     patch.has_weeklyReport = true

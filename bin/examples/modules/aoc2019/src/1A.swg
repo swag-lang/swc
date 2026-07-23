@@ -31,6 +31,6 @@ func day1A()
     for l in lines do
         total += (assume StrConv.toS32(l) / 3) - 2
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 3296560)
 }

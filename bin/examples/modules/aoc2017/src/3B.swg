@@ -53,7 +53,7 @@ func day3B()
                 let s = sum(x, y, arr)
                 if s >= D
                 {
-                    //Console.print("total: ", s)
+                    // Console.print("total: ", s)
                     @assert(s == 312453)
                     return
                 }

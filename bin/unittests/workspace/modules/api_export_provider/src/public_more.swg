@@ -9,9 +9,7 @@ namespace DepTools.Deep
     const DEP_NAMESPACE_DEEP = 43
 }
 
-public struct DepIgnoredContainer
-{
-}
+public struct DepIgnoredContainer {}
 
 public impl DepIgnoredContainer
 {

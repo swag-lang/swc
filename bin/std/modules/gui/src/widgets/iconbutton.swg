@@ -19,8 +19,8 @@ enum IconButtonFlags
     HideName
     Flat            // No background box (and no checked fill): paint only the icon/swatch and arrow
     Overlay         // No opaque box: hot/pressed/checked is a translucent state layer (Material-
-                    // style) drawn over the content, so it blends with whatever is underneath
-                    // (a pastel accent row, a color swatch) instead of clashing as a solid fill.
+// style) drawn over the content, so it blends with whatever is underneath
+// (a pastel accent row, a color swatch) instead of clashing as a solid fill.
 }
 
 enum IconButtonArrowPos

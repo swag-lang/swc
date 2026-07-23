@@ -13,7 +13,7 @@ const JoinCards = [
     JoinCard{"Round", .Round, Argb.SeaGreen},
     JoinCard{"Miter", .Miter, Argb.Crimson},
     JoinCard{"Miter bevel", .MiterBevel, Argb.DarkOrchid},
-]
+    ]
 
 func makeJoinPath(rect: Math.Rectangle)->LinePath
 {

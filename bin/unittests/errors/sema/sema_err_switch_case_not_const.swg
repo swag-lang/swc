@@ -12,12 +12,12 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case 1:
-                return 11
-            case 2, 3:
-                return 23
-            default:
-                return 90
+        case 1:
+            return 11
+        case 2, 3:
+            return 23
+        default:
+            return 90
         }
     }
 
@@ -37,12 +37,12 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case 1.25:
-                return 12
-            case 2.5:
-                return 25
-            default:
-                return 0
+        case 1.25:
+            return 12
+        case 2.5:
+            return 25
+        default:
+            return 0
         }
     }
 
@@ -60,12 +60,12 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case 1 to 3:
-                return 10
-            case 4 until 7:
-                return 20
-            default:
-                return 30
+        case 1 to 3:
+            return 10
+        case 4 until 7:
+            return 20
+        default:
+            return 30
         }
     }
 
@@ -87,12 +87,12 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case 1 where takeFirst:
-                return 100
-            case 1:
-                return 200
-            default:
-                return 300
+        case 1 where takeFirst:
+            return 100
+        case 1:
+            return 200
+        default:
+            return 300
         }
     }
 
@@ -110,14 +110,14 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case s32:
-                return 1
-            case f64:
-                return 2
-            case bool:
-                return 3
-            default:
-                return 4
+        case s32:
+            return 1
+        case f64:
+            return 2
+        case bool:
+            return 3
+        default:
+            return 4
         }
     }
 
@@ -141,12 +141,12 @@ enum RunSwitchEnum: s32
     {
         switch
         {
-            case a > b:
-                return 10
-            case a == b:
-                return 20
-            default:
-                return 30
+        case a > b:
+            return 10
+        case a == b:
+            return 20
+        default:
+            return 30
         }
     }
 
@@ -165,14 +165,14 @@ enum RunSwitchEnum: s32
         var r = 0
         switch v
         {
-            case 1:
-                r = r + 1
-                fallthrough
-            case 2:
-                r = r + 2
-                break
-            default:
-                r = 10
+        case 1:
+            r = r + 1
+            fallthrough
+        case 2:
+            r = r + 2
+            break
+        default:
+            r = 10
         }
 
         return r
@@ -192,10 +192,10 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case .A:
-                return 7
-            case .B:
-                return 9
+        case .A:
+            return 7
+        case .B:
+            return 9
         }
     }
 
@@ -211,10 +211,10 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-            case v: // swc-expected-error {{sema_err_switch_case_not_const}}
-                return 1
-            default:
-                return 0
+        case v: // swc-expected-error {{sema_err_switch_case_not_const}}
+            return 1
+        default:
+            return 0
         }
     }
 }

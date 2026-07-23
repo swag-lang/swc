@@ -104,7 +104,7 @@ impl SelModel
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
     {
         #scope(Up)
-        for &r in .selection
+            for &r in .selection
         {
             for i in r.start to r.end
             {

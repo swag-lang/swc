@@ -96,7 +96,7 @@ struct LocalVarDirectDefaultNode
         let n: LocalVarNode = {
             pos: {x: 3, y: 8},
             state: {enabled: false, weight: 12},
-        }
+            }
 
         if n.state.enabled
         {
@@ -156,7 +156,7 @@ struct LocalVarDirectDefaultNode
             a9: 10,
             a10: 11,
             a11: 12,
-        }
+            }
 
         return v.a0 + v.a5 + v.a11
     }

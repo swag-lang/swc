@@ -1,8 +1,6 @@
 #global private
 
-func mayThrowVoid() throw
-{
-}
+func mayThrowVoid() throw {}
 
 func mayThrowValue(value: s32)->s32 throw
 {

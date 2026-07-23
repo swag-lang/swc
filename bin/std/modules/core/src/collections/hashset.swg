@@ -92,7 +92,7 @@ impl HashSet
                 newTable[i].key  = #nodrop oldTable[i].key
             }
         }
-        #else
+            #else
         {
             Memory.copy(newTable, oldTable, .capacity * #sizeof(HashSetEntry'(K)))
         }
@@ -112,11 +112,11 @@ impl HashSet
         let table = .constTablePtr()
         var remain = .count
         #scope(Up)
-        for .capacity
+            for .capacity
         {
             #if back do
                 let tableIndex = .capacity - @index - 1
-            #else do
+                #else do
                 let tableIndex = @index
 
             if table[tableIndex].hash < HashSet.HASH_FIRST do
@@ -126,9 +126,9 @@ impl HashSet
             {
                 #if ptr do
                     #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
-                #elif Reflection.isStruct(K) do
+                    #elif Reflection.isStruct(K) do
                     #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
-                #else do
+                    #else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
 

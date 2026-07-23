@@ -22,7 +22,7 @@ using Core
 
 func day6B()
 {
-    //Time.Stopwatch.scopeMeasure()
+    // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
     var lights: Array's32
@@ -77,6 +77,6 @@ func day6B()
     for v in lights do
         total += v
 
-    //Console.print("total: ", total)
+    // Console.print("total: ", total)
     @assert(total == 14110788)
 }

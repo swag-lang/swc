@@ -11,9 +11,7 @@ struct(T) ListEntry
     value: T
 }
 
-struct(T) List
-{
-}
+struct(T) List {}
 
 impl List
 {

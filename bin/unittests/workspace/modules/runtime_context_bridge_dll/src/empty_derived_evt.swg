@@ -4,9 +4,7 @@
 // then checked in the consumer exe, must work for an *empty* derived struct whose impl
 // of a marker interface has no member functions.
 
-interface IDepEvt
-{
-}
+interface IDepEvt {}
 
 struct DepEvtBase
 {

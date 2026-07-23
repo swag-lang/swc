@@ -17,7 +17,7 @@
 {
     var a: f32
     var hit = 0
-    switch(a)
+    switch (a)
     {
     case 1 to 2.0:
         hit = 1

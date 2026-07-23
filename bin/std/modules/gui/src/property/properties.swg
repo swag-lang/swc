@@ -67,8 +67,8 @@ enum PropertiesKind
     Grid       // This is a more compact property grid
     Condensed  // A dense, classic property grid: thin rows, compact controls
     Panel      // A tool panel: full-width self-labeled rows (labeled slider, labeled combo,
-               // check button...), no name column, no descriptions; categories paint as
-               // thin separators. The look of an editor's side panel.
+// check button...), no name column, no descriptions; categories paint as
+// thin separators. The look of an editor's side panel.
 }
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
@@ -706,7 +706,7 @@ impl Properties
             {
                 scan.line.show()
 
-                (?, mustEnable) = .getItemState(scan)
+                    (?, mustEnable) = .getItemState(scan)
                 scan.line.enable(mustEnable)
 
                 scan = scan.parent

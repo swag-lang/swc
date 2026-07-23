@@ -64,7 +64,7 @@ impl RegressionArray
 
             #if ptr do
                 #inject(stmt, item = scan, index = @index)
-            #else do
+                #else do
                 #inject(stmt, item = scan[0], index = @index)
         }
     }

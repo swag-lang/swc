@@ -26,9 +26,7 @@ func semaTest001()
     #assert(#typeof(ok) == bool)
 }
 
-interface I
-{
-}
+interface I {}
 
 impl I for A
 {
@@ -51,7 +49,7 @@ impl AutoScopeUnaryBox
     {
         #if op == "~" do
             return {value: ~.value}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 }

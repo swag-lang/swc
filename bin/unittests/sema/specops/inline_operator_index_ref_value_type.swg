@@ -8,7 +8,7 @@ struct InlineRefIndexBox
 impl InlineRefIndexBox
 {
     #[Swag.Inline]
-    mtd opIndex(index: s32) -> &s32
+    mtd opIndex(index: s32)->&s32
     {
         return &.buffer[index]
     }

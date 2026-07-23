@@ -10,18 +10,14 @@ func mayThrowValue()->s32 throw
     return 42
 }
 
-func mayThrowVoid() throw
-{
-}
+func mayThrowVoid() throw {}
 
 func plainValue()->s32
 {
     return 12
 }
 
-func plainVoid()
-{
-}
+func plainVoid() {}
 
 func propagateValue()->s32 throw
 {

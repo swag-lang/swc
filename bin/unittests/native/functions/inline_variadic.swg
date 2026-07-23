@@ -58,13 +58,13 @@ func inlineUntypedVariadicHead(head: s32, values: ...)->s32
     return head + cast(s32) @countof(values)
 }
 
-func inlineTypedVariadicLiteralForward() -> s32
+func inlineTypedVariadicLiteralForward()->s32
 {
     return inlineTypedVariadicNamed(1, 2, 3, 4)
 }
 
 #[Swag.Inline]
-func inlineTypedVariadicLiteralEdges(values: s32...) -> s32
+func inlineTypedVariadicLiteralEdges(values: s32...)->s32
 {
     return values[0] + values[3]
 }

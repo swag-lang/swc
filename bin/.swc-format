@@ -1,35 +1,39 @@
 # ============================================================================
 # Swag code formatter configuration
 # ============================================================================
-# This file configures the formatter run by `swc --format` on `.swg` sources.
-# All options below are set to their most passive value — the formatter is a
-# no-op by default. Override individual options per directory as needed.
+# This file configures the formatter run by `swc format` on `.swg` sources.
+# The values below match the style of the code base under `bin/`: running
+# `format.bat` should be (close to) a no-op on conformant sources.
 # Enum options list their accepted values on a `# Possible values:` line.
+# Options set to `preserve` keep the source exactly as written.
 
 # ----------------------------------------------------------------------------
 # File-level whitespace
 # ----------------------------------------------------------------------------
 
 # Preserve UTF-8 BOM markers already present in the file.
-preserve-bom = preserve
+preserve-bom = true
 
 # Keep trailing whitespace on existing lines unchanged.
-preserve-trailing-whitespace = preserve
+preserve-trailing-whitespace = false
 
 # Ensure the file ends with a single newline.
-insert-final-newline = preserve
+insert-final-newline = true
 
 # Collapse multiple trailing newlines to one.
-trim-trailing-newlines = preserve
+trim-trailing-newlines = true
 
 # Maximum blank lines allowed in a row (0 disables the limit).
 max-consecutive-empty-lines = 1
 
 # Keep blank lines at the start of a `{ ... }` block.
-keep-empty-lines-at-start-of-block = preserve
+keep-empty-lines-at-start-of-block = false
 
 # Keep blank lines at the end of a `{ ... }` block.
-keep-empty-lines-at-end-of-block = preserve
+keep-empty-lines-at-end-of-block = false
+
+# Minimum blank lines between function declarations (0 keeps the source as written).
+min-blank-lines-between-functions = 0
 
 # ----------------------------------------------------------------------------
 # End-of-line
@@ -37,15 +41,17 @@ keep-empty-lines-at-end-of-block = preserve
 
 # Line-ending style written back to the file.
 # Possible values: preserve, lf, crlf
-end-of-line-style = preserve
+end-of-line-style = crlf
 
 # ----------------------------------------------------------------------------
 # Indentation
 # ----------------------------------------------------------------------------
 
-# Use spaces, tabs, or keep the existing style.
+# Use spaces, tabs, or keep the existing style. Any value other than
+# `preserve` re-indents statements to their canonical block depth (wrapped
+# continuation lines keep their relative indentation).
 # Possible values: preserve, spaces, tabs
-indent-style = preserve
+indent-style = spaces
 
 # Indent width used when formatting with spaces.
 indent-width = 4
@@ -57,25 +63,25 @@ tab-width = 4
 continuation-indent-width = 4
 
 # Indent content nested inside a `namespace` block.
-indent-namespace-body = preserve
+indent-namespace-body = true
 
 # Indent content nested inside an `impl` block.
-indent-impl-body = preserve
+indent-impl-body = true
 
 # Indent content nested inside a `struct` block.
-indent-struct-body = preserve
+indent-struct-body = true
 
 # Indent content nested inside an `enum` block.
-indent-enum-body = preserve
+indent-enum-body = true
 
 # Indent `case` labels one level inside the enclosing `switch`.
-indent-case-labels = preserve
+indent-case-labels = false
 
 # Indent the body of a `case` relative to its label.
-indent-case-blocks = preserve
+indent-case-blocks = true
 
 # Attributes adopt the indentation of the declaration they apply to.
-indent-attributes = preserve
+indent-attributes = true
 
 # Indent wrapped arguments relative to the opening parenthesis.
 indent-inside-parens = preserve
@@ -101,7 +107,7 @@ break-after-return-type = preserve
 break-before-do = preserve
 
 # Place `else` on its own line (Stroustrup / Allman style).
-break-before-else = preserve
+break-before-else = true
 
 # How to lay out arguments across lines in calls.
 # Possible values: preserve, pack, one-per-line
@@ -117,10 +123,10 @@ bin-pack-parameters = preserve
 
 # Opening brace placement policy.
 # Possible values: preserve, attach, allman, stroustrup
-brace-style = preserve
+brace-style = allman
 
 # Keep `{}` on the opening line.
-compact-empty-braces = preserve
+compact-empty-braces = true
 
 # When to keep function bodies on a single line.
 # Possible values: preserve, never, empty, inline, always
@@ -141,7 +147,7 @@ allow-short-structs-on-single-line = preserve
 # Allow `if x do ...` / `if x { ... }` on one line.
 allow-short-if-statements-on-single-line = preserve
 
-# Allow `while`/`for`/`foreach` bodies on one line.
+# Allow `while`/`for` bodies on one line.
 allow-short-loops-on-single-line = preserve
 
 # Allow single-statement `case` arms to stay on one line.
@@ -150,6 +156,8 @@ allow-short-case-on-single-line = preserve
 # ----------------------------------------------------------------------------
 # Alignment
 # ----------------------------------------------------------------------------
+# The code base aligns by hand in many hot spots; the formatter keeps those
+# as written instead of enforcing machine grouping.
 
 # Align `=` signs in adjacent assignments.
 # Possible values: preserve, none, consecutive, across-blanks, all
@@ -193,62 +201,69 @@ align-after-open-bracket = preserve
 # ----------------------------------------------------------------------------
 # Spacing
 # ----------------------------------------------------------------------------
+# A `true` spacing option inserts a missing blank but keeps wider runs (they
+# are treated as manual alignment); a `false` option removes the blanks.
 
 # Insert a space before `:` in declarations like `a : u8`.
-space-before-colon-in-declarations = preserve
+space-before-colon-in-declarations = false
 
 # Insert a space after `:` in declarations like `a: u8`.
-space-after-colon-in-declarations = preserve
+space-after-colon-in-declarations = true
 
 # Insert a space before `:` in `enum E: u32` / `using base: Foo`.
-space-before-colon-in-base-clause = preserve
+space-before-colon-in-base-clause = false
 
 # Insert spaces around `=` in assignments.
-space-around-assignment-operator = preserve
+space-around-assignment-operator = true
 
 # Insert spaces around binary operators (`+`, `*`, `&`, ...).
-space-around-binary-operators = preserve
+space-around-binary-operators = true
 
 # Insert spaces around `->` in function signatures.
-space-around-arrow = preserve
+space-around-arrow = false
 
-# Insert spaces around `..` / `..<` range operators.
+# Insert spaces around `=>` in short function bodies.
+space-around-fat-arrow = true
+
+# Insert spaces around `..` range operators.
 space-around-range-operator = preserve
 
 # Insert a space after `,`.
-space-after-comma = preserve
+space-after-comma = true
 
 # Insert a space before `,`.
-space-before-comma = preserve
+space-before-comma = false
 
 # Insert a space after a `cast(...)` expression.
-space-after-cast = preserve
+space-after-cast = true
 
 # Insert a space after control keywords such as `if`, `while`, `for`.
-space-after-keyword = preserve
+space-after-keyword = true
 
 # Insert a space after unary operators like `-` or `!`.
-space-after-unary-operator = preserve
+space-after-unary-operator = false
 
 # Insert spaces just inside `(` and `)`.
-space-inside-parentheses = preserve
+space-inside-parentheses = false
 
 # Insert spaces just inside `[` and `]`.
-space-inside-brackets = preserve
+space-inside-brackets = false
 
 # Insert spaces just inside `{` and `}` in initializer lists.
-space-inside-braces = preserve
+space-inside-braces = false
 
 # Insert a space inside `()` when empty.
-space-in-empty-parentheses = preserve
+space-in-empty-parentheses = false
 
 # Insert a space inside `{}` when empty.
-space-in-empty-braces = preserve
+space-in-empty-braces = false
 
 # Insert a space before `#[` when an attribute is placed inline.
 space-before-attribute-bracket = preserve
 
-# When to insert a space between an identifier and `(`.
+# When to insert a space between a control keyword and a parenthesized
+# condition. Swag forbids blanks before call / declaration parentheses, so
+# this option only affects control statements.
 # Possible values: preserve, never, always, control-statements, functions, non-empty
 space-before-parentheses = preserve
 
@@ -258,16 +273,16 @@ space-before-parentheses = preserve
 
 # How to place `#[Attr]` annotations relative to their declaration.
 # Possible values: preserve, own-line, grouped, inline
-attribute-placement = preserve
+attribute-placement = own-line
 
 # Force a line break between an attribute and the declaration it applies to.
 break-after-attribute = preserve
 
 # Insert a space after `,` inside `#[A, B, C]`.
-space-after-attribute-comma = preserve
+space-after-attribute-comma = true
 
 # Sort attribute argument lists alphabetically.
-sort-attribute-arguments = preserve
+sort-attribute-arguments = false
 
 # ----------------------------------------------------------------------------
 # Comments
@@ -284,7 +299,7 @@ normalize-section-separators = preserve
 section-separator-width = 57
 
 # Insert a space after `//` when rewriting line comments.
-space-after-line-comment-prefix = preserve
+space-after-line-comment-prefix = true
 
 # ----------------------------------------------------------------------------
 # Imports / using
@@ -310,7 +325,7 @@ hex-literal-case = preserve
 
 # Case of the `0x` / `0X` hexadecimal prefix (also applies to `0b` / `0B`).
 # Possible values: preserve, upper, lower
-hex-literal-prefix-case = preserve
+hex-literal-prefix-case = lower
 
 # Case of the floating-point exponent letter (`1e10` vs `1E10`).
 # Possible values: preserve, upper, lower

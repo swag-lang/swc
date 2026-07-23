@@ -420,7 +420,7 @@ impl MenuCtrl
             clientRect.y + (clientRect.height - height) * 0.5,
             item.size,
             height
-        }
+            }
     }
 
     private mtd getBarItemRect(item: *PopupMenuItem)->Math.Rectangle

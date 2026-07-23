@@ -53,7 +53,7 @@ impl AutoScopeUnaryBox
     {
         #if op == "~" do
             return {value: ~.value}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 }

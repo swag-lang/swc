@@ -7,7 +7,7 @@
 // interfaces, generics, enums, and compile-time execution.
 
 const SampleInput =
-"""vJrwpWtwJgWrhcsFMMfFFhFp
+    """vJrwpWtwJgWrhcsFMMfFFhFp
    jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
    PmmdzqPrVvPwwTWBwg
    wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
@@ -15,7 +15,7 @@ const SampleInput =
    CrZsJsPPZsGzwwsLwLmpwMDw"""
 
 const CoverageInput =
-"""abca
+    """abca
    daea
    faag
    ZkZm
@@ -35,7 +35,7 @@ struct RucksackReport
 {
     rucksackCount:       u32
     groupCount:          u32
-    misplacedPrioritySum:u64
+    misplacedPrioritySum: u64
     badgePrioritySum:    u64
 }
 

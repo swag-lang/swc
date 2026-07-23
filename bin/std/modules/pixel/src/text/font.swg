@@ -189,9 +189,7 @@ private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, render
 
 public impl Font
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 
     // Scale factor from the shared cache reference size to this Font's draw size
     mtd const scale()->f32

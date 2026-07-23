@@ -68,7 +68,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
     var lshape = [
         Vector2{0, 0}, Vector2{60, 0}, Vector2{60, 20},
         Vector2{20, 20}, Vector2{20, 60}, Vector2{0, 60},
-    ]
+        ]
     @assert(triCount(lshape) == 4)
 
     // Plus / cross (12 vertices). Coordinates are deliberately irregular: a
@@ -79,7 +79,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
         Vector2{21, 1}, Vector2{41, 2}, Vector2{43, 21}, Vector2{61, 23},
         Vector2{62, 41}, Vector2{43, 43}, Vector2{41, 61}, Vector2{22, 62},
         Vector2{21, 43}, Vector2{2, 41}, Vector2{1, 22}, Vector2{19, 19},
-    ]
+        ]
     @assert(triCount(plus) == 10)
 }
 

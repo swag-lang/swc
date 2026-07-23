@@ -1,6 +1,4 @@
 #global public
 #global namespace Core.Serialization
 
-struct Marker
-{
-}
+struct Marker {}

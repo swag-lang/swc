@@ -12,14 +12,10 @@ struct NonNullMoveSourceOwner
 
 impl NonNullMoveSourceOwner
 {
-    mtd opDrop()
-    {
-    }
+    mtd opDrop() {}
 }
 
-func consumeNonNullMoveSource(value: NonNullMoveSourceOwner)
-{
-}
+func consumeNonNullMoveSource(value: NonNullMoveSourceOwner) {}
 
 func forwardNonNullMoveSource(value: #fwd NonNullMoveSourceOwner)
 {

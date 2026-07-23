@@ -43,25 +43,25 @@ impl Vector3
             .y += other.y
             .z += other.z
         }
-        #elif op == "-="
+            #elif op == "-="
         {
             .x -= other.x
             .y -= other.y
             .z -= other.z
         }
-        #elif op == "*="
+            #elif op == "*="
         {
             .x *= other.x
             .y *= other.y
             .z *= other.z
         }
-        #elif op == "/="
+            #elif op == "/="
         {
             .x /= other.x
             .y /= other.y
             .z /= other.z
         }
-        #else do
+            #else do
             #error("unsupported assign operation [[" ++ op ++ "]]")
     }
 
@@ -76,25 +76,25 @@ impl Vector3
             .y += value
             .z += value
         }
-        #elif op == "-="
+            #elif op == "-="
         {
             .x -= value
             .y -= value
             .z -= value
         }
-        #elif op == "*="
+            #elif op == "*="
         {
             .x *= value
             .y *= value
             .z *= value
         }
-        #elif op == "/="
+            #elif op == "/="
         {
             .x /= value
             .y /= value
             .z /= value
         }
-        #else do
+            #else do
             #error("unsupported assign operation [[" ++ op ++ "]]")
     }
 
@@ -105,13 +105,13 @@ impl Vector3
     {
         #if op == "+" do
             return Vector3{.x + other.x, .y + other.y, .z + other.z}
-        #elif op == "-" do
+            #elif op == "-" do
             return Vector3{.x - other.x, .y - other.y, .z - other.z}
-        #elif op == "*" do
+            #elif op == "*" do
             return Vector3{.x * other.x, .y * other.y, .z * other.z}
-        #elif op == "/" do
+            #elif op == "/" do
             return Vector3{.x / other.x, .y / other.y, .z / other.z}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -122,13 +122,13 @@ impl Vector3
     {
         #if op == "+" do
             return Vector3{.x + value, .y + value, .z + value}
-        #elif op == "-" do
+            #elif op == "-" do
             return Vector3{.x - value, .y - value, .z - value}
-        #elif op == "*" do
+            #elif op == "*" do
             return Vector3{.x * value, .y * value, .z * value}
-        #elif op == "/" do
+            #elif op == "/" do
             return Vector3{.x / value, .y / value, .z / value}
-        #else do
+            #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
@@ -139,7 +139,7 @@ impl Vector3
     {
         #if op == "-" do
             return Vector3{-.x, -.y, -.z}
-        #else do
+            #else do
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 

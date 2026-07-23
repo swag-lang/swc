@@ -86,27 +86,27 @@ func firstNonAsciiRune(text: string)->rune
 #test
 {
     let text = "A\u00E9\u20AC\U0001F642"
-    var (c, eat) = Utf8.decodeRune(text)
+        var (c, eat) = Utf8.decodeRune(text)
     @assert(c == 'A''rune)
     @assert(eat == 1)
 
-    (c, eat) = Utf8.decodeRune(text[1 until @countof(text)])
+        (c, eat) = Utf8.decodeRune(text[1 until @countof(text)])
     @assert(c == '\u00E9''rune)
     @assert(eat == 2)
 
-    (c, eat) = Utf8.decodeRune(text[3 until @countof(text)])
+        (c, eat) = Utf8.decodeRune(text[3 until @countof(text)])
     @assert(c == '\u20AC''rune)
     @assert(eat == 3)
 
-    (c, eat) = Utf8.decodeRune(text[6 until @countof(text)])
+        (c, eat) = Utf8.decodeRune(text[6 until @countof(text)])
     @assert(c == '\U0001F642''rune)
     @assert(eat == 4)
 
-    (c, eat) = Utf8.decodeLastRune(text)
+        (c, eat) = Utf8.decodeLastRune(text)
     @assert(c == '\U0001F642''rune)
     @assert(eat == 4)
 
-    (c, eat) = Utf8.decodeLastRune(text[0 until 6])
+        (c, eat) = Utf8.decodeLastRune(text[0 until 6])
     @assert(c == '\u20AC''rune)
     @assert(eat == 3)
 }
@@ -123,15 +123,15 @@ func firstNonAsciiRune(text: string)->rune
     @assert(!Utf8.isValid(overlong))
     @assert(!Utf8.isValid(surrogate))
 
-    var (c, eat) = Utf8.decodeRune(invalidStart)
+        var (c, eat) = Utf8.decodeRune(invalidStart)
     @assert(c == Utf8.RuneError)
     @assert(eat == 1)
 
-    (c, eat) = Utf8.decodeRune(truncated)
+        (c, eat) = Utf8.decodeRune(truncated)
     @assert(c == Utf8.RuneError)
     @assert(eat == 1)
 
-    (c, eat) = Utf8.decodeLastRune(truncated)
+        (c, eat) = Utf8.decodeLastRune(truncated)
     @assert(c == Utf8.RuneError)
     @assert(eat == 1)
 

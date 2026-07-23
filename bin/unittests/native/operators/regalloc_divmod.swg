@@ -93,7 +93,7 @@ func signedUnsignedDivMix(a: s32, b: u32, big: s64)->s64
     var ur: u32 = b % 7'u32      // DIV32:    60 % 7  = 4
     var bq: s64 = big / 10's64   // IDIV64:  420 / 10 = 42
     return cast(s64) sq + cast(s64) sr + cast(s64) uq + cast(s64) ur + bq
-    // -30 + (-6) + 12 + 4 + 42 = 22
+// -30 + (-6) + 12 + 4 + 42 = 22
 }
 
 // ---------------------------------------------------------------------------
@@ -142,10 +142,10 @@ func divModInLoop(a: u32, b: u32, iters: u32)->u32
         i += 1'u32
     }
     return acc
-    // a=100, b=7, iters=3:
-    //  i=0: q=14, r=2,  acc=14+2+7  = 23
-    //  i=1: q=3,  r=2,  acc=3+2+7   = 12
-    //  i=2: q=1,  r=5,  acc=1+5+7   = 13
+// a=100, b=7, iters=3:
+//  i=0: q=14, r=2,  acc=14+2+7  = 23
+//  i=1: q=3,  r=2,  acc=3+2+7   = 12
+//  i=2: q=1,  r=5,  acc=1+5+7   = 13
 }
 
 // ---------------------------------------------------------------------------
@@ -168,11 +168,11 @@ func mulDivShiftInLoop(val: u32, factor: u32, divisor: u32, cnt: u32, iters: u32
         i += 1'u32
     }
     return acc + side
-    // val=3, factor=4, divisor=3, cnt=1, iters=3:
-    //  i=0: prod=3*4=12, quot=12/3=4, side=3+(4>>1)=3+2=5,   acc=4
-    //  i=1: prod=4*4=16, quot=16/3=5, side=5+(5>>1)=5+2=7,   acc=5
-    //  i=2: prod=5*4=20, quot=20/3=6, side=7+(6>>1)=7+3=10,  acc=6
-    //  return 6 + 10 = 16
+// val=3, factor=4, divisor=3, cnt=1, iters=3:
+//  i=0: prod=3*4=12, quot=12/3=4, side=3+(4>>1)=3+2=5,   acc=4
+//  i=1: prod=4*4=16, quot=16/3=5, side=5+(5>>1)=5+2=7,   acc=5
+//  i=2: prod=5*4=20, quot=20/3=6, side=7+(6>>1)=7+3=10,  acc=6
+//  return 6 + 10 = 16
 }
 
 #test

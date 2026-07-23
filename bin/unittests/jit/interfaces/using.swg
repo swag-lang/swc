@@ -2,14 +2,14 @@
 
 interface I
 {
-    mtd foo() -> s32;
+    mtd foo()->s32;
 }
 
 struct S {}
 
 impl I for S
 {
-    mtd impl foo() -> s32 { return 1; }
+    mtd impl foo()->s32 { return 1; }
 }
 
 struct W

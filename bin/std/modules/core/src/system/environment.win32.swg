@@ -188,7 +188,7 @@ public func registerApplication(appName, appFriendly: string)
     if RegCreateKeyExA(HKEY_CURRENT_USER, @dataof(capKey), 0, null, 0, KEY_SET_VALUE, null, &hKey, null) == ERROR_SUCCESS
     {
         RegSetValueExA(hKey, @dataof("ApplicationName"), 0, REG_SZ, @dataof(appFriendly), cast(u32) (@countof(appFriendly) + 1))
-        //RegSetValueExA(hKey, @dataof("ApplicationDescription"), 0, REG_SZ, @dataof(appDescription), cast(u32) (@countof(appDescription) + 1))
+        // RegSetValueExA(hKey, @dataof("ApplicationDescription"), 0, REG_SZ, @dataof(appDescription), cast(u32) (@countof(appDescription) + 1))
         RegCloseKey(hKey)
     }
 }

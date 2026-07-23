@@ -30,7 +30,7 @@ public struct FastNoise
     lacunarity          = 2.0                      // The rate of change of the frequency for each successive octave. A 'lacunarity' value of 1 results in each octave having the same frequency.
     gain                = 0.5                      // The scaling factor applied to each octave. 'gain' is only used when 'octaves' is set to a value higher than 1.
 
-    fractalBounding     = 1.0                      // Normalization factor used to keep the noise within bounds for fractal types.
+    fractalBounding     = 1.0     // Normalization factor used to keep the noise within bounds for fractal types.
 }
 
 impl FastNoise

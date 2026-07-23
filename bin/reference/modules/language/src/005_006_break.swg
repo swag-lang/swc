@@ -57,10 +57,10 @@ from anywhere inside it.
         for 10
         {
             cpt += 1
-            break to BigScope // Leave the whole 'BigScope'
+            break to BigScope     // Leave the whole 'BigScope'
         }
 
-        @assert(false) // Unreachable
+        @assert(false)     // Unreachable
     }
 
     @assert(cpt == 1)
@@ -79,8 +79,8 @@ Combine a terminating condition with a plain 'break' to end the scope loop.
     {
         cpt += 1
         if cpt == 5 do
-            break // End the 'Loop' scope
-        continue // Jump back to the start of 'Loop'
+            break     // End the 'Loop' scope
+        continue      // Jump back to the start of 'Loop'
     }
 
     @assert(cpt == 5)
@@ -130,9 +130,9 @@ after that labeled statement.
         for 10
         {
             if @index == 5 do
-                break to Up // Exit to after the labeled 'for'
+                break to Up     // Exit to after the labeled 'for'
         }
 
-        @assert(false) // Unreachable
+        @assert(false)     // Unreachable
     }
 }

@@ -3,11 +3,11 @@
 // Represents a single memory block (a bucket) within a ConcatBuffer.
 struct ConcatBufferBucket
 {
-    datas:           #null [*] u8            // Pointer to the raw memory of the bucket.
+    datas:           #null [*] u8                  // Pointer to the raw memory of the bucket.
     next:            #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
-    count:           u64                     // Number of bytes used in this bucket.
-    size:            u64                     // Total allocated size of this bucket in bytes.
-    countBefore:     u64                     // Total number of bytes in all preceding buckets.
+    count:           u64                           // Number of bytes used in this bucket.
+    size:            u64                           // Total allocated size of this bucket in bytes.
+    countBefore:     u64                           // Total number of bytes in all preceding buckets.
 }
 
 // Represents a position (seek) within a ConcatBuffer.
@@ -23,15 +23,15 @@ struct ConcatBufferSeek
 // making it efficient for building data piece by piece.
 struct ConcatBuffer
 {
-    allocator:           #null Swag.IAllocator         // The allocator to use for all memory operations.
+    allocator:           #null Swag.IAllocator     // The allocator to use for all memory operations.
 
     firstBucket:         #null *ConcatBufferBucket     // The first bucket in the chain.
     curBucket:           #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
     lastBucket:          #null *ConcatBufferBucket     // The last bucket in the chain.
     currentSP:           #null [*] u8                  // The current read/write pointer in the `curBucket`.
-    granularity:         u64 = 1024              // The default size for newly allocated buckets.
-    isAtEnd:             bool = true             // 'true' if the seek pointer is at the very end of the buffer.
-    viewFirstBucket:     ConcatBufferBucket      // A pre-allocated bucket used for views, to avoid a separate allocation.
+    granularity:         u64 = 1024                    // The default size for newly allocated buckets.
+    isAtEnd:             bool = true                   // 'true' if the seek pointer is at the very end of the buffer.
+    viewFirstBucket:     ConcatBufferBucket            // A pre-allocated bucket used for views, to avoid a separate allocation.
 }
 
 impl ConcatBuffer
@@ -308,7 +308,7 @@ impl ConcatBuffer
                     .lastBucket.count += remain
                     if !num do
                         return
-                    .grow(.granularity) // Will alloc a new bucket as the current one is full
+                    .grow(.granularity)     // Will alloc a new bucket as the current one is full
                     remain = .lastBucket.size
                 }
             }

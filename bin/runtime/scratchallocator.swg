@@ -151,7 +151,7 @@ impl IAllocator for ScratchAllocator
         ptr.next        = .firstLeak
         .firstLeak      = ptr
         ptr.size        = totalSize
-        request.address = ptr + 1 // user block is after the header
+        request.address = ptr + 1     // user block is after the header
         .totalLeak += request.size
         .maxLeak = @max(.maxLeak, .totalLeak)
     }

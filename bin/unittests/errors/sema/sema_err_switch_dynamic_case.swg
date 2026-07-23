@@ -17,7 +17,7 @@ impl IEvent for MouseEvent {}
     var evt: #null IEvent
     switch evt
     {
-    case MouseEvent as { x: s32 }: // swc-expected-error {{sema_err_switch_dynamic_case}}
+    case MouseEvent as { x: s32 }:     // swc-expected-error {{sema_err_switch_dynamic_case}}
         break
     }
 }

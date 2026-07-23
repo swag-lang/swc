@@ -332,7 +332,7 @@ func createInspectorPage(parent: *Wnd)
         .addItem("Normal")
         .addItem("Condensed")
         .addItem("List")
-        .selectItem(displayModeIndex(g_DisplayMode))          // before the handler -> no spurious rebuild
+        .selectItem(displayModeIndex(g_DisplayMode))     // before the handler -> no spurious rebuild
         .sigChanged += func(_cb, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
 

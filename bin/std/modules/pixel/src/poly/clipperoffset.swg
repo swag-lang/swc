@@ -8,7 +8,7 @@
 #global namespace Clipper
 using Core
 
-const DefaultArcTolerance = 0.25'f64 // Default tolerance for arc approximation in polygon offsetting
+const DefaultArcTolerance = 0.25'f64     // Default tolerance for arc approximation in polygon offsetting
 
 // Used internally for high precision geometric calculations during offsetting operations.
 struct DoublePoint { x, y: f64 }

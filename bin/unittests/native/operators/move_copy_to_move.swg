@@ -45,7 +45,7 @@ func sinkIf(cond: bool, v: #move Tracked)
     @assert(a.x == 1)
     @assert(g_copies == 1)
     @assert(g_moves == 1)
-    @assert(g_drops == 0) // temp consumed: drop is a no-op
+    @assert(g_drops == 0)     // temp consumed: drop is a no-op
 }
 
 // Move call style: unchanged, zero cost.
@@ -115,7 +115,7 @@ func storeFwd(v: #fwd Tracked)
     storeFwd(a)
     @assert(g_slot.x == 7)
     @assert(g_copies == 1)
-    @assert(g_moves == 0) // no temporary: the dedicated copy variant was selected
+    @assert(g_moves == 0)     // no temporary: the dedicated copy variant was selected
 }
 
 // Non-copyable types keep working through an explicit '#move'.
@@ -160,7 +160,7 @@ func sinkScalar(v: #move s32)
     var n = 42
     sinkScalar(n)
     @assert(g_scalar == 42)
-    @assert(n == 42) // source untouched
+    @assert(n == 42)     // source untouched
 
     var p = 43
     sinkScalar(#move p)
@@ -192,10 +192,10 @@ func plainSink(v: Tracked)
     var a = Tracked{9}
     plainSink(#move a)
     @assert(g_slot.x == 9)
-    @assert(g_moves == 1)  // move into the temporary
-    @assert(g_copies == 1) // the callee copies the borrowed temporary
-    @assert(g_drops == 1)  // the caller drops the temporary
-    @assert(a.x == 0)      // source consumed (reset to defaults)
+    @assert(g_moves == 1)      // move into the temporary
+    @assert(g_copies == 1)     // the callee copies the borrowed temporary
+    @assert(g_drops == 1)      // the caller drops the temporary
+    @assert(a.x == 0)          // source consumed (reset to defaults)
 }
 
 // On a by-value scalar parameter, '#move' is accepted and equivalent to a plain pass.

@@ -23,11 +23,11 @@
 #assert(#sizeof(const [..] u32) == 16)
 
 namespace NS {}
-#assert(#sizeof(NS) == 0) // swc-expected-error {{sema_err_invalid_sizeof}}
+#assert(#sizeof(NS) == 0)     // swc-expected-error {{sema_err_invalid_sizeof}}
 
 struct(T) GenericSizeofProbe
 {
     value: T
 }
 
-#assert(#sizeof(GenericSizeofProbe) == 0) // swc-expected-error {{sema_err_invalid_sizeof}}
+#assert(#sizeof(GenericSizeofProbe) == 0)     // swc-expected-error {{sema_err_invalid_sizeof}}

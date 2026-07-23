@@ -10,4 +10,4 @@ func(const Depth: s32) expandDeeper()->string
     return source
 }
 
-#ast expandDeeper'0() // swc-expected-note {{sema_note_generated_source_root}}
+#ast expandDeeper'0()     // swc-expected-note {{sema_note_generated_source_root}}

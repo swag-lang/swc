@@ -72,8 +72,8 @@ struct Entry
     tag:     u32
     type:    u32
     count:   u32
-    valoff:  u32     // raw value/offset field
-    fieldAt: const [*] u8         // address of the 4-byte value/offset field
+    valoff:  u32              // raw value/offset field
+    fieldAt: const [*] u8     // address of the 4-byte value/offset field
 }
 
 struct Ifd
@@ -285,7 +285,7 @@ public impl IImageDecoder for Decoder
             return result
 
         // Palette (for photometric=palette)
-        var palette: Array'u32       // packed 0x00RRGGBB
+        var palette: Array'u32     // packed 0x00RRGGBB
         if samples == 1 and photometric == PHOTO_PALETTE
         {
             let cmEntry = ifd.find(TAG_COLOR_MAP)

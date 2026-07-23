@@ -195,7 +195,7 @@ struct CONSOLE_SCREEN_BUFFER_INFO
 
 struct SYSTEM_INFO
 {
-    dwOemId:                         DWORD         // Must be updated to an union
+    dwOemId:                         DWORD     // Must be updated to an union
     dwPageSize:                      DWORD
     lpMinimumApplicationAddress:     LPVOID
     lpMaximumApplicationAddress:     LPVOID

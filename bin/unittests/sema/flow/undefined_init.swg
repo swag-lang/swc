@@ -130,7 +130,7 @@ func undOkWithRetval()->UndPod
 func undErrPlainRead()->s32
 {
     var x: s32 = undefined
-    return x // swc-expected-error {{sema_err_undefined_use}}
+    return x     // swc-expected-error {{sema_err_undefined_use}}
 }
 
 // Initialized on one path only.
@@ -139,7 +139,7 @@ func undErrHalfInit(c: bool)->s32
     var x: s32 = undefined
     if c do
         x = 1
-    return x // swc-expected-error {{sema_err_undefined_use}}
+    return x     // swc-expected-error {{sema_err_undefined_use}}
 }
 
 // Incomplete switch without default.
@@ -153,14 +153,14 @@ func undErrSwitchNoDefault(v: s32)->s32
     case 1:
         x = 2
     }
-    return x // swc-expected-error {{sema_err_undefined_use}}
+    return x     // swc-expected-error {{sema_err_undefined_use}}
 }
 
 // Compound assignment reads the destination.
 func undErrCompound()
 {
     var x: s32 = undefined
-    x += 1 // swc-expected-error {{sema_err_undefined_use}}
+    x += 1     // swc-expected-error {{sema_err_undefined_use}}
 }
 
 // Reading a field that was never assigned.
@@ -168,14 +168,14 @@ func undErrFieldRead()->s32
 {
     var p: UndPod = undefined
     p.a = 1
-    return p.b // swc-expected-error {{sema_err_undefined_field_use}}
+    return p.b     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // Whole read of a fully untouched POD struct.
 func undErrWholePodRead()->s32
 {
     var p: UndPod = undefined
-    return undTakePod(p) // swc-expected-error {{sema_err_undefined_use}}
+    return undTakePod(p)     // swc-expected-error {{sema_err_undefined_use}}
 }
 
 // A droppable declared '= undefined' and possibly initialized cannot be
@@ -185,7 +185,7 @@ func undErrMaybeReassign(c: bool)
     var v: UndDrop = undefined
     if c do
         v = mkUndDrop(1)
-    v = mkUndDrop(2) // swc-expected-error {{sema_err_undefined_drop}}
+    v = mkUndDrop(2)     // swc-expected-error {{sema_err_undefined_drop}}
 }
 
 // First assignment inside a loop: later iterations hold a real value, the
@@ -194,13 +194,13 @@ func undErrLoopAssign()
 {
     var v: UndDrop = undefined
     for 3 do
-        v = mkUndDrop(1) // swc-expected-error {{sema_err_undefined_drop}}
+        v = mkUndDrop(1)     // swc-expected-error {{sema_err_undefined_drop}}
 }
 
 // An error unwind would drop the still-uninitialized droppable.
 func undErrUnwind() throw
 {
     var v: UndDrop = undefined
-    try undBoom() // swc-expected-error {{sema_err_undefined_drop}}
+    try undBoom()     // swc-expected-error {{sema_err_undefined_drop}}
     v = mkUndDrop(1)
 }

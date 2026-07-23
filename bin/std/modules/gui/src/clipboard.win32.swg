@@ -189,7 +189,7 @@ func addImage(image: Image)
         var buffer: ConcatBuffer
         var opt:    Png.EncodeOptions
 
-        opt.compressionLevel = .NoCompression // We want best speed
+        opt.compressionLevel = .NoCompression     // We want best speed
         catch png.IImageEncoder.encode(&buffer, image, opt)
         if @err != null do
             break

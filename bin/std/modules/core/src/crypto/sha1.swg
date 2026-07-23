@@ -93,7 +93,7 @@ impl Sha1
 
 public impl Sha1
 {
-    alias Digest = [5] u32 // SHA-1 digest result as five 32-bit words
+    alias Digest = [5] u32     // SHA-1 digest result as five 32-bit words
 
     // Finalize the computation and produce the final hash digest.
     // Applies padding and length encoding, then stores the result in the output buffer.

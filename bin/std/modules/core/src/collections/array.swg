@@ -6,9 +6,9 @@ using Swag
 struct(T) Array
 {
     allocator:     #null IAllocator     // The allocator used for memory operations.
-    buffer:        #null [*] T    // Pointer to the contiguous memory block holding the elements.
-    count:         u64            // The number of valid elements currently in the array.
-    capacity:      u64            // The total number of elements that can be stored in the allocated me.buffer.
+    buffer:        #null [*] T          // Pointer to the contiguous memory block holding the elements.
+    count:         u64                  // The number of valid elements currently in the array.
+    capacity:      u64                  // The total number of elements that can be stored in the allocated me.buffer.
 }
 
 impl Array

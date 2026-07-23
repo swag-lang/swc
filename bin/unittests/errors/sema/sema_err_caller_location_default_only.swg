@@ -49,4 +49,4 @@ const InlineCallerDecl = #location(inlineCallerLoc)
     @assert(loc.colStart == 12)
 }
 
-#test { const bad = #callerlocation } // swc-expected-error {{sema_err_caller_location_default_only}}
+#test { const bad = #callerlocation }     // swc-expected-error {{sema_err_caller_location_default_only}}

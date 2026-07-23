@@ -3,9 +3,9 @@
 // Thread-local storage for random number generation and GUID counter.
 #[Swag.Tls]
 {
-    private var g_Rng: Random.Mt64 // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32 // Thread-local counter for timestamp-based GUIDs
+    private var g_Rng: Random.Mt64     // Mersenne Twister 64-bit random number generator
+    private var g_RngInit: bool        // Flag indicating whether the RNG has been initialized
+    private var g_Counter: u32         // Thread-local counter for timestamp-based GUIDs
 }
 
 // Initialize the random number generator with high-entropy seed.
@@ -51,8 +51,8 @@ impl GUID128
         var result: retval = undefined
         result.val64[0] = g_Rng.nextU64()
         result.val64[1] = g_Rng.nextU64()
-        result.val8[6]  = (result.val8[6] & 0x0F) | 0x40 // Version 4
-        result.val8[8]  = (result.val8[8] & 0x3F) | 0x80 // Variant is 10
+        result.val8[6]  = (result.val8[6] & 0x0F) | 0x40     // Version 4
+        result.val8[8]  = (result.val8[8] & 0x3F) | 0x80     // Variant is 10
         return result
     }
 

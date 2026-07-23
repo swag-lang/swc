@@ -16,5 +16,5 @@ impl GeneratedEqualsOnlyField
 #[Swag.Operators(opCompare)]
 struct GeneratedNeedsFieldCompare
 {
-    field: GeneratedEqualsOnlyField // swc-expected-error {{sema_err_operator_generation_field_unsupported}}
+    field: GeneratedEqualsOnlyField     // swc-expected-error {{sema_err_operator_generation_field_unsupported}}
 }

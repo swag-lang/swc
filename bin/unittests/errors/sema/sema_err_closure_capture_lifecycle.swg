@@ -40,26 +40,26 @@ struct Wrap
 #test
 {
     var v = WithDrop{1}
-    var bad = func|v|()->s32 { return v.x } // swc-expected-error {{sema_err_closure_capture_lifecycle}}
+    var bad = func|v|()->s32 { return v.x }     // swc-expected-error {{sema_err_closure_capture_lifecycle}}
 }
 
 // A type with 'opPostCopy' cannot be captured by value.
 #test
 {
     var v = WithPostCopy{2}
-    var bad = func|v|()->s32 { return v.x } // swc-expected-error {{sema_err_closure_capture_lifecycle}}
+    var bad = func|v|()->s32 { return v.x }     // swc-expected-error {{sema_err_closure_capture_lifecycle}}
 }
 
 // A type with 'opPostMove' cannot be captured by value.
 #test
 {
     var v = WithPostMove{3}
-    var bad = func|v|()->s32 { return v.x } // swc-expected-error {{sema_err_closure_capture_lifecycle}}
+    var bad = func|v|()->s32 { return v.x }     // swc-expected-error {{sema_err_closure_capture_lifecycle}}
 }
 
 // Lifecycle operations are contagious through fields.
 #test
 {
     var v = Wrap{}
-    var bad = func|v|()->s32 { return v.inner.x } // swc-expected-error {{sema_err_closure_capture_lifecycle}}
+    var bad = func|v|()->s32 { return v.inner.x }     // swc-expected-error {{sema_err_closure_capture_lifecycle}}
 }

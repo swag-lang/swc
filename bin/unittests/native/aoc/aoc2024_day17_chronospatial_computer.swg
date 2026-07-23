@@ -28,7 +28,7 @@ struct Cpu
 {
     mem:    [MaxMem] u8
     memLen: u32
-    regs:   [3] u64       // A=0, B=1, C=2
+    regs:   [3] u64     // A=0, B=1, C=2
     ip:     u32
     out:    [MaxOut] u8
     outLen: u32
@@ -83,7 +83,7 @@ func run(cpu: *Cpu)
         let op  = cpu.fetch()
         let arg = cpu.fetch()
 
-        if op == 0       // adv: A >>= combo
+        if op == 0     // adv: A >>= combo
         {
             cpu.regs[0] = cpu.regs[0] >> cast(u8) cpu.combo(arg)
         }

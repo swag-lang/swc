@@ -18,7 +18,7 @@ const Cfg = #run dref @compiler.getBuildCfg()
 {
     func failAssert()->s32
     {
-        @assert(false) // swc-expected-error {{sema_err_assert_failed}}
+        @assert(false)     // swc-expected-error {{sema_err_assert_failed}}
         return 7
     }
 

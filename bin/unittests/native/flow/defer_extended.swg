@@ -122,12 +122,12 @@ func deferWhileMultiBreak(path: s32)->s64
 
 #test
 {
-    @assert(deferWhileMultiBreak(1) == 1) // i becomes 1, break, defer=1
+    @assert(deferWhileMultiBreak(1) == 1)     // i becomes 1, break, defer=1
 }
 
 #test
 {
-    @assert(deferWhileMultiBreak(2) == 123) // i=1 defer=1, i=2 defer=2, i=3 break defer=3
+    @assert(deferWhileMultiBreak(2) == 123)     // i=1 defer=1, i=2 defer=2, i=3 break defer=3
 }
 
 // Defer with scope block

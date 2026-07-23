@@ -8,5 +8,5 @@ struct MissingVisitSpecializationBox
 #test
 {
     let values = MissingVisitSpecializationBox{}
-    for #Reverse value in values {} // swc-expected-error {{sema_err_type_not_visitable_specialization}}
+    for #Reverse value in values {}     // swc-expected-error {{sema_err_type_not_visitable_specialization}}
 }

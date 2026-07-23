@@ -14,10 +14,10 @@ struct OkPtr
 
 struct BadValue
 {
-    using v: s32 // swc-expected-error {{sema_err_using_member_type}}
+    using v: s32     // swc-expected-error {{sema_err_using_member_type}}
 }
 
 struct BadPtr
 {
-    using p: *s32 // swc-expected-error {{sema_err_using_member_type}}
+    using p: *s32     // swc-expected-error {{sema_err_using_member_type}}
 }

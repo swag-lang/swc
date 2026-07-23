@@ -45,7 +45,7 @@ impl IUndoCommand for IncCommand
     @assert(g_undoCounter == 5)
 
     // A new push after an undo truncates the redo tail.
-    mgr.undo()                                    // -> 0
+    mgr.undo()     // -> 0
     mgr.push(IncCommand{10})
     @assert(g_undoCounter == 10 and mgr.count() == 1 and !mgr.canRedo())
 }
@@ -65,9 +65,9 @@ impl IUndoCommand for IncCommand
     mgr.pushCmd(cast(IUndoCommand) b, serial)
     @assert(g_undoCounter == 3 and mgr.count() == 2)
 
-    mgr.undo()                                    // both revert in one step
+    mgr.undo()     // both revert in one step
     @assert(g_undoCounter == 0 and !mgr.canUndo())
-    mgr.redo()                                    // both re-apply in one step
+    mgr.redo()     // both re-apply in one step
     @assert(g_undoCounter == 3 and !mgr.canRedo())
 }
 

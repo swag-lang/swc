@@ -9,16 +9,16 @@ struct Transform2
     m31, m32:     f32     // Translation components of the transformation
 
     #[Swag.Offset("m11")]
-    m:   [2, 2] f32 // 2x2 matrix view for rotation/scale components
+    m:   [2, 2] f32     // 2x2 matrix view for rotation/scale components
     #[Swag.Offset("m31")]
-    tx:  f32 // Translation component along X-axis
+    tx:  f32     // Translation component along X-axis
     #[Swag.Offset("m32")]
-    ty:  f32 // Translation component along Y-axis
+    ty:  f32     // Translation component along Y-axis
 }
 
 impl Transform2
 {
-    const Identity: Transform2{1, 0, 0, 1, 0, 0} // Identity transform (no rotation, scale 1, no translation)
+    const Identity: Transform2{1, 0, 0, 1, 0, 0}     // Identity transform (no rotation, scale 1, no translation)
 
     // Set transform to identity
     mtd setIdentity()

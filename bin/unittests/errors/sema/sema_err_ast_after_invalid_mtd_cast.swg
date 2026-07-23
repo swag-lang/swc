@@ -91,7 +91,7 @@ impl AstAfterInvalidCastOwner
     {
         let captured: #null *AstAfterInvalidCastDialog = null
         .callback = mtd|captured|(dlg, id) { return captured == dlg }
-        .signal.call(me) // swc-expected-error {{sema_err_cannot_cast}}
+        .signal.call(me)     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }
 

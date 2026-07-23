@@ -1,0 +1,4 @@
+interface:
+  display_name: "Modify Swag Codebase"
+  short_description: "Modify and validate the Swag compiler safely"
+  default_prompt: "Use $modify-swag-codebase to implement and validate this change in the Swag compiler."

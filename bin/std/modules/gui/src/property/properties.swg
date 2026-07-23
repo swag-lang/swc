@@ -63,10 +63,10 @@ interface IPropertyNotify
 
 enum PropertiesKind
 {
-    List       // This is a flat list
-    Grid       // This is a more compact property grid
-    Condensed  // A dense, classic property grid: thin rows, compact controls
-    Panel      // A tool panel: full-width self-labeled rows (labeled slider, labeled combo,
+    List          // This is a flat list
+    Grid          // This is a more compact property grid
+    Condensed     // A dense, classic property grid: thin rows, compact controls
+    Panel         // A tool panel: full-width self-labeled rows (labeled slider, labeled combo,
 // check button...), no name column, no descriptions; categories paint as
 // thin separators. The look of an editor's side panel.
 }
@@ -91,9 +91,9 @@ struct Properties
     gridLineHeight:       f32 = 35
     gridLineMargin:       s32 = 12
     gridColumnSize:       s32 = 150
-    gridColumnSizeReq:    s32 = 150   // Requested column size, re-clamped to the current width on resize
+    gridColumnSizeReq:    s32 = 150     // Requested column size, re-clamped to the current width on resize
     gridMarginColumn:     s32 = 16
-    gridIndentSize:       s32 = 14   // Per-nesting-level indent of the name label + disclosure triangle
+    gridIndentSize:       s32 = 14     // Per-nesting-level indent of the name label + disclosure triangle
 
     // For list kind
     listNameMarginBefore:     s32 = 20
@@ -101,12 +101,12 @@ struct Properties
     listDescMarginAfter:      s32 = 5
 
     // Inline validation message bar (info/warning/error)
-    valBarGlyphWidth:         f32 = 32   // left room reserved for the severity icon
-    valBarIconSize:           f32 = 18   // size of the severity icon
-    valBarPaddingX:           f32 = 12   // horizontal text inset from the colored background
-    valBarPaddingY:           f32 = 7    // vertical breathing room added around the text
-    valBarGap:                f32 = 7    // gap between the row editor and the bar
-    valBarRadius:             f32 = 6    // corner radius of the colored background
+    valBarGlyphWidth:         f32 = 32     // left room reserved for the severity icon
+    valBarIconSize:           f32 = 18     // size of the severity icon
+    valBarPaddingX:           f32 = 12     // horizontal text inset from the colored background
+    valBarPaddingY:           f32 = 7      // vertical breathing room added around the text
+    valBarGap:                f32 = 7      // gap between the row editor and the bar
+    valBarRadius:             f32 = 6      // corner radius of the colored background
 
     sigChanged:               SigArray'func||(*Properties, #null *PropertiesItem)
 

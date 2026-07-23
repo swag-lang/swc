@@ -29,7 +29,7 @@ This example increments 'a' by 1 each time it is called.
     }
 
     var a = 0
-    myMixin() // Equivalent to writing 'a += 1' directly here
+    myMixin()     // Equivalent to writing 'a += 1' directly here
     myMixin()
     @assert(a == 2)
 }
@@ -48,8 +48,8 @@ Here, 'increment' defaults to 1.
     }
 
     var a = 0
-    myMixin() // Uses default: 'a += 1'
-    myMixin(2) // Uses provided value: 'a += 2'
+    myMixin()      // Uses default: 'a += 1'
+    myMixin(2)     // Uses provided value: 'a += 2'
     @assert(a == 3)
 }
 

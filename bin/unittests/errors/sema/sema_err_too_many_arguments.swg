@@ -28,5 +28,5 @@
 #test
 {
     func subStrict(a: s32, b: s32)->s32 { return a - b }
-    const V = #run subStrict(50, 8, 1) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run subStrict(50, 8, 1)     // swc-expected-error {{sema_err_too_many_arguments}}
 }

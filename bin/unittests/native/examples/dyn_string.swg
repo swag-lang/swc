@@ -198,15 +198,15 @@ impl DynString
     var src: DynString
     src = "alpha"
     var dst: DynString
-    dst = src                           // copy-assign: triggers opPostCopy on dst
+    dst = src     // copy-assign: triggers opPostCopy on dst
 
     @assert(src.count == 5)
     @assert(dst.count == 5)
-    @assert(src.data != dst.data)       // distinct heap buffers
+    @assert(src.data != dst.data)     // distinct heap buffers
 
     dst[0] = 'A''u8
     @assert(dst[0] == 'A''u8)
-    @assert(src[0] == 'a''u8)           // original untouched
+    @assert(src[0] == 'a''u8)     // original untouched
 }
 
 // ---------------------------------------------------------------------------
@@ -302,7 +302,7 @@ impl DynString
     b += "ma"
     b += "tch"
 
-    @assert(a == b)                     // same content, different allocations
+    @assert(a == b)     // same content, different allocations
     @assert(a.data != b.data)
 
     var c: DynString
@@ -327,7 +327,7 @@ impl DynString
     @assert(empty.data == null)
 
     var copy: DynString
-    copy = empty                        // opPostCopy on empty payload
+    copy = empty     // opPostCopy on empty payload
     @assert(copy.count == 0)
     @assert(copy.data == null)
 

@@ -7,7 +7,7 @@ struct NonNullCannotCastItem
 
 struct NonNullCannotCastDefaultField
 {
-    value: *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    value: *NonNullCannotCastItem = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 struct NonNullCannotCastOpCastBox {}
@@ -28,100 +28,100 @@ impl NonNullCannotCastNullableOpCastBox
 
 func acceptNonNullCannotCast(value: *NonNullCannotCastItem) {}
 
-func defaultNonNullCannotCast(value: *NonNullCannotCastItem = null) // swc-expected-error {{sema_err_cannot_cast}}
+func defaultNonNullCannotCast(value: *NonNullCannotCastItem = null)     // swc-expected-error {{sema_err_cannot_cast}}
 {}
 
 func returnNonNullCannotCast()->*NonNullCannotCastItem
 {
-    return null // swc-expected-error {{sema_err_cannot_cast}}
+    return null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: *NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: *NonNullCannotCastItem = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: [*] NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: [*] NonNullCannotCastItem = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: [..] NonNullCannotCastItem = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: [..] NonNullCannotCastItem = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: string = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: string = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: cstring = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: cstring = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: typeinfo = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: typeinfo = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var value: any = null // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var item = NonNullCannotCastItem{value: 1}
-    var value: *NonNullCannotCastItem = &item
-    value = null // swc-expected-error {{sema_err_cannot_cast}}
+    var value: any = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     var item = NonNullCannotCastItem{value: 1}
     var value: *NonNullCannotCastItem = &item
-    @init(&value)(null) // swc-expected-error {{sema_err_cannot_cast}}
+    value = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    acceptNonNullCannotCast(null) // swc-expected-error {{sema_err_cannot_cast}}
+    var item = NonNullCannotCastItem{value: 1}
+    var value: *NonNullCannotCastItem = &item
+    @init(&value)(null)     // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    acceptNonNullCannotCast(null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     var nullable: #null *NonNullCannotCastItem = null
-    let value: *NonNullCannotCastItem = nullable // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = nullable     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // A migration-compatible legacy type must not launder a constant known to be null.
-    let value: *NonNullCannotCastItem = cast(*NonNullCannotCastItem) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = cast(*NonNullCannotCastItem) null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    let value = cast(*NonNullCannotCastItem) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem) null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // The cast result, not just the source literal, must satisfy the contract.
-    let value = cast(*NonNullCannotCastItem) 0'u64 // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem) 0'u64     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // Boxing null in 'any' must not hide it from the explicit non-null contract.
-    let value: any = cast(any) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value: any = cast(any) null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    let value = cast(any) null // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(any) null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -139,13 +139,13 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 #test
 {
     // A constexpr opCast result must satisfy the destination contract after folding.
-    let value: *NonNullCannotCastItem = NonNullCannotCastOpCastBox{} // swc-expected-error {{sema_err_cannot_cast}}
+    let value: *NonNullCannotCastItem = NonNullCannotCastOpCastBox{}     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // An explicitly nullable opCast result cannot promise a non-null contract.
-    let value: string = NonNullCannotCastNullableOpCastBox{} // swc-expected-error {{sema_err_cannot_cast}}
+    let value: string = NonNullCannotCastNullableOpCastBox{}     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

@@ -10,7 +10,7 @@ Each field is defined with a specific type.
 {
     struct MyStruct
     {
-        name: #null string // Field 'name' of type 'string'
+        name: #null string     // Field 'name' of type 'string'
     }
 
     struct MyStruct1
@@ -55,7 +55,7 @@ This is particularly useful for lightweight, temporary groupings of data.
 
     var tuple1: struct
     {
-        x, y: f32 // Anonymous struct with fields 'x' and 'y' of type 'f32'
+        x, y: f32     // Anonymous struct with fields 'x' and 'y' of type 'f32'
     }
 
     tuple.x = 1.0
@@ -70,12 +70,12 @@ This is particularly useful for lightweight, temporary groupings of data.
     {
         rgb: struct
         {
-            x, y, z: f32 // Nested anonymous struct for RGB values
+            x, y, z: f32     // Nested anonymous struct for RGB values
         }
 
         hsl: struct
         {
-            h, s, l: f32 // Nested anonymous struct for HSL values
+            h, s, l: f32     // Nested anonymous struct for HSL values
         }
     }
 }
@@ -90,11 +90,11 @@ providing a convenient way to ensure fields are set to a known state.
 {
     struct MyStruct
     {
-        x:     s32 = 666                  // Field 'x' initialized with default value 666
+        x:     s32 = 666          // Field 'x' initialized with default value 666
         y:     string = "454"     // Field 'y' initialized with default value '454'
     }
 
-    let v = MyStruct{} // Initializing struct with default values
+    let v = MyStruct{}     // Initializing struct with default values
     @assert(v.x == 666)
     @assert(v.y == "454")
 }
@@ -109,7 +109,7 @@ in how you set up your structs.
 {
     struct MyStruct
     {
-        x, y: s32 = 1 // Both 'x' and 'y' initialized to 1
+        x, y: s32 = 1     // Both 'x' and 'y' initialized to 1
     }
 
     // Default initialization
@@ -149,7 +149,7 @@ at compile time. This ensures immutability throughout program execution.
 
     const X: MyStruct{50, "value"}
 
-    #assert(X.x == 50) // Compile-time assertion
+    #assert(X.x == 50)     // Compile-time assertion
     #assert(X.y == "value")
 }
 

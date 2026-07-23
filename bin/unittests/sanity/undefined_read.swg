@@ -44,7 +44,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    @assert(a.x == 1) // swc-expected-error {{sema_err_undefined_field_use}}
+    @assert(a.x == 1)     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // Reading the second field: the whole declared range is undefined.
@@ -52,7 +52,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    @assert(a.y == 2) // swc-expected-error {{sema_err_undefined_field_use}}
+    @assert(a.y == 2)     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // The captme shape: a pointer declared '= undefined' tested as a guard before any
@@ -62,7 +62,7 @@ func undFill(v: *UndItem)
 {
     var item: UndItem
     var last: #null *UndItem = undefined
-    if last do // swc-expected-error {{sema_err_undefined_use}}
+    if last do     // swc-expected-error {{sema_err_undefined_use}}
         g_undSink += 1
     last = &item
     discard last
@@ -77,7 +77,7 @@ func undFill(v: *UndItem)
     var a: UndItem = undefined
     let address = &a
     discard address
-    @assert(a.x == 1) // swc-expected-error {{sanity_err_undefined_read}}
+    @assert(a.x == 1)     // swc-expected-error {{sanity_err_undefined_read}}
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 // Stress tests for shift register allocation in the native backend.
 //
@@ -20,10 +20,10 @@
 // ---------------------------------------------------------------------------
 func shiftCountFromArith(a: u32, b: u32, c: u32, d: u32, e: u32)->u32
 {
-    var cnt: u32 = b - a    // cnt = 4-1 = 3  (not a literal → CL move required)
-    var r: u32 = c << cnt   // 5 << 3 = 40;  a,b,d,e live → RCX/CL pressure
+    var cnt: u32 = b - a      // cnt = 4-1 = 3  (not a literal → CL move required)
+    var r: u32 = c << cnt     // 5 << 3 = 40;  a,b,d,e live → RCX/CL pressure
     r += d + e
-    return r                // 40 + 2 + 3 = 45
+    return r     // 40 + 2 + 3 = 45
 }
 
 // ---------------------------------------------------------------------------
@@ -32,10 +32,10 @@ func shiftCountFromArith(a: u32, b: u32, c: u32, d: u32, e: u32)->u32
 // ---------------------------------------------------------------------------
 func multiShiftChain(x: u32, s1: u32, s2: u32, s3: u32)->u32
 {
-    var a: u32 = x << s1    // s1 → CL;  a = 1 << 3 = 8
-    var b: u32 = a >> s2    // s2 → CL;  b = 8 >> 2 = 2
-    var c: u32 = b << s3    // s3 → CL;  c = 2 << 4 = 32
-    return a + b + c        // 8 + 2 + 32 = 42
+    var a: u32 = x << s1     // s1 → CL;  a = 1 << 3 = 8
+    var b: u32 = a >> s2     // s2 → CL;  b = 8 >> 2 = 2
+    var c: u32 = b << s3     // s3 → CL;  c = 2 << 4 = 32
+    return a + b + c         // 8 + 2 + 32 = 42
 }
 
 // ---------------------------------------------------------------------------
@@ -45,13 +45,13 @@ func multiShiftChain(x: u32, s1: u32, s2: u32, s3: u32)->u32
 // ---------------------------------------------------------------------------
 func shiftMixWidths(cnt: u32)->u64
 {
-    var a: u32 = 0x80'u32   // 128
-    var b: u32 = 0x200'u32  // 512
-    var c: u64 = 0x800'u64  // 2048
-    var ra: u32 = a >> cnt  // 128  >> 2 = 32;   cnt → CL
-    var rb: u32 = b >> cnt  // 512  >> 2 = 128;  cnt → CL
-    var rc: u64 = c >> cnt  // 2048 >> 2 = 512;  cnt → CL (64-bit encoding)
-    return cast(u64) ra + cast(u64) rb + rc  // 32 + 128 + 512 = 672
+    var a: u32 = 0x80'u32                       // 128
+    var b: u32 = 0x200'u32                      // 512
+    var c: u64 = 0x800'u64                      // 2048
+    var ra: u32 = a >> cnt                      // 128  >> 2 = 32;   cnt → CL
+    var rb: u32 = b >> cnt                      // 512  >> 2 = 128;  cnt → CL
+    var rc: u64 = c >> cnt                      // 2048 >> 2 = 512;  cnt → CL (64-bit encoding)
+    return cast(u64) ra + cast(u64) rb + rc     // 32 + 128 + 512 = 672
 }
 
 // ---------------------------------------------------------------------------
@@ -64,10 +64,10 @@ func shiftCallHelper(x: u32, y: u32)->u32 { return x + y }
 
 func shiftLiveAcrossCall(a: u32, b: u32, c: u32)->u32
 {
-    var cnt: u32 = b - a                 // cnt = 3-1 = 2 (may be in RCX)
-    var mid: u32 = shiftCallHelper(a + b, c)  // call clobbers RCX → cnt must spill
-    var r: u32 = mid << cnt              // cnt reloaded into CL;  14 << 2 = 56
-    return r + a                         // 56 + 1 = 57
+    var cnt: u32 = b - a                         // cnt = 3-1 = 2 (may be in RCX)
+    var mid: u32 = shiftCallHelper(a + b, c)     // call clobbers RCX → cnt must spill
+    var r: u32 = mid << cnt                      // cnt reloaded into CL;  14 << 2 = 56
+    return r + a                                 // 56 + 1 = 57
 }
 
 // ---------------------------------------------------------------------------
@@ -89,9 +89,9 @@ func nestedShiftCount(x: u32, cnt_base: u32)->u32
 // ---------------------------------------------------------------------------
 func shiftInsideDivExpr(a: u32, b: u32, c: u32)->u32
 {
-    var cnt: u32 = a / b   // DIV: a=12, b=4 → cnt=3 (in RAX)
-    var r: u32 = c << cnt  // SHL: cnt from RAX → CL
-    return r               // 5 << 3 = 40
+    var cnt: u32 = a / b      // DIV: a=12, b=4 → cnt=3 (in RAX)
+    var r: u32 = c << cnt     // SHL: cnt from RAX → CL
+    return r                  // 5 << 3 = 40
 }
 
 // ---------------------------------------------------------------------------
@@ -102,9 +102,9 @@ func shiftInsideDivExpr(a: u32, b: u32, c: u32)->u32
 func manyLiveShift(a: u32, b: u32, c: u32, d: u32,
                    e: u32, f: u32, g: u32, h: u32)->u32
 {
-    var cnt: u32 = h - g        // cnt = 4-3 = 1; all 8 params live
-    var r: u32 = a << cnt       // 1 << 1 = 2; b,c,d,e,f,g,h still live
-    return r + b + c + d + e + f + g + h  // 2+2+3+4+5+6+3+4 = 29
+    var cnt: u32 = h - g                     // cnt = 4-3 = 1; all 8 params live
+    var r: u32 = a << cnt                    // 1 << 1 = 2; b,c,d,e,f,g,h still live
+    return r + b + c + d + e + f + g + h     // 2+2+3+4+5+6+3+4 = 29
 }
 
 // ---------------------------------------------------------------------------
@@ -114,13 +114,13 @@ func manyLiveShift(a: u32, b: u32, c: u32, d: u32,
 // ---------------------------------------------------------------------------
 func shiftSignedWidths(v: s32, cnt: s32)->s32
 {
-    var a: s32 = v           // -256
-    var b: s32 = v * 4       // -1024
-    var c: s32 = v * 16      // -4096
-    var ra: s32 = a >> cnt   // cnt → CL; -256  >> 2 = -64   (sign preserved)
-    var rb: s32 = b >> cnt   // cnt → CL; -1024 >> 2 = -256
-    var rc: s32 = c >> cnt   // cnt → CL; -4096 >> 2 = -1024
-    return ra + rb + rc      // -64 + (-256) + (-1024) = -1344
+    var a: s32 = v             // -256
+    var b: s32 = v * 4         // -1024
+    var c: s32 = v * 16        // -4096
+    var ra: s32 = a >> cnt     // cnt → CL; -256  >> 2 = -64   (sign preserved)
+    var rb: s32 = b >> cnt     // cnt → CL; -1024 >> 2 = -256
+    var rc: s32 = c >> cnt     // cnt → CL; -4096 >> 2 = -1024
+    return ra + rb + rc        // -64 + (-256) + (-1024) = -1344
 }
 
 // ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ func shiftInLoop(val: u32, cnt: u32, iters: u32)->u32
     var i: u32 = 0'u32
     while i < iters
     {
-        acc += acc >> cnt  // cnt → CL on each iteration; acc grows each time
+        acc += acc >> cnt     // cnt → CL on each iteration; acc grows each time
         i += 1'u32
     }
     return acc
@@ -154,13 +154,13 @@ func shiftInLoop(val: u32, cnt: u32, iters: u32)->u32
 // ---------------------------------------------------------------------------
 func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
 {
-    var acc: u32 = a      // 1
-    var extra: u32 = a    // 1  (kept live alongside acc across the back-edge)
+    var acc: u32 = a       // 1
+    var extra: u32 = a     // 1  (kept live alongside acc across the back-edge)
     var i: u32 = 0'u32
     while i < iters
     {
-        var shifted: u32 = acc << lcnt   // lcnt → CL
-        extra += acc >> rcnt             // rcnt → CL (different value)
+        var shifted: u32 = acc << lcnt     // lcnt → CL
+        extra += acc >> rcnt               // rcnt → CL (different value)
         acc = shifted
         i += 1'u32
     }

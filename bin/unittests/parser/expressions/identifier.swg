@@ -38,8 +38,8 @@
 )
 
 // --- Trailing comma tolerance (enable only if grammar allows) ---
-#assert(A(1,2,))       // function call trailing comma
-#assert(A{1,2,})       // struct init trailing comma
+#assert(A(1,2,))     // function call trailing comma
+#assert(A{1,2,})     // struct init trailing comma
 
 // --- Single-arg forms ---
 #assert(A(0))

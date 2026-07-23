@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 #[Swag.NoInline]
 func absS8(value: s8)->s8 => @abs(value)

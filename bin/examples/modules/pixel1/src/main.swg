@@ -2,7 +2,7 @@ using Core, Pixel, Win32
 
 const W    = 820
 const H    = 560
-const COLW = 400      // width of one column
+const COLW = 400     // width of one column
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 

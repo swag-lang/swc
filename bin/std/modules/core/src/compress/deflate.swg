@@ -148,9 +148,9 @@ internal
 #[Swag.Opaque]
 public struct Deflate
 {
-    state:         #null *Compressor              // Internal compressor state
-    adler:         Hash.Adler32                   // Adler-32 checksum calculator
-    initFlags:     CompressionFlags = CompressionFlags.Default // Initialization flags (e.g. compute checksum)
+    state:         #null *Compressor                               // Internal compressor state
+    adler:         Hash.Adler32                                    // Adler-32 checksum calculator
+    initFlags:     CompressionFlags = CompressionFlags.Default     // Initialization flags (e.g. compute checksum)
 }
 
 impl Deflate

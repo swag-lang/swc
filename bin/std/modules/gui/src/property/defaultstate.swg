@@ -254,7 +254,7 @@ impl Properties
         }
         else
         {
-            btn.icon.clear()             // hide the arrow; the docked button still holds the column
+            btn.icon.clear()     // hide the arrow; the docked button still holds the column
             btn.enable(false)
         }
         btn.invalidate()
@@ -279,12 +279,12 @@ impl Properties
         with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Round)
-            .iconBtnFlags.add(.Overlay)      // elegant translucent hover, no opaque box
-            .maxSize       = {h, h}          // square: symmetric horizontally and vertically
+            .iconBtnFlags.add(.Overlay)     // elegant translucent hover, no opaque box
+            .maxSize       = {h, h}         // square: symmetric horizontally and vertically
             .minSize       = {h, h}
-            .focusStrategy = .None           // stays out of the keyboard nav order
+            .focusStrategy = .None     // stays out of the keyboard nav order
             .dockStyle     = .Right
-            .margin.x      = PropRevertGap   // breathing room from the editor / previous action
+            .margin.x      = PropRevertGap     // breathing room from the editor / previous action
             .margin.z      = PropRevertGap
 
             .sigPressed += func|prop = me, item|(b)
@@ -293,7 +293,7 @@ impl Properties
             }
         }
 
-        item.revertButton.icon.clear()       // reserved column, arrow hidden until modified
+        item.revertButton.icon.clear()     // reserved column, arrow hidden until modified
         item.revertButton.enable(false)
     }
 }

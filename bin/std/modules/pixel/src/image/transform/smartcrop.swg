@@ -21,7 +21,7 @@ public impl Image
         shrinkW:     f32
         edgePen:     f32
         cx, cy:      f32
-        d2Max:       f32            // (w/2)^2 + (h/2)^2
+        d2Max:       f32     // (w/2)^2 + (h/2)^2
     }
 
     // Pack of precomputed features + integrals to avoid recomputation
@@ -883,7 +883,7 @@ public impl Image
                 r.width  = Math.min(r.width, w0 - r.x)
                 r.height = Math.min(r.height, h0 - r.y)
 
-                .crop(r) // Final crop is performed on the ORIGINAL image
+                .crop(r)     // Final crop is performed on the ORIGINAL image
                 return
             }
         }

@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 #[Swag.Strict]
 alias StrictKindOfAny = any

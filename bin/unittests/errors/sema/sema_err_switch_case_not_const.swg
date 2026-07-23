@@ -211,7 +211,7 @@ enum RunSwitchEnum: s32
     {
         switch v
         {
-        case v: // swc-expected-error {{sema_err_switch_case_not_const}}
+        case v:     // swc-expected-error {{sema_err_switch_case_not_const}}
             return 1
         default:
             return 0

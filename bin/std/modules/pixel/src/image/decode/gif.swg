@@ -233,7 +233,7 @@ impl Decoder
                 // Update byte.
                 if dref subLen == 0
                 {
-                    dref subLen = .readU8() // Must be nonzero!
+                    dref subLen = .readU8()     // Must be nonzero!
                     if dref subLen == 0 do
                         return 0x1000
                 }
@@ -362,7 +362,7 @@ impl Decoder
         }
 
         if key == stop do
-            subLen = .readU8() // Must be zero!
+            subLen = .readU8()     // Must be zero!
         .stream    = .streamStart + end
         .streamLen = remainEnd
     }

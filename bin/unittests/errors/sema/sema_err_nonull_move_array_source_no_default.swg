@@ -20,17 +20,17 @@ func consumeNonNullMoveArray(value: NonNullMoveArrayNestedAlias) {}
 {
     var source: [2] NonNullMoveArrayRequired = [{value: "a"}, {value: "b"}]
     var target: [2] NonNullMoveArrayRequired = [{value: "c"}, {value: "d"}]
-    target = #move source // swc-expected-error {{sema_err_move_source_no_default}}
+    target = #move source     // swc-expected-error {{sema_err_move_source_no_default}}
 }
 
 #test
 {
     var source: NonNullMoveArrayNestedAlias = [{value: "a"}, {value: "b"}]
-    let target = #move source // swc-expected-error {{sema_err_move_source_no_default}}
+    let target = #move source     // swc-expected-error {{sema_err_move_source_no_default}}
 }
 
 #test
 {
     var source: NonNullMoveArrayNestedAlias = [{value: "a"}, {value: "b"}]
-    consumeNonNullMoveArray(#move source) // swc-expected-error {{sema_err_move_source_no_default}}
+    consumeNonNullMoveArray(#move source)     // swc-expected-error {{sema_err_move_source_no_default}}
 }

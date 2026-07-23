@@ -221,7 +221,7 @@
         hit = 3
         break
     }
-    @assert(hit == 1) // 3 is in 1 to 3 inclusive
+    @assert(hit == 1)     // 3 is in 1 to 3 inclusive
 }
 
 // Switch on function return

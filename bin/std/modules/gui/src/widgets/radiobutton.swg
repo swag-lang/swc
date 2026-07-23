@@ -114,7 +114,7 @@ impl IWnd for RadioButton
     {
         if .processMouseEvent(evt) and !.checked
         {
-            .setChecked(true)           // also unchecks the group siblings when grouped
+            .setChecked(true)     // also unchecks the group siblings when grouped
             .sigChanged.call(me)
             .postCommandEvent(.id)
         }

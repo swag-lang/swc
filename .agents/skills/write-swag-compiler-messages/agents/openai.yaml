@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swag Compiler Messages"
+  short_description: "Write precise diagnostics in the Swag voice"
+  default_prompt: "Use $write-swag-compiler-messages to review and refine these Swag compiler messages."

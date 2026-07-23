@@ -13,8 +13,8 @@ public struct AboutDlgParams
     dlgTitle:         string
     messageTitle:     string
     message:          string
-    iconTitle:        Icon       // Icon that will be displayed in the title bar
-    bigIcon:          Icon       // Big icon, inside the dialog
+    iconTitle:        Icon     // Icon that will be displayed in the title bar
+    bigIcon:          Icon     // Big icon, inside the dialog
 }
 
 public impl AboutDlg

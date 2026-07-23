@@ -12,7 +12,7 @@ struct Cell
     var arr: [2] Cell
     for v in arr
     {
-        v.x += 1 // swc-expected-error {{sema_err_assign_to_const}}
+        v.x += 1     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -21,6 +21,6 @@ struct Cell
     var arr: [2] Cell
     for v in arr
     {
-        v = Cell{5} // swc-expected-error {{sema_err_assign_to_const}}
+        v = Cell{5}     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }

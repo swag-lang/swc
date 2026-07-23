@@ -223,7 +223,7 @@ A raw string is enclosed within '#' characters. Its content is taken literally.
 */
 #test
 {
-    const a = #"\u2F46"# // Raw string containing a Unicode escape
+    const a = #"\u2F46"#     // Raw string containing a Unicode escape
     #assert(a != "⽆")
     #assert(a == #"\u2F46"#)
 }

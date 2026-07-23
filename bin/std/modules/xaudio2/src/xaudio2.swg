@@ -177,7 +177,7 @@ struct XAUDIO2_BUFFER
     loopBegin:      UINT32          // First sample of the region to be looped.
     loopLength:     UINT32          // Length of the desired for region in samples, or 0 to for the entire buffer.
     loopCount:      UINT32          // Number of times to repeat the for region, or XAUDIO2_LOOP_INFINITE to for forever.
-    pContext:       #null *void             // Context value to be passed back in callbacks.
+    pContext:       #null *void     // Context value to be passed back in callbacks.
 }
 
 struct XAUDIO2_BUFFER_WMA

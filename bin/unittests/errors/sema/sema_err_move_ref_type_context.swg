@@ -14,20 +14,20 @@ func takeMoveCtx(v: #move MoveCtxVec) {}
 #test
 {
     var v = MoveCtxVec{1}
-    var rr: #move MoveCtxVec = (#move v) // swc-expected-error {{sema_err_move_ref_type_context}}
+    var rr: #move MoveCtxVec = (#move v)     // swc-expected-error {{sema_err_move_ref_type_context}}
 }
 
 #test
 {
     struct BadField
     {
-        r: #move MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
+        r: #move MoveCtxVec     // swc-expected-error {{sema_err_move_ref_type_context}}
     }
 }
 
 #test
 {
-    func badReturn(v: #move MoveCtxVec)->#move MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
+    func badReturn(v: #move MoveCtxVec)->#move MoveCtxVec     // swc-expected-error {{sema_err_move_ref_type_context}}
     {
         return v
     }
@@ -35,5 +35,5 @@ func takeMoveCtx(v: #move MoveCtxVec) {}
 
 #test
 {
-    var cb: func(v: #move MoveCtxVec)->#move MoveCtxVec // swc-expected-error {{sema_err_move_ref_type_context}}
+    var cb: func(v: #move MoveCtxVec)->#move MoveCtxVec     // swc-expected-error {{sema_err_move_ref_type_context}}
 }

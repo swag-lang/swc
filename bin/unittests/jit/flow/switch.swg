@@ -404,7 +404,7 @@ const SwitchPointerValues = [11, 22, 33]
     {
         switch v
         {
-        case v: // swc-expected-error {{sema_err_switch_case_not_const}}
+        case v:     // swc-expected-error {{sema_err_switch_case_not_const}}
             return 1
         default:
             return 0

@@ -16,7 +16,7 @@ func failInlinePayloadAssert()->u8
     @assert(pay.values[1] == 21)
     @assert(pay.values[2] == 22)
     @assert(pay.tag == 2)
-    @assert(pay.tag == 3) // swc-expected-error {{sema_err_assert_failed}}
+    @assert(pay.tag == 3)     // swc-expected-error {{sema_err_assert_failed}}
     return pay.tag
 }
 

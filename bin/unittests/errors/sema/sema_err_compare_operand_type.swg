@@ -5,7 +5,7 @@ const A: #null *s32 = null
 const B: #null string = null
 #assert(B == null)
 
-#assert(A == B) // swc-expected-error {{sema_err_compare_operand_type}}
+#assert(A == B)     // swc-expected-error {{sema_err_compare_operand_type}}
 
 const C: #null [..] string = null
 #assert(C == null)

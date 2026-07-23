@@ -139,7 +139,7 @@ func nativeNonNullConstruction()->bool
     let legacySource: *NativeNonNullItem = &first
     let migrated: *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
     var widened: #null *NativeNonNullItem = migrated
-    widened = null // the qualifier is real: null flows into it
+    widened = null     // the qualifier is real: null flows into it
     widened = migrated
 
     #assert(#typeof(aliasReadOnly) == const *NativeNonNullItem)

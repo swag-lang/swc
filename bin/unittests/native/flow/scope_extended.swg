@@ -15,7 +15,7 @@
                     break to Outer
             }
         }
-        count = -1 // should not be reached
+        count = -1     // should not be reached
     }
     @assert(count == 3)
 }
@@ -46,9 +46,9 @@
                 trace = 3
                 break to A
             }
-            trace = 4 // unreachable
+            trace = 4     // unreachable
         }
-        trace = 5 // unreachable
+        trace = 5     // unreachable
     }
     @assert(trace == 3)
 }
@@ -88,7 +88,7 @@
             if i == 5 do
                 break to Outer
         }
-        count = -1 // unreachable
+        count = -1     // unreachable
     }
     @assert(count == 5)
 }
@@ -105,7 +105,7 @@
         if i < 5 do
             continue
     }
-    @assert(sum == 15) // 1+2+3+4+5
+    @assert(sum == 15)     // 1+2+3+4+5
     @assert(i == 5)
 }
 
@@ -120,10 +120,10 @@
         #scope(S)
         {
             innerExited = true
-            break to S // breaks inner S
+            break to S     // breaks inner S
         }
         outerExited = true
-        break to S // breaks outer S
+        break to S     // breaks outer S
     }
 
     @assert(innerExited == true)
@@ -165,7 +165,7 @@
             hit = 2
             break
         }
-        hit = 3 // unreachable if case 2
+        hit = 3     // unreachable if case 2
     }
     @assert(hit == 1)
 }

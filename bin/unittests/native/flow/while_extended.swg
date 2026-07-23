@@ -36,7 +36,7 @@
             continue
         sum += i
     }
-    @assert(sum == 25) // 1 + 3 + 5 + 7 + 9
+    @assert(sum == 25)     // 1 + 3 + 5 + 7 + 9
 }
 
 // While with both break and continue
@@ -120,11 +120,11 @@ func whileEarlyReturn(limit: s32)->s32
             j += 1
             total += 1
             if j == 2 do
-                break // only breaks inner
+                break     // only breaks inner
         }
         i += 1
     }
-    @assert(total == 10) // 5 outer * 2 inner
+    @assert(total == 10)     // 5 outer * 2 inner
 }
 
 // While modifying condition variable in complex way
@@ -158,7 +158,7 @@ func sideEffectCheck(val: s32)->bool
         i += 1
     }
     @assert(i == 3)
-    @assert(gSideEffectCount == 4) // checked 0,1,2,3 - last check returns false
+    @assert(gSideEffectCount == 4)     // checked 0,1,2,3 - last check returns false
 }
 
 // While single iteration

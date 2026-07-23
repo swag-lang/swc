@@ -1,2 +1,2 @@
 #global private
-#global #[Swag] // swc-expected-error {{sema_err_not_attribute}}
+#global #[Swag]     // swc-expected-error {{sema_err_not_attribute}}

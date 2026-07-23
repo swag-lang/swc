@@ -18,7 +18,7 @@
 
 #test
 {
-    func unaryTildeBad(a: f32)->f32 { return ~a } // swc-expected-error {{sema_err_unary_operand_type}}
+    func unaryTildeBad(a: f32)->f32 { return ~a }     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test

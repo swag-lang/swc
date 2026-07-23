@@ -22,7 +22,7 @@ struct CaptureRectWnd
     tryStartGrab:      bool
     autoGrab:          bool
     lerpGrab:          Math.Rectangle
-    clickStartPos:     Math.Point         // Track where the click started
+    clickStartPos:     Math.Point     // Track where the click started
 }
 
 impl IWnd for CaptureRectWnd
@@ -56,7 +56,7 @@ impl IWnd for CaptureRectWnd
             .startGrab    = false
             .tryStartGrab = false
             .cancelGrab   = true
-            .autoGrab     = true // Return to auto grab mode
+            .autoGrab     = true     // Return to auto grab mode
 
         case MousePressed where evt.button == .Left:
             .tryStartGrab    = true

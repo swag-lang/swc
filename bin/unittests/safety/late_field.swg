@@ -25,7 +25,7 @@ struct LateBox
         var b: LateBox
         if doSet do
             b.item = &item
-        let p = b.item // swc-expected-error {{safety_err_runtime}}
+        let p = b.item     // swc-expected-error {{safety_err_runtime}}
         return p.value
     }
 

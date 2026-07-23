@@ -18,7 +18,7 @@ func choose(opponent: Shape)->Shape
 {
     switch opponent
     {
-    case Rock1: // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
+    case Rock1:     // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
         return .Paper
 
     case .Paper:

@@ -6,7 +6,7 @@ In Swag, structs can encapsulate methods and constants within them using the 'im
 This keeps related functionality close to the data it operates on.
 */
 
-#[Swag.ExportType(.Methods)] // Enable method reflection for this struct type
+#[Swag.ExportType(.Methods)]     // Enable method reflection for this struct type
 struct MyStruct
 {
     x:     s32 = 5      // Default 5
@@ -16,7 +16,7 @@ struct MyStruct
 
 impl MyStruct
 {
-    const MyConst = true // Constant in the struct's namespace
+    const MyConst = true     // Constant in the struct's namespace
 
     func returnTrue() => true
 }
@@ -56,9 +56,9 @@ Using 'mtd const' makes it 'const me'. This simplifies common patterns.
 
 impl MyStruct
 {
-    mtd methodReturnX()  => me.x // Equivalent to 'func methodReturnX(me) => me.x'
+    mtd methodReturnX()  => me.x     // Equivalent to 'func methodReturnX(me) => me.x'
     func funcReturnX(me) => me.x
-    func funcReturnY(me) => .x // 'me' can be omitted
+    func funcReturnY(me) => .x     // 'me' can be omitted
 }
 
 #test

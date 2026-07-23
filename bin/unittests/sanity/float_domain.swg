@@ -13,7 +13,7 @@
 #test
 {
     var x = -1.0'f32
-    let y = @sqrt(x) // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = @sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -22,7 +22,7 @@
 #test
 {
     var x = -2.0'f64
-    let y = @sqrt(x) // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = @sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -31,7 +31,7 @@
 #test
 {
     var x = -1.0'f32
-    let y = @log(x) // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = @log(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -40,7 +40,7 @@
 #test
 {
     var x = -5.0'f64
-    let y = @log10(x) // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = @log10(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -49,7 +49,7 @@
 #test
 {
     var x = 2.0'f32
-    let y = @asin(x) // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = @asin(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 
@@ -58,7 +58,7 @@
 #test
 {
     var x = -3.0'f64
-    let y = @acos(x) // swc-expected-error {{sanity_err_invalid_argument}}
+    let y = @acos(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
 

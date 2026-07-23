@@ -82,7 +82,7 @@ struct OffPair
 
 #test
 {
-    const V = #offsetof(5) // swc-expected-error {{sema_err_invalid_offsetof}}
+    const V = #offsetof(5)     // swc-expected-error {{sema_err_invalid_offsetof}}
 }
 
 #test
@@ -93,5 +93,5 @@ struct OffPair
         return cast(u64) a
     }
 
-    const V = #offsetof(bad()) // swc-expected-error {{sema_err_invalid_offsetof}}
+    const V = #offsetof(bad())     // swc-expected-error {{sema_err_invalid_offsetof}}
 }

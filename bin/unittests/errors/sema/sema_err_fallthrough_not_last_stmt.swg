@@ -6,7 +6,7 @@
     switch v
     {
     case 1:
-        fallthrough // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
+        fallthrough     // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
         break
     default:
         break
@@ -19,7 +19,7 @@
     switch v
     {
     case 0:
-        fallthrough // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
+        fallthrough     // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
         var a = 1
     case 1:
         break
@@ -34,7 +34,7 @@
     case 0:
         if true
         {
-            fallthrough // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
+            fallthrough     // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
             var a = 1
         }
     case 1:
@@ -50,7 +50,7 @@
     case 0:
         if true
         {
-            fallthrough // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
+            fallthrough     // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
         }
         var a = 1
     case 1:

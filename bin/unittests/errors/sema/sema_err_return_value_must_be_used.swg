@@ -13,7 +13,7 @@ func canDiscard()->s32
 
 #test
 {
-    mustUse() // swc-expected-error {{sema_err_return_value_must_be_used}}
+    mustUse()     // swc-expected-error {{sema_err_return_value_must_be_used}}
 }
 
 #test

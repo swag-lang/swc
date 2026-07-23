@@ -19,10 +19,10 @@ for efficient integer operations at varying levels of precision.
     @assert(c == -3)
     @assert(d == -4)
 
-    @assert(#sizeof(a) == 1) // 'a' is an 's8' → 1 byte
-    @assert(#sizeof(b) == 2) // 'b' is an 's16' → 2 bytes
-    @assert(#sizeof(c) == 4) // 'c' is an 's32' → 4 bytes
-    @assert(#sizeof(d) == 8) // 'd' is an 's64' → 8 bytes
+    @assert(#sizeof(a) == 1)     // 'a' is an 's8' → 1 byte
+    @assert(#sizeof(b) == 2)     // 'b' is an 's16' → 2 bytes
+    @assert(#sizeof(c) == 4)     // 'c' is an 's32' → 4 bytes
+    @assert(#sizeof(d) == 8)     // 'd' is an 's64' → 8 bytes
 }
 
 /**
@@ -44,10 +44,10 @@ counting, indexing, and other operations where negative numbers are not applicab
     @assert(c == 3)
     @assert(d == 4)
 
-    @assert(#sizeof(a) == 1) // 'a' is a 'u8' → 1 byte
-    @assert(#sizeof(b) == 2) // 'b' is a 'u16' → 2 bytes
-    @assert(#sizeof(c) == 4) // 'c' is a 'u32' → 4 bytes
-    @assert(#sizeof(d) == 8) // 'd' is a 'u64' → 8 bytes
+    @assert(#sizeof(a) == 1)     // 'a' is a 'u8' → 1 byte
+    @assert(#sizeof(b) == 2)     // 'b' is a 'u16' → 2 bytes
+    @assert(#sizeof(c) == 4)     // 'c' is a 'u32' → 4 bytes
+    @assert(#sizeof(d) == 8)     // 'd' is a 'u64' → 8 bytes
 }
 
 /**
@@ -65,8 +65,8 @@ fractional values or higher precision.
     @assert(a == 3.14)
     @assert(b == 3.14159)
 
-    @assert(#sizeof(a) == 4) // 'a' is an 'f32' → 4 bytes
-    @assert(#sizeof(b) == 8) // 'b' is an 'f64' → 8 bytes
+    @assert(#sizeof(a) == 4)     // 'a' is an 'f32' → 4 bytes
+    @assert(#sizeof(b) == 8)     // 'b' is an 'f64' → 8 bytes
 }
 
 /**
@@ -83,7 +83,7 @@ a boolean occupies 1 byte of memory.
     @assert(a == true)
     @assert(b == false)
 
-    @assert(#sizeof(a) == 1) // 'bool' → 1 byte
+    @assert(#sizeof(a) == 1)     // 'bool' → 1 byte
     @assert(#sizeof(b) == 1)
 }
 
@@ -96,10 +96,10 @@ This structure ensures efficient text manipulation and full Unicode compatibilit
 */
 #test
 {
-    let a: string = "string 是" // UTF-8 encoded string
+    let a: string = "string 是"     // UTF-8 encoded string
 
     @assert(a == "string 是")
-    @assert(#sizeof(a) == 2 * #sizeof(#null *void)) // Pointer + length
+    @assert(#sizeof(a) == 2 * #sizeof(#null *void))     // Pointer + length
 }
 
 /**
@@ -110,10 +110,10 @@ Unicode character and is ideal for per-character text operations across language
 */
 #test
 {
-    let a: rune = '是' // Single Unicode code point
+    let a: rune = '是'     // Single Unicode code point
 
     @assert(a == '是')
-    @assert(#sizeof(a) == 4) // 'rune' → 4 bytes (32 bits)
+    @assert(#sizeof(a) == 4)     // 'rune' → 4 bytes (32 bits)
 }
 
 /**

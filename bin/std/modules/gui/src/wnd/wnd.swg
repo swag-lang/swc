@@ -182,8 +182,8 @@ struct Wnd
     layoutDirty:           bool = true
     managedByLayout:       bool
 
-    hookOnEvent:           #null HookEvent                         // Will be called before processing the event of the window
-    hookOnChildEvent:      #null HookEvent                         // Will be called before processing whatever event of a child window
+    hookOnEvent:           #null HookEvent     // Will be called before processing the event of the window
+    hookOnChildEvent:      #null HookEvent     // Will be called before processing whatever event of a child window
 }
 
 impl IWnd for Wnd

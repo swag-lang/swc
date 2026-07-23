@@ -27,7 +27,7 @@ the caller unless explicitly elevated.
     }
 
     let a = 0
-    myMacro() // no conflict with outer 'a'
+    myMacro()     // no conflict with outer 'a'
     @assert(a == 0)
 }
 
@@ -47,7 +47,7 @@ locals.
     #[Swag.Macro]
     func myMacro(what: #code)
     {
-        #inject(what) // insert provided code
+        #inject(what)     // insert provided code
     }
 
     var a = 0
@@ -98,7 +98,7 @@ never shadows a caller variable used by the injected block.
     #[Swag.Macro]
     func myMacro(what: #code)
     {
-        var a = 666 // macro-local 'a', invisible to the injected code
+        var a = 666     // macro-local 'a', invisible to the injected code
 
         #inject(what)
     }
@@ -106,7 +106,7 @@ never shadows a caller variable used by the injected block.
     var a = 1
     myMacro()
     {
-        a += 2 // operates on the caller's 'a'
+        a += 2     // operates on the caller's 'a'
     }
 
     @assert(a == 3)
@@ -208,13 +208,13 @@ They can be used to generate tight loops with caller-visible indices, etc.
     var a = 0
     repeat(5)
     {
-        a += index // sum 0..4
+        a += index     // sum 0..4
     }
     @assert(a == 0 + 1 + 2 + 3 + 4)
 
     repeat(3)
     {
-        a += index // add 0..2
+        a += index     // add 0..2
     }
     @assert(a == 10 + 3)
 }
@@ -248,7 +248,7 @@ Bindings and control-flow replacements live in the same '#inject'.
     {
         a += 1
         if a == 10 do
-            break // remapped to 'break to ScopeTarget'
+            break     // remapped to 'break to ScopeTarget'
     }
 
     @assert(a == 10)

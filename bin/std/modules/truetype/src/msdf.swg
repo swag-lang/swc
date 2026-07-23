@@ -32,10 +32,10 @@ struct MsdfSeg
 
 struct MsdfElement
 {
-    firstSeg:    u32       // first segment index in the flat segment list
+    firstSeg:    u32     // first segment index in the flat segment list
     segCount:    u32
-    sdx0, sdy0:  f64       // normalized direction at the element start
-    edx1, edy1:  f64       // normalized direction at the element end
+    sdx0, sdy0:  f64     // normalized direction at the element start
+    edx1, edy1:  f64     // normalized direction at the element end
     color:       u8
 }
 

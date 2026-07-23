@@ -7,5 +7,5 @@ func(T) requiresText(value: T)->T where T == string
 
 #test
 {
-    requiresText(1) // swc-expected-error {{sema_err_function_where_failed}}
+    requiresText(1)     // swc-expected-error {{sema_err_function_where_failed}}
 }

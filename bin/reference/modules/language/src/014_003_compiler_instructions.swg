@@ -5,7 +5,7 @@ The '#assert' directive performs a static assertion during compilation.
 If the condition is false, compilation fails with an error message.
 Use it to enforce compile-time invariants and validate assumptions.
 */
-#assert(true) // Always passes; no error.
+#assert(true)     // Always passes; no error.
 
 /**
 # '#defined(SYMBOL)'
@@ -13,9 +13,9 @@ Use it to enforce compile-time invariants and validate assumptions.
 current context. It returns true if defined, false otherwise. Useful for
 conditional compilation before referencing variables, constants, or functions.
 */
-#assert(!#defined(DOES_NOT_EXISTS)) // Ensure the symbol is not defined.
-#assert(#defined(Global)) // Confirms 'Global' is defined.
-var Global = 0 // Define a global variable 'Global'.
+#assert(!#defined(DOES_NOT_EXISTS))     // Ensure the symbol is not defined.
+#assert(#defined(Global))               // Confirms 'Global' is defined.
+var Global = 0                          // Define a global variable 'Global'.
 
 /**
 # '#if'/'#elif'/'#else'
@@ -47,8 +47,8 @@ Useful for enforcing checks and surfacing build-time information.
 */
 #if false
 {
-    #error("this is an error") // Compile-time error (if reached).
-    #warning("this is a warning") // Compile-time warning (if reached).
+    #error("this is an error")        // Compile-time error (if reached).
+    #warning("this is a warning")     // Compile-time warning (if reached).
 }
 
 /**

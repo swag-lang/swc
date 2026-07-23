@@ -12,11 +12,11 @@ impl Vec
 #test
 {
     var a, b: Vec
-    a = #relocate #move b // swc-expected-error {{sema_err_relocate_modifier_conflict}}
+    a = #relocate #move b     // swc-expected-error {{sema_err_relocate_modifier_conflict}}
 }
 
 #test
 {
     var a, b: Vec
-    a = #nodrop #relocate b // swc-expected-error {{sema_err_relocate_modifier_conflict}}
+    a = #nodrop #relocate b     // swc-expected-error {{sema_err_relocate_modifier_conflict}}
 }

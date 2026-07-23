@@ -16,7 +16,7 @@
 {
     var a: [4] s32
     var i = 5
-    let x = a[i] // swc-expected-error {{sanity_err_out_of_bounds}}
+    let x = a[i]     // swc-expected-error {{sanity_err_out_of_bounds}}
     discard x
 }
 
@@ -26,7 +26,7 @@
 {
     var a: [4] s32
     var i = 4
-    a[i] = 1 // swc-expected-error {{sanity_err_out_of_bounds}}
+    a[i] = 1     // swc-expected-error {{sanity_err_out_of_bounds}}
 }
 
 // The constant index propagates through a copy.
@@ -36,7 +36,7 @@
     var a: [4] s32
     var i = 9
     var j = i
-    let x = a[j] // swc-expected-error {{sanity_err_out_of_bounds}}
+    let x = a[j]     // swc-expected-error {{sanity_err_out_of_bounds}}
     discard x
 }
 

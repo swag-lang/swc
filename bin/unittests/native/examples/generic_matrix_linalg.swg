@@ -264,8 +264,8 @@ impl AffineMap
 {
     let m: Mat2's32 = {a: 3, b: 1, c: 2, d: 4}
 
-    @assert(m.det() == 10)  // 3*4 - 1*2
-    @assert(m.trace() == 7) // 3 + 4
+    @assert(m.det() == 10)      // 3*4 - 1*2
+    @assert(m.trace() == 7)     // 3 + 4
 
     let t = m.transpose()
     #assert(#typeof(t) == Mat2's32)
@@ -419,7 +419,7 @@ impl AffineMap
     @assert(v3.x == 0 and v3.y == -1)
 
     var v4 = rot90.transform(&v3)
-    @assert(v4.x == 1 and v4.y == 0) // full circle
+    @assert(v4.x == 1 and v4.y == 0)     // full circle
 }
 
 // Scaling transform
@@ -516,7 +516,7 @@ impl AffineMap
     let result = s.apply(&p)
 
     @assert(result.x == 12 and result.y == 10)
-    @assert(s.det() == 6) // 3 * 2
+    @assert(s.det() == 6)     // 3 * 2
 }
 
 // Compose: scale after translate

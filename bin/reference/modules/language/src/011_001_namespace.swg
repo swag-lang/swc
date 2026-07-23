@@ -37,8 +37,8 @@ namespace A.B.C
 #test
 {
     // Access functions using their fully qualified namespace paths.
-    @assert(A.a() == 1) // Calls 'a' from namespace 'A'
-    @assert(A.B.C.a() == 2) // Calls 'a' from nested namespace 'A.B.C'
+    @assert(A.a() == 1)         // Calls 'a' from namespace 'A'
+    @assert(A.B.C.a() == 2)     // Calls 'a' from nested namespace 'A.B.C'
 }
 
 /**
@@ -49,10 +49,10 @@ Symbols from a namespace are accessed through their qualified name.
 
 namespace QualifiedExample
 {
-    const Symbol = 0 // Constant defined within namespace 'QualifiedExample'
+    const Symbol = 0     // Constant defined within namespace 'QualifiedExample'
 }
 
-const B = QualifiedExample.Symbol // Access via fully qualified name
+const B = QualifiedExample.Symbol     // Access via fully qualified name
 
 /**
 # 'Internal' Scopes
@@ -65,10 +65,10 @@ useful for isolating private details.
 
 internal
 {
-    const OtherSymbol = 0 // Constant defined in an internal scope
+    const OtherSymbol = 0     // Constant defined in an internal scope
 }
 
-const D = OtherSymbol // Accessible within this file only
+const D = OtherSymbol     // Accessible within this file only
 
 /**
 # 'Exporting Symbols'

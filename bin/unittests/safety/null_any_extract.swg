@@ -10,7 +10,7 @@
     {
         var ns: #null string = null
         let boxed: any = ns
-        let back = cast(string) boxed // swc-expected-error {{safety_err_runtime}}
+        let back = cast(string) boxed     // swc-expected-error {{safety_err_runtime}}
         return back == null
     }
 
@@ -24,7 +24,7 @@
     {
         var np: #null *s32 = null
         let boxed: any = np
-        let back = cast(*s32) boxed // swc-expected-error {{safety_err_runtime}}
+        let back = cast(*s32) boxed     // swc-expected-error {{safety_err_runtime}}
         return back == null
     }
 

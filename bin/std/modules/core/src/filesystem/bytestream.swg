@@ -4,9 +4,9 @@ using Core.Errors
 public struct ByteStream
 {
     readBuffer:      #null const [..] u8     // Buffer used for reading
-    writeBuffer:     #null *Array'u8   // Buffer used for writing
-    seek:            u64               // Current read/write position
-    eof:             bool              // End-of-file flag for reads
+    writeBuffer:     #null *Array'u8         // Buffer used for writing
+    seek:            u64                     // Current read/write position
+    eof:             bool                    // End-of-file flag for reads
 }
 
 public impl ByteStream

@@ -19,8 +19,8 @@ making the code easier to read and maintain.
     y += 1
 
     // Use the '@assert' intrinsic to verify the correctness of the logic.
-    @assert(x == 2) // Confirms that 'x' equals 2. Raises an error if it fails.
-    @assert(y == x) // Confirms that 'y' equals 'x', which should also be 2.
+    @assert(x == 2)     // Confirms that 'x' equals 2. Raises an error if it fails.
+    @assert(y == x)     // Confirms that 'y' equals 'x', which should also be 2.
 }
 
 /**

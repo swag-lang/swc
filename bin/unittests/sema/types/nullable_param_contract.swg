@@ -30,27 +30,27 @@ func npcCheck(x: #null *s32)->bool => x != null
 // Dead contracts: rejected.
 // -----------------------------------------------------------------------------
 
-func npcErrDeref(x: #null *s32)->s32 // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrDeref(x: #null *s32)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
 {
     return dref x
 }
 
-func npcErrMember(v: #null *NpcItem)->s32 // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrMember(v: #null *NpcItem)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
 {
     return v.value
 }
 
-func npcErrIndex(s: #null [*] s32)->s32 // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrIndex(s: #null [*] s32)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
 {
     return s[0]
 }
 
-func npcErrCall(f: #null func()->s32)->s32 // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrCall(f: #null func()->s32)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
 {
     return f()
 }
 
-func npcErrInterface(i: #null INpcFace)->s32 // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrInterface(i: #null INpcFace)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
 {
     return i.get()
 }
@@ -119,7 +119,7 @@ func npcOkUnused(x: #null *s32)->s32
 
 var g_npcStorage: s32
 
-func npcErrReturnNeverNull(c: bool)->#null *s32 // swc-expected-error {{sema_err_nullable_return_contract}}
+func npcErrReturnNeverNull(c: bool)->#null *s32     // swc-expected-error {{sema_err_nullable_return_contract}}
 {
     if c do
         return &g_npcStorage
@@ -162,7 +162,7 @@ func npcFillPtrPtr(pp: *#null *s32)
 
 func npcErrLocalNeverNull()->s32
 {
-    var p: #null *s32 = &g_npcStorage // swc-expected-error {{sema_err_nullable_local_contract}}
+    var p: #null *s32 = &g_npcStorage     // swc-expected-error {{sema_err_nullable_local_contract}}
     return dref p
 }
 

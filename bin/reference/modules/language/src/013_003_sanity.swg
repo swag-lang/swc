@@ -53,7 +53,7 @@ func sanityGlobalAddress()->*s32
 {
     // var v: s32
     // return &v  // Uncomment: error, returns the address of a local
-    return &sanityGlobalValue // A global outlives the call
+    return &sanityGlobalValue     // A global outlives the call
 }
 
 /**
@@ -74,7 +74,7 @@ var sanityGlobalBuffer: [4] u8
     {
         // var buf: [4] u8
         // return cast(const [..] u8) buf  // Uncomment: error, borrow escapes
-        return cast(const [..] u8) sanityGlobalBuffer // A global's storage is fine
+        return cast(const [..] u8) sanityGlobalBuffer     // A global's storage is fine
     }
 
     @assert(@countof(makeView()) == 4)
@@ -98,14 +98,14 @@ borrow, and they cross module boundaries through the generated module API (the
 
     func wrapper(p: *s32)->*s32
     {
-        return passthrough(p) // Inherits the summary of 'passthrough'
+        return passthrough(p)     // Inherits the summary of 'passthrough'
     }
 
     func caller()->*s32
     {
         // var v: s32
         // return wrapper(&v)  // Uncomment: error, borrows a local through the chain
-        return wrapper(&sanityGlobalValue) // Caller-owned data flows through
+        return wrapper(&sanityGlobalValue)     // Caller-owned data flows through
     }
 
     @assert(caller() == &sanityGlobalValue)
@@ -148,7 +148,7 @@ var sanityGlobalStash: #null *s32
 
 func sanityStash(p: *s32)
 {
-    sanityGlobalStash = p // Legal here: 'p' is caller-owned. Judged at call sites.
+    sanityGlobalStash = p     // Legal here: 'p' is caller-owned. Judged at call sites.
 }
 
 #test
@@ -157,7 +157,7 @@ func sanityStash(p: *s32)
     {
         // var v: s32
         // sanityStash(&v)  // Uncomment: error, the callee keeps the borrow
-        sanityStash(&sanityGlobalValue) // A global outlives everything
+        sanityStash(&sanityGlobalValue)     // A global outlives everything
     }
 
     caller()
@@ -217,7 +217,7 @@ cannot prove still fail deterministically.
     @assert(b.x == 1)
     // @assert(a.x == 1)  // Uncomment: error, use of moved-from value
     a = Item{x: 2}
-    @assert(a.x == 2) // Reassigning makes it readable again
+    @assert(a.x == 2)     // Reassigning makes it readable again
 }
 
 /**
@@ -230,7 +230,7 @@ Like safety, sanity can be disabled per scope with the attribute. Disabling
 func sanityOptedOut()->*s32
 {
     var v: s32
-    return &v // Accepted: the analysis is off here
+    return &v     // Accepted: the analysis is off here
 }
 
 /**

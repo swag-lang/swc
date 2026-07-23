@@ -12,7 +12,7 @@ var GTab: [256] s32
 func sumInvariantArith(n: s32, k: s32)->s32
 {
     var acc = 0
-    let base = k * 1000 + 7        // invariant in the loop
+    let base = k * 1000 + 7     // invariant in the loop
     for i in 0 until n do
         acc += base + i
     return acc
@@ -23,7 +23,7 @@ func sumGlobalLoad(n: s32, idx: s32)->s32
 {
     var acc = 0
     for i in 0 until n do
-        acc += GTab[idx]           // invariant load (no store in loop): hoistable
+        acc += GTab[idx]     // invariant load (no store in loop): hoistable
     return acc
 }
 
@@ -33,7 +33,7 @@ func nestedInvariant(h: s32, w: s32)->s32
     var acc = 0
     for y in 0 until h
     {
-        let rowv = y * 10          // invariant in the inner loop
+        let rowv = y * 10     // invariant in the inner loop
         for x in 0 until w do
             acc += rowv + x
     }

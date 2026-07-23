@@ -44,9 +44,9 @@ struct TagBin
     internal
     {
         compressor:       Core.Compress.Deflate
-        output:           #null *ConcatBuffer                                         // Output buffer where data is written
-        freeSections:     ArrayPtr'TagBinSection                                // Pool of reusable section structures
-        sections:         ArrayPtr'TagBinSection                                // Stack of currently active sections
+        output:           #null *ConcatBuffer        // Output buffer where data is written
+        freeSections:     ArrayPtr'TagBinSection     // Pool of reusable section structures
+        sections:         ArrayPtr'TagBinSection     // Stack of currently active sections
         outStack:         Array'(#null *ConcatBuffer)
         elemStack:        Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }
         freeTmpBuf:       ArrayPtr'ConcatBuffer
@@ -136,8 +136,8 @@ impl TagBin
         {
             .output.addNative(TagBinSignatures.Fat)
             sec.startSeek = .output.getSeek()
-            .output.addNative(0'u64) // Will store the fat offset here
-            .output.addNative(0'u64) // Will store the fat count here
+            .output.addNative(0'u64)     // Will store the fat offset here
+            .output.addNative(0'u64)     // Will store the fat count here
         }
     }
 
@@ -159,8 +159,8 @@ impl TagBin
             .output.addNative(TagBinSignatures.Fat)
             for k, v in sec.mapSeek
             {
-                .output.addNative(k) // Crc
-                .output.addNative(ConcatBuffer.getOffset(v)) // Linear seek inside the buffer
+                .output.addNative(k)                             // Crc
+                .output.addNative(ConcatBuffer.getOffset(v))     // Linear seek inside the buffer
             }
         }
 
@@ -274,14 +274,14 @@ impl TagBin
         if compressBuffer.count >= childBytes.length or @err != null
         {
             // No compression, just store input
-            parentOut.addNative(childBytes.length) // uncompressedSize
-            parentOut.addNative(childBytes.length) // compressedSize
+            parentOut.addNative(childBytes.length)     // uncompressedSize
+            parentOut.addNative(childBytes.length)     // compressedSize
             parentOut.addBytes(childBytes)
         }
         else
         {
-            parentOut.addNative(childBytes.length) // uncompressedSize
-            parentOut.addNative(compressBuffer.count) // compressedSize
+            parentOut.addNative(childBytes.length)        // uncompressedSize
+            parentOut.addNative(compressBuffer.count)     // compressedSize
             parentOut.addBytes(compressBuffer.toSlice())
         }
 

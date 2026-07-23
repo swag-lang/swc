@@ -556,7 +556,7 @@ impl Decoder
 
             case TRNS:
                 .seenTRSN = true
-                .outChannels += 1 // transparency mask, add an alpha channel
+                .outChannels += 1     // transparency mask, add an alpha channel
                 .chunkTRNS = .readChunk(ch)
 
             case BKGD:

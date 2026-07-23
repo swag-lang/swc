@@ -22,11 +22,11 @@ struct PropFieldValue
 {
     valid:      bool
     isString:   bool
-    n:          u64             // number of instances captured
-    sz:         u64             // per-instance byte size (raw-bytes case only)
+    n:          u64                   // number of instances captured
+    sz:         u64                   // per-instance byte size (raw-bytes case only)
     addrs:      Array'(#null *u8)     // field address in each captured instance
-    bytes:      Array'u8        // n * sz contiguous raw bytes (raw-bytes case)
-    strings:    Array'String    // n strings (String case)
+    bytes:      Array'u8              // n * sz contiguous raw bytes (raw-bytes case)
+    strings:    Array'String          // n strings (String case)
 }
 
 impl PropFieldValue

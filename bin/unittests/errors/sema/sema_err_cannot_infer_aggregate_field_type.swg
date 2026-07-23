@@ -27,5 +27,5 @@ impl InferBox
 func semaErrCannotInferAggregateFieldType()
 {
     var data: InferBox'{ kind: InferEnum, name: string } = undefined
-    data.add({.A, "x"}) // swc-expected-error {{sema_err_cannot_infer_aggregate_field_type}}
+    data.add({.A, "x"})     // swc-expected-error {{sema_err_cannot_infer_aggregate_field_type}}
 }

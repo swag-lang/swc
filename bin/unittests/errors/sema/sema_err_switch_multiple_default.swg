@@ -6,7 +6,7 @@
     {
     default:
         break
-    default: // swc-expected-error {{sema_err_switch_multiple_default}}
+    default:     // swc-expected-error {{sema_err_switch_multiple_default}}
         break
     }
 }

@@ -31,9 +31,9 @@ struct C
 }
 
 #assert(#offsetof(C.a) == 0)
-#assert(#offsetof(C.b) == 4) // 3 bytes of padding after a
+#assert(#offsetof(C.b) == 4)     // 3 bytes of padding after a
 #assert(#offsetof(C.c) == 8)
-#assert(#sizeof(C) == 12)   // padded to multiple of 4
+#assert(#sizeof(C) == 12)     // padded to multiple of 4
 
 struct D
 {
@@ -45,7 +45,7 @@ struct D
 #assert(#offsetof(D.a) == 0)
 #assert(#offsetof(D.b) == 4)
 #assert(#offsetof(D.c) == 5)
-#assert(#sizeof(D) == 8)    // tail padding to alignment of 4
+#assert(#sizeof(D) == 8)     // tail padding to alignment of 4
 
 struct Inner
 {

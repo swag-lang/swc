@@ -42,26 +42,26 @@ enum EditBoxFlags
 
 struct EditBox
 {
-    using wnd:            Wnd                                      // Base window interface
+    using wnd:            Wnd     // Base window interface
 
-    icon:                 Icon                                     // Optional icon shown on the left
-    text:                 String                                   // Current UTF‑8 text content
-    unit:                 String                                   // Suffix unit (e.g. "kg")
-    form                  = EditBoxForm.Square                     // Visual form of the EditBox
-    editBoxFlags          = EditBoxFlags.AutoLoseFocus             // Active behaviour flags
-    inputMode             = EditBoxInputMode.String                // Current input mode
-    maxLength:            s32                                      // Maximum number of runes (0 = unlimited)
-    rightMargin:          f32                                      // Extra right margin inside the client rectangle
+    icon:                 Icon                             // Optional icon shown on the left
+    text:                 String                           // Current UTF‑8 text content
+    unit:                 String                           // Suffix unit (e.g. "kg")
+    form                  = EditBoxForm.Square             // Visual form of the EditBox
+    editBoxFlags          = EditBoxFlags.AutoLoseFocus     // Active behaviour flags
+    inputMode             = EditBoxInputMode.String        // Current input mode
+    maxLength:            s32                              // Maximum number of runes (0 = unlimited)
+    rightMargin:          f32                              // Extra right margin inside the client rectangle
 
-    sigChanged:           SigArray'func||(*EditBox)                // Emitted when the text changes
-    sigLoseFocus:         SigArray'func||(*EditBox)                // Emitted when the EditBox loses focus
-    sigEnterPressed:      SigArray'func||(*EditBox)                // Emitted when Enter is pressed
-    sigEscapePressed:     SigArray'func||(*EditBox)                // Emitted when Escape is pressed
+    sigChanged:           SigArray'func||(*EditBox)                      // Emitted when the text changes
+    sigLoseFocus:         SigArray'func||(*EditBox)                      // Emitted when the EditBox loses focus
+    sigEnterPressed:      SigArray'func||(*EditBox)                      // Emitted when Enter is pressed
+    sigEscapePressed:     SigArray'func||(*EditBox)                      // Emitted when Escape is pressed
     sigCheckContent:      #null func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
 
     internal
     {
-        originalText: String // Text captured when focus was gained
+        originalText: String     // Text captured when focus was gained
 
             // Numeric bounds used when inputMode is S64/U64/X64/F64.
             using minMax: union
@@ -74,18 +74,18 @@ struct EditBox
         aniBk:              BlendColor{speed: 4}     // Background colour animation
         aniBorder:          BlendColor{speed: 4}     // Border colour animation
 
-        isInvalid:          bool                     // True if current content is invalid
-        isHot:              bool                     // True while the mouse is hovering
-        isDragging:         bool                     // True while the user is selecting text
-        selBeg, selEnd:     u64                      // Selection start/end (byte indices)
-        timerCaret:         #null *Timer                   // Blinking‑caret timer
-        clearBtn:           #null *IconButton              // Optional clear button instance
-        clearBtnTextMargin: f32                      // Text margin reserved for the clear button
-        visibleCaret:       bool                     // True when the caret should be visible
-        posSelBeg:          f32                      // X‑position of selection start in pixels
-        posSelEnd:          f32                      // X‑position of selection end in pixels
-        scrollPosX:         f32                      // Horizontal scroll offset
-        countRunes:         s32                      // Number of runes currently in text
+        isInvalid:          bool                  // True if current content is invalid
+        isHot:              bool                  // True while the mouse is hovering
+        isDragging:         bool                  // True while the user is selecting text
+        selBeg, selEnd:     u64                   // Selection start/end (byte indices)
+        timerCaret:         #null *Timer          // Blinking‑caret timer
+        clearBtn:           #null *IconButton     // Optional clear button instance
+        clearBtnTextMargin: f32                   // Text margin reserved for the clear button
+        visibleCaret:       bool                  // True when the caret should be visible
+        posSelBeg:          f32                   // X‑position of selection start in pixels
+        posSelEnd:          f32                   // X‑position of selection end in pixels
+        scrollPosX:         f32                   // Horizontal scroll offset
+        countRunes:         s32                   // Number of runes currently in text
     }
 }
 

@@ -5,10 +5,10 @@
 struct BitStream
 {
     stream:         #null const [..] u8     // Input byte stream
-    curByte:        u64               // Index of current byte being processed
-    codeBuffer:     u64               // Bit buffer holding bits to be consumed
-    numBits:        u8                // Number of bits currently in the buffer
-    eof:            bool              // Flag to signal end-of-stream
+    curByte:        u64                     // Index of current byte being processed
+    codeBuffer:     u64                     // Bit buffer holding bits to be consumed
+    numBits:        u8                      // Number of bits currently in the buffer
+    eof:            bool                    // Flag to signal end-of-stream
 }
 
 impl BitStream
@@ -133,7 +133,7 @@ impl BitStream
     // Reverts stream to last byte-aligned state (undo partial read)
     mtd revert()
     {
-        Debug.assert(!(.numBits & 7)) // Must be aligned
+        Debug.assert(!(.numBits & 7))     // Must be aligned
         .curByte -= .numBits / 8
         .numBits    = 0
         .codeBuffer = 0
@@ -167,7 +167,7 @@ impl BitStream
     mtd peek32Be(dest: [*] u8)
     {
         #if BIG_ENDIAN do
-            peek32(dest) // Already big-endian
+            peek32(dest)     // Already big-endian
             #else
         {
             dest[3] = cast(u8) .peekBits(8)

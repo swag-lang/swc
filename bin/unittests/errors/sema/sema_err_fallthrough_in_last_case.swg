@@ -8,6 +8,6 @@
     case 1:
         break
     default:
-        fallthrough // swc-expected-error {{sema_err_fallthrough_in_last_case}}
+        fallthrough     // swc-expected-error {{sema_err_fallthrough_in_last_case}}
     }
 }

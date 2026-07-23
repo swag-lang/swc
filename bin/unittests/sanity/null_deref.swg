@@ -38,7 +38,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    p.x = 1 // swc-expected-error {{sanity_err_null_deref}}
+    p.x = 1     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Store into a non-first field (non-zero offset) of a null pointer.
@@ -46,7 +46,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    p.y = 2 // swc-expected-error {{sanity_err_null_deref}}
+    p.y = 2     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Store through a null scalar pointer via `dref`.
@@ -54,7 +54,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *s32 = null
-    dref p = 9 // swc-expected-error {{sanity_err_null_deref}}
+    dref p = 9     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // The null value propagates through a copy, then the copy is written through.
@@ -63,7 +63,7 @@ func nullSafetyEnabled()->bool
 {
     var p: #null *NullDerefItem = null
     var q = p
-    q.x = 3 // swc-expected-error {{sanity_err_null_deref}}
+    q.x = 3     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // A read whose result is actually used (here in an assert) is not dead, so the
@@ -72,7 +72,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    @assert(p.x == 0) // swc-expected-error {{sanity_err_null_deref}}
+    @assert(p.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
 }
 
 // Path-sensitive: the dereference is inside the branch where the guard proves the
@@ -83,7 +83,7 @@ func nullSafetyEnabled()->bool
     var p: #null *NullDerefItem = null
     if p == null
     {
-        p.x = 4 // swc-expected-error {{sanity_err_null_deref}}
+        p.x = 4     // swc-expected-error {{sanity_err_null_deref}}
     }
 }
 

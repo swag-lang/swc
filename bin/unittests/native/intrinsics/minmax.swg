@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 // ============================================================
 // Runtime wrappers — all types

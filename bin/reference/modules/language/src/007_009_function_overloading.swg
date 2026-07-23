@@ -20,5 +20,5 @@ The compiler chooses the correct overload based on the number and types of argum
 This allows calling `sum` naturally for different scenarios.
 */
 
-#assert(sum(1, 2) == 3) // Calls the two-parameter version
-#assert(sum(1, 2, 3) == 6) // Calls the three-parameter version
+#assert(sum(1, 2) == 3)        // Calls the two-parameter version
+#assert(sum(1, 2, 3) == 6)     // Calls the three-parameter version

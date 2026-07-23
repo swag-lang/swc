@@ -63,7 +63,7 @@ func lifecycleSafetyEnabled()->bool
     var a = UamItem{x: 1}
     var b: UamItem
     b = #relocate a
-    @assert(a.x == 1) // swc-expected-error {{sanity_err_use_after_move}}
+    @assert(a.x == 1)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a non-first field of the abandoned local.
@@ -73,7 +73,7 @@ func lifecycleSafetyEnabled()->bool
     var a = UamItem{x: 1, y: 2}
     var b: UamItem
     b = #relocate a
-    @assert(a.y == 2) // swc-expected-error {{sanity_err_use_after_move}}
+    @assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a local given away with '#move' when the type has no 'opDrop': the source is
@@ -83,7 +83,7 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamItem{x: 4}
     var b = #move a
-    @assert(a.x == 4) // swc-expected-error {{sanity_err_use_after_move}}
+    @assert(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading the moved-from local THROUGH a pointer taken before the move: the lattice
@@ -95,7 +95,7 @@ func lifecycleSafetyEnabled()->bool
     let p = &a.x
     var b = #move a
     discard b
-    @assert(dref p == 4) // swc-expected-error {{sanity_err_use_after_move}}
+    @assert(dref p == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // ---------------------------------------------------------------------------
@@ -158,7 +158,7 @@ var g_takeBranch = false
 #test
 {
     var a = UamItem{x: 6}
-    var b = #move a // no 'opDrop': the abandoned source is poisoned
+    var b = #move a     // no 'opDrop': the abandoned source is poisoned
     opaque()
     @assert(a.x == 0xDDDD_DDDD)
     @assert(b.x == 6)
@@ -186,6 +186,6 @@ var g_takeBranch = false
     var a = UamItem{x: 3}
     var b: UamItem
     b = #relocate a
-    @assert(a.x == 3) // stale bits are still readable when the check is off
+    @assert(a.x == 3)     // stale bits are still readable when the check is off
     @assert(b.x == 3)
 }

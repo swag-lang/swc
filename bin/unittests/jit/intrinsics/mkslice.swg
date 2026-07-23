@@ -54,13 +54,13 @@
 
 #test
 {
-    var s = @mkstring(0, 1) // swc-expected-error {{sema_err_expected_type_fam}}
+    var s = @mkstring(0, 1)     // swc-expected-error {{sema_err_expected_type_fam}}
 }
 
 #test
 {
     var buf: [2] u8
-    var s = @mkslice(&buf[0], 0.0) // swc-expected-error {{sema_err_cannot_cast}}
+    var s = @mkslice(&buf[0], 0.0)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

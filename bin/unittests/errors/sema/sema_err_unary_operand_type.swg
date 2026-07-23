@@ -18,14 +18,14 @@
 
 #test
 {
-    func unaryTildeBad(a: f32)->f32 { return ~a } // swc-expected-error {{sema_err_unary_operand_type}}
+    func unaryTildeBad(a: f32)->f32 { return ~a }     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test
 {
     var value: s32
     var ref: &s32 = &value
-    let bad = dref ref // swc-expected-error {{sema_err_unary_operand_type}}
+    let bad = dref ref     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test
@@ -34,7 +34,7 @@
     func takeMove(v: #move s32) {}
     var value: s32
     var p = &value
-    takeMove(#move p) // swc-expected-error {{sema_err_unary_operand_type}}
+    takeMove(#move p)     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test

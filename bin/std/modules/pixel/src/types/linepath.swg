@@ -436,7 +436,7 @@ impl LinePath
     {
         let minDist = getFlattenDistance(quality)
         let startPt = .endPosBuffer
-        let endPt   = p0 + p1 + p2 + p3               // Point at t=1
+        let endPt   = p0 + p1 + p2 + p3     // Point at t=1
 
         // Calculate optimal number of segments analytically
         let numSegments = calculateCubicPolynomialSegments(p0, p1, p2, p3, startPt, endPt, minDist)
@@ -466,7 +466,7 @@ impl LinePath
         let chordLength = startPt.distanceTo(endPt)
 
         if chordLength < tolerance do
-            return 1 // Very short curve
+            return 1     // Very short curve
 
         // For cubic polynomials, we need to estimate maximum curvature
         // Sample a few points to get an approximation of maximum deviation
@@ -484,14 +484,14 @@ impl LinePath
 
         if maxDeviation < tolerance
         {
-            return 1 // Curve is already flat enough
+            return 1     // Curve is already flat enough
         }
 
         // Estimate segments needed based on maximum deviation
         // For cubic curves, use a conservative estimate
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 3.0)
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000)) // Reasonable bounds
+        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -530,14 +530,14 @@ impl LinePath
         let deviation = Geometry.distanceToLine(p1, p0, p2)
 
         if deviation < tolerance do
-            return 1 // Curve is already flat enough
+            return 1     // Curve is already flat enough
 
         // For quadratic curves, the relationship is more direct
         // Maximum error ≈ deviation / 8 per segment
         // So segments needed ≈ sqrt(8 * deviation / tolerance)
         let segments = Math.ceil(Math.sqrt(8.0 * deviation / tolerance))
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000)) // Reasonable bounds
+        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -579,7 +579,7 @@ impl LinePath
         let chordLength = chord.length()
 
         if chordLength < tolerance do
-            return 1 // Very short curve
+            return 1     // Very short curve
 
         // Calculate maximum deviation of control points from chord
         var maxDeviation = 0.0
@@ -594,13 +594,13 @@ impl LinePath
 
         if maxDeviation < tolerance
         {
-            return 1 // Curve is already flat enough
+            return 1     // Curve is already flat enough
         }
 
         // Use the flatness criterion: segments ≈ sqrt(maxDeviation / tolerance)
         let segments = Math.ceil(Math.sqrt(maxDeviation / tolerance) * 2.0)
 
-        return cast(u32) Math.max(1, Math.min(segments, 1000)) // Reasonable bounds
+        return cast(u32) Math.max(1, Math.min(segments, 1000))     // Reasonable bounds
     }
 
     ///////////////////////////////
@@ -646,11 +646,11 @@ impl LinePath
         var maxAnglePerSegment = 2.0 * Math.acos(1.0 - tolerance / radius)
 
         // Clamp to reasonable bounds
-        maxAnglePerSegment = Math.max(maxAnglePerSegment, 0.01) // Minimum angle
-        maxAnglePerSegment = Math.min(maxAnglePerSegment, ConstF32.Pi / 4) // Maximum angle (45°)
+        maxAnglePerSegment = Math.max(maxAnglePerSegment, 0.01)                // Minimum angle
+        maxAnglePerSegment = Math.min(maxAnglePerSegment, ConstF32.Pi / 4)     // Maximum angle (45°)
 
         let numSegments = Math.ceil(Math.abs(angleSpan) / maxAnglePerSegment)
 
-        return cast(u32) Math.max(1, Math.min(numSegments, 1000)) // Reasonable bounds
+        return cast(u32) Math.max(1, Math.min(numSegments, 1000))     // Reasonable bounds
     }
 }

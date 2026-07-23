@@ -72,9 +72,9 @@ using Swag, Core
     let bottomRight = big.getPixelColor(126, 94)
     let bottomLeft  = big.getPixelColor(1, 94)
 
-    @assert(topLeft.a == 255)                 // fill must write opaque alpha everywhere
+    @assert(topLeft.a == 255)     // fill must write opaque alpha everywhere
     @assert(bottomRight.a == 255)
-    @assert(topLeft.argb != bottomRight.argb) // a real 2D gradient, not a flat fill
+    @assert(topLeft.argb != bottomRight.argb)     // a real 2D gradient, not a flat fill
     @assert(topLeft.r != topLeft.g or bottomRight.r != bottomRight.g or bottomLeft.r != bottomLeft.g)
 }
 

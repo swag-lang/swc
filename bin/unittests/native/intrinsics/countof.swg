@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 // ============================================================
 // Compile-time — enums

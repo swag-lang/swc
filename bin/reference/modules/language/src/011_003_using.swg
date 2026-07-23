@@ -8,10 +8,10 @@ members. For enums, it simplifies code by avoiding repetitive type prefixes.
 #test
 {
     enum RGB { R, G, B }
-    @assert(RGB.R == 0) // Fully qualified access.
+    @assert(RGB.R == 0)     // Fully qualified access.
 
-    using RGB // Import enum members into the current scope.
-    @assert(G == 1) // 'G' accessible directly without 'RGB.' prefix.
+    using RGB           // Import enum members into the current scope.
+    @assert(G == 1)     // 'G' accessible directly without 'RGB.' prefix.
 }
 
 /**

@@ -56,7 +56,7 @@ const SampleInput =
 
 const NumCols   = 5'u32
 const MaxHeight = 5'u32
-const GridRows  = 7'u32   // each schematic is 7 rows
+const GridRows  = 7'u32     // each schematic is 7 rows
 
 struct Heights
 {
@@ -202,7 +202,7 @@ func parse(text: string)->ParseResult
     {
         if pos >= @countof(bytes) do break
         let newPos = parseOneSchematic(bytes, pos, &result)
-        if newPos == pos do break  // no progress
+        if newPos == pos do break     // no progress
         pos = newPos
     }
 

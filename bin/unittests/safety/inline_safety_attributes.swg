@@ -60,31 +60,31 @@ func inlineSafetyArrayBoundCheck(idx: u64)->s32
     var values: [2] s32
     values[0] = 10
     values[1] = 20
-    return values[idx] // swc-expected-error {{safety_err_runtime}}
+    return values[idx]     // swc-expected-error {{safety_err_runtime}}
 }
 
 #[Swag.Inline, Swag.Safety(.Overflow, true)]
 func inlineSafetyAddOverflow(a, b: s8)->s8
 {
-    return a + b // swc-expected-error {{safety_err_runtime}}
+    return a + b     // swc-expected-error {{safety_err_runtime}}
 }
 
 #[Swag.Inline, Swag.Safety(.Overflow, true)]
 func inlineSafetyMulOverflowS8(a, b: s8)->s8
 {
-    return a * b // swc-expected-error {{safety_err_runtime}}
+    return a * b     // swc-expected-error {{safety_err_runtime}}
 }
 
 #[Swag.Inline, Swag.Safety(.Overflow, true)]
 func inlineSafetyDivOverflowS8(a, b: s8)->s8
 {
-    return a / b // swc-expected-error {{safety_err_runtime}}
+    return a / b     // swc-expected-error {{safety_err_runtime}}
 }
 
 #[Swag.Inline, Swag.Safety(.Overflow, true)]
 func inlineSafetyModOverflowS16(a, b: s16)->s16
 {
-    return a % b // swc-expected-error {{safety_err_runtime}}
+    return a % b     // swc-expected-error {{safety_err_runtime}}
 }
 
 // Launders a compile-time constant through a non-inline call so the static sanitizer

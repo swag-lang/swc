@@ -13,7 +13,7 @@ func triCount(pts: [..] Vector2)->u64
     for p in pts do
         poly.add(p)
     let first = pts[0]
-    poly.add(first)   // close the ring
+    poly.add(first)     // close the ring
     poly.compute()
 
     var tess: Pixel.Poly2Tri.Tessellate

@@ -11,7 +11,7 @@
         let z = x
     }
 
-    let w = x // swc-expected-error {{sema_err_unknown_symbol}}
+    let w = x     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 #test
@@ -39,7 +39,7 @@
 
 struct Broken
 {
-    field: MissingType // swc-expected-error {{sema_err_unknown_symbol}}
+    field: MissingType     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 const BrokenSize = #sizeof(Broken)

@@ -11,7 +11,7 @@
 {
     var a = -2147483648's32
     var d = -1's32
-    let x = a / d // swc-expected-error {{sanity_err_integer_overflow}}
+    let x = a / d     // swc-expected-error {{sanity_err_integer_overflow}}
     discard x
 }
 
@@ -20,7 +20,7 @@
 {
     var a = -2147483648's32
     var d = -1's32
-    let x = a % d // swc-expected-error {{sanity_err_integer_overflow}}
+    let x = a % d     // swc-expected-error {{sanity_err_integer_overflow}}
     discard x
 }
 
@@ -29,7 +29,7 @@
 {
     var a = -9223372036854775808's64
     var d = -1's64
-    let x = a / d // swc-expected-error {{sanity_err_integer_overflow}}
+    let x = a / d     // swc-expected-error {{sanity_err_integer_overflow}}
     discard x
 }
 

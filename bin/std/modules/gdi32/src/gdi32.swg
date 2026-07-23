@@ -197,10 +197,10 @@ const MAC_CHARSET         = 77
 const BALTIC_CHARSET      = 186
 
 const PS_SOLID       = 0
-const PS_DASH        = 1              /* -------  */
-const PS_DOT         = 2              /* .......  */
-const PS_DASHDOT     = 3              /* _._._._  */
-const PS_DASHDOTDOT  = 4              /* _.._.._  */
+const PS_DASH        = 1     /* -------  */
+const PS_DOT         = 2     /* .......  */
+const PS_DASHDOT     = 3     /* _._._._  */
+const PS_DASHDOTDOT  = 4     /* _.._.._  */
 const PS_NULL        = 5
 const PS_INSIDEFRAME = 6
 const PS_USERSTYLE   = 7

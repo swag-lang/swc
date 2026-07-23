@@ -276,16 +276,16 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
 
     host.keyPress(Input.Key.Home)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 3)   // end of "one"
+    @assert(edit.selEnd == 3)     // end of "one"
 
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 4)   // crosses the space to the start of "two"
+    @assert(edit.selEnd == 4)     // crosses the space to the start of "two"
 
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 7)   // end of "two"
+    @assert(edit.selEnd == 7)     // end of "two"
 
     host.keyPress(Input.Key.Left, Input.KeyModifiers.Control)
-    @assert(edit.selEnd == 4)   // back to the start of "two"
+    @assert(edit.selEnd == 4)     // back to the start of "two"
 
     host.shutdown()
 }
@@ -330,8 +330,8 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     @assert(edit.scrollPosX > 0)
 
     let cc = edit.caretClip()
-    @assert(cc.caret.x >= cc.view.x - 0.5)                        // not clipped left
-    @assert(cc.caret.right() <= cc.view.right() + 0.5)            // not clipped right (the bug)
+    @assert(cc.caret.x >= cc.view.x - 0.5)                 // not clipped left
+    @assert(cc.caret.right() <= cc.view.right() + 0.5)     // not clipped right (the bug)
 
     host.shutdown()
 }

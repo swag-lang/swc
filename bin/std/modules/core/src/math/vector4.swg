@@ -7,7 +7,7 @@
 #[Serialization.Final]
 struct Vector4
 {
-    x, y, z, w: f32 // X, Y, Z, and W components of the vector
+    x, y, z, w: f32     // X, Y, Z, and W components of the vector
 }
 
 impl Vector4

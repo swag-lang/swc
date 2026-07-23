@@ -44,13 +44,13 @@ impl IStore for Store
 
     g_copies, g_moves = 0
     var t = Tracked{1}
-    i.set(t) // copy slot
+    i.set(t)     // copy slot
     @assert(s.value.x == 1)
     @assert(g_copies == 1)
     @assert(g_moves == 0)
 
     var u = Tracked{2}
-    i.set(#move u) // move slot
+    i.set(#move u)     // move slot
     @assert(s.value.x == 2)
     @assert(g_moves == 1)
 }
@@ -82,14 +82,14 @@ impl ISink for Sink
 
     g_copies, g_moves = 0
     var t = Tracked{3}
-    i.sink(t) // copy call style: temp copy + move
+    i.sink(t)     // copy call style: temp copy + move
     @assert(s.value.x == 3)
-    @assert(t.x == 3) // source untouched
+    @assert(t.x == 3)     // source untouched
     @assert(g_copies == 1)
     @assert(g_moves == 1)
 
     var u = Tracked{4}
-    i.sink(#move u) // move call style
+    i.sink(#move u)     // move call style
     @assert(s.value.x == 4)
     @assert(g_moves == 2)
 }

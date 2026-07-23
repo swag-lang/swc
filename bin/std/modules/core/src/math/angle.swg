@@ -6,7 +6,7 @@ using Swag
 // Provides convenient conversion between radians and degrees with literal suffix support.
 struct Angle
 {
-    rad: f32 // The angle value stored in radians
+    rad: f32     // The angle value stored in radians
 }
 
 impl Angle

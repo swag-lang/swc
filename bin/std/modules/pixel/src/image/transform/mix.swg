@@ -32,7 +32,7 @@ impl Image
                    x >= params.x + srcImage.width or
                    y >= params.y + srcImage.height
                 {
-                    copyPixelDirect'BPP(cast([*] u8) (notnull pixDst), cast([*] u8) pix) // copy current dst pixel back (no change)
+                    copyPixelDirect'BPP(cast([*] u8) (notnull pixDst), cast([*] u8) pix)     // copy current dst pixel back (no change)
                 }
                 else
                 {

@@ -12,7 +12,7 @@ struct Folder
 // Represents a tweak file parser that can load configuration into registered folders
 struct TweakFile
 {
-    folders: Array'Folder // List of registered folders (structure instances) to fill
+    folders: Array'Folder     // List of registered folders (structure instances) to fill
 }
 
 impl TweakFile
@@ -47,13 +47,13 @@ impl TweakFile
 
         struct Ref
         {
-            folder:     *Folder        // Folder where the reference is defined
+            folder:     *Folder              // Folder where the reference is defined
             src:        const *TypeValue     // Source field that is being referenced
             dst:        const *TypeValue     // Destination field to copy to
         }
 
-        var refs:          Array'Ref     // Pending references to resolve
-        var currentFolder: #null *Folder // Current folder being parsed
+        var refs:          Array'Ref         // Pending references to resolve
+        var currentFolder: #null *Folder     // Current folder being parsed
 
         for oneit, idx in lines
         {

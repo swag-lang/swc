@@ -57,60 +57,60 @@ func acceptNonNullRequiredField(value: NonNullRequiredFieldHolder) {}
 
 #test
 {
-    let value = NonNullRequiredFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value: NonNullRequiredFieldHolder = {count: 9} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value: NonNullRequiredFieldHolder = {count: 9}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    acceptNonNullRequiredField({optional: null}) // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    acceptNonNullRequiredField({optional: null})     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredFieldNested{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredFieldNested{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredFieldNested{holder: {}} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredFieldNested{holder: {}}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredFieldBatch{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredFieldBatch{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredBlockFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredBlockFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredSliceFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredSliceFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredStringFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredStringFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredCStringFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredCStringFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredAnyFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredAnyFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }
 
 #test
 {
-    let value = NonNullRequiredTypeInfoFieldHolder{} // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+    let value = NonNullRequiredTypeInfoFieldHolder{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }

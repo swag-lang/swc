@@ -1,4 +1,4 @@
-#global #if #os == Swag.TargetOs.Windows // 
+#global #if #os == Swag.TargetOs.Windows     // 
 #global private
 
 struct Pair32

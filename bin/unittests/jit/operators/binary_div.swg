@@ -27,7 +27,7 @@
 #test
 {
     var a, b: s32
-    a = b / 0 // swc-expected-error {{safety_err_division_zero}}
+    a = b / 0     // swc-expected-error {{safety_err_division_zero}}
 }
 
 #test
@@ -41,5 +41,5 @@
 #test
 {
     func divTooFew(a: s32, b: s32)->s32 { return a / b }
-    const V = #run divTooFew(126) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run divTooFew(126)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

@@ -31,5 +31,5 @@ impl AmbiguousCommutativeRight
 {
     var left = AmbiguousCommutativeLeft{value: 1}
     var right = AmbiguousCommutativeRight{value: 2}
-    let result = left + right // swc-expected-error {{sema_err_ambiguous_symbol}}
+    let result = left + right     // swc-expected-error {{sema_err_ambiguous_symbol}}
 }

@@ -161,34 +161,34 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
     #assert(S8 == 8)
 }
 
-#test { const L = #run LStrLenA("ABCDE") } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const L = #run LStrLenA(@dataof("ABCDE"), 5) } // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const M = #run MulDiv(1, 2) } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const M = #run MulDiv(1, "x", 3) } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const M = #run MulDiv(1, 2, 3, 4) } // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const L = #run LStrLenA("ABCDE") }                 // swc-expected-error {{sema_err_cannot_cast}}
+#test { const L = #run LStrLenA(@dataof("ABCDE"), 5) }     // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const M = #run MulDiv(1, 2) }                      // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const M = #run MulDiv(1, "x", 3) }                 // swc-expected-error {{sema_err_cannot_cast}}
+#test { const M = #run MulDiv(1, 2, 3, 4) }                // swc-expected-error {{sema_err_too_many_arguments}}
 #test { const M = #run MulDiv(6, 2'u32, 3); #assert(M == 4) }
-#test { const A = #run HeapAlloc() } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const B = #run HeapAlloc(null, "x", 16'u64) } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const C = #run HeapAlloc(null, 0'u32, 16'u64, 1) } // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const C = #run HeapFree(null, 0'u32) } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const D = #run HeapFree(null, 0'u32, null, 1) } // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const E = #run HeapFree(null, "bad", null) } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const X = #run GetPidMissingArg() } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const Y = #run GetPidMissingArg("bad") } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const Z = #run GetPidAlias(1) } // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const W = #run MultiByteToWideChar(65001'u32, 0'u32, @dataof("A"), 1, null) } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const V = #run MultiByteToWideChar(65001'u32, 0'u32, @dataof("A"), "bad", null, 0) } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const P = #run GetProcessId() } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const P = #run GetProcessId("bad") } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const V = #run VirtualAlloc() } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const V = #run VirtualAlloc(null, 4096'u64, 0x1000'u32, 0x04'u32, 1) } // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const V = #run VirtualAlloc("bad", 4096'u64, 0x1000'u32, 0x04'u32) } // swc-expected-error {{sema_err_cannot_cast}}
-#test { const V = #run VirtualFree() } // swc-expected-error {{sema_err_too_few_arguments}}
-#test { const V = #run VirtualFree(null, 0'u64, 0x8000'u32, 1) } // swc-expected-error {{sema_err_too_many_arguments}}
-#test { const V = #run VirtualFree("bad", 0'u64, 0x8000'u32) } // swc-expected-error {{sema_err_cannot_cast}}
+#test { const A = #run HeapAlloc() }                                                             // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const B = #run HeapAlloc(null, "x", 16'u64) }                                            // swc-expected-error {{sema_err_cannot_cast}}
+#test { const C = #run HeapAlloc(null, 0'u32, 16'u64, 1) }                                       // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const C = #run HeapFree(null, 0'u32) }                                                   // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const D = #run HeapFree(null, 0'u32, null, 1) }                                          // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const E = #run HeapFree(null, "bad", null) }                                             // swc-expected-error {{sema_err_cannot_cast}}
+#test { const X = #run GetPidMissingArg() }                                                      // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const Y = #run GetPidMissingArg("bad") }                                                 // swc-expected-error {{sema_err_cannot_cast}}
+#test { const Z = #run GetPidAlias(1) }                                                          // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const W = #run MultiByteToWideChar(65001'u32, 0'u32, @dataof("A"), 1, null) }            // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const V = #run MultiByteToWideChar(65001'u32, 0'u32, @dataof("A"), "bad", null, 0) }     // swc-expected-error {{sema_err_cannot_cast}}
+#test { const P = #run GetProcessId() }                                                          // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const P = #run GetProcessId("bad") }                                                     // swc-expected-error {{sema_err_cannot_cast}}
+#test { const V = #run VirtualAlloc() }                                                          // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const V = #run VirtualAlloc(null, 4096'u64, 0x1000'u32, 0x04'u32, 1) }                   // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const V = #run VirtualAlloc("bad", 4096'u64, 0x1000'u32, 0x04'u32) }                     // swc-expected-error {{sema_err_cannot_cast}}
+#test { const V = #run VirtualFree() }                                                           // swc-expected-error {{sema_err_too_few_arguments}}
+#test { const V = #run VirtualFree(null, 0'u64, 0x8000'u32, 1) }                                 // swc-expected-error {{sema_err_too_many_arguments}}
+#test { const V = #run VirtualFree("bad", 0'u64, 0x8000'u32) }                                   // swc-expected-error {{sema_err_cannot_cast}}
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]
-func GetPidWithBody()->u32 { return 0; } // swc-expected-error {{sema_err_foreign_cannot_have_body}}
+func GetPidWithBody()->u32 { return 0; }     // swc-expected-error {{sema_err_foreign_cannot_have_body}}
 
 #test
 {
@@ -200,4 +200,4 @@ func GetPidWithBody()->u32 { return 0; } // swc-expected-error {{sema_err_foreig
     #assert(P == A)
 }
 
-#test { const P = #run GetProcessId(1) } // swc-expected-error {{sema_err_cannot_cast}}
+#test { const P = #run GetProcessId(1) }     // swc-expected-error {{sema_err_cannot_cast}}

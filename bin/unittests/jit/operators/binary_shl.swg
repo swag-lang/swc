@@ -19,7 +19,7 @@
 #test
 {
     func shiftLeftStrict(a: u32, b: u32)->u32 { return a << b }
-    const V = #run shiftLeftStrict(21'u32, 1'u32, 1'u32) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run shiftLeftStrict(21'u32, 1'u32, 1'u32)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
@@ -33,7 +33,7 @@
 #test
 {
     func shiftLeftTooFew(a: u32, b: u32)->u32 { return a << b }
-    const V = #run shiftLeftTooFew(21'u32) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run shiftLeftTooFew(21'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }
 
 // A shift's result type is the LEFT operand's type; the (constant) shift amount
@@ -47,8 +47,8 @@
     // (unsigned) shift amount must not flip a signed left to unsigned.
     #assert(#typeof(1's32 << n) == s32)
     #assert(#typeof(1'u32 << n) == u32)
-    #assert(#typeof(1's16 << n) == s32) // widened, still SIGNED (was wrongly u32)
-    #assert(#typeof(1'u16 << n) == u32) // widened, unsigned
+    #assert(#typeof(1's16 << n) == s32)     // widened, still SIGNED (was wrongly u32)
+    #assert(#typeof(1'u16 << n) == u32)     // widened, unsigned
 }
 
 #test
@@ -62,7 +62,7 @@
     }
     const V = #run descale(-4546560's32)
     #assert(#typeof(V) == s32)
-    #assert(V == -17's32) // arithmetic >>; a logical shift would yield 16367
+    #assert(V == -17's32)     // arithmetic >>; a logical shift would yield 16367
 }
 
 #test
@@ -74,5 +74,5 @@
         return (1'u32 << 31'u32) >> n
     }
     const V = #run logical()
-    #assert(V == 0x0800_0000'u32) // logical >>; arithmetic would sign-extend
+    #assert(V == 0x0800_0000'u32)     // logical >>; arithmetic would sign-extend
 }

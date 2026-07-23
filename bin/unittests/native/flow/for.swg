@@ -425,7 +425,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         sum += cast(s32) i
         continue
-        var y = 0 // Unreachable code is allowed
+        var y = 0     // Unreachable code is allowed
     }
     @assert(sum == 45)
 }
@@ -529,7 +529,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var count = 0
     for i in 3
     {
-        var x = i // shadows outer i
+        var x = i     // shadows outer i
         count += 1
     }
     @assert(i == 5)

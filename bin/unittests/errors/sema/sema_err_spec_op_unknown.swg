@@ -7,5 +7,5 @@ struct SpecA
 
 impl SpecA
 {
-    mtd opMagic() {} // swc-expected-error {{sema_err_spec_op_unknown}}
+    mtd opMagic() {}     // swc-expected-error {{sema_err_spec_op_unknown}}
 }

@@ -294,7 +294,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     @assert(reverse8(0x01) == 0x80)
     @assert(reverse8(0x80) == 0x01)
     @assert(reverse8(0x0F) == 0xF0)
-    @assert(reverse8(0xA5) == 0xA5)  // 10100101 is a palindrome
+    @assert(reverse8(0xA5) == 0xA5)     // 10100101 is a palindrome
 
     // Double-reverse is identity
     for i in 256
@@ -351,7 +351,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     // gcd / lcm
     @assert(gcd(12, 8) == 4)
     @assert(gcd(100, 75) == 25)
-    @assert(gcd(17, 13) == 1)    // coprime
+    @assert(gcd(17, 13) == 1)     // coprime
     @assert(gcd(0, 5) == 5)
     @assert(gcd(7, 7) == 7)
     @assert(lcm(4, 6) == 12)

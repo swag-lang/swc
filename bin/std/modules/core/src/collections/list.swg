@@ -6,7 +6,7 @@ struct(T) ListEntry
 {
     prev:      #null *ListEntry     // Pointer to the previous node in the list.
     next:      #null *ListEntry     // Pointer to the next node in the list.
-    value:     T              // The value stored in the node.
+    value:     T                    // The value stored in the node.
 }
 
 // A generic, doubly-linked list.
@@ -15,7 +15,7 @@ struct(T) List
 {
     head:      #null *ListEntry     // Pointer to the first node in the list.
     tail:      #null *ListEntry     // Pointer to the last node in the list.
-    count:     u64            // The total number of elements in the list.
+    count:     u64                  // The total number of elements in the list.
 }
 
 impl List

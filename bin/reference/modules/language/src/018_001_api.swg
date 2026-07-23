@@ -49,7 +49,7 @@ func test() {}
 
 Constants and enum values can include documentation comments on the same line.
 */
-const A = 0 // This is the documentation comment of constant 'A'
+const A = 0     // This is the documentation comment of constant 'A'
 
 enum Color
 {

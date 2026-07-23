@@ -254,7 +254,7 @@ impl JitWithPrioOwner
         var owner: JitWithPrioOwner
         return owner.viaMember()
     }
-    @assert(value == 100)   // inner.bump ran (hits 100); me.bump did NOT (hits 0)
+    @assert(value == 100)     // inner.bump ran (hits 100); me.bump did NOT (hits 0)
 }
 
 #test

@@ -134,19 +134,19 @@ enum FixedKind: u8
 #test
 {
     func tooFew(a: s32, b: s32)->s32 { return 1 }
-    const V = #run tooFew(1) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run tooFew(1)     // swc-expected-error {{sema_err_too_few_arguments}}
 }
 
 #test
 {
     func tooMany()->s32 { return 1 }
-    const V = #run tooMany(1) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run tooMany(1)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
 {
     func wrongType(a: s32, b: s32, c: s32)->s32 { return 1 }
-    const V = #run wrongType(1, "bad", 3) // swc-expected-error {{sema_err_cannot_cast}}
+    const V = #run wrongType(1, "bad", 3)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

@@ -768,7 +768,7 @@ enum IfElseKind: u16
             return 2
         }
 
-        return localInIf // swc-expected-error {{sema_err_unknown_symbol}}
+        return localInIf     // swc-expected-error {{sema_err_unknown_symbol}}
     }
 
     const V0 = #run useIfLocalOutside(true)
@@ -788,7 +788,7 @@ enum IfElseKind: u16
             return localInElse
         }
 
-        return localInElse // swc-expected-error {{sema_err_unknown_symbol}}
+        return localInElse     // swc-expected-error {{sema_err_unknown_symbol}}
     }
 
     const V0 = #run useElseLocalOutside(false)

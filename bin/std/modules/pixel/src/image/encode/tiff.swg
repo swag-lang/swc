@@ -112,9 +112,9 @@ public impl IImageEncoder for Encoder
         addEntry(result, TAG_ROWS_PER_STRIP,    TYPE_LONG,  1,       cast(u32) height)
         addEntry(result, TAG_STRIP_BYTE_COUNTS, TYPE_LONG,  1,       cast(u32) dataLen)
         if hasAlpha do
-            addEntry(result, TAG_EXTRA_SAMPLES, TYPE_SHORT, 1, 2)   // 2 = unassociated alpha
+            addEntry(result, TAG_EXTRA_SAMPLES, TYPE_SHORT, 1, 2)     // 2 = unassociated alpha
 
-        result.addNative(0'u32)   // next IFD offset
+        result.addNative(0'u32)     // next IFD offset
 
         // BitsPerSample values
         for samples do

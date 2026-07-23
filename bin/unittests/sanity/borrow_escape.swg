@@ -32,7 +32,7 @@ func borrowEscapePayload()->BorrowEscapePayload
     owner.length = 1
 
     var payload = BorrowEscapePayload{text: owner}
-    return payload // swc-expected-error {{sanity_err_borrow_escape}}
+    return payload     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Returning stack-borrowed array data from a runtime function must warn.
@@ -42,7 +42,7 @@ func borrowEscapeArrayCast()->string
     buf[0] = 'a''u8
     buf[1] = 'b''u8
     buf[2] = 'c''u8
-    return cast(string) buf // swc-expected-error {{sanity_err_borrow_escape}}
+    return cast(string) buf     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Implicit conversions borrow exactly like their explicit spelling: through a user
@@ -52,7 +52,7 @@ func borrowEscapeImplicitOpCastReturn()->string
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x''u8
     owner.length = 1
-    return owner // swc-expected-error {{sanity_err_borrow_escape}}
+    return owner     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var borrowEscapeGlobalText: string = ""
@@ -62,14 +62,14 @@ func borrowEscapeImplicitOpCastAssign()
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x''u8
     owner.length = 1
-    borrowEscapeGlobalText = owner // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalText = owner     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeImplicitArrayDecay()->[..] u8
 {
     var buf: [4] u8
     buf[0] = 1
-    return buf // swc-expected-error {{sanity_err_borrow_escape}}
+    return buf     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // The same implicit conversions bound to a local stay tracked, not reported.
@@ -91,7 +91,7 @@ func borrowEscapeAnyReturn()->any
 {
     var value: BorrowEscapePayload
     value.text = "x"
-    return value // swc-expected-error {{sanity_err_borrow_escape}}
+    return value     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An 'any' pointing to caller-owned data or kept local must stay silent.
@@ -108,12 +108,12 @@ func borrowEscapeAnyLocalOnly(param: *BorrowEscapePayload)->any
 // dangles exactly like borrowing a local.
 func borrowEscapeByValueParamAddress(v: s32)->*s32
 {
-    return &v // swc-expected-error {{sanity_err_borrow_escape}}
+    return &v     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeByValueParamCast(o: BorrowEscapeOwner)->string
 {
-    return o // swc-expected-error {{sanity_err_borrow_escape}}
+    return o     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An inner-scope local does not live as long as an outer destination, even
@@ -123,7 +123,7 @@ func borrowEscapeInnerScope()->s32
     var p: #null *s32
     {
         var v: s32 = 42
-        p = &v // swc-expected-error {{sanity_err_borrow_scope_escape}}
+        p = &v     // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
     return 0
 }
@@ -143,7 +143,7 @@ func borrowEscapeConditionalClear(cond: bool)->#null *s32
     var p: #null *s32 = &v
     if cond do
         p = null
-    return p // swc-expected-error {{sanity_err_borrow_escape}}
+    return p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A borrow created in only one branch survives the join.
@@ -153,7 +153,7 @@ func borrowEscapeConditionalBorrow(cond: bool)->#null *s32
     var p: #null *s32
     if cond do
         p = &v
-    return p // swc-expected-error {{sanity_err_borrow_escape}}
+    return p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // An unconditional clear does erase the borrow.
@@ -184,7 +184,7 @@ func borrowEscapeLoopBorrow()->#null *s32
     var p: #null *s32
     for i in 4 do
         p = &v
-    return p // swc-expected-error {{sanity_err_borrow_escape}}
+    return p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Borrowing a temporary (destroyed at the end of the statement) is reported at
@@ -199,7 +199,7 @@ func borrowEscapeMakeOwner()->BorrowEscapeOwner
 
 func borrowEscapeTemporary()->u64
 {
-    let s: string = borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_temporary}}
+    let s: string = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(s)
 }
 
@@ -221,7 +221,7 @@ struct BorrowEscapeTemporaryField
 func borrowEscapeTemporaryStringField()->u64
 {
     var holder: BorrowEscapeTemporaryField
-    holder.text = borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_temporary}}
+    holder.text = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(holder.text)
 }
 
@@ -235,7 +235,7 @@ func borrowEscapeNamedOwnerStringField()->u64
 
 func borrowEscapeTemporaryStringInitializer()->u64
 {
-    let holder = BorrowEscapeTemporaryField{text: cast(string) borrowEscapeMakeOwner()} // swc-expected-error {{sanity_err_borrow_temporary}}
+    let holder = BorrowEscapeTemporaryField{text: cast(string) borrowEscapeMakeOwner()}     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(holder.text)
 }
 
@@ -247,7 +247,7 @@ struct BorrowEscapeNestedTemporaryField
 func borrowEscapeNestedTemporaryStringField()->u64
 {
     var holder: BorrowEscapeNestedTemporaryField
-    holder.inner.text = borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_temporary}}
+    holder.inner.text = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(holder.inner.text)
 }
 
@@ -256,7 +256,7 @@ var borrowEscapeGlobalTemporaryField: BorrowEscapeTemporaryField
 func borrowEscapeLocalOwnerGlobalStringField()
 {
     var owner = borrowEscapeMakeOwner()
-    borrowEscapeGlobalTemporaryField.text = owner // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalTemporaryField.text = owner     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Reading a carrier element by value copies it: no borrow of the array storage.
@@ -292,20 +292,20 @@ func borrowEscapeMaterializedTemp()->u16
 // global is an escape.
 func borrowEscapeMaterializedReturn()->const [..] u16
 {
-    return cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+    return cast(const [..] u16) borrowEscapeMakeArray()     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 func borrowEscapeMaterializedTracked()->const [..] u16
 {
     let view = cast(const [..] u16) borrowEscapeMakeArray()
-    return view // swc-expected-error {{sanity_err_borrow_materialized}}
+    return view     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 var borrowEscapeGlobalSlice: #null const [..] u16
 
 func borrowEscapeMaterializedGlobal()
 {
-    borrowEscapeGlobalSlice = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+    borrowEscapeGlobalSlice = cast(const [..] u16) borrowEscapeMakeArray()     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // An array rvalue used as a slice is materialized for the current frame. Keeping
@@ -333,12 +333,12 @@ func borrowEscapeMaterializedReturnedField()->BorrowEscapeSliceField
 {
     var holder: BorrowEscapeSliceField
     holder.values = cast(const [..] u16) borrowEscapeMakeArray()
-    return holder // swc-expected-error {{sanity_err_borrow_materialized}}
+    return holder     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 func borrowEscapeMaterializedReturnedFieldInitializer()->BorrowEscapeSliceField
 {
-    return BorrowEscapeSliceField{values: cast(const [..] u16) borrowEscapeMakeArray()} // swc-expected-error {{sanity_err_borrow_materialized}}
+    return BorrowEscapeSliceField{values: cast(const [..] u16) borrowEscapeMakeArray()}     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 func borrowEscapeMaterializedCopiedField()->BorrowEscapeSliceField
@@ -346,7 +346,7 @@ func borrowEscapeMaterializedCopiedField()->BorrowEscapeSliceField
     var source: BorrowEscapeSliceField
     source.values = cast(const [..] u16) borrowEscapeMakeArray()
     let copy = source
-    return copy // swc-expected-error {{sanity_err_borrow_materialized}}
+    return copy     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // Projection state participates in control-flow joins. One unsafe alternative is
@@ -355,7 +355,7 @@ func borrowEscapeMaterializedFieldJoin(cond: bool)->BorrowEscapeSliceField
 {
     var holder: BorrowEscapeSliceField
     if cond do
-        holder.values = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+        holder.values = cast(const [..] u16) borrowEscapeMakeArray()     // swc-expected-error {{sanity_err_borrow_materialized}}
     else do
         holder.values = borrowEscapeGlobalSlice
     return holder
@@ -381,20 +381,20 @@ func borrowEscapeMaterializedNestedReturnedField()->BorrowEscapeNestedSliceField
 {
     var holder: BorrowEscapeNestedSliceField
     holder.inner.values = cast(const [..] u16) borrowEscapeMakeArray()
-    return holder // swc-expected-error {{sanity_err_borrow_materialized}}
+    return holder     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 var borrowEscapeGlobalSliceField: BorrowEscapeSliceField
 
 func borrowEscapeMaterializedGlobalField()
 {
-    borrowEscapeGlobalSliceField.values = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+    borrowEscapeGlobalSliceField.values = cast(const [..] u16) borrowEscapeMakeArray()     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // Boxing an rvalue into a returned 'any' leaks the frame-local box.
 func borrowEscapeMaterializedAnyReturn()->any
 {
-    return borrowEscapeMakeOwner() // swc-expected-error {{sanity_err_borrow_materialized}}
+    return borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_materialized}}
 }
 
 // Casting a scalar value to a pointer reinterprets the value: it does not
@@ -438,14 +438,14 @@ func borrowEscapeClosureReturn()->BorrowEscapeVisitor
 {
     var total: s32 = 7
     let pTotal = &total
-    return func|pTotal|()->s32 { return dref pTotal } // swc-expected-error {{sanity_err_borrow_escape}}
+    return func|pTotal|()->s32 { return dref pTotal }     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Capturing by reference borrows the source storage itself.
 func borrowEscapeClosureByRef()->BorrowEscapeVisitor
 {
     var total: s32 = 7
-    return func|&total|()->s32 { return total } // swc-expected-error {{sanity_err_borrow_escape}}
+    return func|&total|()->s32 { return total }     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Storing borrowed data through a pointer that itself borrows a local writes into
@@ -495,7 +495,7 @@ func borrowEscapeThroughHeapPointer(alloc: func()->*BorrowEscapeNode)->u64
     owner.length = 1
 
     let node = alloc()
-    node.text = owner // swc-expected-error {{sanity_err_borrow_escape}}
+    node.text = owner     // swc-expected-error {{sanity_err_borrow_escape}}
     return @countof(node.text)
 }
 
@@ -505,7 +505,7 @@ func borrowEscapeThroughParamPointer(node: *BorrowEscapeNode)
     var owner: BorrowEscapeOwner
     owner.buffer[0] = 'x''u8
     owner.length = 1
-    node.text = @mkstring(&owner.buffer[0], owner.length) // swc-expected-error {{sanity_err_borrow_escape}}
+    node.text = @mkstring(&owner.buffer[0], owner.length)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Aliasing a parameter pointer must preserve its caller-visible pointee.
@@ -515,7 +515,7 @@ func borrowEscapeThroughParamPointerAlias(node: *BorrowEscapeNode)
     owner.buffer[0] = 'x''u8
     owner.length = 1
     let ptrAlias = node
-    ptrAlias.text = owner // swc-expected-error {{sanity_err_borrow_escape}}
+    ptrAlias.text = owner     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A return inside an inline expansion hands the value back to the calling frame:
@@ -567,7 +567,7 @@ func borrowEscapePassthrough(p: *s32)->*s32
 func borrowEscapeThroughCall()->*s32
 {
     var v: s32
-    return borrowEscapePassthrough(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapePassthrough(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var borrowEscapeGlobalPtr: #null *s32
@@ -576,7 +576,7 @@ var borrowEscapeGlobalPtr: #null *s32
 func borrowEscapeThroughCallGlobal()
 {
     var v: s32
-    borrowEscapeGlobalPtr = borrowEscapePassthrough(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalPtr = borrowEscapePassthrough(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Caller-owned data flows through the same callee untouched.
@@ -603,7 +603,7 @@ func borrowEscapeThroughCallCarrier()->string
 {
     var buf: [3] u8
     buf[0] = 'a''u8
-    return borrowEscapeIdentity(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeIdentity(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A callee that does NOT return its parameter stays silent at the call site.
@@ -640,7 +640,7 @@ func borrowEscapeMutualB(p: *s32, n: s32)->*s32
 func borrowEscapeMutualCall()->*s32
 {
     var v: s32
-    return borrowEscapeMutualA(&v, 3) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeMutualA(&v, 3)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------
@@ -663,19 +663,19 @@ func borrowEscapeWrapTwice(p: *s32)->*s32
 func borrowEscapeThroughWrapper()->*s32
 {
     var v: s32
-    return borrowEscapeWrapOnce(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeWrapOnce(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeThroughWrapperChain()->*s32
 {
     var v: s32
-    return borrowEscapeWrapTwice(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeWrapTwice(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeThroughWrapperGlobal()
 {
     var v: s32
-    borrowEscapeGlobalPtr = borrowEscapeWrapTwice(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalPtr = borrowEscapeWrapTwice(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A wrapper whose callee returns caller-independent data borrows nothing: the chain
@@ -709,7 +709,7 @@ func borrowEscapeThroughWrapCarrier()->string
 {
     var buf: [3] u8
     buf[0] = 'a''u8
-    return borrowEscapeWrapIdentity(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeWrapIdentity(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A pure passthrough cycle has no direct borrow to seed the masks: the fixpoint
@@ -751,7 +751,7 @@ func borrowEscapeSeededB(p: *s32, n: s32)->*s32
 func borrowEscapeThroughSeededCycle()->*s32
 {
     var v: s32
-    return borrowEscapeSeededB(&v, 3) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeSeededB(&v, 3)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------
@@ -763,14 +763,14 @@ func borrowEscapeChainedReturn()->*s32
 {
     var v: s32
     let p = borrowEscapePassthrough(&v)
-    return p // swc-expected-error {{sanity_err_borrow_escape}}
+    return p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeChainedGlobal()
 {
     var v: s32
     let p = borrowEscapePassthrough(&v)
-    borrowEscapeGlobalPtr = p // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalPtr = p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Rebinding through a second local keeps the deferred borrow alive.
@@ -779,7 +779,7 @@ func borrowEscapeChainedCopy()->*s32
     var v: s32
     let p = borrowEscapePassthrough(&v)
     let q = p
-    return q // swc-expected-error {{sanity_err_borrow_escape}}
+    return q     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A local bound to a non-borrowing callee stays silent when returned.
@@ -818,7 +818,7 @@ func borrowEscapeChainedWrapper(p: *s32)->*s32
 func borrowEscapeThroughChainedWrapper()->*s32
 {
     var v: s32
-    return borrowEscapeChainedWrapper(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeChainedWrapper(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------
@@ -837,7 +837,7 @@ func borrowEscapeStash(p: *s32)
 func borrowEscapeStashLocal()
 {
     var v: s32
-    borrowEscapeStash(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeStash(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Caller-owned data can be stashed freely.
@@ -861,7 +861,7 @@ func borrowEscapeStashForward(p: *s32)
 func borrowEscapeStashForwardLocal()
 {
     var v: s32
-    borrowEscapeStashForward(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeStashForward(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A callee that only reads its parameter leaves call sites silent.
@@ -896,7 +896,7 @@ impl BorrowEscapeSelf
 func borrowEscapeMethodChain()->*s32
 {
     var s: BorrowEscapeSelf
-    return s.xptr() // swc-expected-error {{sanity_err_borrow_escape}}
+    return s.xptr()     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var borrowEscapeGlobalSelf: BorrowEscapeSelf
@@ -916,7 +916,7 @@ func borrowEscapeMaterializedScope()->u16
 {
     var view: #null const [..] u16
     {
-        view = cast(const [..] u16) borrowEscapeMakeArray() // swc-expected-error {{sanity_err_borrow_materialized}}
+        view = cast(const [..] u16) borrowEscapeMakeArray()     // swc-expected-error {{sanity_err_borrow_materialized}}
     }
     return 0
 }
@@ -947,13 +947,13 @@ impl BorrowEscapeOwned
 func borrowEscapeOwnedReturn()->string
 {
     var str: BorrowEscapeOwned
-    return str // swc-expected-error {{sanity_err_borrow_escape}}
+    return str     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeOwnedGlobal()
 {
     var str: BorrowEscapeOwned
-    borrowEscapeGlobalText = str // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalText = str     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A view kept local is fine while the owner lives.
@@ -969,7 +969,7 @@ func borrowEscapeOwnedChained()->string
 {
     var str: BorrowEscapeOwned
     let view: string = str
-    return view // swc-expected-error {{sanity_err_borrow_escape}}
+    return view     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A pointed-to owner belongs to the caller: returning its view is fine HERE and
@@ -982,7 +982,7 @@ func borrowEscapeOwnedParamView(str: *BorrowEscapeOwned)->string
 func borrowEscapeOwnedThroughParam()->string
 {
     var str: BorrowEscapeOwned
-    return borrowEscapeOwnedParamView(&str) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeOwnedParamView(&str)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var borrowEscapeGlobalOwned: BorrowEscapeOwned
@@ -1002,7 +1002,7 @@ func borrowEscapeMakeOwned()->BorrowEscapeOwned
 
 func borrowEscapeOwnedTemporary()->u64
 {
-    let view: string = borrowEscapeMakeOwned() // swc-expected-error {{sanity_err_borrow_temporary}}
+    let view: string = borrowEscapeMakeOwned()     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(view)
 }
 
@@ -1029,7 +1029,7 @@ func borrowEscapeThroughRetvalBox()->BorrowEscapeBox
 {
     var buf: [3] u8
     buf[0] = 'a''u8
-    return borrowEscapeRetvalBox(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeRetvalBox(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Caller-independent data flows through the retval untouched.
@@ -1050,7 +1050,7 @@ func borrowEscapeThroughRetvalBoxCall()->BorrowEscapeBox
 {
     var buf: [3] u8
     buf[0] = 'a''u8
-    return borrowEscapeRetvalBoxCall(cast(string) buf) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapeRetvalBoxCall(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A LOCAL borrow stored into the retval escapes right away (already covered by
@@ -1060,7 +1060,7 @@ func borrowEscapeRetvalLocal()->BorrowEscapeBox
     var buf: [3] u8
     buf[0] = 'a''u8
     var result: retval
-    result.text = cast(string) buf // swc-expected-error {{sanity_err_borrow_escape}}
+    result.text = cast(string) buf     // swc-expected-error {{sanity_err_borrow_escape}}
     return result
 }
 
@@ -1074,14 +1074,14 @@ func borrowEscapeChainedArgStash()
 {
     var v: s32
     let p = borrowEscapePassthrough(&v)
-    borrowEscapeStash(p) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeStash(p)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeChainedArgReturn()->*s32
 {
     var v: s32
     let p = borrowEscapePassthrough(&v)
-    return borrowEscapePassthrough(p) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapePassthrough(p)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Rebinding through a second opaque call keeps the composed borrow alive.
@@ -1090,7 +1090,7 @@ func borrowEscapeChainedArgRebind()->*s32
     var v: s32
     let p = borrowEscapePassthrough(&v)
     let q = borrowEscapePassthrough(p)
-    return q // swc-expected-error {{sanity_err_borrow_escape}}
+    return q     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A non-borrowing source stays silent whatever the second callee does.
@@ -1133,7 +1133,7 @@ var borrowEscapeGlobalContainer: BorrowEscapeContainer
 func borrowEscapePairGlobal()
 {
     var v: s32
-    borrowEscapeGlobalContainer.add(&v) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeGlobalContainer.add(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // A local container lives as long as the borrow: silent.
@@ -1160,7 +1160,7 @@ func borrowEscapePairForward(container: *BorrowEscapeContainer, item: *s32)
 func borrowEscapePairForwardGlobal()
 {
     var local: s32
-    borrowEscapePairForward(&borrowEscapeGlobalContainer, &local) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapePairForward(&borrowEscapeGlobalContainer, &local)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------
@@ -1184,13 +1184,13 @@ func borrowEscapePairResult(first, second: *s32)->BorrowEscapePairResult
 func borrowEscapePairResultSecondLocal()->BorrowEscapePairResult
 {
     var local: s32
-    return borrowEscapePairResult(&borrowEscapeGlobalInt, &local) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapePairResult(&borrowEscapeGlobalInt, &local)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapePairResultFirstLocal()->BorrowEscapePairResult
 {
     var local: s32
-    return borrowEscapePairResult(&local, &borrowEscapeGlobalInt) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapePairResult(&local, &borrowEscapeGlobalInt)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // Field-sensitive local state: copying a pointer field preserves the pointee borrow,
@@ -1207,7 +1207,7 @@ func borrowEscapeFieldLocal()->#null *s32
     var state: BorrowEscapeFieldState
     state.local  = &local
     state.global = &borrowEscapeGlobalInt
-    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+    return state.local     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeFieldGlobal()->#null *s32
@@ -1233,7 +1233,7 @@ func borrowEscapeWholeAggregateWithBorrow()->BorrowEscapeFieldState
     var local: s32
     var state: BorrowEscapeFieldState
     state.local = &local
-    return state // swc-expected-error {{sanity_err_borrow_escape}}
+    return state     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeFieldDeferred()->#null *s32
@@ -1241,7 +1241,7 @@ func borrowEscapeFieldDeferred()->#null *s32
     var local: s32
     var state: BorrowEscapeFieldState
     state.local = borrowEscapePassthrough(&local)
-    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+    return state.local     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeDeferredJoin(cond: bool)->*s32
@@ -1252,7 +1252,7 @@ func borrowEscapeDeferredJoin(cond: bool)->*s32
         p = borrowEscapeWrapGlobalSource(&local)
     else do
         p = borrowEscapePassthrough(&local)
-    return p // swc-expected-error {{sanity_err_borrow_escape}}
+    return p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 struct BorrowEscapeNestedFieldState
@@ -1266,7 +1266,7 @@ func borrowEscapeNestedField()->#null *s32
     var state: BorrowEscapeNestedFieldState
     state.inner.local  = &local
     state.inner.global = &borrowEscapeGlobalInt
-    return state.inner.local // swc-expected-error {{sanity_err_borrow_escape}}
+    return state.inner.local     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeNestedSibling()->#null *s32
@@ -1284,7 +1284,7 @@ func borrowEscapeDeepDeferredChain()->*s32
     let p1 = borrowEscapePassthrough(&local)
     let p2 = borrowEscapePassthrough(p1)
     let p3 = borrowEscapePassthrough(p2)
-    return borrowEscapePassthrough(p3) // swc-expected-error {{sanity_err_borrow_escape}}
+    return borrowEscapePassthrough(p3)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var borrowEscapeRetainedVisitor: #null BorrowEscapeVisitor
@@ -1300,7 +1300,7 @@ func borrowEscapeRetainedClosure()
     var local: s32
     let pLocal = &local
     let visitor: BorrowEscapeVisitor = func|pLocal|()->s32 { return dref pLocal }
-    borrowEscapeRetainVisitor(visitor) // swc-expected-error {{sanity_err_borrow_escape}}
+    borrowEscapeRetainVisitor(visitor)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeArrayElement()->#null *s32
@@ -1309,7 +1309,7 @@ func borrowEscapeArrayElement()->#null *s32
     var values: [2] #null *s32
     values[0] = &local
     values[1] = &borrowEscapeGlobalInt
-    return values[0] // swc-expected-error {{sanity_err_borrow_escape}}
+    return values[0]     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeArraySibling()->#null *s32
@@ -1335,7 +1335,7 @@ func borrowEscapeArrayDynamic(index: u64)->#null *s32
     var local: s32
     var values: [2] #null *s32
     values[index] = &local
-    return values[0] // swc-expected-error {{sanity_err_borrow_escape}}
+    return values[0]     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeAggregateAssignmentSibling()->#null *s32
@@ -1351,7 +1351,7 @@ func borrowEscapeAggregateAssignmentLocal()->#null *s32
     var local: s32
     var state: BorrowEscapeFieldState
     state = {&local, &borrowEscapeGlobalInt}
-    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+    return state.local     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func borrowEscapeAggregateInitializerSibling()->#null *s32
@@ -1365,5 +1365,5 @@ func borrowEscapeAggregateInitializerLocal()->#null *s32
 {
     var local: s32
     var state = BorrowEscapeFieldState{local: &local, global: &borrowEscapeGlobalInt}
-    return state.local // swc-expected-error {{sanity_err_borrow_escape}}
+    return state.local     // swc-expected-error {{sanity_err_borrow_escape}}
 }

@@ -19,7 +19,7 @@
 #test
 {
     func shiftRightStrict(a: u32, b: u32)->u32 { return a >> b }
-    const V = #run shiftRightStrict(168'u32, 2'u32, 1'u32) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run shiftRightStrict(168'u32, 2'u32, 1'u32)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
@@ -33,5 +33,5 @@
 #test
 {
     func shiftRightTooFew(a: u32, b: u32)->u32 { return a >> b }
-    const V = #run shiftRightTooFew(168'u32) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run shiftRightTooFew(168'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

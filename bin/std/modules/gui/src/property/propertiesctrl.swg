@@ -5,9 +5,9 @@ using Core, Pixel
 enum PropertiesCtrlFlags
 {
     Zero          = 0
-    FindBar               // Add a find bar at the top
-    SectionPane           // Display all sections in a pane on the left
-    SectionFilter         // Display a section filter bar
+    FindBar           // Add a find bar at the top
+    SectionPane       // Display all sections in a pane on the left
+    SectionFilter     // Display a section filter bar
 }
 
 struct PropertiesCtrl

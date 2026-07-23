@@ -29,7 +29,7 @@ func haarTransform1D(data: [*] f32, offset: s32, length: s32)
     let half = length / 2
 
     for i in half do
-        temp[i] = (data[offset + i * 2] + data[offset + i * 2 + 1]) * 0.70710678118 // sqrt(2)/2 normalization
+        temp[i] = (data[offset + i * 2] + data[offset + i * 2 + 1]) * 0.70710678118     // sqrt(2)/2 normalization
     for i in half do
         temp[half + i] = (data[offset + i * 2] - data[offset + i * 2 + 1]) * 0.70710678118
 
@@ -117,7 +117,7 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
     // Determine optimal size
     let targetSize = Math.min(Math.roundUpToPowerOf2(cast(u32) Math.min(image.width, image.height)), windowSize)
     features.size   = cast(s32) targetSize
-    features.levels = cast(s32) Math.log2(cast(f32) targetSize) // Number of decomposition levels
+    features.levels = cast(s32) Math.log2(cast(f32) targetSize)     // Number of decomposition levels
 
     // Total coefficients = size * size (all levels included)
     features.coefficients.resize(targetSize * targetSize)
@@ -212,7 +212,7 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     if totalWeight > 0.0 do
         return cast(f32) (totalSimilarity / totalWeight)
 
-    return 0.0'f32 // Considered more neutral than 1.0
+    return 0.0'f32     // Considered more neutral than 1.0
 }
 
 // Compare to another image with Haar coefficients
@@ -236,7 +236,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     var features: retval
     features.coefficients.resize(windowSize * windowSize)
     features.size   = cast(s32) windowSize
-    features.levels = cast(s32) Math.log2(cast(f32) windowSize) // Number of decomposition levels
+    features.levels = cast(s32) Math.log2(cast(f32) windowSize)     // Number of decomposition levels
 
     // Fast grayscale resizing with proper bounds checking
     var grayData: Array'f32
@@ -270,7 +270,7 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     var norm1, norm2, correlation: f64
     let coeffCount = haar1.coefficients.count
 
-    for i in coeffCount // Fixed: iterate over indices, not values
+    for i in coeffCount     // Fixed: iterate over indices, not values
     {
         let c1 = cast(f64) haar1.coefficients[i]
         let c2 = cast(f64) haar2.coefficients[i]

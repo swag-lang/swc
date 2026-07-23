@@ -86,7 +86,7 @@ enum GateOp: u8
 // Wire name encoding (3 chars -> u32 index)
 // ---------------------------------------------------------------------------
 
-const MaxWireIdx = 46656'u32  // 36^3: max possible encodeWire result + 1
+const MaxWireIdx = 46656'u32     // 36^3: max possible encodeWire result + 1
 
 // Each wire name is 3 characters. Encode as: (c0 * 36 + c1) * 36 + c2
 // where digits 0-9 map to 0-9 and letters a-z map to 10-35.
@@ -118,11 +118,11 @@ func wireIsY(c0: u8)->bool { return c0 == 'y' }
 
 struct Gate
 {
-    inA:    u32      // encoded wire name
+    inA:    u32     // encoded wire name
     inB:    u32
     out:    u32
     op:     GateOp
-    nameA0: u8       // first char of wire A name (for x/y/z checks)
+    nameA0: u8     // first char of wire A name (for x/y/z checks)
     nameB0: u8
     nameOut0: u8
     nameOut1: u8
@@ -139,7 +139,7 @@ struct Circuit
     gateCount: u32
 
     // For output: track which z-wires exist
-    maxZBit:  u32        // highest z-bit number
+    maxZBit:  u32     // highest z-bit number
 }
 
 func circuitInit()->Circuit
@@ -248,7 +248,7 @@ func parseGates(c: *Circuit, text: string)
         // Read first wire name (3 chars)
         if pos + 2 >= @countof(bytes) do break
         let a0 = bytes[pos]; let a1 = bytes[pos + 1]; let a2 = bytes[pos + 2]
-        pos += 4  // skip name + space
+        pos += 4     // skip name + space
 
         // Read operator
         var op: GateOp
@@ -276,7 +276,7 @@ func parseGates(c: *Circuit, text: string)
         // Read second wire name
         if pos + 2 >= @countof(bytes) do break
         let b0 = bytes[pos]; let b1 = bytes[pos + 1]; let b2 = bytes[pos + 2]
-        pos += 4  // skip name + space
+        pos += 4     // skip name + space
 
         // Skip "->"
         if pos + 2 < @countof(bytes) and bytes[pos] == '-' and bytes[pos + 1] == '>'
@@ -396,7 +396,7 @@ func solvePart1(wiresText: string, gatesText: string)->u64
 
 struct SwappedResult
 {
-    names: [8] [3] u8    // up to 8 swapped wire names
+    names: [8] [3] u8     // up to 8 swapped wire names
     count: u32
 }
 
@@ -761,7 +761,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 {
     var result: SwappedResult
     addSwapped(&result, 'z', '0', '1')
-    addSwapped(&result, 'z', '0', '1')  // duplicate
+    addSwapped(&result, 'z', '0', '1')     // duplicate
     addSwapped(&result, 'z', '0', '2')
     @assert(result.count == 2'u32)
 }

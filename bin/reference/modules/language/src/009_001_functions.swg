@@ -13,35 +13,35 @@ parameter, you can omit the parentheses.
         // Generic function where 'T' is the type parameter.
         func(var T) myFunc(val: T) => 2 * val
 
-        @assert(myFunc's32(2) == 4) // Explicitly using 's32' as the generic type.
-        @assert(myFunc'f32(2.0) == 4.0) // Explicitly using 'f32' as the generic type.
+        @assert(myFunc's32(2) == 4)         // Explicitly using 's32' as the generic type.
+        @assert(myFunc'f32(2.0) == 4.0)     // Explicitly using 'f32' as the generic type.
     }
 
     {
         // Declaring a generic function without 'var'.
         func(T) myFunc(val: T) => 2 * val
 
-        @assert(myFunc's32(2) == 4) // Type 's32' is inferred as the generic type.
-        @assert(myFunc'f32(2.0) == 4.0) // Type 'f32' is inferred as the generic type.
+        @assert(myFunc's32(2) == 4)         // Type 's32' is inferred as the generic type.
+        @assert(myFunc'f32(2.0) == 4.0)     // Type 'f32' is inferred as the generic type.
     }
 
     {
         // Generic function with a default type parameter.
         func(T = s32) myFunc(val: T) => 2 * val
 
-        @assert(myFunc(2's32) == 4) // Uses default type 's32'.
-        @assert(myFunc'f32(2.0) == 4.0) // Overrides the default type with 'f32'.
+        @assert(myFunc(2's32) == 4)         // Uses default type 's32'.
+        @assert(myFunc'f32(2.0) == 4.0)     // Overrides the default type with 'f32'.
     }
 
     {
         // Function with multiple generic parameters.
         func(K, V) myFunc(key: K, value: V) => value
 
-        @assert(myFunc(2's32, "value") == "value") // K and V inferred from arguments.
-        @assert(myFunc'(s32, string)(2, "value") == "value") // K and V explicitly specified.
+        @assert(myFunc(2's32, "value") == "value")               // K and V inferred from arguments.
+        @assert(myFunc'(s32, string)(2, "value") == "value")     // K and V explicitly specified.
 
-        @assert(myFunc(2's32, true) == true) // Type deduction for both K and V.
-        @assert(myFunc'(s32, bool)(2, true) == true) // Explicit type declaration for K and V.
+        @assert(myFunc(2's32, true) == true)             // Type deduction for both K and V.
+        @assert(myFunc'(s32, bool)(2, true) == true)     // Explicit type declaration for K and V.
     }
 }
 
@@ -54,8 +54,8 @@ eliminating the need to specify the type explicitly at the call site.
 {
     func(T) myFunc(val: T) => 2 * val
 
-    @assert(myFunc(2's32) == 4) // Type 'T' deduced as 's32'.
-    @assert(myFunc(2.0'f32) == 4.0) // Type 'T' deduced as 'f32'.
+    @assert(myFunc(2's32) == 4)         // Type 'T' deduced as 's32'.
+    @assert(myFunc(2.0'f32) == 4.0)     // Type 'T' deduced as 'f32'.
 }
 
 /**
@@ -69,7 +69,7 @@ In this example, `N` is a constant of type `s32`.
 #test
 {
     func(const N: s32) myFunc() { @assert(N == 10) }
-    myFunc'10() // Calls the function with constant value 10.
+    myFunc'10()     // Calls the function with constant value 10.
 }
 
 /**
@@ -79,7 +79,7 @@ is treated as a constant.
 #test
 {
     func(N: s32) myFunc() { @assert(N == 10) }
-    myFunc'10() // Equivalent to using 'const'.
+    myFunc'10()     // Equivalent to using 'const'.
 }
 
 /**
@@ -88,7 +88,7 @@ You can also assign a default value to a constant parameter.
 #test
 {
     func(N: s32 = 10) myFunc() { @assert(N == 10) }
-    myFunc() // Uses the default constant value 10.
+    myFunc()     // Uses the default constant value 10.
 }
 
 /**
@@ -98,7 +98,7 @@ and it will be deduced from the assigned value.
 #test
 {
     func(const N = 10) myFunc() { @assert(N == 10) }
-    myFunc() // Type of N deduced from literal 10.
+    myFunc()     // Type of N deduced from literal 10.
 }
 
 /**
@@ -112,22 +112,22 @@ You can mix type parameters and constant parameters within the same generic func
         func(T, N: s32) myFunc(x: T) => x * N
 
         alias call = myFunc'(s32, 10)
-        @assert(call(2) == 20) // 's32' type and constant 10 used.
-        @assert(call(100) == 1000) // Same type and constant reused.
+        @assert(call(2) == 20)         // 's32' type and constant 10 used.
+        @assert(call(100) == 1000)     // Same type and constant reused.
     }
 
     {
         // Example using multiple constant parameters.
         func(T: s32, N: s32) myFunc() => T * N
 
-        @assert(myFunc'(5, 10)() == 50) // Function called with two s32 constants.
+        @assert(myFunc'(5, 10)() == 50)     // Function called with two s32 constants.
     }
 
     {
         // Multiple type parameters with default values.
         func(T = s32, V = s32) myFunc(x: T, y: V) => x * y
 
-        @assert(myFunc(1's32, 2'f32) == 2.0) // Mixed s32 and f32, type deduced.
-        @assert(myFunc(1's32, 2's32) == 2) // Both parameters use s32.
+        @assert(myFunc(1's32, 2'f32) == 2.0)     // Mixed s32 and f32, type deduced.
+        @assert(myFunc(1's32, 2's32) == 2)       // Both parameters use s32.
     }
 }

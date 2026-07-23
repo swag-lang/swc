@@ -21,5 +21,5 @@ func sink(v: #move MoveOnly)
 #test
 {
     var m = MoveOnly{1}
-    sink(m) // swc-expected-error {{sema_err_move_arg_not_copyable}}
+    sink(m)     // swc-expected-error {{sema_err_move_arg_not_copyable}}
 }

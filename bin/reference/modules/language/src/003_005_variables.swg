@@ -10,13 +10,13 @@ the variable’s type.
 */
 #test
 {
-    let a: u32 = 1 // Immutable variable
+    let a: u32 = 1     // Immutable variable
     @assert(a == 1)
 
     let b: string = "string"
     @assert(b == "string")
 
-    var c: s32 = 42 // Mutable variable
+    var c: s32 = 42     // Mutable variable
     c += 1
     @assert(c == 43)
 }
@@ -128,7 +128,7 @@ Global variables marked with '#[Swag.Tls]' are stored in thread-local storage.
 Each thread has its own copy of the variable.
 */
 #[Swag.Tls]
-var G = 0 // Thread-local global variable
+var G = 0     // Thread-local global variable
 
 /**
 ## Global Variables
@@ -163,5 +163,5 @@ var G2 = 0
 
 #run
 {
-    G2 += 5 // Executes at compile time
+    G2 += 5     // Executes at compile time
 }

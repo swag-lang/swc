@@ -3,15 +3,15 @@ using Core
 
 enum StackLayoutKind
 {
-    Top                      // From top to bottom
-    Bottom                   // From bottom to top
-    Left                     // From left to right
-    Right                    // From right to left
-    HorzCenter               // Center horizontally
+    Top            // From top to bottom
+    Bottom         // From bottom to top
+    Left           // From left to right
+    Right          // From right to left
+    HorzCenter     // Center horizontally
     HorzCenterVertCenter
-    VertCenter               // Center vertically
-    HorzFit                  // From left to right; fit the available room
-    VertFit                  // From top to bottom; fit the available room
+    VertCenter     // Center vertically
+    HorzFit        // From left to right; fit the available room
+    VertFit        // From top to bottom; fit the available room
 }
 
 struct StackLayoutCtrl

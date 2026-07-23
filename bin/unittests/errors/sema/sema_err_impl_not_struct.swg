@@ -7,8 +7,8 @@ interface I
 
 namespace B {}
 
-impl I for B {} // swc-expected-error {{sema_err_impl_not_struct}}
+impl I for B {}     // swc-expected-error {{sema_err_impl_not_struct}}
 
 enum ARC { A, B }
 
-impl I for ARC {} // swc-expected-error {{sema_err_impl_not_struct}}
+impl I for ARC {}     // swc-expected-error {{sema_err_impl_not_struct}}

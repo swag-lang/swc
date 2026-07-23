@@ -9,7 +9,7 @@ assignments of different types and control how your struct responds.
 
 struct Struct
 {
-    x, y, z: s32 = 666 // Fields with default value 666
+    x, y, z: s32 = 666     // Fields with default value 666
 }
 
 impl Struct

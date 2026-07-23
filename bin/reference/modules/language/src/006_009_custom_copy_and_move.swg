@@ -43,8 +43,8 @@ impl Vector3
     @assert(b.x == 666)
 
     // '#nodrop' skips the initial drop of 'a'.
-    a = #nodrop b // Copy without dropping 'a' first.
-    a = #nodrop #move b // Move without dropping 'a' first.
+    a = #nodrop b           // Copy without dropping 'a' first.
+    a = #nodrop #move b     // Move without dropping 'a' first.
 
     // '#relocate' is the raw relocation used by container internals: the target is treated
     // as uninitialized (no drop) and the source is abandoned (no reinitialization). Use with care.
@@ -119,13 +119,13 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 
     // Copy path.
     assign(&b, a)
-    @assert(b.x == 2 and b.y == 3 and b.z == 4) // +1 via 'opPostCopy'.
-    @assert(a.x == 1 and a.y == 2 and a.z == 3) // 'a' unchanged.
+    @assert(b.x == 2 and b.y == 3 and b.z == 4)     // +1 via 'opPostCopy'.
+    @assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
     // Move path: '#move' passes 'a' as a move reference.
     assign(&b, #move a)
-    @assert(b.x == 3 and b.y == 4 and b.z == 5) // +2 via 'opPostMove'.
-    @assert(a.x == 666 and a.y == 666 and a.z == 666) // 'a' reset to defaults after move.
+    @assert(b.x == 3 and b.y == 4 and b.z == 5)           // +2 via 'opPostMove'.
+    @assert(a.x == 666 and a.y == 666 and a.z == 666)     // 'a' reset to defaults after move.
 }
 
 #test
@@ -143,7 +143,7 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
     // Copy call style: 'a' is copied into a temporary (+1), the temporary is moved (+2).
     assign(&b, a)
     @assert(b.x == 4 and b.y == 5 and b.z == 6)
-    @assert(a.x == 1 and a.y == 2 and a.z == 3) // 'a' unchanged.
+    @assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
     // Move call style: zero extra cost.
     assign(&b, #move a)

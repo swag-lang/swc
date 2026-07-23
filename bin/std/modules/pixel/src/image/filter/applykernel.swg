@@ -74,7 +74,7 @@ impl Image
                         p += b8
                     }
 
-                    p += koff // Go to next line
+                    p += koff     // Go to next line
                 }
             }
 

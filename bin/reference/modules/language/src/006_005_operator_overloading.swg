@@ -7,13 +7,13 @@ core interactions.
 
 struct Struct
 {
-    x, y: s32 // Two properties, x and y, of type s32 (signed 32-bit integer)
+    x, y: s32     // Two properties, x and y, of type s32 (signed 32-bit integer)
 }
 
 // Type aliases used in the examples below
-alias OneType      = bool // Alias for boolean type
-alias AnotherType  = s32 // Alias for signed 32-bit integer type
-alias WhateverType = bool // Another alias for boolean type
+alias OneType      = bool     // Alias for boolean type
+alias AnotherType  = s32      // Alias for signed 32-bit integer type
+alias WhateverType = bool     // Another alias for boolean type
 
 #[Swag.Operators(opEquals, opCompare)]
 struct AutoComparable

@@ -25,4 +25,4 @@ enum Test
 #assert(#nameof(bool) == "bool")
 #assert(#nameof(rune) == "rune")
 
-#assert(#nameof(8) == "8") // swc-expected-error {{sema_err_failed_nameof}}
+#assert(#nameof(8) == "8")     // swc-expected-error {{sema_err_failed_nameof}}

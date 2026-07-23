@@ -78,9 +78,9 @@ array, struct, etc. This is essential when handling types generically.
 
     // Compile-time checks of kind
     using Swag
-    #assert(#typeof(#null *u8).kind == TypeInfoKind.Pointer) // Pointer
-    #assert(#typeof([1, 2, 3]).kind == TypeInfoKind.Array) // Array
-    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct) // Struct
+    #assert(#typeof(#null *u8).kind == TypeInfoKind.Pointer)     // Pointer
+    #assert(#typeof([1, 2, 3]).kind == TypeInfoKind.Array)       // Array
+    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)      // Struct
 }
 
 /**

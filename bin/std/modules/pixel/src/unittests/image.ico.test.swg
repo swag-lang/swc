@@ -160,7 +160,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     @assert(img.pixels.buffer[0] == 10'u8)
     @assert(img.pixels.buffer[1] == 20'u8)
     @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)   // opaque
+    @assert(img.pixels.buffer[3] == 255'u8)     // opaque
     @assert(img.pixels.buffer[4] == 40'u8)
     @assert(img.pixels.buffer[5] == 50'u8)
     @assert(img.pixels.buffer[6] == 60'u8)
@@ -172,10 +172,10 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 {
     var body: ConcatBuffer
     // Palette (4 BGRA quads)
-    body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8)    // idx 0
-    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(0'u8)    // idx 1
-    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)    // idx 2
-    body.addNative(70'u8); body.addNative(80'u8); body.addNative(90'u8); body.addNative(0'u8)    // idx 3
+    body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8)     // idx 0
+    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(0'u8)     // idx 1
+    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)     // idx 2
+    body.addNative(70'u8); body.addNative(80'u8); body.addNative(90'u8); body.addNative(0'u8)     // idx 3
     // XOR row 0 (bottom): indices [1,2] + 2 pad (row stride = 4)
     body.addNative(1'u8); body.addNative(2'u8); body.addNative(0'u8); body.addNative(0'u8)
     // XOR row 1 (top)
@@ -200,8 +200,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 {
     var body: ConcatBuffer
     // Palette (2 BGRA quads)
-    body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)    // idx 0
-    body.addNative(7'u8); body.addNative(8'u8); body.addNative(9'u8); body.addNative(0'u8)    // idx 1
+    body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)     // idx 0
+    body.addNative(7'u8); body.addNative(8'u8); body.addNative(9'u8); body.addNative(0'u8)     // idx 1
     // XOR row 0 (only row): x0=1, x1=0 -> 0b10000000, + 3 pad (row stride = 4)
     body.addNative(0x80'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
     // AND mask: 1 row of 4 bytes
@@ -221,9 +221,9 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     // Two 32-bit images: 1x1 and 2x2. Directory holds 2 entries.
-    let body1Len = cast(u32) (40 + 4 + 4)         // 1x1: 4 XOR + 4 AND
-    let body2Len = cast(u32) (40 + 16 + 8)         // 2x2: 16 XOR + 8 AND
-    let off1     = 6 + 32'u32                       // after dir + 2 entries
+    let body1Len = cast(u32) (40 + 4 + 4)      // 1x1: 4 XOR + 4 AND
+    let body2Len = cast(u32) (40 + 16 + 8)     // 2x2: 16 XOR + 8 AND
+    let off1     = 6 + 32'u32                  // after dir + 2 entries
     let off2     = off1 + body1Len
 
     var cb: ConcatBuffer
@@ -259,8 +259,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     d1.planes   = 1
     d1.bitCount = 32
     cb.addStruct(d1)
-    cb.addNative(1'u8); cb.addNative(2'u8); cb.addNative(3'u8); cb.addNative(4'u8)   // XOR
-    for 4 do cb.addNative(0'u8)                                                       // AND
+    cb.addNative(1'u8); cb.addNative(2'u8); cb.addNative(3'u8); cb.addNative(4'u8)     // XOR
+    for 4 do cb.addNative(0'u8)                                                        // AND
 
     // Image 2 (2x2)
     var d2: IcoDib
@@ -271,8 +271,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     d2.bitCount = 32
     cb.addStruct(d2)
     cb.addNative(200'u8); cb.addNative(201'u8); cb.addNative(202'u8); cb.addNative(203'u8)
-    for 12 do cb.addNative(0'u8)   // rest of XOR
-    for 8 do cb.addNative(0'u8)    // AND
+    for 12 do cb.addNative(0'u8)     // rest of XOR
+    for 8 do cb.addNative(0'u8)      // AND
 
     var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
@@ -325,7 +325,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     var body: ConcatBuffer
-    for 24 do body.addNative(0'u8)   // 16 XOR + 8 AND
+    for 24 do body.addNative(0'u8)     // 16 XOR + 8 AND
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
 
@@ -374,7 +374,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     src.pixels.buffer[1]  = 20'u8
     src.pixels.buffer[2]  = 30'u8
     src.pixels.buffer[3]  = 128'u8
-    src.pixels.buffer[12] = 200'u8   // last pixel B
+    src.pixels.buffer[12] = 200'u8     // last pixel B
 
     var cb: ConcatBuffer
     catch encodeIco(&cb, src)
@@ -417,10 +417,10 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     var src = Image.create(1, 1, .RGBA8)
-    src.pixels.buffer[0] = 30'u8    // R
-    src.pixels.buffer[1] = 20'u8    // G
-    src.pixels.buffer[2] = 10'u8    // B
-    src.pixels.buffer[3] = 99'u8    // A
+    src.pixels.buffer[0] = 30'u8     // R
+    src.pixels.buffer[1] = 20'u8     // G
+    src.pixels.buffer[2] = 10'u8     // B
+    src.pixels.buffer[3] = 99'u8     // A
 
     var cb: ConcatBuffer
     catch encodeIco(&cb, src)
@@ -429,10 +429,10 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 10'u8)    // B
-    @assert(img.pixels.buffer[1] == 20'u8)    // G
-    @assert(img.pixels.buffer[2] == 30'u8)    // R
-    @assert(img.pixels.buffer[3] == 99'u8)    // A
+    @assert(img.pixels.buffer[0] == 10'u8)     // B
+    @assert(img.pixels.buffer[1] == 20'u8)     // G
+    @assert(img.pixels.buffer[2] == 30'u8)     // R
+    @assert(img.pixels.buffer[3] == 99'u8)     // A
 }
 
 // Error: dimensions above 256 cannot be encoded.

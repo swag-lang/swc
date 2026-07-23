@@ -100,16 +100,16 @@ The '#main' entry-point hook is usually the entry point of an executable. It's e
 ## Constants
 We declare global constants with 'const'. Note that we: not specify types for thoses constants. They will be deduced thanks to the affection.
 */
-const Gravity      = 2.5       // 2.5 is a 32 bits float, so the type of Gravity is 'f32'
+const Gravity      = 2.5     // 2.5 is a 32 bits float, so the type of Gravity is 'f32'
 const GroundHeight = 40.0
 const SpeedHorz    = 100.0
-const BirdImpulseY = 350       // 350 is an integer, so the type of BirdImpulseY is 's32'
+const BirdImpulseY = 350     // 350 is an integer, so the type of BirdImpulseY is 's32'
 
 /**
 ## Variables
 */
 
-var g_Bird: Bird // 'Bird' is a structure, and will be defined later
+var g_Bird: Bird     // 'Bird' is a structure, and will be defined later
 
 /**
 'g_Pipes' is a **dynamic** and **generic array** where all the elements are of type 'Pipe'. In other languages, you would write 'Array<Pipe>'. 'Array' comes from the 'Core' module, but thanks to the global `using Core`, we: not need to write `Core.Array'Pipe`.
@@ -226,9 +226,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         // This is the elapsed time between two 'frames', in seconds.
         g_Dt = wnd.getApp().getDt()
 
-        input(wnd) // IO (keyboard test)
-        paint(painter) // Paint game
-        move() // Update game
+        input(wnd)         // IO (keyboard test)
+        paint(painter)     // Paint game
+        move()             // Update game
 
         // We force the window to be dirty, which means that the 'Paint' event will
         // be sent again next frame.

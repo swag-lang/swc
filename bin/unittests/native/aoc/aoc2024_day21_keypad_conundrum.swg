@@ -41,12 +41,12 @@ func buildNumPad() -> [11] Coord
     result[2] = Coord{r: 2, c: 1}
     result[3] = Coord{r: 2, c: 2}
     result[0] = Coord{r: 3, c: 1}
-    result[10] = Coord{r: 3, c: 2}  // A
+    result[10] = Coord{r: 3, c: 2}     // A
     return result
 }
 
 const NumPad = #run buildNumPad()
-const NumGapR: s32 = 3  // gap at (3,0)
+const NumGapR: s32 = 3     // gap at (3,0)
 const NumGapC: s32 = 0
 
 // Directional keypad: _^A / <v>
@@ -54,16 +54,16 @@ const NumGapC: s32 = 0
 func buildDirPad() -> [5] Coord
 {
     var result: retval
-    result[0] = Coord{r: 0, c: 1}  // ^
-    result[1] = Coord{r: 0, c: 2}  // A
-    result[2] = Coord{r: 1, c: 0}  // <
-    result[3] = Coord{r: 1, c: 1}  // v
-    result[4] = Coord{r: 1, c: 2}  // >
+    result[0] = Coord{r: 0, c: 1}     // ^
+    result[1] = Coord{r: 0, c: 2}     // A
+    result[2] = Coord{r: 1, c: 0}     // <
+    result[3] = Coord{r: 1, c: 1}     // v
+    result[4] = Coord{r: 1, c: 2}     // >
     return result
 }
 
 const DirPad = #run buildDirPad()
-const DirGapR: s32 = 0  // gap at (0,0)
+const DirGapR: s32 = 0     // gap at (0,0)
 const DirGapC: s32 = 0
 
 // Map direction move to directional key index
@@ -71,10 +71,10 @@ const DirGapC: s32 = 0
 #[Swag.Inline]
 func dirKeyIdx(dr: s32, dc: s32)->u32
 {
-    if dr < 0 do return 0  // ^
-    if dr > 0 do return 3  // v
-    if dc < 0 do return 2  // <
-    return 4                // >
+    if dr < 0 do return 0     // ^
+    if dr > 0 do return 3     // v
+    if dc < 0 do return 2     // <
+    return 4                  // >
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +207,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     if hfValid
     {
         var cost: u64
-        var cur: u32 = 1  // start at 'A' on directional pad
+        var cur: u32 = 1     // start at 'A' on directional pad
 
         // Horizontal moves
         var hSteps = cast(u32) @abs(dc)
@@ -243,7 +243,7 @@ func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
     if vfValid
     {
         var cost: u64
-        var cur: u32 = 1  // start at 'A'
+        var cur: u32 = 1     // start at 'A'
 
         // Vertical moves
         var vSteps = cast(u32) @abs(dr)
@@ -287,7 +287,7 @@ func charToNumIdx(ch: u8)->u32
 {
     if ch >= '0' and ch <= '9' do
         return cast(u32) (ch - '0')
-    return 10  // 'A'
+    return 10     // 'A'
 }
 
 // Extract numeric value from a code (e.g. "029A" → 29)
@@ -308,7 +308,7 @@ func codeNumericValue(code: const [..] u8, codeLen: u32)->u64
 func solveCode(code: const [..] u8, codeLen: u32, depth: u32, memo: *Memo)->u64
 {
     var totalCost: u64
-    var cur: u32 = 10  // start at 'A' on numeric pad
+    var cur: u32 = 10     // start at 'A' on numeric pad
 
     for i in codeLen
     {
@@ -408,10 +408,10 @@ func solve(text: string)->SolveResult
 // dirKeyIdx inline
 #test
 {
-    @assert(dirKeyIdx(-1, 0) == 0'u32)  // ^
-    @assert(dirKeyIdx(1, 0) == 3'u32)   // v
-    @assert(dirKeyIdx(0, -1) == 2'u32)  // <
-    @assert(dirKeyIdx(0, 1) == 4'u32)   // >
+    @assert(dirKeyIdx(-1, 0) == 0'u32)     // ^
+    @assert(dirKeyIdx(1, 0) == 3'u32)      // v
+    @assert(dirKeyIdx(0, -1) == 2'u32)     // <
+    @assert(dirKeyIdx(0, 1) == 4'u32)      // >
 }
 
 // packKey inline

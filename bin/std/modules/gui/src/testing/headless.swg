@@ -11,9 +11,9 @@ struct AutoEdit
 
 enum AutoStageKind
 {
-    ModalButton         // fill the file browser/edits if any, then click a modal button
-    PopupSubMenu        // open a submenu of the captured popup menu by label
-    PopupItem           // click an item of the captured popup menu by id
+    ModalButton      // fill the file browser/edits if any, then click a modal button
+    PopupSubMenu     // open a submenu of the captured popup menu by label
+    PopupItem        // click an item of the captured popup menu by id
 }
 
 // One step of the auto UI driver (see clickModalButtonWhenShown and friends).

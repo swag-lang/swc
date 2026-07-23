@@ -23,7 +23,7 @@ const SamplePart2 =
 // Secret evolution (bitwise operations)
 // ---------------------------------------------------------------------------
 
-const Prune: u64 = 16777216  // 2^24
+const Prune: u64 = 16777216     // 2^24
 
 #[Swag.Inline]
 func mix(secret: u64, val: u64)->u64 { return secret ^ val }
@@ -123,7 +123,7 @@ func solvePart1(buyers: *BuyerList, steps: u32)->u64
 // Encode a sequence of 4 changes (each in -9..9) as a single index.
 // Shift each change by +9 to make it 0..18, then pack as base-19 digits.
 const SeqBase  = 19'u32
-const SeqCount = SeqBase * SeqBase * SeqBase * SeqBase  // 130321
+const SeqCount = SeqBase * SeqBase * SeqBase * SeqBase     // 130321
 
 #[Swag.Inline]
 func encodeSeq(d0: s32, d1: s32, d2: s32, d3: s32)->u32
@@ -311,8 +311,8 @@ func solve(text: string)->SolveResult
 // mix and prune inline
 #test
 {
-    @assert(mix(42, 15) == 37'u64)     // 42 ^ 15 = 37
-    @assert(prune(100000000) == 16113920'u64)  // 100000000 % 16777216
+    @assert(mix(42, 15) == 37'u64)                // 42 ^ 15 = 37
+    @assert(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
 }
 
 // with &ptr on Coord (exercises the with-pointer fix)

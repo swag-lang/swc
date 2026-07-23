@@ -1,14 +1,14 @@
 #global private
 
-struct NoGenericCompare {} // swc-expected-help {{sema_help_missing_spec_op}}
+struct NoGenericCompare {}     // swc-expected-help {{sema_help_missing_spec_op}}
 
-func(T) genericCompare(lhs, rhs: T)->s32 // swc-expected-note {{sema_note_generic_context}}
+func(T) genericCompare(lhs, rhs: T)->s32     // swc-expected-note {{sema_note_generic_context}}
 {
-    return lhs <=> rhs // swc-expected-error {{sema_err_compare_operand_type}}
+    return lhs <=> rhs     // swc-expected-error {{sema_err_compare_operand_type}}
 }
 
 // swc-expected-help@+1 {{sema_help_missing_spec_op}}
-struct(T) GenericCompareBox // swc-expected-note {{sema_note_generic_context}}
+struct(T) GenericCompareBox     // swc-expected-note {{sema_note_generic_context}}
 {
     value: T
 }
@@ -17,7 +17,7 @@ impl GenericCompareBox
 {
     mtd const compareValue()->s32
     {
-        return me <=> me // swc-expected-error {{sema_err_compare_operand_type}}
+        return me <=> me     // swc-expected-error {{sema_err_compare_operand_type}}
     }
 }
 

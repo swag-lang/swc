@@ -67,7 +67,7 @@ func collMutAddDuringIter()
     v.add(2)
     for x in v
     {
-        v.add(x) // swc-expected-error {{sanity_err_collection_mutated}}
+        v.add(x)     // swc-expected-error {{sanity_err_collection_mutated}}
     }
 }
 
@@ -80,7 +80,7 @@ func collMutRemoveDuringIter()
     for &x in v
     {
         x += 1
-        v.remove() // swc-expected-error {{sanity_err_collection_mutated}}
+        v.remove()     // swc-expected-error {{sanity_err_collection_mutated}}
     }
 }
 
@@ -92,7 +92,7 @@ func collMutThroughAlias()
     let p = &v
     for x in v
     {
-        p.add(x) // swc-expected-error {{sanity_err_collection_mutated}}
+        p.add(x)     // swc-expected-error {{sanity_err_collection_mutated}}
     }
 }
 
@@ -152,7 +152,7 @@ func collMutProjectionSameField()
     holder.items.add(1)
     for x in holder.items
     {
-        holder.items.add(x) // swc-expected-error {{sanity_err_collection_mutated}}
+        holder.items.add(x)     // swc-expected-error {{sanity_err_collection_mutated}}
     }
 }
 

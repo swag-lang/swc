@@ -13,8 +13,8 @@ public enum VoiceCreateFlags
 public enum VoicePlayFlags
 {
     Zero          = 0
-    Loop                              // Play in loops
-    DestroyOnStop                     // Destroy the voice once the sound has been played
+    Loop              // Play in loops
+    DestroyOnStop     // Destroy the voice once the sound has been played
     Default       = DestroyOnStop
 }
 

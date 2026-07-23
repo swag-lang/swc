@@ -52,7 +52,7 @@
     for i in 5
     {
         continue
-        sum += 1 // unreachable
+        sum += 1     // unreachable
     }
     @assert(sum == 0)
 }
@@ -117,7 +117,7 @@
         }
     }
     @assert(outerCount == 4)
-    @assert(innerTotal == 12) // 4 * 3 iterations each
+    @assert(innerTotal == 12)     // 4 * 3 iterations each
 }
 
 // For on single-element array

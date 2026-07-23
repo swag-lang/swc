@@ -108,9 +108,9 @@ Same as above: '#[Swag.CanOverflow(true)]' allows overflowing operations.
 #test
 {
     var x = 255'u8
-    x += 255 // -> 254 (wrap)
-    x += 1 // -> 255
-    x >>= 1 // -> 127
+    x += 255     // -> 254 (wrap)
+    x += 1       // -> 255
+    x >>= 1      // -> 127
     @assert(x == 127)
 }
 

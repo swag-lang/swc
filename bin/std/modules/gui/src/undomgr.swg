@@ -37,7 +37,7 @@ struct UndoStep
 struct UndoManager
 {
     steps:      Array'UndoStep
-    next:       u64             // index just past the last applied step (the redo tail starts here)
+    next:       u64     // index just past the last applied step (the redo tail starts here)
     serialGen:  u64
 }
 

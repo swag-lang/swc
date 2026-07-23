@@ -221,7 +221,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
     // So the number is already shortest if 10^(dp-nd) > 2^(exp-mantbits),
     // or equivalently log2(10)*(dp-nd) > exp-mantbits.
     // It is true if 332/100*(dp-nd) >= exp-mantbits (log2(10) > 3.32).
-    let minexp = Swag.F64.Bias + 1 // minimum possible exponent
+    let minexp = Swag.F64.Bias + 1     // minimum possible exponent
     if exp > minexp and 332 * (d.dp - d.nd) >= 100 * (exp - cast(s64) Swag.F64.MantBits)
     {
         // The number is already shortest.
@@ -288,13 +288,13 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
         if mi >= d.nd do
             break
         let li = ui - upper.dp + lower.dp
-        var l  = '0''u8                       // lower digit
+        var l  = '0''u8     // lower digit
         if li >= 0 and li < lower.nd do
             l = lower.d[li]
-        var m = '0''u8 // middle digit
+        var m = '0''u8     // middle digit
         if mi >= 0 do
             m = d.d[mi]
-        var u = '0''u8 // upper digit
+        var u = '0''u8     // upper digit
         if ui < upper.nd do
             u = upper.d[ui]
 

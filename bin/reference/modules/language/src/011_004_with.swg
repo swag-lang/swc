@@ -45,8 +45,8 @@ the variable name.
     var pt: Point
     with pt
     {
-        .x = 1 // Equivalent to 'pt.x = 1'
-        .y = 2 // Equivalent to 'pt.y = 2'
+        .x = 1     // Equivalent to 'pt.x = 1'
+        .y = 2     // Equivalent to 'pt.y = 2'
     }
 
     @assert(pt.x == 1)
@@ -62,8 +62,8 @@ Inside a 'with' block, you can invoke methods and access fields directly.
     var pt: Point
     with pt
     {
-        .setOne() // Equivalent to 'pt.setOne()'
-        .y = 2 // Adjust a single field afterward
+        .setOne()     // Equivalent to 'pt.setOne()'
+        .y = 2        // Adjust a single field afterward
         @assert(.x == 1)
         @assert(.y == 2)
     }
@@ -103,7 +103,7 @@ immediately inside the block.
 
 #test
 {
-    with var pt: Point // Declaration without initializer
+    with var pt: Point     // Declaration without initializer
     {
         .x = 10
         .y = 20

@@ -99,9 +99,9 @@ using Swag, Core
             hasPartial = true
     }
 
-    @assert(hasZero)       // background corners
-    @assert(hasFull)       // solid stems are fully covered
-    @assert(hasPartial)    // anti-aliased edges
+    @assert(hasZero)        // background corners
+    @assert(hasFull)        // solid stems are fully covered
+    @assert(hasPartial)     // anti-aliased edges
 }
 
 #test

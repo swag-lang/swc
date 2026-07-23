@@ -52,7 +52,7 @@ struct Circular
     circleGap:                 f32 = 0      // Gap between inner and outer circles (0 = single circle)
 
     // Colors
-    rangeColor: Color // Color for the range arc (when in range mode)
+    rangeColor: Color     // Color for the range arc (when in range mode)
 
     // Event signals
     sigStartChange:     SigArray'func||(*Circular)     // Fired when user starts changing value
@@ -614,7 +614,7 @@ impl Circular
         .min = min
         .max = max
         if steps > 0 do
-            .steps = steps / (max - min) // Convert to normalized step size
+            .steps = steps / (max - min)     // Convert to normalized step size
         else do
             .steps = 0
     }

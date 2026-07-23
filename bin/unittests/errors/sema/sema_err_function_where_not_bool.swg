@@ -7,5 +7,5 @@ func(T) requiresBool(value: T)->T where 1
 
 #test
 {
-    requiresBool(1) // swc-expected-error {{sema_err_function_where_not_bool}}
+    requiresBool(1)     // swc-expected-error {{sema_err_function_where_not_bool}}
 }

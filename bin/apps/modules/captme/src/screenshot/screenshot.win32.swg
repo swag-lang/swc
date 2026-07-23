@@ -27,8 +27,8 @@ internal
             let str        = String.from(@mkstring(&className[0], n))
 
             let systemClasses = [
-                "Windows.UI.Core.CoreWindow", // UWP system windows
-                "ApplicationFrameWindow"] // UWP app frames
+                "Windows.UI.Core.CoreWindow",     // UWP system windows
+                "ApplicationFrameWindow"]         // UWP app frames
 
             for s in systemClasses
             {

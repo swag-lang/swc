@@ -42,7 +42,7 @@ public struct TextEffect
 
     // Soft halo around the glyph. A fully transparent color disables it.
     glowColor:       Color
-    glowOffset:      f32        // shifts the glow band outward
+    glowOffset:      f32     // shifts the glow band outward
     glowInner:       f32 = 0.0
     glowOuter:       f32 = 0.45
     glowPower:       f32 = 1.0
@@ -156,9 +156,9 @@ struct RichStringFormat
 {
     font:              FontFamily
     fontStyle:         FontFamilyStyle = Regular
-    palette:           [4] Color                       // Color of text between <p?>...<p?> markers
-    colorUrl:          Color = Color.fromArgb(Argb.White)              // Color of text between <url>...<url> markers
-    colorHotUrl:       Color = Color.fromArgb(Argb.Blue)               // Color of text between <url>...<url> markers when mouse is inside
+    palette:           [4] Color                              // Color of text between <p?>...<p?> markers
+    colorUrl:          Color = Color.fromArgb(Argb.White)     // Color of text between <url>...<url> markers
+    colorHotUrl:       Color = Color.fromArgb(Argb.Blue)      // Color of text between <url>...<url> markers when mouse is inside
     brush:             Brush
     horzAlignment:     StringHorzAlignment = Left
     vertAlignment:     StringVertAlignment = Top

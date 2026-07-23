@@ -42,7 +42,7 @@ const MaxQ = 256'u32
 
 struct Grid
 {
-    cells: [Dim] [Dim] u8   // 0 = open, 1 = corrupted
+    cells: [Dim] [Dim] u8     // 0 = open, 1 = corrupted
     w:     u32
     h:     u32
 }

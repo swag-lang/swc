@@ -224,14 +224,14 @@ func parseKern(faceData: *FaceImpl) throw
 
         let length   = readU16(table, offset + 2)
         let coverage  = readU16(table, offset + 4)
-        let format    = coverage >> 8       // high byte: subtable format
+        let format    = coverage >> 8     // high byte: subtable format
         let horizontal = (coverage & 0x0001) != 0
 
         // Only horizontal format-0 pair tables; skip minimum/cross-stream variants.
         if format == 0 and horizontal and (coverage & 0x0002) == 0
         {
             let nPairs   = readU16(table, offset + 6)
-            var pairOff  = offset + 14      // after nPairs/searchRange/entrySelector/rangeShift
+            var pairOff  = offset + 14     // after nPairs/searchRange/entrySelector/rangeShift
             for nPairs
             {
                 if pairOff + 6 > @countof(table) do

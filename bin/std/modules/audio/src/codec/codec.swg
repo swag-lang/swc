@@ -47,9 +47,9 @@ func getCodec(dstEncoding, srcEncoding: SoundFileEncoding)->#null *CodecDesc
 // Base struct for all codec instances
 public struct Codec
 {
-    srcEncoding:     SoundFileEncoding              // The original encoding
-    dstEncoding:     SoundFileEncoding              // The requested encoding
-    type:            #late const *Swag.TypeInfoStruct       // The real type of the codec
+    srcEncoding:     SoundFileEncoding                    // The original encoding
+    dstEncoding:     SoundFileEncoding                    // The requested encoding
+    type:            #late const *Swag.TypeInfoStruct     // The real type of the codec
 }
 
 // Initialize predefined codecs

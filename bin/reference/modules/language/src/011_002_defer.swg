@@ -9,8 +9,8 @@ clarity and safety in resource management.
 #test
 {
     var v = 0
-    defer @assert(v == 1) // Ensures v equals 1 on scope exit.
-    v += 1 // Increment v.
+    defer @assert(v == 1)     // Ensures v equals 1 on scope exit.
+    v += 1                    // Increment v.
 
 // When the scope ends, the deferred expression executes here.
 }
@@ -44,10 +44,10 @@ control flow paths.
     var G = 0
     for 10
     {
-        defer G += 1 // Increment G at end of each iteration, even if broken.
+        defer G += 1     // Increment G at end of each iteration, even if broken.
 
         if G == 2 do
-            break // Exiting early still triggers the defer expression.
+            break     // Exiting early still triggers the defer expression.
     }
 
     @assert(G == 3)
@@ -61,8 +61,8 @@ order. The most recent defer runs first when the scope ends.
 #test
 {
     var x = 1
-    defer @assert(x == 2) // Executes second
-    defer x *= 2 // Executes first
+    defer @assert(x == 2)     // Executes second
+    defer x *= 2              // Executes first
 
 // Execution order is reversed for predictable cleanup flow.
 }
@@ -89,7 +89,7 @@ release logic stay close together and cleanup always happens.
         }
 
         if @index == 2 do
-            break // Defer ensures cleanup even on early exit.
+            break     // Defer ensures cleanup even on early exit.
     }
 
     @assert(!resource.isResourceCreated())
@@ -109,7 +109,7 @@ to errors. This pattern creates robust, error-resilient code.
     func performTask()->bool
     {
         var resource = createResource()
-        defer releaseResource(&resource) // Always release resource.
+        defer releaseResource(&resource)     // Always release resource.
 
         if !resource.isResourceCreated()
         {

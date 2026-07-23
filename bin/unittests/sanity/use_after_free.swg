@@ -37,7 +37,7 @@ func myFree(ptr: *void, size: u64)
     let p = cast(*s32) myAlloc(4)
     dref p = 1
     myFree(p, 4)
-    let x = dref p // swc-expected-error {{sanity_err_use_after_free}}
+    let x = dref p     // swc-expected-error {{sanity_err_use_after_free}}
     discard x
 }
 
@@ -47,7 +47,7 @@ func myFree(ptr: *void, size: u64)
 {
     let p = cast(*s32) myAlloc(4)
     myFree(p, 4)
-    dref p = 2 // swc-expected-error {{sanity_err_use_after_free}}
+    dref p = 2     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 // Double free.
@@ -56,7 +56,7 @@ func myFree(ptr: *void, size: u64)
 {
     let p = cast(*s32) myAlloc(4)
     myFree(p, 4)
-    myFree(p, 4) // swc-expected-error {{sanity_err_double_free}}
+    myFree(p, 4)     // swc-expected-error {{sanity_err_double_free}}
 }
 
 // Stack storage is borrowed, never allocator-owned. Passing it to free is a
@@ -68,7 +68,7 @@ func rejectFreeBorrowed()
     var req: AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)
-    @getcontext().allocator.free(&req) // swc-expected-error {{sanity_err_free_borrowed}}
+    @getcontext().allocator.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
 // Reassigning the pointer revalidates it.

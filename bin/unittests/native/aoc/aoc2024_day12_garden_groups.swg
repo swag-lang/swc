@@ -122,8 +122,8 @@ func freeGrid(g: *Grid)
 // Neighbor info: 4 cardinal + 4 diagonal same-plant flags.
 struct Neighbors
 {
-    card: [4] bool  // N, E, S, W
-    diag: [4] bool  // NE, SE, SW, NW
+    card: [4] bool     // N, E, S, W
+    diag: [4] bool     // NE, SE, SW, NW
 }
 
 func getNeighbors(g: *Grid, r, c: u32)->Neighbors

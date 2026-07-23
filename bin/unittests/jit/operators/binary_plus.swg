@@ -158,7 +158,7 @@
 
 #test
 {
-    #[Swag.Optimize("bad")] // swc-expected-error {{sema_err_cannot_cast}}
+    #[Swag.Optimize("bad")]     // swc-expected-error {{sema_err_cannot_cast}}
     func addAttrBad(a: s32, b: s32)->s32 { return a + b }
 }
 
@@ -180,5 +180,5 @@
 #test
 {
     func addStrict(a: s32, b: s32)->s32 { return a + b }
-    const V = #run addStrict(1, 2, 3) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run addStrict(1, 2, 3)     // swc-expected-error {{sema_err_too_many_arguments}}
 }

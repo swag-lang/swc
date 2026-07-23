@@ -18,7 +18,7 @@
 
 #test
 {
-    func unaryMinusBad(a: u32)->u32 { return -a } // swc-expected-error {{sema_err_negate_unsigned}}
+    func unaryMinusBad(a: u32)->u32 { return -a }     // swc-expected-error {{sema_err_negate_unsigned}}
 }
 
 #test

@@ -17,7 +17,7 @@ public struct GlyphDesc
 {
     uv:             Math.Rectangle
     atlasIndex:     s32 = -1
-    glyphIndex:     u32         // Index in the typeface, used for kerning lookups
+    glyphIndex:     u32     // Index in the typeface, used for kerning lookups
     advanceX:       f32
     advanceY:       f32
     shiftX:         f32
@@ -99,7 +99,7 @@ public struct GlyphCache
 public struct Font
 {
     cache:             *GlyphCache = undefined
-    mode:              FontRenderMode      // Creation intent (may be .Auto); the cache is always concrete
+    mode:              FontRenderMode     // Creation intent (may be .Auto); the cache is always concrete
     size:              u32
     forceBold:         bool
     forceItalic:       bool

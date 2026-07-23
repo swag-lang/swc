@@ -201,7 +201,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var cb: ConcatBuffer
     var fh: BmpFH
     fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 134'u32    // 14+40+80
+    fh.bfSize    = 134'u32     // 14+40+80
     fh.bfOffBits = 54'u32
     cb.addStruct(fh)
 
@@ -216,7 +216,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     // Row 0: pixel(0,0)=B100 G150 R200, pixels 1-4 zero, 1 pad byte
     cb.addNative(100'u8); cb.addNative(150'u8); cb.addNative(200'u8)
-    for 12 do cb.addNative(0'u8)    // pixels 1-4
+    for 12 do cb.addNative(0'u8)     // pixels 1-4
     cb.addNative(0'u8)               // pad
     // Rows 1-4 all zeros (4 rows x 16 bytes)
     for 64 do cb.addNative(0'u8)
@@ -231,7 +231,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.height == 5)
     @assert(img.pf     == .BGR8)
     @assert(img.bpp    == 24)
-    @assert(img.pixels.count == 75)   // 5x5x3 = 75, no padding in decoded result
+    @assert(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
     @assert(img.pixels.buffer[0] == 100'u8)
     @assert(img.pixels.buffer[1] == 150'u8)
     @assert(img.pixels.buffer[2] == 200'u8)
@@ -260,12 +260,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(ch)
 
     // 2x2 BGR8: row stride = 8 bytes (6 pixel bytes + 2 pad)
-    cb.addNative(10'u8);  cb.addNative(20'u8);  cb.addNative(30'u8)    // row0 pix0
-    cb.addNative(40'u8);  cb.addNative(50'u8);  cb.addNative(60'u8)    // row0 pix1
-    cb.addNative(0'u8);   cb.addNative(0'u8)                            // row0 pad
-    cb.addNative(70'u8);  cb.addNative(80'u8);  cb.addNative(90'u8)    // row1 pix0
-    cb.addNative(100'u8); cb.addNative(110'u8); cb.addNative(120'u8)   // row1 pix1
-    cb.addNative(0'u8);   cb.addNative(0'u8)                            // row1 pad
+    cb.addNative(10'u8);  cb.addNative(20'u8);  cb.addNative(30'u8)      // row0 pix0
+    cb.addNative(40'u8);  cb.addNative(50'u8);  cb.addNative(60'u8)      // row0 pix1
+    cb.addNative(0'u8);   cb.addNative(0'u8)                             // row0 pad
+    cb.addNative(70'u8);  cb.addNative(80'u8);  cb.addNative(90'u8)      // row1 pix0
+    cb.addNative(100'u8); cb.addNative(110'u8); cb.addNative(120'u8)     // row1 pix1
+    cb.addNative(0'u8);   cb.addNative(0'u8)                             // row1 pad
 
     discard catch File.writeAllBytes(path.toString(), cb)
     @assert(@err == null)
@@ -306,12 +306,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     bh.biSizeImage   = 16'u32
     cb.addStruct(bh)
 
-    cb.addNative(55'u8); cb.addNative(66'u8); cb.addNative(77'u8)    // row0 pix0
-    cb.addNative(88'u8); cb.addNative(99'u8); cb.addNative(110'u8)   // row0 pix1
-    cb.addNative(0'u8);  cb.addNative(0'u8)                           // row0 pad
-    cb.addNative(11'u8); cb.addNative(22'u8); cb.addNative(33'u8)    // row1 pix0
-    cb.addNative(44'u8); cb.addNative(55'u8); cb.addNative(66'u8)    // row1 pix1
-    cb.addNative(0'u8);  cb.addNative(0'u8)                           // row1 pad
+    cb.addNative(55'u8); cb.addNative(66'u8); cb.addNative(77'u8)      // row0 pix0
+    cb.addNative(88'u8); cb.addNative(99'u8); cb.addNative(110'u8)     // row0 pix1
+    cb.addNative(0'u8);  cb.addNative(0'u8)                            // row0 pad
+    cb.addNative(11'u8); cb.addNative(22'u8); cb.addNative(33'u8)      // row1 pix0
+    cb.addNative(44'u8); cb.addNative(55'u8); cb.addNative(66'u8)      // row1 pix1
+    cb.addNative(0'u8);  cb.addNative(0'u8)                            // row1 pad
 
     discard catch File.writeAllBytes(path.toString(), cb)
     @assert(@err == null)
@@ -732,7 +732,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     fh.bfSize    = 18'u32
     fh.bfOffBits = 54'u32
     cb.addStruct(fh)
-    cb.addNative(40'u32)   // biSize only - rest of DIB header missing
+    cb.addNative(40'u32)     // biSize only - rest of DIB header missing
 
     discard catch File.writeAllBytes(path.toString(), cb)
     @assert(@err == null)
@@ -761,7 +761,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     bh.biHeight      = 1
     bh.biPlanes      = 1'u16
     bh.biBitCount    = 24'u16
-    bh.biCompression = 4'u32   // value 4 is not a recognised compression type
+    bh.biCompression = 4'u32     // value 4 is not a recognised compression type
     cb.addStruct(bh)
     for 4 do cb.addNative(0'u8)
 
@@ -844,10 +844,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(4, 4, .BGR8)
     src.clear()
-    src.pixels.buffer[0]  = 200'u8   // pixel(0,0) B
-    src.pixels.buffer[1]  = 128'u8   //             G
-    src.pixels.buffer[2]  = 64'u8    //             R
-    src.pixels.buffer[45] = 33'u8    // last row, pixel 3, B channel
+    src.pixels.buffer[0]  = 200'u8     // pixel(0,0) B
+    src.pixels.buffer[1]  = 128'u8     //             G
+    src.pixels.buffer[2]  = 64'u8      //             R
+    src.pixels.buffer[45] = 33'u8      // last row, pixel 3, B channel
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -898,12 +898,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    src.pixels.buffer[0]  = 10'u8    // pixel(0,0) B
-    src.pixels.buffer[1]  = 20'u8    //             G
-    src.pixels.buffer[2]  = 30'u8    //             R
-    src.pixels.buffer[3]  = 200'u8   //             A
-    src.pixels.buffer[4]  = 50'u8    // pixel(1,0) B
-    src.pixels.buffer[7]  = 128'u8   // pixel(1,0) A
+    src.pixels.buffer[0]  = 10'u8      // pixel(0,0) B
+    src.pixels.buffer[1]  = 20'u8      //             G
+    src.pixels.buffer[2]  = 30'u8      //             R
+    src.pixels.buffer[3]  = 200'u8     //             A
+    src.pixels.buffer[4]  = 50'u8      // pixel(1,0) B
+    src.pixels.buffer[7]  = 128'u8     // pixel(1,0) A
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -931,9 +931,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(4, 4, .RGB8)
     src.clear()
-    src.pixels.buffer[0] = 100'u8   // pixel(0,0) R
-    src.pixels.buffer[1] = 150'u8   //             G
-    src.pixels.buffer[2] = 200'u8   //             B
+    src.pixels.buffer[0] = 100'u8     // pixel(0,0) R
+    src.pixels.buffer[1] = 150'u8     //             G
+    src.pixels.buffer[2] = 200'u8     //             B
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -948,9 +948,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.height == 4)
     @assert(img.pf     == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
     // Encoder writes [B=200, G=150, R=100]; decoder stores as BGR8 bytes verbatim
-    @assert(img.pixels.buffer[0] == 200'u8)  // B
-    @assert(img.pixels.buffer[1] == 150'u8)  // G
-    @assert(img.pixels.buffer[2] == 100'u8)  // R
+    @assert(img.pixels.buffer[0] == 200'u8)     // B
+    @assert(img.pixels.buffer[1] == 150'u8)     // G
+    @assert(img.pixels.buffer[2] == 100'u8)     // R
 }
 
 // Encode an RGBA8 2x2 image: encoder swaps R/B to write BGRA bytes,
@@ -962,10 +962,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(2, 2, .RGBA8)
     src.clear()
-    src.pixels.buffer[0] = 10'u8    // pixel(0,0) R
-    src.pixels.buffer[1] = 20'u8    //             G
-    src.pixels.buffer[2] = 30'u8    //             B
-    src.pixels.buffer[3] = 255'u8   //             A
+    src.pixels.buffer[0] = 10'u8      // pixel(0,0) R
+    src.pixels.buffer[1] = 20'u8      //             G
+    src.pixels.buffer[2] = 30'u8      //             B
+    src.pixels.buffer[3] = 255'u8     //             A
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -978,12 +978,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(@err == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
-    @assert(img.pf     == .BGRA8)   // RGBA8 saved as 32-bit BGRA, loads as BGRA8
+    @assert(img.pf     == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
     // Encoder writes [B=30, G=20, R=10, A=255]; decoder stores as BGRA8 bytes verbatim
-    @assert(img.pixels.buffer[0] == 30'u8)    // B
-    @assert(img.pixels.buffer[1] == 20'u8)    // G
-    @assert(img.pixels.buffer[2] == 10'u8)    // R
-    @assert(img.pixels.buffer[3] == 255'u8)   // A
+    @assert(img.pixels.buffer[0] == 30'u8)      // B
+    @assert(img.pixels.buffer[1] == 20'u8)      // G
+    @assert(img.pixels.buffer[2] == 10'u8)      // R
+    @assert(img.pixels.buffer[3] == 255'u8)     // A
 }
 
 // Encode BGR8 5x5 with row padding: pixel values survive despite the on-disk stride difference.
@@ -995,17 +995,17 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(5, 5, .BGR8)
     src.clear()
-    src.pixels.buffer[0]  = 77'u8   // pixel(0,0) B
-    src.pixels.buffer[1]  = 88'u8   //             G
-    src.pixels.buffer[2]  = 99'u8   //             R
-    src.pixels.buffer[72] = 42'u8   // row4 pixel(0) B
+    src.pixels.buffer[0]  = 77'u8     // pixel(0,0) B
+    src.pixels.buffer[1]  = 88'u8     //             G
+    src.pixels.buffer[2]  = 99'u8     //             R
+    src.pixels.buffer[72] = 42'u8     // row4 pixel(0) B
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
     @assert(@err == null)
 
     // File must contain alignment padding: 5 rows x 16 bytes = 80 bytes pixel data
-    @assert(@countof(cb) == 134)    // 14+40+80
+    @assert(@countof(cb) == 134)     // 14+40+80
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     @assert(bytes != null)

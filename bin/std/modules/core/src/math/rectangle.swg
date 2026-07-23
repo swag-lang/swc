@@ -14,7 +14,7 @@ struct Rectangle
 
 impl Rectangle
 {
-    const Zero: Rectangle{0, 0, 0, 0} // Rectangle with all coordinates set to zero
+    const Zero: Rectangle{0, 0, 0, 0}     // Rectangle with all coordinates set to zero
 
     // Scale the rectangle by a scalar value.
     // Multiplies all components (position and dimensions) by the given 'value'.

@@ -46,7 +46,7 @@ func opaqueIdx(v: u64)->u64
         var values: [2] s32
         values[0] = 1
         values[1] = 2
-        return values[opaqueIdx(2)] // swc-expected-error {{safety_err_runtime}}
+        return values[opaqueIdx(2)]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run arrayBoundCheck()
@@ -62,7 +62,7 @@ func opaqueIdx(v: u64)->u64
         values[0] = 1
         values[1] = 2
         var slice: [..] s32 = values
-        return slice[opaqueIdx(2)] // swc-expected-error {{safety_err_runtime}}
+        return slice[opaqueIdx(2)]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceBoundCheck()
@@ -75,7 +75,7 @@ func opaqueIdx(v: u64)->u64
     func stringBoundCheck()->u8
     {
         var text: string = "ab"
-        return text[2] // swc-expected-error {{safety_err_runtime}}
+        return text[2]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run stringBoundCheck()
@@ -88,7 +88,7 @@ func opaqueIdx(v: u64)->u64
     func cstringBoundCheck()->u8
     {
         var text: const cstring = cast(const cstring) @dataof("ab")
-        return text[2] // swc-expected-error {{safety_err_runtime}}
+        return text[2]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run cstringBoundCheck()
@@ -105,7 +105,7 @@ func opaqueIdx(v: u64)->u64
         values[0, 1] = 2
         values[1, 0] = 3
         values[1, 1] = 4
-        return values[1, opaqueIdx(2)] // swc-expected-error {{safety_err_runtime}}
+        return values[1, opaqueIdx(2)]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run multiArrayBoundCheck()
@@ -121,7 +121,7 @@ func opaqueIdx(v: u64)->u64
         var values: [2] s32
         values[0] = 10
         values[1] = 20
-        return values[idx] // swc-expected-error {{safety_err_runtime}}
+        return values[idx]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run arrayDynamicBoundCheck(2)
@@ -138,7 +138,7 @@ func opaqueIdx(v: u64)->u64
         values[1] = 2
         values[2] = 3
         var slice: [..] s32 = values
-        return slice[idx] // swc-expected-error {{safety_err_runtime}}
+        return slice[idx]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceDynamicBoundCheck(5)
@@ -151,7 +151,7 @@ func opaqueIdx(v: u64)->u64
     func stringDynamicBoundCheck(idx: u64)->u8
     {
         var text: string = "hello"
-        return text[idx] // swc-expected-error {{safety_err_runtime}}
+        return text[idx]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run stringDynamicBoundCheck(10)
@@ -168,7 +168,7 @@ func opaqueIdx(v: u64)->u64
         values[0, 1] = 2
         values[1, 0] = 3
         values[1, 1] = 4
-        return values[i, j] // swc-expected-error {{safety_err_runtime}}
+        return values[i, j]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run multiArrayDynamicBoundCheck(2, 0)
@@ -182,7 +182,7 @@ func opaqueIdx(v: u64)->u64
     func emptySliceBoundCheck()->s32
     {
         var slice: #null [..] s32
-        return slice[0] // swc-expected-error {{safety_err_runtime}}
+        return slice[0]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run emptySliceBoundCheck()
@@ -229,7 +229,7 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func variadicBoundCheck(args: s32...)->s32
     {
-        return args[3] // swc-expected-error {{safety_err_runtime}}
+        return args[3]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run variadicBoundCheck(10, 20, 30)
@@ -245,7 +245,7 @@ func opaqueIdx(v: u64)->u64
         values[0] = 1
         values[1] = 2
         values[2] = 3
-        return values[idx] // swc-expected-error {{safety_err_runtime}}
+        return values[idx]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run arrayExactBoundary(3)
@@ -260,7 +260,7 @@ func opaqueIdx(v: u64)->u64
         values[0] = 5
         values[1] = 6
         var slice: [..] s32 = values
-        return slice[idx] // swc-expected-error {{safety_err_runtime}}
+        return slice[idx]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run sliceExactBoundary(2)
@@ -272,7 +272,7 @@ func opaqueIdx(v: u64)->u64
     func stringExactBoundary(idx: u64)->u8
     {
         var text: string = "abc"
-        return text[idx] // swc-expected-error {{safety_err_runtime}}
+        return text[idx]     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run stringExactBoundary(3)
@@ -284,7 +284,7 @@ func opaqueIdx(v: u64)->u64
     func loopNegativeCount(count: s32)->s32
     {
         var result: s32 = 0
-        for count do // swc-expected-error {{safety_err_runtime}}
+        for count do     // swc-expected-error {{safety_err_runtime}}
             result += 1
         return result
     }
@@ -299,7 +299,7 @@ func opaqueIdx(v: u64)->u64
     func loopInvalidSignedRange(low: s32, high: s32)->s32
     {
         var result: s32 = 0
-        for i in low to high do // swc-expected-error {{safety_err_runtime}}
+        for i in low to high do     // swc-expected-error {{safety_err_runtime}}
             result += i
         return result
     }
@@ -314,7 +314,7 @@ func opaqueIdx(v: u64)->u64
     func loopInvalidUnsignedRange(low: u32, high: u32)->u32
     {
         var result: u32 = 0
-        for i in low until high do // swc-expected-error {{safety_err_runtime}}
+        for i in low until high do     // swc-expected-error {{safety_err_runtime}}
             result += i
         return result
     }

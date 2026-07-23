@@ -92,7 +92,7 @@ struct PCMWAVEFORMAT
 struct WAVEFORMATEX
 {
     using pcmwf:     PCMWAVEFORMAT
-    cbSize:          u16               // The count in bytes of the size of extra information (after cbSize)
+    cbSize:          u16     // The count in bytes of the size of extra information (after cbSize)
 }
 
 #[Swag.Pack(1)]

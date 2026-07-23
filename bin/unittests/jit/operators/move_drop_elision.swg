@@ -59,7 +59,7 @@ impl Tracked
         dst = #move src
         g_sink = src.value
     }
-    @assert(g_sink == 5) // reset to defaults
+    @assert(g_sink == 5)     // reset to defaults
     @assert(DropCount == 3)
     @assert(DropTrace == 72305)
 }
@@ -131,7 +131,7 @@ impl Tracked
         var d1  = Tracked{6}
         var d2  = Tracked{7}
         d1 = #move src
-        d2 = #move src // moves the reset value (5); 'src' then elided
+        d2 = #move src     // moves the reset value (5); 'src' then elided
     }
     // Drops: d1 target (6), d2 target (7), scope: d2 (5+20), d1 (3+20). src: elided.
     @assert(DropCount == 4)

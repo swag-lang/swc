@@ -140,7 +140,7 @@ struct CondPair
 {
     func ternaryBad(cond: bool)->s32
     {
-        return cond ? 1 : "bad" // swc-expected-error {{sema_err_binary_operand_type}}
+        return cond ? 1 : "bad"     // swc-expected-error {{sema_err_binary_operand_type}}
     }
 }
 

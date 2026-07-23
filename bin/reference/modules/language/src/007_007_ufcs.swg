@@ -10,7 +10,7 @@ This enables calling standalone functions as if they were instance methods, impr
     func myFunc(param: bool) => param
 
     let b = false
-    @assert(myFunc(b) == b.myFunc()) // UFCS allows method-like syntax
+    @assert(myFunc(b) == b.myFunc())     // UFCS allows method-like syntax
 }
 
 /**

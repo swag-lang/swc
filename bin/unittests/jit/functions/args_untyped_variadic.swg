@@ -681,7 +681,7 @@ enum VariadicKind: u16
 
 #test
 {
-    func variadicAny(values: ...)->any { return values["a"] } // swc-expected-error {{sema_err_index_not_int}}
+    func variadicAny(values: ...)->any { return values["a"] }     // swc-expected-error {{sema_err_index_not_int}}
     const V0 = #run variadicAny(1)
 }
 

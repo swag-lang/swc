@@ -58,7 +58,7 @@ func assumeSafetyEnabled()->bool
     #[Swag.Safety(.Assume, true)]
     func assumeFailurePanic()->s32
     {
-        return assume alwaysThrowValue() // swc-expected-error {{sema_err_compiler_panic}}
+        return assume alwaysThrowValue()     // swc-expected-error {{sema_err_compiler_panic}}
     }
 
     const value = #run assumeFailurePanic()
@@ -70,7 +70,7 @@ func assumeSafetyEnabled()->bool
     func assumeNullableFailurePanic()->bool
     {
         let value: #null *s32 = null
-        let ptr = notnull value // swc-expected-error {{safety_err_runtime}}
+        let ptr = notnull value     // swc-expected-error {{safety_err_runtime}}
         return ptr != null
     }
 

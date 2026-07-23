@@ -288,9 +288,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 #test
 {
     var pal: Array'u16
-    pal.add(10 << 8); pal.add(40 << 8)    // red
-    pal.add(20 << 8); pal.add(50 << 8)    // green
-    pal.add(30 << 8); pal.add(60 << 8)    // blue
+    pal.add(10 << 8); pal.add(40 << 8)     // red
+    pal.add(20 << 8); pal.add(50 << 8)     // green
+    pal.add(30 << 8); pal.add(60 << 8)     // blue
 
     var pix: ConcatBuffer
     pix.addNative(0'u8); pix.addNative(1'u8)
@@ -327,7 +327,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(11'u8)   // literal header: 12 bytes follow
+    pix.addNative(11'u8)     // literal header: 12 bytes follow
     pix.addNative(10'u8); pix.addNative(20'u8); pix.addNative(30'u8)
     pix.addNative(40'u8); pix.addNative(50'u8); pix.addNative(60'u8)
     pix.addNative(70'u8); pix.addNative(80'u8); pix.addNative(90'u8)
@@ -346,7 +346,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(0xFE'u8)   // signed -2: repeat next byte 3 times
+    pix.addNative(0xFE'u8)     // signed -2: repeat next byte 3 times
     pix.addNative(0xAB'u8)
 
     let buf = buildTiff(true, 1, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
@@ -361,10 +361,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(10'u8); pix.addNative(10'u8); pix.addNative(10'u8)    // file row 0 (top)
-    pix.addNative(20'u8); pix.addNative(20'u8); pix.addNative(20'u8)    // file row 1
-    pix.addNative(30'u8); pix.addNative(30'u8); pix.addNative(30'u8)    // file row 2
-    pix.addNative(40'u8); pix.addNative(40'u8); pix.addNative(40'u8)    // file row 3 (bottom)
+    pix.addNative(10'u8); pix.addNative(10'u8); pix.addNative(10'u8)     // file row 0 (top)
+    pix.addNative(20'u8); pix.addNative(20'u8); pix.addNative(20'u8)     // file row 1
+    pix.addNative(30'u8); pix.addNative(30'u8); pix.addNative(30'u8)     // file row 2
+    pix.addNative(40'u8); pix.addNative(40'u8); pix.addNative(40'u8)     // file row 3 (bottom)
 
     let buf = buildTiff(true, 1, 4, 3, 2, 1, 2, 8, nnBytes(pix.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
@@ -463,10 +463,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 {
     var src = Image.create(2, 2, .RGB8)
     src.clear()
-    src.pixels.buffer[0] = 11'u8    // bottom-left R
+    src.pixels.buffer[0] = 11'u8     // bottom-left R
     src.pixels.buffer[1] = 22'u8
     src.pixels.buffer[2] = 33'u8
-    src.pixels.buffer[9] = 99'u8    // top-right R (last pixel)
+    src.pixels.buffer[9] = 99'u8     // top-right R (last pixel)
 
     var cb: ConcatBuffer
     catch encodeTiff(&cb, src)
@@ -509,9 +509,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 #test
 {
     var src = Image.create(1, 1, .BGR8)
-    src.pixels.buffer[0] = 10'u8    // B
-    src.pixels.buffer[1] = 20'u8    // G
-    src.pixels.buffer[2] = 30'u8    // R
+    src.pixels.buffer[0] = 10'u8     // B
+    src.pixels.buffer[1] = 20'u8     // G
+    src.pixels.buffer[2] = 30'u8     // R
 
     var cb: ConcatBuffer
     catch encodeTiff(&cb, src)

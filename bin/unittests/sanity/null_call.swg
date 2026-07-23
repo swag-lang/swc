@@ -10,7 +10,7 @@
 #test
 {
     var f: #null func()->s32
-    let x = f() // swc-expected-error {{sanity_err_null_call}}
+    let x = f()     // swc-expected-error {{sanity_err_null_call}}
     discard x
 }
 
@@ -20,7 +20,7 @@
 {
     var f: #null func()->s32
     var g = f
-    let x = g() // swc-expected-error {{sanity_err_null_call}}
+    let x = g()     // swc-expected-error {{sanity_err_null_call}}
     discard x
 }
 

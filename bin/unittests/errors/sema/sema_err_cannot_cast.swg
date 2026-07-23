@@ -16,14 +16,14 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
 #test
 {
     let c = @compiler
-    c.compileString(1) // swc-expected-error {{sema_err_cannot_cast}}
+    c.compileString(1)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     const bad: [2] u16 = [
         0'u16,
-        true // swc-expected-error {{sema_err_cannot_cast}}
+        true     // swc-expected-error {{sema_err_cannot_cast}}
         ]
 }
 
@@ -32,7 +32,7 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
     const bad: [1, 2] u16 = [
         [
             0'u16,
-            true // swc-expected-error {{sema_err_cannot_cast}}
+            true     // swc-expected-error {{sema_err_cannot_cast}}
         ]
         ]
 }
@@ -42,7 +42,7 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
     var value: s64 = 0
     var data: [2] s32 = [10, 20]
     let ptr = cast([*] s32) &data[0]
-    value += ptr // swc-expected-error {{sema_err_cannot_cast}}
+    value += ptr     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -50,7 +50,7 @@ const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
     var data: [2] s32 = [10, 20]
     var ptr = cast([*] s32) &data[0]
     let other = ptr + 1
-    ptr -= other // swc-expected-error {{sema_err_cannot_cast}}
+    ptr -= other     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #[Swag.Strict]
@@ -72,7 +72,7 @@ func consumeCannotCastRawS32(value: s32) {}
 #test
 {
     var box: CannotCastOpCastBox
-    consumeCannotCastRawS32(box) // swc-expected-error {{sema_err_cannot_cast}}
+    consumeCannotCastRawS32(box)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 alias CannotCastExactDigest = [16] u8
@@ -87,21 +87,21 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
 {
     var values: [4] s32 = [1, 2, 3, 4]
     let view: const [..] s32 = cast(const [..] s32) values
-    consumeCannotCastExact4(view) // swc-expected-error {{sema_err_cannot_cast}}
+    consumeCannotCastExact4(view)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     let value: #null any = null
     let fallback: any = true
-    let resolved = value orelse fallback // swc-expected-error {{sema_err_cannot_cast}}
+    let resolved = value orelse fallback     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     switch &CannotCastSwitchPointerValues[0]
     {
-    case &CannotCastSwitchPointerBytes[0]: // swc-expected-error {{sema_err_cannot_cast}}
+    case &CannotCastSwitchPointerBytes[0]:     // swc-expected-error {{sema_err_cannot_cast}}
         break
     default:
         break
@@ -114,14 +114,14 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
     struct MoveBindVec { x: s32 }
     func takeMoveBind(v: #move MoveBindVec) {}
     var value: MoveBindVec
-    takeMoveBind(&value) // swc-expected-error {{sema_err_cannot_cast}}
+    takeMoveBind(&value)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     // An invalid scalar fill of an array must report the element cast failure
     // (it used to be silently swallowed by the runtime-array-fill setup).
-    var values: [2] *s32 = 12 // swc-expected-error {{sema_err_cannot_cast}}
+    var values: [2] *s32 = 12     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 // ----------------------------------------------------------------------------
@@ -137,7 +137,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     var p: #null *NarrowLimitNode
     if p {}
     else do
-        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+        narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -145,7 +145,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     // A guard whose branch does not terminate proves nothing afterwards.
     var p: #null *NarrowLimitNode
     if p {}
-    narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+    narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -156,7 +156,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     if p
     {
         p = null
-        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+        narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }
 
@@ -169,7 +169,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     {
         let pp = &p
         dref pp = null
-        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+        narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }
 
@@ -184,7 +184,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     {
         while i < 2
         {
-            narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+            narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
             p = null
             i += 1
         }
@@ -198,7 +198,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     var p: #null *NarrowLimitNode = &storage
     if p
     {
-        defer narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+        defer narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }
 
@@ -207,5 +207,5 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     // `a or b` proves nothing about either operand when taken.
     var p, q: #null *NarrowLimitNode
     if p or q do
-        narrowLimitTakes(p) // swc-expected-error {{sema_err_cannot_cast}}
+        narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}
 }

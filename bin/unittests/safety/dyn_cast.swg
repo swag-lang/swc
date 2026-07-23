@@ -84,7 +84,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyMismatch(a: any)->s32
     {
-        return cast(s32) a // swc-expected-error {{safety_err_runtime}}
+        return cast(s32) a     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyMismatch("not an int")
@@ -95,7 +95,7 @@ func dynCastSafetyEnabled()->bool
     #[Swag.Safety(.DynCast, true)]
     func castAnyBoolMismatch(a: any)->bool
     {
-        return cast(bool) a // swc-expected-error {{safety_err_runtime}}
+        return cast(bool) a     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyBoolMismatch(42)
@@ -174,7 +174,7 @@ struct Derived
     #[Swag.Safety(.DynCast, true)]
     func castAnyToUnrelated(a: any)->Unrelated
     {
-        return cast(Unrelated) a // swc-expected-error {{safety_err_runtime}}
+        return cast(Unrelated) a     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run castAnyToUnrelated(Base{value: 10})

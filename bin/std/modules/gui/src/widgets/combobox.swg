@@ -27,7 +27,7 @@ struct ComboBox
     using wnd:          Wnd
 
     kind                = ComboBoxKind.Select
-    comboBoxFlags       = ComboBoxFlags.Zero    // Active behaviour flags
+    comboBoxFlags       = ComboBoxFlags.Zero     // Active behaviour flags
     minWidthPopup:      f32 = 100
     maxHeightPopup:     f32 = 300
     sigChanged:         SigArray'func||(*ComboBox, u32)

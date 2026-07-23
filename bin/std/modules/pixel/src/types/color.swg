@@ -8,15 +8,15 @@ struct Color
 {
     #if Core.BIG_ENDIAN
     {
-        a, r, g, b: u8 // Alpha, red, green, blue components (0-255)
+        a, r, g, b: u8     // Alpha, red, green, blue components (0-255)
         #[Offset("a")]
-        argb: u32 // 32-bit ARGB representation
+        argb: u32     // 32-bit ARGB representation
     }
         #else
     {
-        b, g, r, a: u8 // Blue, green, red, alpha components (0-255)
+        b, g, r, a: u8     // Blue, green, red, alpha components (0-255)
         #[Offset("b")]
-        argb: u32 // 32-bit ARGB representation
+        argb: u32     // 32-bit ARGB representation
     }
 }
 
@@ -331,10 +331,10 @@ impl Color
         }
 
         var result: retval = undefined
-        result.w = .a / 255.0 // alpha channel
-        result.x = srgbToLinear(.r / 255.0) // red channel
-        result.y = srgbToLinear(.g / 255.0) // green channel
-        result.z = srgbToLinear(.b / 255.0) // blue channel
+        result.w = .a / 255.0                   // alpha channel
+        result.x = srgbToLinear(.r / 255.0)     // red channel
+        result.y = srgbToLinear(.g / 255.0)     // green channel
+        result.z = srgbToLinear(.b / 255.0)     // blue channel
         return result
     }
 
@@ -417,7 +417,7 @@ impl Color
         let x2   = cast(f32) .g - col.g
         let x3   = cast(f32) .b - col.b
         var dist = Math.sqrt((x1 * x1) + (x2 * x2) + (x3 * x3))
-        dist /= Math.sqrt(cast(f32) (255.0 * 255.0 * 3.0)) // Normalize to [0, 1]
+        dist /= Math.sqrt(cast(f32) (255.0 * 255.0 * 3.0))     // Normalize to [0, 1]
         return dist
     }
 
@@ -473,7 +473,7 @@ impl Color
         let hsl    = .toHsl()
         let newS   = Math.clamp(hsl.s + factor, 0.0, 1.0)
         var result = Color.fromHsl(hsl.h, newS, hsl.l)
-        result.a = .a // Preserve alpha
+        result.a = .a     // Preserve alpha
         return result
     }
 
@@ -484,7 +484,7 @@ impl Color
         let hsl    = .toHsl()
         let newL   = Math.clamp(hsl.l + factor, 0.0, 1.0)
         var result = Color.fromHsl(hsl.h, hsl.s, newL)
-        result.a = .a // Preserve alpha
+        result.a = .a     // Preserve alpha
         return result
     }
 
@@ -543,7 +543,7 @@ impl Color
         elif newH < 0.0 do
             newH += 1.0
         var result = Color.fromHsl(newH, hsl.s, hsl.l)
-        result.a = .a // Preserve alpha
+        result.a = .a     // Preserve alpha
         return result
     }
 

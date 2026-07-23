@@ -683,7 +683,7 @@ impl Encoder
             .writeBits(hTDC[0])
         else
         {
-            let diffc = cast #bit (u64) cast(s64) diff // If negative
+            let diffc = cast #bit (u64) cast(s64) diff     // If negative
             .writeBits(hTDC[.category[diffc]])
             .writeBits(.bitcode[diffc])
         }
@@ -712,7 +712,7 @@ impl Encoder
                 nrzeroes = nrzeroes % 16
             }
 
-            let offc = cast #bit (u64) cast(s64) .du[i] // If negative
+            let offc = cast #bit (u64) cast(s64) .du[i]     // If negative
             .writeBits(hTAC[nrzeroes * 16 + .category[offc]])
             .writeBits(.bitcode[offc])
             i += 1
@@ -768,7 +768,7 @@ public impl IImageEncoder for Encoder
         .setNumbersCategoryAndBitcode()
         .prepareQuantTables()
 
-        .writeWord(0xFFD8) // SOI
+        .writeWord(0xFFD8)     // SOI
 
         .writeMetaDatas(&image)
         .writeDQTinfo()
@@ -788,6 +788,6 @@ public impl IImageEncoder for Encoder
             .writeBits(fillbits)
         }
 
-        .writeWord(0xFFD9) // EOI
+        .writeWord(0xFFD9)     // EOI
     }
 }

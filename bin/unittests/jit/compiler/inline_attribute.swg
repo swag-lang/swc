@@ -27,7 +27,7 @@ func addNoInline(a: s32, b: s32)->s32 => a + b
 #test
 {
     var x: s32 = 3
-    #assert(addInline(x, 1) == 4) // swc-expected-error {{sema_err_expr_not_const}}
+    #assert(addInline(x, 1) == 4)     // swc-expected-error {{sema_err_expr_not_const}}
 }
 
 #test
@@ -37,17 +37,17 @@ func addNoInline(a: s32, b: s32)->s32 => a + b
 }
 
 #[Swag.Inline]
-#[Swag.NoInline] // swc-expected-error {{sema_err_attribute_inline_noinline_conflict}}
+#[Swag.NoInline]     // swc-expected-error {{sema_err_attribute_inline_noinline_conflict}}
 func conflictInlineNoInline(a: s32, b: s32)->s32 => a + b
 
 #[Swag.Inline]
-#[Swag.Macro] // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}
+#[Swag.Macro]     // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}
 func conflictInlineMacro(a: s32)->s32 => a
 
 #[Swag.Mixin]
-#[Swag.Inline] // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}
+#[Swag.Inline]     // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}
 func conflictMixinInline(a: s32)->s32 => a
 
 #[Swag.Macro]
-#[Swag.Mixin] // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}
+#[Swag.Mixin]     // swc-expected-error {{sema_err_attribute_inline_macro_mixin_conflict}}
 func conflictMacroMixin(a: s32)->s32 => a

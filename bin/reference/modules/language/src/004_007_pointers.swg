@@ -24,7 +24,7 @@ It is good practice to check for null pointers before dereferencing them to avoi
 #test
 {
     var ptr1: #null *u8
-    @assert(ptr1 == null) // Uninitialized pointers are null by default
+    @assert(ptr1 == null)     // Uninitialized pointers are null by default
 }
 
 /**
@@ -77,7 +77,7 @@ This allows you to access or modify a variable indirectly via its memory address
 {
     var value = 1
     let ptr   = &value
-    @assert(#nameof(#typeof(ptr)) == "*s32") // The pointer type matches the variable's type
+    @assert(#nameof(#typeof(ptr)) == "*s32")     // The pointer type matches the variable's type
 }
 
 /**
@@ -90,7 +90,7 @@ Dereferencing retrieves the data located at the memory address referenced by the
 {
     var value = 42
     let ptr   = &value
-    @assert(dref ptr == 42) // Access the value stored at the pointer
+    @assert(dref ptr == 42)     // Access the value stored at the pointer
 }
 
 /**
@@ -104,7 +104,7 @@ Const pointers help guarantee that a pointer always refers to the same memory lo
 {
     let str  = "string"
     let ptr: const *u8 = @dataof(str)
-    @assert(dref ptr == 's') // Access the first byte of the string
+    @assert(dref ptr == 's')     // Access the first byte of the string
 }
 
 /**
@@ -137,8 +137,8 @@ allowing indexed access and pointer movement through memory.
 #[Swag.Sanity(Swag.SafetyWhat.All, false)]
 #test
 {
-    var ptr: #null [*] u8 // Pointer to a block of 'u8' values
-    ptr = ptr - 1 // Move the pointer back by one element
+    var ptr: #null [*] u8     // Pointer to a block of 'u8' values
+    ptr = ptr - 1             // Move the pointer back by one element
 }
 
 /**

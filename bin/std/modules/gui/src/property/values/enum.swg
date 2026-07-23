@@ -205,7 +205,7 @@ impl Properties
                 .parent        = item
                 .level         = item.level + 1
                 .section       = item.section
-                .selfPropagate = true       // toggles a single bit across all instances
+                .selfPropagate = true     // toggles a single bit across all instances
                 .flags.add(.NoSeparator)
             }
 

@@ -13,7 +13,7 @@ struct S
 
 #test
 {
-    const V = #run @compiler.compileString("const _x = 0") // swc-expected-error {{sema_err_run_expr_void}}
+    const V = #run @compiler.compileString("const _x = 0")     // swc-expected-error {{sema_err_run_expr_void}}
 }
 
 #test
@@ -32,22 +32,22 @@ struct S
 #test
 {
     const V = #run 40's32 + 2's32
-    #assert(V == 0) // swc-expected-error {{sema_err_compiler_assert}}
+    #assert(V == 0)     // swc-expected-error {{sema_err_compiler_assert}}
 }
 
 #test
 {
-    const V = #run unknownSymbol // swc-expected-error {{sema_err_unknown_symbol}}
+    const V = #run unknownSymbol     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 #test
 {
-    const V = #run dref @compiler // swc-expected-error {{sema_err_unary_operand_type}}
+    const V = #run dref @compiler     // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
 #test
 {
-    const V = #run dref (@compiler.unknownMethod)() // swc-expected-error {{sema_err_unknown_symbol}}
+    const V = #run dref (@compiler.unknownMethod)()     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
 //#[Swag.PrintMicro("pre-regalloc", "post-emit")]
@@ -75,10 +75,10 @@ struct S
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
-    #assert(#typeof(Cfg) == s32) // swc-expected-error {{sema_err_compiler_assert}}
+    #assert(#typeof(Cfg) == s32)     // swc-expected-error {{sema_err_compiler_assert}}
 }
 
-#[Swag.PrintMicro(123)] // swc-expected-error {{sema_err_cannot_cast}}
+#[Swag.PrintMicro(123)]     // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
@@ -94,7 +94,7 @@ struct S
     const Cfg = #run dref @compiler.getBuildCfg()
 }
 
-#[Swag.PrintAst(1)] // swc-expected-error {{sema_err_cannot_cast}}
+#[Swag.PrintAst(1)]     // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
@@ -111,7 +111,7 @@ struct S
 #test
 {
     func noArg()->s32 { return 1 }
-    const V = #run noArg(0) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run noArg(0)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test

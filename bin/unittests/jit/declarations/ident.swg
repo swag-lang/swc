@@ -347,19 +347,19 @@ alias BigArray = [5] s32
 #test
 {
     func passErr(x: BigBlob) => x
-    const V = #run passErr() // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run passErr()     // swc-expected-error {{sema_err_too_few_arguments}}
 }
 
 #test
 {
     func passErr(x: SmallPair) => x
-    const V = #run passErr("bad") // swc-expected-error {{sema_err_cannot_cast}}
+    const V = #run passErr("bad")     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
     func passErr(x: string) => x
-    const V = #run passErr("ok", 1) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run passErr("ok", 1)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
@@ -390,5 +390,5 @@ alias BigArray = [5] s32
 #test
 {
     func passMixedErr(a: s32, b: SmallPair)->s32 { return a + cast(s32) b.a }
-    const V = #run passMixedErr(1) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run passMixedErr(1)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

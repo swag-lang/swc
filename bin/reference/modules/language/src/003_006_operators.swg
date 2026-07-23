@@ -35,11 +35,11 @@ bitwise AND, OR, XOR, and bit shifting.
 {
     var x: s32 = 10
 
-    x = x ^ 2 // XOR
-    x = x & 0b0000_0001's32 // AND
-    x = x | cast(s32) 0b0001 // OR
-    x = x << 1 // Shift left
-    x = x >> 1 // Shift right
+    x = x ^ 2                    // XOR
+    x = x & 0b0000_0001's32      // AND
+    x = x | cast(s32) 0b0001     // OR
+    x = x << 1                   // Shift left
+    x = x >> 1                   // Shift right
 }
 
 /**
@@ -76,9 +76,9 @@ NOT, and negation.
     var y = 0b0000_0001'u8
     var z = 1
 
-    x = !x // Logical NOT
-    y = ~y // Bitwise NOT
-    z = -z // Negation
+    x = !x     // Logical NOT
+    y = ~y     // Bitwise NOT
+    z = -z     // Negation
 
     @assert(z == -1)
     @assert(x == false)

@@ -3,5 +3,5 @@
 #main
 {}
 
-#main                               // swc-expected-error {{sema_err_already_defined}}
+#main     // swc-expected-error {{sema_err_already_defined}}
 {}

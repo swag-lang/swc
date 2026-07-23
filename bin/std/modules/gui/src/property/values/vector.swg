@@ -9,7 +9,7 @@ impl Properties
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item = .addItem(value, data, parentItem)
-        item.selfPropagate = true       // each component box writes every instance itself
+        item.selfPropagate = true     // each component box writes every instance itself
         var width = .position.width
         if !.isGridLike()
         {

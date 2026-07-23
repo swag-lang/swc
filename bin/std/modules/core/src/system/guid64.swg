@@ -3,9 +3,9 @@
 // Thread-local storage for random number generation and GUID counter.
 #[Swag.Tls]
 {
-    private var g_Rng: Random.Mt64 // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32 // Thread-local counter for timestamp-based GUIDs
+    private var g_Rng: Random.Mt64     // Mersenne Twister 64-bit random number generator
+    private var g_RngInit: bool        // Flag indicating whether the RNG has been initialized
+    private var g_Counter: u32         // Thread-local counter for timestamp-based GUIDs
 }
 
 // Initialize the random number generator with high-entropy seed.
@@ -29,7 +29,7 @@ private func initRng()
 #[Swag.Operators(opEquals)]
 struct GUID64
 {
-    guid: u64 // 64-bit unique identifier value
+    guid: u64     // 64-bit unique identifier value
 }
 
 impl GUID64
@@ -49,16 +49,16 @@ impl GUID64
         let microsec  = cast(u16) (nowUs % 1000000 / 1000)     // 16-bit milliseconds component
 
         // Thread-local counter with overflow protection
-        g_Counter = (g_Counter + 1) & 0xFFF // 12-bit counter (0-4095)
+        g_Counter = (g_Counter + 1) & 0xFFF     // 12-bit counter (0-4095)
 
-        let random4 = cast(u8) (g_Rng.nextU64() & 0xF) // 4-bit random
+        let random4 = cast(u8) (g_Rng.nextU64() & 0xF)     // 4-bit random
 
         // Combine all components
         result.guid = 0
-        result.guid |= cast(u64) timestamp << 32 // Upper 32 bits: timestamp
-        result.guid |= cast(u64) microsec << 16 // Next 16 bits: milliseconds
-        result.guid |= cast(u64) g_Counter << 4 // Next 12 bits: counter
-        result.guid |= cast(u64) random4 // Lower 4 bits: random
+        result.guid |= cast(u64) timestamp << 32     // Upper 32 bits: timestamp
+        result.guid |= cast(u64) microsec << 16      // Next 16 bits: milliseconds
+        result.guid |= cast(u64) g_Counter << 4      // Next 12 bits: counter
+        result.guid |= cast(u64) random4             // Lower 4 bits: random
 
         return result
     }
@@ -168,7 +168,7 @@ impl GUID64
             elif c >= 'a' and c <= 'f' do
                 digit = cast(u64) (c - 'a' + 10)
             else do
-                break // Invalid character, stop parsing
+                break     // Invalid character, stop parsing
 
             value = (value << 4) | digit
         }

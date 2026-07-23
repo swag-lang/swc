@@ -36,7 +36,7 @@ func unreachableSafetyEnabled()->bool
     #[Swag.Safety(.Unreachable, true)]
     func hitUnreachable()->s32
     {
-        unreachable // swc-expected-error {{safety_err_runtime}}
+        unreachable     // swc-expected-error {{safety_err_runtime}}
         return 42
     }
 
@@ -65,7 +65,7 @@ func unreachableSafetyEnabled()->bool
     {
         if v > 0
         {
-            unreachable // swc-expected-error {{safety_err_runtime}}
+            unreachable     // swc-expected-error {{safety_err_runtime}}
         }
 
         return 42

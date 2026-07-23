@@ -34,14 +34,14 @@ const Unvisited = 0xFFFFFFFF'u32
 struct Grid
 {
     cells:  #null [*] u8
-    dist:   #null [*] u32      // distance from S along the single path
+    dist:   #null [*] u32     // distance from S along the single path
     w:      u32
     h:      u32
     sr:     u32
     sc:     u32
     er:     u32
     ec:     u32
-    pathLen: u32          // total path length (S to E)
+    pathLen: u32     // total path length (S to E)
 }
 
 func gridInit()->Grid
@@ -298,8 +298,8 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
-    @assert(!g.isOpen(0, 0))      // wall
-    @assert(g.isOpen(1, 1))       // open
+    @assert(!g.isOpen(0, 0))     // wall
+    @assert(g.isOpen(1, 1))      // open
     @assert(g.cell(0, 0) == '#')
     @assert(g.cell(3, 1) == 'S')
 }

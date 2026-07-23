@@ -289,9 +289,9 @@ impl Spring
     @assert(scaled.x == 9 and scaled.y == 12)
 
     let d = Vec2's32.dot(&a, &b)
-    @assert(d == -5) // 3*1 + 4*(-2)
+    @assert(d == -5)     // 3*1 + 4*(-2)
 
-    @assert(a.lengthSq() == 25) // 9 + 16
+    @assert(a.lengthSq() == 25)     // 9 + 16
 }
 
 #test
@@ -436,11 +436,11 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 3, y: 4}, acc: {x: 0, y: 0}, mass: 2}
-    @assert(p.kineticEnergy() == 25) // (9+16)*2/2
+    @assert(p.kineticEnergy() == 25)     // (9+16)*2/2
 
     let mom = p.momentum()
     #assert(#typeof(mom) == Vec2's32)
-    @assert(mom.x == 6 and mom.y == 8) // vel*mass
+    @assert(mom.x == 6 and mom.y == 8)     // vel*mass
 }
 
 #test
@@ -486,10 +486,10 @@ impl Spring
         stiffness: 1,
         restLen:   5}
 
-    @assert(s.totalKineticEnergy() == 18) // (9*2/2)*2
+    @assert(s.totalKineticEnergy() == 18)     // (9*2/2)*2
 
     let mom = s.totalMomentum()
-    @assert(mom.x == 0 and mom.y == 0) // 6 + (-6)
+    @assert(mom.x == 0 and mom.y == 0)     // 6 + (-6)
 }
 
 #test

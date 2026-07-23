@@ -113,7 +113,7 @@ enum CmpEnum: u16
 
 #test
 {
-    func cmpBad(a: bool, b: s32)->bool { return a < b } // swc-expected-error {{sema_err_compare_operand_type}}
+    func cmpBad(a: bool, b: s32)->bool { return a < b }     // swc-expected-error {{sema_err_compare_operand_type}}
 }
 
 #test
@@ -213,12 +213,12 @@ enum CmpEnum: u16
         value: s32
     }
 
-    func cmpLogicalBadLeft(a: LogicalBad, b: bool)->bool { return a and b } // swc-expected-error {{sema_err_binary_operand_type}}
+    func cmpLogicalBadLeft(a: LogicalBad, b: bool)->bool { return a and b }     // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
 #test
 {
-    func cmpLogicalBadRight(a: bool, b: [2] s32)->bool { return a or b } // swc-expected-error {{sema_err_binary_operand_type}}
+    func cmpLogicalBadRight(a: bool, b: [2] s32)->bool { return a or b }     // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
 #test

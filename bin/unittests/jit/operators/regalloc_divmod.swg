@@ -26,9 +26,9 @@
         // With 6 live values competing for registers, one of them will be
         // allocated to RDX.  The legalize pass must evict whichever divisor
         // lands there before emitting DIV.
-        var q1: u32 = a / b    // DIV: a=60, b=3 → q1=20;  b forbidden from RDX
-        var q2: u32 = c / d    // DIV: c=40, d=8 → q2=5;   d forbidden from RDX
-        return q1 + q2 + e + f // 20 + 5 + 4 + 5 = 34
+        var q1: u32 = a / b        // DIV: a=60, b=3 → q1=20;  b forbidden from RDX
+        var q2: u32 = c / d        // DIV: c=40, d=8 → q2=5;   d forbidden from RDX
+        return q1 + q2 + e + f     // 20 + 5 + 4 + 5 = 34
     }
 
     const V = #run divDivisorInRdx(60'u32, 3'u32, 40'u32, 8'u32, 4'u32, 5'u32)
@@ -45,11 +45,11 @@
 {
     func divModPair(a: u32, b: u32)->u32
     {
-        var q1: u32 = a / b         // DIV: a=100, b=7 → q1=14  (RAX); RDX clobbered
-        var r1: u32 = a % b         // DIV: remainder=2           (RDX); RAX/RDX re-clobbered
-        var q2: u32 = b / 3'u32     // DIV: 7/3=2; q1,r1 still live → spill pressure
-        var r2: u32 = b % 3'u32     // DIV: 7%3=1
-        return q1 + r1 + q2 + r2   // 14 + 2 + 2 + 1 = 19
+        var q1: u32 = a / b          // DIV: a=100, b=7 → q1=14  (RAX); RDX clobbered
+        var r1: u32 = a % b          // DIV: remainder=2           (RDX); RAX/RDX re-clobbered
+        var q2: u32 = b / 3'u32      // DIV: 7/3=2; q1,r1 still live → spill pressure
+        var r2: u32 = b % 3'u32      // DIV: 7%3=1
+        return q1 + r1 + q2 + r2     // 14 + 2 + 2 + 1 = 19
     }
 
     const V = #run divModPair(100'u32, 7'u32)
@@ -66,10 +66,10 @@
 {
     func divChain(a: u32, b: u32)->u32
     {
-        var r1: u32 = a / b    // 120 / 2 = 60
-        var r2: u32 = r1 / b   // 60  / 2 = 30
-        var r3: u32 = r2 / b   // 30  / 2 = 15
-        return r1 + r2 + r3    // 60 + 30 + 15 = 105
+        var r1: u32 = a / b      // 120 / 2 = 60
+        var r2: u32 = r1 / b     // 60  / 2 = 30
+        var r3: u32 = r2 / b     // 30  / 2 = 15
+        return r1 + r2 + r3      // 60 + 30 + 15 = 105
     }
 
     const V = #run divChain(120'u32, 2'u32)
@@ -87,9 +87,9 @@
 {
     func divResultAsShiftCount(a: u32, b: u32, c: u32)->u32
     {
-        var cnt: u32 = a / b   // DIV: a=12, b=4 → cnt=3 (in RAX); RDX clobbered
-        var r: u32 = c << cnt  // SHL: cnt must be in CL → legalize: RAX→CL
-        return r               // 5 << 3 = 40
+        var cnt: u32 = a / b      // DIV: a=12, b=4 → cnt=3 (in RAX); RDX clobbered
+        var r: u32 = c << cnt     // SHL: cnt must be in CL → legalize: RAX→CL
+        return r                  // 5 << 3 = 40
     }
 
     const V = #run divResultAsShiftCount(12'u32, 4'u32, 5'u32)
@@ -107,11 +107,11 @@
 {
     func divInterleavedShift(a: u32, b: u32, c: u32)->u32
     {
-        var q: u32  = a / b           // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
-        var s: u32  = c >> q          // SHL: q→CL;  128 >> 4 = 8
-        var q2: u32 = c / b           // DIV: RAX reused; 128/6=21; RDX clobbered
-        var s2: u32 = a << (q - 1'u32) // SHL: (q-1)→CL=3; 24 << 3 = 192
-        return s + q + q2 + s2        // 8 + 4 + 21 + 192 = 225
+        var q: u32  = a / b                // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
+        var s: u32  = c >> q               // SHL: q→CL;  128 >> 4 = 8
+        var q2: u32 = c / b                // DIV: RAX reused; 128/6=21; RDX clobbered
+        var s2: u32 = a << (q - 1'u32)     // SHL: (q-1)→CL=3; 24 << 3 = 192
+        return s + q + q2 + s2             // 8 + 4 + 21 + 192 = 225
     }
 
     const V = #run divInterleavedShift(24'u32, 6'u32, 128'u32)
@@ -128,11 +128,11 @@
 {
     func signedUnsignedDivMix(a: s32, b: u32, big: s64)->s64
     {
-        var sq: s32 = a / 3          // IDIV32:  -90 / 3  = -30
-        var sr: s32 = a % 7          // IDIV32:  -90 % 7  = -6  (truncated toward 0)
-        var uq: u32 = b / 5'u32      // DIV32:    60 / 5  = 12
-        var ur: u32 = b % 7'u32      // DIV32:    60 % 7  = 4
-        var bq: s64 = big / 10's64   // IDIV64:  420 / 10 = 42
+        var sq: s32 = a / 3            // IDIV32:  -90 / 3  = -30
+        var sr: s32 = a % 7            // IDIV32:  -90 % 7  = -6  (truncated toward 0)
+        var uq: u32 = b / 5'u32        // DIV32:    60 / 5  = 12
+        var ur: u32 = b % 7'u32        // DIV32:    60 % 7  = 4
+        var bq: s64 = big / 10's64     // IDIV64:  420 / 10 = 42
         return cast(s64) sq + cast(s64) sr + cast(s64) uq + cast(s64) ur + bq
     // -30 + (-6) + 12 + 4 + 42 = 22
     }
@@ -151,11 +151,11 @@
 {
     func mulDivChain(a: u32, b: u32, c: u32)->u32
     {
-        var p: u32  = a * b      // MUL: a=7, b=8 → p=56 (RDX:RAX; high bits zero)
-        var q: u32  = p / c      // DIV: p=56, c=5 → q=11 (RAX); RDX clobbered
-        var r: u32  = p % c      // DIV: p=56, c=5 → r=1  (RDX)
-        var p2: u32 = q * c      // MUL: 11 * 5 = 55 (RAX; q,r live → spill pressure)
-        return p + q + r + p2    // 56 + 11 + 1 + 55 = 123
+        var p: u32  = a * b       // MUL: a=7, b=8 → p=56 (RDX:RAX; high bits zero)
+        var q: u32  = p / c       // DIV: p=56, c=5 → q=11 (RAX); RDX clobbered
+        var r: u32  = p % c       // DIV: p=56, c=5 → r=1  (RDX)
+        var p2: u32 = q * c       // MUL: 11 * 5 = 55 (RAX; q,r live → spill pressure)
+        return p + q + r + p2     // 56 + 11 + 1 + 55 = 123
     }
 
     const V = #run mulDivChain(7'u32, 8'u32, 5'u32)
@@ -173,10 +173,10 @@
 {
     func divInsideShiftExpr(a: u32, b: u32, c: u32, d: u32)->u32
     {
-        var dividend: u32 = a / b          // DIV: a=80, b=10 → dividend=8  (RAX)
-        var shiftCnt: u32 = c % d          // MOD: c=11, d=4  → shiftCnt=3  (RDX→result)
-        var r: u32 = dividend << shiftCnt  // SHL: shiftCnt → CL;  8 << 3 = 64
-        return r + dividend + shiftCnt     // 64 + 8 + 3 = 75
+        var dividend: u32 = a / b             // DIV: a=80, b=10 → dividend=8  (RAX)
+        var shiftCnt: u32 = c % d             // MOD: c=11, d=4  → shiftCnt=3  (RDX→result)
+        var r: u32 = dividend << shiftCnt     // SHL: shiftCnt → CL;  8 << 3 = 64
+        return r + dividend + shiftCnt        // 64 + 8 + 3 = 75
     }
 
     const V = #run divInsideShiftExpr(80'u32, 10'u32, 11'u32, 4'u32)

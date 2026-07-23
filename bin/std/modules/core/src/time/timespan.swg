@@ -5,7 +5,7 @@
 #[Swag.Operators(opCompare)]
 struct TimeSpan
 {
-    ticks: Ticks // Duration represented in ticks
+    ticks: Ticks     // Duration represented in ticks
 }
 
 impl TimeSpan

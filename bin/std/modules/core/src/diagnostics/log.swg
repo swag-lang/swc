@@ -18,7 +18,7 @@ enum LogFlags
 // Interface for writing log output.
 interface ILogWriter
 {
-    mtd print(text: string); // Print a string to the log destination.
+    mtd print(text: string);     // Print a string to the log destination.
 }
 
 // A thread-safe logger that supports multiple output writers and customizable formatting.
@@ -28,7 +28,7 @@ struct Log
     buf:         StrConv.StringBuilder     // Internal buffer for building log messages.
     dt:          Time.DateTime             // Cached date/time at the moment of log call.
     writers:     Array'ILogWriter          // Registered writer interfaces.
-    prefix:      #null string             // Optional prefix added to each log line.
+    prefix:      #null string              // Optional prefix added to each log line.
     flags:       LogFlags = Default        // Bitwise flags controlling output format.
 }
 

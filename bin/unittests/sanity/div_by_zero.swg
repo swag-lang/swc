@@ -12,7 +12,7 @@
 {
     var d = 0
     var a = 10
-    let x = a / d // swc-expected-error {{sanity_err_division_zero}}
+    let x = a / d     // swc-expected-error {{sanity_err_division_zero}}
     discard x
 }
 
@@ -22,7 +22,7 @@
 {
     var d = 0
     var a = 10
-    let x = a % d // swc-expected-error {{sanity_err_division_zero}}
+    let x = a % d     // swc-expected-error {{sanity_err_division_zero}}
     discard x
 }
 
@@ -33,7 +33,7 @@
     var d = 0
     var e = d
     var a = 10
-    let x = a / e // swc-expected-error {{sanity_err_division_zero}}
+    let x = a / e     // swc-expected-error {{sanity_err_division_zero}}
     discard x
 }
 

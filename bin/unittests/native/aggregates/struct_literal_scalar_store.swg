@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 const MutationFreeSpanId = -1's64
 

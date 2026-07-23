@@ -7,11 +7,11 @@ struct FrameTiming
     dtMin:          f32 = 1 / 100000.0     // Minimum delta time allowed (in seconds)
     dtMax:          f32 = 0.1              // Maximum delta time allowed (in seconds)
 
-    dt:             f32 = 1 / 60.0         // Current delta time, in seconds
-    frameCount:     u32                    // Frame counter
+    dt:             f32 = 1 / 60.0     // Current delta time, in seconds
+    frameCount:     u32                // Frame counter
 
-    prevTick:       u64                    // Tick of the previous frame
-    paused:         bool                   // Whether timing is currently paused
+    prevTick:       u64      // Tick of the previous frame
+    paused:         bool     // Whether timing is currently paused
 }
 
 impl FrameTiming

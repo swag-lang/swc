@@ -6,10 +6,10 @@ struct S {}
 #test
 {
     var a: S
-    var b: const &S              // swc-expected-error {{sema_err_ref_missing_init}}
+    var b: const &S     // swc-expected-error {{sema_err_ref_missing_init}}
 }
 
 #test
 {
-    var x: const &s32            // swc-expected-error {{sema_err_ref_missing_init}}
+    var x: const &s32     // swc-expected-error {{sema_err_ref_missing_init}}
 }

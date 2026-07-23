@@ -11,7 +11,7 @@ They allow flexibility in cases where the number of arguments is not known in ad
     // This function can accept any number of extra arguments after 'value'.
     }
 
-    myFunction(true, 4, "true", 5.6) // Passes extra arguments after 'value'
+    myFunction(true, 4, "true", 5.6)     // Passes extra arguments after 'value'
 }
 
 /**
@@ -79,7 +79,7 @@ Variadic parameters can be forwarded between functions while preserving their ty
     }
     func B(params: ...)
     {
-        A(params) // Forward the parameters
+        A(params)     // Forward the parameters
     }
     B("value", true)
 }

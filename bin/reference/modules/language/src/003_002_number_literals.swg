@@ -42,16 +42,16 @@ within 32 bits. If the literal exceeds 32 bits, it is automatically inferred as 
 */
 #test
 {
-    const a = 0xFF // Fits in 32 bits → inferred as 'u32'
+    const a = 0xFF     // Fits in 32 bits → inferred as 'u32'
     #assert(#typeof(a) == u32)
 
-    const b = 0xF_FFFFF_FFFFFF // Exceeds 32 bits → inferred as 'u64'
+    const b = 0xF_FFFFF_FFFFFF     // Exceeds 32 bits → inferred as 'u64'
     #assert(#typeof(b) == u64)
 
-    const c = 0b00000001 // Within 32 bits → inferred as 'u32'
+    const c = 0b00000001     // Within 32 bits → inferred as 'u32'
     #assert(#typeof(c) == u32)
 
-    const d = 0b00000001_00000001_00000001_00000001_00000001 // Exceeds 32 bits → 'u64'
+    const d = 0b00000001_00000001_00000001_00000001_00000001     // Exceeds 32 bits → 'u64'
     #assert(#typeof(d) == u64)
 }
 
@@ -80,13 +80,13 @@ easy to read for developers coming from C or C++ backgrounds.
 {
     let a = 1.5
     @assert(a == 1.5)
-    #assert(#typeof(a) == f32) // Default float type is 'f32'
+    #assert(#typeof(a) == f32)     // Default float type is 'f32'
 
     let b = 0.11
     @assert(b == 0.11)
 
     let c = 15e2
-    @assert(c == 15e2) // Equivalent to 1500
+    @assert(c == 15e2)     // Equivalent to 1500
 
     let d = 15e+2
     @assert(d == 15e2)
@@ -117,15 +117,15 @@ is useful when a specific type is required, such as 'f64' or 'u8'.
 */
 #test
 {
-    let a = 1.5'f64 // Explicitly declare 'a' as 'f64'
+    let a = 1.5'f64     // Explicitly declare 'a' as 'f64'
     @assert(a == 1.5)
     @assert(a == 1.5'f64)
     #assert(#typeof(a) == f64)
 
-    let b = 10'u8 // Declare 'b' as 'u8'
+    let b = 10'u8     // Declare 'b' as 'u8'
     @assert(b == 10)
     #assert(#typeof(b) == u8)
 
-    let c = 1'u32 // Explicitly typed as 'u32'
+    let c = 1'u32     // Explicitly typed as 'u32'
     #assert(#typeof(c) == u32)
 }

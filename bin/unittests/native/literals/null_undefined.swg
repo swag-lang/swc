@@ -1,4 +1,4 @@
-#global private //
+#global private     //
 
 // null pointer literal
 #test

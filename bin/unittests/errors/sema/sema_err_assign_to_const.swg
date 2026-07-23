@@ -48,25 +48,25 @@ impl InlineConstAssignPayload
 #[Swag.Macro]
 func macroAssignConstParam(payload: InlineConstAssignPayload)
 {
-    payload.total += 1 // swc-expected-error {{sema_err_assign_to_const}}
+    payload.total += 1     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #[Swag.Macro]
 func macroAssignSecondConstParam(first, second: InlineConstAssignPayload)
 {
-    second.total += first.total // swc-expected-error {{sema_err_assign_to_const}}
+    second.total += first.total     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #[Swag.Macro]
 func macroNestedAssignConstParam(payload: InlineConstAssignPayload)
 {
-    macroAssignConstParam(payload) // swc-expected-note {{sema_note_expansion_invoked_here}}
+    macroAssignConstParam(payload)     // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #[Swag.Mixin]
 func mixinAssignConstParam(values: [2] s32)
 {
-    values[1] += 1 // swc-expected-error {{sema_err_assign_to_const}}
+    values[1] += 1     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #[Swag.Macro]
@@ -74,7 +74,7 @@ func macroForeachWriteConstParam(values: [2] s32)
 {
     for &value in values
     {
-        value += 1 // swc-expected-error {{sema_err_assign_to_const}}
+        value += 1     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -83,18 +83,18 @@ func mixinForeachWriteConstParam(values: [2] s32)
 {
     for &value in values
     {
-        value += 1 // swc-expected-error {{sema_err_assign_to_const}}
+        value += 1     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
 func plainCallMutableMethod(payload: InlineConstAssignPayload)
 {
-    payload.bump() // swc-expected-error {{sema_err_cannot_cast_const}}
+    payload.bump()     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 func plainAssignConstParam(payload: InlineConstAssignPayload)
 {
-    payload.total += 1 // swc-expected-error {{sema_err_assign_to_const}}
+    payload.total += 1     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -111,25 +111,25 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     const box = WriteOnlyIndexBox{}
-    box[0] = 1 // swc-expected-error {{sema_err_assign_to_const}}
+    box[0] = 1     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("abc")
-    text[0] = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("abc")
-    text[0] = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: string = "abc"
-    text[0] = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -137,7 +137,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: string = "abc"
     for &value in text
     {
-        value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+        value = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -146,7 +146,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: const cstring = cast(const cstring) @dataof("abc")
     for &value in text
     {
-        value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+        value = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -154,48 +154,48 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 {
     var data: [3] u8 = [1, 2, 3]
     let values: const [..] u8 = cast(const [..] u8) data
-    values[0] = 9'u8 // swc-expected-error {{sema_err_assign_to_const}}
+    values[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     let bytes = cast(const [..] u8) (cast(const cstring) @dataof("abc"))
-    bytes[0] = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
+    bytes[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var data: [3] u8 = [1, 2, 3]
     let ptr: const [*] u8 = cast(const [*] u8) &data[0]
-    ptr[0] = 9'u8 // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var value = 1's32
     let ptr: const *s32 = &value
-    dref ptr = 2's32 // swc-expected-error {{sema_err_assign_to_const}}
+    dref ptr = 2's32     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var data: [2] ConstAssignPair = [{value: 1}, {value: 2}]
     let values: const [..] ConstAssignPair = cast(const [..] ConstAssignPair) data
-    values[0].value = 9 // swc-expected-error {{sema_err_assign_to_const}}
+    values[0].value = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var data: [2] ConstAssignPair = [{value: 1}, {value: 2}]
     let ptr: const [*] ConstAssignPair = cast(const [*] ConstAssignPair) &data[0]
-    ptr[0].value = 9 // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0].value = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var value: ConstAssignPair = {value: 1}
     let ptr: const *ConstAssignPair = &value
-    ptr.value = 9 // swc-expected-error {{sema_err_assign_to_const}}
+    ptr.value = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -203,7 +203,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data: [2] ConstAssignPair = [{value: 1}, {value: 2}]
     let values: const [..] ConstAssignPair = cast(const [..] ConstAssignPair) data
     let ptr = &values[0].value
-    dref ptr = 9 // swc-expected-error {{sema_err_assign_to_const}}
+    dref ptr = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -211,7 +211,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data: [2] ConstAssignPair = [{value: 1}, {value: 2}]
     let values: const [*] ConstAssignPair = cast(const [*] ConstAssignPair) &data[0]
     let ptr = &values[0].value
-    dref ptr = 9 // swc-expected-error {{sema_err_assign_to_const}}
+    dref ptr = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -219,7 +219,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data: [1] ConstAssignArrayBox = [{bytes: [1'u8, 2'u8]}]
     let values: const [..] ConstAssignArrayBox = cast(const [..] ConstAssignArrayBox) data
     let ptr = @dataof(values[0].bytes)
-    ptr[0] = 9'u8 // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -227,37 +227,37 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var data: [1] ConstAssignArrayBox = [{bytes: [1'u8, 2'u8]}]
     let values: const [*] ConstAssignArrayBox = cast(const [*] ConstAssignArrayBox) &data[0]
     let ptr = @dataof(values[0].bytes)
-    ptr[0] = 9'u8 // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var values: [2] s32 = [1, 2]
-    mixinAssignConstParam(values) // swc-expected-note {{sema_note_expansion_invoked_here}}
+    mixinAssignConstParam(values)     // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test
 {
     var payload = InlineConstAssignPayload{total: 41}
-    macroNestedAssignConstParam(payload) // swc-expected-note {{sema_note_expansion_invoked_here}}
+    macroNestedAssignConstParam(payload)     // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test
 {
     var payload = InlineConstAssignPayload{total: 41}
-    macroAssignSecondConstParam(payload, payload) // swc-expected-note {{sema_note_expansion_invoked_here}}
+    macroAssignSecondConstParam(payload, payload)     // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test
 {
     var values: [2] s32 = [1, 2]
-    macroForeachWriteConstParam(values) // swc-expected-note {{sema_note_expansion_invoked_here}}
+    macroForeachWriteConstParam(values)     // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test
 {
     var values: [2] s32 = [1, 2]
-    mixinForeachWriteConstParam(values) // swc-expected-note {{sema_note_expansion_invoked_here}}
+    mixinForeachWriteConstParam(values)     // swc-expected-note {{sema_note_expansion_invoked_here}}
 }
 
 #test

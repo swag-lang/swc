@@ -12,11 +12,11 @@ func acceptOwnCmdIds()
 enum CmdNeed
 {
     Nothing
-    Capture      // an opened capture
-    Selection    // at least one selected form
-    MultiSel     // at least two selected forms
-    Forms        // a capture with at least one form
-    PixSel       // at least one selected pixel-selection form
+    Capture       // an opened capture
+    Selection     // at least one selected form
+    MultiSel      // at least two selected forms
+    Forms         // a capture with at least one form
+    PixSel        // at least one selected pixel-selection form
 }
 
 struct CmdDesc
@@ -24,7 +24,7 @@ struct CmdDesc
     id:               WndId
     name:             string
     need:             CmdNeed = .Nothing
-    hideDisabled:     bool          // hidden follows disabled (contextual commands)
+    hideDisabled:     bool     // hidden follows disabled (contextual commands)
 }
 
 // The update() body for the purely-mechanical commands of an action: set the name

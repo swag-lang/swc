@@ -184,7 +184,7 @@ align-enum-values = preserve
 align-attributes = preserve
 
 # Align `//` trailing comments into a shared column.
-align-trailing-comments = preserve
+align-trailing-comments = true
 
 # Minimum number of spaces between code and a trailing `//` comment.
 trailing-comment-min-spaces = 5

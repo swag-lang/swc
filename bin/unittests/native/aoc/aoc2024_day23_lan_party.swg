@@ -39,13 +39,13 @@ tc-ka"""
 // Node name ↔ index mapping
 // ---------------------------------------------------------------------------
 
-const MaxNodes = 676'u32  // 26*26
+const MaxNodes = 676'u32     // 26*26
 const MaxEdges = 4096'u32
 
 struct Graph
 {
-    adj:      #null [*] bool   // MaxNodes * MaxNodes adjacency matrix
-    names:    [MaxEdges] [2] u8  // node names (2 chars each)
+    adj:      #null [*] bool        // MaxNodes * MaxNodes adjacency matrix
+    names:    [MaxEdges] [2] u8     // node names (2 chars each)
     nodeUsed: [MaxNodes] bool
     count:    u32
 }

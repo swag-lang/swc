@@ -8,10 +8,10 @@ specified 'type'.
 */
 #test
 {
-    let x = 1.0 // Defaults to 'f32'
+    let x = 1.0     // Defaults to 'f32'
     #assert(#typeof(x) == f32)
 
-    let y = cast(s32) x // Explicit cast to 's32'
+    let y = cast(s32) x     // Explicit cast to 's32'
     #assert(#typeof(y) == s32)
     @assert(y == 1)
 }
@@ -40,7 +40,7 @@ func testAutoCast(x: s32)
 
 #test
 {
-    testAutoCast(cast() 1.4) // Automatically cast to 's32'
+    testAutoCast(cast() 1.4)     // Automatically cast to 's32'
 }
 
 /**
@@ -54,7 +54,7 @@ must have the same size.
 {
     let x: f32 = 1.0
     let y: u32 = cast #bit (u32) x
-    @assert(y == 0x3f800000) // 1.0 in IEEE 754 format
+    @assert(y == 0x3f800000)     // 1.0 in IEEE 754 format
 
     #assert(cast #bit (u32) 1.0 == 0x3f800000)
     #assert(cast #bit (f32) 0x3f800000 == 1.0)

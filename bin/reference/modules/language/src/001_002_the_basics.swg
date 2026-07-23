@@ -33,7 +33,7 @@ Variables declared with 'var' can be reassigned as needed.
 #test
 {
     var counter = 0
-    counter = 5 // Reassigning the value of 'counter'
+    counter = 5     // Reassigning the value of 'counter'
 }
 
 /**
@@ -79,7 +79,7 @@ while 'const' is typically resolved at compile-time.
 Use the '@print' intrinsic to display output in the console.
 */
 
-const CanPrint = false // Must be 'true' to show 'print' results
+const CanPrint = false     // Must be 'true' to show 'print' results
 func print(x: ...)
 {
     if CanPrint do
@@ -121,7 +121,7 @@ They’re only needed when placing multiple statements on the same line.
 {
     let a = 5
     let b = 10
-    print(a + b, "\n") // Outputs 15
+    print(a + b, "\n")     // Outputs 15
 }
 
 /**
@@ -249,7 +249,7 @@ Functions encapsulate reusable blocks of logic.
         return a + b
     }
     let result = add(10, 5)
-    print("Result: ", result, "\n") // Outputs 15
+    print("Result: ", result, "\n")     // Outputs 15
 }
 
 /**

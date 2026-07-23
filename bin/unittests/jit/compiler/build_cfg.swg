@@ -20,5 +20,5 @@
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
-    var bad: s32 = Cfg.backend.enableExceptions // swc-expected-error {{sema_err_cannot_cast}}
+    var bad: s32 = Cfg.backend.enableExceptions     // swc-expected-error {{sema_err_cannot_cast}}
 }

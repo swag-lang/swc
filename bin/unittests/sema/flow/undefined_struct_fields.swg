@@ -70,14 +70,14 @@ func undOkWholeCopy()->bool
 func undErrPartField()->s32
 {
     var p: UndPartDefault
-    return p.count // swc-expected-error {{sema_err_undefined_field_use}}
+    return p.count     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // Same with a struct whose fields are ALL undefined by default.
 func undErrAllField()->s32
 {
     var v: UndAllDefault
-    return v.x // swc-expected-error {{sema_err_undefined_field_use}}
+    return v.x     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
 // Initialized on one path only.
@@ -86,5 +86,5 @@ func undErrHalfInit(c: bool)->s32
     var p: UndPartDefault
     if c do
         p.count = 1
-    return p.count // swc-expected-error {{sema_err_undefined_field_use}}
+    return p.count     // swc-expected-error {{sema_err_undefined_field_use}}
 }

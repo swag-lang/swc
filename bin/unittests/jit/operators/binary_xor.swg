@@ -19,7 +19,7 @@
 #test
 {
     func bitXorStrict(a: u32, b: u32)->u32 { return a ^ b }
-    const V = #run bitXorStrict(47'u32, 5'u32, 1'u32) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run bitXorStrict(47'u32, 5'u32, 1'u32)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
@@ -33,5 +33,5 @@
 #test
 {
     func bitXorTooFew(a: u32, b: u32)->u32 { return a ^ b }
-    const V = #run bitXorTooFew(47'u32) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run bitXorTooFew(47'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

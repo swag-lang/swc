@@ -57,9 +57,9 @@ func day5B0()
         for c in 8 do
             cpt += cast(s32) here[r, c]
 
-        if cpt == 7 // Search for one missing seat in the row
+        if cpt == 7     // Search for one missing seat in the row
         {
-            for c in 1 to 6 // Can't be on the side
+            for c in 1 to 6     // Can't be on the side
             {
                 if !here[r, c]
                 {

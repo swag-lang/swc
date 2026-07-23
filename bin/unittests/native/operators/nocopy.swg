@@ -28,17 +28,17 @@ func makeHandle(v: s32)->Handle
 {
     g_moves, g_drops = 0
 
-    var a = Handle{1}      // direct construction
-    var b = #move a        // explicit move
+    var a = Handle{1}     // direct construction
+    var b = #move a       // explicit move
     @assert(b.x == 1)
     @assert(g_moves == 1)
 
     var c: Handle
-    c = #move b            // move assignment
+    c = #move b     // move assignment
     @assert(c.x == 1)
     @assert(g_moves == 2)
 
-    var d = makeHandle(7)  // rvalue init from a call result
+    var d = makeHandle(7)     // rvalue init from a call result
     @assert(d.x == 7)
 }
 

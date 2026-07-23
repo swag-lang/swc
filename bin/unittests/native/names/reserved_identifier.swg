@@ -1,5 +1,5 @@
 #global private
-#test // 
+#test     // 
 {
     let ok = 10
     @assert(ok == 10)

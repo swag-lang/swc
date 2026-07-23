@@ -139,7 +139,7 @@ func jitNonNullConstruction()->bool
     let legacySource: *JitNonNullItem = &first
     let migrated: *JitNonNullItem = migrateJitLegacyPointer(legacySource)
     var widened: #null *JitNonNullItem = migrated
-    widened = null // the qualifier is real: null flows into it
+    widened = null     // the qualifier is real: null flows into it
     widened = migrated
 
     #assert(#typeof(aliasReadOnly) == const *JitNonNullItem)

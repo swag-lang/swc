@@ -12,10 +12,10 @@
 // memory-backed operands: values are stored into mutable globals and compared through
 // `Swag.Optimize(false)` helpers so neither Sema nor the optimizer can fold them away.
 
-struct P2 { x, y: s64 }            // 16 bytes -> B64 + B64
-struct P3 { a, b, c: s32 }         // 12 bytes -> B64 + B32
-struct PB { data: [9] u8 }         //  9 bytes -> B64 + B8
-struct Big { p: P2, k: s64 }       // 24 bytes, nested struct
+struct P2 { x, y: s64 }          // 16 bytes -> B64 + B64
+struct P3 { a, b, c: s32 }       // 12 bytes -> B64 + B32
+struct PB { data: [9] u8 }       //  9 bytes -> B64 + B8
+struct Big { p: P2, k: s64 }     // 24 bytes, nested struct
 
 #[Swag.Optimize(false)]
 func eqP2(a, b: P2)->bool => a == b
@@ -40,9 +40,9 @@ var g_arr: [3] [3] s64
 #test
 {
     g_p2[0] = P2{0, 0}
-    g_p2[1] = P2{0, 10000}        // same x, different y
-    g_p2[2] = P2{0, 10000}        // identical to [1]
-    g_p2[3] = P2{10000, 0}        // different x, same y
+    g_p2[1] = P2{0, 10000}     // same x, different y
+    g_p2[2] = P2{0, 10000}     // identical to [1]
+    g_p2[3] = P2{10000, 0}     // different x, same y
 
     @assert(neP2(g_p2[0], g_p2[1]))
     @assert(!eqP2(g_p2[0], g_p2[1]))
@@ -55,8 +55,8 @@ var g_arr: [3] [3] s64
 #test
 {
     g_p3[0] = P3{1, 2, 3}
-    g_p3[1] = P3{1, 2, 9}         // differ in c only
-    g_p3[2] = P3{1, 2, 3}         // identical to [0]
+    g_p3[1] = P3{1, 2, 9}     // differ in c only
+    g_p3[2] = P3{1, 2, 3}     // identical to [0]
 
     @assert(!eqP3(g_p3[0], g_p3[1]))
     @assert(eqP3(g_p3[0], g_p3[2]))
@@ -66,8 +66,8 @@ var g_arr: [3] [3] s64
 #test
 {
     g_pb[0] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 0]}
-    g_pb[1] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}    // differ in last byte
-    g_pb[2] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}    // identical to [1]
+    g_pb[1] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}     // differ in last byte
+    g_pb[2] = PB{[1, 2, 3, 4, 5, 6, 7, 8, 9]}     // identical to [1]
 
     @assert(!eqPB(g_pb[0], g_pb[1]))
     @assert(eqPB(g_pb[1], g_pb[2]))
@@ -77,9 +77,9 @@ var g_arr: [3] [3] s64
 #test
 {
     g_big[0] = Big{P2{5, 7}, 100}
-    g_big[1] = Big{P2{5, 8}, 100}    // differ only in p.y
-    g_big[2] = Big{P2{5, 7}, 200}    // differ only in k
-    g_big[3] = Big{P2{5, 7}, 100}    // identical to [0]
+    g_big[1] = Big{P2{5, 8}, 100}     // differ only in p.y
+    g_big[2] = Big{P2{5, 7}, 200}     // differ only in k
+    g_big[3] = Big{P2{5, 7}, 100}     // identical to [0]
 
     @assert(!eqBig(g_big[0], g_big[1]))
     @assert(!eqBig(g_big[0], g_big[2]))
@@ -90,7 +90,7 @@ var g_arr: [3] [3] s64
 #test
 {
     g_arr[0] = [1, 2, 3]
-    g_arr[1] = [1, 2, 4]             // differ in last element
+    g_arr[1] = [1, 2, 4]     // differ in last element
     g_arr[2] = [1, 2, 3]
 
     @assert(!eqArr3(g_arr[0], g_arr[1]))

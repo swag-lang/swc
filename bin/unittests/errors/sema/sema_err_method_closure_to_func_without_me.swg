@@ -32,7 +32,7 @@ impl CallbackOwner
             return .accepted
         }
 
-        return dlg.doModal() // swc-expected-error {{sema_err_cannot_cast}}
+        return dlg.doModal()     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }
 

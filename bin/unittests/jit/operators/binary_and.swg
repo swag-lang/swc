@@ -19,7 +19,7 @@
 #test
 {
     func bitAndStrict(a: u32, b: u32)->u32 { return a & b }
-    const V = #run bitAndStrict(42'u32, 255'u32, 1'u32) // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run bitAndStrict(42'u32, 255'u32, 1'u32)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
@@ -33,5 +33,5 @@
 #test
 {
     func bitAndTooFew(a: u32, b: u32)->u32 { return a & b }
-    const V = #run bitAndTooFew(42'u32) // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run bitAndTooFew(42'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

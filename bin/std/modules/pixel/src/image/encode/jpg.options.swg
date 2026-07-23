@@ -3,5 +3,5 @@
 
 struct EncodeOptions
 {
-    quality = 95'u8 // Encoding quality between 1 and 100
+    quality = 95'u8     // Encoding quality between 1 and 100
 }

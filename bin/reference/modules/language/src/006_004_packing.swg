@@ -121,9 +121,9 @@ This provides fine-grained control over memory layout for low-level optimization
 {
     struct MyStruct1
     {
-        x:   bool // offset 0: 1 byte
+        x:   bool     // offset 0: 1 byte
         #[Swag.Align(8)]
-        y:   bool // offset 8: aligned to 8 bytes (7 bytes of padding before y)
+        y:   bool     // offset 8: aligned to 8 bytes (7 bytes of padding before y)
     }
     #assert(#offsetof(MyStruct1.x) == 0)
     #assert(#offsetof(MyStruct1.y) == 8)
@@ -132,9 +132,9 @@ This provides fine-grained control over memory layout for low-level optimization
     #[Swag.Align(8)]
     struct MyStruct2
     {
-        x:   bool // offset 0: 1 byte
+        x:   bool     // offset 0: 1 byte
         #[Swag.Align(4)]
-        y:   bool // offset 4: aligned to 4 bytes (3 bytes of padding before y)
+        y:   bool     // offset 4: aligned to 4 bytes (3 bytes of padding before y)
     // 3 bytes of padding to align struct size to 8
     }
     #assert(#offsetof(MyStruct2.x) == 0)

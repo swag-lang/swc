@@ -39,7 +39,7 @@ struct RichString
     layoutRect:     Math.Rectangle
     boundRect:      Math.Rectangle
     hasUrl:         bool
-    dirty:          bool                // If dirty, 'Compute'
+    dirty:          bool     // If dirty, 'Compute'
 }
 
 impl RichString

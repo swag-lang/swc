@@ -10,7 +10,7 @@ especially when working with complex or generic return types.
 {
     func toto()->s32
     {
-        var result: retval // 'retval' resolves to 's32' in this context.
+        var result: retval     // 'retval' resolves to 's32' in this context.
         result = 10
         return result
     }

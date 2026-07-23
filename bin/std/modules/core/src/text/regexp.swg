@@ -1562,7 +1562,7 @@ impl RegExp
             .preprocessed.add('?')
         elif n == 1 and m == -1 do
             .preprocessed.add('+')
-        elif n != 1 or m != 1 // {1,1}
+        elif n != 1 or m != 1     // {1,1}
         {
             if n == 0 do
                 .preprocessed.add('?')

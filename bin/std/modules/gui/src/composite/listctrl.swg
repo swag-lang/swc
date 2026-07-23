@@ -16,8 +16,8 @@ enum ListFlags
     AlternateLines
     HorzLines
     VertLines
-    ForceMarginExpandMark         // Force one margin even if no expand mark
-    NoMouseEmptySel               // Click does not clear selection if not on an item
+    ForceMarginExpandMark     // Force one margin even if no expand mark
+    NoMouseEmptySel           // Click does not clear selection if not on an item
     HotTrack
 }
 

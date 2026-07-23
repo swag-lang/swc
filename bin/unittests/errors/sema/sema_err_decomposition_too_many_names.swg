@@ -7,5 +7,5 @@ func toto()->{x: s32, y: bool}
 
 #test
 {
-    let (a, b, c) = toto() // swc-expected-error {{sema_err_decomposition_too_many_names}}
+    let (a, b, c) = toto()     // swc-expected-error {{sema_err_decomposition_too_many_names}}
 }

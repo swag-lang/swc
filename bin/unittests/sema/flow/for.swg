@@ -139,7 +139,7 @@ func semaTest017()
     {
         var x = i
         continue
-        var y = 0 // Unreachable code is allowed
+        var y = 0     // Unreachable code is allowed
     }
 }
 
@@ -207,7 +207,7 @@ func semaTest026()
     var i = 5
     for i in 3
     {
-        var x = i // shadows outer i
+        var x = i     // shadows outer i
     }
 }
 

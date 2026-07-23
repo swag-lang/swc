@@ -19,8 +19,8 @@ and readability, especially in larger or more complex codebases.
     logic, or provide additional context to developers.
 */
 
-const A = 0        // A constant named 'A' assigned the value '0'.
-const B = /* false */true // A constant named 'B' assigned the value 'true', with an inline
+const A = 0                   // A constant named 'A' assigned the value '0'.
+const B = /* false */true     // A constant named 'B' assigned the value 'true', with an inline
 // comment noting that 'false' was an alternative value considered.
 
 /**

@@ -179,7 +179,7 @@ func semaNonNullConstruction()
     let legacySource: *SemaNonNullItem = &first
     let migrated: *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
     var widened: #null *SemaNonNullItem = migrated
-    widened = null // the qualifier is real: null flows into it below
+    widened = null     // the qualifier is real: null flows into it below
     widened = migrated
     let completeSet = cast(SemaNonNullCompleteSet) &first
     let genericRequired: SemaNonNullGenericBox'(*SemaNonNullItem) = {value: &first}

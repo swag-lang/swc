@@ -28,48 +28,48 @@ const CSIDL_NETWORK                 = 0x0012             // Network Neighborhood
 const CSIDL_NETHOOD                 = 0x0013             // <user name>/nethood
 const CSIDL_FONTS                   = 0x0014             // windows/fonts
 const CSIDL_TEMPLATES               = 0x0015
-const CSIDL_COMMON_STARTMENU        = 0x0016             // All Users/Start Menu
-const CSIDL_COMMON_PROGRAMS         = 0x0017             // All Users/Start Menu/Programs
-const CSIDL_COMMON_STARTUP          = 0x0018             // All Users/Startup
-const CSIDL_COMMON_DESKTOPDIRECTORY = 0x0019             // All Users/Desktop
-const CSIDL_APPDATA                 = 0x001a             // <user name>/Application Data
-const CSIDL_PRINTHOOD               = 0x001b             // <user name>/PrintHood
-const CSIDL_LOCAL_APPDATA           = 0x001c             // <user name>/Local Settings/Applicaiton Data (non roaming)
-const CSIDL_ALTSTARTUP              = 0x001d             // non localized startup
-const CSIDL_COMMON_ALTSTARTUP       = 0x001e             // non localized common startup
+const CSIDL_COMMON_STARTMENU        = 0x0016     // All Users/Start Menu
+const CSIDL_COMMON_PROGRAMS         = 0x0017     // All Users/Start Menu/Programs
+const CSIDL_COMMON_STARTUP          = 0x0018     // All Users/Startup
+const CSIDL_COMMON_DESKTOPDIRECTORY = 0x0019     // All Users/Desktop
+const CSIDL_APPDATA                 = 0x001a     // <user name>/Application Data
+const CSIDL_PRINTHOOD               = 0x001b     // <user name>/PrintHood
+const CSIDL_LOCAL_APPDATA           = 0x001c     // <user name>/Local Settings/Applicaiton Data (non roaming)
+const CSIDL_ALTSTARTUP              = 0x001d     // non localized startup
+const CSIDL_COMMON_ALTSTARTUP       = 0x001e     // non localized common startup
 const CSIDL_COMMON_FAVORITES        = 0x001f
 const CSIDL_INTERNET_CACHE          = 0x0020
 const CSIDL_COOKIES                 = 0x0021
 const CSIDL_HISTORY                 = 0x0022
-const CSIDL_COMMON_APPDATA          = 0x0023             // All Users/Application Data
-const CSIDL_WINDOWS                 = 0x0024             // GetWindowsDirectory()
-const CSIDL_SYSTEM                  = 0x0025             // GetSystemDirectory()
-const CSIDL_PROGRAM_FILES           = 0x0026             // C:/Program Files
-const CSIDL_MYPICTURES              = 0x0027             // C:/Program Files/My Pictures
-const CSIDL_PROFILE                 = 0x0028             // USERPROFILE
-const CSIDL_SYSTEMX86               = 0x0029             // x86 system directory on RISC
-const CSIDL_PROGRAM_FILESX86        = 0x002a             // x86 C:/Program Files on RISC
-const CSIDL_PROGRAM_FILES_COMMON    = 0x002b             // C:/Program Files/Common
-const CSIDL_PROGRAM_FILES_COMMONX86 = 0x002c             // x86 Program Files/Common on RISC
-const CSIDL_COMMON_TEMPLATES        = 0x002d             // All Users/Templates
-const CSIDL_COMMON_DOCUMENTS        = 0x002e             // All Users/Documents
-const CSIDL_COMMON_ADMINTOOLS       = 0x002f             // All Users/Start Menu/Programs/Administrative Tools
-const CSIDL_ADMINTOOLS              = 0x0030             // <user name>/Start Menu/Programs/Administrative Tools
-const CSIDL_CONNECTIONS             = 0x0031             // Network and Dial-up Connections
-const CSIDL_COMMON_MUSIC            = 0x0035             // All Users/My Music
-const CSIDL_COMMON_PICTURES         = 0x0036             // All Users/My Pictures
-const CSIDL_COMMON_VIDEO            = 0x0037             // All Users/My Video
-const CSIDL_RESOURCES               = 0x0038             // Resource Direcotry
-const CSIDL_RESOURCES_LOCALIZED     = 0x0039             // Localized Resource Direcotry
-const CSIDL_COMMON_OEM_LINKS        = 0x003a             // Links to All Users OEM specific apps
-const CSIDL_CDBURN_AREA             = 0x003b             // USERPROFILE/Local Settings/Application Data/Microsoft/CD Burning
-const CSIDL_COMPUTERSNEARME         = 0x003d             // Computers Near Me (computered from Workgroup membership)
-const CSIDL_FLAG_CREATE             = 0x8000             // combine with CSIDL_ value to force folder creation in SHGetFolderPath()
-const CSIDL_FLAG_DONT_VERIFY        = 0x4000             // combine with CSIDL_ value to return an unverified folder path
-const CSIDL_FLAG_DONT_UNEXPAND      = 0x2000             // combine with CSIDL_ value to avoid unexpanding environment variables
-const CSIDL_FLAG_NO_ALIAS           = 0x1000             // combine with CSIDL_ value to insure non-alias versions of the pidl
-const CSIDL_FLAG_PER_USER_INIT      = 0x0800             // combine with CSIDL_ value to indicate per-user init (eg. upgrade)
-const CSIDL_FLAG_MASK               = 0xFF00             // mask for all possible flag values
+const CSIDL_COMMON_APPDATA          = 0x0023     // All Users/Application Data
+const CSIDL_WINDOWS                 = 0x0024     // GetWindowsDirectory()
+const CSIDL_SYSTEM                  = 0x0025     // GetSystemDirectory()
+const CSIDL_PROGRAM_FILES           = 0x0026     // C:/Program Files
+const CSIDL_MYPICTURES              = 0x0027     // C:/Program Files/My Pictures
+const CSIDL_PROFILE                 = 0x0028     // USERPROFILE
+const CSIDL_SYSTEMX86               = 0x0029     // x86 system directory on RISC
+const CSIDL_PROGRAM_FILESX86        = 0x002a     // x86 C:/Program Files on RISC
+const CSIDL_PROGRAM_FILES_COMMON    = 0x002b     // C:/Program Files/Common
+const CSIDL_PROGRAM_FILES_COMMONX86 = 0x002c     // x86 Program Files/Common on RISC
+const CSIDL_COMMON_TEMPLATES        = 0x002d     // All Users/Templates
+const CSIDL_COMMON_DOCUMENTS        = 0x002e     // All Users/Documents
+const CSIDL_COMMON_ADMINTOOLS       = 0x002f     // All Users/Start Menu/Programs/Administrative Tools
+const CSIDL_ADMINTOOLS              = 0x0030     // <user name>/Start Menu/Programs/Administrative Tools
+const CSIDL_CONNECTIONS             = 0x0031     // Network and Dial-up Connections
+const CSIDL_COMMON_MUSIC            = 0x0035     // All Users/My Music
+const CSIDL_COMMON_PICTURES         = 0x0036     // All Users/My Pictures
+const CSIDL_COMMON_VIDEO            = 0x0037     // All Users/My Video
+const CSIDL_RESOURCES               = 0x0038     // Resource Direcotry
+const CSIDL_RESOURCES_LOCALIZED     = 0x0039     // Localized Resource Direcotry
+const CSIDL_COMMON_OEM_LINKS        = 0x003a     // Links to All Users OEM specific apps
+const CSIDL_CDBURN_AREA             = 0x003b     // USERPROFILE/Local Settings/Application Data/Microsoft/CD Burning
+const CSIDL_COMPUTERSNEARME         = 0x003d     // Computers Near Me (computered from Workgroup membership)
+const CSIDL_FLAG_CREATE             = 0x8000     // combine with CSIDL_ value to force folder creation in SHGetFolderPath()
+const CSIDL_FLAG_DONT_VERIFY        = 0x4000     // combine with CSIDL_ value to return an unverified folder path
+const CSIDL_FLAG_DONT_UNEXPAND      = 0x2000     // combine with CSIDL_ value to avoid unexpanding environment variables
+const CSIDL_FLAG_NO_ALIAS           = 0x1000     // combine with CSIDL_ value to insure non-alias versions of the pidl
+const CSIDL_FLAG_PER_USER_INIT      = 0x0800     // combine with CSIDL_ value to indicate per-user init (eg. upgrade)
+const CSIDL_FLAG_MASK               = 0xFF00     // mask for all possible flag values
 
 const SHGFI_ICON              = 0x000000100     // get icon
 const SHGFI_DISPLAYNAME       = 0x000000200     // get display name
@@ -90,7 +90,7 @@ const SHGFI_USEFILEATTRIBUTES = 0x000000010     // use passed dwFileAttribute
 const SHGFI_ADDOVERLAYS       = 0x000000020     // apply the appropriate overlays
 const SHGFI_OVERLAYINDEX      = 0x000000040     // Get the index of the overlay
 
-const SHGSI_ICONLOCATION  = 0                       // you always get the icon location
+const SHGSI_ICONLOCATION  = 0     // you always get the icon location
 const SHGSI_ICON          = SHGFI_ICON
 const SHGSI_SYSICONINDEX  = SHGFI_SYSICONINDEX
 const SHGSI_LINKOVERLAY   = SHGFI_LINKOVERLAY
@@ -371,7 +371,7 @@ internal namespace Shell32Priv
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE throw
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64) result <= 32 do  // ?!
+        if cast(u64) result <= 32 do     // ?!
             throwWinError(GetLastError())
         return result
     }
@@ -379,7 +379,7 @@ internal namespace Shell32Priv
     func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE throw
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64) result <= 32 do  // ?!
+        if cast(u64) result <= 32 do     // ?!
             throwWinError(GetLastError())
         return result
     }

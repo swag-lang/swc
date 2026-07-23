@@ -2,7 +2,7 @@
 
 func raiseCompilerPanic()->s32
 {
-    @panic("jit panic", #curlocation) // swc-expected-error {{sema_err_compiler_panic}}
+    @panic("jit panic", #curlocation)     // swc-expected-error {{sema_err_compiler_panic}}
     return 0
 }
 

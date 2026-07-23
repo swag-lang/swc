@@ -7,7 +7,7 @@ func select(value: s32)->string
 
 func(T) selectWrapped(value: T)->string
 {
-    return select(value) // swc-expected-error {{sema_err_cannot_cast}}
+    return select(value)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #run

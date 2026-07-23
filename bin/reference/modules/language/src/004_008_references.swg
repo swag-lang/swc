@@ -26,9 +26,9 @@ Assigning a value to a reference (after initialization) updates the **referenced
     var x      = 42
     var myRef: &s32 = &x
     @assert(myRef == 42)
-    myRef = 66          // Change the value of 'x' through the reference
+    myRef = 66     // Change the value of 'x' through the reference
     @assert(myRef == 66)
-    @assert(x == 66)    // 'x' is updated as well
+    @assert(x == 66)     // 'x' is updated as well
 }
 
 /**

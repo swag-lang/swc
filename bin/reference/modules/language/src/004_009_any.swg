@@ -67,11 +67,11 @@ You can retrieve the stored value directly or as a constant reference.
     #assert(#typeof(a) == any)
     @assert(@kindof(a) == s32)
 
-    let b = cast(s32) a // Get the value itself
+    let b = cast(s32) a     // Get the value itself
     @assert(b == 42)
 
-    let c = cast(const &s32) a // Get a constant reference to the value
-    let d = cast(const *s32) a // Get a constant pointer to the value
+    let c = cast(const &s32) a     // Get a constant reference to the value
+    let d = cast(const *s32) a     // Get a constant pointer to the value
     @assert(c == 42)
     @assert(dref d == 42)
 }

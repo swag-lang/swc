@@ -47,18 +47,18 @@
     {
         result *= cast(s64) i
     }
-    @assert(result == 3628800) // 10!
+    @assert(result == 3628800)     // 10!
 }
 
 // Chained compound assignments on same variable
 #test
 {
     var x: s32 = 1
-    x += 1  // 2
-    x *= 3  // 6
-    x -= 1  // 5
-    x += 5  // 10
-    x /= 2  // 5
+    x += 1     // 2
+    x *= 3     // 6
+    x -= 1     // 5
+    x += 5     // 10
+    x /= 2     // 5
     @assert(x == 5)
 }
 
@@ -135,10 +135,10 @@
 #test
 {
     var x: u32 = 0xFF'u32
-    x &= 0x3F'u32   // 0x3F
-    x |= 0x80'u32   // 0xBF
-    x ^= 0x0F'u32   // 0xB0
-    x <<= 4          // 0xB00
-    x >>= 8          // 0x0B
+    x &= 0x3F'u32     // 0x3F
+    x |= 0x80'u32     // 0xBF
+    x ^= 0x0F'u32     // 0xB0
+    x <<= 4           // 0xB00
+    x >>= 8           // 0x0B
     @assert(x == 0x0B'u32)
 }
